@@ -357,6 +357,6 @@ MDObject * createMDObject(int label, PyObject *pyValue);
 
 void setMDObjectValue(MDObject *obj, PyObject *pyValue);
 
-PyObject * getMDObjectValue(MDObject * obj);
+PyObject * getMDObjectValue(const MDObject * obj);
 
 #endif

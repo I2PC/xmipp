@@ -1005,9 +1005,9 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             auto object = MDObject((MDLabel) label);
             auto *self = (MetaDataObject*) obj;
-            if (self->metadata->getValue(*object, objectId))
+            if (self->metadata->getValue(object, objectId))
             {
-                return getMDObjectValue(object);
+                return getMDObjectValue(&object);
             }
             else
             {
@@ -1032,10 +1032,11 @@ MetaData_getRowDict(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             auto *self = (MetaDataObject*) obj;
-            auto row = self->metadata->getRow();
+            auto rowPtr = self->metadata->getRow(objectId);
+            const auto &row = *rowPtr;
             auto *dict = PyDict_New();
-            for (auto *obj : row) {
-                PyDict_SetItem(dict, PyLong_FromLong(obj->label), getMDObjectValue(obj))
+            for (const auto *obj : row) {
+                PyDict_SetItem(dict, PyLong_FromLong(obj->label), getMDObjectValue(obj));
             }
             return dict;
         }
@@ -2326,7 +2327,7 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
 }
 
 PyObject *
-getMDObjectValue(MDObject * obj)
+getMDObjectValue(const MDObject * obj)
 {
     if (obj->label == MDL_UNDEFINED) //if undefine label, store as a literal string
         return nullptr;
