@@ -1611,12 +1611,12 @@ class VolSubtraction(XmippProgramTest):
               "--mask1 gold/xmipp_volume_subtraction/V1_mask.mrc " +\
               "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc" \
               " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --radavg --computeEnergy"
-        self.runCase(str, outputs=["subtraction.mrc"], validate=self.validate_case1())
+        self.runCase(str, outputs=["subtraction.mrc"], validate=self.validate_case1)
 
     def validate_case1(self):
         import filecmp
         output = os.path.join(self.outputDir, "subtraction.mrc")
-        self.assertTrue(filecmp.cmp(output[0], "gold/xmipp_volume_subtraction/subtraction_radAvg.mrc"))
+        self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/subtraction_radAvg.mrc"))
 
     def test_case2(self):
         """Test subtraction without radial average"""
@@ -1625,11 +1625,12 @@ class VolSubtraction(XmippProgramTest):
                      "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
                      outputs=["output_volume2.mrc"],
-                     validate=self.validate_case2())
+                     validate=self.validate_case2)
 
     def validate_case2(self):
         import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "gold/xmipp_volume_subtraction/subtraction.mrc"))
+        output = os.path.join(self.outputDir, "subtraction.mrc")
+        self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/subtraction.mrc"))
 
     def test_case3(self):
         """Test adjustment without radial average"""
@@ -1638,11 +1639,12 @@ class VolSubtraction(XmippProgramTest):
                      "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
                      outputs=["output_volume3.mrc"],
-                     validate=self.validate_case3())
+                     validate=self.validate_case3)
 
     def validate_case3(self):
         import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "gold/xmipp_volume_subtraction/Vadjust.mrc"))
+        output = os.path.join(self.outputDir, "subtraction.mrc")
+        self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/Vadjust.mrc"))
 
     def test_case4(self):
         """Test adjustment with radial average"""
@@ -1651,8 +1653,9 @@ class VolSubtraction(XmippProgramTest):
                      "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
                      outputs=["output_volume4.mrc"],
-                     validate=self.validate_case4())
+                     validate=self.validate_case4)
 
     def validate_case4(self):
         import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))
+        output = os.path.join(self.outputDir, "subtraction.mrc")
+        self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))
