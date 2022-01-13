@@ -13,8 +13,6 @@ class POCSTest : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         img().resize(3,3);
         img().initConstant(0.0);
         img(1,1,1) = 1;

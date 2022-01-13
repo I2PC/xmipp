@@ -11,8 +11,6 @@ class VolSubtractionTest : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         A().resize(3,3);
 		A().initConstant(0.0);
 		A(1,1,1) = 1;
