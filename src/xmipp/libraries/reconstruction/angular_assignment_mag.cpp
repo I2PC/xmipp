@@ -139,46 +139,11 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 				weightsjp.push_back(val);
 			}
 			jp++;
-			// imprimir valores de j y jp para saber que se cuentan bien
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
 		j++;
-	}
-
-//	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
-//		double rotj;
-//		double tiltj;
-//		double psij;
-//		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
-//		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
-//		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
-//		distanceToj.initZeros(sizeMdRef);
-//		Euler_direction(rotj, tiltj, psij, dirj);
-//		int jp = -1;
-//		std::vector<int> neighborsjp;
-//		std::vector<double> weightsjp;
-//		double thisSphericalDistance = 0.;
-//		for (MDIterator __iter2(mdRef); __iter2.hasNext(); __iter2.moveNext()) {
-//			jp += 1;
-//			double rotjp;
-//			double tiltjp;
-//			double psijp;
-//			mdRef.getValue(MDL_ANGLE_ROT, rotjp, __iter2.objId);
-//			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, __iter2.objId);
-//			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
-//			Euler_direction(rotjp, tiltjp, psijp, dirjp);
-//			thisSphericalDistance = RAD2DEG(spherical_distance(dirj, dirjp));
-//
-//			if (thisSphericalDistance < maxSphericalDistance) {
-//				neighborsjp.push_back(jp);
-//				double val = exp(-thisSphericalDistance / maxSphericalDistance);
-//				weightsjp.push_back(val);
-//			}
-//		}
-//		allNeighborsjp.push_back(neighborsjp);
-//		allWeightsjp.push_back(weightsjp);
-//	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
+	}// END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
 
 	// compute Laplacian Matrix
 	DMatrix L_mat;
@@ -325,35 +290,6 @@ void ProgAngularAssignmentMag::preProcess() {
 		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
 		j++;
 	}
-
-//	int j = -1;
-//	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
-//		j += 1;
-//		// reading image
-//		mdRef.getValue(MDL_IMAGE, fnImgRef, __iter.objId);
-//		ImgRef.read(fnImgRef);
-//		MDaRef = ImgRef();
-//		MDaRef.setXmippOrigin();
-//		// store to call in processImage method
-//		double rot;
-//		double tilt;
-//		double psi;
-//		mdRef.getValue(MDL_ANGLE_ROT, rot, __iter.objId);
-//		mdRef.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
-//		mdRef.getValue(MDL_ANGLE_PSI, psi, __iter.objId);
-//		referenceRot.at(j) = rot;
-//		referenceTilt.at(j) = tilt;
-//		// processing reference image
-//		vecMDaRef.push_back(MDaRef);
-//		applyFourierImage2(MDaRef, MDaRefF);
-//		// Fourier of polar magnitude spectra
-//		transformerImage.getCompleteFourier(MDaRefF2);
-//		getComplexMagnitude(MDaRefF2, MDaRefFM);
-//		completeFourierShift(MDaRefFM, MDaRefFMs);
-//		MDaRefFMs_polarPart = imToPolar(MDaRefFMs, startBand, finalBand);
-//		applyFourierImage2(MDaRefFMs_polarPart, MDaRefFMs_polarF, n_ang);
-//		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
-//	}
 
 	// check if eigenvectors file already created
 	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
@@ -702,24 +638,6 @@ void ProgAngularAssignmentMag::postProcess() {
 		ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC,
 				objId);
 	}
-//	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
-//	{
-//		double thisMaxCC;
-//		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
-//		if (thisMaxCC > maxCC)
-//			maxCC = thisMaxCC;
-//		if (thisMaxCC == 0.0)
-//			ptrMdOut.removeObject(__iter.objId);
-//	}
-//	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
-//	{
-//		double thisMaxCC;
-//		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
-//		ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
-//		ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC,
-//				__iter.objId);
-//	}
-
 	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 }
 
