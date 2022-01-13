@@ -10,35 +10,19 @@
 
 class POCSTest : public ::testing::Test
 {
-public:
-	POCSTest()
-	{
-		//get results to compare
-		if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
-			REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
-		pocsmask.read("pocsmask.mrc");
-		pocsnonnegative.read("pocsnonnegative.mrc");
-		pocsamplitude.read("pocsamplitude.mrc");
-		pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
-		pocsminmax.read("pocsminmax.mrc");
-		pocsphase.read("pocsphase.mrc");
-	}
 protected:
     virtual void SetUp()
     {
-        //get example volume
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
-            REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
-        img.read("V1.mrc");
+        if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+        img().resize(3,3);
+        img().initConstant(0.0);
+        img(1,1,1) = 1;
+        imgAux = img;
     }
-
     Image<double> img;
-    Image<double> pocsmask;
-    Image<double> pocsnonnegative;
-    Image<double> pocsamplitude;
-    Image<double> pocsamplitude_radavg;
-    Image<double> pocsminmax;
-    Image<double> pocsphase;
+    Image<double> imgAux;
+	FourierFilter filter;
 	double min;
 	double max;
 	FourierTransformer transformer;
@@ -59,13 +43,13 @@ TEST_F(POCSTest, pocsmask)
 	mask().initZeros(XSIZE(img()),YSIZE(img()),YSIZE(img()));
 	mask().initConstant(1);
 	POCSmask(mask(), img());
-	ASSERT_EQ(img(), pocsmask());
+	ASSERT_EQ(imgAux(), img());
 }
 
 TEST_F(POCSTest, pocsnonnegative)
 {
 	POCSnonnegative(img());
-	ASSERT_EQ(img(), pocsnonnegative());
+	ASSERT_EQ(imgAux(), img());
 }
 
 TEST_F(POCSTest, pocsamplitude)
@@ -74,7 +58,7 @@ TEST_F(POCSTest, pocsamplitude)
 	FFT_magnitude(IFourier,IFourierMag);
 	POCSFourierAmplitude(IFourierMag, IFourier, 1);
 	transformer.inverseFourierTransform();
-	ASSERT_EQ(img(), pocsamplitude());
+	ASSERT_EQ(imgAux(), img());
 }
 
 TEST_F(POCSTest, pocsamplituderadAvg)
@@ -85,14 +69,14 @@ TEST_F(POCSTest, pocsamplituderadAvg)
 	transformer.FourierTransform(img(), IFourier);
 	POCSFourierAmplitudeRadAvg(IFourier, 1, radQuotient, XSIZE(img()),  YSIZE(img()),  ZSIZE(img()));
 	transformer.inverseFourierTransform();
-	ASSERT_EQ(img(), pocsamplitude_radavg());
+	ASSERT_EQ(imgAux(), img());
 }
 
 TEST_F(POCSTest, pocsminmax)
 {
 	img().computeDoubleMinMax(min, max);
 	POCSMinMax(img(), min, max);
-	ASSERT_EQ(img(), pocsminmax());
+	ASSERT_EQ(imgAux(), img());
 }
 
 TEST_F(POCSTest, pocsphase)
@@ -101,5 +85,5 @@ TEST_F(POCSTest, pocsphase)
 	transformer2.FourierTransform(img(),IFourierPhase,true);
 	POCSFourierPhase(IFourierPhase,IFourier);
 	transformer2.inverseFourierTransform();
-	ASSERT_EQ(img(), pocsphase());
+	ASSERT_EQ(imgAux(), img());
 }
