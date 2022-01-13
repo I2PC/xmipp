@@ -1610,7 +1610,7 @@ class VolSubtraction(XmippProgramTest):
               "-o %o/subtraction.mrc " \
               "--mask1 gold/xmipp_volume_subtraction/V1_mask.mrc " +\
               "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc" \
-              " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --radavg --computeEnergy"
+              " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --computeEnergy"
         self.runCase(str, outputs=["subtraction.mrc"], validate=self.validate_case1)
 
     def validate_case1(self):
@@ -1622,7 +1622,7 @@ class VolSubtraction(XmippProgramTest):
         """Test subtraction without radial average"""
         self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc --i2 gold/xmipp_volume_subtraction/V.mrc "
                      "-o %o/subtraction_radAvg.mrc --mask1 gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
+                     "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --radavg --lambda 1.0 --sub "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
                      outputs=["subtraction_radAvg.mrc"],
                      validate=self.validate_case2)
