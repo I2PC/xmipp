@@ -1605,8 +1605,8 @@ class VolSubtraction(XmippProgramTest):
 
     def test_case1(self):
         """Test subtraction with radial average"""
-        str = "--i1 gold/xmipp_volume_subtraction/V1.mrc " \
-              "--i2 gold/xmipp_volume_subtraction/V.mrc " +\
+        str = "--i1 gold/xmipp_volume_subtraction/V1.mrc:mrc " \
+              "--i2 gold/xmipp_volume_subtraction/V.mrc:mrc " +\
               "-o %o/subtraction.mrc " \
               "--mask1 gold/xmipp_volume_subtraction/V1_mask.mrc " +\
               "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc" \
@@ -1620,7 +1620,7 @@ class VolSubtraction(XmippProgramTest):
 
     def test_case2(self):
         """Test subtraction without radial average"""
-        self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc --i2 gold/xmipp_volume_subtraction/V.mrc "
+        self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc:mrc --i2 gold/xmipp_volume_subtraction/V.mrc:mrc "
                      "-o %o/subtraction_radAvg.mrc --mask1 gold/xmipp_volume_subtraction/V1_mask.mrc "
                      "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --radavg --lambda 1.0 --sub "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
@@ -1634,7 +1634,7 @@ class VolSubtraction(XmippProgramTest):
 
     def test_case3(self):
         """Test adjustment without radial average"""
-        self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc --i2 gold/xmipp_volume_subtraction/V.mrc "
+        self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc:mrc --i2 gold/xmipp_volume_subtraction/V.mrc:mrc "
                      "-o %o/Vadjust.mrc --mask1 gold/xmipp_volume_subtraction/V1_mask.mrc "
                      "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
@@ -1648,7 +1648,7 @@ class VolSubtraction(XmippProgramTest):
 
     def test_case4(self):
         """Test adjustment with radial average"""
-        self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc --i2 gold/xmipp_volume_subtraction/V.mrc "
+        self.runCase("--i1 gold/xmipp_volume_subtraction/V1.mrc:mrc --i2 gold/xmipp_volume_subtraction/V.mrc:mrc "
                      "-o %o/Vadjust_radAvg.mrc --mask1 gold/xmipp_volume_subtraction/V1_mask.mrc "
                      "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
