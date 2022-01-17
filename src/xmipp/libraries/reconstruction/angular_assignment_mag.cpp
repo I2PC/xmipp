@@ -364,8 +364,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		const MDRow &rowIn, MDRow &rowOut) {
 
 	// experimental image related
-	rowOut = rowIn;
-
 	Image<double> ImgIn;
 	MultidimArray<double> MDaIn(Ydim, Xdim);
 	MultidimArray<std::complex<double> > MDaInF;
