@@ -245,7 +245,7 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 		String refStkStr = formatString("%s_ref/ref.stk", randStr);
 		program = "xmipp_angular_projection_matching";
 		arguments =	formatString(
-				        "-i %s_downimg.xmp --ref %s -o %s --search5d_step 1 --max_shift %d -v 0",
+				        "-i %s_downimg.xmp --ref %s -o %s --search5d_step 1  --search5d_shift %d -v 0",
 				        randStr, refStkStr.c_str(), fnOut.c_str(), (int)round((double) imgSize / (10.0 * pow(2.0, (double) pyramidLevel))));
 	}
 	runSystem(program, arguments, false);

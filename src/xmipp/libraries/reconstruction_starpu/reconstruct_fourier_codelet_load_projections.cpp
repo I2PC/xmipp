@@ -35,7 +35,7 @@
  * @param shiftMatrix 3x3 matrix for 2D affine transformations
  * @param orientationMatrix 3x3 matrix for 3D rotation
  */
-static void loadMatrices(MDRow& row, Matrix2D<double>& shiftMatrix, Matrix2D<double>& orientationMatrix) {
+static void loadMatrices(const MDRow& row, Matrix2D<double>& shiftMatrix, Matrix2D<double>& orientationMatrix) {
 	if (!row.containsLabel(MDL_TRANSFORM_MATRIX)) {
 		geo2TransformationMatrix(row, shiftMatrix, /*only_apply_shifts*/ true);
 	} else {
@@ -73,18 +73,17 @@ void func_load_projections(void* buffers[], void* cl_arg) {
 
 		// Read projection from selfile, read also angles and shifts if present but only apply shifts
 		Projection proj;
-		MDRow row;
-		arg.selFile.getRow(row, imageObjectIndex);
+		auto row = arg.selFile.getRow(imageObjectIndex);
 
 		double headerWeight = 1;
-		row.getValue(MDL_WEIGHT, headerWeight);
+		row->getValue(MDL_WEIGHT, headerWeight);
 		if (arg.useWeights && headerWeight == 0.f) {
 			continue;
 		}
 
 		{
 			FileName name;
-			row.getValue(MDL_IMAGE, name);
+			row->getValue(MDL_IMAGE, name);
 			proj.read(name);
 		}
 
@@ -97,11 +96,11 @@ void func_load_projections(void* buffers[], void* cl_arg) {
 
 		Matrix2D<double> shiftMatrix(3, 3);
 		Matrix2D<double> orientationMatrix(3, 3);
-		loadMatrices(row, shiftMatrix, orientationMatrix);
+		loadMatrices(*row, shiftMatrix, orientationMatrix);
 
 		transformedImageData.resizeNoCopy(proj());
 		// FIXME following line is a current bottleneck, as it calls BSpline interpolation
-		applyGeometry(BSPLINE3, transformedImageData, proj.data, shiftMatrix, IS_NOT_INV, WRAP);
+		applyGeometry(xmipp_transformation::BSPLINE3, transformedImageData, proj.data, shiftMatrix, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
 		paddedImageData.initZeros(arg.paddedImageSize, arg.paddedImageSize);
 		paddedImageData.setXmippOrigin();

@@ -35,6 +35,7 @@
 #include "core/xmipp_filename.h"
 #include "reconstruction/recons.h" // Used only as a base class for this program's class
 #include "reconstruct_fourier_defines.h"
+#include "core/metadata_vec.h"
 
 
 /**@defgroup FourierReconstruction Fourier reconstruction
@@ -81,7 +82,7 @@ protected:
 	} params;
 
 	/** SelFile containing all projections */
-	MetaData SF;
+	MetaDataVec SF;
 
 	/** Constants needed to perform computations. (Not loaded for MPI master, which does not do any computations.) */
 	struct ComputeConstants {
@@ -173,7 +174,7 @@ protected:
 
 	/** Load meta data, selection file with a list of images to process.
 	 * @return total batch count */
-	static void prepareMetaData(const FileName& fn_in, MetaData& SF);
+	static void prepareMetaData(const FileName& fn_in, MetaDataVec& SF);
 
 	static uint32_t computeBatchCount(const Params& params, const MetaData& SF);
 
