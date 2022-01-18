@@ -97,11 +97,11 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 	if (zdim == 1)
 		zdim = ndim;
 
-//	// idx_residue determines the positional index of the residue
-//	// Note that residues are stored in the vector at_pos.residue.
-//	// Then, the vector at_pos.residue is sorted from low to high
-//	// The new vector idx_residue, determine the position of each
-//	// residue in the original vector.
+//	idx_residue determines the positional index of the residue
+//	Note that residues are stored in the vector at_pos.residue.
+//	Then, the vector at_pos.residue is sorted from low to high
+//	The new vector idx_residue, determine the position of each
+//	residue in the original vector.
 //	std::vector<size_t> idx_residue;
 //	idx_residue = sort_indexes(at_pos.residue);
 
@@ -124,8 +124,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 	std::vector<double> ma_l(0);
 	std::vector<double> ma_c(0);
 
-	// Setting the first residue before the loop that sweeps all residues
-	size_t r = 0;
+	// Setting the first residue before the loop that sweeps all residues. r
 
 	// The b-factor and resolution mean per residue, as well as number of voxels contributing to the mean
 	double bfactor_mean = 0;
@@ -133,10 +132,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 	int N_elems = 0;
 
 	// Selecting the residue
-	int resi, last_resi;
-
-
-	//for (size_t r=first_index; r<numberOfAtoms; ++r)
+	int resi;
 	for (size_t r=0; r<numberOfAtoms; ++r)
 	{
 		// Selecting the residue
@@ -147,7 +143,9 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 		double bfactorRad = at_pos.b[r];
 		bfactor_per_residue.push_back(bfactorRad);
 
-		int k, i, j;
+		int k;
+		int i;
+		int j;
 		if (centered)
 		{
 			// Getting the atom position
@@ -205,19 +203,15 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 	MetaDataVec mdSmooth;
 	MetaDataVec md;
 	MDRowVec row;
-	size_t objsmth;
 
 	for (size_t nn = 0; nn<resolution_per_residue.size(); ++nn)
 	{
-		//std::cout << "nn = " <<  nn << std::endl;
 		double bf, lr;
 		int resnumber;
 
 		lr = resolution_per_residue[nn];
 		bf = bfactor_per_residue[nn];
 		resnumber = resNumberList[nn];
-
-		int idx_resnumber = (int) resnumber;
 
 		lr = smoothedResolution[nn];
 
