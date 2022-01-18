@@ -109,11 +109,10 @@ void ProgRecFourierStarPU::readParams() {
 	}
 }
 
-void ProgRecFourierStarPU::prepareMetaData(const FileName& fn_in, MetaData& SF) {
+void ProgRecFourierStarPU::prepareMetaData(const FileName& fn_in, MetaDataVec& SF) {
 	// Read the input images
 	SF.read(fn_in);
 	SF.removeDisabled();
-	SF.getDatabase()->activateThreadMuting();
 }
 
 uint32_t ProgRecFourierStarPU::computeBatchCount(const ProgRecFourierStarPU::Params &params, const MetaData &SF) {
