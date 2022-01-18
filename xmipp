@@ -758,7 +758,7 @@ def install(dirname):
     print("\n"
           "  *********************************************\n"
           "  *                                           *\n"
-          "  *  Xmipp have been successfully installed!  *\n"
+          "  *  Xmipp has been successfully installed!  *\n"
           "  *                                           *\n"
           "  *********************************************\n\n")
     return True
