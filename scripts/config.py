@@ -495,12 +495,14 @@ class Config:
             return v[v.index('7.3'):]
         elif 10.1 <= nvcc_version <= 10.2:
             return v[v.index('8.5'):]
-        elif 11.0 <= nvcc_version <= 11.4:
-            # nvcc 11.4.0 --> gcc 9.3
+        elif 11.0 <= nvcc_version < 11.1:
+            # nvcc 11.4.0 --> gcc 10
             # nvcc 11.4.1 --> gcc 11
             return v[v.index('9.3'):]
+        elif 11.1 <= nvcc_version < 11.5:
+            return v[v.index('10'):]
         elif 11.5 <= nvcc_version <= 11.6:
-            return v[v.index('9.3'):]#gcc 11 is suported by nvcc not by XMIPP
+            return v[v.index('11.2'):]
         return []  # not supported
 
     def _join_with_prefix(self, collection, prefix):
