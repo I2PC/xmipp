@@ -50,6 +50,7 @@ private:
 	int numberOfAtoms;
 
 	bool medianTrue;
+	bool centered;
 
 	std::vector<double> residuesToChimera;
 	double fscResolution;
