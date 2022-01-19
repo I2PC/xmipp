@@ -496,14 +496,14 @@ class Config:
         elif 10.1 <= nvcc_version <= 10.2:
             return v[v.index('8.5'):]
         elif 11.0 <= nvcc_version < 11.1:
-            # nvcc 11.4.0 --> gcc 10
-            # nvcc 11.4.1 --> gcc 11
             return v[v.index('9.3'):]
         elif 11.1 <= nvcc_version < 11.5:
-            return v[v.index('9.3'):]
+            # nvcc 11.4.0 --> gcc 10
+            # nvcc 11.4.1 --> gcc 11
+            return v[v.index('10.0'):]
         elif 11.5 <= nvcc_version <= 11.6:
-            return v[v.index('9.4'):]
-        return []  # not supported
+            return v[v.index('11'):]
+        return []
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])
