@@ -13,7 +13,7 @@ class POCSTest : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-        img().resize(3,3);
+        img().resize(16,16,16);
         img().initConstant(0.0);
         img(1,1,1) = 1;
         imgAux = img;
