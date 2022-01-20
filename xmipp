@@ -34,9 +34,9 @@ from scripts import *
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.21.06.0'        #
-XMIPP_VERNAME = 'Caerus'           #
-RELEASE_DATE = '22/06/2021'        #
+XMIPP_VERSION = '3.22.01.0'        #
+XMIPP_VERNAME = 'Eris'           #
+RELEASE_DATE = '24/01/2022'        #
 ####################################
 
 
