@@ -1,3 +1,57 @@
+## Release 3.22.01 -
+
+
+
+- xmipp_test_pocs_main & volume_subtraction: fixes
+- python_constants: add defocus labels
+- Support newer versions of CUDA and gcc
+- Fixing importing pwem.metadata
+- Compilation: fixing compilation of starpu programs
+- Metadata: adding new nmaEigenval label
+- nma_alignment: fixing arguments for the xmipp_angular_projection_matching invocation
+- xmipp_micrograph_automatic_picking: fixing tests, avoiding possible memory corruption
+- resolution_pdb_bfactor: bug fixing -  error with multiple chains
+- Python binding: adding new function -  correlationAfterAlignment
+- Fixed tests fails: ResolutionSsnr, ReconstructArtMpi, ReconstructArt, MlfRefine3dMpi, MlfRefine3d, MlRefine3dMpi, MlRefine3d
+- Fix config.py
+- Matlab binding dependencies
+- Python binding: adding MDL_RESOLUTION_ANISOTROPY
+- Compilation: Fixing detection of the last commit changing the config script
+- Projections subtraction: new program
+- FlexAlign: fixing crash when binning > 1
+- FFTwT: adding mutex for plan handling
+- Installation: Referencing 'global' xmipp.conf instead of using local copy of it
+Multiple MPI programs: replacing CREATE_MPI_METADATA_PROGRAM macro by templated class
+- Updating to C++17
+- Multiple programs: Adding a common implementation of the rerun
+- Sonarcloud fixing: Bugs
+- Ef subtract projection
+- Bug fix and allowed controlling high sampling rate
+- Matlab compilation fix
+- Phantom_create: update info link
+- Multiple programs: Adding a common implementation of the rerun
+- Transform Geometry: save new shifted coordinates in option "shift to" + enterOfMass to python binding
+- Volume consensus: fixing number of levels in the wavelet transform
+- xmipp install: Linking libsvm to scipion
+- config file: check and exit if xmipp.conf does not exist
+- config file: Check if xmipp.config exists and exit if it does not.
+- Readme info: add virtual machine info
+- Config file manage: Message if xmipp.config might be obsolete, remove unused sys.argv and style corrections
+- Config file generation: refactoring check_CUDA and managing gcc compiler if it is installed out of /usr/bin/
+- Removal of the SVM from inside the Xmipp repository and downloading it as an external dependence
+- Solving a configuration problem with CUDA
+- Compilation: asking whether to continue with compilation even though the config file is outdated
+- Fixing Sonar Cloud issues
+- Matlab binding: Setting Xmipp as a hard dependency
+ml_tomo: Using .mrc instead of .vol ; volume_align: Addding wrapping during alignment
+- Resolution_fso: Bingham test implemented
+- Opencv not detected. Added include to user/include/opencv4 folder on config file
+- Zernike programs compatible with Cuda 8.x
+- xmipp_transform_dimred: fixing output metadata in append mode, adding MDL_DIMRED label
+- Config file generation: fixing config version detection outside of the git repo
+
+
+
 ## Release 3.21.06 -
 
 - CUDA-11 support
