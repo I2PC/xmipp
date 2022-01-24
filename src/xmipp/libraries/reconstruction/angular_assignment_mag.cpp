@@ -350,7 +350,7 @@ void ProgAngularAssignmentMag::preProcess() {
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
  * */
-void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut ){
+void ProgAngularAssignmentMag::graphFourierFilter(const Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut ){
 	// graph signal processing filtered iGFT
 	Matrix1D<double> ccGFT;
 	ccGFT.initZeros(sizeMdRef);
@@ -647,36 +647,36 @@ void ProgAngularAssignmentMag::postProcess() {
 	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 }
 
-void ProgAngularAssignmentMag::applyCircularMask(
-		const MultidimArray<double> &in, MultidimArray<double> &out) {
+//void ProgAngularAssignmentMag::applyCircularMask(
+//		const MultidimArray<double> &in, MultidimArray<double> &out) {
+//
+//	double Cf = (Ydim + (Ydim % 2)) / 2.0; // for odd/even images
+//	double Cc = (Xdim + (Xdim % 2)) / 2.0;
+//	int pixReduc = 2;
+//	double rad2 = (Cf - pixReduc) * (Cf - pixReduc);
+//	double val = 0;
+//	out.initZeros(Ydim, Xdim);
+//	for (size_t f = 0; f < Ydim; f++) {
+//		for (size_t c = 0; c < Xdim; c++) {
+//			val = (f - Cf) * (f - Cf) + (c - Cc) * (c - Cc);
+//			if (val < rad2)
+//				DIRECT_A2D_ELEM(out, f, c) = DIRECT_A2D_ELEM(in, f, c);
+//		}
+//	}
+//}
 
-	double Cf = (Ydim + (Ydim % 2)) / 2.0; // for odd/even images
-	double Cc = (Xdim + (Xdim % 2)) / 2.0;
-	int pixReduc = 2;
-	double rad2 = (Cf - pixReduc) * (Cf - pixReduc);
-	double val = 0;
-	out.initZeros(Ydim, Xdim);
-	for (size_t f = 0; f < Ydim; f++) {
-		for (size_t c = 0; c < Xdim; c++) {
-			val = (f - Cf) * (f - Cf) + (c - Cc) * (c - Cc);
-			if (val < rad2)
-				DIRECT_A2D_ELEM(out, f, c) = DIRECT_A2D_ELEM(in, f, c);
-		}
-	}
-}
-
-/* get COMPLETE fourier spectrum of Images */
-void ProgAngularAssignmentMag::applyFourierImage(MultidimArray<double> &data,
-		MultidimArray<std::complex<double> > &FourierData) {
-	transformerImage.completeFourierTransform(data, FourierData);
-}
-
-/* get COMPLETE fourier spectrum of polarRepresentation of Magnitude.*/
-void ProgAngularAssignmentMag::applyFourierImage(MultidimArray<double> &data,
-		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
-	(void)ang;
-	transformerPolarImage.completeFourierTransform(data, FourierData);
-}
+///* get COMPLETE fourier spectrum of Images */
+//void ProgAngularAssignmentMag::applyFourierImage(const MultidimArray<double> &data,
+//		MultidimArray<std::complex<double> > &FourierData) {
+//	transformerImage.completeFourierTransform(data, FourierData);
+//}
+//
+///* get COMPLETE fourier spectrum of polarRepresentation of Magnitude.*/
+//void ProgAngularAssignmentMag::applyFourierImage(const MultidimArray<double> &data,
+//		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
+//	(void)ang;
+//	transformerPolarImage.completeFourierTransform(data, FourierData);
+//}
 
 /*first try in using only one half of Fourier space*/
 void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
@@ -691,16 +691,16 @@ void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
 	transformerPolarImage.FourierTransform(data, FourierData, true); // false --> true, to make a copy
 }
 
-/* first try one half of fourier spectrum of polarRepresentation of image in real space*/
-void ProgAngularAssignmentMag::applyFourierImage3(MultidimArray<double> &data,
-		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
-	(void)ang;
-	transformerPolarRealSpace.FourierTransform(data, FourierData, true); //
-}
+///* first try one half of fourier spectrum of polarRepresentation of image in real space*/
+//void ProgAngularAssignmentMag::applyFourierImage3(const MultidimArray<double> &data,
+//		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
+//	(void)ang;
+//	transformerPolarRealSpace.FourierTransform(data, FourierData, true); //
+//}
 
 /* get magnitude of fourier spectrum */
 void ProgAngularAssignmentMag::getComplexMagnitude(
-		MultidimArray<std::complex<double> > &FourierData,
+		const MultidimArray<std::complex<double> > &FourierData,
 		MultidimArray<double> &FourierMag) {
 	FFT_magnitude(FourierData, FourierMag);
 }
@@ -771,7 +771,7 @@ double ProgAngularAssignmentMag::interpolate(MultidimArray<double> &cartIm,
 }
 
 /* implementing centering using circular-shift*/
-void ProgAngularAssignmentMag::completeFourierShift(MultidimArray<double> &in,
+void ProgAngularAssignmentMag::completeFourierShift(const MultidimArray<double> &in,
 		MultidimArray<double> &out) {
 
 	// correct output size
@@ -827,7 +827,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 }
 
 /* gets maximum value for each column*/
-void ProgAngularAssignmentMag::maxByColumn(MultidimArray<double> &in,
+void ProgAngularAssignmentMag::maxByColumn(const MultidimArray<double> &in,
 		MultidimArray<double> &out) {
 
 	out.resizeNoCopy(1, XSIZE(in));
@@ -844,26 +844,26 @@ void ProgAngularAssignmentMag::maxByColumn(MultidimArray<double> &in,
 	}
 }
 
-/* gets mean value for each column*/
-void ProgAngularAssignmentMag::meanByColumn(MultidimArray<double> &in,
-		MultidimArray<double> &out) {
-
-	out.resizeNoCopy(1, XSIZE(in));
-	double val;
-	double val2;
-	int factor = YSIZE(in);
-	for (int c = 0; c < XSIZE(in); c++) {
-		val = dAij(in, 0, c);
-		for (int f = 1; f < YSIZE(in); f++) {
-			val2 = dAij(in, f, c);
-			val += val2 / factor;
-		}
-		dAi(out,c) = val;
-	}
-}
+///* gets mean value for each column*/
+//void ProgAngularAssignmentMag::meanByColumn(const MultidimArray<double> &in,
+//		MultidimArray<double> &out) {
+//
+//	out.resizeNoCopy(1, XSIZE(in));
+//	double val;
+//	double val2;
+//	int factor = YSIZE(in);
+//	for (int c = 0; c < XSIZE(in); c++) {
+//		val = dAij(in, 0, c);
+//		for (int f = 1; f < YSIZE(in); f++) {
+//			val2 = dAij(in, f, c);
+//			val += val2 / factor;
+//		}
+//		dAi(out,c) = val;
+//	}
+//}
 
 /* gets maximum value for each row */
-void ProgAngularAssignmentMag::maxByRow(MultidimArray<double> &in,
+void ProgAngularAssignmentMag::maxByRow(const MultidimArray<double> &in,
 		MultidimArray<double> &out) {
 	out.resizeNoCopy(1, YSIZE(in));
 	double maxVal;
@@ -879,26 +879,26 @@ void ProgAngularAssignmentMag::maxByRow(MultidimArray<double> &in,
 	}
 }
 
-/* gets mean value for each row */
-void ProgAngularAssignmentMag::meanByRow(MultidimArray<double> &in,
-		MultidimArray<double> &out) {
-
-	out.resizeNoCopy(1, YSIZE(in));
-	double val;
-	double val2;
-	int factor = XSIZE(in);
-	for (int f = 0; f < YSIZE(in); f++) {
-		val = dAij(in, f, 0);
-		for (int c = 1; c < XSIZE(in); c++) {
-			val2 = dAij(in, f, c);
-			val += val2 / factor;
-		}
-		dAi(out,f) = val;
-	}
-}
+///* gets mean value for each row */
+//void ProgAngularAssignmentMag::meanByRow(const MultidimArray<double> &in,
+//		MultidimArray<double> &out) {
+//
+//	out.resizeNoCopy(1, YSIZE(in));
+//	double val;
+//	double val2;
+//	int factor = XSIZE(in);
+//	for (int f = 0; f < YSIZE(in); f++) {
+//		val = dAij(in, f, 0);
+//		for (int c = 1; c < XSIZE(in); c++) {
+//			val2 = dAij(in, f, c);
+//			val += val2 / factor;
+//		}
+//		dAi(out,f) = val;
+//	}
+//}
 
 /*quadratic interpolation for location of peak in crossCorr vector*/
-double quadInterp(/*const*/int idx, MultidimArray<double> &in) {
+double quadInterp(/*const*/int idx, const MultidimArray<double> &in) {
 
 	double InterpIdx = idx	- ( ( dAi(in,idx+1) - dAi(in, idx - 1))
 					/ ( dAi(in,idx+1) + dAi(in, idx - 1) - 2 * dAi(in, idx)) )
@@ -935,7 +935,7 @@ void ProgAngularAssignmentMag::circularWindow(MultidimArray<double> &in) {
 
 /* Only for 180 angles
  * just two locations of maximum peaks in ccvRot */
-void ProgAngularAssignmentMag::psiCandidates(MultidimArray<double> &in,
+void ProgAngularAssignmentMag::psiCandidates(const MultidimArray<double> &in,
 		std::vector<double> &cand, const size_t &size) {
 	double max1 = -1000.;
 	int idx1 = 0;
@@ -1076,59 +1076,59 @@ void ProgAngularAssignmentMag::applyRotation(const MultidimArray<double> &MDaRef
 	applyGeometry(xmipp_transformation::LINEAR, MDaRefRot, MDaRef, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 }
 
-/* apply rotation */
-void ProgAngularAssignmentMag::applyRotation(MultidimArray<double> &MDaRef,
-		double &rot, MultidimArray<double> &MDaRefRot) {
-	// Transform matrix
-	Matrix2D<double> A(3, 3);
-	A.initIdentity();
-	double ang;
-	double cosine;
-	double sine;
-	ang = DEG2RAD(rot);
-	cosine = cos(ang);
-	sine = sin(ang);
+///* apply rotation */
+//void ProgAngularAssignmentMag::applyRotation(MultidimArray<double> &MDaRef,
+//		double &rot, MultidimArray<double> &MDaRefRot) {
+//	// Transform matrix
+//	Matrix2D<double> A(3, 3);
+//	A.initIdentity();
+//	double ang;
+//	double cosine;
+//	double sine;
+//	ang = DEG2RAD(rot);
+//	cosine = cos(ang);
+//	sine = sin(ang);
+//
+//	// rotation
+//	MAT_ELEM(A,0, 0) = cosine;
+//	MAT_ELEM(A,0, 1) = sine;
+//	MAT_ELEM(A,1, 0) = -sine;
+//	MAT_ELEM(A,1, 1) = cosine;
+//
+//	// Shift
+//	MAT_ELEM(A,0, 2) = 0.;
+//	MAT_ELEM(A,1, 2) = 0.;
+//
+//	applyGeometry(xmipp_transformation::LINEAR, MDaRefRot, MDaRef, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
+//}
 
-	// rotation
-	MAT_ELEM(A,0, 0) = cosine;
-	MAT_ELEM(A,0, 1) = sine;
-	MAT_ELEM(A,1, 0) = -sine;
-	MAT_ELEM(A,1, 1) = cosine;
+///* apply shift */
+//void ProgAngularAssignmentMag::applyShift(MultidimArray<double> &input,
+//		double &tx, double &ty, MultidimArray<double> &output) {
+//	// Transform matrix
+//	Matrix2D<double> A(3, 3);
+//	A.initIdentity();
+//
+//	// Shift
+//	MAT_ELEM(A,0, 2) = tx;
+//	MAT_ELEM(A,1, 2) = ty;
+//
+//	applyGeometry(xmipp_transformation::LINEAR, output, input, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
+//}
 
-	// Shift
-	MAT_ELEM(A,0, 2) = 0.;
-	MAT_ELEM(A,1, 2) = 0.;
-
-	applyGeometry(xmipp_transformation::LINEAR, MDaRefRot, MDaRef, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
-}
-
-/* apply shift */
-void ProgAngularAssignmentMag::applyShift(MultidimArray<double> &input,
-		double &tx, double &ty, MultidimArray<double> &output) {
-	// Transform matrix
-	Matrix2D<double> A(3, 3);
-	A.initIdentity();
-
-	// Shift
-	MAT_ELEM(A,0, 2) = tx;
-	MAT_ELEM(A,1, 2) = ty;
-
-	applyGeometry(xmipp_transformation::LINEAR, output, input, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
-}
-
-/* apply shift */
-void ProgAngularAssignmentMag::applyShift(const MultidimArray<double> &input,
-		double &tx, double &ty, MultidimArray<double> &output) {
-	// Transform matrix
-	Matrix2D<double> A(3, 3);
-	A.initIdentity();
-
-	// Shift
-	MAT_ELEM(A,0, 2) = tx;
-	MAT_ELEM(A,1, 2) = ty;
-
-	applyGeometry(xmipp_transformation::LINEAR, output, input, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
-}
+///* apply shift */
+//void ProgAngularAssignmentMag::applyShift(const MultidimArray<double> &input,
+//		double &tx, double &ty, MultidimArray<double> &output) {
+//	// Transform matrix
+//	Matrix2D<double> A(3, 3);
+//	A.initIdentity();
+//
+//	// Shift
+//	MAT_ELEM(A,0, 2) = tx;
+//	MAT_ELEM(A,1, 2) = ty;
+//
+//	applyGeometry(xmipp_transformation::LINEAR, output, input, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
+//}
 
 /* finds shift as maximum of ccVector */
 void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
@@ -1157,31 +1157,31 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 
 }
 
-/* apply rotation then shift */
-void ProgAngularAssignmentMag::applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx,
-		double &ty, MultidimArray<double> &MDaRefRot) {
-	// Transform matrix
-	Matrix2D<double> A(3, 3);
-	A.initIdentity();
-	double ang;
-	double cosine;
-	double sine;
-	ang = DEG2RAD(rot);
-	cosine = cos(ang);
-	sine = sin(ang);
-
-	// rotation
-	MAT_ELEM(A,0, 0) = cosine;
-	MAT_ELEM(A,0, 1) = sine;
-	MAT_ELEM(A,1, 0) = -sine;
-	MAT_ELEM(A,1, 1) = cosine;
-
-	// Shift
-	MAT_ELEM(A,0, 2) = tx;
-	MAT_ELEM(A,1, 2) = ty;
-
-	applyGeometry(xmipp_transformation::LINEAR, MDaRefRot, MDaRef, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
-}
+///* apply rotation then shift */
+//void ProgAngularAssignmentMag::applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx,
+//		double &ty, MultidimArray<double> &MDaRefRot) {
+//	// Transform matrix
+//	Matrix2D<double> A(3, 3);
+//	A.initIdentity();
+//	double ang;
+//	double cosine;
+//	double sine;
+//	ang = DEG2RAD(rot);
+//	cosine = cos(ang);
+//	sine = sin(ang);
+//
+//	// rotation
+//	MAT_ELEM(A,0, 0) = cosine;
+//	MAT_ELEM(A,0, 1) = sine;
+//	MAT_ELEM(A,1, 0) = -sine;
+//	MAT_ELEM(A,1, 1) = cosine;
+//
+//	// Shift
+//	MAT_ELEM(A,0, 2) = tx;
+//	MAT_ELEM(A,1, 2) = ty;
+//
+//	applyGeometry(xmipp_transformation::LINEAR, MDaRefRot, MDaRef, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
+//}
 
 /* apply shift then rotation */
 void ProgAngularAssignmentMag::applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx,

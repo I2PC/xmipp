@@ -76,18 +76,18 @@ public:
 	void postProcess();
     ProgAngularAssignmentMag();
     ~ProgAngularAssignmentMag();
-    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+//    void applyFourierImage(const MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
+//    void applyFourierImage(const MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
     void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
     void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void applyFourierImage3(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+//    void applyFourierImage3(const MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
     void applyRotation(const MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
-    void applyRotation(MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
-    void applyShift(MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
-    void applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
-    void applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
+//    void applyRotation(MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
+//    void applyShift(MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
+//    void applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
+//    void applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
     void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
-    void getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
+    void getComplexMagnitude(const MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
 
     /// Synchronize with other processors
     virtual void synchronize() {}
@@ -161,28 +161,28 @@ private:
 
     /// Read arguments from command line
 
-    void applyCircularMask(const MultidimArray<double> &in, MultidimArray<double> &out);
+//    void applyCircularMask(const MultidimArray<double> &in, MultidimArray<double> &out);
 
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
 
-    void completeFourierShift(MultidimArray<double> &in, MultidimArray<double> &out);
+    void completeFourierShift(const MultidimArray<double> &in, MultidimArray<double> &out);
     void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result);
     void computingNeighborGraph();
     void computeLaplacianMatrix(Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp);
     void computeCircular();
     void circularWindow(MultidimArray<double> &in);
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);
-    void graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut);
+    void graphFourierFilter(const Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut);
 
     MultidimArray<double> imToPolar(MultidimArray<double> &cartIm, size_t &start, size_t &end);
     double interpolate(MultidimArray<double> &cartIm, double &x_coord, double &y_coord);
 
-    void meanByColumn(MultidimArray<double> &in, MultidimArray<double> &out);
-    void maxByColumn(MultidimArray<double> &in, MultidimArray<double> &out);
-    void meanByRow(MultidimArray<double> &in, MultidimArray<double> &out);
-    void maxByRow(MultidimArray<double> &in, MultidimArray<double> &out);
+//    void meanByColumn(const MultidimArray<double> &in, MultidimArray<double> &out);
+    void maxByColumn(const MultidimArray<double> &in, MultidimArray<double> &out);
+//    void meanByRow(const MultidimArray<double> &in, MultidimArray<double> &out);
+    void maxByRow(const MultidimArray<double> &in, MultidimArray<double> &out);
 
-    void psiCandidates(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
+    void psiCandidates(const MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
 };
 //@}
 
