@@ -700,8 +700,9 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
     int found = 0;
     double last_ctf = getValuePureNoPrecomputedAt(0), ctf=0.0, state=1;
 
-    double w;
-    for (w = 0; w <= wmax; w += wstep)
+    double w = 0;
+
+    while (w <= wmax)
     {
         V2_BY_CT(freq, u, w);
         ctf = getValuePureNoPrecomputedAt(XX(freq));
@@ -755,6 +756,7 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
 		}
 
         last_ctf = ctf;
+        w += wstep;
     }
     if (found != n)
     {
@@ -888,9 +890,10 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
 
-    for (double angle = 0.0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
+    for (int angle=0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
     {
-        double cosinus = cos(angle);
+        double angle2 = float(angle);
+        double cosinus = cos(angle2);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)
@@ -1421,8 +1424,8 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
     double wstep = wmax / 300;
     int found = 0;
     double last_ctf = getValuePureNoDampingNoPrecomputedAt(0,0) , ctf=0.0, state=1; //getValuePureWithoutDampingAt()
-    double w;
-    for (w = 0; w <= wmax; w += wstep)
+    double w = 0;
+    while (w <= wmax)
     {
         V2_BY_CT(freq, u, w);
         ctf = getValuePureNoDampingNoPrecomputedAt(XX(freq),YY(freq));
@@ -1473,6 +1476,7 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
 			break;
 
         last_ctf = ctf;
+        w += wstep;
     }
     if (found != n)
     {
@@ -1606,10 +1610,11 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
 
-    for (double angle = 0.0; angle < 360; angle++)
+    for(int angle=0; angle < 360; angle++)
     {
-        double sinus = sin(angle);
-        double cosinus = cos(angle);
+        double angle2 = float(angle);
+        double sinus = sin(angle2);
+        double cosinus = cos(angle2);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)

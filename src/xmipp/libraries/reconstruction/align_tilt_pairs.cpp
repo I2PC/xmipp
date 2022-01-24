@@ -128,12 +128,12 @@ bool ProgAlignTiltPairs::centerTiltedImage(const MultidimArray<double> &imgRefU,
     MAT_ELEM(E2D,1,1)=MAT_ELEM(E,1,1);
     A2D = Mu2D * E2D.inv();
 
-    applyGeometry(LINEAR, imgT2DClass, imgT, A2D, IS_NOT_INV, WRAP);
+    applyGeometry(xmipp_transformation::LINEAR, imgT2DClass, imgT, A2D, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
     // Calculate best shift
-    int max_shift_pixels=(int)(max_shift/100.0*XSIZE(imgT));
+    auto max_shift_pixels=(int)(max_shift/100.0*XSIZE(imgT));
     CorrelationAux aux;
-    double corr=bestShift(imgRefU, imgT2DClass, shiftX, shiftY, auxCorr, NULL, max_shift_pixels);
+    double corr=bestShift(imgRefU, imgT2DClass, shiftX, shiftY, auxCorr, nullptr, max_shift_pixels);
     // double corr=bestShiftRealSpace(imgRefU, imgT2DClass, shiftX, shiftY, NULL, max_shift_pixels, 0.5);
 
 #ifdef DEBUG

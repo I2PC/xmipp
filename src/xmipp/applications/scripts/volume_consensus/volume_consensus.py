@@ -55,7 +55,6 @@ class ScriptVolumeConsensus(XmippScript):
     def computeVolumeConsensus(self, inputFile, outVolFn, wavelet='sym11'):
         outputWt = None
         outputMin = None
-        nlevel = 3
         fnCoef = splitext(outVolFn)[0] + '_coef.txt'
         fhCoef = open(fnCoef, 'w')
         with open(inputFile) as f:
@@ -65,7 +64,8 @@ class ScriptVolumeConsensus(XmippScript):
                     fileName += ':mrc'
                 V = xmippLib.Image(line.split()[0])
                 vol = V.getData()
-                wt = pywt.swtn(vol, wavelet, nlevel)
+                nlevel = pywt.swt_max_level(len(vol))
+                wt = pywt.swtn(vol, wavelet, nlevel, 0)
                 if outputWt == None:
                     outputWt = wt
                     outputMin = wt[0]['aaa']*0

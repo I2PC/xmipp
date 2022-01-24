@@ -90,8 +90,8 @@ void ProgTransformDownsample::processImage(const FileName &fnImg, const FileName
         REPORT_ERROR(ERR_MULTIDIM_DIM,"This program is not intended for volumes");
 
     // Open output data, mapped file
-    int Xpdim = (int)floor(Xdim/step);
-    int Ypdim = (int)floor(Ydim/step);
+    auto Xpdim = (int)floor(Xdim/step);
+    auto Ypdim = (int)floor(Ydim/step);
     ImageGeneric M_out;
     if (method==SMOOTH)
         M_out.setDatatype(DT_UChar);
@@ -113,7 +113,7 @@ void ProgTransformDownsample::processImage(const FileName &fnImg, const FileName
 /* Downsample -------------------------------------------------------------- */
 void downsampleKernel(const ImageGeneric &M, double step, ImageGeneric &Mp)
 {
-    int istep=(int)step;
+    auto istep=(int)step;
     MultidimArray<double> kernel;
     kernel.resizeNoCopy(istep,istep);
     kernel.initConstant(1.0/MULTIDIM_SIZE(kernel));
@@ -270,7 +270,7 @@ void downsampleSmooth(const ImageGeneric &M, ImageGeneric &Mp)
     size_t Ydim, Xdim, Ypdim, Xpdim;
     M().getDimensions(Xdim, Ydim);
     Mp().getDimensions(Xpdim, Ypdim);
-    byte *inputImage=NULL;
+    byte *inputImage=nullptr;
     MultidimArray<unsigned char> Maux;
     if (M.datatype==DT_UChar)
         M().getArrayPointer(inputImage);

@@ -55,13 +55,13 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 		{
 			// Type of Atom
 			std::string at;
-                        try
-                        {
-			    at = line.substr(13,2);
-                        }catch (const std::out_of_range& oor)
-                        {
-                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
-                        }
+			try
+			{
+				at = line.substr(13,2);
+			}catch (const std::out_of_range& oor)
+			{
+				std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+			}
 
 			if (at == typeOfAtom)
 			{
@@ -70,14 +70,16 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				double x = textToFloat(line.substr(30,8));
 				double y = textToFloat(line.substr(38,8));
 				double z = textToFloat(line.substr(46,8));
+				std::string ch = line.substr(21,1);
 
 				// storing coordinates
 				at_pos.x.push_back(x);
 				at_pos.y.push_back(y);
 				at_pos.z.push_back(z);
+				at_pos.chain.push_back(ch);
 
-                                // Residue Number
-				int resi = (int) textToFloat(line.substr(23,5));
+                // Residue Number
+				auto resi = (int) textToFloat(line.substr(23,5));
 				at_pos.residue.push_back(resi);
 
 				// Getting the bfactor = 8pi^2*u
@@ -745,7 +747,7 @@ void hlpf(MultidimArray<double> &f, int M, double T, const std::string &filterTy
     filter.initZeros(XSIZE(f));
     filter.setXmippOrigin();
 
-    int Nmax=(int)CEIL(M/2.0);
+    auto Nmax=(int)CEIL(M/2.0);
     if (filterType=="SimpleAveraging")
     {
         FOR_ALL_ELEMENTS_IN_ARRAY1D(filter)
@@ -790,7 +792,7 @@ void fhlpf(const MultidimArray<double> &f, const MultidimArray<double> &filter,
     const double K1=2*PI*(STARTINGX(auxFilter)-1);
     const double K2=XSIZE(auxFilter);
     std::complex<double> aux;
-    double * ptrAux=(double*)&aux;
+    auto * ptrAux=(double*)&aux;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(F)
     {
         double w;
@@ -841,7 +843,7 @@ double Hlpf_fitness(double *p, void *prm)
     int imax=CEIL(Rmax/(globalM*globalT));
     MultidimArray<double> fhlpfCoarselySampled(2*imax+1);
     MultidimArray<double> splineCoeffsfhlpfFinelySampled;
-    produceSplineCoefficients(BSPLINE3,splineCoeffsfhlpfFinelySampled,fhlpfFinelySampled);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffsfhlpfFinelySampled,fhlpfFinelySampled);
     fhlpfCoarselySampled.setXmippOrigin();
     FOR_ALL_ELEMENTS_IN_ARRAY1D(fhlpfCoarselySampled)
     {
@@ -929,7 +931,7 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     Matrix1D<double> steps(3);
     steps.initConstant(1);
     powellOptimizer(globalHlpfPrm, 1, 3,
-                    &Hlpf_fitness, NULL, 0.05, fitness, iter, steps, false);
+                    &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
     hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }
@@ -941,7 +943,7 @@ void atomRadialProfile(int M, double T, const std::string &atom,
     // Compute the electron form factor in real space
     double largestb1=76.7309/(4*PI*PI);
     double Rmax=4*sqrt(2*largestb1);
-    int imax=(int)CEIL(Rmax/T);
+    auto imax=(int)CEIL(Rmax/T);
     Matrix1D<double> descriptors;
     atomDescriptors(atom, descriptors);
     MultidimArray<double> f(2*imax+1);
@@ -1057,7 +1059,7 @@ void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
 
     // Atomic profile
     atomRadialProfile(M, highTs, atom, profile);
-    produceSplineCoefficients(BSPLINE3,splineCoeffs,profile);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffs,profile);
     volumeProfileCoefficients.push_back(splineCoeffs);
 
     // Radius
@@ -1067,7 +1069,7 @@ void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
     if (computeProjection)
     {
         atomProjectionRadialProfile(M, splineCoeffs, profile);
-        produceSplineCoefficients(BSPLINE3,splineCoeffs,profile);
+        produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffs,profile);
         projectionProfileCoefficients.push_back(splineCoeffs);
     }
 }
@@ -1164,8 +1166,8 @@ void projectAtom(const Atom &atom, Projection &P,
 
     // Study the projection for each point in the projection plane ..........
     // (u,v) are in the deformed projection plane (if any deformation)
-    for (int v = (int)YY(corner1); v <= (int)YY(corner2); v++)
-        for (int u = (int)XX(corner1); u <= (int)XX(corner2); u++)
+    for (auto v = (int)YY(corner1); v <= (int)YY(corner2); v++)
+        for (auto u = (int)XX(corner1); u <= (int)XX(corner2); u++)
         {
             double length = 0;
             //#define DEBUG_EVEN_MORE
@@ -1250,7 +1252,7 @@ void projectPDB(const PDBPhantom &phantomPDB,
         {
             projectAtom(phantomPDB.getAtom(i), proj, VP, PV, interpolator);
         }
-        catch (XmippError XE) {}
+        catch (XmippError &XE) {}
     }
 }
 

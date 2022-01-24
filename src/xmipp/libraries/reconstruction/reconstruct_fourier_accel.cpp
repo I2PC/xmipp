@@ -46,7 +46,7 @@ void ProjectionData::clean() {
 }
 
 void ProgRecFourierAccel::allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier) {
-    if ((NULL == VoutFourier.data) || (0 == VoutFourier.getSize())) {
+    if ((nullptr == VoutFourier.data) || (0 == VoutFourier.getSize())) {
         VoutFourier.initZeros(paddedImgSize, paddedImgSize, paddedImgSize/2 +1);
     }
 }
@@ -157,10 +157,10 @@ void ProgRecFourierAccel::run()
 
 void ProgRecFourierAccel::createLoadingThread() {
 	barrier_init( &barrier, 2 ); // two barries - for main and loading thread
-	loadThread.buffer1 = loadThread.buffer2 = NULL;
+	loadThread.buffer1 = loadThread.buffer2 = nullptr;
 	loadThread.parent = this;
 	loadThread.selFile = &SF;
-	pthread_create( &loadThread.id , NULL, loadImageThread, (void *)(&loadThread) );
+	pthread_create( &loadThread.id , nullptr, loadImageThread, (void *)(&loadThread) );
 	threadOpCode = PRELOAD_IMAGE;
 }
 
@@ -168,7 +168,7 @@ void ProgRecFourierAccel::cleanLoadingThread() {
 	threadOpCode = EXIT_THREAD;
 	// Waiting for thread to finish
 	barrier_wait( &barrier );
-	pthread_join(*(&loadThread.id), NULL);
+	pthread_join(*(&loadThread.id), nullptr);
 	barrier_destroy( &barrier );
 }
 
@@ -194,7 +194,7 @@ void ProgRecFourierAccel::produceSideinfo()
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"This algorithm only works for squared images");
     imgSize=Xdim;
     paddedImgSize = Xdim*padding_factor_vol;
-	size_t conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
+	auto conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
 	conserveRows = (size_t) ceil((double) conserveRows / 2.0);
 	maxVolumeIndexX = maxVolumeIndexYZ = 2 * conserveRows;
 
@@ -273,7 +273,7 @@ Array2D<std::complex<float> >* ProgRecFourierAccel::cropAndShift(MultidimArray<s
 	int sizeX = parent->maxVolumeIndexX / 2; // input Fourier contains just one half of the space, second is complex conjugate
 	int sizeY = parent->maxVolumeIndexYZ;
 
-	Array2D<std::complex<float> >* result = new Array2D<std::complex<float> >(sizeX, sizeY);
+	auto* result = new Array2D<std::complex<float> >(sizeX, sizeY);
 	// convert image (shift to center and remove high frequencies)
 	std::complex<double> paddedFourierTmp;
 	int halfY = paddedFourier.ydim / 2;
@@ -351,8 +351,8 @@ void ProgRecFourierAccel::preloadBuffer(LoadThreadParams* threadParams,
 		data->img = cropAndShift(localPaddedFourier, parent);
 		data->imgIndex = imgIndex;
 		if (hasCTF) {
-			Array2D<float>* CTF = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
-			Array2D<float>* modulator = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
+			auto* CTF = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
+			auto* modulator = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
 			preloadCTF(threadParams, objId[imgIndex],parent, CTF, modulator);
 		}
 		// set data as usable
@@ -389,7 +389,7 @@ void ProgRecFourierAccel::preloadBuffer(LoadThreadParams* threadParams,
 
 void * ProgRecFourierAccel::loadImageThread( void * threadArgs )
 {
-    LoadThreadParams * threadParams = (LoadThreadParams *) threadArgs;
+    auto * threadParams = (LoadThreadParams *) threadArgs;
     ProgRecFourierAccel * parent = threadParams->parent;
     barrier_t * barrier = &(parent->barrier);
 
@@ -410,7 +410,7 @@ void * ProgRecFourierAccel::loadImageThread( void * threadArgs )
                 break;
             }
         case EXIT_THREAD:
-            return NULL;
+            return nullptr;
         default:
             break;
         }
@@ -669,7 +669,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 
 				float wCTF = (*data->CTF)(j, i);
 				float wModulator = (*data->modulator)(j, i);
-				int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+				auto aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 				float wBlob = blobTableSqrt[aux];
 				float weight = wBlob * wModulator * data->weight;
 				*targetWeight += weight;
@@ -687,7 +687,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 				float distanceSqr = xD*xD + yzSqr;
 				if (distanceSqr > radiusSqr) continue;
 
-				int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+				auto aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 				float wBlob = blobTableSqrt[aux];
 
 				float weight = wBlob * data->weight;
@@ -729,91 +729,32 @@ void ProgRecFourierAccel::processProjection(
 	normal = getNormal(u, v);
 
 	// prepare traversing
-	int minY, minX, minZ;
-	int maxY, maxX, maxZ;
+	int minY, minZ;
+	int maxY, maxZ;
 	minZ = floor(AABB[0].z);
 	minY = floor(AABB[0].y);
-	minX = floor(AABB[0].x);
 	maxZ = ceil(AABB[1].z);
 	maxY = ceil(AABB[1].y);
-	maxX = ceil(AABB[1].x);
-	// iterate along the longest axes, because it has the shortest projection to traverse plane
-	int nX, nY, nZ;
-	nX = std::abs(nX);
-	nY = std::abs(nY);
-	nZ = std::abs(nZ);
 
-	if (nZ >= nX && nZ >= nY) { // iterate XY plane
+	for(int z = minZ; z <= maxZ; z++) {
 		for(int y = minY; y <= maxY; y++) {
-			for(int x = minX; x <= maxX; x++) {
-				if (useFast) {
-					float hitZ;
-					if (getZ(x, y, hitZ, u, v, *cuboid)) {
-						int z = (int)(hitZ + 0.5f); // rounding
-						processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
-					}
-				} else {
-					float z1, z2;
-					bool hit1 = getZ(x, y, z1, u, v, *cuboid); // lower plane
-					bool hit2 = getZ(x, y, z2, u, v, *(cuboid + 4)); // upper plane
-					if (hit1 || hit2) {
-						z1 = clamp(z1, 0, maxVolumeIndexYZ);
-						z2 = clamp(z2, 0, maxVolumeIndexYZ);
-						float lower = std::min(z1, z2);
-						float upper = std::max(z1, z2);
-						for (int z = std::floor(lower); z <= std::ceil(upper); z++) {
-							processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
-						}
-					}
+			if (useFast) {
+				float hitX;
+				if (getX(hitX, y, z, u, v, *cuboid)) {
+					auto x = (int)(hitX + 0.5f); // rounding
+					processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
 				}
-			}
-		}
-	} else if (nY >= nX && nY >= nZ) { // iterate XZ plane
-		for(int z = minZ; z <= maxZ; z++) {
-			for(int x = minX; x <= maxX; x++) {
-				if (useFast) {
-					float hitY;
-					if (getY(x, hitY, z, u, v, *cuboid)) {
-						int y = (int)(hitY + 0.5f); // rounding
-						processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
-					}
-				} else {
-					float y1, y2;
-					bool hit1 = getY(x, y1, z, u, v, *cuboid); // lower plane
-					bool hit2 = getY(x, y2, z, u, v, *(cuboid + 4)); // upper plane
-					if (hit1 || hit2) {
-						y1 = clamp(y1, 0, maxVolumeIndexYZ);
-						y2 = clamp(y2, 0, maxVolumeIndexYZ);
-						float lower = std::min(y1, y2);
-						float upper = std::max(y1, y2);
-						for (int y = std::floor(lower); y <= std::ceil(upper); y++) {
-							processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
-						}
-					}
-				}
-			}
-		}
-	} else if(nX >= nY  && nX >= nZ) { // iterate YZ plane
-		for(int z = minZ; z <= maxZ; z++) {
-			for(int y = minY; y <= maxY; y++) {
-				if (useFast) {
-					float hitX;
-					if (getX(hitX, y, z, u, v, *cuboid)) {
-						int x = (int)(hitX + 0.5f); // rounding
-						processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
-					}
-				} else {
-					float x1, x2;
-					bool hit1 = getX(x1, y, z, u, v, *cuboid); // lower plane
-					bool hit2 = getX(x2, y, z, u, v, *(cuboid + 4)); // upper plane
-					if (hit1 || hit2) {
-						x1 = clamp(x1, 0, maxVolumeIndexX);
-						x2 = clamp(x2, 0, maxVolumeIndexX);
-						float lower = std::min(x1, x2);
-						float upper = std::max(x1, x2);
-						for (int x = std::floor(lower); x <= std::ceil(upper); x++) {
-							processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
-						}
+			} else {
+				float x1, x2;
+				bool hit1 = getX(x1, y, z, u, v, *cuboid); // lower plane
+				bool hit2 = getX(x2, y, z, u, v, *(cuboid + 4)); // upper plane
+				if (hit1 || hit2) {
+					x1 = clamp(x1, 0, maxVolumeIndexX);
+					x2 = clamp(x2, 0, maxVolumeIndexX);
+					float lower = std::min(x1, x2);
+					float upper = std::max(x1, x2);
+					for (int x = std::floor(lower); x <= std::ceil(upper); x++) {
+						processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
 					}
 				}
 			}
@@ -845,7 +786,7 @@ void ProgRecFourierAccel::release(T***& array, int ySize, int zSize) {
 		delete[] array[z];
 	}
 	delete[] array;
-	array = NULL;
+	array = nullptr;
 }
 
 template<typename T>
@@ -874,7 +815,7 @@ T*** ProgRecFourierAccel::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+							auto aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -997,7 +938,7 @@ void ProgRecFourierAccel::swapLoadBuffers() {
 
 void ProgRecFourierAccel::processBuffer(ProjectionData* buffer)
 {
-	int repaint = (int)ceil((double)SF.size()/60);
+	auto repaint = (int)ceil((double)SF.size()/60);
 	for ( int i = 0 ; i < bufferSize; i++ ) {
 		ProjectionData* projData = &buffer[i];
 		if (projData->skip) {
@@ -1030,10 +971,10 @@ void ProgRecFourierAccel::processImages( int firstImageIndex, int lastImageIndex
     int loops = ceil((lastImageIndex-firstImageIndex+1)/(float)bufferSize);
 
 	// the +1 is to prevent outOfBound reading when mirroring the result (later)
-    if (NULL == tempVolume) {
+    if (nullptr == tempVolume) {
     	allocate(tempVolume, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1);
     }
-    if (NULL == tempWeights) {
+    if (nullptr == tempWeights) {
     	allocate(tempWeights, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1);
     }
 
@@ -1050,7 +991,7 @@ void ProgRecFourierAccel::processImages( int firstImageIndex, int lastImageIndex
     }
 	delete[] loadThread.buffer1;
 	delete[] loadThread.buffer2;
-	loadThread.buffer1 = loadThread.buffer2 = NULL;
+	loadThread.buffer1 = loadThread.buffer2 = nullptr;
 }
 
 void ProgRecFourierAccel::releaseTempSpaces() {
@@ -1102,7 +1043,7 @@ void ProgRecFourierAccel::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
 		A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);
 		meanFactor2+=factor2;
     }

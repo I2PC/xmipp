@@ -247,7 +247,6 @@ void ProgTransformDimRed::extractRandomProjections()
         }
     }
 
-    std::cout << " fnRandomSampling : " << fnRandomSampling << std::endl;
     SFout.write(fnRandomSampling);
 }
 
@@ -276,7 +275,7 @@ void ProgTransformDimRed::run()
             i++;
         }
 
-        SFin.write(fnIn,MD_OVERWRITE);
+        SFin.write(fnIn,MD_APPEND);
     }
 
     if (fnRandomSampling!="")

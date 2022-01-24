@@ -416,7 +416,7 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
     }
     MetaDataVec mdIref;
     mdIref.setValue(MDL_REF, (int)(nfirst + alignment.refFrame), mdIref.addObject());
-    mdIref.write((FileName) ("referenceFrame@") + fnOut, MD_APPEND);
+    mdIref.write((FileName) "referenceFrame@" + fnOut, MD_APPEND);
 }
 
 template<typename T>
@@ -562,7 +562,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
                 localAlignmentControlPoints.n()},
             id);
     // Safe to file
-    mdIref.write((FileName) ("localAlignment@") + fnOut, MD_APPEND);
+    mdIref.write("localAlignment@" + fnOut, MD_APPEND);
 }
 
 template<typename T>

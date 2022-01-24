@@ -237,17 +237,17 @@ void ProgMonoTomo::produceSideInfo()
 
 				if (abs(ux)>=limit_distance_x)
 				{
-					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/N_smoothing));
 					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 				}
 				if (abs(uy)>=limit_distance_y)
 				{
-					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/N_smoothing));
 					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 				}
 				if (abs(uz)>=limit_distance_z)
 				{
-					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/N_smoothing));
 					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 				}
 				++n;
@@ -413,7 +413,7 @@ void ProgMonoTomo::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftVRiesz)
 	{
 		double un=1.0/DIRECT_MULTIDIM_ELEM(iu,n);
-		if ((freqL)>=un && un>=freq)
+		if (freqL>=un && un>=freq)
 		{
 			DIRECT_MULTIDIM_ELEM(fftVRiesz,n) *= 0.5*(1 + cos(raised_w*(un-freq)));
 		}
@@ -504,9 +504,9 @@ void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> 
 
 
 			counter = 0;
-			for (int i = (yStart); i<(yLimit); i++)
+			for (int i = yStart; i<yLimit; i++)
 			{
-				for (int j = (xStart); j<(xLimit); j++)
+				for (int j = xStart; j<xLimit; j++)
 				{
 					for (int k = STARTINGZ(noiseMap); k<FINISHINGZ(noiseMap); k++)
 					{
@@ -588,7 +588,7 @@ void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> 
 
 
 void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
-		std::vector<double> &list, MultidimArray<double> &resolutionChimera, double &cut_value, MultidimArray<int> &pMask, double &resolutionThreshold)
+		std::vector<double> &list)
 {
 	MultidimArray<double> resolutionVol_aux = resolutionVol;
 	double init_res, last_res;
@@ -640,7 +640,7 @@ void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutio
 	// Count number of voxels with resolution
 	size_t N=0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) )//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
+		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001))//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
 			++N;
 
 	// Get all resolution values
@@ -648,7 +648,7 @@ void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutio
 	size_t N_iter=0;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) )//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res))
+		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001))//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res))
 		{
 			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
 		}
@@ -669,8 +669,7 @@ void ProgMonoTomo::resolution2eval(int &count_res, double step,
 								double &resolution, double &last_resolution,
 								double &freq, double &freqL,
 								int &last_fourier_idx,
-								bool &continueIter,	bool &breakIter,
-								bool &doNextIteration)
+								bool &continueIter,	bool &breakIter)
 {
 	resolution = maxRes - count_res*step;
 	freq = sampling/resolution;
@@ -699,7 +698,7 @@ void ProgMonoTomo::resolution2eval(int &count_res, double step,
 	if (count_res == 0)
 		last_resolution = resolution;
 
-	if ( ( resolution<Nyquist ))
+	if (resolution<Nyquist)
 	{
 		breakIter = true;
 		return;
@@ -784,7 +783,7 @@ void ProgMonoTomo::run()
 		resolution2eval(count_res, R_,
 						resolution, last_resolution,
 						freq, freqH,
-						last_fourier_idx, continueIter, breakIter, doNextIteration);
+						last_fourier_idx, continueIter, breakIter);
 
 		if (continueIter)
 			continue;
@@ -953,7 +952,7 @@ void ProgMonoTomo::run()
 	Image<double> outputResolutionImage;
 	MultidimArray<double> resolutionFiltered, resolutionChimera;
 
-	postProcessingLocalResolutions(FilteredResolution, list, resolutionChimera, cut_value, pMask, resolutionThreshold);
+	postProcessingLocalResolutions(FilteredResolution, list);
 
 	outputResolutionImage() = FilteredResolution;
 	outputResolutionImage.write(fnOut);

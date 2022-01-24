@@ -33,8 +33,8 @@
 /*Constructor */
 MpiProgAngularProjectionMatching::MpiProgAngularProjectionMatching()
 {
-    imagesBuffer = NULL;
-    last_chunk = NULL;
+    imagesBuffer = nullptr;
+    last_chunk = nullptr;
 }
 /* Destructor */
 MpiProgAngularProjectionMatching::~MpiProgAngularProjectionMatching()
@@ -356,7 +356,7 @@ void MpiProgAngularProjectionMatching::computeChunkAngularDistance(int symmetry,
         double areaVoronoiRegionReferenceLibrary = 2 *( 3 *(  acos(
                     //NEXT ONE IS SAMPLING NOT ANOTHERSAMPLING
                     cos(mysampling.sampling_rate_rad)/(1+cos(mysampling.sampling_rate_rad)) )  ) - PI);
-        int number_of_images_that_fit_in_a_chunck_neigh =(int)
+        auto number_of_images_that_fit_in_a_chunck_neigh =(int)
             ceil(area_chunck_neigh / areaVoronoiRegionReferenceLibrary);
         //#define DEBUG
 #ifdef DEBUG

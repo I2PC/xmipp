@@ -1,6 +1,6 @@
 #include <fstream>
 #include <mex.h>
-#include <core/xmipp_metadata_program.h>
+#include <core/metadata_vec.h>
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[],

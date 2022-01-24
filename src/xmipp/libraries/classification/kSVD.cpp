@@ -150,20 +150,11 @@ double lasso(const Matrix1D<double> &x,
     double lambda, Matrix1D<double> &alpha,
     const int maxIter, const double tol)
 {
-    int K=D.Xdim();
-
     // Compute the ridge least squares solution
     // Compute D^t*x
-    Matrix1D<double> Dtx(K);
-    FOR_ALL_ELEMENTS_IN_MATRIX1D(Dtx)
-        // Compute the dot product of the i-th column of D and x
-        for (size_t k=0; k<D.Ydim(); k++)
-            Dtx(i)+= D(k,i)*x(k);
-
-    // Now multiply DtdLambdaInv * D^t * x
-    alpha.initZeros(K);
-    FOR_ALL_ELEMENTS_IN_MATRIX2D(DtDlambdaInv)
-        alpha(i)+=DtDlambdaInv(i,j)*Dtx(j);
+    Matrix1D<double> Dtx;
+    matrixOperation_Atx(D,x,Dtx); // Dtx=D^t*x
+    matrixOperation_Ax(DtDlambdaInv,Dtx,alpha); // alpha=DtDlambdaInv*Dtx
 
     // Iterate over alpha
     Matrix1D<double> alphaOld;

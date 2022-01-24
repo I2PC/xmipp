@@ -479,7 +479,7 @@ void ProgCTFEstimateFromPSD::generate_model_quadrant(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // Generate the CTF model
@@ -543,7 +543,7 @@ void ProgCTFEstimateFromPSD::generate_model_halfplane(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // The left part is the CTF model
@@ -978,7 +978,7 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
 
 double CTF_fitness(double *p, void *vprm)
 {
-	ProgCTFEstimateFromPSD *prm=(ProgCTFEstimateFromPSD *) vprm;
+	auto *prm=(ProgCTFEstimateFromPSD *) vprm;
 	return prm->CTF_fitness_object(p);
 }
 
@@ -1952,7 +1952,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     VEC_ELEM(coefs,5) = 1;
     VEC_ELEM(coefs,12) =1;
 
-    int x=(int)((0.3*max_freq+0.7*min_freq)*std::cos(PI/4)*XSIZE(centeredEnhancedPSD)+XSIZE(centeredEnhancedPSD)/2);
+    auto x=(int)((0.3*max_freq+0.7*min_freq)*std::cos(PI/4)*XSIZE(centeredEnhancedPSD)+XSIZE(centeredEnhancedPSD)/2);
     DEBUG_TEXTFILE(formatString("Zernike1 %d",x));
     DEBUG_TEXTFILE(formatString("centeredEnhancedPSD80x80 %f",centeredEnhancedPSD(80,80)));
     DEBUG_TEXTFILE(formatString("centeredEnhancedPSD120x120 %f",centeredEnhancedPSD(120,120)));
@@ -1993,14 +1993,14 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     lambdaPhase = 0.8;
     sizeWindowPhase = 10;
 
-    Matrix1D<double> initialGlobalAdjust = (*adjust_params);
+    Matrix1D<double> initialGlobalAdjust = *adjust_params;
 
     for (int i = 1; i < numElem; i++)
     {
-        if ( ( ((fmax - min_freq)/min_freq) > 0.5))
+        if (((fmax - min_freq)/min_freq) > 0.5)
         {
             demodulate(centeredEnhancedPSD,lambdaPhase,sizeWindowPhase,
-                          x,x,
+            x,x,
                           (int)(min_freq*XSIZE(centeredEnhancedPSD)),
                           (int)(fmax*XSIZE(centeredEnhancedPSD)),
                           phase, mod, coefs, 0);
@@ -2167,7 +2167,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
         action = 3;
         evaluation_reduction = 1;
 
-        double error = -CTF_fitness(adjust_params->vdata-1,NULL);
+        double error = -CTF_fitness(adjust_params->vdata-1,nullptr);
         if ( error <= -0.1)
         {
             *adjust_params = initialGlobalAdjust;

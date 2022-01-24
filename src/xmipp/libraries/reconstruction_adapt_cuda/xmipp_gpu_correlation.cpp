@@ -88,7 +88,7 @@ void primeFactors(int n, int *out)
 
 
 void preprocess_images_reference(MetaDataVec &SF, int firstIdx, int numImages, Mask &mask, GpuCorrelationAux &d_correlationAux,
-		mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar, mycufftHandle &myhandleAux,
+		mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar,
 		StructuresAux &myStructureAux, MetaDataVec::id_iterator iter, myStreamHandle myStream)
 {
 	size_t Xdim, Ydim, Zdim, Ndim;
@@ -151,7 +151,7 @@ void preprocess_images_reference(MetaDataVec &SF, int firstIdx, int numImages, M
 
 void preprocess_images_experimental(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, GpuCorrelationAux &d_correlationAux, bool rotation,
-		int firstStep, bool mirror, mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar,
+		int firstStep, bool mirror, mycufftHandle &myhandlePadded, mycufftHandle &myhandlePolar,
 		StructuresAux &myStructureAux, myStreamHandle myStream)
 {
 	size_t Xdim, Ydim, Zdim, Ndim;
@@ -207,13 +207,12 @@ void preprocess_images_experimental(MetaDataVec &SF, FileName &fnImg, int numIma
 void preprocess_images_experimental_two(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT,
 		GpuCorrelationAux &d_correlationAuxTR, GpuCorrelationAux &d_correlationAuxRT,
-		bool rotation, int firstStep, bool mirror,
-		mycufftHandle &myhandlePaddedTR, mycufftHandle &myhandleMaskTR, mycufftHandle &myhandlePolarTR,
-		mycufftHandle &myhandlePaddedRT, mycufftHandle &myhandleMaskRT, mycufftHandle &myhandlePolarRT,
+		int firstStep, bool mirror,
+		mycufftHandle &myhandlePaddedTR, mycufftHandle &myhandleMaskTR,
+		mycufftHandle &myhandlePolarRT,
 		StructuresAux &myStructureAuxTR, StructuresAux &myStructureAuxRT,
 		myStreamHandle &myStreamTR, myStreamHandle &myStreamRT,
-		GpuMultidimArrayAtCpu<float> &original_image_stack,
-		mycufftHandle &ifftcb)
+		GpuMultidimArrayAtCpu<float> &original_image_stack)
 {
 
 
@@ -277,9 +276,8 @@ void preprocess_images_experimental_two(MetaDataVec &SF, FileName &fnImg, int nu
 void preprocess_images_experimental_transform_two(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT,
 		GpuCorrelationAux &d_correlationAuxOne, GpuCorrelationAux &d_correlationAuxTwo,
-		bool rotation, int firstStep, bool mirror,
-		mycufftHandle &myhandlePaddedOne, mycufftHandle &myhandleMaskOne, mycufftHandle &myhandlePolarOne,
-		mycufftHandle &myhandlePaddedTwo, mycufftHandle &myhandleMaskTwo, mycufftHandle &myhandlePolarTwo,
+		mycufftHandle &myhandlePaddedOne,
+		mycufftHandle &myhandlePolarTwo,
 		StructuresAux &myStructureAuxOne, StructuresAux &myStructureAuxTwo,
 		myStreamHandle &myStreamOne, myStreamHandle &myStreamTwo, int step)
 {
@@ -317,8 +315,8 @@ void preprocess_images_experimental_transform_two(MetaDataVec &SF, FileName &fnI
 
 
 void preprocess_images_experimental_transform(GpuCorrelationAux &d_correlationAux, GpuMultidimArrayAtGpu<float> &mask,
-		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, bool rotation, int step, mycufftHandle &myhandlePadded,
-		mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar, StructuresAux &myStructureAux, myStreamHandle myStream)
+		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, bool rotation, mycufftHandle &myhandlePadded,
+		mycufftHandle &myhandlePolar, StructuresAux &myStructureAux, myStreamHandle myStream)
 {
 
 	size_t Xdim = d_correlationAux.d_transform_image.Xdim;
@@ -380,11 +378,10 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 
 	preprocess_images_experimental_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-			d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT, true, 0, mirror,
-					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
-					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
-					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, original_image_stack,
-					ifftcb);
+			d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,  0, mirror,
+					myhandlePadded_tr,
+					myhandleMask_rt, myhandlePolar_rt,
+					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, original_image_stack);
 
 	d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
 	d_experimentalAuxTR.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr,
@@ -422,9 +419,9 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 			//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
 			preprocess_images_experimental_transform_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-					d_referenceAux.d_maskFFT, d_experimentalAuxRT, d_experimentalAuxTR,	true, 0, mirror,
-					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
-					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
+					d_referenceAux.d_maskFFT, d_experimentalAuxRT, d_experimentalAuxTR,
+					myhandlePadded_rt,
+					myhandlePolar_tr,
 					myStructureAux_rt, myStructureAux_tr, myStreamRT, myStreamTR, 1);
 
 			d_experimentalAuxRT.maskCount=d_referenceAux.maskCount;
@@ -456,9 +453,9 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 				//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
 				preprocess_images_experimental_transform_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-						d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,	true, 0, mirror,
-						myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
-						myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
+						d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,
+						myhandlePadded_tr,
+						myhandlePolar_rt,
 						myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, 2);
 
 				d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
@@ -472,8 +469,8 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 				apply_transform(d_experimentalAuxTR.d_original_image, d_experimentalAuxTR.d_transform_image, transMat_tr, myStreamTR);
 
 				//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
-				preprocess_images_experimental_transform(d_experimentalAuxTR, d_referenceAux.d_mask, d_referenceAux.d_maskFFT, false, step,
-							myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myStructureAux_tr, myStreamTR);
+				preprocess_images_experimental_transform(d_experimentalAuxTR, d_referenceAux.d_mask, d_referenceAux.d_maskFFT, false,
+							myhandlePadded_tr, myhandlePolar_tr, myStructureAux_tr, myStreamTR);
 				d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
 				d_experimentalAuxTR.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr,
 						d_referenceAux.maskAutocorrelation, myStreamTR);
@@ -897,7 +894,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 	Mask mask;
     mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	size_t rad = (size_t)std::min(xAux*0.5, yAux*0.5);
+	auto rad = (size_t)std::min(xAux*0.5, yAux*0.5);
 	mask.R1 = rad;
 	mask.resize(yAux,xAux);
 	mask.get_binary_mask().setXmippOrigin();
@@ -995,7 +992,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 					MAT_ELEM(E,2,1)=0.0;
 					MAT_ELEM(E,2,2)=1.0;
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 					//applyGeometry(LINEAR,Iexp_out(),Iexp_aux(),auxtrMatrix,IS_NOT_INV,DONT_WRAP,0.0);
 
 					Iexp_aux().resetOrigin();
@@ -1067,7 +1064,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 					MAT_ELEM(E,1,0)*=-1; //E
 					//FIN AJ NEW//
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 
 					Iexp_aux().resetOrigin();
 
@@ -1358,10 +1355,10 @@ void ProgGpuCorrelation::run()
 	Mask mask;
     mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	size_t rad = (size_t)std::min(Xdim*0.48, Ydim*0.48);
+	auto rad = (size_t)std::min(Xdim*0.48, Ydim*0.48);
 
 	int number = rad;
-	int *out = new int[5];
+	auto *out = new int[5];
 
 	while(true){
 		if (number%2!=0){
@@ -1411,10 +1408,10 @@ void ProgGpuCorrelation::run()
 
 
 	//matrix with all the best transformations in CPU
-	MultidimArray<float> *matrixTransCpu = new MultidimArray<float> [mdInSize]; //mdExpSize
+	auto *matrixTransCpu = new MultidimArray<float> [mdInSize]; //mdExpSize
 	for(int i=0; i<mdInSize; i++) //mdExpSize
 		matrixTransCpu[i].coreAllocate(1, mdExpSize, 3, 3); //mdInSize
-	MultidimArray<float> *matrixTransCpu_mirror = new MultidimArray<float> [mdInSize]; //mdExpSize
+	auto *matrixTransCpu_mirror = new MultidimArray<float> [mdInSize]; //mdExpSize
 	for(int i=0; i<mdInSize; i++) //mdExpSize
 		matrixTransCpu_mirror[i].coreAllocate(1, mdExpSize, 3, 3); //mdInSize
 
@@ -1526,7 +1523,7 @@ void ProgGpuCorrelation::run()
 
 		//SF
 		preprocess_images_reference(SFexp, firstIdx, available_images_proj, mask, d_referenceAux,
-				myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myhandleAux_tr, myStructureAux_tr, iter, myStreamTR);
+				myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,  myStructureAux_tr, iter, myStreamTR);
 
 	    d_referenceAux.maskCount=maskCount;
 		d_referenceAux.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr, myStreamTR);

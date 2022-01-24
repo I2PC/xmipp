@@ -52,8 +52,8 @@ public:
 
     void preProcess()
     {
-        int Nturns = (int)ceil(node->size/Nsimul);
-        int myTurn = (int)floor(node->rank/Nsimul);
+        auto Nturns = (int)ceil(node->size/Nsimul);
+        auto myTurn = (int)floor(node->rank/Nsimul);
         for (int turn=0; turn<=Nturns; turn++)
         {
         	if (turn==myTurn)

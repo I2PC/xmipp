@@ -32,8 +32,8 @@ ProgAngularProjectLibrary::ProgAngularProjectLibrary()
 {
     /** sampling object 1 by default*/
     mysampling.setSampling(1);
-    Vshears=NULL;
-    Vfourier=NULL;
+    Vshears=nullptr;
+    Vfourier=nullptr;
 
 }
 
@@ -76,11 +76,11 @@ void ProgAngularProjectLibrary::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmipp_transformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmipp_transformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmipp_transformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The interpolation kernel can be : nearest, linear, bspline");
     }
@@ -171,11 +171,11 @@ void ProgAngularProjectLibrary::show()
         std::cout << "     pad factor: "   << paddFactor <<std::endl;
         std::cout << "     maxFrequency: " << maxFrequency <<std::endl;
         std::cout << "     interpolator: ";
-        if (BSplineDeg == NEAREST)
+        if (BSplineDeg == xmipp_transformation::NEAREST)
             std::cout << " nearest" <<std::endl;
-        else if (BSplineDeg == LINEAR)
+        else if (BSplineDeg == xmipp_transformation::LINEAR)
             std::cout << " linear" <<std::endl;
-        else if (BSplineDeg == BSPLINE3)
+        else if (BSplineDeg == xmipp_transformation::BSPLINE3)
             std::cout << " bspline" <<std::endl;
     }
     else if (projType == REALSPACE)
@@ -217,9 +217,9 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 
 //    if (shears && XSIZE(inputVol())!=0 && VShears==NULL)
 //        VShears=new RealShearsInfo(inputVol());
-    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==NULL)
+    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==nullptr)
         Vshears=new RealShearsInfo(inputVol());
-    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==NULL)
+    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==nullptr)
         Vfourier=new FourierProjector(inputVol(),
         		                      paddFactor,
         		                      maxFrequency,
@@ -267,7 +267,7 @@ void ProgAngularProjectLibrary::run()
     show();
     //all ranks
     mysampling.setSampling(sampling);
-    srand ( time(NULL) );
+    srand ( time(nullptr) );
     //process the symmetry file
     //only checks symmetry and set pg_order and pg_group, no memory allocation
     if (!mysampling.SL.isSymmetryGroup(fn_sym, symmetry, sym_order))

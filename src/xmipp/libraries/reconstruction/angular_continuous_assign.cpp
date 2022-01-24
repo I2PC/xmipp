@@ -402,7 +402,7 @@ long mirroring(long period, long k)
     else
         sqk = 2L * period - 2L - qk;
 
-    return(sqk);
+    return sqk;
 }
 
 long periodization(long period, long k)
@@ -421,7 +421,7 @@ long periodization(long period, long k)
     else
         sqk = period - 1L - qk;
 
-    return(sqk);
+    return sqk;
 }
 
 #define PERIODIZATION(y, period, k) \
@@ -1690,7 +1690,7 @@ int return_gradhesscost(
           int  cstregistration(struct cstregistrationStruct *Data)
           {
               const long      OrderOfSpline = 3L;
-              const double   epsilon = DBL_EPSILON;
+              const auto   epsilon = DBL_EPSILON;
 
               int      Status = !ERROR, DoDesProj, IteratingStop, FlagMaxIter;
 
@@ -1705,7 +1705,7 @@ int return_gradhesscost(
               double   *Q1, *Q3, *As, *Ap, *hlp;
               double   vox_x, vox_y, vox_z, pix_x, pix_y, scx1, scy1, S;
               double   sum_xx_re, sum_xx_im, dftproj_inp_re, dftproj_inp_im, sc_re, sc_im;
-              time_t   time1, time2, *tp1 = NULL, *tp2 = NULL;
+              time_t   time1, time2, *tp1 = nullptr, *tp2 = nullptr;
 
               if (Data == (struct cstregistrationStruct *)NULL)
               {

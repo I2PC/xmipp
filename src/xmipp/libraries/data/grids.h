@@ -178,19 +178,10 @@ public:
         \\ Ex: SimpleGrid sg; */
     SimpleGrid();
 
-    /** Copy constructor.
-        This constructor builds an exact copy of the simple grid.
-        \\ Ex: SimpleGrid sg2(sg1); */
-    SimpleGrid(const SimpleGrid &SG);
-
     /** Show a Simple grid.
         Shows all information about the simple grid.
         \\Ex: std::cout << sg; */
     friend std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid);
-
-    /** Assignment.
-        \\ Ex: sg2=sg1; */
-    SimpleGrid& operator = (const SimpleGrid &SG);
 
     /** Another function for assigment.*/
     void assign(const SimpleGrid &SG);
@@ -291,7 +282,7 @@ public:
     /// Get relative_size
     double get_relative_size() const
     {
-        return (relative_size);
+        return relative_size;
     }
 
     /** Prepare grid for work.
@@ -583,7 +574,7 @@ public:
         The returned vectors Gcorner1 and Gcorner2 enclose this grid.
         You can supply a deformation matrix (see \ref blobs2voxels )*/
     void voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
-                       const Matrix2D<double> *V = NULL) const;
+                       const Matrix2D<double> *V = nullptr) const;
 };
 
 /*****************************************************************************/
@@ -827,7 +818,7 @@ public:
             G = RV.G;
             for (size_t i = 0; i < RV.VolumesNo(); i++)
             {
-                Image<T>  *V = new Image<T>;
+                auto  *V = new Image<T>;
                 *V = RV(i);
                 LV.push_back(V);
             }
@@ -857,7 +848,7 @@ public:
     {
         // Clear old list of volumes
         for (size_t i = 0; i < VolumesNo(); i++)
-            if (LV[i]!=NULL)
+            if (LV[i]!=nullptr)
                 delete LV[i];
         LV.clear();
 
@@ -1287,7 +1278,7 @@ public:
             {
                 // We use a trick to save the grid information in the volume
                 // If the following if is true the trick can not be used
-                if ((sizeof(float) != sizeof(int)))
+                if (sizeof(float) != sizeof(int))
                     REPORT_ERROR(ERR_TYPE_INCORRECT,
                                  "GridVolume is integer and (sizeof(float)!= sizeof(int)");
 
@@ -1408,7 +1399,7 @@ public:
                 {
                     // We use a trick to save the grid information in the volume
                     // If the following if is true the trick can not be used
-                    if ((sizeof(float) != sizeof(int)))
+                    if (sizeof(float) != sizeof(int))
                         REPORT_ERROR(ERR_TYPE_INCORRECT,
                                      "GridVolume is integer and (sizeof(float)!= sizeof(int)");
 

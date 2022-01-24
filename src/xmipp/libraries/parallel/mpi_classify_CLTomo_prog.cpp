@@ -121,9 +121,9 @@ void CL3DClass::updateProjection(MultidimArray<double> &I,
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ifourier)
         if (DIRECT_MULTIDIM_ELEM(IfourierMask,n))
         {
-            double *ptrIfourier=(double*)&DIRECT_MULTIDIM_ELEM(Ifourier,n);
-            double *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,n);
-            *(ptrPupdate)+=(*(ptrIfourier))*assigned.score;
+            auto *ptrIfourier=(double*)&DIRECT_MULTIDIM_ELEM(Ifourier,n);
+            auto *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,n);
+            *ptrPupdate+=(*ptrIfourier)*assigned.score;
             *(ptrPupdate+1)+=(*(ptrIfourier+1))*assigned.score;
             DIRECT_MULTIDIM_ELEM(PupdateMask,n)+=assigned.score;
         }
@@ -173,19 +173,19 @@ void CL3DClass::transferUpdate()
     if (nextListImg.size() > 0)
     {
         // Take from Pupdate
-        double *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,0);
+        auto *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,0);
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PupdateMask)
         {
             double maskVal=DIRECT_MULTIDIM_ELEM(PupdateMask,n);
             if (maskVal>0 && DIRECT_MULTIDIM_ELEM(prmCL3Dprog->maxFreqMask,n))
             {
                 double iMask=1./maskVal;
-                *(ptrPupdate)*=iMask;
+                *ptrPupdate*=iMask;
                 *(ptrPupdate+1)*=iMask;
             }
             else
             {
-            	*(ptrPupdate)=*(ptrPupdate+1)=0.;
+            	*ptrPupdate=*(ptrPupdate+1)=0.;
             }
             ptrPupdate+=2;
         }
@@ -225,7 +225,7 @@ void CL3DClass::transferUpdate()
         save.write("PPPtransfer2.vol");
 #endif
         // Symmetrize
-        symmetrizeVolume(prmCL3Dprog->SL,Paux,P,WRAP);
+        symmetrizeVolume(prmCL3Dprog->SL,Paux,P,xmipp_transformation::WRAP);
 #ifdef DEBUG
         save()=P;
         save.write("PPPtransfer3.vol");
@@ -289,8 +289,8 @@ void CL3DClass::constructFourierMask(MultidimArray<double> &I)
 
 void CL3DClass::constructFourierMaskFRM()
 {
-	int xdim=(int)(prmCL3Dprog->Xdim);
-	int xdim_2=(int)xdim/2;
+	auto xdim=(int)(prmCL3Dprog->Xdim);
+	auto xdim_2=(int)xdim/2;
 	IfourierMaskFRM.initZeros(prmCL3Dprog->Xdim,prmCL3Dprog->Xdim,prmCL3Dprog->Xdim);
 	IfourierMaskFRM.setXmippOrigin();
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(IfourierMask)
@@ -352,7 +352,7 @@ void CL3DClass::fitBasic(MultidimArray<double> &I, CL3DAssignment &result)
     	if (prmCL3Dprog->dontAlign)
     		Iaux=I;
     	else
-    		applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, DONT_WRAP);
+    		applyGeometry(xmipp_transformation::LINEAR, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 		apply_binary_mask(prmCL3Dprog->mask.get_binary_mask(),Iaux,I,0.0);
 		constructFourierMask(I);
 		result.score=frmScore;
@@ -623,7 +623,7 @@ void CL3D::initialize(MetaDataDb &_SF,
 					double psi=rnd_unif(0,360);
 					Matrix2D<double> E;
 					Euler_angles2matrix(rot,tilt,psi,E,true);
-					selfApplyGeometry(LINEAR,I(),E,IS_NOT_INV,DONT_WRAP,0.0);
+					selfApplyGeometry(xmipp_transformation::LINEAR,I(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0);
                 }
                 P[q]->updateProjection(I(), bestAssignment);
             }
@@ -961,8 +961,8 @@ void CL3D::run(const FileName &fnOut, int level)
                                      currentListImgLargest[ii].objId);
 
                     // Now split the largest node
-                    CL3DClass *node1 = new CL3DClass();
-                    CL3DClass *node2 = new CL3DClass();
+                    auto *node1 = new CL3DClass();
+                    auto *node2 = new CL3DClass();
                     std::vector<size_t> splitAssignment;
                     splitNode(P[largestNode], node1, node2, splitAssignment);
                     delete P[largestNode];
@@ -1027,7 +1027,7 @@ void CL3D::splitNode(CL3DClass *node, CL3DClass *&node1, CL3DClass *&node2,
     CL3DAssignment assignment, assignment1, assignment2;
     CL3DClass *firstSplitNode1 = NULL;
     CL3DClass *firstSplitNode2 = NULL;
-    size_t minAllowedSize = (size_t)(prmCL3Dprog->PminSize * 0.01 * node->currentListImg.size());
+    auto minAllowedSize = (size_t)(prmCL3Dprog->PminSize * 0.01 * node->currentListImg.size());
 
     bool finish;
     bool success = true;
@@ -1569,7 +1569,7 @@ void ProgClassifyCL3D::run()
     	        translation3DMatrix(r,T);
     	        A=E*T;
 
-    			applyGeometry(BSPLINE3,Valigned(),V(),A,IS_NOT_INV,DONT_WRAP,0.);
+    			applyGeometry(xmipp_transformation::BSPLINE3,Valigned(),V(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
     	        Valigned.write(fnAligned,idx,true,WRITE_REPLACE);
     		}
     		if (node->rank==0)

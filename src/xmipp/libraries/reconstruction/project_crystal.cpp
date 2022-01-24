@@ -127,7 +127,7 @@ void Crystal_Projection_Parameters::write(const FileName &fn_crystal)
     {
         FILE *fh_param;
 
-        if ((fh_param = fopen(fn_crystal.c_str(), "w")) == NULL)
+        if ((fh_param = fopen(fn_crystal.c_str(), "w")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (std::string)"Prog_Project_Parameters::write: There is a problem "
                          "opening the file " + fn_crystal + " for output");

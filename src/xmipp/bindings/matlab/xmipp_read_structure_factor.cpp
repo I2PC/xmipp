@@ -29,5 +29,4 @@ void mexFunction( int nlhs, mxArray *plhs[],
   std::vector<double> logStruct = md.getColumnValues<double>(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR);
   memcpy(mxGetData(plhs[0]), &freq2[0], nSamples*sizeof(double));
   memcpy(mxGetData(plhs[1]), &logStruct[0], nSamples*sizeof(double));
-  
 }

@@ -39,8 +39,8 @@ void Basis::setDefault()
     blob.radius = 2;
     blob.order  = 2;
     blob.alpha  = 10.4;
-    VolPSF   = NULL;
-    D           = NULL;
+    VolPSF   = nullptr;
+    D           = nullptr;
     blobprint.clear();
     blobprint2.clear();
     aux.resizeNoCopy(3);
@@ -71,7 +71,7 @@ void Basis::defineParams(XmippProgram * program, const char* prefix, const char*
     char tempLine[256];
     char lineOut[512];
 
-    if(prefix == NULL)
+    if(prefix == nullptr)
         sprintf(tempLine, "  [--basis <basis_type=blobs>] ");
     else
         sprintf(tempLine,"%s --basis <basis_type=blobs> ", prefix);
@@ -79,7 +79,7 @@ void Basis::defineParams(XmippProgram * program, const char* prefix, const char*
     //std::cerr << "DEBUG_JM: tempLine: " << tempLine << std::endl;
 
 
-    if (comment != NULL)
+    if (comment != nullptr)
         sprintf(lineOut, "%s : %s", tempLine, comment);
     else
         sprintf(lineOut, "%s : Basis function to use for the reconstruction", tempLine);
@@ -163,15 +163,15 @@ void Basis::produceSideInfo(const Grid &grid)
 {
     switch (type)
     {
-    case (blobs):
+    case blobs:
         {
-            int subsampling = (VolPSF == NULL )? BLOB_SUBSAMPLING : PIXEL_SUBSAMPLING;
+            int subsampling = (VolPSF == nullptr )? BLOB_SUBSAMPLING : PIXEL_SUBSAMPLING;
 
             footprint_blob(blobprint, blob, subsampling);
             sum_on_grid = sum_blob_Grid(blob, grid, D);
             blobprint()  /= sum_on_grid;
 
-            if (VolPSF != NULL)
+            if (VolPSF != nullptr)
             {
                 // let adjust to the same resolution and size both blobprint and VolPSF
                 //                selfScaleToSize(LINEAR, *VolPSF, XSIZE(*VolPSF)*BLOB_SUBSAMPLING,
@@ -203,9 +203,9 @@ void Basis::produceSideInfo(const Grid &grid)
             blobprint2() *= blobprint();
             break;
         }
-    case (voxels):  sum_on_grid = 1;
+    case voxels:  sum_on_grid = 1;
         break;
-    case (splines): sum_on_grid = sum_spatial_Bspline03_Grid(grid);
+    case splines: sum_on_grid = sum_spatial_Bspline03_Grid(grid);
         break;
     }
 
@@ -314,7 +314,7 @@ void Basis::changeFromVoxels(const MultidimArray<double> &vol_voxels,
             FOR_ALL_ELEMENTS_IN_ARRAY3D(vol_voxels)
             if (k*k + i*i + j*j > R2)
                 vol_basis(0)()(k, i, j) = 0;
-        if (vol_mask != NULL)
+        if (vol_mask != nullptr)
             FOR_ALL_ELEMENTS_IN_ARRAY3D(vol_voxels)
             if ((*vol_mask)(k, i, j) == 0)
                 vol_basis(0)()(k, i, j) = 0;
@@ -331,13 +331,13 @@ double Basis::valueAt(const Matrix1D<double> & r) const
     double module_r;
     switch (type)
     {
-    case (blobs):
+    case  blobs:
         {
             module_r = sqrt(XX(r) * XX(r) + YY(r) * YY(r) + ZZ(r) * ZZ(r));
             return blob_val(module_r, blob);
             break;
         }
-    case (voxels):
+    case voxels:
         {
             if (-0.5 <= XX(r) && XX(r) < 0.5 &&
                 -0.5 <= YY(r) && YY(r) < 0.5 &&
@@ -347,7 +347,7 @@ double Basis::valueAt(const Matrix1D<double> & r) const
                 return 0.0;
             break;
         }
-    case (splines):
+    case splines:
         {
             if (-2 <= XX(r) && XX(r) < 2 &&
                 -2 <= YY(r) && YY(r) < 2 &&
@@ -370,11 +370,11 @@ double Basis::projectionAt(const Matrix1D<double> & u, const Matrix1D<double> & 
     int i, j;
     switch (type)
     {
-    case (blobs):
+    case blobs:
         module_r = sqrt(XX(r) * XX(r) + YY(r) * YY(r) + ZZ(r) * ZZ(r));
         return blob_proj(module_r, blob);
         break;
-    case (voxels):
+    case voxels:
         {
             double retval = 0;
             ZZ(aux) = ZZ(r);
@@ -390,7 +390,7 @@ double Basis::projectionAt(const Matrix1D<double> & u, const Matrix1D<double> & 
             return retval*pAvg;
             break;
         }
-    case (splines):
+    case splines:
         return spatial_Bspline03_proj(r, u);
         break;
     }

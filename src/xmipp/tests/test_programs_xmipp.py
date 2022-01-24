@@ -800,12 +800,69 @@ class PdbNmaDeform(XmippProgramTest):
     def getProgram(cls):
         return 'xmipp_pdb_nma_deform'
 
-    def test_case1(self):  # FIXME: change deformed2.pdb to deformed.pdb at -o arg and output
+    def test_case1(self):
         self.runCase("--pdb 2tbv.pdb -o deformed2.pdb --nma modelist.xmd --deformations 1000",
                 preruns=["cp input/2tbv* %o ; cp input/modelist.xmd %o ; cp input/mode0.mod0028 %o" ],
-                outputs=["deformed2.pdb"],
-		changeDir=True)
+                outputs=["deformed2.pdb"], random=True, validate=self.validate,
+		        changeDir=True)
 
+    def validate(self):
+        fileGoldStd = os.path.join(self.goldDir, "deformed2.pdb")
+        outFile = os.path.join(self._testDir, self.outputDir, "deformed2.pdb")
+        print("Checking ",fileGoldStd,outFile)
+        with open(fileGoldStd,"r") as fh:
+            linesGold = [line.rstrip() for line in fh.readlines()]
+        with open(outFile,"r") as fh:
+            lines = [line.rstrip() for line in fh.readlines()]
+
+        def splitPDBLine(line):
+            # ATOM      1  CA  GLY A 102     -22.617  31.293 119.792  1.00 20.00       CA
+            token0 = line[0:6]
+            token1 = line[6:11]
+            token2 = line[12:16]
+            token3 = line[16:17]
+            token4 = line[17:20]
+            token5 = line[21:22]
+            token6 = line[22:26]
+            token7 = line[26:27]
+            token8 = line[30:38] # x
+            token9 = line[38:46] # y
+            token10 = line[46:54] # z
+            token11 = line[54:60] # occupancy
+            token12 = line[60:66] # temperature
+            token13 = line[76:78]
+            return [token0, token1, token2, token3, token4, token5, token6, token7, token8, token9, token10, token11,
+                    token12, token13]
+
+        ok = True
+        for lineG, line in zip(linesGold,lines):
+            try:
+                tokensG = splitPDBLine(lineG)
+                tokens = splitPDBLine(line)
+            except:
+                ok = False
+                break
+            if len(tokensG)!=14 or len(tokens)!=14:
+                print("The following two lines are not well formed")
+                print("Gold: %s"%lineG)
+                print("Test: %s"%line)
+                ok = False
+                break
+            for i in [0,1,2,3,4,5,6,7,13]:
+                if not tokensG[i]==tokens[i]:
+                    print("The following two lines are not equal")
+                    print("Gold: %s"%lineG)
+                    print("Test: %s"%line)
+                    ok = False
+                    break
+            for i in [8,9,10,11,12]:
+                if abs(float(tokensG[i])-float(tokens[i]))>1e-2:
+                    print("The following two lines are not equal")
+                    print("Gold: %s"%lineG)
+                    print("Test: %s"%line)
+                    ok = False
+                    break
+        self.assertTrue(ok)
 
 class PhantomCreate(XmippProgramTest):
     _owner = VAHID
@@ -997,19 +1054,19 @@ class TransformAddNoise(XmippProgramTest):
         return 'xmipp_transform_add_noise'
 
     def test_case1(self):
+        ''' Test to check if noise is properly simulated '''
         self.runCase("-i input/cleanImage.spi --type gaussian 10 5 -o %o/noisyGaussian.spi",
                 outputs=["noisyGaussian.spi"], random=True)
 
-
-class TransformAdjustVolumeGreyLevels(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_transform_adjust_volume_grey_levels'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomBacteriorhodopsin.vol -m input/projectionsBacteriorhodopsin.xmd -o %o/adjusted.vol",
-                outputs=["adjusted.vol"])
+    def test_case2(self):
+        ''' Test to check if particle alignment is not applied '''
+        self.runCase("-i input/projectionsBacteriorhodopsin.xmd --type gaussian 0 0 -o %o/notNoisyGaussian.stk",
+                outputs=["notNoisyGaussian.stk"], random=True, validate=self.validate_case2)
+    
+    def validate_case2(self):
+        import filecmp
+        output = os.path.join(self.outputDir, "notNoisyGaussian.stk")
+        self.assertTrue(filecmp.cmp(output, "input/projectionsBacteriorhodopsin.stk"))
 
 
 class TransformCenterImage(XmippProgramTest):
@@ -1548,52 +1605,36 @@ class VolSubtraction(XmippProgramTest):
 
     def test_case1(self):
         """Test subtraction with radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume1.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
-                     "--cutFreq 1.333333 --sigma 3 --radavg --computeEnergy",
-                     outputs=["output_volume1.mrc"],
-                     validate=self.validate_case1())
-
-    def validate_case1(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/subtraction_radAvg.mrc"))
+        str = "--i1 input/phantomVolSubtraction/V1.vol " \
+              "--i2 input/phantomVolSubtraction/V.vol " +\
+              "-o %o/subtraction.mrc " \
+              "--mask1 input/phantomVolSubtraction/V1_mask.mrc " +\
+              "--mask2 input/phantomVolSubtraction/V_mask.mrc" \
+              " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --computeEnergy"
+        self.runCase(str, outputs=["subtraction.mrc"])
 
     def test_case2(self):
         """Test subtraction without radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume2.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
+                     "-o %o/subtraction_radAvg.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --radavg --lambda 1.0 --sub "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
-                     outputs=["output_volume2.mrc"],
-                     validate=self.validate_case2())
-
-    def validate_case2(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/subtraction.mrc"))
+                     outputs=["subtraction_radAvg.mrc"])
 
     def test_case3(self):
         """Test adjustment without radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume3.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 "
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol  "
+                     "-o %o/Vadjust.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --lambda 1.0 "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
-                     outputs=["output_volume3.mrc"],
-                     validate=self.validate_case3())
+                     outputs=["Vadjust.mrc"])
 
-    def validate_case3(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust.mrc"))
 
     def test_case4(self):
         """Test adjustment with radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume4.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
+                     "-o %o/Vadjust_radAvg.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
-                     outputs=["output_volume4.mrc"],
-                     validate=self.validate_case4())
+                     outputs=["Vadjust_radAvg.mrc"])
 
-    def validate_case4(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))

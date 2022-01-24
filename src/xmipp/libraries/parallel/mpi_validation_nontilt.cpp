@@ -27,7 +27,7 @@
 
 MpiProgValidationNonTilt::MpiProgValidationNonTilt()
 {
-	node=NULL;
+	node=nullptr;
 }
 
 MpiProgValidationNonTilt::~MpiProgValidationNonTilt()

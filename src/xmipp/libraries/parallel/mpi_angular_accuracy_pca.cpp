@@ -27,7 +27,7 @@
 
 MpiProgAngularAccuracyPCA::MpiProgAngularAccuracyPCA()
 {
-	node=NULL;
+	node=nullptr;
 }
 
 MpiProgAngularAccuracyPCA::~MpiProgAngularAccuracyPCA()

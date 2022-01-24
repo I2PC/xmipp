@@ -97,7 +97,7 @@ public:
     			NslicesPerRow=1;
     		else if (NslicesPerRow>Nslices)
     			NslicesPerRow=Nslices;
-    		int Nrows=(int)ceil(((float)Nslices)/NslicesPerRow);
+    		auto Nrows=(int)ceil(((float)Nslices)/NslicesPerRow);
     		if (Nrows==0)
     			Nrows=1;
     		I().resizeNoCopy(Nrows*YSIZE(mV)+(Nrows-1)*sep,NslicesPerRow*XSIZE(mV)+(NslicesPerRow-1)*sep);
