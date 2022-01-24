@@ -28,25 +28,19 @@
 #define _PROG_ANGULAR_SPH_ALIGNMENT_GPU
 
 #include "core/xmipp_metadata_program.h"
-#include "core/rerunable_program.h"
 #include "core/matrix1d.h"
-#include "core/matrix2d.h"
 #include "core/xmipp_image.h"
-#include "data/numerical_tools.h"
-#include "memory"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
 
 #include "reconstruction_cuda/cuda_angular_sph_alignment.h"
-
-// Forward declaration: fourier filter includes fftw, which doesn't compile with cuda 8 
-class FourierFilter;
-class CTFDescription;
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */
 //@{
 
 /** Predict Continuous Parameters. */
-class ProgAngularSphAlignmentGpu: public XmippMetadataProgram, public Rerunable
+class ProgAngularSphAlignmentGpu: public XmippMetadataProgram
 {
 public:
     /** Filename of the reference volume */
@@ -104,7 +98,7 @@ public:
 	// Theoretical projection
 	Image<double> P;
 	// Filter
-    std::unique_ptr<FourierFilter> filter;
+    FourierFilter filter;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
@@ -120,9 +114,11 @@ public:
     // Current defoci
 	double currentDefocusU, currentDefocusV, currentAngle;
 	// CTF
-	std::unique_ptr<CTFDescription> ctf;
+	CTFDescription ctf;
     // CTF filter
-    std::unique_ptr<FourierFilter> FilterCTF;
+    FourierFilter FilterCTF;
+	// CTF image
+	MultidimArray<double> *ctfImage;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
@@ -155,7 +151,7 @@ public:
     void readParams();
 
     /// Show
-    void show() const override;
+    void show();
 
     /// Define parameters
     void defineParams();
@@ -163,6 +159,13 @@ public:
     /** Produce side info.
         An exception is thrown if any of the files is not found*/
     void preProcess();
+
+    /** Create the processing working files.
+     * The working files are:
+     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
+     * nmaDone.xmd image already processed (could exists from a previous run)
+     */
+    virtual void createWorkFiles();
 
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
@@ -195,27 +198,7 @@ public:
 
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
-  protected:
-    virtual void createWorkFiles() {
-      return Rerunable::createWorkFiles(resume, getInputMd());
-    }
 
-  private:
-    using Rerunable::createWorkFiles;
-
-    std::vector<MDLabel> getLabelsForEmpty() override {
-      return std::vector<MDLabel>{MDL_IMAGE,
-                                  MDL_ENABLED,
-                                  MDL_ANGLE_ROT,
-                                  MDL_ANGLE_TILT,
-                                  MDL_ANGLE_PSI,
-                                  MDL_SHIFT_X,
-                                  MDL_SHIFT_Y,
-                                  MDL_FLIP,
-                                  MDL_SPH_DEFORMATION,
-                                  MDL_SPH_COEFFICIENTS,
-                                  MDL_COST};
-    }
 };
 //@}
 #endif

@@ -117,7 +117,7 @@ public:
     void readParams();
 
     /// Show
-    void show() const override;
+    void show();
 
     /// Distance
     double distance(double *pclnm);

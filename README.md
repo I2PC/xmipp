@@ -30,12 +30,9 @@ We have tested Xmipp compilation on the following operating systems:
 
 While compilation and execution might be possible on other systems, it might not be straightforward. If you encounter a problem, please refer to known and fixed [issues](https://github.com/I2PC/xmipp/issues?q=is%3Aissue). Let us know if something is not working!
 
-## Hardware requirements
-At least 2 processors are required to run Xmipp. In some virtual machine tools only one is assigned, please check that at least two processors are assigned to the virtual machine
-
 ## Additional dependencies
 ### Compiler
-Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7.
+Xmipp requires C++14 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7.
 
 We strongly recommend you to have this compiler linked to `gcc` and `g++`. Otherwise it might not be properly picked up by wrappers, such as MPI's wrapper.
 We have good experince with using `alternatives`:
@@ -76,18 +73,12 @@ Follow the official [installation guide](https://scipion-em.github.io/docs/docs/
 Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion. However, in the next section it is explained how to link it with Scipion.
 Start by cloning the repository and then navigate to the right directory.
 
-`git clone https://github.com/I2PC/xmipp.git xmipp-bundle && cd xmipp`
+`git clone https://github.com/I2PC/xmipp.git && cd xmipp`
 
 You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest.
 
-Next is to compile xmipp. There are to possibilities. 1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:
+Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:
 `./xmipp`
-
-or alternatively 2) Compile Xmipp via Scipion (if you want to use Xmipp in Scipion)
-
-`scipion3 installb xmippDev -j 8`
-
-It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 
 Please refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
 
