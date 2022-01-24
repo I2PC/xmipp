@@ -32,7 +32,7 @@
 #include "data/mask.h"
 
 // Empty constructor =======================================================
-ProgAngularSphAlignment::ProgAngularSphAlignment()
+ProgAngularSphAlignment::ProgAngularSphAlignment() : Rerunable("")
 {
 	resume = false;
     produces_a_metadata = true;
@@ -63,7 +63,7 @@ void ProgAngularSphAlignment::readParams()
 	L2 = getIntParam("--l2");
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
-	fnDone = fnOutDir + "/sphDone.xmd";
+	Rerunable::setFileName(fnOutDir + "/sphDone.xmd");
 }
 
 // Show ====================================================================
@@ -120,32 +120,6 @@ void ProgAngularSphAlignment::defineParams()
 	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
-}
-
-// Produce side information ================================================
-void ProgAngularSphAlignment::createWorkFiles() {
-	if (resume && fnDone.exists()) {
-		MetaDataDb done(fnDone);
-		auto *candidates = dynamic_cast<MetaDataDb*>(getInputMd());
-		MetaDataDb toDo(*candidates);
-		toDo.subtraction(done, MDL_IMAGE);
-		*candidates = toDo;
-	} else //if not exists create metadata only with headers
-	{
-		MetaDataVec done;
-		done.addLabel(MDL_IMAGE);
-		done.addLabel(MDL_ENABLED);
-		done.addLabel(MDL_ANGLE_ROT);
-		done.addLabel(MDL_ANGLE_TILT);
-		done.addLabel(MDL_ANGLE_PSI);
-		done.addLabel(MDL_SHIFT_X);
-		done.addLabel(MDL_SHIFT_Y);
-		done.addLabel(MDL_FLIP);
-		done.addLabel(MDL_SPH_DEFORMATION);
-		done.addLabel(MDL_SPH_COEFFICIENTS);
-		done.addLabel(MDL_COST);
-		done.write(fnDone);
-	}
 }
 
 void ProgAngularSphAlignment::preProcess()
@@ -215,7 +189,7 @@ void ProgAngularSphAlignment::preProcess()
 
 void ProgAngularSphAlignment::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename(fnDone.c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // #define DEBUG
@@ -241,7 +215,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,Ifilteredp(),Ifiltered(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
 	filter.applyMaskSpace(P());
 	const MultidimArray<double> mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
@@ -288,7 +262,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 
 double continuousSphCost(double *x, void *_prm)
 {
-	ProgAngularSphAlignment *prm=(ProgAngularSphAlignment *)_prm;
+	auto *prm=(ProgAngularSphAlignment *)_prm;
     int idx = 3*(prm->vecSize);
 	double deltax=x[idx+1];
 	double deltay=x[idx+2];
@@ -471,7 +445,7 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	}
 	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
 	md.setValue(MDL_COST,        correlation, objId);
-	md.append(fnDone);
+	md.append(Rerunable::getFileName());
 }
 
 void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &nc) const

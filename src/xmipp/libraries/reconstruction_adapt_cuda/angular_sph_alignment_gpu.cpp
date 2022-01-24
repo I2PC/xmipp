@@ -31,23 +31,20 @@
 #include "data/projection.h"
 #include "data/mask.h"
 #include "reconstruction_cuda/gpu.h"
+#include "data/fourier_filter.h"
 
 // TODO: Refactor this code to reuse the CPU version when possible
 
 // Empty constructor =======================================================
-ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
+ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu() : Rerunable("")
 {
 	resume = false;
     produces_a_metadata = true;
     each_image_produces_an_output = false;
-    ctfImage = NULL;
     showOptimization = false;
 }
 
-ProgAngularSphAlignmentGpu::~ProgAngularSphAlignmentGpu()
-{
-	delete ctfImage;
-}
+ProgAngularSphAlignmentGpu::~ProgAngularSphAlignmentGpu() = default;
 
 // Read arguments ==========================================================
 void ProgAngularSphAlignmentGpu::readParams()
@@ -56,6 +53,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 	fnVolR = getParam("--ref");
 	fnMaskR = getParam("--mask");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir+"/sphDone.xmd");
     maxShift = getDoubleParam("--max_shift");
     maxAngularChange = getDoubleParam("--max_angular_change");
     maxResol = getDoubleParam("--max_resolution");
@@ -75,7 +73,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 }
 
 // Show ====================================================================
-void ProgAngularSphAlignmentGpu::show()
+void ProgAngularSphAlignmentGpu::show() const
 {
     if (!verbose)
         return;
@@ -134,36 +132,6 @@ void ProgAngularSphAlignmentGpu::defineParams()
 }
 
 // Produce side information ================================================
-void ProgAngularSphAlignmentGpu::createWorkFiles() {
-	auto gpu = GPU(device);
-	gpu.set();
-	// ? Could it be MetaDataVec (not MetaDataDb), dynamic_cast and no casting when equal pointer?
-	MetaDataVec *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
-	MetaDataDb mdTodo, mdDone;
-	mdTodo =*pmdIn;
-	FileName fn(fnOutDir+"/sphDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-		mdTodo.write(fnOutDir + "/sphTodo.xmd");
-		mdTodo.read(fnOutDir + "/sphTodo.xmd");
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_FLIP);
-		mdDone.addLabel(MDL_SPH_DEFORMATION);
-		mdDone.addLabel(MDL_SPH_COEFFICIENTS);
-		mdDone.addLabel(MDL_COST);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
 
 void ProgAngularSphAlignmentGpu::preProcess()
 {
@@ -211,18 +179,24 @@ void ProgAngularSphAlignmentGpu::preProcess()
     mask.generate_mask(Xdim,Xdim);
     mask2D=mask.get_binary_mask();
 
+	// Define pointers
+	filter = std::make_unique<FourierFilter>();
+	FilterCTF = std::make_unique<FourierFilter>();
+	ctf = std::make_unique<CTFDescription>();
+
     // Low pass filter
-    filter.FilterBand=LOWPASS;
-    filter.w1=Ts/maxResol;
-    filter.raised_w=0.02;
+	std::cout << "Preprocess begins" << std::endl;
+    filter->FilterBand=LOWPASS;
+    filter->w1=Ts/maxResol;
+    filter->raised_w=0.02;
 
     // Transformation matrix
     A.initIdentity(3);
 
 	// CTF Filter
-	FilterCTF.FilterBand = CTF;
-	FilterCTF.ctf.enable_CTFnoise = false;
-	FilterCTF.ctf.produceSideInfo();
+	FilterCTF->FilterBand = CTF;
+	FilterCTF->ctf.enable_CTFnoise = false;
+	FilterCTF->ctf.produceSideInfo();
 
 	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
@@ -236,7 +210,7 @@ void ProgAngularSphAlignmentGpu::preProcess()
 
 void ProgAngularSphAlignmentGpu::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/sphDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // #define DEBUG
@@ -260,11 +234,11 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
     	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
     		updateCTFImage(defocusU,defocusV,angle);
 		}
-		FilterCTF.ctf = ctf;
-		FilterCTF.generateMask(P());
+		FilterCTF->ctf = *ctf;
+		FilterCTF->generateMask(P());
 		if (phaseFlipped)
-			FilterCTF.correctPhase();
-		FilterCTF.applyMaskSpace(P());
+			FilterCTF->correctPhase();
+		FilterCTF->applyMaskSpace(P());
 	}
     double cost=0;
 	if (old_flip)
@@ -274,8 +248,8 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
-	filter.applyMaskSpace(P());
+	applyGeometry(xmipp_transformation::LINEAR,Ifilteredp(),Ifiltered(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
+	filter->applyMaskSpace(P());
 	const MultidimArray<double> &mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
 	MultidimArray<double> &mIfilteredp=Ifilteredp();
@@ -322,7 +296,7 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
 
 double continuousSphCost(double *x, void *_prm)
 {
-	ProgAngularSphAlignmentGpu *prm=(ProgAngularSphAlignmentGpu *)_prm;
+	auto *prm=(ProgAngularSphAlignmentGpu *)_prm;
     int idx = 3*(prm->vecSize);
 	double deltax=x[idx+1];
 	double deltay=x[idx+2];
@@ -376,15 +350,15 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 	else
 		old_flip = false;
 	
-	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
+	if (rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL))
 	{
 		hasCTF=true;
-		ctf.readFromMdRow(rowIn);
-		ctf.Tm = Ts;
-		ctf.produceSideInfo();
-		old_defocusU=ctf.DeltafU;
-		old_defocusV=ctf.DeltafV;
-		old_defocusAngle=ctf.azimuthal_angle;
+		ctf->readFromMdRow(rowIn);
+		ctf->Tm = Ts;
+		ctf->produceSideInfo();
+		old_defocusU=ctf->DeltafU;
+		old_defocusV=ctf->DeltafV;
+		old_defocusAngle=ctf->azimuthal_angle;
 	}
 	else
 		hasCTF=false;
@@ -395,7 +369,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 	I().setXmippOrigin();
 
 	Ifiltered()=I();
-	filter.applyMaskSpace(Ifiltered());
+	filter->applyMaskSpace(Ifiltered());
 
     // GPU preparation
     angularAlignGpu.setupConstantParameters();
@@ -513,7 +487,7 @@ void ProgAngularSphAlignmentGpu::writeImageParameters(const FileName &fnImg) {
 	}
 	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
 	md.setValue(MDL_COST,        correlation, objId);
-	md.append(fnOutDir+"/sphDone.xmd");
+	md.append(Rerunable::getFileName());
 }
 
 void ProgAngularSphAlignmentGpu::numCoefficients(int l1, int l2, int &vecSize)
@@ -570,11 +544,11 @@ void ProgAngularSphAlignmentGpu::fillVectorTerms(int l1, int l2, Matrix1D<int> &
 
 void ProgAngularSphAlignmentGpu::updateCTFImage(double defocusU, double defocusV, double angle)
 {
-	ctf.K=1; // get pure CTF with no envelope
-	currentDefocusU=ctf.DeltafU=defocusU;
-	currentDefocusV=ctf.DeltafV=defocusV;
-	currentAngle=ctf.azimuthal_angle=angle;
-	ctf.produceSideInfo();
+	ctf->K=1; // get pure CTF with no envelope
+	currentDefocusU=ctf->DeltafU=defocusU;
+	currentDefocusV=ctf->DeltafV=defocusV;
+	currentAngle=ctf->azimuthal_angle=angle;
+	ctf->produceSideInfo();
 }
 
 void ProgAngularSphAlignmentGpu::deformVol(
