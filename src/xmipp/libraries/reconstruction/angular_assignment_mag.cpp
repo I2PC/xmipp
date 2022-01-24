@@ -25,6 +25,14 @@
  ***************************************************************************/
 
 #include "angular_assignment_mag.h"
+#include <core/metadata_extension.h>
+#include <core/utils/memory_utils.h>
+#include "data/projection.h"
+#include "data/fourier_projection.h"
+#include <reconstruction/project_real_shears.h>
+
+#include <fstream>
+#include <ctime>
 #include <unistd.h>
 
 ProgAngularAssignmentMag::ProgAngularAssignmentMag() {
