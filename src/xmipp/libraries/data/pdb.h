@@ -93,6 +93,7 @@ struct pdbInfo
 	std::vector<double> y;
 	std::vector<double> z;
 	std::vector<double> b;
+	std::vector<std::string> chain;
 	std::vector<int> residue;
 	std::vector<double> atomCovRad;
 };

@@ -167,7 +167,7 @@ if cuda:
            libs=['Xmipp','XmippInterfaceCuda','XmippCuda'], mpi=True)
 
     if starpu:
-        starpu_include = [os.environ.get('STARPU_INCLUDE')]
+        starpu_include = os.environ.get('STARPU_INCLUDE').split()
         starpu_lib = ['lib', os.environ.get('STARPU_LIB')]
         starpu_library = os.environ.get('STARPU_LIBRARY')
 
