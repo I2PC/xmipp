@@ -58,6 +58,7 @@
 	cutFreq=getDoubleParam("--cutFreq");
 	lambda=getDoubleParam("--lambda");
 	fnProj=getParam("--saveProj");
+	subtractAll = checkParam("--suball");
  }
 
  // Show ====================================================================
@@ -92,6 +93,7 @@
      addParamsLine("[--cutFreq <f=0>]\t: Cutoff frequency (<0.5)");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
 	 addParamsLine("[--saveProj <structure=\"\"> ]\t: Save subtraction intermediate files (projection adjusted)");
+	 addParamsLine("[--suball]\t: Perform the subtraction of all the image");
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
@@ -169,8 +171,8 @@
  	img.sort(sortedI);
  	auto p005 = static_cast<double>(size) * 0.005;
  	auto p995 = static_cast<double>(size) * 0.995;
- 	m = sortedI(int(p005));
- 	M = sortedI(int(p995));
+ 	m = DIRECT_MULTIDIM_ELEM(sortedI, int(p005));
+ 	M = DIRECT_MULTIDIM_ELEM(sortedI, int(p995));
  }
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
@@ -251,11 +253,9 @@
 	FilterG2.applyMaskSpace(m());
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
 		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>0.5)) ? 1:0;
-	m.write(formatString("%smaskFocusThFilt.mrc", fnProj.c_str()));
 	for (int n=0; n<10; ++n) {
 		closing2D(m(), m(), 4, 0, 16);
 	}
-	m.write(formatString("%s/maskFocusThFiltClosing.mrc", fnProj.c_str()));
  	return m;
  }
 
@@ -264,7 +264,7 @@
  	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
- 		DIRECT_MULTIDIM_ELEM(m(),n) =(DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0;
+ 		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0;
  	return m;
  }
 
@@ -276,9 +276,16 @@
  }
 
  Image<double> subtraction(Image<double> &I1, const Image<double> &I2,
-		 const Image<double> &minv, const Image<double> &m){
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1())
-		DIRECT_MULTIDIM_ELEM(I1,n) = (DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n))) * DIRECT_MULTIDIM_ELEM(m,n);
+		const Image<double> &minv, const Image<double> &m, bool subAll){
+	 if (subAll){
+		 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1())
+			DIRECT_MULTIDIM_ELEM(I1,n) = DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n));
+	 }
+	 else{
+		 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1())
+			DIRECT_MULTIDIM_ELEM(I1,n) = (DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n)))*DIRECT_MULTIDIM_ELEM(m,n);
+	 }
+
 	return I1;
  }
 
@@ -355,7 +362,8 @@
 		PmaskInv = invertMask(Pmaskctf);
     	FilterG.w1=sigma;
 		FilterG.applyMaskSpace(Pmaskctf());
-		I = subtraction(I, P, PmaskInv, Pmaskctf);
+
+		I = subtraction(I, P, PmaskInv, Pmaskctf, subtractAll);
 		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
