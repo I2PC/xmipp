@@ -29,27 +29,16 @@
 
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
-#include "core/multidim_array.h"
 #include "core/metadata_vec.h"
-
 #include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
-#include <core/metadata_extension.h>
 #include <core/multidim_array.h>
 #include <core/symmetries.h>
 #include <core/xmipp_image.h>
-//#include <core/metadata.h>
-#include <core/utils/memory_utils.h>
 #include <data/mask.h>
 #include <data/filters.h>
-#include "data/projection.h"
-#include "data/fourier_projection.h"
-#include <reconstruction/project_real_shears.h>
 
 #include <vector>
-#include <fstream> 
-#include <ctime>
-
 
 /**@defgroup AngularAssignmentMag ***
    @ingroup ReconsLibrary */
@@ -66,12 +55,45 @@ public:
     FileName fnSym;
     FileName fnRef;
 
-    size_t rank, Nprocessors;
-
     // Metadata with input images and input volumes
     MetaDataVec mdIn;
     MetaDataVec mdRef;
     MetaDataVec mdOut;
+
+    // Transformers
+    FourierTransformer transformerImage;
+    FourierTransformer transformerPolarImage;
+    FourierTransformer transformerPolarRealSpace;
+
+	size_t rank, Nprocessors;
+
+	void defineParams();
+	void readParams();
+	void show();
+	void startProcessing();
+	void preProcess();
+	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+	void postProcess();
+    ProgAngularAssignmentMag();
+    ~ProgAngularAssignmentMag();
+    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
+    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
+    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyFourierImage3(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyRotation(const MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
+    void applyRotation(MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
+    void applyShift(MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
+    void applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
+    void applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
+    void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
+    void getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
+
+    /// Synchronize with other processors
+    virtual void synchronize() {}
+
+
+private:
 
     // vector of reference images
     std::vector< MultidimArray<double> > vecMDaRef;
@@ -88,11 +110,6 @@ public:
     // Size of the images
     size_t Xdim;
     size_t Ydim;
-
-    // Transformers
-    FourierTransformer transformerImage;
-    FourierTransformer transformerPolarImage;
-    FourierTransformer transformerPolarRealSpace;
 
     MultidimArray<double> C; // circular mask
 
@@ -142,38 +159,9 @@ public:
     /** Use it for validation */
     bool useForValidation;
 
-    int Nsim;
-
-    ProgAngularAssignmentMag();
-
-    ~ProgAngularAssignmentMag();
-
     /// Read arguments from command line
-    void defineParams();
-    void readParams();
-
-    void show();
-
-    void startProcessing();
-
-    void preProcess();
-
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
-
-    void postProcess();
 
     void applyCircularMask(const MultidimArray<double> &in, MultidimArray<double> &out);
-    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void applyFourierImage3(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void applyRotation(const MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
-    void applyRotation(MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
-    void applyShift(MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
-    void applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
-    void applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
-    void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
 
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
 
@@ -183,8 +171,6 @@ public:
     void computeLaplacianMatrix(Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp);
     void computeCircular();
     void circularWindow(MultidimArray<double> &in);
-
-    void getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);
     void graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut);
 
@@ -197,14 +183,6 @@ public:
     void maxByRow(MultidimArray<double> &in, MultidimArray<double> &out);
 
     void psiCandidates(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
-
-
-    /// Synchronize with other processors
-    virtual void synchronize() {}
-
-private:
-
-
 };
 //@}
 
