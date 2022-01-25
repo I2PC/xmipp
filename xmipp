@@ -754,12 +754,14 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
+    printXmippLogo("           ")
+
     print("\n"
-          "  *********************************************\n"
-          "  *                                           *\n"
+          "  ********************************************\n"
+          "  *                                          *\n"
           "  *  Xmipp has been successfully installed!  *\n"
-          "  *                                           *\n"
-          "  *********************************************\n\n")
+          "  *                                          *\n"
+          "  ********************************************\n\n")
     return True
 
 def writeDevelPaths(dirname):
@@ -824,7 +826,11 @@ if __name__ == '__main__':
     # Running always under this own directory.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+
     askUser = True
+
+
+
     if 'noAsk' in sys.argv:
         askUser = False
         sys.argv.pop(sys.argv.index('noAsk'))
