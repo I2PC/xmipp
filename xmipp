@@ -447,6 +447,7 @@ def compile_libsvm():
     ok = runJob("make lib")
     libDir = "src/xmipp/lib"
     os.chdir(currDir)
+    createDir(libDir)
     ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
     return ok
 
