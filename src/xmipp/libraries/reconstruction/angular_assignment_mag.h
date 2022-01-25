@@ -30,7 +30,6 @@
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
 #include "core/metadata_vec.h"
-#include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
 #include <core/multidim_array.h>
 #include <core/symmetries.h>
