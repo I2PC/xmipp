@@ -58,7 +58,7 @@
 	cutFreq=getDoubleParam("--cutFreq");
 	lambda=getDoubleParam("--lambda");
 	fnProj=getParam("--saveProj");
-	subtractAll = checkParam("--suball");
+	subtractAll = checkParam("--subAll");
  }
 
  // Show ====================================================================
@@ -93,7 +93,7 @@
      addParamsLine("[--cutFreq <f=0>]\t: Cutoff frequency (<0.5)");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
 	 addParamsLine("[--saveProj <structure=\"\"> ]\t: Save subtraction intermediate files (projection adjusted)");
-	 addParamsLine("[--suball]\t: Perform the subtraction of all the image");
+	 addParamsLine("[--subAll]\t: Perform the subtraction of the whole image");
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
