@@ -222,23 +222,22 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	// read reference images
 	FileName fnImgRef;
-	sizeMdRef = mdRef.size();
+	sizeMdRef = (int)mdRef.size();
 
 	// how many input images
-	sizeMdIn = mdIn.size();
+	sizeMdIn = (int)mdIn.size();
 
 	// reference image related
 	Image<double> ImgRef;
-	MultidimArray<double> MDaRef(Ydim, Xdim);
+	MultidimArray<double> MDaRef((int)Ydim, (int)Xdim);
 	MultidimArray<std::complex<double> > MDaRefF;
 	MultidimArray<std::complex<double> > MDaRefF2;
 	MultidimArray<double> MDaRefFM;
 	MultidimArray<double> MDaRefFMs;
-	MultidimArray<double> MDaRefFMs_polarPart(n_bands, n_ang2);
+	MultidimArray<double> MDaRefFMs_polarPart((int)n_bands, (int)n_ang2);
 	MultidimArray<std::complex<double> > MDaRefFMs_polarF;
 
-	size_t first = 0;
-	MultidimArray<double> refPolar(n_rad, n_ang2);
+	MultidimArray<double> refPolar((int)n_rad, (int)n_ang2);
 	MultidimArray<std::complex<double> > MDaRefAuxF;
 
 	computeCircular(); //pre-compute circular mask
@@ -340,9 +339,9 @@ void ProgAngularAssignmentMag::preProcess() {
 			exit(0);
 		}
 		refVol().setXmippOrigin();
-		refXdim = XSIZE(refVol());
-		refYdim = YSIZE(refVol());
-		refZdim = ZSIZE(refVol());
+		refXdim = (int)XSIZE(refVol());
+		refYdim = (int)YSIZE(refVol());
+		refZdim = (int)ZSIZE(refVol());
 	}
 }
 
@@ -371,12 +370,12 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 
 	// experimental image related
 	Image<double> ImgIn;
-	MultidimArray<double> MDaIn(Ydim, Xdim);
+	MultidimArray<double> MDaIn((int)Ydim, (int)Xdim);
 	MultidimArray<std::complex<double> > MDaInF;
 	MultidimArray<std::complex<double> > MDaInF2;
 	MultidimArray<double> MDaInFM;
 	MultidimArray<double> MDaInFMs;
-	MultidimArray<double> MDaInFMs_polarPart(n_bands, n_ang2);
+	MultidimArray<double> MDaInFMs_polarPart((int)n_bands, (int)n_ang2);
 	MultidimArray<std::complex<double> > MDaInFMs_polarF;
 
 	// processing input image
@@ -523,7 +522,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	rowOut.setValue(MDL_ANGLE_PSI, realWRAP(anglePsi, -180., 180.));
 	rowOut.setValue(MDL_SHIFT_X, -shiftX);
 	rowOut.setValue(MDL_SHIFT_Y, -shiftY);
-	//rowOut.setValue(MDL_FLIP, flip);
 	rowOut.setValue(MDL_WEIGHT, 1.);
 	rowOut.setValue(MDL_WEIGHT_SIGNIFICANT, 1.);
 	rowOut.setValue(MDL_GRAPH_DISTANCE2MAX, sphericalDistance);
@@ -541,14 +539,14 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		Projection P2;
 		double initPsiAngle = 0.;
 		projectVolume(refVol(), P2, refYdim, refXdim, rotRef, tiltRef, initPsiAngle);
-		MultidimArray<double> projectedReference2(Ydim, Xdim);
+		MultidimArray<double> projectedReference2((int)Ydim, (int)Xdim);
 		projectedReference2 = P2();
 
 		double filtRotRef = referenceRot.at(idxfilt);
 		double filtTiltRef = referenceTilt.at(idxfilt);
 		Projection P3;
 		projectVolume(refVol(), P3, refYdim, refXdim, filtRotRef, filtTiltRef, initPsiAngle);
-		MultidimArray<double> projectedReference3(Ydim, Xdim);
+		MultidimArray<double> projectedReference3((int)Ydim, (int)Xdim);
 		projectedReference3 = P3();
 
 		// align & correlation between reference images located at idx and idxfilt
@@ -567,7 +565,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		// get projection of volume from this coordinates
 		Projection P;
 		projectVolume(refVol(), P, refYdim, refXdim, old_rot, old_tilt, initPsiAngle);
-		MultidimArray<double> projectedReference(Ydim, Xdim);
+		MultidimArray<double> projectedReference((int)Ydim, (int)Xdim);
 		projectedReference = P();
 
 		// align & correlation between reference images both methods
@@ -581,7 +579,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		projectedReference3 = P3();
 		graphCorr = alignImages(projectedReference, projectedReference3, M, xmipp_transformation::DONT_WRAP);
 
-		MultidimArray<double> mdainShifted(Ydim, Xdim);
+		MultidimArray<double> mdainShifted((int)Ydim, (int)Xdim);
 		mdainShifted.setXmippOrigin();
 		old_psi *= -1;
 		applyShiftAndRotation(MDaIn, old_psi, old_shiftX, old_shiftY, mdainShifted);
@@ -670,19 +668,19 @@ void ProgAngularAssignmentMag::getComplexMagnitude(
 MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 		MultidimArray<double> &cartIm, size_t &start, size_t &end) {
 
-	int thisNbands = end - start;
-	MultidimArray<double> polarImg(thisNbands, n_ang2);
-	float pi = 3.141592653;
+	size_t thisNbands = end - start;
+	MultidimArray<double> polarImg((int)thisNbands, (int)n_ang2);
+	float pi = (float)3.141592653;
 	// coordinates of center
-	double cy = (Ydim + (Ydim % 2)) / 2.0; // for odd/even images
-	double cx = (Xdim + (Xdim % 2)) / 2.0;
+	double cy = (double)(Ydim + (Ydim % 2)) / 2.0; // for odd/even images
+	double cx = (double)(Xdim + (Xdim % 2)) / 2.0;
 
 	// scale factors
-	double sfy = (Ydim - 1) / 2.0;
-	double sfx = (Xdim - 1) / 2.0;
+	double sfy = (double)(Ydim - 1) / 2.0;
+	double sfx = (double)(Xdim - 1) / 2.0;
 
-	double delR = (double) (1.0 / (n_rad)); // n_rad-1
-	double delT = 2.0 * pi / n_ang2;
+	auto delR = 1.0 / ((double)n_rad); // n_rad-1
+	double delT = 2.0 * pi / ((double)n_ang2);
 
 	// loop through rad and ang coordinates
 	double r;
@@ -691,8 +689,8 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 	double y_coord;
 	for (size_t ri = start; ri < end; ++ri) {
 		for (size_t ti = 0; ti < n_ang2; ++ti) {
-			r = ri * delR;
-			t = ti * delT;
+			r = (double)ri * delR;
+			t = (double)ti * delT;
 			x_coord = (r * cos(t)) * sfx + cx;
 			y_coord = (r * sin(t)) * sfy + cy;
 			// set value of polar img
@@ -715,16 +713,20 @@ double ProgAngularAssignmentMag::interpolate(MultidimArray<double> &cartIm,
 		val = dAij(cartIm, xc, yc);
 	} else if (xf == xc) { // linear
 		val = dAij(cartIm, xf, yf)
-				+ (y_coord - yf)
+				+ (y_coord - (double) yf)
 						* ( dAij(cartIm, xf, yc) - dAij(cartIm, xf, yf));
 	} else if (yf == yc) { // linear
 		val = dAij(cartIm, xf, yf)
-				+ (x_coord - xf)
+				+ (x_coord - (double) xf)
 						* ( dAij(cartIm, xc, yf) - dAij(cartIm, xf, yf));
 	} else { // bilinear
-		val = ((double) (( dAij(cartIm,xf,yf) * (yc - y_coord) + dAij(cartIm,xf,yc) * (y_coord - yf)) * (xc - x_coord))
-						+ (double) (( dAij(cartIm,xc,yf) * (yc - y_coord)+ dAij(cartIm,xc,yc) * (y_coord - yf))	* (x_coord - xf)))
-						/ (double) ((xc - xf) * (yc - yf));
+		val = ((double) (( dAij(cartIm,xf,yf) * ((double) yc - y_coord)
+				+ dAij(cartIm,xf,yc) * (y_coord - (double) yf))
+				* ((double) xc - x_coord))
+				+ (double) (( dAij(cartIm,xc,yf) * ((double) yc - y_coord)
+						+ dAij(cartIm,xc,yc) * (y_coord - (double) yf))
+						* (x_coord - (double) xf)))
+				/ (double) ((xc - xf) * (yc - yf));
 	}
 
 	return val;
@@ -737,8 +739,8 @@ void ProgAngularAssignmentMag::completeFourierShift(const MultidimArray<double> 
 	// correct output size
 	out.resizeNoCopy(in);
 
-	size_t Cf = (size_t) (YSIZE(in) / 2.0 + 0.5);
-	size_t Cc = (size_t) (XSIZE(in) / 2.0 + 0.5);
+	auto Cf = (size_t) ((double)YSIZE(in) / 2.0 + 0.5);
+	auto Cc = (size_t) ((double)XSIZE(in) / 2.0 + 0.5);
 
 	size_t ff;
 	size_t cc;
@@ -768,14 +770,14 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 	double b;
 	double c;
 	double d; // a+bi, c+di
-	double dSize = MULTIDIM_SIZE(result);
+	auto dSize = (double)MULTIDIM_SIZE(result);
 
 	double *ptrFFT2 = (double*) MULTIDIM_ARRAY(F2);
 	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(aux.transformer1.fFourier);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(F1)
 	{
-		a = (*ptrFFT1)* dSize; // * dSize;
-		b = (*(ptrFFT1 + 1))* dSize; // * dSize;
+		a = (*ptrFFT1)* dSize;
+		b = (*(ptrFFT1 + 1))* dSize;
 		c = (*ptrFFT2++);
 		d = (*ptrFFT2++) * (-1);
 		*ptrFFT1++ = (a * c - b * d);
@@ -833,17 +835,17 @@ double quadInterp(/*const*/int idx, const MultidimArray<double> &in) {
 /* precompute circular 2D window Ydim x Xdim*/
 void ProgAngularAssignmentMag::computeCircular() {
 
-	double Cf = (Ydim + (Ydim % 2)) / 2.0; // for odd/even images
-	double Cc = (Xdim + (Xdim % 2)) / 2.0;
+	auto Cf = (double)(Ydim + (Ydim % 2)) / 2.0; // for odd/even images
+	auto Cc = (double)(Xdim + (Xdim % 2)) / 2.0;
 	int pixReduc = 1;
 	double rad2 = (Cf - pixReduc) * (Cf - pixReduc);
 	double val = 0;
 
 	C.resizeNoCopy(Ydim, Xdim);
-	C.initZeros(Ydim, Xdim);
+	C.initZeros((int)Ydim, (int)Xdim);
 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(C)
 	{
-		val = (j - Cf) * (j - Cf) + (i - Cc) * (i - Cc);
+		val = ((double)j - Cf) * ((double)j - Cf) + ((double)i - Cc) * ((double)i - Cc);
 		if (val < rad2)
 			dAij(C,i,j) = 1.;
 	}
@@ -1005,8 +1007,8 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 		double &shift, const size_t &size) {
 	double maxVal = -10.;
 	int idx = 0;
-	int lb = int(size / 2 - maxShift);
-	int hb = int(size / 2 + maxShift);
+	auto lb = (int)((double)size / 2. - maxShift);
+	auto hb = (int)((double)size / 2. + maxShift);
 	for (int i = lb; i < hb; ++i) {
 		if (( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1)))
 				&& ( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1))) && // is this value a peak value?
