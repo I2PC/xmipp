@@ -53,7 +53,7 @@ def printXmippLogo(indentation):
     print(indentation, r''' /   \\       //   \ ''')
     print(indentation, r'''|     \\     //     | ''')
     print(indentation, r'''|      ''', end='')
-    print(yellow('xmipp'), end='')
+    print(green('xmipp'), end='')
     print('''       | ''')
     print(indentation, r'''|     //     \\     | ''')
     print(indentation, r''' \   //       \\   / ''')
