@@ -74,27 +74,31 @@ def find(program, path=[]):
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            inParallel=False):
+    strOut = []
     if show_command:
         print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd, env=environ,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
     while not inParallel:
         output = p.stdout.readline().decode("utf-8")
-        err = p.stderr.readline().decode("utf-8")
         if output == '' and p.poll() is not None:
             break
         if output:
             l = output.rstrip()
+            strOut.append(l)
             if show_output:
                 print(l)
             if log is not None:
-                log.append(l)
+                log = strOut
     if inParallel:
         return p
+    elif 0 == p.poll():
+        return True
     else:
-        if err != "":
-            print(red(err))
-        return 0 == p.poll()
+        if log is None:
+            [print(x, end='') for x in strOut]
+            print('\n')
+        return False
 
 
 def whereis(program, findReal=False, env=None):
