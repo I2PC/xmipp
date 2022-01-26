@@ -210,14 +210,14 @@ void ProgAngularAssignmentMag::preProcess() {
 	getImageSize(mdIn, Xdim, Ydim, Zdim, Ndim);
 
 	// some constants
-	n_rad = size_t(Xdim / 2.);
-	startBand = size_t((sampling * Xdim) / 80.);
-	finalBand = size_t((sampling * Xdim) / (sampling * 3));
+	n_rad = size_t((double)Xdim / 2.);
+	startBand = size_t((sampling * (double) Xdim) / 80.);
+	finalBand = size_t((sampling * (double) Xdim) / (sampling * 3));
 	n_bands = finalBand - startBand;
 	n_ang = size_t(180);
 	n_ang2 = 2 * n_ang;
 	if (maxShift==-1.){
-		maxShift = .10 * Xdim;
+		maxShift = .10 * (double)Xdim;
 	}
 
 	// read reference images
