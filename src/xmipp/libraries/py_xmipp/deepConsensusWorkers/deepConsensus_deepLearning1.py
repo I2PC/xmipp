@@ -79,8 +79,7 @@ def writeNetAccuracy(netDataPath, val_acc):
     netDataPath= self._getExtraPath("nnetData")
   '''
   netAccFname = os.path.join(os.path.dirname(netDataPath), "netValAcc.txt")
-  if not os.path.exists(netDataPath):
-    os.makedirs(netDataPath)
+  os.makedirs(os.path.dirname(netAccFname), exist_ok=True)
   with open(netAccFname, "w") as f:
     f.write("val_acc: %f" %val_acc)
 
@@ -93,16 +92,15 @@ def loadANDwriteNetAccuracy(netDataPath, nModels):
     checkPointsName = os.path.join(netDataPath, "tfchkpoints_%d"%n)
     valAccFn = os.path.join(checkPointsName, "netValAcc.txt")
     with open(valAccFn) as f:
-      lines = f.readlines()
-      accuracy = float(lines[0].split()[1])
+      line = f.readline()
+      accuracy = float(line.split()[1])
       list_Acc.append(accuracy)
 
   mean_acc = np.mean(list_Acc)
   print('Mean validation accuracy %f of n %d models' %(mean_acc, nModels))
 
   netMeanAccFname = os.path.join(netDataPath, "netsMeanValAcc.txt")
-  if not os.path.exists(netDataPath):
-    os.makedirs(netDataPath)
+  os.makedirs(os.path.dirname(netDataPath), exist_ok=True)
   with open(netMeanAccFname, "w") as f:
     f.write("mean_val_acc: %f" % mean_acc)
         
