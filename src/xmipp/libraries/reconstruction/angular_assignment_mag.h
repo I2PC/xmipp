@@ -64,15 +64,16 @@ public:
     FourierTransformer transformerPolarImage;
     FourierTransformer transformerPolarRealSpace;
 
-	size_t rank, Nprocessors;
+	size_t rank;
+	size_t Nprocessors;
 
-	void defineParams();
-	void readParams();
+	void defineParams() override;
+	void readParams() override;
 	void show();
-	void startProcessing();
-	void preProcess();
-	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
-	void postProcess();
+	void startProcessing() override;
+	void preProcess() override;
+	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+	void postProcess() override;
     ProgAngularAssignmentMag();
     ~ProgAngularAssignmentMag();
     void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);

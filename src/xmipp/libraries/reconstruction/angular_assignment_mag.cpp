@@ -35,16 +35,14 @@
 #include <ctime>
 #include <unistd.h>
 
-ProgAngularAssignmentMag::ProgAngularAssignmentMag() {
+ProgAngularAssignmentMag::ProgAngularAssignmentMag(){
 	produces_a_metadata = true;
 	each_image_produces_an_output = false;
 	rank=0;
 	Nprocessors=1;
 }
 
-ProgAngularAssignmentMag::~ProgAngularAssignmentMag() {
-
-}
+ProgAngularAssignmentMag::~ProgAngularAssignmentMag()  = default;
 
 void ProgAngularAssignmentMag::defineParams() {
 	XmippMetadataProgram::defineParams();
