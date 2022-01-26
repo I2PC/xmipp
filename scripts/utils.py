@@ -48,6 +48,7 @@ def blue(text):
 
 
 def printXmippLogo(indentation):
+    print('\n')
     print(indentation, r'''  /\\¯¯¯¯¯¯//\ ''')
     print(indentation, r''' /  \\    //  \ ''')
     print(indentation, r'''|    ''', end='')
