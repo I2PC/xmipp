@@ -48,17 +48,14 @@ def blue(text):
 
 
 def printXmippLogo(indentation):
-    print(indentation, r'''    ____________ ''')
-    print(indentation, r'''  / \\         // \ ''')
-    print(indentation, r''' /   \\       //   \ ''')
-    print(indentation, r'''|     \\     //     | ''')
-    print(indentation, r'''|      ''', end='')
-    print(green('xmipp'), end='')
-    print('''       | ''')
-    print(indentation, r'''|     //     \\     | ''')
-    print(indentation, r''' \   //       \\   / ''')
-    print(indentation, r'''  \ //_________\\ / ''')
-
+    print(indentation, r'''  /\\¯¯¯¯¯¯//\ ''')
+    print(indentation, r''' /  \\    //  \ ''')
+    print(indentation, r'''|    ''', end='')
+    print(green('mipp'), end='')
+    print('''     | ''')
+    print(indentation, r''' \  //    \\  / ''')
+    #print(indentation, r''' \   //     \\   / ''')
+    print(indentation, r'''  \//______\\/ ''')
 
 
 def find_newest(program, versions, show):
