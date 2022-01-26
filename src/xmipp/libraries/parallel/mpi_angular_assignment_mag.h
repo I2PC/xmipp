@@ -40,18 +40,16 @@ class MpiProgAngularAssignmentMag: public ProgAngularAssignmentMag, public MpiMe
 public:
 	int Nsimul;
 
-public:
-
-    void defineParams();
-    void readParams();
+    void defineParams() override;
+    void readParams() override;
     void read(int argc, char **argv);
-    void preProcess();
-    void startProcessing();
-    void showProgress();
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
-    void finishProcessing();
-    void wait();
-    void synchronize();
+    void preProcess() override;
+    void startProcessing() override;
+    void showProgress() override;
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override;
+    void finishProcessing() override;
+    void wait() override;
+    void synchronize() override;
 
 
 };

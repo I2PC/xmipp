@@ -30,7 +30,6 @@ void MpiProgAngularAssignmentMag::defineParams()
 {
 	ProgAngularAssignmentMag::defineParams();
 	MpiMetadataProgram::defineParams();
-	//        addParamsLine("  [--Nsimultaneous <N=1>]     : Number of simultaneous processes that can enter in preprocessing");
 }
 void MpiProgAngularAssignmentMag::readParams()
 {
@@ -47,8 +46,8 @@ void MpiProgAngularAssignmentMag::preProcess()
 	rank = node->rank;
 	Nprocessors = node->size;
 
-	int Nturns = (int)ceil(node->size/Nsimul);
-	int myTurn = (int)floor(node->rank/Nsimul);
+	auto Nturns = (int)ceil(node->size/Nsimul);
+	auto myTurn = (int)floor(node->rank/Nsimul);
 	for (int turn=0; turn<=Nturns; turn++)
 	{
 		if (turn==myTurn)
