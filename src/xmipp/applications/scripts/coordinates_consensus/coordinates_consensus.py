@@ -36,7 +36,10 @@ import xmipp_base as xmipp_base
 from xmippPyModules.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
                                                         writeCoordsListToPosFname)
 
-    
+AND = 'AND'
+OR = 'OR'
+UNION_INTERSECTIONS = 'UNION_INTERSECTIONS'
+
 class ScriptCordsConsensus(xmipp_base.XmippScript):
     def __init__(self):
       xmipp_base.XmippScript.__init__(self)
@@ -52,9 +55,9 @@ class ScriptCordsConsensus(xmipp_base.XmippScript):
       self.addParamsLine('-s <particleSize>       : particle size in pixels')
       
       self.addParamsLine('-c <consensus>          : How many times need a particle to be selected to be considered'
-                         ' as a consensus particle. Set to -1 to indicate that it needs to be selected by all'
-                         ' algorithms. Set to 0 to indicate that it needs to be selected by at least two algorithms.'
-                         ' Set to 1 to indicate that it suffices that only 1 algorithm selects the particle')
+                         ' as a consensus particle. Set to AND to indicate that it needs to be selected by all'
+                         ' algorithms. Set to UNION_INTERSECTIONS to indicate that it needs to be selected by at least two algorithms.'
+                         ' Set to OR to indicate that it suffices that only 1 algorithm selects the particle')
       
       self.addParamsLine('-d <diameterTolerance> <F=0.1>  : Distance between 2 coordinates'
                          ' to be considered the same, measured as fraction of particleSize')
@@ -79,7 +82,7 @@ class ScriptCordsConsensus(xmipp_base.XmippScript):
       inputFile= self.getParam('-i')
       boxSize= self.getDoubleParam('-s')
       consensusRadius= self.getDoubleParam('-d')
-      consensusCriterium= self.getIntParam('-c')
+      consensusCriterium = self.getParam('-c')
       outDir= self.getParam('-o')
 
       argsList=[]
@@ -124,7 +127,18 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
     return
   allCoords = np.zeros([Ncoords, 2])
   votes = np.zeros(Ncoords)
-  
+
+  #Cast Consensus
+  if consensusCriterium == AND:
+      consensusCriterium = -1
+  elif consensusCriterium == UNION_INTERSECTIONS:
+      consensusCriterium = 0
+  elif consensusCriterium == OR:
+      consensusCriterium = 1
+  else:
+      raise ValueError(
+          "Error, not valid consensus option: %s" % (str(consensusCriterium)))
+
   # Add all coordinates of the <first set of coordinates
   N0 = coords[0].shape[0]
   inAllMicrographs = consensusCriterium < 0 or consensusCriterium == len(coords_files)
