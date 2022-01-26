@@ -32,13 +32,20 @@ from math import sqrt
 
 import numpy as np
 import xmipp_base as xmipp_base
+from enum import Enum
 
 from xmippPyModules.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
                                                         writeCoordsListToPosFname)
 
-AND = 'AND'
-OR = 'OR'
-UNION_INTERSECTIONS = 'UNION_INTERSECTIONS'
+class ConsensusType(Enum):
+
+    def __init__(self, id, message):
+        self.id = id
+        self.message = message
+
+    AND = -1, 'by_all'
+    OR = 1, 'by_at_least_one'
+    UNION_INTERSECTIONS = 0, 'by_at_least_two'
 
 class ScriptCordsConsensus(xmipp_base.XmippScript):
     def __init__(self):
@@ -55,9 +62,9 @@ class ScriptCordsConsensus(xmipp_base.XmippScript):
       self.addParamsLine('-s <particleSize>       : particle size in pixels')
       
       self.addParamsLine('-c <consensus>          : How many times need a particle to be selected to be considered'
-                         ' as a consensus particle. Set to AND to indicate that it needs to be selected by all'
-                         ' algorithms. Set to UNION_INTERSECTIONS to indicate that it needs to be selected by at least two algorithms.'
-                         ' Set to OR to indicate that it suffices that only 1 algorithm selects the particle')
+                         ' as a consensus particle. Set to "by_all" to indicate that it needs to be selected by all'
+                         ' algorithms. Set to "by_at_least_two" to indicate that it needs to be selected by at least two algorithms.'
+                         ' Set to "by_at_least_one" to indicate that it suffices that only 1 algorithm selects the particle')
       
       self.addParamsLine('-d <diameterTolerance> <F=0.1>  : Distance between 2 coordinates'
                          ' to be considered the same, measured as fraction of particleSize')
@@ -129,15 +136,12 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
   votes = np.zeros(Ncoords)
 
   #Cast Consensus
-  if consensusCriterium == AND:
-      consensusCriterium = -1
-  elif consensusCriterium == UNION_INTERSECTIONS:
-      consensusCriterium = 0
-  elif consensusCriterium == OR:
-      consensusCriterium = 1
-  else:
-      raise ValueError(
-          "Error, not valid consensus option: %s" % (str(consensusCriterium)))
+  if consensusCriterium == ConsensusType.AND.message:
+      consensusCriterium = ConsensusType.AND.id
+  elif consensusCriterium == ConsensusType.UNION_INTERSECTIONS.message:
+      consensusCriterium = ConsensusType.UNION_INTERSECTIONS.id
+  elif consensusCriterium == ConsensusType.OR.message:
+      consensusCriterium = ConsensusType.OR.id
 
   # Add all coordinates of the <first set of coordinates
   N0 = coords[0].shape[0]
