@@ -77,9 +77,10 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
     if show_command:
         print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd, env=environ,
-                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     while not inParallel:
         output = p.stdout.readline().decode("utf-8")
+        err = p.stderr.readline().decode("utf-8")
         if output == '' and p.poll() is not None:
             break
         if output:
@@ -91,6 +92,8 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
     if inParallel:
         return p
     else:
+        if err != "":
+            print(red(err))
         return 0 == p.poll()
 
 
