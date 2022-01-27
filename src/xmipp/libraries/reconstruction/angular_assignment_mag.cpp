@@ -80,13 +80,6 @@ void ProgAngularAssignmentMag::show() const {
 	if (verbose > 0) {
 		printf("%d reference images of %d x %d\n",int(sizeMdRef),int(Xdim),int(Ydim));
 		printf("%d exp images of %d x %d in this group\n", int(sizeMdIn),int(Xdim), int(Ydim));
-		printf("\nstartBand= %d\n", int(startBand));
-		printf("finalBand= %d\n", int(finalBand));
-		printf("n_bands= %d\n", int(n_bands));
-
-
-		XmippMetadataProgram::show();
-		std::cout << "Input references: " << fnRef << std::endl;
 		std::cout << "Sampling: " << sampling << std::endl;
 		std::cout << "Angular step: " << angStep << std::endl;
 		std::cout << "Maximum shift: " << maxShift << std::endl;
@@ -94,6 +87,8 @@ void ProgAngularAssignmentMag::show() const {
 			std::cout << "ref vol size: " << refXdim <<" x "<< refYdim <<" x "<< refZdim << std::endl;
 			std::cout << "useForValidation            : "  << useForValidation << std::endl;
 		}
+		XmippMetadataProgram::show();
+		std::cout << "Input references: " << fnRef << std::endl;
 	}
 }
 
@@ -704,10 +699,10 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 double ProgAngularAssignmentMag::interpolate(MultidimArray<double> &cartIm,
 		double &x_coord, double &y_coord) const{
 	double val;
-	size_t xf = floor((double)x_coord);
-	size_t xc = ceil((double)x_coord);
-	size_t yf = floor((double)y_coord);
-	size_t yc = ceil((double)y_coord);
+	size_t xf = (size_t)floor((double)x_coord);
+	size_t xc = (size_t)ceil((double)x_coord);
+	size_t yf = (size_t)floor((double)y_coord);
+	size_t yc = (size_t)ceil((double)y_coord);
 
 	if ((xf == xc) && (yf == yc)) {
 		val = dAij(cartIm, xc, yc);
