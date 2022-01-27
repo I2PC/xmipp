@@ -76,7 +76,7 @@ void ProgAngularAssignmentMag::readParams() {
 }
 
 // Show ====================================================================
-void ProgAngularAssignmentMag::show() {
+void ProgAngularAssignmentMag::show() const {
 	if (verbose > 0) {
 		printf("%d reference images of %d x %d\n",int(sizeMdRef),int(Xdim),int(Ydim));
 		printf("%d exp images of %d x %d in this group\n", int(sizeMdIn),int(Xdim), int(Ydim));
@@ -170,9 +170,9 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 
 /* Laplacian Matrix is basic for signal graph processing stage
  * is computed only once within preProcess() method */
-void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &matL,
+void ProgAngularAssignmentMag::computeLaplacianMatrix (Matrix2D<double> &matL,
 		const std::vector< std::vector<int> > &allNeighborsjp,
-		const std::vector< std::vector<double> > &allWeightsjp){
+		const std::vector< std::vector<double> > &allWeightsjp) const {
 
 	matL.initZeros(sizeMdRef,sizeMdRef);
 
@@ -347,7 +347,7 @@ void ProgAngularAssignmentMag::preProcess() {
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
  * */
-void ProgAngularAssignmentMag::graphFourierFilter(const Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut ){
+void ProgAngularAssignmentMag::graphFourierFilter(const Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut ) const {
 	// graph signal processing filtered iGFT
 	Matrix1D<double> ccGFT;
 	ccGFT.initZeros(sizeMdRef);
@@ -659,7 +659,7 @@ void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
 /* get magnitude of fourier spectrum */
 void ProgAngularAssignmentMag::getComplexMagnitude(
 		const MultidimArray<std::complex<double> > &FourierData,
-		MultidimArray<double> &FourierMag) {
+		MultidimArray<double> &FourierMag) const {
 	FFT_magnitude(FourierData, FourierMag);
 }
 
@@ -670,7 +670,7 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 
 	size_t thisNbands = end - start;
 	MultidimArray<double> polarImg((int)thisNbands, (int)n_ang2);
-	float pi = (float)3.141592653;
+	auto pi = (double)3.141592653;
 	// coordinates of center
 	double cy = (double)(Ydim + (Ydim % 2)) / 2.0; // for odd/even images
 	double cx = (double)(Xdim + (Xdim % 2)) / 2.0;
@@ -702,12 +702,12 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 
 /* bilinear interpolation */
 double ProgAngularAssignmentMag::interpolate(MultidimArray<double> &cartIm,
-		double &x_coord, double &y_coord) {
+		double &x_coord, double &y_coord) const{
 	double val;
-	size_t xf = floor(x_coord);
-	size_t xc = ceil(x_coord);
-	size_t yf = floor(y_coord);
-	size_t yc = ceil(y_coord);
+	size_t xf = floor((double)x_coord);
+	size_t xc = ceil((double)x_coord);
+	size_t yf = floor((double)y_coord);
+	size_t yc = ceil((double)y_coord);
 
 	if ((xf == xc) && (yf == yc)) {
 		val = dAij(cartIm, xc, yc);
@@ -734,7 +734,7 @@ double ProgAngularAssignmentMag::interpolate(MultidimArray<double> &cartIm,
 
 /* implementing centering using circular-shift*/
 void ProgAngularAssignmentMag::completeFourierShift(const MultidimArray<double> &in,
-		MultidimArray<double> &out) {
+		MultidimArray<double> &out) const {
 
 	// correct output size
 	out.resizeNoCopy(in);
@@ -758,7 +758,7 @@ void ProgAngularAssignmentMag::completeFourierShift(const MultidimArray<double> 
  */
 void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>> &F1,
 		const MultidimArray<std::complex<double>> &F2,/*reference image*/
-		MultidimArray<double> &result) {
+		MultidimArray<double> &result) const {
 
 	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
 
@@ -790,7 +790,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 
 /* gets maximum value for each column*/
 void ProgAngularAssignmentMag::maxByColumn(const MultidimArray<double> &in,
-		MultidimArray<double> &out) {
+		MultidimArray<double> &out) const {
 
 	out.resizeNoCopy(1, XSIZE(in));
 	double maxVal;
@@ -808,7 +808,7 @@ void ProgAngularAssignmentMag::maxByColumn(const MultidimArray<double> &in,
 
 /* gets maximum value for each row */
 void ProgAngularAssignmentMag::maxByRow(const MultidimArray<double> &in,
-		MultidimArray<double> &out) {
+		MultidimArray<double> &out) const {
 	out.resizeNoCopy(1, YSIZE(in));
 	double maxVal;
 	double val2;
@@ -852,7 +852,7 @@ void ProgAngularAssignmentMag::computeCircular() {
 }
 
 /*apply circular window to input image*/
-void ProgAngularAssignmentMag::circularWindow(MultidimArray<double> &in) {
+void ProgAngularAssignmentMag::circularWindow(MultidimArray<double> &in) const {
 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(in)
 	{
 		dAij(in,i,j) *= dAij(C, i, j);
@@ -978,7 +978,7 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 
 /* apply rotation */
 void ProgAngularAssignmentMag::applyRotation(const MultidimArray<double> &MDaRef, double &rot,
-		MultidimArray<double> &MDaRefRot) {
+		MultidimArray<double> &MDaRefRot) const{
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
@@ -1004,7 +1004,7 @@ void ProgAngularAssignmentMag::applyRotation(const MultidimArray<double> &MDaRef
 
 /* finds shift as maximum of ccVector */
 void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
-		double &shift, const size_t &size) {
+		double &shift, const size_t &size) const {
 	double maxVal = -10.;
 	int idx = 0;
 	auto lb = (int)((double)size / 2. - maxShift);
@@ -1031,7 +1031,7 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 
 /* apply shift then rotation */
 void ProgAngularAssignmentMag::applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx,
-		double &ty, MultidimArray<double> &MDaRefRot) {
+		double &ty, MultidimArray<double> &MDaRefRot) const {
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
