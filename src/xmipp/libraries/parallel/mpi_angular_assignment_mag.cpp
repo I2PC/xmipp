@@ -37,7 +37,7 @@ void MpiProgAngularAssignmentMag::readParams()
 	ProgAngularAssignmentMag::readParams();
 	Nsimul = getIntParam("--Nsimultaneous");
 }
-void MpiProgAngularAssignmentMag::read(int argc, char **argv)
+void MpiProgAngularAssignmentMag::readF(int argc, char **argv)
 {
 	MpiMetadataProgram::read(argc,argv);
 }
@@ -46,8 +46,8 @@ void MpiProgAngularAssignmentMag::preProcess()
 	rank = node->rank;
 	Nprocessors = node->size;
 
-	auto Nturns = (int)ceil(node->size/Nsimul);
-	auto myTurn = (int)floor(node->rank/Nsimul);
+	auto Nturns = (int)ceil((double)node->size/Nsimul);
+	auto myTurn = (int)floor((double)node->rank/Nsimul);
 	for (int turn=0; turn<=Nturns; turn++)
 	{
 		if (turn==myTurn)
