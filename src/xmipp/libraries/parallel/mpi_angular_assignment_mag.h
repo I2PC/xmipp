@@ -42,7 +42,7 @@ public:
 
     void defineParams() override;
     void readParams() override;
-    void readF(int argc, char **argv);
+    void read(int argc, char **argv);
     void preProcess() override;
     void startProcessing() override;
     void showProgress() override;

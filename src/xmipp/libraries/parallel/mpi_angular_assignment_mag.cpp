@@ -37,7 +37,7 @@ void MpiProgAngularAssignmentMag::readParams()
 	ProgAngularAssignmentMag::readParams();
 	Nsimul = getIntParam("--Nsimultaneous");
 }
-void MpiProgAngularAssignmentMag::readF(int argc, char **argv)
+void MpiProgAngularAssignmentMag::read(int argc, char **argv)
 {
 	MpiMetadataProgram::read(argc,argv);
 }
