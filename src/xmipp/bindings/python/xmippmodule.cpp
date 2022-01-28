@@ -144,8 +144,6 @@ PyObject *
 xmipp_labelIsImage(PyObject *obj, PyObject *args)
 {
     PyObject * input;
-    PyObject *str_exc_type = nullptr;
-    PyObject *pyStr = nullptr ;
     int tag = TAGLABEL_IMAGE;
 
     if (PyArg_ParseTuple(args, "O", &input))
@@ -204,8 +202,6 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     DataType dataType = DT_Float;
 
     PyObject * input;
-    PyObject *str_exc_type = nullptr;
-    PyObject *pyStr = nullptr ;
     if (PyArg_ParseTuple(args, "Oii|iii", &input, &Xdim, &Ydim, &Zdim,
                          &Ndim, &dataType))
     {
@@ -230,8 +226,6 @@ PyObject *
 xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *pyValue;
-    PyObject *str_exc_type = nullptr;
-    PyObject *pyStr1 = nullptr; //Only used to skip label and value
 
     if (PyArg_ParseTuple(args, "O", &pyValue))
     {
@@ -321,7 +315,6 @@ xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     PyObject *input = nullptr;
     PyObject *pyStr = nullptr;
-    PyObject *pyStr1 = nullptr;
     char *str = nullptr;
     if (PyArg_ParseTuple(args, "O", &input))
     {

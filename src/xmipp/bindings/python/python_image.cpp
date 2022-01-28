@@ -392,7 +392,6 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         int datamode = DATA;
         PyObject *input = nullptr;
-        const PyObject *pyStr1;
         if (PyArg_ParseTuple(args, "O|i", &input, &datamode))
         {
 

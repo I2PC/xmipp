@@ -163,9 +163,7 @@ PyObject *
 FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
-    PyObject* pyStr1 = nullptr; 
     PyObject* pyStr2 = nullptr;
-    PyObject* pyStr3 = nullptr;
 
     if (self != nullptr)
     {
