@@ -207,9 +207,9 @@ void anglesRotationMatrix(size_t nRays, int i, int j, DMatrix &U);
  */
 int tripletRotationMatrix(const DMatrix &clMatrix, size_t nRays, int k1, int k2, int k3, DMatrix &R);
 
-void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, DMatrix * pQuaternions=nullptr);
+void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix);
 
-void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions = nullptr);
+void rotationsFromSyncMatrix(const DMatrix &sMatrix);
 
 
 
