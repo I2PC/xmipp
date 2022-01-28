@@ -134,7 +134,7 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
     }
     int n=0;
     MultidimArray<float> v(Npixels);
-    MultidimArray<double> &mIref=Iref();
+    const MultidimArray<double> &mIref=Iref();
     MultidimArray<double> Ialigned;
     MultidimArray<double> ImirrorAligned;
     Matrix2D<double> M;

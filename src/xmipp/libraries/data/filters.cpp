@@ -925,8 +925,10 @@ void noisyZonesFilter(MultidimArray<double> &I, int kernelSize)
     // imVar.write("VarFilter.mrc");
 
     // Working in a auxilary windows to avoid borders bad defined
-    MultidimArray<double> mAvgAux(YSIZE(I)-kernelSize,XSIZE(I)-kernelSize);
-    MultidimArray<double> mVarAux(YSIZE(I)-kernelSize,XSIZE(I)-kernelSize);
+    int ysize = static_cast<int>YSIZE(I);
+    int xsize = static_cast<int>XSIZE(I);
+    MultidimArray<double> mAvgAux(ysize-kernelSize,xsize-kernelSize);
+    MultidimArray<double> mVarAux(ysize-kernelSize,xsize-kernelSize);
     mAvgAux.setXmippOrigin();
     mVarAux.setXmippOrigin();
     mAvg.window(mAvgAux,STARTINGY(mAvg)+kernelSize_2, STARTINGX(mAvg)+kernelSize_2,

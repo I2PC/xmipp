@@ -26,6 +26,7 @@
 #include "integration.h"
 #include "core/matrix1d.h"
 #include "core/numerical_recipes.h"
+#include <array>
 
 /* Integrate --------------------------------------------------------------- */
 double integrateNewtonCotes(double(*f)(double),
@@ -126,8 +127,8 @@ double Romberg::operator()()
     int j;
     double ss;
     double dss;
-    double h[JMAXP+2];
-    double s[JMAXP+2];
+    std::array<double, JMAXP+2> h;
+    std::array<double, JMAXP+2> s;
     h[1] = 1.0;
     for (j = 1;j <= JMAXP;j++)
     {

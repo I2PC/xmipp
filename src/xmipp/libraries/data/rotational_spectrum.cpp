@@ -93,7 +93,7 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
     double zs;
     double z;
     double ys2;
-    int ir; 
+    int ir_internal; 
     int ind;
     int i1c;
     int i1s;
@@ -118,7 +118,7 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
     rh = XMIPP_MIN(rh, YSIZE(img) - x0 - 3.);
     rh = XMIPP_MIN(rh, XSIZE(img) - y0 - 3.);
 
-    ir = (int)((rh - r1) / r3 + 1);
+    ir_internal = (int)((rh - r1) / r3 + 1);
     ind = 0;
     numin1 = numin + 1;
     numax1 = numax + 1;
@@ -178,7 +178,7 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
         coseno[ntot] = 0.;
         coseno[ntot+my4] = 1.;
         r11 = r1 - r3;
-        for (jr = 1;jr <= ir;jr++)
+        for (jr = 1;jr <= ir_internal;jr++)
         {
             ind++;
             r = r11 + r3 * jr;
@@ -233,18 +233,18 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
         if (k == 0)
         {
             ac = 0.;
-            for (j = 1;j <= ir;j++)
+            for (j = 1;j <= ir_internal;j++)
             {
                 r = r11 + j * r3;
                 ac += ampcos[j] * 2. * PI * r;
             }
             ac /= (PI * (r * r - r1 * r1));
-            for (j = 1;j <= ir;j++)
+            for (j = 1;j <= ir_internal;j++)
                 ampcos[j] -= ac;
         }
     }
 
-    out_ampcos.initZeros((numax - numin + 1)*ir);
+    out_ampcos.initZeros((numax - numin + 1)*ir_internal);
     out_ampsin = out_ampcos;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(out_ampcos)
     {
