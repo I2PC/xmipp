@@ -25,6 +25,8 @@
 
 #include <stdio.h>
 #include <limits>
+#include <chrono>
+#include <random>
 #include "symmetries.h"
 
 // Symmetrize_crystal_vectors==========================================
@@ -2223,37 +2225,36 @@ double SymList::computeDistance(double rot1, double tilt1, double psi1,
 }
 
 void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
-                              double &rot2, double &tilt2, double &psi2
-                              )
+                            double &rot2, double &tilt2, double &psi2)
 {
     Matrix2D<double> E1;
     Euler_angles2matrix(rot1, tilt1, psi1, E1, true);
     static bool doRandomize=true;
     Matrix2D<double>  L(3, 3), R(3, 3);  // A matrix from the list
 
-    int i;
+    static unsigned seed = 0;
     if (doRandomize)
     {
-        srand ( time(nullptr) );
+    	seed = std::chrono::system_clock::now().time_since_epoch().count();
         doRandomize=false;
     }
+
     int symOrder = symsNo()+1;
-    //std::cerr << "DEBUG_ROB: symOrder: " << symOrder << std::endl;
-    i = rand() % symOrder;//59+1
-    //std::cerr << "DEBUG_ROB: i: " << i << std::endl;
+    std::default_random_engine generator (seed);
+    std::uniform_int_distribution<int> distribution(0,symOrder);
+
+    int i = distribution(generator); //0, 59+1
     if (i < symOrder-1)
     {
         getMatrices(i, L, R);
-        //std::cerr  << R << std::endl;
         Euler_matrix2angles(E1 * R, rot2, tilt2, psi2);
     }
     else
-    	{
-    	//std::cerr << "else" <<std::endl;
-    	rot2=rot1; tilt2=tilt1;psi2=psi1;
-    	}
-//    if (rot2==0)
-//:    	std::cerr << "rot2  is zero " << i << R << L << std::endl;
+	{
+    	rot2=rot1;
+    	tilt2=tilt1;
+    	psi2=psi1;
+	}
 }
 
 // Forward declaration
@@ -2342,12 +2343,13 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
             continue;
         double rot=atan2((double)i,(double)j)+rot0;
         double rho=sqrt((double)i*i+(double)j*j);
-        double l0=ceil((STARTINGZ(Vin)-k)*izHelical);
-        double lF=l0+Llength;
+        int l0=(int)ceil((STARTINGZ(Vin)-k)*izHelical);
+        int lF=l0+Llength;
         double finalValue=0;
         double L=0;
-        for (double l=l0; l<=lF; ++l)
+        for (int il=l0; il<=lF; ++il)
         {
+        	double l=il;
             double kp=k+l*zHelical;
             if (kp>=zFirst && kp<=zLast)
             {
@@ -2421,10 +2423,12 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 	applyGeometry(xmipp_transformation::LINEAR,V180,Vin,AX,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 	double bestCorr, bestRot, bestZ;
 	bestCorr = bestRot = bestZ = std::numeric_limits<double>::min();
-	for (double rot=-180; rot<180; rot+=rotStep)
+	double rot=-180.0;
+	while (rot<180.0)
 	{
 		rotation3DMatrix(rot,'Z',AZ,true);
-		for (double z=zmin; z<=zmax; z+=zStep)
+		double z=zmin;
+		while (z<=zmax)
 		{
 			MAT_ELEM(AZ,2,3)=z;
 			applyGeometry(xmipp_transformation::LINEAR,Vout,Vin,AZ,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
@@ -2435,7 +2439,9 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 				bestRot=rot;
 				bestZ=z;
 			}
+			z+=zStep;
 		}
+		rot+=rotStep;
 	}
 
 	rotation3DMatrix(-bestRot/2,'Z',AZ,true);
