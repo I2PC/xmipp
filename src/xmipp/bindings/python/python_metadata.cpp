@@ -748,9 +748,9 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
     wmd = MD_OVERWRITE;
     if (self != NULL)
     {
-        PyObject *input = NULL;
-        PyObject *pyStr = NULL;
-        PyObject *pyStr1 = NULL;
+        PyObject *input = nullptr;
+        PyObject *pyStr = nullptr;
+        const PyObject *pyStr1 = nullptr;
         const char *str = NULL;
         if (PyArg_ParseTuple(args, "O|i", &input, &wmd))
         {
@@ -784,8 +784,8 @@ MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
     if (self != nullptr)
     {
         PyObject *input = nullptr;
-        PyObject *pyStr = nullptr;
-        PyObject *str_exc_type = nullptr;
+       const PyObject *pyStr = nullptr;
+       const PyObject *str_exc_type = nullptr;
         if (PyArg_ParseTuple(args, "O", &input))
         {
             try
@@ -1140,8 +1140,8 @@ PyObject *
 xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 {
     PyObject *input;
-    PyObject *str_exc_type = NULL;
-    PyObject *pyStr = NULL;
+    const PyObject *str_exc_type = nullptr;
+    const PyObject *pyStr = nullptr;
     const char *fileName = NULL;
     FileName fn;
     StringVector blocks;
@@ -1324,8 +1324,8 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
     double op3 = 0.;
     PyObject *pyValue = nullptr;
     PyObject *pyStr = nullptr;
-    PyObject *str_exc_type = nullptr;
-    PyObject *pyStr1 = nullptr;
+    const PyObject *str_exc_type = nullptr;
+    const PyObject *pyStr1 = nullptr;
 
     if (PyArg_ParseTuple(args, "iOdd|d", &label, &pyValue, &op1, &op2, &op3))
     {

@@ -89,8 +89,8 @@ void ProgImageResize::preProcess()
 {
     double factor=1.0;
     double oxdim = xdimOut;
-    double oydim = ydimOut;
-    double ozdim = zdimOut;
+    double oydim = (double)ydimOut;
+    double ozdim = (double)zdimOut;
 
     //If zdimOut greater than 1, is a volume and should apply transform
     dim = (isVol = (zdimOut > 1)) ? 3 : 2;
@@ -151,9 +151,9 @@ void ProgImageResize::preProcess()
     {
         //        if (isVol)
         //            REPORT_ERROR(ERR_PARAM_INCORRECT, "The 'fourier' scaling type is only valid for images");
-        int oxdim = xdimOut;
-        int oydim = ydimOut;
-        int ozdim = zdimOut;
+        auto oxdim2 = (int)xdimOut;
+        auto oydim2 = (int)ydimOut;
+        auto ozdim2 = (int)zdimOut;
         scale_type = RESIZE_FOURIER;
 
         xdimOut = getIntParam("--fourier", 0);
@@ -163,10 +163,10 @@ void ProgImageResize::preProcess()
         else
         	zdimOut=1;
         fourier_threads = getIntParam("--fourier", 3);
-        XX(resizeFactor) = (double)xdimOut / oxdim;
-        YY(resizeFactor) = (double)ydimOut / oydim;
+        XX(resizeFactor) = (double)xdimOut / oxdim2;
+        YY(resizeFactor) = (double)ydimOut / oydim2;
         if (isVol)
-        	ZZ(resizeFactor) = (double)zdimOut / ozdim;
+        	ZZ(resizeFactor) = (double)zdimOut / ozdim2;
         //Do not think this is true
         //            if (oxdim < xdimOut || oydim < ydimOut)
         //                REPORT_ERROR(ERR_PARAM_INCORRECT, "The 'fourier' scaling type can only be used for reducing size");

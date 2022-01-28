@@ -392,13 +392,13 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         int datamode = DATA;
         PyObject *input = nullptr;
+        const PyObject *pyStr1;
         if (PyArg_ParseTuple(args, "O|i", &input, &datamode))
         {
 
             try
             {
               PyObject *pyStr;
-              PyObject *pyStr1;
               // If the input object is a tuple, consider it (index, filename)
               if (PyTuple_Check(input))
               {
@@ -935,7 +935,7 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
     int x = 0;
     int y = 0;
 
-    if (self != nullptr && PyArg_ParseTuple(args, "Oii", &patch, &x, &y))
+    if (nullptr && PyArg_ParseTuple(args, "Oii", &patch, &x, &y); !self)
     {
         try
         {

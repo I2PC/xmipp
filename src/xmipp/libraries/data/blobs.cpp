@@ -713,9 +713,9 @@ void * blobs2voxels_SimpleGrid( void * data )
                         for (auto inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
                             for (auto intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
                             {
-                                auto iz = (int)intz;
-                                auto iy = (int)inty;
-                                auto ix = (int)intx;
+                                auto iz = intz;
+                                auto iy = inty;
+                                auto ix = intx;
                                 if (vol_mask != nullptr && A3D_ELEM(*vol_mask, intz, inty, intx)!=0.0)
                                         continue;
 

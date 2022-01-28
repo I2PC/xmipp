@@ -265,8 +265,6 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
 void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip)
 {
     std::vector<double> voxel_vector;
-    double maxI;
-    double minI;
     SPEED_UP_temps;
 
     if (bg_mask.computeMax() == 0)
