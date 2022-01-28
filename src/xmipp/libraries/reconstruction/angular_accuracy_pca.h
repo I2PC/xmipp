@@ -38,8 +38,6 @@
 //@{
 class ProgAngularAccuracyPCA: public XmippProgram
 {
-
-
 public:
     /** Filenames */
     FileName fnPhantom, fnNeighbours, fnOut, fnOutQ;
@@ -55,8 +53,6 @@ public:
     int newXdim;
 
     int newYdim;
-
-
 
 public:
 
