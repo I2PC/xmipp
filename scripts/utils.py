@@ -97,7 +97,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return True
     else:
         if show_output is False and log is None:
-            [print(yellow(x), end='') for x in str_out]
+            print(yellow(''.join(str_out)))
             print('\n')
         return False
 
