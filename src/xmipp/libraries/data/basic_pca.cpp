@@ -327,8 +327,8 @@ void PCAMahalanobisAnalyzer::gramSchmidt()
             continue;
         }
         /// Take the previous vectors
-        vArray.initZeros(XSIZE(Iii));
-        orthonormalBasis.initZeros(XSIZE(Iii));
+        vArray.initZeros(static_cast<int>(XSIZE(Iii)));
+        orthonormalBasis.initZeros(static_cast<int>(XSIZE(Iii)));
         for (size_t jj=0;jj<ii;jj++)
         {
             const MultidimArray<double> &Ijj=PCAbasis[jj];
