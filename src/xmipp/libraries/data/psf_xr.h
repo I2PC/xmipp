@@ -216,6 +216,9 @@ public:
     XRayPSF();
 
     XRayPSF(const XRayPSF&)=delete; // Removal of copy constructor
+    XRayPSF(const XRayPSF&&)=delete; // Removal of move constructor
+    XRayPSF& operator = (const XRayPSF&)=delete; // Removal of copy assignment
+    XRayPSF& operator = (const XRayPSF&&)=delete; // Removal of move assignment
 
     /* Destructor
      */
