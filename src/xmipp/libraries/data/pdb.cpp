@@ -55,13 +55,13 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 		{
 			// Type of Atom
 			std::string at;
-                        try
-                        {
-			    at = line.substr(13,2);
-                        }catch (const std::out_of_range& oor)
-                        {
-                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
-                        }
+			try
+			{
+				at = line.substr(13,2);
+			}catch (const std::out_of_range& oor)
+			{
+				std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+			}
 
 			if (at == typeOfAtom)
 			{
@@ -70,13 +70,15 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				double x = textToFloat(line.substr(30,8));
 				double y = textToFloat(line.substr(38,8));
 				double z = textToFloat(line.substr(46,8));
+				std::string ch = line.substr(21,1);
 
 				// storing coordinates
 				at_pos.x.push_back(x);
 				at_pos.y.push_back(y);
 				at_pos.z.push_back(z);
+				at_pos.chain.push_back(ch);
 
-                                // Residue Number
+                // Residue Number
 				auto resi = (int) textToFloat(line.substr(23,5));
 				at_pos.residue.push_back(resi);
 

@@ -479,9 +479,10 @@ class Config:
 
     def _get_compatible_GCC(self, nvcc_version):
         # https://gist.github.com/ax3l/9489132
-        v = ['10.2', '10.1', '10',
-             '9.3', '9.2', '9.1', '9',
-             '8.4', '8.3', '8.2', '8.1', '8',
+        v = ['11.2', '11.1', '11',
+             '10.3', '10.2', '10.1', '10',
+             '9.4', '9.3', '9.2', '9.1', '9',
+             '8.5', '8.4', '8.3', '8.2', '8.1', '8',
              '7.5', '7.4', '7.3', '7.2', '7.1', '7',
              '6.5', '6.4', '6.3', '6.2', '6.1', '6',
              '5.5', '5.4', '5.3', '5.2', '5.1', '5',
@@ -493,10 +494,16 @@ class Config:
         elif 9.2 <= nvcc_version < 10.1:
             return v[v.index('7.3'):]
         elif 10.1 <= nvcc_version <= 10.2:
-            return v[v.index('8.4'):]
-        elif 11.0 <= nvcc_version <= 11.2:
+            return v[v.index('8.5'):]
+        elif 11.0 <= nvcc_version < 11.1:
             return v[v.index('9.3'):]
-        return []  # not supported
+        elif 11.1 <= nvcc_version < 11.5:
+            # nvcc 11.4.0 --> gcc 10
+            # nvcc 11.4.1 --> gcc 11
+            return v[v.index('9.4'):]
+        elif 11.5 <= nvcc_version <= 11.6:
+            return v[v.index('11'):]
+        return []
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])
