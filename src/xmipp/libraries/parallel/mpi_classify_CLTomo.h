@@ -91,7 +91,7 @@ public:
     MultidimArray<int> IfourierMask, IfourierMaskFRM;
 
     // Mask for experimental image as a python object
-	PyObject *pyIfourierMaskFRM;
+	PyObject *pyIfourierMaskFRM=nullptr;
 
     // Update for next iteration
     MultidimArray< std::complex<double> > Pupdate;
@@ -121,8 +121,16 @@ public:
     /** Empty constructor */
     CL3DClass();
 
+    /** Destructor */
+    ~CL3DClass() {}
+
     /** Copy constructor */
     CL3DClass(const CL3DClass &other);
+    CL3DClass(const CL3DClass &&)=delete;
+
+    /** Assignment */
+    CL3DClass & operator=(const CL3DClass &other);
+    CL3DClass & operator=(const CL3DClass &&)=delete;
 
     /** Update projection. */
     void updateProjection(MultidimArray<double> &I, const CL3DAssignment &assigned, bool force=false);
