@@ -110,9 +110,14 @@ public:
 
     /** Copy constructor */
     CL2DClass(const CL2DClass &other);
+    CL2DClass(const CL2DClass &&other)=delete;
 
     /** Destructor */
     ~CL2DClass();
+
+    /** Copy assignment */
+    CL2DClass & operator =(const CL2DClass &other);
+    CL2DClass & operator =(const CL2DClass &&other)=delete;
 
     /** Update projection. */
     void updateProjection(const MultidimArray<double> &I,
