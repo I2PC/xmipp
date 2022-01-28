@@ -889,7 +889,7 @@ void putRotationMatrix(const DMatrix &R, int k1, int k2, DMatrix &syncMatrix)
 //% matrix.
 //%
 //% Yoel Shkolnisky, August 2010.
-void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, DMatrix * pQuaternions)
+void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix)
 {
     int K = clMatrix.Xdim();
     DMatrix J, R, S(3,3);
@@ -936,7 +936,7 @@ void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, 
     }
 }//function computeSyncMatrix
 
-void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
+void rotationsFromSyncMatrix(const DMatrix &sMatrix)
 {
     int K = sMatrix.Xdim() / 2;
     int Kx3 = 3 * K;
