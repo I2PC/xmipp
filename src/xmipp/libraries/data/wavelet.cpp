@@ -475,14 +475,12 @@ void DWT_Bijaoui_denoise_LL3D(MultidimArray<double> &WI, int scale,
 //#define DEBUG
 void bayesian_solve_eq_system(
     const Matrix1D<double> &power,
-    const Matrix1D<double> &average,
     const Matrix1D<double> &Ncoefs,
     double SNR0,
     double SNRF,
     double powerI,
     double power_rest,
     bool white_noise,
-    int tell,
     Matrix1D<double> &estimatedS)
 {
 
@@ -680,8 +678,8 @@ Matrix1D<double> bayesian_wiener_filtering2D(MultidimArray<double> &WI, int allo
 
     /*Solve the Equation System*/
     Matrix1D<double> estimatedS;
-    bayesian_solve_eq_system(power, average, Ncoefs,
-                             SNR0, SNRF, powerI, power_rest, white_noise, tell, estimatedS);
+    bayesian_solve_eq_system(power, Ncoefs,
+                             SNR0, SNRF, powerI, power_rest, white_noise, estimatedS);
 
     if (tell)
     {
@@ -803,8 +801,8 @@ Matrix1D<double> bayesian_wiener_filtering3D(MultidimArray<double> &WI, int allo
 
     /*Solve the Equation System*/
     Matrix1D<double> estimatedS;
-    bayesian_solve_eq_system(power, average, Ncoefs,
-                             SNR0, SNRF, powerI, power_rest, white_noise, tell, estimatedS);
+    bayesian_solve_eq_system(power, Ncoefs,
+                             SNR0, SNRF, powerI, power_rest, white_noise, estimatedS);
     if (tell)
     {
         std::cout << "estimatedS =\n" << estimatedS << std::endl;
