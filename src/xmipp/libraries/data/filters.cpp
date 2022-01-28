@@ -925,8 +925,8 @@ void noisyZonesFilter(MultidimArray<double> &I, int kernelSize)
     // imVar.write("VarFilter.mrc");
 
     // Working in a auxilary windows to avoid borders bad defined
-    int ysize = static_cast<int>YSIZE(I);
-    int xsize = static_cast<int>XSIZE(I);
+    auto ysize = static_cast<int>YSIZE(I);
+    auto xsize = static_cast<int>XSIZE(I);
     MultidimArray<double> mAvgAux(ysize-kernelSize,xsize-kernelSize);
     MultidimArray<double> mVarAux(ysize-kernelSize,xsize-kernelSize);
     mAvgAux.setXmippOrigin();
@@ -2910,7 +2910,7 @@ void rotationalInvariantMoments(const MultidimArray<double> &img,
     double m_12 = 0;
     double m_21 = 0;
     double m_03 = 0;
-    double m_30 = 0; //, m_00=0;
+    double m_30 = 0;
     double normalize_x = 2.0 / XSIZE(img);
     double normalize_y = 2.0 / YSIZE(img);
 

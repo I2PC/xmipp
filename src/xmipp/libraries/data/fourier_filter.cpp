@@ -826,7 +826,7 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	double sum=0;
     double sum2=0;
     double N=0;
-    double R2max=(double)(XSIZE(img)/2)*(XSIZE(img)/2);
+    double R2max=(double)((XSIZE(img)/2)*(XSIZE(img)/2));
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mMask)
 	{
 		A3D_ELEM(mMask,k,i,j)=1-A3D_ELEM(mMask,k,i,j);

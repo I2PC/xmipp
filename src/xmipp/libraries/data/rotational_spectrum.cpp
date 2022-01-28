@@ -99,7 +99,6 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
     int i1s;
     int i2c;
     int i2s;
-    int jr;
     int k;
     int kk;
     int ntot;
@@ -178,7 +177,7 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
         coseno[ntot] = 0.;
         coseno[ntot+my4] = 1.;
         r11 = r1 - r3;
-        for (jr = 1;jr <= ir_internal;jr++)
+        for (int jr = 1;jr <= ir_internal;jr++)
         {
             ind++;
             r = r11 + r3 * jr;
