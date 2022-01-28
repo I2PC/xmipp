@@ -34,7 +34,6 @@ ProgAngularProjectLibrary::ProgAngularProjectLibrary()
     mysampling.setSampling(1);
     Vshears=nullptr;
     Vfourier=nullptr;
-
 }
 
 ProgAngularProjectLibrary::~ProgAngularProjectLibrary()
