@@ -59,23 +59,11 @@ void Projection::read(const FileName &fn, const bool only_apply_shifts,
     direction.selfTranspose();
 }
 
-/* Assignment ============================================================== */
-Projection & Projection::operator = (const Projection &P)
-{
-    // Esto hay que ponerlo mas elegantemente accediendo al = del padre
-    *(Image<double> *)this = * ((Image<double> *) & P);
-    direction = P.direction;
-    euler     = P.euler;
-    eulert    = P.eulert;
-    return *this;
-}
-
 /* Another function for assignment ========================================= */
 void Projection::assign(const Projection &P)
 {
     *this = P;
 }
-
 
 FourierProjector::FourierProjector(double paddFactor, double maxFreq, int degree)
 {
