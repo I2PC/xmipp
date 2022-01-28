@@ -110,14 +110,14 @@ public:
 
     /** Copy constructor */
     CL2DClass(const CL2DClass &other);
-    CL2DClass(const CL2DClass &&other)=delete;
+    CL2DClass(const CL2DClass &&)=delete;
 
     /** Destructor */
     ~CL2DClass();
 
     /** Copy assignment */
     CL2DClass & operator =(const CL2DClass &other);
-    CL2DClass & operator =(const CL2DClass &&other)=delete;
+    CL2DClass & operator =(const CL2DClass &&)=delete;
 
     /** Update projection. */
     void updateProjection(const MultidimArray<double> &I,
@@ -160,17 +160,25 @@ struct SDescendingClusterSort
 class CL2D {
 public:
 	/// Number of images
-	size_t Nimgs;
+	size_t Nimgs=0;
 
 	/// Pointer to input metadata
-	MetaDataDb *SF;
+	MetaDataDb *SF=nullptr;
 
     /// List of nodes
     std::vector<CL2DClass *> P;
     
 public:
+    /** Empty constructor */
+    CL2D() {}
+
     /** Destructor */
     ~CL2D();
+
+    CL2D(const CL2D &)=delete;
+    CL2D(const CL2D &&)=delete;
+    CL2D & operator=(const CL2D &)=delete;
+    CL2D & operator=(const CL2D &&)=delete;
 
     /// Read Image
     void readImage(Image<double> &I, size_t objId, bool applyGeo) const;
@@ -281,6 +289,12 @@ public:
 
     /// Destructor
     ~ProgClassifyCL2D();
+
+    ProgClassifyCL2D(const ProgClassifyCL2D &)=delete;
+    ProgClassifyCL2D(const ProgClassifyCL2D &&)=delete;
+    ProgClassifyCL2D & operator =(const ProgClassifyCL2D &)=delete;
+    ProgClassifyCL2D & operator =(const ProgClassifyCL2D &&)=delete;
+
 
     /// Read
     void readParams();
