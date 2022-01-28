@@ -336,10 +336,10 @@ public:
     size_t          projYdim;
 
     /// File handler for the history file
-    std::ofstream        *fh_hist;
+    std::ofstream        *fh_hist=nullptr;
 
     /// Array with all the sorting information for each projection
-    ReconsInfo     *IMG_Inf;
+    ReconsInfo     *IMG_Inf=nullptr;
 
     /// Order in which projections will be presented to algorithm
     MultidimArray<int>   ordered_list;
@@ -362,13 +362,13 @@ public:
         bint = Dinv*b; b=D*bint;
         @endcode
         */
-    Matrix2D<double> *D;
+    Matrix2D<double> *D=nullptr;
     /// Just the inverse of D
-    Matrix2D<double> *Dinv;
+    Matrix2D<double> *Dinv=nullptr;
 
     /** Surface mask.
         The volume is supposed to be 0 where the mask is 1. */
-    Image<double> *surface_mask;
+    Image<double> *surface_mask=nullptr;
 
     /** POCS frequency.
         POCS restrictions are imposed every (this value) projections.
@@ -378,11 +378,16 @@ public:
     /** CAV equation count.
         This volume contains the number of equations at which each basis
         is involved */
-    GridVolumeT<int> *GVNeq;
+    GridVolumeT<int> *GVNeq=nullptr;
     //@}
 public:
+    BasicARTParameters() {}
+    BasicARTParameters(const BasicARTParameters &)=delete;
+    BasicARTParameters(const BasicARTParameters &&)=delete;
 
     ~BasicARTParameters();
+    BasicARTParameters & operator =(const BasicARTParameters &)=delete;
+    BasicARTParameters & operator =(const BasicARTParameters &&)=delete;
 
     /** Generate default values for ART parameters.
         Compulsory parameters are not filled and must be given externally.
