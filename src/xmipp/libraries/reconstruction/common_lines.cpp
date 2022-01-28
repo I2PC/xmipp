@@ -786,7 +786,7 @@ void commonlineMatrixCheat(const DMatrix &quaternions, size_t nRays,
 
 
 
-void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int clI, int clJ,
+void anglesRotationMatrix(size_t nRays, int clI, int clJ,
                           const DVector &Q1, const DVector &Q2,
                           DMatrix &R)
 {
@@ -860,8 +860,8 @@ int tripletRotationMatrix(const DMatrix &clMatrix, size_t nRays,
     Q23.setCol();
 
     DMatrix R1, R2;
-    anglesRotationMatrix(clMatrix, nRays, (int)cl(1, 2), (int)cl(1, 3), Q12, Q13, R1);
-    anglesRotationMatrix(clMatrix, nRays, (int)cl(2, 1), (int)cl(2, 3), Q12, Q23, R2);
+    anglesRotationMatrix( nRays, (int)cl(1, 2), (int)cl(1, 3), Q12, Q13, R1);
+    anglesRotationMatrix( nRays, (int)cl(2, 1), (int)cl(2, 3), Q12, Q23, R2);
     // Compute rotation matrix according to (4.6)
     R = R1.transpose() * R2;
 
