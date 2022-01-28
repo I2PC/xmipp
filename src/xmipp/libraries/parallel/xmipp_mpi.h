@@ -159,7 +159,7 @@ class XmippMpiProgram: public virtual XmippProgram
 {
 protected:
     /** Mpi node */
-    MpiNode * node;
+    MpiNode * node=nullptr;
     bool created_node;
     /** Number of Processors **/
     size_t nProcs;
@@ -168,8 +168,13 @@ protected:
     /** status after an MPI call */
     MPI_Status status;
 
-    XmippMpiProgram();
+    XmippMpiProgram() {}
+    XmippMpiProgram(const XmippMpiProgram &)=delete;
+    XmippMpiProgram(const XmippMpiProgram &&)=delete;
+
     ~XmippMpiProgram();
+    XmippMpiProgram & operator =(const XmippMpiProgram &)=delete;
+    XmippMpiProgram & operator =(const XmippMpiProgram &&)=delete;
 
     /** Provide a node when calling from another MPI program  */
     void setNode(MpiNode * node);
@@ -188,15 +193,21 @@ class MpiMetadataProgram: public XmippMpiProgram
 protected:
     /** Divide the job in this number block with this number of images */
     int blockSize;
-    MpiTaskDistributor *distributor;
+    MpiTaskDistributor *distributor=nullptr;
     std::vector<size_t> imgsId;
     size_t first, last;
 
 public:
     /** Constructor */
-    MpiMetadataProgram();
+    MpiMetadataProgram() {}
+    MpiMetadataProgram(const MpiMetadataProgram &)=delete;
+    MpiMetadataProgram(const MpiMetadataProgram &&)=delete;
+
     /** Destructor */
     ~MpiMetadataProgram();
+    MpiMetadataProgram & operator=(const MpiMetadataProgram &)=delete;
+    MpiMetadataProgram & operator=(const MpiMetadataProgram &&)=delete;
+
     /** Read arguments */
     void read(int argc, char **argv);
 
