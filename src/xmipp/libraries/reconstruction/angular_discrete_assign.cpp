@@ -755,12 +755,17 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 #endif
 
     for (int flip=0; flip<=checkMirrors; ++flip)
-		for (double shiftX = Xoff - max_shift_change; shiftX <= Xoff + max_shift_change; shiftX += shift_step)
-			for (double shiftY = Yoff - max_shift_change; shiftY <= Yoff + max_shift_change; shiftY += shift_step)
+    {
+    	double shiftX = Xoff - max_shift_change;
+		while (shiftX <= Xoff + max_shift_change)
+		{
+			double shiftY = Yoff - max_shift_change;
+			while (shiftY <= Yoff + max_shift_change)
 			{
 				if ((shiftX - Xoff)*(shiftX - Xoff) + (shiftY - Yoff)*(shiftY - Yoff) > R2)
 					continue;
-				for (double psi = psi0; psi <= psiF; psi += psi_step)
+				double psi = psi0;
+				while (psi <= psiF)
 				{
 					N_trials++;
 
@@ -841,9 +846,13 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 						std::cin >> c;
 					}
 	#endif
-
+					psi += psi_step;
 				}
+				shiftY += shift_step;
 			}
+			shiftX += shift_step;
+		}
+    }
 
     // Compute extrema of all scoring factors
     double max_corr        = vcorr[0],         min_corr        = vcorr[0];

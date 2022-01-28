@@ -210,10 +210,13 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
         init_progress_bar(mySize);
     int myCounter=0;
 
-
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
+	double mypsi=0;
+    while (mypsi<360)
+    {
         for (int i=0;i<my_init;i++)
             myCounter++;
+        mypsi += psi_sampling;
+    }
 
 //    if (shears && XSIZE(inputVol())!=0 && VShears==NULL)
 //        VShears=new RealShearsInfo(inputVol());
@@ -225,7 +228,8 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
         		                      maxFrequency,
         		                      BSplineDeg);
 
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
+    mypsi=0;
+    while (mypsi<360)
     {
         for (int i=my_init;i<=my_end;i++)
         {
@@ -251,6 +255,7 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
             P.setDataMode(_DATA_ALL);
             P.write(output_file,(size_t) (numberStepsPsi * i + mypsi +1),true,WRITE_REPLACE);
         }
+        mypsi += psi_sampling;
     }
     if (verbose)
         progress_bar(mySize);
@@ -340,7 +345,7 @@ void ProgAngularProjectLibrary::run()
     {
         inputVol.read(input_volume);
     }
-    catch (XmippError XE)
+    catch (XmippError &XE)
     {
         std::cout << XE;
         exit(0);
@@ -375,7 +380,8 @@ void ProgAngularProjectLibrary::run()
     size_t myCounter=0;
     size_t id;
     int ref;
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
+    double mypsi=0;
+    while (mypsi<360)
     {
         for (size_t objId : mySFin.ids())
         {
@@ -400,6 +406,7 @@ void ProgAngularProjectLibrary::run()
             mySFout.setValue(MDL_SCALE,1.0,id);
             mySFout.setValue(MDL_REF,ref,id);
         }
+        mypsi += psi_sampling;
     }
     mySFout.setComment("x,y,z refer to the coordinates of the unitary vector at direction given by the euler angles");
     mySFout.write(output_file_root+".doc");
