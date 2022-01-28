@@ -94,12 +94,6 @@ private:
     FileName                 fn_inf;
     int                      X_window_size;
     int                      Y_window_size;
-    size_t                   Xdim;
-    size_t                   Ydim;
-    size_t                   Zdim;
-    size_t                   Ndim;
-    Point                    point1;
-    Point                    point2;
     int                      datatype;
     int                      swapbyte;
     int                      __offset;
@@ -115,8 +109,12 @@ private:
     Image<unsigned int>        IUInt = {};
     Image<float>               IFloat = {};
 public:
-    Point                    point1, point2;
-    size_t                   Xdim,Ydim,Zdim,Ndim;
+    size_t                   Xdim;
+    size_t                   Ydim;
+    size_t                   Zdim;
+    size_t                   Ndim;
+    Point                    point1;
+    Point                    point2;
     std::vector<Particle_coords> coords;
 
     /** Clear */
