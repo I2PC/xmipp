@@ -294,9 +294,14 @@ public:
 
     /// MPI constructor
     ProgClassifyCL3D(int argc, char** argv);
+    ProgClassifyCL3D(const ProgClassifyCL3D&)=delete;
+    ProgClassifyCL3D(const ProgClassifyCL3D&&)=delete;
 
     /// Destructor
     ~ProgClassifyCL3D();
+
+    ProgClassifyCL3D & operator=(const ProgClassifyCL3D &)=delete;
+    ProgClassifyCL3D & operator=(const ProgClassifyCL3D &&)=delete;
 
     /// Read
     void readParams();
