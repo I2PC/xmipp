@@ -30,11 +30,6 @@
 #include "data/filters.h"
 #include "data/mask.h"
 
-ProgExtractFeatures::ProgExtractFeatures(): XmippProgram()
-{
-	fitPoints=nullptr;
-}
-
 ProgExtractFeatures::~ProgExtractFeatures()
 {
 	if (fitPoints!=nullptr)
@@ -392,7 +387,7 @@ void ProgExtractFeatures::extractLBP(const MultidimArray<double> &I,
     }
     min_idxs_sort = min_idxs;
     std::sort(min_idxs_sort.begin(), min_idxs_sort.end());
-    std::unique(min_idxs_sort.begin(), min_idxs_sort.end());
+    auto last=std::unique(min_idxs_sort.begin(), min_idxs_sort.end());
 
     for (int y = 1; y < (YSIZE(I)-1); y++)
     {
