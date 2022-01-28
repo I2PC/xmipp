@@ -149,7 +149,8 @@ int ndim
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
 {
     double *Z, *S, *T, *W, *F;
-    int  i, MN, nrows, ncols, npages, vol, ndim, newXndim, Xndim;
+    int  i, MN, nrows, ncols, npages, vol;
+    size_t ndim, newXndim, Xndim;
     size_t *newdims;
     const mwSize *dims, *Xdims;
     

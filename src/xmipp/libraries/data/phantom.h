@@ -1388,6 +1388,11 @@ public:
         read(fn_phantom);
     }
 
+    /** Copy constructor.
+        The empty phantom is 0x0x0, background density=0, no feature is inside
+        and no name. */
+    Phantom(const Phantom &other);
+
     /** Destructor.
         All features are freed. */
     ~Phantom()

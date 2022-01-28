@@ -936,16 +936,25 @@ const
 {
     double radius2 = radius * radius;
     bool intersects = false;
-    for (double k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
-        for (double i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
-            for (double j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
+    for (int k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
+    {
+    	double dk=(double) k;
+    	double distk2=(dk - ZZ(r))*(dk - ZZ(r));
+        for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
+        {
+        	double di=(double) i;
+        	double distki2=distk2+(di - YY(r))*(di - YY(r));
+            for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
             {
-                if ((k - ZZ(r))*(k - ZZ(r)) + (i - YY(r))*(i - YY(r)) + (j - XX(r))*(j - XX(r)) >
-                    radius2)
+            	double dj=(double) j;
+            	double distkij2=distki2+(dj - XX(r))*(dj - XX(r));
+                if (distkij2>radius2)
                     continue;
                 VECTOR_R3(aux3, j, i, k);
                 intersects = voxel_inside(aux3, aux1, aux2);
             }
+        }
+    }
     return intersects;
 }
 
@@ -1949,6 +1958,11 @@ Phantom::Phantom()
     fn = "";
     current_scale = 1;
     phantom_scale = 1.;
+}
+
+Phantom::Phantom(const Phantom &other)
+{
+	*this = other;
 }
 
 void Phantom::clear()
