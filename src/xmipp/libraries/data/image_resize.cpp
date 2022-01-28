@@ -89,8 +89,8 @@ void ProgImageResize::preProcess()
 {
     double factor=1.0;
     double oxdim = xdimOut;
-    double oydim = (double)ydimOut;
-    double ozdim = (double)zdimOut;
+    auto oydim = (double)ydimOut;
+    auto ozdim = (double)zdimOut;
 
     //If zdimOut greater than 1, is a volume and should apply transform
     dim = (isVol = (zdimOut > 1)) ? 3 : 2;
