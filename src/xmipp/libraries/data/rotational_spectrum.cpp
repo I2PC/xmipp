@@ -184,9 +184,9 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
                 as = bc = bs = 0.;
                 for (i = 1;i <= k;i++)
                 {
-                	double i2c;
+                	int i2c;
                     i2c = my4;
-                	double i2s;
+                	int i2s;
                     i2s = 0;
                     for (j = 1;j <= my2;j++)
                     {
@@ -358,7 +358,7 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     auto sp  = (double *) calloc(ncol + 1, sizeof(double));
     if ((NULL == rp1) || (NULL == rp2) || (NULL == sp))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
-    for (int k = 1; k <= ncol; k++)
+    for (k = 1; k <= ncol; k++)
     {
         int irk = ir1 + (k - 1) * ndr - 1;
         rp1[k] = 10 * rv[irk+1];
@@ -377,7 +377,7 @@ void Rotational_Spectrum::compute_rotational_spectrum(
 
     // Keep results .........................................................
     rot_spectrum.initZeros(n - j1 + 1);
-    for (int k = 1; k <= nvez; k++)
+    for (k = 1; k <= nvez; k++)
     {
         int k1 = 13 * (k - 1) + 1;
         for (int i = j1; i <= n; i++)
