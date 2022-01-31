@@ -147,6 +147,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	#ifdef DEBUG_PREPROCESS
 	std::cout << "Filter params: " << std::endl;
+	std::cout << "samplingRate: " << samplingRate << std::endl;
 	std::cout << "normDim: " << normDim << std::endl;
 	std::cout << "w: " << w << std::endl;
 	std::cout << "lowFreqFilt: " << lowFreqFilt << std::endl;
@@ -1398,6 +1399,53 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	{
 		return false;
 	}
+}
+
+bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
+{
+	MultidimArray<double> tiltAxisIntersection;
+
+	tiltAxisIntersection.initZeros(ySize);
+
+	// Extract alignment information of e
+	for (size_t tiIndex = 0; tiIndex < zSize; tiIndex++)
+	{
+		std::vector<Point2D<double>> coordinatesInSlice;
+
+		coordinatesInSlice = getCoordinatesInSlice(tiIndex);
+
+		// Calculate the intersection of the pair of coordinates with the tilt axis
+		for (size_t i = 0; i < coordinatesInSlice.size(); i++)
+		{
+			for (size_t j = 0; j < coordinatesInSlice.size(); j++)
+			{
+				// Check to not compare a corrdinate with itself
+				if (i != j)
+				{
+					tiltAxisIntersection[calculateTiltAxisIntersection(i, j)] += 1;
+					
+				}	
+			}	
+		}
+	}
+}
+
+
+int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D p1, Point2D p2)
+{
+	// Eccuation of a line given 2 points:
+	// y = [(x-x1)(y2-y1) / (x2-x1)] - y1
+	// x = [(y-y1)(x2-x1) / (y2-y1)] - x1
+
+	// We calculate the x coordinate at wich the line intersect the tilt axis, given by:
+	// y = ySize / 2
+
+
+	// We obtain the x coordinate of intersection by substitution:
+	// x = [(ySize/2-y1)(x2-x1) / (y2-y1)] - x1
+
+
+	return int([(ySize/2-p1.y)(p2.x-p1.x) / (p2.y-p1.y)] - p1.x);
 }
 
 
