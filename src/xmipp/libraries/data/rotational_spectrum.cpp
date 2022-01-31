@@ -269,33 +269,12 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     double xr1, double xr2, double xdr, double xr)
 {
     double *e[MAX_HARMONIC];
-    double *rv;
-    double *st;
     double *ep[MAX_HARMONIC];
     double *erp [MAX_HARMONIC];
-    double *rp1;
-    double *rp2;
-    double *sp;
-    double *c;
-    double *s;
-    int n;
-    int m;
-    int i;
-    int j1;
-    int k;
-    int j;
-    int ir1;
-    int ir2;
-    int ndr;
-    int nr;
-    int ncol;
-    int nvez;
-    int irk;
-    int k1;
 
     // Read the information from the Cylindrical Wave Decomposition .........
-    c = (double *) calloc(5191, sizeof(double));
-    s = (double *) calloc(5191, sizeof(double));
+    auto c = (double *) calloc(5191, sizeof(double));
+    auto s = (double *) calloc(5191, sizeof(double));
     if ((NULL == c) || (NULL == s))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
 
@@ -310,54 +289,56 @@ void Rotational_Spectrum::compute_rotational_spectrum(
         s[i+1] = A1D_ELEM(cwd.out_ampsin, i);
     }
 
-    n = numax - numin + 1;
-    m = (int)((rh - rl) / dr + 1);
-    for (i = 1; i <= n; i++) {
+    int n = numax - numin + 1;
+    auto m = (int)((rh - rl) / dr + 1);
+    for (int i = 1; i <= n; i++) {
         e[i] = (double *) calloc(m + 1, sizeof(double));
         if (NULL == e[i])
             REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     }
-    rv = (double *) calloc(m + 1, sizeof(double));
-    st = (double *) calloc(m + 1, sizeof(double));
+    auto rv = (double *) calloc(m + 1, sizeof(double));
+    auto st = (double *) calloc(m + 1, sizeof(double));
     if ((NULL == rv) || (NULL == st))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
 
     // Computations .........................................................
+    int j1 = 0;
     if (numin == 0)
         j1 = 2;
     else
         j1 = 1;
-    k = 0;
-    for (i = 1; i <= n; i++)
-        for (j = 1; j <= m; j++)
+    int k = 0;
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++)
         {
             k++;
             e[i][j] = c[k] * c[k] + s[k] * s[k];
         }
 
-    for (i = 1; i <= m; i++)
+    for (int i = 1; i <= m; i++)
     {
         rv[i] = rl + dr * (i - 1);
         st[i] = 0;
-        for (j = j1; j <= n; j++)
+        for (int j = j1; j <= n; j++)
             st[i] += e[j][i];
     }
 
-    ir1 = (int)((xr1 - rl) / dr + 1);
+    auto ir1 = (int)((xr1 - rl) / dr + 1);
     if (ir1 < 1)
         ir1 = 1;
-    ir2 = (int)((XMIPP_MIN(xr2, rh) - rl) / dr + 1);
+    auto ir2 = (int)((XMIPP_MIN(xr2, rh) - rl) / dr + 1);
     if (ir2 < ir1)
         ir2 = ir1;
-    ndr = (int)(xdr / dr);
+    auto ndr = (int)(xdr / dr);
     if (ndr < 1)
         ndr = 1;
+    int nr = 0;
     if (xr < 0)
         nr = m;
     else
         nr = (int)(xr / dr + 1);
     ir2 = XMIPP_MIN(ir2, m);
-    ncol = ir2 - nr + 1 - ir1;
+    int ncol = ir2 - nr + 1 - ir1;
     if (ncol < 0)
         ncol = 0;
     else
@@ -365,30 +346,30 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     if (ncol == 0)
         REPORT_ERROR(ERR_VALUE_INCORRECT, "compute_rotational_spectrum::Incorrect data");
 
-    nvez = (ncol - 1) / 13 + 1;
-    for (i = 1; i <= n; i++) {
+    int nvez = (ncol - 1) / 13 + 1;
+    for (int i = 1; i <= n; i++) {
         ep[i] = (double *) calloc(ncol + 1, sizeof(double));
         erp[i] = (double *) calloc(ncol + 1, sizeof(double));
         if ((NULL == ep[i]) || (NULL == erp[i]))
             REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     }
-    rp1 = (double *) calloc(ncol + 1, sizeof(double));
-    rp2 = (double *) calloc(ncol + 1, sizeof(double));
-    sp  = (double *) calloc(ncol + 1, sizeof(double));
+    auto rp1 = (double *) calloc(ncol + 1, sizeof(double));
+    auto rp2 = (double *) calloc(ncol + 1, sizeof(double));
+    auto sp  = (double *) calloc(ncol + 1, sizeof(double));
     if ((NULL == rp1) || (NULL == rp2) || (NULL == sp))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
-    for (k = 1; k <= ncol; k++)
+    for (int k = 1; k <= ncol; k++)
     {
-        irk = ir1 + (k - 1) * ndr - 1;
+        int irk = ir1 + (k - 1) * ndr - 1;
         rp1[k] = 10 * rv[irk+1];
         rp2[k] = 10 * rv[irk+nr];
         sp[k] = 0;
-        for (k1 = 1; k1 <= nr; k1++)
+        for (int k1 = 1; k1 <= nr; k1++)
             sp[k] += st[irk+k1];
-        for (i = 1; i <= n; i++)
+        for (int i = 1; i <= n; i++)
         {
             ep[i][k] = 0;
-            for (k1 = 1; k1 <= nr; k1 ++)
+            for (int k1 = 1; k1 <= nr; k1 ++)
                 ep [i][k] += e[i][irk+k1];
             erp[i][k] = 1000000. * ep[i][k] / sp[k];
         }
@@ -396,15 +377,15 @@ void Rotational_Spectrum::compute_rotational_spectrum(
 
     // Keep results .........................................................
     rot_spectrum.initZeros(n - j1 + 1);
-    for (k = 1; k <= nvez; k++)
+    for (int k = 1; k <= nvez; k++)
     {
-        k1 = 13 * (k - 1) + 1;
-        for (i = j1; i <= n; i++)
+        int k1 = 13 * (k - 1) + 1;
+        for (int i = j1; i <= n; i++)
             rot_spectrum(i - j1) = erp[i][k1] / 10000;
     }
 
     // Free memory
-    for (i = 1; i <= n; i++)
+    for (int i = 1; i <= n; i++)
     {
         free(ep[i]);
         free(erp [i]);
