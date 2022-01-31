@@ -68,63 +68,35 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
     std::array<double,5191> ampcos = {};
     std::array<double,5191> ampsen = {};
 
-    double ac;
-    double as;
-    double bc;
-    double bs;
-    double b1;
-    double coefca;
-    double coefcb;
-    double coefsa;
-    double coefsb;
-    double d1;
-    double e1;
-    double fi;
-    double g1;
-    double h;
-    double hdpi;
     double rh;
-    double r11;
-    double r;
-    double th;
-    double ys;
-    double x;
-    double y;
-    double zs;
-    double z;
-    double ys2;
-    int ir_internal; 
-    int ind;
-    int i1c;
-    int i1s;
-    int i2c;
-    int i2s;
-    int k;
-    int kk;
-    int ntot;
-    int my;
-    int my2;
-    int my3;
-    int my4;
-    int my5;
-    int i;
-    int j;
-    int numin1;
-    int numax1;
-
     rh = XMIPP_MIN(r2, x0 - 4.);
     rh = XMIPP_MIN(rh, y0 - 4.);
     rh = XMIPP_MIN(rh, YSIZE(img) - x0 - 3.);
     rh = XMIPP_MIN(rh, XSIZE(img) - y0 - 3.);
-
+    int ir_internal;
     ir_internal = (int)((rh - r1) / r3 + 1);
+    int ind;
     ind = 0;
+    int numin1;
+    int numax1;
     numin1 = numin + 1;
     numax1 = numax + 1;
-
+    int kk;
     for (kk = numin1;kk <= numax1;kk++)
     {
+    	int k;
         k = kk - 1;
+        double coefca;
+        double coefcb;
+        double coefsa;
+        double coefsb;
+        double h;
+        int ntot;
+        int my;
+        int my2;
+        int my4;
+        int my5;
+        int j;
         if (k != 0)
         {
             my = (int)(1 + PI * rh / 2. / k);
@@ -133,14 +105,23 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
             my5 = my4 - 1;
             ntot = 4 * my4;
             h = 2. * PI / ntot;
+            double hdpi;
             hdpi = h / PI;
+            double th;
             th = k * h;
+            double ys;
             ys = sin(th);
+            double zs;
             zs = cos(th);
+            double ys2;
             ys2 = sin(2. * th);
+            double b1;
             b1 = 2. / (th * th) * (1. + zs * zs - ys2 / th);
+            double g1;
             g1 = 4. / (th * th) * (ys / th - zs);
+            double d1;
             d1 = 2. * th / 45.;
+            double e1;
             e1 = d1 * ys * 2.;
             d1 *= ys2;
             coefca = (b1 + e1) * hdpi;
@@ -158,12 +139,15 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
             h = 2. * PI / ntot;
             coefca = h / PI / 2.;
         }
+        int i;
         for (i = 1;i <= my5;i++)
         {
+        	double fi;
             fi = i * h;
             coseno[i] = sin(fi);
         }
         coseno[my4] = 1.;
+        int my3;
         my3 = 2 * my4;
         for (i = 1;i <= my5;i++)
         {
@@ -176,20 +160,33 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
         coseno[my3+my4] = -1.;
         coseno[ntot] = 0.;
         coseno[ntot+my4] = 1.;
+        double r11;
         r11 = r1 - r3;
+        double ac;
+        double r;
         for (int jr = 1;jr <= ir_internal;jr++)
         {
             ind++;
             r = r11 + r3 * jr;
             ac = 0.;
+            int i1c;
             i1c = my4;
+            int i1s;
             i1s = 0;
+            double x;
+            double y;
+            double z;
             if (k != 0)
             {
+                double as;
+                double bc;
+                double bs;
                 as = bc = bs = 0.;
                 for (i = 1;i <= k;i++)
                 {
+                	double i2c;
                     i2c = my4;
+                	double i2s;
                     i2s = 0;
                     for (j = 1;j <= my2;j++)
                     {
@@ -409,16 +406,16 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     // Free memory
     for (i = 1; i <= n; i++)
     {
-        free((char *) ep[i]);
-        free((char *) erp [i]);
+        free(ep[i]);
+        free(erp [i]);
     }
-    free((char *) c);
-    free((char *) s);
-    free((char *) rv);
-    free((char *) st);
-    free((char *) rp1);
-    free((char *) rp2);
-    free((char *) sp);
+    free(c);
+    free(s);
+    free(rv);
+    free(st);
+    free(rp1);
+    free(rp2);
+    free(sp);
 }
 
 // Compute spectrum --------------------------------------------------------
