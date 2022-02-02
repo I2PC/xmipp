@@ -607,7 +607,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		rowOut.setValue(MDL_GRAPH_DISTANCE2MAX_PREVIOUS, algorithmSD);
 		rowOut.setValue(MDL_GRAPH_CC_PREVIOUS, graphCorr);
 		rowOut.setValue(MDL_ASSIGNED_DIR_REF_CC, refCorr);
-	}// end if(useForValidation)
+	}
 }
 
 void ProgAngularAssignmentMag::postProcess() {
@@ -699,10 +699,10 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 double ProgAngularAssignmentMag::interpolate(MultidimArray<double> &cartIm,
 		double &x_coord, double &y_coord) const{
 	double val;
-	size_t xf = (size_t)floor((double)x_coord);
-	size_t xc = (size_t)ceil((double)x_coord);
-	size_t yf = (size_t)floor((double)y_coord);
-	size_t yc = (size_t)ceil((double)y_coord);
+	auto xf = (size_t)floor((double)x_coord);
+	auto xc = (size_t)ceil((double)x_coord);
+	auto yf = (size_t)floor((double)y_coord);
+	auto yc = (size_t)ceil((double)y_coord);
 
 	if ((xf == xc) && (yf == yc)) {
 		val = dAij(cartIm, xc, yc);
