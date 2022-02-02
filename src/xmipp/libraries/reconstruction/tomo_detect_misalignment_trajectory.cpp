@@ -330,6 +330,9 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		size_t numberOfCoordinatesPerValue;
 
+
+		std::vector<double> occupancyV;
+
 		// Trim coordinates based on the characteristics of the labeled region
 		for(size_t value = 0; value < colour; value++)
 		{
@@ -347,9 +350,67 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			
+			double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			occupancyV.push_back(occupancy);
 
-			if(keep)
+			// if(keep)
+			// {
+			// 	Point3D<double> point3D(xCoorCM, yCoorCM, k);
+			// 	coordinates3D.push_back(point3D);
+
+			// 	#ifdef DEBUG_HCC
+			// 	numberOfNewPeakedCoordinates += 1;
+			// 	#endif
+			
+			// }
+		}
+
+		std::cout << "Occupancy vector=";
+		for (size_t i = 0; i < occupancyV.size(); i++)
+		{
+			std::cout << occupancyV[i] << " ";
+		}
+		std::cout << "" << std::endl;
+		
+
+		sort(occupancyV.begin(), occupancyV.end(), std::greater<double>());
+
+		std::cout << "Occupancy vector sorted=";
+		for (size_t i = 0; i < occupancyV.size(); i++)
+		{
+			std::cout << occupancyV[i] << " ";
+		}
+		std::cout << "" << std::endl;
+
+		double occupancyThr = occupancyV[20];
+
+		std::cout << occupancyThr << std::endl;
+
+
+		// Add coordinates if occupancy > occupancyThr
+		for(size_t value = 0; value < colour; value++)
+		{
+			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+			int xCoor = 0;
+			int yCoor = 0;
+
+			for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+			{
+				xCoor += coordinatesPerLabelX[value][coordinate];
+				yCoor += coordinatesPerLabelY[value][coordinate];
+			}
+
+			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+			// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			
+			double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+
+			if(occupancy>occupancyThr)
 			{
 				Point3D<double> point3D(xCoorCM, yCoorCM, k);
 				coordinates3D.push_back(point3D);
@@ -360,6 +421,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			
 			}
 		}
+		
 
 		#ifdef DEBUG_HCC
 		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
@@ -1314,6 +1376,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	writeOutputCoordinates();
 	#endif
 
+	bool tmp = detectGlobalMisalignment();
+
 	detectLandmarkChains();
 	if(globalAlignment){
 		detectMisalignedTiltImages();
@@ -1340,7 +1404,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 // --------------------------- UTILS functions ----------------------------
 
 
-bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+double ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < thrNumberCoords)
@@ -1391,24 +1455,28 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
-	if(ocupation > 0.65)
-	{
-		return true;
-	}
-	if(ocupation <= 0.65)
-	{
-		return false;
-	}
+	// if(ocupation > 0.65)
+	// {
+	// 	return true;
+	// }
+	// if(ocupation <= 0.65)
+	// {
+	// 	return false;
+	// }
+
+	return ocupation;
 }
 
 bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 {
 	MultidimArray<double> tiltAxisIntersection;
 
+	// tiltAxisIntersection.initZeros(ySize, nSize);
+
 	tiltAxisIntersection.initZeros(ySize);
 
 	// Extract alignment information of e
-	for (size_t tiIndex = 0; tiIndex < zSize; tiIndex++)
+	for (size_t tiIndex = 0; tiIndex < nSize; tiIndex++)
 	{
 		std::vector<Point2D<double>> coordinatesInSlice;
 
@@ -1422,16 +1490,46 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 				// Check to not compare a corrdinate with itself
 				if (i != j)
 				{
-					tiltAxisIntersection[calculateTiltAxisIntersection(i, j)] += 1;
-					
-				}	
-			}	
+					int intersectionIndex =  calculateTiltAxisIntersection(coordinatesInSlice[i], coordinatesInSlice[j]);
+					if (intersectionIndex > 0 && intersectionIndex < ySize)
+					{
+						// tiltAxisIntersection[intersectionIndex, tiIndex] += 1;
+						tiltAxisIntersection[intersectionIndex] += 1;
+					}
+				}
+			}
 		}
 	}
+
+	// for (size_t i = 0; i < nSize; i++)
+	// {
+	// std::cout << "line" << i <<"-->[" ;
+
+	// 	for (size_t j = 0; j < ySize; j++)
+	// 	{
+	// 		std::cout << tiltAxisIntersection[j,i] << " ";
+	// 	}
+	
+	// std::cout << "]" <<  std::endl;
+	// }
+
+
+
+	std::cout << "[" ;
+
+	for (size_t i = 0; i < ySize; i++)
+	{
+		std::cout << tiltAxisIntersection[i] << " ";
+	}
+
+	std::cout << "]" << std::endl;
+
+	return true;
+	
 }
 
 
-int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D p1, Point2D p2)
+int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2)
 {
 	// Eccuation of a line given 2 points:
 	// y = [(x-x1)(y2-y1) / (x2-x1)] - y1
@@ -1444,8 +1542,17 @@ int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D 
 	// We obtain the x coordinate of intersection by substitution:
 	// x = [(ySize/2-y1)(x2-x1) / (y2-y1)] - x1
 
+	std::cout << "p1=(" << p1.x << ", " << p1.y << ")" << std::endl;
+	std::cout << "p2=(" << p2.x << ", " << p2.y << ")" << std::endl;
+	std::cout << "xSize/2=" << xSize/2 << std::endl;
+	std::cout << "ySize/2=" << ySize/2 << std::endl;
 
-	return int([(ySize/2-p1.y)(p2.x-p1.x) / (p2.y-p1.y)] - p1.x);
+	// std::cout << (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x << std::endl;
+	std::cout << (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y << std::endl;
+
+
+	// return (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x;
+	return (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y;
 }
 
 

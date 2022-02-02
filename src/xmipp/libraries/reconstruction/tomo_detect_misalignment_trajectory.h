@@ -48,7 +48,7 @@
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
-#define DEBUG_PREPROCESS
+// #define DEBUG_PREPROCESS
 #define DEBUG_HCC
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
@@ -230,7 +230,26 @@ public:
      * @return
      *
     */
-    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+    double filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+
+    /**
+     * Filter labeled regions.
+     *
+     * @param
+     * @return
+     *
+    */
+    bool detectGlobalMisalignment();
+
+    /**
+     * Filter labeled regions.
+     *
+     * @param
+     * @return
+     *
+    */
+    int calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2);
+
 
     /**
      * Calculation of the projection matrix given the projection angle.
