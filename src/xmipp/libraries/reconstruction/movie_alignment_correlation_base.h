@@ -368,6 +368,12 @@ protected:
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
 
+    /** Values used for testing **/
+    size_t fakeX;
+    size_t fakeY;
+    size_t fakeN;
+    size_t fakeNoOfMovies;
+
 private:
     /** Minimal resolution (in A) of the patch for local alignment */
     size_t minLocalRes;

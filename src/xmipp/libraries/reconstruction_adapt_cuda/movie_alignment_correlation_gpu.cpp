@@ -96,7 +96,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
     gpu.value().updateMemoryInfo();
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
-    this->loadFrame(movie, movie.firstRowId(), frame);
+    this->loadFrame(movie, /*movie.firstRowId()*/ 0, frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
 
     if (optimize) {
@@ -265,6 +265,7 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
     // check available memory
     res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
     if (res) {
+        std::cout << "Using stored values from previous benchmarking\n";
         return core::optional<FFTSettings<T>>(
                 FFTSettings<T>(x, y, 1, dim.n(), batch, false));
     } else {
@@ -282,12 +283,13 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimension
     if (skipAutotuning) {
         tmp = CudaFFT<T>::findMaxBatch(tmp1, gpu.value().lastFreeBytes() - extraBytes);
     } else {
-        if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
+        // if (this->verbose) 
+        std::cerr << "Benchmarking cuFFT ..." << std::endl;
         // take additional memory requirement into account
         // FIXME DS make sure that result is smaller than available data
         tmp =  CudaFFT<T>::findOptimalSizeOrMaxBatch(gpu.value(), tmp1,
                 extraBytes, d.x() == d.y(), crop ? 10 : 20, // allow max 10% change for cropping, 20 for 'padding'
-                crop, this->verbose);
+                crop, true);
     }
     return FFTSettings<T>(tmp.sDim().x(), tmp.sDim().y(), tmp.sDim().z(), tmp.sDim().n(), tmp.batch(), false);
 }
@@ -574,35 +576,34 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
 
     MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
-    if (this->verbose) {
+    if (true) {
         std::cout << "Requested scale factor: " << this->getScaleFactor() << std::endl;
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << "Settings for the movie: " << movieSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
     }
 
-
     T corrSizeMB = ((size_t) correlationSetting.x_freq
             * correlationSetting.dim.y()
             * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
     size_t framesInBuffer = std::ceil((MB(gpu.value().lastFreeBytes() / 3)) / corrSizeMB);
 
-    auto reference = core::optional<size_t>();
-
-
-    // load movie to memory
-    if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, igain);
-    }
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
     T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
-    getCroppedMovie(movieSettings, data);
+    AlignmentResult<T> result;
+    for (size_t i = 0; i < this->fakeNoOfMovies; ++i) {
+        std::cout << "Processing movie " << i << "\n";
+        // load movie to memory
+        movieRawData = loadMovie(movie, dark, igain);
+        getCroppedMovie(movieSettings, data);
+        auto reference = core::optional<size_t>();
 
-    auto result = align(data, movieSettings, correlationSetting,
-                    filter, reference,
-            this->maxShift, framesInBuffer, this->verbose);
+        result = align(data, movieSettings, correlationSetting,
+                        filter, reference,
+                this->maxShift, framesInBuffer, this->verbose);
+    }
     free(data);
     return result;
 }
@@ -644,11 +645,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &
 template<typename T>
 T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         const Image<T>& dark, const Image<T>& igain) {
-    T* imgs = nullptr;
+    T* imgs = movieRawData;
     Image<T> frame;
 
     int movieImgIndex = -1;
-    for (size_t objId : movie.ids())
+    for (size_t i = 0; i < this->fakeN; ++i)
     {
         // update variables
         movieImgIndex++;
@@ -656,7 +657,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, igain, objId, frame);
+        this->loadFrame(movie, dark, igain, i, frame);
 
         if (nullptr == imgs) {
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
@@ -726,7 +727,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
 
     // now get the estimated shift (from the equation system)
     // from each frame to successing frame
-    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
+    AlignmentResult<T> result;// = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
     return result;
 }
 

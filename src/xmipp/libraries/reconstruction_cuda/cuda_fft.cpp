@@ -309,6 +309,25 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
     using cuFFTAdvisor::Tristate::FALSE;
     using core::optional;
     size_t freeBytes = gpu.lastFreeBytes();
+    if (verbose) {
+        printf("Running cuFFTAdvisor: find 10, device %d, "
+        "%lu %lu %lu %lu, "
+        "--batchOnly, "
+        "%s, " // float
+        "%s, " // direction
+        "%s, --realOnly, " // locality
+        "%d %% change, max %lu MB, " // perc change, maxmemory
+        "--noTransposition, %s, %s\n", // square, crop
+        gpu.device(), 
+        settings.sDim().x(), settings.sDim().y(), settings.sDim().z(), settings.sDim().n(),
+        std::is_same<T, float>::value ? "float" : "double",
+        settings.isForward() ? "forward" : "inverse",
+        settings.isInPlace() ? "inPlace" : "outOfPlace",
+        sigPercChange, memoryUtils::MB(freeBytes - reserveBytes),
+        squareOnly ? "squareOnly" : "allow rectanges",
+        crop ? "crop" : "padd");
+
+    }
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *options =
             cuFFTAdvisor::Advisor::find(10, gpu.device(), // FIXME DS this should be configurable
                     settings.sDim().x(), settings.sDim().y(), settings.sDim().z(), settings.sDim().n(),

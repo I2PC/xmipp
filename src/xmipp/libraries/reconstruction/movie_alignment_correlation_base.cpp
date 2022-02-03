@@ -31,8 +31,8 @@
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::readParams() {
-    fnMovie = getParam("-i");
-    fnOut = getParam("-o");
+    // fnMovie = getParam("-i");
+    // fnOut = getParam("-o");
     fnInitialAvg = getParam("--oavgInitial");
     fnDark = getParam("--dark");
     fnGain = getParam("--gain");
@@ -55,6 +55,10 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     BsplineOrder = getIntParam("--Bspline");
     processLocalShifts = checkParam("--processLocalShifts");
     minLocalRes = getIntParam("--minLocalRes");
+    fakeX = getIntParam("-fakeX");
+    fakeY = getIntParam("--fakeY");
+    fakeN = getIntParam("--fakeN");
+    fakeNoOfMovies = getIntParam("--fakeNoOfMovies");
 
     String outside = getParam("--outside");
     if (outside == "wrap")
@@ -125,12 +129,20 @@ void AProgMovieAlignmentCorrelation<T>::show() {
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addUsageLine("Align a set of frames by cross-correlation of the frames");
+    // addParamsLine(
+    //         "   -i <metadata>               : Metadata with the list of frames to align");
+    // addParamsLine(
+    //         "  [-o <fn=\"out.xmd\">]        : Metadata with the shifts of each frame.");
+    // addParamsLine(
+    //         "                               : If no filename is given, the input is rewritten");
     addParamsLine(
-            "   -i <metadata>               : Metadata with the list of frames to align");
+            "  [-fakeX <X=4096>]      : X dimension of the fake (on-demand generated) movie");
     addParamsLine(
-            "  [-o <fn=\"out.xmd\">]        : Metadata with the shifts of each frame.");
+            "  [--fakeY <Y=4096>]      : Y dimension of the fake (on-demand generated) movie");
     addParamsLine(
-            "                               : If no filename is given, the input is rewritten");
+            "  [--fakeN <N=40>]        : Number of frames of the fake (on-demand generated) movie");
+    addParamsLine(
+            "  [--fakeNoOfMovies <reps=1>] : How many fake (on-deman generated) movies should be processed");
     addParamsLine(
             "  [--bin <s=-1>]               : Binning factor, it may be any floating number");
     addParamsLine(
@@ -191,16 +203,18 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData& movie,
         size_t objId, Image<T>& out) {
-    FileName fnFrame;
-    movie.getValue(MDL_IMAGE, fnFrame, objId);
+    // FileName fnFrame;
+    // movie.getValue(MDL_IMAGE, fnFrame, objId);
     if (-1 != this->yDRcorner) {
-        Image<T> tmp;
-        tmp.read(fnFrame);
+        Image<T> tmp(fakeX, fakeY, 1, 1);
+    //     tmp.read(fnFrame);
         tmp().window(out(), this->yLTcorner, this->xLTcorner, this->yDRcorner,
                 this->xDRcorner);
     } else {
-        out.read(fnFrame);
+        out.data.resizeNoCopy(1, 1, fakeY, fakeX);
+    //     out.read(fnFrame);
     }
+    out.data.initZeros();
 }
 
 template<typename T>
@@ -493,10 +507,11 @@ void AProgMovieAlignmentCorrelation<T>::correctLoopIndices(
     nfirst = std::max(nfirst, 0);
     nfirstSum = std::max(nfirstSum, 0);
     if (nlast < 0)
-        nlast = movie.size() - 1;
-
+        // nlast = movie.size() - 1;
+        nlast = fakeN - 1;
     if (nlastSum < 0)
-        nlastSum = movie.size() - 1;
+        // nlastSum = movie.size() - 1;
+        nlastSum = fakeN - 1;
 }
 
 template<typename T>
@@ -582,45 +597,46 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     checkSettings();
     // preprocess input data
     MetaDataVec movie;
-    readMovie(movie);
+    // readMovie(movie);
     correctLoopIndices(movie);
 
     Image<T> dark, igain;
-    loadDarkCorrection(dark);
-    loadGainCorrection(igain);
+    // loadDarkCorrection(dark);
+    // loadGainCorrection(igain);
 
     auto globalAlignment = AlignmentResult<T>();
-    if (useInputShifts) {
-        if (!movie.containsLabel(MDL_SHIFT_X)) {
-            setZeroShift(movie);
-        }
-        globalAlignment = loadGlobalShifts(movie);
-    } else {
-        std::cout << "Computing global alignment ...\n";
-        globalAlignment = computeGlobalAlignment(movie, dark, igain);
-    }
+    // if (useInputShifts) {
+    //     if (!movie.containsLabel(MDL_SHIFT_X)) {
+    //         setZeroShift(movie);
+    //     }
+    //     globalAlignment = loadGlobalShifts(movie);
+    // } else {
+            std::cout << "Computing global alignment ...\n";
+            globalAlignment = computeGlobalAlignment(movie, dark, igain);
+    // }
 
-    if ( ! fnOut.isEmpty()) {
-        storeGlobalShifts(globalAlignment, movie);
-    }
 
-    if (verbose) printGlobalShift(globalAlignment);
+    // if ( ! fnOut.isEmpty()) {
+    //     storeGlobalShifts(globalAlignment, movie);
+    // }
 
-    size_t N, Ninitial;
-    Image<T> initialMic, averageMicrograph;
-    // Apply shifts and compute average
-    if (processLocalShifts) {
-        std::cout << "Computing local alignment ...\n";
-        auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
-        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
-                    averageMicrograph, N, localAlignment);
-        storeResults(localAlignment);
-    } else {
-        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
-                    averageMicrograph, N, globalAlignment);
-    }
+    // if (verbose) printGlobalShift(globalAlignment);
 
-    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);
+    // size_t N, Ninitial;
+    // Image<T> initialMic, averageMicrograph;
+    // // Apply shifts and compute average
+    // if (processLocalShifts) {
+    //     std::cout << "Computing local alignment ...\n";
+    //     auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
+    //     applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
+    //                 averageMicrograph, N, localAlignment);
+    //     storeResults(localAlignment);
+    // } else {
+    //     applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
+    //                 averageMicrograph, N, globalAlignment);
+    // }
+
+    // storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);
 
     releaseAll();
 }
