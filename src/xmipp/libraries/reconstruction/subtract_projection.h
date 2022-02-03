@@ -47,6 +47,7 @@
     FileName fnProj;
     MetaDataVec mdParticles;
     MDRowVec row;
+    bool subtractAll;
 	double cutFreq;
 	double lambda;
 	int sigma;
