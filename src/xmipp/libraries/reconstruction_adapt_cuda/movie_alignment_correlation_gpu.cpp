@@ -596,7 +596,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     for (size_t i = 0; i < this->fakeNoOfMovies; ++i) {
         std::cout << "Processing movie " << i << "\n";
         // load movie to memory
-        movieRawData = loadMovie(movie, dark, igain);
+        // movieRawData = loadMovie(movie, dark, igain);
         getCroppedMovie(movieSettings, data);
         auto reference = core::optional<size_t>();
 
@@ -632,13 +632,14 @@ template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
         T *output) {
     for (size_t n = 0; n < settings.dim.n(); ++n) {
-        T *src = movieRawData + (n * rawMovieDim.xy()); // points to first float in the image
-        T *dest = output + (n * settings.dim.xy()); // points to first float in the image
-        for (size_t y = 0; y < settings.dim.y(); ++y) {
-            memcpy(dest + (settings.dim.x() * y),
-                    src + (rawMovieDim.x() * y),
-                    settings.dim.x() * sizeof(T));
-        }
+        memset(output + (n * settings.dim.xy()), 0, settings.dim.xy() * sizeof(T));
+        // T *src = movieRawData + (n * rawMovieDim.xy()); // points to first float in the image
+        // T *dest = output + (n * settings.dim.xy()); // points to first float in the image
+        // for (size_t y = 0; y < settings.dim.y(); ++y) {
+        //     memcpy(dest + (settings.dim.x() * y),
+        //             src + (rawMovieDim.x() * y),
+        //             settings.dim.x() * sizeof(T));
+        // }
     }
 }
 
