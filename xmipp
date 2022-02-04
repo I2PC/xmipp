@@ -227,7 +227,7 @@ def pull():
     log=[]
     isRemoteBranch = runJob('git rev-parse HEAD@{upstream}', show_command=False, show_output=False, log=log)
     if not isRemoteBranch:
-        print(yellow(str('Git info: ' + log[0].replace('fatal: ', ''))))
+        print(yellow(str('Git info: ' + log[0])))
     if checkGithubConnection() and isRemoteBranch:
         return runJob("git pull", show_command=False)
     return True  # meaning that this is a local branch or we are offline, so pull doesn't make sense
