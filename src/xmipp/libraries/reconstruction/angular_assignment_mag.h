@@ -47,6 +47,44 @@
 class ProgAngularAssignmentMag: public XmippMetadataProgram
 {
 public:
+	void defineParams() override;
+	void readParams() override;
+	void show() const override;
+	void preProcess() override;
+	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+	void postProcess() override;
+    ProgAngularAssignmentMag();
+    ~ProgAngularAssignmentMag();
+    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
+    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyRotation(const MultidimArray<double> &, double &, MultidimArray<double> &) const;
+    void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot) const;
+    void getComplexMagnitude(const MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag) const;
+
+    /// Synchronize with other processors
+    virtual void synchronize() {}
+
+	size_t rank;
+	size_t Nprocessors;
+
+private:
+    void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
+    void completeFourierShift(const MultidimArray<double> &in, MultidimArray<double> &out) const;
+    void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result) const;
+    void computingNeighborGraph();
+    void computeLaplacianMatrix (Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp) const;
+    void computeCircular();
+    void circularWindow(MultidimArray<double> &in) const;
+    void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size) const;
+    void graphFourierFilter(const Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut) const;
+    MultidimArray<double> imToPolar(MultidimArray<double> &cartIm, size_t &start, size_t &end);
+    double interpolate(MultidimArray<double> &cartIm, double &x_coord, double &y_coord) const;
+    void maxByColumn(const MultidimArray<double> &in, MultidimArray<double> &out) const;
+    void maxByRow(const MultidimArray<double> &in, MultidimArray<double> &out) const;
+
+    void psiCandidates(const MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
+
+
     /** Filenames */
     FileName fnIn;
     FileName fnOut;
@@ -63,30 +101,6 @@ public:
     FourierTransformer transformerImage;
     FourierTransformer transformerPolarImage;
     FourierTransformer transformerPolarRealSpace;
-
-	size_t rank;
-	size_t Nprocessors;
-
-	void defineParams() override;
-	void readParams() override;
-	void show() const override;
-	void startProcessing() override;
-	void preProcess() override;
-	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
-	void postProcess() override;
-    ProgAngularAssignmentMag();
-    ~ProgAngularAssignmentMag();
-    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void applyRotation(const MultidimArray<double> &, double &, MultidimArray<double> &) const;
-    void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot) const;
-    void getComplexMagnitude(const MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag) const;
-
-    /// Synchronize with other processors
-    virtual void synchronize() {}
-
-
-private:
 
     // vector of reference images
     std::vector< MultidimArray<double> > vecMDaRef;
@@ -129,7 +143,6 @@ private:
     int refYdim;
     int refZdim;
 
-    // some constants
     int sizeMdRef;
     int sizeMdIn;
     size_t n_bands;
@@ -152,21 +165,6 @@ private:
     /** Use it for validation */
     bool useForValidation;
 
-    void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
-    void completeFourierShift(const MultidimArray<double> &in, MultidimArray<double> &out) const;
-    void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result) const;
-    void computingNeighborGraph();
-    void computeLaplacianMatrix (Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp) const;
-    void computeCircular();
-    void circularWindow(MultidimArray<double> &in) const;
-    void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size) const;
-    void graphFourierFilter(const Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut) const;
-    MultidimArray<double> imToPolar(MultidimArray<double> &cartIm, size_t &start, size_t &end);
-    double interpolate(MultidimArray<double> &cartIm, double &x_coord, double &y_coord) const;
-    void maxByColumn(const MultidimArray<double> &in, MultidimArray<double> &out) const;
-    void maxByRow(const MultidimArray<double> &in, MultidimArray<double> &out) const;
-
-    void psiCandidates(const MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
 };
 //@}
 

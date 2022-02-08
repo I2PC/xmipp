@@ -62,8 +62,6 @@ void ProgAngularAssignmentMag::defineParams() {
 // Read arguments ==========================================================
 void ProgAngularAssignmentMag::readParams() {
 	XmippMetadataProgram::readParams();
-	fnIn = XmippMetadataProgram::fn_in;
-	fnOut = XmippMetadataProgram::fn_out;
 	fnRef = getParam("-ref");
 	fnDir = getParam("-odir");
 	sampling = getDoubleParam("-sampling");
@@ -92,10 +90,6 @@ void ProgAngularAssignmentMag::show() const {
 	}
 }
 
-void ProgAngularAssignmentMag::startProcessing() {
-	XmippMetadataProgram::startProcessing();
-}
-
 /*
  * In this method, for each direction, I look for neighbors within some distance
  * */
@@ -108,42 +102,38 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 	double maxSphericalDistance = angStep*2.;
 	std::cout<< "processing neighbors graph..."<<std::endl;
 
-	int j = 0;
-	for (size_t objId : mdRef.ids())
-	{
+	for (auto &rowj : mdRef){
 		double rotj;
 		double tiltj;
 		double psij;
-		mdRef.getValue(MDL_ANGLE_ROT, rotj, objId);
-		mdRef.getValue(MDL_ANGLE_TILT, tiltj, objId);
-		mdRef.getValue(MDL_ANGLE_PSI, psij, objId);
+		rowj.getValue(MDL_ANGLE_ROT, rotj);
+		rowj.getValue(MDL_ANGLE_TILT, tiltj);
+		rowj.getValue(MDL_ANGLE_PSI, psij);
 		distanceToj.initZeros(sizeMdRef);
 		Euler_direction(rotj, tiltj, psij, dirj);
 		std::vector<int> neighborsjp;
 		std::vector<double> weightsjp;
 		double thisSphericalDistance = 0.;
 		int jp = 0;
-		for (size_t objId2 : mdRef.ids())
-		{
+		for (auto &rowjp : mdRef){
 			double rotjp;
 			double tiltjp;
 			double psijp;
-			mdRef.getValue(MDL_ANGLE_ROT, rotjp, objId2);
-			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, objId2);
-			mdRef.getValue(MDL_ANGLE_PSI, psijp, objId2);
+			rowjp.getValue(MDL_ANGLE_ROT, rotjp);
+			rowjp.getValue(MDL_ANGLE_TILT, tiltjp);
+			rowjp.getValue(MDL_ANGLE_PSI, psijp);
 			Euler_direction(rotjp, tiltjp, psijp, dirjp);
 			thisSphericalDistance = RAD2DEG(spherical_distance(dirj, dirjp));
 
 			if (thisSphericalDistance < maxSphericalDistance) {
-				neighborsjp.push_back(jp);
+				neighborsjp.emplace_back(jp);
 				double val = exp(-thisSphericalDistance / maxSphericalDistance);
-				weightsjp.push_back(val);
+				weightsjp.emplace_back(val);
 			}
 			jp++;
 		}
-		allNeighborsjp.push_back(neighborsjp);
-		allWeightsjp.push_back(weightsjp);
-		j++;
+		allNeighborsjp.emplace_back(neighborsjp);
+		allWeightsjp.emplace_back(weightsjp);
 	}// END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
 
 	// compute Laplacian Matrix
@@ -177,7 +167,7 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix (Matrix2D<double> &matL,
 		double sumWeight = 0.;
 		int indx = 0;
 		int j = -1;
-		for(std::vector<int>::iterator it=neighborsjp.begin(); it!=neighborsjp.end(); ++it){
+		for(auto it=neighborsjp.begin(); it!=neighborsjp.end(); ++it){
 			j += 1;
 			indx = (*it);
 			MAT_ELEM(matL,i,indx) = -weightsjp[j];
@@ -196,7 +186,7 @@ unsigned long long getTotalSystemMemory()
 
 void ProgAngularAssignmentMag::preProcess() {
 
-	mdIn.read(fnIn);
+	mdIn.read(XmippMetadataProgram::fn_in);
 	mdRef.read(fnRef);
 
 	// size of images
