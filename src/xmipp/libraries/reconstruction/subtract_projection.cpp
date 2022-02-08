@@ -235,13 +235,17 @@
  }
 
  void ProgSubtractProjection::runIteration() {
+	P.write(formatString("%s8_projbeforeIters.mrc", fnProj.c_str()));
 	transformer.FourierTransform(P(),PFourier,false);
-	POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
+	POCSFourierAmplitudeProj(IFourierMag, PFourier, lambda, radQuotient, (int)XSIZE(I()));
 	transformer.inverseFourierTransform();
+	P.write(formatString("%s9_projAmplitude.mrc", fnProj.c_str()));
 	POCSMinMaxProj(P(), Imin, Imax);
+	P.write(formatString("%s10_projMinMax.mrc", fnProj.c_str()));
 	transformer.FourierTransform();
 	POCSFourierPhaseProj(PFourierPhase,PFourier);
 	transformer.inverseFourierTransform();
+	P.write(formatString("%s11_projPhase.mrc", fnProj.c_str()));
  }
 
  Image<double> ProgSubtractProjection::thresholdMask(Image<double> &m){
@@ -327,13 +331,20 @@
      	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
     	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+    	P.write(formatString("%s1_initalProjection.mrc", fnProj.c_str()));
     	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+    	PmaskVol.write(formatString("%s2_initalMask.mrc", fnProj.c_str()));
     	PmaskVolI = binarizeMask(PmaskVol);
+    	PmaskVolI.write(formatString("%s3_maskBin.mrc", fnProj.c_str()));
 		FilterG.applyMaskSpace(PmaskVolI());
+		PmaskVolI.write(formatString("%s4_maskGauss.mrc", fnProj.c_str()));
 		POCSmaskProj(PmaskVolI(), P());
+		P.write(formatString("%s5_projMasked.mrc", fnProj.c_str()));
 		POCSmaskProj(PmaskVolI(), I());
+		I.write(formatString("%s6_partMasked.mrc", fnProj.c_str()));
 		row.getValueOrDefault(MDL_IMAGE, fnPart, "no_filename");
 		Pctf = applyCTF(row, P);
+		Pctf.write(formatString("%s7_projCTF.mrc", fnProj.c_str()));
     	struct Radial radial;
     	radial.meanI = computeRadialAvg(I, radial.meanI);
     	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
@@ -357,12 +368,19 @@
 		if (cutFreq!=0)
 			Filter2.applyMaskSpace(IFiltered());
     	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+    	Pmask.write(formatString("%s12_maskKeep.mrc", fnProj.c_str()));
     	Pmaskctf = applyCTF(row, Pmask);
+    	Pmask.write(formatString("%s13_maskKeepCTF.mrc", fnProj.c_str()));
     	Pmaskctf = thresholdMask(Pmaskctf);
+    	Pmaskctf.write(formatString("%s14_maskKeepTh.mrc", fnProj.c_str()));
 		PmaskInv = invertMask(Pmaskctf);
+		PmaskInv.write(formatString("%s15_maskKeepInv.mrc", fnProj.c_str()));
     	FilterG.w1=sigma;
 		FilterG.applyMaskSpace(Pmaskctf());
-
+		I.write(formatString("%s16_finalI.mrc", fnProj.c_str()));
+		P.write(formatString("%s17_finalP.mrc", fnProj.c_str()));
+		PmaskInv.write(formatString("%s18_finalmaskInv.mrc", fnProj.c_str()));
+		Pmaskctf.write(formatString("%finalmaskCTF.mrc", fnProj.c_str()));
 		I = subtraction(I, P, PmaskInv, Pmaskctf, subtractAll);
 		writeParticle(int(i), I);
     }
