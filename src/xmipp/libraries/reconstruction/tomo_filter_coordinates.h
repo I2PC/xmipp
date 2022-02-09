@@ -48,6 +48,9 @@ public:
     /** Threshold */
     double resThr;
 
+    /** Particle radius **/
+    int radius;
+
     /** Check params **/
     bool checkResThr;
 
@@ -77,6 +80,10 @@ public:
     // --------------------------- HEAD functions ----------------------------
 
     void filterCoordinatesWithMask(MultidimArray<double> &inputVolume);
+
+    void defineSphere(MultidimArray<int> &sphere);
+
+    void extractStatistics(MultidimArray<double> &tomo, MultidimArray<int> &sphere);
 
 
     // --------------------------- I/O functions ----------------------------

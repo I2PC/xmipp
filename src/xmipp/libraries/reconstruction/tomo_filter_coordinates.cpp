@@ -31,12 +31,31 @@
 
 void ProgTomoFilterCoordinates::readParams()
 {
+<<<<<<< HEAD
 	fnInTomo = getParam("--inTomo");
 	fnMask = getParam("--mask");
 	fnInCoord = getParam("--coordinates");
 	radius = getIntParam(--radius);
     checkResThr = checkParam("--threshold");
    	fnOut = getParam("-o");
+=======
+	fnInVol = getParam("--inVol");
+	fnInCoord = getParam("--inCoord");
+    
+    checkResThr = checkParam("--resThr");
+
+	if(checkResThr)
+	{
+		resThr = getDoubleParam("--resThr");
+		radius = getIntParam("--radius");
+		execMode = 1;
+	}else
+	{
+		execMode = 0;
+	}
+
+   	fnOutCoord = getParam("--outCoord");
+>>>>>>> 8e9dcc3c51b3a2584d8793ca1859bbb87c080c5f
 }
 
 
@@ -49,11 +68,19 @@ void ProgTomoFilterCoordinates::defineParams()
 	addUsageLine("\nUsing a resolution. In this case a set of coordinates, a resolution map, and a resolution ");
     addUsageLine("percentile to select the number of coordinates to be saved after the scoring need o be ");
     addUsageLine("input. If these three options are input then this criteria will be applied.");
+<<<<<<< HEAD
 	addParamsLine("  --inTomo <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
 	addParamsLine("  --mask <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
 	addParamsLine("  [--coordinates <resThr=0.25>]                               : Percentile resolution threshold.");
     addParamsLine("  [--threshold <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
 	addParamsLine("  -o <outCoord=\"filteredCoordinates3D.xmd\">   : Output file containing the filtered 3D coordinates.");
+=======
+	addParamsLine("  --inVol <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
+	addParamsLine("  --inCoord <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
+	addParamsLine("  [--resThr <resThr=0.25>]                                : Percentile resolution threshold.");
+	addParamsLine("  [--radius <radius=64>]                                 : Radius around the coordinate to be examined.");
+    addParamsLine("  [--outCoord <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
+>>>>>>> 8e9dcc3c51b3a2584d8793ca1859bbb87c080c5f
 }
 
 
@@ -90,6 +117,70 @@ void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<double> 
 		#endif 
 	}
 }
+
+void ProgTomoFilterCoordinates::defineSphere(MultidimArray<int> &sphere)
+{
+	sphere.initZeros(radius, radius, radius);
+
+	size_t r;
+	r = radius * radius;
+	long nvoxels = 0;
+
+	FOR_ALL_ELEMENTS_IN_ARRAY3D(sphere)
+	{
+		if ((k*k + i*i + j*j)<r)
+		{
+			A3D_ELEM(sphere, k, i, j) = 1;
+			nvoxels++;
+		}
+	}
+
+	Image<int> maskImg;
+	maskImg() = sphere;
+	maskImg.write("sphere.mrc");
+}
+
+
+void ProgTomoFilterCoordinates::extractStatistics(MultidimArray<double> &tomo, MultidimArray<int> &sphere)
+{
+	MultidimArray<double> auxsubtomo;
+	auxsubtomo.resizeNoCopy(sphere);
+	auxsubtomo.initZeros();
+
+	size_t rhalf = radius/2;
+	for(size_t c = 0; c < inputCoords.size(); c++)
+	{
+		int xx = inputCoords[c].x;
+		int yy = inputCoords[c].y;
+		int zz = inputCoords[c].z;
+
+		int xlim_lower = xx - rhalf;
+		int xlim_high  = xx + rhalf;
+		int ylim_lower = xx - rhalf;
+		int ylim_high  = xx + rhalf;
+		int zlim_lower = xx - rhalf;
+		int zlim_high  = xx + rhalf;
+
+		for (size_t i = xlim_lower; i<xlim_high; ++i)
+		{
+			for (size_t j = ylim_lower; j<ylim_high; ++j)
+			{
+				for (size_t k = zlim_lower; k<zlim_high; ++k)
+				{
+					A3D_ELEM(auxsubtomo, k-rhalf, i-rhalf, j-rhalf) = A3D_ELEM(tomo, k, i, j);
+				}
+			}
+		}
+
+		Image<double> img;
+		img() = auxsubtomo;
+		img.write("subtomo.mrc");
+
+		exit(0);
+	}	
+
+}
+
 
 
 void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &tom)
