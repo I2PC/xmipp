@@ -43,13 +43,10 @@ class ProgTomoFilterCoordinates : public XmippProgram
 
 public:
     /** Filenames */
-    FileName fnInTomo, fnMask, fnInCoord, fnOutCoord;
+    FileName fnInTomo, fnMask, fnInCoord, fnOut;
 
     /** Threshold */
     double resThr;
-
-    /** Particle radius **/
-    int radius;
 
     /** Check params **/
     bool checkResThr;
@@ -58,7 +55,7 @@ public:
     bool execMode;
 
     /** Radius map amalysis*/
-    size_t radius;
+    int radius;
 
 
 private:

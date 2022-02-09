@@ -24,6 +24,8 @@
  ***************************************************************************/
 
 #include "tomo_filter_coordinates.h"
+#include <core/metadata_extension.h>
+#include <core/metadata_vec.h>
 #include <chrono>
 
 
@@ -31,31 +33,12 @@
 
 void ProgTomoFilterCoordinates::readParams()
 {
-<<<<<<< HEAD
 	fnInTomo = getParam("--inTomo");
 	fnMask = getParam("--mask");
 	fnInCoord = getParam("--coordinates");
-	radius = getIntParam(--radius);
+	radius = getIntParam("--radius");
     checkResThr = checkParam("--threshold");
    	fnOut = getParam("-o");
-=======
-	fnInVol = getParam("--inVol");
-	fnInCoord = getParam("--inCoord");
-    
-    checkResThr = checkParam("--resThr");
-
-	if(checkResThr)
-	{
-		resThr = getDoubleParam("--resThr");
-		radius = getIntParam("--radius");
-		execMode = 1;
-	}else
-	{
-		execMode = 0;
-	}
-
-   	fnOutCoord = getParam("--outCoord");
->>>>>>> 8e9dcc3c51b3a2584d8793ca1859bbb87c080c5f
 }
 
 
@@ -68,19 +51,11 @@ void ProgTomoFilterCoordinates::defineParams()
 	addUsageLine("\nUsing a resolution. In this case a set of coordinates, a resolution map, and a resolution ");
     addUsageLine("percentile to select the number of coordinates to be saved after the scoring need o be ");
     addUsageLine("input. If these three options are input then this criteria will be applied.");
-<<<<<<< HEAD
 	addParamsLine("  --inTomo <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
 	addParamsLine("  --mask <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
-	addParamsLine("  [--coordinates <resThr=0.25>]                               : Percentile resolution threshold.");
+	addParamsLine("  --coordinates <xmd_file=\"\">                               : Percentile resolution threshold.");
     addParamsLine("  [--threshold <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
 	addParamsLine("  -o <outCoord=\"filteredCoordinates3D.xmd\">   : Output file containing the filtered 3D coordinates.");
-=======
-	addParamsLine("  --inVol <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
-	addParamsLine("  --inCoord <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
-	addParamsLine("  [--resThr <resThr=0.25>]                                : Percentile resolution threshold.");
-	addParamsLine("  [--radius <radius=64>]                                 : Radius around the coordinate to be examined.");
-    addParamsLine("  [--outCoord <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
->>>>>>> 8e9dcc3c51b3a2584d8793ca1859bbb87c080c5f
 }
 
 
@@ -116,28 +91,6 @@ void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<double> 
 		}
 		#endif 
 	}
-}
-
-void ProgTomoFilterCoordinates::defineSphere(MultidimArray<int> &sphere)
-{
-	sphere.initZeros(radius, radius, radius);
-
-	size_t r;
-	r = radius * radius;
-	long nvoxels = 0;
-
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(sphere)
-	{
-		if ((k*k + i*i + j*j)<r)
-		{
-			A3D_ELEM(sphere, k, i, j) = 1;
-			nvoxels++;
-		}
-	}
-
-	Image<int> maskImg;
-	maskImg() = sphere;
-	maskImg.write("sphere.mrc");
 }
 
 
@@ -185,18 +138,27 @@ void ProgTomoFilterCoordinates::extractStatistics(MultidimArray<double> &tomo, M
 
 void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &tom)
 {
-	MetaData scoredMd;
+	MetaDataVec scoredMd;
 	MDRowVec row;
 
 	for (size_t i = 0; i < inputCoords.size(); i++)
 	{
-		Point3D coord = inputCoords[i];
+		Point3D coor = inputCoords[i];
+
+		if (((coor.z - radius) < 0) || ((coor.z + radius) > (zDim-1)) || ((coor.y - radius) < 0) || ((coor.y + radius) > (yDim-1)) || ((coor.x - radius) < 0) || ((coor.x + radius) > (xDim-1)))
+		{
+			std::cout << "WARNNING: Coordinate at (x=" << coor.x<< ", y=" << coor.y << ", z=" << coor.z << ") erased due to its out of the mask." << std::endl;
+			continue;
+		}
 				
 		double meanCoor = 0;
+		double meanCoor2 = 0;
 		double stdCoor = 0;
 		double medianCoor = 0;
 		double madCoor = 0;
+		double value = 0;
 		size_t Nelems = 0;
+		
 
 		for (int i = -radius; i < radius; i++)
 		{
@@ -221,11 +183,11 @@ void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &to
 		}
 
 		meanCoor = value/Nelems;
-		stdCoor = sqrt(meandCoor2/Nelems - meanCoor*meanCoor);
+		stdCoor = sqrt(meanCoor2/Nelems - meanCoor*meanCoor);
 		
-		row.setValue(MDL_XCOOR, coord.x);
-		row.setValue(MDL_YCOOR, coord.x);
-		row.setValue(MDL_ZCOOR, coord.x);
+		row.setValue(MDL_XCOOR, coor.x);
+		row.setValue(MDL_YCOOR, coor.x);
+		row.setValue(MDL_ZCOOR, coor.x);
 		row.setValue(MDL_AVG, meanCoor);
 		row.setValue(MDL_STDDEV, stdCoor);
 		// row.setValue(MDL_VOLUME_SCORE1, medianCoor);
@@ -233,6 +195,7 @@ void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &to
 		scoredMd.addRow(row);
 	}
 	scoredMd.write(fnOut);
+}
 
 // --------------------------- I/O functions ----------------------------
 
@@ -272,10 +235,10 @@ void ProgTomoFilterCoordinates::writeOutputCoordinates()
 		outCoordMd.setValue(MDL_ZCOOR, inputCoords[i].z, id);
 	}
 
-	outCoordMd.write(fnOutCoord);
+	outCoordMd.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Output coordinates metadata saved at: " << fnOutCoord << std::endl;
+	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
 }
 
@@ -306,8 +269,12 @@ void ProgTomoFilterCoordinates::run()
 	tomoMap.read(fnInTomo);
 	auto &tom = tomoMap();
 
+	xDim = XSIZE(tom);
+	yDim = YSIZE(tom);
+	zDim = ZSIZE(tom);
+
 	// Reading coordinates
-	readInputCoordinates()
+	readInputCoordinates();
 
 	// CHECK COORDINATES WITH MASK IF APPEARS AS INPUT
 
