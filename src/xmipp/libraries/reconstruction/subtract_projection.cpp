@@ -106,19 +106,34 @@
  void ProgSubtractProjection::POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI,
 		 double lambdapocs, const MultidimArray<double> &rQ, int Isize) const{
  	int Isize2 = Isize/2;
+ 	std::cout<< "Isize2 " << Isize2 << std::endl;
  	double Isizei = 1.0/Isize;
+ 	std::cout<< "Isizei " << Isizei << std::endl;
  	double wx;
  	double wy;
  	for (int i=0; i<YSIZE(A); ++i) {
  		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isizei,wy)
+		std::cout<< "wy " << wy << std::endl;
  		double wy2 = wy*wy;
+		std::cout<< "wy2 " << wy2 << std::endl;
  		for (int j=0; j<XSIZE(A); ++j) {
  			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isizei,wx)
+			std::cout<< "wx " << wx << std::endl;
  			double w = sqrt(wx*wx + wy2);
+			std::cout<< "w " << w << std::endl;
  			auto iw = (int)round(w*Isize);
+			std::cout<< "iw " << iw << std::endl;
  			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
+			std::cout<< "mod " << mod << std::endl;
  			if (mod>1e-6)
- 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambdapocs)+lambdapocs*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
+ 			{
+ 				std::cout<< "DIRECT_A2D_ELEM(FI,i,j) " << DIRECT_A2D_ELEM(FI,i,j) << std::endl;
+ 				std::cout<< "DIRECT_A2D_ELEM(A,i,j) " << DIRECT_A2D_ELEM(A,i,j) << std::endl;
+ 				std::cout<< "DIRECT_MULTIDIM_ELEM(rQ,iw) " << DIRECT_MULTIDIM_ELEM(rQ,i) << std::endl;
+ 				std::cout<< "lambdapocs " << lambdapocs << std::endl;
+ 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambdapocs)+lambdapocs*DIRECT_A2D_ELEM(A,i,j))/mod);//*DIRECT_MULTIDIM_ELEM(rQ,iw);
+ 				std::cout<< " final DIRECT_A2D_ELEM(FI,i,j) " << DIRECT_A2D_ELEM(FI,i,j) << std::endl;
+ 			}
  		}
  	}
  }
