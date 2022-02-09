@@ -54,6 +54,7 @@ void ProgTomoFilterCoordinates::defineParams()
 	addParamsLine("  --inTomo <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
 	addParamsLine("  --mask <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
 	addParamsLine("  --coordinates <xmd_file=\"\">                               : Percentile resolution threshold.");
+	addParamsLine("  --radius <radius=50>                               : Radius of the neighbourhood of the coordinates to get resolution score.");
     addParamsLine("  [--threshold <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
 	addParamsLine("  -o <outCoord=\"filteredCoordinates3D.xmd\">   : Output file containing the filtered 3D coordinates.");
 }
@@ -92,48 +93,6 @@ void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<double> 
 		#endif 
 	}
 }
-
-
-void ProgTomoFilterCoordinates::extractStatistics(MultidimArray<double> &tomo, MultidimArray<int> &sphere)
-{
-	MultidimArray<double> auxsubtomo;
-	auxsubtomo.resizeNoCopy(sphere);
-	auxsubtomo.initZeros();
-
-	size_t rhalf = radius/2;
-	for(size_t c = 0; c < inputCoords.size(); c++)
-	{
-		int xx = inputCoords[c].x;
-		int yy = inputCoords[c].y;
-		int zz = inputCoords[c].z;
-
-		int xlim_lower = xx - rhalf;
-		int xlim_high  = xx + rhalf;
-		int ylim_lower = xx - rhalf;
-		int ylim_high  = xx + rhalf;
-		int zlim_lower = xx - rhalf;
-		int zlim_high  = xx + rhalf;
-
-		for (size_t i = xlim_lower; i<xlim_high; ++i)
-		{
-			for (size_t j = ylim_lower; j<ylim_high; ++j)
-			{
-				for (size_t k = zlim_lower; k<zlim_high; ++k)
-				{
-					A3D_ELEM(auxsubtomo, k-rhalf, i-rhalf, j-rhalf) = A3D_ELEM(tomo, k, i, j);
-				}
-			}
-		}
-
-		Image<double> img;
-		img() = auxsubtomo;
-		img.write("subtomo.mrc");
-
-		exit(0);
-	}	
-
-}
-
 
 
 void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &tom)
@@ -182,12 +141,12 @@ void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &to
 			}
 		}
 
-		meanCoor = value/Nelems;
+		meanCoor /= Nelems;
 		stdCoor = sqrt(meanCoor2/Nelems - meanCoor*meanCoor);
 		
 		row.setValue(MDL_XCOOR, coor.x);
-		row.setValue(MDL_YCOOR, coor.x);
-		row.setValue(MDL_ZCOOR, coor.x);
+		row.setValue(MDL_YCOOR, coor.y);
+		row.setValue(MDL_ZCOOR, coor.z);
 		row.setValue(MDL_AVG, meanCoor);
 		row.setValue(MDL_STDDEV, stdCoor);
 		// row.setValue(MDL_VOLUME_SCORE1, medianCoor);
