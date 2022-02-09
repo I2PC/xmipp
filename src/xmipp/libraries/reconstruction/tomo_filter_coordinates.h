@@ -43,7 +43,7 @@ class ProgTomoFilterCoordinates : public XmippProgram
 
 public:
     /** Filenames */
-    FileName fnInVol, fnInCoord, fnOutCoord;
+    FileName fnInTomo, fnMask, fnInCoord, fnOutCoord;
 
     /** Threshold */
     double resThr;
@@ -53,6 +53,9 @@ public:
 
     /** Execution mode: 0 -> mask, 1 -> resolution **/
     bool execMode;
+
+    /** Radius map amalysis*/
+    size_t radius;
 
 
 private:
@@ -81,6 +84,8 @@ public:
     void readInputCoordinates();
 
     void writeOutputCoordinates();
+
+    void takeCoordinateFromTomo(MultidimArray<double> &tom);
 
 
     // --------------------------- MAIN ----------------------------------

@@ -31,21 +31,12 @@
 
 void ProgTomoFilterCoordinates::readParams()
 {
-	fnInVol = getParam("-inVol");
-	fnInCoord = getParam("-inCoord");
-    
-    checkResThr = checkParam("-resThr");
-
-	if(checkResThr)
-	{
-		resThr = getDoubleParam("-resThr");
-		execMode = 1;
-	}else
-	{
-		execMode = 0;
-	}
-
-   	fnOutCoord = getParam("-outCoord");
+	fnInTomo = getParam("--inTomo");
+	fnMask = getParam("--mask");
+	fnInCoord = getParam("--coordinates");
+	radius = getIntParam(--radius);
+    checkResThr = checkParam("--threshold");
+   	fnOut = getParam("-o");
 }
 
 
@@ -58,10 +49,11 @@ void ProgTomoFilterCoordinates::defineParams()
 	addUsageLine("\nUsing a resolution. In this case a set of coordinates, a resolution map, and a resolution ");
     addUsageLine("percentile to select the number of coordinates to be saved after the scoring need o be ");
     addUsageLine("input. If these three options are input then this criteria will be applied.");
-	addParamsLine("  -inVol <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
-	addParamsLine("  -inCoord <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
-	addParamsLine("  [-resThr <resThr=0.25>]                               : Percentile resolution threshold.");
-    addParamsLine("  [-outCoord <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
+	addParamsLine("  --inTomo <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
+	addParamsLine("  --mask <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
+	addParamsLine("  [--coordinates <resThr=0.25>]                               : Percentile resolution threshold.");
+    addParamsLine("  [--threshold <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
+	addParamsLine("  -o <outCoord=\"filteredCoordinates3D.xmd\">   : Output file containing the filtered 3D coordinates.");
 }
 
 
@@ -99,6 +91,57 @@ void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<double> 
 	}
 }
 
+
+void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &tom)
+{
+	MetaData scoredMd;
+	MDRowVec row;
+
+	for (size_t i = 0; i < inputCoords.size(); i++)
+	{
+		Point3D coord = inputCoords[i];
+				
+		double meanCoor = 0;
+		double stdCoor = 0;
+		double medianCoor = 0;
+		double madCoor = 0;
+		size_t Nelems = 0;
+
+		for (int i = -radius; i < radius; i++)
+		{
+			size_t i2 = i*i;
+			for (int j = -radius; j < radius; j++)
+			{
+				size_t j2i2 = i2 + j*j;
+				for (int k = -radius; k < radius; k++)
+				{
+					size_t r2 = j2i2 + k*k;
+					
+					if (r2 <= radius)
+					{
+						double value;
+						value = DIRECT_A3D_ELEM(tom, coor.z + k, coor.y + i, coor.x + j);
+						meanCoor += value;
+						Nelems++;
+						meanCoor2 += value*value;
+					}
+				}
+			}
+		}
+
+		meanCoor = value/Nelems;
+		stdCoor = sqrt(meandCoor2/Nelems - meanCoor*meanCoor);
+		
+		row.setValue(MDL_XCOOR, coord.x);
+		row.setValue(MDL_YCOOR, coord.x);
+		row.setValue(MDL_ZCOOR, coord.x);
+		row.setValue(MDL_AVG, meanCoor);
+		row.setValue(MDL_STDDEV, stdCoor);
+		// row.setValue(MDL_VOLUME_SCORE1, medianCoor);
+		// row.setValue(MDL_VOLUME_SCORE2, madCoor);
+		scoredMd.addRow(row);
+	}
+	scoredMd.write(fnOut);
 
 // --------------------------- I/O functions ----------------------------
 
@@ -159,58 +202,82 @@ void ProgTomoFilterCoordinates::run()
 
 	std::cout << "Starting..." << std::endl;
 
-	if(execMode)
+	// Reading mask if exists
+	if (fnMask !="")
 	{
-		std::cout << "Resolution mode" << std::endl;
-		Image<double> inputVolume;
-		inputVolume.read(fnInVol);
-
-	}else
-	{
-		std::cout << "Mask mode" << std::endl;
-		Image<double> inputVolume;
-		inputVolume.read(fnInVol);
-
-		std::cout << "Volume read" << std::endl;
-
-		auto &inVol=inputVolume();
-
-		std::cout << "Volume loaded" << std::endl;
-
-		xDim = XSIZE(inVol);
-		yDim = YSIZE(inVol);
-		zDim = ZSIZE(inVol);
-
-		#ifdef DEBUG_DIM
-		std::cout << "Input volume dimensions:" << std::endl;
-		std::cout << "x " << XSIZE(inVol) << std::endl;
-		std::cout << "y " << YSIZE(inVol) << std::endl;
-		std::cout << "z " << ZSIZE(inVol) << std::endl;
-		std::cout << "n " << NSIZE(inVol) << std::endl;
-		#endif
-
-		readInputCoordinates();
-
-		#ifdef VERBOSE_OUTPUT
-		std::cout << "Number of coordinates before filtering: " << inputCoords.size() << std::endl;
-		#endif
-
-
-		if(execMode)
-		{
-			std::cout << "Filtering with resolution map..." << std::endl;
-		}else
-		{
-			std::cout << "Filtering with mask..." << std::endl;
-			filterCoordinatesWithMask(inVol);
-		}
-
-		#ifdef VERBOSE_OUTPUT
-		std::cout << "Number of coordinates after filtering: " << inputCoords.size() << std::endl;
-		#endif
-
-		writeOutputCoordinates();
+		Image<int> maskImg;
+		maskImg.read(fnMask);
+		auto &mask = maskImg();
 	}
+	
+	// Reading input tomogram
+	Image<double> tomoMap;
+	tomoMap.read(fnInTomo);
+	auto &tom = tomoMap();
+
+	// Reading coordinates
+	readInputCoordinates()
+
+	// CHECK COORDINATES WITH MASK IF APPEARS AS INPUT
+
+	takeCoordinateFromTomo(tom);
+
+
+
+
+
+	// if(execMode)
+	// {
+	// 	std::cout << "Resolution mode" << std::endl;
+	// 	Image<double> inputVolume;
+	// 	inputVolume.read(fnInVol);
+
+	// }else
+	// {
+	// 	std::cout << "Mask mode" << std::endl;
+	// 	Image<double> inputVolume;
+	// 	inputVolume.read(fnInVol);
+
+	// 	std::cout << "Volume read" << std::endl;
+
+	// 	auto &inVol=inputVolume();
+
+	// 	std::cout << "Volume loaded" << std::endl;
+
+	// 	xDim = XSIZE(inVol);
+	// 	yDim = YSIZE(inVol);
+	// 	zDim = ZSIZE(inVol);
+
+	// 	#ifdef DEBUG_DIM
+	// 	std::cout << "Input volume dimensions:" << std::endl;
+	// 	std::cout << "x " << XSIZE(inVol) << std::endl;
+	// 	std::cout << "y " << YSIZE(inVol) << std::endl;
+	// 	std::cout << "z " << ZSIZE(inVol) << std::endl;
+	// 	std::cout << "n " << NSIZE(inVol) << std::endl;
+	// 	#endif
+
+	// 	readInputCoordinates();
+
+	// 	#ifdef VERBOSE_OUTPUT
+	// 	std::cout << "Number of coordinates before filtering: " << inputCoords.size() << std::endl;
+	// 	#endif
+
+
+	// 	if(execMode)
+	// 	{
+	// 		std::cout << "Filtering with resolution map..." << std::endl;
+	// 	}else
+	// 	{
+	// 		std::cout << "Filtering with mask..." << std::endl;
+	// 		filterCoordinatesWithMask(inVol);
+	// 	}
+
+	// 	#ifdef VERBOSE_OUTPUT
+	// 	std::cout << "Number of coordinates after filtering: " << inputCoords.size() << std::endl;
+	// 	#endif
+
+	// 	writeOutputCoordinates();
+	// }
 	
 	auto t2 = high_resolution_clock::now();
 	/* Getting number of milliseconds as an integer. */
