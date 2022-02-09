@@ -24,28 +24,29 @@
  ***************************************************************************/
 
 #include "tomo_detect_missing_wedge.h"
-#include <core/args.h>
-#include <core/xmipp_fftw.h>
-#include <data/numerical_tools.h>
+#include "core/geometry.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_fftw.h"
+#include "data/numerical_tools.h"
 
 // Evaluate plane ----------------------------------------------------------
 double evaluatePlane(double rot, double tilt,
                      const MultidimArray<double> *V, const MultidimArray<double> *Vmag,
                      double maxFreq, double planeWidth, int direction,
-                     MultidimArray<double> *Vdraw=NULL,
+                     MultidimArray<double> *Vdraw=nullptr,
                      bool setPos=false, double rotPos=0, double tiltPos=0)
 {
     if (rot<0 || rot>360 || tilt<-90 || tilt>90)
         return 0;
 
     Matrix2D<double> E, Einv;
-    Euler_angles2matrix(rot,tilt,0,E);
+    Euler_angles2matrix(rot,tilt,0.,E);
     Einv=E.transpose();
 
     if (setPos)
     {
         Matrix2D<double> Epos;
-        Euler_angles2matrix(rotPos,tiltPos,0,Epos);
+        Euler_angles2matrix(rotPos,tiltPos,0.,Epos);
         double angle=acos(E(2,0)*Epos(2,0)+E(2,1)*Epos(2,1)+E(2,2)*Epos(2,2));
         angle=RAD2DEG(angle);
         if (fabs(angle)<20 || fabs(180-angle)<20)
@@ -60,7 +61,7 @@ double evaluatePlane(double rot, double tilt,
     double sumNeg=0, sumPos=0;
     int Nneg=0, Npos=0;
     double maxFreq2=maxFreq*maxFreq;
-    int iPlaneWidth=(int)ceil(planeWidth);
+    auto iPlaneWidth=(int)ceil(planeWidth);
     for (double ix=0; ix<=N; ix++)
     {
         XX(freq)=ix*df;
@@ -113,14 +114,14 @@ double evaluatePlane(double rot, double tilt,
                 {
                     sumNeg+=val;
                     Nneg++;
-                    if (Vdraw!=NULL)
+                    if (Vdraw!=nullptr)
                         (*Vdraw)(idx)=2*direction*val;
                 }
                 else
                 {
                     sumPos+=val;
                     Npos++;
-                    if (Vdraw!=NULL)
+                    if (Vdraw!=nullptr)
                         (*Vdraw)(idx)=1.0/2.0*direction*val;
                 }
             }
@@ -161,14 +162,14 @@ public:
 
     ~WedgeSolver()
     {
-        V = NULL;
-        Vmag = NULL;
+        V = nullptr;
+        Vmag = nullptr;
     }
 
     double EnergyFunction(double trial[],bool &bAtSolution)
     {
         double result=evaluatePlane(trial[0],trial[1],V,Vmag,
-                                    maxFreq, planeWidth, direction, NULL, setPos, rotPos, tiltPos);
+                                    maxFreq, planeWidth, direction, nullptr, setPos, rotPos, tiltPos);
         if (count++ % (5*nPop) == 0)
             std::cout << "Evaluations= " << count/nPop
             << " energy= "     << Energy()
@@ -194,7 +195,7 @@ public:
 double wrapperFitnessDetectMissingWedge(double *p, void* extraArgs)
 {
     bool dummy;
-    WedgeSolver *wegde_solver=(WedgeSolver *) extraArgs;
+    auto *wegde_solver=(WedgeSolver *) extraArgs;
     return wegde_solver->EnergyFunction(p+1,dummy);
 }
 
@@ -210,7 +211,7 @@ void lookForPlane(const MultidimArray<double> *V, const MultidimArray<double> *V
     double min_allowed[] = {0,-90};
     double max_allowed[] = {360,90};
 
-    WedgeSolver * solver = new WedgeSolver(length,length*Npop,V,Vmag,maxFreq,planeWidth,direction);
+    auto * solver = new WedgeSolver(length,length*Npop,V,Vmag,maxFreq,planeWidth,direction);
     solver->Setup( min_allowed, max_allowed, stBest2Bin, 0.5, 0.8);
 
     if (setPos)
@@ -237,7 +238,7 @@ void lookForPlane(const MultidimArray<double> *V, const MultidimArray<double> *V
 
     delete solver;
 
-    solver = NULL;
+    solver = nullptr;
 }
 
 // Draw wedge --------------------------------------------------------------
@@ -246,8 +247,8 @@ void drawWedge(double rotPos, double tiltPos, double rotNeg, double tiltNeg,
                const MultidimArray<double> *Vmag, MultidimArray<double> *Vdraw)
 {
     Matrix2D<double> Epos, Eneg;
-    Euler_angles2matrix(rotPos,tiltPos,0,Epos);
-    Euler_angles2matrix(rotNeg,tiltNeg,0,Eneg);
+    Euler_angles2matrix(rotPos,tiltPos,0.,Epos);
+    Euler_angles2matrix(rotNeg,tiltNeg,0.,Eneg);
 
     Matrix1D<double> freq(3), freqPos, freqNeg;
     Matrix1D<int> idx(3);
@@ -333,7 +334,7 @@ void ProgDetectMissingWedge::run()
     // Detect one of the planes
     lookForPlane(mdaV, Vmag, maxFreq, planeWidth, 1, rotPos, tiltPos);
 
-    Image<double> * Vdraw = new Image<double>();
+    auto * Vdraw = new Image<double>();
 
     if (saveMarks)
     {

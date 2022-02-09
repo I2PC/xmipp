@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_fftw.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
 
 class ProgRandomizePhases: public XmippMetadataProgram
 {

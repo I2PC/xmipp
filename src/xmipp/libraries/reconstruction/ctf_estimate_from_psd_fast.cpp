@@ -24,15 +24,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "ctf_estimate_from_psd_fast.h"
-#include "ctf_estimate_from_psd.h"
-#include "ctf_enhance_psd.h"
-
-#include <core/args.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_fft.h>
+#include <fstream>
 #include <numeric>
+#include "ctf_estimate_from_psd.h"
+#include "ctf_estimate_from_psd_fast.h"
+#include "data/numerical_tools.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_fftw.h"
+#include "core/metadata_vec.h"
 
 /* prototypes */
 double CTF_fitness_fast(double *, void *);
@@ -75,7 +74,7 @@ using namespace AdjustCTF1D;
 
 /* Assign ctf1Dmodel from a vector and viceversa ----------------------------- */
 void ProgCTFEstimateFromPSDFast::assignCTFfromParameters_fast(double *p, CTFDescription1D &ctf1Dmodel, int ia,
-                             int l, int modelSimplification)
+                             int l)
 {
     ctf1Dmodel.Tm = Tm;
 
@@ -112,8 +111,8 @@ void ProgCTFEstimateFromPSDFast::assignCTFfromParameters_fast(double *p, CTFDesc
 
 #define ASSIGN_PARAM_CTF(index, paramName) if (ia <= index && l > 0) { p[index] = ctf1Dmodel.paramName; --l; }
 
-void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(CTFDescription1D &ctf1Dmodel, double *p, int ia,
-                             int l, int modelSimplification)
+void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(const CTFDescription1D &ctf1Dmodel, double *p, int ia,
+                             int l)
 {
 
 	 	ASSIGN_PARAM_CTF(0, Defocus);
@@ -149,8 +148,7 @@ void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(CTFDescription1D &
 
 #define COPY_ctfmodel_TO_CURRENT_GUESS \
     global_prm->assignParametersFromCTF_fast(global_prm->current_ctfmodel, \
-                               MATRIX1D_ARRAY(*global_prm->adjust_params),0,ALL_CTF_PARAMETERS, \
-                               global_prm->modelSimplification);
+                               MATRIX1D_ARRAY(*global_prm->adjust_params),0,ALL_CTF_PARAMETERS);
 
 
 /* Read parameters --------------------------------------------------------- */
@@ -160,11 +158,11 @@ void ProgCTFEstimateFromPSDFast::readBasicParams(XmippProgram *program)
 
 	initial_ctfmodel.enable_CTF = initial_ctfmodel.enable_CTFnoise = true;
 	initial_ctfmodel.readParams(program);
+	initial_ctfmodel2D.readParams(program);
 
 	if (initial_ctfmodel.Defocus>100e3)
 		REPORT_ERROR(ERR_ARG_INCORRECT,"Defocus cannot be larger than 10 microns (100,000 Angstroms)");
 	Tm = initial_ctfmodel.Tm;
-
 }
 
 void ProgCTFEstimateFromPSDFast::readParams()
@@ -176,7 +174,7 @@ void ProgCTFEstimateFromPSDFast::readParams()
 /* Usage ------------------------------------------------------------------- */
 void ProgCTFEstimateFromPSDFast::defineBasicParams(XmippProgram * program)
 {
-	CTFDescription1D::defineParams(program);
+	CTFDescription::defineParams(program);
 }
 
 void ProgCTFEstimateFromPSDFast::defineParams()
@@ -192,7 +190,7 @@ void ProgCTFEstimateFromPSDFast::produceSideInfo()
     adjust.initZeros();
     current_ctfmodel.clear();
     ctfmodel_defoci.clear();
-    assignParametersFromCTF_fast(initial_ctfmodel, MATRIX1D_ARRAY(adjust), 0, ALL_CTF_PARAMETERS, true);
+    assignParametersFromCTF_fast(initial_ctfmodel, MATRIX1D_ARRAY(adjust), 0, ALL_CTF_PARAMETERS);
     // Read the CTF file, supposed to be the uncentered squared amplitudes
     if (fn_psd != "")
         ctftomodel.read(fn_psd);
@@ -208,7 +206,7 @@ void ProgCTFEstimateFromPSDFast::generateModelSoFar_fast(MultidimArray<double> &
     Matrix1D<double> freq(1); // Frequencies for Fourier plane
 
     assignCTFfromParameters_fast(MATRIX1D_ARRAY(*adjust_params), current_ctfmodel,
-                            0, ALL_CTF_PARAMETERS, modelSimplification);
+                            0, ALL_CTF_PARAMETERS);
     current_ctfmodel.produceSideInfo();
 
     I.initZeros(psd_exp_radial);
@@ -297,8 +295,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         // Remind that p is a vector whose first element is at index 1
     case 0:
         assignCTFfromParameters_fast(p - FIRST_SQRT_PARAMETER + 1,
-        						current_ctfmodel, FIRST_SQRT_PARAMETER, SQRT_CTF_PARAMETERS,
-                                modelSimplification);
+        						current_ctfmodel, FIRST_SQRT_PARAMETER, SQRT_CTF_PARAMETERS);
 
         if (show_inf >= 2)
         {
@@ -311,7 +308,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     case 1:
             assignCTFfromParameters_fast(p - FIRST_SQRT_PARAMETER + 1,
             					current_ctfmodel, FIRST_SQRT_PARAMETER,
-                                    BACKGROUND_CTF_PARAMETERS, modelSimplification);
+                                    BACKGROUND_CTF_PARAMETERS);
         if (show_inf >= 2)
         {
             std::cout << "Input vector:";
@@ -322,8 +319,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         break;
     case 2:
             assignCTFfromParameters_fast(p - FIRST_ENVELOPE_PARAMETER + 1,
-            					current_ctfmodel, FIRST_ENVELOPE_PARAMETER, ENVELOPE_PARAMETERS,
-                                   	   modelSimplification);
+            					current_ctfmodel, FIRST_ENVELOPE_PARAMETER, ENVELOPE_PARAMETERS);
         if (show_inf >= 2)
         {
             std::cout << "Input vector:";
@@ -334,8 +330,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         break;
     case 3:
             assignCTFfromParameters_fast(p - FIRST_DEFOCUS_PARAMETER + 1,
-            						current_ctfmodel, FIRST_DEFOCUS_PARAMETER, DEFOCUS_PARAMETERS,
-                                    modelSimplification);
+            						current_ctfmodel, FIRST_DEFOCUS_PARAMETER, DEFOCUS_PARAMETERS);
         psd_theo_radial_derivative.initZeros();
         if (show_inf >= 2)
         {
@@ -347,7 +342,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         break;
     case 4:
             assignCTFfromParameters_fast(p - 0 + 1, current_ctfmodel, 0,
-                                    CTF_PARAMETERS, modelSimplification);
+                                    CTF_PARAMETERS);
         psd_theo_radial.initZeros();
         if (show_inf >= 2)
         {
@@ -361,7 +356,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     case 6:
     case 7:
 		assignCTFfromParameters_fast(p - 0 + 1, current_ctfmodel, 0,
-								ALL_CTF_PARAMETERS, modelSimplification);
+								ALL_CTF_PARAMETERS);
         psd_theo_radial.initZeros();
         if (show_inf >= 2)
         {
@@ -384,13 +379,13 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     }
     if (action > 3
         && (fabs((current_ctfmodel.Defocus - ctfmodel_defoci.Defocus)
-                / ctfmodel_defoci.Defocus) > 0.2))
+                / ctfmodel_defoci.Defocus) > 0.2)  && !noDefocusEstimate)
     {
         if (show_inf >= 2)
             std::cout << "Too large defocus\n";
         return heavy_penalization;
     }
-    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation)
+    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation && !noDefocusEstimate)
     {
         // If there is an initial model, the true solution
         // cannot be too far
@@ -634,12 +629,12 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 
 double CTF_fitness_fast(double *p, void *vprm)
 {
-	ProgCTFEstimateFromPSDFast *prm=(ProgCTFEstimateFromPSDFast *) vprm;
+	auto *prm=(ProgCTFEstimateFromPSDFast *) vprm;
 	return prm->CTF_fitness_object_fast(p);
 }
 
 /* Center focus ----------------------------------------------------------- */
-void ProgCTFEstimateFromPSDFast::center_optimization_focus_fast(bool adjust_freq, bool adjust_th, double margin = 1)
+void ProgCTFEstimateFromPSDFast::center_optimization_focus_fast(bool adjust_th, double margin = 1)
 {
     if (show_optimization)
         std::cout << "Freq frame before focusing=" << min_freq_psd << ","
@@ -782,7 +777,7 @@ void ProgCTFEstimateFromPSDFast::estimate_background_sqrt_parameters_fast()
 		saveIntermediateResults_fast("step01b_best_penalized_sqrt_fit_fast", true);
     }
 
-   center_optimization_focus_fast(false, true, 1.5);
+   center_optimization_focus_fast(true, 1.5);
 
 }
 
@@ -991,7 +986,7 @@ void ProgCTFEstimateFromPSDFast::estimate_background_gauss_parameters_fast()
             std::cout << "First Background Fit:\n" << current_ctfmodel << std::endl;
             saveIntermediateResults_fast("step01c_first_background_fit_fast", true);
         }
-        center_optimization_focus_fast(false, true, 1.5);
+        center_optimization_focus_fast(true, 1.5);
 
     }
 }
@@ -1096,7 +1091,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 	else
 	{
 		/*
-		 * Defocus estimation s² stigmator
+		 * Defocus estimation s^2 stigmator
 		 *
 		 * CTF = sin(PI*lambda*defocus*R^2)
 		 * CTF = sin(PI*lambda*defocus*w^2/Ts^2)
@@ -1238,7 +1233,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 
 		//double maxValue = *max_element(amplitud.begin(),amplitud.end());
 		//int finalIndex = distance(amplitud.begin(),max_element(amplitud.begin(),amplitud.end()));
-		current_ctfmodel.Defocus = (floor((finalIndex+startIndex+1))*pow(2*current_ctfmodel.Tm,2))/
+		current_ctfmodel.Defocus = (floor(finalIndex+startIndex+1)*pow(2*current_ctfmodel.Tm,2))/
 												current_ctfmodel.lambda;
 
 #ifdef DEBUG
@@ -1516,7 +1511,10 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	/* STEP 7:  defocus and angular parameters	                            */
 	/************************************************************************/
 	prm.action = 3;
-	prm.estimate_defoci_fast();
+	if (!prm.noDefocusEstimate)
+	   prm.estimate_defoci_fast();
+	else
+		prm.current_ctfmodel.Defocus = prm.initial_ctfmodel.Defocus;
 	DEBUG_TEXTFILE(formatString("Step 7: Defocus=%f",prm.current_ctfmodel.Defocus));
 	DEBUG_MODEL_TEXTFILE;
 	/************************************************************************/
@@ -1531,6 +1529,8 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	steps(1) = 0; // kV
 	steps(3) = 0; // The spherical aberration (Cs) is not optimized
 	steps(27) = 0; //VPP radius not optimized
+	if (prm.noDefocusEstimate)
+		steps(0)=0; // Defocus
 	if (prm.initial_ctfmodel.Q0 != 0)
 		steps(13) = 0; // Q0
 	if (prm.modelSimplification >= 1)
@@ -1555,12 +1555,22 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	/* STEP 12: 2D estimation parameters          							*/
 	/************************************************************************/
 	prm.adjust_params->resize(ALL_CTF_PARAMETERS2D);
-	ProgCTFEstimateFromPSD *prm2D = new ProgCTFEstimateFromPSD(&prm);
+	auto *prm2D = new ProgCTFEstimateFromPSD(&prm);
+	if (prm.noDefocusEstimate)
+	{
+		prm2D->current_ctfmodel.DeltafU=prm.initial_ctfmodel2D.DeltafU;
+		prm2D->current_ctfmodel.DeltafV=prm.initial_ctfmodel2D.DeltafV;
+		prm2D->current_ctfmodel.azimuthal_angle=prm.initial_ctfmodel2D.azimuthal_angle;
+		prm2D->noDefocusEstimate=true;
+	}
+
 	steps.resize(ALL_CTF_PARAMETERS2D);
 	steps.initConstant(1);
 	steps(3) = 0; // kV
 	steps(5) = 0; // The spherical aberration (Cs) is not optimized
 	steps(37) = 0; //VPP radius not optimized
+	if (prm.noDefocusEstimate)
+		steps(0)=steps(1)=steps(2)=0; // Defocus and azimuthal angle
 	if (prm2D->initial_ctfmodel.Q0 != 0)
 	    steps(15) = 0; // Q0
 	 if (prm2D->modelSimplification >= 3)
@@ -1584,7 +1594,7 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	prm2D->current_ctfmodel.forcePhysicalMeaning();
 
 	//We adopt that always  DeltafU > DeltafV so if this is not the case we change the values and the angle
-	if ( prm2D->current_ctfmodel.DeltafV > prm2D->current_ctfmodel.DeltafU)
+	if (!prm.noDefocusEstimate && prm2D->current_ctfmodel.DeltafV > prm2D->current_ctfmodel.DeltafU)
 	{
 		double temp;
 		temp = prm2D->current_ctfmodel.DeltafU;
@@ -1659,9 +1669,9 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 			prm2D->current_ctfmodel.phase_shift = 0.0;
 
 		prm2D->current_ctfmodel.write(fn_rootCTFPARAM + ".ctfparam_tmp");
-		MetaData MD;
+		MetaDataVec MD;
 		MD.read(fn_rootCTFPARAM + ".ctfparam_tmp");
-		size_t id = MD.firstObject();
+		size_t id = MD.firstRowId();
 		MD.setValue(MDL_CTF_X0, (double)output_ctfmodel.x0*prm2D->Tm, id);
 		MD.setValue(MDL_CTF_XF, (double)output_ctfmodel.xF*prm2D->Tm, id);
 		MD.setValue(MDL_CTF_Y0, (double)output_ctfmodel.y0*prm2D->Tm, id);

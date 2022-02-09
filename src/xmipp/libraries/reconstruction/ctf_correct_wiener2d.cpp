@@ -55,8 +55,7 @@ void ProgCorrectWiener2D::defineParams()
 // Define parameters ==========================================================
 void ProgCorrectWiener2D::postProcess()
 {
-
-	MetaData &ptrMdOut=*getOutputMd();
+	MetaData &ptrMdOut = getOutputMd();
 
 	ptrMdOut.removeLabel(MDL_CTF_DEFOCUSA);
 	ptrMdOut.removeLabel(MDL_CTF_DEFOCUSU);
@@ -121,7 +120,6 @@ void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, CTF
 
 	if (correct_envelope)
 		ctf.generateCTF(paddimY, paddimX, ctfComplex);
-
 	else
 		ctf.generateCTFWithoutDamping(paddimY, paddimX, ctfComplex);
 

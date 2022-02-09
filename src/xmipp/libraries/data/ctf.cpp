@@ -24,9 +24,11 @@
  ***************************************************************************/
 
 #include "ctf.h"
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <math.h>
+#include "core/multidim_array.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "core/metadata_vec.h"
 
 bool containsCTFBasicLabels(const MetaData & md)
 {
@@ -36,7 +38,7 @@ bool containsCTFBasicLabels(const MetaData & md)
 	return true;
 }
 
-void groupCTFMetaData(const MetaData &imgMd, MetaData &ctfMd, std::vector<MDLabel> &groupbyLabels)
+void groupCTFMetaData(const MetaDataDb &imgMd, MetaDataDb &ctfMd, std::vector<MDLabel> &groupbyLabels)
 {
   //number of different CTFs
   if (imgMd.containsLabel(MDL_CTF_MODEL))
@@ -48,12 +50,12 @@ void groupCTFMetaData(const MetaData &imgMd, MetaData &ctfMd, std::vector<MDLabe
   {
       groupbyLabels.clear();
       for(int i=0; i < CTF_ALL_LABELS_SIZE; i++)
-        if (imgMd.containsLabel(CTF_ALL_LABELS[i]))
-          groupbyLabels.push_back(CTF_ALL_LABELS[i]);
+          if (imgMd.containsLabel(CTF_ALL_LABELS[i]))
+              groupbyLabels.push_back(CTF_ALL_LABELS[i]);
       if (imgMd.containsLabel(MDL_MICROGRAPH_ID))
-        groupbyLabels.push_back(MDL_MICROGRAPH_ID);
+          groupbyLabels.push_back(MDL_MICROGRAPH_ID);
       else
-    	  REPORT_ERROR(ERR_MD_MISSINGLABEL,"ERROR: Input metadata does not have micrographId");
+          REPORT_ERROR(ERR_MD_MISSINGLABEL,"ERROR: Input metadata does not have micrographId");
       ctfMd.aggregateGroupBy(imgMd, AGGR_COUNT, groupbyLabels, MDL_CTF_DEFOCUSU, MDL_COUNT);
   }
   else
@@ -67,12 +69,12 @@ void generateCTFImageWith2CTFs(const MetaData &MD1, const MetaData &MD2, int Xdi
     CTFDescription CTF1, CTF2;
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
     CTF2.enable_CTF=true;
     CTF2.enable_CTFnoise=false;
-    CTF2.readFromMetadataRow(MD2,MD2.firstObject());
+    CTF2.readFromMetadataRow(MD2,MD2.firstRowId());
     CTF2.produceSideInfo();
 
     imgOut.initZeros(Xdim,Xdim);
@@ -114,12 +116,12 @@ double errorBetween2CTFs( MetaData &MD1,
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
     CTF2.enable_CTF=true;
     CTF2.enable_CTFnoise=false;
-    CTF2.readFromMetadataRow(MD2,MD2.firstObject());
+    CTF2.readFromMetadataRow(MD2,MD2.firstRowId());
     CTF2.produceSideInfo();
 
     double iTm=1.0/CTF1.Tm;
@@ -186,7 +188,7 @@ double errorMaxFreqCTFs( MetaData &MD1,
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
 
@@ -217,12 +219,12 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
     CTF2.enable_CTF=true;
     CTF2.enable_CTFnoise=false;
-    CTF2.readFromMetadataRow(MD2,MD2.firstObject());
+    CTF2.readFromMetadataRow(MD2,MD2.firstRowId());
     CTF2.produceSideInfo();
 
     double iTm=1.0/CTF1.Tm;
@@ -328,7 +330,7 @@ void generatePSDCTFImage(MultidimArray<double> &img, const MetaData &MD)
     CTFDescription CTF;
     CTF.enable_CTF=true;
     CTF.enable_CTFnoise=false;
-    CTF.readFromMetadataRow(MD,MD.firstObject());
+    CTF.readFromMetadataRow(MD,MD.firstRowId());
     CTF.produceSideInfo();
 
     Matrix1D<int> idx(2);
@@ -382,9 +384,9 @@ void CTFDescription1D::readFromMdRow(const MDRow &row, bool disable_if_not_K)
     	{
     		FileName fnctf;
     		row.getValue(MDL_CTF_MODEL,fnctf);
-    		MetaData ctfparam;
+    		MetaDataVec ctfparam;
     		ctfparam.read(fnctf);
-    		readFromMetadataRow(ctfparam,ctfparam.firstObject(),disable_if_not_K);
+    		readFromMetadataRow(ctfparam,ctfparam.firstRowId(), disable_if_not_K);
     	}
 
         if (K == 0 && disable_if_not_K)
@@ -413,19 +415,18 @@ void CTFDescription1D::readFromMdRow(const MDRow &row, bool disable_if_not_K)
 
 void CTFDescription1D::readFromMetadataRow(const MetaData &md, size_t id, bool disable_if_not_K)
 {
-    MDRow row;
-    md.getRow(row, id);
-    readFromMdRow(row, disable_if_not_K);
+    std::unique_ptr<const MDRow> row = md.getRow(id);
+    readFromMdRow(*row, disable_if_not_K);
 }
 
 void CTFDescription1D::read(const FileName &fn, bool disable_if_not_K)
 {
 	if (fn.isMetaData())
 	{
-		MetaData md;
+		MetaDataVec md;
 		md.read(fn);
-		MDRow row;
-		md.getRow(row, md.firstObject());
+		MDRowVec row;
+		md.getRow(row, md.firstRowId());
 		readFromMdRow(row, disable_if_not_K);
 	}
 }
@@ -477,10 +478,10 @@ void CTFDescription1D::setRow(MDRow &row) const
 
 void CTFDescription1D::write(const FileName &fn)
 {
-	MDRow row;
+	MDRowVec row;
 	setRow(row);
 
-	MetaData md;
+	MetaDataVec md;
 	md.setColumnFormat(false);
 	md.addRow(row);
 	md.write(fn);
@@ -530,8 +531,6 @@ void CTFDescription1D::readParams(XmippProgram * program)
 		REPORT_ERROR(ERR_ARG_MISSING,"--voltage");
 	if (program->checkParam("--spherical_aberration"))
 		Cs=program->getDoubleParam("--spherical_aberration");
-	if (Cs==0)
-		REPORT_ERROR(ERR_ARG_MISSING,"--spherical_aberration");
 	if (program->checkParam("--defocusU"))
 		Defocus=program->getDoubleParam("--defocusU");
 	if (program->checkParam("--Q0"))
@@ -701,8 +700,9 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
     int found = 0;
     double last_ctf = getValuePureNoPrecomputedAt(0), ctf=0.0, state=1;
 
-    double w;
-    for (w = 0; w <= wmax; w += wstep)
+    double w = 0;
+
+    while (w <= wmax)
     {
         V2_BY_CT(freq, u, w);
         ctf = getValuePureNoPrecomputedAt(XX(freq));
@@ -756,6 +756,7 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
 		}
 
         last_ctf = ctf;
+        w += wstep;
     }
     if (found != n)
     {
@@ -820,6 +821,37 @@ void CTFDescription1D::applyCTF(MultidimArray <double> &I, double Ts, bool absPh
 	transformer.inverseFourierTransform();
 }
 
+/* Apply the CTF to an image ----------------------------------------------- */
+void CTFDescription1D::correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts)
+{
+    Matrix1D<int>    idx(2);
+    Matrix1D<double> freq(2);
+    if ( ZSIZE(FFTI) > 1 )
+        REPORT_ERROR(ERR_MULTIDIM_DIM,"ERROR: Correct phase only works on 2D images, not 3D.");
+
+    double iTs=1.0/Ts;
+    FOR_ALL_ELEMENTS_IN_ARRAY2D(FFTI)
+    {
+        XX(idx) = j;
+        YY(idx) = i;
+        FFT_idx2digfreq(I, idx, freq);
+        precomputeValues(XX(freq)*iTs);
+        double ctf = getValuePureAt();
+        if (ctf<0)
+            A2D_ELEM(FFTI, i, j) *= -1;
+    }
+}
+
+void CTFDescription1D::correctPhase(MultidimArray <double> &I, double Ts)
+{
+	FourierTransformer transformer;
+	MultidimArray<double> FFTI;
+	transformer.setReal(I);
+	transformer.FourierTransform();
+	correctPhase(transformer.fFourier, I, Ts);
+	transformer.inverseFourierTransform();
+}
+
 /* Get profiles ------------------------------------------------------------ */
 void CTFDescription1D::getProfile(double fmax, int nsamples,
                                 MultidimArray<double> &profiles)
@@ -858,9 +890,10 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
 
-    for (double angle = 0.0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
+    for (int angle=0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
     {
-        double cosinus = cos(angle);
+        double angle2 = float(angle);
+        double cosinus = cos(angle2);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)
@@ -1147,9 +1180,9 @@ void CTFDescription::readFromMdRow(const MDRow &row, bool disable_if_not_K)
     	{
     		FileName fnctf;
     		row.getValue(MDL_CTF_MODEL,fnctf);
-    		MetaData ctfparam;
+    		MetaDataVec ctfparam;
     		ctfparam.read(fnctf);
-    		readFromMetadataRow(ctfparam,ctfparam.firstObject(),disable_if_not_K);
+    		readFromMetadataRow(ctfparam, ctfparam.firstRowId(), disable_if_not_K);
     	}
 
     }
@@ -1173,19 +1206,18 @@ void CTFDescription::readFromMdRow(const MDRow &row, bool disable_if_not_K)
 
 void CTFDescription::readFromMetadataRow(const MetaData &md, size_t id, bool disable_if_not_K)
 {
-	MDRow row;
-	md.getRow(row, id);
-	readFromMdRow(row, disable_if_not_K);
+	std::unique_ptr<const MDRow> row = md.getRow(id);
+	readFromMdRow(*row, disable_if_not_K);
 }
 
 void CTFDescription::read(const FileName &fn, bool disable_if_not_K)
 {
 	if (fn.isMetaData())
 	{
-		MetaData md;
+		MetaDataVec md;
 		md.read(fn);
-		MDRow row;
-		md.getRow(row, md.firstObject());
+		MDRowVec row;
+		md.getRow(row, md.firstRowId());
 		readFromMdRow(row, disable_if_not_K);
 	}
 }
@@ -1235,10 +1267,10 @@ void CTFDescription::setRow(MDRow &row) const
 
 void CTFDescription::write(const FileName &fn)
 {
-	MDRow row;
+	MDRowVec row;
 	setRow(row);
 
-	MetaData md;
+	MetaDataVec md;
 	md.setColumnFormat(false);
 	md.addRow(row);
 	md.write(fn);
@@ -1338,6 +1370,7 @@ void CTFDescription::clearNoise()
     sqU = sqV = sqrt_K = sqrt_angle = 0;
     cU2 = cV2 = sigmaU2 = sigmaV2 = gaussian_angle2 = gaussian_K2 = 0;
     bgR1 = bgR2 = bgR3 = 0.0;
+    VPP_radius = phase_shift = 0.0;
     isLocalCTF = false;
 }
 
@@ -1391,8 +1424,8 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
     double wstep = wmax / 300;
     int found = 0;
     double last_ctf = getValuePureNoDampingNoPrecomputedAt(0,0) , ctf=0.0, state=1; //getValuePureWithoutDampingAt()
-    double w;
-    for (w = 0; w <= wmax; w += wstep)
+    double w = 0;
+    while (w <= wmax)
     {
         V2_BY_CT(freq, u, w);
         ctf = getValuePureNoDampingNoPrecomputedAt(XX(freq),YY(freq));
@@ -1443,6 +1476,7 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
 			break;
 
         last_ctf = ctf;
+        w += wstep;
     }
     if (found != n)
     {
@@ -1506,6 +1540,37 @@ void CTFDescription::applyCTF(MultidimArray <double> &I, double Ts, bool absPhas
 	transformer.inverseFourierTransform();
 }
 
+/* Apply the CTF to an image ----------------------------------------------- */
+void CTFDescription::correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts)
+{
+    Matrix1D<int>    idx(2);
+    Matrix1D<double> freq(2);
+    if ( ZSIZE(FFTI) > 1 )
+        REPORT_ERROR(ERR_MULTIDIM_DIM,"ERROR: Apply_CTF only works on 2D images, not 3D.");
+
+    double iTs=1.0/Ts;
+    FOR_ALL_ELEMENTS_IN_ARRAY2D(FFTI)
+    {
+        XX(idx) = j;
+        YY(idx) = i;
+        FFT_idx2digfreq(I, idx, freq);
+        precomputeValues(XX(freq)*iTs, YY(freq)*iTs);
+        double ctf = getValuePureAt();
+        if (ctf<0)
+            A2D_ELEM(FFTI, i, j) *= -1;
+    }
+}
+
+void CTFDescription::correctPhase(MultidimArray <double> &I, double Ts)
+{
+	FourierTransformer transformer;
+	MultidimArray<double> FFTI;
+	transformer.setReal(I);
+	transformer.FourierTransform();
+	correctPhase(transformer.fFourier, I, Ts);
+	transformer.inverseFourierTransform();
+}
+
 /* Get profiles ------------------------------------------------------------ */
 void CTFDescription::getProfile(double angle, double fmax, int nsamples,
                                 MultidimArray<double> &profiles)
@@ -1545,10 +1610,11 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
 
-    for (double angle = 0.0; angle < 360; angle++)
+    for(int angle=0; angle < 360; angle++)
     {
-        double sinus = sin(angle);
-        double cosinus = cos(angle);
+        double angle2 = float(angle);
+        double sinus = sin(angle2);
+        double cosinus = cos(angle2);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)

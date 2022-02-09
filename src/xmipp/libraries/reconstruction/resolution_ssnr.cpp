@@ -193,7 +193,7 @@ void ProgSSNR::run()
 #ifdef DEBUG
     output.write(fn_out);
 #endif
-    MetaData MD;
+    MetaDataVec MD;
     for (size_t i=1; i<MAT_YSIZE(output); ++i)
     {
     	size_t id=MD.addObject();
@@ -216,7 +216,7 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     N_SSNR1D;
 
     // Selfile of the 2D images
-    MetaData SF_individual;
+    MetaDataVec SF_individual;
 
     std::cerr << "Computing the SSNR ...\n";
     init_progress_bar(SF_S.size());
@@ -227,23 +227,27 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     MultidimArray<double> S2s, N2s, S2n, N2n;
     FileName fn_img;
     FourierTransformer FT(FFTW_BACKWARD);
-    FourierProjector *Sprojector=NULL;
-    FourierProjector *Nprojector=NULL;
+    FourierProjector *Sprojector=nullptr;
+    FourierProjector *Nprojector=nullptr;
     if (fourierProjections)
     {
-    	Sprojector=new FourierProjector(S(),2,0.5,LINEAR);
-    	Nprojector=new FourierProjector(N(),2,0.5,LINEAR);
+    	Sprojector=new FourierProjector(S(),2,0.5,xmipp_transformation::LINEAR);
+    	Nprojector=new FourierProjector(N(),2,0.5,xmipp_transformation::LINEAR);
     }
-    FOR_ALL_OBJECTS_IN_METADATA2(SF_S, SF_N)
+
+    auto iterIdS = SF_S.ids().begin();
+    auto iterIdN = SF_N.ids().begin();
+
+    for (; iterIdS != SF_S.ids().end(); ++iterIdS, ++iterIdN)
     {
     	double rot, tilt, psi;
-    	SF_S.getValue(MDL_ANGLE_ROT,rot, __iter.objId);
-    	SF_S.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-    	SF_S.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-    	SF_S.getValue(MDL_IMAGE,fn_img,__iter.objId);
+    	SF_S.getValue(MDL_ANGLE_ROT,rot, *iterIdS);
+    	SF_S.getValue(MDL_ANGLE_TILT,tilt, *iterIdS);
+    	SF_S.getValue(MDL_ANGLE_PSI,psi, *iterIdS);
+    	SF_S.getValue(MDL_IMAGE,fn_img, *iterIdS);
         Is.read(fn_img);
         Is().setXmippOrigin();
-    	SF_N.getValue(MDL_IMAGE,fn_img,__iter2.objId);
+    	SF_N.getValue(MDL_IMAGE,fn_img, *iterIdN);
         In.read(fn_img);
         In().setXmippOrigin();
 
@@ -424,8 +428,8 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     {
     	delete Sprojector;
     	delete Nprojector;
-    	Sprojector=NULL;
-    	Nprojector=NULL;
+    	Sprojector=nullptr;
+    	Nprojector=nullptr;
     }
 
     // Compute the SSNRsym

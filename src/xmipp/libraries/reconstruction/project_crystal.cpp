@@ -46,7 +46,7 @@ Crystal_Projection_Parameters::Crystal_Projection_Parameters()
 /* Read Crystal Projection Parameters ====================================== */
 void Crystal_Projection_Parameters::read(const FileName &fn, double scale)
 {
-    MetaData MD;
+    MetaDataVec MD;
     size_t objId;
     FileName fn_crystal = fn.removeBlockName();
     MD.read(formatString("crystal@%s", fn_crystal.c_str()));
@@ -56,7 +56,7 @@ void Crystal_Projection_Parameters::read(const FileName &fn, double scale)
                      "opening the file " + fn_crystal);
 
     std::vector <double> ParamVec;
-    objId = MD.firstObject();
+    objId = MD.firstRowId();
     MD.getValue(MDL_DIMENSIONS_2D, ParamVec, objId);
     crystal_Xdim = (int)ParamVec[0];
     crystal_Ydim = (int)ParamVec[1];
@@ -100,7 +100,7 @@ void Crystal_Projection_Parameters::write(const FileName &fn_crystal)
 {
     if (fn_crystal.isMetaData())
     {
-        MetaData MD1;  //MetaData for crystal projection parameters
+        MetaDataVec MD1;  //MetaData for crystal projection parameters
         std::vector<double> FCVect(2);  //For the center of feature
         size_t id;
         std::vector<double> TVector;  //For general use
@@ -127,7 +127,7 @@ void Crystal_Projection_Parameters::write(const FileName &fn_crystal)
     {
         FILE *fh_param;
 
-        if ((fh_param = fopen(fn_crystal.c_str(), "w")) == NULL)
+        if ((fh_param = fopen(fn_crystal.c_str(), "w")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (std::string)"Prog_Project_Parameters::write: There is a problem "
                          "opening the file " + fn_crystal + " for output");
@@ -886,7 +886,7 @@ void init_shift_matrix(const Crystal_Projection_Parameters &prm_crystal,
                        MultidimArray<double> &exp_normal_shifts_matrix_Z,
                        double phantom_scale)
 {
-    MetaData aux_DF_shift; //crystal_param is cont
+    MetaDataVec aux_DF_shift; //crystal_param is cont
     aux_DF_shift = prm_crystal.DF_shift;
     exp_shifts_matrix_X.resize(cell_inside);
     exp_shifts_matrix_X.initZeros();
@@ -913,21 +913,21 @@ void init_shift_matrix(const Crystal_Projection_Parameters &prm_crystal,
 #undef DEBUG2
     //fill matrix with docfile data
 
-    FOR_ALL_OBJECTS_IN_METADATA(aux_DF_shift)
+    for (size_t objId : aux_DF_shift.ids())
     {
         //Check that we are not outside the matrix
         int xcell, ycell;
-        aux_DF_shift.getValue(MDL_CRYSTAL_CELLX,xcell,__iter.objId);
-        aux_DF_shift.getValue(MDL_CRYSTAL_CELLY,ycell,__iter.objId);
+        aux_DF_shift.getValue(MDL_CRYSTAL_CELLX,xcell,objId);
+        aux_DF_shift.getValue(MDL_CRYSTAL_CELLY,ycell,objId);
         if (!exp_shifts_matrix_X.outside(xcell,ycell))
         {
-            aux_DF_shift.getValue(MDL_SHIFT_X,exp_shifts_matrix_X(ycell, xcell),__iter.objId);
-            aux_DF_shift.getValue(MDL_SHIFT_Y,exp_shifts_matrix_Y(ycell, xcell),__iter.objId);
-            aux_DF_shift.getValue(MDL_SHIFT_Z,exp_shifts_matrix_Z(ycell, xcell),__iter.objId);
+            aux_DF_shift.getValue(MDL_SHIFT_X,exp_shifts_matrix_X(ycell, xcell),objId);
+            aux_DF_shift.getValue(MDL_SHIFT_Y,exp_shifts_matrix_Y(ycell, xcell),objId);
+            aux_DF_shift.getValue(MDL_SHIFT_Z,exp_shifts_matrix_Z(ycell, xcell),objId);
 
-            aux_DF_shift.getValue(MDL_CRYSTAL_SHIFTX,exp_normal_shifts_matrix_X(ycell, xcell),__iter.objId);
-            aux_DF_shift.getValue(MDL_CRYSTAL_SHIFTY,exp_normal_shifts_matrix_Y(ycell, xcell),__iter.objId);
-            aux_DF_shift.getValue(MDL_CRYSTAL_SHIFTZ,exp_normal_shifts_matrix_Z(ycell, xcell),__iter.objId);
+            aux_DF_shift.getValue(MDL_CRYSTAL_SHIFTX,exp_normal_shifts_matrix_X(ycell, xcell),objId);
+            aux_DF_shift.getValue(MDL_CRYSTAL_SHIFTY,exp_normal_shifts_matrix_Y(ycell, xcell),objId);
+            aux_DF_shift.getValue(MDL_CRYSTAL_SHIFTZ,exp_normal_shifts_matrix_Z(ycell, xcell),objId);
         }
     }
     //#define DEBUG2

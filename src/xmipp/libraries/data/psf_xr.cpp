@@ -24,7 +24,11 @@
  ***************************************************************************/
 
 #include "psf_xr.h"
-
+#include "core/metadata_vec.h"
+#include "core/xmipp_program.h"
+#include "core/args.h"
+#include "core/xmipp_fftw.h"
+#include "core/transformations.h"
 
 XRayPSF::XRayPSF()
 {
@@ -86,9 +90,9 @@ void XRayPSF::read(const FileName &fn, bool readVolume)
 
     if (fn.isMetaData())
     {
-        MetaData MD;
+        MetaDataVec MD;
         MD.read(fn);
-        size_t id = MD.firstObject();
+        size_t id = MD.firstRowId();
 
         FileName fnPSF;
         if ( MD.getValue(MDL_IMAGE,fnPSF, id) && readVolume )
@@ -146,7 +150,7 @@ void XRayPSF::read(const FileName &fn, bool readVolume)
     else
     {
         FILE *fh_param;
-        if ((fh_param = fopen(fn.c_str(), "r")) == NULL)
+        if ((fh_param = fopen(fn.c_str(), "r")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (std::string)"XmippXROTF::read: There is a problem "
                          "opening the file " + fn);
@@ -179,7 +183,7 @@ void XRayPSF::read(const FileName &fn, bool readVolume)
 /* Write ------------------------------------------------------------------- */
 void XRayPSF::write(const FileName &fn)
 {
-    MetaData MD;
+    MetaDataVec MD;
     MD.setColumnFormat(false);
     size_t id = MD.addObject();
 
@@ -316,8 +320,8 @@ void XRayPSF::calculateParams(double _dxo, double _dzo, double threshold)
 
         mdaPsfVol.setXmippOrigin();
 
-        applyGeometry(LINEAR, mdaPsfVol, psfGen(), T,
-                      IS_INV, DONT_WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, mdaPsfVol, psfGen(), T,
+        		      xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP);
 
         psfGen.clear(); // Free mem in case image is not mapped
 
@@ -480,8 +484,8 @@ void XRayPSF::generateOTF(MultidimArray<std::complex<double> > &OTF, double Zpos
             {   /* Actually T transform matrix is set to identity, as sampling is the same for both psfVol and phantom
                                                                                                                  * It is only missing to set Z shift to select the slice */
                 dMij(T, 2, 3) = zIndexPSF; // Distance from the focal plane
-                applyGeometry(LINEAR, PSFi, mPsfVol, T,
-                              IS_INV, DONT_WRAP, dAkij(mPsfVol,0,0,0));
+                applyGeometry(xmipp_transformation::LINEAR, PSFi, mPsfVol, T,
+                              xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP, dAkij(mPsfVol,0,0,0));
                 CenterFFT(PSFi, true);
             }
             break;

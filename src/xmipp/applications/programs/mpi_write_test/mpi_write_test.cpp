@@ -41,8 +41,8 @@
  ***************************************************************************/
 
 #include "parallel/xmipp_mpi.h"
-#include <core/args.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_generic.h"
 
 //Some useful macros
 #define CREATE_LOG() FILE * _logML = fopen(formatString("nodo%02d.log", node->rank).c_str(), "w+")
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
     //First argument should be the md filename
     //FileName fn(argv[1]);
-    MetaData md;
+    MetaDataVec md;
     //MPI Initialization
     node = new MpiNode(argc, argv);
     int rank = node->rank;

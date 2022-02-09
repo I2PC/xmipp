@@ -26,6 +26,7 @@
 #include "volume_validate_pca.h"
 #include <numeric>
 #include <core/geometry.h>
+#include "core/metadata_sql.h"
 
 // Define params
 void ProgVolumeValidationPCA::defineParams()
@@ -79,8 +80,7 @@ void ProgVolumeValidationPCA::modifyAngles()
     	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
 
     //Metadata with the well sampled projection and random projections assigned
-    MetaData md;
-    MDRow row;
+    MetaDataVec md;
     double rot, tilt, psi;
     size_t id;
 
@@ -88,12 +88,8 @@ void ProgVolumeValidationPCA::modifyAngles()
     randomize_random_generator();
 
     int anglePertur = 30;
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    for (auto& row : md)
     {
-        id = __iter.objId;
-
-        md.getRow(row, id);
-
         row.getValue(MDL_ANGLE_ROT, rot);
         row.getValue(MDL_ANGLE_TILT,tilt);
         row.getValue(MDL_ANGLE_PSI,psi);
@@ -102,7 +98,7 @@ void ProgVolumeValidationPCA::modifyAngles()
         row.setValue(MDL_ANGLE_TILT,(rnd_unif(-anglePertur,anglePertur))/2+tilt);
         row.setValue(MDL_ANGLE_PSI, (rnd_unif(-anglePertur,anglePertur))/2+psi);
 
-        md.setRow(row, id);
+        md.setRow(row, row.id());
     }
 
     md.write(fnAngles);
@@ -171,8 +167,7 @@ void ProgVolumeValidationPCA::reconstruct()
 
 void ProgVolumeValidationPCA::evaluate()
 {
-    MetaData md, md2;
-    MDRow row;
+    MetaDataVec md, md2;
     FileName imag;
     double rot, tilt, psi, rot2, tilt2, psi2;
     std::vector<double> error;
@@ -182,14 +177,11 @@ void ProgVolumeValidationPCA::evaluate()
     std::stringstream ss;
 
     MDMultiQuery query;
-    MetaData auxMetadata;
+    MetaDataVec auxMetadata;
     double distance = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    for (const auto& row : md)
     {
-        id = __iter.objId;
-
-        md.getRow(row, id);
         row.getValue(MDL_IMAGE, imag);
         row.getValue(MDL_ANGLE_ROT, rot);
         row.getValue(MDL_ANGLE_TILT,tilt);
@@ -206,14 +198,11 @@ void ProgVolumeValidationPCA::evaluate()
             query.addAndQuery(eq);
             auxMetadata.importObjects(md2, eq);
 
-            for(MDIterator __iter2(auxMetadata); __iter2.hasNext(); __iter2.moveNext())
+            for (const auto& rowAux : auxMetadata)
             {
-                id2 = __iter2.objId;
-
-                auxMetadata.getRow(row, id2);
-                row.getValue(MDL_ANGLE_ROT, rot2);
-                row.getValue(MDL_ANGLE_TILT,tilt2);
-                row.getValue(MDL_ANGLE_PSI,psi2);
+                rowAux.getValue(MDL_ANGLE_ROT, rot2);
+                rowAux.getValue(MDL_ANGLE_TILT,tilt2);
+                rowAux.getValue(MDL_ANGLE_PSI,psi2);
                 distance = Euler_distanceBetweenAngleSets(rot,tilt, psi,rot2, tilt2, psi2, true);
                 error.push_back(distance);
             }

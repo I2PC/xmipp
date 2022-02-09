@@ -23,7 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_filename.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_image_macros.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_error.h"
 
 /***************************************************************/
 /*                            FileName                         */
@@ -58,14 +62,13 @@ PyMethodDef FileName_methods[] =
       "return filename without extension" },
     { "removeBlockName", (PyCFunction) FileName_removeBlockName, METH_NOARGS,
       "return filename without block" },
-    { NULL } /* Sentinel */
+    { nullptr } /* Sentinel */
 };//FileName_methods
 
 /*FileName Type */
 PyTypeObject FileNameType =
 {
-   PyObject_HEAD_INIT(NULL)
-   0, /*ob_size*/
+   PyObject_HEAD_INIT(nullptr)
    "xmipp.FileName", /*tp_name*/
    sizeof(FileNameObject), /*tp_basicsize*/
    0, /*tp_itemsize*/
@@ -109,26 +112,32 @@ PyTypeObject FileNameType =
 void FileName_dealloc(FileNameObject* self)
 {
     delete self->filename;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 /* Constructor */
 PyObject *
 FileName_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) type->tp_alloc(type, 0);
+    FileNameObject *self;
 
-    if (self != NULL)
+    self = (FileNameObject*)type->tp_alloc(type, 0);
+    if (self != nullptr)
     {
-        PyObject *input = NULL, *pyStr = NULL;
+
+        PyObject *input = nullptr, *pyStr = nullptr;
+        PyObject *pyStr2 = nullptr;
         char str[1024] = "", ext[1024] = "";
         int number = ALL_IMAGES;
         if (PyArg_ParseTuple(args, "|Ois", &input, &number, &ext))
             //|| PyArg_ParseTuple(args, "|Os", &input, &ext)) FIXME
         {
             pyStr = PyObject_Str(input);
-            if (pyStr != NULL)
-            	strcpy(str,PyString_AsString(pyStr));
+            if (pyStr != nullptr)
+              {
+                   const char *strExcType =  PyUnicode_AsUTF8(pyStr);
+                   strcpy(str, strExcType);
+              }
         }
         if (number != ALL_IMAGES)
             self->filename = new FileName(str, number, ext);
@@ -136,29 +145,30 @@ FileName_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             self->filename = new FileName(str);
 
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }
 
 /* String representation */
 PyObject *
 FileName_repr(PyObject * obj)
 {
-    FileNameObject *self = (FileNameObject*) obj;
-    return PyString_FromString(self->filename->c_str());
+    auto *self = (FileNameObject*) obj;
+    return PyUnicode_FromString(self->filename->c_str());
 }
 
 /* compose */
 PyObject *
 FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
+    PyObject* pyStr1 = nullptr, *pyStr2 = nullptr, *pyStr3 = nullptr;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *input = NULL, *pyStr = NULL;
-        PyObject *input2 = NULL, *pyStr2 = NULL;
+        PyObject *input = nullptr, *pyStr = nullptr;
+        PyObject *input2 = nullptr;
         char str[1024] = "";
-        char * ext = NULL;
+        char * ext = nullptr;
         char str2[1024] = "";
         int number = -1;
         size_t n = PyTuple_Size(args);
@@ -166,33 +176,33 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
         if (n == 3 && PyArg_ParseTuple(args, "Ois", &input, &number, &ext))
         {
             pyStr = PyObject_Str(input);
-            if (pyStr != NULL)
-                strcpy(str,PyString_AsString(pyStr));
+            if (pyStr != nullptr)
+                strcpy(str, PyUnicode_AsUTF8(pyStr));
             self->filename->compose(str, number, ext);
         }
         else if (n == 2  && PyArg_ParseTuple(args, "OO", &input, &input2))
         {
-            if( PyString_Check( input ) )
+            if( PyUnicode_Check( input ) )
             {
                 //"jj@kk.xmp"
                 pyStr  = PyObject_Str(input);
                 pyStr2 = PyObject_Str(input2);
-                if (pyStr != NULL)
-                	strcpy(str,PyString_AsString(pyStr));
-                if (pyStr2 != NULL)
-                	strcpy(str2,PyString_AsString(pyStr2));
+                if (pyStr != nullptr)
+                	strcpy(str, PyUnicode_AsUTF8(pyStr));
+                if (pyStr2 != nullptr)
+                	strcpy(str2, PyUnicode_AsUTF8(pyStr2));
                 self->filename->compose(str, str2);
             }
-            else if ( PyInt_Check( input ) )
+            else if ( PyLong_Check( input ) )
             {
                 //"1@kk.xmp"
-                number=PyInt_AsLong(input);
-                pyStr2  = PyObject_Str(input2);
-                strcpy(str2,PyString_AsString(pyStr2));
+                number=PyLong_AsLong(input);
+                pyStr2 = PyObject_Str(input2);
+                strcpy(str2, PyUnicode_AsUTF8(pyStr2));
                 self->filename->compose(number, str2);
             }
             else
-                return NULL;
+                return nullptr;
         }
         Py_RETURN_NONE;//Return None(similar to void in C)
     }
@@ -202,9 +212,9 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
         char root[1024] = "", ext[32] = "", block[1024] ="";
         int number = 1;
@@ -218,7 +228,7 @@ FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_exists(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self->filename->existsTrim())
         Py_RETURN_TRUE;
@@ -230,7 +240,7 @@ FileName_exists(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_isInStack(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self->filename->isInStack())
         Py_RETURN_TRUE;
@@ -242,7 +252,7 @@ FileName_isInStack(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_isMetaData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     try
     {
         if(self->filename->isMetaData(false))
@@ -258,7 +268,7 @@ FileName_isMetaData(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* isImage */
@@ -275,7 +285,7 @@ FileName_isImage(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_isStar1(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self->filename->isStar1(false))
         Py_RETURN_TRUE;
@@ -286,31 +296,31 @@ FileName_isStar1(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_getExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
-    return PyString_FromString(self->filename->getExtension().c_str());
+    return PyUnicode_FromString(self->filename->getExtension().c_str());
 }
 
 PyObject *
 FileName_getNumber(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
-    return PyInt_FromLong(self->filename->getNumber());
+    return PyLong_FromLong(self->filename->getNumber());
 }
 
 PyObject *
 FileName_getBaseName(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
-    return PyString_FromString(self->filename->getBaseName().c_str());
+    return PyUnicode_FromString(self->filename->getBaseName().c_str());
 }
 
 PyObject *
 FileName_decompose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     size_t no;
     String str;
     self->filename->decompose(no, str);
@@ -320,13 +330,13 @@ FileName_decompose(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_withoutExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
-    return PyString_FromString(self->filename->withoutExtension().c_str());
+    auto *self = (FileNameObject*) obj;
+    return PyUnicode_FromString(self->filename->withoutExtension().c_str());
 }
 
 PyObject *
 FileName_removeBlockName(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
-    return PyString_FromString(self->filename->removeBlockName().c_str());
+    auto *self = (FileNameObject*) obj;
+    return PyUnicode_FromString(self->filename->removeBlockName().c_str());
 }

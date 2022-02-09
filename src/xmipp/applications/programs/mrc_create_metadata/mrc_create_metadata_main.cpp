@@ -22,9 +22,11 @@
  *  All comments concerning this program package may be sent to the    
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
-#include <core/args.h>
-#include <interface/spider.h>
-#include <core/xmipp_program.h>
+
+#include <fstream>
+#include "core/metadata_vec.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 class ProgMrcCreateMetaData: public XmippProgram
 {
@@ -73,7 +75,7 @@ public:
     	size_t xdim, ydim, zdim, ndim;
     	stack.getDimensions(xdim, ydim, zdim, ndim);
 
-    	MetaData MD;
+    	MetaDataVec MD;
     	FileName fnSlice;
     	for (unsigned long slice = FIRST_IMAGE; slice <= ndim; slice++)
     	{

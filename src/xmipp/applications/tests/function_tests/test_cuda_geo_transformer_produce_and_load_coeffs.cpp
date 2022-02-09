@@ -149,7 +149,7 @@ public:
     std::mt19937 gen;
 };
 
-TYPED_TEST_CASE_P(GeoTransformerProduceAndLoadCoeffsTest);
+TYPED_TEST_SUITE_P(GeoTransformerProduceAndLoadCoeffsTest);
 
 TYPED_TEST_P(GeoTransformerProduceAndLoadCoeffsTest, RandomSizeZeroInput) {
     std::tie( this->x, this->y ) = this->random_size( 41 );
@@ -217,7 +217,7 @@ TYPED_TEST_P(GeoTransformerProduceAndLoadCoeffsTest, SmallInput) {
     this->run_test();
 }
 
-REGISTER_TYPED_TEST_CASE_P(GeoTransformerProduceAndLoadCoeffsTest,
+REGISTER_TYPED_TEST_SUITE_P(GeoTransformerProduceAndLoadCoeffsTest,
     RandomSizeZeroInput,
     PaddedSizeRandomInput,
     PaddedSquareSizeRandomInput,
@@ -228,11 +228,4 @@ REGISTER_TYPED_TEST_CASE_P(GeoTransformerProduceAndLoadCoeffsTest,
 );
 
 using ScalarTypes = ::testing::Types< float, double >;
-INSTANTIATE_TYPED_TEST_CASE_P(ScalarTypesInstantiation, GeoTransformerProduceAndLoadCoeffsTest, ScalarTypes);
-
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+INSTANTIATE_TYPED_TEST_SUITE_P(ScalarTypesInstantiation, GeoTransformerProduceAndLoadCoeffsTest, ScalarTypes);

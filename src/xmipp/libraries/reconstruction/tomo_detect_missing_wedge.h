@@ -26,8 +26,8 @@
 #ifndef DETECT_MISSING_WEDGE_H
 #define DETECT_MISSING_WEDGE_H
 
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
 
 /// @defgroup DetectMissingWedge Detect missing wedge
 /// @ingroup ReconsLibrary

@@ -24,18 +24,19 @@
  ***************************************************************************/
 
 #include "angular_continuous_assign2.h"
-#include "program_image_residuals.h"
-#include <data/mask.h>
-#include <data/numerical_tools.h>
+#include "core/transformations.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/mask.h"
 
 // Empty constructor =======================================================
 ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()
 {
     produces_a_metadata = true;
     each_image_produces_an_output = true;
-    projector = NULL;
-    ctfImage = NULL;
-    ctfEnvelope = NULL;
+    projector = nullptr;
+    ctfImage = nullptr;
+    rank = 0;
 }
 
 ProgAngularContinuousAssign2::~ProgAngularContinuousAssign2()
@@ -71,6 +72,7 @@ void ProgAngularContinuousAssign2::readParams()
     // penalization = getDoubleParam("--penalization");
     fnResiduals = getParam("--oresiduals");
     fnProjections = getParam("--oprojections");
+	keep_input_columns = true; // each output metadata row is a deep copy of the input metadata row
 }
 
 // Show ====================================================================
@@ -153,10 +155,18 @@ void ProgAngularContinuousAssign2::startProcessing()
 void ProgAngularContinuousAssign2::preProcess()
 {
     // Read the reference volume
-    Image<double> V;
-    V.read(fnVol);
-    V().setXmippOrigin();
-    Xdim=XSIZE(V());
+	Image<double> V;
+	if (rank==0)
+	{
+		V.read(fnVol);
+		V().setXmippOrigin();
+	    Xdim=XSIZE(V());
+	}
+	else
+	{
+		size_t ydim, zdim, ndim;
+		getImageSize(fnVol, Xdim, ydim, zdim, ndim);
+	}
 
     Ip().initZeros(Xdim,Xdim);
     E().initZeros(Xdim,Xdim);
@@ -189,7 +199,10 @@ void ProgAngularContinuousAssign2::preProcess()
     }
 
     // Construct projector
-    projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    if (rank==0)
+    	projector = new FourierProjector(V(),pad,Ts/maxResol,xmipp_transformation::BSPLINE3);
+    else
+    	projector = new FourierProjector(pad,Ts/maxResol,xmipp_transformation::BSPLINE3);
 
     // Low pass filter
     filter.FilterBand=LOWPASS;
@@ -214,7 +227,7 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 	currentDefocusV=ctf.DeltafV=defocusV;
 	currentAngle=ctf.azimuthal_angle=angle;
 	ctf.produceSideInfo();
-	if (ctfImage==NULL)
+	if (ctfImage==nullptr)
 	{
 		ctfImage = new MultidimArray<double>();
 		ctfImage->resizeNoCopy(I());
@@ -244,7 +257,7 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 //#define DEBUG
 //#define DEBUG2
 double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt, double psi,
-		double a, double b, Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
+		double a, double b, const Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
 {
     if (prm->hasCTF)
     {
@@ -262,7 +275,7 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(degree,prm->Ifilteredp(),prm->Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	applyGeometry(degree,prm->Ifilteredp(),prm->Ifiltered(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
 	const MultidimArray<double> &mP=prm->P();
 	const MultidimArray<int> &mMask2D=prm->mask2D;
 	MultidimArray<double> &mIfilteredp=prm->Ifilteredp();
@@ -362,7 +375,7 @@ double continuous2cost(double *x, void *_prm)
 	double deltaDefocusU=x[11];
 	double deltaDefocusV=x[12];
 	double deltaDefocusAngle=x[13];
-	ProgAngularContinuousAssign2 *prm=(ProgAngularContinuousAssign2 *)_prm;
+	auto *prm=(ProgAngularContinuousAssign2 *)_prm;
 	if (prm->maxShift>0 && deltax*deltax+deltay*deltay>prm->maxShift*prm->maxShift)
 		return 1e38;
 	if (fabs(scalex)>prm->maxScale || fabs(scaley)>prm->maxScale)
@@ -393,15 +406,13 @@ double continuous2cost(double *x, void *_prm)
 	MAT_ELEM(prm->A,0,2)=prm->old_shiftX+deltax;
 	MAT_ELEM(prm->A,1,2)=prm->old_shiftY+deltay;
 	return tranformImage(prm,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
-			a, b, prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle, LINEAR);
+			a, b, prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle, xmipp_transformation::LINEAR);
 }
 
 // Predict =================================================================
 //#define DEBUG
 void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
-    rowOut=rowIn;
-
     // Read input image and initial parameters
 //  ApplyGeoParams geoParams;
 //	geoParams.only_apply_shifts=false;
@@ -422,30 +433,30 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     Ifiltered()=I();
     filter.applyMaskSpace(Ifiltered());
 
-	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
-	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
-	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
-	rowIn.getValue(MDL_SHIFT_X,old_shiftX);
-	rowIn.getValue(MDL_SHIFT_Y,old_shiftY);
-	rowIn.getValue(MDL_FLIP,old_flip);
+	old_rot = rowIn.getValueOrDefault(MDL_ANGLE_ROT, 0.);
+	old_tilt = rowIn.getValueOrDefault(MDL_ANGLE_TILT, 0.);
+	old_psi = rowIn.getValueOrDefault(MDL_ANGLE_PSI, 0.);
+	old_shiftX = rowIn.getValueOrDefault(MDL_SHIFT_X, 0.);
+	old_shiftY = rowIn.getValueOrDefault(MDL_SHIFT_Y, 0.);
+	old_flip = rowIn.getValueOrDefault(MDL_FLIP, false);
 	double old_scaleX=0, old_scaleY=0, old_scaleAngle=0;
 	old_grayA=1;
 	old_grayB=0;
 	if (rowIn.containsLabel(MDL_CONTINUOUS_SCALE_X))
 	{
-		rowIn.getValue(MDL_CONTINUOUS_SCALE_X,old_scaleX);
-		rowIn.getValue(MDL_CONTINUOUS_SCALE_Y,old_scaleY);
+		old_scaleX = rowIn.getValue<double>(MDL_CONTINUOUS_SCALE_X);
+		old_scaleY = rowIn.getValue<double>(MDL_CONTINUOUS_SCALE_Y);
 		if (rowIn.containsLabel(MDL_CONTINUOUS_SCALE_ANGLE))
-			rowIn.getValue(MDL_CONTINUOUS_SCALE_ANGLE,old_scaleAngle);
-		rowIn.getValue(MDL_CONTINUOUS_X,old_shiftX);
-		rowIn.getValue(MDL_CONTINUOUS_Y,old_shiftY);
-		rowIn.getValue(MDL_CONTINUOUS_FLIP,old_flip);
+			old_scaleAngle = rowIn.getValue<double>(MDL_CONTINUOUS_SCALE_ANGLE);
+		old_shiftX = rowIn.getValue<double>(MDL_CONTINUOUS_X);
+		old_shiftY = rowIn.getValue<double>(MDL_CONTINUOUS_Y);
+		old_flip = rowIn.getValue<bool>(MDL_CONTINUOUS_FLIP);
 	}
 
 	if (optimizeGrayValues && rowIn.containsLabel(MDL_CONTINUOUS_GRAY_A))
 	{
-		rowIn.getValue(MDL_CONTINUOUS_GRAY_A,old_grayA);
-		rowIn.getValue(MDL_CONTINUOUS_GRAY_B,old_grayB);
+		old_grayA = rowIn.getValue<double>(MDL_CONTINUOUS_GRAY_A);
+		old_grayB = rowIn.getValue<double>(MDL_CONTINUOUS_GRAY_B);
 	}
 
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && !ignoreCTF)
@@ -480,6 +491,14 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     p(4)=old_scaleX;
     p(5)=old_scaleY;
     p(6)=old_scaleAngle;
+
+    // default values
+    if (fnResiduals != "") {
+      rowOut.setValue<String>(MDL_IMAGE_RESIDUAL, "");
+    }
+    if (fnProjections != "") {
+      rowOut.setValue<String>(MDL_IMAGE_REF, "");
+    }
 
     // Optimize
 	double cost=-1;
@@ -556,7 +575,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			I.read(fnImg);
 			if (XSIZE(Ip())!=XSIZE(I()))
 			{
-				scaleToSize(BSPLINE3,Ip(),I(),XSIZE(Ip()),YSIZE(Ip()));
+				scaleToSize(xmipp_transformation::BSPLINE3,Ip(),I(),XSIZE(Ip()),YSIZE(Ip()));
 				I()=Ip();
 			}
 			A(0,2)=p(2)+old_shiftX;
@@ -579,7 +598,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 				MAT_ELEM(A,0,1)*=-1;
 				MAT_ELEM(A,0,2)*=-1;
 			}
-			applyGeometry(BSPLINE3,Ip(),I(),A,IS_NOT_INV,DONT_WRAP);
+			applyGeometry(xmipp_transformation::BSPLINE3,Ip(),I(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 			if (optimizeGrayValues)
 			{
 				MultidimArray<double> &mIp=Ip();
@@ -640,7 +659,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 
 #ifdef DEBUG
     std::cout << "p=" << p << std::endl;
-    MetaData MDaux;
+    MetaDataVec MDaux;
     MDaux.addRow(rowOut);
     MDaux.write("PPPmd.xmd");
     Image<double> save;
@@ -664,40 +683,40 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 
 void ProgAngularContinuousAssign2::postProcess()
 {
-	MetaData &ptrMdOut=*getOutputMd();
+	MetaData &ptrMdOut = getOutputMd();
 	ptrMdOut.removeDisabled();
 	if (contCost==CONTCOST_L1)
 	{
 		double minCost=1e38;
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
 			if (cost<minCost)
 				minCost=cost;
 		}
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
-			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,minCost/cost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
+			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,minCost/cost,objId);
 		}
 	}
 	else
 	{
 		double maxCost=-1e38;
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
 			if (cost>maxCost)
 				maxCost=cost;
 		}
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
-			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,cost/maxCost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
+			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,cost/maxCost,objId);
 		}
 	}
 

@@ -23,11 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/fourier_filter.h>
-
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
-#include <core/xmipp_program.h>
+#include "core/metadata_vec.h"
+#include "core/xmipp_program.h"
+#include "data/fourier_filter.h"
 
 /**@defgroup CorrectAmplitude3D ctf_correct_amplitude3D (3D Wiener filtering)
    @ingroup ReconsLibrary */
@@ -57,7 +55,7 @@ public:
     FourierFilter ctf;
     
     /// Side Info: ctfdat
-    MetaData ctfdat;
+    MetaDataVec ctfdat;
 
     /// The 3D CTFs and Wiener filters
     std::vector< MultidimArray<double> > Vctfs1D, Vwien1D;

@@ -25,19 +25,15 @@
  ***************************************************************************/
 
 #include "transform_dimred.h"
-#include <data/mask.h>
-#include <core/matrix1d.h>
-#include <core/matrix2d.h>
-#include <time.h>
-#include "diffusionMaps.h"
+#include "core/metadata_extension.h"
 
 void ProgTransformDimRed::readParams()
 {
-	ProgDimRed::readParams();
+    ProgDimRed::readParams();
     if (checkParam("--randomSample"))
     {
-    	fnRandomSampling  = getParam("--randomSample",0);
-    	numGrids  =  getIntParam("--randomSample",1);
+        fnRandomSampling  = getParam("--randomSample",0);
+        numGrids  =  getIntParam("--randomSample",1);
     }
     distance=getParam("--distance");
 }
@@ -47,26 +43,26 @@ void ProgTransformDimRed::show()
 {
     if (verbose>0)
     {
-    	ProgDimRed::show();
-    	std::cout << "Distance:      " << distance << std::endl;
-    	if (fnRandomSampling!="")
-    		std::cout << "Random sample output:     " << fnRandomSampling << std::endl
-    				  << "Number of sampling grids: " << numGrids         << std::endl;
+        ProgDimRed::show();
+        std::cout << "Distance:      " << distance << std::endl;
+        if (fnRandomSampling!="")
+            std::cout << "Random sample output:     " << fnRandomSampling << std::endl
+                      << "Number of sampling grids: " << numGrids         << std::endl;
     }
 }
 
 // usage ===================================================================
 void ProgTransformDimRed::defineParams()
 {
-	addUsageLine("This program takes an input metadata and projects each image onto a lower dimensional space using the selected method");
-	setDefaultComment("-i","Input metadata");
-	setDefaultComment("-o","Output metadata");
-	ProgDimRed::defineParams();
+    addUsageLine("This program takes an input metadata and projects each image onto a lower dimensional space using the selected method");
+    setDefaultComment("-i","Input metadata");
+    setDefaultComment("-o","Output metadata");
+    ProgDimRed::defineParams();
     addParamsLine("  [--distance <d=Correlation>]    : Distance between images");
     addParamsLine("    where <d>");
     addParamsLine("         Euclidean:    Euclidean distance between images, no alignment");
     addParamsLine("         Correlation:  Correlation between images after alignment");
-	addParamsLine("  [--randomSample <file> <num=3>] : Generates a random sample of the reduced map with num grids in each direction");
+    addParamsLine("  [--randomSample <file> <num=3>] : Generates a random sample of the reduced map with num grids in each direction");
     addExampleLine("xmipp_transform_dimred -i images.xmd --randomSample randomSample.xmd");
 }
 
@@ -88,9 +84,9 @@ double correlationDistance(const Matrix2D<double> &X, size_t i1, size_t i2)
 
 void ProgTransformDimRed::produceSideInfo()
 {
-	ProgDimRed::produceSideInfo();
+    ProgDimRed::produceSideInfo();
 
-	// Read input selfile
+    // Read input selfile
     SFin.read(fnIn);
     if (SFin.size()==0)
         return;
@@ -100,7 +96,7 @@ void ProgTransformDimRed::produceSideInfo()
     //JV I do not know why is this line below here and who has written!
     //numGrids=floor(sqrt((double)(SFin.size())));
 
-    MetaData SFaux;
+    MetaDataVec SFaux;
     SFaux.removeDuplicates(SFin,MDL_IMAGE);
     SFin=SFaux;
 
@@ -120,19 +116,19 @@ void ProgTransformDimRed::produceSideInfo()
     // Copy images
     Image<double> img;
     size_t index = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(SFin)
+    for (size_t objId : SFin.ids())
     {
-        img.readApplyGeo(SFin,__iter.objId);
-        insertImageInDataMatrix(index++,img());
+        img.readApplyGeo(SFin, objId);
+        insertImageInDataMatrix(index++, img());
     }
-	algorithm->setInputData(X);
+    algorithm->setInputData(X);
 
     // Set distance
     prog=this;
     if (distance=="Correlation")
-    	algorithm->distance=&correlationDistance;
+        algorithm->distance=&correlationDistance;
     else
-    	algorithm->distance=NULL;
+        algorithm->distance=NULL;
 }
 
 void ProgTransformDimRed::insertImageInDataMatrix(size_t index, const MultidimArray<double> &mImg)
@@ -170,16 +166,16 @@ void ProgTransformDimRed::extractRandomProjections()
     std::vector< Matrix1D< double > > coor;
     Matrix1D<double> dummy;
     dummy.resizeNoCopy(numParticles);
-    for (int n=0; n<outputDim; ++n)
-    	coor.push_back(dummy);
+    for (int n = 0; n < outputDim; ++n)
+        coor.push_back(dummy);
 
     // Keep the reduced coefficients
-    size_t i=0;
-    FOR_ALL_OBJECTS_IN_METADATA(SFin)
+    size_t i = 0;
+    for (size_t objId : SFin.ids())
     {
-        SFin.getValue(MDL_DIMRED,dimredProj,__iter.objId);
-        for (int n=0; n<outputDim; ++n)
-        	VEC_ELEM(coor[n],i)=dimredProj[n];
+        SFin.getValue(MDL_DIMRED, dimredProj, objId);
+        for (int n = 0; n < outputDim; ++n)
+            VEC_ELEM(coor[n],i) = dimredProj[n];
         i++;
     }
 
@@ -187,10 +183,10 @@ void ProgTransformDimRed::extractRandomProjections()
     std::vector<double> minCoor, maxCoor;
     for (int n=0; n<outputDim; ++n)
     {
-    	double minval, maxval;
-    	coor[n].computeMinMax(minval, maxval);
-    	minCoor.push_back(minval);
-    	maxCoor.push_back(maxval);
+        double minval, maxval;
+        coor[n].computeMinMax(minval, maxval);
+        minCoor.push_back(minval);
+        maxCoor.push_back(maxval);
 
     }
 
@@ -202,16 +198,16 @@ void ProgTransformDimRed::extractRandomProjections()
 
     for (size_t i=0; i<numParticles; i++)
     {
-    	int index=0;
-    	for (int n=(outputDim-1); n>=0; --n)
-    	{
-    		index*=num;
-    		//std::cout << "minCoor : " << minCoor[n] << std::endl;
-    		//std::cout << "maxCoor : " << maxCoor[n] << std::endl;
-    		//std::cout << "VEC_ELEM(coor[n],i) : " << VEC_ELEM(coor[n],i) << std::endl;
+        int index=0;
+        for (int n=(outputDim-1); n>=0; --n)
+        {
+            index*=num;
+            //std::cout << "minCoor : " << minCoor[n] << std::endl;
+            //std::cout << "maxCoor : " << maxCoor[n] << std::endl;
+            //std::cout << "VEC_ELEM(coor[n],i) : " << VEC_ELEM(coor[n],i) << std::endl;
 
-    		index+=(int)floor(( ( VEC_ELEM(coor[n],i) - minCoor[n]) / (maxCoor[n] - minCoor[n]))*num);
-    	}
+            index+=(int)floor(( ( VEC_ELEM(coor[n],i) - minCoor[n]) / (maxCoor[n] - minCoor[n]))*num);
+        }
 
 
         MAT_ELEM(squares,VEC_ELEM(numElems,index),index)=i;
@@ -226,10 +222,10 @@ void ProgTransformDimRed::extractRandomProjections()
     std::vector<Matrix1D<double> > selectedCoor;
     dummy.resizeNoCopy(numElemFirstRow);
     for (int n=0; n<outputDim; ++n)
-    	selectedCoor.push_back(dummy);
+        selectedCoor.push_back(dummy);
 
     //Metadata with the well sampled projection and random projections assigned
-    MetaData SFout;
+    MetaDataVec SFout;
     int indx = 0;
     randomize_random_generator();
     std::vector<String> fnImg;
@@ -238,9 +234,9 @@ void ProgTransformDimRed::extractRandomProjections()
     {
         if (MAT_ELEM(squares,0,k)!=0)
         {
-        	int randomN = round((rnd_unif(0,1))*VEC_ELEM(numElems,k));
+            int randomN = round((rnd_unif(0,1))*VEC_ELEM(numElems,k));
             for (int n=0; n<outputDim; ++n)
-            	VEC_ELEM(selectedCoor[n],indx)=VEC_ELEM(coor[n],MAT_ELEM(squares,randomN,k));
+                VEC_ELEM(selectedCoor[n],indx)=VEC_ELEM(coor[n],MAT_ELEM(squares,randomN,k));
             size_t id=SFout.addObject();
             SFout.setValue(MDL_IMAGE,fnImg[MAT_ELEM(squares,randomN,k)],id);
             SFout.setValue(MDL_ANGLE_ROT,(rnd_unif(0,360)-180),id);
@@ -251,7 +247,6 @@ void ProgTransformDimRed::extractRandomProjections()
         }
     }
 
-    std::cout << " fnRandomSampling : " << fnRandomSampling << std::endl;
     SFout.write(fnRandomSampling);
 }
 
@@ -262,7 +257,7 @@ void ProgTransformDimRed::run()
 
     produceSideInfo();
     if (outputDim<0)
-    	estimateDimension();
+        estimateDimension();
 
     if (!SFin.containsLabel(MDL_DIMRED))
     {
@@ -273,16 +268,16 @@ void ProgTransformDimRed::run()
         dimredProj.resize(outputDim);
         int i=0;
         const Matrix2D<double> &Y=algorithm->getReducedData();
-        FOR_ALL_OBJECTS_IN_METADATA(SFin)
+        for (size_t objId : SFin.ids())
         {
             memcpy(&dimredProj[0],&MAT_ELEM(Y,i,0),outputDim*sizeof(double));
-            SFin.setValue(MDL_DIMRED,dimredProj,__iter.objId);
+            SFin.setValue(MDL_DIMRED, dimredProj, objId);
             i++;
         }
 
-        SFin.write(fnIn,MD_OVERWRITE);
+        SFin.write(fnIn,MD_APPEND);
     }
 
     if (fnRandomSampling!="")
-    	extractRandomProjections();
+        extractRandomProjections();
 }

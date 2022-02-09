@@ -27,10 +27,10 @@
 #ifndef _PROG_CTF_ESTIMATE_FROM_MICROGRAPH
 #define _PROG_CTF_ESTIMATE_FROM_MICROGRAPH
 
+#include "core/xmipp_program.h"
 #include "ctf_estimate_from_psd.h"
 #include "ctf_estimate_from_psd_fast.h"
 #include "ctf_estimate_psd_with_arma.h"
-#include "ctf_estimate_from_psd_base.h"
 
 /**@defgroup AssignCTF ctf_estimate_from_micrograph (CTF estimation from a micrograph)
    @ingroup ReconsLibrary

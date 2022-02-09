@@ -57,10 +57,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 #ifndef _PROG_MOVIE_FILTER_DOSE
 #define _PROG_MOVIE_FILTER_DOSE
 
-#include <core/xmipp_program.h>
-#include <cmath>
-#include <limits>
-#include <complex>      // std::complex, std::abs
+#include <complex>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+
+template<typename T>
+class MultidimArray;
 
 /**@defgroup MovieAlignmentCorrelation Movie alignment by correlation
    @ingroup ReconsLibrary */

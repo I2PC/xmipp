@@ -230,9 +230,9 @@ void ProgTomoExtractSubvolume::processImage(const FileName &fnImg2
 #endif
 
     //    for (int imgno=imgno_start; imgno <imgno_end; imgno++)
-    rowIn.getValue(MDL_ANGLE_ROT,rot);
-    rowIn.getValue(MDL_ANGLE_TILT,tilt);
-    rowIn.getValue(MDL_ANGLE_PSI,psi);
+    rot = rowIn.getValueOrDefault(MDL_ANGLE_ROT, 0.);
+    tilt = rowIn.getValueOrDefault(MDL_ANGLE_TILT, 0.);
+    psi = rowIn.getValueOrDefault(MDL_ANGLE_PSI, 0.);
 
     double auxD;
     rowIn.getValue(MDL_ORIGIN_X,auxD);
@@ -253,7 +253,7 @@ void ProgTomoExtractSubvolume::processImage(const FileName &fnImg2
 
     FileName fnOutStack, fnOutMd;
 
-    size_t image_num;
+    size_t image_num = 0;
     FileName dump;
     if (mdInSize > 1)// Other case, is a unique volume name so there is no need to add the number
     {
@@ -308,7 +308,7 @@ void ProgTomoExtractSubvolume::processImage(const FileName &fnImg2
         center -= doccenter;
         // 3. Apply possible non-integer center to volume
         //translations may be non-integer
-        translate(BSPLINE3,volout(),vol(),center);
+        translate(xmipp_transformation::BSPLINE3,volout(),vol(),center);
 
         //vol().translate(-center, volout(), DONT_WRAP);
         //4. Window operation and write subvolume to disc

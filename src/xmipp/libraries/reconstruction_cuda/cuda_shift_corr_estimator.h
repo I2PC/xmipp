@@ -31,7 +31,14 @@
 #include "data/fft_settings_new.h"
 #include "cuda_fft.h"
 #include "gpu.h"
+#include <thread>
+#include <condition_variable>
 
+#include "cuda_single_extrema_finder.h"
+
+/**@defgroup CudaShiftCorrEstimator CudaShiftCorrEstimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -45,8 +52,9 @@ public:
         release();
     }
 
-    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
-            bool includingBatchFT=false, bool includingSingleFT=false) override;
+    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+            bool includingBatchFT, bool includingSingleFT,
+            bool allowDataOverwrite) override;
 
     void release();
 
@@ -63,10 +71,10 @@ public:
         const Dimensions &dims,
         bool center) override;
 
-    void computeShift2DOneToN(T *h_others) override;
+    void computeShift2DOneToN(T *others) override;
 
     static std::vector<Point2D<float>> computeShifts2DOneToN(
-        const GPU &gpu,
+        const std::vector<GPU*> &gpus,
         std::complex<T> *d_othersF,
         T *d_othersS,
         std::complex<T> *d_ref,
@@ -82,17 +90,28 @@ public:
         const std::complex<T> *d_ref,
         const Dimensions &dims);
 
+    HW& getHW() const override {
+        return *m_workStream;
+    }
+
 private:
-    const GPU *m_gpu;
+    GPU *m_loadStream;
+    GPU *m_workStream;
 
     // device memory
     std::complex<T> *m_d_single_FD;
     std::complex<T> *m_d_batch_FD;
     T *m_d_single_SD;
-    T *m_d_batch_SD;
+    T *m_d_batch_SD_work;
+    T *m_d_batch_SD_load;
 
     // host memory
     T *m_h_centers;
+
+    // synch primitives
+    std::mutex *m_mutex;
+    std::condition_variable *m_cv;
+    bool m_isDataReady;
 
     // FT plans
     cufftHandle *m_singleToFD;
@@ -106,11 +125,13 @@ private:
     void init2DOneToN() override;
     void setDefault();
     void check() override;
+    void loadThreadRoutine(T *others);
+    void waitAndConvert();
     using AShiftEstimator<T>::init2D;
 };
 
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_ */
 

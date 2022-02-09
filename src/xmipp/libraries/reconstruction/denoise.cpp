@@ -24,12 +24,9 @@
  ***************************************************************************/
 
 #include "denoise.h"
-#include <core/args.h>
-#include <data/wavelet.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-
-#include <iomanip>
+#include "core/xmipp_program.h"
+#include "core/histogram.h"
+#include "data/wavelet.h"
 
 // Empty constructor -------------------------------------------------------
 WaveletFilter::WaveletFilter()
@@ -189,7 +186,7 @@ void WaveletFilter::apply(MultidimArray<double> &img)
         }
             if (output_scale != 0)
             {
-                int reduction = (int)pow(2.0, output_scale);
+                auto reduction = (int)pow(2.0, output_scale);
                 img.resize(YSIZE(img) / reduction, XSIZE(img) / reduction);
             }
             IDWT(img, img);
@@ -238,7 +235,7 @@ void WaveletFilter::apply(MultidimArray<double> &img)
 
         if (output_scale != 0)
         {
-            int reduction = (int)pow(2.0, output_scale);
+            auto reduction = (int)pow(2.0, output_scale);
             img.resizeNoCopy(ZSIZE(img) / reduction, YSIZE(img) / reduction, XSIZE(img) / reduction);
         }
         IDWT(img, img);
@@ -253,7 +250,7 @@ void WaveletFilter::denoiseAvgBayesian(MultidimArray<double> &vol)
 
     if (output_scale != 0)
     {
-        int reduction = (int)pow(2.0, output_scale);
+        auto reduction = (int)pow(2.0, output_scale);
         vol.resizeNoCopy(ZSIZE(vol) / reduction, YSIZE(vol) / reduction, XSIZE(vol) / reduction);
     }
     IDWT(vol, vol);

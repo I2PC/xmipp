@@ -23,10 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
-#include <data/ctf.h>
-#include <data/filters.h>
+#include "python_image.h"
+#include "python_metadata.h"
+#include "core/transformations.h"
 #include "data/dimensions.h"
+#include "data/filters.h"
 #include "reconstruction/psd_estimator.h"
 
 /***************************************************************/
@@ -38,7 +39,7 @@ void Image_dealloc(ImageObject* self)
 {
 
     delete self->image;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }//function Image_dealloc
 
 
@@ -48,48 +49,22 @@ PyNumberMethods Image_NumberMethods =
         Image_add, //binaryfunc  nb_add;
         Image_subtract, //binaryfunc  nb_subtract;
         Image_multiply, //binaryfunc  nb_multiply;
-        Image_divide, //binaryfunc  nb_divide;
-        0, //binaryfunc  nb_remainder;
-        0, //binaryfunc  nb_divmod;
-        0, //ternaryfunc nb_power;
-        0, //unaryfunc nb_negative;
-        0, //unaryfunc nb_positive;
-        0, //unaryfunc nb_absolute;
-        0, //inquiry nb_nonzero;       /* Used by PyObject_IsTrue */
-        0, //unaryfunc nb_invert;
-        0, //binaryfunc  nb_lshift;
-        0, //binaryfunc  nb_rshift;
-        0, //binaryfunc  nb_and;
-        0, //binaryfunc  nb_xor;
-        0, //binaryfunc  nb_or;
-        0, //coercion nb_coerce;       /* Used by the coerce() function */
-        0, //unaryfunc nb_int;
-        0, //unaryfunc nb_long;
-        0, //unaryfunc nb_float;
-        0, //unaryfunc nb_oct;
-        0, //unaryfunc nb_hex;
-
+        // TODO: division no longer works,  I do not know why
+        // may be related with the fact that division in python3
+        // does not work as it use to do in python 2
+        Image_true_divide, //binaryfunc  nb_divide;
+        nullptr, //binaryfunc  nb_remainder;
+        nullptr, //binaryfunc  nb_divmod;
+        nullptr, //ternaryfunc nb_power;
+        nullptr, //unaryfunc nb_negative;
+        nullptr, //unaryfunc nb_positive;
+        nullptr, //unaryfunc nb_absolute;
+        nullptr, //inquiry nb_nonzero;       /* Used by PyObject_IsTrue */
         /* Added in release 2.0 */
         Image_iadd, //binaryfunc  nb_inplace_add;
         Image_isubtract, //binaryfunc  nb_inplace_subtract;
         Image_imultiply, //binaryfunc  nb_inplace_multiply;
         Image_idivide, //binaryfunc  nb_inplace_divide;
-        0, //binaryfunc  nb_inplace_remainder;
-        0, //ternaryfunc nb_inplace_power;
-        0, //binaryfunc  nb_inplace_lshift;
-        0, //binaryfunc  nb_inplace_rshift;
-        0, //binaryfunc  nb_inplace_and;
-        0, //binaryfunc  nb_inplace_xor;
-        0, //binaryfunc  nb_inplace_or;
-
-        /* Added in release 2.2 */
-        0, //binaryfunc  nb_floor_divide;
-        0, //binaryfunc  nb_true_divide;
-        0, //binaryfunc  nb_inplace_floor_divide;
-        0, //binaryfunc  nb_inplace_true_divide;
-
-        /* Added in release 2.5 */
-        0 //unaryfunc nb_index;
     };//Image_NumberMethods
 
 /* Image methods */
@@ -124,6 +99,8 @@ PyMethodDef Image_methods[] =
           "mirror image so up goes down" },
         { "applyTransforMatScipion", (PyCFunction) Image_applyTransforMatScipion, METH_VARARGS,
           "apply transformationMatrix as defined by EMX and used by Scipion" },
+		{ "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
+		  "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
         { "initRandom", (PyCFunction) Image_initRandom, METH_VARARGS,
           "Initialize to random value" },
         { "resize", (PyCFunction) Image_resize, METH_VARARGS,
@@ -132,6 +109,8 @@ PyMethodDef Image_methods[] =
           "Scale the image" },
         { "reslice", (PyCFunction) Image_reslice, METH_VARARGS,
             "Change the slices order in a volume" },
+		{ "writeSlices", (PyCFunction) Image_writeSlices, METH_VARARGS,
+		  "Write slices as separate files (rootname, extension, axis). Axis is 'X', 'Y' or 'Z'" },
         { "patch", (PyCFunction) Image_patch, METH_VARARGS,
           "Make a patch with other image" },
         { "getDataType", (PyCFunction) Image_getDataType, METH_VARARGS,
@@ -164,6 +143,8 @@ PyMethodDef Image_methods[] =
           "I1=I1-adjusted(I2)" },
 		{ "correlation", (PyCFunction) Image_correlation, METH_VARARGS,
 		  "correlation(I1,I2)" },
+		{ "correlationAfterAlignment", (PyCFunction) Image_correlationAfterAlignment, METH_VARARGS,
+		  "correlationAfterAlignment(I1,I2). I2 is aligned to I1 (including mirrors), and then the correlation is returned" },
         { "inplaceAdd", (PyCFunction) Image_inplaceAdd, METH_VARARGS,
           "Add another image to self (does not create another Image instance)" },
         { "inplaceSubtract", (PyCFunction) Image_inplaceSubtract, METH_VARARGS,
@@ -172,16 +153,20 @@ PyMethodDef Image_methods[] =
           "Multiply image by a constant or another image (does not create a new Image instance)" },
         { "inplaceDivide", (PyCFunction) Image_inplaceDivide, METH_VARARGS,
           "Divide image by a constant (does not create another Image instance)" },
+        { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
+          "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
+		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
+		  "compute radial average around an axis" },
+        { "centerOfMass", (PyCFunction) Image_centerOfMass, METH_VARARGS,
+          "Return image center of mass as a tuple" },
 
-
-        { NULL } /* Sentinel */
+        { nullptr } /* Sentinel */
     };//Image_methods
 
 
 /*Image Type */
 PyTypeObject ImageType = {
-                             PyObject_HEAD_INIT(NULL)
-                             0, /*ob_size*/
+                             PyObject_HEAD_INIT(nullptr)
                              "xmipp.Image", /*tp_name*/
                              sizeof(ImageObject), /*tp_basicsize*/
                              0, /*tp_itemsize*/
@@ -189,7 +174,7 @@ PyTypeObject ImageType = {
                              0, /*tp_print*/
                              0, /*tp_getattr*/
                              0, /*tp_setattr*/
-                             Image_compare, /*tp_compare*/
+                             0, /*tp_compare*/
                              Image_repr, /*tp_repr*/
                              &Image_NumberMethods, /*tp_as_number*/
                              0, /*tp_as_sequence*/
@@ -200,11 +185,11 @@ PyTypeObject ImageType = {
                              0, /*tp_getattro*/
                              0, /*tp_setattro*/
                              0, /*tp_as_buffer*/
-                             Py_TPFLAGS_DEFAULT | Py_TPFLAGS_CHECKTYPES, /*tp_flags*/
+                             Py_TPFLAGS_DEFAULT, /*tp_flags*/
                              "Python wrapper to Xmipp Image class",/* tp_doc */
                              0, /* tp_traverse */
                              0, /* tp_clear */
-                             0, /* tp_richcompare */
+                             Image_RichCompareBool, /* tp_richcompare */
                              0, /* tp_weaklistoffset */
                              0, /* tp_iter */
                              0, /* tp_iternext */
@@ -225,14 +210,14 @@ PyTypeObject ImageType = {
 PyObject *
 Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) type->tp_alloc(type, 0);
-    if (self != NULL)
+    ImageObject *self = (ImageObject*)type->tp_alloc(type, 0);
+    if (self != nullptr)
     {
-        PyObject *input = NULL;
+        PyObject *input = nullptr;
 
         if (PyArg_ParseTuple(args, "|O", &input))
         {
-            if (input != NULL)
+            if (input != nullptr)
             {
                 try
                 {
@@ -241,38 +226,39 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     if (PyTuple_Check(input))
                     {
                       // Get the index and filename from the Python tuple object
-                      size_t index = PyInt_AsSsize_t(PyTuple_GetItem(input, 0));
-                      const char * filename = PyString_AsString(PyTuple_GetItem(input, 1));
+                      size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
+                      PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
+                      const char * filename = PyUnicode_AsUTF8(repr);
                       // Now read using both of index and filename
                       self->image = new ImageGeneric();
                       self->image->read(filename, DATA, index);
 
                     }
-                    else if ((pyStr = PyObject_Str(input)) != NULL)
+                    else if ((pyStr = PyObject_Str(input)) != nullptr)
                     {
-                        self->image = new ImageGeneric(PyString_AsString(pyStr));
+                        self->image = new ImageGeneric(PyUnicode_AsUTF8(pyStr));
                         //todo: add copy constructor
                     }
                     else
                     {
                         PyErr_SetString(PyExc_TypeError,
                                         "Image_new: Expected string, FileName or tuple as first argument");
-                        return NULL;
+                        return nullptr;
                     }
                 }
                 catch (XmippError &xe)
                 {
                     PyErr_SetString(PyXmippError, xe.msg.c_str());
-                    return NULL;
+                    return nullptr;
                 }
             }
             else
                 self->image = new ImageGeneric();
         }
         else
-            return NULL;
+            return nullptr;
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }//function Image_new
 
 /* Image string representation */
@@ -282,28 +268,41 @@ Image_repr(PyObject * obj)
     ImageObject *self = (ImageObject*) obj;
     String s;
     self->image->toString(s);
-    return PyString_FromString(s.c_str());
+    return PyUnicode_FromString(s.c_str());
 }//function Image_repr
 
 /* Image compare function */
-int
-Image_compare(PyObject * obj, PyObject * obj2)
+PyObject*
+Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
 {
-    int result = -1;
-
-    if (obj != NULL && obj2 != NULL)
+    if (obj != nullptr && obj2 != nullptr)
     {
         try
         {
-            if (Image_Value(obj) == Image_Value(obj2))
-                result = 0;
+            if (opid == Py_EQ)
+                {
+                    if (Image_Value(obj) == Image_Value(obj2))
+                        Py_RETURN_TRUE;
+                    else
+                       Py_RETURN_FALSE;
+                }
+            else if  (opid == Py_NE)
+                    {
+                        if (Image_Value(obj) == Image_Value(obj2))
+                            Py_RETURN_FALSE;
+                        else
+                           Py_RETURN_TRUE;
+                    }
+            else
+                return Py_NotImplemented;
+
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return result;
+    return nullptr;
 }//function Image_compare
 
 /* Compare two images up to a precision */
@@ -312,10 +311,10 @@ Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     XMIPP_TRY
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
         double precision = 1.e-3;
-        PyObject *image2 = NULL;
+        PyObject *image2 = nullptr;
         if (PyArg_ParseTuple(args, "O|d", &image2, &precision))
         {
             try
@@ -332,7 +331,7 @@ Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     XMIPP_CATCH
-    return NULL;
+    return nullptr;
 }//function Image_equal
 
 /* write */
@@ -340,9 +339,9 @@ PyObject *
 Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *input = NULL;
+        PyObject *input = nullptr;
         if (PyArg_ParseTuple(args, "O", &input))
         {
             try
@@ -352,8 +351,9 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
               if (PyTuple_Check(input))
               {
                 // Get the index and filename from the Python tuple object
-                size_t index = PyInt_AsSsize_t(PyTuple_GetItem(input, 0));
-                const char * filename = PyString_AsString(PyTuple_GetItem(input, 1));
+                size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
+                PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
+                const char * filename = PyUnicode_AsUTF8(repr);
                 // Now read using both of index and filename
                 bool isStack = (index > 0);
                 WriteMode writeMode = isStack ? WRITE_REPLACE : WRITE_OVERWRITE;
@@ -361,9 +361,10 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
 
                 Py_RETURN_NONE;
               }
-              if ((pyStr = PyObject_Str(input)) != NULL)
+              if ((pyStr = PyObject_Str(input)) != nullptr)
               {
-                  self->image->write(PyString_AsString(input));
+                  const char * filename = PyUnicode_AsUTF8(pyStr);
+                  self->image->write(filename);
                   Py_RETURN_NONE;
               }
               else
@@ -378,7 +379,7 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_write
 
 /* read */
@@ -387,29 +388,30 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
         int datamode = DATA;
-        PyObject *input = NULL;
+        PyObject *input = nullptr;
         if (PyArg_ParseTuple(args, "O|i", &input, &datamode))
         {
 
             try
             {
-              PyObject *pyStr;
+              PyObject *pyStr, *pyStr1;
               // If the input object is a tuple, consider it (index, filename)
               if (PyTuple_Check(input))
               {
                 // Get the index and filename from the Python tuple object
-                size_t index = PyInt_AsSsize_t(PyTuple_GetItem(input, 0));
-                const char * filename = PyString_AsString(PyTuple_GetItem(input, 1));
+                size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
+                PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
+                const char *filename = PyUnicode_AsUTF8(repr);
                 // Now read using both of index and filename
                 self->image->read(filename,(DataMode)datamode, index);
                 Py_RETURN_NONE;
               }
-              else if ((pyStr = PyObject_Str(input)) != NULL)
+              else if ((pyStr = PyObject_Str(input)) != nullptr)
               {
-                  self->image->read(PyString_AsString(pyStr),(DataMode)datamode);
+                  self->image->read(PyUnicode_AsUTF8(pyStr),(DataMode)datamode);
                   Py_RETURN_NONE;
               }
               else
@@ -424,7 +426,7 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_read
 
 void readImagePreview(ImageGeneric *ig, FileName fn, size_t xdim, int slice)
@@ -444,9 +446,9 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *input = NULL;
+        PyObject *input = nullptr;
         int x = 0;
         int slice = CENTRAL_SLICE;
 
@@ -455,9 +457,9 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
             try
             {
               PyObject *pyStr;
-              if ((pyStr = PyObject_Str(input)) != NULL)
+              if ((pyStr = PyObject_Str(input)) != nullptr)
               {
-                  readImagePreview(self->image, PyString_AsString(pyStr), x, slice);
+                  readImagePreview(self->image, PyUnicode_AsUTF8(pyStr), x, slice);
                   Py_RETURN_NONE;
               }
               else
@@ -474,7 +476,7 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
         else
           PyErr_SetString(PyXmippError,"Error with input arguments, expected filename and optional size");
     }
-    return NULL;
+    return nullptr;
 }//function Image_readPreview
 
 /* read preview, downsampling in Fourier space*/
@@ -483,9 +485,9 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *input = NULL;
+        PyObject *input = nullptr;
         int x;
         if (PyArg_ParseTuple(args, "Oi", &input, &x))
         {
@@ -493,10 +495,10 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
 
               PyObject *pyStr;
-              if ((pyStr = PyObject_Str(input)) != NULL)
+              if ((pyStr = PyObject_Str(input)) != nullptr)
               {
-                self->image->readPreviewSmooth(PyString_AsString(pyStr), x);
-                  Py_RETURN_NONE;
+                self->image->readPreviewSmooth(PyUnicode_AsUTF8(pyStr), x);
+                Py_RETURN_NONE;
               }
               else
               {
@@ -510,7 +512,7 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_readPreviewSmooth
 
 
@@ -584,7 +586,7 @@ class NumpyStaticImport
 public:
     NumpyStaticImport()
     {
-        import_array();
+        _import_array();
     }
 }
 ;//class NumpyStaticImport
@@ -598,7 +600,7 @@ Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -627,7 +629,7 @@ Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_getData
 
 
@@ -637,9 +639,9 @@ PyObject *
 Image_setData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    PyArrayObject * arr = NULL;
+    PyArrayObject * arr = nullptr;
 
-    if (self != NULL && PyArg_ParseTuple(args, "O", &arr))
+    if (self != nullptr && PyArg_ParseTuple(args, "O", &arr))
     {
         try
         {
@@ -665,7 +667,7 @@ Image_setData(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_setData
 
 /* getPixel */
@@ -676,7 +678,7 @@ Image_getPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
     int i, j, k, n;
     double value;
 
-    if (self != NULL && PyArg_ParseTuple(args, "iiii", &n, &k, &i, &j ))
+    if (self != nullptr && PyArg_ParseTuple(args, "iiii", &n, &k, &i, &j ))
     {
         try
         {
@@ -692,7 +694,7 @@ Image_getPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_getPixel
 
 /* setPixel */
@@ -703,7 +705,7 @@ Image_setPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
     int i, j, k, n;
     double value = -1;
 
-    if (self != NULL && PyArg_ParseTuple(args, "iiiid", &n, &k, &i, &j, &value))
+    if (self != nullptr && PyArg_ParseTuple(args, "iiiid", &n, &k, &i, &j, &value))
     {
         try
         {
@@ -719,7 +721,7 @@ Image_setPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_setPixel
 
 /* initConstant */
@@ -729,7 +731,7 @@ Image_initConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     double value = -1;
 
-    if (self != NULL && PyArg_ParseTuple(args, "d", &value))
+    if (self != nullptr && PyArg_ParseTuple(args, "d", &value))
     {
         try
         {
@@ -741,7 +743,7 @@ Image_initConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_initConstant
 
 /* initConstant */
@@ -758,7 +760,7 @@ Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }//function Image_initConstant
 
 /* initRandom */
@@ -771,7 +773,7 @@ Image_initRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
     RandomMode mode = RND_UNIFORM;
     int pyMode = -1;
 
-    if (self != NULL && PyArg_ParseTuple(args, "|ddi", &op1, &op2, &pyMode))
+    if (self != nullptr && PyArg_ParseTuple(args, "|ddi", &op1, &op2, &pyMode))
     {
         try
         {
@@ -786,7 +788,7 @@ Image_initRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_initRandom
 
 /* Resize Image */
@@ -797,7 +799,7 @@ Image_resize(PyObject *obj, PyObject *args, PyObject *kwargs)
     int xDim = 0, yDim = 0, zDim = 1;
     size_t nDim = 1;
 
-    if (self != NULL && PyArg_ParseTuple(args, "ii|in", &xDim, &yDim, &zDim, &nDim))
+    if (self != nullptr && PyArg_ParseTuple(args, "ii|in", &xDim, &yDim, &zDim, &nDim))
     {
         try
         {
@@ -809,7 +811,7 @@ Image_resize(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_resize
 
 /* Scale Image */
@@ -818,13 +820,18 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
     int xDim = 0, yDim = 0, zDim = 1;
-
-    if (self != NULL && PyArg_ParseTuple(args, "ii|i", &xDim, &yDim, &zDim))
+    int forceVolume=0;
+    if (self != nullptr && PyArg_ParseTuple(args, "ii|ii", &xDim, &yDim, &zDim, &forceVolume))
     {
         try
         {
-            MULTIDIM_ARRAY_GENERIC(Image_Value(self)).setXmippOrigin();
-            selfScaleToSize(BSPLINE2, MULTIDIM_ARRAY_GENERIC(Image_Value(self)), xDim, yDim, zDim);
+            MultidimArrayGeneric& I=MULTIDIM_ARRAY_GENERIC(Image_Value(self));
+            I.setXmippOrigin();
+            size_t xdim, ydim, zdim, ndim;
+            I.getDimensions(xdim, ydim, zdim, ndim);
+            if (forceVolume && zdim==1 && ndim>1)
+               I.setDimensions(xdim,ydim,ndim,1);
+            selfScaleToSize(xmipp_transformation::LINEAR, I, xDim, yDim, zDim);
             Py_RETURN_NONE;
         }
         catch (XmippError &xe)
@@ -832,7 +839,7 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_scale
 
 /* Change the slices order in a volume */
@@ -842,7 +849,7 @@ Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     int axis = VIEW_Z_NEG;
 
-    if (self != NULL && PyArg_ParseTuple(args, "i", &axis))
+    if (self != nullptr && PyArg_ParseTuple(args, "i", &axis))
     {
         try
         {
@@ -854,8 +861,56 @@ Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_reslice
+
+/* Change the slices order in a volume */
+PyObject *
+Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (self != nullptr)
+    {
+        PyObject *oRootname = nullptr;
+        PyObject *oExt = nullptr;
+        PyObject *oAxis = nullptr;
+        if (PyArg_ParseTuple(args, "OOO", &oRootname, &oExt, &oAxis))
+        {
+            try
+            {
+                // Get the index and filename from the Python tuple object
+                const char * rootname = PyUnicode_AsUTF8(PyObject_Str(oRootname));
+                const char * ext = PyUnicode_AsUTF8(PyObject_Str(oExt));
+                const char * axis = PyUnicode_AsUTF8(PyObject_Str(oAxis));
+                // Now read using both of index and filename
+
+                ImageGeneric Iout;
+                Iout.setDatatype(self->image->getDatatype());
+
+				size_t xdim, ydim, zdim, ndim;
+				MULTIDIM_ARRAY_GENERIC(*(self->image)).getDimensions(xdim, ydim, zdim, ndim);
+				size_t N=zdim;
+				char caxis=axis[0];
+                if (caxis=='Y')
+                	N=ydim;
+                else if (caxis=='X')
+                	N=xdim;
+                for (size_t n=0; n<N; n++)
+                {
+                	MULTIDIM_ARRAY_GENERIC(*(self->image)).getSlice(n,&MULTIDIM_ARRAY_GENERIC(Iout),caxis);
+                	Iout.write(formatString("%s_%04d.%s",rootname,n,ext));
+                }
+                Py_RETURN_NONE;
+            }
+            catch (XmippError &xe)
+            {
+                PyErr_SetString(PyXmippError, xe.msg.c_str());
+            }
+        }
+    }
+    return nullptr;
+
+}//function writeSlices
 
 /* Patch Image */
 PyObject *
@@ -865,7 +920,7 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject *patch;
     int x = 0, y = 0;
 
-    if (self != NULL && PyArg_ParseTuple(args, "Oii", &patch, &x, &y))
+    if (self != nullptr && PyArg_ParseTuple(args, "Oii", &patch, &x, &y))
     {
         try
         {
@@ -877,7 +932,7 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_patch
 
 /* Get Data Type */
@@ -886,7 +941,7 @@ Image_getDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -899,7 +954,7 @@ Image_getDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_getDataType
 
 /* Set Data Type */
@@ -909,7 +964,7 @@ Image_setDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     int datatype;
 
-    if (self != NULL && PyArg_ParseTuple(args, "i", &datatype))
+    if (self != nullptr && PyArg_ParseTuple(args, "i", &datatype))
     {
         try
         {
@@ -921,7 +976,7 @@ Image_setDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_setDataType
 
 /* Set Data Type */
@@ -932,7 +987,7 @@ Image_convert2DataType(PyObject *obj, PyObject *args, PyObject *kwargs)
     int datatype;
     int castMode=CW_CONVERT;
 
-    if (self != NULL && PyArg_ParseTuple(args, "i|i", &datatype, &castMode))
+    if (self != nullptr && PyArg_ParseTuple(args, "i|i", &datatype, &castMode))
     {
         try
         {
@@ -944,7 +999,7 @@ Image_convert2DataType(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_setDataType
 
 /* Return image dimensions as a tuple */
@@ -952,7 +1007,7 @@ PyObject *
 Image_getDimensions(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -965,7 +1020,7 @@ Image_getDimensions(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_getDimensions
 
 /* reset origin */
@@ -973,7 +1028,7 @@ PyObject *
 Image_resetOrigin(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -985,7 +1040,7 @@ Image_resetOrigin(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_getDimensions
 
 /* Return image dimensions as a tuple */
@@ -993,7 +1048,7 @@ PyObject *
 Image_getEulerAngles(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -1007,7 +1062,7 @@ Image_getEulerAngles(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_getEulerAngles
 
 
@@ -1019,7 +1074,7 @@ Image_getMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject *pyValue;
     int label;
 
-    if (self != NULL && PyArg_ParseTuple(args, "i", &label))
+    if (self != nullptr && PyArg_ParseTuple(args, "i", &label))
     {
         try
         {
@@ -1038,7 +1093,7 @@ Image_getMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Set value to MainHeader*/
@@ -1050,7 +1105,7 @@ Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     int label;
     PyObject *pyValue; //Only used to skip label and value
 
-    if (self != NULL && PyArg_ParseTuple(args, "iO", &label, &pyValue))
+    if (self != nullptr && PyArg_ParseTuple(args, "iO", &label, &pyValue))
     {
         try
         {
@@ -1058,7 +1113,7 @@ Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 
             MDObject * object = createMDObject(label, pyValue);
             if (!object)
-                return NULL;
+                return nullptr;
             mainHeader.setValue(*object);
             delete object;
             Py_RETURN_TRUE;
@@ -1068,7 +1123,7 @@ Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Return value from Header, now using only the first image*/
@@ -1079,11 +1134,11 @@ Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject *pyValue;
     int label;
 
-    if (self != NULL && PyArg_ParseTuple(args, "i", &label))
+    if (self != nullptr && PyArg_ParseTuple(args, "i", &label))
     {
         try
         {
-            MDRow &mainHeader = self->image->image->MD[0];
+            MDRow &mainHeader = *(self->image->image->MD[0]);
             if (mainHeader.containsLabel((MDLabel)label))
             {
                 MDObject * object = mainHeader.getObject((MDLabel) label);
@@ -1098,7 +1153,7 @@ Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 /* Set value to Header, now using only the first image*/
 PyObject *
@@ -1109,15 +1164,15 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     int label;
     PyObject *pyValue; //Only used to skip label and value
 
-    if (self != NULL && PyArg_ParseTuple(args, "iO", &label, &pyValue))
+    if (self != nullptr && PyArg_ParseTuple(args, "iO", &label, &pyValue))
     {
         try
         {
-            MDRow &mainHeader = self->image->image->MD[0];
+            MDRow &mainHeader = *(self->image->image->MD[0]);
 
             MDObject * object = createMDObject(label, pyValue);
             if (!object)
-                return NULL;
+                return nullptr;
             mainHeader.setValue(*object);
             delete object;
             Py_RETURN_TRUE;
@@ -1127,15 +1182,15 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
-/* Return image dimensions as a tuple */
+/* Compute statistics */
 PyObject *
 Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -1151,7 +1206,7 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_computeStats
 
 PyObject *
@@ -1188,16 +1243,17 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
     } catch (XmippError &xe) {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
+    return Py_BuildValue("");
 }
 
-/* Return image dimensions as a tuple */
+/* Adjust and subtract */
 PyObject *
 Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    PyObject *pimg2 = NULL;
+    PyObject *pimg2 = nullptr;
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -1218,27 +1274,27 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
     return (PyObject *)result;
 }//function Image_adjustAndSubtract
 
-/* Return image dimensions as a tuple */
+/* Correlation */
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
-            PyObject *pimg2 = NULL;
+            PyObject *pimg2 = nullptr;
             if (PyArg_ParseTuple(args, "O", &pimg2))
             {
 	            ImageGeneric *image = self->image;
 	            image->convert2Datatype(DT_Double);
-	            MultidimArray<double> * pImage=NULL;
+	            MultidimArray<double> * pImage=nullptr;
 	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
 
 	            ImageObject *img2=(ImageObject *)pimg2;
 	            ImageGeneric *image2 = img2->image;
 	            image2->convert2Datatype(DT_Double);
-	            MultidimArray<double> * pImage2=NULL;
+	            MultidimArray<double> * pImage2=nullptr;
 	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
 
 	            double corr=correlationIndex(*pImage,*pImage2);
@@ -1250,16 +1306,55 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_correlation
 
+/* Correlation after alignment of I2 to I1 */
+PyObject *
+Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (self != nullptr)
+    {
+        try
+        {
+            PyObject *pimg2 = nullptr;
+            if (PyArg_ParseTuple(args, "O", &pimg2))
+            {
+	            ImageGeneric *image = self->image;
+	            image->convert2Datatype(DT_Double);
+	            MultidimArray<double> * pImage=nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
+
+	            ImageObject *img2=(ImageObject *)pimg2;
+	            ImageGeneric *image2 = img2->image;
+	            image2->convert2Datatype(DT_Double);
+	            MultidimArray<double> * pImage2=nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
+	            pImage->setXmippOrigin();
+	            pImage2->setXmippOrigin();
+
+	            Matrix2D<double> M;
+	            MultidimArray<double> I2Copy=*pImage2;
+
+	            double corr=alignImagesConsideringMirrors(*pImage, I2Copy, M, xmipp_transformation::WRAP);
+                return Py_BuildValue("f", corr);
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
 
 /* Add two images, operator + */
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2)
 {
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
-    if (result != NULL)
+    if (result != nullptr)
     {
         try
         {
@@ -1268,7 +1363,7 @@ Image_add(PyObject *obj1, PyObject *obj2)
         }
         catch (XmippError &xe)
         {
-        	result=NULL;
+        	result=nullptr;
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
@@ -1279,7 +1374,7 @@ Image_add(PyObject *obj1, PyObject *obj2)
 PyObject *
 Image_iadd(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = NULL;
+    ImageObject * result = nullptr;
     try
     {
         Image_Value(obj1).add(Image_Value(obj2));
@@ -1289,7 +1384,7 @@ Image_iadd(PyObject *obj1, PyObject *obj2)
     }
     catch (XmippError &xe)
     {
-    	result=NULL;
+    	result=nullptr;
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
     return (PyObject *)result;
@@ -1304,7 +1399,7 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     try
     {
-      PyObject *other = NULL;
+      PyObject *other = nullptr;
       if (PyArg_ParseTuple(args, "O", &other) &&
           Image_Check(other))
       {
@@ -1325,7 +1420,7 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }// similar to -=
 
 
@@ -1334,7 +1429,7 @@ PyObject *
 Image_subtract(PyObject *obj1, PyObject *obj2)
 {
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
-    if (result != NULL)
+    if (result != nullptr)
     {
         try
         {
@@ -1343,7 +1438,7 @@ Image_subtract(PyObject *obj1, PyObject *obj2)
         }
         catch (XmippError &xe)
         {
-            result = NULL;
+            result = nullptr;
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
@@ -1354,7 +1449,7 @@ Image_subtract(PyObject *obj1, PyObject *obj2)
 PyObject *
 Image_isubtract(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = NULL;
+    ImageObject * result = nullptr;
     try
     {
         Image_Value(obj1).subtract(Image_Value(obj2));
@@ -1363,7 +1458,7 @@ Image_isubtract(PyObject *obj1, PyObject *obj2)
     }
     catch (XmippError &xe)
     {
-        result = NULL;
+        result = nullptr;
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
     return (PyObject *)result;
@@ -1378,7 +1473,7 @@ Image_inplaceSubtract(PyObject *self, PyObject *args, PyObject *kwargs)
 {
   try
   {
-    PyObject *other = NULL;
+    PyObject *other = nullptr;
     if (PyArg_ParseTuple(args, "O", &other) &&
         Image_Check(other))
     {
@@ -1392,7 +1487,7 @@ Image_inplaceSubtract(PyObject *self, PyObject *args, PyObject *kwargs)
   {
       PyErr_SetString(PyXmippError, xe.msg.c_str());
   }
-  return NULL;
+  return nullptr;
 }
 
 /* Multiply image and constant, operator * */
@@ -1400,7 +1495,7 @@ PyObject *
 Image_multiply(PyObject *obj1, PyObject *obj2)
 {
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
-    if (result != NULL)
+    if (result != nullptr)
     {
         try
         {
@@ -1410,7 +1505,7 @@ Image_multiply(PyObject *obj1, PyObject *obj2)
         }
         catch (XmippError &xe)
         {
-            result = NULL;
+            result = nullptr;
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
@@ -1423,7 +1518,7 @@ Image_imultiply(PyObject *obj1, PyObject *obj2)
 {
     try
     {
-        ImageObject * result = NULL;
+        ImageObject * result = nullptr;
         if ((result = PyObject_New(ImageObject, &ImageType)))
             result->image = new ImageGeneric(Image_Value(obj1));
         double value = PyFloat_AsDouble(obj2);
@@ -1434,7 +1529,7 @@ Image_imultiply(PyObject *obj1, PyObject *obj2)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }//operator *=
 
 /** Image inplace multiply, equivalent to *= operator
@@ -1446,7 +1541,7 @@ Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs)
 {
   try
   {
-    PyObject *other = NULL;
+    PyObject *other = nullptr;
     if (PyArg_ParseTuple(args, "O", &other))
     {
       if (Image_Check(other))
@@ -1466,15 +1561,16 @@ Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs)
   {
       PyErr_SetString(PyXmippError, xe.msg.c_str());
   }
-  return NULL;
+  return nullptr;
 }// similar to *=
 
 /* Divide image and constant, operator * */
 PyObject *
-Image_divide(PyObject *obj1, PyObject *obj2)
+Image_true_divide(PyObject *obj1, PyObject *obj2)
 {
+    std::cerr << "TODO: not working Image_divide_____________________________" << std::endl;
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
-    if (result != NULL)
+    if (result != nullptr)
     {
         try
         {
@@ -1484,7 +1580,7 @@ Image_divide(PyObject *obj1, PyObject *obj2)
         }
         catch (XmippError &xe)
         {
-            result = NULL;
+            result = nullptr;
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
@@ -1499,9 +1595,10 @@ Image_divide(PyObject *obj1, PyObject *obj2)
 PyObject *
 Image_idivide(PyObject *obj1, PyObject *obj2)
 {
+    std::cerr << "TODO: not working Image_idivide_____________________________" << std::endl;
     try
     {
-      ImageObject * result = NULL;
+      ImageObject * result = nullptr;
       if ((result = PyObject_New(ImageObject, &ImageType)))
           result->image = new ImageGeneric(Image_Value(obj1));
       double value = PyFloat_AsDouble(obj2);
@@ -1512,7 +1609,7 @@ Image_idivide(PyObject *obj1, PyObject *obj2)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }//operator /=
 
 /** Image inplace divide, equivalent to /= operator
@@ -1524,7 +1621,7 @@ Image_inplaceDivide(PyObject *self, PyObject *args, PyObject *kwargs)
 {
   try
   {
-    PyObject *other = NULL;
+    PyObject *other = nullptr;
     if (PyArg_ParseTuple(args, "O", &other))
     {
       if (Image_Check(other))
@@ -1544,7 +1641,7 @@ Image_inplaceDivide(PyObject *self, PyObject *args, PyObject *kwargs)
   {
       PyErr_SetString(PyXmippError, xe.msg.c_str());
   }
-  return NULL;
+  return nullptr;
 
 }// similar to /=
 
@@ -1553,15 +1650,15 @@ PyObject *
 Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
-	PyObject * list = NULL;
-    PyObject * item = NULL;
+	PyObject * list = nullptr;
+    PyObject * item = nullptr;
     ImageObject *self = (ImageObject*) obj;
     ImageBase * img;
     PyObject *only_apply_shifts = Py_False;
-    PyObject *wrap = (WRAP ? Py_True : Py_False);
+    PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
     img = self->image->image;
     bool boolOnly_apply_shifts = false;
-    bool boolWrap = WRAP;
+    bool boolWrap = xmipp_transformation::WRAP;
 
     try
     {
@@ -1579,7 +1676,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 
             size_t size = PyList_Size(list);
-            Matrix2D<double> A,B;
+            Matrix2D<double> A;
             A.initIdentity(4);
             for (size_t i = 0; i < size; ++i)
             {
@@ -1587,18 +1684,15 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
                 MAT_ELEM(A,i/4,i%4 ) = PyFloat_AsDouble(item);
             }
             double scale, shiftX, shiftY, rot,tilt, psi;
+            tilt = 0.0;
+            rot = 0.0;
             bool flip;
             transformationMatrix2Parameters2D(A, flip, scale, shiftX, shiftY, psi);//, shiftZ, rot,tilt, psi);
-            double _rot;
-            if (tilt==0.)
-                _rot=rot + psi;
-            else
-                _rot=psi;
-            img->setEulerAngles(0,0.,_rot);
+            img->setEulerAngles(rot,tilt,psi);
             img->setShifts(shiftX,shiftY);
             img->setScale(scale);
             img->setFlip(flip);
-            img->selfApplyGeometry(LINEAR, boolWrap, boolOnly_apply_shifts);//wrap, onlyShifts
+            img->selfApplyGeometry(xmipp_transformation::LINEAR, boolWrap, boolOnly_apply_shifts);//wrap, onlyShifts
             Py_RETURN_NONE;
         }
         else
@@ -1611,7 +1705,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }//operator +=
 
 
@@ -1620,14 +1714,14 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *md = NULL;
+        PyObject *md = nullptr;
         PyObject *only_apply_shifts = Py_False;
-        PyObject *wrap = (WRAP ? Py_True : Py_False);
+        PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
-        bool boolWrap = WRAP;
+        bool boolWrap = xmipp_transformation::WRAP;
         int datamode = DATA;
         size_t select_img = ALL_IMAGES;
 
@@ -1657,22 +1751,95 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
+
+/** Image inplace subtraction, equivalent to -= operator */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+
+	PyObject * list = nullptr;
+    PyObject * item = nullptr;
+    PyObject * dsize = nullptr;
+    PyObject * wrap = Py_True;
+    PyObject * border_value = nullptr;
+
+    ImageObject *self = (ImageObject*) obj;
+    ImageGeneric * image = self->image;
+    double doubleBorder_value = 1.0;
+    size_t Xdim, Ydim, Zdim;
+    bool doWrap = true;
+    image->getDimensions(Xdim, Ydim, Zdim);
+    try
+    {
+        PyArg_ParseTuple(args, "O|OOO", &list, &dsize, &wrap, &border_value);
+        if (PyList_Check(list))
+        {
+        	if (nullptr != dsize)
+        	{
+        		Ydim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 0));
+        		Xdim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 1));
+        	}
+            if (PyBool_Check(wrap))
+                doWrap = (wrap == Py_True);
+            else
+                PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting boolean value for wrapping");
+            if (border_value!=nullptr)
+           	    doubleBorder_value = PyFloat_AsDouble(border_value);
+
+            size_t size = PyList_Size(list);
+            Matrix2D<double> A;
+            A.initIdentity(3);
+            for (size_t i = 0; i < size; ++i)
+            {
+                item  = PyList_GetItem(list, i);
+                MAT_ELEM(A,i/3,i%3 ) = PyFloat_AsDouble(item);
+            }
+
+            image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
+            in->setXmippOrigin();
+
+            ImageObject *result = PyObject_New(ImageObject, &ImageType);
+            result->image = new ImageGeneric(DT_Double);
+            MultidimArray<double> *out;
+            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+            out->resize(Ydim,Xdim);
+            out->initConstant(doubleBorder_value);
+            out->setXmippOrigin();
+
+            applyGeometry(3, *out, *in, A, false, doWrap, doubleBorder_value);
+            return (PyObject *)result;
+        }
+        else
+        {
+            PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting a list");
+
+        }
+    }
+    catch (XmippError &xe)
+    {
+        PyErr_SetString(PyXmippError, xe.msg.c_str());
+    }
+    return nullptr;
+}
+
 
 PyObject *
 Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *md = NULL;
+        PyObject *md = nullptr;
         PyObject *only_apply_shifts = Py_False;
-        PyObject *wrap = (WRAP ? Py_True : Py_False);
+        PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
-        bool boolWrap = WRAP;
+        bool boolWrap = xmipp_transformation::WRAP;
 
         if (PyArg_ParseTuple(args, "Ok|OO", &md, &objectId, &only_apply_shifts, &wrap))
         {
@@ -1698,5 +1865,62 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
+}
+
+
+/* Compute radial average around an axis, operator * */
+PyObject *
+Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+	ImageObject *self = (ImageObject*) obj;
+	    if (nullptr == self) return nullptr;
+	    try {
+	    	char axis = 'z';
+	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+	        if (PyArg_ParseTuple(args, "|c", &axis)
+	                && (nullptr != result)) {
+	            // prepare input image
+	            ImageGeneric *volume = self->image;
+	            volume->convert2Datatype(DT_Double);
+	            MultidimArray<double> *in;
+	            MULTIDIM_ARRAY_GENERIC(*volume).getMultidimArrayPointer(in);
+	            // prepare output image
+	            result->image = new ImageGeneric(DT_Double);
+	            MultidimArray<double> *out;
+	            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+	            // call the estimation
+	            radialAverageAxis(*in, axis, *out);
+	        } else {
+	            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+	        }
+	        return (PyObject *)result;
+	    } catch (XmippError &xe) {
+	        PyErr_SetString(PyXmippError, xe.msg.c_str());
+	    }
+    return Py_BuildValue("");
+}
+
+/* Return center of mass as a tuple */
+PyObject *
+Image_centerOfMass(PyObject *obj)
+{
+    auto *self = (ImageObject*) obj;
+    if (self != nullptr)
+    {
+        try
+        {
+            Matrix1D< double > center;
+            self->image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*self->image).getMultidimArrayPointer(in);
+            in->centerOfMass(center);
+            return Py_BuildValue("fff", XX(center), YY(center), ZZ(center));
+        }
+        catch (const XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
 }

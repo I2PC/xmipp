@@ -87,16 +87,15 @@ void primeFactors(int n, int *out)
 }
 
 
-void preprocess_images_reference(MetaData &SF, int firstIdx, int numImages, Mask &mask, GpuCorrelationAux &d_correlationAux,
-		mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar, mycufftHandle &myhandleAux,
-		StructuresAux &myStructureAux, MDIterator *iter, myStreamHandle myStream)
+void preprocess_images_reference(MetaDataVec &SF, int firstIdx, int numImages, Mask &mask, GpuCorrelationAux &d_correlationAux,
+		mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar,
+		StructuresAux &myStructureAux, MetaDataVec::id_iterator iter, myStreamHandle myStream)
 {
 	size_t Xdim, Ydim, Zdim, Ndim;
 	getImageSize(SF,Xdim,Ydim,Zdim,Ndim);
 	size_t pad_Xdim=d_correlationAux.Xdim;
 	size_t pad_Ydim=d_correlationAux.Ydim;
 
-	MDRow rowIn;
 	FileName fnImg;
 	Image<float> Iref;
 	size_t radius = d_correlationAux.YdimPolar;
@@ -104,23 +103,19 @@ void preprocess_images_reference(MetaData &SF, int firstIdx, int numImages, Mask
 
 	GpuMultidimArrayAtCpu<float> original_image_stack_ref(Xdim,Ydim,1,numImages);
 
-	//MDIterator *iter = new MDIterator(SF);
-
 	size_t n=0;
 	for(int i=firstIdx; i<firstIdx+numImages; i++){
 
-		SF.getValue(MDL_IMAGE,fnImg,iter->objId);
+		SF.getValue(MDL_IMAGE,fnImg,*iter);
 		//std::cerr << iter->objId << ". Image: " << fnImg << std::endl;
 		Iref.read(fnImg);
 		original_image_stack_ref.fillImage(n,Iref()/8);
 
-		if(iter->hasNext())
-			iter->moveNext();
+		if(iter != SF.ids().end())
+			++iter;
 
 		n++;
 	}
-
-	//delete iter;
 
 	GpuMultidimArrayAtGpu<float> image_stack_gpu(Xdim,Ydim,1,numImages);
 	original_image_stack_ref.copyToGpu(image_stack_gpu, myStream);
@@ -150,14 +145,13 @@ void preprocess_images_reference(MetaData &SF, int firstIdx, int numImages, Mask
     myStructureAux.polar_gpu.fftStream(d_correlationAux.d_projPolarFFT, myhandlePolar, myStream, false, dull);
 
     myStructureAux.polar2_gpu.fftStream(d_correlationAux.d_projPolarSquaredFFT, myhandlePolar, myStream, false, dull);
-
 }
 
 
 
-void preprocess_images_experimental(MetaData &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
+void preprocess_images_experimental(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, GpuCorrelationAux &d_correlationAux, bool rotation,
-		int firstStep, bool mirror, mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar,
+		int firstStep, bool mirror, mycufftHandle &myhandlePadded, mycufftHandle &myhandlePolar,
 		StructuresAux &myStructureAux, myStreamHandle myStream)
 {
 	size_t Xdim, Ydim, Zdim, Ndim;
@@ -210,16 +204,15 @@ void preprocess_images_experimental(MetaData &SF, FileName &fnImg, int numImages
 
 
 
-void preprocess_images_experimental_two(MetaData &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
+void preprocess_images_experimental_two(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT,
 		GpuCorrelationAux &d_correlationAuxTR, GpuCorrelationAux &d_correlationAuxRT,
-		bool rotation, int firstStep, bool mirror,
-		mycufftHandle &myhandlePaddedTR, mycufftHandle &myhandleMaskTR, mycufftHandle &myhandlePolarTR,
-		mycufftHandle &myhandlePaddedRT, mycufftHandle &myhandleMaskRT, mycufftHandle &myhandlePolarRT,
+		int firstStep, bool mirror,
+		mycufftHandle &myhandlePaddedTR, mycufftHandle &myhandleMaskTR,
+		mycufftHandle &myhandlePolarRT,
 		StructuresAux &myStructureAuxTR, StructuresAux &myStructureAuxRT,
 		myStreamHandle &myStreamTR, myStreamHandle &myStreamRT,
-		GpuMultidimArrayAtCpu<float> &original_image_stack,
-		mycufftHandle &ifftcb)
+		GpuMultidimArrayAtCpu<float> &original_image_stack)
 {
 
 
@@ -280,12 +273,11 @@ void preprocess_images_experimental_two(MetaData &SF, FileName &fnImg, int numIm
 
 
 
-void preprocess_images_experimental_transform_two(MetaData &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
+void preprocess_images_experimental_transform_two(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT,
 		GpuCorrelationAux &d_correlationAuxOne, GpuCorrelationAux &d_correlationAuxTwo,
-		bool rotation, int firstStep, bool mirror,
-		mycufftHandle &myhandlePaddedOne, mycufftHandle &myhandleMaskOne, mycufftHandle &myhandlePolarOne,
-		mycufftHandle &myhandlePaddedTwo, mycufftHandle &myhandleMaskTwo, mycufftHandle &myhandlePolarTwo,
+		mycufftHandle &myhandlePaddedOne,
+		mycufftHandle &myhandlePolarTwo,
 		StructuresAux &myStructureAuxOne, StructuresAux &myStructureAuxTwo,
 		myStreamHandle &myStreamOne, myStreamHandle &myStreamTwo, int step)
 {
@@ -323,8 +315,8 @@ void preprocess_images_experimental_transform_two(MetaData &SF, FileName &fnImg,
 
 
 void preprocess_images_experimental_transform(GpuCorrelationAux &d_correlationAux, GpuMultidimArrayAtGpu<float> &mask,
-		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, bool rotation, int step, mycufftHandle &myhandlePadded,
-		mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar, StructuresAux &myStructureAux, myStreamHandle myStream)
+		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, bool rotation, mycufftHandle &myhandlePadded,
+		mycufftHandle &myhandlePolar, StructuresAux &myStructureAux, myStreamHandle myStream)
 {
 
 	size_t Xdim = d_correlationAux.d_transform_image.Xdim;
@@ -363,7 +355,7 @@ void preprocess_images_experimental_transform(GpuCorrelationAux &d_correlationAu
 void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_referenceAux,
 		GpuCorrelationAux &d_experimentalAuxTR, GpuCorrelationAux &d_experimentalAuxRT,
 		TransformMatrix<float> &transMat_tr, TransformMatrix<float> &transMat_rt, float *max_vector_tr, float *max_vector_rt,
-		MetaData &SFexp, int available_images_proj, bool mirror, int maxShift,
+		MetaDataVec &SFexp, int available_images_proj, bool mirror, int maxShift,
 		mycufftHandle &myhandlePadded_tr, mycufftHandle &myhandleMask_tr, mycufftHandle &myhandlePolar_tr,
 		mycufftHandle &myhandlePaddedB_tr, mycufftHandle &myhandleMaskB_tr, mycufftHandle &myhandlePolarB_tr,
 		mycufftHandle &myhandlePadded_rt, mycufftHandle &myhandleMask_rt, mycufftHandle &myhandlePolar_rt,
@@ -386,11 +378,10 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 
 	preprocess_images_experimental_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-			d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT, true, 0, mirror,
-					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
-					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
-					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, original_image_stack,
-					ifftcb);
+			d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,  0, mirror,
+					myhandlePadded_tr,
+					myhandleMask_rt, myhandlePolar_rt,
+					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, original_image_stack);
 
 	d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
 	d_experimentalAuxTR.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr,
@@ -428,9 +419,9 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 			//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
 			preprocess_images_experimental_transform_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-					d_referenceAux.d_maskFFT, d_experimentalAuxRT, d_experimentalAuxTR,	true, 0, mirror,
-					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
-					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
+					d_referenceAux.d_maskFFT, d_experimentalAuxRT, d_experimentalAuxTR,
+					myhandlePadded_rt,
+					myhandlePolar_tr,
 					myStructureAux_rt, myStructureAux_tr, myStreamRT, myStreamTR, 1);
 
 			d_experimentalAuxRT.maskCount=d_referenceAux.maskCount;
@@ -462,9 +453,9 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 				//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
 				preprocess_images_experimental_transform_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-						d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,	true, 0, mirror,
-						myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
-						myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
+						d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,
+						myhandlePadded_tr,
+						myhandlePolar_rt,
 						myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, 2);
 
 				d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
@@ -478,8 +469,8 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 				apply_transform(d_experimentalAuxTR.d_original_image, d_experimentalAuxTR.d_transform_image, transMat_tr, myStreamTR);
 
 				//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
-				preprocess_images_experimental_transform(d_experimentalAuxTR, d_referenceAux.d_mask, d_referenceAux.d_maskFFT, false, step,
-							myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myStructureAux_tr, myStreamTR);
+				preprocess_images_experimental_transform(d_experimentalAuxTR, d_referenceAux.d_mask, d_referenceAux.d_maskFFT, false,
+							myhandlePadded_tr, myhandlePolar_tr, myStructureAux_tr, myStreamTR);
 				d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
 				d_experimentalAuxTR.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr,
 						d_referenceAux.maskAutocorrelation, myStreamTR);
@@ -742,7 +733,7 @@ void calculate_weights(MultidimArray<float> &matrixCorrCpu, MultidimArray<float>
 }
 
 
-void generate_metadata(MetaData SF, MetaData SFexp, FileName fnDir, FileName fn_out, size_t mdExpSize, size_t mdInSize, MultidimArray<float> &weights,
+void generate_metadata(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, FileName fn_out, size_t mdExpSize, size_t mdInSize, MultidimArray<float> &weights,
 		MultidimArray<float> &corrTotalRow, MultidimArray<float> *matrixTransCpu, MultidimArray<float> *matrixTransCpu_mirror, int maxShift,
 		MultidimArray<float> &weightsMax, bool simplifiedMd, int Nref){
 
@@ -750,27 +741,21 @@ void generate_metadata(MetaData SF, MetaData SFexp, FileName fnDir, FileName fn_
 	Matrix2D<double> bestM(3,3);
 	MultidimArray<float> out2(3,3);
 	Matrix2D<double>out2Matrix(3,3);
-	MDRow rowOut;
-	MetaData mdOut;
+	MetaDataVec mdOut;
 	String nameImg, nameRef;
 	bool flip;
 	double rot, tilt, psi;
 	int idxJ;
 	size_t refNum;
 
-	MDIterator *iterExp = new MDIterator(SFexp);
-	MDRow rowExp;
-	MDIterator *iter = new MDIterator();
-	MDRow row;
+	auto iterExp = SFexp.begin();
 
 	for(int i=0; i<mdExpSize; i++){
+		auto iter = SF.begin();
 
-		iter->init(SF);
 		for(int j=0; j<2*mdInSize; j++){
-
 			if(j%mdInSize==0)
-				iter->init(SF);
-			SF.getRow(row, iter->objId);
+				iter = SF.begin();
 
 			if(DIRECT_A2D_ELEM(weights,i,j)!=0){
 
@@ -782,17 +767,16 @@ void generate_metadata(MetaData SF, MetaData SFexp, FileName fnDir, FileName fn_
 						continue;
 					}
 				}
-				//END AJ/*/
+				//END AJ*/
 
 				size_t itemId;
-				SFexp.getRow(rowExp, iterExp->objId);
-				//rowExp.getValue(MDL_IMAGE, nameImg);
-				//rowExp.getValue(MDL_ITEM_ID, itemId);
-				//rowOut
-				//rowExp.setValue(MDL_ITEM_ID, itemId);
-				//rowExp.setValue(MDL_IMAGE,nameImg);
-				rowExp.setValue(MDL_WEIGHT, (double)DIRECT_A2D_ELEM(weights, i, j));
-				rowExp.setValue(MDL_MAXCC, (double)DIRECT_A2D_ELEM(corrTotalRow, i, j));
+				//*iterExp.getValue(MDL_IMAGE, nameImg);
+				//*iterExp.getValue(MDL_ITEM_ID, itemId);
+				//*iterOut
+				//*iterExp.setValue(MDL_ITEM_ID, itemId);
+				//*iterExp.setValue(MDL_IMAGE,nameImg);
+				(*iterExp).setValue(MDL_WEIGHT, (double)DIRECT_A2D_ELEM(weights, i, j));
+				(*iterExp).setValue(MDL_MAXCC, (double)DIRECT_A2D_ELEM(corrTotalRow, i, j));
 				if(j<mdInSize){
 					flip = false;
 					matrixTransCpu[j].getSlice(i, out2); //matrixTransCpu[i].getSlice(j, out2);
@@ -821,13 +805,12 @@ void generate_metadata(MetaData SF, MetaData SFexp, FileName fnDir, FileName fn_
 				double shiftX = MAT_ELEM(bestM,0,2);//(double)DIRECT_A2D_ELEM(out2,0,2);
 				double shiftY = MAT_ELEM(bestM,1,2);//(double)DIRECT_A2D_ELEM(out2,1,2);
 				if (shiftX*shiftX + shiftY*shiftY > maxShift2){
-					if(iter->hasNext())
-						iter->moveNext();
+					if(iter != SF.end())
+						++iter;
 					continue;
 				}
 
-				//rowOut
-				rowExp.setValue(MDL_FLIP, flip);
+				(*iterExp).setValue(MDL_FLIP, flip);
 
 				double scale;
 				/*MAT_ELEM(bestM,0,0)=MAT_ELEM(out2Matrix,0,0);//DIRECT_A2D_ELEM(out2,0,0);
@@ -859,38 +842,33 @@ void generate_metadata(MetaData SF, MetaData SFexp, FileName fnDir, FileName fn_
 				}
 				//FIN AJ NEW
 
-				//rowOut
-				rowExp.setValue(MDL_SHIFT_X, -shiftX);
-				rowExp.setValue(MDL_SHIFT_Y, -shiftY);
-				//rowExp.setValue(MDL_SHIFT_Z, 0.0);
-				row.getValue(MDL_ANGLE_ROT, rot);
-				rowExp.setValue(MDL_ANGLE_ROT, rot);
-				row.getValue(MDL_ANGLE_TILT, tilt);
-				rowExp.setValue(MDL_ANGLE_TILT, tilt);
-				rowExp.setValue(MDL_ANGLE_PSI, psi);
-				//rowOut
-				if(row.containsLabel(MDL_ITEM_ID))
-					row.getValue(MDL_ITEM_ID, refNum);
+				(*iterExp).setValue(MDL_SHIFT_X, -shiftX);
+				(*iterExp).setValue(MDL_SHIFT_Y, -shiftY);
+				//(*iterExp).setValue(MDL_SHIFT_Z, 0.0);
+				(*iter).getValue(MDL_ANGLE_ROT, rot);
+				(*iterExp).setValue(MDL_ANGLE_ROT, rot);
+				(*iter).getValue(MDL_ANGLE_TILT, tilt);
+				(*iterExp).setValue(MDL_ANGLE_TILT, tilt);
+				(*iterExp).setValue(MDL_ANGLE_PSI, psi);
+				if((*iter).containsLabel(MDL_ITEM_ID))
+					(*iter).getValue(MDL_ITEM_ID, refNum);
 				else
 					refNum = idxJ+1;
-				rowExp.setValue(MDL_REF, (int)refNum);
-				mdOut.addRow(rowExp);
+				(*iterExp).setValue(MDL_REF, (int)refNum);
+				mdOut.addRow(dynamic_cast<MDRowVec&>(*iterExp));
 			}
-			if(iter->hasNext())
-				iter->moveNext();
+			if(iter != SF.end())
+				++iter;
 		}
-		if(iterExp->hasNext())
-			iterExp->moveNext();
+		if(iterExp != SFexp.end())
+			++iterExp;
 	}
 	String fnFinal=formatString("%s/%s",fnDir.c_str(),fn_out.c_str());
 	mdOut.write(fnFinal);
-
-	delete iterExp;
-
 }
 
 
-void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t mdExpSize, size_t mdInSize,
+void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, size_t mdExpSize, size_t mdInSize,
 		MultidimArray<float> &weights, MultidimArray<float> *matrixTransCpu, MultidimArray<float> *matrixTransCpu_mirror,
 		int maxShift, FileName fn_classes_out, MultidimArray<float> &weightsMax, bool simplifiedMd, int Nref){
 
@@ -916,7 +894,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 	Mask mask;
     mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	size_t rad = (size_t)std::min(xAux*0.5, yAux*0.5);
+	auto rad = (size_t)std::min(xAux*0.5, yAux*0.5);
 	mask.R1 = rad;
 	mask.resize(yAux,xAux);
 	mask.get_binary_mask().setXmippOrigin();
@@ -925,10 +903,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 	CorrelationAux auxCenter;
 	RotationalCorrelationAux auxCenter2;
 
-	MDIterator *iterSF = new MDIterator(SF);
-	MDRow rowSF;
-	MDIterator *iterSFexp = new MDIterator();
-	MDRow rowSFexp;
+	auto iterSF = SF.begin();
 
 	bool read = false;
 	int countingClasses=1;
@@ -939,13 +914,13 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 		bool change=false;
 		double normWeight=0;
 
-		SF.getRow(rowSF, iterSF->objId);
+		MDRow& rowSF = *iterSF;
 		if(rowSF.containsLabel(MDL_ITEM_ID))
 			rowSF.getValue(MDL_ITEM_ID, refNum);
 		else
 			refNum=countingClasses;
 
-		iterSFexp->init(SFexp);
+		auto iterSFexp = SFexp.begin();
 
 		refSum.initZeros();
 
@@ -998,8 +973,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 				if(!skip_image){
 
 					if(!read){
-						SFexp.getRow(rowSFexp, iterSFexp->objId);
-						rowSFexp.getValue(MDL_IMAGE, fnExpNew);
+						(*iterSFexp).getValue(MDL_IMAGE, fnExpNew);
 						Iexp_aux.read(fnExpNew);
 						read = true;
 					}
@@ -1018,7 +992,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 					MAT_ELEM(E,2,1)=0.0;
 					MAT_ELEM(E,2,2)=1.0;
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 					//applyGeometry(LINEAR,Iexp_out(),Iexp_aux(),auxtrMatrix,IS_NOT_INV,DONT_WRAP,0.0);
 
 					Iexp_aux().resetOrigin();
@@ -1064,8 +1038,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 				if(!skip_image){
 
 					if(!read){
-						SFexp.getRow(rowSFexp, iterSFexp->objId);
-						rowSFexp.getValue(MDL_IMAGE, fnExpNew);
+						(*iterSFexp).getValue(MDL_IMAGE, fnExpNew);
 						Iexp_aux.read(fnExpNew);
 						read = true;
 					}
@@ -1091,7 +1064,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 					MAT_ELEM(E,1,0)*=-1; //E
 					//FIN AJ NEW//
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 
 					Iexp_aux().resetOrigin();
 
@@ -1100,8 +1073,8 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 					normWeight+=DIRECT_A2D_ELEM(weights,j,i+mdInSize);
 				}
 			}
-			if(iterSFexp->hasNext())
-				iterSFexp->moveNext();
+			if(iterSFexp != SFexp.end())
+				++iterSFexp;
 		}
 
 		FileName fnStackNo;
@@ -1119,27 +1092,23 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 			Inew2.write(fnStackNo,i,true,WRITE_APPEND);
 		}
 
-		if(iterSF->hasNext())
-			iterSF->moveNext();
+		if(iterSF != SF.end())
+			++iterSF;
 
 		countingClasses++;
 	}
 
 
-	iterSFexp->init(SFexp);
-	iterSF->init(SF);
+	iterSF = SF.begin();
 
 	countingClasses=1;
 	Matrix2D<double> bestM(3,3);
-	MetaData SFout;
+	MetaDataVec SFout;
 	firstTime=true;
 	skip_image=false;
 	for(int i=0; i<mdInSize; i++){
 
-		//SF.getRow(rowSF, iterSF->objId);
-		//rowSF.getValue(MDL_IMAGE, fnImgNew);
-		//fnRoot=fnImgNew.withoutExtension().afterLastOf("/").afterLastOf("@");
-		SF.getRow(rowSF, iterSF->objId);
+		MDRow& rowSF = *iterSF;
 		if(rowSF.containsLabel(MDL_ITEM_ID))
 			rowSF.getValue(MDL_ITEM_ID, refNum);
 		else
@@ -1158,27 +1127,27 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 		SFout.setValue(MDL_IMAGE, fnClass, id);
 		SFout.setValue(MDL_CLASS_COUNT,(size_t)NexpVector[i], id);
 
-		if(iterSF->hasNext())
-			iterSF->moveNext();
+		if(iterSF != SF.end())
+			++iterSF;
 
 		countingClasses++;
 	}
 	SFout.write("classes@"+fnStackMD, MD_APPEND);
 
-	iterSF->init(SF);
+	iterSF = SF.begin();
 	FileName fnExpIm;
-	MDRow row;
 	for(int i=0; i<mdInSize; i++){
 		skip_image=false;
-		SF.getRow(rowSF, iterSF->objId);
+		MDRow& rowSF = *iterSF;
 		if (rowSF.containsLabel(MDL_ITEM_ID))
 			rowSF.getValue(MDL_ITEM_ID, refNum);
 		else
 			refNum=i+1;
 
-		iterSFexp->init(SFexp);
+		auto iterSFexp = SFexp.begin();
+		MetaDataVec SFq;
+		MDRowVec rowSFexp;
 
-		MetaData SFq;
 		for(int j=0; j<mdExpSize; j++){
 			read = false;
 			skip_image=false;
@@ -1221,7 +1190,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 
 					size_t itemId;
 					if(!read){
-						SFexp.getRow(rowSFexp, iterSFexp->objId);
+						rowSFexp = dynamic_cast<MDRowVec&>(*iterSFexp);
 						//rowSFexp.getValue(MDL_IMAGE, fnExpIm);
 						//rowSFexp.getValue(MDL_ITEM_ID, itemId);
 						read = true;
@@ -1300,7 +1269,7 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 
 					size_t itemId;
 					if(!read){
-						SFexp.getRow(rowSFexp, iterSFexp->objId);
+						rowSFexp = dynamic_cast<MDRowVec&>(*iterSFexp);
 						//rowSFexp.getValue(MDL_IMAGE, fnExpIm);
 						//rowSFexp.getValue(MDL_ITEM_ID, itemId);
 						read = true;
@@ -1350,22 +1319,18 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 					SFq.addRow(rowSFexp);
 				}
 			}
-			if(iterSFexp->hasNext())
-				iterSFexp->moveNext();
+			if(iterSFexp != SFexp.end())
+				++iterSFexp;
 		}
-		MetaData SFq_sorted;
+		MetaDataVec SFq_sorted;
 		SFq_sorted.sort(SFq, MDL_IMAGE);
 		SFq_sorted.write(formatString("class%06d_images@%s",refNum,fnStackMD.c_str()),MD_APPEND);
 
-		if(iterSF->hasNext())
-			iterSF->moveNext();
+		if(iterSF != SF.end())
+			++iterSF;
 	}
 
-
 	delete []NexpVector;
-	delete iterSF;
-	delete iterSFexp;
-
 }
 
 // Compute correlation --------------------------------------------------------
@@ -1390,10 +1355,10 @@ void ProgGpuCorrelation::run()
 	Mask mask;
     mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	size_t rad = (size_t)std::min(Xdim*0.48, Ydim*0.48);
+	auto rad = (size_t)std::min(Xdim*0.48, Ydim*0.48);
 
 	int number = rad;
-	int *out = new int[5];
+	auto *out = new int[5];
 
 	while(true){
 		if (number%2!=0){
@@ -1443,10 +1408,10 @@ void ProgGpuCorrelation::run()
 
 
 	//matrix with all the best transformations in CPU
-	MultidimArray<float> *matrixTransCpu = new MultidimArray<float> [mdInSize]; //mdExpSize
+	auto *matrixTransCpu = new MultidimArray<float> [mdInSize]; //mdExpSize
 	for(int i=0; i<mdInSize; i++) //mdExpSize
 		matrixTransCpu[i].coreAllocate(1, mdExpSize, 3, 3); //mdInSize
-	MultidimArray<float> *matrixTransCpu_mirror = new MultidimArray<float> [mdInSize]; //mdExpSize
+	auto *matrixTransCpu_mirror = new MultidimArray<float> [mdInSize]; //mdExpSize
 	for(int i=0; i<mdInSize; i++) //mdExpSize
 		matrixTransCpu_mirror[i].coreAllocate(1, mdExpSize, 3, 3); //mdInSize
 
@@ -1514,7 +1479,7 @@ void ProgGpuCorrelation::run()
 
 	StructuresAux myStructureAux_tr, myStructureAux_rt;
 
-	MDIterator *iter = new MDIterator(SFexp); //SF
+	auto iter = SFexp.ids().begin();
 
 	GpuMultidimArrayAtCpu<float> original_image_stack;
 
@@ -1558,7 +1523,7 @@ void ProgGpuCorrelation::run()
 
 		//SF
 		preprocess_images_reference(SFexp, firstIdx, available_images_proj, mask, d_referenceAux,
-				myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myhandleAux_tr, myStructureAux_tr, iter, myStreamTR);
+				myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,  myStructureAux_tr, iter, myStreamTR);
 
 	    d_referenceAux.maskCount=maskCount;
 		d_referenceAux.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr, myStreamTR);
@@ -1569,9 +1534,8 @@ void ProgGpuCorrelation::run()
 
 		//EXPERIMENTAL IMAGES PART
 		size_t expIndex = 0;
-		MDRow rowExp;
 		FileName fnImgExp;
-		MDIterator *iterExp = new MDIterator(SF); //SFexp
+		auto iterExp = SF.begin();
 
 		GpuCorrelationAux d_experimentalAuxTR, d_experimentalAuxRT;
 		d_experimentalAuxTR.XdimOrig=d_referenceAux.XdimOrig;
@@ -1591,7 +1555,7 @@ void ProgGpuCorrelation::run()
 		//TODO: here we can use threads to carry out the alignment of different images in different threads
 		size_t n=0;
 		int available_images_exp = mdInSize; //mdExpSize
-		while(available_images_exp && iterExp->objId!=0){
+		while(available_images_exp && (*iterExp).id()!=0){
 
 			transMat_tr.initialize(myStreamTR);
 			transMat_rt.initialize(myStreamRT);
@@ -1605,10 +1569,9 @@ void ProgGpuCorrelation::run()
 				max_vector_rt_mirror[i]=-1;
 			}
 
-			expIndex = iterExp->objId;
 			available_images_exp--;
 
-			SF.getRow(rowExp, expIndex); //SFexp
+			MDRow& rowExp = *iterExp;
 			rowExp.getValue(MDL_IMAGE, fnImgExp);
 			//std::cerr << expIndex << ". Image: " << fnImgExp << std::endl;
 
@@ -1664,8 +1627,8 @@ void ProgGpuCorrelation::run()
 				}
 			}
 
-			if(iterExp->hasNext())
-				iterExp->moveNext();
+			if(iterExp != SF.end())
+				++iterExp;
 
 			n++;
             workDone+=available_images_proj;
@@ -1676,7 +1639,6 @@ void ProgGpuCorrelation::run()
             }
 		}//end while experimental images
 
-		delete iterExp;
 		firstIdx +=available_images_proj;
 		int aux;
 		aux=available_images_proj;
@@ -1706,8 +1668,6 @@ void ProgGpuCorrelation::run()
 
 	}//End loop over the reference images while(!finish)
 	progress_bar(totalWork);
-
-	delete iter;
 
 	myhandlePadded_tr.clear();
 	myhandleMask_tr.clear();

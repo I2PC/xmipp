@@ -59,12 +59,14 @@ void Sammon::operator()(const In& in, Out& out)
     out.clear();
     out.calibrated(in.calibrated());
     // initialization of mapped space
-    RandomUniformGenerator<double> uniform(-0.5, 0.5);
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dist(-0.5, 0.5);
     FeatureVector v(mapped);
     unsigned i;
     for (i = 0; i < in.size(); i++)
     {
-        generate(v.begin(), v.end(), uniform);
+        generate(v.begin(), v.end(), [&]{ return dist(gen); });
         transform(v.begin(), v.end(), v.begin(),
                   bind2nd(std::divides<double>(), norm(v)));
         out.add(v, in.theTargets[i]);

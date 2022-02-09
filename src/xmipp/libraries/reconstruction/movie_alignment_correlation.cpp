@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "reconstruction/movie_alignment_correlation.h"
+#include "core/transformations.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::defineParams() {
@@ -70,7 +71,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         const Image<T>& dark, const Image<T>& igain) {
-    sizeFactor = this->computeSizeFactor();
+    sizeFactor = this->getScaleFactor();
     MultidimArray<T> filter;
     FourierTransformer transformer;
     bool firstImage = true;
@@ -83,18 +84,18 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         init_progress_bar(movie.size());
     }
 
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         ++n;
         if (n >= this->nfirst && n <= this->nlast) {
-            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
+            this->loadFrame(movie, dark, igain, objId, croppedFrame);
 
             if (firstImage) {
                 firstImage = false;
                 newXdim = croppedFrame().xdim * sizeFactor;
                 newYdim = croppedFrame().ydim * sizeFactor;
-                filter = this->createLPF(this->getTargetOccupancy(), newXdim,
-                    newYdim);
+                filter = this->createLPF(this->getPixelResolution(sizeFactor), Dimensions(newXdim,
+                    newYdim));
             }
 
             // Reduce the size of the input frame
@@ -102,7 +103,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     reducedFrame());
 
             // Now do the Fourier transform and filter
-            MultidimArray<std::complex<T> > *reducedFrameFourier =
+            auto *reducedFrameFourier =
                     new MultidimArray<std::complex<T> >;
             transformer.FourierTransform(reducedFrame(), *reducedFrameFourier,
                     true);
@@ -131,7 +132,7 @@ void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
     for (size_t i = 0; i < N - 1; ++i) {
         for (size_t j = i + 1; j < N; ++j) {
             bestShift(*frameFourier[i], *frameFourier[j], Mcorr, bX(idx),
-                    bY(idx), aux, NULL, this->maxShift * sizeFactor);
+                    bY(idx), aux, nullptr, this->maxShift * sizeFactor);
             bX(idx) /= sizeFactor; // scale to expected size
             bY(idx) /= sizeFactor;
             if (this->verbose)
@@ -158,7 +159,9 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     FileName fnFrame;
     int frameIndex = -1;
     Ninitial = N = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    const T binning = this->getOutputBinning();
+
+    for (size_t objId : movie.ids())
     {
         frameIndex++;
         if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
@@ -172,10 +175,10 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     && (XX(shift) == (T)0); // and it's zero
 
             // load frame
-            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
-            if (this->bin > 0) {
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
-                        floor(XSIZE(croppedFrame()) / this->bin),
+            this->loadFrame(movie, dark, igain, objId, croppedFrame);
+            if (binning > 0) {
+                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
+                        floor(XSIZE(croppedFrame()) / binning),
                         croppedFrame(), reducedFrame());
                 croppedFrame() = reducedFrame();
             }
@@ -198,14 +201,14 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                 } else {
                     if (this->outsideMode == OUTSIDE_WRAP)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, WRAP);
+                                croppedFrame(), shift, xmipp_transformation::WRAP);
                     else if (this->outsideMode == OUTSIDE_VALUE)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 this->outsideValue);
                     else
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 croppedFrame().computeAvg());
                 }
                 if (this->fnAligned != "")

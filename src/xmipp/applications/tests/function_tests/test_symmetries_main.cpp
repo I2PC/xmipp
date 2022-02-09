@@ -1,4 +1,5 @@
 #include "data/sampling.h"
+#include "core/metadata_vec.h"
 
 #include <iostream>
 #include <gtest/gtest.h>
@@ -100,8 +101,8 @@ TEST_F(SamplingTest, computeDistanceMetadata)
     XMIPP_TRY
     FileName fn_sym("i3h");
     SL.readSymmetryFile(fn_sym);
-    MetaData md,mdOut;
-    MDRow row;
+    MetaDataVec md,mdOut;
+    MDRowVec row;
     row.setValue(MDL_ANGLE_ROT,1.);
     row.setValue(MDL_ANGLE_TILT,2.);
     row.setValue(MDL_ANGLE_PSI,3.);
@@ -119,14 +120,8 @@ TEST_F(SamplingTest, computeDistanceMetadata)
     mdOut = md;
     SL.computeDistance(md,false,false,false);
     double total;
-    size_t id = md.firstObject();
+    size_t id = md.firstRowId();
     md.getValue(MDL_ANGLE_DIFF,total,id);
     EXPECT_NEAR (total, 5.23652,0.00001);
     XMIPP_CATCH
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

@@ -832,7 +832,7 @@ PyString_FromFormat(const char *fmt, ...) {
   va_start(ap, fmt);
   res = vsnprintf(buf, sizeof(buf), fmt, ap);
   va_end(ap);
-  return (res < 0 || res >= (int)sizeof(buf)) ? 0 : PyString_FromString(buf);
+  return (res < 0 || res >= (int)sizeof(buf)) ? 0 : PyUnicode_FromString(buf);
 }
 #endif
 
@@ -4536,13 +4536,13 @@ extern "C" {
     Py_DecRef(tail);
     str = joined;
 #else
-    PyObject *str = PyString_FromString("(");
+    PyObject *str = PyUnicode_FromString("(");
     swig_globalvar *var;
     for (var = v->vars; var; var=var->next) {
-      PyString_ConcatAndDel(&str,PyString_FromString(var->name));
-      if (var->next) PyString_ConcatAndDel(&str,PyString_FromString(", "));
+      PyString_ConcatAndDel(&str,PyUnicode_FromString(var->name));
+      if (var->next) PyString_ConcatAndDel(&str,PyUnicode_FromString(", "));
     }
-    PyString_ConcatAndDel(&str,PyString_FromString(")"));
+    PyString_ConcatAndDel(&str,PyUnicode_FromString(")"));
 #endif
     return str;
   }

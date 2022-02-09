@@ -24,8 +24,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/metadata_extension.h>
-#include <core/xmipp_image_generic.h>
 #include "xmipp_image_convert.h"
 
 ProgConvImg::ProgConvImg()
@@ -178,7 +176,7 @@ void ProgConvImg::readParams()
 
     if (checkParam("--depth"))
     {
-        String depthTemp = (String)getParam("--depth");
+        auto depthTemp = (String)getParam("--depth");
         if (depthTemp != "default")
             depth = "%" + depthTemp;
     }

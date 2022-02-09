@@ -23,12 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
 #include "xmipp_polynomials.h"
-#include "numerical_tools.h"
-#include "mask.h"
-
+#include "core/linear_system_helper.h"
+#include "core/numerical_recipes.h"
+#include "core/xmipp_image.h"
 
 #define PR(x) std::cout << #x " = " << x << std::endl;
 #define ZERNIKE_ORDER(n) ceil((-3+sqrt(9+8*(double)(n)))/2.);
@@ -39,7 +37,7 @@ void PolyZernikes::create(const Matrix1D<int> & coef)
 {
     Matrix2D<int> * fMatT;
 
-    int nMax=(int)VEC_XSIZE(coef);
+    auto nMax=(int)VEC_XSIZE(coef);
     for (int nZ = 0; nZ < nMax; ++nZ)
     {
         if (VEC_ELEM(coef,nZ) == 0)
@@ -84,8 +82,8 @@ void PolyZernikes::create(const Matrix1D<int> & coef)
     }
 }
 
-void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, MultidimArray<double> &weight,
-                       MultidimArray<bool> & ROI, int verbose)
+void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, const MultidimArray<double> &weight,
+                       const MultidimArray<bool> & ROI, int verbose)
 {
     this->create(coef);
 
@@ -95,7 +93,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, M
     int numZer = (size_t)coef.sum();
 
     //Actually polOrder corresponds to the polynomial order +1
-    int polOrder=(int)ZERNIKE_ORDER(coef.size());
+    auto polOrder=(int)ZERNIKE_ORDER(coef.size());
 
     im.setXmippOrigin();
 
@@ -116,7 +114,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, M
 
     FOR_ALL_ELEMENTS_IN_ARRAY2D(im)
     {
-        if ( (A2D_ELEM(ROI,i,j)))
+        if (A2D_ELEM(ROI,i,j))
         {
             //For one i we swap the different j
             double y=i*iMaxDim2;
@@ -141,7 +139,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, M
             {
                 fMat = &fMatV[k];
 
-                if (fMat == NULL)
+                if (fMat == nullptr)
                     continue;
 
                 double temp = 0;
@@ -192,12 +190,12 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, M
     }
 }
 
-void PolyZernikes::zernikePols(const Matrix1D<int> coef, MultidimArray<double> & im, MultidimArray<bool> & ROI, int verbose)
+void PolyZernikes::zernikePols(const Matrix1D<int> coef, MultidimArray<double> & im, const MultidimArray<bool> & ROI, int verbose)
 {
 
     this->create(coef);
 
-    int polOrder=(int)ZERNIKE_ORDER(coef.size());
+    auto polOrder=(int)ZERNIKE_ORDER(coef.size());
     int numZer = coef.size();
 
     int xdim = XSIZE(im);

@@ -32,7 +32,6 @@
 #include <core/xmipp_image.h>
 //#include <data/symmetries.h>
 #include <data/sampling.h>
-#include <core/metadata.h>
 //#include <data/matrix2d.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
@@ -79,8 +78,7 @@ public:
      * the monogenic amplitud is calculated and low pass filtered at frequency w1*/
     void amplitudeMonogenicSignal3D_fast(const MultidimArray< std::complex<double> > &myfftV,
     		double w1, double w1l, double wH, MultidimArray<double> &amplitude,
-    		int count, int dir, FileName fnDebug,
-    		double rot, double tilt);
+    		int count, int dir, FileName fnDebug);
 
     void defineCone(MultidimArray< std::complex<double> > &myfftV,
     		MultidimArray< std::complex<double> > &conefilter, double rot, double tilt);
@@ -99,10 +97,9 @@ public:
 
     void generateGridProjectionMatching(Matrix2D<double> &angles);
 
-    void removeOutliers(Matrix2D<double> &anglesMat, Matrix2D<double> &resolutionMat);
+    void removeOutliers(Matrix2D<double> &resolutionMat);
 
-    void ellipsoidFitting(Matrix2D<double> &anglesMat,
-			Matrix2D<double> &resolutionMat,
+    void ellipsoidFitting(Matrix2D<double> &resolutionMat,
 			Matrix2D<double> &axis);
 
     void radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
@@ -114,7 +111,7 @@ public:
 			MultidimArray<double> &doaResolution_1,
 			MultidimArray<double> &doaResolution_2,
     		double &radial_Thr, double &azimuthal_Thr,
-			MetaData &mdprefDirs);
+			MetaDataVec &mdprefDirs);
 
 //    void radialAverageInMask(MultidimArray<int> &mask,
 //    						MultidimArray<double> &inputVol, MetaData &md);
@@ -122,7 +119,7 @@ public:
     void radialAverageInMask(MultidimArray<int> &mask,
     		MultidimArray<double> &inputVol_1, MultidimArray<double> &inputVol_2,
     		MultidimArray<double> &inputVol_3, MultidimArray<double> &inputVol_4,
-    		MultidimArray<double> &inputVol_5, MetaData &md);
+    		MultidimArray<double> &inputVol_5, MetaDataVec &md);
 
     void run();
 

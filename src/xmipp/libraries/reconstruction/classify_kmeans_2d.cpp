@@ -23,7 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
+#include <fstream>
+#include "data/filters.h"
+#include "core/metadata_vec.h"
+#include "core/xmipp_image.h"
 #include "classify_kmeans_2d.h"
+#include "classify_extract_features.h"
 
 // Read arguments ==========================================================
 void ProgClassifyKmeans2D::readParams()
@@ -64,7 +70,7 @@ void ProgClassifyKmeans2D::defineParams()
 }
 
 
-class Point
+class KPoint
 {
 private:
 	int id_point;
@@ -73,7 +79,7 @@ private:
 	int total_values;
 
 public:
-	Point(int id_point, std::vector<double>& values)
+	KPoint(int id_point, std::vector<double>& values)
 	{
 		this->id_point = id_point;
 		total_values = values.size();
@@ -121,10 +127,10 @@ class Cluster
 private:
 	int id_cluster;
 	std::vector<double> central_values;
-	std::vector<Point> points;
+	std::vector<KPoint> points;
 
 public:
-	Cluster(int id_cluster, Point point)
+	Cluster(int id_cluster, KPoint point)
 	{
 		this->id_cluster = id_cluster;
 
@@ -136,7 +142,7 @@ public:
 		points.push_back(point);
 	}
 
-	void addPoint(Point point)
+	void addPoint(KPoint point)
 	{
 		points.push_back(point);
 	}
@@ -166,7 +172,7 @@ public:
 		central_values[index] = value;
 	}
 
-	Point getPoint(int index)
+	KPoint getPoint(int index)
 	{
 		return points[index];
 	}
@@ -191,7 +197,7 @@ private:
 	std::vector<Cluster> clusters;
 
 	// return ID of nearest center (uses euclidean distance)
-	int getIDNearestCenter(Point point)
+	int getIDNearestCenter(KPoint point)
 	{
 		double sum = 0.0, min_dist;
 		int id_cluster_center = 0;
@@ -234,7 +240,7 @@ public:
 		this->maxObjects = maxObjects;
 	}
 
-	std::vector<Cluster> run(std::vector<Point> & points,
+	std::vector<Cluster> run(std::vector<KPoint> & points,
 	                         FileName fnClusters, FileName fnPoints)
 	{
         // create clusters and choose K points as their centers centers
@@ -399,24 +405,23 @@ public:
 
 void ProgClassifyKmeans2D::run()
 {
-    MetaData SF, MDsummary, MDclass, MDallDone;
-    MDRow row;
+    MetaDataVec SF, MDsummary, MDclass, MDallDone;
     FileName fnImg, fnClass, fnallDone;
     Image<double> I, Imasked;
     MultidimArray< std::complex<double> > Icomplex;
     CorrelationAux aux;
     std::vector<std::vector<double> > fvs;
     std::vector<double> fv, fv_temp;
-    std::vector<Point> points;
+    std::vector<KPoint> points;
     std::vector<Cluster> clusters;
     ProgExtractFeatures ef;
-    srand (time(NULL));
+    srand (time(nullptr));
 
     // reading new images from input file
     SF.read(fnSel);
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-    	SF.getValue(MDL_IMAGE, fnImg,__iter.objId);
+    	SF.getValue(MDL_IMAGE, fnImg, objId);
     	I.read(fnImg);
     	I().setXmippOrigin();
     	centerImageTranslationally(I(), aux);
@@ -441,14 +446,14 @@ void ProgClassifyKmeans2D::run()
         max_item = *std::max_element(fv_temp.begin(), fv_temp.end());
         min_item = *std::min_element(fv_temp.begin(), fv_temp.end());
         for (int j = 0; j < fvs.size(); j++)
-            fvs[j][i] = ((fvs[j][i] - min_item)) / (max_item - min_item);
+            fvs[j][i] = (fvs[j][i] - min_item) / (max_item - min_item);
     }
 
     int allItems = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         allItems++;
-        Point p(allItems, fvs.front());
+        KPoint p(allItems, fvs.front());
         points.push_back(p);
         fvs.erase(fvs.begin());
     }
@@ -477,7 +482,7 @@ void ProgClassifyKmeans2D::run()
             ss >> point_value;
             fv_load.push_back(point_value);
         }
-        Point p(allItems, fv_load);
+        KPoint p(allItems, fv_load);
         points.push_back(p);
     }
 
@@ -509,6 +514,7 @@ void ProgClassifyKmeans2D::run()
 
         for (int j = 0; j < total_points_cluster; j++)
         {
+            MDRowVec row;
             MDallDone.getRow(row, clusters[i].getPoint(j).getID());
             size_t recId = MDclass.addRow(row);
             MDclass.setValue(MDL_REF, i+1, recId);

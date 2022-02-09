@@ -28,10 +28,11 @@
 //-----------------------------------------------------------------------------
 
 #include <cmath>
+#include <fstream>
 
 #include "training_vector.h"
 #include <core/args.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 /**
  * TrainingSet for ClassicTrainingVectors
@@ -181,11 +182,11 @@ void ClassicTrainingVectors::read(const FileName& fnIn)
     clear();
 
     // Read header and content
-    MetaData vectorHeader(formatString("vectorHeader@%s",fnIn.c_str()));
-    MetaData vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
+    MetaDataVec vectorHeader(formatString("vectorHeader@%s",fnIn.c_str()));
+    MetaDataVec vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
     size_t Nvectors;
     size_t vectorSize;
-    size_t id=vectorHeader.firstObject();
+    size_t id = vectorHeader.firstRowId();
     vectorHeader.getValue(MDL_CLASSIFICATION_DATA_SIZE,vectorSize,id);
     vectorHeader.getValue(MDL_COUNT,Nvectors,id);
     theItems.reserve(Nvectors);
@@ -198,13 +199,14 @@ void ClassicTrainingVectors::read(const FileName& fnIn)
         REPORT_ERROR(ERR_IO_NOTEXIST,fnInRaw);
     std::vector<floatFeature> v;
     v.resize(vectorSize);
-    float *buffer=new float[vectorSize];
+    auto *buffer=new float[vectorSize];
     String fnImg;
     size_t order;
-    FOR_ALL_OBJECTS_IN_METADATA(vectorContent)
+
+    for (size_t objId : vectorContent.ids())
     {
-        vectorContent.getValue(MDL_IMAGE,fnImg,__iter.objId);
-        vectorContent.getValue(MDL_ORDER,order,__iter.objId);
+        vectorContent.getValue(MDL_IMAGE, fnImg, objId);
+        vectorContent.getValue(MDL_ORDER, order, objId);
 
         // Read raw values
         fhInRaw.seekg(order*vectorSize*sizeof(float));
@@ -214,7 +216,7 @@ void ClassicTrainingVectors::read(const FileName& fnIn)
                          formatString("Could not read image %lu from %s",
                                       order,fnInRaw.c_str()));
         for (size_t i=0; i<vectorSize; ++i)
-        	v[i]=buffer[i];
+            v[i]=buffer[i];
         theTargets.push_back(fnImg);
         theItems.push_back(v);
     }

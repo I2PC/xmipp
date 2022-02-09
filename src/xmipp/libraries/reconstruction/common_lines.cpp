@@ -23,23 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "common_lines.h"
-
-#include <core/args.h>
-#include <data/mask.h>
-#include <core/metadata_extension.h>
-#include <data/filters.h>
-#include <data/fourier_filter.h>
-#include <reconstruction/radon.h>
 #include <fstream>
-#include <iomanip>
-
-/* Common line ------------------------------------------------------------- */
-CommonLine::CommonLine()
-{
-    angi = angj = 0;
-    distanceij = -1;
-}
+#include "common_lines.h"
+#include "data/mask.h"
+#include "core/metadata_extension.h"
+#include "data/fourier_filter.h"
+#include "reconstruction/radon.h"
+#include "core/linear_system_helper.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgCommonLine::readParams() {
@@ -115,9 +105,9 @@ struct ThreadPrepareImages {
 
 void * threadPrepareImages(void * args)
 {
-    ThreadPrepareImages * master = (ThreadPrepareImages *) args;
+    auto * master = (ThreadPrepareImages *) args;
     ProgCommonLine * parent = master->parent;
-    MetaData SFi = *(master->SFi);
+    MetaDataVec SFi = *(master->SFi);
     size_t Ydim, Xdim, Zdim, Ndim;
     getImageSize(SFi, Xdim, Ydim, Zdim, Ndim);
 
@@ -125,7 +115,7 @@ void * threadPrepareImages(void * args)
     mask.resize(Ydim, Xdim);
     mask.setXmippOrigin();
     BinaryCircularMask(mask, Xdim / 2, OUTSIDE_MASK);
-    int NInsideMask = (int)(XSIZE(mask) * YSIZE(mask) - mask.sum());
+    auto NInsideMask = (int)(XSIZE(mask) * YSIZE(mask) - mask.sum());
 
     FourierFilter Filter;
     Filter.w1 = -1;
@@ -156,10 +146,10 @@ void * threadPrepareImages(void * args)
 	transformer.setReal(linei);
 	MultidimArray<std::complex<double> >&mlineiFourier=transformer.fFourier;
 	MultidimArray<std::complex<double> > RTFourier;
-	FOR_ALL_OBJECTS_IN_METADATA(SFi)
+    for (size_t objId : SFi.ids())
 	{
 		if ((ii + 1) % parent->Nthr == master->myThreadID) {
-			I.readApplyGeo(SFi, __iter.objId);
+			I.readApplyGeo(SFi, objId);
 			I().setXmippOrigin();
 			MultidimArray<double> &mI = I();
 
@@ -210,14 +200,14 @@ void * threadPrepareImages(void * args)
 		}
 		ii++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ProgCommonLine::getAndPrepareBlock(int i,
 		std::vector<MultidimArray<std::complex<double> > > &blockRTFs,
 		std::vector<MultidimArray<double> > &blockRTs) {
 	// Get the selfile
-	MetaData SFi;
+	MetaDataVec SFi;
 	SFi.selectPart(SF, i * Nblock, Nblock);
 
 	// Ask for space for all the block images
@@ -231,8 +221,8 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 	}
 
 	// Read and preprocess the images
-	pthread_t * th_ids = new pthread_t[Nthr];
-	ThreadPrepareImages * th_args = new ThreadPrepareImages[Nthr];
+	auto * th_ids = new pthread_t[Nthr];
+	auto * th_args = new ThreadPrepareImages[Nthr];
 	for (int nt = 0; nt < Nthr; nt++) {
 		// Passing parameters to each thread
 		th_args[nt].parent = this;
@@ -240,13 +230,13 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 		th_args[nt].SFi = &SFi;
 		th_args[nt].blockRTFs = &blockRTFs;
 		th_args[nt].blockRTs = &blockRTs;
-		pthread_create((th_ids + nt), NULL, threadPrepareImages,
+		pthread_create((th_ids + nt), nullptr, threadPrepareImages,
 				(void *) (th_args + nt));
 	}
 
 	// Waiting for threads to finish
 	for (int nt = 0; nt < Nthr; nt++)
-		pthread_join(*(th_ids + nt), NULL);
+		pthread_join(*(th_ids + nt), nullptr);
 
     // Threads structures are not needed any more
     delete []th_ids;
@@ -315,7 +305,7 @@ struct ThreadCompareImages {
 
 void * threadCompareImages(void * args)
 {
-    ThreadCompareImages * master = (ThreadCompareImages *) args;
+    auto * master = (ThreadCompareImages *) args;
     ProgCommonLine * parent = master->parent;
 
 	int blockIsize = master->RTFsi->size();
@@ -349,7 +339,7 @@ void * threadCompareImages(void * args)
 			parent->CLmatrix[idx_ji].jmax = -parent->CLmatrix[idx_ij].jmax;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ProgCommonLine::processBlock(int i, int j)
@@ -366,8 +356,8 @@ void ProgCommonLine::processBlock(int i, int j)
 
 	// Compare all versus all
 	// Read and preprocess the images
-	pthread_t * th_ids = new pthread_t[Nthr];
-	ThreadCompareImages * th_args = new ThreadCompareImages[Nthr];
+	auto * th_ids = new pthread_t[Nthr];
+	auto * th_args = new ThreadCompareImages[Nthr];
 	for (int nt = 0; nt < Nthr; nt++) {
 		// Passing parameters to each thread
 		th_args[nt].parent = this;
@@ -386,13 +376,13 @@ void ProgCommonLine::processBlock(int i, int j)
 			th_args[nt].RTFsj = &RTFsi;
 			th_args[nt].RTsj = &RTsi;
 		}
-		pthread_create((th_ids + nt), NULL, threadCompareImages,
+		pthread_create((th_ids + nt), nullptr, threadCompareImages,
 				(void *) (th_args + nt));
 	}
 
     // Waiting for threads to finish
     for (int nt = 0; nt < Nthr; nt++)
-        pthread_join(*(th_ids + nt), NULL);
+        pthread_join(*(th_ids + nt), nullptr);
 
     // Threads structures are not needed any more
     delete[] th_ids;
@@ -476,10 +466,10 @@ void ProgCommonLine::writeResults()
 
 	// Write the aligned images
     int idx=0;
-	FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
 	{
-		SF.setValue(MDL_SHIFT_X,-shift(idx++)/2,__iter.objId); // *** FIXME: COSS Why /2?
-		SF.setValue(MDL_SHIFT_Y,-shift(idx++)/2,__iter.objId);
+		SF.setValue(MDL_SHIFT_X,-shift(idx++)/2, objId); // *** FIXME: COSS Why /2?
+		SF.setValue(MDL_SHIFT_Y,-shift(idx++)/2, objId);
 	}
 	SF.write(fn_out.insertBeforeExtension("_aligned_images"));
 }
@@ -1056,8 +1046,8 @@ void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
     DVector v1, v2, v3(3);
     std::vector<DMatrix> rotations(K);
 
-    MetaData MD("images.xmd");
-    MDIterator it(MD);
+    MetaDataVec MD("images.xmd");
+    auto idIt(MD.ids().begin());
     for (int i = 0; i < K; ++i)
     {
       DMatrix &R = rotations[i];
@@ -1076,10 +1066,10 @@ void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
       double rot, tilt, psi;
       //
       Euler_matrix2angles(R.transpose(), rot, tilt, psi);
-      MD.setValue(MDL_ANGLE_ROT,rot,it.objId);
-      MD.setValue(MDL_ANGLE_TILT,tilt,it.objId);
-      MD.setValue(MDL_ANGLE_PSI,psi,it.objId);
-      it.moveNext();
+      MD.setValue(MDL_ANGLE_ROT,rot,*idIt);
+      MD.setValue(MDL_ANGLE_TILT,tilt,*idIt);
+      MD.setValue(MDL_ANGLE_PSI,psi,*idIt);
+      ++idIt;
 
       std::cerr << "DEBUG_JM: R" << i << " : " << R << std::endl;
     }

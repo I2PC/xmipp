@@ -35,6 +35,9 @@
 #include <stdexcept>
 #include <cassert>
 
+/**@defgroup ProgAGPUMovieAlign Cuda GPU movie Alignment Correlation
+   @ingroup ReconsLibrary */
+//@{
 /**
  * This function performs FFT and scale (with filter) of the input images
  * @param inOutData input images. Scaled images will be stored here. Must be
@@ -142,5 +145,6 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
         GpuMultidimArrayAtGpu<std::complex<T> >& ffts,
         GpuMultidimArrayAtGpu<T>& imgs, mycufftHandle& handler,
         T*& result);
+//@}
 
 #endif

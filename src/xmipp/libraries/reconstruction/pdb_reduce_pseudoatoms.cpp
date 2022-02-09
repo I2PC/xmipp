@@ -24,10 +24,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "pdb_reduce_pseudoatoms.h"
-#include <data/pdb.h>
-#include <core/args.h>
-#include <fstream>
+#include "data/pdb.h"
 
 ProgPdbReduce::ProgPdbReduce()
 {

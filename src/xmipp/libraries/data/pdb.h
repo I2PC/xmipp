@@ -29,10 +29,18 @@
 #ifndef _XMIPP_PDB_HH
 #define _XMIPP_PDB_HH
 
-#include <string>
-#include <core/matrix1d.h>
-#include <data/projection.h>
-#include <core/histogram.h>
+#include <vector>
+#include "core/xmipp_error.h"
+
+template<typename T>
+class Matrix1D;
+template<typename T>
+class Matrix2D;
+template<typename T>
+class MultidimArray;
+class FileName;
+class Projection;
+class Histogram1D;
 
 /**@defgroup PDBinterface PDB
    @ingroup InterfaceLibrary */
@@ -50,6 +58,13 @@ int atomCharge(const std::string &atom);
     radius. */
 double atomRadius(const std::string &atom);
 
+/** Returns the covalent radius of an atom.
+    Returns 0 if the atom is not within the short list (H, C, N, O, S, P, Fe)
+    of valid atoms.
+    The radius data is taken from http://www.webelements.com as the empirical
+    radius. */
+double atomCovalentRadius(const std::string &atom);
+
 /** Compute the center of mass and limits of a PDB file.
     The intensity column is used only for the pseudoatoms. It specifies
     from which column we should read the intensity. Valid columns are
@@ -64,9 +79,31 @@ void computePDBgeometry(const std::string &fnPDB,
     The result is written in the output PDB. Set centerPDB if you
     want to compute the center of mass first and apply the transformation
     after centering the PDB. */
+
 void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
                    const Matrix2D<double> &A, bool centerPDB=true,
                    const std::string &intensityColumn="occupancy");
+
+/** pdbdata is an struct that contains the coordiantes of the atom positions defined
+as x, y, z, the b factor, b, the residue of each atom, and the covalent radiues. These
+variables are defined as vectors*/
+struct pdbInfo
+{
+	std::vector<double> x;
+	std::vector<double> y;
+	std::vector<double> z;
+	std::vector<double> b;
+	std::vector<std::string> chain;
+	std::vector<int> residue;
+	std::vector<double> atomCovRad;
+};
+
+/** ANALYZEPDBDATA takes as input a filename of a pdb file (atomic model) and selects only
+the typeOfAtom, (for instance the C-alpha atoms) storing the atom positions, b- factor,
+the residue of each atom, and the covalent radiues in a struct vector at_pos. Also the number
+of atoms is kept.*/
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos);
+
 
 /** Atom class. */
 class Atom
@@ -140,13 +177,13 @@ public:
     double z;
 
     /// Name
-    String name;
+    std::string name;
 
     /// Alternate location
     char altloc;
 
     /// Residue name
-    String resname;
+    std::string resname;
 
     /// ChainId
     char chainid;
@@ -169,7 +206,7 @@ class PDBRichPhantom
 {
 public:
 	/// List of remarks
-	std::vector<String> remarks;
+	std::vector<std::string> remarks;
 public:
     /// List of atoms
     std::vector<RichAtom> atomList;
@@ -282,9 +319,24 @@ public:
         case 'S':
             idx=5;
             break;
-        case 'F':
+        case 'E': // Iron Fe
             idx=6;
             break;
+        case 'K':
+            idx=7;
+            break;
+        case 'F':
+             idx=8;
+             break;
+        case 'G': // Magnesium Mg
+             idx=9;
+             break;
+        case 'L': // Chlorine Cl
+             idx=10;
+             break;
+        case 'A': // Calcium Ca
+             idx=11;
+             break;
         default:
             REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)
                          "AtomInterpolator::getAtomIndex: Atom "+atom+" unknown");
@@ -300,27 +352,11 @@ public:
 
     /** Volume value at a distance r of the atom whose first letter
         is the one provided as atom. */
-    double volumeAtDistance(char atom, double r) const
-    {
-        int idx=getAtomIndex(atom);
-        if (r>radii[idx])
-            return 0;
-        else
-            return volumeProfileCoefficients[idx].
-                   interpolatedElementBSpline1D(r*M,3);
-    }
+    double volumeAtDistance(char atom, double r) const;
 
     /** Projection value at a distance r of the atom whose first letter
         is the one provided as atom. */
-    double projectionAtDistance(char atom, double r) const
-    {
-        int idx=getAtomIndex(atom);
-        if (r>radii[idx])
-            return 0;
-        else
-            return projectionProfileCoefficients[idx].
-                   interpolatedElementBSpline1D(r*M,3);
-    }
+    double projectionAtDistance(char atom, double r) const;
 };
 
 /** Project PDB.

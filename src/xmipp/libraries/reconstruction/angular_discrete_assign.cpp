@@ -24,15 +24,12 @@
  ***************************************************************************/
 
 #include "angular_discrete_assign.h"
-#include <data/fourier_filter.h>
+#include "classification/base_algorithm.h" // std::vector to std::cout
+#include "core/metadata_extension.h"
+#include "data/wavelet.h"
+#include "data/mask.h"
+#include "data/filters.h"
 
-#include <core/args.h>
-#include <core/histogram.h>
-#include <core/geometry.h>
-#include <data/wavelet.h>
-#include <data/mask.h>
-#include <data/filters.h>
-#include <algorithm>
 
 // Empty constructor =======================================================
 ProgAngularDiscreteAssign::ProgAngularDiscreteAssign()
@@ -157,10 +154,10 @@ void ProgAngularDiscreteAssign::preProcess()
     rot.resize(SF_ref.size());
     tilt.resize(SF_ref.size());
     int i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(SF_ref)
+    for (size_t objId : SF_ref.ids())
     {
-        SF_ref.getValue(MDL_ANGLE_ROT, rot[i],__iter.objId);
-        SF_ref.getValue(MDL_ANGLE_TILT, tilt[i],__iter.objId);
+        SF_ref.getValue(MDL_ANGLE_ROT, rot[i], objId);
+        SF_ref.getValue(MDL_ANGLE_TILT, tilt[i], objId);
         i++;
     }
 
@@ -213,7 +210,7 @@ void ProgAngularDiscreteAssign::preProcess()
 void ProgAngularDiscreteAssign::postProcess()
 {
 	if (single_image)
-		getOutputMd()->write(fn_out);
+		getOutputMd().write(fn_out);
 }
 
 // Produce library -----------------------------------------------------------
@@ -227,7 +224,7 @@ void ProgAngularDiscreteAssign::produce_library()
     Matrix1D<int> SBidx(SBNo);
     for (int m = 0; m < SBNo; m++)
     {
-        MultidimArray<double> *subband = new MultidimArray<double>;
+        auto *subband = new MultidimArray<double>;
         subband->resize(number_of_imgs, SBsize(m));
         library.push_back(subband);
     }
@@ -239,9 +236,9 @@ void ProgAngularDiscreteAssign::produce_library()
         init_progress_bar(number_of_imgs);
     }
     int n = 0, nstep = XMIPP_MAX(1, number_of_imgs / 60); // For progress bar
-    FOR_ALL_OBJECTS_IN_METADATA(SF_ref)
+    for (size_t objId : SF_ref.ids())
     {
-        I.readApplyGeo(SF_ref,__iter.objId);
+        I.readApplyGeo(SF_ref, objId);
         library_name.push_back(I.name());
 
         // Make and distribute its DWT coefficients in the different PCA bins
@@ -346,7 +343,7 @@ void ProgAngularDiscreteAssign::refine_candidate_list_with_correlation(
         }
     }
     std::sort(sortedCorr.begin(),sortedCorr.end());
-    int idx=(int)floor(sortedCorr.size()*(1-th/100.0));
+    auto idx=(int)floor(sortedCorr.size()*(1-th/100.0));
 
     double corr_th = sortedCorr[idx];
 
@@ -370,7 +367,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
                      "experimental images must be of a size that is power of 2");
 
     // Build initial candidate list
-    bool* candidate_list=new bool[rot.size()];
+    auto* candidate_list=new bool[rot.size()];
     std::vector<double> cumulative_corr;
     std::vector<double> sumxy;
     build_ref_candidate_list(I, candidate_list, cumulative_corr, sumxy);
@@ -383,7 +380,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
     SBidx.initZeros();
     for (int m = 0; m < SBNo; m++)
     {
-        Matrix1D<double> *subband = new Matrix1D<double>;
+        auto *subband = new Matrix1D<double>;
         subband->resize(SBsize(m));
         Idwt.push_back(subband);
     }
@@ -601,10 +598,6 @@ void ProgAngularDiscreteAssign::group_views(const std::vector<double> &vrot,
 int ProgAngularDiscreteAssign::pick_view(int method,
         std::vector< std::vector<int> > &groups,
         std::vector<double> &vscore,
-        std::vector<double> &vrot,
-        std::vector<double> &vtilt,
-        std::vector<double> &vpsi,
-        const std::vector<int> &best_idx,
         const std::vector<int> &candidate_idx, const std::vector<double> &candidate_rate)
 {
     if (method == 0)
@@ -718,7 +711,7 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
     img.read(fnImg);
     img.setGeo(rowIn);
     if (rowIn.containsLabel(MDL_ANGLE_PSI))
-    	img.setPsi(-img.psi());
+        img.setPsi(-img.psi());
 
     double best_rot, best_tilt, best_psi, best_shiftX, best_shiftY,
     best_score = 0, best_rate;
@@ -780,14 +773,14 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 					if (shiftX != 0 || shiftY != 0)
 					{
 						VECTOR_R2(shift, shiftX, shiftY);
-						selfTranslate(LINEAR,Ip(),shift,WRAP);
+						selfTranslate(xmipp_transformation::LINEAR,Ip(),shift,xmipp_transformation::WRAP);
 					}
 
 					// Rotate image if necessary
 					// Adding 2 is a trick to avoid that the 0, 90, 180 and 270
 					// are treated in a different way
-					selfRotate(LINEAR,Ip(),psi + 2, WRAP);
-					selfRotate(LINEAR,Ip(),-2, WRAP);
+					selfRotate(xmipp_transformation::LINEAR,Ip(),psi + 2, xmipp_transformation::WRAP);
+					selfRotate(xmipp_transformation::LINEAR,Ip(),-2, xmipp_transformation::WRAP);
 #ifdef DEBUG
 					Image<double> Ipsave;
 					Ipsave()=Ip();
@@ -1035,8 +1028,8 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
             std::cout << "Partition: " << groups << std::endl;
 
         // Pick the best image from the groups
-        jbest = pick_view(pick, groups, vscore, vrot, vtilt, vpsi,
-                          best_idx, candidate_local_maxima, candidate_rate);
+        jbest = pick_view(pick, groups, vscore,
+                          candidate_local_maxima, candidate_rate);
         ibest = candidate_local_maxima[jbest];
     }
 
@@ -1048,13 +1041,13 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
         //TODO: Check if this is correct
         Iref.read(library_name[vref_idx[ibest]]);
         Iref().setXmippOrigin();
-        selfRotate(LINEAR,Iref(),-vpsi[ibest]);
+        selfRotate(xmipp_transformation::LINEAR,Iref(),-vpsi[ibest]);
         if (Xoff == 0 && Yoff == 0)
             Ip() = img();
         else
         {
             VECTOR_R2(shift, Xoff, Yoff);
-            translate(LINEAR,Ip(),img(),shift,WRAP);
+            translate(xmipp_transformation::LINEAR,Ip(),img(),shift,xmipp_transformation::WRAP);
         }
         Ip().setXmippOrigin();
 

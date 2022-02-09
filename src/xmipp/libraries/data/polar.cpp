@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "polar.h"
+#include "core/transformations.h"
 
 Polar_fftw_plans::~Polar_fftw_plans()
 {
@@ -41,7 +42,7 @@ void fourierTransformRings(Polar<double> & in,
 		(plans.transformers[iring])->FourierTransform();
 		(plans.transformers[iring])->getFourierAlias(Fring);
 		if (conjugated) {
-			double *ptrFring_i = (double*) &DIRECT_A1D_ELEM(Fring,0);
+			auto *ptrFring_i = (double*) &DIRECT_A1D_ELEM(Fring,0);
 			++ptrFring_i;
 			for (size_t i = 0; i < XSIZE(Fring); ++i, ptrFring_i += 2)
 				(*ptrFring_i) *= -1;
@@ -51,6 +52,37 @@ void fourierTransformRings(Polar<double> & in,
 	out.mode = in.mode;
 	out.ring_radius = in.ring_radius;
 }
+
+template<typename T>
+void Polar<T>::ensureAngleCache(int firstRing, int lastRing) {
+    if ((m_lastFirstRing != firstRing) || (m_lastLastRing != lastRing) || (m_lastMode != mode)) {
+        // update info
+        m_lastFirstRing = firstRing;
+        m_lastLastRing = lastRing;
+        m_lastMode = mode;
+        auto noOfRings = getNoOfRings(firstRing, lastRing);
+        m_lastSinRadius.resize(noOfRings);
+        m_lastCosRadius.resize(noOfRings);
+        double angle = m_lastMode == FULL_CIRCLES ? TWOPI : PI;
+
+        for (int r = 0; r < noOfRings; ++r) {
+            float radius = r + firstRing;
+            auto noOfSamples = getNoOfSamples(angle, radius);
+            auto &s = m_lastSinRadius.at(r);
+            auto &c = m_lastCosRadius.at(r);
+            s.resize(noOfSamples);
+            c.resize(noOfSamples);
+            float dphi = angle / (float)noOfSamples;
+            for (int i = 0; i < noOfSamples; ++i) {
+                float phi = i * dphi;
+                s.at(i) = sin(phi) * radius;
+                c.at(i) = cos(phi) * radius;
+            }
+        }
+    }
+}
+template void Polar<double>::ensureAngleCache(int, int);
+
 
 void inverseFourierTransformRings(Polar<std::complex<double> > & in,
 		Polar<double> &out, Polar_fftw_plans &plans, bool conjugated) {
@@ -92,9 +124,9 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
 		int imax = M1.getSampleNo(iring);
 		const MultidimArray<std::complex<double> > &M1_iring = M1.rings[iring];
 		const MultidimArray<std::complex<double> > &M2_iring = M2.rings[iring];
-		double *ptr1 = (double*) MULTIDIM_ARRAY(M1_iring);
-		double *ptr2 = (double*) MULTIDIM_ARRAY(M2_iring);
-		double *ptrFsum = (double *) MULTIDIM_ARRAY(aux.Fsum);
+		auto *ptr1 = (double*) MULTIDIM_ARRAY(M1_iring);
+		auto *ptr2 = (double*) MULTIDIM_ARRAY(M2_iring);
+		auto *ptrFsum = (double *) MULTIDIM_ARRAY(aux.Fsum);
 		for (int i = 0; i < imax; i++) {
 			double a = *ptr1++;
 			double b = *ptr1++;
@@ -115,27 +147,63 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
 		DIRECT_A1D_ELEM(angles,i) = (double) i * Kaux;
 }
 
-// Compute the normalized Polar Fourier transform --------------------------
-void normalizedPolarFourierTransform(const MultidimArray<double> &in,
-		Polar<std::complex<double> > &out, bool flag, int first_ring,
+// Compute the Polar Fourier transform --------------------------
+
+template<bool NORMALIZE>
+void polarFourierTransform(const MultidimArray<double> &in,
+        Polar<double> &inAux,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder) {
+    if (BsplineOrder == 1)
+        inAux.getPolarFromCartesianBSpline(in, first_ring, last_ring, 1);
+    else {
+        MultidimArray<double> Maux;
+        produceSplineCoefficients(3, Maux, in);
+        inAux.getPolarFromCartesianBSpline(Maux, first_ring, last_ring,
+                BsplineOrder);
+    }
+    if (NORMALIZE) {
+        double mean, stddev;
+        inAux.computeAverageAndStddev(mean, stddev);
+        inAux.normalize(mean, stddev);
+    }
+    if (plans == nullptr) {
+        plans = new Polar_fftw_plans();
+        inAux.calculateFftwPlans(*plans);
+    }
+    fourierTransformRings(inAux, out, *plans, conjugated);
+}
+template void polarFourierTransform<true>(MultidimArray<double> const&, 
+		Polar<double>&, Polar<std::complex<double> >&, bool, int, int, 
+		Polar_fftw_plans*&, int);
+
+
+template<bool NORMALIZE>
+void polarFourierTransform(const MultidimArray<double> &in,
+		Polar<std::complex<double> > &out, bool conjugated, int first_ring,
 		int last_ring, Polar_fftw_plans *&plans, int BsplineOrder) {
 	Polar<double> polarIn;
-	if (BsplineOrder == 1)
-		polarIn.getPolarFromCartesianBSpline(in, first_ring, last_ring, 1);
-	else {
-		MultidimArray<double> Maux;
-		produceSplineCoefficients(3, Maux, in);
-		polarIn.getPolarFromCartesianBSpline(Maux, first_ring, last_ring,
-				BsplineOrder);
-	}
-	double mean, stddev;
-	polarIn.computeAverageAndStddev(mean, stddev);
-	polarIn.normalize(mean, stddev);
-	if (plans == NULL) {
-		plans = new Polar_fftw_plans();
-		polarIn.calculateFftwPlans(*plans);
-	}
-	fourierTransformRings(polarIn, out, *plans, flag);
+	polarFourierTransform<NORMALIZE>(in, polarIn, out, conjugated, first_ring, last_ring, plans, BsplineOrder);
+}
+template void polarFourierTransform<true>(const MultidimArray<double> &in,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder);
+template void polarFourierTransform<false>(const MultidimArray<double> &in,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder);
+
+// Compute the normalized Polar Fourier transform --------------------------
+void normalizedPolarFourierTransform(Polar<double> &polarIn,
+        Polar<std::complex<double> > &out, bool conjugated,
+        Polar_fftw_plans *&plans) {
+    double mean, stddev;
+    polarIn.computeAverageAndStddev(mean, stddev);
+    polarIn.normalize(mean, stddev);
+    if (plans == nullptr) {
+        plans = new Polar_fftw_plans();
+        polarIn.calculateFftwPlans(*plans);
+    }
+    fourierTransformRings(polarIn, out, *plans, conjugated);
 }
 
 // Best rotation -----------------------------------------------------------
@@ -148,7 +216,7 @@ double best_rotation(const Polar<std::complex<double> > &I1,
 	const MultidimArray<double> &corr = aux.local_transformer.getReal();
 	int imax = 0;
 	double maxval = DIRECT_MULTIDIM_ELEM(corr,0);
-	double* ptr = NULL;
+	double* ptr = nullptr;
 	unsigned long int n;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY_ptr(corr,n,ptr)
 		if (*ptr > maxval) {
@@ -166,11 +234,11 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 	I1.setXmippOrigin();
 	I2.setXmippOrigin();
 
-	Polar_fftw_plans *plans = NULL;
+	Polar_fftw_plans *plans = nullptr;
 	Polar<std::complex<double> > polarFourierI2, polarFourierI1;
-	normalizedPolarFourierTransform(I1, polarFourierI1, false, XSIZE(I1) / 5,
+	polarFourierTransform<true>(I1, polarFourierI1, false, XSIZE(I1) / 5,
 			XSIZE(I1) / 2, plans);
-	normalizedPolarFourierTransform(I2, polarFourierI2, true, XSIZE(I2) / 5,
+	polarFourierTransform<true>(I2, polarFourierI2, true, XSIZE(I2) / 5,
 			XSIZE(I2) / 2, plans);
 
 	MultidimArray<double> rotationalCorr;
@@ -187,8 +255,8 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 void image_convertCartesianToPolar(MultidimArray<double> &in,
 		MultidimArray<double> &out, double Rmin, double Rmax, double deltaR,
 		float angMin, double angMax, float deltaAng) {
-	size_t NAngSteps = (size_t)floor((angMax - angMin) / deltaAng);
-	size_t NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
+	auto NAngSteps = (size_t)floor((angMax - angMin) / deltaAng);
+	auto NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
 	out.initZeros(NAngSteps, NRSteps);
 	for (size_t i = 0; i < NAngSteps; ++i) {
 		float angle = angMin + i * deltaAng;
@@ -234,8 +302,8 @@ void image_convertCartesianToPolar_ZoomAtCenter(const MultidimArray<double> &in,
 void volume_convertCartesianToCylindrical(const MultidimArray<double> &in,
 		MultidimArray<double> &out, double Rmin, double Rmax, double deltaR,
 		float angMin, double angMax, float deltaAng, Matrix1D<double> &axis) {
-	size_t NAngSteps = (size_t)floor((angMax - angMin) / deltaAng);
-	size_t NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
+	auto NAngSteps = (size_t)floor((angMax - angMin) / deltaAng);
+	auto NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
 	out.initZeros(ZSIZE(in), NAngSteps, NRSteps);
 	STARTINGZ(out) = STARTINGZ(in);
 	STARTINGY(out) = STARTINGX(out) = 0;
@@ -284,9 +352,9 @@ void volume_convertCartesianToCylindrical(const MultidimArray<double> &in,
 void volume_convertCartesianToSpherical(const MultidimArray<double> &in,
 		MultidimArray<double> &out, double Rmin, double Rmax, double deltaR,
 		double deltaRot, double deltaTilt) {
-	size_t NRotSteps = (size_t)floor(2*PI / deltaRot);
-	size_t NTiltSteps = (size_t)floor(PI / deltaRot);
-	size_t NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
+	auto NRotSteps = (size_t)floor(2*PI / deltaRot);
+	auto NTiltSteps = (size_t)floor(PI / deltaRot);
+	auto NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
 	out.initZeros(NRSteps, NRotSteps, NTiltSteps);
 	STARTINGZ(out) = STARTINGY(out) = STARTINGX(out) = 0;
 

@@ -30,7 +30,6 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
 #include <string>
 #include "core/metadata_extension.h"
 
@@ -41,15 +40,16 @@
 
 class ProgOddEven : public XmippProgram
 {
-public:
+private:
 	 /** Filenames */
 	FileName fnOut_odd, fnOut_even, fnImg, splitType;
 	bool sumFrames;
 
-public:
+private:
     void defineParams();
     void readParams();
-    void produceSideInfo();
+    // This function generates the metadata associated to the input image stack
+    void fromimageToMd(FileName fnImg, MetaData &movienew, size_t &Xdim, size_t &Ydim);
     void run();
 
 

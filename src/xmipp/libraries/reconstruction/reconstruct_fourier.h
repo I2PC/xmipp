@@ -29,25 +29,14 @@
 #ifndef __RECONSTRUCT_FOURIER_H
 #define __RECONSTRUCT_FOURIER_H
 
-#include <iostream>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <data/projection.h>
-#include <core/xmipp_threads.h>
-#include <data/blobs.h>
-#include <core/metadata.h>
-#include <data/ctf.h>
-
-#include <core/args.h>
-#include <core/xmipp_fft.h>
-#include <sys/time.h>
-
-#include <core/metadata.h>
+#include "core/metadata_vec.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_threads.h"
+#include "data/blobs.h"
+#include "data/ctf.h"
 #include "recons.h"
 
-#include <reconstruction/directions.h>
-#include <reconstruction/symmetrize.h>
 #define BLOB_TABLE_SIZE 5000
 #define BLOB_TABLE_SIZE_SQRT 10000
 
@@ -91,7 +80,7 @@ public:
     FileName fn_out, fn_sym, fn_sel, fn_doc, fn_fsc;
 
     /** SelFile containing all projections */
-    MetaData SF;
+    MetaDataVec SF;
 
     /** Flag whether to use the weights in the image metadata */
     bool do_weights;

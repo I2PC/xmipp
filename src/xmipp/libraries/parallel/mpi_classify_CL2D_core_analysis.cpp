@@ -25,6 +25,7 @@
 
 #include "mpi_classify_CL2D_core_analysis.h"
 #include <classification/analyze_cluster.h>
+#include "core/matrix2d.h"
 
 // Show block ==============================================================
 std::ostream & operator << (std::ostream &out, const CL2DBlock &block)
@@ -39,7 +40,7 @@ ProgClassifyCL2DCore::ProgClassifyCL2DCore(int argc, char **argv)
     node=new MpiNode(argc,argv);
     if (!node->isMaster())
         verbose=0;
-    taskDistributor=NULL;
+    taskDistributor=nullptr;
     maxLevel=-1;
     tolerance=0;
     thPCAZscore=3;
@@ -159,7 +160,7 @@ void ProgClassifyCL2DCore::computeCores()
     analyzeCluster.distThreshold=thPCAZscore;
     analyzeCluster.dontMask=false;
 
-    MetaData MD;
+    MetaDataVec MD;
     size_t first, last;
     size_t Nblocks=blocks.size();
     if (verbose && node->rank==0)
@@ -194,8 +195,7 @@ void ProgClassifyCL2DCore::computeStableCores()
 {
     if (verbose && node->rank==0)
         std::cerr << "Computing stable cores ...\n";
-    MetaData thisClass, anotherClass, commonImages, thisClassCore;
-    MDRow row;
+    MetaDataDb thisClass, anotherClass, commonImages, thisClassCore;
     size_t first, last;
     Matrix2D<unsigned char> coocurrence;
     Matrix1D<unsigned char> maximalCoocurrence;
@@ -221,9 +221,9 @@ void ProgClassifyCL2DCore::computeStableCores()
             {
                 size_t order=0;
                 thisClassOrder.clear();
-                FOR_ALL_OBJECTS_IN_METADATA(thisClass)
+                for (size_t objId : thisClass.ids())
                 {
-                    thisClass.getValue(MDL_IMAGE,fnImg,__iter.objId);
+                    thisClass.getValue(MDL_IMAGE,fnImg,objId);
                     thisClassOrder[fnImg]=order++;
                 }
 
@@ -233,7 +233,7 @@ void ProgClassifyCL2DCore::computeStableCores()
                 {
                     try {
                        coocurrence.initZeros(NthisClass,NthisClass);
-                    } catch (XmippError e)
+                    } catch (XmippError &e)
                     {
                        std::cerr << e << std::endl;
                        std::cerr << "There is a memory allocation error. Most likely there are too many images in this class ("
@@ -252,9 +252,9 @@ void ProgClassifyCL2DCore::computeStableCores()
                         commonImages.join1(anotherClass, thisClass, MDL_IMAGE,LEFT);
                         commonIdx.resize(commonImages.size());
                         size_t idx=0;
-                        FOR_ALL_OBJECTS_IN_METADATA(commonImages)
+                        for (size_t objId : commonImages.ids())
                         {
-                            commonImages.getValue(MDL_IMAGE,fnImg,__iter.objId);
+                            commonImages.getValue(MDL_IMAGE,fnImg,objId);
                             commonIdx[idx++]=thisClassOrder[fnImg];
                         }
                         size_t Ncommon=commonIdx.size();
@@ -278,15 +278,12 @@ void ProgClassifyCL2DCore::computeStableCores()
                     VEC_ELEM(maximalCoocurrence,i)=VEC_ELEM(maximalCoocurrence,j)=1;
 
                 // Now compute core
-                FOR_ALL_OBJECTS_IN_METADATA(thisClass)
+                for (size_t objId : thisClass.ids())
                 {
-                    thisClass.getValue(MDL_IMAGE,fnImg,__iter.objId);
+                    thisClass.getValue(MDL_IMAGE,fnImg,objId);
                     size_t idx=thisClassOrder[fnImg];
                     if (VEC_ELEM(maximalCoocurrence,idx))
-                    {
-                        thisClass.getRow(row,__iter.objId);
-                        thisClassCore.addRow(row);
-                    }
+                        thisClassCore.addRow(*thisClass.getRow(objId));
                 }
             }
             thisClassCore.write(thisBlock.fnLevel.insertBeforeExtension((String)"_stable_core_"+thisBlock.block),MD_APPEND);
@@ -305,7 +302,7 @@ void ProgClassifyCL2DCore::gatherResults(int firstLevel, const String &suffix)
         FileName fnBlock, fnClass, fnSummary;
         Image<double> classAverage;
         // Compute class averages
-        MetaData classes, MD, MDoriginal;
+        MetaDataVec classes, MD, MDoriginal;
         int Nblocks=blocks.size();
         for (int level=firstLevel; level<=maxLevel; level++)
         {

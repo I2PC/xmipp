@@ -26,9 +26,12 @@
 #ifndef _PROG_CLASSIFICATION_FIRST_SPLIT3
 #define _PROG_CLASSIFICATION_FIRST_SPLIT3
 
-#include <core/xmipp_program.h>
-#include <data/mask.h>
-#include <data/fourier_projection.h>
+#include "core/metadata_vec.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "data/mask.h"
+#include "data/fourier_projection.h"
 
 /**@defgroup ClassificationFirstSplit Classification first split2
    @ingroup ReconsLibrary */
@@ -79,7 +82,7 @@ public:
     size_t maskSize;
     double sumCorrDiff, sum2CorrDiff, sumCorr1, sumCorr2, sum2Corr1, sum2Corr2;
     int count1, count2, countChange, countTotal;
-    MetaData md;
+    MetaDataVec md;
 	Projection PV;
 	FourierProjector *projectorV1, *projectorV2;
 	int countSwap, countRandomSwap, countNormalSwap;

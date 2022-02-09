@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "radon.h"
-
+#include "core/transformations.h"
 #include <core/geometry.h>
 
 void Radon_Transform(const MultidimArray<double> &vol, double rot, double tilt,
@@ -94,7 +94,7 @@ void Radon_Transform(const MultidimArray<double> &I, double rot_step,
     for (double rot = 0; rot < 360; rot += rot_step, l++)
     {
         // Rotate image
-    	rotate(LINEAR, rot_I, I, rot);
+    	rotate(xmipp_transformation::LINEAR, rot_I, I, rot);
         // Sum by columns
         FOR_ALL_ELEMENTS_IN_ARRAY2D(rot_I) RT(l, j) += rot_I(i, j);
     }

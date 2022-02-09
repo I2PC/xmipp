@@ -30,6 +30,9 @@
 #include "data/hw.h"
 #include "core/xmipp_error.h"
 
+/**@defgroup GPU GPU
+   @ingroup ReconsLibrary */
+//@{
 class GPU : public HW {
 public:
     explicit GPU(int device = 0, int stream = 0):
@@ -72,9 +75,11 @@ public:
 
     void peekLastError() const;
 
-    static void pinMemory(void *h_mem, size_t bytes, unsigned int flags=0); // must not be nullptr
+    static void pinMemory(const void *h_mem, size_t bytes, unsigned int flags=0); // must not be nullptr
 
-    static void unpinMemory(void *h_mem); // must not be nullptr
+    static void unpinMemory(const void *h_mem); // must not be nullptr
+
+    static bool isMemoryPinned(const void *h_mem);
 
     void set();
 
@@ -94,7 +99,23 @@ public:
     // FIXME DS do not use, it's for backward compatibility only
     static void setDevice(int device);
 
-    static inline int getDeviceCount();
+    static int getDeviceCount();
+
+    void lockMemory(const void *h_mem, size_t bytes) override {
+        GPU::pinMemory(h_mem, bytes, 0);
+    }
+
+    void unlockMemory(const void *h_mem) override {
+        GPU::unpinMemory(h_mem);
+    }
+
+    bool isMemoryLocked(const void *h_mem) override {
+        return GPU::isMemoryPinned(h_mem);
+    }
+
+    bool isGpuPointer(const void *);
+
+    int getCudaVersion();
 
 private:
     int m_device;
@@ -110,5 +131,5 @@ private:
 
     void obtainUUID();
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_ */

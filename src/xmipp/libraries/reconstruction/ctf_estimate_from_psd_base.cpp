@@ -26,11 +26,7 @@
 
 #include "ctf_estimate_from_psd_base.h"
 #include "ctf_enhance_psd.h"
-
-#include <core/args.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_fft.h>
+#include "data/fourier_filter.h"
 
 
 /* Read parameters --------------------------------------------------------- */
@@ -45,6 +41,7 @@ void ProgCTFBasicParams::readBasicParams(XmippProgram *program)
     bootstrap = program->checkParam("--bootstrapFit");
     refineAmplitudeContrast = program->checkParam("--refine_amplitude_contrast");
     fastDefocusEstimate = program->checkParam("--fastDefocus");
+    noDefocusEstimate = program->checkParam("--noDefocus");
     selfEstimation = program->checkParam("--selfEstimation");
     if (fastDefocusEstimate)
     {
@@ -61,7 +58,6 @@ void ProgCTFBasicParams::readBasicParams(XmippProgram *program)
         f2 = (max_freq > 0.35) ? 0.08 : 0.15;
     else
         f2 = program->getDoubleParam("--enhance_max_freq");
-
 }
 
 void ProgCTFBasicParams::readParams()
@@ -89,6 +85,7 @@ void ProgCTFBasicParams::show()
     << "Model simplification:      " << modelSimplification << std::endl
     << "Bootstrap:                 " << bootstrap << std::endl
     << "Fast defocus:              " << fastDefocusEstimate << std::endl
+    << "No defocus:                " << noDefocusEstimate << std::endl
     << "Refine amplitude contrast: " << refineAmplitudeContrast << std::endl
     ;
     if (fastDefocusEstimate)
@@ -125,6 +122,8 @@ void ProgCTFBasicParams::defineBasicParams(XmippProgram * program)
         "                                :+Lambda is a regularization factor used during the estimation of the CTF phase");
     program->addParamsLine(
         "                                :+During the estimation, the phase values are averaged within a window of this size");
+    program->addParamsLine(
+        "   [--noDefocus]                : No defocus estimation");
     program->addParamsLine(
         "   [--defocus_range <D=8000>]   : Defocus range in Angstroms");
     program->addParamsLine(

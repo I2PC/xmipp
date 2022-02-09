@@ -521,7 +521,7 @@ void sharpening(const MultidimArray<double> &in, double width, double strength,
     MultidimArray<double> &out)
 {
     // Build the quadratic kernel
-    int diameter=(int)(2*width+1);
+    auto diameter=(int)(2*width+1);
     MultidimArray<double> kernel(diameter,diameter,diameter);
     kernel.setXmippOrigin();
     

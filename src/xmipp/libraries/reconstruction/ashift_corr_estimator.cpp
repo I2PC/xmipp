@@ -37,6 +37,7 @@ void AShiftCorrEstimator<T>::setDefault() {
     m_includingBatchFT = false;
     m_includingSingleFT = false;
     m_is_ref_FD_loaded = false;
+    m_allowDataOverwrite = false;
 }
 
 template<typename T>
@@ -50,15 +51,17 @@ void AShiftCorrEstimator<T>::release() {
 template<typename T>
 void AShiftCorrEstimator<T>::init2D(AlignType type,
         const FFTSettingsNew<T> &dims, size_t maxShift,
-        bool includingBatchFT, bool includingSingleFT) {
+        bool includingBatchFT, bool includingSingleFT,
+        bool allowDataOverwrite) {
     AShiftEstimator<T>::init2D(type, dims.sDim(), dims.batch(), maxShift);
 
-    m_settingsInv = new FFTSettingsNew<T>(dims);
+    m_settingsInv = new FFTSettingsNew<T>(dims.isForward() ? dims.createInverse() : dims);
     m_includingBatchFT = includingBatchFT;
     m_includingSingleFT = includingSingleFT;
     m_centerSize = 2 * maxShift + 1;
+    m_allowDataOverwrite = allowDataOverwrite;
 
-    check();
+    this->check();
 
     switch (type) {
         case AlignType::OneToN:
@@ -73,9 +76,6 @@ template<typename T>
 void AShiftCorrEstimator<T>::check() {
     using memoryUtils::operator "" _GB;
 
-    if (this->m_settingsInv->isForward()) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
-    }
     if (this->m_settingsInv->fBytesBatch() >= 4_GB) {
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
     }
@@ -86,69 +86,6 @@ void AShiftCorrEstimator<T>::check() {
             REPORT_ERROR(ERR_VALUE_INCORRECT,
                     "The X and Y dimensions have to be multiple of two. Crop your signal");
     }
-}
-
-template<typename T>
-std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
-        const T *correlations,
-        const Dimensions &dims,
-        size_t maxShift,
-        std::vector<Point2D<float>> &shifts) {
-    assert(0 == shifts.size());
-    assert(nullptr != correlations);
-
-    assert(0 < dims.x());
-    assert(0 < dims.y());
-    assert(1 == dims.zPadded());
-    assert(0 < dims.n());
-    assert(0 < maxShift);
-
-    auto result = std::vector<T>();
-    shifts.reserve(dims.n());
-    result.reserve(dims.n());
-    int xHalf = dims.x() / 2;
-    int yHalf = dims.y() / 2;
-
-    auto min = std::pair<size_t, size_t>(
-        std::max(0, xHalf - (int)maxShift),
-        std::max(0, yHalf - (int)maxShift)
-    );
-
-    auto max = std::pair<size_t, size_t>(
-        std::min((int)dims.x() - 1, xHalf + (int)maxShift),
-        std::min((int)dims.y() - 1, yHalf + (int)maxShift)
-    );
-
-    size_t maxDistSq = maxShift * maxShift;
-    for (size_t n = 0; n < dims.n(); ++n) {
-        size_t offsetN = n * dims.xyzPadded();
-        // reset values
-        float maxX;
-        float maxY;
-        T val = std::numeric_limits<T>::lowest();
-        // iterate through the center
-        for (size_t y = min.second; y <= max.second; ++y) {
-            size_t offsetY = y * dims.xPadded();
-            int logicY = (int)y - yHalf;
-            size_t ySq = logicY * logicY;
-            for (size_t x = min.first; x <= max.first; ++x) {
-                int logicX = (int)x - xHalf;
-                // continue if the Euclidean distance is too far
-                if ((ySq + (logicX * logicX)) > maxDistSq) continue;
-                // get current value and update, if necessary
-                T tmp = correlations[offsetN + offsetY + x];
-                if (tmp > val) {
-                    val = tmp;
-                    maxX = logicX;
-                    maxY = logicY;
-                }
-            }
-        }
-        // store results
-        result.push_back(val);
-        shifts.emplace_back(maxX, maxY);
-    }
-    return result;
 }
 
 // explicit instantiation

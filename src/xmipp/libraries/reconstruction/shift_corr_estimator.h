@@ -30,7 +30,11 @@
 #include "ashift_corr_estimator.h"
 #include "data/cpu.h"
 #include "fftwT.h"
+#include "single_extrema_finder.h"
 
+/**@defgroup ShiftCorrEstimator Shift Correlation Estimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -46,8 +50,9 @@ public:
 
     void release() override;
 
-    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
-            bool includingBatchFT=false, bool includingSingleFT=false) override;
+    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+            bool includingBatchFT, bool includingSingleFT,
+            bool allowDataOverwrite) override;
 
     void load2DReferenceOneToN(const std::complex<T> *ref) override;
 
@@ -73,14 +78,31 @@ public:
         const Dimensions &dims,
         bool center) override;
 
-    static void sComputeCorrelations2DOneToN(
+    static inline void sComputeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
         const Dimensions &dims,
-        bool center);
+        bool center) {
+        if (center) {
+            sComputeCorrelations2DOneToN<true>(hw, inOut, ref, dims);
+        } else {
+            sComputeCorrelations2DOneToN<false>(hw, inOut, ref, dims);
+        }
+    }
+
+    template<bool CENTER>
+    static void sComputeCorrelations2DOneToN(
+        const HW &hw,
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        const Dimensions &dims);
+
+    HW& getHW() const override {
+        return *m_cpu;
+    }
 private:
-    const CPU *m_cpu;
+    CPU *m_cpu;
 
     // host memory
     std::complex<T> *m_single_FD;
@@ -98,5 +120,5 @@ private:
 };
 
 }  /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_ */

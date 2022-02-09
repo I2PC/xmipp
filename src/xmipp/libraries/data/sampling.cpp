@@ -22,10 +22,11 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include <fstream>
 #include "sampling.h"
-#include <core/matrix2d.h>
-#include <core/geometry.h>
-#include <core/xmipp_image.h>
+#include "core/geometry.h"
+#include "core/xmipp_image_macros.h"
+#include "core/metadata_vec.h"
 
 /* Default Constructor */
 Sampling::Sampling()
@@ -582,7 +583,7 @@ void Sampling::computeSamplingPoints(bool only_half_sphere,
 }
 
 // return 1 if a should go first 0 is equal -1 if before
-int Sampling::sortFunc(Matrix1D<double> &t, Matrix1D<double> &a)
+int Sampling::sortFunc(const Matrix1D<double> &t, const Matrix1D<double> &a)
 {
     if (YY(t) - 0.000001 > YY(a))
     {
@@ -602,8 +603,8 @@ int Sampling::sortFunc(Matrix1D<double> &t, Matrix1D<double> &a)
     };
 }
 
-void Sampling::fillEdge(Matrix1D<double> starting_point,
-                        Matrix1D<double> ending_point,
+void Sampling::fillEdge(const Matrix1D<double> &starting_point,
+                        const Matrix1D<double> &ending_point,
                         std::vector <Matrix1D<double> > & edge_vector,
                         bool END_FLAG
                        )
@@ -627,8 +628,8 @@ void Sampling::fillEdge(Matrix1D<double> starting_point,
         edge_vector.push_back(v_aux);
     }
 }
-void Sampling::fillDistance(Matrix1D<double> starting_point,
-                            Matrix1D<double> ending_point,
+void Sampling::fillDistance(const Matrix1D<double> &starting_point,
+                            const Matrix1D<double> &ending_point,
                             std::vector <Matrix1D<double> > &
                             sampling_points_vector,
                             int my_number_of_samples,
@@ -647,7 +648,7 @@ void Sampling::fillDistance(Matrix1D<double> starting_point,
 
     for (int i1 = 1; i1 < my_number_of_samples; i1++)
     {
-        gamma  = (double)i1 / (my_number_of_samples);
+        gamma  = (double)i1 / my_number_of_samples;
         alpha  = sin((1. - gamma) * upsilon) / (sin(upsilon));
         beta   = sin(gamma * upsilon) / sin(upsilon);
         v_aux = alpha * starting_point + beta * ending_point;
@@ -766,8 +767,8 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     {
         for (size_t i = 0; i < sampling_points_angles.size(); i++)
         {
-            if (XX(sampling_points_angles[i]) >= -180. / (sym_order)  + 90. &&
-                XX(sampling_points_angles[i]) <=  180. / (sym_order)  + 90. &&
+            if (XX(sampling_points_angles[i]) >= -180. / sym_order  + 90. &&
+                XX(sampling_points_angles[i]) <=  180. / sym_order  + 90. &&
                 YY(sampling_points_angles[i]) <=    90.
                )
             {
@@ -781,7 +782,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
         for (size_t i = 0; i < sampling_points_angles.size(); i++)
         {
             if (XX(sampling_points_angles[i]) >=    0. + 90. &&
-                XX(sampling_points_angles[i]) <=  180. / (sym_order) +90. &&
+                XX(sampling_points_angles[i]) <=  180. / sym_order +90. &&
                 YY(sampling_points_angles[i]) <=    90.
                )
             {
@@ -795,7 +796,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
         for (size_t i = 0; i < sampling_points_angles.size(); i++)
         {
             if (XX(sampling_points_angles[i]) >= 0. &&
-                XX(sampling_points_angles[i]) <=  180. / (sym_order) &&
+                XX(sampling_points_angles[i]) <=  180. / sym_order &&
                 YY(sampling_points_angles[i]) <=   90.
                )
             {
@@ -975,7 +976,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I1)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0, 90, 0, A);
+        Euler_angles2matrix(0., 90., 0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1006,7 +1007,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I3)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,31.7174745559,0, A);
+        Euler_angles2matrix(0.,31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1037,7 +1038,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I4)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,-31.7174745559,0, A);
+        Euler_angles2matrix(0.,-31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1107,7 +1108,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I1H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0, 90, 0, A);
+        Euler_angles2matrix(0., 90., 0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1140,7 +1141,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I3H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,31.7174745559,0, A);
+        Euler_angles2matrix(0.,31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1178,7 +1179,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I4H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,-31.7174745559,0, A);
+        Euler_angles2matrix(0.,-31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1315,7 +1316,7 @@ void Sampling::removeRedundantPointsExhaustive(const int symmetry,
 //SINCE readSymmetryFile does not longer need a file
 //use symmetry functions instead
 /* Create symmetry file----------------------------------------------------- */
-void Sampling::createSymFile(FileName simFp,int symmetry, int sym_order)
+void Sampling::createSymFile(const FileName &simFp,int symmetry, int sym_order)
 {
     symmetry_file = simFp + ".sym";
     std::ofstream SymFile;
@@ -1438,7 +1439,7 @@ void Sampling::createSymFile(FileName simFp,int symmetry, int sym_order)
 }
 void Sampling::createAsymUnitFile(const FileName &docfilename)
 {
-    MetaData DF;
+    MetaDataVec DF;
     FileName tmp_filename;
     //#define CHIMERA
 #ifdef CHIMERA
@@ -1455,7 +1456,7 @@ void Sampling::createAsymUnitFile(const FileName &docfilename)
     ;
 #endif
 
-    MDRow row;
+    MDRowVec row;
     for (size_t i = 0; i < no_redundant_sampling_points_vector.size(); i++)
     {
 #ifdef CHIMERA
@@ -1493,69 +1494,74 @@ void Sampling::createAsymUnitFile(const FileName &docfilename)
 
 void Sampling::saveSamplingFile(const FileName &fn_base, bool write_vectors, bool write_sampling_sphere)
 {
-    MetaData md;
-    MDRow row;
-
-    row.setValue(MDL_SAMPLINGRATE, sampling_rate_rad);
-    row.setValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius);
-    row.setValue(MDL_POINTSASYMETRICUNIT,numberSamplesAsymmetricUnit);
-    md.setComment("data_extra -> sampling description;"\
-                  " data_neighbors --> List with order of each"\
-                  "experimental images and its neighbors"\
-                 );
-    md.setColumnFormat(false);
-    md.addRow(row);
-    md.write(FN_SAMPLING_EXTRA(fn_base), MD_OVERWRITE);
-
-    md.clear();
-    md.setColumnFormat(true);
-    row.clear();
-    size_t size = my_neighbors.size();
-    //Write first block with experimental images order and its neighbors
-    bool writeFileName = !exp_data_fileNames.empty();
-    for(size_t i = 0; i < size; ++i)
     {
-        row.setValue(MDL_ORDER,i+FIRST_IMAGE);
-        if (writeFileName)
-            row.setValue(MDL_IMAGE,exp_data_fileNames[i]);
-        row.setValue(MDL_NEIGHBORS, my_neighbors[i]);
+        MetaDataVec md;
+        MDRowVec row;
+        row.setValue(MDL_SAMPLINGRATE, sampling_rate_rad);
+        row.setValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius);
+        row.setValue(MDL_POINTSASYMETRICUNIT,numberSamplesAsymmetricUnit);
+        md.setComment("data_extra -> sampling description;"\
+                      " data_neighbors --> List with order of each"\
+                      "experimental images and its neighbors"\
+                     );
+        md.setColumnFormat(false);
         md.addRow(row);
+        md.write(FN_SAMPLING_EXTRA(fn_base), MD_OVERWRITE);
     }
 
-    md.write(FN_SAMPLING_NEI(fn_base), MD_APPEND);
-
-    //Write projection directions
-    md.clear();
-    row.clear();
-    size = no_redundant_sampling_points_index.size();
-
-    for (size_t i = 0; i < size; ++i)
     {
-        Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
-        row.setValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i]);
-        row.setValue(MDL_ANGLE_ROT, XX(angles));
-        row.setValue(MDL_ANGLE_TILT, YY(angles));
-        row.setValue(MDL_ANGLE_PSI, ZZ(angles));
-
-        if (write_vectors)
+        MetaDataVec md;
+        md.setColumnFormat(true);
+        size_t size = my_neighbors.size();
+        //Write first block with experimental images order and its neighbors
+        bool writeFileName = !exp_data_fileNames.empty();
+        for(size_t i = 0; i < size; ++i)
         {
-            Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
-            row.setValue(MDL_X, XX(vectors));
-            row.setValue(MDL_Y, YY(vectors));
-            row.setValue(MDL_Z, ZZ(vectors));
+            MDRowVec row;
+            row.setValue(MDL_ORDER,i+FIRST_IMAGE);
+            if (writeFileName)
+                row.setValue(MDL_IMAGE,exp_data_fileNames[i]);
+            row.setValue(MDL_NEIGHBORS, my_neighbors[i]);
+            md.addRow(row);
         }
-        md.addRow(row);
-    }
-    md.write(FN_SAMPLING_PROJ(fn_base), MD_APPEND);
 
-    if (write_sampling_sphere)
+        md.write(FN_SAMPLING_NEI(fn_base), MD_APPEND);
+    }
+
     {
-        md.clear();
-        row.clear();
-        size = sampling_points_angles.size();
+        //Write projection directions
+        MetaDataVec md;
+        size_t size = no_redundant_sampling_points_index.size();
 
         for (size_t i = 0; i < size; ++i)
         {
+            MDRowVec row;
+            Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
+            row.setValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i]);
+            row.setValue(MDL_ANGLE_ROT, XX(angles));
+            row.setValue(MDL_ANGLE_TILT, YY(angles));
+            row.setValue(MDL_ANGLE_PSI, ZZ(angles));
+
+            if (write_vectors)
+            {
+                Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
+                row.setValue(MDL_X, XX(vectors));
+                row.setValue(MDL_Y, YY(vectors));
+                row.setValue(MDL_Z, ZZ(vectors));
+            }
+            md.addRow(row);
+        }
+        md.write(FN_SAMPLING_PROJ(fn_base), MD_APPEND);
+    }
+
+    if (write_sampling_sphere)
+    {
+        MetaDataVec md;
+        size_t size = sampling_points_angles.size();
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            MDRowVec row;
             row.setValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i]);
             Matrix1D<double> &angles = sampling_points_angles[i];
             row.setValue(MDL_ANGLE_ROT, XX(angles));
@@ -1588,8 +1594,8 @@ void Sampling::readSamplingFile(const FileName &fn_base,
 		bool read_sampling_sphere)
 {
     //Read extra info
-    MetaData md(FN_SAMPLING_EXTRA(fn_base));
-    size_t id = md.firstObject();
+    MetaDataVec md(FN_SAMPLING_EXTRA(fn_base));
+    size_t id = md.firstRowId();
     md.getValue(MDL_SAMPLINGRATE, sampling_rate_rad, id);
     md.getValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius, id);
     md.getValue(MDL_POINTSASYMETRICUNIT,numberSamplesAsymmetricUnit,id);
@@ -1603,12 +1609,16 @@ void Sampling::readSamplingFile(const FileName &fn_base,
         exp_data_fileNames.clear();
         exp_data_fileNames.resize(md.size());
     }
-    int ii=0;
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+
     {
-        if (readFileName)
-            md.getValue(MDL_IMAGE,exp_data_fileNames[ii++], __iter.objId);
-        md.getValue(MDL_NEIGHBORS, my_neighbors[__iter.objIndex], __iter.objId);
+        size_t i = 0, ii = 0;
+        for (size_t objId : md.ids())
+        {
+            if (readFileName)
+                md.getValue(MDL_IMAGE,exp_data_fileNames[ii++], objId);
+            md.getValue(MDL_NEIGHBORS, my_neighbors[i], objId);
+            i++;
+        }
     }
 
     //Read projection directions
@@ -1619,31 +1629,35 @@ void Sampling::readSamplingFile(const FileName &fn_base,
     if (read_vectors)
         no_redundant_sampling_points_vector.resize(size);
 
-    FOR_ALL_OBJECTS_IN_METADATA(md)
     {
-        /** This is the object ID in the metadata, usually starts at 1 */
-        //size_t objId;
-        /** This is the index of the object, starts at 0 */
-        //size_t objIndex;
-        size_t &i = __iter.objIndex;
-        size_t &id = __iter.objId;
-
-        Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
-        angles.resizeNoCopy(3);
-        md.getValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i], id);
-        md.getValue(MDL_ANGLE_ROT, XX(angles), id);
-        md.getValue(MDL_ANGLE_TILT, YY(angles), id);
-        md.getValue(MDL_ANGLE_PSI, ZZ(angles), id);
-
-        if (read_vectors)
+        size_t i = 0;
+        for (size_t objId : md.ids())
         {
-            Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
-            vectors.resizeNoCopy(3);
-            md.getValue(MDL_X, XX(vectors), id);
-            md.getValue(MDL_Y, YY(vectors), id);
-            md.getValue(MDL_Z, ZZ(vectors), id);
+            /** This is the object ID in the metadata, usually starts at 1 */
+            //size_t objId;
+            /** This is the index of the object, starts at 0 */
+            //size_t objIndex;
+
+            Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
+            angles.resizeNoCopy(3);
+            md.getValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i], objId);
+            md.getValue(MDL_ANGLE_ROT, XX(angles), objId);
+            md.getValue(MDL_ANGLE_TILT, YY(angles), objId);
+            md.getValue(MDL_ANGLE_PSI, ZZ(angles), objId);
+
+            if (read_vectors)
+            {
+                Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
+                vectors.resizeNoCopy(3);
+                md.getValue(MDL_X, XX(vectors), objId);
+                md.getValue(MDL_Y, YY(vectors), objId);
+                md.getValue(MDL_Z, ZZ(vectors), objId);
+            }
+
+            i++;
         }
     }
+
 //#define DEBUG5
 #ifdef  DEBUG5
 //This bild file does not make sense since x,y,z are angles
@@ -1674,25 +1688,25 @@ void Sampling::readSamplingFile(const FileName &fn_base,
         if (read_vectors)
             sampling_points_vector.resize(size);
 
-        FOR_ALL_OBJECTS_IN_METADATA(md)
+        size_t i = 0;
+        for (size_t objId : md.ids())
         {
-            size_t &i = __iter.objIndex;
-            size_t &id = __iter.objId;
-
             Matrix1D<double> &angles = sampling_points_angles[i];
             angles.resizeNoCopy(3);
-            md.getValue(MDL_ANGLE_ROT, XX(angles), id);
-            md.getValue(MDL_ANGLE_TILT, YY(angles), id);
-            md.getValue(MDL_ANGLE_PSI, ZZ(angles), id);
+            md.getValue(MDL_ANGLE_ROT, XX(angles), objId);
+            md.getValue(MDL_ANGLE_TILT, YY(angles), objId);
+            md.getValue(MDL_ANGLE_PSI, ZZ(angles), objId);
 
             if (read_vectors)
             {
                 Matrix1D<double> &vectors = sampling_points_vector[i];
                 vectors.resizeNoCopy(3);
-                md.getValue(MDL_X, XX(vectors), id);
-                md.getValue(MDL_Y, YY(vectors), id);
-                md.getValue(MDL_Z, ZZ(vectors), id);
+                md.getValue(MDL_X, XX(vectors), objId);
+                md.getValue(MDL_Y, YY(vectors), objId);
+                md.getValue(MDL_Z, ZZ(vectors), objId);
             }
+
+            i++;
         }
 
     }
@@ -1742,7 +1756,7 @@ void Sampling::computeNeighbors(bool only_winner)
     	}
     	else
     	{
-			size_t * aux_neighborsArray = NULL;
+			size_t * aux_neighborsArray = nullptr;
 			for (size_t k = 0; k < R_repository.size(); k++,j++)
 			{
 				winner_dotProduct = -1.;
@@ -1969,12 +1983,12 @@ void Sampling::findClosestSamplingPoint(const FileName &FnexperimentalImages,
                                         const FileName &output_file_root)
 {
     //read input files
-    MetaData DFi;
+    MetaDataVec DFi;
     DFi.read(FnexperimentalImages);//experimental points
-    findClosestSamplingPoint(DFi,output_file_root);
+    findClosestSamplingPoint(DFi, output_file_root);
 
 }
-void Sampling::findClosestSamplingPoint(MetaData &DFi,
+void Sampling::findClosestSamplingPoint(const MetaData &DFi,
                                         const FileName &output_file_root)
 {
     double my_dotProduct,my_dotProduct_aux;
@@ -1988,7 +2002,7 @@ void Sampling::findClosestSamplingPoint(MetaData &DFi,
     int winner_exp_L_R=-1;
 #endif
 
-    MetaData DFo;
+    MetaDataVec DFo;
     size_t id;
 
     DFo.setComment("Original rot, tilt, psi, Xoff, Yoff are stored as comments");
@@ -2001,8 +2015,8 @@ void Sampling::findClosestSamplingPoint(MetaData &DFi,
     int exp_image=1;
 #endif
 
-    MDIterator iter(DFi);
-    for(size_t i=0;i< exp_data_projection_direction_by_L_R.size();)
+    auto idIter(DFi.ids().begin());
+    for (size_t i = 0; i <  exp_data_projection_direction_by_L_R.size(); )
     {
         my_dotProduct=-2;
         for (size_t k = 0; k < R_repository.size(); k++,i++)
@@ -2045,16 +2059,17 @@ void Sampling::findClosestSamplingPoint(MetaData &DFi,
         //add winner to the DOC fILE
         std::string fnImg, comment;
         double aux;
-        DFi.getValue(MDL_IMAGE, fnImg, iter.objId);
-        DFi.getValue(MDL_ANGLE_ROT,aux, iter.objId);
+        size_t objId = *idIter;
+        DFi.getValue(MDL_IMAGE, fnImg, objId);
+        DFi.getValue(MDL_ANGLE_ROT,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_ANGLE_TILT,aux, iter.objId);
+        DFi.getValue(MDL_ANGLE_TILT,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_ANGLE_PSI,aux, iter.objId);
+        DFi.getValue(MDL_ANGLE_PSI,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_SHIFT_X,aux, iter.objId);
+        DFi.getValue(MDL_SHIFT_X,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_SHIFT_Y,aux, iter.objId);
+        DFi.getValue(MDL_SHIFT_Y,aux, objId);
         comment+=floatToString(aux);
         id = DFo.addObject();
         DFo.setValue(MDL_STAR_COMMENT,comment, id);
@@ -2070,8 +2085,9 @@ void Sampling::findClosestSamplingPoint(MetaData &DFi,
         DFo.setValue(MDL_ANGLE_TILT,YY(no_redundant_sampling_points_angles[winner_sampling]), id);
         DFo.setValue(MDL_ANGLE_PSI,ZZ(no_redundant_sampling_points_angles[winner_sampling]), id);
 
-        iter.moveNext();
+        ++idIter;
     }//for i
+
     if (output_file_root.size() > 0)
         DFo.write(output_file_root+ "_closest_sampling_points.doc");
 #ifdef  DEBUG3
@@ -2232,16 +2248,16 @@ void Sampling::fillExpDataProjectionDirectionByLR(
     const FileName &FnexperimentalImages)
 {
     //read input files
-    MetaData DFi;
+    MetaDataVec DFi;
     DFi.read(FnexperimentalImages);//experimental points
     fillExpDataProjectionDirectionByLR(DFi);
 }
 
-void Sampling::fillExpDataProjectionDirectionByLR(MetaData &DFi)
+void Sampling::fillExpDataProjectionDirectionByLR(const MetaData &DFi)
 {
     std::vector <Matrix1D<double> > exp_data_projection_direction;
     Matrix1D<double>  direction(3);
-    DFi.firstObject();
+    DFi.firstRowId();
     //#define CHIMERA
 #ifdef CHIMERA
 
@@ -2260,14 +2276,14 @@ void Sampling::fillExpDataProjectionDirectionByLR(MetaData &DFi)
     double img_tilt,img_rot,img_psi;
     FileName imgName;
     exp_data_fileNames.clear();
-    FOR_ALL_OBJECTS_IN_METADATA(DFi)
+    for (size_t objId : DFi.ids())
     {
-        DFi.getValue(MDL_ANGLE_ROT,img_rot,__iter.objId);
-        DFi.getValue(MDL_ANGLE_TILT,img_tilt,__iter.objId);
-        DFi.getValue(MDL_ANGLE_PSI,img_psi,__iter.objId);
+        DFi.getValue(MDL_ANGLE_ROT,img_rot, objId);
+        DFi.getValue(MDL_ANGLE_TILT,img_tilt, objId);
+        DFi.getValue(MDL_ANGLE_PSI,img_psi, objId);
         Euler_direction(img_rot, img_tilt, img_psi, direction);
         exp_data_projection_direction.push_back(direction);
-        DFi.getValue(MDL_IMAGE,imgName,__iter.objId);
+        DFi.getValue(MDL_IMAGE,imgName, objId);
         exp_data_fileNames.push_back(imgName);
     }
 

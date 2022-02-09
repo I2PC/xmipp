@@ -25,9 +25,10 @@
  ***************************************************************************/
 
 #include <fstream>
-
-#include <core/histogram.h>
 #include "reconstruct_art_pseudo.h"
+#include "core/histogram.h"
+#include "core/geometry.h"
+#include "core/xmipp_image.h"
 
 #define FORWARD   1
 #define BACKWARD -1
@@ -268,14 +269,14 @@ void ProgARTPseudo::produceSideInfo()
     // NMA
     if (!fnNMA.empty())
     {
-        MetaData DFNMA(fnNMA);
+        MetaDataVec DFNMA(fnNMA);
         DFNMA.removeDisabled();
-        FOR_ALL_OBJECTS_IN_METADATA(DFNMA)
+        for (size_t objId : DFNMA.ids())
         {
             Matrix2D<double> mode;
             mode.initZeros(atomPosition.size(),3);
             FileName fnMode;
-            DFNMA.getValue( MDL_NMA_MODEFILE, fnMode,__iter.objId);
+            DFNMA.getValue( MDL_NMA_MODEFILE, fnMode,objId);
             mode.read(fnMode);
             NMA.push_back(mode);
         }
@@ -290,23 +291,23 @@ void ProgARTPseudo::run()
     for (int it=0; it<Nit; it++)
     {
         double itError=0;
-        FOR_ALL_OBJECTS_IN_METADATA(DF)
+        for (size_t objId : DF.ids())
         {
             FileName fnExp;
-            DF.getValue( MDL_IMAGE, fnExp,__iter.objId);
+            DF.getValue( MDL_IMAGE, fnExp,objId);
             double rot;
-            DF.getValue( MDL_ANGLE_ROT, rot,__iter.objId);
+            DF.getValue( MDL_ANGLE_ROT, rot,objId);
             double tilt;
-            DF.getValue( MDL_ANGLE_TILT, tilt,__iter.objId);
+            DF.getValue( MDL_ANGLE_TILT, tilt,objId);
             double psi;
-            DF.getValue( MDL_ANGLE_PSI, psi,__iter.objId);
+            DF.getValue( MDL_ANGLE_PSI, psi,objId);
             double shiftX;
-            DF.getValue( MDL_SHIFT_X, shiftX,__iter.objId);
+            DF.getValue( MDL_SHIFT_X, shiftX,objId);
             double shiftY;
-            DF.getValue( MDL_SHIFT_Y, shiftY,__iter.objId);
+            DF.getValue( MDL_SHIFT_Y, shiftY,objId);
             std::vector<double> lambda;
             if (NMA.size()>0)
-                DF.getValue( MDL_NMA, lambda,__iter.objId);
+                DF.getValue( MDL_NMA, lambda,objId);
 
             Iexp.read(fnExp);
             Iexp().setXmippOrigin();
@@ -323,7 +324,7 @@ void ProgARTPseudo::writePseudo()
 {
     // Convert from pseudoatoms to volume
     Image<double> V;
-    size_t objId = DF.firstObject();
+    size_t objId = DF.firstRowId();
     FileName fnExp;
     DF.getValue( MDL_IMAGE, fnExp, objId);
     Image<double> I;

@@ -23,11 +23,51 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_program.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_filename.h"
+#include "core/argsparser.h"
 
 /***************************************************************/
 /*                            Program                         */
 /**************************************************************/
+
+PythonProgram::PythonProgram()
+{
+    initComments();
+    progDef = new ProgramDef();
+    definitionComplete = false;
+}
+
+void PythonProgram::endDefinition()
+{
+    definitionComplete = true;
+    this->defineCommons();
+    progDef->parse();
+}
+
+void PythonProgram::read(int argc, const char ** argv, bool reportErrors)
+{
+    if (!definitionComplete)
+        endDefinition();
+    XmippProgram::read(argc, argv, reportErrors);
+}
+
+void PythonProgram::read(int argc, char ** argv, bool reportErrors)
+{
+    if (!definitionComplete)
+        endDefinition();
+    XmippProgram::read(argc, argv, reportErrors);
+}
+//All the following are necessary to override the base class implementation
+void PythonProgram::readParams()
+{}
+void PythonProgram::defineParams()
+{}
+void PythonProgram::show() const
+{}
+void PythonProgram::run()
+{}
 
 /* Program methods */
 PyMethodDef Program_methods[] =
@@ -50,14 +90,13 @@ PyMethodDef Program_methods[] =
       "Get the value passed of this param" },
     { "getListParam", (PyCFunction) Program_getListParam, METH_VARARGS,
       "Get the list of all values passed of this param" },
-    { NULL } /* Sentinel */
+    { nullptr } /* Sentinel */
 };
 
 /*Program Type */
 PyTypeObject ProgramType =
 {
-    PyObject_HEAD_INIT(NULL)
-    0, /*ob_size*/
+    PyObject_HEAD_INIT(nullptr)
     "xmipp.Program", /*tp_name*/
     sizeof(ProgramObject), /*tp_basicsize*/
     0, /*tp_itemsize*/
@@ -76,7 +115,8 @@ PyTypeObject ProgramType =
     0, /*tp_getattro*/
     0, /*tp_setattro*/
     0, /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT, /*tp_flags*/
+    Py_TPFLAGS_DEFAULT |
+        Py_TPFLAGS_BASETYPE,/*tp_flags*/
     "Python wrapper to Xmipp Program class",/* tp_doc */
     0, /* tp_traverse */
     0, /* tp_clear */
@@ -101,18 +141,18 @@ PyTypeObject ProgramType =
 void Program_dealloc(ProgramObject* self)
 {
     delete self->program;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 /* Constructor */
 PyObject *
 Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) type->tp_alloc(type, 0);
-    if (self != NULL)
+    auto *self = (ProgramObject*) type->tp_alloc(type, 0);
+    if (self != nullptr)
     {
-        self->program = new XmippProgramGeneric();
-        PyObject * runWithoutArgs = Py_False;
+        self->program = new PythonProgram();
+        auto * runWithoutArgs = Py_False;
         if (PyArg_ParseTuple(args, "|O", &runWithoutArgs))
         {
             try
@@ -128,18 +168,18 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }
 
 /* addUsageLine */
 PyObject *
 Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    PyObject *verbatim = Py_False;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    auto *verbatim = Py_False;
+    if (self != nullptr)
     {
-        char * line = NULL;
+        char * line = nullptr;
         if (PyArg_ParseTuple(args, "s|O", &line, &verbatim))
         {
             try
@@ -158,18 +198,18 @@ Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* addExampleLine */
 PyObject *
 Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    PyObject *verbatim = Py_True;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    auto *verbatim = Py_True;
+    if (self != nullptr)
     {
-        char * line = NULL;
+        char * line = nullptr;
         if (PyArg_ParseTuple(args, "s|O", &line, &verbatim))
         {
             try
@@ -188,17 +228,17 @@ Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* addParamsLine */
 PyObject *
 Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * line = NULL;
+        char * line = nullptr;
         if (PyArg_ParseTuple(args, "s", &line))
         {
             try
@@ -212,15 +252,15 @@ Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* usage */
 PyObject *
 Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
         int verbose = 0;
         if (PyArg_ParseTuple(args, "|i", &verbose))
@@ -236,15 +276,15 @@ Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* endDefinition */
 PyObject *
 Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
         try
         {
@@ -256,37 +296,39 @@ Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* read */
 PyObject *
 Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        PyObject *list = NULL;
+        PyObject *list = nullptr;
         if (PyArg_ParseTuple(args, "O", &list))
         {
             if (PyList_Check(list))
             {
                 size_t size = PyList_Size(list);
-                PyObject * item = NULL;
-                char ** argv = new char*[size];
+                PyObject * item = nullptr;
+                PyObject *pyStr1 = nullptr, *str_exc_type = nullptr;
+                auto ** argv = new char*[size];
                 std::vector<double> vValue(size);
                 for (size_t i = 0; i < size; ++i)
                 {
                     item = PyList_GetItem(list, i);
-                    if (!PyString_Check(item))
+                    if (!PyUnicode_Check(item))
                     {
                         PyErr_SetString(PyExc_TypeError,
                                         "Program arguments should be of type string");
                         delete[] argv;
-                        return NULL;
+                        return nullptr;
                     }
 
-                    argv[i] = PyString_AsString(item);
+                    str_exc_type = PyObject_Str(item); //Now a unicode object
+                    argv[i] = (char*)PyUnicode_AsUTF8(str_exc_type);
 
                     if (i == 0)
                     {
@@ -303,17 +345,17 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* checkParam */
 PyObject *
 Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * param = NULL;
+        char * param = nullptr;
         if (PyArg_ParseTuple(args, "s", &param))
         {
             try
@@ -329,24 +371,24 @@ Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getParam */
 PyObject *
 Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * param = NULL;
+        char * param = nullptr;
         int arg = 0;
         if (PyArg_ParseTuple(args, "s|i", &param, &arg))
         {
             try
             {
                 const char * value = self->program->getParam(param, arg);
-                return PyString_FromString(value);
+                return PyUnicode_FromString(value);
             }
             catch (XmippError &xe)
             {
@@ -354,17 +396,17 @@ Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getListParam */
 PyObject *
 Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * param = NULL;
+        char * param = nullptr;
         if (PyArg_ParseTuple(args, "s", &param))
         {
             try
@@ -375,7 +417,7 @@ Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
                 PyObject * pylist = PyList_New(size);
 
                 for (size_t i = 0; i < size; ++i)
-                    PyList_SetItem(pylist, i, PyString_FromString(list[i].c_str()));
+                    PyList_SetItem(pylist, i, PyUnicode_FromString(list[i].c_str()));
                 return pylist;
             }
             catch (XmippError &xe)
@@ -384,5 +426,5 @@ Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }

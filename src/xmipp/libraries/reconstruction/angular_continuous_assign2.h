@@ -26,10 +26,13 @@
 #ifndef _PROG_ANGULAR_PREDICT_CONTINOUOS2
 #define _PROG_ANGULAR_PREDICT_CONTINUOUS2
 
-#include <core/xmipp_program.h>
-#include <data/ctf.h>
-#include <data/fourier_projection.h>
-#include <data/fourier_filter.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_image.h"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
+
+class FourierProjector;
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */
@@ -87,6 +90,9 @@ public:
     // Penalization for the average
     // double penalization;
 public:
+    // Rank (used for MPI version)
+    int rank;
+
     // 2D mask in real space
     MultidimArray<int> mask2D;
     // Inverse of the sum of Mask2D

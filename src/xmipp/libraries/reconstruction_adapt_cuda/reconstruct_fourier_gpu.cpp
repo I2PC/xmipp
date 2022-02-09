@@ -27,7 +27,16 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include "core/argsparser.h"
+#include "core/bilib/kernel.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
+#include "data/ctf.h"
 #include "reconstruct_fourier_gpu.h"
+#include "reconstruction/symmetrize.h"
+#include "reconstruction_cuda/cuda_gpu_reconstruct_fourier.h"
+#include "reconstruction_cuda/gpu.h"
 
 // Define params
 void ProgRecFourierGPU::defineParams()
@@ -207,7 +216,7 @@ void ProgRecFourierGPU::produceSideinfo()
     SF.getDatabase()->activateThreadMuting();
 
     // Ask for memory for the output volume and its Fourier transform
-    size_t objId = SF.firstObject();
+    size_t objId = SF.firstRowId();
     FileName fnImg;
     SF.getValue(MDL_IMAGE,fnImg,objId);
     Image<double> I;
@@ -218,7 +227,7 @@ void ProgRecFourierGPU::produceSideinfo()
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"This algorithm only works for squared images");
     imgSize=Xdim;
     paddedImgSize = Xdim*padding_factor_vol;
-	size_t conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
+	auto conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
 	conserveRows = (size_t) ceil((double) conserveRows / 2.0);
 	maxVolumeIndexX = maxVolumeIndexYZ = 2 * conserveRows;
 
@@ -357,7 +366,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 		for (int j = 0; j < parent->R_repository.size(); j++) {
 			RecFourierProjectionTraverseSpace* space = &buffer->spaces[travSpaceOffset + j];
 
-			Matrix2D<double> A_SL=parent->R_repository[j]*(Ainv);
+			Matrix2D<double> A_SL=parent->R_repository[j]*Ainv;
 			Matrix2D<double> A_SLInv=A_SL.inv();
 			A_SL.convertTo(transf);
 			A_SLInv.convertTo(transfInv);
@@ -408,7 +417,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
 	XMIPP_TRY // in case some method throws a xmipp exception
 
-    RecFourierWorkThread* threadParams = (RecFourierWorkThread *) threadArgs;
+    auto* threadParams = (RecFourierWorkThread *) threadArgs;
     ProgRecFourierGPU* parent = threadParams->parent;
     std::vector<size_t> objId;
 
@@ -422,7 +431,8 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     GPU::setDevice(parent->device);
 
     // allocate buffer
-    threadParams->buffer = new RecFourierBufferData( ! parent->fftOnGPU, hasCTF,
+    void *rawMem = memoryUtils::page_aligned_alloc<RecFourierBufferData>(1, false);
+    threadParams->buffer = new(rawMem) RecFourierBufferData( ! parent->fftOnGPU, hasCTF, // placement of the object to specific location
     		parent->maxVolumeIndexX / 2, parent->maxVolumeIndexYZ, parent->paddedImgSize,
 			parent->bufferSize, (int)parent->R_repository.size());
     pinMemory(threadParams->buffer);
@@ -456,7 +466,8 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     // clean after itself
     releaseWrapper(threadParams->gpuStream);
     unpinMemory(threadParams->buffer);
-    delete threadParams->buffer;
+    threadParams->buffer->~RecFourierBufferData(); // <- explicit destructor call
+    free(rawMem);
     threadParams->buffer = NULL;
     threadParams->selFile = NULL;
     barrier_wait( &parent->barrier );// notify that thread finished
@@ -487,7 +498,7 @@ void ProgRecFourierGPU::createProjectionCuboid(Point3D<float>* cuboid, float siz
 	cuboid[7].z = cuboid[4].z = cuboid[5].z = cuboid[6].z = 0.f - blobSize;
 }
 
-inline void ProgRecFourierGPU::translateCuboid(Point3D<float>* cuboid, Point3D<float> vector) {
+inline void ProgRecFourierGPU::translateCuboid(Point3D<float>* cuboid, const Point3D<float> &vector) {
 	for (int i = 0; i < 8; i++) {
 		cuboid[i].x += vector.x;
 		cuboid[i].y += vector.y;
@@ -638,7 +649,7 @@ T*** ProgRecFourierGPU::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5)); //Same as ROUND but avoid comparison
+							auto aux = (int)(distanceSqr * iDeltaSqrt + 0.5); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -749,12 +760,9 @@ void ProgRecFourierGPU::processWeights() {
 		for (int y = 0; y <= maxVolumeIndexYZ; y++) {
 			for (int x = 0; x <= maxVolumeIndexX; x++) {
 				float weight = tempWeights[z][y][x];
-				if (fabs(weight) > 1e-3) {
-					weight = 1.f/weight;
-				}
 
-				if (1.0/weight > ACCURACY)
-					tempVolume[z][y][x] *= corr2D_3D*weight;
+				if (weight > ACCURACY)
+					tempVolume[z][y][x] *= corr2D_3D / weight;
 				else
 					tempVolume[z][y][x] = 0;
 			}
@@ -810,7 +818,7 @@ void ProgRecFourierGPU::computeTraverseSpace(int imgSizeX, int imgSizeY, int pro
 }
 
 void ProgRecFourierGPU::logProgress(int increment) {
-	static int repaintAfter = (int)ceil((double)SF.size()/60);
+	static auto repaintAfter = (int)ceil((double)SF.size()/60);
 	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	static int noOfDone = 0;
 	static int noOfLogs = 0;
@@ -916,7 +924,7 @@ void ProgRecFourierGPU::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
 		A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);
 		meanFactor2+=factor2;
     }

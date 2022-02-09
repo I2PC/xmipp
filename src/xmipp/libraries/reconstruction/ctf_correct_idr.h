@@ -25,10 +25,10 @@
 #ifndef _PROG_IDR_ART_HH
 #  define _PROG_IDR_ART_HH
 
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
-#include <data/projection.h>
-#include <data/fourier_filter.h>
+#include "core/xmipp_image.h"
+#include "core/xmipp_metadata_program.h"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
 
 /**@defgroup IDR ctf_correct_idr (Iterative Data Refinement for CTF amplitude correction)
    @ingroup ReconsLibrary */

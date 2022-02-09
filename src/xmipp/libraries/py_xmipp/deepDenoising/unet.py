@@ -30,7 +30,7 @@ class UNET(DeepLearningModel):
       print("loading previous model")
       if N_GPUs>1:
         with tf.device('/cpu:0'):
-          model_1gpu = load_model(self.saveModelFname, custom_objects= CUSTOM_OBJECTS)
+          model_1gpu = load_model(self.saveModelFname, custom_objects=CUSTOM_OBJECTS)
         model= keras.utils.multi_gpu_model(model_1gpu, gpus= N_GPUs)
       else:
         model_1gpu = load_model(self.saveModelFname, custom_objects= {self.generatorLoss.__name__: self.generatorLoss})

@@ -25,8 +25,10 @@
  ***************************************************************************/
 
 #include "image_operate.h"
-#include <core/metadata_extension.h>
-#include <data/numerical_tools.h>
+#include "core/transformations.h"
+#include "core/xmipp_fft.h"
+#include "data/numerical_tools.h"
+#include "core/utils/memory_utils.h"
 
 void minus(Image<double> &op1, const Image<double> &op2)
 {
@@ -45,7 +47,7 @@ double minusAdjusted_L1(double *x, void *_prm)
 	double b=x[2];
 
 	double retval=0;
-	MinusAdjustedPrm *prm = (MinusAdjustedPrm *) _prm;
+	auto *prm = (MinusAdjustedPrm *) _prm;
 	const MultidimArray<double> &pI1=*(prm->I1);
 	const MultidimArray<double> &pI2=*(prm->I2);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pI1)
@@ -281,6 +283,27 @@ void radialAvg(Image<double> &op)
     }
 }
 
+void psdRadialAvg(Image<double> &op)
+{
+    MultidimArray<double> &mOp = op();
+    CenterFFT(mOp,true);
+    mOp.selfLog10();
+    mOp.setXmippOrigin();
+    Matrix1D<int> center(3);
+    center.initZeros();
+    MultidimArray<double> radial_mean;
+    MultidimArray<int> radial_count;
+    radialAverage(mOp, center, radial_mean, radial_count);
+    radial_mean.write((fnOut.withoutExtension()).addExtension("txt"));
+
+    int my_rad;
+    FOR_ALL_ELEMENTS_IN_ARRAY3D(mOp)
+    {
+        my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+        op(k, i, j) = radial_mean(my_rad);
+    }
+}
+
 void reset(Image<double> &op)
 {
 	op().initZeros();
@@ -323,6 +346,7 @@ void ProgOperate::defineParams()
     addParamsLine("or --column <value>          :Extracts a given column from a image or volume");
     addParamsLine("or --row    <value>          :Extracts a given row from a image or volume");
     addParamsLine("or --radial_avg              :Compute the radial average of an image");
+    addParamsLine("or --psd_radial_avg          :Compute the radial average of an image");
     addParamsLine("or --reset                   :Set the image to 0");
 
     addExampleLine("Sum two volumes and save result", false);
@@ -342,15 +366,17 @@ void ProgOperate::defineParams()
     addExampleLine("Divide 2 by the value of every pixel in the image:", false);
     addExampleLine("xmipp_image_operate -i 2 -divide image.xmp -o image2.xmp");
     addExampleLine(" Rotational average", false);
-    addExampleLine("xmipp_image_operate -i image.xmp -radial_avg -o image.rad");
-    addExampleLine("where image.rad is an ascii file for plotting the radial_averaged profile, image.rad.img a radial_averaged image", false);
+    addExampleLine("xmipp_image_operate -i image.xmp --radial_avg -o radial_avg.xmp");
+    addExampleLine("where radial_avg.txt is an ascii file for plotting the radial_averaged profile, radial_avg.xmp a radial_averaged image", false);
+    addExampleLine("xmipp_image_operate -i micrograph.psd --psd_radial_avg -o radial_psd.xmp");
+    addExampleLine("where radial_psd.txt is an ascii file for plotting the radial_averaged profile, radial_psd.xmp a radial_averaged image", false);
 }
 
 void ProgOperate::readParams()
 {
     XmippMetadataProgram::readParams();
-    binaryOperator = NULL;
-    unaryOperator = NULL;
+    binaryOperator = nullptr;
+    unaryOperator = nullptr;
     isValue = false;
     // Check operation to do
     //Binary operations
@@ -470,6 +496,11 @@ void ProgOperate::readParams()
         fnOut = fn_out;
         unaryOperator = radialAvg;
     }
+    else if (checkParam("--psd_radial_avg"))
+    {
+        fnOut = fn_out;
+        unaryOperator = psdRadialAvg;
+    }
     else if (checkParam("--reset"))
     {
         fnOut = fn_out;
@@ -482,7 +513,7 @@ void ProgOperate::readParams()
     else
         REPORT_ERROR(ERR_VALUE_INCORRECT, "No valid operation specified");
     int dotProduct = false;
-    if (binaryOperator != NULL)
+    if (binaryOperator != nullptr)
     {
         if (!file_or_value.exists())
         {
@@ -501,7 +532,7 @@ void ProgOperate::readParams()
             {
                 if (mdInSize != md2.size())
                     REPORT_ERROR(ERR_MD, "Both metadatas operands should be of same size.");
-                md2Iterator.init(md2);
+                md2IdIterator = memoryUtils::make_unique<MetaDataVec::id_iterator>(md2.ids().begin());
             }
             else
             {
@@ -519,14 +550,14 @@ void ProgOperate::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     Image<double> img;
     img.readApplyGeo(fnImg, rowIn);
 
-    if (unaryOperator != NULL)
+    if (unaryOperator != nullptr)
         unaryOperator(img);
     else
     {
         if (!isValue)
         {
-            img2.readApplyGeo(md2, md2Iterator.objId);
-            md2Iterator.moveNext();
+            img2.readApplyGeo(md2, **md2IdIterator);
+            ++(*md2IdIterator);
         }
         binaryOperator(img, img2);
     }

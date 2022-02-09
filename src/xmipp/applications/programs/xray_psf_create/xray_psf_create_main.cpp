@@ -23,72 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/psf_xr.h>
-#include <core/xmipp_program.h>
-
-class ProgPSFXrCreate: public XmippProgram
-{
-
-protected:
-    /// Filename with the Microscope Parameters.
-    FileName fnParam, fnPSF;
-    /// Number of threads;
-    int nThr;
-    /// PSF
-    XRayPSF psf;
-
-    void defineParams()
-    {
-        //Usage
-        addUsageLine("Create a volume with the 3D PSF of an X-ray microscope.");
-        addUsageLine("A param file can be passed or directly setting the microscope parameters.");
-        addUsageLine("The program generates a PSF volume file and its associated info file.");
-        //See Also
-        addSeeAlsoLine("xray_project");
-        addParamsLine("[-i <psf_param_file>] : XRay-Microscope parameters file.");
-        addParamsLine(" alias --input;");
-        addParamsLine("[-o <output_name_file>]  : Name for output files. It creates a PSF volume file and a PSF parameters file.");
-        addParamsLine(" alias --output;");
-        psf.defineParams(this);
-        // Examples
-        addExampleLine("The parameters are in a file",false);
-        addExampleLine("xmipp_xray_psf_create -i psf560.xmd -o psf560.vol");
-        addExampleLine("The parameters are given in the command line",false);
-        addExampleLine("xmipp_xray_psf_create -o psf900.vol -lambda 2.5 -zones 900");
-        addExampleLine("In the following link you can find an example of X-ray microscope parameters file:",false);
-        addExampleLine(" ",false);
-        addExampleLine("http://sourceforge.net/p/testxmipp/code/ci/3.0/tree/input/xray_psf.xmd",false);
-    }
-
-    void readParams()
-    {
-        psf.verbose = verbose;
-
-        if (checkParam("-i"))
-        {
-            fnParam = getParam("-i");
-            /* This forces always the creation of the PSF Volume file, even if the input already includes the
-             name of a volume in the "image" label
-             */
-            psf.read(fnParam, false);
-        }
-        else
-            psf.readParams(this);
-
-        if (checkParam("-o"))
-            fnPSF = getParam("-o");
-        else
-            fnPSF = fnParam;
-    }
-
-public:
-
-    void run()
-    {
-        psf.generatePSF();
-        psf.write(fnPSF);
-    }
-};
+#include <reconstruction/xray_psf_create.cpp>
 
 int main(int argc, char *argv[])
 {

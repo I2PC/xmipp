@@ -1,6 +1,9 @@
 #include <core/matrix2d.h>
 #include <iostream>
 #include <gtest/gtest.h>
+#include "core/xmipp_filename.h"
+#include "core/linear_system_helper.h"
+#include "core/xmipp_funcs.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class MatrixTest : public ::testing::Test
 {
@@ -9,8 +12,8 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
-    	A.resize(3,3);
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+        A.resize(3,3);
         A(0,0) =-0.9234482 ;
         A(0,1) =  -0.38372311   ;
         A(0,2) =0 ;
@@ -100,29 +103,29 @@ TEST_F( MatrixTest, det3x3)
 
 TEST_F( MatrixTest, solveLinearSystem)
 {
-	 PseudoInverseHelper pseudoInverter;
-	 Matrix2D<double> &A = pseudoInverter.A;
-	 Matrix1D<double> &b = pseudoInverter.b;
-	 A.resizeNoCopy(4,3);
-	 b.resizeNoCopy(4);
+    PseudoInverseHelper pseudoInverter;
+    Matrix2D<double> &A = pseudoInverter.A;
+    Matrix1D<double> &b = pseudoInverter.b;
+    A.resizeNoCopy(4,3);
+    b.resizeNoCopy(4);
 
-	 A(0,0) = 1;
-	 A(0,1) = -2;
-	 A(0,2) = -3;
-	 A(1,0) = 4;
-	 A(1,1) = 5;
-	 A(1,2) = -6;
-	 A(2,0) = -7;
-	 A(2,1) = -8;
-	 A(2,2) = -9;
-	 A(3,0) = 10;
-	 A(3,1) = -11;
-	 A(3,2) = -12;
+    A(0,0) = 1;
+    A(0,1) = -2;
+    A(0,2) = -3;
+    A(1,0) = 4;
+    A(1,1) = 5;
+    A(1,2) = -6;
+    A(2,0) = -7;
+    A(2,1) = -8;
+    A(2,2) = -9;
+    A(3,0) = 10;
+    A(3,1) = -11;
+    A(3,2) = -12;
 
-	 b(0) = 14;
-	 b(1) = 32;
-	 b(2) = 50;
-	 b(3) = 68;
+    b(0) = 14;
+    b(1) = 32;
+    b(2) = 50;
+    b(3) = 68;
 
     Matrix1D<double> auxX(3), X(3);
 
@@ -137,32 +140,32 @@ TEST_F( MatrixTest, solveLinearSystem)
 
 TEST_F( MatrixTest, RANSAC)
 {
-	 WeightedLeastSquaresHelper h;
-	 Matrix2D<double> &A = h.A;
-	 Matrix1D<double> &b = h.b;
-	 Matrix1D<double> &w = h.w;
-	 A.resizeNoCopy(100,2);
-	 b.resizeNoCopy(100);
-	 w.resizeNoCopy(100);
+    WeightedLeastSquaresHelper h;
+    Matrix2D<double> &A = h.A;
+    Matrix1D<double> &b = h.b;
+    Matrix1D<double> &w = h.w;
+    A.resizeNoCopy(100,2);
+    b.resizeNoCopy(100);
+    w.resizeNoCopy(100);
 
-	 int Nsteps=60;
-	 double iNsteps=1.0/Nsteps;
-	 for (int i=0; i<Nsteps; i++)
-	 {
-		 double x=i*iNsteps;
-		 A(i,0)=x;
-		 A(i,1)=1;
-		 b(i)=0.5*x+1;
-		 w(i)=1;
-	 }
-	 for (int i=Nsteps; i<VEC_XSIZE(b); i++)
-	 {
-		 double x=rnd_unif(0,1);
-		 A(i,0)=x;
-		 A(i,1)=1;
-		 b(i)=rnd_unif(1,1.5);
-		 w(i)=1;
-	 }
+    int Nsteps=60;
+    double iNsteps=1.0/Nsteps;
+    for (int i=0; i<Nsteps; i++)
+    {
+        double x=i*iNsteps;
+        A(i,0)=x;
+        A(i,1)=1;
+        b(i)=0.5*x+1;
+        w(i)=1;
+    }
+    for (int i=Nsteps; i<VEC_XSIZE(b); i++)
+    {
+        double x=rnd_unif(0,1);
+        A(i,0)=x;
+        A(i,1)=1;
+        b(i)=rnd_unif(1,1.5);
+        w(i)=1;
+    }
 
     Matrix1D<double> auxX(2), X(2);
 
@@ -320,10 +323,4 @@ TEST_F( MatrixTest, matrixOperation_AtA)
     expectedB(0,0)=1.34; expectedB(0,1)=1.15;
     expectedB(1,0)=1.15; expectedB(1,1)=1.5;
     EXPECT_EQ(expectedB,B) << "matrixOperation_AtA failed";
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

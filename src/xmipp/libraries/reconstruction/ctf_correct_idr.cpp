@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "ctf_correct_idr.h"
+#include "data/projection.h"
 
 void ProgCtfCorrectIdr::readParams()
 {

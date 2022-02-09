@@ -27,19 +27,11 @@
 #define MPI_ANGULAR_CLASS_AVERAGE_H_
 
 //mpirun -np 5 xmipp_mpi_angular_class_average --nJobs 70
-#include <parallel/xmipp_mpi.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
 
-#include <core/xmipp_fftw.h>
-#include <core/args.h>
-#include <core/xmipp_image.h>
-#include <data/filters.h>
-#include <data/mask.h>
-#include <data/polar.h>
-#include <data/basic_pca.h>
-#include <data/sampling.h>
+#include "parallel/xmipp_mpi.h"
+#include "core/metadata_db.h"
+#include "core/xmipp_image.h"
+#include "data/polar.h"
 
 //Tags already defined in xmipp
 //#define TAG_WORK                     0
@@ -73,6 +65,9 @@
 #define split1 1
 #define split2 2
 
+/// @defgroup MpiProgAngularClassAverage MPI Angular Class Average
+/// @ingroup ParallelLibrary
+//@{
 class MpiProgAngularClassAverage : public XmippMpiProgram
 {
 public:
@@ -80,12 +75,12 @@ public:
     unsigned int master_seed;
 
     // Metadata with the list of jobs
-    MetaData mdJobList;
+    MetaDataDb mdJobList;
 
     /** Input and library docfiles */
-    MetaData         DF, DFlib, DFscore;
+    MetaDataDb      DF, DFlib, DFscore;
     /** metadata with classes which have experimental images applied to them */
-    MetaData         DFclassesExp;
+    MetaDataDb      DFclassesExp;
     /** Output rootnames */
     FileName         fn_out, fn_out1, fn_out2, fn_wien, fn_ref;
     /** Column numbers */
@@ -113,7 +108,7 @@ public:
     /** Wiener filter image */
     MultidimArray<double> Mwien;
     /** Selfiles containing all class averages */
-    MetaData         SFclasses, SFclasses1, SFclasses2;
+    MetaDataDb      SFclasses, SFclasses1, SFclasses2;
 
     /** Re-alignment of classes */
 
@@ -219,10 +214,10 @@ public:
         Image<double> avg,
         Image<double> avg1,
         Image<double> avg2,
-        MetaData SFclass,
-        MetaData SFclass1,
-        MetaData SFclass2,
-        MetaData SFclassDiscarded,
+        const MetaDataDb& SFclass,
+        const MetaDataDb& SFclass1,
+        const MetaDataDb& SFclass2,
+        const MetaDataDb& SFclassDiscarded,
         double w1,
         double w2,
         double old_w,
@@ -236,11 +231,11 @@ public:
             Image<double> avg,
             Image<double> avg1,
             Image<double> avg2,
-            MetaData SFclass,
-            MetaData SFclass1,
-            MetaData SFclass2,
-            MetaData SFclassDiscarded,
-            MetaData _DF,
+            const MetaDataDb& SFclass,
+            const MetaDataDb& SFclass1,
+            const MetaDataDb& SFclass2,
+            const MetaDataDb& SFclassDiscarded,
+            const MetaDataDb& _DF,
             double w1,
             double w2,
 	    double w,
@@ -281,7 +276,7 @@ public:
     void applyWienerFilter(MultidimArray<double> &img);
 
 };
-
+//@}
 #endif /* MPI_ANGULAR_CLASS_AVERAGE_H_ */
 
 

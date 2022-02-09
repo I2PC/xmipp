@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "validation_tilt_pairs.h"
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/metadata_extension.h>
 #include <complex>
 
@@ -182,7 +182,7 @@ void ProgValidationTiltPairs::angles2tranformation(double untilt_angles[3],
 
 void ProgValidationTiltPairs::run()
 {
-	MetaData MD_tilted, MD_untilted, DF1sorted, DF2sorted, DFweights;
+	MetaDataVec MD_tilted, MD_untilted, DF1sorted, DF2sorted, DFweights;
 
 	MD_tilted.read(fntiltimage_In);
 	MD_untilted.read(fnuntiltimage_In);
@@ -190,11 +190,11 @@ void ProgValidationTiltPairs::run()
 	DF1sorted.sort(MD_tilted,MDL_ITEM_ID,true);
 	DF2sorted.sort(MD_untilted,MDL_ITEM_ID,true);
 
-	MDIterator iter1(DF1sorted), iter2(DF2sorted);
+	auto iter1(DF1sorted.ids().begin()), iter2(DF2sorted.ids().begin());
 	std::vector< Matrix1D<double> > ang1, ang2;
 	Matrix1D<double> rotTiltPsi(3), z(3);
 	size_t currentId;
-	bool anotherImageIn2=iter2.hasNext();
+	bool anotherImageIn2 = iter2 != DF2sorted.ids().end();
 	size_t id1, id2;
 	bool mirror;
 	Matrix2D<double> Eu, Et, R;
@@ -205,20 +205,20 @@ void ProgValidationTiltPairs::run()
 		ang2.clear();
 
 		// Take current id
-		DF2sorted.getValue(MDL_ITEM_ID,currentId,iter2.objId);
+		DF2sorted.getValue(MDL_ITEM_ID,currentId,*iter2);
 
 		// Grab all the angles in DF2 associated to this id
 		bool anotherIteration=false;
 		do
 		{
-			DF2sorted.getValue(MDL_ITEM_ID,id2,iter2.objId);
+			DF2sorted.getValue(MDL_ITEM_ID,id2,*iter2);
 			anotherIteration=false;
 			if (id2==currentId)
 			{
-				DF2sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),iter2.objId);
-				DF2sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),iter2.objId);
-				DF2sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),iter2.objId);
-				DF2sorted.getValue(MDL_FLIP,mirror,iter2.objId);
+				DF2sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),*iter2);
+				DF2sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),*iter2);
+				DF2sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),*iter2);
+				DF2sorted.getValue(MDL_FLIP,mirror,*iter2);
 				std::cout << "From DF2:" << XX(rotTiltPsi) << " " << YY(rotTiltPsi) << " " << ZZ(rotTiltPsi) << " " << mirror << std::endl;
 				//LINEA ANTERIOR ORIGINAL
 				if (mirror)
@@ -230,8 +230,8 @@ void ProgValidationTiltPairs::run()
 					ZZ(rotTiltPsi)=psip;
 				}
 				ang2.push_back(rotTiltPsi);
-				iter2.moveNext();
-				if (iter2.hasNext())
+				++iter2;
+				if (iter2 != DF2sorted.ids().end())
 					anotherIteration=true;
 			}
 		} while (anotherIteration);
@@ -239,30 +239,30 @@ void ProgValidationTiltPairs::run()
 		// Advance Iter 1 to catch Iter 2
 		double N=0, cumulatedDistance=0;
 		size_t newObjId=0;
-		if (iter1.objId>0)
+		if (*iter1 > 0)
 		{
-			DF1sorted.getValue(MDL_ITEM_ID,id1,iter1.objId);
-			while (id1<currentId && iter1.hasNext())
+			DF1sorted.getValue(MDL_ITEM_ID,id1,*iter1);
+			while (id1<currentId && iter1 != DF1sorted.ids().end())
 			{
-				iter1.moveNext();
-				DF1sorted.getValue(MDL_ITEM_ID,id1,iter1.objId);
+				++iter1;
+				DF1sorted.getValue(MDL_ITEM_ID,id1,*iter1);
 			}
 
 			// If we are at the end of DF1, then we did not find id1 such that id1==currentId
-			if (!iter1.hasNext())
+			if (iter1 == DF1sorted.ids().end())
 				break;
 
 			// Grab all the angles in DF1 associated to this id
 			do
 			{
-				DF1sorted.getValue(MDL_ITEM_ID,id1,iter1.objId);
+				DF1sorted.getValue(MDL_ITEM_ID,id1,*iter1);
 				anotherIteration=false;
 				if (id1==currentId)
 				{
-					DF1sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),iter1.objId);
-					DF1sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),iter1.objId);
-					DF1sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),iter1.objId);
-					DF1sorted.getValue(MDL_FLIP,mirror,iter1.objId);
+					DF1sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),*iter1);
+					DF1sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),*iter1);
+					DF1sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),*iter1);
+					DF1sorted.getValue(MDL_FLIP,mirror,*iter1);
 					std::cout << "From DF1:" << XX(rotTiltPsi) << " " << YY(rotTiltPsi) << " " << ZZ(rotTiltPsi) << " " << mirror << std::endl;
 					//LINEA ANTERIOR ORIGINAL
 					if (mirror)
@@ -274,8 +274,8 @@ void ProgValidationTiltPairs::run()
 						ZZ(rotTiltPsi)=psip;
 					}
 					ang1.push_back(rotTiltPsi);
-					iter1.moveNext();
-					if (iter1.hasNext())
+					++iter1;
+					if (iter1 != DF1sorted.ids().end())
 						anotherIteration=true;
 				}
 			} while (anotherIteration);
@@ -300,7 +300,8 @@ void ProgValidationTiltPairs::run()
 					double rott=XX(anglesj);
 					double tiltt=YY(anglesj);
 					double psit=ZZ(anglesj);
-					double alpha_x, alpha_y;
+					double alpha_x = 0;
+					double alpha_y = 0;
 					Euler_angles2matrix(rott,tiltt,psit,Et,false);
 					//////////////////////////////////////////////////////////////////
 					double untilt_angles[3]={rotu, tiltu, psiu}, tilt_angles[3]={rott, tiltt, psit};
@@ -341,7 +342,7 @@ void ProgValidationTiltPairs::run()
 		else
 			if (newObjId>0)
 				DFweights.setValue(MDL_ANGLE_DIFF,-1.0,newObjId);
-		anotherImageIn2=iter2.hasNext();
+		anotherImageIn2 = iter2 != DF2sorted.ids().end();
 	}
 
 	std::complex<double> qu[4], qt[4], M[4], Inv_qu[4], P1[4], Inv_quu[4];

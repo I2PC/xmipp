@@ -25,8 +25,11 @@
 #ifndef _BASIC_ART_HH
 #define _BASIC_ART_HH
 
-#include <data/projection.h>
-#include <core/symmetries.h>
+#include "core/symmetries.h"
+#include "core/xmipp_filename.h"
+#include "core/metadata_label.h"
+#include "data/basis.h"
+#include "data/fourier_projection.h"
 
 /**@defgroup BasicART Parameters and common ART Reconstruction stuff
    @ingroup ReconsLibrary
@@ -57,7 +60,7 @@ struct ReconsInfo
     /// Projection filename
     FileName fn_proj;
     /// Header information of projection
-    MDRow    row;
+    MDRowVec    row;
     /// CTF filename
     FileName fn_ctf;
     /// Rotational angle

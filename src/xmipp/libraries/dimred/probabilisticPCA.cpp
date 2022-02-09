@@ -24,7 +24,8 @@
  ***************************************************************************/
 
 #include "probabilisticPCA.h"
-#include <core/multidim_array.h>
+#include "core/multidim_array.h"
+#include "core/xmipp_funcs.h"
 
 void ProbabilisticPCA::setSpecificParameters(size_t Niters)
 {

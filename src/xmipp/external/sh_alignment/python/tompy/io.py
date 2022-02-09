@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy
 
 def read(filename):
     """Read EM file. Now only support read the type float32 on little-endian machines.

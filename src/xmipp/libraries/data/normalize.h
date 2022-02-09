@@ -26,10 +26,8 @@
 #ifndef CORE_NORMALIZE_H
 #define CORE_NORMALIZE_H
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <data/mask.h>
-#include <core/xmipp_error.h>
+#include "core/xmipp_metadata_program.h"
+#include "data/mask.h"
 
 /// @defgroup Normalize Normalization of images and volumes
 /// @ingroup DataLibrary
@@ -102,7 +100,7 @@ void normalize_Near_OldXmipp(MultidimArray<double> &I, const MultidimArray<int> 
       of the OldXmipp method in two steps.
 */
 void normalize_OldXmipp_decomposition(MultidimArray<double> &I,
-                                      const MultidimArray<int> &bg_mask, const MultidimArray<double> *mask = NULL);
+                                      const MultidimArray<int> &bg_mask, const MultidimArray<double> *mask = nullptr);
 
 /** Tomography normalization.
     @ingroup NormalizationProcedures
@@ -181,12 +179,14 @@ volume.
 */
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask);
 
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip);
+
 /** Removal of inclined background densities (ramps).
     @ingroup NormalizationProcedures
     fitting of a least squares plane through the pixels in the
     bg_mask, then subtraction of the plane, and division by the
     standard deviation of the pixels in the bg_mask */
-void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask=NULL);
+void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask=nullptr);
 
 /** Removal of neighbouring particles.
     @ingroup NormalizationProcedures
@@ -209,6 +209,7 @@ protected:
         NEWXMIPP,
         MICHAEL,
         NEWXMIPP2,
+		ROBUST,
         RANDOM,
         RAMP,
         NEIGHBOUR,
@@ -261,6 +262,10 @@ protected:
     /** Flag for inverting contrast
      */
     bool invert_contrast;
+
+    /** Flag for clipping
+    */
+    bool clip;
 
     /** Flag for applying a mask depending on the tilt
      */

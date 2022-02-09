@@ -23,7 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_metadata.h"
+#include "python_symmetry.h"
+#include "core/geometry.h"
+#include "core/symmetries.h"
 
 /***************************************************************/
 /*                            SymList                          */
@@ -33,33 +36,33 @@
 PyObject *
 SymList_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    SymListObject *self = (SymListObject*) type->tp_alloc(type, 0);
-    if (self != NULL)
+    auto *self = (SymListObject*)type->tp_alloc(type, 0);
+    if (self != nullptr)
     {
         self->symlist = new SymList();
         //self->symlist->readSymmetryFile("i3");
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }
 
 /* Destructor */
  void SymList_dealloc(SymListObject* self)
 {
     delete self->symlist;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free(self);
 }
 
 /* readSymmetryFile */
 PyObject *
 SymList_readSymmetryFile(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-    char * str = NULL;
+    char * str = nullptr;
 
     if (PyArg_ParseTuple(args, "s", &str))
     {
         try
         {
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             self->symlist->readSymmetryFile(str);
             Py_RETURN_NONE;
         }
@@ -68,15 +71,15 @@ SymList_readSymmetryFile(PyObject * obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getTrueSymsNo */
 PyObject *
 SymList_getTrueSymsNo(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-    SymListObject *self = (SymListObject*) obj;
-    return PyInt_FromLong(self->symlist->true_symNo);
+    auto *self = (SymListObject*) obj;
+    return PyLong_FromLong(self->symlist->true_symNo);
 }
 
 /* getSymmetryMatrices, return list with symmetry matrices */
@@ -87,13 +90,13 @@ SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
     PyObject * symMatrices;
     PyObject * symMatrix;
     PyObject * row;
-    char * str = NULL;
+    char * str = nullptr;
 
     if (PyArg_ParseTuple(args, "s", &str))
     {
         try
         {
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             
             //create symmetry object
             self->symlist->readSymmetryFile(str);
@@ -128,7 +131,7 @@ SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* computeDistance */
@@ -136,10 +139,10 @@ PyObject *
 SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
 
-    PyObject *pyMd = NULL;
-    PyObject *pyProjdirMode = Py_False;
-    PyObject *pyCheckMirrors = Py_False;
-    PyObject *pyObjectRotation = Py_False;
+    PyObject *pyMd = nullptr;
+    auto *pyProjdirMode = Py_False;
+    auto *pyCheckMirrors = Py_False;
+    auto *pyObjectRotation = Py_False;
 
     if (PyArg_ParseTuple(args, "O|OOO", &pyMd,
                          &pyProjdirMode,
@@ -160,7 +163,7 @@ SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
                 check_mirrors = (pyCheckMirrors == Py_True);
             if (PyBool_Check(pyObjectRotation))
                 object_rotation = (pyObjectRotation == Py_True);
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             self->symlist->computeDistance(MetaData_Value(pyMd),projdir_mode,
                                                                 check_mirrors,
                                                                 object_rotation);
@@ -171,7 +174,7 @@ SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* computeDistance */
@@ -179,9 +182,9 @@ PyObject *
 SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
 	double rot1, tilt1, psi1, rot2, tilt2, psi2;
-    PyObject *pyProjdirMode = Py_False;
-    PyObject *pyCheckMirrors = Py_False;
-    PyObject *pyObjectRotation = Py_False;
+    auto *pyProjdirMode = Py_False;
+    auto *pyCheckMirrors = Py_False;
+    auto *pyObjectRotation = Py_False;
 
     if (PyArg_ParseTuple(args, "dddddd|OOO", &rot1, &tilt1, &psi1, &rot2, &tilt2, &psi2,
                          &pyProjdirMode,
@@ -199,7 +202,7 @@ SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
                 check_mirrors = (pyCheckMirrors == Py_True);
             if (PyBool_Check(pyObjectRotation))
                 object_rotation = (pyObjectRotation == Py_True);
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             double dist=self->symlist->computeDistance(rot1,tilt1,psi1,rot2,tilt2,psi2,
             		projdir_mode,check_mirrors,object_rotation);
             return PyFloat_FromDouble(dist);
@@ -209,7 +212,7 @@ SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* computeDistance */
@@ -221,7 +224,7 @@ SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             SymList symlist=*(self->symlist);
 
             PyObject * retval = PyList_New(symlist.symsNo()+1);
@@ -256,7 +259,7 @@ SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* SymList methods */
@@ -274,14 +277,13 @@ PyMethodDef SymList_methods[] =
 	   METH_VARARGS, "Get the number os symmetries" },
    { "getSymmetryMatrices", (PyCFunction) SymList_getSymmetryMatrices,
 	   METH_VARARGS, "Return all the symmetry matrices for a given symmetry string" },
-   { NULL } /* Sentinel */
+   { nullptr } /* Sentinel */
 };//SymList_methods
 
 /*SymList Type */
 PyTypeObject SymListType =
 {
-    PyObject_HEAD_INIT(NULL)
-    0, /*ob_size*/
+    PyObject_HEAD_INIT(nullptr)
     "xmipp.SymList", /*tp_name*/
     sizeof(SymListObject), /*tp_basicsize*/
     0, /*tp_itemsize*/
@@ -318,6 +320,6 @@ PyTypeObject SymListType =
     0, /* tp_dictoffset */
     0, /* tp_init */
     0, /* tp_alloc */
-    SymList_new, /* tp_new */
+    SymList_new /* tp_new */
 };//SymListType
 

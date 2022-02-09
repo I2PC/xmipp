@@ -28,6 +28,7 @@
 
 #include "parallel/xmipp_mpi.h"
 #include "reconstruction/ml_align2d.h"
+#include "reconstruction/mlf_align2d.h"
 #include "reconstruction/ml_refine3d.h"
 #include "reconstruction/ml_tomo.h"
 
@@ -160,7 +161,7 @@ public:
     void generateInitialReferences();
 
     /// Integrate over all experimental images, join result from all nodes
-    void expectation(MetaData &MDimg, std::vector< Image<double> > &Iref, int iter,
+    void expectation(MetaDataVec &MDimg, std::vector< Image<double> > &Iref, int iter,
                      double &LL, double &sumfracweight,
                      std::vector<MultidimArray<double> > &wsumimgs,
                      std::vector<MultidimArray<double> > &wsumweds,

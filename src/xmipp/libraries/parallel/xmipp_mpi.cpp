@@ -23,9 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <unistd.h>
 #include "xmipp_mpi.h"
-#include <core/xmipp_log.h>
-
+#include "core/xmipp_filename.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_macros.h"
+#include "core/metadata_db.h"
 
 MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize,
                                        MpiNode *node) :
@@ -49,7 +52,7 @@ bool MpiTaskDistributor::distributeMaster()
     while (finalizedWorkers < size - 1)
     {
         //wait for request form workers
-        MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_WORK_REQUEST, MPI_COMM_WORLD, &status);
+        MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_WORK_REQUEST, MPI_COMM_WORLD, &status);
 
         workBuffer[0] = ThreadTaskDistributor::distribute(workBuffer[1], workBuffer[2]) ? 1 : 0;
 
@@ -71,7 +74,7 @@ bool MpiTaskDistributor::distributeSlaves(size_t &first, size_t &last)
   size_t workBuffer[3];
   MPI_Status status;
   //any message from the master, is tag is TAG_STOP then stop
-  MPI_Send(0, 0, MPI_INT, 0, TAG_WORK_REQUEST, MPI_COMM_WORLD);
+  MPI_Send(nullptr, 0, MPI_INT, 0, TAG_WORK_REQUEST, MPI_COMM_WORLD);
   MPI_Recv(workBuffer, 3, MPI_LONG_LONG_INT, 0, TAG_WORK_RESPONSE, MPI_COMM_WORLD, &status);
 
   first = workBuffer[1];
@@ -90,7 +93,7 @@ MpiFileMutex::MpiFileMutex(MpiNode * node)
 {
     fileCreator = false;
 
-    if (node == NULL || node->isMaster())
+    if (node == nullptr || node->isMaster())
     {
         fileCreator = true;
         strcpy(lockFilename, "pijol_XXXXXX");
@@ -102,7 +105,7 @@ MpiFileMutex::MpiFileMutex(MpiNode * node)
         close(lockFile);
     }
     //if using mpi broadcast the filename from master to slaves
-    if (node != NULL)
+    if (node != nullptr)
         MPI_Bcast(lockFilename, L_tmpnam, MPI_CHAR, 0, MPI_COMM_WORLD);
 
     if ((lockFile = open(lockFilename, O_RDWR)) == -1)
@@ -193,7 +196,9 @@ size_t MpiNode::getActiveNodes()
 }
 
 #endif
-void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
+
+template <typename T>
+void MpiNode::gatherMetadatas(T &MD, const FileName &rootname)
 {
     if (size == 1)
         return;
@@ -209,7 +214,7 @@ void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
     barrierWait();
     if (isMaster()) //master should collect and join workers results
     {
-        MetaData mdAll(MD), mdSlave;
+        MetaDataDb mdAll(MD), mdSlave;
         for (size_t nodeRank = 1; nodeRank < size; nodeRank++)
         {
             fn = formatString("%s_node%d.xmd", rootname.c_str(), nodeRank);
@@ -225,15 +230,18 @@ void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
         fn = formatString("%s_node%d.xmd", rootname.c_str(), 1);
         fn = fn.removeBlockName();
         remove(fn.c_str());
-        MD=mdAll;
+        MD = T(mdAll);
     }
 }
+
+template void MpiNode::gatherMetadatas<MetaDataVec>(MetaDataVec&, const FileName&);
+template void MpiNode::gatherMetadatas<MetaDataDb>(MetaDataDb&, const FileName&);
 
 /* -------------------- XmippMPIProgram ---------------------- */
 
 XmippMpiProgram::XmippMpiProgram()
 {
-    node = NULL;
+    node = nullptr;
 }
 /** destructor */
 XmippMpiProgram::~XmippMpiProgram()
@@ -246,7 +254,7 @@ void XmippMpiProgram::read(int argc, char **argv)
 {
     errorCode = 0; //suppose no errors
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         node = new MpiNode(argc, argv);
         nProcs = node->size;
@@ -285,8 +293,8 @@ int XmippMpiProgram::tryRun()
 /* -------------------- MpiMetadataProgram ------------------- */
 MpiMetadataProgram::MpiMetadataProgram()
 {
-    node = NULL;
-    distributor = NULL;
+    node = nullptr;
+    distributor = nullptr;
 }
 
 MpiMetadataProgram::~MpiMetadataProgram()

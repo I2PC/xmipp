@@ -25,7 +25,10 @@
 #ifndef _PROG_ENHANCE_PSD_HH
 #  define _PROG_ENHANCE_PSD_HH
 
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
+
+template<typename T>
+class MultidimArray;
 
 /**@defgroup EnhancePSD psd_enhance (Enhance visualization of the PSD)
    @ingroup ReconsLibrary */

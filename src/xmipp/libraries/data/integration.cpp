@@ -24,6 +24,8 @@
  ***************************************************************************/
 
 #include "integration.h"
+#include "core/matrix1d.h"
+#include "core/numerical_recipes.h"
 
 /* Integrate --------------------------------------------------------------- */
 double integrateNewtonCotes(double(*f)(double),
@@ -78,9 +80,7 @@ double Trapeze::operator()()
             return s;
         olds = s;
     }
-    printf("Too many steps in routine qtrap_y\n");
-    exit(1);
-    return 0.0;
+    REPORT_ERROR(ERR_NUMERICAL,"Too many steps in routine qtrap_y\n");
 }
 
 
@@ -135,7 +135,6 @@ double Romberg::operator()()
         h[j+1] = h[j] / 9.0;
     }
     REPORT_ERROR(ERR_NUMERICAL,"Too many steps in routine Romberg");
-    return 0.0;
 }
 
 //*

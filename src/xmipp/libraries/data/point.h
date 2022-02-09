@@ -26,10 +26,11 @@
 #ifndef LIBRARIES_DATA_POINT_H_
 #define LIBRARIES_DATA_POINT_H_
 
+/**@defgroup Point Point
+   @ingroup DataLibrary */
+//@{
 class Point {
 };
-
-
-
+//@}
 #endif /* LIBRARIES_DATA_POINT_H_ */
 

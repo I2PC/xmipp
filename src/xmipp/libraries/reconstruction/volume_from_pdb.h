@@ -49,8 +49,8 @@ public:
     /** Blob */
     struct blobtype blob;
 
-    /** Final size in pixels */
-    int output_dim;
+    /** Final size and origin in pixels */
+    int output_dim_x, output_dim_y, output_dim_z, orig_x, orig_y, orig_z;
     
     /** Use blobs instead of scattering factors */
     bool useBlobs;
@@ -63,6 +63,9 @@ public:
     
     /** Center the PDB */
     bool doCenter;
+
+    /** not HETATM */
+    bool noHet;
 
     /** Fixed Gaussian standard deviation */
     double sigmaGaussian;
@@ -106,6 +109,7 @@ public:
 
     // Protein geometry
     Matrix1D<double> centerOfMass, limit;
+
 
     /* Volume at a high sampling rate */
     Image<double> Vhigh;

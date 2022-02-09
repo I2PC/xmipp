@@ -25,6 +25,7 @@
 
 #include "classify_compare_classes.h"
 #include <core/metadata_extension.h>
+#include "core/matrix2d.h"
 
 // Evaluate classes program -------------------------------------------
 void ProgCompareClass::readParams()
@@ -59,26 +60,26 @@ void ProgCompareClass::show()
 
 void ProgCompareClass::run()
 {
-	MetaData MD1(formatString("classes@%s",fnClass1.c_str()));
-	MetaData MD2(formatString("classes@%s",fnClass2.c_str()));
-        std::vector<int> ref1, ref2;
-        int aux;
-        FOR_ALL_OBJECTS_IN_METADATA(MD1)
-        {
-            MD1.getValue(MDL_REF,aux,__iter.objId);
-            ref1.push_back(aux);
-        }
-        FOR_ALL_OBJECTS_IN_METADATA(MD2)
-        {
-            MD2.getValue(MDL_REF,aux,__iter.objId);
-            ref2.push_back(aux);
-        }
+	MetaDataVec MD1(formatString("classes@%s",fnClass1.c_str()));
+	MetaDataVec MD2(formatString("classes@%s",fnClass2.c_str()));
+    std::vector<int> ref1, ref2;
+    int aux;
+    for (size_t objId : MD1.ids())
+    {
+        MD1.getValue(MDL_REF,aux,objId);
+        ref1.push_back(aux);
+    }
+    for (size_t objId : MD2.ids())
+    {
+        MD2.getValue(MDL_REF,aux,objId);
+        ref2.push_back(aux);
+    }
 
 	Matrix2D<int> comparisonMatrix(MD1.size(),MD2.size());
 	Matrix1D<int> MD1classSize(MAT_YSIZE(comparisonMatrix)), MD2classSize(MAT_XSIZE(comparisonMatrix));
 
 	// Read the size of the individual classes
-	MetaData MDclass1, MDclass2;
+	MetaDataDb MDclass1, MDclass2;
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(MD1classSize)
 	{
 		MDclass1.read(formatString("class%06d_images@%s",ref1[i],fnClass1.c_str()));

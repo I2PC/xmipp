@@ -27,7 +27,7 @@
 
 MpiMultireferenceAligneability::MpiMultireferenceAligneability()
 {
-	node=NULL;
+	node=nullptr;
 }
 
 MpiMultireferenceAligneability::~MpiMultireferenceAligneability()
@@ -63,7 +63,7 @@ void MpiMultireferenceAligneability::gatherResults()
 	// Now the master takes all of them
 	if (rank==0)
 	{
-		MetaData MDAux;
+		MetaDataDb MDAux;
 		for (size_t otherRank=1; otherRank<Nprocessors; ++otherRank)
 		{
 				FileName fnP = formatString("%s/partial_node%03d.xmd",fnDir.c_str(),(int)otherRank);

@@ -23,10 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-
+#include <algorithm>
 #include "program_image_ssnr.h"
-#include <data/mask.h>
-#include <core/xmipp_fftw.h>
+#include "data/mask.h"
+#include "core/xmipp_fftw.h"
+#include "core/metadata_extension.h"
 
 void ProgImageSSNR::defineParams()
 {
@@ -117,22 +118,22 @@ void ProgImageSSNR::processImage(const FileName &fnImg, const FileName &fnImgOut
 
 void thresholdSSNR(MetaData &mdOut, double ssnrcut)
 {
-	FOR_ALL_OBJECTS_IN_METADATA(mdOut)
+	for (size_t objId : mdOut.ids())
 	{
 		double ssnr;
-		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,__iter.objId);
+		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,objId);
 		if (ssnr<ssnrcut)
-			mdOut.setValue(MDL_ENABLED,-1,__iter.objId);
+			mdOut.setValue(MDL_ENABLED,-1,objId);
 	}
 }
 
 void normalizeSSNR(MetaData &mdOut)
 {
 	double maxSSNR=-1e38;
-	FOR_ALL_OBJECTS_IN_METADATA(mdOut)
+	for (size_t objId : mdOut.ids())
 	{
 		double ssnr;
-		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,__iter.objId);
+		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,objId);
 		if (ssnr>maxSSNR)
 			maxSSNR=ssnr;
 	}
@@ -140,11 +141,11 @@ void normalizeSSNR(MetaData &mdOut)
 	if (maxSSNR>0)
 	{
 		double imaxSSNR=1/maxSSNR;
-		FOR_ALL_OBJECTS_IN_METADATA(mdOut)
+		for (size_t objId : mdOut.ids())
 		{
 			double ssnr;
-			mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,__iter.objId);
-			mdOut.setValue(MDL_WEIGHT_SSNR,ssnr*imaxSSNR,__iter.objId);
+			mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,objId);
+			mdOut.setValue(MDL_WEIGHT_SSNR,ssnr*imaxSSNR,objId);
 		}
 	}
 }
@@ -152,21 +153,21 @@ void normalizeSSNR(MetaData &mdOut)
 void ProgImageSSNR::postProcess()
 {
 	if (ssnrcut>0)
-		thresholdSSNR(*getOutputMd(),ssnrcut);
+		thresholdSSNR(getOutputMd(), ssnrcut);
 
 	if (ssnrpercent>0)
 	{
 		std::vector<double> ssnr;
-		getOutputMd()->getColumnValues(MDL_CUMULATIVE_SSNR,ssnr);
+		getOutputMd().getColumnValues(MDL_CUMULATIVE_SSNR,ssnr);
 		std::sort(ssnr.begin(),ssnr.end());
-		size_t idx=(size_t)(ssnrpercent/100.0*ssnr.size());
-		thresholdSSNR(*getOutputMd(),ssnr[idx]);
+		auto idx=(size_t)(ssnrpercent/100.0*ssnr.size());
+		thresholdSSNR(getOutputMd(),ssnr[idx]);
 	}
 
 	if (normalizessnr)
-		normalizeSSNR(*getOutputMd());
+		normalizeSSNR(getOutputMd());
 	if (fn_out!="")
-		getOutputMd()->write(fn_out);
+		getOutputMd().write(fn_out);
 	else
-		getOutputMd()->write(fn_in);
+		getOutputMd().write(fn_in);
 }

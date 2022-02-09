@@ -31,6 +31,9 @@
 #include "core/xmipp_fftw.h"
 #include "reconstruction/movie_alignment_correlation_base.h"
 
+/**@defgroup ProgMovieAlignmentCorrelation Movie alignment correlation
+   @ingroup ReconsLibrary */
+//@{
 /** Movie alignment correlation Parameters. */
 template<typename T>
 class ProgMovieAlignmentCorrelation: public AProgMovieAlignmentCorrelation<T> {
@@ -112,5 +115,5 @@ private:
     /** Scale factor of the correlation and original frame size */
     T sizeFactor;
 };
-
+//@}
 #endif

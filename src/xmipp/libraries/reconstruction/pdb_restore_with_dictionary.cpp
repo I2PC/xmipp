@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "pdb_restore_with_dictionary.h"
+#include "core/xmipp_image.h"
 
 void ProgRestoreWithPDBDictionary::defineParams()
 {

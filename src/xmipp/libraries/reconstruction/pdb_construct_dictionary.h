@@ -25,7 +25,11 @@
 #ifndef _PROG_CONSTRUCT_DICTIONARY_HH
 #define _PROG_CONSTRUCT_DICTIONARY_HH
 
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/matrix2d.h"
+#include "core/matrix1d.h"
+#include "core/multidim_array.h"
 
 /**@defgroup PDBConstructDictionary Construct a low and high resolution dictionary
    @ingroup ReconsLibrary */

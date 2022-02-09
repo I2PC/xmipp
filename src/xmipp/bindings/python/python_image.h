@@ -30,10 +30,11 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION // this code is NumPy 1.8 compliant (i.e. we don't need API deprecated in 1.7)
 
 #include "Python.h"
-#include "python_metadata.h"
+#include "core/xmipp_image_generic.h"
 #include <numpy/ndarraytypes.h>
-#include <numpy/ndarrayobject.h>
+#include <numpy/arrayobject.h>
 
+extern PyObject * PyXmippError;
 /***************************************************************/
 /*                            Image                         */
 /**************************************************************/
@@ -63,8 +64,8 @@ PyObject *
 Image_repr(PyObject * obj);
 
 /* Image compare function */
-int
-Image_compare(PyObject * obj, PyObject * obj2);
+PyObject*
+Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
 
 
 /* Compare two images up to a precision */
@@ -135,6 +136,10 @@ Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* applyWarpAffine */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* applyTransforMatScipion */
 PyObject *
 Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs);
@@ -154,6 +159,10 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs);
 /* Reslice volume */
 PyObject *
 Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* Write slices */
+PyObject *
+Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 /* Patch with other image */
 PyObject *
@@ -215,6 +224,16 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* corrAfterAlignment(I1,I2) */
+PyObject *
+Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* applyWarpAffine */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+
+
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2);
 PyObject *
@@ -238,13 +257,17 @@ PyObject *
 Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs);
 
 PyObject *
-Image_divide(PyObject *obj1, PyObject *obj2);
+Image_true_divide(PyObject *obj1, PyObject *obj2);
 PyObject *
 Image_idivide(PyObject *obj1, PyObject *obj2);
 PyObject *
 Image_inplaceDivide(PyObject *self, PyObject *args, PyObject *kwargs);
 
+PyObject *
+Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+PyObject *
+Image_centerOfMass(PyObject *obj);
 
 
 extern PyNumberMethods Image_NumberMethods;

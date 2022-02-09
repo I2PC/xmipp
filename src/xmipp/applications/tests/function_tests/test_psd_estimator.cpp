@@ -131,7 +131,7 @@ public:
         }
     }
 };
-TYPED_TEST_CASE_P(PSD_Estimator_Test);
+TYPED_TEST_SUITE_P(PSD_Estimator_Test);
 
 TYPED_TEST_P( PSD_Estimator_Test, windowCoords)
 {
@@ -194,10 +194,10 @@ TYPED_TEST_P( PSD_Estimator_Test, half2whole)
 }
 
 
-REGISTER_TYPED_TEST_CASE_P(PSD_Estimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(PSD_Estimator_Test,
     windowCoords,
     half2whole
 );
 
 typedef ::testing::Types<double, float> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(, PSD_Estimator_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(, PSD_Estimator_Test, TestTypes);

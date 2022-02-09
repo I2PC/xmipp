@@ -26,11 +26,8 @@
 #ifndef VOLUME_CORRECT_BFACTOR_H
 #define VOLUME_CORRECT_BFACTOR_H
 
-#include <core/geometry.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
+#include "core/geometry.h"
+#include "core/xmipp_metadata_program.h"
 
 /** @defgroup Correct Bfactor
   * @ingroup ReconsLibrary

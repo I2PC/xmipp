@@ -4,6 +4,8 @@
 #include <core/geometry.h>
 #include <iostream>
 #include <gtest/gtest.h>
+#include <core/xmipp_filename.h>
+
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class EulerTest : public ::testing::Test
 {
@@ -12,7 +14,7 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
     }
 
     Matrix1D<double> origin,xaxis,yaxis,zaxis;
@@ -35,7 +37,7 @@ TEST_F( EulerTest, eulerXmippMatch)
                 Matrix2D<double> M(4,4);
                 m.initIdentity();
                 angles.toMatrix(m);
-                Euler_angles2matrix(_x,_y,_z,M);
+                Euler_angles2matrix((double)_x,(double)_y,(double)_z,M);
 
                 FOR_ALL_ELEMENTS_IN_MATRIX2D(M)
                 {
@@ -279,10 +281,4 @@ TEST_F( EulerTest, extract)
                     }
                 }
     }
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

@@ -25,6 +25,7 @@
 /*xmipp includes */
 #include "tom_xmipp_helpers.h"
 #include <core/xmipp_image.h>
+#include <core/transformations.h>
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 {
@@ -41,11 +42,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 
         if (operation == true)
         {
-        	pyramidExpand(BSPLINE3,result,img(),levels);
+        	pyramidExpand(xmipp_transformation::BSPLINE3,result,img(),levels);
         }
         else 
         {
-        	pyramidReduce(BSPLINE3,result,img(),levels);
+        	pyramidReduce(xmipp_transformation::BSPLINE3,result,img(),levels);
         }
 
         setMatrix2D(result,plhs[0]);
@@ -57,11 +58,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
        
         if (operation == true)
         {
-        	pyramidExpand(BSPLINE3,result,vol(),levels);
+        	pyramidExpand(xmipp_transformation::BSPLINE3,result,vol(),levels);
         }
         else
         {
-        	pyramidReduce(BSPLINE3,result,vol(),levels);
+        	pyramidReduce(xmipp_transformation::BSPLINE3,result,vol(),levels);
         }
         
         setMatrix3D(result,plhs[0]);

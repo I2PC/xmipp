@@ -26,9 +26,12 @@
 #ifndef _PROJECTXRAY_H_
 #define _PROJECTXRAY_H_
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_threads.h>
-#include <data/psf_xr.h>
+#include "core/metadata_vec.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_threads.h"
+#include "data/fourier_projection.h"
+#include "data/projection.h"
+#include "data/psf_xr.h"
 
 /**@defgroup ProjectionXRProgram project_xr (project for tilt series)
    @ingroup ReconsLibrary */
@@ -101,7 +104,7 @@ public:
 
     XrayProjPhantom phantom;
     Projection   proj, stdProj;
-    MetaData     projMD;
+    MetaDataVec  projMD;
     ParallelTaskDistributor * td;
 
 protected:
@@ -140,7 +143,7 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &side, XRayPSF &psf, 
 
 void projectXrayVolume(MultidimArray<double> &muVol,
                        MultidimArray<double> &IgeoVol,
-                       XRayPSF &psf, Projection &P, MultidimArray<double> * projNorm=NULL, ThreadManager * ThrMgr=NULL);
+                       XRayPSF &psf, Projection &P, MultidimArray<double> * projNorm=nullptr, ThreadManager * ThrMgr=nullptr);
 
 //Some global threads management variables
 extern Mutex mutex;
@@ -162,15 +165,15 @@ struct CIGTArgument
     CIGTArgument()
     {
         samplingZ = 0;
-        muVol = cumMu = IgeoVol = IgeoZb = NULL;
-        td = NULL;
+        muVol = cumMu = IgeoVol = IgeoZb = nullptr;
+        td = nullptr;
     }
 };
 
 /// Calculate the volume of the information of Igeometric at each plane of the phantom
 void calculateIgeo(MultidimArray<double> &muVol, double sampling, MultidimArray<double> &IgeoVol,
                    MultidimArray<double> &cumMu, MultidimArray<double> &IgeoZb,
-                   int nThreads = 1 , ThreadManager * ThrMgr = NULL);
+                   int nThreads = 1 , ThreadManager * ThrMgr = nullptr);
 
 void calculateIgeoThread(ThreadArgument &thArg);
 

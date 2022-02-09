@@ -35,6 +35,9 @@
 #include <utility> // std::make_pair
 #include <type_traits>
 
+/**@defgroup BSplineHelper BSplineHelper
+   @ingroup ReconsLibrary */
+//@{
 class BSplineHelper {
 public:
     /**
@@ -117,5 +120,5 @@ public:
             T &shiftY, T &shiftX,
             const T *coeffsX, const T *coeffsY);
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_BSPLINE_HELPER_H_ */

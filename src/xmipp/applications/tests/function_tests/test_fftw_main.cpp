@@ -79,7 +79,7 @@ TEST_F( FftwTest, directFourierTransformComplex)
 
 TEST_F( FftwTest, fft_IDX2DIGFREQ)
 {
-	double w;
+    double w;
     FFT_IDX2DIGFREQ(0,128,w);
     EXPECT_EQ(0,w);
     FFT_IDX2DIGFREQ(1,128,w);
@@ -106,10 +106,4 @@ TEST_F( FftwTest, fft_IDX2DIGFREQ)
     size_t dim=256;
     FFT_IDX2DIGFREQ(i,dim,w);
     EXPECT_EQ(-1.0/256.0,w);
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

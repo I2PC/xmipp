@@ -25,9 +25,11 @@
 
 #include "align2d.h"
 
-#include <core/xmipp_funcs.h>
-#include <data/mask.h>
-#include <data/filters.h>
+#include "core/transformations.h"
+#include "core/metadata_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/filters.h"
+#include "data/mask.h"
 
 // Read arguments ==========================================================
 void ProgAlign2d::readParams()
@@ -83,7 +85,7 @@ void ProgAlign2d::alignPairs(MetaData &MDin, MetaData &MDout, int level)
     createEmptyFile(fnOutputStack,Xdim,Ydim,1,imax+remaining,true,WRITE_REPLACE);
 
     // Align all pairs
-    MDIterator mdIter(MDin);
+    auto mdIdIter(MDin.ids().begin());
     Image<double> I1, I2;
     Matrix2D<double> M;
     FileName fnOut;
@@ -95,10 +97,10 @@ void ProgAlign2d::alignPairs(MetaData &MDin, MetaData &MDout, int level)
     for (size_t i=0; i<imax; i++)
     {
         // Read the two input images
-        I1.readApplyGeo(MDin,mdIter.objId);
-        mdIter.moveNext();
-        I2.readApplyGeo(MDin,mdIter.objId);
-        mdIter.moveNext();
+        I1.readApplyGeo(MDin, *mdIdIter);
+        ++mdIdIter;
+        I2.readApplyGeo(MDin, *mdIdIter);
+        ++mdIdIter;
 
         // Align images
         MultidimArray<double> &I1m=I1();
@@ -127,14 +129,14 @@ void ProgAlign2d::alignPairs(MetaData &MDin, MetaData &MDout, int level)
         std::cin >> c;
 #endif
         if (i%100==0)
-        	progress_bar(i);
+            progress_bar(i);
     }
     progress_bar(imax);
 
     if (remaining)
     {
-        I1.readApplyGeo(MDin,mdIter.objId);
-        mdIter.moveNext();
+        I1.readApplyGeo(MDin, *mdIdIter);
+        ++mdIdIter;
         fnOut.compose(imax+1,fnOutputStack);
         I1.write(fnOut);
     }
@@ -144,8 +146,8 @@ void ProgAlign2d::alignPairs(MetaData &MDin, MetaData &MDout, int level)
 void ProgAlign2d::do_pspc()
 {
     int level=0;
-    MetaData SFlevel=SF;
-    MetaData SFlevel_1;
+    MetaDataVec SFlevel = SF;
+    MetaDataVec SFlevel_1;
     while (SFlevel.size()>1)
     {
         alignPairs(SFlevel,SFlevel_1,level);
@@ -155,7 +157,7 @@ void ProgAlign2d::do_pspc()
         SFlevel=SFlevel_1;
         SFlevel_1.clear();
     }
-    size_t objId=SFlevel.firstObject();
+    size_t objId=SFlevel.firstRowId();
     Iref.readApplyGeo(SFlevel,objId);
     unlink((fnRoot+"_level_"+integerToString(level-1,2)+".stk").c_str());
     Iref.write(fnRoot+"_pspc.xmp");
@@ -174,12 +176,12 @@ void ProgAlign2d::computeMean()
     std::cerr << "Computing average of images ...\n";
     init_progress_bar(N);
     int i=0;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-    	I.readApplyGeo(SF,__iter.objId);
-    	Iref()+=I();
-    	if ((++i)%100==0)
-    		progress_bar(i);
+        I.readApplyGeo(SF, objId);
+        Iref()+=I();
+        if ((++i)%100==0)
+            progress_bar(i);
     }
     progress_bar(N);
     Iref()*=1.0/N;
@@ -194,8 +196,8 @@ void ProgAlign2d::refinement()
 {
     Image<double> I;
     size_t N=SF.size();
-	double lambda=1.0/(N/2.0);
-	double lambdap=1-lambda;
+    double lambda=1.0/(N/2.0);
+    double lambdap=1-lambda;
     init_progress_bar(N);
     int i=0;
     MultidimArray<double> &Irefm=Iref();
@@ -205,11 +207,11 @@ void ProgAlign2d::refinement()
     AlignmentAux aux1;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-    	SF.getValue(MDL_IMAGE,fnImg,__iter.objId);
-    	I.read(fnImg);
-    	I().setXmippOrigin();
+        SF.getValue(MDL_IMAGE, fnImg, objId);
+        I.read(fnImg);
+        I().setXmippOrigin();
         MultidimArray<double> Ibackup, Ialigned;
         Ibackup=I();
 
@@ -220,18 +222,18 @@ void ProgAlign2d::refinement()
             corr=alignImages(Irefm,Im,M);
         else
             corr=alignImagesConsideringMirrors(Irefm,Im,M,aux1,aux2,aux3);
-        applyGeometry(LINEAR, Ialigned, Ibackup, M, IS_NOT_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Ialigned, Ibackup, M, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
         Im=Ialigned;
 
         // Save alignment
         bool flip;
         double scale, shiftX, shiftY, psi;
         transformationMatrix2Parameters2D(M, flip, scale, shiftX, shiftY, psi);
-        SF.setValue(MDL_SHIFT_X,shiftX,__iter.objId);
-        SF.setValue(MDL_SHIFT_Y,shiftY,__iter.objId);
-        SF.setValue(MDL_ANGLE_PSI,psi,__iter.objId);
-        SF.setValue(MDL_FLIP,flip,__iter.objId);
-        SF.setValue(MDL_MAXCC,corr,__iter.objId);
+        SF.setValue(MDL_SHIFT_X, shiftX, objId);
+        SF.setValue(MDL_SHIFT_Y, shiftY, objId);
+        SF.setValue(MDL_ANGLE_PSI, psi, objId);
+        SF.setValue(MDL_FLIP, flip, objId);
+        SF.setValue(MDL_MAXCC, corr, objId);
 
         // Update reference
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Irefm)
@@ -241,12 +243,12 @@ void ProgAlign2d::refinement()
         // From time to time, recenter the reference
         if ((++centerCount)%10==0)
         {
-        	centerImage(Irefm,aux2,aux3);
-        	centerCount=0;
+            centerImage(Irefm,aux2,aux3);
+            centerCount=0;
         }
 
         if ((++i)%100==0)
-    		progress_bar(i);
+            progress_bar(i);
 #ifdef DEBUG
         Iref.write("PPPref.xmp");
         I.write("PPPexp.xmp");
@@ -272,10 +274,10 @@ void ProgAlign2d::run()
         Iref.read(fnRef);
     else
     {
-    	if (pspc)
-    		do_pspc();
-    	else
-    		computeMean();
+        if (pspc)
+            do_pspc();
+        else
+            computeMean();
     }
     Iref().setXmippOrigin();
 
@@ -290,7 +292,7 @@ void ProgAlign2d::run()
     std::cout << "Refining ...\n";
     for (int n=0; n<Niter; n++)
     {
-    	std::cerr << "Refinement iteration " << n << std::endl;
-    	refinement();
+        std::cerr << "Refinement iteration " << n << std::endl;
+        refinement();
     }
 }

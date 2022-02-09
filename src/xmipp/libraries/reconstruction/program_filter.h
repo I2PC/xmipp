@@ -23,9 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <data/filters.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
 
+class XmippFilter;
+
+/**@defgroup ProgFilter Filter Operation
+   @ingroup ReconsLibrary */
+//@{
 /** Apply some filter operation on images, or selfiles */
 class ProgFilter: public XmippMetadataProgram
 {
@@ -35,6 +40,9 @@ private:
 
     // Read CTF
     bool readCTF;
+
+    // Working image
+    Image<double> m_img;
 
 protected:
     void defineParams();
@@ -46,6 +54,7 @@ public:
     ProgFilter();
     ~ProgFilter();
 }
+//@}
 ;//end of class ProgFilter
 
 

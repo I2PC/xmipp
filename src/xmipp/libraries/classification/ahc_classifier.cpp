@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/alglib/dataanalysis.h>
-
+#include "core/matrix2d.h"
 #include "ahc_classifier.h"
 
 

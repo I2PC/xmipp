@@ -44,6 +44,9 @@
 #include "cuda_xmipp_utils.h"
 #include "gpu.h"
 
+/**@defgroup GeoShiftTransformer GeoShift Transformer
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class GeoShiftTransformer {
 
@@ -121,5 +124,5 @@ private:
     GpuMultidimArrayAtGpu<std::complex<T> > *ffts; // object for FFT
     mycufftHandle ifftHandle; // plan of the FFT
 };
-
+//@}
 #endif // CUDA_GEO_SHIFT_TRANSFORMER

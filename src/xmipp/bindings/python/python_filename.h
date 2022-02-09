@@ -28,7 +28,9 @@
 #define _PYTHON_FILENAME_H
 
 #include <Python.h>
-#include <core/xmipp_filename.h>
+
+class FileName;
+extern PyObject * PyXmippError;
 
 /***************************************************************/
 /*                            FileName                         */

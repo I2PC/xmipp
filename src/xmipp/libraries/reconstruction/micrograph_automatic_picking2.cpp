@@ -23,23 +23,20 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include <math.h>
+
+#include <fstream>
+#include <random>
 #include "micrograph_automatic_picking2.h"
-#include <data/filters.h>
-#include <data/rotational_spectrum.h>
-#include <reconstruction/denoise.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_filename.h>
-#include <algorithm>
-#include <classification/uniform.h>
+#include "core/transformations.h"
+#include "core/xmipp_image_generic.h"
+#include "data/mask.h"
+#include "data/fourier_filter.h"
+#include "data/normalize.h"
 
 int flagAbort=0;
 
-AutoParticlePicking2::AutoParticlePicking2()
-{}
-
 AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum, int basisPCA,
-        const FileName &model_name, const std::vector<MDRow> &vMicList)
+        const FileName &model_name, const std::vector<MDRowSql> &vMicList)
 {
     // Defining the paths for pca, svm, ... models.
     fn_model=model_name;
@@ -88,7 +85,7 @@ AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum
     }
 
     // Initalize the thread to one
-    thread = NULL;
+    thread = nullptr;
 }
 
 // This method is required by the JAVA part.
@@ -159,7 +156,7 @@ void AutoParticlePicking2::filterBankGenerator()
     }
 }
 
-void AutoParticlePicking2::buildInvariant(const std::vector<MDRow> &MD)
+void AutoParticlePicking2::buildInvariant(const std::vector<MDRowSql> &MD)
 {
     int x, y;
     mPrev.point1.x=-1;
@@ -172,7 +169,7 @@ void AutoParticlePicking2::buildInvariant(const std::vector<MDRow> &MD)
     extractInvariant(fnInvariant,fnParticles,true);
 }
 
-void AutoParticlePicking2::batchBuildInvariant(const std::vector<MDRow> &MD)
+void AutoParticlePicking2::batchBuildInvariant(const std::vector<MDRowSql> &MD)
 {
     int x, y, flag=0;
     FileName micFile, posFile, preMicFile;
@@ -246,8 +243,8 @@ void AutoParticlePicking2::extractPositiveInvariant()
     }
     for (int i=0;i<num_part;i++)
     {
-        int x=(int)((m.coord(i).X)*scaleRate);
-        int y=(int)((m.coord(i).Y)*scaleRate);
+    	auto x=(int)((m.coord(i).X)*scaleRate);
+    	auto y=(int)((m.coord(i).Y)*scaleRate);
 
         buildInvariant(IpolarCorr,x,y,1);
         // Keep the particles to train the classifiers
@@ -299,10 +296,12 @@ void AutoParticlePicking2::extractNegativeInvariant()
     // a negative particles.
     extractNonParticle(negativeSamples);
     // Choose some random positions from the previous step.
-    RandomUniformGenerator<double> randNum(0, 1);
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dist(0.0, 1.0);
     randomValues.resize(1,1,1,negativeSamples.size());
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(randomValues)
-    DIRECT_A1D_ELEM(randomValues,i)=randNum();
+        DIRECT_A1D_ELEM(randomValues,i)=dist(gen);
     randomValues.indexSort(randomIndexes);
     int numNegatives;
     // If the number of particles is lower than 15 then the
@@ -454,7 +453,7 @@ void AutoParticlePicking2::add2Dataset(int flagNegPos)
     }
 }
 
-void AutoParticlePicking2::train(const std::vector<MDRow> &MD, bool corrFlag, int x, int y, int width, int height)
+void AutoParticlePicking2::train(const std::vector<MDRowSql> &MD, bool corrFlag, int x, int y, int width, int height)
 {
     if (width!=0)
     {
@@ -538,7 +537,7 @@ void AutoParticlePicking2::saveTrainingSet()
     fhTrain.close();
 }
 
-int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRow> &md)
+int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRowSql> &md)
 {
     // bool error=MDSql::deactivateThreadMuting();
     auto_candidates.clear();
@@ -549,7 +548,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
     MultidimArray<double> featVec, featVecNN;
     std::vector<Particle2> positionArray;
 
-    if (thread == NULL)
+    if (thread == nullptr)
     {
         thread = new FeaturesThread(this);
         thread->start();
@@ -572,7 +571,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
     // Read the SVM model
     //    generateFeatVec(fnmicrograph,proc_prec,positionArray);
     //    classifier.LoadModel(fnSVMModel);
-    int num=(int)(positionArray.size()*(proc_prec/100.0));
+    auto num=(int)(positionArray.size()*(proc_prec/100.0));
     featVec.resize(num_features);
     //    negative_candidates.clear();
 
@@ -584,7 +583,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
         double max=featVec.computeMax();
         double min=featVec.computeMin();
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(featVec)
-        DIRECT_A1D_ELEM(featVec,i)=0+((1)*((DIRECT_A1D_ELEM(featVec,i)-min)/(max-min)));
+        DIRECT_A1D_ELEM(featVec,i)=0+(1*((DIRECT_A1D_ELEM(featVec,i)-min)/(max-min)));
         int j=positionArray[k].x;
         int i=positionArray[k].y;
         label= classifier.predict(featVec, score);
@@ -656,11 +655,11 @@ int AutoParticlePicking2::automaticWithouThread(FileName fnmicrograph, int proc_
     Particle2 p;
     MultidimArray<double> featVec, featVecNN;
     std::vector<Particle2> positionArray;
-    MetaData md;
+    MetaDataVec md;
 
     generateFeatVec(fnmicrograph,proc_prec,positionArray);
 
-    int num=(int)(positionArray.size()*(proc_prec/100.0));
+    auto num=(int)(positionArray.size()*(proc_prec/100.0));
     featVec.resize(num_features);
     for (int k=0;k<num;k++)
     {
@@ -736,7 +735,7 @@ void AutoParticlePicking2::generateFeatVec(const FileName &fnmicrograph, int pro
     IpolarCorr.initZeros(num_correlation,1,NangSteps,NRsteps);
     buildSearchSpace(positionArray,true);
 
-    int num=(int)(positionArray.size()*(proc_prec/100.0));
+    auto num=(int)(positionArray.size()*(proc_prec/100.0));
     autoFeatVec.resize(num,num_features);
     for (int k=0;k<num;k++)
     {
@@ -850,7 +849,7 @@ int AutoParticlePicking2::getParticlesThreshold()
 
 }
 
-void AutoParticlePicking2::correction(const std::vector<MDRow> &addedParticlesMD,const std::vector<MDRow> &removedParticlesMD)
+void AutoParticlePicking2::correction(const std::vector<MDRowSql> &addedParticlesMD,const std::vector<MDRowSql> &removedParticlesMD)
 {
     //    dataSet.clear();
     dataSetNormal.clear();
@@ -896,12 +895,13 @@ void AutoParticlePicking2::add2Dataset(const MetaData &removedParticlesMD)
     int cntNeg=0;
     int enabled;
     double cost;
-    FOR_ALL_OBJECTS_IN_METADATA(removedParticlesMD)
+
+    for (size_t objId : removedParticlesMD.ids())
     {
-        removedParticlesMD.getValue(MDL_ENABLED,enabled, __iter.objId);
+        removedParticlesMD.getValue(MDL_ENABLED,enabled, objId);
         if (enabled == -1)
         {
-            removedParticlesMD.getValue(MDL_COST,cost, __iter.objId);
+            removedParticlesMD.getValue(MDL_COST,cost, objId);
             if (cost!=-1)
                 cntNeg++;
         }
@@ -913,12 +913,13 @@ void AutoParticlePicking2::add2Dataset(const MetaData &removedParticlesMD)
     for (int n=yDataSet;n<limit;n++)
         classLabel(n)=3;
     int cnt=0;
-    FOR_ALL_OBJECTS_IN_METADATA(removedParticlesMD)
+
+    for (size_t objId : removedParticlesMD.ids())
     {
-        removedParticlesMD.getValue(MDL_ENABLED,enabled, __iter.objId);
+        removedParticlesMD.getValue(MDL_ENABLED,enabled, objId);
         if (enabled == -1)
         {
-            removedParticlesMD.getValue(MDL_COST,cost, __iter.objId);
+            removedParticlesMD.getValue(MDL_COST,cost, objId);
             if (cost!=-1)
             {
                 for (size_t j=0;j<XSIZE(dataSet);j++)
@@ -1027,7 +1028,7 @@ void AutoParticlePicking2::extractStatics(MultidimArray<double> &inputVec,
     normalize_OldXmipp(inputVec);
     // Sorting the image in order to find the quantiles
     inputVec.sort(sortedVec);
-    int step=(int)floor(XSIZE(sortedVec)*0.1);
+    auto step=(int)floor(XSIZE(sortedVec)*0.1);
     for (int i=2;i<12;i++)
         DIRECT_A1D_ELEM(features,i)=DIRECT_A1D_ELEM(sortedVec,(i-1)*step);
 }
@@ -1314,8 +1315,8 @@ void AutoParticlePicking2::extractPositiveInvariant(const FileName &fnInvariantF
         double cost = mPrev.coord(i).cost;
         if (cost == 0)
             continue;
-        int x=(int)((mPrev.coord(i).X)*scaleRate);
-        int y=(int)((mPrev.coord(i).Y)*scaleRate);
+        auto x=(int)((mPrev.coord(i).X)*scaleRate);
+        auto y=(int)((mPrev.coord(i).Y)*scaleRate);
         buildInvariant(IpolarCorr,x,y,1);
         extractParticle(x,y,microImagePrev(),pieceImage,false);
         II()=pieceImage;
@@ -1350,7 +1351,7 @@ void AutoParticlePicking2::extractNegativeInvariant(const FileName &fnInvariantF
     MultidimArray<double> pieceImage;
     MultidimArray<int> randomIndexes;
     std::vector<Particle2> negativeSamples;
-    std::vector<Point> positionVec;
+    std::vector<Micrograph::Point> positionVec;
 
     int num_part=mPrev.ParticleNo();
     if (num_part==0)
@@ -1365,10 +1366,12 @@ void AutoParticlePicking2::extractNegativeInvariant(const FileName &fnInvariantF
     if (negativeSamples.size()==0)
         return;
     // Choose some random positions from the previous step.
-    RandomUniformGenerator<double> randNum(0, 1);
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dist(0.0, 1.0);
     randomValues.resize(1,1,1,negativeSamples.size());
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(randomValues)
-    DIRECT_A1D_ELEM(randomValues,i)=randNum();
+        DIRECT_A1D_ELEM(randomValues,i)=dist(gen);
     randomValues.indexSort(randomIndexes);
     int numNegatives;
     // If the number of particles is lower than 15 then the
@@ -1563,10 +1566,10 @@ void AutoParticlePicking2::saveAutoParticles(MetaData &md)
     }
 }
 
-void AutoParticlePicking2::saveAutoParticles(std::vector<MDRow> &md)
+void AutoParticlePicking2::saveAutoParticles(std::vector<MDRowSql> &md)
 {
     size_t nmax=auto_candidates.size();
-    MDRow row;
+    MDRowSql row;
     for (size_t n=0;n<nmax;++n)
     {
         const Particle2 &p=auto_candidates[n];
@@ -1701,7 +1704,7 @@ void AutoParticlePicking2::applyConvolution(bool fast)
         avgRotatedLarge=particleAvg;
         for (int deg=3;deg<360;deg+=3)
         {
-            rotate(LINEAR,avgRotated,particleAvg,double(deg));
+            rotate(xmipp_transformation::LINEAR,avgRotated,particleAvg,double(deg));
             avgRotated.setXmippOrigin();
             avgRotatedLarge.setXmippOrigin();
             avgRotatedLarge+=avgRotated;
@@ -1728,7 +1731,7 @@ void AutoParticlePicking2::applyConvolution(bool fast)
         {
             // We first rotate the template and then put it in the big image in order to
             // the convolution
-            rotate(LINEAR,avgRotated,particleAvg,double(deg));
+            rotate(xmipp_transformation::LINEAR,avgRotated,particleAvg,double(deg));
             avgRotatedLarge=avgRotated;
             avgRotatedLarge.setXmippOrigin();
             avgRotatedLarge.selfWindow(FIRST_XMIPP_INDEX(sizeY),FIRST_XMIPP_INDEX(sizeX),
@@ -1812,11 +1815,11 @@ void ProgMicrographAutomaticPicking2::defineParams()
 void ProgMicrographAutomaticPicking2::run()
 {
     int proc_prec;
-    MetaData MD;
+    MetaDataVec MD;
     FileName fnAutoParticles = formatString("particles_auto@%s.pos", fn_root.c_str());
     MD.read(fn_model.beforeLastOf("/")+"/config.xmd");
-    MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstObject());
+    MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstRowId());
 
-    autoPicking = new AutoParticlePicking2(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model,std::vector<MDRow>());
+    autoPicking = new AutoParticlePicking2(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model, {});
     autoPicking->automaticWithouThread(fn_micrograph,proc_prec,fnAutoParticles);
 }

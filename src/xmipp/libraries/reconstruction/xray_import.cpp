@@ -24,10 +24,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/args.h>
-#include <data/filters.h>
-#include <core/xmipp_image_extension.h>
 #include "xray_import.h"
+#include "core/metadata_extension.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/filters.h"
 
 // usage ===================================================================
 void ProgXrayImport::defineParams()
@@ -175,7 +176,7 @@ void ProgXrayImport::readParams()
         BPFactor = -1;
 
     selfAttFix   = checkParam("--correct");
-    logFix   = (selfAttFix)? true : checkParam("--log");
+    logFix   = selfAttFix? true : checkParam("--log");
 }
 
 // Show ====================================================================
@@ -439,9 +440,9 @@ void ProgXrayImport::getFlatfield(const FileName &fnFFinput,
     Image<double> Iaux;
     FileName fnImg;
 
-    FOR_ALL_OBJECTS_IN_METADATA(fMD)
+    for (size_t objId : fMD.ids())
     {
-        fMD.getValue(MDL_IMAGE, fnImg, __iter.objId);
+        fMD.getValue(MDL_IMAGE, fnImg, objId);
 
         readAndCrop(fnImg, Iaux, cropX, cropY);
 
@@ -518,9 +519,9 @@ void ProgXrayImport::getFlatfield(const FileName &fnFFinput,
 void runThread(ThreadArgument &thArg)
 {
     int thread_id = thArg.thread_id;
-    ProgXrayImport * ptrProg= (ProgXrayImport *)thArg.workClass;
+    auto * ptrProg= (ProgXrayImport *)thArg.workClass;
 
-    MetaData localMD;
+    MetaDataDb localMD;
     Image<double> Iaux;
     FileName fnImgIn, fnImgOut;
     size_t first = 0, last = 0;
@@ -533,7 +534,7 @@ void runThread(ThreadArgument &thArg)
             ptrProg->inMD.getValue(MDL_IMAGE, fnImgIn, ptrProg->objIds[i]);
 
 
-            MDRow rowGeo;
+            MDRowVec rowGeo;
             ptrProg->readGeoInfo(fnImgIn, rowGeo);
 //            ptrProg->readAndCrop(fnImgIn, Iaux, ptrProg->cropSizeX, ptrProg->cropSizeY);
 
@@ -734,7 +735,7 @@ void ProgXrayImport::run()
     progress_bar(nIm);
 
     // Write Metadata and angles
-    MetaData MDSorted;
+    MetaDataDb MDSorted;
     MDSorted.sort(outMD,MDL_ANGLE_TILT);
     MDSorted.write("tomo@"+fnRoot + ".xmd");
     if ( fMD.size() > 0 )
@@ -759,10 +760,10 @@ void ProgXrayImport::run()
     fhTlt.open((fnRoot+".tlt").c_str());
     if (!fhTlt)
         REPORT_ERROR(ERR_IO_NOWRITE,fnRoot+".tlt");
-    FOR_ALL_OBJECTS_IN_METADATA(MDSorted)
+    for (size_t objId : MDSorted.ids())
     {
         double tilt;
-        MDSorted.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
+        MDSorted.getValue(MDL_ANGLE_TILT,tilt,objId);
         fhTlt << tilt << std::endl;
     }
     fhTlt.close();

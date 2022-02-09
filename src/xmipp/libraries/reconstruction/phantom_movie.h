@@ -29,6 +29,9 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 
+/**@defgroup PhantomMovie Phantom Movie
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class PhantomMovie: public XmippProgram {
 public:
@@ -41,9 +44,9 @@ public:
     /** Run */
     void run();
 private:
-    void generateGrid();
-    void addShiftBarrelDeformation();
-    void addShift();
+    void generateGrid(Image<T> &movie);
+    void addShiftBarrelDeformation(Image<T> &movie);
+    void addShift(Image<T> &movie);
     T bilinearInterpolation(Image<T>& src, T x, T y);
     bool inRangeX(T x) { return (x >= 0) && (x < xdim); };
     bool inRangeY(T y) { return (y >= 0) && (y < ydim); };
@@ -73,9 +76,8 @@ protected:
     const std::string step_param = std::string("-step");
     const std::string shift_param = std::string("--shift");
     const std::string barrel_param = std::string("--barrel");
-    FileName fn_out;
+    FileName fn_out;};
 
-    Image<T> movie;
-};
-
+//@}
 #endif /* PHANTOM_MOVIE_H_ */
+

@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "mpi_volume_homogenizer.h"
+#include <core/metadata_db.h>
 
 MpiProgVolumeHomogenizer::MpiProgVolumeHomogenizer()
 {
@@ -65,7 +66,7 @@ void MpiProgVolumeHomogenizer::gatherResults()
 	// Now the master takes all of them
 	if (rank==0)
 	{
-		MetaData MDAux;
+		MetaDataDb MDAux;
 		for (size_t otherRank=1; otherRank<Nprocessors; ++otherRank)
 		{
 				FileName fnP = formatString("partial_node%03d.xmd",(int)otherRank);

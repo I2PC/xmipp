@@ -24,6 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "image_resize.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
 
 ProgImageResize::ProgImageResize()
 {}
@@ -52,9 +54,9 @@ void ProgImageResize::defineParams()
     addExampleLine("Resize from 128 to 64 using Fourier", false);
     addExampleLine("xmipp_image_resize -i images.xmd --fourier 64 --oroot halvedFourierDim");
     //params
-    addParamsLine("--factor <n=0.5>                 : Resize a factor of dimensions, 0.5 halves and 2 doubles.");
+    addParamsLine("--factor <n=0.5>                 : Resize a factor of dimensions, 0.5 halves and 2 doubles (uses splines or linear interpolation).");
     addParamsLine(" alias -n;");
-    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions");
+    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions (uses splines / linear interpolation or nearest neighbour method).");
     addParamsLine(" alias -d;");
     addParamsLine("or --fourier <x> <y=x> <z=x> <thr=1>   : Use padding/windowing in Fourier Space to resize. thr=number of threads");
     addParamsLine(" alias -f;");
@@ -64,6 +66,7 @@ void ProgImageResize::defineParams()
     addParamsLine("      where <interpolation_type>");
     addParamsLine("        spline          : Use spline interpolation");
     addParamsLine("        linear          : Use bilinear/trilinear interpolation");
+    addParamsLine("        nearest         : Use nearest neighbour to set new value");
 }
 
 void ProgImageResize::readParams()
@@ -72,9 +75,11 @@ void ProgImageResize::readParams()
     String degree = getParam("--interp");
 
     if (degree == "spline")
-        splineDegree = BSPLINE3;
+        splineDegree = xmipp_transformation::BSPLINE3;
     else if (degree == "linear")
-        splineDegree = LINEAR;
+        splineDegree = xmipp_transformation::LINEAR;
+    else if (degree == "nearest")
+        splineDegree = xmipp_transformation::NEAREST;
 
     scale_type = RESIZE_NONE;
 }

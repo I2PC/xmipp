@@ -26,11 +26,11 @@
 #ifndef _PSF_XR_HH
 #define _PSF_XR_HH
 
-//#include <complex>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_program.h>
-#include <data/projection.h>
+#include "core/matrix2d.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_generic.h"
+
+class XmippProgram;
 
 /**@defgroup PSFXRSupport X-Ray Microscope PSF class
    @ingroup DataLibrary */
@@ -214,6 +214,8 @@ public:
 public:
     /** Empty constructor. */
     XRayPSF();
+
+    XRayPSF(const XRayPSF&)=delete; // Removal of copy constructor
 
     /* Destructor
      */

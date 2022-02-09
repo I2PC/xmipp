@@ -130,9 +130,3 @@ TEST_F( PolynomialsTest, ZernikePols)
     ASSERT_TRUE(std::abs(A2D_ELEM(MULTIDIM_ARRAY(im),10, 250)+0.922852)<0.01) << "Zernike Pols: no correspondence between matlab and xmipp zernike coefficients";
 
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

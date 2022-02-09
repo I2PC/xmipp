@@ -25,10 +25,9 @@
 #ifndef _PROG_PROJECTION_TOMOGRAPHY_HH
 #define _PROG_PROJECTION_TOMOGRAPHY_HH
 
-#include <core/xmipp_funcs.h>
-#include <core/metadata.h>
-#include <data/projection.h>
-#include <core/xmipp_program.h>
+#include "data/projection.h"
+#include "core/xmipp_program.h"
+#include "core/metadata_vec.h"
 
 /**@defgroup ProjectionTomographyProgram projectTomograpy (project for tilt series)
    @ingroup ReconsLibrary */
@@ -74,7 +73,7 @@ class TomoProjectSideInfo
 {
 public:
     /// Document File for the projecting angles. Order: rot, tilt, psi
-    MetaData        DF;
+    MetaDataVec      DF;
     /// Phantom Xmipp volume
     Image<double>    phantomVol;
 public:

@@ -26,9 +26,8 @@
 #ifndef _FOURIER_FILTER_HH
 #define _FOURIER_FILTER_HH
 
-#include <data/ctf.h>
-#include <core/xmipp_fftw.h>
 #include "filters.h"
+#include "data/ctf.h"
 
 /**@defgroup FourierMasks Masks in Fourier space
    @ingroup ReconsLibrary */
@@ -94,11 +93,12 @@ public:
 #define ASTIGMATISMPROFILE 18
 #define CTFINV       19
 #define CTFPOSINV    20
+#define CTFDEF       21
 
     /** Pass band. LOWPASS, HIGHPASS, BANDPASS, STOPBAND, CTF, CTFPOS,
        WEDGE, CONE, GAUSSIAN, FROM_FILE, REALGAUSSIAN, BFACTOR, SPARSIFY,
        STOPLOWBANDX, STOPLOWBANDY, FSCPROFILE, BINARYFILE, ASTIGMATISMPROFILE,
-       CTFINV, CTFPOSINV */
+       CTFINV, CTFPOSINV, CTFDEF */
     int FilterBand;
 
     /** Cut frequency for Low and High pass filters, first freq for bandpass.

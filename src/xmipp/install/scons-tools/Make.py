@@ -14,17 +14,18 @@
 #                   Default: ""
 
 import os
+import sys
 import subprocess
 
-from SCons.Script import Exit, GetOption
+from SCons.Script import GetOption
 
 
 def parms(target, source, env):
     """Assemble various Make parameters."""
 
     if 'MakePath' not in env:
-        print "Make builder requires MakePath variable"
-        Exit(1)
+        print("Make builder requires MakePath variable")
+        sys.exit(1)
 
     make_path = env.subst(str(env['MakePath']))
 
@@ -88,7 +89,7 @@ def message(target, source, env):
 
     msg = 'cd ' + make_path + ' &&'
     if make_env != None:
-        for k, v in make_env.iteritems():
+        for k, v in make_env.items():
             msg += ' ' + k + '=' + v
     msg += ' ' + make_cmd
     if make_jobs > 1:
@@ -113,9 +114,9 @@ def builder(target, source, env):
 
     # Make sure there's a directory to run make in
     if len(make_path) == 0:
-        print 'No path specified'
+        print('No path specified')
     if not os.path.exists(make_path):
-        print 'Path %s not found' % make_path
+        print('Path %s not found' % make_path)
 
     # Build up the command and its arguments in a list
     fullcmd = [ make_cmd ]

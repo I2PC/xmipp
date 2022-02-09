@@ -26,7 +26,23 @@
 #ifndef SPARSE_MATRIX2D_H_
 #define SPARSE_MATRIX2D_H_
 
-#include <core/multidim_array.h>
+#include "core/multidim_array.h"
+
+/** Sparse element.
+ *  This class is used to create the SparseMatrices. */
+class SparseElement
+{
+public:
+    size_t i;
+    size_t j;
+    double value;
+};
+
+/** Function to sort the sparse elements by their i,j position */
+inline bool operator< (const SparseElement& _x, const SparseElement& _y)
+{
+    return ( _x.i < _y.i) || (( _x.i== _y.i) && ( _x.j< _y.j));
+}
 
 /** @ingroup Matrices
  */
@@ -88,6 +104,8 @@ public:
 
     /// Empty constructor
     SparseMatrix2D();
+
+    SparseMatrix2D(const SparseMatrix2D&)=delete; // Removal of the copy constructor
 
     /** Constructor from a set of i,j indexes and their corresponding values.
      * N is the total dimension of the square, sparse matrix.

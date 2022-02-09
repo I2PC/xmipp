@@ -126,10 +126,12 @@ public:
         std::vector<float> acc(2); // 3 modes
         acc[TRAIN] = _tp;
         acc[VALIDATION] = _tp + _vp;
-        RandomUniformGenerator<float> p(0.0, 1.0);
+        std::random_device rd;  //Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+        std::uniform_real_distribution<> dist(0.f, 1.f);
         for (unsigned i = 0; i < size(); i ++)
         {
-            float aRnd = p();
+            float aRnd = dist(gen);
             unsigned rw = TEST;
             for (unsigned j = TRAIN; j < TEST; j ++)
             {

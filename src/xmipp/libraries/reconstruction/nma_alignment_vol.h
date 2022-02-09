@@ -24,20 +24,19 @@
 #ifndef _PROG_NMA_ALIGNMENT
 #define _PROG_NMA_ALIGNMENT
 
-#include <vector>
-#include <condor/ObjectiveFunction.h>
-#include <condor/Vector.h>
+#include "condor/ObjectiveFunction.h"
+#include "core/matrix1d.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_metadata_program.h"
+#include "core/rerunable_program.h"
 
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include "volume_from_pdb.h"
+class ProgPdbConverter;
 
 /**@defgroup NMAAlignmentVol Alignment of volumes with Normal modes
    @ingroup ReconsLibrary */
 //@{
 /** NMA Alignment Parameters. */
-class ProgNmaAlignmentVol: public XmippMetadataProgram
+class ProgNmaAlignmentVol: public XmippMetadataProgram, public Rerunable
 {
 public:
     /** MPI version */
@@ -82,8 +81,20 @@ public:
     /// Align volumes
     bool alignVolumes;
 
-    /// Trust radius scale
+    /// Parameters required from the CONDOR optimization
     double trustradius_scale;
+    double rhoStartBase;
+    double rhoEndBase;
+    int niter;
+
+    // starting and ending tilt angles for compensating for a single tilt wedge mask for tomography data
+    int tilt0, tiltF;
+
+    // maximum search frequency and shift while rigid body alignment
+    double frm_freq;
+    int frm_shift;
+
+
 public:
 
     // Random generator seed
@@ -122,6 +133,14 @@ public:
     // Mask
     MultidimArray<int> mask;
 
+    // for fetching the rigid-body alignment parameters for each volume
+    FILE *AnglesShiftsAndScore;
+    float Best_Angles_Shifts[6];
+    float fit_value;
+
+    // flag indicates if there is a compensation for the missing wedge (volumes are rotated by 90 degrees about y axis for this purpose)
+    bool flip = false;
+
 public:
     /// Empty constructor
     ProgNmaAlignmentVol();
@@ -145,14 +164,7 @@ public:
     double computeFitness(Matrix1D<double> &trial) const;
 
     /** Update the best fitness and the corresponding best trial*/
-    void updateBestFit(double fitness, int dim);
-
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    virtual void createWorkFiles();
+    bool updateBestFit(double fitness);
 
     /** Produce side info.
         An exception is thrown if any of the files is not found*/
@@ -165,6 +177,23 @@ public:
 
     /** Write the parameters found for one image */
     virtual void writeVolumeParameters(const FileName &fnImg);
+
+
+  protected:
+    virtual void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
+
+  private:
+    using Rerunable::createWorkFiles;
+    
+    std::vector<MDLabel> getLabelsForEmpty() override {
+      return std::vector<MDLabel>{MDL_IMAGE,     MDL_ENABLED,    MDL_IMAGE,
+                                  MDL_ANGLE_ROT, MDL_ANGLE_TILT, MDL_ANGLE_PSI,
+                                  MDL_SHIFT_X,   MDL_SHIFT_Y,    MDL_SHIFT_Z,
+                                  MDL_NMA,       MDL_NMA_ENERGY, MDL_MAXCC,
+                                  MDL_ANGLE_Y};
+    }
 };
 
 class ObjFunc_nma_alignment_vol: public UnconstrainedObjectiveFunction
@@ -172,8 +201,7 @@ class ObjFunc_nma_alignment_vol: public UnconstrainedObjectiveFunction
   public:
     ObjFunc_nma_alignment_vol(int _t, int _n=0);
     ~ObjFunc_nma_alignment_vol(){};
-    double eval(Vector v, int *nerror=NULL);
+    double eval(Vector v, int *nerror=nullptr);
 };
 
-//@}
 #endif

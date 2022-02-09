@@ -25,8 +25,7 @@
 
 #include "project_tomography.h"
 #include "directions.h"
-
-#include <core/args.h>
+#include "data/fourier_projection.h"
 
 void ProgProjectTomography::defineParams()
 {
@@ -56,7 +55,7 @@ void ProgProjectTomography::run()
 {
 
     Projection         proj;
-    MetaData           projMD;
+    MetaDataVec        projMD;
 
     randomize_random_generator();
 

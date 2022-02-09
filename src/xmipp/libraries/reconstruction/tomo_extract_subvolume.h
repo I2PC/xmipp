@@ -30,7 +30,7 @@
 #include <core/xmipp_fft.h>
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_image.h>
 #include <core/geometry.h>
 #include <data/filters.h>
@@ -42,6 +42,9 @@
 #include <pthread.h>
 #include <vector>
 
+/**@defgroup ProgTomoExtractSubvolume Tomo Extract Subvolume
+   @ingroup ReconsLibrary */
+//@{
 /** tomo_extract_subvolume parameters. */
 class ProgTomoExtractSubvolume: public XmippMetadataProgram
 {
@@ -70,7 +73,7 @@ public:
 
     // Docfile with output subvolumes names and their alignment parameters
     // This file can be fed directly to ml_tomo again...
-    MetaData DFout;
+    MetaDataVec DFout;
 
     // Selfile with output subvolumes
     //MetaData SFout;

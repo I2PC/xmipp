@@ -48,7 +48,7 @@ public:
             T re = out[i].real();
             T im = out[i].imag();
             T mag = (re * re) + (im * im);
-            ASSERT_NEAR((T)1, std::sqrt(mag), delta);
+            ASSERT_NEAR((T)1, std::sqrt(mag), delta) << " at " << i;
         }
 
         delete[] in;
@@ -80,8 +80,8 @@ public:
         T delta = (T)0.00001;
         for (size_t i = 0; i < s.fDim().size(); ++i) {
             // ... will result in constant real value, and no imag value
-            ASSERT_NEAR((T)1, out[i].real(), delta);
-            ASSERT_NEAR((T)0, out[i].imag(), delta);
+            ASSERT_NEAR((T)1, out[i].real(), delta) << " at " << i;
+            ASSERT_NEAR((T)0, out[i].imag(), delta) << " at " << i;
         }
 
         delete[] in;
@@ -121,10 +121,10 @@ public:
                         // output is not normalized, so normalize it to make the the test more stable
                         if (index == offset) {
                             // ... will result in impulse at the origin ...
-                            ASSERT_NEAR((T)1, out[index] / s.sDim().xyz(), delta);
+                            ASSERT_NEAR((T)1, out[index] / s.sDim().xyz(), delta) << "at " << index;
                         } else {
                             // ... and zeros elsewhere
-                            ASSERT_NEAR((T)0, out[index] / s.sDim().xyz(), delta);
+                            ASSERT_NEAR((T)0, out[index] / s.sDim().xyz(), delta) << "at " << index;
                         }
                     }
                 }
@@ -185,7 +185,7 @@ public:
                 for (size_t y = 0; y < s.sDim().y(); ++y) {
                     for (size_t x = 0; x < s.sDim().x(); ++x) {
                         size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
-                        ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta);
+                        ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta) << " at " << index;
                     }
                 }
             }
@@ -203,6 +203,7 @@ public:
         size_t executed = 0;
         size_t skippedSize = 0;
         size_t skippedCondition = 0;
+        size_t skippedSpecific = 0;
         TEST_VALUES
         size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
 
@@ -218,7 +219,6 @@ public:
         int seed = 42;
         std::mt19937 mt(seed);
         std::uniform_int_distribution<> dist(0, 4097);
-        size_t availableBytes = hw->lastFreeBytes();
         while ((executed < EXECUTIONS)
                 && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
             size_t x = xSet.at(dist(mt) % xSet.size());
@@ -233,7 +233,18 @@ public:
             if (condition(x, y, z, n, b, inPlace, isForward)) {
                 // make sure we have enough memory
                 size_t totalBytes = ft->estimateTotalBytes(settings);
+                // since version 9.1 // FIXME DS check
+                // forward transformation can use much less memory than inverse one
+                if (bothDirections) {
+                    totalBytes = std::max(totalBytes, ft->estimateTotalBytes(settings.createInverse()));
+                }
+                hw->updateMemoryInfo();
+                size_t availableBytes = hw->lastFreeBytes();
                 if (availableBytes < totalBytes) {
+                    skippedSize++;
+                    continue;
+                }
+                if (mustBeSkipped(settings, bothDirections)) {
                     skippedSize++;
                     continue;
                 }
@@ -262,14 +273,17 @@ public:
     //    std::cout << "Executed: " << executed
     //            << "\nSkipped (condition): " << skippedCondition
     //            << "\nSkipped (size):" << skippedSize << std::endl;
+    //            << "\nSkipped (specific):" << skippedSpecific << std::endl;
     }
 
 private:
     AFT<T> *ft;
     static HW *hw;
 
+    MUSTBESKIPPED
+
 };
-TYPED_TEST_CASE_P(AFT_Test);
+TYPED_TEST_SUITE_P(AFT_Test);
 
 template<typename T>
 HW* AFT_Test<T>::hw;
@@ -307,15 +321,15 @@ TYPED_TEST_P( AFT_Test, fft_OOP_Single)
 {
     // test a forward, out-of-place transform of a single signal,
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is1D(x, y, z) && (1 == n);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is2D(x, y, z) && (1 == n);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is3D(x, y, z) && (1 == n);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -328,15 +342,15 @@ TYPED_TEST_P( AFT_Test, fft_OOP_Batch1)
     // test a forward, out-of-place transform of many signals,
     // check that n == batch works properly
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is1D(x, y, z) && isNBatch(n, batch);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is2D(x, y, z) && isNBatch(n, batch);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is3D(x, y, z) && isNBatch(n, batch);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -349,15 +363,15 @@ TYPED_TEST_P( AFT_Test, fft_OOP_Batch2)
     // test a forward transform of many signals, out-of-place
     // test that n mod batch != 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is1D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is2D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is3D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -370,15 +384,15 @@ TYPED_TEST_P( AFT_Test, fft_OOP_Batch3)
     // test a forward transform of many signals, out-of-place
     // test that n mod batch = 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && (!inPlace) && is3D(x, y, z) && (isBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -394,15 +408,15 @@ TYPED_TEST_P( AFT_Test, fft_IP_Single)
 {
     // test a forward, in-place transform of a single signal,
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is1D(x, y, z) && (1 == n);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is2D(x, y, z) && (1 == n);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is3D(x, y, z) && (1 == n);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -415,15 +429,15 @@ TYPED_TEST_P( AFT_Test, fft_IP_Batch1)
     // test a forward, in-place transform of many signals,
     // check that n == batch works properly
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is1D(x, y, z) && isNBatch(n, batch);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is2D(x, y, z) && isNBatch(n, batch);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is3D(x, y, z) && isNBatch(n, batch);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -436,15 +450,15 @@ TYPED_TEST_P( AFT_Test, fft_IP_Batch2)
     // test a forward transform of many signals, in-place
     // test that n mod batch != 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is1D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is2D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is3D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -457,15 +471,15 @@ TYPED_TEST_P( AFT_Test, fft_IP_Batch3)
     // test a forward transform of many signals, in-place
     // test that n mod batch = 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return isForward && inPlace && is3D(x, y, z) && (isBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -481,15 +495,15 @@ TYPED_TEST_P( AFT_Test, ifft_OOP_Single)
 {
     // test an inverse, out-of-place transform of a single signal,
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is1D(x, y, z) && (1 == n);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is2D(x, y, z) && (1 == n);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is3D(x, y, z) && (1 == n);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -502,15 +516,15 @@ TYPED_TEST_P( AFT_Test, ifft_OOP_Batch1)
     // test an inverse, out-of-place transform of many signals,
     // check that n == batch works properly
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is1D(x, y, z) && isNBatch(n, batch);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is2D(x, y, z) && isNBatch(n, batch);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is3D(x, y, z) && isNBatch(n, batch);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -523,15 +537,15 @@ TYPED_TEST_P( AFT_Test, ifft_OOP_Batch2)
     // test an inverse transform of many signals, out-of-place
     // test that n mod batch != 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is1D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is2D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is3D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -544,15 +558,15 @@ TYPED_TEST_P( AFT_Test, ifft_OOP_Batch3)
     // test an inverse transform of many signals, out-of-place
     // test that n mod batch = 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && (!inPlace) && is3D(x, y, z) && (isBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -568,15 +582,15 @@ TYPED_TEST_P( AFT_Test, ifft_IP_Single)
 {
     // test an inverse, in-place transform of a single signal,
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is1D(x, y, z) && (1 == n);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is2D(x, y, z) && (1 == n);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is3D(x, y, z) && (1 == n);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -589,15 +603,15 @@ TYPED_TEST_P( AFT_Test, ifft_IP_Batch1)
     // test an inverse, in-place transform of many signals,
     // check that n == batch works properly
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is1D(x, y, z) && isNBatch(n, batch);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is2D(x, y, z) && isNBatch(n, batch);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is3D(x, y, z) && isNBatch(n, batch);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -610,15 +624,15 @@ TYPED_TEST_P( AFT_Test, ifft_IP_Batch2)
     // test an inverse transform of many signals, in-place
     // test that n mod batch != 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is1D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is2D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is3D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -631,15 +645,15 @@ TYPED_TEST_P( AFT_Test, ifft_IP_Batch3)
     // test an inverse transform of many signals, in-place
     // test that n mod batch = 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!isForward) && inPlace && is3D(x, y, z) && (isBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D);
@@ -655,15 +669,15 @@ TYPED_TEST_P( AFT_Test, OOP_Single)
 {
     // test forward and inverse, out-of-place transform of a single signal,
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is1D(x, y, z) && (1 == n);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is2D(x, y, z) && (1 == n);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is3D(x, y, z) && (1 == n);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -676,15 +690,15 @@ TYPED_TEST_P( AFT_Test, OOP_Batch1)
     // test forward and inverse, out-of-place transform of many signals,
     // check that n == batch works properly
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is1D(x, y, z) && isNBatch(n, batch);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is2D(x, y, z) && isNBatch(n, batch);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is3D(x, y, z) && isNBatch(n, batch);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -697,15 +711,15 @@ TYPED_TEST_P( AFT_Test, OOP_Batch2)
     // test forward and inverse transform of many signals, out-of-place
     // test that n mod batch != 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is1D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is2D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is3D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -718,15 +732,15 @@ TYPED_TEST_P( AFT_Test, OOP_Batch3)
     // test forward and inverse transform of many signals, out-of-place
     // test that n mod batch = 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return (!inPlace) && is3D(x, y, z) && (isBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -742,15 +756,15 @@ TYPED_TEST_P( AFT_Test, IP_Single)
 {
     // test forward and inverse, in-place transform of a single signal,
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is1D(x, y, z) && (1 == n);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is2D(x, y, z) && (1 == n);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is3D(x, y, z) && (1 == n);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -763,15 +777,15 @@ TYPED_TEST_P( AFT_Test, IP_Batch1)
     // test forward and inverse, in-place transform of many signals,
     // check that n == batch works properly
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is1D(x, y, z) && isNBatch(n, batch);
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is2D(x, y, z) && isNBatch(n, batch);
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is3D(x, y, z) && isNBatch(n, batch);
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -784,15 +798,15 @@ TYPED_TEST_P( AFT_Test, IP_Batch2)
     // test forward and inverse transform of many signals, in-place
     // test that n mod batch != 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is1D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is2D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is3D(x, y, z) && (isNotBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -805,15 +819,15 @@ TYPED_TEST_P( AFT_Test, IP_Batch3)
     // test forward and inverse transform of many signals, in-place
     // test that n mod batch = 0 works
     auto condition1D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition2D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
     auto condition3D = []
-            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
         return inPlace && is3D(x, y, z) && (isBatchMultiple(n, batch));
     };
     AFT_Test<TypeParam>::generateAndTest(condition1D, true);
@@ -821,7 +835,17 @@ TYPED_TEST_P( AFT_Test, IP_Batch3)
     AFT_Test<TypeParam>::generateAndTest(condition3D, true);
 }
 
-REGISTER_TYPED_TEST_CASE_P(AFT_Test,
+//TYPED_TEST_P( AFT_Test, DEBUG)
+//{
+//    auto condition = []
+//            (size_t x, size_t y, size_t z, size_t n, size_t batch, bool inPlace, bool isForward) {
+//        return x == 3 && y == 1 && z == 1 && n == 1 && batch == 1 && !inPlace && !isForward;
+//    };
+//    AFT_Test<TypeParam>::generateAndTest(condition);
+//}
+
+REGISTER_TYPED_TEST_SUITE_P(AFT_Test,
+//    DEBUG,
     // FFT out-of-place
     fft_OOP_Single,
     fft_OOP_Batch1,

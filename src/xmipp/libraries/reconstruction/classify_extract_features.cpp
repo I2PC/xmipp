@@ -23,16 +23,21 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
+#include <set>
 #include "classify_extract_features.h"
+#include "core/metadata_vec.h"
+#include "data/filters.h"
+#include "data/mask.h"
 
 ProgExtractFeatures::ProgExtractFeatures(): XmippProgram()
 {
-	fitPoints=NULL;
+	fitPoints=nullptr;
 }
 
 ProgExtractFeatures::~ProgExtractFeatures()
 {
-	if (fitPoints!=NULL)
+	if (fitPoints!=nullptr)
 		delete []fitPoints;
 }
 
@@ -374,7 +379,7 @@ void ProgExtractFeatures::extractLBP(const MultidimArray<double> &I,
     for (int i = 0; i < 256; i++)
     {
         code = i;
-        int code_min = (int) code;
+        auto code_min = (int) code;
         for (int ii = 0; ii < 7; ii++)
         {
             unsigned char c = code & 1;
@@ -573,20 +578,19 @@ void ProgExtractFeatures::extractZernike(const MultidimArray<double> &I,
 
 void ProgExtractFeatures::run()
 {
-    MetaData SF;
+    MetaDataVec SF;
     SF.read(fnSel);
     Image<double> I, Imasked;
     FileName fnImg;
-    MDRow row;
 	CorrelationAux aux;
 	std::vector<double> fv;
 
 	if (verbose>0)
 		init_progress_bar(SF.size());
 	size_t idx=0;
-	FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-    	SF.getValue(MDL_IMAGE, fnImg, __iter.objId);
+    	SF.getValue(MDL_IMAGE, fnImg, objId);
     	I.read(fnImg);
     	I().setXmippOrigin();
     	centerImageTranslationally(I(), aux);
@@ -597,43 +601,43 @@ void ProgExtractFeatures::run()
         if (useEntropy)
         {
             extractEntropy(I(), Imasked(), fv);
-            SF.setValue(MDL_SCORE_BY_ENTROPY, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_ENTROPY, fv, objId);
             fv.clear();
         }
         if (useGranulo)
         {
             extractGranulo(I(), fv);
-            SF.setValue(MDL_SCORE_BY_GRANULO, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_GRANULO, fv, objId);
             fv.clear();
         }
         if (useHistDist)
         {
             extractHistDist(I(), fv);
-            SF.setValue(MDL_SCORE_BY_HISTDIST, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_HISTDIST, fv, objId);
             fv.clear();
         }
         if (useLBP)
         {
             extractLBP(I(), fv);
-            SF.setValue(MDL_SCORE_BY_LBP, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_LBP, fv, objId);
             fv.clear();
         }
         if (useRamp)
         {
             extractRamp(I(), fv);
-            SF.setValue(MDL_SCORE_BY_RAMP, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_RAMP, fv, objId);
             fv.clear();
         }
         if (useVariance)
         {
             extractVariance(I(), fv);
-            SF.setValue(MDL_SCORE_BY_VARIANCE, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_VARIANCE, fv, objId);
             fv.clear();
         }
         if (useZernike)
         {
             extractZernike(I(), fv);
-            SF.setValue(MDL_SCORE_BY_ZERNIKE, fv, __iter.objId);
+            SF.setValue(MDL_SCORE_BY_ZERNIKE, fv, objId);
             fv.clear();
         }
 

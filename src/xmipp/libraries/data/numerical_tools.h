@@ -28,13 +28,7 @@
 #ifndef CORE__NUMERICAL_TOOLS_HH
 #define CORE__NUMERICAL_TOOLS_HH
 
-#include <core/numerical_recipes.h>
-#include <core/matrix1d.h>
-#include <core/matrix2d.h>
-#include <core/multidim_array.h>
-
-template<typename T> class Matrix1D;
-template<typename T> class Matrix2D;
+#include "core/multidim_array.h"
 
 /// @defgroup NumericalTools Numerical Tools
 /// @ingroup DataLibrary
@@ -126,7 +120,7 @@ public:
         if (x>xmax) return 0;
         else
         {
-            int iaux=(int)round(x*ixstep);
+            auto iaux=(int)round(x*ixstep);
             return DIRECT_A1D_ELEM(v,iaux);
         }
     }
@@ -246,63 +240,13 @@ void solve(const Matrix2D<T>& A, const Matrix1D<T>& b, Matrix1D<T>& result)
  */
 template<typename T>
 void solveBySVD(const Matrix2D< T >& A, const Matrix1D< T >& b,
-                  Matrix1D< double >& result, double tolerance)
-{
-    if (A.Xdim() == 0)
-        REPORT_ERROR(ERR_MATRIX_EMPTY, "Solve: Matrix is empty");
-
-    if (A.Xdim() != A.Ydim())
-        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Matrix is not squared");
-
-    if (A.Xdim() != b.size())
-        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Different sizes of Matrix and Vector");
-
-    if (b.isRow())
-        REPORT_ERROR(ERR_MATRIX_DIM, "Solve: Not correct vector shape");
-
-    // First perform de single value decomposition
-    // Xmipp interface that calls to svdcmp of numerical recipes
-    Matrix2D< double > u, v;
-    Matrix1D< double > w;
-    svdcmp(A, u, w, v);
-
-    // Here is checked if eigenvalues of the svd decomposition are acceptable
-    // If a value is lower than tolerance, the it's zeroed, as this increases
-    // the precision of the routine.
-    for (int i = 0; i < w.size(); i++)
-    	if (w(i) < tolerance)
-    		w(i) = 0;
-
-    // Set size of matrices
-    result.resize(b.size());
-
-    // Xmipp interface that calls to svdksb of numerical recipes
-    Matrix1D< double > bd;
-    typeCast(b, bd);
-    svbksb(u, w, v, bd, result);
-}
+                  Matrix1D< double >& result, double tolerance);
 
 /** Solves a linear equation system by Gaussian elimination.
  * @ingroup NumericalTools
  */
 template<typename T>
-void solve(const Matrix2D<T>& A, const Matrix2D<T>& b, Matrix2D<T>& result)
-{
-    if (A.Xdim() == 0)
-        REPORT_ERROR(ERR_MATRIX_EMPTY, "Solve: Matrix is empty");
-
-    if (A.Xdim() != A.Ydim())
-        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Matrix is not squared");
-
-    if (A.Ydim() != b.Ydim())
-        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Different sizes of A and b");
-
-    // Solve
-    result = b;
-    Matrix2D<T> Aux = A;
-    gaussj(Aux.adaptForNumericalRecipes2(), Aux.Ydim(),
-           result.adaptForNumericalRecipes2(), b.Xdim());
-}
+void solve(const Matrix2D<T>& A, const Matrix2D<T>& b, Matrix2D<T>& result);
 
 // Differential Evolution Solver Class
 // Based on algorithms developed by Dr. Rainer Storn & Kenneth Price
@@ -371,6 +315,9 @@ public:
     /// Empty constructor
     DESolver(int dim, int popSize);
 
+    DESolver(const DESolver &)=delete; // Do not use the default copy constructor
+    DESolver& operator=(const DESolver &)=delete; // Do not use the default copy assignment
+
     /// Destructor
     virtual ~DESolver(void);
 
@@ -396,40 +343,40 @@ public:
     /// Return dimension
     int Dimension() const
     {
-        return (nDim);
+        return nDim;
     }
 
     /// Return population
     int Population() const
     {
-        return (nPop);
+        return nPop;
     }
 
     /// Call these functions after Solve() to get results.
     double Energy() const
     {
-        return (bestEnergy);
+        return bestEnergy;
     }
 
     /// Return best solution
     double* Solution(void)
     {
-        return (bestSolution);
+        return bestSolution;
     }
 
     /// Return the number of generations
     int Generations() const
     {
-        return (generations);
+        return generations;
     }
 
 protected:
     void SelectSamples(int candidate,
                        int* r1,
-                       int* r2 = 0,
-                       int* r3 = 0,
-                       int* r4 = 0,
-                       int* r5 = 0);
+                       int* r2 = nullptr,
+                       int* r3 = nullptr,
+                       int* r4 = nullptr,
+                       int* r5 = nullptr);
 
     int nDim;
     int nPop;
@@ -476,7 +423,7 @@ double checkRandomness(const std::string &sequence);
  * https://en.wikipedia.org/wiki/Table_of_spherical_harmonics#Real_spherical_harmonics.
  * The cartesian coordinates xr, yr and zr are supposed to be normalized between -1 and 1, that is,
  * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1. */
-double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r);
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r);
 
 #ifdef NEVERDEFINED
 /** Spherical harmonics.
@@ -496,11 +443,11 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
  * Given an integer consecutive index (0,1,2,3,...) this function returns the corresponding (n,l,m)
  * for the spherical harmonics basis.
  */
-void spherical_index2lnm(int idx, int &l, int &n, int &m);
+void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int maxl1);
 
 /** Index to Spherical harmonics index.
  * Given the corresponding (n,l,m), this function returns an integer consecutive index (0,1,2,3,...)
  * for the spherical harmonics basis.
  */
-int spherical_lnm2index(int l, int n, int m);
+int spherical_lnm2index(int l1, int n, int l2, int m, int maxl1);
 #endif

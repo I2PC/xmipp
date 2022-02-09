@@ -23,7 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include <sstream>
+#include "python_metadata.h"
+#include "python_filename.h"
+#include "core/metadata_sql.h"
 
 /***************************************************************/
 /*                            MDQuery                          */
@@ -31,8 +34,7 @@
 
 PyTypeObject MDQueryType =
     {
-        PyObject_HEAD_INIT(NULL)
-        0, /*ob_size*/
+        PyObject_HEAD_INIT(nullptr)
         "xmipp.MDQuery", /*tp_name*/
         sizeof(MDQueryObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
@@ -69,32 +71,32 @@ PyTypeObject MDQueryType =
         0, /* tp_dictoffset */
         0, /* tp_init */
         0, /* tp_alloc */
-        0, /* tp_new */
+        0 /* tp_new */
     }; //MDQueryType
 
-PyMethodDef MDQuery_methods[] = { { NULL } /* Sentinel */
+PyMethodDef MDQuery_methods[] = { { nullptr } /* Sentinel */
                                 };
 
 /* Destructor */
 void MDQuery_dealloc(MDQueryObject* self)
 {
     delete self->query;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 /* String representation */
 PyObject *
 MDQuery_repr(PyObject * obj)
 {
-    MDQueryObject *self = (MDQueryObject*) obj;
+    auto *self = (MDQueryObject*) obj;
     if (self->query)
     {
         String s = self->query->whereString() + self->query->limitString()
                    + self->query->orderByString();
-        return PyString_FromString(s.c_str());
+        return PyUnicode_FromString(s.c_str());
     }
     else
-        return PyString_FromString("");
+        return PyUnicode_FromString("");
 }
 
 /* Methods for constructing concrete queries */
@@ -112,14 +114,14 @@ createMDValueRelational(PyObject *args, int op)
     {
         MDObject * object = createMDObject(label, pyValue);
         if (!object)
-            return NULL;
-        MDQueryObject * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
+            return nullptr;
+        auto * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
         pyQuery->query = new MDValueRelational(*object, (RelationalOp) op,
                                                limit, offset, (MDLabel) orderLabel);
         delete object;
         return (PyObject *) pyQuery;
     }
-    return NULL;
+    return nullptr;
 }
 /* MDValue Relational */
 PyObject *
@@ -176,15 +178,15 @@ xmipp_MDValueRange(PyObject *obj, PyObject *args, PyObject *kwargs)
         MDObject * object1 = createMDObject(label, pyValue1);
         MDObject * object2 = createMDObject(label, pyValue2);
         if (!object1 || !object2)
-            return NULL;
-        MDQueryObject * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
+            return nullptr;
+        auto * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
         pyQuery->query = new MDValueRange(*object1, *object2, limit, offset,
                                           (MDLabel) orderLabel);
         delete object1;
         delete object2;
         return (PyObject *) pyQuery;
     }
-    return NULL;
+    return nullptr;
 }
 /* add alias for label in run time */
 PyObject *
@@ -193,10 +195,11 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 
     int label, type;
-    PyObject *input = NULL;
-    PyObject *pyStr = NULL;
-    PyObject *pyReplace = Py_False;
-    char *str = NULL;
+    PyObject *input = nullptr;
+    PyObject *pyStr = nullptr;
+    PyObject *pyStr1 = nullptr;
+    auto *pyReplace = Py_False;
+    const char *str =nullptr;
     bool replace = true;
 
 
@@ -204,11 +207,11 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            if ((pyStr = PyObject_Str(input)) != NULL &&
+            if ((pyStr = PyObject_Str(input)) != nullptr &&
                 (PyBool_Check(pyReplace)))
             {
                 replace = pyReplace == Py_True;
-                str = PyString_AsString(pyStr);
+                str = PyUnicode_AsUTF8(pyStr);
                 MDL::addLabelAlias((MDLabel)label,(String)str, replace, (MDLabelType)type);
                 Py_RETURN_NONE;
             }
@@ -219,7 +222,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 /* add labels in run time */
@@ -229,18 +232,19 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 
     int type;
-    PyObject *input = NULL;
-    PyObject *pyStr = NULL;
-    char *str = NULL;
+    PyObject *input = nullptr;
+    PyObject *pyStr = nullptr;
+    PyObject *pyStr1 = nullptr;
+    const char *str = nullptr;
 
 
     if (PyArg_ParseTuple(args, "Oi", &input, &type))
     {
         try
         {
-            if ((pyStr = PyObject_Str(input)) != NULL )
+            if ((pyStr = PyObject_Str(input)) != nullptr )
             {
-                str = PyString_AsString(pyStr);
+                str = PyUnicode_AsUTF8(pyStr);
                 return PyLong_FromLong(MDL::getNewAlias((String)str, (MDLabelType)type));
                 
             }
@@ -251,7 +255,7 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 /***************************************************************/
 /*                            MetaData                         */
@@ -269,10 +273,10 @@ PyMethodDef MetaData_methods[] =
         { "addObject", (PyCFunction) MetaData_addObject,
           METH_NOARGS,
           "Add a new object and return its id" },
-        { "firstObject", (PyCFunction) MetaData_firstObject,
+        { "firstObject", (PyCFunction) MetaData_firstObject, // FIXME: change to firstRowId
           METH_NOARGS,
           "Goto first metadata object, return its object id" },
-        { "lastObject", (PyCFunction) MetaData_lastObject,
+        { "lastObject", (PyCFunction) MetaData_lastObject, // FIXME: change to lastRowId
           METH_NOARGS,
           "Goto last metadata object, return its object id" },
         { "size", (PyCFunction) MetaData_size, METH_NOARGS,
@@ -418,22 +422,22 @@ PyMethodDef MetaData_methods[] =
             "sort", (PyCFunction) MetaData_sort,
             METH_VARARGS,
             "Sort metadata according to a label" },
-        { NULL } /* Sentinel */
+        { nullptr } /* Sentinel */
     };//MetaData_methods
 
 
 PyTypeObject MetaDataType =
     {
-        PyObject_HEAD_INIT(NULL)
-        0, /*ob_size*/
+        PyObject_HEAD_INIT(nullptr)
         "xmipp.MetaData", /*tp_name*/
         sizeof(MetaDataObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
         (destructor)MetaData_dealloc, /*tp_dealloc*/
-        MetaData_print, /*tp_print*/
+        0, /*tp_vectorcall_offset*/
+        /*MetaData_print, /*tp_print*/
         0, /*tp_getattr*/
         0, /*tp_setattr*/
-        MetaData_compare, /*tp_compare*/
+        0, /* tp_as_async */
         MetaData_repr, /*tp_repr*/
         0, /*tp_as_number*/
         0, /*tp_as_sequence*/
@@ -444,11 +448,11 @@ PyTypeObject MetaDataType =
         0, /*tp_getattro*/
         0, /*tp_setattro*/
         0, /*tp_as_buffer*/
-        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_ITER, /*tp_flags*/
+        Py_TPFLAGS_DEFAULT, /*Py_TPFLAGS_HAVE_ITER, */ /*tp_flags*/
         "Python wrapper to Xmipp MetaData class",/* tp_doc */
         0, /* tp_traverse */
         0, /* tp_clear */
-        0, /* tp_richcompare */
+        MetaData_RichCompareBool, /* tp_richcompare */
         0, /* tp_weaklistoffset */
         MetaData_iter, /* tp_iter */
         MetaData_iternext, /* tp_iternext */
@@ -470,14 +474,14 @@ void MetaData_dealloc(MetaDataObject* self)
 {
     delete self->metadata;
     delete self->iter;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 int MetaData_print(PyObject *obj, FILE *fp, int flags)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         std::stringstream ss;
         self->metadata->write(ss);
         fprintf(fp, "%s", ss.str().c_str());
@@ -494,76 +498,90 @@ int MetaData_print(PyObject *obj, FILE *fp, int flags)
 PyObject *
 MetaData_repr(PyObject * obj)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
-    return PyString_FromString(
+    auto *self = (MetaDataObject*) obj;
+    return PyUnicode_FromString(
                (self->metadata->getFilename() + "(MetaData)").c_str());
 }
 
 /* MetaData compare function */
-int
-MetaData_compare(PyObject * obj, PyObject * obj2)
+PyObject*
+MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
-    MetaDataObject *md2 = (MetaDataObject*) obj2;
+    auto *self = (MetaDataObject*) obj;
+    auto *md2 = (MetaDataObject*) obj2;
     int result = -1;
 
-    if (self != NULL && md2 != NULL)
+    if (self != nullptr && md2 != nullptr)
     {
         try
         {
-            if (*(self->metadata) == *(md2->metadata))
-                result = 0;
+            if (opid == Py_EQ)
+                {
+                    if (*(self->metadata) == *(md2->metadata))
+                        Py_RETURN_TRUE;
+                    else
+                       Py_RETURN_FALSE;
+                }
+            else if  (opid == Py_NE)
+                    {
+                        if (*(self->metadata) == *(md2->metadata))
+                            Py_RETURN_FALSE;
+                        else
+                            Py_RETURN_TRUE;
+                    }
+            else
+                return Py_NotImplemented;
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return result;
+    return nullptr;
 }
 
 /* read */
 PyObject *
 MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *list = NULL; //list can be a list of labels or maxRows
-        PyObject *input = NULL, *pyStr = NULL;
-        char *str = NULL;
+        PyObject *list = nullptr; //list can be a list of labels or maxRows
+        PyObject *input = nullptr, *pyStr = nullptr;
+        const char *str = nullptr;
         if (PyArg_ParseTuple(args, "O|O", &input,  &list))
         {
             try
             {
-                if ((pyStr = PyObject_Str(input)) != NULL)
+                if ((pyStr = PyObject_Str(input)) != nullptr)
                 {
-                    str = PyString_AsString(pyStr);
-                    if (list != NULL)
+                    str = PyUnicode_AsUTF8(pyStr);
+                    if (list != nullptr)
                     {
                         if (PyList_Check(list))
                         {
                             size_t size = PyList_Size(list);
-                            PyObject * item = NULL;
+                            PyObject * item = nullptr;
                             int iValue = 0;
                             MDLabelVector vValue(size);
                             for (size_t i = 0; i < size; ++i)
                             {
                                 item = PyList_GetItem(list, i);
-                                if (!PyInt_Check(item))
+                                if (!PyLong_Check(item))
                                 {
                                     PyErr_SetString(PyExc_TypeError,
                                                     "MDL labels must be integers (MDLABEL)");
-                                    return NULL;
+                                    return nullptr;
                                 }
-                                iValue = PyInt_AsLong(item);
+                                iValue = PyLong_AsLong(item);
                                 vValue[i] = (MDLabel)iValue;
                             }
                             self->metadata->read(str,&vValue);
                         }
-                        else if (PyInt_Check(list)){
-                          size_t maxRows = (size_t) PyInt_AsLong(list);
+                        else if (PyLong_Check(list)){
+                          auto maxRows = (size_t) PyLong_AsLong(list);
                           self->metadata->setMaxRows(maxRows);
                           self->metadata->read(str);
                         }
@@ -573,23 +591,23 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                     Py_RETURN_NONE;
                 }
                 else
-                    return NULL;
+                    return nullptr;
             }
             catch (XmippError &xe)
             {
                 PyErr_SetString(PyXmippError, xe.msg.c_str());
-                return NULL;
+                return nullptr;
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* read */
 PyObject *
 MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
 
     if (self != NULL)
     {
@@ -598,8 +616,8 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *pyStr = NULL;
         PyObject *pyLabels = NULL;
         PyObject *pySep = NULL;
-        char *str = NULL;
-        char *labels = NULL;
+        const char *str = NULL;
+        const char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
@@ -607,10 +625,12 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 pyStr = PyObject_Str(input);
                 pyLabels = PyObject_Str(input2);
+
                 if ((NULL != pyStr) && (NULL != pyLabels))
                 {
-                    str = PyString_AsString(pyStr);
-                    labels = PyString_AsString(pyLabels);
+                    str = PyUnicode_AsUTF8(pyStr);
+                    labels = PyUnicode_AsUTF8(pyLabels);
+
                     self->metadata->readPlain(str, labels);
                     Py_RETURN_NONE;
                 }
@@ -631,7 +651,7 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
 
     if (self != NULL)
     {
@@ -640,8 +660,8 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *pyStr = NULL;
         PyObject *pyLabels = NULL;
         PyObject *pySep = NULL;
-        char *str = NULL;
-        char *labels = NULL;
+        const char *str = NULL;
+        const char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
@@ -651,8 +671,8 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyLabels = PyObject_Str(input2);
                 if ((NULL != pyStr) && (NULL != pyLabels))
                 {
-                    str = PyString_AsString(pyStr);
-                    labels = PyString_AsString(pyLabels);
+                    str = PyUnicode_AsUTF8(pyStr);
+                    labels = PyUnicode_AsUTF8(pyLabels);
                     self->metadata->addPlain(str, labels);
                     Py_RETURN_NONE;
                 }
@@ -673,7 +693,7 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
 
     if (self != NULL)
     {
@@ -681,8 +701,8 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *blockName = NULL;
         PyObject *pyStr = NULL;
         PyObject *pyStrBlock = NULL;
-        char *str = NULL;
-        char *strBlock = NULL;
+        const char *str = NULL;
+        const char *strBlock = NULL;
         if (PyArg_ParseTuple(args, "OO", &input, &blockName))
         {
             try
@@ -691,9 +711,9 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyStrBlock = PyObject_Str(blockName);
                 if ((NULL != pyStr) && (NULL != pyStrBlock))
                 {
-                    str = PyString_AsString(pyStr);
-                    strBlock = PyString_AsString(pyStrBlock);
-                    self->metadata->read((std::string) (strBlock) + "@" + str,
+                    str = PyUnicode_AsUTF8(pyStr);
+                    strBlock = PyUnicode_AsUTF8(pyStrBlock);
+                    self->metadata->read((std::string) strBlock + "@" + str,
                                          NULL);
                     Py_RETURN_NONE;
                 }
@@ -714,20 +734,20 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
     WriteModeMetaData wmd;
     wmd = MD_OVERWRITE;
     if (self != NULL)
     {
-        PyObject *input = NULL, *pyStr = NULL;
-        char *str = NULL;
+        PyObject *input = NULL, *pyStr = NULL, *pyStr1 = NULL;
+        const char *str = NULL;
         if (PyArg_ParseTuple(args, "O|i", &input, &wmd))
         {
             try
             {
                 if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    str = PyString_AsString(pyStr);
+                    str = PyUnicode_AsUTF8(pyStr);
                     self->metadata->write(str, (WriteModeMetaData) wmd);
                     Py_RETURN_NONE;
                 }
@@ -748,52 +768,55 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *input = NULL;
+        PyObject *input = nullptr, *pyStr = nullptr, *str_exc_type = nullptr;
         if (PyArg_ParseTuple(args, "O", &input))
         {
             try
             {
-                if (PyString_Check(input))
-                    self->metadata->append(PyString_AsString(input));
+                if (PyUnicode_Check(input))
+                   {
+                      const char *str = PyUnicode_AsUTF8(input);
+                      self->metadata->append(str);
+                   }
                 else if (FileName_Check(input))
                     self->metadata->append(FileName_Value(input));
                 else
-                    return NULL;
+                    return nullptr;
                 Py_RETURN_NONE;
             }
             catch (XmippError &xe)
             {
                 PyErr_SetString(PyXmippError, xe.msg.c_str());
-                return NULL;
+                return nullptr;
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 /* addObject */
 PyObject *
 MetaData_addObject(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
+    auto *self = (MetaDataObject*) obj;
     return PyLong_FromUnsignedLong(self->metadata->addObject());
 }
 /* firstObject */
 PyObject *
 MetaData_firstObject(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
-    return PyLong_FromUnsignedLong(self->metadata->firstObject());
+    auto *self = (MetaDataObject*) obj;
+    return PyLong_FromUnsignedLong(self->metadata->firstRowId());
 }
 /* lastObject */
 PyObject *
 MetaData_lastObject(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
-    return PyLong_FromUnsignedLong(self->metadata->lastObject());
+    auto *self = (MetaDataObject*) obj;
+    return PyLong_FromUnsignedLong(self->metadata->lastRowId());
 }
 /* size */
 PyObject *
@@ -801,14 +824,14 @@ MetaData_size(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         return PyLong_FromUnsignedLong(self->metadata->size());
     }
     catch (XmippError &xe)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getParsedLines */
@@ -817,14 +840,14 @@ MetaData_getParsedLines(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         return PyLong_FromUnsignedLong(self->metadata->getParsedLines());
     }
     catch (XmippError &xe)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* isEmpty */
@@ -833,7 +856,7 @@ MetaData_isEmpty(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         if (self->metadata->isEmpty())
             Py_RETURN_TRUE;
         else
@@ -843,7 +866,7 @@ MetaData_isEmpty(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 /* getColumnFormat */
 PyObject *
@@ -851,7 +874,7 @@ MetaData_getColumnFormat(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         if (self->metadata->isColumnFormat())
             Py_RETURN_TRUE;
         else
@@ -861,20 +884,20 @@ MetaData_getColumnFormat(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 /* setColumnFormat */
 PyObject *
 MetaData_setColumnFormat(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *input = NULL;
+    PyObject *input = nullptr;
     if (PyArg_ParseTuple(args, "O", &input))
     {
         try
         {
             if (PyBool_Check(input))
             {
-                MetaDataObject *self = (MetaDataObject*) obj;
+                auto *self = (MetaDataObject*) obj;
                 self->metadata->setColumnFormat(input == Py_True);
                 Py_RETURN_NONE;
             }
@@ -887,7 +910,7 @@ MetaData_setColumnFormat(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* setValue */
@@ -904,8 +927,8 @@ MetaData_setValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             MDObject * object = createMDObject(label, pyValue);
             if (!object)
-                return NULL;
-            MetaDataObject *self = (MetaDataObject*) obj;
+                return nullptr;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->setValue(*object, objectId);
             delete object;
             Py_RETURN_TRUE;
@@ -915,7 +938,7 @@ MetaData_setValue(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* setValueCol */
@@ -931,8 +954,8 @@ MetaData_setValueCol(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             MDObject * object = createMDObject(label, pyValue);
             if (!object)
-                return NULL;
-            MetaDataObject *self = (MetaDataObject*) obj;
+                return nullptr;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->setValueCol(*object);
             delete object;
             Py_RETURN_TRUE;
@@ -942,7 +965,7 @@ MetaData_setValueCol(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* drop column */
@@ -954,7 +977,7 @@ MetaData_removeLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             if (self->metadata->removeLabel((MDLabel) label))
                 Py_RETURN_TRUE;
             else
@@ -965,7 +988,7 @@ MetaData_removeLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getValue */
@@ -980,8 +1003,8 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDObject * object = new MDObject((MDLabel) label);
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto * object = new MDObject((MDLabel) label);
+            auto *self = (MetaDataObject*) obj;
             if (self->metadata->getValue(*object, objectId))
             {
                 pyValue = getMDObjectValue(object);
@@ -999,7 +1022,7 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getValue */
@@ -1011,7 +1034,7 @@ MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
 
             std::vector<MDObject> v;
             self->metadata->getColumnValues((MDLabel) label,v);
@@ -1029,7 +1052,7 @@ MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* setValue */
@@ -1037,12 +1060,12 @@ PyObject *
 MetaData_setColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    PyObject *list = NULL;
+    PyObject *list = nullptr;
     if (PyArg_ParseTuple(args, "iO", &label, &list))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             size_t size=PyList_Size(list);
             bool addObjects=(self->metadata->size()==0);
             MDObject object((MDLabel) label);
@@ -1060,17 +1083,17 @@ MetaData_setColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
                 if (self->metadata->size()!=size)
                     PyErr_SetString(PyXmippError, "Metadata size different from list size");
                 size_t i=0;
-                FOR_ALL_OBJECTS_IN_METADATA(*(self->metadata))
+                for (size_t objId : self->metadata->ids())
                 {
                     setMDObjectValue(&object,PyList_GetItem(list,i++));
-                    self->metadata->setValue(object,__iter.objId);
+                    self->metadata->setValue(object, objId);
                 }
             }
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
-            return NULL;
+            return nullptr;
         }
     }
     Py_RETURN_NONE;
@@ -1082,13 +1105,13 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
-        std::vector<MDLabel>* labels = self->metadata->getActiveLabelsAddress();
-        int size = labels->size();
+        auto *self = (MetaDataObject*) obj;
+        std::vector<MDLabel> labels = self->metadata->getActiveLabels();
+        int size = labels.size();
         PyObject * list = PyList_New(size);
 
         for (int i = 0; i < size; ++i)
-            PyList_SetItem(list, i, PyInt_FromLong(labels->at(i)));
+            PyList_SetItem(list, i, PyLong_FromLong(labels.at(i)));
 
         return list;
 
@@ -1097,13 +1120,14 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 /* containsLabel */
 PyObject *
 xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 {
-    PyObject *input;
+    PyObject *input, *str_exc_type = NULL, *pyStr = NULL;
+    const char *fileName = NULL;
     FileName fn;
     StringVector blocks;
 
@@ -1112,8 +1136,10 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
         if (PyArg_ParseTuple(args, "O", &input))
         {
 
-            if (PyString_Check(input))
-                fn = PyString_AsString(input);
+            if (PyUnicode_Check(input)){
+                 fileName = PyUnicode_AsUTF8(input);
+                 fn = fileName;
+            }
             else if (FileName_Check(input))
                 fn = FileName_Value(input);
             else
@@ -1124,7 +1150,7 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 
             for (int i = 0; i < size; ++i)
             {
-                PyList_SetItem(list, i, PyString_FromString(blocks[i].c_str()));
+                PyList_SetItem(list, i, PyUnicode_FromString(blocks[i].c_str()));
             }
             return list;
         }
@@ -1145,17 +1171,17 @@ MetaData_getMaxStringLength(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             int length = self->metadata->getMaxStringLength((MDLabel) label);
 
-            return PyInt_FromLong(length);
+            return PyLong_FromLong(length);
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* containsLabel */
@@ -1167,7 +1193,7 @@ MetaData_containsLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             if (self->metadata->containsLabel((MDLabel) label))
                 Py_RETURN_TRUE;
             else
@@ -1178,7 +1204,7 @@ MetaData_containsLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* addLabel */
@@ -1190,7 +1216,7 @@ MetaData_addLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->addLabel((MDLabel) label, pos);
             Py_RETURN_TRUE;
         }
@@ -1199,7 +1225,7 @@ MetaData_addLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* addLabel */
@@ -1208,7 +1234,7 @@ MetaData_addItemId(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         self->metadata->addItemId();
         Py_RETURN_NONE;
     }
@@ -1216,7 +1242,7 @@ MetaData_addItemId(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* fillConstant */
@@ -1224,16 +1250,16 @@ PyObject *
 MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    PyObject *pyValue = NULL, *pyStr = NULL;
+    PyObject *pyValue = nullptr, *pyStr = nullptr;
     if (PyArg_ParseTuple(args, "i|O", &label, &pyValue))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
-            if ((pyStr = PyObject_Str(pyValue)) != NULL)
+            auto *self = (MetaDataObject*) obj;
+            if ((pyStr = PyObject_Str(pyValue)) != nullptr)
             {
-                char * str = PyString_AsString(pyStr);
-                if (str != NULL)
+                const char * str = PyUnicode_AsUTF8(pyStr);
+                if (str != nullptr)
                 {
                     self->metadata->fillConstant((MDLabel) label, str);
                     Py_RETURN_TRUE;
@@ -1246,7 +1272,7 @@ MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* fillRandom */
@@ -1259,7 +1285,7 @@ MetaData_fillExpand(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->fillExpand((MDLabel) label);
             Py_RETURN_NONE;
         }
@@ -1268,7 +1294,7 @@ MetaData_fillExpand(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* fillConstant */
@@ -1277,17 +1303,17 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
     double op1, op2, op3 = 0.;
-    PyObject *pyValue = NULL, *pyStr = NULL;
+    PyObject *pyValue = nullptr, *pyStr = nullptr, *str_exc_type = nullptr, *pyStr1 = nullptr;
 
     if (PyArg_ParseTuple(args, "iOdd|d", &label, &pyValue, &op1, &op2, &op3))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
-            if ((pyStr = PyObject_Str(pyValue)) != NULL)
+            auto *self = (MetaDataObject*) obj;
+            if ((pyStr = PyObject_Str(pyValue)) != nullptr)
             {
-                char * str = PyString_AsString(pyStr);
-                if (str != NULL)
+                const char * str = PyUnicode_AsUTF8(pyStr);
+                if (str != nullptr)
                 {
                     self->metadata->fillRandom((MDLabel) label, str, op1, op2, op3);
                     Py_RETURN_TRUE;
@@ -1300,7 +1326,7 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* copyColumn */
@@ -1312,7 +1338,7 @@ MetaData_copyColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->copyColumn((MDLabel)labelDst, (MDLabel)labelSrc);
             Py_RETURN_TRUE;
         }
@@ -1321,30 +1347,30 @@ MetaData_copyColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* copyColumn */
 PyObject *
 MetaData_renameColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject * oldLabel = NULL;
-    PyObject * newLabel = NULL;
+    PyObject * oldLabel = nullptr;
+    PyObject * newLabel = nullptr;
     if (PyArg_ParseTuple(args, "OO", &oldLabel, &newLabel))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
-            if(PyInt_Check ( oldLabel ) && PyInt_Check ( newLabel ))
+            auto *self = (MetaDataObject*) obj;
+            if(PyLong_Check ( oldLabel ) && PyLong_Check ( newLabel ))
             {
-                self->metadata->renameColumn((MDLabel) PyInt_AsLong (oldLabel),
-                                             (MDLabel) PyInt_AsLong (newLabel));
+                self->metadata->renameColumn((MDLabel) PyLong_AsLong (oldLabel),
+                                             (MDLabel) PyLong_AsLong (newLabel));
             }
             else if (PyList_Check(oldLabel)&& PyList_Check ( newLabel ))
             {
                 size_t size = PyList_Size(oldLabel);
-                PyObject * itemOld = NULL;
-                PyObject * itemNew = NULL;
+                PyObject * itemOld = nullptr;
+                PyObject * itemNew = nullptr;
                 int iOldValue = 0;
                 int iNewValue = 0;
                 std::vector<MDLabel> vOldValue(size);
@@ -1353,14 +1379,14 @@ MetaData_renameColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
                 {
                     itemOld = PyList_GetItem(oldLabel, i);
                     itemNew = PyList_GetItem(newLabel, i);
-                    if (!PyInt_Check(itemOld) || !PyInt_Check(itemNew))
+                    if (!PyLong_Check(itemOld) || !PyLong_Check(itemNew))
                     {
                         PyErr_SetString(PyExc_TypeError,
                                         "MDL labels must be integers (MDLABEL)");
-                        return NULL;
+                        return nullptr;
                     }
-                    iOldValue = PyInt_AsLong(itemOld);
-                    iNewValue = PyInt_AsLong(itemNew);
+                    iOldValue = PyLong_AsLong(itemOld);
+                    iNewValue = PyLong_AsLong(itemNew);
                     vOldValue[i] = (MDLabel)iOldValue;
                     vNewValue[i] = (MDLabel)iNewValue;
                 }
@@ -1375,7 +1401,7 @@ MetaData_renameColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* copyColumnTo */
@@ -1386,7 +1412,7 @@ MetaData_copyColumnTo(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 MetaData_removeObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyQuery = NULL;
+    PyObject *pyQuery = nullptr;
 
     if (PyArg_ParseTuple(args, "O", &pyQuery))
     {
@@ -1396,9 +1422,9 @@ MetaData_removeObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::removeObjects: Expecting MDQuery as second arguments");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->removeObjects(MDQuery_Value(pyQuery));
             Py_RETURN_NONE;
         }
@@ -1407,7 +1433,7 @@ MetaData_removeObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* removeObjects */
@@ -1416,7 +1442,7 @@ MetaData_removeDisabled(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         self->metadata->removeDisabled();
         Py_RETURN_NONE;
     }
@@ -1424,7 +1450,7 @@ MetaData_removeDisabled(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Make absolute path */
@@ -1436,7 +1462,7 @@ MetaData_makeAbsPath(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->makeAbsPath((MDLabel) label);
             Py_RETURN_NONE;
         }
@@ -1445,7 +1471,7 @@ MetaData_makeAbsPath(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* clear */
@@ -1454,14 +1480,14 @@ MetaData_clear(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
+        auto *self = (MetaDataObject*) obj;
         self->metadata->clear();
         Py_RETURN_NONE;
     }
     catch (XmippError &xe)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
-        return NULL;
+        return nullptr;
     }
 }
 
@@ -1471,8 +1497,8 @@ MetaData_iter(PyObject *obj)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
-        self->iter = new MDIterator(*(self->metadata));
+        auto *self = (MetaDataObject*) obj;
+        self->iter = new MetaDataDb::id_iterator(self->metadata->ids().begin());
         Py_INCREF(self);
         return (PyObject *) self;
         //return Py_BuildValue("l", self->metadata->iteratorBegin());
@@ -1481,18 +1507,18 @@ MetaData_iter(PyObject *obj)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 PyObject *
 MetaData_iternext(PyObject *obj)
 {
     try
     {
-        MetaDataObject *self = (MetaDataObject*) obj;
-        size_t objId = self->iter->objId;
-        self->iter->moveNext();
-        if (objId == BAD_OBJID)
-            return NULL;
+        auto *self = (MetaDataObject*) obj;
+        if (*(self->iter) == self->metadata->ids().end())
+            return nullptr;
+        size_t objId = **(self->iter);
+        ++(*self->iter);
         //type format should be "n" instead of "i" but I put i since python 2.4 does not support n
         return Py_BuildValue("i", objId);
     }
@@ -1500,14 +1526,14 @@ MetaData_iternext(PyObject *obj)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 /** Sort Metadata */
 PyObject *
 MetaData_sort(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label = MDL_IMAGE;
-    PyObject *ascPy = Py_True;
+    auto *ascPy = Py_True;
     bool asc=true;
     int limit   = -1;
     int offset  =  0;
@@ -1517,8 +1543,8 @@ MetaData_sort(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             if (PyBool_Check(ascPy))
                 asc = (ascPy == Py_True);
-            MetaDataObject *self = (MetaDataObject*) obj;
-            MetaData MDaux = *(self->metadata);
+            auto *self = (MetaDataObject*) obj;
+            MetaDataDb MDaux = *(self->metadata);
             self->metadata->clear();
             self->metadata->sort(MDaux, (MDLabel) label,asc,limit,offset);
             Py_RETURN_NONE;
@@ -1528,7 +1554,7 @@ MetaData_sort(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /** remove Duplicate rows Metadata */
@@ -1541,8 +1567,8 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
-            MetaData MDaux = *(self->metadata);
+            auto *self = (MetaDataObject*) obj;
+            MetaDataDb MDaux = *(self->metadata);
             self->metadata->clear();
             self->metadata->removeDuplicates(MDaux, (MDLabel)label);
             Py_RETURN_NONE;
@@ -1552,56 +1578,56 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
 MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) type->tp_alloc(type, 0);
+    auto *self = (MetaDataObject*)type->tp_alloc(type, 0);
 
-    if (self != NULL)
+    if (self != nullptr)
     {
-        PyObject *input = NULL, *pyStr = NULL;
+        PyObject *input = nullptr, *pyStr = nullptr, *str_exc_type = nullptr, *pyStr1 = nullptr;
         PyArg_ParseTuple(args, "|O", &input);
-        if (input != NULL)
+        if (input != nullptr)
         {
             try
             {
                 if (MetaData_Check(input))
-                    self->metadata = new MetaData(MetaData_Value(input));
-                else if ((pyStr = PyObject_Str(input)) != NULL)
+                    self->metadata = new MetaDataDb(MetaData_Value(input));
+                else if ((pyStr = PyObject_Str(input)) != nullptr)
                 {
-                    char * str = PyString_AsString(pyStr);
-                    self->metadata = new MetaData(str);
+                    const char *str = PyUnicode_AsUTF8(pyStr);
+                    self->metadata = new MetaDataDb(str);
                 }
                 else
                 {
                     PyErr_SetString(PyExc_TypeError,
                                     "MetaData_new: Bad string value for reading metadata");
-                    return NULL;
+                    return nullptr;
                 }
             }
             catch (XmippError &xe)
             {
                 PyErr_SetString(PyXmippError, xe.msg.c_str());
-                return NULL;
+                return nullptr;
             }
         }
         else
         {
-            self->metadata = new MetaData();
+            self->metadata = new MetaDataDb();
         }
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }
 
 /* importObjects */
 PyObject *
 MetaData_importObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMd = NULL;
-    PyObject *pyQuery = NULL;
+    PyObject *pyMd = nullptr;
+    PyObject *pyQuery = nullptr;
 
     if (PyArg_ParseTuple(args, "OO", &pyMd, &pyQuery))
     {
@@ -1611,15 +1637,15 @@ MetaData_importObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::importObjects: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
             if (!MDQuery_Check(pyQuery))
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::importObjects: Expecting MDQuery as second argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->importObjects(MetaData_Value(pyMd),
                                           MDQuery_Value(pyQuery));
             Py_RETURN_NONE;
@@ -1629,7 +1655,7 @@ MetaData_importObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* aggregateSingle */
@@ -1644,8 +1670,8 @@ MetaData_aggregateSingle(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDObject * object = new MDObject((MDLabel) label);
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto * object = new MDObject((MDLabel) label);
+            auto *self = (MetaDataObject*) obj;
             self->metadata->aggregateSingle(*object, (AggregateOperation) op,
                                             (MDLabel) label);
             pyValue = getMDObjectValue(object);
@@ -1657,7 +1683,7 @@ MetaData_aggregateSingle(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* aggregateSingleInt */
@@ -1672,8 +1698,8 @@ MetaData_aggregateSingleInt(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDObject * object = new MDObject((MDLabel) label);
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto * object = new MDObject((MDLabel) label);
+            auto *self = (MetaDataObject*) obj;
             self->metadata->aggregateSingleInt(*object, (AggregateOperation) op,
                                                (MDLabel) label);
             pyValue = getMDObjectValue(object);
@@ -1685,7 +1711,7 @@ MetaData_aggregateSingleInt(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /*aggregate*/
@@ -1697,7 +1723,7 @@ MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs)
     MDLabel aggregateLabel;
     MDLabel operateLabel;
     MDLabel resultLabel;
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "Oiiii", &pyMd, &op, &aggregateLabel,
                          &operateLabel, &resultLabel))
@@ -1708,9 +1734,9 @@ MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::aggregate: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->aggregate(MetaData_Value(pyMd),
                                       (AggregateOperation) op, (MDLabel) aggregateLabel,
                                       (MDLabel) operateLabel, (MDLabel) resultLabel);
@@ -1721,7 +1747,7 @@ MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /*aggregate*/
@@ -1730,10 +1756,10 @@ MetaData_aggregateMdGroupBy(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
     AggregateOperation op;
-    PyObject *aggregateLabel= NULL;
+    PyObject *aggregateLabel= nullptr;
     MDLabel operateLabel;
     MDLabel resultLabel;
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "OiOii", &pyMd, &op, &aggregateLabel,
                          &operateLabel, &resultLabel))
@@ -1744,33 +1770,33 @@ MetaData_aggregateMdGroupBy(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::aggregateMdGroupBy: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
             if (!PyList_Check(aggregateLabel))
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::aggregateMdGroupBy: Input must be a mdl List not a mdl label");
-                return NULL;
+                return nullptr;
 
             }
             size_t size = PyList_Size(aggregateLabel);
             std::vector<MDLabel> vaggregateLabel(size);
-            PyObject * item = NULL;
+            PyObject * item = nullptr;
             int iValue = 0;
             for (size_t i = 0; i < size; ++i)
             {
                 item = PyList_GetItem(aggregateLabel, i);
-                if (!PyInt_Check(item))
+                if (!PyLong_Check(item))
                 {
                     PyErr_SetString(PyExc_TypeError,
                                     "MDL labels must be integers (MDLABEL)");
-                    return NULL;
+                    return nullptr;
                 }
-                iValue = PyInt_AsLong(item);
+                iValue = PyLong_AsLong(item);
                 vaggregateLabel[i] = (MDLabel)iValue;
             }
 
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->aggregateGroupBy(MetaData_Value(pyMd),
                                              (AggregateOperation) op, vaggregateLabel,
                                              operateLabel, resultLabel);
@@ -1781,14 +1807,14 @@ MetaData_aggregateMdGroupBy(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* UnionAll */
 PyObject *
 MetaData_unionAll(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "O", &pyMd))
     {
@@ -1798,9 +1824,9 @@ MetaData_unionAll(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::unionAll: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->unionAll(MetaData_Value(pyMd));
             Py_RETURN_NONE;
         }
@@ -1809,14 +1835,14 @@ MetaData_unionAll(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* merge */
 PyObject *
 MetaData_merge(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "O", &pyMd))
     {
@@ -1826,9 +1852,9 @@ MetaData_merge(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::merge: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->merge(MetaData_Value(pyMd));
             Py_RETURN_NONE;
         }
@@ -1837,19 +1863,19 @@ MetaData_merge(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* setComment */
 PyObject *
 MetaData_setComment(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    char * str = NULL;
+    char * str = nullptr;
     if (PyArg_ParseTuple(args, "s", &str))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->setComment(str);
             Py_RETURN_NONE;
         }
@@ -1858,15 +1884,15 @@ MetaData_setComment(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getComment */
 PyObject *
 MetaData_getComment(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*) obj;
-    return PyString_FromString(self->metadata->getComment().c_str());
+    auto *self = (MetaDataObject*) obj;
+    return PyUnicode_FromString(self->metadata->getComment().c_str());
 }
 
 /* addIndex MetaData_join*/
@@ -1878,7 +1904,7 @@ MetaData_addIndex(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->addIndex((MDLabel)label);
             Py_RETURN_NONE;
         }
@@ -1887,15 +1913,15 @@ MetaData_addIndex(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 /* join */
 PyObject *
 MetaData_join1(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int labelLeft;
-    PyObject *pyMdLeft = NULL;
-    PyObject *pyMdright = NULL;
+    PyObject *pyMdLeft = nullptr;
+    PyObject *pyMdright = nullptr;
     JoinType jt=LEFT;
 
     if (PyArg_ParseTuple(args, "OOi|i", &pyMdLeft, &pyMdright, &labelLeft, &jt))
@@ -1906,15 +1932,15 @@ MetaData_join1(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::join: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
             if (!MetaData_Check(pyMdright))
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::join: Expecting MetaData as second argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->join1(MetaData_Value(pyMdLeft),
                                       MetaData_Value(pyMdright),
                                       (MDLabel) labelLeft,
@@ -1926,7 +1952,7 @@ MetaData_join1(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* join */
@@ -1935,8 +1961,8 @@ MetaData_join2(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int labelLeft;
     int labelRight;
-    PyObject *pyMdLeft = NULL;
-    PyObject *pyMdright = NULL;
+    PyObject *pyMdLeft = nullptr;
+    PyObject *pyMdright = nullptr;
     JoinType jt=LEFT;
 
     if (PyArg_ParseTuple(args, "OOii|i", &pyMdLeft, &pyMdright, &labelLeft,&labelRight, &jt))
@@ -1947,15 +1973,15 @@ MetaData_join2(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::join: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
             if (!MetaData_Check(pyMdright))
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::join: Expecting MetaData as second argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->join2(MetaData_Value(pyMdLeft),
                                   MetaData_Value(pyMdright),
                                   (MDLabel) labelLeft,
@@ -1967,15 +1993,15 @@ MetaData_join2(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* join */
 PyObject *
 MetaData_joinNatural(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMdLeft = NULL;
-    PyObject *pyMdright = NULL;
+    PyObject *pyMdLeft = nullptr;
+    PyObject *pyMdright = nullptr;
 
     if (PyArg_ParseTuple(args, "OO", &pyMdLeft, &pyMdright))
     {
@@ -1985,15 +2011,15 @@ MetaData_joinNatural(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::joinNatural: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
             if (!MetaData_Check(pyMdright))
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::joinNatural: Expecting MetaData as second argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->joinNatural(MetaData_Value(pyMdLeft),
                                   MetaData_Value(pyMdright));
             Py_RETURN_NONE;
@@ -2003,7 +2029,7 @@ MetaData_joinNatural(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Intersection */
@@ -2011,7 +2037,7 @@ PyObject *
 MetaData_intersection(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "Oi", &pyMd, &label))
     {
@@ -2021,9 +2047,9 @@ MetaData_intersection(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::intersection: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->intersection(MetaData_Value(pyMd), (MDLabel) label);
             Py_RETURN_NONE;
         }
@@ -2032,20 +2058,20 @@ MetaData_intersection(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Basic operations on columns data. */
 PyObject *
 MetaData_operate(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    char * str = NULL;
+    char * str = nullptr;
 
     if (PyArg_ParseTuple(args, "s", &str))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->operate(str);
             //free(str);
             Py_RETURN_NONE;
@@ -2056,7 +2082,7 @@ MetaData_operate(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     // free(str);
-    return NULL;
+    return nullptr;
 }
 
 /*Replace string values in some label. */
@@ -2064,13 +2090,13 @@ PyObject *
 MetaData_replace(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    char * oldStr = NULL;
-    char * newStr = NULL;
+    char * oldStr = nullptr;
+    char * newStr = nullptr;
     if (PyArg_ParseTuple(args, "iss", &label, &oldStr, &newStr))
     {
         try
         {
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->replace((MDLabel)label, oldStr, newStr);
             //free(oldStr);
             //free(newStr);
@@ -2083,14 +2109,14 @@ MetaData_replace(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     //free(oldStr);
     //free(newStr);
-    return NULL;
+    return nullptr;
 }
 
 /* Randomize */
 PyObject *
 MetaData_randomize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "O", &pyMd))
     {
@@ -2100,9 +2126,9 @@ MetaData_randomize(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::randomize: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->randomize(MetaData_Value(pyMd));
             Py_RETURN_NONE;
         }
@@ -2111,16 +2137,16 @@ MetaData_randomize(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Select Part */
 PyObject *
 MetaData_selectPart(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int label=(int)MDL_OBJID;
+    auto label=(int)MDL_OBJID;
     size_t start, numberOfObjects;
-    PyObject *pyMd = NULL;
+    PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "Okk|i", &pyMd, &start, &numberOfObjects, &label))
     {
@@ -2130,9 +2156,9 @@ MetaData_selectPart(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyErr_SetString(PyExc_TypeError,
                                 "MetaData::selectPart: Expecting MetaData as first argument");
-                return NULL;
+                return nullptr;
             }
-            MetaDataObject *self = (MetaDataObject*) obj;
+            auto *self = (MetaDataObject*) obj;
             self->metadata->selectPart(MetaData_Value(pyMd), start, numberOfObjects, (MDLabel) label);
             Py_RETURN_NONE;
         }
@@ -2141,7 +2167,7 @@ MetaData_selectPart(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 MDObject *
@@ -2154,19 +2180,20 @@ createMDObject(int label, PyObject *pyValue)
             bool bValue = (pyValue == Py_True);
             RETURN_MDOBJECT(bValue);
         }
-        if (PyInt_Check(pyValue))
+        if (PyLong_Check(pyValue) && MDL::isInt((MDLabel)label))
         {
-            int iValue = PyInt_AS_LONG(pyValue);
+            int iValue = PyLong_AS_LONG(pyValue);
             RETURN_MDOBJECT(iValue);
         }
-        if (PyLong_Check(pyValue))
+        if (PyLong_Check(pyValue) && MDL::isLong((MDLabel)label))
         {
             size_t value = PyLong_AsUnsignedLong(pyValue);
             RETURN_MDOBJECT(value);
         }
-        if (PyString_Check(pyValue))
+        if (PyUnicode_Check(pyValue))
         {
-            RETURN_MDOBJECT(std::string(PyString_AsString(pyValue)));
+            const char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
+            RETURN_MDOBJECT(std::string(str));
         }
         if (FileName_Check(pyValue))
         {
@@ -2180,7 +2207,7 @@ createMDObject(int label, PyObject *pyValue)
         if (PyList_Check(pyValue))
         {
             size_t size = PyList_Size(pyValue);
-            PyObject * item = NULL;
+            PyObject * item = nullptr;
             double dValue = 0.;
             std::vector<double> vValue(size);
             for (size_t i = 0; i < size; ++i)
@@ -2190,7 +2217,7 @@ createMDObject(int label, PyObject *pyValue)
                 {
                     PyErr_SetString(PyExc_TypeError,
                                     "Vectors are only supported for double");
-                    return NULL;
+                    return nullptr;
                 }
                 dValue = PyFloat_AS_DOUBLE(item);
                 vValue[i] = dValue;
@@ -2203,7 +2230,7 @@ createMDObject(int label, PyObject *pyValue)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* copyColumnTo */
@@ -2227,19 +2254,22 @@ MetaData_copyColumnTo(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void setMDObjectValue(MDObject *obj, PyObject *pyValue)
 {
     try
     {
-        if (PyInt_Check(pyValue))
-            obj->setValue((int)PyInt_AS_LONG(pyValue));
+        if (PyLong_Check(pyValue))
+            obj->setValue((int)PyLong_AS_LONG(pyValue));
         else if (PyLong_Check(pyValue))
             obj->setValue((size_t)PyLong_AsUnsignedLong(pyValue));
-        else if (PyString_Check(pyValue))
-            obj->setValue(std::string(PyString_AsString(pyValue)));
+        else if (PyUnicode_Check(pyValue))
+            {
+              const char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
+              obj->setValue(std::string(str));
+            }
         else if (FileName_Check(pyValue))
             obj->setValue((*((FileNameObject*)pyValue)->filename));
         else if (PyFloat_Check(pyValue))
@@ -2249,7 +2279,7 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
         else if (PyList_Check(pyValue))
         {
             size_t size = PyList_Size(pyValue);
-            PyObject * item = NULL;
+            PyObject * item = nullptr;
             double dValue = 0.;
             std::vector<double> vValue(size);
             for (size_t i = 0; i < size; ++i)
@@ -2278,7 +2308,7 @@ PyObject *
 getMDObjectValue(MDObject * obj)
 {
     if (obj->label == MDL_UNDEFINED) //if undefine label, store as a literal string
-        return NULL;
+        return nullptr;
     switch (MDL::labelType(obj->label))
     {
     case LABEL_BOOL: //bools are int in sqlite3
@@ -2287,13 +2317,13 @@ getMDObjectValue(MDObject * obj)
         else
             Py_RETURN_FALSE;
     case LABEL_INT:
-        return PyInt_FromLong(obj->data.intValue);
+        return PyLong_FromLong(obj->data.intValue);
     case LABEL_SIZET:
         return PyLong_FromLong(obj->data.longintValue);
     case LABEL_DOUBLE:
         return PyFloat_FromDouble(obj->data.doubleValue);
     case LABEL_STRING:
-        return PyString_FromString(obj->data.stringValue->c_str());
+        return PyUnicode_FromString(obj->data.stringValue->c_str());
     case LABEL_VECTOR_DOUBLE:
         {
             std::vector<double> & vector = *(obj->data.vectorValue);
@@ -2304,8 +2334,8 @@ getMDObjectValue(MDObject * obj)
             return list;
         }
     default:
-            return NULL;
+            return nullptr;
     }//close switch
-    return NULL;
+    return nullptr;
 }
 

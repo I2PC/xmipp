@@ -30,7 +30,6 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
 #include <math.h>
@@ -88,15 +87,13 @@ public:
     void localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize, Matrix2D<double> &thresholdMatrix);
 
     void postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
-    		std::vector<double> &list, MultidimArray<double> &resolutionChimera,
-    		double &cut_value, MultidimArray<int> &pMask, double &resolutionThreshold);
+    		std::vector<double> &list);
 
     void resolution2eval(int &count_res, double step,
     								double &resolution, double &last_resolution,
     								double &freq, double &freqL,
     								int &last_fourier_idx,
-    								bool &continueIter,	bool &breakIter,
-    								bool &doNextIteration);
+    								bool &continueIter,	bool &breakIter);
 
     void lowestResolutionbyPercentile(MultidimArray<double> &resolutionVol,
     								std::vector<double> &list,	double &cut_value, double &resolutionThreshold);

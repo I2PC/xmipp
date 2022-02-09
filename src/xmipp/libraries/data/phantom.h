@@ -29,12 +29,18 @@
 #ifndef _PHANTOM_HH
 #define _PHANTOM_HH
 
-#include <vector>
+#include "core/matrix1d.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_filename.h"
 
-#include <core/multidim_array.h>
-#include <core/metadata_label.h>
-#include <data/blobs.h>
-#include <data/projection.h>
+class Metadata;
+template<typename T>
+class MultidimArray;
+template<typename T>
+class Image;
+class Projection;
+class MetaData;
+class MDRow;
 
 /**@defgroup Phantoms Phantoms
  * @ingroup DataLibrary
@@ -92,25 +98,25 @@ public:
         A three letters string telling what kind of feature this object is.
         For example, "cyl", "con", "cub", ... See the specific classes to
         know exactly which is each label. */
-    std::string       Type;
+    std::string       type;
 
     /** Feature behaviour.
         This flag indicates how the feature behaves inside the voxel volume.
         If this flag is set to '+' then the voxels occupied by this feature
         are incremented with the feature value. If the flag is set to '='
         then the voxels are set to to the same value of the feature. */
-    char              Add_Assign;
+    char              add_assign;
 
     /** Feature Density.
         Density of the feature in grey level values. It needn't be between
         0 and 1, or 0 and 255. What is more, it can be even negative, and so
         you can build holes inside volumes. */
-    double             Density;
+    double             density;
 
     /** Center of the feature.
         The center of the feature is understood differently according to the
         specific class, see them to know exactly how this value is interpreted. */
-    Matrix1D<double>   Center;
+    Matrix1D<double>   center;
 
     /** Maximum distance from the center.
         This value is a precalculated and tells the maximum distance from any
@@ -120,16 +126,10 @@ public:
     double             max_distance;
 
 public:
-    virtual ~Feature()
-    {}
-
     /** Prepare feature for work.
         This function computes the maximum distance and possibly the Euler
         and inverse Euler matrices. */
     virtual void prepare() = 0;
-
-    /// Assignment
-    Feature & operator = (const Feature &F);
 
     /** Another function for assigmnet.*/
     void assign(const Feature &F);
@@ -434,20 +434,10 @@ public:
     /// Inverse Euler matrix
     Matrix2D<double>   eulert;
 public:
-    virtual ~Oriented_Feature()
-    {}
-
     /** Compute Euler and inverse Euler matrices from the Euler angles. */
-    void prepare_Euler()
-    {
-        Euler_angles2matrix(rot, tilt, psi, euler);
-        eulert = euler.transpose();
-    }
+    void prepare_Euler();
 
-    /// Assigment
-    Oriented_Feature & operator = (const Oriented_Feature & OF);
-
-    /** Another function for assigment.*/
+    /** Another function for assignment.*/
     void assign(const Oriented_Feature & OF);
 
     /** Rotate.
@@ -480,9 +470,6 @@ public:
         Computes the maximum distance, in this case, equal to "radius" */
     void prepare();
 
-    /// Assignment
-    Sphere & operator = (const Sphere &F);
-
     /** Another function for assignment.*/
     void assign(const Sphere &F);
 
@@ -496,7 +483,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled sphere.
@@ -586,9 +573,6 @@ public:
         Computes the maximum distance, in this case, equal to "radius" */
     void prepare();
 
-    /// Assignment
-    Blob & operator = (const Blob &F);
-
     /** Another function for assignment.*/
     void assign(const Blob &F);
 
@@ -621,10 +605,7 @@ public:
     /** Mass of a Blob.
         This function returns mass inside a blob. 3 is the dimension
         See \ref Feature::volume */
-    double volume() const
-    {
-        return basvolume(radius, alpha, m, 3);
-    }
+    double volume() const;
 
     /** Read specific description for a blob.
         An exception is thrown if the line doesn't conform the standard
@@ -683,9 +664,6 @@ public:
     /** Prepare Gaussian for work.
         Computes the maximum distance, in this case, equal to "4sigma" */
     void prepare();
-
-    /// Assignment
-    Gaussian & operator = (const Gaussian &F);
 
     /** Another function for assignment.*/
     void assign(const Gaussian &F);
@@ -795,9 +773,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    Cylinder & operator = (const Cylinder &F);
-
     /** Another function for assignment.*/
     void assign(const Cylinder &F);
 
@@ -811,7 +786,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled cylinder.
@@ -927,9 +902,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    DCylinder & operator = (const DCylinder &F);
-
     /** Another function for assignment.*/
     void assign(const DCylinder &F);
 
@@ -943,7 +915,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled double cylinder.
@@ -1049,9 +1021,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    Cube & operator = (const Cube &F);
-
     /** Another function for assignment.*/
     void assign(const Cube &F);
 
@@ -1065,7 +1034,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled cube.
@@ -1169,9 +1138,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    Ellipsoid & operator = (const Ellipsoid &F);
-
     /** Another function for assignment.*/
     void assign(const Ellipsoid &F);
 
@@ -1185,7 +1151,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled elliposoid.
@@ -1287,9 +1253,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    Cone & operator = (const Cone &F);
-
     /** Another function for assignment.*/
     void assign(const Cone &F);
 
@@ -1303,7 +1266,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled cone.
@@ -1432,6 +1395,9 @@ public:
         clear();
     }
 
+    /// Assignment
+    Phantom & operator = (const Phantom &P);
+
     /** Clear the phantom.
         Force the phantom to be empty. All features are freed. */
     void clear();
@@ -1464,9 +1430,6 @@ public:
     {
         VF.push_back(f);
     }
-
-    /// Assignment
-    Phantom & operator = (const Phantom &P);
 
     /** Another function for assignment.*/
     void assign(const Phantom &P);
@@ -1604,14 +1567,14 @@ public:
         deformed position=A*undeformed position
         @endcode*/
     void project_to(Projection &P, int Ydim, int Xdim,
-                    double rot, double tilt, double psi, const Matrix2D<double> *A = NULL) const;
+                    double rot, double tilt, double psi, const Matrix2D<double> *A = nullptr) const;
 
     /** Project phantom from a direction.
         The same as before but this time the projection is supposed to be
         already resized and with the right center. The phantom projection
         is added to the already drawn projection. */
     void project_to(Projection &P,
-                    double rot, double tilt, double psi, const Matrix2D<double> *A = NULL) const;
+                    double rot, double tilt, double psi, const Matrix2D<double> *A = nullptr) const;
 
     /** Project phantom using a conversion matrix.
         The same as before but this time the projection is supposed to be

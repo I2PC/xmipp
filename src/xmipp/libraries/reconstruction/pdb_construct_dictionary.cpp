@@ -24,8 +24,12 @@
  ***************************************************************************/
 
 #include "pdb_construct_dictionary.h"
-#include <core/xmipp_image_extension.h>
-#include <data/numerical_tools.h>
+#include "core/metadata_vec.h"
+#include "core/transformations.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/numerical_tools.h"
 
 void ProgPDBDictionary::defineParams()
 {
@@ -250,7 +254,7 @@ void ProgPDBDictionary::reconstructPatch(size_t idxTransf, std::vector<size_t> &
 	const Matrix2D<double> &A=rotationGroup[idxTransf];
 	for (size_t j=0; j<VEC_XSIZE(alpha); ++j)
 	{
-		applyGeometry(LINEAR,auxPatch,dictionaryHigh[selectedPatchesIdx[j]],A,IS_NOT_INV,DONT_WRAP);
+		applyGeometry(xmipp_transformation::LINEAR,auxPatch,dictionaryHigh[selectedPatchesIdx[j]],A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 		const double *ptr=MULTIDIM_ARRAY(auxPatch);
 		for (size_t n=0; n<MULTIDIM_SIZE(highResolutionPatch); ++n, ++ptr)
 			DIRECT_MULTIDIM_ELEM(highResolutionPatch,n)+=VEC_ELEM(alpha,j)*(*ptr);
@@ -468,7 +472,7 @@ size_t ProgPDBDictionary::canonicalOrientation2D(const MultidimArray<double> &pa
 	size_t bestIdx=0;
 	for (size_t n=0; n<nmax; ++n)
 	{
-		applyGeometry(LINEAR,auxPatch,patch,rotationGroup[n],IS_INV,DONT_WRAP);
+		applyGeometry(xmipp_transformation::LINEAR,auxPatch,patch,rotationGroup[n],xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP);
 		// Calculate gradients
 		double momentX=0, momentY=0, momentXmY=0, momentXY=0;
 		auxPatch.setXmippOrigin();
@@ -507,7 +511,7 @@ size_t ProgPDBDictionary::canonicalOrientation3D(const MultidimArray<double> &pa
 	size_t bestIdx=0;
 	for (size_t n=0; n<nmax; ++n)
 	{
-		applyGeometry(LINEAR,auxPatch,patch,rotationGroup[n],IS_INV,DONT_WRAP);
+		applyGeometry(xmipp_transformation::LINEAR,auxPatch,patch,rotationGroup[n],xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP);
 		// Calculate gradients
 		double momentX=0, momentY=0, momentZ=0;
 		auxPatch.setXmippOrigin();
@@ -579,7 +583,7 @@ void ProgConstructPDBDictionary::run()
     if (fileExists(fnRoot+"_low.mrcs"))
     	loadDictionaries();
 
-    MetaData mdlow, mdhigh;
+    MetaDataVec mdlow, mdhigh;
     mdlow.read(fnLow);
     mdhigh.read(fnHigh);
     if (mode==0)
@@ -603,13 +607,15 @@ void ProgConstructPDBDictionary::run()
     patchLow.setXmippOrigin();
     patchHigh=patchLow;
 
-    FOR_ALL_OBJECTS_IN_METADATA2(mdlow,mdhigh)
+    auto itIdLow = mdlow.ids().begin();
+    auto itIdHigh = mdhigh.ids().end();
+    for (; itIdLow != mdlow.ids().end(); ++itIdLow, ++itIdHigh)
     {
     	// Read the low and high resolution volumes
-    	mdlow.getValue(MDL_IMAGE,fnVol,__iter.objId);
+    	mdlow.getValue(MDL_IMAGE,fnVol, *itIdLow);
     	Vlow.read(fnVol);
     	std::cout << "Processing " << fnVol << " and ";
-    	mdhigh.getValue(MDL_IMAGE,fnVol,__iter2.objId);
+    	mdhigh.getValue(MDL_IMAGE,fnVol, *itIdHigh);
     	std::cout << fnVol << std::endl;
     	Vhigh.read(fnVol);
 
@@ -672,7 +678,7 @@ void ProgConstructPDBDictionary::run()
                  		if (introduceInDictionary)
                  		{
                  			++NsuccessfulPatches;
-                 			selfApplyGeometry(LINEAR,patchHigh,rotationGroup[canonicalIdx],IS_INV,DONT_WRAP);
+                 			selfApplyGeometry(xmipp_transformation::LINEAR,patchHigh,rotationGroup[canonicalIdx],xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP);
 
                  			dictionaryLow.push_back(canonicalPatch);
                      		patchHigh*=inormPatchLow;

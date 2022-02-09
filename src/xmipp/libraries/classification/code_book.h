@@ -37,7 +37,6 @@
 #include "data_types.h"
 #include "training_vector.h"
 #include "vector_ops.h"
-#include "uniform.h"
 
 /**@defgroup CodeBook Code book
    @ingroup ClassificationLibrary */

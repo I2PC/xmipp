@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
-#include <core/metadata.h>
 //@{
 /** Routines for computing Euler angles following different
  * approaches
@@ -223,6 +222,8 @@ public:
     double x,y,z;
 
     void eulerRotate (Matrix2D <double> &M, const Matrix1D <double> &r);
+
+    ~Euler() = default; // do nothing
 
 protected:
 

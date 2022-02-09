@@ -28,74 +28,7 @@
 #include <core/geometry.h>
 #include <core/transformations.h>
 
-void findWhichPython(String &whichPython)
-{
-    char path[1035];
-    FILE *fp = popen("which python", "r");
-    if (fp == NULL)
-        REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot execute which python");
-    if (fgets(path, sizeof(path)-1, fp) != NULL)
-        whichPython=path;
-    else
-        REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot find python");
-    pclose(fp);
-}
-
-void initializePython(String &whichPython)
-{
-    findWhichPython(whichPython);
-	Py_SetProgramName((char *)whichPython.c_str());
-	Py_Initialize();
-	import_array(); // For working with numpy
-}
-
-PyObject* convertToNumpy(const MultidimArray<double> &I)
-{
-	npy_intp dim[3];
-	dim[0]=XSIZE(I);
-	dim[1]=YSIZE(I);
-	dim[2]=ZSIZE(I);
-	PyObject* pyI=PyArray_SimpleNewFromData(3, dim, NPY_DOUBLE, (void *)MULTIDIM_ARRAY(I));
-	//npy_intp *afterSize=PyArray_DIMS(pyI);
-	return pyI;
-}
-
-PyObject* convertToNumpy(const MultidimArray<int> &I)
-{
-	npy_intp dim[3];
-	dim[0]=XSIZE(I);
-	dim[1]=YSIZE(I);
-	dim[2]=ZSIZE(I);
-	PyObject* pyI=PyArray_SimpleNewFromData(3, dim, NPY_INT, (void *)MULTIDIM_ARRAY(I));
-	return pyI;
-}
-
-PyObject * getPointerToPythonFRMFunction()
-{
-	String path=getenv("PYTHONPATH");
-	PyObject * pName = PyString_FromString("sh_alignment.frm"); // Import sh_alignment.frm
-	PyObject * pModule = PyImport_Import(pName);
-	if (pModule==NULL)
-		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot import sh_alignment.");
-	PyObject * pFunc = PyObject_GetAttrString(pModule, "frm_align");
-	Py_DECREF(pName);
-	Py_DECREF(pModule);
-	return pFunc;
-}
-
-PyObject * getPointerToPythonGeneralWedgeClass()
-{
-	PyObject * pName = PyString_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
-	PyObject * pModule = PyImport_Import(pName);
-	PyObject * pDict = PyModule_GetDict(pModule);
-	PyObject * pWedgeClass = PyDict_GetItemString(pDict, "GeneralWedge");
-	Py_DECREF(pName);
-	Py_DECREF(pModule);
-	Py_DECREF(pDict);
-	return pWedgeClass;
-}
-
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 #include <core/xmipp_image.h>
 #endif
@@ -105,11 +38,11 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		Matrix2D<double> &A,
 		int maxshift, double maxFreq, const MultidimArray<int> *mask)
 {
-	PyObject *pyIref=convertToNumpy(Iref);
-	PyObject *pyI=convertToNumpy(I);
+	PyObject *pyIref = Python::convertToNumpy(Iref);
+	PyObject *pyI = Python::convertToNumpy(I);
 	PyObject *pyMask=Py_None;
-	if (mask!=NULL)
-		pyMask=convertToNumpy(*mask);
+	if (mask!=nullptr)
+		pyMask=Python::convertToNumpy(*mask);
 
 //#define DEBUG
 #ifdef DEBUG
@@ -126,16 +59,16 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 	// Call frm
 	int bandWidthSphericalHarmonics0=4;
 	int bandWidthSphericalHarmonicsF=64;
-	int frequencyPixels=(int)(XSIZE(Iref)*maxFreq);
+	auto frequencyPixels=(int)(XSIZE(Iref)*maxFreq);
 	PyObject *arglistfrm = Py_BuildValue("OOOO(ii)iiO", pyI, Imask, pyIref, Py_None,
 			bandWidthSphericalHarmonics0, bandWidthSphericalHarmonicsF, frequencyPixels, maxshift, pyMask);
 	PyObject *resultfrm = PyObject_CallObject(pFunc, arglistfrm);
 	Py_DECREF(arglistfrm);
 	Py_DECREF(pyIref);
 	Py_DECREF(pyI);
-	if (mask!=NULL)
+	if (mask!=nullptr)
 		Py_DECREF(pyMask);
-	if (resultfrm!=NULL)
+	if (resultfrm!=nullptr)
 	{
 		PyObject *shift=PyTuple_GetItem(resultfrm,0);
 		PyObject *euler=PyTuple_GetItem(resultfrm,1);
@@ -183,14 +116,7 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		A.initIdentity(4);
 
 		std::cout << "No result\n";
-		PyObject *ptype, *pvalue, *ptraceback;
-		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-		//pvalue contains error message
-		//ptraceback contains stack snapshot and many other information
-		//(see python traceback structure)
-
-		//Get error message
-		std::cout << PyString_AsString(pvalue) << std::endl;
+		std::cout << Python::print_traceback();
 	}
 }
 #undef DEBUG

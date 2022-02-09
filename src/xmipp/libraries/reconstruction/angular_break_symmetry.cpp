@@ -68,15 +68,14 @@ void ProgAngularBreakSymmetry::run()
 {
     produce_side_info();
 
-    MDRow row;
-    FOR_ALL_OBJECTS_IN_METADATA(DF)
+    for (size_t objId : DF.ids())
     {
         // Read input data
         double rot,  tilt,  psi;
 
-        DF.getValue(MDL_ANGLE_ROT,  rot,__iter.objId);
-        DF.getValue(MDL_ANGLE_TILT, tilt,__iter.objId);
-        DF.getValue(MDL_ANGLE_PSI,  psi,__iter.objId);
+        DF.getValue(MDL_ANGLE_ROT,  rot, objId);
+        DF.getValue(MDL_ANGLE_TILT, tilt, objId);
+        DF.getValue(MDL_ANGLE_PSI,  psi, objId);
 
 
         // Apply random rotation within symmetry matrices
@@ -88,9 +87,9 @@ void ProgAngularBreakSymmetry::run()
         //tilt2 = realWRAP(tilt2, -180, 180);
         //psi2  = realWRAP(psi2, -180, 180);
 
-        DF.setValue(MDL_ANGLE_ROT, rot,__iter.objId);
-        DF.setValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-        DF.setValue(MDL_ANGLE_PSI, psi,__iter.objId);
+        DF.setValue(MDL_ANGLE_ROT, rot, objId);
+        DF.setValue(MDL_ANGLE_TILT,tilt, objId);
+        DF.setValue(MDL_ANGLE_PSI, psi, objId);
     }
 
     DF.write(fn_out);

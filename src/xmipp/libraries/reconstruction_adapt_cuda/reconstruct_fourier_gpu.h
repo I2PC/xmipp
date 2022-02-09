@@ -30,35 +30,20 @@
 #ifndef __RECONSTRUCT_FOURIER_GPU_H
 #define __RECONSTRUCT_FOURIER_GPU_H
 
-#include <iostream>
-#include <limits>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <data/projection.h>
-#include <core/xmipp_threads.h>
-#include <data/blobs.h>
-#include <core/metadata.h>
-#include <data/ctf.h>
-#include <data/array_2D.h>
-#include <core/args.h>
-#include <core/xmipp_fft.h>
-#include <sys/time.h>
-#include <core/metadata.h>
-#include <reconstruction/recons.h>
-#include <reconstruction/directions.h>
-#include <reconstruction/symmetrize.h>
-#include <data/point3D.h>
-#include <reconstruction/reconstruct_fourier_defines.h>
-#include <reconstruction/reconstruct_fourier_projection_traverse_space.h>
-#include <reconstruction_cuda/cuda_gpu_reconstruct_fourier.h>
-#include <reconstruction_cuda/gpu.h>
-#include <core/utils/memory_utils.h>
+#include "core/xmipp_threads.h"
+#include "core/metadata_db.h"
+#include "core/matrix2d.h"
+#include "core/numerical_recipes.h"
+#include "data/blobs.h"
+#include "reconstruction/recons.h"
+#include "reconstruction/reconstruct_fourier_defines.h"
+#include "reconstruction/reconstruct_fourier_projection_traverse_space.h"
 
 /**@defgroup FourierReconstruction Fourier reconstruction
    @ingroup ReconsLibrary */
 //@{
 class ProgRecFourierGPU;
+struct RecFourierBufferData;
 
 /** Struct representing the working thread */
 struct RecFourierWorkThread
@@ -67,7 +52,7 @@ struct RecFourierWorkThread
     ProgRecFourierGPU * parent;
     int startImageIndex; // index of the first projection to process
     int endImageIndex; // index of the last projection to process
-    MetaData* selFile; // used for loading data
+    MetaDataDb* selFile; // used for loading data
     RecFourierBufferData* buffer; // where data are loaded
     int gpuStream; // index of stream on GPU device
 };
@@ -98,7 +83,7 @@ protected:
     RecFourierWorkThread* workThreads;
 
     /** SelFile containing all projections */
-    MetaData SF;
+    MetaDataDb SF;
 
     /** Output file name */
     FileName fn_out;
@@ -312,7 +297,7 @@ private:
 		case 2: return bessi2(blob.alpha);
 		case 3: return bessi3(blob.alpha);
 		case 4: return bessi4(blob.alpha);
-		REPORT_ERROR(ERR_VALUE_INCORRECT,"Order must be in interval [0..4]");
+		default: REPORT_ERROR(ERR_VALUE_INCORRECT,"Order must be in interval [0..4]");
 		}
 	}
 
@@ -355,7 +340,7 @@ private:
     static void multiply(const float transform[3][3], Point3D<float>& inOut);
 
     /** Add 'vector' to each element of 'cuboid' */
-    static void translateCuboid(Point3D<float>* cuboid, Point3D<float> vector);
+    static void translateCuboid(Point3D<float>* cuboid, const Point3D<float> &vector);
 
     /**
      * Method will calculate Axis Aligned Bound Box of the cuboid and restrict

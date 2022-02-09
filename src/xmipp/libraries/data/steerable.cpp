@@ -29,13 +29,14 @@
 #include <core/histogram.h>
 #include <data/filters.h>
 #include <data/morphology.h>
+#include "core/geometry.h"
 
 // Remove wedge ------------------------------------------------------------
 void MissingWedge::removeWedge(MultidimArray<double> &V) const
 {
     Matrix2D<double> Epos, Eneg;
-    Euler_angles2matrix(rotPos,tiltPos,0,Epos);
-    Euler_angles2matrix(rotNeg,tiltNeg,0,Eneg);
+    Euler_angles2matrix(rotPos,tiltPos,0.,Epos);
+    Euler_angles2matrix(rotNeg,tiltNeg,0.,Eneg);
     
     Matrix1D<double> freq(3), freqPos, freqNeg;
     Matrix1D<int> idx(3);
@@ -223,7 +224,7 @@ void Steerable::singleFilter(const MultidimArray<double>& Vin,
         }
     
     // If Missing wedge
-    if (MW!=NULL)
+    if (MW!=nullptr)
         MW->removeWedge(Vout);
 }
 
@@ -250,7 +251,7 @@ void Steerable::generate1DFilters(double sigma,
 
     double sigma2=sigma*sigma;       
     double k1 =  1.0/pow((2.0*PI*sigma),(3.0/2.0));
-    double k2 = -1.0/(sigma2);
+    double k2 = -1.0/sigma2;
     
     FOR_ALL_ELEMENTS_IN_ARRAY1D(hx1[0])
     {        

@@ -34,8 +34,8 @@ function update_plot (obj, init = false)
     set (h.b1_label, "string", sprintf ("b1: %.3f", b1));
     set (h.b2_label, "string", sprintf ("b2: %.3f", b2));
     t=0:1:60;
-    x = a1.*t + a2.*t.*t + (cos(t/10))/10
-    y = b1.*t + b2.*t.*t + (sin(t.*t))/5
+    x = a1.*t + a2.*t.*t + (cos(t/10))/10;
+    y = b1.*t + b2.*t.*t + (sin(t.*t))/5;
     if (init)
       h.plot = plot (x, y);
       guidata (obj, h);

@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include "volume_from_pdb.h"
-
+#include "core/transformations.h"
 #include <core/args.h>
 
 #include <fstream>
@@ -36,7 +36,10 @@ ProgPdbConverter::ProgPdbConverter()
     blob.radius = 2;   // Blob radius in voxels
     blob.order  = 2;   // Order of the Bessel function
     blob.alpha  = 3.6; // Smoothness parameter
-    output_dim = -1;
+    output_dim_x = -1;
+    output_dim_y = -1;
+    output_dim_z = -1;
+
     fn_pdb = "";
     Ts = 1;
     highTs = 1.0/12.0;
@@ -44,9 +47,10 @@ ProgPdbConverter::ProgPdbConverter()
     usePoorGaussian=false;
     useFixedGaussian=false;
     doCenter=false;
+    noHet=false;
 
     // Periodic table for the blobs
-    periodicTable.resize(7, 2);
+    periodicTable.resize(12, 2);
     periodicTable(0, 0) = atomRadius("H");
     periodicTable(0, 1) = atomCharge("H");
     periodicTable(1, 0) = atomRadius("C");
@@ -61,6 +65,16 @@ ProgPdbConverter::ProgPdbConverter()
     periodicTable(5, 1) = atomCharge("S");
     periodicTable(6, 0) = atomRadius("Fe");
     periodicTable(6, 1) = atomCharge("Fe");
+    periodicTable(7, 0) = atomRadius("K");
+    periodicTable(7, 1) = atomCharge("K");
+    periodicTable(8, 0) = atomRadius("F");
+    periodicTable(8, 1) = atomCharge("F");
+    periodicTable(9, 0) = atomRadius("Mg");
+    periodicTable(9, 1) = atomCharge("Mg");
+    periodicTable(10, 0) = atomRadius("Cl");
+    periodicTable(10, 1) = atomCharge("Cl");
+    periodicTable(11, 0) = atomRadius("Ca");
+    periodicTable(11, 1) = atomCharge("Ca");
 
     // Correct the atom weights by the blob weight
     for (size_t i = 0; i < MAT_YSIZE(periodicTable); i++)
@@ -92,8 +106,6 @@ void ProgPdbConverter::produceSideInfo()
                 continue;
             std::vector< std::string > results;
             splitString(line," ",results);
-            if (results[1]=="xmipp_convert_vol2pseudo")
-                useFixedGaussian=true;
             if (useFixedGaussian && results[1]=="fixedGaussian")
                 sigmaGaussian=textToFloat(results[2]);
             if (useFixedGaussian && results[1]=="intensityColumn")
@@ -138,8 +150,23 @@ void ProgPdbConverter::atomBlobDescription(
     case 'S':
         idx = 5;
         break;
-    case 'F':
+    case 'E': //iron Fe
         idx = 6;
+        break;
+    case 'K':
+        idx = 7;
+        break;
+    case 'F':
+        idx = 8;
+        break;
+    case 'G': // Magnesium Mg
+        idx = 9;
+        break;
+    case 'L': // Chlorine Cl
+        idx = 10;
+        break;
+    case 'A': // Calcium Ca
+        idx = 11;
         break;
     default:
     	if (verbose>0)
@@ -161,8 +188,11 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [-o <fn_root>]                     : Root name for output");
     addParamsLine("  [--sampling <Ts=1>]                : Sampling rate (Angstroms/pixel)");
     addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]: Sampling rate before downsampling");
-    addParamsLine("  [--size <output_dim=-1>]               : Final size in pixels (must be a power of 2, if blobs are used)");
+    addParamsLine("  [--size <output_dim_x=-1> <output_dim_y=-1> <output_dim_z=-1>]: Final size in pixels (must be a power of 2, if blobs are used)");
+    addParamsLine("  [--orig <orig_x=0> <orig_y=0> <orig_z=0>]: Define origin of the output volume");
+    addParamsLine("  				                     : If just one dimension is introduced dim_x = dim_y = dim_z");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
+    addParamsLine("  [--noHet]                           : Heteroatoms are not converted");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
     addParamsLine("  [--poor_Gaussian]                   : Use a simple Gaussian adapted to each atom");
     addParamsLine("  [--fixed_Gaussian <std=-1>]         : Use a fixed Gausian for each atom with");
@@ -178,13 +208,19 @@ void ProgPdbConverter::readParams()
     fn_out = checkParam("-o") ? getParam("-o") : fn_pdb.withoutExtension();
     Ts = getDoubleParam("--sampling");
     highTs = getDoubleParam("--high_sampling_rate");
-    output_dim = getIntParam("--size");
+    output_dim_x = getIntParam("--size", 0);
+    output_dim_y = getIntParam("--size", 1);
+    output_dim_z = getIntParam("--size", 2);
+    orig_x = getIntParam("--orig", 0);
+    orig_y = getIntParam("--orig", 1);
+    orig_z = getIntParam("--orig", 2);
     useBlobs = checkParam("--blobs");
     usePoorGaussian = checkParam("--poor_Gaussian");
     useFixedGaussian = checkParam("--fixed_Gaussian");
     if (useFixedGaussian)
         sigmaGaussian = getDoubleParam("--fixed_Gaussian");
     doCenter = checkParam("--centerPDB");
+    noHet = checkParam("--noHet");
     intensityColumn = getParam("--intensityColumn");
 }
 
@@ -196,8 +232,10 @@ void ProgPdbConverter::show()
     std::cout << "PDB file:           " << fn_pdb           << std::endl
     << "Sampling rate:      " << Ts               << std::endl
     << "High sampling rate: " << highTs           << std::endl
-    << "Size:               " << output_dim       << std::endl
+    << "Size:               " << output_dim_x << " " << output_dim_y << " " << output_dim_z << std::endl
+    << "Origin:             " << orig_x << " " << orig_y << " " << orig_z << std::endl
     << "Center PDB:         " << doCenter         << std::endl
+    << "Do not Hetatm:      " << noHet         << std::endl
     << "Use blobs:          " << useBlobs         << std::endl
     << "Use poor Gaussian:  " << usePoorGaussian  << std::endl
     << "Use fixed Gaussian: " << useFixedGaussian << std::endl
@@ -223,14 +261,30 @@ void ProgPdbConverter::computeProteinGeometry()
     ZZ(limit) = XMIPP_MAX(ABS(ZZ(limit0)), ABS(ZZ(limitF)));
 
     // Update output size if necessary
-    if (output_dim == -1)
+    if (output_dim_x == -1)
     {
         int max_dim = XMIPP_MAX(CEIL(ZZ(limit) * 2 / Ts) + 5, CEIL(YY(limit) * 2 / Ts) + 5);
         max_dim = XMIPP_MAX(max_dim, CEIL(XX(limit) * 2 / Ts) + 5);
         if (useBlobs)
-            output_dim = (int)NEXT_POWER_OF_2(max_dim);
+        {
+            output_dim_x = (int)NEXT_POWER_OF_2(max_dim);
+        	output_dim_y = output_dim_x;
+			output_dim_z = output_dim_x;
+        }
         else
-            output_dim = max_dim+10;
+        {
+            output_dim_x = max_dim+10;
+            output_dim_y = output_dim_x;
+			output_dim_z = output_dim_x;
+        }
+    }
+    else
+    {
+    	if (output_dim_y == -1)
+    	{
+    		output_dim_y = output_dim_x;
+    		output_dim_z = output_dim_x;
+    	}
     }
 }
 
@@ -238,12 +292,20 @@ void ProgPdbConverter::computeProteinGeometry()
 void ProgPdbConverter::createProteinAtHighSamplingRate()
 {
     // Create an empty volume to hold the protein
-    int finalDim;
+    int finalDim_x, finalDim_y, finalDim_z;
     if (highTs!=Ts)
-        finalDim=(int)NEXT_POWER_OF_2(output_dim / (highTs/Ts));
+    {
+        finalDim_x=(int)NEXT_POWER_OF_2(output_dim_x / (highTs/Ts));
+        finalDim_y=(int)NEXT_POWER_OF_2(output_dim_y / (highTs/Ts));
+        finalDim_z=(int)NEXT_POWER_OF_2(output_dim_z / (highTs/Ts));
+    }
     else
-        finalDim=output_dim;
-    Vhigh().initZeros(finalDim,finalDim,finalDim);
+    {
+        finalDim_x=output_dim_x;
+        finalDim_y=output_dim_y;
+        finalDim_z=output_dim_z;
+    }
+    Vhigh().initZeros(finalDim_x,finalDim_y,finalDim_z);
     Vhigh().setXmippOrigin();
     if (verbose)
     	std::cout << "The highly sampled volume is of size " << XSIZE(Vhigh())
@@ -251,6 +313,10 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
+
+    //Save centered PDB
+    PDBRichPhantom centered_pdb;
+
     fh_pdb.open(fn_pdb.c_str());
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
@@ -270,6 +336,9 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         if (kind != "ATOM" && kind !="HETA")
             continue;
 
+        // Save centered PDB
+        RichAtom atom_i;
+
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
@@ -282,14 +351,29 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         Matrix1D<double> r(3);
         VECTOR_R3(r, x, y, z);
         if (doCenter)
+        {
             r -= centerOfMass;
+            atom_i.x = x - XX(centerOfMass);
+            atom_i.y = y - YY(centerOfMass);
+            atom_i.z = z - ZZ(centerOfMass);
+            atom_i.name=line.substr(12,4);
+			atom_i.atomType = line[13];
+			atom_i.altloc=line[16];
+			atom_i.resname=line.substr(17,3);
+			atom_i.chainid=line[21];
+			atom_i.resseq = textToInteger(line.substr(22,4));
+			atom_i.icode = line[26];
+            atom_i.occupancy = textToFloat(line.substr(54,6));
+			atom_i.bfactor = textToFloat(line.substr(60,6));
+            centered_pdb.addAtom(atom_i);
+        }
         r /= highTs;
 
         // Characterize atom
         double weight, radius;
         if (!useFixedGaussian)
         {
-            if (atom_type=="HETA")
+            if (noHet && kind=="HETA")
                 continue;
             atomBlobDescription(atom_type, weight, radius);
         }
@@ -337,6 +421,12 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Close file
     fh_pdb.close();
+
+    // Save centered PDB
+    if (doCenter && fn_out!="")
+    {
+        centered_pdb.write(fn_out + ".pdb");
+    }
 }
 
 /* Create protein at a low sampling rate ----------------------------------- */
@@ -348,21 +438,21 @@ void ProgPdbConverter::createProteinAtLowSamplingRate()
 
     // Use Bsplines pyramid if possible
     int levels = FLOOR(log10((double)M) / log10(2.0) + XMIPP_EQUAL_ACCURACY);
-    pyramidReduce(BSPLINE3, Vlow(), Vhigh(), levels);
+    pyramidReduce(xmipp_transformation::BSPLINE3, Vlow(), Vhigh(), levels);
     current_Ts *= pow(2.0, levels);
     Vhigh.clear();
 
     // Now scale using Bsplines
     int new_output_dim = CEIL(XSIZE(Vlow()) * current_Ts / Ts);
-    scaleToSize(BSPLINE3, Vhigh(), Vlow(),
+    scaleToSize(xmipp_transformation::BSPLINE3, Vhigh(), Vlow(),
                 new_output_dim, new_output_dim, new_output_dim);
     Vlow() = Vhigh();
     Vlow().setXmippOrigin();
 
     // Return to the desired size
-    Vlow().selfWindow(FIRST_XMIPP_INDEX(output_dim), FIRST_XMIPP_INDEX(output_dim),
-                  FIRST_XMIPP_INDEX(output_dim), LAST_XMIPP_INDEX(output_dim),
-                  LAST_XMIPP_INDEX(output_dim), LAST_XMIPP_INDEX(output_dim));
+    Vlow().selfWindow(FIRST_XMIPP_INDEX(output_dim_x), FIRST_XMIPP_INDEX(output_dim_y),
+                  FIRST_XMIPP_INDEX(output_dim_z), LAST_XMIPP_INDEX(output_dim_x),
+                  LAST_XMIPP_INDEX(output_dim_y), LAST_XMIPP_INDEX(output_dim_z));
 }
 
 /* Blob properties --------------------------------------------------------- */
@@ -386,14 +476,23 @@ void ProgPdbConverter::blobProperties() const
 void ProgPdbConverter::createProteinUsingScatteringProfiles()
 {
     // Create an empty volume to hold the protein
-    Vlow().initZeros(output_dim,output_dim,output_dim);
+    Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
     Vlow().setXmippOrigin();
+    if (orig_x!=0)
+    {
+		STARTINGX(Vlow()) = orig_x;
+		STARTINGY(Vlow()) = orig_y;
+		STARTINGZ(Vlow()) = orig_z;
+    }
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
     fh_pdb.open(fn_pdb.c_str());
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
+
+    //Save centered PDB
+    PDBRichPhantom centered_pdb;
 
     // Process all lines of the file
     std::string line, kind, atom_type;
@@ -406,22 +505,50 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         if (line == "")
             continue;
         kind =line.substr(0,4);
-        if (kind != "ATOM")
-            continue;
+
+        if (noHet)
+        {
+            if (kind != "ATOM")
+                continue;
+        }
+        else
+        {
+            if (kind != "ATOM" and kind != "HETA")
+                continue;
+        }
 
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
+
         atom_type = line.substr(13,2);
         char atom_type0=atom_type[0];
         double x = textToFloat(line.substr(30,8));
         double y = textToFloat(line.substr(38,8));
         double z = textToFloat(line.substr(46,8));
 
+        // Save centered PDB
+        RichAtom atom_i;
+
         // Correct position
         VECTOR_R3(r, x, y, z);
         if (doCenter)
+        {
             r -= centerOfMass;
+            atom_i.x = x-XX(centerOfMass);
+            atom_i.y = y-YY(centerOfMass);
+            atom_i.z = z-ZZ(centerOfMass);
+            atom_i.name=line.substr(12,4);
+			atom_i.atomType = line[13];
+			atom_i.altloc=line[16];
+			atom_i.resname=line.substr(17,3);
+			atom_i.chainid=line[21];
+			atom_i.resseq = textToInteger(line.substr(22,4));
+			atom_i.icode = line[26];
+            atom_i.occupancy = textToFloat(line.substr(54,6));
+			atom_i.bfactor = textToFloat(line.substr(60,6));
+            centered_pdb.addAtom(atom_i);
+        }
         r *= iTs;
 
         // Characterize atom
@@ -471,6 +598,12 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
 
     // Close file
     fh_pdb.close();
+
+    // Save centered PDB
+    if (doCenter  && fn_out!="")
+    {
+        centered_pdb.write(fn_out + ".pdb");
+    }
 }
 
 /* Run --------------------------------------------------------------------- */

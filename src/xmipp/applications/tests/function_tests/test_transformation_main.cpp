@@ -90,7 +90,7 @@ TEST_F(TransformationTest, rotate)
     DIRECT_A2D_ELEM(aux2Mul,2,1) = 3.9039731;
     DIRECT_A2D_ELEM(aux2Mul,2,2) = 0;
 
-    rotate(BSPLINE3,auxMul, mulDouble,10,DONT_WRAP);
+    rotate(xmipp_transformation::BSPLINE3,auxMul, mulDouble,10,xmipp_transformation::DONT_WRAP);
     EXPECT_EQ(aux2Mul,auxMul);
 }
 
@@ -108,7 +108,7 @@ TEST_F(TransformationTest, selfApplyGeometry)
     YY(center)=1.;
     ZZ(center)=0.;
 
-    translate(BSPLINE3,volout,vol,center);
+    translate(xmipp_transformation::BSPLINE3,volout,vol,center);
     EXPECT_EQ(volref,volout);
 }
 
@@ -123,7 +123,7 @@ TEST_F(TransformationTest, scaleToSizeNearest)
     DIRECT_A2D_ELEM(auxMul,1,1) = DIRECT_A2D_ELEM(mulDouble,1,1);
 
     mulDouble.setXmippOrigin();
-    scaleToSize(NEAREST, imOut, mulDouble, 2, 2);
+    scaleToSize(xmipp_transformation::NEAREST, imOut, mulDouble, 2, 2);
 
 
     FOR_ALL_ELEMENTS_IN_ARRAY2D(auxMul)
@@ -155,7 +155,7 @@ TEST_F(TransformationTest, geo2TransformationMatrix)
     double z2=-1000;
     bool flip2 = false;
 
-    MDRow rowIn,rowOut;
+    MDRowVec rowIn,rowOut;
     rowIn.setValue(MDL_SCALE,scale);
     rowIn.setValue(MDL_ANGLE_PSI,psi);
     rowIn.setValue(MDL_SHIFT_X,x);
@@ -261,9 +261,3 @@ DEBUG_JM: A:
  1.4961143  1.2963904 0.28462967          6
          0          0          0          1
  */
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

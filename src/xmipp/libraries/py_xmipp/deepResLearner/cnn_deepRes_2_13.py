@@ -28,7 +28,7 @@ def Gen(idx):
 
 		#VOLUMENES
 		ok = False
-		fnRandom = ''.join([random.choice(string.ascii_letters + string.digits) for i in xrange(32)])
+		fnRandom = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(32)])
 		fnHash = "tmp"+fnRandom
 		while not ok:
 		    ok = True
@@ -93,7 +93,7 @@ def Gen(idx):
 		yield (batchX, batchY)
 
 def constructModel(boxDim):
-    model = Sequential()     
+    model = Sequential()
     model.add(Conv3D(32, (13,13,13), activation='relu', input_shape=(boxDim,boxDim,boxDim,1), padding='same'))
     model.add(Dropout(0.2))
     model.add(Flatten())

@@ -26,7 +26,10 @@
 #ifndef LIBRARIES_RECONSTRUCTION_EQ_SYSTEM_SOLVER_H_
 #define LIBRARIES_RECONSTRUCTION_EQ_SYSTEM_SOLVER_H_
 
-#include "core/matrix2d.h"
+template<typename T>
+class Matrix1D;
+template<typename T>
+class Matrix2D;
 
 class EquationSystemSolver {
 public:

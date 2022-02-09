@@ -37,8 +37,7 @@
 #include <functional>
 #include <algorithm>
 #include <sstream>
-
-#include "uniform.h"
+#include <random>
 
 /**@defgroup VectorOperations Vector Operations
    @ingroup ClassificationLibrary */
@@ -177,10 +176,10 @@ std::vector<T> randomVector(const unsigned& _size, const T& _lower,
                        const T& _upper)
 {
     std::vector<T> v(_size);
-    RandomUniformGenerator<T> u(_lower, _upper);
-    typename std::vector<T>::iterator i;
-    for (i = v.begin() ; i < v.end() ; *i++ = u());
-
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dist(_lower, _upper);
+    std::generate(v.begin(), v.end(), [&]{ return dist(gen); });
     return v;
 }
 

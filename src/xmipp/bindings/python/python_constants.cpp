@@ -22,8 +22,15 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-
 #include "xmippmodule.h"
+#include "core/transformations_defines.h"
+#include "core/metadata_sql.h"
+#include "core/metadata_writemode.h"
+#include "core/xmipp_datatype.h"
+#include "core/xmipp_color.h"
+#include "core/xmipp_image_base.h"
+#include "core/axis_view.h"
+#include "core/xmipp_random_mode.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */
@@ -31,7 +38,7 @@
 
 void addIntConstant(PyObject * dict, const char * name, const long &value)
 {
-    PyObject * pyValue = PyInt_FromLong(value);
+    PyObject * pyValue = PyLong_FromLong(value);
     PyDict_SetItemString(dict, name, pyValue);
     Py_DECREF(pyValue);
 }
@@ -45,11 +52,11 @@ void addLabels(PyObject * dict)
 {
 
     //Add constants
-    ADD_CONST(NEAREST);
-    ADD_CONST(LINEAR);
-    ADD_CONST(BSPLINE2);
-    ADD_CONST(BSPLINE3);
-    ADD_CONST(BSPLINE4);
+    ADD_CONST(xmipp_transformation::NEAREST);
+    ADD_CONST(xmipp_transformation::LINEAR);
+    ADD_CONST(xmipp_transformation::BSPLINE2);
+    ADD_CONST(xmipp_transformation::BSPLINE3);
+    ADD_CONST(xmipp_transformation::BSPLINE4);
 
 
     ADD_CONST(AGGR_COUNT);
@@ -104,6 +111,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_AVG_CHANGES_CLASSES);
 
     ADD_CONST(MDL_BGMEAN);
+    ADD_CONST(MDL_BFACTOR);
     ADD_CONST(MDL_BLOCK_NUMBER);
 
     ADD_CONST(MDL_CLASS_COUNT);
@@ -147,7 +155,6 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_CTF_DEFOCUS_R2);
     ADD_CONST(MDL_CTF_DEFOCUS_RESIDUAL);
     ADD_CONST(MDL_CTF_DEFOCUS_COEFS);
-
     ADD_CONST(MDL_CTF_DOWNSAMPLE_PERFORMED);
     ADD_CONST(MDL_CTF_CS);
     ADD_CONST(MDL_CTF_CA);
@@ -211,6 +218,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_DATATYPE);
     ADD_CONST(MDL_DATE);
     ADD_CONST(MDL_DEFGROUP);
+    ADD_CONST(MDL_DIMRED);
     ADD_CONST(MDL_DIMENSIONS_3D);
     ADD_CONST(MDL_DIMENSIONS_2D);
     ADD_CONST(MDL_DM3_IDTAG);
@@ -291,6 +299,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_NMA_MAXRANGE);
     ADD_CONST(MDL_NMA_SCORE);
     ADD_CONST(MDL_NMA_ATOMSHIFT);
+    ADD_CONST(MDL_NMA_EIGENVAL);
     ADD_CONST(MDL_NOISE_ANGLES);
     ADD_CONST(MDL_NOISE_PARTICLE_COORD);
     ADD_CONST(MDL_NOISE_COORD);
@@ -337,6 +346,8 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_REF);
     ADD_CONST(MDL_REF2);
     ADD_CONST(MDL_REFMD);
+    ADD_CONST(MDL_RESIDUE);
+    ADD_CONST(MDL_RESOLUTION_ANISOTROPY);
     ADD_CONST(MDL_RESOLUTION_DPR);
     ADD_CONST(MDL_RESOLUTION_ERRORL2);
     ADD_CONST(MDL_RESOLUTION_FRC);
@@ -344,10 +355,12 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_RESOLUTION_FREQ);
     ADD_CONST(MDL_RESOLUTION_FREQ2);
     ADD_CONST(MDL_RESOLUTION_FREQREAL);
+    ADD_CONST(MDL_RESOLUTION_FSO);
     ADD_CONST(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR);
     ADD_CONST(MDL_RESOLUTION_SSNR);
     ADD_CONST(MDL_RESOLUTION_STRUCTURE_FACTOR);
     ADD_CONST(MDL_RESOLUTION_RFACTOR);
+    ADD_CONST(MDL_RESOLUTION_LOCAL_RESIDUE);
 
     ADD_CONST(MDL_SAMPLINGRATE);
     ADD_CONST(MDL_SAMPLINGRATE_ORIGINAL);
@@ -483,7 +496,7 @@ void addLabels(PyObject * dict)
     ADD_CONST2("HEADER_ALL", _HEADER_ALL);
     ADD_CONST(DATA);
     ADD_CONST2("DATA_ALL", _DATA_ALL);
-    ADD_CONST(WRAP);
+    ADD_CONST(xmipp_transformation::WRAP);
     ADD_CONST(ALL_IMAGES);
     ADD_CONST(FILENAMENUMBERLENGTH);
     ADD_CONST2("XMIPP_BLACK", BLACK);

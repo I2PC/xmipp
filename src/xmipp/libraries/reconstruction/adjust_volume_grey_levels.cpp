@@ -24,10 +24,9 @@
  ***************************************************************************/
 
 #include "adjust_volume_grey_levels.h"
-#include <data/numerical_tools.h>
-#include <data/projection.h>
-#include <core/xmipp_image.h>
-#include <core/args.h>
+#include "data/numerical_tools.h"
+#include "data/projection.h"
+#include "data/fourier_projection.h"
 
 void ProgAdjustVolume::defineParams()
 {
@@ -86,7 +85,7 @@ void ProgAdjustVolume::run()
     ImOut().setXmippOrigin();
 
     // Read input metadataFile
-    SF.read(fn_sel,NULL);
+    SF.read(fn_sel,nullptr);
 
     apply(ImOut());
 
@@ -124,7 +123,7 @@ double ProgAdjustVolume::mismatching(double a, double b)
     Image<double> I;
     ApplyGeoParams params;
     params.only_apply_shifts=true;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         // Skip randomly some images
         double x = rnd_unif(0, 1);
@@ -132,7 +131,7 @@ double ProgAdjustVolume::mismatching(double a, double b)
             continue;
         N++;
 
-        I.readApplyGeo(SF,__iter.objId, params);
+        I.readApplyGeo(SF, objId, params);
         I().setXmippOrigin();
 
         // Project the auxiliary volume in the same direction
@@ -184,10 +183,10 @@ void ProgAdjustVolume::apply(MultidimArray<float> &out)
         exit(1);
     }
     Image<double> I;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         // Read image
-        I.readApplyGeo(SF,__iter.objId);
+        I.readApplyGeo(SF, objId);
         projXdim = XSIZE(I());
         projYdim = YSIZE(I());
 
@@ -248,7 +247,7 @@ void ProgAdjustVolume::apply(MultidimArray<float> &out)
         double ftol = 0.01, fret;
         int iter;
         globalAdjustVolumeProg = this;
-        powellOptimizer(p, 1, 2, &projectionMismatching, NULL,
+        powellOptimizer(p, 1, 2, &projectionMismatching, nullptr,
                         ftol, fret, iter, steps, true);
         a = p(0);
         b = p(1);

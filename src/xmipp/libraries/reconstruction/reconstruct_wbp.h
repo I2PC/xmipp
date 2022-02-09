@@ -23,18 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_fft.h>
-#include <core/args.h>
-#include <core/xmipp_funcs.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_image.h>
-#include <data/projection.h>
-#include <data/filters.h>
+#include <memory>
+#include "core/symmetries.h"
+#include "core/xmipp_image.h"
+#include "core/metadata_vec.h"
+#include "reconstruction/recons.h"
 
-#include <reconstruction/recons.h>
-
-#include <reconstruction/directions.h>
-#include <reconstruction/symmetrize.h>
+class Projection;
 
 /**@defgroup WBP reconstruct_wbp (Weighted Back Projection)
    @ingroup ReconsLibrary */
@@ -55,7 +50,7 @@ public:
     /** Filenames */
     FileName fn_out, fn_sym, fn_sel;
     /** SelFile containing all projections and angles */
-    MetaData SF;
+    MetaDataVec SF;
     /** Lower threshold for the filter */
     double threshold;
     /** Counter for how many times the threshold was not reached */
@@ -82,13 +77,10 @@ public:
     /// Time bar variables
     size_t time_bar_step, time_bar_size, time_bar_done;
     /// Iterator over input metadata
-    MDIterator * iter;
+    std::unique_ptr<MetaDataVec::id_iterator> iter;
     /// Reconstructed volume
     Image<double> reconstructedVolume;
 public:
-
-    ProgRecWbp();
-    ~ProgRecWbp();
 
     /// Read arguments from command line
     void readParams();
@@ -115,7 +107,7 @@ public:
     virtual void produceSideInfo() ;
 
     /// Get 1 image to process
-    virtual bool getImageToProcess(size_t &objId, size_t &objIndex);
+    virtual bool getImageToProcess(size_t &objId);
 
     /// Get angles (either from reading the header or from a docfile)
     void getAnglesForImage(size_t id, double &rot, double &tilt, double &psi,

@@ -24,10 +24,8 @@
  ***************************************************************************/
 
 #include "tomo_remove_fluctuations.h"
-#include <core/args.h>
-#include <core/xmipp_fftw.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_image.h>
+#include "core/metadata_extension.h"
+#include "core/xmipp_fftw.h"
 
 // Read from command line --------------------------------------------------
 void ProgTomoRemoveFluctuations::readParams()
@@ -64,9 +62,9 @@ void ProgTomoRemoveFluctuations::produceSideInfo()
     int k=0;
     Image<double> I;
     FileName fnImg;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE,fnImg,__iter.objId);
+        SF.getValue(MDL_IMAGE,fnImg,objId);
         I.read(fnImg);
         V().setSlice(k,I());
         k++;

@@ -28,11 +28,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/bilib/getputd.h>
-#include <core/bilib/changebasis.h>
-#include <core/bilib/configs.h>
-
 #include "project_real_shears.h"
+#include "core/bilib/getputd.h"
+#include "core/bilib/changebasis.h"
+#include "core/bilib/configs.h"
+#include "core/bilib/kernel.h"
+#include "core/transformations.h"
+#include "data/fourier_projection.h"
 
 #ifndef DBL_EPSILON
 #define DBL_EPSILON 2.2204460492503130808472633361816000000000e-16
@@ -218,9 +220,9 @@ void projectionRealShears2(MultidimArray<double> &CoefVolume,
                 double g = Arg[arr[1]];
                 double h = Arg[arr[2]];
 
-                int l1 = (int)ceil(g-2.0);
+                auto l1 = (int)ceil(g-2.0);
                 int l2 = l1 + 3;
-                int m1 = (int)ceil(h-2.0);
+                auto m1 = (int)ceil(h-2.0);
                 int m2 = m1 + 3;
                 double columns = 0.0;
                 double aux;
@@ -232,7 +234,7 @@ void projectionRealShears2(MultidimArray<double> &CoefVolume,
                         double rows = 0.0;
                         for (int l = l1; l <= l2; l++)
                         {
-                            if ((l < Xdim && l > -1))
+                            if (l < Xdim && l > -1)
                             {
                                 double gminusl = g - (double) l;
                                 BSPLINE03(aux,gminusl);

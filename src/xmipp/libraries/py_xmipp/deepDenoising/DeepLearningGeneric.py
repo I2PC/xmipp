@@ -3,8 +3,8 @@ import keras
 import numpy as np
 
 from skimage.io import imsave
-from dataGenerator import getDataGenerator, BATCH_SIZE
-from augmentators import generateReverseNormalizationFunction
+from .dataGenerator import getDataGenerator, BATCH_SIZE
+from .augmentators import generateReverseNormalizationFunction
 
 
 class DeepLearningModel():
@@ -102,7 +102,7 @@ def save_imgs(imgs, saveImagesPath, epoch, basenameTemplate, nImagesToPlot=8):
 
       
 def generatePerceptualLoss(image_shape):
-  import xmipp3
+  from xmipp_base import XmippScript
   from keras.layers import Input
   from keras.models import load_model, Model
   import keras.backend as K
@@ -110,7 +110,7 @@ def generatePerceptualLoss(image_shape):
   ignoreCTF=True
   modelTypeDir= "keras_models/%sPhaseFlip_Invert/nnetData_%d/tfchkpoints_0" % (
                       "no" if ignoreCTF else "", effectiveSize)
-  modelTypeDir= xmipp3.Plugin.getModel("deepConsensus", modelTypeDir)
+  modelTypeDir= XmippScript.getModel("deepConsensus", modelTypeDir)
   modelFname= os.path.join(modelTypeDir, "deepModel.hdf5")
   
   def perceptual_loss(y_true, y_pred):

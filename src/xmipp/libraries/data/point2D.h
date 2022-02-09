@@ -29,6 +29,9 @@
 #include "point.h"
 #include <initializer_list>
 
+/**@defgroup Point2D Point2D
+   @ingroup DataLibrary */
+//@{
 /** Struct represents a point in 2D */
 template<typename T>
 class Point2D: Point {
@@ -70,6 +73,12 @@ public:
         return Point2D(x + rhs.x, y + rhs.y);
     }
 
+    Point2D operator+=(const Point2D &rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        return *this;
+    }
+
     Point2D operator-=(const Point2D &rhs) const {
         return Point2D(x - rhs.x, y - rhs.y);
     }
@@ -90,5 +99,5 @@ public:
         return lhs -= rhs;
     }
 };
-
+//@}
 #endif /* LIBRARIES_DATA_POINT2D_H_ */

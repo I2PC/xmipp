@@ -111,16 +111,14 @@ void ProgReconsADMM::produceSideInfo()
 	// Symmetrize input images
 #ifdef SYMMETRIZE_PROJECTIONS
 	Matrix2D<double> Lsym(3,3), Rsym(3,3);
-	MetaData mdSym;
-	MDRow row;
+	MetaDataVec mdSym;
 	double rot, tilt, psi, newrot, newtilt, newpsi;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (auto& row : mdIn)
 	{
-		mdIn.getRow(row,__iter.objId);
 		row.getValue(MDL_ANGLE_ROT,rot);
 		row.getValue(MDL_ANGLE_TILT,tilt);
 		row.getValue(MDL_ANGLE_PSI,psi);
-		mdSym.addRow(row);
+		mdSym.addRow(dynamic_cast<MDRowVec&>(row));
 		for (int isym = 0; isym < SL.symsNo(); isym++)
 		{
 			SL.getMatrices(isym, Lsym, Rsym, false);
@@ -128,7 +126,7 @@ void ProgReconsADMM::produceSideInfo()
 			row.setValue(MDL_ANGLE_ROT,newrot);
 			row.setValue(MDL_ANGLE_TILT,newtilt);
 			row.setValue(MDL_ANGLE_PSI,newpsi);
-			mdSym.addRow(row);
+			mdSym.addRow(dynamic_cast<MDRowVec&>(row));
 		}
 	}
 	mdIn=mdSym;
@@ -260,18 +258,18 @@ void ProgReconsADMM::constructHtb()
 	double weight=1.;
 	ApplyGeoParams geoParams;
 	geoParams.only_apply_shifts=true;
-	geoParams.wrap=DONT_WRAP;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	geoParams.wrap=xmipp_transformation::DONT_WRAP;
+	for (size_t objId : mdIn.ids())
 	{
 		if ((i+1)%Nprocs==rank)
 		{
-			I.readApplyGeo(mdIn,__iter.objId,geoParams);
+			I.readApplyGeo(mdIn,objId,geoParams);
 			I().setXmippOrigin();
-			mdIn.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+			mdIn.getValue(MDL_ANGLE_ROT,rot,objId);
+			mdIn.getValue(MDL_ANGLE_TILT,tilt,objId);
+			mdIn.getValue(MDL_ANGLE_PSI,psi,objId);
 			if (useWeights && mdIn.containsLabel(MDL_WEIGHT))
-				mdIn.getValue(MDL_WEIGHT,weight,__iter.objId);
+				mdIn.getValue(MDL_WEIGHT,weight,objId);
 
 			project(rot,tilt,psi,I(),true,weight);
 		}
@@ -386,19 +384,19 @@ void ProgReconsADMM::computeHtKH(MultidimArray<double> &kernelV)
 		kernel.getKernelAutocorrelation(kernelAutocorr);
 	Matrix2D<double> E;
 	Matrix1D<double> r1(3), r2(3);
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (size_t objId : mdIn.ids())
 	{
 		if ((i+1)%Nprocs==rank)
 		{
 			// COSS: Read also MIRROR
-			mdIn.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+			mdIn.getValue(MDL_ANGLE_ROT,rot,objId);
+			mdIn.getValue(MDL_ANGLE_TILT,tilt,objId);
+			mdIn.getValue(MDL_ANGLE_PSI,psi,objId);
 			if (hasWeight)
-				mdIn.getValue(MDL_WEIGHT,weight,__iter.objId);
+				mdIn.getValue(MDL_WEIGHT,weight,objId);
 			if (hasCTF)
 			{
-				ctf.readFromMetadataRow(mdIn,__iter.objId);
+				ctf.readFromMetadataRow(mdIn,objId);
 				ctf.produceSideInfo();
 				kernel.applyCTFToKernelAutocorrelation(ctf,Ts,kernelAutocorr);
 			}
@@ -409,15 +407,15 @@ void ProgReconsADMM::computeHtKH(MultidimArray<double> &kernelV)
 			E.getRow(0,r1);
 			E.getRow(1,r2);
 			double iStep=1.0/kernel.autocorrStep;
-			for (int k=((kernelV).zinit); k<=((kernelV).zinit + (int)(kernelV).zdim - 1); ++k)
+			for (auto k=(kernelV.zinit); k<=(kernelV.zinit + kernelV.zdim - 1); ++k)
 			{
 				double r1_z=k*ZZ(r1);
 				double r2_z=k*ZZ(r2);
-				for (int i=((kernelV).yinit); i<=((kernelV).yinit + (int)(kernelV).ydim - 1); ++i)
+				for (auto i=(kernelV.yinit); i<=(kernelV.yinit + kernelV.ydim - 1); ++i)
 				{
 					double r1_yz=i*YY(r1)+r1_z;
 					double r2_yz=i*YY(r2)+r2_z;
-					for (int j=((kernelV).xinit); j<=((kernelV).xinit + (int)(kernelV).xdim - 1); ++j)
+					for (auto j=(kernelV.xinit); j<=(kernelV.xinit + kernelV.xdim - 1); ++j)
 					{
 						double r1_xyz=j*XX(r1)+r1_yz;
 						double r2_xyz=j*XX(r2)+r2_yz;
@@ -450,7 +448,7 @@ void addGradientTerm(double mu, AdmmKernel &kernel, MultidimArray<double> &L, Fo
 
 	transformer.FourierTransform();
 	double K=mu*MULTIDIM_SIZE(L);
-	double xdim_2=(double)(XSIZE(L)/2);
+	auto xdim_2=(double)(XSIZE(L)/2);
 	double Kargument=2*PI*xdim_2/XSIZE(L);
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(fourierKernelV)
 	{
@@ -765,7 +763,7 @@ void AdmmKernel::applyCTFToKernelAutocorrelation(CTFDescription &ctf, double Ts,
 {
 	double dig2cont=1.0/Ts;
 	double wx, wy;
-	int xdim=(int)XSIZE(projectionAutocorrWithCTF);
+	auto xdim=(int)XSIZE(projectionAutocorrWithCTF);
 	int xdim_2=xdim/2;
 	double ixdim=1.0/xdim;
 	double maxFreq=2*autocorrStep;

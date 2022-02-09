@@ -26,11 +26,11 @@
 #ifndef ANGULAR_ACCURACY_PCA_H_
 #define ANGULAR_ACCURACY_PCA_H_
 
-#include <core/xmipp_program.h>
-#include <math.h>
-#include <data/basic_pca.h>
-#include <data/projection.h>
-#include <data/filters.h>
+#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "data/basic_pca.h"
 
 
 /**@defgroup Assign accuracy to angular assignment by pca
@@ -46,15 +46,15 @@ public:
 
     Image<double> phantomVol;
 
-    MetaData mdPartial;
+    MetaDataDb mdPartial;
 
     size_t rank, Nprocessors;
 
     PCAMahalanobisAnalyzer pca;
 
-	int newXdim;
+    int newXdim;
 
-	int newYdim;
+    int newYdim;
 
 
 
@@ -79,5 +79,5 @@ public:
     virtual void synchronize() {}
 
 };
-
+//@}
 #endif /* ANGULAR_ACCURACY_PCA_H_ */

@@ -25,10 +25,10 @@
 
 #ifndef VALIDATION_NONTILT_H_
 #define VALIDATION_NONTILT_H_
-#define PI 3.14159265
 
-#include <core/xmipp_program.h>
-#include <math.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/metadata_db.h"
 
 /**@defgroup Validation without tilt
    @ingroup ReconsLibrary */
@@ -41,7 +41,7 @@ public:
     /** Filenames */
     FileName fnDir, fnSym, fnInit, fnParticles;
 
-    MetaData mdPartial;
+    MetaDataDb mdPartial;
 
     size_t rank, Nprocessors;
 

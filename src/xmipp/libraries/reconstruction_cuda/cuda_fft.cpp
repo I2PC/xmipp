@@ -266,6 +266,10 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
 
 template<typename T>
 cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
+    if (settings.sElemsBatch() > std::numeric_limits<int>::max()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Too many elements for Fourier Transformation. "
+                "It would cause int overflow in the cuda kernel. Try to decrease batch size");
+    }
     auto plan = new cufftHandle;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
@@ -283,7 +287,7 @@ template<typename T>
 FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
         size_t maxBytes) {
     size_t singleBytes = settings.sBytesSingle() + (settings.isInPlace() ? 0 : settings.fBytesSingle());
-    size_t batch = (maxBytes / singleBytes) + 1; // + 1 will be deducted in the while loop
+    size_t batch = min((maxBytes / singleBytes), settings.batch()) + 1; // + 1 will be deducted in the while loop
     while (batch > 1) {
         batch--;
         auto tmp = FFTSettingsNew<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
@@ -306,7 +310,7 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
     using core::optional;
     size_t freeBytes = gpu.lastFreeBytes();
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *options =
-            cuFFTAdvisor::Advisor::find(30, gpu.device(),
+            cuFFTAdvisor::Advisor::find(10, gpu.device(), // FIXME DS this should be configurable
                     settings.sDim().x(), settings.sDim().y(), settings.sDim().z(), settings.sDim().n(),
                     TRUE, // use batch
                     std::is_same<T, float>::value ? TRUE : FALSE,

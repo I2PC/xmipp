@@ -23,8 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "classify_significant.h"
-#include <data/mask.h>
+#include "core/transformations.h"
+#include "data/mask.h"
+#include "data/filters.h"
 
 // Empty constructor =======================================================
 ProgClassifySignificant::~ProgClassifySignificant()
@@ -54,7 +57,7 @@ void ProgClassifySignificant::readParams()
     	numFsc = getIntParam("--fsc", 0);
     	for (int i=1; i<=numFsc; i++){
     		fnFsc = getParam("--fsc", i);
-    		setFsc.push_back(fnFsc);
+    		setFsc.emplace_back(fnFsc);
     	}
     }
 }
@@ -94,49 +97,49 @@ void ProgClassifySignificant::defineParams()
 // Produce side information ================================================
 void ProgClassifySignificant::produceSideInfo()
 {
-	if (verbose>0)
-		std::cerr << "Producing side info ..." << std::endl;
+    if (verbose>0)
+        std::cerr << "Producing side info ..." << std::endl;
     // Read the reference volumes
     Image<double> V;
-    MetaData mdVols, mdAngles, mdAnglesSorted;
+    MetaDataVec mdVols;
     mdVols.read(fnVols);
     FileName fnVol;
     int i=1;
-    FOR_ALL_OBJECTS_IN_METADATA(mdVols)
+    for (size_t objId : mdVols.ids())
     {
-    	mdVols.getValue(MDL_IMAGE,fnVol,__iter.objId);
-    	std::cout << fnVol << std::endl;
+        mdVols.getValue(MDL_IMAGE,fnVol, objId);
+        std::cout << fnVol << std::endl;
         V.read(fnVol);
         V().setXmippOrigin();
-        projector.push_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
+        projector.emplace_back(new FourierProjector(V(),pad,0.5,xmipp_transformation::BSPLINE3));
         currentRowIdx.push_back(0);
+
+        MetaDataVec mdAngles, mdAnglesSorted;
 
         mdAngles.read(formatString("angles_%02d@%s",i,fnAngles.c_str()));
         mdAnglesSorted.sort(mdAngles, MDL_ITEM_ID, true);
-        VMetaData *vmd=new VMetaData();
-        mdAnglesSorted.asVMetaData(*vmd);
-        setAngles.push_back(*vmd);
-        classifiedAngles.push_back(*(new VMetaData()));
 
-        subsetAngles.push_back(*(new VMetaData()));
-        subsetProjectionIdx.push_back(* (new std::vector<size_t>));
-        i+=1;
+        setAngles.emplace_back(mdAnglesSorted);
+        classifiedAngles.emplace_back(MetaDataVec());
+        subsetAngles.emplace_back(MetaDataVec());
+        subsetProjectionIdx.emplace_back(* (new std::vector<size_t>));
+        i += 1;
     }
 
     //Read FSC if present
-    MetaData mdFsc;
+    MetaDataVec mdFsc;
     std::vector<double> fscAux;
     if(isFsc){
     	for (int i=0; i<numFsc; i++){
     		std::cout << " fnFsc: " << setFsc[i] << std::endl;
 			mdFsc.read(setFsc[i]);
 			mdFsc.getColumnValues(MDL_RESOLUTION_FRC,fscAux);
-			setFscValues.push_back(fscAux);
+			setFscValues.emplace_back(fscAux);
     	}
     }
 
     // Read the Ids
-    MetaData mdIds;
+    MetaDataVec mdIds;
     mdIds.read(fnIds);
     mdIds.getColumnValues(MDL_PARTICLE_ID,setIds);
 }
@@ -148,7 +151,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	bool flip;
 	Matrix2D<double> A;
 	Image<double> &Iaux = *Iexp[0];
-	int xdim = (int)XSIZE(Iaux());
+	auto xdim = (int)XSIZE(Iaux());
 
 	currentRow.getValue(MDL_ANGLE_ROT,rot);
 	currentRow.getValue(MDL_ANGLE_TILT,tilt);
@@ -168,9 +171,9 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	projectVolume(*(projector[volumeIdx]), Paux, xdim, xdim,  rot, tilt, psi);
 
 	if (poolIdx>=subsetProjections.size())
-		subsetProjections.push_back(new MultidimArray<double>);
+		subsetProjections.emplace_back(new MultidimArray<double>);
 	subsetProjections[poolIdx]->resizeNoCopy(xdim, xdim);
-	applyGeometry(LINEAR,*(subsetProjections[poolIdx]),Paux(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,*(subsetProjections[poolIdx]),Paux(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 
 #ifdef DEBUG
 	std::cout << "Row: " << " rot: " << rot << " tilt: " << tilt
@@ -194,7 +197,8 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 		size_t crIdx=currentRowIdx[i];
 		if (crIdx>=setAngles[i].size())
 			return;
-		MDRow & currentRow=setAngles[i][crIdx];
+		MDRowVec currentRow;
+		setAngles[i].getRow(currentRow, crIdx);
 		/*if (i==0) // First time we see this image
 		{
 			currentRow.getValue(MDL_IMAGE,fnImg);
@@ -209,10 +213,10 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 			if (currentParticleId==particleId)
 			{
 				flagEmpty=false;
-				subsetAngles[i].push_back(currentRow);
-				subsetProjectionIdx[i].push_back(poolIdx);
+				subsetAngles[i].addRow(currentRow);
+				subsetProjectionIdx[i].emplace_back(poolIdx);
 				currentRow.getValue(MDL_IMAGE,fnImg);
-				Iexp.push_back(new Image<double>);
+				Iexp.emplace_back(new Image<double>);
 				Iexp[poolIdx]->read(fnImg);
 				//std::cout << "Particle fnImg: " << fnImg << " in " << poolIdx << std::endl;
 				generateProjection(i,poolIdx,currentRow);
@@ -221,7 +225,7 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 			crIdx+=1;
 			if (crIdx<idxMax)
 			{
-				currentRow=setAngles[i][crIdx];
+				setAngles[i].getRow(currentRow, crIdx);
 				currentRow.getValue(MDL_PARTICLE_ID,currentParticleId);
 			}
 			else
@@ -301,7 +305,7 @@ void calculateRadialAvg(MultidimArray<double> &I, MultidimArray< std::complex<do
 
 
 void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double> &Iproj2, MultidimArray<double> &Iexp1,
-		MultidimArray<double> &Iexp2, double &ccI1Iexp1, double &ccI1Iexp2, double &ccI2Iexp2, double &ccI2Iexp1,
+		MultidimArray<double> &Iexp2, double &ccI1Iexp1, double &ccI2Iexp2,
 		bool isFsc, std::vector< std::vector<double> > &setFscValues, int numFsc){
 
 	double w1=0;
@@ -349,12 +353,12 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 			for(size_t jj=0; jj<XSIZE(fftIproj1); ++jj)
 			{
 				double snrTermIexp1 = sqrt(1+(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI1, jj)));
-				double snrTermIproj1 = sqrt((DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI1, jj)));
+				double snrTermIproj1 = sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI1, jj));
 				DIRECT_MULTIDIM_ELEM(fftIexp1, nn) = DIRECT_MULTIDIM_ELEM(fftIexp1, nn)*snrTermIexp1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp1, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj1, nn) = DIRECT_MULTIDIM_ELEM(fftIproj1, nn)*snrTermIproj1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj));
 
 				double snrTermIexp2 = sqrt(1+(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI2, jj)));
-				double snrTermIproj2 = sqrt((DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI2, jj)));
+				double snrTermIproj2 = sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI2, jj));
 				DIRECT_MULTIDIM_ELEM(fftIexp2, nn) = DIRECT_MULTIDIM_ELEM(fftIexp2, nn)*snrTermIexp2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp2, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj2, nn) = DIRECT_MULTIDIM_ELEM(fftIproj2, nn)*snrTermIproj2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj));
 	/*
@@ -385,7 +389,7 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 					continue;
 
 				R = sqrt(R2);
-				int idx = (int)round(R * XSIZE(Iproj1));
+				auto idx = (int)round(R * XSIZE(Iproj1));
 				double fscAvg = 0.0;
 				std::vector<double> setFsc1;
 				for(int i=0; i<numFsc; i++){
@@ -402,12 +406,12 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 				//std::cout << "fscValue1 = " << fscValue1 << " fscValue2 = " << fscValue2 << " fscAvg = " << fscAvg << std::endl;
 
 				double snrTermIexp1 = sqrt(1+((2*fscAvg)/(1-fscAvg)));
-				double snrTermIproj1 = sqrt(((2*fscAvg)/(1-fscAvg)));
+				double snrTermIproj1 = sqrt((2*fscAvg)/(1-fscAvg));
 				DIRECT_MULTIDIM_ELEM(fftIexp1, nn) = DIRECT_MULTIDIM_ELEM(fftIexp1, nn)*snrTermIexp1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp1, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj1, nn) = DIRECT_MULTIDIM_ELEM(fftIproj1, nn)*snrTermIproj1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj));
 
 				double snrTermIexp2 = sqrt(1+((2*fscAvg)/(1-fscAvg)));
-				double snrTermIproj2 = sqrt(((2*fscAvg)/(1-fscAvg)));
+				double snrTermIproj2 = sqrt((2*fscAvg)/(1-fscAvg));
 				DIRECT_MULTIDIM_ELEM(fftIexp2, nn) = DIRECT_MULTIDIM_ELEM(fftIexp2, nn)*snrTermIexp2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp2, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj2, nn) = DIRECT_MULTIDIM_ELEM(fftIproj2, nn)*snrTermIproj2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj));
 
@@ -490,7 +494,7 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 
 void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double> &I2, MultidimArray<double> &Iexp1,
 		MultidimArray<double> &Iexp2, double &corr1exp, double &corr2exp, bool I1isEmpty, bool I2isEmpty, int xdim,
-		bool onlyIntersection, int numVotes, size_t id, std::ofstream *fs, double ccI1Iexp1=-1.0, double ccI2Iexp2=-1.0)
+		bool onlyIntersection, int numVotes, double ccI1Iexp1=-1.0, double ccI2Iexp2=-1.0)
 {
 
 	MultidimArray<double> Idiff, I2Aligned, Iexp2Aligned;
@@ -549,7 +553,7 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 	corr1exp=corr2exp=0.0;
 
 	if (!I1isEmpty && !I2isEmpty){
-		applyGeometry(LINEAR, Iexp2Aligned, Iexp2, M, IS_NOT_INV, false);
+		applyGeometry(xmipp_transformation::LINEAR, Iexp2Aligned, Iexp2, M, xmipp_transformation::IS_NOT_INV, false);
 	}
 	/*save()=Iexp2Aligned;
 	save.write("Iexp2Aligned.xmp");*/
@@ -609,12 +613,12 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 	double sumWI1exp2=0.0, sumWI2exp1=0.0, corrWI1exp2, corrWI2exp1;
 	double sumI1exp2=0.0, sumI2exp1=0.0, corrI1exp2, corrI2exp1;
 
-	double avg1, avgExp1, avgM1, avgMExp1, avgW1, avgWExp1, avg2, avgExp2, avgM2, avgMExp2, avgW2, avgWExp2, iN1, iN2, iN;
+	double avgM1 = 0, avgMExp1 = 0, avgW1 = 0, avgWExp1 = 0, avgM2 = 0, avgMExp2 = 0, avgW2 = 0, avgWExp2 = 0, iN1 = 0, iN2 = 0, iN = 0;
 	double isize=1.0/MULTIDIM_SIZE(Idiff);
-	avg1=sumI1*isize;
-	avgExp1=sumIexp1*isize;
-	avg2=sumI2*isize;
-	avgExp2=sumIexp2*isize;
+	double avg1=sumI1*isize;
+	double avgExp1=sumIexp1*isize;
+	double avg2=sumI2*isize;
+	double avgExp2=sumIexp2*isize;
 	if (N1>0){
 		iN1=1.0/N1;
 		avgM1=sumMI1*iN1;
@@ -820,23 +824,24 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 void ProgClassifySignificant::updateClass(int n, double wn)
 {
 	double CCbest=-1e38;
-	int iCCbest=-1;
-	VMetaData &subsetAngles_n=subsetAngles[n];
-	for (int i=0; i<subsetAngles_n.size(); i++)
+	int idCCbest=-1;
+	MetaDataVec &subsetAngles_n = subsetAngles[n];
+	for (size_t objId : subsetAngles_n.ids())
 	{
 		double cc;
-		subsetAngles_n[i].getValue(MDL_MAXCC,cc);
+		subsetAngles_n.getValue(MDL_MAXCC, cc, objId);
 		if (cc>CCbest)
 		{
 			CCbest=cc;
-			iCCbest=i;
+			idCCbest=objId;
 		}
 	}
-	if (iCCbest>=0)
+	if (idCCbest>=0)
 	{
-		MDRow newRow=subsetAngles_n[iCCbest];
+		MDRowVec newRow;
+		subsetAngles_n.getRow(newRow, idCCbest);
 		// COSS newRow.setValue(MDL_WEIGHT,wn);
-		classifiedAngles[n].push_back(newRow);
+		classifiedAngles[n].addRow(newRow);
 	}
 }
 
@@ -875,7 +880,7 @@ void ProgClassifySignificant::run()
 		winning.initZeros();
 		corrDiff.initZeros();
 		Image<double> Iaux = *Iexp[0];
-		int xdim = (int)XSIZE(Iaux());
+		auto xdim = (int)XSIZE(Iaux());
 		I1.initZeros(1, 1, xdim, xdim);
 		I2.initZeros(1, 1, xdim, xdim);
 		Iexp1.initZeros(1, 1, xdim, xdim);
@@ -923,7 +928,7 @@ void ProgClassifySignificant::run()
 						double ccI1Iexp2;
 						double ccI2Iexp1;
 						double ccI2Iexp2;
-						calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI1Iexp2, ccI2Iexp2, ccI2Iexp1, isFsc, setFsc1, setFsc2);
+						calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI2Iexp2, isFsc, setFsc1, setFsc2);
 						if (std::isnan(ccI1Iexp1))
 							ccI1Iexp1=-1.0;
 						if (std::isnan(ccI2Iexp2))
@@ -932,7 +937,7 @@ void ProgClassifySignificant::run()
 						//////////////////////////////////
 						//AJ ORIGINAL CORRELATION MEASURE
 						computeWeightedCorrelation(I1, I2, Iexp1, Iexp2, corr1exp, corr2exp, I1isEmpty, I2isEmpty,
-								xdim, onlyIntersection, numVotes, id, &fs);
+								xdim, onlyIntersection, numVotes);
 
 						if (std::isnan(corr1exp))
 							corr1exp=-1.0;
@@ -961,7 +966,7 @@ void ProgClassifySignificant::run()
 							double ccI1Iexp2;
 							double ccI2Iexp1;
 							double ccI2Iexp2;
-							calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI1Iexp2, ccI2Iexp2, ccI2Iexp1, isFsc, setFsc1, setFsc2);
+							calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI2Iexp2, isFsc, setFsc1, setFsc2);
 							if (std::isnan(ccI1Iexp1))
 								ccI1Iexp1=-1.0;
 							if (std::isnan(ccI2Iexp2))
@@ -1029,7 +1034,7 @@ void ProgClassifySignificant::run()
 	progress_bar(setIds.size());
 
 	// Write output
-	MetaData md;
+	MetaDataDb md;
 	for (size_t ivol=0; ivol<projector.size(); ivol++)
 	{
 		size_t objId=md.addObject();
@@ -1042,7 +1047,7 @@ void ProgClassifySignificant::run()
 		md.clear();
 		if (classifiedAngles[ivol].size()>0)
 		{
-			md.fromVMetaData(classifiedAngles[ivol]);
+			md = classifiedAngles[ivol];
 			double currentWmax=md.getColumnMax(MDL_WEIGHT);
 			double currentWmin=md.getColumnMin(MDL_WEIGHT);
 			if (currentWmax>currentWmin)

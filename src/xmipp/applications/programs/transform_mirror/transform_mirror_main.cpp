@@ -23,9 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/args.h>
-#include <core/geometry.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image_generic.h"
 
 class FlipParameters: public XmippMetadataProgram
 {

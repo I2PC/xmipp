@@ -26,6 +26,7 @@
 #include <core/xmipp_program.h>
 #include <data/projection.h>
 #include <core/multidim_array.h>
+#include <core/metadata_db.h>
 #include <data/fourier_filter.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/video.hpp>
@@ -44,7 +45,7 @@ public:
 
     double cutFreq;
 
-    MetaData mdPartialParticles;
+    MetaDataDb mdPartialParticles;
 
     size_t rank, Nprocessors;
 

@@ -25,14 +25,15 @@
  ***************************************************************************/
 
 #include "angular_project_library.h"
+#include "core/xmipp_image_generic.h"
 
 /* Empty constructor ------------------------------------------------------- */
 ProgAngularProjectLibrary::ProgAngularProjectLibrary()
 {
     /** sampling object 1 by default*/
     mysampling.setSampling(1);
-    Vshears=NULL;
-    Vfourier=NULL;
+    Vshears=nullptr;
+    Vfourier=nullptr;
 
 }
 
@@ -75,11 +76,11 @@ void ProgAngularProjectLibrary::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmipp_transformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmipp_transformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmipp_transformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The interpolation kernel can be : nearest, linear, bspline");
     }
@@ -170,11 +171,11 @@ void ProgAngularProjectLibrary::show()
         std::cout << "     pad factor: "   << paddFactor <<std::endl;
         std::cout << "     maxFrequency: " << maxFrequency <<std::endl;
         std::cout << "     interpolator: ";
-        if (BSplineDeg == NEAREST)
+        if (BSplineDeg == xmipp_transformation::NEAREST)
             std::cout << " nearest" <<std::endl;
-        else if (BSplineDeg == LINEAR)
+        else if (BSplineDeg == xmipp_transformation::LINEAR)
             std::cout << " linear" <<std::endl;
-        else if (BSplineDeg == BSPLINE3)
+        else if (BSplineDeg == xmipp_transformation::BSPLINE3)
             std::cout << " bspline" <<std::endl;
     }
     else if (projType == REALSPACE)
@@ -216,9 +217,9 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 
 //    if (shears && XSIZE(inputVol())!=0 && VShears==NULL)
 //        VShears=new RealShearsInfo(inputVol());
-    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==NULL)
+    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==nullptr)
         Vshears=new RealShearsInfo(inputVol());
-    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==NULL)
+    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==nullptr)
         Vfourier=new FourierProjector(inputVol(),
         		                      paddFactor,
         		                      maxFrequency,
@@ -266,7 +267,7 @@ void ProgAngularProjectLibrary::run()
     show();
     //all ranks
     mysampling.setSampling(sampling);
-    srand ( time(NULL) );
+    srand ( time(nullptr) );
     //process the symmetry file
     //only checks symmetry and set pg_order and pg_group, no memory allocation
     if (!mysampling.SL.isSymmetryGroup(fn_sym, symmetry, sym_order))
@@ -368,7 +369,7 @@ void ProgAngularProjectLibrary::run()
                          mysampling.no_redundant_sampling_points_angles.size()-1,verbose);
 
     //only rank 0 create sel file
-    MetaData  mySFin, mySFout;
+    MetaDataVec  mySFin, mySFout;
     FileName fn_temp;
     mySFin.read(output_file_root+"_angles.doc");
     size_t myCounter=0;
@@ -376,16 +377,16 @@ void ProgAngularProjectLibrary::run()
     int ref;
     for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
     {
-        FOR_ALL_OBJECTS_IN_METADATA(mySFin)
+        for (size_t objId : mySFin.ids())
         {
             double x,y,z, rot, tilt, psi;
-            mySFin.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-            mySFin.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-            mySFin.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-            mySFin.getValue(MDL_X,x,__iter.objId);
-            mySFin.getValue(MDL_Y,y,__iter.objId);
-            mySFin.getValue(MDL_Z,z,__iter.objId);
-            mySFin.getValue(MDL_REF,ref,__iter.objId);
+            mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
+            mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
+            mySFin.getValue(MDL_ANGLE_PSI,psi,objId);
+            mySFin.getValue(MDL_X,x,objId);
+            mySFin.getValue(MDL_Y,y,objId);
+            mySFin.getValue(MDL_Z,z,objId);
+            mySFin.getValue(MDL_REF,ref,objId);
             fn_temp.compose( ++myCounter,output_file);
             id = mySFout.addObject();
             mySFout.setValue(MDL_IMAGE,fn_temp,id);
@@ -432,7 +433,7 @@ void ProgAngularProjectLibrary::createGroupSamplingFiles(void)
     getBlocksInMetaDataFile(fn_groups,blockList);
     FileName fn_temp, fn_exp;
     FileName my_output_file_root;
-    MetaData SFBlock;
+    MetaDataVec SFBlock;
 
     fn_exp = FnexperimentalImages.removeBlockName();
     int igrp=1;

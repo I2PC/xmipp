@@ -23,14 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <string>
-#include <iostream>
-
-#include <core/args.h>
-#include "micrograph.h"
+#include <algorithm>
 #include "normalize.h"
-#include <core/metadata.h>
-#include <core/xmipp_image_generic.h>
+#include "core/transformations.h"
+#include "core/xmipp_image_generic.h"
+#include "filters.h"
 
 /* Normalizations ---------------------------------------------------------- */
 void normalize_OldXmipp(MultidimArray<double> &I)
@@ -61,7 +58,7 @@ void normalize_OldXmipp_decomposition(MultidimArray<double> &I, const MultidimAr
                                     stddevbg);
     I -= avgbg;
     I /= stddevbg;
-    if (mask != NULL)
+    if (mask != nullptr)
         I *= *mask;
     normalize_OldXmipp(I);
 }
@@ -244,6 +241,57 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
     DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n)-avgbg)*istddevbg;
 }
 
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip)
+{
+    std::vector<double> voxel_vector;
+    double maxI, minI;
+    SPEED_UP_temps;
+
+    if (bg_mask.computeMax() == 0)
+    {
+        Image<double> mask;
+        mask() = I;
+        static_cast<void>(EntropySegmentation(mask()));
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask())
+        {
+            if (DIRECT_MULTIDIM_ELEM(mask(), n) == 0)
+                DIRECT_MULTIDIM_ELEM(bg_mask,n) = 1;
+        }
+    }
+    
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
+    {
+        if (DIRECT_MULTIDIM_ELEM(bg_mask, n) == 0)
+            voxel_vector.push_back(DIRECT_MULTIDIM_ELEM(I,n));
+    }
+
+    std::sort(voxel_vector.begin(), voxel_vector.end());
+
+	double medianBg;
+    double p99;
+    double ip99;
+    int idx;
+	I.computeMedian_within_binary_mask(bg_mask, medianBg);
+	idx = (int)(voxel_vector.size() * 0.99);
+    p99 = voxel_vector[idx];
+	ip99 = 1 / p99;
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
+        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip99;
+
+    if (clip)
+    {
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
+            if (DIRECT_MULTIDIM_ELEM(I,n) > 1.3284)
+            {
+                DIRECT_MULTIDIM_ELEM(I,n) = 1.3284;
+            }
+            else if (DIRECT_MULTIDIM_ELEM(I,n) < -1.3284)
+            {
+                DIRECT_MULTIDIM_ELEM(I,n) = -1.3284;
+            }           
+    }
+}
+
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
     double avg=0, stddev, min, max;
@@ -265,7 +313,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     I.checkDimension(2);
 
     // Check if mask is NULL.
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	Npoints = I.xdim*I.ydim;
     }
@@ -277,7 +325,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
 
     // Fit a least squares plane through the background pixels
     I.setXmippOrigin();
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	least_squares_plane_fit_All_Points(I, pA, pB, pC);
     }
@@ -285,7 +333,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     {
         int idx=0;
     	bg_mask->setXmippOrigin();
-        FitPoint *allpoints=new FitPoint[Npoints];
+        auto *allpoints=new FitPoint[Npoints];
 
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
         {
@@ -306,7 +354,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     // Subtract the plane from the image and compute stddev within mask
     double sum1 = 0;
     double sum2 = 0;
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
         double *ref;
         for (int i=STARTINGY(I); i<=FINISHINGY(I); i++)
@@ -362,8 +410,8 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
     I.checkDimension(2);
 
     // Fit a least squares plane through the background pixels
-    int Npoints=(int)bg_mask.sum();
-    FitPoint *allpoints=new FitPoint[Npoints];
+    auto Npoints=(int)bg_mask.sum();
+    auto *allpoints=new FitPoint[Npoints];
     I.setXmippOrigin();
 
     // Get initial statistics
@@ -460,6 +508,7 @@ void ProgNormalize::defineParams()
     addParamsLine("                               : does not need background");
     addParamsLine("                               : Similar to Tomography but the average at 0 degrees is used for all images");
     addParamsLine("           NewXmipp2           : I=(I-m(bg))/(m(I)-m(bg))");
+    addParamsLine("           Robust              : I=(I-m(bg))/P95(I)");
     addParamsLine("           Michael             : I=(I-m(bg))/stddev(bg)");
     addParamsLine("           None                   : Used for removing only dust");
     addParamsLine("           Random                 : I=aI+b");
@@ -470,6 +519,7 @@ void ProgNormalize::defineParams()
     addParamsLine(" [--thr_white_dust <swhite=3.5>]  : Remove white dust particles with sigma threshold swhite.");
     addParamsLine(" [--thr_neigh <value=1.2>]        : Sigma threshold for neighbour removal.");
     addParamsLine(" [--prm <a0> <aF> <b0> <bF>]      : Requires --method Random. I=aI+b.");
+    addParamsLine(" [--clip]                         : Requires --method Robust. Constrain maximum values in normalize volume.");
     //    addParamsLine("      requires -method Random;");
     addParamsLine(" [--tiltMask]                     : Apply a mask depending on the tilt");
     addParamsLine("                                  : requires --method Tomography or Tomography0");
@@ -506,6 +556,8 @@ void ProgNormalize::readParams()
         method = NEWXMIPP;
     else if (aux == "NewXmipp2")
         method = NEWXMIPP2;
+    else if (aux ==  "Robust")
+    	method = ROBUST;
     else if (aux == "Michael")
         method = MICHAEL;
     else if (aux == "Random")
@@ -525,6 +577,9 @@ void ProgNormalize::readParams()
 
     // Invert contrast?
     invert_contrast = checkParam("--invert");
+
+    // Constrain values?
+    clip = checkParam("--clip");
 
     // Apply a mask depending on the tilt
     tiltMask = checkParam("--tiltMask");
@@ -565,6 +620,16 @@ void ProgNormalize::readParams()
         }
     }
 
+    if (method == ROBUST)
+    {
+        enable_mask = checkParam("--mask");
+        if (enable_mask)
+        {
+            mask_prm.allowed_data_types = INT_MASK;
+            mask_prm.readParams(this);
+        }
+    }
+
     if (method == RANDOM)
     {
         if (!checkParam("--prm"))
@@ -597,6 +662,9 @@ void ProgNormalize::show()
     case NEWXMIPP2:
         std::cout << "NewXmipp2\n";
         break;
+    case ROBUST:
+    	std::cout << "Robust\n";
+    	break;
     case MICHAEL:
         std::cout << "Michael\n";
         break;
@@ -623,12 +691,12 @@ void ProgNormalize::show()
 
     if (method == NEWXMIPP || method == NEWXMIPP2 ||
         method == NEAR_OLDXMIPP || method == MICHAEL ||
-        method == RAMP || method == NEIGHBOUR)
+        method == RAMP || method == NEIGHBOUR || method == ROBUST)
     {
         std::cout << "Background mode: ";
         switch (background_mode)
         {
-        case NONE :
+        case NOBACKGROUND :
             std::cout << "None\n";
             break;
         case FRAME:
@@ -711,14 +779,14 @@ void ProgNormalize::preProcess()
         FileName fn_img;
         ImageGeneric Ig;
         MetaData * md = getInputMd();
-        FOR_ALL_OBJECTS_IN_METADATA(*md)
+        for (size_t objId: md->ids())
         {
-            md->getValue(image_label, fn_img, __iter.objId);
+            md->getValue(image_label, fn_img, objId);
 
             if (fn_img.empty())
                 break;
 
-            if (!md->getValue(MDL_ANGLE_TILT,tiltTemp,__iter.objId))
+            if (!md->getValue(MDL_ANGLE_TILT,tiltTemp, objId))
             {
                 Ig.readMapped(fn_img);
                 tiltTemp = ABS(Ig.tilt());
@@ -746,6 +814,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         I.readApplyGeo(fnImg, rowIn);
     else
         I.read(fnImg);
+
     I().setXmippOrigin();
 
     MultidimArray<double> &img=I();
@@ -765,7 +834,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
 
         // Instead of IS_INV for images use IS_NOT_INV for masks!
         I.getTransformationMatrix(A);
-        selfApplyGeometry(BSPLINE3, tmp, A, IS_NOT_INV, DONT_WRAP, outside);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3, tmp, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
         dAi(bg_mask,n)=(int)round(dAi(tmp,n));
@@ -816,6 +885,9 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
     case NEWXMIPP2:
         normalize_NewXmipp2(img, bg_mask);
         break;
+    case ROBUST:
+    	normalize_Robust(img, bg_mask, clip);
+    	break;
     case RAMP:
         normalize_ramp(img, &bg_mask);
         break;

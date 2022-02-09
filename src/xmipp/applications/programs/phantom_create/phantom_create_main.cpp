@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/phantom.h>
-#include <core/xmipp_program.h>
+#include "data/phantom.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 class ProgPhantomCreate: public XmippProgram
 {
@@ -41,11 +42,11 @@ protected:
         addUsageLine("Create phantom volume from a feature description file with two Metadatas.");
         addUsageLine("+You may define a mathematical phantom from its geometrical features");
         addUsageLine("+(cubes, cylinders, ...) and translate it into a voxel volume with this program.");
-        addUsageLine("+ File format can be found in this [[http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/FileFormats][link]].");
+        addUsageLine("+ File format can be found in this [[https://web.archive.org/web/20180813105422/http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/FileFormats#Phantom_metadata_file][link]].");
         addExampleLine("xmipp_phantom_create -i phantom.descr -o phantom.vol");
         addExampleLine("++In the following link you can find an example of phantom description file:",false);
         addExampleLine("++",false);
-        addExampleLine("++http://newxmipp.svn.sourceforge.net/viewvc/newxmipp/trunk/testXmipp/input/phantom_descr.descr",false);
+        addExampleLine("++https://web.archive.org/web/20180813105422/http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/FileFormats#Phantom_metadata_file",false);
     }
 
     void readParams()

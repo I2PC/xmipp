@@ -154,7 +154,7 @@ void ProgIDRXrayTomo::preRun()
     fnInterProjsMD.deleteFile();
 
     FileName fnProjs;
-    projMD.getValue(MDL_IMAGE, fnProjs, projMD.firstObject());
+    projMD.getValue(MDL_IMAGE, fnProjs, projMD.firstRowId());
     // We generate the MD of temporary projections to be used for further reconstructions
     interProjMD = projMD;
     interProjMD.replace(MDL_IMAGE, fnProjs.removePrefixNumber(), fnInterProjs);
@@ -219,12 +219,12 @@ void ProgIDRXrayTomo::run()
         size_t imgNo = 1; // Image number
         double meanError = 0.;
 
-        FOR_ALL_OBJECTS_IN_METADATA(projMD)
+        for (size_t objId : projMD.ids())
         {
-            projMD.getValue(MDL_IMAGE , fnProj, __iter.objId);
-            projMD.getValue(MDL_ANGLE_ROT , rot, __iter.objId);
-            projMD.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
-            projMD.getValue(MDL_ANGLE_PSI , psi, __iter.objId);
+            projMD.getValue(MDL_IMAGE , fnProj, objId);
+            projMD.getValue(MDL_ANGLE_ROT , rot, objId);
+            projMD.getValue(MDL_ANGLE_TILT, tilt, objId);
+            projMD.getValue(MDL_ANGLE_PSI , psi, objId);
             proj.setAngles(rot, tilt, psi);
 
             XrayRotateAndProjectVolumeOffCentered(phantom, psf, proj, stdProj, YSIZE(MULTIDIM_ARRAY(phantom.iniVol)),
@@ -295,9 +295,9 @@ void ProgIDRXrayTomo::reconstruct(const FileName &fnProjsMD, const FileName &fnV
 {
     if (reconsMethod == RECONS_TOMO3D)
     {
-        MetaData MD(fnProjsMD);
+        MetaDataVec MD(fnProjsMD);
         FileName fnProjs;
-        MD.getValue(MDL_IMAGE, fnProjs, MD.firstObject());
+        MD.getValue(MDL_IMAGE, fnProjs, MD.firstRowId());
 
         reconsTomo3D(fnInterAngles, fnProjs.removePrefixNumber(), fnVol);
         phantom.read(fnVol);
@@ -325,7 +325,7 @@ int reconsTomo3D(const MetaData& MD, const FileName& fnOut, const String& params
 
     FileName fnProjs;
 
-    MD.getValue(MDL_IMAGE, fnProjs, MD.firstObject());
+    MD.getValue(MDL_IMAGE, fnProjs, MD.firstRowId());
 
     // Projections must be in an MRC stack to be passed
     if ( !(fnProjs.isInStack() && (fnProjs.contains("mrc") || fnProjs.contains("st"))))
@@ -384,7 +384,7 @@ ProgReconsBase * ProgIDRXrayTomo::createReconsProgram(const FileName &input, con
         program->read(arguments);
         return program;
     }
-    return NULL;
+    return nullptr;
 }
 
 

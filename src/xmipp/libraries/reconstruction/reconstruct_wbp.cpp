@@ -24,17 +24,15 @@
  ***************************************************************************/
 
 #include "reconstruct_wbp.h"
-#include <core/metadata_extension.h>
+#include "core/geometry.h"
+#include "core/metadata_extension.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_fft.h"
+#include "data/fourier_projection.h"
+#include "data/mask.h"
+#include "directions.h"
+#include "reconstruction/symmetrize.h"
 
-ProgRecWbp::ProgRecWbp()
-{
-    iter = NULL;
-}
-
-ProgRecWbp::~ProgRecWbp()
-{
-    delete iter;
-}
 
 // Read arguments ==========================================================
 void ProgRecWbp::readParams()
@@ -219,18 +217,15 @@ void ProgRecWbp::produceSideInfo()
 void ProgRecWbp::getAnglesForImage(size_t id, double &rot, double &tilt,
                                    double &psi, double &xoff, double &yoff, bool &flip, double &weight)
 {
-    if (id != BAD_OBJID)
-    {
-        SF.getValue(MDL_ANGLE_ROT, rot, id);
-        SF.getValue(MDL_ANGLE_TILT, tilt, id);
-        SF.getValue(MDL_ANGLE_PSI, psi, id);
-        SF.getValue(MDL_SHIFT_X, xoff, id);
-        SF.getValue(MDL_SHIFT_Y, yoff, id);
-        flip = 0;
-        SF.getValue(MDL_FLIP, flip, id);
-        weight = 1;
-        SF.getValue(MDL_WEIGHT, weight, id);
-    }
+    SF.getValue(MDL_ANGLE_ROT, rot, id);
+    SF.getValue(MDL_ANGLE_TILT, tilt, id);
+    SF.getValue(MDL_ANGLE_PSI, psi, id);
+    SF.getValue(MDL_SHIFT_X, xoff, id);
+    SF.getValue(MDL_SHIFT_Y, yoff, id);
+    flip = 0;
+    SF.getValue(MDL_FLIP, flip, id);
+    weight = 1;
+    SF.getValue(MDL_WEIGHT, weight, id);
 }
 
 void ProgRecWbp::getSampledMatrices(MetaData &SF)
@@ -239,6 +234,8 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     Matrix2D<double> A(3, 3);
     Matrix2D<double> L(4, 4), R(4, 4);
     double newrot, newtilt, newpsi, rot, tilt, dum, weight, totimgs = 0.;
+    rot = 0;
+    tilt = 0;
     bool dumB;
     std::vector<double> count_imgs;
 
@@ -252,10 +249,10 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     count_imgs.resize(NN);
     // Each experimental image contributes to the nearest of these directions
     FileName fn_img;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE, fn_img, __iter.objId);
-        getAnglesForImage(__iter.objId, rot, tilt, dum, dum, dum, dumB, weight);
+        SF.getValue(MDL_IMAGE, fn_img, objId);
+        getAnglesForImage(objId, rot, tilt, dum, dum, dum, dumB, weight);
         int idx = find_nearest_direction(rot, tilt, rotList, tiltList, SL, L,
                                          R);
         if (do_weights)
@@ -276,7 +273,7 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     no_mats = 0;
     for (size_t i = 0; i < NN; i++)
     {
-        int count_i = (int)count_imgs[i];
+        auto count_i = (int)count_imgs[i];
         if (count_i > 0)
         {
             Euler_angles2matrix(rotList[i], -tiltList[i], 0.0, A);
@@ -323,10 +320,10 @@ void ProgRecWbp::getAllMatrices(MetaData &SF)
     mat_g = (WBPInfo*) malloc(NN * sizeof(WBPInfo));
     FileName fn_img;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE, fn_img, __iter.objId);
-        getAnglesForImage(__iter.objId, rot, tilt, psi, dum, dum, dumB, weight);
+        SF.getValue(MDL_IMAGE, fn_img, objId);
+        getAnglesForImage(objId, rot, tilt, psi, dum, dum, dumB, weight);
         Euler_angles2matrix(rot, -tilt, psi, A);
         mat_g[no_mats].x = MAT_ELEM(A, 2, 0);
         mat_g[no_mats].y = MAT_ELEM(A, 2, 1);
@@ -494,16 +491,20 @@ void ProgRecWbp::filterOneImage(Projection &proj, Tabsinc &TSINC)
     InverseFourierTransform(IMG, proj());
 }
 
-bool ProgRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
+bool ProgRecWbp::getImageToProcess(size_t &objId)
 {
-    if (time_bar_done == 0)
-        iter = new MDIterator(SF);
-    else
-        iter->moveNext();
+    if (time_bar_done == 0) {
+        iter = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(SF.ids().begin()));
+    } else {
+        ++(*iter);
+    }
 
-    ++time_bar_done;
-    objIndex = iter->objIndex;
-    return ((objId = iter->objId) != BAD_OBJID);
+    bool isValid = *iter != SF.ids().end();
+    if (isValid) {
+        ++time_bar_done;
+        objId = **iter;
+    }
+    return isValid;
 }
 
 void ProgRecWbp::showProgress()
@@ -536,8 +537,8 @@ void ProgRecWbp::apply2DFilterArbitraryGeometry()
     mat_f = (WBPInfo*) malloc(no_mats * sizeof(WBPInfo));
     Tabsinc TSINC(0.0001, dim);
 
-    size_t objId, objIndex;
-    while (getImageToProcess(objId, objIndex))
+    size_t objId;
+    while (getImageToProcess(objId))
     {
         SF.getValue(MDL_IMAGE, fn_img, objId);
         proj.read(fn_img, false);
@@ -550,7 +551,7 @@ void ProgRecWbp::apply2DFilterArbitraryGeometry()
         proj.setWeight(weight);
         proj.getTransformationMatrix(A, true);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, proj(), A, IS_INV, WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, proj(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
         if (do_weights)
             proj() *= proj.weight();
         proj().setXmippOrigin();

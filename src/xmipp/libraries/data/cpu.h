@@ -29,7 +29,11 @@
 #include <thread>
 #include <unistd.h>
 #include "hw.h"
+#include "core/xmipp_error.h"
 
+/**@defgroup CPU CPU support class
+   @ingroup DataLibrary */
+//@{
 class CPU : public HW {
 public:
     CPU(unsigned cores=1) : HW(cores) {}
@@ -43,6 +47,19 @@ public:
 
     void updateMemoryInfo();
 
+    void lockMemory(const void *h_mem, size_t bytes) override {
+        // FIXME DS implement
+    }
+
+    void unlockMemory(const void *h_mem) override {
+        // FIXME DS implement
+    }
+
+    bool isMemoryLocked(const void *h_mem) override {
+        // FIXME DS implement
+        return false;
+    }
+
 protected:
     void obtainUUID();
 
@@ -51,5 +68,5 @@ private:
             unsigned int *ecx, unsigned int *edx);
 };
 
-
+//@}
 #endif /* LIBRARIES_DATA_CPU_H_ */

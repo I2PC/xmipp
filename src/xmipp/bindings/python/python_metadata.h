@@ -27,7 +27,13 @@
 #ifndef _PYTHON_METADATA_H
 #define _PYTHON_METADATA_H
 
+#include "core/metadata_db.h"
+#include "core/metadata_object.h"
 #include "Python.h"
+
+class MDQuery;
+class MDObject;
+extern PyObject * PyXmippError;
 
 //#define MetaData_Check(v)  (((v)->ob_type == &MetaDataType))
 #define MetaData_Check(v)  (((v)->ob_type == &MetaDataType))
@@ -115,8 +121,8 @@ extern PyTypeObject MDQueryType;
 typedef struct
 {
     PyObject_HEAD
-    MetaData * metadata;
-    MDIterator * iter;
+    MetaDataDb * metadata;
+    MetaDataDb::id_iterator * iter;
 }
 MetaDataObject;
 
@@ -180,8 +186,8 @@ PyObject *
 MetaData_repr(PyObject * obj);
 
 /* MetaData compare function */
-int
-MetaData_compare(PyObject * obj, PyObject * obj2);
+PyObject*
+MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
 
 /* read */
 PyObject *

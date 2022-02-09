@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "eq_system_solver.h"
-
+#include "core/linear_system_helper.h"
 
 template void EquationSystemSolver::solve(Matrix1D<float>& bXt,
         Matrix1D<float>& bYt, Matrix2D<float>& At, Matrix1D<float>& shiftXt,
@@ -38,19 +38,21 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
         Matrix1D<T>& shiftYt, int verbosity, int iterations) {
     Matrix1D<double> ex;
     Matrix1D<double> ey;
-    WeightedLeastSquaresHelper helper;
+    WeightedLeastSquaresHelperMany helper;
+    helper.bs.resize(2);
+    std::vector<Matrix1D<double>> shifts(2);
     Matrix2D<double> A;
     Matrix1D<double> bX;
     Matrix1D<double> bY;
-    Matrix1D<double> shiftX;
-    Matrix1D<double> shiftY;
-    typeCast(At, helper.A);
+    Matrix1D<double> &shiftX = shifts[0];
+    Matrix1D<double> &shiftY = shifts[1];
+    
     typeCast(bXt, bX);
     typeCast(bYt, bY);
     typeCast(shiftXt, shiftX);
     typeCast(shiftYt, shiftY);
 
-    helper.w.initZeros(VEC_XSIZE(bX));
+    helper.w.resizeNoCopy(VEC_XSIZE(bX));
     helper.w.initConstant(1);
 
     int it = 0;
@@ -62,39 +64,36 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
     bY.computeMeanAndStddev(mean, varbY);
     varbY *= varbY;
     if (verbosity > 1)
-        std::cout << "Solving for the shifts ...\n";
+        std::cout << "Solving equation system ...\n";
     do {
         // Solve the equation system
-        helper.b = bX;
-        weightedLeastSquares(helper, shiftX);
-        helper.b = bY;
-        weightedLeastSquares(helper, shiftY);
-
+        helper.bs[0] = bX;
+        helper.bs[1] = bY;
+        typeCast(At, helper.A);
+        weightedLeastSquares(helper, shifts); // we have updated A, is that OK?
+        
         // Compute residuals
         ex = bX - helper.A * shiftX;
         ey = bY - helper.A * shiftY;
 
         // Compute R2
-        double vareX;
-        ex.computeMeanAndStddev(mean, vareX);
-        vareX *= vareX;
-        double vareY;
-        ey.computeMeanAndStddev(mean, vareY);
-        vareY *= vareY;
-        double R2x = 1 - vareX / varbX;
-        double R2y = 1 - vareY / varbY;
+        double stddeveX;
+        ex.computeMeanAndStddev(mean, stddeveX);
+        double stddeveY;
+        ey.computeMeanAndStddev(mean, stddeveY);
+        double R2x = 1 - (stddeveX * stddeveX) / varbX;
+        double R2y = 1 - (stddeveY * stddeveY) / varbY;
         if (verbosity > 1)
             std::cout << "Iteration " << it << " R2x=" << R2x << " R2y=" << R2y
                     << std::endl;
 
         // Identify outliers
         double oldWeightSum = helper.w.sum();
-        double stddeveX = sqrt(vareX);
-        double stddeveY = sqrt(vareY);
-        FOR_ALL_ELEMENTS_IN_MATRIX1D (ex)
+        FOR_ALL_ELEMENTS_IN_MATRIX1D (ex) {
             if (fabs(VEC_ELEM(ex, i)) > 3 * stddeveX
                     || fabs(VEC_ELEM(ey, i)) > 3 * stddeveY)
                 VEC_ELEM(helper.w, i) = 0.0;
+        }
         double newWeightSum = helper.w.sum();
         if ((newWeightSum == oldWeightSum) && (verbosity > 1)){
             std::cout << "No outlier found\n\n";

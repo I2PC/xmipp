@@ -25,16 +25,15 @@
  ***************************************************************************/
 
 #include "ctf_estimate_from_micrograph.h"
-#include "ctf_enhance_psd.h" //Al final hay una funcion que lo necesita. Pero es necesaria?
-
-#include <core/args.h>
-#include <data/micrograph.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_threads.h>
-#include <data/basic_pca.h>
-#include <data/normalize.h>
+#include "ctf_enhance_psd.h"
+#include "core/xmipp_fftw.h"
+#include "core/metadata_extension.h"
+#include "core/transformations.h"
+#include "core/xmipp_threads.h"
+#include "core/xmipp_image_generic.h"
+#include "data/basic_pca.h"
+#include "data/normalize.h"
+#include "data/numerical_tools.h"
 
 /* Read parameters ========================================================= */
 ProgCTFEstimateFromMicrograph::ProgCTFEstimateFromMicrograph()
@@ -83,8 +82,7 @@ void ProgCTFEstimateFromMicrograph::readParams()
     	if (!acceleration1D)
     		prmEstimateCTFFromPSD.readBasicParams(this);
     	else
-    		prmEstimateCTFFromPSDFast.readBasicParams(this); //Nuevo
-
+    		prmEstimateCTFFromPSDFast.readBasicParams(this);
     }
 
     bootstrapN = getIntParam("--bootstrapFit");
@@ -129,6 +127,7 @@ void ProgCTFEstimateFromMicrograph::defineParams()
     addParamsLine("  [--acceleration1D]          : Accelerate PSD estimation");
     ARMA_parameters::defineParams(this);
     ProgCTFEstimateFromPSD::defineBasicParams(this);
+    ProgCTFBasicParams::defineBasicParams(this);
     addExampleLine("Estimate PSD", false);
     addExampleLine("xmipp_ctf_estimate_from_micrograph --micrograph micrograph.mrc --dont_estimate_ctf");
     addExampleLine("Estimate a single CTF for the whole micrograph", false);
@@ -270,7 +269,7 @@ void ProgCTFEstimateFromMicrograph::PSD_piece_by_averaging(
 #endif
 
     CenterFFT(psd, true);
-    selfScaleToSize(BSPLINE3, psd, YSIZE(piece), XSIZE(piece));
+    selfScaleToSize(xmipp_transformation::BSPLINE3, psd, YSIZE(piece), XSIZE(piece));
     CenterFFT(psd, false);
     psd.threshold("below", 0, 0);
 
@@ -291,10 +290,10 @@ void ProgCTFEstimateFromMicrograph::run()
 {
     // Open input files -----------------------------------------------------
     // Open coordinates
-    MetaData posFile;
+    MetaDataVec posFile;
     if (fn_pos != "")
         posFile.read(fn_pos);
-    MDIterator iterPosFile(posFile);
+    auto iterPosFile = posFile.ids().begin();
 
     // Open the micrograph --------------------------------------------------
     Image<double> M_in;
@@ -361,7 +360,6 @@ void ProgCTFEstimateFromMicrograph::run()
     	fn_psd.deleteFile();
     if (fileExists(fn_root+".ctfparam"))
     	FileName(fn_root+".ctfparam").deleteFile();
-    printf("FileName = %s \n",fn_psd.c_str());
 
     if (verbose)
         init_progress_bar(div_Number);
@@ -383,8 +381,8 @@ void ProgCTFEstimateFromMicrograph::run()
         	if (psd_mode == OnePerParticle)
         	{
         		// Read position of the particle
-        		posFile.getValue(MDL_X, piecej, iterPosFile.objId);
-        		posFile.getValue(MDL_Y, piecei, iterPosFile.objId);
+        		posFile.getValue(MDL_X, piecej, *iterPosFile);
+        		posFile.getValue(MDL_Y, piecei, *iterPosFile);
 
         		// j,i are the selfWindow center, we need the top-left corner
         		piecej -= (int) (pieceDim / 2);
@@ -507,7 +505,7 @@ void ProgCTFEstimateFromMicrograph::run()
         			fn_psd_piece.compose(N, fn_psd);
         			psd.write(fn_psd_piece);
         			if (psd_mode == OnePerParticle)
-        				posFile.setValue(MDL_PSD, fn_psd_piece, iterPosFile.objId);
+        				posFile.setValue(MDL_PSD, fn_psd_piece, *iterPosFile);
         			if (estimate_ctf)
         			{
         				// Estimate the CTF parameters of this piece
@@ -547,7 +545,7 @@ void ProgCTFEstimateFromMicrograph::run()
         				if (psd_mode == OnePerParticle)
         					posFile.setValue(MDL_CTF_MODEL,
         							fn_psd_piece.withoutExtension() + ".ctfparam",
-        							iterPosFile.objId);
+        							*iterPosFile);
         			}
         		}
         	}
@@ -556,7 +554,7 @@ void ProgCTFEstimateFromMicrograph::run()
         	if (verbose)
         		progress_bar(N);
         	if (psd_mode == OnePerParticle)
-        		iterPosFile.moveNext();
+        		++iterPosFile;
         }
 
         init_progress_bar(div_Number);
@@ -568,7 +566,6 @@ void ProgCTFEstimateFromMicrograph::run()
     // If averaging, compute the CTF model ----------------------------------  //Program execution
     if (psd_mode == OnePerMicrograph)
     {
-
         // Compute the avg and stddev of the local PSDs
         const MultidimArray<double> &mpsd_std = psd_std();
         const MultidimArray<double> &mpsd_avg = psd_avg();
@@ -593,7 +590,7 @@ void ProgCTFEstimateFromMicrograph::run()
             prmEstimateCTFFromPSD.fn_psd = fn_psd;
             prmEstimateCTFFromPSDFast.fn_psd = fn_psd;
 			CTFDescription ctfmodel;
-			CTFDescription1D ctf1Dmodel; //Nuevo
+			CTFDescription1D ctf1Dmodel;
 
             if (bootstrapN == -1)
             {
@@ -608,7 +605,7 @@ void ProgCTFEstimateFromMicrograph::run()
                 	if (xe.__errno==ERR_NUMERICAL)
                 		REPORT_ERROR(ERR_NUMERICAL,"There is no variance in the PSD, check that the micrograph is not constant");
                 	else
-                		throw(xe);
+                		throw xe;
                 }
 
 #ifdef DEBUG
@@ -638,24 +635,23 @@ void ProgCTFEstimateFromMicrograph::run()
                     psign += "+";
                 double zrandomness = checkRandomness(psign);
 
-				if(!acceleration1D)
+				if (!acceleration1D)
 				{
-                ctfmodel.isLocalCTF = false;
-                ctfmodel.x0 = 0;
-                ctfmodel.xF = (Xdim-1);
-                ctfmodel.y0 = 0;
-                ctfmodel.yF = (Ydim-1);
-                ROUT_Adjust_CTF(prmEstimateCTFFromPSD,ctfmodel, false);
+					ctfmodel.isLocalCTF = false;
+					ctfmodel.x0 = 0;
+					ctfmodel.xF = (Xdim-1);
+					ctfmodel.y0 = 0;
+					ctfmodel.yF = (Ydim-1);
+					ROUT_Adjust_CTF(prmEstimateCTFFromPSD,ctfmodel, false);
 				}
 				else
 				{
-				std::cout << "1D acceleration" << std::endl;
-                ctf1Dmodel.isLocalCTF = false;
-				ctf1Dmodel.x0 = 0;
-				ctf1Dmodel.xF = (Xdim-1);
-				ctf1Dmodel.y0 = 0;
-				ctf1Dmodel.yF = (Ydim-1);
-                ROUT_Adjust_CTFFast(prmEstimateCTFFromPSDFast,ctf1Dmodel, false);
+					ctf1Dmodel.isLocalCTF = false;
+					ctf1Dmodel.x0 = 0;
+					ctf1Dmodel.xF = (Xdim-1);
+					ctf1Dmodel.y0 = 0;
+					ctf1Dmodel.yF = (Ydim-1);
+					ROUT_Adjust_CTFFast(prmEstimateCTFFromPSDFast,ctf1Dmodel, false);
 				}
                 // Evaluate PSD variance and write into the CTF
                 double stdQ = 0;
@@ -663,9 +659,9 @@ void ProgCTFEstimateFromMicrograph::run()
                 stdQ += A2D_ELEM(mpsd_std,i,j)/A2D_ELEM(mpsd_avg,i,j);
                 stdQ /= MULTIDIM_SIZE(psd_std());
 
-                MetaData MD;
+                MetaDataVec MD;
                 MD.read(fn_psd.withoutExtension() + ".ctfparam");
-                size_t id = MD.firstObject();
+                size_t id = MD.firstRowId();
                 MD.setValue(MDL_CTF_CRIT_PSDVARIANCE, stdQ, id);
                 MD.setValue(MDL_CTF_CRIT_PSDPCA1VARIANCE, pstd, id);
                 MD.setValue(MDL_CTF_CRIT_PSDPCARUNSTEST, zrandomness, id);
@@ -674,7 +670,6 @@ void ProgCTFEstimateFromMicrograph::run()
             else
             {
                 // If bootstrapping
-
                 prmEstimateCTFFromPSD.bootstrap = true;
                 prmEstimateCTFFromPSD.show_optimization = true;
                 if (!acceleration1D)
@@ -812,14 +807,14 @@ void ProgCTFEstimateFromMicrograph::run()
         double pV0 = 0, pV1 = 0, pV2 = 0;
         planeFit(defocusPlanefittingV, Xm, Ym, pV0, pV1, pV2);
 
-        MetaData MDctf;
+        MetaDataVec MDctf;
         MDctf.read(fn_root+".ctfparam");
         double Tm, downsampling;
-        size_t id=MDctf.firstObject();
+        size_t id=MDctf.firstRowId();
         MDctf.getValue(MDL_CTF_SAMPLING_RATE,Tm,id);
         MDctf.getValue(MDL_CTF_DOWNSAMPLE_PERFORMED,downsampling,id);
 
-        MetaData MD;
+        MetaDataVec MD;
         MD.setColumnFormat(false);
         id = MD.addObject();
         MD.setValue(MDL_CTF_DEFOCUS_PLANEUA, pU1, id);
@@ -838,21 +833,20 @@ void ProgCTFEstimateFromMicrograph::run()
         {
             FileName fn_img, fn_psd_piece, fn_ctfparam_piece;
             int Y, X;
-            FOR_ALL_OBJECTS_IN_METADATA(posFile)
+            for (size_t objId : posFile.ids())
             {
-                posFile.getValue(MDL_IMAGE, fn_img, __iter.objId);
-                posFile.getValue(MDL_X, X, __iter.objId);
-                posFile.getValue(MDL_Y, Y, __iter.objId);
-                int idx_X = (int)floor((double) X / pieceDim);
-                int idx_Y = (int)floor((double) Y / pieceDim);
+                posFile.getValue(MDL_IMAGE, fn_img, objId);
+                posFile.getValue(MDL_X, X, objId);
+                posFile.getValue(MDL_Y, Y, objId);
+                auto idx_X = (int)floor((double) X / pieceDim);
+                auto idx_Y = (int)floor((double) Y / pieceDim);
                 int N = idx_Y * div_NumberX + idx_X + 1;
 
                 fn_psd_piece.compose(N, fn_psd);
                 fn_ctfparam_piece = fn_psd_piece.withoutExtension()
                                     + ".ctfparam";
-                posFile.setValue(MDL_PSD, fn_psd_piece, __iter.objId);
-                posFile.setValue(MDL_CTF_MODEL, fn_ctfparam_piece,
-                                 __iter.objId);
+                posFile.setValue(MDL_PSD, fn_psd_piece, objId);
+                posFile.setValue(MDL_CTF_MODEL, fn_ctfparam_piece, objId);
             }
         }
     }
@@ -872,8 +866,7 @@ public:
 
 void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
 {
-    ThreadFastEstimateEnhancedPSDParams *args =
-        (ThreadFastEstimateEnhancedPSDParams*) thArg.workClass;
+	auto *args = (ThreadFastEstimateEnhancedPSDParams*) thArg.workClass;
     int Nthreads = thArg.getNumberOfThreads();
     int id = thArg.thread_id;
     ImageGeneric &I = *(args->I);
@@ -913,7 +906,7 @@ void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
             transformer.getCompleteFourier(Periodogram);
             FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(localPSD)
             {
-                double *ptr = (double*) &DIRECT_MULTIDIM_ELEM(Periodogram, n);
+            	const auto *ptr = (double*) &DIRECT_MULTIDIM_ELEM(Periodogram, n);
                 double re=*ptr;
                 double im=*(ptr+1);
                 double magnitude2=re*re+im*im;
@@ -974,7 +967,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     args.pieceSmoother = &pieceSmoother;
     args.Nprocessed = 0;
     args.mutex = &mutex;
-    ThreadManager *thMgr = new ThreadManager(numberOfThreads, &args);
+    auto thMgr = std::unique_ptr<ThreadManager>(std::make_unique<ThreadManager>(numberOfThreads, &args));
     thMgr->run(threadFastEstimateEnhancedPSD);
     if (args.Nprocessed != 0)
         *(args.PSD) /= args.Nprocessed;
@@ -989,7 +982,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     prog2.applyFilter(*(args.PSD));
     enhancedPSD = *(args.PSD);
 
-    int downXdim = (int) (XSIZE(enhancedPSD) / downsampling);
+    auto downXdim = (int) ((double)XSIZE(enhancedPSD) / downsampling);
     int firstIndex = FIRST_XMIPP_INDEX(downXdim);
     int lastIndex = LAST_XMIPP_INDEX(downXdim);
     enhancedPSD.setXmippOrigin();

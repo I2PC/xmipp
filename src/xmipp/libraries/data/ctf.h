@@ -26,10 +26,17 @@
 #ifndef _CORE_CTF_HH
 #define _CORE_CTF_HH
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_filename.h>
-#include <core/metadata.h>
-#include <core/xmipp_fft.h>
+#include <complex>
+#include "core/metadata_db.h"
+#include "core/numerical_recipes.h"
+#include "core/xmipp_fft.h"
+#include "core/xmipp_macros.h"
+
+template<typename T>
+class MultidimArray;
+template<typename T>
+class Matrix1D;
+class XmippProgram;
 
 const int CTF_BASIC_LABELS_SIZE = 5;
 const MDLabel CTF_BASIC_LABELS[] =
@@ -66,7 +73,7 @@ bool containsCTFBasicLabels(const MetaData &md);
  * Raise error if neither CTF_MODEL or ALL CTF_BASIC_LABELS are found
  * in input images metadata.
  * */
-void groupCTFMetaData(const MetaData &imgMd, MetaData &ctfMd, std::vector<MDLabel> &groupbyLabels);
+void groupCTFMetaData(const MetaDataDb &imgMd, MetaDataDb &ctfMd, std::vector<MDLabel> &groupbyLabels);
 
 /**@defgroup CTFSupport CTF support classes
    @ingroup DataLibrary */
@@ -200,11 +207,10 @@ int main(int argc, char **argv)
 */
 
 /////////////////////////////////CTF1D///////////////////////////////////////////
-
 class CTFDescription1D
 {
 public:
-	// Electron wavelength (Amstrongs)
+	// Electron wavelength (Angstroms)
 	double lambda;
 	// Squared frequency associated to the aperture
 	// double ua2;
@@ -219,7 +225,7 @@ public:
 	double Ksin;
 	double Kcos;
 	/** Standard error of defocus Gaussian function due to chromatic aberration.
-		in Amstrong */
+		in Angstroms */
 	double D;
 	// Precomputed values
 	PrecomputedForCTF precomputed;
@@ -441,7 +447,7 @@ public:
 	 /// Compute CTF pure at (U,V). Continuous frequencies
 	inline double getValuePureAt(bool show = false) const
 	{
-		double VPP;
+		double VPP=0.0;
 		double check_VPP = round(VPP_radius*1000);
 		if(check_VPP != 0)
 			VPP = -phase_shift*(1-exp(-precomputed.u2/(2*pow(VPP_radius,2.0))));
@@ -468,14 +474,14 @@ public:
 			<< " " << precomputed.u4 << std::endl;
 			std::cout << "   K1,K2,argument=" << K1 << " " << K2 << " " << argument << std::endl;
 			std::cout << "   K3,Eespr=" << K3 << " " << Eespr << std::endl;
-			std::cout << "   K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
+			//std::cout << "   K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
 			std::cout << "   K5,EdeltaF=" << K5 << " " << EdeltaF << std::endl;
 			std::cout << "   EdeltaR=" << EdeltaR << std::endl;
 			std::cout << "   K6,K7,Ealpha=" << K6 << " " << K7 << " " << Ealpha
 			<< std::endl;
 			std::cout << "   Total atenuation(E)= " << E << std::endl;
 			std::cout << "   K,Q0,base_line=" << K << "," << Q0 << "," << base_line << std::endl;
-			std::cout << "   VPP=" << VPP << std::endl;
+			std::cout << "   VPP=" << VPP << " VPPRadius=" << VPP_radius << " phase shift=" << phase_shift << std::endl;
 			std::cout << "   CTF="
 			<< -K*(Ksin*sine_part - Kcos*cosine_part)*E << std::endl;
 		}
@@ -628,6 +634,12 @@ public:
 
 	/// Apply CTF to an image
 	void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray<double> &I, double Ts);
 
 	/** Generate CTF image.
 		The sample image is used only to take its dimensions. */
@@ -1082,7 +1094,7 @@ public:
             std::cout << " K1,K2,sin=" << K1 << " " << K2 << " "
             << sine_part << std::endl;
             std::cout << " K3,Eespr=" << K3 << " " << Eespr << std::endl;
-            std::cout << " K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
+            //std::cout << " K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
             std::cout << " K5,EdeltaF=" << K5 << " " << EdeltaF << std::endl;
             std::cout << " EdeltaR=" << EdeltaR << std::endl;
             std::cout << " K6,K7,Ealpha=" << K6 << " " << K7 << " " << Ealpha
@@ -1191,6 +1203,12 @@ public:
     /// Apply CTF to an image
     void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
 
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray<double> &I, double Ts);
+
     /** Generate CTF image.
         The sample image is used only to take its dimensions. */
     template <class T1, class T2>
@@ -1243,7 +1261,7 @@ public:
 				A2D_ELEM(CTF, i, j) = (T) getValueAt();
 				#ifdef DEBUG
 						if (i == 0)
-							std::cout << i << " " << j << " " << YY(freq) << " " << XX(freq)
+							std::cout << i << " " << j << " " << fy << " " << fx
 							<< " " << CTF(i, j) << std::endl;
 				#endif
         	}

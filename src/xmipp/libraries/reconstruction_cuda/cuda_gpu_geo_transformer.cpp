@@ -186,7 +186,11 @@ void GeoTransformer<T>::applyBSplineTransform(
     checkRestrictions(3, output, input, coeffs, imageIdx);
 
     setOutputSize(output);
-    produceAndLoadCoeffs(input);
+    if ( splineDegree > 1 ) {
+        produceAndLoadCoeffs(input);
+    } else {
+        gpuErrchk( cudaMemcpy(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice) );
+    }
 
     loadCoefficients(coeffs.first, coeffs.second);
 
@@ -200,6 +204,13 @@ void GeoTransformer<T>::applyBSplineTransform(
     T tPos = imageIdx / hT;
 
     switch (splineDegree) {
+    case 1:
+        applyLocalShiftGeometryKernelMorePixels<T, 1, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
+                d_out, (int)inX, (int)inY, (int)inN,
+                d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
+                hX, hY, tPos);
+            gpuErrchk(cudaPeekAtLastError());
+        break;
     case 3:
         applyLocalShiftGeometryKernelMorePixels<T, 3, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
                 d_out, (int)inX, (int)inY, (int)inN,

@@ -23,12 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "validation_nontilt.h"
-#include <cstdlib>      // std::rand, std::srand
-#include <ctime>        // std::time
 #include <algorithm>
-#include "data/sampling.h"
-
+#include <random>
+#include "validation_nontilt.h"
+#include "core/xmipp_funcs.h"
+#include "core/symmetries.h"
+#include "core/metadata_sql.h"
 
 ProgValidationNonTilt::ProgValidationNonTilt()
 {
@@ -61,8 +61,8 @@ void ProgValidationNonTilt::run()
 {
     //Clustering Tendency and Cluster Validity Stephen D. Scott
     randomize_random_generator();
-    MetaData md,mdGallery,mdOut,mdOut2,mdSort;
-    MDRow row;
+    MetaDataDb md,mdGallery,mdOut,mdOut2,mdSort;
+    MDRowVec row;
 
     FileName fnOut,fnOut2, fnGallery;
     fnOut = fnDir+"/clusteringTendency.xmd";
@@ -85,7 +85,7 @@ void ProgValidationNonTilt::run()
     }
 
     String expression;
-    MDRow rowP,row2;
+    MDRowVec rowP,row2;
     SymList SL;
     int symmetry, sym_order;
     SL.readSymmetryFile(fnSym.c_str());
@@ -100,7 +100,7 @@ void ProgValidationNonTilt::run()
     double validation = 0;
     double num_images = 0;
 
-	MetaData tempMd;
+	MetaDataDb tempMd;
 	std::vector<double> sum_u(nSamplesRandom);
 	double sum_w=0;
 	std::vector<double> H0(nSamplesRandom);
@@ -112,7 +112,7 @@ void ProgValidationNonTilt::run()
 
 	for (size_t idx=0; idx<=maxNImg;idx++)
 	{
-		if ((idx)%Nprocessors==rank)
+		if (idx%Nprocessors==rank)
 		{
 			if (useSignificant)
 				expression = formatString("imageIndex == %lu",idx);
@@ -141,7 +141,7 @@ void ProgValidationNonTilt::run()
 				p.at(j) = H0.at(j)/H.at(j);
 			}
 
-			P /= (nSamplesRandom);
+			P /= nSamplesRandom;
 
 			if (useSignificant)
 				rowP.setValue(MDL_IMAGE_IDX,idx);
@@ -175,7 +175,7 @@ void ProgValidationNonTilt::run()
 				validation += 1.;
 			num_images += 1.;
 		}
-		validation /= (num_images);
+		validation /= num_images;
 
 		row2.setValue(MDL_IMAGE,fnInit);
 		row2.setValue(MDL_WEIGHT,validation);
@@ -191,11 +191,13 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
     double xRan,yRan,zRan;
     double x,y;
     double sumWRan;
-    double * xRanArray = new double[tempMdSz];
-    double * yRanArray = new double[tempMdSz];
-    double * zRanArray  = new double[tempMdSz];
+    auto * xRanArray = new double[tempMdSz];
+    auto * yRanArray = new double[tempMdSz];
+    auto * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
+    std::random_device rd;
+    std::mt19937 g(rd());
 
     for (size_t n=0; n<sum_u.size(); n++)
     {
@@ -241,7 +243,7 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
             //tempMd.getColumnValues(MDL_WEIGHT, weightV);
             tempMd.getColumnValues(MDL_MAXCC, weightV);
 
-            std::random_shuffle(weightV.begin(), weightV.end());
+            std::shuffle(weightV.begin(), weightV.end(), g);
         }
 
         sumWRan = 0;
@@ -282,7 +284,7 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
     size_t idx = 0;
     while (idx < sum_u.size())
     {
-        std::random_shuffle(sum_u.begin(), sum_u.end());
+        std::shuffle(sum_u.begin(), sum_u.end(), g);
 
         if(sum_u.at(0) != sum_u.at(1))
         {
@@ -297,8 +299,6 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
 
 }
 
-#define _FOR_ALL_OBJECTS_IN_METADATA2(__md) \
-        for(MDIterator __iter2(__md); __iter2.hasNext(); __iter2.moveNext())
 void ProgValidationNonTilt::obtainSumW(const MetaData & tempMd, double & sum_W, std::vector<double> & sum_u, std::vector<double> & H, const double factor)
 {
     double a;
@@ -313,28 +313,28 @@ void ProgValidationNonTilt::obtainSumW(const MetaData & tempMd, double & sum_W, 
     double sumW;
 
     sumW = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(tempMd)
+    for (size_t objId : tempMd.ids())
     {
-        tempMd.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-        tempMd.getValue(MDL_FLIP,mirror,__iter.objId);
+        tempMd.getValue(MDL_ANGLE_ROT,rot,objId);
+        tempMd.getValue(MDL_ANGLE_TILT,tilt,objId);
+        tempMd.getValue(MDL_FLIP,mirror,objId);
         if (mirror == 1)
         	tilt = tilt + 180;
 
-        //tempMd.getValue(MDL_WEIGHT,w,__iter.objId);
-        tempMd.getValue(MDL_MAXCC,w,__iter.objId);
+        //tempMd.getValue(MDL_WEIGHT,w,objId);
+        tempMd.getValue(MDL_MAXCC,w,objId);
         x = sin(tilt*PI/180.)*cos(rot*PI/180.);
         y = sin(tilt*PI/180.)*sin(rot*PI/180.);
         z = std::abs(cos(tilt*PI/180.));
 
         tempW = 1e3;
-        _FOR_ALL_OBJECTS_IN_METADATA2(tempMd)
+        for (size_t objId2 : tempMd.ids())
         {
-            tempMd.getValue(MDL_ANGLE_ROT,rot,__iter2.objId);
-            tempMd.getValue(MDL_ANGLE_TILT,tilt,__iter2.objId);
-            //tempMd.getValue(MDL_WEIGHT,w2,__iter2.objId);
-            tempMd.getValue(MDL_MAXCC,w2,__iter2.objId);
-            tempMd.getValue(MDL_FLIP,mirror,__iter2.objId);
+            tempMd.getValue(MDL_ANGLE_ROT,rot,objId2);
+            tempMd.getValue(MDL_ANGLE_TILT,tilt,objId2);
+            //tempMd.getValue(MDL_WEIGHT,w2,objId2);
+            tempMd.getValue(MDL_MAXCC,w2,objId2);
+            tempMd.getValue(MDL_FLIP,mirror,objId2);
             if (mirror == 1)
             	tilt = tilt + 180;
 
@@ -382,15 +382,16 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     double xRan,yRan,zRan;
     size_t indx;
     double sumWRan;
-    double * xRanArray = new double[tempMdSz];
-    double * yRanArray = new double[tempMdSz];
-    double * zRanArray  = new double[tempMdSz];
+    auto * xRanArray = new double[tempMdSz];
+    auto * yRanArray = new double[tempMdSz];
+    auto * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
 
     double rot,tilt;
     bool mirror;
-
+    std::random_device rd;
+    std::mt19937 g(rd());
     for (size_t n=0; n<sum_u.size(); n++)
     {
         for (size_t nS=0; nS<tempMd.size(); nS++)
@@ -416,7 +417,7 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
             zRanArray[nS] = zRan;
             //tempMd.getColumnValues(MDL_WEIGHT, weightV);
             tempMd.getColumnValues(MDL_MAXCC, weightV);
-            std::random_shuffle(weightV.begin(), weightV.end());
+            std::shuffle(weightV.begin(), weightV.end(), g);
         }
 
 
@@ -457,7 +458,7 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     size_t idx = 0;
     while (idx < sum_u.size())
     {
-        std::random_shuffle(sum_u.begin(), sum_u.end());
+        std::shuffle(sum_u.begin(), sum_u.end(), g);
 
         if(sum_u.at(0) != sum_u.at(1))
         {

@@ -23,19 +23,16 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "reconstruct_art.h"
 #include "art_crystal.h"
-//#include "art_xray.h"
-#include "denoise.h"
-#include <data/fourier_filter.h>
-#include <data/wavelet.h>
 #include <sys/time.h>
 
 
 ProgReconsART::ProgReconsART()
 {
     isMpi = false;
-    artRecons = NULL;
+    artRecons = nullptr;
 }
 ProgReconsART::~ProgReconsART()
 {
@@ -169,7 +166,7 @@ void ProgReconsART::run()
     struct timeval start_time, end_time;
     long int init_usecs, process_usecs, finish_usecs;
 
-    gettimeofday(&start_time, NULL);
+    gettimeofday(&start_time, nullptr);
 
     show();
     // Produce side information and initial volume
@@ -183,21 +180,21 @@ void ProgReconsART::run()
     // Show parameters and initiate history
     artRecons->initHistory(vol_basis);
 
-    gettimeofday(&end_time, NULL);
+    gettimeofday(&end_time, nullptr);
 
     init_usecs = (end_time.tv_sec-start_time.tv_sec)*1000000+(end_time.tv_usec-start_time.tv_usec);
 
-    gettimeofday(&start_time,NULL);
+    gettimeofday(&start_time,nullptr);
 
     // Iterations
     artRecons->iterations(vol_basis);
 
 
-    gettimeofday(&end_time,NULL);
+    gettimeofday(&end_time,nullptr);
 
     process_usecs = (end_time.tv_sec-start_time.tv_sec)*1000000+(end_time.tv_usec-start_time.tv_usec);
 
-    gettimeofday(&start_time,NULL);
+    gettimeofday(&start_time,nullptr);
 
     // Finish iterations
     artRecons->postProcess(vol_basis);
@@ -221,7 +218,7 @@ void ProgReconsART::run()
         vol_basis.write(artPrm.fn_root+".basis");
     artPrm.fh_hist->close();
 
-    gettimeofday(&end_time,NULL);
+    gettimeofday(&end_time,nullptr);
 
     finish_usecs = (end_time.tv_sec-start_time.tv_sec)*1000000+(end_time.tv_usec-start_time.tv_usec);
 

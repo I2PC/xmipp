@@ -25,13 +25,15 @@
 
 
 #include "program_filter.h"
-#include <data/fourier_filter.h>
+#include "data/fourier_filter.h"
 #include "denoise.h"
 #include "mean_shift.h"
 
 ProgFilter::ProgFilter(){}
 
-ProgFilter::~ProgFilter(){}
+ProgFilter::~ProgFilter(){
+    delete filter;
+}
 
 void ProgFilter::defineParams()
 {
@@ -118,14 +120,13 @@ void ProgFilter::preProcess()
 
 void ProgFilter::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
-    Image<double> img;
-    img.read(fnImg);
+    m_img.read(fnImg);
     if (readCTF)
     {
     	((FourierFilter *)filter)->ctf.readFromMdRow(rowIn);
     	((FourierFilter *)filter)->ctf.produceSideInfo();
-    	((FourierFilter *)filter)->generateMask(img());
+    	((FourierFilter *)filter)->generateMask(m_img());
     }
-    filter->apply(img());
-    img.write(fnImgOut);
+    filter->apply(m_img());
+    m_img.write(fnImgOut);
 }

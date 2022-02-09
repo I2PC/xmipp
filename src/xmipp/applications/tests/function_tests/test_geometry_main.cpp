@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <core/geometry.h>
 #include <data/normalize.h>
+#include "core/transformations.h"
 
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class GeometryTest : public ::testing::Test
@@ -26,7 +27,7 @@ TEST_F(GeometryTest, angles2Matrix2Angles)
 {
     double xrad, yrad, zrad;
 
-    int step = 30;
+    double step = 30;
     int repetitions = std::ceil(360.0 / step);
     for (int _z = 0; _z < repetitions; ++_z)
         for (int _y = 0; _y < repetitions; ++_y)
@@ -166,10 +167,4 @@ TEST_F( GeometryTest, normalize_ramp)
     img.selfABS();
     EXPECT_NEAR(img.sum(),0,XMIPP_EQUAL_ACCURACY);
     XMIPP_CATCH
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

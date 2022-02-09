@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_fourierprojector.h"
 #include "python_image.h"
+#include "data/fourier_projection.h"
 
 /***************************************************************/
 /*                            FourierProjector                         */
@@ -35,14 +36,13 @@
  {
     { "projectVolume", (PyCFunction) FourierProjector_projectVolume,
       METH_VARARGS, "projects Volume" },
-    { NULL } /* Sentinel */
+    { nullptr } /* Sentinel */
  };//FourierProjector_methods
 
  /*FourierProjector Type */
  PyTypeObject FourierProjectorType =
  {
-     PyObject_HEAD_INIT(NULL)
-     0, /*ob_size*/
+     PyObject_HEAD_INIT(nullptr)
      "xmipp.FourierProjector", /*tp_name*/
      sizeof(FourierProjectorObject), /*tp_basicsize*/
      0, /*tp_itemsize*/
@@ -88,12 +88,12 @@
  FourierProjector_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
  {
 
-     FourierProjectorObject *self = (FourierProjectorObject*) type->tp_alloc(type, 0);
+     auto *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
      XMIPP_TRY
 
-     if (self != NULL)
+     if (self != nullptr)
      {
-         PyObject *image = NULL;
+         PyObject *image = nullptr;
          double padding_factor, max_freq, spline_degree;
          padding_factor = 2;
          max_freq = 0.5;
@@ -104,13 +104,13 @@
         	 MultidimArray<double> *pdata;
         	 Image_Value(image).data->getMultidimArrayPointer(pdata);
         	 pdata->setXmippOrigin();
-        	 self->fourier_projector = new FourierProjector(*(pdata), padding_factor, max_freq, spline_degree);
+        	 self->fourier_projector = new FourierProjector(*pdata, padding_factor, max_freq, spline_degree);
 
          }
      }
      XMIPP_CATCH
 
-     return (PyObject *) self;
+     return (PyObject *)self;
  }
 
  /* Destructor */
@@ -118,17 +118,17 @@
  {
      delete self->fourier_projector;
      //delete self->dims;
-     self->ob_type->tp_free((PyObject*) self);
+     Py_TYPE(self)->tp_free((PyObject*)self);
  }
 
 /* projectVolume */
 
 PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-      FourierProjectorObject *self = (FourierProjectorObject*) obj;
+      auto *self = (FourierProjectorObject*) obj;
       double rot, tilt, psi;
-      PyObject *projection_image = NULL;
-      if (self != NULL && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))
+      PyObject *projection_image = nullptr;
+      if (self != nullptr && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))
       {
           try
           {

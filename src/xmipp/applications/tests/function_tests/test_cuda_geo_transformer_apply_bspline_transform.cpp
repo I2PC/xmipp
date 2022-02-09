@@ -96,7 +96,7 @@ public:
     std::mt19937 gen;
 };
 
-TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest);
+TYPED_TEST_SUITE_P(GeoTransformerApplyBSplineTransformTest);
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, ZeroStaysZero) {
     this->x = 256;
@@ -284,7 +284,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, CheckingYdimSizeRestrictio
     ASSERT_THROW( this->run_transformation(), std::invalid_argument );
 }
 
-REGISTER_TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest,
+REGISTER_TYPED_TEST_SUITE_P(GeoTransformerApplyBSplineTransformTest,
     ZeroStaysZero,
     NoChangeIfCoeffsAreZeroWithZeroCoeffs,
     ZeroInputWithNonzeroCoeffsIsZeroOutput,
@@ -300,10 +300,4 @@ REGISTER_TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest,
 );
 
 using ScalarTypes = ::testing::Types< float, double >;
-INSTANTIATE_TYPED_TEST_CASE_P(ScalarTypesInstantiation, GeoTransformerApplyBSplineTransformTest, ScalarTypes);
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+INSTANTIATE_TYPED_TEST_SUITE_P(ScalarTypesInstantiation, GeoTransformerApplyBSplineTransformTest, ScalarTypes);

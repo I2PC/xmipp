@@ -25,11 +25,11 @@
 #ifndef _PROG_VOLUME_PCA
 #define _PROG_VOLUME_PCA
 
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
-#include <data/mask.h>
-#include <data/basic_pca.h>
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "core/metadata_vec.h"
+#include "data/basic_pca.h"
+#include "data/mask.h"
 
 ///@defgroup VolumePCA Volume PCA
 ///@ingroup ReconsLibrary
@@ -56,7 +56,7 @@ public:
     FileName fnOutStack;
 public:
     // Metadata with volumes
-    MetaData mdVols;
+    MetaDataVec mdVols;
 
     // Input volume
     Image<double> V;

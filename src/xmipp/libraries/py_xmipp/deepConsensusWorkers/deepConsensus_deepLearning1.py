@@ -34,8 +34,7 @@ import scipy
 import random
 
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, matthews_corrcoef
-import xmippLib as xmipp
-import pyworkflow.em.metadata as MD
+import xmippLib
 
 import keras
 import tensorflow as tf
@@ -74,6 +73,36 @@ def writeNetShape(netDataPath, shape, nTrue, nModels):
       os.makedirs(netDataPath )
     with open(netInfoFname, "w" ) as f:
         f.write("inputShape: %d %d %d\ninputNTrue: %d\nnModels: %d" % (shape+(nTrue, nModels)))
+
+def writeNetAccuracy(netDataPath, val_acc):
+  '''
+    netDataPath= self._getExtraPath("nnetData")
+  '''
+  netAccFname = os.path.join(os.path.dirname(netDataPath), "netValAcc.txt")
+  os.makedirs(os.path.dirname(netAccFname), exist_ok=True)
+  with open(netAccFname, "w") as f:
+    f.write("val_acc: %f" %val_acc)
+
+def loadANDwriteNetAccuracy(netDataPath, nModels):
+  '''
+      netDataPath= self._getExtraPath("nnetData")
+  '''
+  list_Acc = []
+  for n in range(nModels):
+    checkPointsName = os.path.join(netDataPath, "tfchkpoints_%d"%n)
+    valAccFn = os.path.join(checkPointsName, "netValAcc.txt")
+    with open(valAccFn) as f:
+      line = f.readline()
+      accuracy = float(line.split()[1])
+      list_Acc.append(accuracy)
+
+  mean_acc = np.mean(list_Acc)
+  print('Mean validation accuracy %f of n %d models' %(mean_acc, nModels))
+
+  netMeanAccFname = os.path.join(netDataPath, "netsMeanValAcc.txt")
+  os.makedirs(os.path.dirname(netDataPath), exist_ok=True)
+  with open(netMeanAccFname, "w") as f:
+    f.write("mean_val_acc: %f" % mean_acc)
         
 class DeepTFSupervised(object):
   def __init__(self, numberOfThreads, rootPath, numberOfModels=1, effective_data_size=-1):
@@ -129,9 +158,14 @@ class DeepTFSupervised(object):
     '''
     '''
     if self.numberOfThreads is None:
-      self.session = tf.Session()
+      physical_devices = tf.config.experimental.list_physical_devices('GPU')
+      assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+      config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
+      self.session = tf.Session(config=config)
     else:
-      self.session= tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=self.numberOfThreads))
+      self.session= tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=self.numberOfThreads,
+                                                     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7),
+                                                     allow_soft_placement = True))
     K.set_session(self.session)
     return self.session
 
@@ -169,7 +203,6 @@ class DeepTFSupervised(object):
         self.createNet(dataManagerTrain.shape[0], dataManagerTrain.shape[1], dataManagerTrain.shape[2], effective_data_size,
                        learningRate, l2RegStrength)
 #      print(self.nNetModel.summary())
-      
       print("nEpochs : %.1f --> Epochs: %d.\nTraining begins: Epoch 0/%d"%(nEpochs__, nEpochs, nEpochs))
       sys.stdout.flush()
       cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_acc', verbose=1,
@@ -180,11 +213,16 @@ class DeepTFSupervised(object):
       cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, cooldown=1, 
                  min_lr= learningRate*1e-3, verbose=1) ]
 
-      self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
+      history = self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
                                  validation_data=dataManagerTrain.getValidationIterator( batchesPerEpoch= n_batches_per_epoch_val), 
                                  validation_steps=n_batches_per_epoch_val, callbacks=cBacks, epochs=nEpochs, 
                                  use_multiprocessing=True, verbose=2)
+
+      last_val_acc = history.history['val_acc'][-1]
+      writeNetAccuracy(currentCheckPointName, last_val_acc)
       self.closeSession()
+
+    loadANDwriteNetAccuracy(self.rootPath, self.numberOfModels)
       
       
   def predictNet(self, dataManger):
@@ -311,12 +349,12 @@ class DataManager(object):
     nParticles=0
     shapeParticles=(None, None, 1)
     for fnameXMDF in sorted(dictData):
-      weight= dictData[fnameXMDF]    
-      mdObject  = MD.MetaData(fnameXMDF)
-      I= xmipp.Image()
-      I.read(mdObject.getValue(MD.MDL_IMAGE, mdObject.firstObject()))
+      weight= float(dictData[fnameXMDF] )
+      mdObject  = xmippLib.MetaData(fnameXMDF)
+      I= xmippLib.Image()
+      I.read(mdObject.getValue(xmippLib.MDL_IMAGE, mdObject.firstObject()))
       xdim, ydim= I.getData().shape
-      imgFnames = mdObject.getColumnValues(MD.MDL_IMAGE)
+      imgFnames = mdObject.getColumnValues(xmippLib.MDL_IMAGE)
       mdList+= [mdObject]
       fnamesList_merged+= imgFnames
       tmpShape= (xdim,ydim,1)
@@ -328,9 +366,9 @@ class DataManager(object):
       if weight<=0:
           otherParticlesNum=0
           for fnameXMDF_2 in sorted(dictData):
-              weight_2= dictData[fnameXMDF_2]
+              weight_2= float(dictData[fnameXMDF_2])
               if weight_2>0:
-                  otherParticlesNum+= MD.MetaData(fnameXMDF_2).size()
+                  otherParticlesNum+= xmippLib.MetaData(fnameXMDF_2).size()
           weight= max(1, otherParticlesNum // tmpNumParticles)
       weightsList_merged+= [ weight  for elem in imgFnames]
       nParticles+= tmpNumParticles
@@ -432,12 +470,12 @@ class DataManager(object):
     xdim,ydim,nChann= self.shape
     batchStack = np.zeros((self.batchSize, xdim,ydim,nChann))
     batchLabels  = np.zeros((batchSize, 2))
-    I = xmipp.Image()
+    I = xmippLib.Image()
     n = 0
     for dataSetNum in range(len(self.mdListTrue)):
       mdTrue= self.mdListTrue[dataSetNum]
       for objId in mdTrue:
-        fnImage = mdTrue.getValue(MD.MDL_IMAGE, objId)
+        fnImage = mdTrue.getValue(xmippLib.MDL_IMAGE, objId)
         I.read(fnImage)
         batchStack[n,...]= np.expand_dims(I.getData(),-1)
         batchLabels[n, 1]= 1
@@ -455,7 +493,7 @@ class DataManager(object):
       for dataSetNum in range(len(self.mdListFalse)):
         mdFalse= self.mdListFalse[dataSetNum]
         for objId in mdFalse:
-          fnImage = mdFalse.getValue(MD.MDL_IMAGE, objId)
+          fnImage = mdFalse.getValue(xmippLib.MDL_IMAGE, objId)
           I.read(fnImage)
           batchStack[n,...]= np.expand_dims(I.getData(),-1)
           batchLabels[n, 0]= 1
@@ -496,7 +534,7 @@ class DataManager(object):
     xdim,ydim,nChann= self.shape
     batchStack = np.zeros((self.batchSize, xdim,ydim,nChann))
     batchLabels  = np.zeros((batchSize, 2))
-    I = xmipp.Image()
+    I = xmippLib.Image()
     n = 0
     currNBatches=0
 

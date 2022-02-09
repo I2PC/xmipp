@@ -22,19 +22,14 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <iostream>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <condor/Solver.h>
-#include <condor/tools.h>
-
-#include <core/metadata_extension.h>
-#include "program_extension.h"
 #include "nma_alignment.h"
-
+#include "volume_from_pdb.h"
+#include "core/transformations.h"
+#include "program_extension.h"
+#include "condor/Solver.h"
 
 // Empty constructor =======================================================
-ProgNmaAlignment::ProgNmaAlignment() {
+ProgNmaAlignment::ProgNmaAlignment() : Rerunable("") {
 	rangen = 0;
 	resume = false;
 	currentImgName = "";
@@ -84,9 +79,10 @@ void ProgNmaAlignment::readParams() {
 	XmippMetadataProgram::readParams();
 	fnPDB = getParam("--pdb");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir + "/nmaDone.xmd");
 	fnModeList = getParam("--modes");
 	resume = checkParam("--resume");
-	trustradius_scale = abs(getDoubleParam("--trustradius_scale"));
+	trustradius_scale = std::abs(getDoubleParam("--trustradius_scale"));
 	sampling_rate = getDoubleParam("--sampling_rate");
 	fnmask = getParam("--mask");
 	gaussian_DFT_sigma = getDoubleParam("--gaussian_Fourier");
@@ -128,32 +124,8 @@ void ProgNmaAlignment::show() {
 // Produce side information ================================================
 ProgNmaAlignment *global_nma_prog;
 
-void ProgNmaAlignment::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/nmaDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_NMA);
-		mdDone.addLabel(MDL_COST);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
-
 void ProgNmaAlignment::preProcess() {
-	MetaData SF(fnModeList);
+	MetaDataVec SF(fnModeList);
 	SF.removeDisabled();
 	numberOfModes = SF.size();
 	// Get the size of the images in the selfile
@@ -166,7 +138,7 @@ void ProgNmaAlignment::preProcess() {
 
 void ProgNmaAlignment::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/nmaDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // Create deformed PDB =====================================================
@@ -216,7 +188,7 @@ FileName ProgNmaAlignment::createDeformedPDB(int pyramidLevel) const {
 		Image<double> I;
 		FileName fnDeformed = formatString("%s_deformedPDB.vol",randStr);
 		I.read(fnDeformed);
-		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
 		I.write(fnDeformed);
 	}
 	return fnRandom;
@@ -234,7 +206,7 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 	if (pyramidLevel != 0) {
 		Image<double> I;
 		I.read(currentImgName);
-		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
 		I.write(fnDown);
 	} else
 		copyImage(currentImgName.c_str(), fnDown.c_str());
@@ -273,16 +245,16 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 		String refStkStr = formatString("%s_ref/ref.stk", randStr);
 		program = "xmipp_angular_projection_matching";
 		arguments =	formatString(
-				        "-i %s_downimg.xmp --ref %s -o %s --search5d_step 1 --max_shift %d -v 0",
+				        "-i %s_downimg.xmp --ref %s -o %s --search5d_step 1  --search5d_shift %d -v 0",
 				        randStr, refStkStr.c_str(), fnOut.c_str(), (int)round((double) imgSize / (10.0 * pow(2.0, (double) pyramidLevel))));
 	}
 	runSystem(program, arguments, false);
 	if (projMatch)
 	{
-		MetaData MD;
+		MetaDataVec MD;
 		MD.read(fnOut);
 		bool flip;
-		size_t id=MD.firstObject();
+		size_t id=MD.firstRowId();
 		MD.getValue(MDL_FLIP,flip,id);
 		if (flip)
 		{
@@ -322,9 +294,9 @@ double ProgNmaAlignment::performContinuousAssignment(const FileName &fnRandom,
 	runSystem(program, arguments, false);
 
 	// Pick up results
-	MetaData DF(fnResults);
-	MDRow row;
-	DF.getRow(row, DF.firstObject());
+	MetaDataVec DF(fnResults);
+	MDRowVec row;
+	DF.getRow(row, DF.firstRowId());
 	row.getValue(MDL_ANGLE_ROT, trial(VEC_XSIZE(trial) - 5));
 	row.getValue(MDL_ANGLE_TILT, trial(VEC_XSIZE(trial) - 4));
 	row.getValue(MDL_ANGLE_PSI, trial(VEC_XSIZE(trial) - 3));
@@ -341,7 +313,7 @@ double ProgNmaAlignment::performContinuousAssignment(const FileName &fnRandom,
 	return tempvar;
 }
 
-void ProgNmaAlignment::updateBestFit(double fitness, int dim) {
+void ProgNmaAlignment::updateBestFit(double fitness) {
 	if (fitness < fitness_min(0)) {
 		fitness_min(0) = fitness;
 		trial_best = trial;
@@ -366,7 +338,7 @@ double ObjFunc_nma_alignment::eval(Vector X, int *nerror) {
 		global_nma_prog->performCompleteSearch(fnRandom, pyramidLevelDisc);
 	} else {
 		double rot, tilt, psi, xshift, yshift;
-		MetaData DF;
+		MetaDataVec DF;
 
 		rot = global_nma_prog->bestStage1(
 				VEC_XSIZE(global_nma_prog->bestStage1) - 5);
@@ -397,7 +369,7 @@ double ObjFunc_nma_alignment::eval(Vector X, int *nerror) {
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
 
-	global_nma_prog->updateBestFit(fitness, dim);
+	global_nma_prog->updateBestFit(fitness);
 	return fitness;
 }
 
@@ -511,7 +483,7 @@ void ProgNmaAlignment::processImage(const FileName &fnImg,
 }
 
 void ProgNmaAlignment::writeImageParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);
@@ -531,5 +503,5 @@ void ProgNmaAlignment::writeImageParameters(const FileName &fnImg) {
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_COST, parameters(5 + dim), objId);
 
-	md.append(fnOutDir+"/nmaDone.xmd");
+	md.append(Rerunable::getFileName());
 }
