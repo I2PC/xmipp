@@ -178,7 +178,7 @@ void ProgRecFourierStarPU::prepareConstants(const Params& params, const MetaData
 		Matrix2D<double> Identity(3, 3);
 		Identity.initIdentity();
 		constants.R_symmetries.push_back(Identity);
-		for (size_t i = 1; 1 < params.noOfSymmetries;++i) {
+		for (size_t i = 1; i < params.noOfSymmetries;++i) {
 			auto s = Matrix2D<double>(3, 3);
 			auto m = GenerateMatrix();
 			for (size_t j = 0; j < 9; ++j) { s.mdata[j] = m[j];}
@@ -284,9 +284,22 @@ void ProgRecFourierStarPU::run() {
 
 	// prepareMetaData(fn_in, SF);
 	prepareConstants(params, SF, fn_sym, computeConstants);
+
+	printf("\nRunning Fourier Reconstruction in Xmipp.\nImage size: %d*%d (%lu)\nBatch: %d\nSymmetries: "
+		   "%d\nInterpolation type: %s\nInterpolation coefficient type: %s\n",
+		   computeConstants.paddedImgSize,
+		   computeConstants.paddedImgSize,
+		   params.fakeNoOfImages,
+		   params.batchSize,
+		   params.noOfSymmetries,
+		   params.fastLateBlobbing ? "delayed interpolation" : "immediate interpolation",
+		   params.useTable ? "precomputed table" : "dynamic computation"); fflush(stdout);
+
 	initStarPU();
 
 	SimpleBatchProvider batchProvider(computeBatchCount(params, SF), (bool) verbose);
+
+
 
 	ComputeStarPUResult result = computeStarPU(params, SF, computeConstants, batchProvider, (bool) verbose);
 
