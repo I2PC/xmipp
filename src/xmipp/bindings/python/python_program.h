@@ -80,39 +80,39 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
 /* addUsageLine */
 PyObject *
-Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_addUsageLine(PyObject *obj, PyObject *args);
 
 /* addExampleLine */
 PyObject *
-Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_addExampleLine(PyObject *obj, PyObject *args);
 
 /* addParamsLine */
 PyObject *
-Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_addParamsLine(PyObject *obj, PyObject *args);
 
 /* usage */
 PyObject *
-Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_usage(PyObject *obj, PyObject *args);
 
 /* endDefinition */
 PyObject *
-Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_endDefinition(PyObject *obj);
 
 /* read */
 PyObject *
-Program_read(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_read(PyObject *obj, PyObject *args);
 
 /* checkParam */
 PyObject *
-Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_checkParam(PyObject *obj, PyObject *args);
 
 /* getParam */
 PyObject *
-Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_getParam(PyObject *obj, PyObject *args);
 
 /* getListParam */
 PyObject *
-Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs);
+Program_getListParam(PyObject *obj, PyObject *args);
 
 /* Program methods */
 extern PyMethodDef Program_methods[];

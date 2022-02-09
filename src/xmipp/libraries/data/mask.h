@@ -388,7 +388,7 @@ public:
 #define ALL_KINDS   INT_MASK | DOUBLE_MASK
 
     static void defineParams(XmippProgram * program, int allowed_data_types = ALL_KINDS,
-                             const char* prefix=NULL, const char* comment=NULL, bool moreOptions=false);
+                             const char* prefix=nullptr, const char* comment=nullptr, bool moreOptions=false);
     void readParams(XmippProgram * program);
 
 
@@ -987,17 +987,17 @@ int count_with_mask(const MultidimArray< int >& mask,
     if (A3D_ELEM(mask, k, i, j))
         switch (mode)
         {
-        case (COUNT_ABOVE):
+        case COUNT_ABOVE:
                         if (A3D_ELEM(m, k, i, j) >= th1)
                             N++;
             break;
 
-        case (COUNT_BELOW):
+        case COUNT_BELOW:
                         if (A3D_ELEM(m, k, i, j) <= th1)
                             N++;
             break;
 
-        case (COUNT_BETWEEN):
+        case COUNT_BETWEEN:
                         if (A3D_ELEM(m, k, i, j) >= th1 && A3D_ELEM(m, k, i, j) <= th2)
                             N++;
             break;

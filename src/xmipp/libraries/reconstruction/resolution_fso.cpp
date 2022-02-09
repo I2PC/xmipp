@@ -49,7 +49,7 @@ void ProgFSO::defineParams()
 	addUsageLine("+ calculated at different frequencies (resolutions). Note that this ratio is between 0 (resolution of all directions is worse than the global FSC)");
 	addUsageLine("+ resolution than the global FSC)  and 1 (all directions present better resolution than the FSC) at a given resolution.");
 	addUsageLine("+ In the particular case, FSO curve takes the value of 0.5 (FSO=0.5), then half of the directions are better, and.");
-	addUsageLine("+ the other half are worse than the FSC, this situation occurs at the resoltuion of hte map. It means the FSO = 0.5 at the ");
+	addUsageLine("+ the other half are worse than the FSC, this situation occurs at the resoltuion of the map. It means the FSO = 0.5 at the ");
 	addUsageLine("+ FSC resolution. A map is isotropic if all directional resolution are similar, and anisotropic is there are significant resolution values along");
 	addUsageLine("+ different directions. Thus, when the FSO presents a sharp cliff, a step-like function, the map will be isotropic.");
 	addUsageLine("+ In contrast, when the OFSC shows a slope the map will be anisotropic. The lesser slope the higher resolution isotropy.");
@@ -246,9 +246,9 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		den2 = num;
 
 
-		int ZdimFT1=(int)ZSIZE(FT1);
-		int YdimFT1=(int)YSIZE(FT1);
-		int XdimFT1=(int)XSIZE(FT1);
+		auto ZdimFT1=(int)ZSIZE(FT1);
+		auto YdimFT1=(int)YSIZE(FT1);
+		auto XdimFT1=(int)XSIZE(FT1);
 
 		// fx, fy, fz, defined in the .h are the frequencies of each pixel with frequency
 		// lesser than Nyquist along each axis. They are used to compute the dot product
@@ -281,7 +281,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 						continue;
 					
 					// Index of each frequency
-					int idx = (int) round(f * xvoldim);
+					auto idx = (int) round(f * xvoldim);
 					
 					int idx_count = DIRECT_MULTIDIM_ELEM(cumpos, idx) + DIRECT_MULTIDIM_ELEM(pos, idx); 
 
@@ -373,7 +373,7 @@ void ProgFSO::fscInterpolation(const MultidimArray<double> &freq, const Multidim
 
 void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 				MultidimArray<float> &threeD_FSC, MultidimArray<float> &normalizationMap,
-				double &thrs, double &resol)
+				double &thrs, double &resol, std::vector<Matrix2D<double>> &freqMat, size_t dirnum)
 {
 	// FSCDIR_FAST: computes the directional FSC along a direction given by the angles rot and tilt.
 	// Thus the directional resolution, resol, is estimated with the threshold, thrs.
@@ -405,8 +405,15 @@ void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 	y_dir = sinf(tilt)*sinf(rot);
 	z_dir = cosf(tilt);
 
-	cosAngle = (float) cos(ang_con);
+	// For the Bingham Test
+	Matrix2D<double> T;
+	T.initZeros(3,3);
+	MAT_ELEM(T, 0, 0) = x_dir*x_dir;	MAT_ELEM(T, 0, 1) = x_dir*y_dir;	MAT_ELEM(T, 0, 2) = x_dir*z_dir;
+	MAT_ELEM(T, 1, 0) = y_dir*x_dir;	MAT_ELEM(T, 1, 1) = y_dir*y_dir;	MAT_ELEM(T, 1, 2) = y_dir*z_dir;
+	MAT_ELEM(T, 2, 0) = z_dir*x_dir;	MAT_ELEM(T, 2, 1) = z_dir*y_dir;	MAT_ELEM(T, 2, 2) = z_dir*z_dir;
 
+	cosAngle = (float) cos(ang_con);
+	
 	// It is multiply by 0.5 because later the weight is
 	// cosine = sqrt(exp( -((cosine -1)*(cosine -1))*aux )); 
 	// thus the computation of the weight is speeded up
@@ -447,13 +454,24 @@ void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 
 	fsc.resizeNoCopy(num);
 	fsc.initConstant(1.0);
-
+	
+	MetaDataVec mdOut;
+	
 	//The fsc is stored in a metadata and saved
 	bool flagRes = true;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(num)
 	{
 		double auxfsc = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
 		dAi(fsc,i) = std::max(0.0, auxfsc);
+
+		if (dAi(fsc,i)>=thrs)
+		{
+			freqMat[i] = freqMat[i] + T;
+		}
+		
+		MDRowVec row;
+		row.setValue(MDL_RESOLUTION_FRC, (double) dAi(fsc,i));
+		mdOut.addRow(row);
 
 		if (flagRes && (i>2) && (dAi(fsc,i)<=thrs))
 		{
@@ -462,6 +480,9 @@ void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 			resol = 1./ff;
 		}
 	}
+	FileName auxfn;
+	auxfn = formatString("fscDirection_%i.xmd", dirnum);
+	mdOut.write(auxfn);
 
 	// the 3dfsc is computed and updated
 	if (do_3dfsc_filter)
@@ -480,6 +501,67 @@ void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 			DIRECT_MULTIDIM_ELEM(normalizationMap, n) += w;
 		}
 	}
+}
+
+double ProgFSO::incompleteGammaFunction(double &x)
+{
+	size_t idx;
+	idx = round(2*x);
+	if (idx>40)
+		idx = 40;
+	if (idx<0)
+		idx = 0;
+
+	float val;
+
+	// Table with the values of the incomplete lower gamma function. The set of values of the table can be 
+	// obtained in matlab with the function gammainc(x,5). The implementation of this funcitonis not easy
+	// for that reason, a numerical table was put here.
+	Matrix1D<double> incompgamma;
+	incompgamma.initZeros(41);
+	VEC_ELEM(incompgamma,0) =0.0f;
+	VEC_ELEM(incompgamma,1) =0.00017212f;
+	VEC_ELEM(incompgamma,2) =0.0036598f;
+	VEC_ELEM(incompgamma,3) =0.018576f;
+	VEC_ELEM(incompgamma,4) =0.052653f;
+	VEC_ELEM(incompgamma,5) =0.10882f;
+	VEC_ELEM(incompgamma,6) =0.18474f;
+	VEC_ELEM(incompgamma,7) =0.27456f;
+	VEC_ELEM(incompgamma,8) =0.37116f;
+	VEC_ELEM(incompgamma,9) =0.4679f;
+	VEC_ELEM(incompgamma,10) =0.55951f;
+	VEC_ELEM(incompgamma,11) =0.64248f;
+	VEC_ELEM(incompgamma,12) =0.71494f;
+	VEC_ELEM(incompgamma,13) =0.77633f;
+	VEC_ELEM(incompgamma,14) =0.82701f;
+	VEC_ELEM(incompgamma,15) =0.86794f;
+	VEC_ELEM(incompgamma,16) =0.90037f;
+	VEC_ELEM(incompgamma,17) =0.92564f;
+	VEC_ELEM(incompgamma,18) =0.94504f;
+	VEC_ELEM(incompgamma,19) =0.95974f;
+	VEC_ELEM(incompgamma,20) =0.97075f;
+	VEC_ELEM(incompgamma,21) =0.97891f;
+	VEC_ELEM(incompgamma,22) =0.9849f;
+	VEC_ELEM(incompgamma,23) =0.98925f;
+	VEC_ELEM(incompgamma,24) =0.9924f;
+	VEC_ELEM(incompgamma,25) =0.99465f;
+	VEC_ELEM(incompgamma,26) =0.99626f;
+	VEC_ELEM(incompgamma,27) =0.9974f;
+	VEC_ELEM(incompgamma,28) =0.99819f;
+	VEC_ELEM(incompgamma,29) =0.99875f;
+	VEC_ELEM(incompgamma,30) =0.99914f;
+	VEC_ELEM(incompgamma,31) =0.99941f;
+	VEC_ELEM(incompgamma,32) =0.9996f;
+	VEC_ELEM(incompgamma,33) =0.99973f;
+	VEC_ELEM(incompgamma,34) =0.99982f;
+	VEC_ELEM(incompgamma,35) =0.99988f;
+	VEC_ELEM(incompgamma,36) =0.99992f;
+	VEC_ELEM(incompgamma,37) =0.99994f;
+	VEC_ELEM(incompgamma,38) =0.99996f;
+	VEC_ELEM(incompgamma,39) =0.99997f;
+	VEC_ELEM(incompgamma,40) =0.99998f;
+	val = VEC_ELEM(incompgamma,idx);
+	return val;
 }
 
 
@@ -931,7 +1013,7 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 		mask.read(fnmask);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
 		{
-			double valmask = (double) DIRECT_MULTIDIM_ELEM(pmask, n);
+			auto valmask = (double) DIRECT_MULTIDIM_ELEM(pmask, n);
 			DIRECT_MULTIDIM_ELEM(half1, n) = DIRECT_MULTIDIM_ELEM(half1, n) * valmask;
 			DIRECT_MULTIDIM_ELEM(half2, n) = DIRECT_MULTIDIM_ELEM(half2, n) * valmask;
 		}
@@ -948,7 +1030,7 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 
 void ProgFSO::saveAnisotropyToMetadata(MetaDataVec &mdAnisotropy,
 		const MultidimArray<double> &freq,
-		const MultidimArray<float> &anisotropy)
+		const MultidimArray<float> &anisotropy, const MultidimArray<double> &isotropyMatrix)
 {
 	MDRowVec row;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(anisotropy)
@@ -958,6 +1040,8 @@ void ProgFSO::saveAnisotropyToMetadata(MetaDataVec &mdAnisotropy,
 		row.setValue(MDL_RESOLUTION_FREQ, dAi(freq, i));
 		row.setValue(MDL_RESOLUTION_FSO, static_cast<double>(dAi(anisotropy, i)));
 		row.setValue(MDL_RESOLUTION_FREQREAL, 1.0/dAi(freq, i));
+		
+		row.setValue(MDL_RESOLUTION_ANISOTROPY, incompleteGammaFunction(dAi(isotropyMatrix, i)));
 		mdAnisotropy.addRow(row);
 		}
 	}
@@ -1071,8 +1155,8 @@ void ProgFSO::getCompleteFourier(MultidimArray<double> &V, MultidimArray<double>
 			if (m1sizeY==1)
 				ndim=1;
 		}
-		double *ptrSource=NULL;
-		double *ptrDest=NULL;
+		double *ptrSource=nullptr;
+		double *ptrDest=nullptr;
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(newV)
 		{
 			ptrDest=(double*)&DIRECT_A3D_ELEM(newV,k,i,j);
@@ -1143,8 +1227,8 @@ void ProgFSO::run()
     	ang_con = ang_con*PI/180.0;
 
 		// Preparing the metadata for storing the FSO
-		MultidimArray<double> resDirFSC(angles.mdimx), aniParam;
-    	aniParam.initZeros(xvoldim/2+1);
+		MultidimArray<double> resDirFSC(angles.mdimx);//, aniParam;
+    	//aniParam.initZeros(xvoldim/2+1);
 
 		// Computing directional FSC and 3DFSC
 		// Create one copy for each thread
@@ -1161,6 +1245,22 @@ void ProgFSO::run()
 			ma.initZeros(xvoldim/2+1);
 		}
 
+		// Binham Test
+		// We will have as many vectors as threads
+		// Each thread considers a vector with the matrices of the Bingham test
+		// instantiate vector object of type vector<Matrix2D<float>>
+		std::vector<std::vector<Matrix2D<double>>> isotropyMatrices;
+	
+		// resize the vector to `freq.nzyxdim` elements of type vector<float>, each having size `C`
+		isotropyMatrices.resize(Nthreads, std::vector<Matrix2D<double>>(freq.nzyxdim));
+
+		// Each component of the vector is a 0-matrix (null matrix)
+		for (auto & im : isotropyMatrices)
+		{
+			for (auto & m : im)
+				m.initZeros(3,3);
+		}
+
 		ctpl::thread_pool threadPool;
 		threadPool.resize(Nthreads);
 		auto futures = std::vector<std::future<void>>();
@@ -1169,7 +1269,7 @@ void ProgFSO::run()
     	for (size_t k = 0; k<angles.mdimx; k++)
 		{
 			futures.emplace_back(threadPool.push(
-				[k, this, &resDirFSC, &threeD_FSCs, &normalizationMaps, &aniParams](int thrId){
+				[k, this, &resDirFSC, &threeD_FSCs, &normalizationMaps, &aniParams, &isotropyMatrices](int thrId){
 				float rot  = MAT_ELEM(angles, 0, k);
 				float tilt = MAT_ELEM(angles, 1, k);
 
@@ -1178,8 +1278,9 @@ void ProgFSO::run()
 
 				auto &threeD_FSC = threeD_FSCs.at(thrId);
 				auto &normalizationMap = normalizationMaps.at(thrId);
+				auto &freqMat = isotropyMatrices.at(thrId);
 				// Estimating the direction FSC along the direction given by rot and tilt
-				fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp);
+				fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp, freqMat, k);
 
 				printf ("Direction %zu/%zu -> %.2f A \n", k, angles.mdimx, resInterp);
 
@@ -1202,12 +1303,57 @@ void ProgFSO::run()
 		for (size_t i = 1; i < aniParams.size(); ++i) {
 			aniParams.at(0) += aniParams.at(i);
 		}
+
+		// For the Bingham Test
+		// merge results from multiple threads
+		for (size_t i = 0; i < freq.nzyxdim; ++i) 
+		{
+			for (size_t j = 1; j<Nthreads; ++j)
+			{
+				isotropyMatrices.at(0)[i] += isotropyMatrices.at(j)[i];
+			}
+			isotropyMatrices.at(0)[i] /= aniParams.at(0)[i];
+		}
+
+		//auto &freqMat = isotropyMatrices.at(0);
+		auto &aniParam = aniParams.at(0);
+		MultidimArray<double> isotropyMatrix;
+		isotropyMatrix.initZeros(freq.nzyxdim);
+
+		for (size_t i = 0; i< freq.nzyxdim; ++i)
+		{
+			double trT2 = 0;
+			if (aniParams.at(0)[i] >0)
+			{
+				// Let us define T = 1/n*Sum(wi*xi*xi) => Tr(T^2) = x*x + y*y + z*z;
+				//This is the Bingham Test (1/2)(p-1)*(p-2)*n*Sum(Tr(T^2) - 1/p)
+				//std::cout << isotropyMatrices.at(0)[i] << aniParams.at(0)[i] << std::endl;
+				Matrix2D<double> T2;
+				Matrix2D<double> T;
+				T = isotropyMatrices.at(0)[i];//freqMat[i]/DIRECT_MULTIDIM_ELEM(aniParam, i);
+				T2 = T*T;
+				trT2 = T2.trace();
+				double pdim = 3;
+	//    		std::cout << trT2 << std::endl;
+				dAi(isotropyMatrix, i) = 0.5*pdim*(pdim+2)*(2*aniParams.at(0)[i])*(trT2 - 1./pdim);
+				// The factor 2 is because we need to compute the point in the whole sphere, but currently
+				// we are measuing half of the sphere due to the symmetry of the problem
+				// S = 0.5 * p * (p+2) * n * (trace(T2) - 1/p); Where p is the
+				// dimension of the sphere (p=3) and n the number of points to
+				// determine if they are uniformly or not. T = x*x';
+
+				// The hypohtesis test considers p = 0.05.
+				// p=0.05; nu = 5; x = chi2inv(p,nu);
+			}
+    	}
+
+
     	// ANISOTROPY CURVE
     	aniParams.at(0) /= (double) angles.mdimx;
     	for (size_t k = 0; k<5; k++)
     		DIRECT_MULTIDIM_ELEM(aniParams.at(0), k) = 1.0;
     	MetaDataVec mdani;
-		saveAnisotropyToMetadata(mdani, freq, aniParams.at(0));
+		saveAnisotropyToMetadata(mdani, freq, aniParams.at(0), isotropyMatrix);
 		FileName fn;
 		
 		if (do_3dfsc_filter)
@@ -1234,7 +1380,7 @@ void ProgFSO::run()
 					if (std::isnan(value))
 						value = 1.0;
 
-					if ((DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs) )//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
+					if (DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs)//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
 						DIRECT_MULTIDIM_ELEM(aniFilter, n) = 1;
 
 					size_t idx = DIRECT_MULTIDIM_ELEM(arr2indx, n);

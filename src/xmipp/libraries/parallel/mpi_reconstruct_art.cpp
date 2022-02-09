@@ -451,7 +451,7 @@ void ProgMPIReconsArt::run()
 
                 if (artPrm.parallel_mode == BasicARTParameters::pfSIRT)
                 {
-                    double norm_value = (double) num_img_tot;
+                    auto norm_value = (double) num_img_tot;
                     vol_basis(jj)() = vol_aux2(jj)() + (vol_basis_aux(jj)() / norm_value);
                 }
                 else if (artPrm.parallel_mode == BasicARTParameters::pSIRT)

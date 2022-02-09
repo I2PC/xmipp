@@ -35,9 +35,6 @@
 
 int flagAbort=0;
 
-AutoParticlePicking2::AutoParticlePicking2()
-{}
-
 AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum, int basisPCA,
         const FileName &model_name, const std::vector<MDRowSql> &vMicList)
 {
@@ -88,7 +85,7 @@ AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum
     }
 
     // Initalize the thread to one
-    thread = NULL;
+    thread = nullptr;
 }
 
 // This method is required by the JAVA part.
@@ -246,8 +243,8 @@ void AutoParticlePicking2::extractPositiveInvariant()
     }
     for (int i=0;i<num_part;i++)
     {
-        int x=(int)((m.coord(i).X)*scaleRate);
-        int y=(int)((m.coord(i).Y)*scaleRate);
+    	auto x=(int)((m.coord(i).X)*scaleRate);
+    	auto y=(int)((m.coord(i).Y)*scaleRate);
 
         buildInvariant(IpolarCorr,x,y,1);
         // Keep the particles to train the classifiers
@@ -551,7 +548,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
     MultidimArray<double> featVec, featVecNN;
     std::vector<Particle2> positionArray;
 
-    if (thread == NULL)
+    if (thread == nullptr)
     {
         thread = new FeaturesThread(this);
         thread->start();
@@ -574,7 +571,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
     // Read the SVM model
     //    generateFeatVec(fnmicrograph,proc_prec,positionArray);
     //    classifier.LoadModel(fnSVMModel);
-    int num=(int)(positionArray.size()*(proc_prec/100.0));
+    auto num=(int)(positionArray.size()*(proc_prec/100.0));
     featVec.resize(num_features);
     //    negative_candidates.clear();
 
@@ -586,7 +583,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
         double max=featVec.computeMax();
         double min=featVec.computeMin();
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(featVec)
-        DIRECT_A1D_ELEM(featVec,i)=0+((1)*((DIRECT_A1D_ELEM(featVec,i)-min)/(max-min)));
+        DIRECT_A1D_ELEM(featVec,i)=0+(1*((DIRECT_A1D_ELEM(featVec,i)-min)/(max-min)));
         int j=positionArray[k].x;
         int i=positionArray[k].y;
         label= classifier.predict(featVec, score);
@@ -662,7 +659,7 @@ int AutoParticlePicking2::automaticWithouThread(FileName fnmicrograph, int proc_
 
     generateFeatVec(fnmicrograph,proc_prec,positionArray);
 
-    int num=(int)(positionArray.size()*(proc_prec/100.0));
+    auto num=(int)(positionArray.size()*(proc_prec/100.0));
     featVec.resize(num_features);
     for (int k=0;k<num;k++)
     {
@@ -738,7 +735,7 @@ void AutoParticlePicking2::generateFeatVec(const FileName &fnmicrograph, int pro
     IpolarCorr.initZeros(num_correlation,1,NangSteps,NRsteps);
     buildSearchSpace(positionArray,true);
 
-    int num=(int)(positionArray.size()*(proc_prec/100.0));
+    auto num=(int)(positionArray.size()*(proc_prec/100.0));
     autoFeatVec.resize(num,num_features);
     for (int k=0;k<num;k++)
     {
@@ -1031,7 +1028,7 @@ void AutoParticlePicking2::extractStatics(MultidimArray<double> &inputVec,
     normalize_OldXmipp(inputVec);
     // Sorting the image in order to find the quantiles
     inputVec.sort(sortedVec);
-    int step=(int)floor(XSIZE(sortedVec)*0.1);
+    auto step=(int)floor(XSIZE(sortedVec)*0.1);
     for (int i=2;i<12;i++)
         DIRECT_A1D_ELEM(features,i)=DIRECT_A1D_ELEM(sortedVec,(i-1)*step);
 }
@@ -1318,8 +1315,8 @@ void AutoParticlePicking2::extractPositiveInvariant(const FileName &fnInvariantF
         double cost = mPrev.coord(i).cost;
         if (cost == 0)
             continue;
-        int x=(int)((mPrev.coord(i).X)*scaleRate);
-        int y=(int)((mPrev.coord(i).Y)*scaleRate);
+        auto x=(int)((mPrev.coord(i).X)*scaleRate);
+        auto y=(int)((mPrev.coord(i).Y)*scaleRate);
         buildInvariant(IpolarCorr,x,y,1);
         extractParticle(x,y,microImagePrev(),pieceImage,false);
         II()=pieceImage;
@@ -1707,7 +1704,7 @@ void AutoParticlePicking2::applyConvolution(bool fast)
         avgRotatedLarge=particleAvg;
         for (int deg=3;deg<360;deg+=3)
         {
-            rotate(LINEAR,avgRotated,particleAvg,double(deg));
+            rotate(xmipp_transformation::LINEAR,avgRotated,particleAvg,double(deg));
             avgRotated.setXmippOrigin();
             avgRotatedLarge.setXmippOrigin();
             avgRotatedLarge+=avgRotated;
@@ -1734,7 +1731,7 @@ void AutoParticlePicking2::applyConvolution(bool fast)
         {
             // We first rotate the template and then put it in the big image in order to
             // the convolution
-            rotate(LINEAR,avgRotated,particleAvg,double(deg));
+            rotate(xmipp_transformation::LINEAR,avgRotated,particleAvg,double(deg));
             avgRotatedLarge=avgRotated;
             avgRotatedLarge.setXmippOrigin();
             avgRotatedLarge.selfWindow(FIRST_XMIPP_INDEX(sizeY),FIRST_XMIPP_INDEX(sizeX),

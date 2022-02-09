@@ -120,7 +120,7 @@ public:
         if (x>xmax) return 0;
         else
         {
-            int iaux=(int)round(x*ixstep);
+            auto iaux=(int)round(x*ixstep);
             return DIRECT_A1D_ELEM(v,iaux);
         }
     }
@@ -315,6 +315,9 @@ public:
     /// Empty constructor
     DESolver(int dim, int popSize);
 
+    DESolver(const DESolver &)=delete; // Do not use the default copy constructor
+    DESolver& operator=(const DESolver &)=delete; // Do not use the default copy assignment
+
     /// Destructor
     virtual ~DESolver(void);
 
@@ -340,40 +343,40 @@ public:
     /// Return dimension
     int Dimension() const
     {
-        return (nDim);
+        return nDim;
     }
 
     /// Return population
     int Population() const
     {
-        return (nPop);
+        return nPop;
     }
 
     /// Call these functions after Solve() to get results.
     double Energy() const
     {
-        return (bestEnergy);
+        return bestEnergy;
     }
 
     /// Return best solution
     double* Solution(void)
     {
-        return (bestSolution);
+        return bestSolution;
     }
 
     /// Return the number of generations
     int Generations() const
     {
-        return (generations);
+        return generations;
     }
 
 protected:
     void SelectSamples(int candidate,
                        int* r1,
-                       int* r2 = 0,
-                       int* r3 = 0,
-                       int* r4 = 0,
-                       int* r5 = 0);
+                       int* r2 = nullptr,
+                       int* r3 = nullptr,
+                       int* r4 = nullptr,
+                       int* r5 = nullptr);
 
     int nDim;
     int nPop;
@@ -420,7 +423,7 @@ double checkRandomness(const std::string &sequence);
  * https://en.wikipedia.org/wiki/Table_of_spherical_harmonics#Real_spherical_harmonics.
  * The cartesian coordinates xr, yr and zr are supposed to be normalized between -1 and 1, that is,
  * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1. */
-double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r);
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r);
 
 #ifdef NEVERDEFINED
 /** Spherical harmonics.
@@ -440,11 +443,11 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
  * Given an integer consecutive index (0,1,2,3,...) this function returns the corresponding (n,l,m)
  * for the spherical harmonics basis.
  */
-void spherical_index2lnm(int idx, int &l, int &n, int &m);
+void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int maxl1);
 
 /** Index to Spherical harmonics index.
  * Given the corresponding (n,l,m), this function returns an integer consecutive index (0,1,2,3,...)
  * for the spherical harmonics basis.
  */
-int spherical_lnm2index(int l, int n, int m);
+int spherical_lnm2index(int l1, int n, int l2, int m, int maxl1);
 #endif

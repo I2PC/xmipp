@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:  Roberto Marabini roberto@cnb.csic.es        
+ * Authors:  Roberto Marabini roberto@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  * Lab. de Bioingenieria, Univ. San Pablo CEU
@@ -27,6 +27,6 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/program_image_ssnr.h>
 
-CREATE_MPI_METADATA_PROGRAM(ProgImageSSNR, MpiProgImageSSNR)
+class MpiProgImageSSNR : public BasicMpiMetadataProgram<ProgImageSSNR> {};
 
 RUN_XMIPP_PROGRAM(MpiProgImageSSNR)

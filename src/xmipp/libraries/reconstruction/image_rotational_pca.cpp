@@ -233,7 +233,7 @@ void ProgImageRotationalPCA::flushHBuffer()
 // Apply T ================================================================
 void threadApplyT(ThreadArgument &thArg)
 {
-  ProgImageRotationalPCA *self=(ProgImageRotationalPCA *) thArg.workClass;
+  auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
   ThreadTaskDistributor *taskDistributor=self->taskDistributor;
@@ -291,7 +291,7 @@ void threadApplyT(ThreadArgument &thArg)
               MAT_ELEM(A,0,2)=x;
 
               // Rotate and shift image
-              applyGeometry(1,Iaux,mI,A,IS_INV,true);
+              applyGeometry(xmipp_transformation::LINEAR,Iaux,mI,A,xmipp_transformation::IS_INV,true);
 
               // Update Wnode
               int i=0;
@@ -304,7 +304,7 @@ void threadApplyT(ThreadArgument &thArg)
                 double *ptrHblock=&MAT_ELEM(Hblock,block_idx,0);
                 for (int j=0; j<jmax; j+=unroll, ptrHblock+=unroll, ptrWnode+=unroll)
                 {
-                  (*(ptrWnode )) +=pixval*(*ptrHblock );
+                  (*ptrWnode) +=pixval*(*ptrHblock);
                   (*(ptrWnode+1)) +=pixval*(*(ptrHblock+1));
                   (*(ptrWnode+2)) +=pixval*(*(ptrHblock+2));
                   (*(ptrWnode+3)) +=pixval*(*(ptrHblock+3));
@@ -314,7 +314,7 @@ void threadApplyT(ThreadArgument &thArg)
                   (*(ptrWnode+7)) +=pixval*(*(ptrHblock+7));
                 }
                 for (size_t j=jmax; j<MAT_XSIZE(Wnode); ++j, ptrHblock+=1, ptrWnode+=1)
-                (*(ptrWnode )) +=pixval*(*ptrHblock );
+                (*ptrWnode) +=pixval*(*ptrHblock );
                 ++i;
               }
             }
@@ -349,7 +349,7 @@ void ProgImageRotationalPCA::applyT()
 // Apply T ================================================================
 void threadApplyTt(ThreadArgument &thArg)
 {
-  ProgImageRotationalPCA *self=(ProgImageRotationalPCA *) thArg.workClass;
+  auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
   ThreadTaskDistributor *taskDistributor=self->taskDistributor;
@@ -401,7 +401,7 @@ void threadApplyTt(ThreadArgument &thArg)
               MAT_ELEM(A,0,2)=x;
 
               // Rotate and shift image
-              applyGeometry(1,Iaux,mI,A,IS_INV,true);
+              applyGeometry(xmipp_transformation::LINEAR,Iaux,mI,A,xmipp_transformation::IS_INV,true);
 
               // Update Hblock
               for (size_t j=0; j<MAT_XSIZE(Hblock); j++)
@@ -412,8 +412,8 @@ void threadApplyTt(ThreadArgument &thArg)
                 const double *ptrWtranspose=&MAT_ELEM(Wtranspose,j,0);
                 for (size_t n=0; n<nmax; n+=unroll, ptrIaux+=unroll, ptrMask+=unroll)
                 {
-                  if (*(ptrMask ))
-                  dotproduct+=(*(ptrIaux ))*(*ptrWtranspose++);
+                  if (*ptrMask)
+                  dotproduct+=(*ptrIaux)*(*ptrWtranspose++);
                   if (*(ptrMask+1))
                   dotproduct+=(*(ptrIaux+1))*(*ptrWtranspose++);
                   if (*(ptrMask+2))

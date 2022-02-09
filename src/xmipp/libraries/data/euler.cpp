@@ -385,7 +385,7 @@ std::ostream& operator << (std::ostream &o, const Euler &euler)
 
 double Euler::angleMod (double angle)
 {
-    angle = fmod( (angle),  (2. * M_PI));
+    angle = fmod(angle,  (2. * M_PI));
 
     if (angle < -M_PI)
         angle += 2 * M_PI;
@@ -439,7 +439,7 @@ Euler::makeNear (const Euler &target)
 {
     Matrix1D<double> xyzRot ;
     toXYZVector(xyzRot);
-    Euler targetSameOrder = Euler(target, order());
+    auto targetSameOrder = Euler(target, order());
     Matrix1D<double> targetXyz;
     targetSameOrder.toXYZVector(targetXyz);
 

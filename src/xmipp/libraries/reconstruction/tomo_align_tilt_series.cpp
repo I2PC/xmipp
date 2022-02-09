@@ -166,13 +166,13 @@ public:
 
             // Produce the transformed images
             MultidimArray<double> transformedI1, transformedI2;
-            applyGeometry(LINEAR,transformedI1,*(I1[level]),A12level,IS_NOT_INV,DONT_WRAP);
-            applyGeometry(LINEAR,transformedI2,*(I2[level]),A21level,IS_NOT_INV,DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,transformedI1,*(I1[level]),A12level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,transformedI2,*(I2[level]),A21level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 
             // Produce masks for the comparison
             MultidimArray<int> maskInTheSpaceOf1, maskInTheSpaceOf2;
             MultidimArray<double> maskAux;
-            applyGeometry(LINEAR,maskAux,Mask1_level,A12level,IS_NOT_INV,DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,maskAux,Mask1_level,A12level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
             maskInTheSpaceOf2.initZeros(YSIZE(maskAux),XSIZE(maskAux));
             maskInTheSpaceOf2.setXmippOrigin();
             FOR_ALL_ELEMENTS_IN_ARRAY2D(maskAux)
@@ -182,7 +182,7 @@ public:
             }
 
             maskAux.initZeros();
-            applyGeometry(LINEAR,maskAux,Mask2_level,A21level,IS_NOT_INV,DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,maskAux,Mask2_level,A21level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
             maskInTheSpaceOf1.initZeros(YSIZE(maskAux),XSIZE(maskAux));
             maskInTheSpaceOf1.setXmippOrigin();
             FOR_ALL_ELEMENTS_IN_ARRAY2D(maskAux)
@@ -287,7 +287,7 @@ void setupAffineFitness(AffineFitness &fitness, const MultidimArray<double> &I1,
         Mask1.setXmippOrigin();
         Mask2.setXmippOrigin();
 
-        MultidimArray<double> *dummy=NULL;
+        MultidimArray<double> *dummy=nullptr;
         dummy=new MultidimArray<double>;
         *dummy=I1aux;
         fitness.I1.push_back(dummy);
@@ -305,10 +305,10 @@ void setupAffineFitness(AffineFitness &fitness, const MultidimArray<double> &I1,
         level++;
         if (pyramidLevel>=level)
         {
-            selfScaleToSize(LINEAR,I1aux,YSIZE(I1aux)/2,XSIZE(I1aux)/2);
-            selfScaleToSize(LINEAR,I2aux,YSIZE(I2aux)/2,XSIZE(I2aux)/2);
-            selfScaleToSize(LINEAR,Mask1,YSIZE(Mask1)/2,XSIZE(Mask1)/2);
-            selfScaleToSize(LINEAR,Mask2,YSIZE(Mask2)/2,XSIZE(Mask2)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,I1aux,YSIZE(I1aux)/2,XSIZE(I1aux)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,I2aux,YSIZE(I2aux)/2,XSIZE(I2aux)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,Mask1,YSIZE(Mask1)/2,XSIZE(Mask1)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,Mask2,YSIZE(Mask2)/2,XSIZE(Mask2)/2);
             FOR_ALL_ELEMENTS_IN_ARRAY2D(Mask1)
             Mask1(i,j)=(Mask1(i,j)>0.5)? 1:0;
             FOR_ALL_ELEMENTS_IN_ARRAY2D(Mask2)
@@ -358,7 +358,7 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                            pyramidLevel);
 
         // Return result
-        double cost;
+        double cost = 0.0;
 
         // Optimize with differential evolution
         Matrix1D<double> A(6);
@@ -583,7 +583,7 @@ struct ThreadComputeTransformParams
 
 void * threadComputeTransform( void * args )
 {
-    ThreadComputeTransformParams * master =
+    auto * master =
         (ThreadComputeTransformParams *) args;
 
     ProgTomographAlignment * parent = master->parent;
@@ -668,7 +668,7 @@ void * threadComputeTransform( void * args )
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void ProgTomographAlignment::computeAffineTransformations(
@@ -677,20 +677,20 @@ void ProgTomographAlignment::computeAffineTransformations(
     bool oldglobalAffine=globalAffine;
     globalAffine=globalAffineToUse;
 
-    pthread_t * th_ids = new pthread_t[numThreads];
-    ThreadComputeTransformParams * th_args = new ThreadComputeTransformParams[numThreads];
+    auto * th_ids = new pthread_t[numThreads];
+    auto * th_args = new ThreadComputeTransformParams[numThreads];
 
     for( int nt = 0 ; nt < numThreads ; nt ++ )
     {
         // Passing parameters to each thread
         th_args[nt].parent = this;
         th_args[nt].myThreadID = nt;
-        pthread_create( (th_ids+nt) , NULL, threadComputeTransform, (void *)(th_args+nt) );
+        pthread_create( (th_ids+nt) , nullptr, threadComputeTransform, (void *)(th_args+nt) );
     }
 
     // Waiting for threads to finish
     for( int nt = 0 ; nt < numThreads ; nt ++ )
-        pthread_join(*(th_ids+nt), NULL);
+        pthread_join(*(th_ids+nt), nullptr);
 
     // Threads structures are not needed any more
     delete[] th_ids;
@@ -754,7 +754,7 @@ void ProgTomographAlignment::produceSideInfo()
 
     bestPreviousAlignment=new Alignment(this);
     // Read input data
-    SF.read(fnSel,NULL);
+    SF.read(fnSel,nullptr);
     if (SF.containsLabel(MDL_ENABLED))
         SF.removeObjects(MDValueEQ(MDL_ENABLED, -1));
     Nimg=SF.size();
@@ -827,13 +827,13 @@ void ProgTomographAlignment::produceSideInfo()
 
             if (!useCriticalPoints)
             {
-                MultidimArray<unsigned char>* mask_i=new MultidimArray<unsigned char>;
+                auto* mask_i=new MultidimArray<unsigned char>;
                 generateMask(imgaux(),*mask_i,
                              XMIPP_MAX(ROUND(localSize*XSIZE(imgaux()))/2,5));
                 maskImg.push_back(mask_i);
             }
 
-            MultidimArray<unsigned char>* img_i=new MultidimArray<unsigned char>;
+            auto* img_i=new MultidimArray<unsigned char>;
             imgaux().rangeAdjust(0,255);
             typeCast(imgaux(),*img_i);
             img_i->setXmippOrigin();
@@ -865,7 +865,7 @@ void ProgTomographAlignment::produceSideInfo()
     // Read images at original scale
     if (!fnSelOrig.empty())
     {
-        SForig.read(fnSelOrig,NULL);
+        SForig.read(fnSelOrig,nullptr);
         SForig.removeDisabled();
 
         if (SForig.size()!=SF.size())
@@ -964,10 +964,10 @@ void ProgTomographAlignment::produceSideInfo()
     // Check which is the distribution of correlation
     if (!useCriticalPoints)
     {
-        int X0=(int)(STARTINGX(*(img[0]))+2*localSize*XSIZE(*(img[0])));
-        int XF=(int)(FINISHINGX(*(img[0]))-2*localSize*XSIZE(*(img[0])));
-        int Y0=(int)(STARTINGY(*(img[0]))+2*localSize*YSIZE(*(img[0])));
-        int YF=(int)(FINISHINGY(*(img[0]))-2*localSize*YSIZE(*(img[0])));
+        auto X0=(int)(STARTINGX(*(img[0]))+2*localSize*XSIZE(*(img[0])));
+        auto XF=(int)(FINISHINGX(*(img[0]))-2*localSize*XSIZE(*(img[0])));
+        auto Y0=(int)(STARTINGY(*(img[0]))+2*localSize*YSIZE(*(img[0])));
+        auto YF=(int)(FINISHINGY(*(img[0]))-2*localSize*YSIZE(*(img[0])));
         avgForwardPatchCorr.initZeros(Nimg);
         avgBackwardPatchCorr.initZeros(Nimg);
         avgForwardPatchCorr.initConstant(1);
@@ -1046,7 +1046,7 @@ struct ThreadGenerateLandmarkSetParams
 
 void * threadgenerateLandmarkSetGrid( void * args )
 {
-    ThreadGenerateLandmarkSetParams * master =
+    auto * master =
         (ThreadGenerateLandmarkSetParams *) args;
     ProgTomographAlignment * parent = master->parent;
     int thread_id = master->myThreadID;
@@ -1056,7 +1056,7 @@ void * threadgenerateLandmarkSetGrid( void * args )
         parent->affineTransformations;
     int gridSamples=parent->gridSamples;
 
-    int deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
+    auto deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
     master->chainList=new std::vector<LandmarkChain>;
     Matrix1D<double> rii(3), rjj(3);
     ZZ(rii)=1;
@@ -1210,12 +1210,12 @@ void * threadgenerateLandmarkSetGrid( void * args )
     }
     if (thread_id==0)
         progress_bar(gridSamples);
-    return NULL;
+    return nullptr;
 }
 
 void * threadgenerateLandmarkSetBlind( void * args )
 {
-    ThreadGenerateLandmarkSetParams * master =
+    auto * master =
         (ThreadGenerateLandmarkSetParams *) args;
     ProgTomographAlignment * parent = master->parent;
     int thread_id = master->myThreadID;
@@ -1225,7 +1225,7 @@ void * threadgenerateLandmarkSetBlind( void * args )
         parent->affineTransformations;
     int gridSamples=parent->gridSamples;
 
-    int deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
+    auto deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
     master->chainList=new std::vector<LandmarkChain>;
     Matrix1D<double> rii(3), rjj(3);
     ZZ(rii)=1;
@@ -1278,8 +1278,8 @@ void * threadgenerateLandmarkSetBlind( void * args )
                     Aij=affineTransformations[jj][jj_1];
                     Aji=affineTransformations[jj_1][jj];
                     rjj=Aji*rcurrent;
-                    int iYYrjj=(int)YY(rjj);
-                    int iXXrjj=(int)XX(rjj);
+                    auto iYYrjj=(int)YY(rjj);
+                    auto iXXrjj=(int)XX(rjj);
                     if (!(*(parent->maskImg[jj])).outside(iYYrjj,iXXrjj))
                         acceptLandmark=(*(parent->maskImg[jj]))(iYYrjj,iXXrjj);
                     else
@@ -1319,8 +1319,8 @@ void * threadgenerateLandmarkSetBlind( void * args )
                     Aij=affineTransformations[jj_1][jj];
                     Aji=affineTransformations[jj][jj_1];
                     rjj=Aij*rcurrent;
-                    int iYYrjj=(int)YY(rjj);
-                    int iXXrjj=(int)XX(rjj);
+                    auto iYYrjj=(int)YY(rjj);
+                    auto iXXrjj=(int)XX(rjj);
                     if (!(*(parent->maskImg[jj])).outside(iYYrjj,iXXrjj))
                         acceptLandmark=(*(parent->maskImg[jj]))(iYYrjj,iXXrjj);
                     else
@@ -1364,13 +1364,13 @@ void * threadgenerateLandmarkSetBlind( void * args )
     }
     if (thread_id==0)
         progress_bar(gridSamples);
-    return NULL;
+    return nullptr;
 }
 
 //#define DEBUG
 void * threadgenerateLandmarkSetCriticalPoints( void * args )
 {
-    ThreadGenerateLandmarkSetParams * master =
+    auto * master =
         (ThreadGenerateLandmarkSetParams *) args;
     ProgTomographAlignment * parent = master->parent;
     int thread_id = master->myThreadID;
@@ -1614,7 +1614,7 @@ void * threadgenerateLandmarkSetCriticalPoints( void * args )
     }
     if (thread_id==0)
         progress_bar(Nimg);
-    return NULL;
+    return nullptr;
 }
 #undef DEBUG
 
@@ -1641,24 +1641,24 @@ void ProgTomographAlignment::generateLandmarkSet()
     FileName fn_tmp = fnRoot+"_landmarks.txt";
     if (!fn_tmp.exists())
     {
-        pthread_t * th_ids = new pthread_t[numThreads];
-        ThreadGenerateLandmarkSetParams * th_args=
+        auto * th_ids = new pthread_t[numThreads];
+        auto * th_args=
             new ThreadGenerateLandmarkSetParams[numThreads];
         for( int nt = 0 ; nt < numThreads ; nt ++ )
         {
             th_args[nt].parent = this;
             th_args[nt].myThreadID = nt;
             if (useCriticalPoints)
-                pthread_create( (th_ids+nt) , NULL, threadgenerateLandmarkSetCriticalPoints, (void *)(th_args+nt) );
+                pthread_create( (th_ids+nt) , nullptr, threadgenerateLandmarkSetCriticalPoints, (void *)(th_args+nt) );
             else
-                pthread_create( (th_ids+nt) , NULL, threadgenerateLandmarkSetGrid, (void *)(th_args+nt) );
+                pthread_create( (th_ids+nt) , nullptr, threadgenerateLandmarkSetGrid, (void *)(th_args+nt) );
         }
 
         std::vector<LandmarkChain> chainList;
         int includedPoints=0;
         for( int nt = 0 ; nt < numThreads ; nt ++ )
         {
-            pthread_join(*(th_ids+nt), NULL);
+            pthread_join(*(th_ids+nt), nullptr);
             int imax=th_args[nt].chainList->size();
             for (int i=0; i<imax; i++)
             {
@@ -1679,12 +1679,12 @@ void ProgTomographAlignment::generateLandmarkSet()
             {
                 th_args[nt].parent = this;
                 th_args[nt].myThreadID = nt;
-                pthread_create( (th_ids+nt) , NULL, threadgenerateLandmarkSetBlind, (void *)(th_args+nt) );
+                pthread_create( (th_ids+nt) , nullptr, threadgenerateLandmarkSetBlind, (void *)(th_args+nt) );
             }
 
             for( int nt = 0 ; nt < numThreads ; nt ++ )
             {
-                pthread_join(*(th_ids+nt), NULL);
+                pthread_join(*(th_ids+nt), nullptr);
                 int imax=th_args[nt].chainList->size();
                 for (int i=0; i<imax; i++)
                 {
@@ -1813,7 +1813,7 @@ bool ProgTomographAlignment::refineLandmark(int ii, int jj,
             bestNonwrappingShift(pieceii,piecejj,shiftX,shiftY,aux);
             Matrix1D<double> fftShift(2);
             VECTOR_R2(fftShift,shiftX,shiftY);
-            selfTranslate(LINEAR,piecejj,fftShift,WRAP);
+            selfTranslate(xmipp_transformation::LINEAR,piecejj,fftShift,xmipp_transformation::WRAP);
             double corrFFT=correlationIndex(pieceii,piecejj);
             if (corrFFT>corrOriginal)
             {
@@ -1888,8 +1888,8 @@ bool ProgTomographAlignment::refineLandmark(const MultidimArray<double> &pieceii
         while (!Q.empty())
         {
             // Get the first position to evaluate
-            int shifty=(int)YY(Q.front());
-            int shiftx=(int)XX(Q.front());
+            auto shifty=(int)YY(Q.front());
+            auto shiftx=(int)XX(Q.front());
             Q.pop();
             if (!corr(shifty,shiftx)<-1)
                 continue;
@@ -1989,7 +1989,7 @@ bool ProgTomographAlignment::refineLandmark(const MultidimArray<double> &pieceii
         std::cin >> c;
     }
     maxCorr=maxval;
-    return (accept);
+    return accept;
 }
 
 /* Refine chain ------------------------------------------------------------ */
@@ -2307,8 +2307,8 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         rotation2DMatrix(90-alignment.rot+alignment.psi(n),M2);
         translation2DMatrix(-(alignment.di[n]+alignment.diaxis[n]),M3);
         M=M1*M2*M3;
-        selfApplyGeometry(BSPLINE3,I(),M,IS_NOT_INV,DONT_WRAP);
-        selfApplyGeometry(LINEAR,mask,M,IS_NOT_INV,DONT_WRAP);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3,I(),M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
+        selfApplyGeometry(xmipp_transformation::LINEAR,mask,M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
         mask.binarize(0.5);
         typeCast(mask,iMask);
         double minval, maxval, avg, stddev;
@@ -2344,8 +2344,8 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
             translation2DMatrix(-(alignment.di[n]+alignment.diaxis[n])*
                                 (((double)XSIZE(Iorig()))/XSIZE(I())),M3);
             M=M1*M2*M3;
-            selfApplyGeometry(BSPLINE3,Iorig(),M,IS_NOT_INV,DONT_WRAP);
-            selfApplyGeometry(LINEAR,mask,M,IS_NOT_INV,DONT_WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3,Iorig(),M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
+            selfApplyGeometry(xmipp_transformation::LINEAR,mask,M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
             mask.binarize(0.5);
             typeCast(mask,iMask);
             computeStats_within_binary_mask(iMask,Iorig(),minval, maxval,
@@ -2523,7 +2523,7 @@ void ProgTomographAlignment::run()
     std::cerr << "produceInformationFromLandmarks" << std::endl;
     produceInformationFromLandmarks();
     std::cerr << "alignment" << std::endl;
-    Alignment *alignment=new Alignment(this);
+    auto *alignment=new Alignment(this);
 
     // Exhaustive search for rot
     double bestError=0, bestRot=-1;
@@ -2559,7 +2559,7 @@ void ProgTomographAlignment::run()
     double fitness;
     int iter;
     TomographAlignment::global_prm=this;
-    powellOptimizer(axisAngles,1,2,&wrapperError, NULL,
+    powellOptimizer(axisAngles,1,2,&wrapperError, nullptr,
                     0.01,fitness,iter,steps,true);
 
     // Outlier removal
@@ -2581,7 +2581,7 @@ void ProgTomographAlignment::run()
         fitness=bestPreviousAlignment->optimizeGivenAxisDirection();
 
         // Optimize again
-        powellOptimizer(axisAngles,1,2,&wrapperError,NULL,
+        powellOptimizer(axisAngles,1,2,&wrapperError,nullptr,
                         0.01,fitness,iter,steps,true);
     }
     bestPreviousAlignment->rot=axisAngles(0);
@@ -2757,6 +2757,7 @@ void Alignment::computeErrorForLandmarks()
 
 /* Update model ------------------------------------------------------------ */
 //#define DEBUG
+//UTILS
 void Alignment::updateModel()
 {
     Matrix1D<double> pij(2), piN(2);

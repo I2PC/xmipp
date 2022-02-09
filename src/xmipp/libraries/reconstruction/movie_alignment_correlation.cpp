@@ -103,7 +103,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     reducedFrame());
 
             // Now do the Fourier transform and filter
-            MultidimArray<std::complex<T> > *reducedFrameFourier =
+            auto *reducedFrameFourier =
                     new MultidimArray<std::complex<T> >;
             transformer.FourierTransform(reducedFrame(), *reducedFrameFourier,
                     true);
@@ -132,7 +132,7 @@ void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
     for (size_t i = 0; i < N - 1; ++i) {
         for (size_t j = i + 1; j < N; ++j) {
             bestShift(*frameFourier[i], *frameFourier[j], Mcorr, bX(idx),
-                    bY(idx), aux, NULL, this->maxShift * sizeFactor);
+                    bY(idx), aux, nullptr, this->maxShift * sizeFactor);
             bX(idx) /= sizeFactor; // scale to expected size
             bY(idx) /= sizeFactor;
             if (this->verbose)
@@ -201,14 +201,14 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                 } else {
                     if (this->outsideMode == OUTSIDE_WRAP)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, WRAP);
+                                croppedFrame(), shift, xmipp_transformation::WRAP);
                     else if (this->outsideMode == OUTSIDE_VALUE)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 this->outsideValue);
                     else
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 croppedFrame().computeAvg());
                 }
                 if (this->fnAligned != "")

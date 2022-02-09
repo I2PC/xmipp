@@ -49,7 +49,7 @@ BasicARTParameters::~BasicARTParameters()
 /* Default values ========================================================== */
 void BasicARTParameters::defaultValues()
 {
-    fh_hist            = NULL;
+    fh_hist            = nullptr;
     fn_start           = "";
     fn_sym             = "";
     force_sym          = 0;
@@ -85,12 +85,12 @@ void BasicARTParameters::defaultValues()
     refine             = false;
     noisy_reconstruction = false;
 
-    IMG_Inf            = NULL;
-    D                  = NULL;
-    Dinv               = NULL;
-    GVNeq              = NULL;
+    IMG_Inf            = nullptr;
+    D                  = nullptr;
+    Dinv               = nullptr;
+    GVNeq              = nullptr;
 
-    surface_mask       = NULL;
+    surface_mask       = nullptr;
     POCS_freq          = 1;
 
     known_volume       = -1;
@@ -515,7 +515,7 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
     /* Read symmetry file -------------------------------------------------- */
     if (level >= FULL)
     {
-        double accuracy = (do_not_generate_subgroup) ? -1 : 1e-6;
+        double accuracy = do_not_generate_subgroup ? -1 : 1e-6;
         if (fn_sym != "")
             SL.readSymmetryFile(fn_sym, accuracy);
         if (!do_not_use_symproj)
@@ -603,7 +603,7 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
                 Image<double> imTemp;
                 imTemp.read(fn_start);
                 basis.changeFromVoxels(imTemp(), vol_basis0, grid_type, grid_relative_size,
-                                       NULL, NULL, R, threads);
+                                       nullptr, nullptr, R, threads);
             }
         }
         else
@@ -640,13 +640,13 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
                 corner = corner + proj_ext/*CO: -blob.radius/2*/;
                 switch (grid_type)
                 {
-                case (CC):
+                case CC:
                                 grid_basis = Create_CC_grid(grid_relative_size, -corner, corner);
                     break;
-                case (FCC):
+                case FCC:
                                 grid_basis = Create_FCC_grid(grid_relative_size, -corner, corner);
                     break;
-                case (BCC):
+                case BCC:
                                 grid_basis = Create_BCC_grid(grid_relative_size, -corner, corner);
                     break;
                 }
@@ -655,13 +655,13 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
     {
                 switch (grid_type)
                 {
-                case (CC):
+                case CC:
                                 grid_basis = Create_CC_grid(grid_relative_size, R);
                     break;
-                case (FCC):
+                case FCC:
                                 grid_basis = Create_FCC_grid(grid_relative_size, R);
                     break;
-                case (BCC):
+                case BCC:
                                 grid_basis = Create_BCC_grid(grid_relative_size, R);
                     break;
                 }
@@ -692,7 +692,7 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
 void BasicARTParameters::computeCAVWeights(GridVolume &vol_basis0,
         int numProjs_node, int debug_level)
 {
-    if (GVNeq == NULL)
+    if (GVNeq == nullptr)
         GVNeq = new GridVolumeT<int>;
     GVNeq->resize(vol_basis0);
     GVNeq->initZeros();

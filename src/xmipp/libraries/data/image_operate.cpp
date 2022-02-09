@@ -47,7 +47,7 @@ double minusAdjusted_L1(double *x, void *_prm)
 	double b=x[2];
 
 	double retval=0;
-	MinusAdjustedPrm *prm = (MinusAdjustedPrm *) _prm;
+	auto *prm = (MinusAdjustedPrm *) _prm;
 	const MultidimArray<double> &pI1=*(prm->I1);
 	const MultidimArray<double> &pI2=*(prm->I2);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pI1)
@@ -375,8 +375,8 @@ void ProgOperate::defineParams()
 void ProgOperate::readParams()
 {
     XmippMetadataProgram::readParams();
-    binaryOperator = NULL;
-    unaryOperator = NULL;
+    binaryOperator = nullptr;
+    unaryOperator = nullptr;
     isValue = false;
     // Check operation to do
     //Binary operations
@@ -513,7 +513,7 @@ void ProgOperate::readParams()
     else
         REPORT_ERROR(ERR_VALUE_INCORRECT, "No valid operation specified");
     int dotProduct = false;
-    if (binaryOperator != NULL)
+    if (binaryOperator != nullptr)
     {
         if (!file_or_value.exists())
         {
@@ -550,7 +550,7 @@ void ProgOperate::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     Image<double> img;
     img.readApplyGeo(fnImg, rowIn);
 
-    if (unaryOperator != NULL)
+    if (unaryOperator != nullptr)
         unaryOperator(img);
     else
     {

@@ -42,7 +42,7 @@ public:
         addParamsLine("             : If Vector->Image: Input Vector metadata");
         addParamsLine("   -o <file> : If Image->Vector: Output vector metadata");
         addParamsLine("             : If Vector->Image: Output stack");
-        mask.defineParams(this,INT_MASK,NULL,"Extract pixel values from a mask area.");
+        mask.defineParams(this,INT_MASK,nullptr,"Extract pixel values from a mask area.");
         addExampleLine("Produce vectors from images or volumes",false);
         addExampleLine("xmipp_image_vectorize -i projections.sel -o vectors.xmd");
         addExampleLine("Produce images from vectors",false);
@@ -94,7 +94,7 @@ public:
             bool first=true;
             size_t order=0;
             FileName fnImg;
-            float *buffer=NULL;
+            float *buffer=nullptr;
             FileName fnOutRaw=formatString("%s.vec",fnOut.withoutExtension().c_str());
             std::ofstream fhOutRaw(fnOutRaw.c_str(),std::ios::binary);
             if (!fhOutRaw)
@@ -180,7 +180,7 @@ public:
             img().resizeNoCopy(Zdim,Ydim,Xdim);
             const MultidimArray<double> &mimg=img();
             FileName fnImg, fnIdx;
-            float *buffer=new float[vectorSize];
+            auto *buffer=new float[vectorSize];
             FileName fnInRaw=formatString("%s.vec",fnIn.withoutExtension().c_str());
             std::ifstream fhInRaw(fnInRaw.c_str(),std::ios::binary);
             if (!fhInRaw)

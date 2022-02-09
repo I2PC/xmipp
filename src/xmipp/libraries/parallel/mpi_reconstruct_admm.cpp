@@ -27,7 +27,7 @@
 
 MpiProgReconstructADMM::MpiProgReconstructADMM()
 {
-	node=NULL;
+	node=nullptr;
 }
 
 MpiProgReconstructADMM::~MpiProgReconstructADMM()

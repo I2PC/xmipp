@@ -89,8 +89,7 @@ public:
 			int &last_fourier_idx,
 			int &volsize,
 			bool &continueIter,	bool &breakIter,
-			double &sampling, double &minRes, double &maxRes,
-			bool &doNextIteration);
+			double &sampling, double &maxRes);
 
 	// AMPLITUDEMONOSIG3D_LPF: Estimates the monogenic amplitude of a HPF map, myfftV is the
 	// Fourier transform of that map. The monogenic amplitude is "amplitude", and the
@@ -165,7 +164,7 @@ public:
 	// as a multidimArray, with  dimensions given by xdim, ydim and zdim. The 
 	// wavelength of the pattern is given by double wavelength
 	MultidimArray<double> createDataTest(size_t xdim, size_t ydim, size_t zdim,
-		double wavelength, double mean, double sigma);
+		double wavelength);
 
 };
 

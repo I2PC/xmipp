@@ -204,7 +204,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
             }
 
             // Look for better alignment
-            alignImages(theo(),Ip(),M, DONT_WRAP);
+            alignImages(theo(),Ip(),M, xmipp_transformation::DONT_WRAP);
 
             // Measure the new correlation
             newCorr=correlationIndex(theo(),Ip(),&mask);

@@ -313,6 +313,10 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
+
+    //Save centered PDB
+    PDBRichPhantom centered_pdb;
+
     fh_pdb.open(fn_pdb.c_str());
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
@@ -332,6 +336,9 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         if (kind != "ATOM" && kind !="HETA")
             continue;
 
+        // Save centered PDB
+        RichAtom atom_i;
+
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
@@ -344,7 +351,22 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         Matrix1D<double> r(3);
         VECTOR_R3(r, x, y, z);
         if (doCenter)
+        {
             r -= centerOfMass;
+            atom_i.x = x - XX(centerOfMass);
+            atom_i.y = y - YY(centerOfMass);
+            atom_i.z = z - ZZ(centerOfMass);
+            atom_i.name=line.substr(12,4);
+			atom_i.atomType = line[13];
+			atom_i.altloc=line[16];
+			atom_i.resname=line.substr(17,3);
+			atom_i.chainid=line[21];
+			atom_i.resseq = textToInteger(line.substr(22,4));
+			atom_i.icode = line[26];
+            atom_i.occupancy = textToFloat(line.substr(54,6));
+			atom_i.bfactor = textToFloat(line.substr(60,6));
+            centered_pdb.addAtom(atom_i);
+        }
         r /= highTs;
 
         // Characterize atom
@@ -399,6 +421,12 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Close file
     fh_pdb.close();
+
+    // Save centered PDB
+    if (doCenter && fn_out!="")
+    {
+        centered_pdb.write(fn_out + ".pdb");
+    }
 }
 
 /* Create protein at a low sampling rate ----------------------------------- */
@@ -410,13 +438,13 @@ void ProgPdbConverter::createProteinAtLowSamplingRate()
 
     // Use Bsplines pyramid if possible
     int levels = FLOOR(log10((double)M) / log10(2.0) + XMIPP_EQUAL_ACCURACY);
-    pyramidReduce(BSPLINE3, Vlow(), Vhigh(), levels);
+    pyramidReduce(xmipp_transformation::BSPLINE3, Vlow(), Vhigh(), levels);
     current_Ts *= pow(2.0, levels);
     Vhigh.clear();
 
     // Now scale using Bsplines
     int new_output_dim = CEIL(XSIZE(Vlow()) * current_Ts / Ts);
-    scaleToSize(BSPLINE3, Vhigh(), Vlow(),
+    scaleToSize(xmipp_transformation::BSPLINE3, Vhigh(), Vlow(),
                 new_output_dim, new_output_dim, new_output_dim);
     Vlow() = Vhigh();
     Vlow().setXmippOrigin();
@@ -463,6 +491,9 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
 
+    //Save centered PDB
+    PDBRichPhantom centered_pdb;
+
     // Process all lines of the file
     std::string line, kind, atom_type;
     double iTs=1.0/Ts;
@@ -496,10 +527,28 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         double y = textToFloat(line.substr(38,8));
         double z = textToFloat(line.substr(46,8));
 
+        // Save centered PDB
+        RichAtom atom_i;
+
         // Correct position
         VECTOR_R3(r, x, y, z);
         if (doCenter)
+        {
             r -= centerOfMass;
+            atom_i.x = x-XX(centerOfMass);
+            atom_i.y = y-YY(centerOfMass);
+            atom_i.z = z-ZZ(centerOfMass);
+            atom_i.name=line.substr(12,4);
+			atom_i.atomType = line[13];
+			atom_i.altloc=line[16];
+			atom_i.resname=line.substr(17,3);
+			atom_i.chainid=line[21];
+			atom_i.resseq = textToInteger(line.substr(22,4));
+			atom_i.icode = line[26];
+            atom_i.occupancy = textToFloat(line.substr(54,6));
+			atom_i.bfactor = textToFloat(line.substr(60,6));
+            centered_pdb.addAtom(atom_i);
+        }
         r *= iTs;
 
         // Characterize atom
@@ -549,6 +598,12 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
 
     // Close file
     fh_pdb.close();
+
+    // Save centered PDB
+    if (doCenter  && fn_out!="")
+    {
+        centered_pdb.write(fn_out + ".pdb");
+    }
 }
 
 /* Run --------------------------------------------------------------------- */

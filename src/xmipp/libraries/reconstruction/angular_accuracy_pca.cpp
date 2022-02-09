@@ -81,7 +81,7 @@ void ProgAngularAccuracyPCA::run()
     		if (md.size() <= 1)
     			continue;
 
-    		else if ( (md.size() > 20) )
+    		else if ( md.size() > 20 )
     			numPCAs = 3;
     		else if ( (md.size() >= 5) & (md.size() < 20) )
     			numPCAs = 2;
@@ -191,7 +191,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	size_t  Xdim, Ydim, Zdim, Ndim;
 	phantomVol().getDimensions(Xdim,Ydim,Zdim,Ndim);
 
-	if (  (newXdim == -1) )
+	if (  newXdim == -1 )
 	{
 		newXdim = Xdim;
 		newYdim = Ydim;
@@ -281,8 +281,9 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		SF.getValue(MDL_ENABLED, enabled, objId);
 		SF.getValue(MDL_SHIFT_X, shiftX, objId);
 		SF.getValue(MDL_SHIFT_Y, shiftY, objId);
+		SF.getValue(MDL_FLIP, mirror, objId);
 
-		if ( (enabled==-1)  )
+		if ( enabled==-1  )
 		{
 			imgno++;
 			continue;
@@ -317,7 +318,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	    dMij(Trans, 0, 2) = shiftX;
 	    dMij(Trans, 1, 2) = shiftY;
 
-	    selfApplyGeometry(BSPLINE3, img(), Trans, IS_NOT_INV, WRAP);
+	    selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), Trans, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
 #ifdef DEBUG
 		{
@@ -339,7 +340,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 #endif
 
 		typeCast(img(), temp);
-		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
+		selfScaleToSize(xmipp_transformation::LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
 		temp.statisticsAdjust(0.f,1.f);
 		pca.addVector(temp);
@@ -382,7 +383,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	{
 		int enabled;
 		SF.getValue(MDL_ENABLED, enabled, objId);
-		if ( (enabled==-1)  )
+		if ( enabled==-1  )
 		{
 			imgno++;
 			continue;
@@ -409,9 +410,9 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		Euler_angles2matrix(rot, tilt, psi, E, false);
 		double angle = atan2(MAT_ELEM(E,0,1),MAT_ELEM(E,0,0));
 		angle = -(angle*180)/3.14159;
-		selfRotate(LINEAR, P(),angle , WRAP);
+		selfRotate(xmipp_transformation::LINEAR, P(),angle , xmipp_transformation::WRAP);
 		typeCast(P(), temp);
-		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
+		selfScaleToSize(xmipp_transformation::LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
 		temp.statisticsAdjust(0.f,1.f);
 		temp.setXmippOrigin();
@@ -432,10 +433,10 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		rotation2DMatrix(angle, Trans, true);
 		dMij(Trans, 0, 2) = shiftX;
 		dMij(Trans, 1, 2) = shiftY;
-		selfApplyGeometry(BSPLINE3, img(), Trans, IS_NOT_INV, WRAP);
+		selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), Trans, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
 		typeCast(img(), temp);
-		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
+		selfScaleToSize(xmipp_transformation::LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
 		temp.statisticsAdjust(0.f,1.f);
 		temp.setXmippOrigin();

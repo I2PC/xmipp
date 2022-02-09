@@ -227,12 +227,12 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     MultidimArray<double> S2s, N2s, S2n, N2n;
     FileName fn_img;
     FourierTransformer FT(FFTW_BACKWARD);
-    FourierProjector *Sprojector=NULL;
-    FourierProjector *Nprojector=NULL;
+    FourierProjector *Sprojector=nullptr;
+    FourierProjector *Nprojector=nullptr;
     if (fourierProjections)
     {
-    	Sprojector=new FourierProjector(S(),2,0.5,LINEAR);
-    	Nprojector=new FourierProjector(N(),2,0.5,LINEAR);
+    	Sprojector=new FourierProjector(S(),2,0.5,xmipp_transformation::LINEAR);
+    	Nprojector=new FourierProjector(N(),2,0.5,xmipp_transformation::LINEAR);
     }
 
     auto iterIdS = SF_S.ids().begin();
@@ -428,8 +428,8 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     {
     	delete Sprojector;
     	delete Nprojector;
-    	Sprojector=NULL;
-    	Nprojector=NULL;
+    	Sprojector=nullptr;
+    	Nprojector=nullptr;
     }
 
     // Compute the SSNRsym

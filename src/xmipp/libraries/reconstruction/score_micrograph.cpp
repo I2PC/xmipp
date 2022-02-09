@@ -177,14 +177,13 @@ void ProgScoreMicrograph::run()
         MD.getValue(MDL_CTF_CRIT_FITTINGSCORE,fitting,objId);
         MD.getValue(MDL_CTF_CRIT_PSDCORRELATION90,psdCorr90,objId);
         MD.getValue(MDL_CTF_CRIT_PSDRADIALINTEGRAL,psdRadialInt,objId);
+        std::cout << "partDensity : " << partDensity << std::endl;
+        std::cout << "snr :" << snr << std::endl;
+        std::cout << "maxFreq :" << maxFreq << std::endl;
+        std::cout << "fitting :" << fitting << std::endl;
+        std::cout << "psdCorr90 :" << psdCorr90 << std::endl;
+        std::cout << "psdRadialInt :" << psdRadialInt << std::endl;
     }
-
-    std::cout << "partDensity : " << partDensity << std::endl;
-    std::cout << "snr :" << snr << std::endl;
-    std::cout << "maxFreq :" << maxFreq << std::endl;
-    std::cout << "fitting :" << fitting << std::endl;
-    std::cout << "psdCorr90 :" << psdCorr90 << std::endl;
-    std::cout << "psdRadialInt :" << psdRadialInt << std::endl;
 
     img()=Part;
     img.write("kk1.mrc");

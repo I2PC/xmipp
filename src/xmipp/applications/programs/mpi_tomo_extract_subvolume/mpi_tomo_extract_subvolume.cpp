@@ -1,4 +1,4 @@
- /***************************************************************************
+/***************************************************************************
  *
  * Authors:  Carlos Oscar Sanchez Sorzano coss.eps@ceu.es
  *
@@ -27,7 +27,7 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/tomo_extract_subvolume.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgTomoExtractSubvolume, MpiProgTomoExtractSubvolume)
+class MpiProgTomoExtractSubvolume
+    : public BasicMpiMetadataProgram<ProgTomoExtractSubvolume> {};
 
 RUN_XMIPP_PROGRAM(MpiProgTomoExtractSubvolume)

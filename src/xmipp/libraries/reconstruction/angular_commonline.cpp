@@ -255,8 +255,8 @@ double EulerSolver::similarityBetweenTwoLines(int imgi, int imgj)
     double angi=RAD2DEG(atan2(YY(commonlinei),XX(commonlinei)));
     double angj=RAD2DEG(atan2(YY(commonlinej),XX(commonlinej)));
 
-    int idxAngi = (int)intWRAP(-((int)angi),0,359);
-    int idxAngj = (int)intWRAP(-((int)angj),0,359);
+    auto idxAngi = (int)intWRAP(-((int)angi),0,359);
+    auto idxAngj = (int)intWRAP(-((int)angj),0,359);
 
     double retval1=
         correlationIndex(parent->radon[imgi][idxAngi],
@@ -331,7 +331,7 @@ double EulerSolver::similarityBetweenTwoLines(int imgi, int imgj)
 #undef DEBUG
 
 /* Wrapper for Powell ------------------------------------------------------ */
-EulerSolver *global_Eulersolver=NULL;
+EulerSolver *global_Eulersolver = nullptr;
 
 double wrapperSolverEnergy(double trial[], void *prm)
 {
@@ -540,7 +540,7 @@ double Prog_Angular_CommonLine::optimizeGroup(const Matrix1D<int> &imgIdx,
     VEC_ELEM(solution,i) = solver->Solution()[i];
     int iter;
     double retval;
-    powellOptimizer(solution,1,3*NToSolve,wrapperSolverEnergy,NULL,
+    powellOptimizer(solution,1,3*NToSolve,wrapperSolverEnergy,nullptr,
                     0.001,retval,iter,steps,show);
 
     delete solver;
@@ -855,7 +855,7 @@ void Prog_Angular_CommonLine::optimize(Matrix1D<double> &solution)
             }
 
             // Cleaning of the "garbage"
-            int totalAssigned=(int)assigned.sum();
+            auto totalAssigned=(int)assigned.sum();
             std::cout << "removal=" << removalCounter
             << " totalAssigned=" << totalAssigned
             << std::endl;
@@ -1191,7 +1191,7 @@ double Prog_Angular_CommonLine::realignCurrentSolution()
     FOR_ALL_ELEMENTS_IN_MATRIX1D(alreadyOptimized)
     if (alreadyOptimized(i)==2)
         alreadyOptimized(i)=1;
-    int NToSolve=(int)alreadyOptimized.sum();
+    auto NToSolve=(int)alreadyOptimized.sum();
     Matrix1D<int> imgIdx(NToSolve);
     int idx=0;
     FOR_ALL_ELEMENTS_IN_MATRIX1D(alreadyOptimized)
@@ -1214,7 +1214,7 @@ double Prog_Angular_CommonLine::realignCurrentSolution()
     }
     int iter;
     double energy;
-    powellOptimizer(solution,1,3*NToSolve,wrapperSolverEnergy,NULL,
+    powellOptimizer(solution,1,3*NToSolve,wrapperSolverEnergy,nullptr,
                     0.001,energy,iter,steps,true);
 
     idx=0;

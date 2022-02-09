@@ -27,11 +27,8 @@
 #define LIBRARIES_RECONSTRUCTION_FFTWT_H_
 
 #include <fftw3.h>
-#include <array>
-#include <typeinfo>
 
 #include "data/aft.h"
-#include "core/xmipp_error.h"
 #include "data/cpu.h"
 
 /**@defgroup FFTwT FFTwT

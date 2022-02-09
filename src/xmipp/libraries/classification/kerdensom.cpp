@@ -91,7 +91,7 @@ double KerDenSOM::test(const FuzzyMap& _som, const TS& _examples) const
         qerror += euclideanDistance(theBest, _examples.theItems[i]);
         if (verbosity)
         {
-            int tmp = (int)((_examples.size() * 5) / 100);
+        	auto tmp = (int)((_examples.size() * 5) / 100);
             if ((tmp == 0) && (i != 0))
                 tmp = i;
             else
@@ -129,7 +129,7 @@ void KerDenSOM::updateV(FuzzyMap* _som, const TS* _examples, const double& _reg)
         	tmpDens_cc = 0.;
         for (size_t vv = 0; vv < numVectors; vv++)
         {
-            double tmpU = (double) _som->memb[vv][cc];
+        	auto tmpU = (double) _som->memb[vv][cc];
             tmpDens_cc += tmpU;
             const floatFeature * ptrExample=&(_examples->theItems[vv][0]);
             for (size_t j = 0; j < dim; j++)

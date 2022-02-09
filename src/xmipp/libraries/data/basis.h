@@ -156,9 +156,9 @@ public:
 };
 
 /** Create a Zernike Spherical Basis volume.
- * With the same size as an input volume. Z(l,n,m)=R_l^n(r)Y_l^m(x,y,z) for l=0,1,2,..., n<=l, m=-l,...,l
+ * With the same size as an input volume. Z(l,n,m)=R_n^l(r)Y_l^m(x,y,z) for l=0,1,2,..., n=0,1,2,..., m=-l,...,l
  * The basis volume is created up to Rmax, by default half the size of the input volume
  */
-void createZernike3DBasis(const MultidimArray<double> &Vin, MultidimArray<double> &Vbasis, int l, int n, int m, int Rmax=-1);
+void createZernike3DBasis(const MultidimArray<double> &Vin, MultidimArray<double> &Vbasis, int l1, int n, int l2, int m, int Rmax=-1);
 //@}
 #endif
