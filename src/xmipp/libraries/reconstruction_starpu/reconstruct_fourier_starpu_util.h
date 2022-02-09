@@ -33,6 +33,58 @@
 #include "reconstruction/reconstruct_fourier_projection_traverse_space.h"
 #include "reconstruct_fourier_defines.h"
 
+#include <random>
+
+
+
+  using Quaternion = std::array<float, 4>;
+  using Matrix3x3 = std::array<float, 9>;
+   static   auto generator = std::mt19937(42); // for fixed reproducibility
+
+  /**
+   * Generate uniform random rotation in form of the unit quaternion
+   * See https://stackoverflow.com/a/56794499
+   **/
+  static auto GenerateQuaternion()
+  {
+    float x, y, z, u, v, w, s;
+    std::uniform_real_distribution<> dis(-1.f, 1.f);
+    do {
+      x = dis(generator);
+      y = dis(generator);
+      z = x * x + y * y;
+    } while (z > 1);
+    do {
+      u = dis(generator);
+      v = dis(generator);
+      w = u * u + v * v;
+    } while (w > 1);
+    s = std::sqrt((1 - z) / w);
+    return Quaternion{ x, y, s * u, s * v };
+  }
+
+ /**
+   * Convert unit quaternion to a 3x3 rotation matrix
+   * See https://stackoverflow.com/a/1556470
+   **/
+  static Matrix3x3 ToMatrix(const Quaternion &q)
+  {
+    auto qx = q[0];
+    auto qy = q[1];
+    auto qz = q[2];
+    auto qw = q[3];
+    return { 1.0f - 2.f * qy * qy - 2.f * qz * qz,
+      2.f * qx * qy - 2.f * qz * qw,
+      2.f * qx * qz + 2.f * qy * qw,// first row
+      2.0f * qx * qy + 2.0f * qz * qw,
+      1.0f - 2.0f * qx * qx - 2.0f * qz * qz,
+      2.0f * qy * qz - 2.0f * qx * qw,// second row
+      2.0f * qx * qz - 2.0f * qy * qw,
+      2.0f * qy * qz + 2.0f * qx * qw,
+      1.0f - 2.0f * qx * qx - 2.0f * qy * qy };
+  }
+  static auto GenerateMatrix() { return ToMatrix(GenerateQuaternion()); }
+
 
 /** Method to allocate 3D array (not continuous) of given size */
 template<typename T>
@@ -214,7 +266,7 @@ static void convertToExpectedSpace(T*** input, int size, MultidimArray<U>& VoutF
  * space - which will be filled
  */
 static void computeTraverseSpace(uint32_t imgSizeX, uint32_t imgSizeY,
-                                 const float transform[3][3], const float transformInv[3][3], RecFourierProjectionTraverseSpace& space,
+                                 const float transform[3][3], RecFourierProjectionTraverseSpace& space,
                                  uint32_t maxVolumeIndexX, uint32_t maxVolumeIndexYZ, bool useFast, float blobRadius) {
 	Point3D<float> cuboid[8];
 	Point3D<float> AABB[2];
@@ -235,9 +287,10 @@ static void computeTraverseSpace(uint32_t imgSizeX, uint32_t imgSizeY,
 	space.bottomOrigin = cuboid[0];
 	space.maxDistanceSqr = (imgSizeX + (useFast ? 0.f : blobRadius))
 	                       * (imgSizeX + (useFast ? 0.f : blobRadius));
+	// inverse transform of the rotational matrix is its transposition
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
-			space.transformInv[i][j] = transformInv[i][j];
+			space.transformInv[i][j] = transform[j][i];
 		}
 	}
 

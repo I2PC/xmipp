@@ -31,6 +31,8 @@
 #include "reconstruct_fourier_codelets.h"
 #include "reconstruct_fourier_starpu_util.h"
 
+#include <numeric>
+
 /**
  * @param shiftMatrix 3x3 matrix for 2D affine transformations
  * @param orientationMatrix 3x3 matrix for 3D rotation
@@ -69,45 +71,55 @@ void func_load_projections(void* buffers[], void* cl_arg) {
 	uint32_t projectionIndex = 0;
 
 	for (uint32_t projectionInBatch = arg.batchStart; projectionInBatch < arg.batchEnd; projectionInBatch++) {
-		const size_t imageObjectIndex = arg.imageObjectIndices[projectionInBatch];
+		// const size_t imageObjectIndex = arg.imageObjectIndices[projectionInBatch];
 
-		// Read projection from selfile, read also angles and shifts if present but only apply shifts
-		Projection proj;
-		auto row = arg.selFile.getRow(imageObjectIndex);
+		// // Read projection from selfile, read also angles and shifts if present but only apply shifts
+		// Projection proj;
+		// auto row = arg.selFile.getRow(imageObjectIndex);
 
-		double headerWeight = 1;
-		row->getValue(MDL_WEIGHT, headerWeight);
-		if (arg.useWeights && headerWeight == 0.f) {
-			continue;
-		}
+		// double headerWeight = 1;
+		// row->getValue(MDL_WEIGHT, headerWeight);
+		// if (arg.useWeights && headerWeight == 0.f) {
+		// 	continue;
+		// }
 
-		{
-			FileName name;
-			row->getValue(MDL_IMAGE, name);
-			proj.read(name);
-		}
+		// {
+		// 	FileName name;
+		// 	row->getValue(MDL_IMAGE, name);
+		// 	proj.read(name);
+		// }
 
-		// NOTE(jp): Weight has to be read after the image data is read, it cannot be inferred just from the selFile,
-		// as the image file may contain weight on its own.
-		const float weight =  arg.useWeights ? static_cast<float>(proj.weight() * headerWeight) : 1.0f;
-		if (weight == 0.f) {
-			continue;
-		}
+		// // NOTE(jp): Weight has to be read after the image data is read, it cannot be inferred just from the selFile,
+		// // as the image file may contain weight on its own.
+		// const float weight =  arg.useWeights ? static_cast<float>(proj.weight() * headerWeight) : 1.0f;
+		// if (weight == 0.f) {
+		// 	continue;
+		// }
 
-		Matrix2D<double> shiftMatrix(3, 3);
+		// Matrix2D<double> shiftMatrix(3, 3);
 		Matrix2D<double> orientationMatrix(3, 3);
-		loadMatrices(*row, shiftMatrix, orientationMatrix);
+		auto m = GenerateMatrix();
+		for (size_t j = 0; j < 9; ++j) { orientationMatrix.mdata[j] = m[j];}
+		// loadMatrices(*row, shiftMatrix, orientationMatrix);
 
-		transformedImageData.resizeNoCopy(proj());
-		// FIXME following line is a current bottleneck, as it calls BSpline interpolation
-		applyGeometry(xmipp_transformation::BSPLINE3, transformedImageData, proj.data, shiftMatrix, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
+		// transformedImageData.resizeNoCopy(proj());
+		// // FIXME following line is a current bottleneck, as it calls BSpline interpolation
+		// applyGeometry(xmipp_transformation::BSPLINE3, transformedImageData, proj.data, shiftMatrix, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
 		paddedImageData.initZeros(arg.paddedImageSize, arg.paddedImageSize);
 		paddedImageData.setXmippOrigin();
-		transformedImageData.setXmippOrigin();
-		FOR_ALL_ELEMENTS_IN_ARRAY2D(transformedImageData)
-				A2D_ELEM(paddedImageData,i,j) = static_cast<float>(A2D_ELEM(transformedImageData, i, j));
+		// transformedImageData.setXmippOrigin();
+		// FOR_ALL_ELEMENTS_IN_ARRAY2D(transformedImageData)
+		// 		A2D_ELEM(paddedImageData,i,j) = static_cast<float>(A2D_ELEM(transformedImageData, i, j));
 
+		{
+			static float counter = 0.f;
+		std::iota(paddedImageData.data, paddedImageData.data + paddedImageData.nzyxdim, counter);
+		counter += paddedImageData.nzyxdim;
+		// proj.write("projection.stk");
+		// Image<float> img (paddedImageData);
+		// img.write("padded_projection.stk");
+		}
 #if 0
 		{// Debug dump
 			FILE* debug_file = fopen("debug_new.bin", "w");
@@ -135,18 +147,18 @@ void func_load_projections(void* buffers[], void* cl_arg) {
 		// Prepare transforms for all symmetries
 		for (const Matrix2D<double>& symmetry : arg.rSymmetries) {
 			RecFourierProjectionTraverseSpace& space = outSpaces[traverseSpaceIndex++];
-			space.weight = weight;
+			space.weight = 1;//weight;
 			space.projectionIndex = projectionIndex; // "index to some array where the respective projection is stored"
 
 			Matrix2D<double> A_SL = symmetry * orientationMatrix;
-			Matrix2D<double> A_SLInv = A_SL.inv();
 			float transf[3][3];
-			float transfInv[3][3];
-			A_SL.convertTo(transf);
-			A_SLInv.convertTo(transfInv);
+			for (size_t i = 0; i < 9; ++i) {
+				reinterpret_cast<float*>(transf)[i] = std::round(A_SL.mdata[i] * 1000) / 1000;
+			}
+			// A_SL.convertTo(transf);
 
 			computeTraverseSpace(arg.fftSizeX, arg.fftSizeY,
-			                     transf, transfInv, space,
+			                     transf, space,
 			                     arg.maxVolumeIndexX, arg.maxVolumeIndexYZ, arg.fastLateBlobbing, arg.blobRadius);
 		}
 

@@ -160,6 +160,8 @@ struct Codelets {
 	starpu_codelet padded_image_to_fft{0};
 	/** Reconstructs FFTs into volume field. */
 	starpu_codelet reconstruct_fft{0};
+	/** Reconstructs FFTs into volume field using interpolation table. */
+	starpu_codelet reconstruct_fft_table{0};
 
 	/** Redux-init for reconstruct_fft volume and weights */
 	starpu_codelet redux_init_volume{0}, redux_init_weights{0};

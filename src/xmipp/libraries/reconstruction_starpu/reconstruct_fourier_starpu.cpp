@@ -42,6 +42,9 @@
 #include "reconstruct_fourier_util.h"
 #include "reconstruct_fourier_starpu_util.h"
 
+#include <iostream>
+#include <iomanip>
+
 const int DEBUG_SYNCHRONOUS_TASKS = 0;
 
 // Define params
@@ -50,16 +53,19 @@ void ProgRecFourierStarPU::defineParams() {
 	addUsageLine("Generate 3D reconstructions from projections using direct Fourier interpolation with arbitrary geometry.");
 	addUsageLine("Kaisser-windows are used for interpolation in Fourier space.");
 	//params
-	addParamsLine("   -i <md_file>                  : Metadata file with input projections");
-	addParamsLine("  [-o <volume_file=\"rec_fourier.vol\">] : Filename for output volume");
-	addParamsLine("  [--sym <symfile=c1>]           : Enforce symmetry in projections");
-	addParamsLine("  [--padding <proj=2.0> <vol=2.0>] : Padding used for projections and volume");
+	// addParamsLine("   -i <md_file>                  : Metadata file with input projections");
+	// addParamsLine("  [-o <volume_file=\"rec_fourier.vol\">] : Filename for output volume");
+	addParamsLine("  [-fakeX <size=128>]            : size of the projection");
+	addParamsLine("  [--sym <count=1>]              : Nubmer of symmetires to use");
+	addParamsLine("  [--fakeNoOfImages <count=1000>]: Nubmer of images / projections to use");
+	addParamsLine("  [--padding <proj=1.0> <vol=1.0>] : Padding used for projections and volume");
 	addParamsLine("  [--max_resolution <p=0.5>]     : Max resolution (Nyquist=0.5)");
 	addParamsLine("  [--weight]                     : Use weights stored in the image metadata");
 	addParamsLine("  [--blob <radius=1.9> <order=0> <alpha=15>] : Blob parameters");
 	addParamsLine("                                 : radius in pixels, order of Bessel function in blob and parameter alpha");
 	addParamsLine("  [--fast]                       : Do the blobbing at the end of the computation.");
 	addParamsLine("                                 : Gives slightly different results, but is faster.");
+	addParamsLine("  [--table]                      : Instead of using on-demand computed interpolation coefficients, use precomputed table.");
 	addParamsLine("  [--batchSize <size=25>]        : Amount of images in single batch. Too many won't fit in memory and will not be able to run as fast, too few will have large overhead.");
 	addParamsLine("                                 : Each additional image in batch will require at least imageSide^2 * 32 bytes, e.g.");
 	addParamsLine("                                 : cca 52MB per batch of 25 256x256 images or 210MB for 512x512 images.");
@@ -80,9 +86,13 @@ void ProgRecFourierStarPU::defineParams() {
 
 // Read arguments ==========================================================
 void ProgRecFourierStarPU::readParams() {
-	fn_in = getParam("-i");
-	fn_out = getParam("-o");
-	fn_sym = getParam("--sym");
+	// fn_in = getParam("-i");
+	// fn_out = getParam("-o");
+	// fn_sym = getParam("--sym");
+	params.fakeX = getIntParam("-fakeX");
+	params.useTable = checkParam("--table");
+	params.noOfSymmetries = getIntParam("--sym");
+	params.fakeNoOfImages = getIntParam("--fakeNoOfImages");
 
 	params.padding_factor_proj = getDoubleParam("--padding", 0);
 	params.padding_factor_vol = getDoubleParam("--padding", 1);
@@ -116,23 +126,23 @@ void ProgRecFourierStarPU::prepareMetaData(const FileName& fn_in, MetaDataVec& S
 }
 
 uint32_t ProgRecFourierStarPU::computeBatchCount(const ProgRecFourierStarPU::Params &params, const MetaData &SF) {
-	return (static_cast<uint32_t>(SF.size()) + params.batchSize - 1) / params.batchSize;
+	return (static_cast<uint32_t>(params.fakeNoOfImages) + params.batchSize - 1) / params.batchSize;
 }
 
 void ProgRecFourierStarPU::prepareConstants(const Params& params, const MetaData& SF, const FileName& fn_sym, ComputeConstants& constants) {
 	// Ask for memory for the output volume and its Fourier transform
-	size_t imageSize;
-	{
-		size_t objId = SF.firstRowId();
-		FileName fnImg;
-		SF.getValue(MDL_IMAGE, fnImg, objId);
-		Image<double> I;
-		I.read(fnImg, HEADER);
+	size_t imageSize = params.fakeX;
+	// {
+	// 	size_t objId = SF.firstRowId();
+	// 	FileName fnImg;
+	// 	SF.getValue(MDL_IMAGE, fnImg, objId);
+	// 	Image<double> I;
+	// 	I.read(fnImg, HEADER);
 
-		imageSize = I().xdim;
-		if (imageSize != I().ydim)
-			REPORT_ERROR(ERR_MULTIDIM_SIZE, "This algorithm only works for squared images");
-	}
+	// 	imageSize = I().xdim;
+	// 	if (imageSize != I().ydim)
+	// 		REPORT_ERROR(ERR_MULTIDIM_SIZE, "This algorithm only works for squared images");
+	// }
 
 	constants.imgSize = static_cast<int>(imageSize);
 	constants.paddedImgSize = static_cast<uint32_t>(imageSize * params.padding_factor_vol);
@@ -168,17 +178,23 @@ void ProgRecFourierStarPU::prepareConstants(const Params& params, const MetaData
 		Matrix2D<double> Identity(3, 3);
 		Identity.initIdentity();
 		constants.R_symmetries.push_back(Identity);
-		if (!fn_sym.isEmpty()) {
-			SymList SL;
-			SL.readSymmetryFile(fn_sym);
-			constants.R_symmetries.reserve(constants.R_symmetries.size() + SL.symsNo());
-			for (int isym = 0; isym < SL.symsNo(); isym++) {
-				Matrix2D<double> L(4, 4), R(4, 4);
-				SL.getMatrices(isym, L, R);
-				R.resize(3, 3);
-				constants.R_symmetries.push_back(R);
-			}
+		for (size_t i = 1; 1 < params.noOfSymmetries;++i) {
+			auto s = Matrix2D<double>(3, 3);
+			auto m = GenerateMatrix();
+			for (size_t j = 0; j < 9; ++j) { s.mdata[j] = m[j];}
+			constants.R_symmetries.emplace_back(s);
 		}
+		// if (!fn_sym.isEmpty()) {
+		// 	SymList SL;
+		// 	SL.readSymmetryFile(fn_sym);
+		// 	constants.R_symmetries.reserve(constants.R_symmetries.size() + SL.symsNo());
+		// 	for (int isym = 0; isym < SL.symsNo(); isym++) {
+		// 		Matrix2D<double> L(4, 4), R(4, 4);
+		// 		SL.getMatrices(isym, L, R);
+		// 		R.resize(3, 3);
+		// 		constants.R_symmetries.push_back(R);
+		// 	}
+		// }
 	}
 }
 
@@ -266,7 +282,7 @@ void ProgRecFourierStarPU::run() {
 		show();
 	}
 
-	prepareMetaData(fn_in, SF);
+	// prepareMetaData(fn_in, SF);
 	prepareConstants(params, SF, fn_sym, computeConstants);
 	initStarPU();
 
@@ -279,12 +295,13 @@ void ProgRecFourierStarPU::run() {
 
 	// TODO(jp): This step seems unnecessary (later steps would have to be rewritten to work with flat arrays) (also in MPI version)
 	// Convert flat volume and weight arrays into multidimensional arrays and destroy originals
-	std::complex<float>*** tempVolume = result.createXmippStyleVolume(computeConstants.maxVolumeIndex);
-	float*** tempWeights = result.createXmippStyleWeights(computeConstants.maxVolumeIndex);
+	// ALSO THIS PRINTS data
+	// std::complex<float>*** tempVolume = result.createXmippStyleVolume(computeConstants.maxVolumeIndex);
+	// float*** tempWeights = result.createXmippStyleWeights(computeConstants.maxVolumeIndex);
 	result.destroy();
 
 	// Adjust and save the resulting volume
-	postProcessAndSave(params, computeConstants, fn_out, tempVolume, tempWeights);
+	// postProcessAndSave(params, computeConstants, fn_out, tempVolume, tempWeights);
 }
 
 void ProgRecFourierStarPU::initStarPU() {
@@ -330,7 +347,7 @@ ProgRecFourierStarPU::ComputeStarPUResult ProgRecFourierStarPU::computeStarPU(
 	                                      1.f / getBessiOrderAlpha(params.blob));
 
 	std::vector<size_t> selFileObjectIds;
-	SF.findObjects(selFileObjectIds);
+	// SF.findObjects(selFileObjectIds);
 	const uint32_t fftSizeX = maxVolumeIndex / 2;
 	const uint32_t fftSizeY = maxVolumeIndex;
 
@@ -381,14 +398,14 @@ ProgRecFourierStarPU::ComputeStarPUResult ProgRecFourierStarPU::computeStarPU(
 	starpu_data_handle_t blobTableSquaredHandle = {0};
 	if (params.fastLateBlobbing) {
 		// Blob Table is not used on GPU, but we need to register empty regardless
-		starpu_variable_data_register(&blobTableSquaredHandle, -1, 0, 1);
+		starpu_void_data_register(&blobTableSquaredHandle);
 	} else {
 		starpu_variable_data_register(&blobTableSquaredHandle, STARPU_MAIN_RAM,
 		                              reinterpret_cast<uintptr_t>(&computeConstants.blobTableSqrt), sizeof(computeConstants.blobTableSqrt));
 	}
 	starpu_data_set_name(blobTableSquaredHandle, "Blob Table Squared");
 
-	const uint32_t totalImages = static_cast<uint32_t>(SF.size());
+	const uint32_t totalImages = params.fakeNoOfImages;//static_cast<uint32_t>(SF.size());
 	const uint32_t maxBatches = batches.maxBatches();
 
 	std::vector<LoadProjectionArgs> loadProjectionArgs;
@@ -480,7 +497,7 @@ ProgRecFourierStarPU::ComputeStarPUResult ProgRecFourierStarPU::computeStarPU(
 		{// Submit the actual reconstruction
 			starpu_task* reconstructFftTask = starpu_task_create();
 			reconstructFftTask->name = "ReconstructFFT";
-			reconstructFftTask->cl = &codelets.reconstruct_fft;
+			reconstructFftTask->cl = params.useTable ? &codelets.reconstruct_fft_table : &codelets.reconstruct_fft;
 			reconstructFftTask->handles[0] = fftHandle;
 			reconstructFftTask->handles[1] = traverseSpacesHandle;
 			reconstructFftTask->handles[2] = blobTableSquaredHandle;
@@ -525,16 +542,60 @@ ProgRecFourierStarPU::ComputeStarPUResult ProgRecFourierStarPU::computeStarPU(
 }
 
 std::complex<float>*** ProgRecFourierStarPU::ComputeStarPUResult::createXmippStyleVolume(uint32_t maxVolumeIndex) {
+	{
+		auto original = std::cout.flags();
+		// prepare output formatting
+		std::cout << "volume data\n";
+		std::cout << std::fixed << std::setfill(' ') << std::left << std::setprecision(3) << std::showpos;
+
+		for (size_t z = 0; z <= maxVolumeIndex; ++z)
+		{
+			for (size_t y = 0; y <= maxVolumeIndex; ++y)
+			{
+				for (size_t x = 0; x <= maxVolumeIndex; ++x)
+				{
+					auto index = z * (maxVolumeIndex + 1) * (maxVolumeIndex + 1) + y * (maxVolumeIndex + 1) + x;
+					std::cout << std::setw(7) << volumeData[index] << ' ';
+				}
+				std::cout << '\n';
+			}
+				std::cout << "---\n";
+		}
+
+		std::cout.flags(original);
+	}
 	std::complex<float>*** tempVolume = NULL;
-	allocate(tempVolume, maxVolumeIndex + 1, maxVolumeIndex + 1, maxVolumeIndex + 1);
-	copyFlatTo3D(tempVolume, this->volumeData, maxVolumeIndex + 1);
+	// allocate(tempVolume, maxVolumeIndex + 1, maxVolumeIndex + 1, maxVolumeIndex + 1);
+	// copyFlatTo3D(tempVolume, this->volumeData, maxVolumeIndex + 1);
 	return tempVolume;
 }
 
 float*** ProgRecFourierStarPU::ComputeStarPUResult::createXmippStyleWeights(uint32_t maxVolumeIndex) {
+		{
+		auto original = std::cout.flags();
+		// prepare output formatting
+		std::cout << "weight data\n";
+		std::cout << std::fixed << std::setfill(' ') << std::left << std::setprecision(3) << std::showpos;
+
+		for (size_t z = 0; z <= maxVolumeIndex; ++z)
+		{
+			for (size_t y = 0; y <= maxVolumeIndex; ++y)
+			{
+				for (size_t x = 0; x <= maxVolumeIndex; ++x)
+				{
+					auto index = z * (maxVolumeIndex + 1) * (maxVolumeIndex + 1) + y * (maxVolumeIndex + 1) + x;
+					std::cout << std::setw(7) << weightsData[index] << ' ';
+				}
+				std::cout << '\n';
+			}
+				std::cout << "---\n";
+		}
+
+		std::cout.flags(original);
+	}
 	float*** tempWeights = NULL;
-	allocate(tempWeights, maxVolumeIndex + 1, maxVolumeIndex + 1, maxVolumeIndex + 1);
-	copyFlatTo3D(tempWeights, this->weightsData, maxVolumeIndex + 1);
+	// allocate(tempWeights, maxVolumeIndex + 1, maxVolumeIndex + 1, maxVolumeIndex + 1);
+	// copyFlatTo3D(tempWeights, this->weightsData, maxVolumeIndex + 1);
 	return tempWeights;
 }
 

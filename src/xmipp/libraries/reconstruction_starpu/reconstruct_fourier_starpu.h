@@ -53,8 +53,16 @@ protected:
 	/** File with symmetries */
 	FileName fn_sym;
 
+
 	/** Parameters, always loaded at startup. */
 	struct Params {
+		int noOfSymmetries;
+
+		size_t fakeNoOfImages;
+
+		size_t fakeX;
+
+		bool useTable;
 		/** Projection padding Factor */
 		double padding_factor_proj;
 

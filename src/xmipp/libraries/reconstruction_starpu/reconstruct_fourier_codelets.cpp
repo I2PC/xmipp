@@ -118,9 +118,7 @@ Codelets::Codelets() {
 	reconstruct_fft.type = starpu_codelet_type::STARPU_SEQ; // starpu_codelet_type::STARPU_SPMD; Disabled for now due to a bug in StarPU 1.3.2 (memory handles are not correctly copied to all SPMD nodes)
 	reconstruct_fft.max_parallelism = 1 << 10;// Large number, we don't really care
 	reconstruct_fft.cpu_funcs[0] = func_reconstruct_cpu_lookup_interpolation;
-	reconstruct_fft.cpu_funcs[1] = func_reconstruct_cpu_dynamic_interpolation; // (Typically about 2x slower than lookup interpolation)
 	reconstruct_fft.cpu_funcs_name[0] = "func_reconstruct_cpu_lookup_interpolation";
-	reconstruct_fft.cpu_funcs_name[1] = "func_reconstruct_cpu_dynamic_interpolation";
 	reconstruct_fft.cuda_funcs[0] = func_reconstruct_cuda;
 	reconstruct_fft.cuda_flags[0] = STARPU_CUDA_ASYNC;
 	reconstruct_fft.nbuffers = 6;
@@ -141,6 +139,35 @@ Codelets::Codelets() {
 	static struct starpu_perfmodel reconstruct_fft_model = create_common_perfmodel("reconstruct_fft_model");
 	reconstruct_fft_model.size_base = reconstruct_fft_size_base;
 	reconstruct_fft.model = &reconstruct_fft_model;
+
+	reconstruct_fft_table.where = STARPU_CPU | STARPU_CUDA;
+	// NOTE: From StarPU/examples/cg/cg_kernels.c it seems that STARPU_SPMD applies only to CPU implementations,
+	//       which we rely on. However, the documentation does not say that explicitly, so beware.
+	reconstruct_fft_table.type = starpu_codelet_type::STARPU_SEQ; // starpu_codelet_type::STARPU_SPMD; Disabled for now due to a bug in StarPU 1.3.2 (memory handles are not correctly copied to all SPMD nodes)
+	reconstruct_fft_table.max_parallelism = 1 << 10;// Large number, we don't really care
+	reconstruct_fft_table.cpu_funcs[0] = func_reconstruct_cpu_dynamic_interpolation; // (Typically about 2x slower than lookup interpolation)
+	reconstruct_fft_table.cpu_funcs_name[0] = "func_reconstruct_cpu_dynamic_interpolation";
+	reconstruct_fft_table.cuda_funcs[0] = func_reconstruct_cuda;
+	reconstruct_fft_table.cuda_flags[0] = STARPU_CUDA_ASYNC;
+	reconstruct_fft_table.nbuffers = 6;
+	reconstruct_fft_table.modes[0] = STARPU_R; // FFT Buffer
+	reconstruct_fft_table.modes[1] = STARPU_R; // Traverse Spaces Buffer
+	reconstruct_fft_table.modes[2] = STARPU_R; // Blob Table Squared Buffer (only present if fastLateBlobbing is false)
+	reconstruct_fft_table.modes[3] = STARPU_REDUX; // Result Volume Buffer
+	reconstruct_fft_table.modes[4] = STARPU_REDUX; // Result Weights Buffer
+	reconstruct_fft_table.modes[5] = STARPU_R; // LoadedImagesBuffer
+	reconstruct_fft_table.specific_nodes = 1;
+	reconstruct_fft_table.nodes[0] = STARPU_SPECIFIC_NODE_LOCAL;
+	reconstruct_fft_table.nodes[1] = STARPU_SPECIFIC_NODE_LOCAL;
+	reconstruct_fft_table.nodes[2] = STARPU_SPECIFIC_NODE_LOCAL;
+	reconstruct_fft_table.nodes[3] = STARPU_SPECIFIC_NODE_LOCAL;
+	reconstruct_fft_table.nodes[4] = STARPU_SPECIFIC_NODE_LOCAL;
+	reconstruct_fft_table.nodes[5] = STARPU_SPECIFIC_NODE_CPU;
+	reconstruct_fft_table.name = "codelet_reconstruct_fft";
+	static struct starpu_perfmodel reconstruct_fft_model_table = create_common_perfmodel("reconstruct_fft_model");
+	reconstruct_fft_model_table.size_base = reconstruct_fft_size_base;
+	reconstruct_fft_table.model = &reconstruct_fft_model_table;
+
 	// cl_arg: ReconstructFftArgs
 
 	// Redux volume & weights
