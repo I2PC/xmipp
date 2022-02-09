@@ -350,67 +350,12 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-			// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 			
-			double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			occupancyV.push_back(occupancy);
+			// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			// occupancyV.push_back(occupancy);
 
-			// if(keep)
-			// {
-			// 	Point3D<double> point3D(xCoorCM, yCoorCM, k);
-			// 	coordinates3D.push_back(point3D);
-
-			// 	#ifdef DEBUG_HCC
-			// 	numberOfNewPeakedCoordinates += 1;
-			// 	#endif
-			
-			// }
-		}
-
-		std::cout << "Occupancy vector=";
-		for (size_t i = 0; i < occupancyV.size(); i++)
-		{
-			std::cout << occupancyV[i] << " ";
-		}
-		std::cout << "" << std::endl;
-		
-
-		sort(occupancyV.begin(), occupancyV.end(), std::greater<double>());
-
-		std::cout << "Occupancy vector sorted=";
-		for (size_t i = 0; i < occupancyV.size(); i++)
-		{
-			std::cout << occupancyV[i] << " ";
-		}
-		std::cout << "" << std::endl;
-
-		double occupancyThr = occupancyV[20];
-
-		std::cout << occupancyThr << std::endl;
-
-
-		// Add coordinates if occupancy > occupancyThr
-		for(size_t value = 0; value < colour; value++)
-		{
-			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
-
-			int xCoor = 0;
-			int yCoor = 0;
-
-			for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
-			{
-				xCoor += coordinatesPerLabelX[value][coordinate];
-				yCoor += coordinatesPerLabelY[value][coordinate];
-			}
-
-			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
-			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
-
-			// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			
-			double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-
-			if(occupancy>occupancyThr)
+			if(keep)
 			{
 				Point3D<double> point3D(xCoorCM, yCoorCM, k);
 				coordinates3D.push_back(point3D);
@@ -421,6 +366,61 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			
 			}
 		}
+
+		// std::cout << "Occupancy vector=";
+		// for (size_t i = 0; i < occupancyV.size(); i++)
+		// {
+		// 	std::cout << occupancyV[i] << " ";
+		// }
+		// std::cout << "" << std::endl;
+		
+
+		// sort(occupancyV.begin(), occupancyV.end(), std::greater<double>());
+
+		// std::cout << "Occupancy vector sorted=";
+		// for (size_t i = 0; i < occupancyV.size(); i++)
+		// {
+		// 	std::cout << occupancyV[i] << " ";
+		// }
+		// std::cout << "" << std::endl;
+
+		// double occupancyThr = occupancyV[20];
+
+		// std::cout << occupancyThr << std::endl;
+
+
+		// // Add coordinates if occupancy > occupancyThr
+		// for(size_t value = 0; value < colour; value++)
+		// {
+		// 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+		// 	int xCoor = 0;
+		// 	int yCoor = 0;
+
+		// 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+		// 	{
+		// 		xCoor += coordinatesPerLabelX[value][coordinate];
+		// 		yCoor += coordinatesPerLabelY[value][coordinate];
+		// 	}
+
+		// 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+		// 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+		// 	// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			
+		// 	double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+
+		// 	if(occupancy>occupancyThr)
+		// 	{
+		// 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+		// 		coordinates3D.push_back(point3D);
+
+		// 		#ifdef DEBUG_HCC
+		// 		numberOfNewPeakedCoordinates += 1;
+		// 		#endif
+			
+		// 	}
+		// }
 		
 
 		#ifdef DEBUG_HCC
@@ -433,6 +433,62 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
 	#endif
+
+
+	// Generate pahntom volume
+	std::vector<std::vector<int>> coords = {{384,384,256}, {128, 128, 256}, {384, 128, 256}, {128, 384, 256}, {128, 256, 256}, {384, 256, 256}, {256, 384, 256}, {256, 128, 256}};
+	MultidimArray<double> tmpMap;
+	tmpMap.initZeros(512,512,512);
+	tmpMap.initConstant(255);
+
+
+	for (size_t i = 0; i < coords.size(); i++)
+	{
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]+1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]-1) = 0;
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]) = 0;
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]+1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]+1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]+1) = 0;
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]-1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]-1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]-1) = 0;
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]) = 0;
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]+1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]+1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]+1) = 0;
+
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]-1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]-1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]-1) = 0;
+
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]) = 0;
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]+1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]+1) = 0;
+
+
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]-1) = 0;
+		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]-1) = 0;	
+		}
+
+	Image<double> saveImage3;
+	saveImage3() = tmpMap;
+	saveImage3.write(fnOut.substr(0, fnOut.find_last_of("\\/")) + "/test_map.mrc");
+
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of("\\/");
@@ -1377,6 +1433,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	bool tmp = detectGlobalMisalignment();
+	adjustCoordinatesCosineStreching();
 
 	detectLandmarkChains();
 	if(globalAlignment){
@@ -1404,7 +1461,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 // --------------------------- UTILS functions ----------------------------
 
 
-double ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < thrNumberCoords)
@@ -1455,16 +1512,16 @@ double ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<in
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
-	// if(ocupation > 0.65)
-	// {
-	// 	return true;
-	// }
-	// if(ocupation <= 0.65)
-	// {
-	// 	return false;
-	// }
+	if(ocupation > 0.65)
+	{
+		return true;
+	}
+	if(ocupation <= 0.65)
+	{
+		return false;
+	}
 
-	return ocupation;
+	// return ocupation;
 }
 
 bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
@@ -1482,23 +1539,52 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 
 		coordinatesInSlice = getCoordinatesInSlice(tiIndex);
 
+		std::vector<std::vector<Point2D<double>>> splittedCoords = splitCoordinatesInHalfImage(coordinatesInSlice);
+
+		std::vector<Point2D<double>> leftSide = splittedCoords[0];
+		std::vector<Point2D<double>> rightSide = splittedCoords[1];
+
+
+		int smallArray = (leftSide.size()<rightSide.size()) ? leftSide.size() : rightSide.size();
+
+
+
 		// Calculate the intersection of the pair of coordinates with the tilt axis
-		for (size_t i = 0; i < coordinatesInSlice.size(); i++)
+		for (size_t i = 0; i < smallArray; i++)
 		{
-			for (size_t j = 0; j < coordinatesInSlice.size(); j++)
-			{
-				// Check to not compare a corrdinate with itself
-				if (i != j)
-				{
-					int intersectionIndex =  calculateTiltAxisIntersection(coordinatesInSlice[i], coordinatesInSlice[j]);
-					if (intersectionIndex > 0 && intersectionIndex < ySize)
-					{
-						// tiltAxisIntersection[intersectionIndex, tiIndex] += 1;
-						tiltAxisIntersection[intersectionIndex] += 1;
-					}
-				}
-			}
+
+			Point2D<double> p1 = leftSide[i];
+			Point2D<double> p2 = rightSide[i];
+
+			int intersectionIndex =  calculateTiltAxisIntersection(p1, p2);
+
+			tiltAxisIntersection[intersectionIndex] += 1;
+				
 		}
+
+
+		// // Calculate the intersection of the pair of coordinates with the tilt axis
+		// for (size_t i = 0; i < coordinatesInSlice.size(); i++)
+		// {
+		// 	for (size_t j = 0; j < coordinatesInSlice.size(); j++)
+		// 	{
+		// 		Point2D<double> p1 = coordinatesInSlice[i];
+		// 		Point2D<double> p2 = coordinatesInSlice[j];
+
+		// 		// Do not compare very close coordinates
+		// 		int distance2 = (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y);
+
+		// 		if(distance2 > (normDim*0.5)*(normDim*0.5))
+		// 		{
+		// 			int intersectionIndex =  calculateTiltAxisIntersection(p1, p2);
+		// 			if (intersectionIndex > 0 && intersectionIndex < ySize)
+		// 			{
+		// 				// tiltAxisIntersection[intersectionIndex, tiIndex] += 1;
+		// 				tiltAxisIntersection[intersectionIndex] += 1;
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 	// for (size_t i = 0; i < nSize; i++)
@@ -1526,6 +1612,85 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 
 	return true;
 	
+}
+
+std::vector<std::vector<Point2D<double>>> ProgTomoDetectMisalignmentTrajectory::splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords)
+{
+	std::vector<std::vector<Point2D<double>>> splittedCoodinates;
+
+	std::vector<Point2D<double>> leftSide;
+	std::vector<Point2D<double>> rightSide;
+
+
+
+	for (size_t i = 0; i < inCoords.size(); i++)
+	{
+		Point2D<double> coord = inCoords[i];
+
+		if(coord.x > xSize/2)
+		{
+			rightSide.push_back(coord);
+		}else
+		{
+			leftSide.push_back(coord);
+		}
+	}
+
+	// Struct to sort 3D coordinates (point3D class) by its x component
+	struct SortByY
+	{
+		bool operator() ( const Point2D<double>& L, const Point2D<double>& R) { return L.y < R.y; };
+	};
+
+	std::sort(leftSide.begin(), leftSide.end(), SortByY());
+
+	std::sort(rightSide.begin(), rightSide.end(), SortByY());
+
+	splittedCoodinates.push_back(leftSide);
+	splittedCoodinates.push_back(rightSide);
+
+	return splittedCoodinates;	
+}
+
+void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching()
+{
+
+	MultidimArray<int> csProyectedCoordinates;
+	csProyectedCoordinates.initZeros(ySize, xSize);
+
+	Point3D<double> c;
+	int xTA = (int)(xSize/2);
+
+	for (size_t i = 0; i < coordinates3D.size(); i++)
+	{
+		c = coordinates3D[i];
+		int csX = (int)((c.x-xTA)*cos(-tiltAngles[(int)c.z]* PI/180.0)+(c.x-xTA)*tan(-tiltAngles[(int)c.z]* PI/180.0)*sin(-tiltAngles[(int)c.z]* PI/180.0)+xTA);
+
+		std::cout << "xTA=" << xTA << std::endl;
+		std::cout << "c.x=" << c.x << std::endl;
+		std::cout << "c.y=" << c.y << std::endl;
+		std::cout << "c.z=" << c.z << std::endl; 
+		std::cout << "csX=" << csX << std::endl;
+		// std::cout << "(int)(((c.x-xTA)/cos(tiltAngles[(int)c.z]* PI/180.0))+xTA)=" << (int)(((c.x-xTA)/cos(tiltAngles[(int)c.z]* PI/180.0))+xTA) << std::endl;
+		std::cout << "(int)c.y=" << (int)c.y << std::endl;
+		std::cout << "(int)c.z=" << (int)c.z << std::endl;
+		std::cout << "tiltAngles[(int)c.z]=" << tiltAngles[(int)c.z] << std::endl;
+
+
+		// Apply cosine streching
+		// DIRECT_A2D_ELEM(csProyectedCoordinates, (int)c.y, (int)(((c.x-xTA)/cos(tiltAngles[(int)c.z]* PI/180.0))+xTA)) += 1;
+		DIRECT_A2D_ELEM(csProyectedCoordinates, (int)c.y, csX) += 1;
+	}
+
+	size_t li = fnOut.find_last_of("\\/");
+	std::string rn = fnOut.substr(0, li);
+	std::string ofn;
+    ofn = rn + "/ts_proyected_cs.mrc";
+
+	Image<int> si;
+	si() = csProyectedCoordinates;
+	si.write(ofn);
+
 }
 
 

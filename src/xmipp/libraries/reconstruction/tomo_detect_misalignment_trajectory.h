@@ -230,7 +230,8 @@ public:
      * @return
      *
     */
-    double filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+    // double filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
 
     /**
      * Filter labeled regions.
@@ -240,6 +241,20 @@ public:
      *
     */
     bool detectGlobalMisalignment();
+
+    std::vector<std::vector<Point2D<double>>> splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords);
+
+
+
+    /**
+     * Bandpass filtering the input tilt-series.
+     *
+     * @param
+     * @return
+     *
+    */
+    void adjustCoordinatesCosineStreching();
+
 
     /**
      * Filter labeled regions.
