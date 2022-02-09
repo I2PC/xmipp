@@ -476,7 +476,7 @@ void processVoxel(
  * spaces to the given projection and update temporal spaces
  * using the pixel values of the projection withing the blob distance.
  */
-template<int blobOrder, bool useFastKaiser>
+template<int blobOrder, bool useFastKaiser, bool usePrecomputedInterpolation>
 __device__
 void processVoxelBlob(
 		float2* tempVolumeGPU, float *tempWeightsGPU,
@@ -538,7 +538,7 @@ void processVoxelBlob(
 			int index2D = i * xSize + j;
 #endif
 
-#if PRECOMPUTE_BLOB_VAL
+#if usePrecomputedInterpolation
 			int aux = (int) ((distanceSqr * gpuC.cIDeltaSqrt + 0.5f));
 #if SHARED_BLOB_TABLE
 			float wBlob = BLOB_TABLE[aux];
@@ -574,7 +574,7 @@ void processVoxelBlob(
   * Method will process one projection image and add result to temporal
   * spaces.
   */
-template<bool useFast, int blobOrder, bool useFastKaiser>
+template<bool useFast, int blobOrder, bool useFastKaiser, bool usePrecomputedInterpolation>
 __device__
 void processProjection(
 		float2* tempVolumeGPU, float *tempWeightsGPU,
@@ -612,7 +612,7 @@ void processProjection(
 					int lower = static_cast<int>(floorf(fminf(z1, z2)));
 					int upper = static_cast<int>(ceilf(fmaxf(z1, z2)));
 					for (int z = lower; z <= upper; z++) {
-						processVoxelBlob<blobOrder, useFastKaiser>(tempVolumeGPU, tempWeightsGPU, idx, idy, z, xSize, ySize, FFT, tSpace, blobTableSqrt, imgCacheDim);
+						processVoxelBlob<blobOrder, useFastKaiser,usePrecomputedInterpolation>(tempVolumeGPU, tempWeightsGPU, idx, idy, z, xSize, ySize, FFT, tSpace, blobTableSqrt, imgCacheDim);
 					}
 				}
 			}
@@ -632,7 +632,7 @@ void processProjection(
 					int lower = static_cast<int>(floorf(fminf(y1, y2)));
 					int upper = static_cast<int>(ceilf(fmaxf(y1, y2)));
 					for (int y = lower; y <= upper; y++) {
-						processVoxelBlob<blobOrder, useFastKaiser>(tempVolumeGPU, tempWeightsGPU, idx, y, idy, xSize, ySize, FFT, tSpace, blobTableSqrt, imgCacheDim);
+						processVoxelBlob<blobOrder, useFastKaiser,usePrecomputedInterpolation>(tempVolumeGPU, tempWeightsGPU, idx, y, idy, xSize, ySize, FFT, tSpace, blobTableSqrt, imgCacheDim);
 					}
 				}
 			}
@@ -652,7 +652,7 @@ void processProjection(
 					int lower = static_cast<int>(floorf(fminf(x1, x2)));
 					int upper = static_cast<int>(ceilf(fmaxf(x1, x2)));
 					for (int x = lower; x <= upper; x++) {
-						processVoxelBlob<blobOrder, useFastKaiser>(tempVolumeGPU, tempWeightsGPU, x, idx, idy, xSize, ySize, FFT, tSpace, blobTableSqrt, imgCacheDim);
+						processVoxelBlob<blobOrder, useFastKaiser,usePrecomputedInterpolation>(tempVolumeGPU, tempWeightsGPU, x, idx, idy, xSize, ySize, FFT, tSpace, blobTableSqrt, imgCacheDim);
 					}
 				}
 			}
@@ -707,7 +707,7 @@ void copyImgToCache(float2* dest, const Point3D<float> AABB[2],
  * Method will use data stored in the buffer and update temporal
  * storages appropriately.
  */
-template<bool fastLateBlobbing, int blobOrder, bool useFastKaiser>
+template<bool fastLateBlobbing, int blobOrder, bool useFastKaiser, bool usePrecomputedInterpolation>
 __global__
 void processBufferKernel(
 		float2* outVolumeBuffer, float *outWeightsBuffer,
@@ -752,7 +752,7 @@ void processBufferKernel(
 		}
 #endif
 
-		processProjection<fastLateBlobbing, blobOrder, useFastKaiser>(
+		processProjection<fastLateBlobbing, blobOrder, useFastKaiser, usePrecomputedInterpolation>(
 				outVolumeBuffer, outWeightsBuffer,
 				fftSizeX, fftSizeY,
 				FFTs + fftSizeX * fftSizeY * space.projectionIndex,
@@ -770,7 +770,7 @@ void processBufferKernel(
  * Actual calculation is done asynchronously, but 'buffer' can be reused
  * once the method returns.
  */
-template<int blobOrder, bool useFastKaiser>
+template<int blobOrder, bool useFastKaiser, bool usePrecomputedInterpolation>
 void processBufferGPU(
 		float2 *outVolumeBuffer, float *outWeightsBuffer,
 		const int fftSizeX, const int fftSizeY,
@@ -791,7 +791,7 @@ void processBufferGPU(
 
 	// by using templates, we can save some registers, especially for 'fast' version
 	if (fastLateBlobbing) {
-		processBufferKernel<true, blobOrder,useFastKaiser><<<dimGrid, dimBlock, 0, starpu_cuda_get_local_stream()>>>(
+		processBufferKernel<true, blobOrder,useFastKaiser, usePrecomputedInterpolation><<<dimGrid, dimBlock, 0, starpu_cuda_get_local_stream()>>>(
 				outVolumeBuffer, outWeightsBuffer,
 				fftSizeX, fftSizeY,
 				traverseSpaceCount, traverseSpaces,
@@ -801,7 +801,7 @@ void processBufferGPU(
 	} else {
 		// if making copy of the image in shared memory, allocate enough space
 		int sharedMemSize = SHARED_IMG ? (imgCacheDim*imgCacheDim*sizeof(float2)) : 0;
-		processBufferKernel<false, blobOrder,useFastKaiser><<<dimGrid, dimBlock, sharedMemSize, starpu_cuda_get_local_stream()>>>(
+		processBufferKernel<false, blobOrder,useFastKaiser, usePrecomputedInterpolation><<<dimGrid, dimBlock, sharedMemSize, starpu_cuda_get_local_stream()>>>(
 				outVolumeBuffer, outWeightsBuffer,
 				fftSizeX, fftSizeY,
 				traverseSpaceCount, traverseSpaces,
@@ -812,7 +812,8 @@ void processBufferGPU(
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
+template<bool usePrecomputedInterpolation>
+void func_reconstruct_cuda_template(void* buffers[], void* cl_arg) {
 	const ReconstructFftArgs& arg = *(ReconstructFftArgs*) cl_arg;
 	const float2* inFFTs = (float2*)STARPU_VECTOR_GET_PTR(buffers[0]);
 	const RecFourierProjectionTraverseSpace* inSpaces = (RecFourierProjectionTraverseSpace*)STARPU_MATRIX_GET_PTR(buffers[1]);
@@ -824,7 +825,7 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 	switch (arg.blobOrder) {
 		case 0:
 			if (arg.blobAlpha <= 15.0) {
-				processBufferGPU<0, true>(outVolumeBuffer, outWeightsBuffer,
+				processBufferGPU<0, true, usePrecomputedInterpolation>(outVolumeBuffer, outWeightsBuffer,
 				                          arg.fftSizeX, arg.fftSizeY,
 				                          arg.noOfSymmetries * noOfImages, inSpaces,
 				                          inFFTs,
@@ -832,7 +833,7 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 				                          arg.fastLateBlobbing,
 				                          arg.blobRadius, arg.maxVolIndexYZ);
 			} else {
-				processBufferGPU<0, false>(outVolumeBuffer, outWeightsBuffer,
+				processBufferGPU<0, false, usePrecomputedInterpolation>(outVolumeBuffer, outWeightsBuffer,
 				                           arg.fftSizeX, arg.fftSizeY,
 				                           arg.noOfSymmetries * noOfImages, inSpaces,
 				                           inFFTs,
@@ -842,7 +843,7 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 			}
 			break;
 		case 1:
-			processBufferGPU<1, false>(outVolumeBuffer, outWeightsBuffer,
+			processBufferGPU<1, false, usePrecomputedInterpolation>(outVolumeBuffer, outWeightsBuffer,
 			                           arg.fftSizeX, arg.fftSizeY,
 			                           arg.noOfSymmetries * noOfImages, inSpaces,
 			                           inFFTs,
@@ -851,7 +852,7 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 			                           arg.blobRadius, arg.maxVolIndexYZ);
 			break;
 		case 2:
-			processBufferGPU<2, false>(outVolumeBuffer, outWeightsBuffer,
+			processBufferGPU<2, false, usePrecomputedInterpolation>(outVolumeBuffer, outWeightsBuffer,
 			                           arg.fftSizeX, arg.fftSizeY,
 			                           arg.noOfSymmetries * noOfImages, inSpaces,
 			                           inFFTs,
@@ -860,7 +861,7 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 			                           arg.blobRadius, arg.maxVolIndexYZ);
 			break;
 		case 3:
-			processBufferGPU<3, false>(outVolumeBuffer, outWeightsBuffer,
+			processBufferGPU<3, false, usePrecomputedInterpolation>(outVolumeBuffer, outWeightsBuffer,
 			                           arg.fftSizeX, arg.fftSizeY,
 			                           arg.noOfSymmetries * noOfImages, inSpaces,
 			                           inFFTs,
@@ -869,7 +870,7 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 			                           arg.blobRadius, arg.maxVolIndexYZ);
 			break;
 		case 4:
-			processBufferGPU<4, false>(outVolumeBuffer, outWeightsBuffer,
+			processBufferGPU<4, false, usePrecomputedInterpolation>(outVolumeBuffer, outWeightsBuffer,
 			                           arg.fftSizeX, arg.fftSizeY,
 			                           arg.noOfSymmetries * noOfImages, inSpaces,
 			                           inFFTs,
@@ -882,6 +883,15 @@ void func_reconstruct_cuda(void* buffers[], void* cl_arg) {
 	}
 
 	// gpuErrchk(cudaStreamSynchronize(starpu_cuda_get_local_stream())); disabled because codelet is async
+}
+
+
+void func_reconstruct_cuda_lookup_interpolation(void* buffers[], void* cl_arg) {
+	func_reconstruct_cuda_template<true>(buffers, cl_arg);
+}
+
+void func_reconstruct_cuda_dynamic_interpolation(void* buffers[], void* cl_arg) {
+	func_reconstruct_cuda_template<false>(buffers, cl_arg);
 }
 
 //------------------------------------------------ CPU -----------------------------------------------------------------

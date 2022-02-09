@@ -117,9 +117,9 @@ Codelets::Codelets() {
 	//       which we rely on. However, the documentation does not say that explicitly, so beware.
 	reconstruct_fft.type = starpu_codelet_type::STARPU_SEQ; // starpu_codelet_type::STARPU_SPMD; Disabled for now due to a bug in StarPU 1.3.2 (memory handles are not correctly copied to all SPMD nodes)
 	reconstruct_fft.max_parallelism = 1 << 10;// Large number, we don't really care
-	reconstruct_fft.cpu_funcs[0] = func_reconstruct_cpu_lookup_interpolation;
-	reconstruct_fft.cpu_funcs_name[0] = "func_reconstruct_cpu_lookup_interpolation";
-	reconstruct_fft.cuda_funcs[0] = func_reconstruct_cuda;
+	reconstruct_fft.cpu_funcs[0] = func_reconstruct_cpu_dynamic_interpolation; // (Typically about 2x slower than lookup interpolation)
+	reconstruct_fft.cpu_funcs_name[0] = "func_reconstruct_cpu_dynamic_interpolation";
+	reconstruct_fft.cuda_funcs[0] = func_reconstruct_cuda_dynamic_interpolation;
 	reconstruct_fft.cuda_flags[0] = STARPU_CUDA_ASYNC;
 	reconstruct_fft.nbuffers = 6;
 	reconstruct_fft.modes[0] = STARPU_R; // FFT Buffer
@@ -145,9 +145,10 @@ Codelets::Codelets() {
 	//       which we rely on. However, the documentation does not say that explicitly, so beware.
 	reconstruct_fft_table.type = starpu_codelet_type::STARPU_SEQ; // starpu_codelet_type::STARPU_SPMD; Disabled for now due to a bug in StarPU 1.3.2 (memory handles are not correctly copied to all SPMD nodes)
 	reconstruct_fft_table.max_parallelism = 1 << 10;// Large number, we don't really care
-	reconstruct_fft_table.cpu_funcs[0] = func_reconstruct_cpu_dynamic_interpolation; // (Typically about 2x slower than lookup interpolation)
-	reconstruct_fft_table.cpu_funcs_name[0] = "func_reconstruct_cpu_dynamic_interpolation";
-	reconstruct_fft_table.cuda_funcs[0] = func_reconstruct_cuda;
+
+	reconstruct_fft_table.cpu_funcs[0] = func_reconstruct_cpu_lookup_interpolation;
+	reconstruct_fft_table.cpu_funcs_name[0] = "func_reconstruct_cpu_lookup_interpolation";
+	reconstruct_fft_table.cuda_funcs[0] = func_reconstruct_cuda_lookup_interpolation;
 	reconstruct_fft_table.cuda_flags[0] = STARPU_CUDA_ASYNC;
 	reconstruct_fft_table.nbuffers = 6;
 	reconstruct_fft_table.modes[0] = STARPU_R; // FFT Buffer

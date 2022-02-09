@@ -134,9 +134,9 @@ public:
 		if (TILE >= BLOCK_DIM) {
 			REPORT_ERROR(ERR_PARAM_INCORRECT,"TILE must be smaller than BLOCK_DIM");
 		}
-		if ((SHARED_BLOB_TABLE == 1) && (PRECOMPUTE_BLOB_VAL == 0)) {
-			REPORT_ERROR(ERR_PARAM_INCORRECT,"PRECOMPUTE_BLOB_VAL must be set to 1(one) when SHARED_BLOB_TABLE is active");
-		}
+		// if ((SHARED_BLOB_TABLE == 1) && (PRECOMPUTE_BLOB_VAL == 0)) {
+		// 	REPORT_ERROR(ERR_PARAM_INCORRECT,"PRECOMPUTE_BLOB_VAL must be set to 1(one) when SHARED_BLOB_TABLE is active");
+		// }
 	}
 
 	/** Specify supported command line arguments */

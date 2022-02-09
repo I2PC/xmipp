@@ -136,7 +136,9 @@ void reconstruct_cuda_initialize_constants(
 		int maxVolIndexX, int maxVolIndexYZ,
 		float blobRadius, float blobAlpha,
 		float iDeltaSqrt, float iw0, float oneOverBessiOrderAlpha);
-extern void func_reconstruct_cuda(void* buffers[], void* cl_arg);
+
+extern void func_reconstruct_cuda_lookup_interpolation(void* buffers[], void* cl_arg);
+extern void func_reconstruct_cuda_dynamic_interpolation(void* buffers[], void* cl_arg);
 
 extern void func_reconstruct_cpu_lookup_interpolation(void* buffers[], void* cl_arg);
 extern void func_reconstruct_cpu_dynamic_interpolation(void* buffers[], void* cl_arg);

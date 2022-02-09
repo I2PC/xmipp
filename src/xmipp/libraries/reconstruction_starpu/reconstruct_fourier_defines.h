@@ -36,7 +36,7 @@
 #define BLOCK_DIM 16
 #define SHARED_BLOB_TABLE 0
 #define SHARED_IMG 0
-#define PRECOMPUTE_BLOB_VAL 0
+// #define PRECOMPUTE_BLOB_VAL 0
 #define TILE 8
 #define GRID_DIM_Z 1
 #endif
@@ -46,7 +46,7 @@
 #define BLOCK_DIM 8
 #define SHARED_BLOB_TABLE 0
 #define SHARED_IMG 0
-#define PRECOMPUTE_BLOB_VAL 1
+// #define PRECOMPUTE_BLOB_VAL 1
 #define TILE 4
 #define GRID_DIM_Z 8
 #endif
@@ -56,7 +56,7 @@
 #define BLOCK_DIM 16
 #define SHARED_BLOB_TABLE 1
 #define SHARED_IMG 0
-#define PRECOMPUTE_BLOB_VAL 1
+// #define PRECOMPUTE_BLOB_VAL 1
 #define TILE 2
 #define GRID_DIM_Z 1
 #endif
