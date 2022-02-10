@@ -255,8 +255,8 @@ double EulerSolver::similarityBetweenTwoLines(int imgi, int imgj)
     double angi=RAD2DEG(atan2(YY(commonlinei),XX(commonlinei)));
     double angj=RAD2DEG(atan2(YY(commonlinej),XX(commonlinej)));
 
-    int idxAngi = (int)intWRAP(-((int)angi),0,359);
-    int idxAngj = (int)intWRAP(-((int)angj),0,359);
+    auto idxAngi = (int)intWRAP(-((int)angi),0,359);
+    auto idxAngj = (int)intWRAP(-((int)angj),0,359);
 
     double retval1=
         correlationIndex(parent->radon[imgi][idxAngi],
@@ -855,7 +855,7 @@ void Prog_Angular_CommonLine::optimize(Matrix1D<double> &solution)
             }
 
             // Cleaning of the "garbage"
-            int totalAssigned=(int)assigned.sum();
+            auto totalAssigned=(int)assigned.sum();
             std::cout << "removal=" << removalCounter
             << " totalAssigned=" << totalAssigned
             << std::endl;
@@ -1191,7 +1191,7 @@ double Prog_Angular_CommonLine::realignCurrentSolution()
     FOR_ALL_ELEMENTS_IN_MATRIX1D(alreadyOptimized)
     if (alreadyOptimized(i)==2)
         alreadyOptimized(i)=1;
-    int NToSolve=(int)alreadyOptimized.sum();
+    auto NToSolve=(int)alreadyOptimized.sum();
     Matrix1D<int> imgIdx(NToSolve);
     int idx=0;
     FOR_ALL_ELEMENTS_IN_MATRIX1D(alreadyOptimized)

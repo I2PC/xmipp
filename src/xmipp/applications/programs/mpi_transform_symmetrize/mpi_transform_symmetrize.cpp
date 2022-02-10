@@ -26,6 +26,6 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/symmetrize.h>
 
+class MpiProgSymmetrize : public BasicMpiMetadataProgram<ProgSymmetrize> {};
 
-CREATE_MPI_METADATA_PROGRAM(ProgSymmetrize, MpiProgSymmetrize)
 RUN_XMIPP_PROGRAM(MpiProgSymmetrize)

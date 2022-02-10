@@ -112,7 +112,7 @@ void ProgValidationNonTilt::run()
 
 	for (size_t idx=0; idx<=maxNImg;idx++)
 	{
-		if ((idx)%Nprocessors==rank)
+		if (idx%Nprocessors==rank)
 		{
 			if (useSignificant)
 				expression = formatString("imageIndex == %lu",idx);
@@ -141,7 +141,7 @@ void ProgValidationNonTilt::run()
 				p.at(j) = H0.at(j)/H.at(j);
 			}
 
-			P /= (nSamplesRandom);
+			P /= nSamplesRandom;
 
 			if (useSignificant)
 				rowP.setValue(MDL_IMAGE_IDX,idx);
@@ -175,7 +175,7 @@ void ProgValidationNonTilt::run()
 				validation += 1.;
 			num_images += 1.;
 		}
-		validation /= (num_images);
+		validation /= num_images;
 
 		row2.setValue(MDL_IMAGE,fnInit);
 		row2.setValue(MDL_WEIGHT,validation);
@@ -191,9 +191,9 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
     double xRan,yRan,zRan;
     double x,y;
     double sumWRan;
-    double * xRanArray = new double[tempMdSz];
-    double * yRanArray = new double[tempMdSz];
-    double * zRanArray  = new double[tempMdSz];
+    auto * xRanArray = new double[tempMdSz];
+    auto * yRanArray = new double[tempMdSz];
+    auto * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
     std::random_device rd;
@@ -382,9 +382,9 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     double xRan,yRan,zRan;
     size_t indx;
     double sumWRan;
-    double * xRanArray = new double[tempMdSz];
-    double * yRanArray = new double[tempMdSz];
-    double * zRanArray  = new double[tempMdSz];
+    auto * xRanArray = new double[tempMdSz];
+    auto * yRanArray = new double[tempMdSz];
+    auto * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
 

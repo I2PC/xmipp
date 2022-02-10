@@ -28,7 +28,7 @@
 #include "condor/Solver.h"
 
 // Empty constructor =======================================================
-ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
+ProgNmaAlignmentVol::ProgNmaAlignmentVol() : Rerunable("") {
 	rangen = 0;
 	resume = false;
 	currentVolName = "";
@@ -81,6 +81,7 @@ void ProgNmaAlignmentVol::readParams() {
 	fnPDB = getParam("--pdb");
 	fnOutPDB = getParam("--opdb");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir + "/nmaDone.xmd");
 	fnModeList = getParam("--modes");
 	resume = checkParam("--resume");
 	sampling_rate = getDoubleParam("--sampling_rate");
@@ -126,34 +127,6 @@ void ProgNmaAlignmentVol::show() {
 // Produce side information ================================================
 ProgNmaAlignmentVol *global_nma_vol_prog;
 
-void ProgNmaAlignmentVol::createWorkFiles() {
-	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
-	MetaDataDb mdTodo, mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/nmaDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_SHIFT_Z);
-		mdDone.addLabel(MDL_NMA);
-		mdDone.addLabel(MDL_NMA_ENERGY);
-		mdDone.addLabel(MDL_MAXCC);
-		mdDone.addLabel(MDL_ANGLE_Y);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
-
 void ProgNmaAlignmentVol::preProcess() {
 	MetaDataVec SF(fnModeList);
 	SF.removeDisabled();
@@ -174,7 +147,7 @@ void ProgNmaAlignmentVol::preProcess() {
 
 void ProgNmaAlignmentVol::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/nmaDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // Create deformed PDB =====================================================
@@ -378,5 +351,5 @@ void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
 		md.setValue(MDL_ANGLE_Y, 0.0 , objId);
 	}
 
-	md.append(fnOutDir+"/nmaDone.xmd");
+	md.append(Rerunable::getFileName());
 }

@@ -62,7 +62,7 @@ public:
             ProgAngularSphAlignment::showProgress();
         }
     }
-    void createWorkFiles()
+    void createWorkFiles() override
     {
         //Master node should prepare some stuff before start working
         MetaData &mdIn = *getInputMd(); //get a reference to input metadata

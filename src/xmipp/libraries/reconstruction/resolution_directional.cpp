@@ -484,7 +484,7 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 				DIRECT_MULTIDIM_ELEM(amplitude,n)=sqrt(DIRECT_MULTIDIM_ELEM(amplitude,n));
 				double radius = sqrt(ux + uy + uz);
 				if ((radius>=limit_radius) && (radius<=siz))
-					DIRECT_MULTIDIM_ELEM(amplitude, n) *= 0.5*(1+cos(PI*(limit_radius-radius)/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(amplitude, n) *= 0.5*(1+cos(PI*(limit_radius-radius)/N_smoothing));
 				else if (radius>siz)
 					DIRECT_MULTIDIM_ELEM(amplitude, n) = 0;
 				++n;
@@ -514,7 +514,7 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftVRiesz)
 	{
 		double un=1.0/DIRECT_MULTIDIM_ELEM(iu,n);
-		if ((freqL)>=un && un>=freq)
+		if (freqL>=un && un>=freq)
 		{
 			DIRECT_MULTIDIM_ELEM(fftVRiesz,n) *= 0.5*(1 + cos(raised_w*(un-freq)));
 		}
@@ -671,8 +671,8 @@ void ProgResDir::resolution2eval_(int &fourier_idx, double min_step,
 		resolution_H = 1.05*resolution;
 	}
 
-	freqH = sampling/(resolution_H);
-	freqL = sampling/(resolution_L);
+	freqH = sampling/resolution_H;
+	freqL = sampling/resolution_L;
 
 	if (freqH>0.5 || freqH<0)
 		freqH = 0.5;
@@ -1128,11 +1128,11 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 				md.setValue(MDL_VOLUME_SCORE4, cum_mean_4, objId);
 				md.setValue(MDL_AVG, cum_mean_5, objId);
 
-				MAT_ELEM(std_mean_Radial_1,0, kk) = sqrt(cum2_mean_1/(N) - cum_mean_1*cum_mean_1);
-				MAT_ELEM(std_mean_Radial_2,0, kk) = sqrt(cum2_mean_2/(N) - cum_mean_2*cum_mean_2);
-				MAT_ELEM(std_mean_Radial_3,0, kk) = sqrt(cum2_mean_3/(N) - cum_mean_3*cum_mean_3);
-				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/(N) - cum_mean_4*cum_mean_4+0.001);
-				MAT_ELEM(std_mean_Radial_5,0, kk) = sqrt(cum2_mean_5/(N) - cum_mean_5*cum_mean_5);
+				MAT_ELEM(std_mean_Radial_1,0, kk) = sqrt(cum2_mean_1/N - cum_mean_1*cum_mean_1);
+				MAT_ELEM(std_mean_Radial_2,0, kk) = sqrt(cum2_mean_2/N - cum_mean_2*cum_mean_2);
+				MAT_ELEM(std_mean_Radial_3,0, kk) = sqrt(cum2_mean_3/N - cum_mean_3*cum_mean_3);
+				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/N - cum_mean_4*cum_mean_4+0.001);
+				MAT_ELEM(std_mean_Radial_5,0, kk) = sqrt(cum2_mean_5/N - cum_mean_5*cum_mean_5);
 
 //				std::cout << "cum2_mean_4/(N) = " << cum2_mean_4/(N)  << " " << "cum_mean_4*cum_mean_4) = " << cum_mean_4*cum_mean_4 << std::endl;
 // 				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
@@ -1274,7 +1274,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			A3D_ELEM(doaResolution_1,k,i,j) = 0.5*(res75 - res25);//( (Mres - mres)/(Mres + mres) );
 
-			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
+			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( Mres + mres );
 
 			ResList.clear();
 
@@ -1690,7 +1690,7 @@ void ProgResDir::run()
 							double acosine = acos(dotproduct);
 
 							//TODO: change efficiency the if condition by means of fabs(cos(angle))
-							if (((acosine<(cone_angle)) || (acosine>(PI-cone_angle)) )
+							if (((acosine<cone_angle) || (acosine>(PI-cone_angle)) )
 									&& (rad>Rparticle))
 							{
 //								DIRECT_MULTIDIM_ELEM(coneVol, n) = 1;

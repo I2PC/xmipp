@@ -80,7 +80,7 @@ void ProgVolumeDeformSphGpu::readParams() {
 }
 
 // Show ====================================================================
-void ProgVolumeDeformSphGpu::show() {
+void ProgVolumeDeformSphGpu::show() const {
 	if (verbose==0)
 		return;
 	std::cout
@@ -127,7 +127,7 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     sumVD = result.sumVD;
 // GPU computation end
 
-	deformation=std::sqrt(modg/(Ncount));
+	deformation=std::sqrt(modg/Ncount);
 
 #ifdef DEBUG
 	Image<double> save;
@@ -161,7 +161,7 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
 
 double volDeformSphGoal(double *p, void *vprm)
 {
-    ProgVolumeDeformSphGpu *prm=(ProgVolumeDeformSphGpu *) vprm;
+    auto *prm=(ProgVolumeDeformSphGpu *) vprm;
 	return prm->distance(p);
 }
 

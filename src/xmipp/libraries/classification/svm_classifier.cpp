@@ -57,6 +57,16 @@ void SVMClassifier::setParameters(double c,double gamma)
     prob.y=NULL;
     prob.x=NULL;
 }
+
+SVMClassifier & SVMClassifier::operator=(const SVMClassifier &other)
+{
+    param=other.param;
+    prob=other.prob;
+    delete model;
+    model=new svm_model(*other.model);
+    return *this;
+}
+
 SVMClassifier::~SVMClassifier()
 {
     svm_free_and_destroy_model(&model);
@@ -70,6 +80,7 @@ SVMClassifier::~SVMClassifier()
         delete [] prob.x;
     }
 }
+
 void SVMClassifier::SVMTrain(MultidimArray<double> &trainSet,MultidimArray<double> &label)
 {
 

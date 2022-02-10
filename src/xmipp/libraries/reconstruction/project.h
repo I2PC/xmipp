@@ -61,6 +61,8 @@ public:
     int projSize;
     /// Sampling rate: Only used for PDB projections
     double samplingRate;
+    /// High sampling rate: Only used for PDB projections
+    double highTs;
     /// Only create angles, do not project
     bool only_create_angles;
     /// Single projection

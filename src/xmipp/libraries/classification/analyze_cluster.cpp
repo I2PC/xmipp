@@ -116,7 +116,7 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
         mask.initConstant(1);
     else
         BinaryCircularMask(mask,Xdim/2, INNER_MASK);
-    int Npixels=(int)mask.sum();
+    auto Npixels=(int)mask.sum();
 
     // Read all images in the class and subtract the mean
     // once aligned

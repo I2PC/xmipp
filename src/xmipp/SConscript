@@ -167,7 +167,7 @@ if cuda:
            libs=['Xmipp','XmippInterfaceCuda','XmippCuda'], mpi=True)
 
     if starpu:
-        starpu_include = [os.environ.get('STARPU_INCLUDE')]
+        starpu_include = os.environ.get('STARPU_INCLUDE').split()
         starpu_lib = ['lib', os.environ.get('STARPU_LIB')]
         starpu_library = os.environ.get('STARPU_LIBRARY')
 
@@ -383,10 +383,9 @@ def addMatlabBinding(name):
     matlabDir = join(XMIPP_PATH, 'bindings', 'matlab')
     source = join(matlabDir, name)
     target = join(matlabDir, name.replace(".cpp",".mexa64"))
-
-    cmdTarget = env.Command(target, source, compileMatlabBinding, deps=XMIPP_LIBS)
+    env.Depends(target = target, dependency = XMIPP_LIBS)
+    cmdTarget = env.Command(target, source, compileMatlabBinding)
     env.Alias('xmipp-matlab', cmdTarget)
-
     return cmdTarget
 
 if matlab:

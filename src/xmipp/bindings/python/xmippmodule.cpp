@@ -206,7 +206,7 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     try
         {
 
-        String inputStr = (std::string)(char*)PyUnicode_AsUTF8(PyObject_Str(input));
+        auto inputStr = (std::string)(char*)PyUnicode_AsUTF8(PyObject_Str(input));
         inputStr += "%";
         inputStr += datatype2Str(dataType);
         createEmptyFile(inputStr, Xdim, Ydim, Zdim, Ndim, true, WRITE_REPLACE);
@@ -231,7 +231,7 @@ xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
 
             PyObject * pyStr = PyObject_Str(pyValue);
-            char *str = (char*)PyUnicode_AsUTF8(pyStr);
+            auto *str = (char*)PyUnicode_AsUTF8(pyStr);
             size_t xdim, ydim, zdim, ndim;
             getImageSize(str, xdim, ydim, zdim, ndim);
             Py_DECREF(pyStr);
@@ -261,7 +261,7 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             if (PyUnicode_Check(pyValue))
             {
                 PyObject* repr = PyObject_Str(pyValue);
-                char * str = (char*)PyUnicode_AsUTF8(pyValue);
+                auto * str = (char*)PyUnicode_AsUTF8(pyValue);
                 md = new MetaDataDb();
                 md->setMaxRows(1);
                 md->read(str);
@@ -342,7 +342,7 @@ xmipp_CheckImageFileSize(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             PyObject * pyStr = PyObject_Str(filename);
-            char *str = (char*)PyUnicode_AsUTF8(pyStr);
+            auto *str = (char*)PyUnicode_AsUTF8(pyStr);
             bool result = checkImageFileSize(str);
             Py_DECREF(pyStr);
             if (result)
@@ -368,7 +368,7 @@ xmipp_CheckImageCorners(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             PyObject * pyStr = PyObject_Str(filename);
-            char * str = (char*)PyUnicode_AsUTF8(pyStr);
+            auto * str = (char*)PyUnicode_AsUTF8(pyStr);
             bool result = checkImageCorners(str);
             Py_DECREF(pyStr);
             if (result)
@@ -396,8 +396,8 @@ xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
 
-            char * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
-            char * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
+            auto * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
+            auto * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
             bool result = compareImage(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -426,8 +426,8 @@ xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
 
-            char * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
-            char * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
+            auto * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
+            auto * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
             bool result = compareTwoFiles(str1, str2, offset);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -456,8 +456,8 @@ xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
 
-            char * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
-            char * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
+            auto * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
+            auto * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
             bsoftRemoveLoopBlock(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -483,8 +483,8 @@ xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
 
-            char * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
-            char * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
+            auto * str1 = (char*)PyUnicode_AsUTF8(pyStr1);
+            auto * str2 = (char*)PyUnicode_AsUTF8(pyStr2);
             bsoftRestoreLoopBlock(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -754,7 +754,7 @@ xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
         npy_intp dims[2];
         dims[0] = 3;
         dims[1] = 3; 
-        PyArrayObject * arr = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_DOUBLE);
+        auto * arr = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_DOUBLE);
         void * data = PyArray_DATA(arr);
         Matrix2D<double> euler(3,3);
         Euler_angles2matrix(rot, tilt, psi,euler,false);
@@ -772,7 +772,7 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject * input;
     if (PyArg_ParseTuple(args, "O", &input))
     {
-        PyArrayObject * arr = (PyArrayObject*) input;
+        auto * arr = (PyArrayObject*) input;
         //this is 3*4 matrix so he need to delete last column
         //try first 3x3
         //IS DE DATA DOUBLE? CREATE NUMPY DOUBLE
@@ -1074,7 +1074,7 @@ xmipp_errorMaxFreqCTFs2D(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != nullptr)
     {
@@ -1102,13 +1102,13 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *pimg1 = nullptr;
     PyObject *pimg2 = nullptr;
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = PyObject_New(ImageObject, &ImageType);
 	try
 	{
 		if (PyArg_ParseTuple(args, "OO", &pimg1, &pimg2))
 		{
-			ImageObject *img1=(ImageObject *)pimg1;
-			ImageObject *img2=(ImageObject *)pimg2;
+			auto *img1=(ImageObject *)pimg1;
+			auto *img2=(ImageObject *)pimg2;
 
 			result->image = new ImageGeneric(Image_Value(img2));
 			*result->image = *img2->image;
@@ -1145,7 +1145,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject *input = nullptr;
     double Ts=1.0;
     size_t rowId;
-    PyObject *pyReplace = Py_False;
+    auto *pyReplace = Py_False;
     bool absPhase = false;
 
     try
@@ -1159,7 +1159,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 			PyObject *pyStr;
 			if (PyUnicode_Check(input) || MetaData_Check(input))
 			{
-				ImageObject *img = (ImageObject*) pimg;
+				auto *img = (ImageObject*) pimg;
 				ImageGeneric *image = img->image;
 				image->convert2Datatype(DT_Double);
 				MultidimArray<double> * mImage=nullptr;
@@ -1208,7 +1208,7 @@ Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
             // See: https://docs.python.org/2.7/c-api/init.html for details.
             Py_BEGIN_ALLOW_THREADS
             Projection P;
-			ImageObject *vol = (ImageObject*) pvol;
+			auto *vol = (ImageObject*) pvol;
             MultidimArray<double> * mVolume;
             vol->image->data->getMultidimArrayPointer(mVolume);
             ArrayDim aDim;

@@ -292,7 +292,7 @@ void FuzzySOM::updateV(FuzzyMap& _som, const TS& _examples, const double& _m)
         tmpDens[cc] = reg;
         for (vv = 0; vv < numVectors; vv++)
         {
-            double tmpU = (double) pow((double)(_som.memb[vv][cc]), (double)_m);
+        	auto tmpU = (double) pow((double)(_som.memb[vv][cc]), (double)_m);
             tmpDens[cc] += tmpU;
             for (j = 0; j < dim; j++)
             {

@@ -1741,7 +1741,7 @@ ProgMLTomo::maskSphericalAverageOutside(MultidimArray<double> &Min)
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(real_omask)
     {
         DIRECT_MULTIDIM_ELEM(Min,n) *= DIRECT_MULTIDIM_ELEM(real_mask,n);
-        DIRECT_MULTIDIM_ELEM(Min,n) += (outside_density)
+        DIRECT_MULTIDIM_ELEM(Min,n) += outside_density
                                        * DIRECT_MULTIDIM_ELEM(real_omask,n);
     }
 }
@@ -2701,7 +2701,7 @@ ProgMLTomo::maxConstrainedCorrSingleImage(MultidimArray<double> &Mimg,
 void *
 threadMLTomoExpectationSingleImage(void * data)
 {
-    structThreadExpectationSingleImage * thread_data =
+    auto * thread_data =
         (structThreadExpectationSingleImage *) data;
 
     // Variables from above
@@ -2871,7 +2871,7 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
     sumw.initZeros(nr_ref);
     //Create a task distributor to distribute images to process
     //each thread will process images one by one
-    ThreadTaskDistributor * distributor = new ThreadTaskDistributor(
+    auto * distributor = new ThreadTaskDistributor(
                                               nr_images_local, 1);
 
     Mzero.initZeros();
@@ -2880,8 +2880,8 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
     wsumimgs.assign(2 * nr_ref, Mzero2);
     wsumweds.assign(2 * nr_ref, Mzero);
     // Call threads to calculate the expectation of each image in the selfile
-    pthread_t * th_ids = (pthread_t *) malloc(threads * sizeof(pthread_t));
-    structThreadExpectationSingleImage * threads_d =
+    auto * th_ids = (pthread_t *) malloc(threads * sizeof(pthread_t));
+    auto * threads_d =
         (structThreadExpectationSingleImage *) malloc(
             threads * sizeof(structThreadExpectationSingleImage));
     for (int c = 0; c < threads; c++)
@@ -3103,7 +3103,7 @@ ProgMLTomo::maximization(std::vector<MultidimArray<double> > &wsumimgs,
             }
             else
             {
-                sigma_noise = sqrt(wsum_sigma_noise / (sum_complete_wedge));
+                sigma_noise = sqrt(wsum_sigma_noise / sum_complete_wedge);
             }
         }
         else
@@ -3176,7 +3176,7 @@ ProgMLTomo::calculateFsc(MultidimArray<double> &M1, MultidimArray<double> &M2,
         std::complex<double> z2 = w1 * dAkij(FT2, k, i, j);
         double absz1 = abs(z1);
         double absz2 = abs(z2);
-        num(idx) += real(conj(z1) * (z2));
+        num(idx) += real(conj(z1) * z2);
         den1(idx) += absz1 * absz1;
         den2(idx) += absz2 * absz2;
     }

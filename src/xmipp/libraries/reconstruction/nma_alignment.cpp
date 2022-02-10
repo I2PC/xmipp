@@ -29,7 +29,7 @@
 #include "condor/Solver.h"
 
 // Empty constructor =======================================================
-ProgNmaAlignment::ProgNmaAlignment() {
+ProgNmaAlignment::ProgNmaAlignment() : Rerunable("") {
 	rangen = 0;
 	resume = false;
 	currentImgName = "";
@@ -79,6 +79,7 @@ void ProgNmaAlignment::readParams() {
 	XmippMetadataProgram::readParams();
 	fnPDB = getParam("--pdb");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir + "/nmaDone.xmd");
 	fnModeList = getParam("--modes");
 	resume = checkParam("--resume");
 	trustradius_scale = std::abs(getDoubleParam("--trustradius_scale"));
@@ -123,30 +124,6 @@ void ProgNmaAlignment::show() {
 // Produce side information ================================================
 ProgNmaAlignment *global_nma_prog;
 
-void ProgNmaAlignment::createWorkFiles() {
-	MetaDataVec *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
-	MetaDataDb mdTodo, mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/nmaDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_NMA);
-		mdDone.addLabel(MDL_COST);
-		mdDone.write(fn);
-	}
-	*pmdIn = MetaDataVec(mdTodo);
-}
-
 void ProgNmaAlignment::preProcess() {
 	MetaDataVec SF(fnModeList);
 	SF.removeDisabled();
@@ -161,7 +138,7 @@ void ProgNmaAlignment::preProcess() {
 
 void ProgNmaAlignment::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/nmaDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // Create deformed PDB =====================================================
@@ -268,7 +245,7 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 		String refStkStr = formatString("%s_ref/ref.stk", randStr);
 		program = "xmipp_angular_projection_matching";
 		arguments =	formatString(
-				        "-i %s_downimg.xmp --ref %s -o %s --search5d_step 1 --max_shift %d -v 0",
+				        "-i %s_downimg.xmp --ref %s -o %s --search5d_step 1  --search5d_shift %d -v 0",
 				        randStr, refStkStr.c_str(), fnOut.c_str(), (int)round((double) imgSize / (10.0 * pow(2.0, (double) pyramidLevel))));
 	}
 	runSystem(program, arguments, false);
@@ -526,5 +503,5 @@ void ProgNmaAlignment::writeImageParameters(const FileName &fnImg) {
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_COST, parameters(5 + dim), objId);
 
-	md.append(fnOutDir+"/nmaDone.xmd");
+	md.append(Rerunable::getFileName());
 }
