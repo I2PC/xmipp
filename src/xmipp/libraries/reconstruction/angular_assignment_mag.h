@@ -70,7 +70,7 @@ public:
 private:
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
     void completeFourierShift(const MultidimArray<double> &in, MultidimArray<double> &out) const;
-    void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result) const;
+    void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result, FourierTransformer &transformer);
     void computingNeighborGraph();
     void computeLaplacianMatrix (Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp) const;
     void computeCircular();
@@ -101,6 +101,8 @@ private:
     FourierTransformer transformerImage;
     FourierTransformer transformerPolarImage;
     FourierTransformer transformerPolarRealSpace;
+    FourierTransformer ccMatrixBestCandidTransformer;
+    FourierTransformer ccMatrixProcessImageTransformer;
 
     // vector of reference images
     std::vector< MultidimArray<double> > vecMDaRef;

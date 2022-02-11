@@ -396,7 +396,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 //	 /*
 	for (int k = 0; k < sizeMdRef; ++k) {
 		// computing relative rotation and shift
-		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot);
+		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot, ccMatrixProcessImageTransformer);
 		maxByColumn(ccMatrixRot, ccVectorRot);
 		peaksFound = 0;
 		std::vector<double> cand(maxAccepted, 0.);
@@ -743,13 +743,13 @@ void ProgAngularAssignmentMag::completeFourierShift(const MultidimArray<double> 
  */
 void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>> &F1,
 		const MultidimArray<std::complex<double>> &F2,/*reference image*/
-		MultidimArray<double> &result) const {
+		MultidimArray<double> &result, 
+		    FourierTransformer &transformer) {
 
 	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
 
-	CorrelationAux aux;
-	aux.transformer1.setReal(result);
-	aux.transformer1.setFourier(F1);
+	transformer.setReal(result);
+	transformer.setFourier(F1);
 	// Multiply FFT1 .* FFT2'
 	double a;
 	double b;
@@ -758,7 +758,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 	auto dSize = (double)MULTIDIM_SIZE(result);
 
 	double *ptrFFT2 = (double*) MULTIDIM_ARRAY(F2);
-	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(aux.transformer1.fFourier);
+	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(transformer.fFourier);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(F1)
 	{
 		a = (*ptrFFT1)* dSize;
@@ -768,7 +768,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 		*ptrFFT1++ = (a * c - b * d);
 		*ptrFFT1++ = (b * c + a * d);
 	}
-	aux.transformer1.inverseFourierTransform();
+	transformer.inverseFourierTransform();
 	CenterFFT(result, true);
 	result.setXmippOrigin();
 }
@@ -930,15 +930,15 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 	for (int i = 0; i < peaksFound; ++i) {
 		rotVar = -1. * cand[i];  //negative, because is for reference rotation
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
-		applyFourierImage2(MDaRefRot, MDaRefRotF);
-		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift); // cross-correlation matrix
+		transformerImage.FourierTransform(MDaRefRot, MDaRefRotF, true);//<-----------------------------------------HERE
+		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift, ccMatrixBestCandidTransformer); // cross-correlation matrix
 
 		maxByColumn(ccMatrixShift, ccVectorTx); // ccvMatrix to ccVector
 		getShift(ccVectorTx, tx, XSIZE(ccMatrixShift));
 		maxByRow(ccMatrixShift, ccVectorTy); // ccvMatrix to ccVector
 		getShift(ccVectorTy, ty, YSIZE(ccMatrixShift));
 
-		if (std::abs(tx) > maxShift || std::abs(ty) > maxShift)
+		if (std::abs(tx) > maxShift || std::abs(ty) > maxShift) //<------------------------------------------------HERE
 			continue;
 
 		//apply transformation to experimental image
@@ -967,12 +967,9 @@ void ProgAngularAssignmentMag::applyRotation(const MultidimArray<double> &MDaRef
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang;
-	double cosine;
-	double sine;
-	ang = DEG2RAD(rot);
-	cosine = cos(ang);
-	sine = sin(ang);
+	double ang = DEG2RAD(rot);
+	double cosine = cos(ang);
+	double sine = sin(ang);
 
 	// rotation
 	MAT_ELEM(A,0, 0) = cosine;
@@ -1020,12 +1017,9 @@ void ProgAngularAssignmentMag::applyShiftAndRotation(const MultidimArray<double>
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang;
-	double cosine;
-	double sine;
-	ang = DEG2RAD(rot);
-	cosine = cos(ang);
-	sine = sin(ang);
+	double ang = DEG2RAD(rot);
+	double cosine = cos(ang);
+	double sine = sin(ang);
 
 	// rotate in opposite direction
 	double realTx = cosine * tx + sine * ty;
