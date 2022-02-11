@@ -692,9 +692,16 @@ def install(dirname):
                                      os.path.join(getScipionHome(), 'software'))
     scipionLibs = os.path.join(scipionSoftware, 'lib')
     scipionBindings = os.path.join(scipionSoftware, 'bindings')
-    scipionXmippHome= os.path.join(scipionSoftware, 'em/xmipp')
-    print('==========' + scipionXmippHome + '\n\n')
-    if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings) and os.path.isdir(scipionXmippHome):
+    xmippHomeLink= os.path.join(scipionSoftware, 'em/')
+    xmippLink = os.readlink(xmippHomeLink + '/xmipp')
+    scipionXmippHome = os.path.join(xmippHomeLink, xmippLink)
+    print('xmippHomeLink: ' + xmippHomeLink + '\n')
+    print('xmippLink: ' + xmippLink + '\n')
+    print('scipionXmippHome: ' + scipionXmippHome + '\n')
+
+    if os.path.isdir(scipionLibs) and\
+            os.path.isdir(scipionBindings) and \
+            os.path.isdir(xmippHomeLink):
         coreLib = os.path.join(scipionXmippHome, "lib", "libXmippCore.so")
         xmippLib = os.path.join(scipionXmippHome, "lib", "libXmipp.so")
         SVMLib = os.path.join(scipionXmippHome, "lib", "libsvm.so")
