@@ -928,7 +928,8 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
 		MultidimArray<std::complex<double> > MDaRefRotF;
 		transformersForImages[id].FourierTransform(MDaRefRot, MDaRefRotF, true);
-		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShifts.at(id), ccMatrixBestCandidTransformer); // cross-correlation matrix
+		auto &ccMatrixShift = ccMatrixShifts.at(id);
+		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift, ccMatrixBestCandidTransformers.at(id)); // cross-correlation matrix
 
 		MultidimArray<double> ccVectorTx;
 		maxByColumn(ccMatrixShift, ccVectorTx); // ccvMatrix to ccVector
