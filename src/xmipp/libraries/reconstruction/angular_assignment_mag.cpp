@@ -30,6 +30,7 @@
 #include "data/projection.h"
 #include "data/fourier_projection.h"
 #include <reconstruction/project_real_shears.h>
+#include <mutex>
 
 #include <fstream>
 #include <ctime>
@@ -57,6 +58,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [--Nsimultaneous <Nprocessors=1>]  : Nsimultaneous");
 	addParamsLine("  [--refVol <refVolFile=NULL>]  : reference volume to be reprojected when comparing with previous alignment");
 	addParamsLine("  [--useForValidation] : Use the program for validation");
+	addParamsLine("  [--thr <threads=4>]           : How many thread to use");
 }
 
 // Read arguments ==========================================================
@@ -71,6 +73,11 @@ void ProgAngularAssignmentMag::readParams() {
 	maxShift = getDoubleParam("--maxShift");
 	inputReference_volume = getParam("--refVol");
 	useForValidation=checkParam("--useForValidation");
+	auto threads = getIntParam("--thr");
+	threadPool.resize(threads);
+	transformersForImages.resize(threads);
+	ccMatrixBestCandidTransformers.resize(threads);
+	ccMatrixShifts.resize(threads);
 }
 
 // Show ====================================================================
@@ -908,38 +915,32 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 		const MultidimArray<double> &MDaRef, std::vector<double> &cand,
 		/*outputs*/
 		double &psi, double &shift_x, double &shift_y, double &bestCoeff) {
-
 	psi = 0;
 	shift_x = 0.;
 	shift_y = 0.;
 	bestCoeff = 0.0;
-	double rotVar = 0.0;
-	double tempCoeff;
-	double tx;
-	double ty;
-	MultidimArray<double> MDaRefRot;
-	MDaRefRot.setXmippOrigin();
-	MultidimArray<std::complex<double> > MDaRefRotF;
-	MultidimArray<double> MDaInShiftRot;
-	MDaInShiftRot.setXmippOrigin();
-	MultidimArray<double> ccMatrixShift;
-	MultidimArray<double> ccVectorTx;
-	MultidimArray<double> ccVectorTy;
+	std::mutex mutex;
 
-
-	for (int i = 0; i < peaksFound; ++i) {
-		rotVar = -1. * cand[i];  //negative, because is for reference rotation
+	auto workload = [&](int id, int i) {
+		auto rotVar = -1. * cand[i];  //negative, because is for reference rotation
+		MultidimArray<double> MDaRefRot;
+		MDaRefRot.setXmippOrigin();
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
-		transformerImage.FourierTransform(MDaRefRot, MDaRefRotF, true);//<-----------------------------------------HERE
-		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift, ccMatrixBestCandidTransformer); // cross-correlation matrix
+		MultidimArray<std::complex<double> > MDaRefRotF;
+		transformersForImages[id].FourierTransform(MDaRefRot, MDaRefRotF, true);
+		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShifts.at(id), ccMatrixBestCandidTransformer); // cross-correlation matrix
 
+		MultidimArray<double> ccVectorTx;
 		maxByColumn(ccMatrixShift, ccVectorTx); // ccvMatrix to ccVector
+		double tx = 0;
 		getShift(ccVectorTx, tx, XSIZE(ccMatrixShift));
+		MultidimArray<double> ccVectorTy;
 		maxByRow(ccMatrixShift, ccVectorTy); // ccvMatrix to ccVector
+		double ty = 0;
 		getShift(ccVectorTy, ty, YSIZE(ccMatrixShift));
 
-		if (std::abs(tx) > maxShift || std::abs(ty) > maxShift) //<------------------------------------------------HERE
-			continue;
+		if (std::abs(tx) > maxShift || std::abs(ty) > maxShift)
+			return;
 
 		//apply transformation to experimental image
 		double expTx;
@@ -947,18 +948,31 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 		double expPsi;
 		expPsi = -rotVar;
 		// applying in one transform
+		MultidimArray<double> MDaInShiftRot;
+		MDaInShiftRot.setXmippOrigin();
 		applyShiftAndRotation(MDaIn, expPsi, tx, ty, MDaInShiftRot);
 
 		circularWindow(MDaInShiftRot); //circular masked MDaInRotShift
 
-		tempCoeff = correlationIndex(MDaRef, MDaInShiftRot);
+		auto tempCoeff = correlationIndex(MDaRef, MDaInShiftRot);
+		std::lock_guard lock(mutex);
 		if (tempCoeff > bestCoeff) {
 			bestCoeff = tempCoeff;
 			shift_x = tx;
 			shift_y = ty;
 			psi = expPsi;
 		}
-	}
+	};
+
+	// process peaks in parallel
+	auto futures = std::vector<std::future<void>>();
+	for (size_t i = 0; i < peaksFound; ++i) {
+        futures.emplace_back(threadPool.push(workload, i));
+    }
+	// wait for processing to finish
+    for (auto &f : futures) {
+        f.get();
+    }
 }
 
 /* apply rotation */

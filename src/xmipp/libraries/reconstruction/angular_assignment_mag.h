@@ -36,6 +36,8 @@
 #include <core/xmipp_image.h>
 #include <data/mask.h>
 #include <data/filters.h>
+#include "CTPL/ctpl_stl.h"
+
 
 #include <vector>
 
@@ -84,6 +86,7 @@ private:
 
     void psiCandidates(const MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
 
+    ctpl::thread_pool threadPool;
 
     /** Filenames */
     FileName fnIn;
@@ -98,11 +101,14 @@ private:
     MetaDataVec mdOut;
 
     // Transformers
-    FourierTransformer transformerImage;
+    std::vector<FourierTransformer> transformersForImages;
     FourierTransformer transformerPolarImage;
+    FourierTransformer transformerImage;
     FourierTransformer transformerPolarRealSpace;
-    FourierTransformer ccMatrixBestCandidTransformer;
+    std::vector<FourierTransformer> ccMatrixBestCandidTransformers;
     FourierTransformer ccMatrixProcessImageTransformer;
+
+    std::vector<MultidimArray<double>> ccMatrixShifts;
 
     // vector of reference images
     std::vector< MultidimArray<double> > vecMDaRef;
