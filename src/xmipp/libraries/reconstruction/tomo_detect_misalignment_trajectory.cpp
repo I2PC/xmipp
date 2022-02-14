@@ -1472,7 +1472,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	
 	writeOutputVCM();
 
-	bool tmp = detectGlobalMisalignment();
+	// bool tmp = detectGlobalMisalignment();
 	// adjustCoordinatesCosineStreching();
 
 	detectLandmarkChains();
