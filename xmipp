@@ -692,20 +692,20 @@ def install(dirname):
                                      os.path.join(getScipionHome(), 'software'))
     scipionLibs = os.path.join(scipionSoftware, 'lib')
     scipionBindings = os.path.join(scipionSoftware, 'bindings')
-    xmippHomeLink= os.path.join(scipionSoftware, 'em/')
-    xmippLink = os.readlink(xmippHomeLink + '/xmipp')
-    scipionXmippHome = os.path.join(xmippHomeLink, xmippLink)
-    print('xmippHomeLink: ' + xmippHomeLink + '\n')
-    print('xmippLink: ' + xmippLink + '\n')
-    print('scipionXmippHome: ' + scipionXmippHome + '\n')
+    scipionSoftwareEM = os.path.join(scipionSoftware, 'em')
+    xmippHomeLink = os.path.join(scipionSoftwareEM, 'xmipp')
+    xmippLink = os.readlink(xmippHomeLink)
+    currentDir = os.getcwd()
 
     if os.path.isdir(scipionLibs) and\
             os.path.isdir(scipionBindings) and \
             os.path.isdir(xmippHomeLink):
-        coreLib = os.path.join(scipionXmippHome, "lib", "libXmippCore.so")
-        xmippLib = os.path.join(scipionXmippHome, "lib", "libXmipp.so")
-        SVMLib = os.path.join(scipionXmippHome, "lib", "libsvm.so")
-        bindings = os.path.join(scipionXmippHome, "bindings", "python", "*")
+        coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
+        xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
+        SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
+        bindings = os.path.join(xmippLink, "bindings", "python", "*")
+
+        os.chdir(scipionSoftwareEM)
         runJob("ln -srf %s %s" % (coreLib, scipionLibs))
         runJob("ln -srf %s %s" % (SVMLib, scipionLibs))
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
@@ -714,6 +714,8 @@ def install(dirname):
         print(yellow("No scipion3 found. If you intended to use Xmipp in "
                      "the Scipion framework, check the binding at "
                      "SCIPION_HOME/software/bindings..."))
+
+    os.chdir(currentDir)
 
     runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
