@@ -30,6 +30,7 @@
 #include "data/projection.h"
 #include "data/fourier_projection.h"
 #include <reconstruction/project_real_shears.h>
+#include <mutex>
 
 #include <fstream>
 #include <ctime>
@@ -57,6 +58,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [--Nsimultaneous <Nprocessors=1>]  : Nsimultaneous");
 	addParamsLine("  [--refVol <refVolFile=NULL>]  : reference volume to be reprojected when comparing with previous alignment");
 	addParamsLine("  [--useForValidation] : Use the program for validation");
+	addParamsLine("  [--thr <threads=4>]           : How many threads to use");
 }
 
 // Read arguments ==========================================================
@@ -71,6 +73,11 @@ void ProgAngularAssignmentMag::readParams() {
 	maxShift = getDoubleParam("--maxShift");
 	inputReference_volume = getParam("--refVol");
 	useForValidation=checkParam("--useForValidation");
+	threads = getIntParam("--thr");
+	threadPool.resize(threads);
+	transformersForImages.resize(threads);
+	ccMatrixBestCandidTransformers.resize(threads);
+	ccMatrixShifts.resize(threads);
 }
 
 // Show ====================================================================
@@ -81,6 +88,7 @@ void ProgAngularAssignmentMag::show() const {
 		std::cout << "Sampling: " << sampling << std::endl;
 		std::cout << "Angular step: " << angStep << std::endl;
 		std::cout << "Maximum shift: " << maxShift << std::endl;
+		std::cout << "threads: " << threads << std::endl;
 		if(useForValidation){
 			std::cout << "ref vol size: " << refXdim <<" x "<< refYdim <<" x "<< refZdim << std::endl;
 			std::cout << "useForValidation            : "  << useForValidation << std::endl;
@@ -396,7 +404,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 //	 /*
 	for (int k = 0; k < sizeMdRef; ++k) {
 		// computing relative rotation and shift
-		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot);
+		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot, ccMatrixProcessImageTransformer);
 		maxByColumn(ccMatrixRot, ccVectorRot);
 		peaksFound = 0;
 		std::vector<double> cand(maxAccepted, 0.);
@@ -743,13 +751,13 @@ void ProgAngularAssignmentMag::completeFourierShift(const MultidimArray<double> 
  */
 void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>> &F1,
 		const MultidimArray<std::complex<double>> &F2,/*reference image*/
-		MultidimArray<double> &result) const {
+		MultidimArray<double> &result,
+		    FourierTransformer &transformer) {
 
 	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
 
-	CorrelationAux aux;
-	aux.transformer1.setReal(result);
-	aux.transformer1.setFourier(F1);
+	transformer.setReal(result);
+	transformer.setFourier(F1);
 	// Multiply FFT1 .* FFT2'
 	double a;
 	double b;
@@ -758,7 +766,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 	auto dSize = (double)MULTIDIM_SIZE(result);
 
 	double *ptrFFT2 = (double*) MULTIDIM_ARRAY(F2);
-	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(aux.transformer1.fFourier);
+	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(transformer.fFourier);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(F1)
 	{
 		a = (*ptrFFT1)* dSize;
@@ -768,7 +776,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 		*ptrFFT1++ = (a * c - b * d);
 		*ptrFFT1++ = (b * c + a * d);
 	}
-	aux.transformer1.inverseFourierTransform();
+	transformer.inverseFourierTransform();
 	CenterFFT(result, true);
 	result.setXmippOrigin();
 }
@@ -908,38 +916,33 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 		const MultidimArray<double> &MDaRef, std::vector<double> &cand,
 		/*outputs*/
 		double &psi, double &shift_x, double &shift_y, double &bestCoeff) {
-
 	psi = 0;
 	shift_x = 0.;
 	shift_y = 0.;
 	bestCoeff = 0.0;
-	double rotVar = 0.0;
-	double tempCoeff;
-	double tx;
-	double ty;
-	MultidimArray<double> MDaRefRot;
-	MDaRefRot.setXmippOrigin();
-	MultidimArray<std::complex<double> > MDaRefRotF;
-	MultidimArray<double> MDaInShiftRot;
-	MDaInShiftRot.setXmippOrigin();
-	MultidimArray<double> ccMatrixShift;
-	MultidimArray<double> ccVectorTx;
-	MultidimArray<double> ccVectorTy;
+	std::mutex mutex;
 
-
-	for (int i = 0; i < peaksFound; ++i) {
-		rotVar = -1. * cand[i];  //negative, because is for reference rotation
+	auto workload = [&](int id, int i) {
+		auto rotVar = -1. * cand[i];  //negative, because is for reference rotation
+		MultidimArray<double> MDaRefRot;
+		MDaRefRot.setXmippOrigin();
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
-		applyFourierImage2(MDaRefRot, MDaRefRotF);
-		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift); // cross-correlation matrix
+		MultidimArray<std::complex<double> > MDaRefRotF;
+		transformersForImages[id].FourierTransform(MDaRefRot, MDaRefRotF, true);
+		auto &ccMatrixShift = ccMatrixShifts.at(id);
+		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift, ccMatrixBestCandidTransformers.at(id)); // cross-correlation matrix
 
+		MultidimArray<double> ccVectorTx;
 		maxByColumn(ccMatrixShift, ccVectorTx); // ccvMatrix to ccVector
+		double tx = 0;
 		getShift(ccVectorTx, tx, XSIZE(ccMatrixShift));
+		MultidimArray<double> ccVectorTy;
 		maxByRow(ccMatrixShift, ccVectorTy); // ccvMatrix to ccVector
+		double ty = 0;
 		getShift(ccVectorTy, ty, YSIZE(ccMatrixShift));
 
 		if (std::abs(tx) > maxShift || std::abs(ty) > maxShift)
-			continue;
+			return;
 
 		//apply transformation to experimental image
 		double expTx;
@@ -947,18 +950,31 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 		double expPsi;
 		expPsi = -rotVar;
 		// applying in one transform
+		MultidimArray<double> MDaInShiftRot;
+		MDaInShiftRot.setXmippOrigin();
 		applyShiftAndRotation(MDaIn, expPsi, tx, ty, MDaInShiftRot);
 
 		circularWindow(MDaInShiftRot); //circular masked MDaInRotShift
 
-		tempCoeff = correlationIndex(MDaRef, MDaInShiftRot);
+		auto tempCoeff = correlationIndex(MDaRef, MDaInShiftRot);
+		std::lock_guard lock(mutex);
 		if (tempCoeff > bestCoeff) {
 			bestCoeff = tempCoeff;
 			shift_x = tx;
 			shift_y = ty;
 			psi = expPsi;
 		}
-	}
+	};
+
+	// process peaks in parallel
+	auto futures = std::vector<std::future<void>>();
+	for (size_t i = 0; i < peaksFound; ++i) {
+        futures.emplace_back(threadPool.push(workload, i));
+    }
+	// wait for processing to finish
+    for (auto &f : futures) {
+        f.get();
+    }
 }
 
 /* apply rotation */
@@ -967,12 +983,9 @@ void ProgAngularAssignmentMag::applyRotation(const MultidimArray<double> &MDaRef
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang;
-	double cosine;
-	double sine;
-	ang = DEG2RAD(rot);
-	cosine = cos(ang);
-	sine = sin(ang);
+	double ang = DEG2RAD(rot);
+	double cosine = cos(ang);
+	double sine = sin(ang);
 
 	// rotation
 	MAT_ELEM(A,0, 0) = cosine;
@@ -1020,12 +1033,9 @@ void ProgAngularAssignmentMag::applyShiftAndRotation(const MultidimArray<double>
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang;
-	double cosine;
-	double sine;
-	ang = DEG2RAD(rot);
-	cosine = cos(ang);
-	sine = sin(ang);
+	double ang = DEG2RAD(rot);
+	double cosine = cos(ang);
+	double sine = sin(ang);
 
 	// rotate in opposite direction
 	double realTx = cosine * tx + sine * ty;
