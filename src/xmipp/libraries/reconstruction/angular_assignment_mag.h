@@ -36,6 +36,8 @@
 #include <core/xmipp_image.h>
 #include <data/mask.h>
 #include <data/filters.h>
+#include "CTPL/ctpl_stl.h"
+
 
 #include <vector>
 
@@ -70,7 +72,7 @@ public:
 private:
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
     void completeFourierShift(const MultidimArray<double> &in, MultidimArray<double> &out) const;
-    void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result) const;
+    void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result, FourierTransformer &transformer);
     void computingNeighborGraph();
     void computeLaplacianMatrix (Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp) const;
     void computeCircular();
@@ -84,6 +86,7 @@ private:
 
     void psiCandidates(const MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
 
+    ctpl::thread_pool threadPool;
 
     /** Filenames */
     FileName fnIn;
@@ -98,9 +101,14 @@ private:
     MetaDataVec mdOut;
 
     // Transformers
-    FourierTransformer transformerImage;
+    std::vector<FourierTransformer> transformersForImages;
     FourierTransformer transformerPolarImage;
+    FourierTransformer transformerImage;
     FourierTransformer transformerPolarRealSpace;
+    std::vector<FourierTransformer> ccMatrixBestCandidTransformers;
+    FourierTransformer ccMatrixProcessImageTransformer;
+
+    std::vector<MultidimArray<double>> ccMatrixShifts;
 
     // vector of reference images
     std::vector< MultidimArray<double> > vecMDaRef;
@@ -142,6 +150,9 @@ private:
     int refXdim;
     int refYdim;
     int refZdim;
+
+    // threads to use
+    int threads;
 
     int sizeMdRef;
     int sizeMdIn;
