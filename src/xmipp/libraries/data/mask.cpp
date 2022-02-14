@@ -163,7 +163,7 @@ void BlackmanMask(MultidimArray<double> &mask, int mode,
 }
 
 void SincBlackmanMask(MultidimArray<double> &mask,
-                      double omega, double power_percentage, int mode,
+                      double omega, double power_percentage,
                       double x0, double y0, double z0)
 {
     MultidimArray<double> blackman;
