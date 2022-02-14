@@ -643,7 +643,7 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     return ok
 
 
-def scipionConnection():
+def scipionConnection(dirname):
     scipionSoftware = os.environ.get('SCIPION_SOFTWARE',
                                      os.path.join(getScipionHome(), 'software'))
     scipionLibs = os.path.join(scipionSoftware, 'lib')
@@ -655,6 +655,7 @@ def scipionConnection():
     if os.path.isdir(scipionLibs) and\
             os.path.isdir(scipionBindings) and \
             os.path.isdir(xmippHomeLink):
+        runJob("ln -srf %s %s" % (dirname, xmippHomeLink))
         xmippLink = os.readlink(xmippHomeLink)
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
@@ -727,7 +728,7 @@ def install(dirname):
         sys.exit(1)
 
     # Scipion connection
-    scipionConnection()
+    scipionConnection(dirname)
 
     runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
