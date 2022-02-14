@@ -230,6 +230,15 @@ public:
     */
     void writeOutputResidualVectors();
 
+        /**
+     * Write obtained coordinates in output file.
+     *
+     * @param
+     * @return
+     *
+    */
+   void writeOutputVCM();
+
 
     // --------------------------- UTILS functions ----------------------------
 
