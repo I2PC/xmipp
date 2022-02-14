@@ -89,6 +89,16 @@ private:
     size_t nSize;
     size_t normDim;
 
+    // Coordinate model structure
+    struct CM {
+        Point3D<double> detectedCoordinate;     // Coordinate detected in each tilt-image
+        Point3D<double> coordinate3d;           // 3D coordinate whose porjection is the closest
+        Point2D<double> residuals;              // Residual vector from detected to projected
+    } ;
+
+    /** Array of coordinate model structures */
+    std::vector<CM> vCM;
+
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
 
@@ -196,7 +206,7 @@ public:
      * @return
      *
     */
-    // void calculateResidualVectors(MetaDataVec inputCoordMd);
+    void calculateResidualVectors(MetaDataVec inputCoordMd);
 
 
     // --------------------------- I/O functions ----------------------------

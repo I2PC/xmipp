@@ -41,11 +41,14 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	thrNumberCoords = getIntParam("--thrNumberCoords");
 	thrChainDistanceAng = getDoubleParam("--thrChainDistanceAng");
 	
-	checkInputCoord = checkParam("--inputCoord");
-	if(checkInputCoord)
-	{
-		fnInputCoord = getParam("--inputCoord");
-	}
+	// checkInputCoord = checkParam("--inputCoord");
+	// if(checkInputCoord)
+	// {
+	// 	fnInputCoord = getParam("--inputCoord");
+	// }
+
+ 	fnInputCoord = getParam("--inputCoord");
+
 }
 
 
@@ -54,6 +57,8 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
+	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
+
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
 	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
@@ -64,7 +69,6 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
   	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]				: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
 
-	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
 }
 
 
@@ -1050,7 +1054,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 }
 
 
-/**void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec inputCoordMd)
+void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec inputCoordMd)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Calculating residual vectors" << std::endl;
@@ -1069,7 +1073,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 	Matrix1D<double> projectedGoldBead;
 
 	std::vector<Matrix1D<double>> coordinatesInSlice;
-	std::vector<Matrix1D<double>> projectedGoldBeads;
 
 	Matrix2D<double> A_alignment;
 	Matrix1D<double> T_alignment;
@@ -1100,60 +1103,42 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 		std::cout << "------------------------------------"<<std::endl;
 		#endif 
 
-		// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
-		for(size_t objId : inputCoordMd.ids())
-		{
-			maxDistance = MAXDOUBLE;
+		// std::vector<size_t> randomIndexes = getRandomIndexes(projectedGoldBead.size());
 
-			inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
-			inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
-			inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
+		// for(size_t i = 0; i < coordinatesInSlice.size(); i ++)
+		// {
+		// 	for(size_t j = 0; j < coordinatesInSlice.size(); j ++)
+		// 	{
+		// 		for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
+		// 		{
+		// 			// def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
+		// 			// 			 YY(projectedGoldBeads[randomIndexes[0]]),
+		// 			// 			 XX(projectedGoldBeads[randomIndexes[1]]),
+		// 			// 			 YY(projectedGoldBeads[randomIndexes[1]]),
+		// 			// 			 XX(projectedGoldBeads[randomIndexes[2]]),
+		// 			// 			 YY(projectedGoldBeads[randomIndexes[2]]),
+		// 			// 			 XX(coordinatesInSlice[i]),
+		// 			// 			 YY(coordinatesInSlice[i]),
+		// 			// 			 XX(coordinatesInSlice[j]),
+		// 			// 			 YY(coordinatesInSlice[j]),
+		// 			// 			 XX(coordinatesInSlice[k]),
+		// 			// 			 YY(coordinatesInSlice[k]),
+		// 			// 			 A_alignment,
+		// 			// 			 T_alignment,
+		// 			// 			 invW_alignment)
 
-			XX(goldBead3d) = (double) goldBeadX;
-			YY(goldBead3d) = (double) goldBeadY;
-			ZZ(goldBead3d) = (double) goldBeadZ;
-
-			projectedGoldBead = projectionMatrix * goldBead3d;
-
-			projectedGoldBeads.push_back(projectedGoldBead);
-		}
-
-		std::vector<size_t> randomIndexes = getRandomIndexes(projectedGoldBead.size());
-
-		for(size_t i = 0; i < coordinatesInSlice.size(); i ++)
-		{
-			for(size_t j = 0; j < coordinatesInSlice.size(); j ++)
-			{
-				for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
-				{
-					// def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
-					// 			 YY(projectedGoldBeads[randomIndexes[0]]),
-					// 			 XX(projectedGoldBeads[randomIndexes[1]]),
-					// 			 YY(projectedGoldBeads[randomIndexes[1]]),
-					// 			 XX(projectedGoldBeads[randomIndexes[2]]),
-					// 			 YY(projectedGoldBeads[randomIndexes[2]]),
-					// 			 XX(coordinatesInSlice[i]),
-					// 			 YY(coordinatesInSlice[i]),
-					// 			 XX(coordinatesInSlice[j]),
-					// 			 YY(coordinatesInSlice[j]),
-					// 			 XX(coordinatesInSlice[k]),
-					// 			 YY(coordinatesInSlice[k]),
-					// 			 A_alignment,
-					// 			 T_alignment,
-					// 			 invW_alignment)
-
-					MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
-					MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
-					MAT_ELEM(alignment_matrix, 1, 0) = MAT_ELEM(A_alignment, 1, 0);
-					MAT_ELEM(alignment_matrix, 1, 1) = MAT_ELEM(A_alignment, 1, 1);
-					MAT_ELEM(alignment_matrix, 0, 2) = XX(T_alignment);
-					MAT_ELEM(alignment_matrix, 1, 2) = YY(T_alignment);
-					MAT_ELEM(alignment_matrix, 2, 0) = 0;
-					MAT_ELEM(alignment_matrix, 2, 1) = 0;
-					MAT_ELEM(alignment_matrix, 2, 2) = 1;
-				}
-			}
-		}
+		// 			MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
+		// 			MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
+		// 			MAT_ELEM(alignment_matrix, 1, 0) = MAT_ELEM(A_alignment, 1, 0);
+		// 			MAT_ELEM(alignment_matrix, 1, 1) = MAT_ELEM(A_alignment, 1, 1);
+		// 			MAT_ELEM(alignment_matrix, 0, 2) = XX(T_alignment);
+		// 			MAT_ELEM(alignment_matrix, 1, 2) = YY(T_alignment);
+		// 			MAT_ELEM(alignment_matrix, 2, 0) = 0;
+		// 			MAT_ELEM(alignment_matrix, 2, 1) = 0;
+		// 			MAT_ELEM(alignment_matrix, 2, 2) = 1;
+		// 		}
+		// 	}
+		// }
 
 			// #ifdef DEBUG_RESID
 			// std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
@@ -1161,30 +1146,50 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 			// std::cout << "------------------------------------"<<std::endl;
 			// #endif
 
-			// // Iterate though every coordinate in the tilt-image and calculate the maximum distance
-			// for(size_t i = 0; i < coordinatesInSlice.size(); i++)
-			// {
-			// 	distance = abs(XX(projectedGoldBead) - XX(coordinatesInSlice[i])) + abs(YY(projectedGoldBead) - YY(coordinatesInSlice[i]));
+		// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
+		for(size_t objId : inputCoordMd.ids())
+		{
+			// Iterate though every coordinate in the tilt-image and calculate the minimum distance
+			for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+			{
+				maxDistance = MAXDOUBLE;
 
-			// 	if(maxDistance > distance)
-			// 	{
-			// 		maxDistance = distance;
-			// 		maxIndex = i;
-			// 	}
-			// }
+				inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+				inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+				inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
+
+				XX(goldBead3d) = (double) goldBeadX;
+				YY(goldBead3d) = (double) goldBeadY;
+				ZZ(goldBead3d) = (double) goldBeadZ;
+
+				projectedGoldBead = projectionMatrix * goldBead3d;
+
+				distance = abs(XX(projectedGoldBead) - XX(coordinatesInSlice[i])) + abs(YY(projectedGoldBead) - YY(coordinatesInSlice[i]));
+
+				if(maxDistance > distance)
+				{
+					maxDistance = distance;
+					maxIndex = j;
+				}
+			}
 			
-			residualX.push_back(XX(coordinatesInSlice[maxIndex]) - XX(projectedGoldBead));
-			residualY.push_back(YY(coordinatesInSlice[maxIndex]) - YY(projectedGoldBead));
-			residualCoordinateX.push_back(XX(projectedGoldBead));
-			residualCoordinateY.push_back(YY(projectedGoldBead));
-			residualCoordinateZ.push_back(n);
+			Point3D<double> dc(XX(coordinatesInSlice[i]), YY(coordinatesInSlice[i]), n);
+			Point3D<double> 3dc(XX(goldBead3d), YY(cgoldBead3d), ZZ(goldBead3d));
+			Point2D<double> res(XX(coordinatesInSlice[i]) - XX(projectedGoldBead), YY(coordinatesInSlice[i]) - YY(projectedGoldBead)); 
+			
+			CM cm;
+			cm.detectedCoordinate = dc;
+			cm.coordinate3d = 3dc;
+			cm.residuals = res;
 
+			vCM.push_back(cm);			
+		}
 	}
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Residual vectors calculated: " << residualX.size() << std::endl;
 	#endif
-}*/
+}
 
 
 // --------------------------- I/O functions ----------------------------
@@ -1264,35 +1269,63 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 
 }
 
+// void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
+// {
+// 	MetaDataVec md;
+// 	size_t id;
 
-void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
+// 	for(size_t i = 0; i < residualX.size(); i++)
+// 	{
+// 		id = md.addObject();
+// 		md.setValue(MDL_X, residualX[i], id);
+// 		md.setValue(MDL_Y, residualY[i], id);
+// 		md.setValue(MDL_XCOOR, residualCoordinateX[i], id);
+// 		md.setValue(MDL_YCOOR, residualCoordinateY[i], id);
+// 		md.setValue(MDL_ZCOOR, residualCoordinateZ[i], id);
+// 	}
+
+// 	size_t lastindex = fnOut.find_last_of("\\/");
+// 	std::string rawname = fnOut.substr(0, lastindex);
+// 	std::string fnOutResiduals;
+//     fnOutResiduals = rawname + "/residuals2d.xmd";
+
+// 	md.write(fnOutResiduals);
+	
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Residuals metadata saved at: " << fnOutResiduals << std::endl;
+// 	#endif
+// }
+
+void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 {
 	MetaDataVec md;
 	size_t id;
 
-	for(size_t i = 0; i < residualX.size(); i++)
+	for(size_t i = 0; i < vCM.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_X, residualX[i], id);
-		md.setValue(MDL_Y, residualY[i], id);
-		md.setValue(MDL_XCOOR, residualCoordinateX[i], id);
-		md.setValue(MDL_YCOOR, residualCoordinateY[i], id);
-		md.setValue(MDL_ZCOOR, residualCoordinateZ[i], id);
+		md.setValue(MDL_XCOOR, vCM[i].detectedCoordinate.x, id);
+		md.setValue(MDL_YCOOR, vCM[i].detectedCoordinate.y, id);
+		md.setValue(MDL_ZCOOR, vCM[i].detectedCoordinate.z, id);
+		md.setValue(MDL_XCOOR, vCM[i].coordinate3d.x, id);
+		md.setValue(MDL_YCOOR, vCM[i].coordinate3d.y, id);
+		md.setValue(MDL_ZCOOR, vCM[i].coordinate3d.z, id);
+		md.setValue(MDL_X, vCM[i].residuals.x, id);
+		md.setValue(MDL_Y, vCM[i].residuals.y, id);
+
 	}
 
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
-	std::string fnOutResiduals;
-    fnOutResiduals = rawname + "/residuals2d.xmd";
+	std::string fnVCM;
+    fnVCM = rawname + "/vCM.xmd";
 
-	md.write(fnOutResiduals);
+	md.write(fnVCM);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Residuals metadata saved at: " << fnOutResiduals << std::endl;
+	std::cout << "Vector coordinates model metadata saved at: " << fnVCM << std::endl;
 	#endif
-
 }
-
 
 // --------------------------- MAIN ----------------------------------
 
@@ -1432,8 +1465,14 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	writeOutputCoordinates();
 	#endif
 
+	MetaDataVec inputCoordMd;
+	inputCoordMd.read(fnInputCoord);
+	calculateResidualVectors(inputCoordMd);
+	
+	writeOutputVCM();
+
 	bool tmp = detectGlobalMisalignment();
-	adjustCoordinatesCosineStreching();
+	// adjustCoordinatesCosineStreching();
 
 	detectLandmarkChains();
 	if(globalAlignment){
