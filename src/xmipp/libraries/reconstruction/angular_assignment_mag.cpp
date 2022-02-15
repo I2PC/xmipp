@@ -192,6 +192,101 @@ unsigned long long getTotalSystemMemory()
     return pages * page_size;
 }
 
+void ProgAngularAssignmentMag::checkStorageSpace() {
+	// for storage of rot and tilt of reference images
+	referenceRot.resize(sizeMdRef);
+	referenceTilt.resize(sizeMdRef);
+	if (rank == 0) {
+		std::cout << "processing reference library..." << std::endl;
+		// memory check
+		size_t dataSize = Xdim * Ydim * sizeMdRef * sizeof(double);
+		size_t matrixSize = sizeMdRef * sizeMdRef * sizeof(double);
+		size_t polarFourierSize = n_bands * n_ang2 * sizeMdRef
+				* sizeof(std::complex<double>);
+
+		size_t totMemory = dataSize + matrixSize + polarFourierSize;
+		totMemory = memoryUtils::MB(totMemory) * Nprocessors;
+		std::cout << "approx. memory to allocate: " << totMemory << " MB"
+				<< std::endl;
+		std::cout << "simultaneous MPI processes: " << Nprocessors << std::endl;
+
+		size_t available = getTotalSystemMemory();
+		available = memoryUtils::MB(available);
+		std::cout << "total available system memory: " << available << " MB"
+				<< std::endl;
+		available -= 1500;
+
+		if (available < totMemory) {
+			REPORT_ERROR(ERR_MEM_NOTENOUGH,
+					"You don't have enough memory. Try to use less MPI processes.");
+		}
+	}
+}
+
+void ProgAngularAssignmentMag::processGallery(FileName &fnImgRef) {
+	// reference image related
+	Image<double> ImgRef;
+	MultidimArray<double> MDaRef((int) Ydim, (int) Xdim);
+	MultidimArray<std::complex<double> > MDaRefF;
+	MultidimArray<std::complex<double> > MDaRefF2;
+	MultidimArray<double> MDaRefFM;
+	MultidimArray<double> MDaRefFMs;
+	MultidimArray<double> MDaRefFMs_polarPart((int) n_bands, (int) n_ang2);
+	MultidimArray<std::complex<double> > MDaRefFMs_polarF;
+
+	MultidimArray<double> refPolar((int) n_rad, (int) n_ang2);
+	MultidimArray<std::complex<double> > MDaRefAuxF;
+	int j = 0;
+	for (auto &rowj : mdRef) {
+		// reading image
+		rowj.getValue(MDL_IMAGE, fnImgRef);
+		ImgRef.read(fnImgRef);
+		MDaRef = ImgRef();
+		MDaRef.setXmippOrigin();
+		// store to call in processImage method
+		double rot;
+		double tilt;
+		double psi;
+		rowj.getValue(MDL_ANGLE_ROT, rot);
+		rowj.getValue(MDL_ANGLE_TILT, tilt);
+		rowj.getValue(MDL_ANGLE_PSI, psi);
+		referenceRot.at(j) = rot;
+		referenceTilt.at(j) = tilt;
+		// processing reference image
+		vecMDaRef.push_back(MDaRef);
+		transformerImage.FourierTransform(MDaRef, MDaRefF, true);
+		// Fourier of polar magnitude spectra
+		transformerImage.getCompleteFourier(MDaRefF2);
+		FFT_magnitude(MDaRefF2, MDaRefFM);
+		completeFourierShift(MDaRefFM, MDaRefFMs);
+		MDaRefFMs_polarPart = imToPolar(MDaRefFMs, startBand, finalBand);
+		transformerPolarImage.FourierTransform(MDaRefFMs_polarPart, MDaRefFMs_polarF, true);
+		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
+		j++;
+	}
+}
+
+void ProgAngularAssignmentMag::computeEigenvectors() {
+	// check if eigenvectors file already created
+	String fnEigenVect = formatString("%s/outEigenVect.txt", fnDir.c_str());
+	std::ifstream in;
+	in.open(fnEigenVect.c_str());
+	if (!in) {
+		in.close();
+		// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
+		if (rank == 0)
+			computingNeighborGraph();
+	}
+
+	// synch with other processors
+	synchronize();
+
+	// prepare and read from file
+	eigenvectors.clear();
+	eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
+	eigenvectors.read(fnEigenVect);
+}
+
 void ProgAngularAssignmentMag::preProcess() {
 
 	mdIn.read(XmippMetadataProgram::fn_in);
@@ -220,93 +315,13 @@ void ProgAngularAssignmentMag::preProcess() {
 	// how many input images
 	sizeMdIn = (int)mdIn.size();
 
-	// reference image related
-	Image<double> ImgRef;
-	MultidimArray<double> MDaRef((int)Ydim, (int)Xdim);
-	MultidimArray<std::complex<double> > MDaRefF;
-	MultidimArray<std::complex<double> > MDaRefF2;
-	MultidimArray<double> MDaRefFM;
-	MultidimArray<double> MDaRefFMs;
-	MultidimArray<double> MDaRefFMs_polarPart((int)n_bands, (int)n_ang2);
-	MultidimArray<std::complex<double> > MDaRefFMs_polarF;
-
-	MultidimArray<double> refPolar((int)n_rad, (int)n_ang2);
-	MultidimArray<std::complex<double> > MDaRefAuxF;
-
 	computeCircular(); //pre-compute circular mask
 
-	// for storage of rot and tilt of reference images
-	referenceRot.resize(sizeMdRef);
-	referenceTilt.resize(sizeMdRef);
-	if (rank == 0) {
-		std::cout << "processing reference library..." << std::endl;
-		// memory check
-		size_t dataSize = Xdim * Ydim * sizeMdRef * sizeof(double);
-		size_t matrixSize = sizeMdRef * sizeMdRef * sizeof(double);
-		size_t polarFourierSize = n_bands * n_ang2 * sizeMdRef * sizeof(std::complex<double>);
+	checkStorageSpace();
 
-		size_t totMemory = dataSize + matrixSize + polarFourierSize;
-		totMemory = memoryUtils::MB(totMemory) * Nprocessors;
-		std::cout << "approx. memory to allocate: " << totMemory << " MB" << std::endl;
-		std::cout << "simultaneous MPI processes: " << Nprocessors << std::endl;
+	processGallery(fnImgRef); // process reference gallery
 
-		size_t available = getTotalSystemMemory();
-		available = memoryUtils::MB(available);
-		std::cout << "total available system memory: " << available << " MB" << std::endl;
-		available -= 1500;
-
-	    if (available < totMemory ) {
-	        REPORT_ERROR(ERR_MEM_NOTENOUGH,"You don't have enough memory. Try to use less MPI processes.");
-	    }
-	}
-
-	int j = 0;
-	for (size_t objId : mdRef.ids()){
-		// reading image
-		mdRef.getValue(MDL_IMAGE, fnImgRef, objId);
-		ImgRef.read(fnImgRef);
-		MDaRef = ImgRef();
-		MDaRef.setXmippOrigin();
-		// store to call in processImage method
-		double rot;
-		double tilt;
-		double psi;
-		mdRef.getValue(MDL_ANGLE_ROT, rot, objId);
-		mdRef.getValue(MDL_ANGLE_TILT, tilt, objId);
-		mdRef.getValue(MDL_ANGLE_PSI, psi, objId);
-		referenceRot.at(j) = rot;
-		referenceTilt.at(j) = tilt;
-		// processing reference image
-		vecMDaRef.push_back(MDaRef);
-		applyFourierImage2(MDaRef, MDaRefF);
-		// Fourier of polar magnitude spectra
-		transformerImage.getCompleteFourier(MDaRefF2);
-		getComplexMagnitude(MDaRefF2, MDaRefFM);
-		completeFourierShift(MDaRefFM, MDaRefFMs);
-		MDaRefFMs_polarPart = imToPolar(MDaRefFMs, startBand, finalBand);
-		applyFourierImage2(MDaRefFMs_polarPart, MDaRefFMs_polarF, n_ang);
-		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
-		j++;
-	}
-
-	// check if eigenvectors file already created
-	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
-	std::ifstream in;
-	in.open(fnEigenVect.c_str());
-	if(!in){
-		in.close();
-		// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
-		if(rank == 0)
-			computingNeighborGraph();
-	}
-
-	// synch with other processors
-	synchronize();
-
-	// prepare and read from file
-	eigenvectors.clear();
-	eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
-	eigenvectors.read(fnEigenVect);
+	computeEigenvectors();  // eigenvectors for graph-signal-processing
 
 	// Symmetry List
 	if (fnSym != "") {
@@ -324,13 +339,8 @@ void ProgAngularAssignmentMag::preProcess() {
 	if(useForValidation){
 		// read reference volume to be re-projected when comparing previous assignment
 		// If there is no reference available, exit
-		try{
-			refVol.read(inputReference_volume);
-		}
-		catch (XmippError &XE){
-			std::cout << XE;
-			exit(0);
-		}
+		refVol.read(inputReference_volume);
+
 		refVol().setXmippOrigin();
 		refXdim = (int)XSIZE(refVol());
 		refYdim = (int)YSIZE(refVol());
@@ -371,17 +381,18 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	MultidimArray<double> MDaInFMs_polarPart((int)n_bands, (int)n_ang2);
 	MultidimArray<std::complex<double> > MDaInFMs_polarF;
 
-	// processing input image
+	// processing experimental input image
 	ImgIn.read(fnImg);
 	MDaIn = ImgIn();
 	MDaIn.setXmippOrigin();
-	applyFourierImage2(MDaIn, MDaInF);
+	transformerImage.FourierTransform(MDaIn, MDaInF, true);
 	transformerImage.getCompleteFourier(MDaInF2);
-	getComplexMagnitude(MDaInF2, MDaInFM);
+	FFT_magnitude(MDaInF2, MDaInFM);
 	completeFourierShift(MDaInFM, MDaInFMs);
 	MDaInFMs_polarPart = imToPolar(MDaInFMs, startBand, finalBand);
-	applyFourierImage2(MDaInFMs_polarPart, MDaInFMs_polarF, n_ang);
+	transformerPolarImage.FourierTransform(MDaInFMs_polarPart, MDaInFMs_polarF, true);
 
+	// variables for an initial screening of possible "good" references
 	double psi;
 	double cc_coeff;
 	double Tx;
@@ -400,8 +411,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	MultidimArray<double> ccMatrixRot;
 	MultidimArray<double> ccVectorRot;
 
-	// loop over all reference images
-//	 /*
+	// loop over all reference images. Screening of possible "good" references
 	for (int k = 0; k < sizeMdRef; ++k) {
 		// computing relative rotation and shift
 		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot, ccMatrixProcessImageTransformer);
@@ -418,7 +428,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		bestPsi[k] = psi;
 	}
 
-	// variables for second loop
+	// variables for second loop. Selection of "best" reference image
 	std::vector<double> bestTx2(sizeMdRef, 0.);
 	std::vector<double> bestTy2(sizeMdRef, 0.);
 	std::vector<double> bestPsi2(sizeMdRef, 0.);
@@ -437,6 +447,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	else
 		thres = maxval - (maxval - minval) / 2.;
 
+	// loop over "good" reference images
 	for(int k = 0; k < sizeMdRef; ++k) {
 		if(VEC_ELEM(ccvec,k)>thres){
 			// find rotation and shift using alignImages
@@ -463,7 +474,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		}
 	}
 
-	// ================ Graph Filter Process after second loop =================
+	// === Graph Filter Process after best reference selection ========
 	Matrix1D<double> ccvec_filt;
 	graphFourierFilter(ccvec,ccvec_filt);
 
@@ -476,27 +487,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	// angular distance between this two directions
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
-	double rotj = referenceRot.at(idx);
-	double tiltj = referenceTilt.at(idx);
-	double psij = 0.;
-	Euler_direction(rotj, tiltj, psij, dirj);
-	double rotjp = referenceRot.at(idxfilt);
-	double tiltjp = referenceTilt.at(idxfilt);
-	double psijp = 0.;
-	Euler_direction(rotjp, tiltjp, psijp, dirjp);
-	double sphericalDistance = RAD2DEG(spherical_distance(dirj, dirjp));
-
-	// compute distance keeping in mind the symmetry list
-	for(size_t sym = 0; sym<SL.symsNo(); sym++){
-		double auxRot, auxTilt, auxPsi; // equivalent coordinates
-		double auxSphericalDist;
-		Euler_apply_transf(L[sym], R[sym],rotjp, tiltjp, psijp,
-				auxRot,auxTilt,auxPsi);
-		Euler_direction(auxRot, auxTilt, auxPsi, dirjp);
-		auxSphericalDist = RAD2DEG(spherical_distance(dirj, dirjp));
-		if (auxSphericalDist < sphericalDistance)
-			sphericalDistance = auxSphericalDist;
-	}
+	double sphericalDistance= angDistance(idx, idxfilt, dirj, dirjp);
 
 	// set output alignment parameters values
 	double rotRef = referenceRot.at(idx);
@@ -519,32 +510,67 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	rowOut.setValue(MDL_WEIGHT_SIGNIFICANT, 1.);
 	rowOut.setValue(MDL_GRAPH_DISTANCE2MAX, sphericalDistance);
 
+	// validate angular assignment
+	validateAssignment(idx, idxfilt, rotRef, tiltRef, rowIn, rowOut, MDaIn,	dirjp);
+}
 
-	if(!useForValidation){
+double ProgAngularAssignmentMag::angDistance(int &idx, int &idxfilt,
+		Matrix1D<double> &dirj, Matrix1D<double> &dirjp) {
+	double rotj = referenceRot.at(idx);
+	double tiltj = referenceTilt.at(idx);
+	double psij = 0.;
+	Euler_direction(rotj, tiltj, psij, dirj);
+	double rotjp = referenceRot.at(idxfilt);
+	double tiltjp = referenceTilt.at(idxfilt);
+	double psijp = 0.;
+	Euler_direction(rotjp, tiltjp, psijp, dirjp);
+	double sphericalDistance = RAD2DEG(spherical_distance(dirj, dirjp));
+
+	// compute distance keeping in mind the symmetry list
+	for (size_t sym = 0; sym < SL.symsNo(); sym++) {
+		double auxRot, auxTilt, auxPsi; // equivalent coordinates
+		double auxSphericalDist;
+		Euler_apply_transf(L[sym], R[sym], rotjp, tiltjp, psijp, auxRot,
+				auxTilt, auxPsi);
+		Euler_direction(auxRot, auxTilt, auxPsi, dirjp);
+		auxSphericalDist = RAD2DEG(spherical_distance(dirj, dirjp));
+		if (auxSphericalDist < sphericalDistance)
+			sphericalDistance = auxSphericalDist;
+	}
+	return sphericalDistance;
+}
+
+void ProgAngularAssignmentMag::validateAssignment(int &idx, int &idxfilt, double &rotRef,
+		double &tiltRef, const MDRow &rowIn, MDRow &rowOut,
+		MultidimArray<double> &MDaIn, Matrix1D<double> &dirjp) {
+	if (!useForValidation) {
 		// align & correlation between reference images located at idx and idxfilt
 		Matrix2D<double> M2;
-		double graphCorr = alignImages(vecMDaRef[idx], vecMDaRef[idxfilt], M2, xmipp_transformation::DONT_WRAP);
+		double graphCorr = alignImages(vecMDaRef[idx], vecMDaRef[idxfilt], M2,
+				xmipp_transformation::DONT_WRAP);
 		rowOut.setValue(MDL_GRAPH_CC, graphCorr);
-	}
-	else{
+	} else {
 		// assignment in this run
 		// get projection of volume from coordinates computed using my method
 		Projection P2;
 		double initPsiAngle = 0.;
-		projectVolume(refVol(), P2, refYdim, refXdim, rotRef, tiltRef, initPsiAngle);
-		MultidimArray<double> projectedReference2((int)Ydim, (int)Xdim);
+		projectVolume(refVol(), P2, refYdim, refXdim, rotRef, tiltRef,
+				initPsiAngle);
+		MultidimArray<double> projectedReference2((int) Ydim, (int) Xdim);
 		projectedReference2 = P2();
 
 		double filtRotRef = referenceRot.at(idxfilt);
 		double filtTiltRef = referenceTilt.at(idxfilt);
 		Projection P3;
-		projectVolume(refVol(), P3, refYdim, refXdim, filtRotRef, filtTiltRef, initPsiAngle);
-		MultidimArray<double> projectedReference3((int)Ydim, (int)Xdim);
+		projectVolume(refVol(), P3, refYdim, refXdim, filtRotRef, filtTiltRef,
+				initPsiAngle);
+		MultidimArray<double> projectedReference3((int) Ydim, (int) Xdim);
 		projectedReference3 = P3();
 
 		// align & correlation between reference images located at idx and idxfilt
 		Matrix2D<double> M2;
-		double graphCorr = alignImages(projectedReference2, projectedReference3, M2, xmipp_transformation::DONT_WRAP);
+		double graphCorr = alignImages(projectedReference2, projectedReference3,
+				M2, xmipp_transformation::DONT_WRAP);
 		rowOut.setValue(MDL_GRAPH_CC, graphCorr);
 
 		// related to previous assignment
@@ -557,25 +583,29 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 
 		// get projection of volume from this coordinates
 		Projection P;
-		projectVolume(refVol(), P, refYdim, refXdim, old_rot, old_tilt, initPsiAngle);
-		MultidimArray<double> projectedReference((int)Ydim, (int)Xdim);
+		projectVolume(refVol(), P, refYdim, refXdim, old_rot, old_tilt,
+				initPsiAngle);
+		MultidimArray<double> projectedReference((int) Ydim, (int) Xdim);
 		projectedReference = P();
 
 		// align & correlation between reference images both methods
 		// projectedReference2 is from this assignment
 		Matrix2D<double> M;
 		projectedReference2 = P2();
-		double refCorr = alignImages(projectedReference, projectedReference2, M, xmipp_transformation::DONT_WRAP);
+		double refCorr = alignImages(projectedReference, projectedReference2, M,
+				xmipp_transformation::DONT_WRAP);
 
 		// align & correlation between reference images by previous assignment and idxfilt
 		projectedReference = P();
 		projectedReference3 = P3();
-		graphCorr = alignImages(projectedReference, projectedReference3, M, xmipp_transformation::DONT_WRAP);
+		graphCorr = alignImages(projectedReference, projectedReference3, M,
+				xmipp_transformation::DONT_WRAP);
 
-		MultidimArray<double> mdainShifted((int)Ydim, (int)Xdim);
+		MultidimArray<double> mdainShifted((int) Ydim, (int) Xdim);
 		mdainShifted.setXmippOrigin();
 		old_psi *= -1;
-		applyShiftAndRotation(MDaIn, old_psi, old_shiftX, old_shiftY, mdainShifted);
+		applyShiftAndRotation(MDaIn, old_psi, old_shiftX, old_shiftY,
+				mdainShifted);
 		circularWindow(mdainShifted); //circular masked
 		double prevCorr = correlationIndex(projectedReference, mdainShifted);
 
@@ -585,17 +615,19 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		Matrix1D<double> dirPrevious;
 		double relPsi = 0.;
 		Euler_direction(old_rot, old_tilt, relPsi, dirPrevious);
-		double algorithmSD = RAD2DEG(spherical_distance(dirjpCopy, dirPrevious));
+		double algorithmSD = RAD2DEG(
+				spherical_distance(dirjpCopy, dirPrevious));
 
 		// compute distance keeping in mind the symmetry list
-		for(size_t sym = 0; sym<SL.symsNo(); sym++){
+		for (size_t sym = 0; sym < SL.symsNo(); sym++) {
 			// related to compare against previous assignment
 			double auxRot2, auxTilt2, auxPsi2; // equivalent coordinates
 			double auxSphericalDist2;
 			Euler_apply_transf(L[sym], R[sym], old_rot, old_tilt, relPsi,
-					auxRot2,auxTilt2,auxPsi2);
+					auxRot2, auxTilt2, auxPsi2);
 			Euler_direction(auxRot2, auxTilt2, auxPsi2, dirPrevious);
-			auxSphericalDist2 = RAD2DEG(spherical_distance(dirPrevious, dirjpCopy));
+			auxSphericalDist2 = RAD2DEG(
+					spherical_distance(dirPrevious, dirjpCopy));
 			if (auxSphericalDist2 < algorithmSD)
 				algorithmSD = auxSphericalDist2;
 
@@ -634,26 +666,6 @@ void ProgAngularAssignmentMag::postProcess() {
 				objId);
 	}
 	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
-}
-
-/*first try in using only one half of Fourier space*/
-void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
-		MultidimArray<std::complex<double> > &FourierData) {
-	transformerImage.FourierTransform(data, FourierData, true);
-}
-
-/* first try one half of fourier spectrum of polarRepresentation of Magnitude*/
-void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
-		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
-	(void)ang;
-	transformerPolarImage.FourierTransform(data, FourierData, true); // false --> true, to make a copy
-}
-
-/* get magnitude of fourier spectrum */
-void ProgAngularAssignmentMag::getComplexMagnitude(
-		const MultidimArray<std::complex<double> > &FourierData,
-		MultidimArray<double> &FourierMag) const {
-	FFT_magnitude(FourierData, FourierMag);
 }
 
 /* cartImg contains cartessian  grid representation of image,

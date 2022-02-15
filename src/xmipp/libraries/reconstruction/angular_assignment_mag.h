@@ -57,11 +57,8 @@ public:
 	void postProcess() override;
     ProgAngularAssignmentMag();
     ~ProgAngularAssignmentMag();
-    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
     void applyRotation(const MultidimArray<double> &, double &, MultidimArray<double> &) const;
     void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot) const;
-    void getComplexMagnitude(const MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag) const;
 
     /// Synchronize with other processors
     virtual void synchronize() {}
@@ -70,10 +67,13 @@ public:
 	size_t Nprocessors;
 
 private:
+	double angDistance(int &, int &, Matrix1D<double> &, Matrix1D<double> &);
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
     void completeFourierShift(const MultidimArray<double> &in, MultidimArray<double> &out) const;
     void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result, FourierTransformer &transformer);
+    void checkStorageSpace();
     void computingNeighborGraph();
+    void computeEigenvectors();
     void computeLaplacianMatrix (Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp) const;
     void computeCircular();
     void circularWindow(MultidimArray<double> &in) const;
@@ -84,7 +84,9 @@ private:
     void maxByColumn(const MultidimArray<double> &in, MultidimArray<double> &out) const;
     void maxByRow(const MultidimArray<double> &in, MultidimArray<double> &out) const;
 
+    void processGallery(FileName &);
     void psiCandidates(const MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
+    void validateAssignment(int &, int &, double &, double &, const MDRow &, MDRow &, MultidimArray<double> &, Matrix1D<double> &);
 
     ctpl::thread_pool threadPool;
 
