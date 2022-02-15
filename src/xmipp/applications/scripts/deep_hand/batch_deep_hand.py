@@ -8,6 +8,7 @@ import xmippLib
 from torch import nn
 from torch import optim
 
+from xmipp_base import XmippScript
 
 class EM3DNet(nn.Module):
     """ 3D CNN to estiamte labels from a set of boxes."""
@@ -319,27 +320,42 @@ class HaPi():
 
         return prediction, result
 
+class ScriptDeepHand(XmippScript):
+    _conda_env="xmipp_deepHand"
+
+    def __init__(self):
+
+        XmippScript.__init__(self)
+
+    def defineParams(self):
+        self.addUsageLine('Compute the handedness of structure')
+        ## params
+        self.addParamsLine(' -o <outputDirectory> : Directory to save model')
+        self.addParamsLine(' --alphaModel <alphaModel> : alpha model path to load')
+        self.addParamsLine(' --handModel <handModel> : hand model path to load')
+        self.addParamsLine(' --alphaThr <alphaThr> : threshold to accept alpha helices')
+        self.addParamsLine(' --pathVf <pathVf> : path to volume to process')
+        self.addParamsLine(' --pathVmask <pathVmask> : path to mask of volume')
+
+        ## examples
+        self.addExampleLine('xmipp_deep_hand -o path/to/directroy --alphaModel path/to/model --handModel path/to/model '+
+                            '--alphaThr 0.7 --pathVf path/to/volume --pathVmask path/to/mask')
+    def run(self):
+        # Create pipeline object
+        pipeline = HaPi(self.getParam('--alphaModel'), self.getParam('--handModel'))
+
+        # Obtain Volume and Mask
+        Vf = xmippLib.Image(self.getParam('--pathVf')).getData()
+        Vmask = xmippLib.Image(self.getParam('--pathVmask')).getData()
+
+        # Predict hand
+        hand = pipeline.predict(Vf, Vmask, float(self.getParam('--alphaThr')), 2048)
+
+        # Save hand value
+        f = open(os.path.join(self.getParam('-o'), 'hand.txt'),'w')
+        f.write(str(hand))
+        f.close()
+
 if __name__ == "__main__":
-
-    # Commands inputs to script
-    fnODir = sys.argv[1]
-    alphaModel = sys.argv[2]
-    handModel =  sys.argv[3]
-    alphaThr = float(sys.argv[4])
-    pathVf = sys.argv[5]
-    pathVmask = sys.argv[6]
-
-    # Create pipeline object
-    pipeline = HaPi(alphaModel, handModel)
-
-    # Obtain Volume and Mask
-    Vf = xmippLib.Image(pathVf).getData()
-    Vmask = xmippLib.Image(pathVmask).getData()
-
-    # Predict hand
-    hand = pipeline.predict(Vf, Vmask, alphaThr, 2048)
-
-    # Save hand value
-    f = open(os.path.join(fnODir, 'hand.txt'),'w')
-    f.write(str(hand))
-    f.close()
+    exitCode = ScriptDeepHand().tryRun()
+    sys.exit(exitCode)
