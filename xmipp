@@ -635,7 +635,7 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
                          % (task, dest, url, dataSet),
                          cwd=cwd, show_command=False,
-                         inParallel=not dedicatedMode)
+                         inParallel=not dedicatedMode)#FIXME delete inParallel
     if dedicatedMode:
         ok = pDLdownload
     else:  # in parallel poll() is None untill finished
@@ -643,7 +643,7 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     return ok
 
 
-def scipionConnection(dirname):
+def linkToScipion(dirname):
     scipionSoftware = os.environ.get('SCIPION_SOFTWARE',
                                      os.path.join(getScipionHome(), 'software'))
     scipionLibs = os.path.join(scipionSoftware, 'lib')
@@ -728,7 +728,7 @@ def install(dirname):
         sys.exit(1)
 
     # Scipion connection
-    scipionConnection(dirname)
+    linkToScipion(dirname)
 
     runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
