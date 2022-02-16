@@ -100,6 +100,9 @@ public:
     /// Produce side info
     void produceSideInfo();
 
+    /// Produce class input format
+    void produceClassInfo();
+
     /// Remove outliers
     void computeCores();
 
