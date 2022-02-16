@@ -87,6 +87,9 @@
 	Image<double> Pctf;
 	Image<double> Pmaskctf;
 
+//    FourierProjector *projector;
+
+
     /// Read argument from command line
     void readParams() override;
     /// Show

@@ -106,33 +106,20 @@
  void ProgSubtractProjection::POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI,
 		 double lambdapocs, const MultidimArray<double> &rQ, int Isize) const{
  	int Isize2 = Isize/2;
- 	std::cout<< "Isize2 " << Isize2 << std::endl;
  	double Isizei = 1.0/Isize;
- 	std::cout<< "Isizei " << Isizei << std::endl;
  	double wx;
  	double wy;
  	for (int i=0; i<YSIZE(A); ++i) {
  		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isizei,wy)
-		std::cout<< "wy " << wy << std::endl;
  		double wy2 = wy*wy;
-		std::cout<< "wy2 " << wy2 << std::endl;
  		for (int j=0; j<XSIZE(A); ++j) {
  			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isizei,wx)
-			std::cout<< "wx " << wx << std::endl;
  			double w = sqrt(wx*wx + wy2);
-			std::cout<< "w " << w << std::endl;
  			auto iw = (int)round(w*Isize);
-			std::cout<< "iw " << iw << std::endl;
  			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
-			std::cout<< "mod " << mod << std::endl;
  			if (mod>1e-6)
  			{
- 				std::cout<< "DIRECT_A2D_ELEM(FI,i,j) " << DIRECT_A2D_ELEM(FI,i,j) << std::endl;
- 				std::cout<< "DIRECT_A2D_ELEM(A,i,j) " << DIRECT_A2D_ELEM(A,i,j) << std::endl;
- 				std::cout<< "DIRECT_MULTIDIM_ELEM(rQ,iw) " << DIRECT_MULTIDIM_ELEM(rQ,i) << std::endl;
- 				std::cout<< "lambdapocs " << lambdapocs << std::endl;
- 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambdapocs)+lambdapocs*DIRECT_A2D_ELEM(A,i,j))/mod);//*DIRECT_MULTIDIM_ELEM(rQ,iw);
- 				std::cout<< " final DIRECT_A2D_ELEM(FI,i,j) " << DIRECT_A2D_ELEM(FI,i,j) << std::endl;
+ 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambdapocs)+lambdapocs*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
  			}
  		}
  	}
@@ -250,17 +237,13 @@
  }
 
  void ProgSubtractProjection::runIteration() {
-	P.write(formatString("%s8_projbeforeIters.mrc", fnProj.c_str()));
-	transformer.FourierTransform(P(),PFourier,false);
+	transformer.FourierTransform(Pctf(),PFourier,false);
 	POCSFourierAmplitudeProj(IFourierMag, PFourier, lambda, radQuotient, (int)XSIZE(I()));
 	transformer.inverseFourierTransform();
-	P.write(formatString("%s9_projAmplitude.mrc", fnProj.c_str()));
-	POCSMinMaxProj(P(), Imin, Imax);
-	P.write(formatString("%s10_projMinMax.mrc", fnProj.c_str()));
+	POCSMinMaxProj(Pctf(), Imin, Imax);
 	transformer.FourierTransform();
-	POCSFourierPhaseProj(PFourierPhase,PFourier);
+	POCSFourierPhaseProj(PFourierPhase, PFourier);
 	transformer.inverseFourierTransform();
-	P.write(formatString("%s11_projPhase.mrc", fnProj.c_str()));
  }
 
  Image<double> ProgSubtractProjection::thresholdMask(Image<double> &m){
@@ -345,26 +328,36 @@
      	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
      	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
+
+//     	MultidimArray<double> *ctfImage;
+//    	projector = new FourierProjector(V(),2,1.04/3,xmipp_transformation::BSPLINE3);
+//        ctfImage = nullptr;
+//    	if (ctfImage==nullptr)
+//    		{
+//    			ctfImage = new MultidimArray<double>();
+//    			ctfImage->resizeNoCopy(projector->projection());
+//    			STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
+//    		}
+//    	projectVolume(projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, (const MultidimArray<double> *) ctfImage);
+//    	P.write(formatString("%s20_initalProjectionFOURIER.mrc", fnProj.c_str()));
+
     	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-    	P.write(formatString("%s1_initalProjection.mrc", fnProj.c_str()));
     	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-    	PmaskVol.write(formatString("%s2_initalMask.mrc", fnProj.c_str()));
     	PmaskVolI = binarizeMask(PmaskVol);
-    	PmaskVolI.write(formatString("%s3_maskBin.mrc", fnProj.c_str()));
 		FilterG.applyMaskSpace(PmaskVolI());
-		PmaskVolI.write(formatString("%s4_maskGauss.mrc", fnProj.c_str()));
+
 		POCSmaskProj(PmaskVolI(), P());
-		P.write(formatString("%s5_projMasked.mrc", fnProj.c_str()));
 		POCSmaskProj(PmaskVolI(), I());
-		I.write(formatString("%s6_partMasked.mrc", fnProj.c_str()));
-		row.getValueOrDefault(MDL_IMAGE, fnPart, "no_filename");
+
+//		row.getValueOrDefault(MDL_IMAGE, fnPart, "no_filename");
 		Pctf = applyCTF(row, P);
-		Pctf.write(formatString("%s7_projCTF.mrc", fnProj.c_str()));
     	struct Radial radial;
     	radial.meanI = computeRadialAvg(I, radial.meanI);
     	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
     	radQuotient = computeRadQuotient(radQuotient, radial.meanI, radial.meanP);
-		percentileMinMax(I(), Imin, Imax);
+//		percentileMinMax(I(), Imin, Imax); // Replace by directly the min and max?
+		I().computeDoubleMinMax(Imin, Imax);
+
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
 		transformer.FourierTransform(Pctf(),PFourierPhase,true);
@@ -383,20 +376,12 @@
 		if (cutFreq!=0)
 			Filter2.applyMaskSpace(IFiltered());
     	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-    	Pmask.write(formatString("%s12_maskKeep.mrc", fnProj.c_str()));
     	Pmaskctf = applyCTF(row, Pmask);
-    	Pmask.write(formatString("%s13_maskKeepCTF.mrc", fnProj.c_str()));
     	Pmaskctf = thresholdMask(Pmaskctf);
-    	Pmaskctf.write(formatString("%s14_maskKeepTh.mrc", fnProj.c_str()));
 		PmaskInv = invertMask(Pmaskctf);
-		PmaskInv.write(formatString("%s15_maskKeepInv.mrc", fnProj.c_str()));
     	FilterG.w1=sigma;
 		FilterG.applyMaskSpace(Pmaskctf());
-		I.write(formatString("%s16_finalI.mrc", fnProj.c_str()));
-		P.write(formatString("%s17_finalP.mrc", fnProj.c_str()));
-		PmaskInv.write(formatString("%s18_finalmaskInv.mrc", fnProj.c_str()));
-		Pmaskctf.write(formatString("%finalmaskCTF.mrc", fnProj.c_str()));
-		I = subtraction(I, P, PmaskInv, Pmaskctf, subtractAll);
+		I = subtraction(I, Pctf, PmaskInv, Pmaskctf, subtractAll);
 		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
