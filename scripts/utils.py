@@ -49,14 +49,14 @@ def blue(text):
 
 def printXmippLogo(indentation):
     print('\n')
-    print(indentation, r'''  /\\¯¯¯¯¯¯//\ ''')
-    print(indentation, r''' /  \\    //  \ ''')
-    print(indentation, r'''|    ''', end='')
+    print(indentation, r'''  /\\¯¯¯¯//\ ''')
+    print(indentation, r''' /  \\  //  \ ''')
+    print(indentation, r'''|   ''', end='')
     print(green('mipp'), end='')
-    print('''     | ''')
-    print(indentation, r''' \  //    \\  / ''')
+    print('''    | ''')
+    print(indentation, r''' \  //  \\  / ''')
     #print(indentation, r''' \   //     \\   / ''')
-    print(indentation, r'''  \//______\\/ ''')
+    print(indentation, r'''  \//____\\/ ''')
 
 
 def find_newest(program, versions, show):

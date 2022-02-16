@@ -635,7 +635,7 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
                          % (task, dest, url, dataSet),
                          cwd=cwd, show_command=False,
-                         inParallel=not dedicatedMode)#FIXME delete inParallel
+                         inParallel=not dedicatedMode)
     if dedicatedMode:
         ok = pDLdownload
     else:  # in parallel poll() is None untill finished
@@ -653,8 +653,7 @@ def linkToScipion(dirname):
     currentDir = os.getcwd()
 
     if os.path.isdir(scipionLibs) and\
-            os.path.isdir(scipionBindings) and \
-            os.path.isdir(xmippHomeLink):
+            os.path.isdir(scipionBindings):
         runJob("ln -srf %s %s" % (dirname, xmippHomeLink))
         xmippLink = os.readlink(xmippHomeLink)
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
