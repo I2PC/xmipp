@@ -862,10 +862,6 @@ void MpiProgAngularClassAverage::mpi_write(
     Image<double> avg,
     Image<double> avg1,
     Image<double> avg2,
-    const MetaDataDb& SFclass,
-    const MetaDataDb& SFclass1,
-    const MetaDataDb& SFclass2,
-    const MetaDataDb& SFclassDiscarded,
     double w1,
     double w2,
     double old_w,
@@ -948,8 +944,8 @@ void MpiProgAngularClassAverage::mpi_writeController(
             weights2_old = lockWeightIndexes[index_weights2];
             ref3dIndex = ROUND(lockWeightIndexes[index_ref3d]);
 
-            mpi_write(dirno, ref3dIndex, avg, avg1, avg2, SFclass, SFclass1, SFclass2,
-                      SFclassDiscarded, w1, w2, weight_old, weights1_old, weights2_old);
+            mpi_write(dirno, ref3dIndex, avg, avg1, avg2,  w1, w2, weight_old,
+             weights1_old, weights2_old);
             whileLoop=false;
             break;
         default:
