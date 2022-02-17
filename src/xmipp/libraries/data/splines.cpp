@@ -217,7 +217,6 @@ void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_spline
     // (z0,y0,XX(lowest))
     Matrix1D<int> corner2(3), corner1(3);    // Coord: Corners of the blob in the voxel volume
     Matrix1D<double> gcurrent(3);            // Position in g of current point
-    double        intx, inty, intz;          // Nearest integer voxel
     int           i, j, k;                   // Index within the blob volume
     bool          process;                   // True if this blob has to be
     // processed
@@ -327,7 +326,8 @@ void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_spline
                             	double intx=ix;
 
                                 // Compute the spline value at this point
-                                VECTOR_R3(gcurrent, intx, inty, intz);
+                                VECTOR_R3(gcurrent, static_cast<double>(intx),
+                                static_cast<double>(inty), static_cast<double>(intz));
                                 V3_MINUS_V3(gcurrent, act_coord, gcurrent);
                                 double spline_value = spatial_Bspline03(gcurrent);
 #ifdef DEBUG_MORE

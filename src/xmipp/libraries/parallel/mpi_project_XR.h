@@ -38,7 +38,7 @@ class ProgMPIXrayProject: public ProgXrayProject
 {
     MpiNode *node=nullptr;
 public:
-    ProgMPIXrayProject() {};
+    ProgMPIXrayProject() = default;
     ProgMPIXrayProject(const ProgMPIXrayProject&)=delete;
     ProgMPIXrayProject(const ProgMPIXrayProject&&)=delete;
     ~ProgMPIXrayProject();

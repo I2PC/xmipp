@@ -167,8 +167,7 @@ public:
 
     /// List of nodes
     std::vector<CL2DClass *> P;
-    
-public:
+
     /** Empty constructor */
     CL2D() {}
 

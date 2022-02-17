@@ -68,7 +68,7 @@ public:
     bool useZernike;
 
 public:
-    ProgExtractFeatures() {}
+    ProgExtractFeatures() = default;
     ProgExtractFeatures(const ProgExtractFeatures &)=delete;
     ProgExtractFeatures(const ProgExtractFeatures &&)=delete;
     ~ProgExtractFeatures();

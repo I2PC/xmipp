@@ -938,17 +938,16 @@ const
     bool intersects = false;
     for (int k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
     {
-    	double dk=(double) k;
+    	auto dk=(double) k;
     	double distk2=(dk - ZZ(r))*(dk - ZZ(r));
         for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
         {
-        	double di=(double) i;
+        	auto di=(double) i;
         	double distki2=distk2+(di - YY(r))*(di - YY(r));
             for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
             {
-            	double dj=(double) j;
-            	double distkij2=distki2+(dj - XX(r))*(dj - XX(r));
-                if (distkij2>radius2)
+            	auto dj=(double) j;
+                if (distki2+(dj - XX(r))*(dj - XX(r))>radius2)
                     continue;
                 VECTOR_R3(aux3, j, i, k);
                 intersects = voxel_inside(aux3, aux1, aux2);

@@ -2241,7 +2241,7 @@ void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
 
     int symOrder = symsNo()+1;
     std::default_random_engine generator (seed);
-    std::uniform_int_distribution<int> distribution(0,symOrder);
+    std::uniform_int_distribution distribution(0,symOrder);
 
     int i = distribution(generator); //0, 59+1
     if (i < symOrder-1)

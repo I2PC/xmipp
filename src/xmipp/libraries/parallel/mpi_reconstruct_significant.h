@@ -40,7 +40,7 @@ public:
 	MpiNode *node=nullptr;
 public:
 	// Empty constructor
-	MpiProgReconstructSignificant() {};
+	MpiProgReconstructSignificant() = default;
 	MpiProgReconstructSignificant(const MpiProgReconstructSignificant &)=delete;
 	MpiProgReconstructSignificant(const MpiProgReconstructSignificant &&)=delete;
 

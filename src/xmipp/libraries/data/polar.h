@@ -582,8 +582,8 @@ public:
         // Add additional points on the inside and outside of the rings
         // Add a maximum of "extra_shell" rings
         // Set data to zero here
-        int first_ring  = (int)floor(ring_radius[0]);
-        int last_ring   = (int)ceil(ring_radius[rings.size()-1]);
+        auto first_ring  = (int)floor(ring_radius[0]);
+        auto last_ring   = (int)ceil(ring_radius[rings.size()-1]);
         int outer       = last_ring + extra_shell;
         int inner       = XMIPP_MAX(0,first_ring - extra_shell);
         for (int iradius = 0; iradius < outer; iradius +=1)

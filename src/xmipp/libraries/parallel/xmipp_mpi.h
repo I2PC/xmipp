@@ -168,7 +168,7 @@ protected:
     /** status after an MPI call */
     MPI_Status status;
 
-    XmippMpiProgram() {}
+    XmippMpiProgram() = default;
     XmippMpiProgram(const XmippMpiProgram &)=delete;
     XmippMpiProgram(const XmippMpiProgram &&)=delete;
 
@@ -193,8 +193,8 @@ class MpiMetadataProgram: public XmippMpiProgram
 protected:
     /** Divide the job in this number block with this number of images */
     int blockSize;
-    MpiTaskDistributor *distributor=nullptr;
     std::vector<size_t> imgsId;
+    MpiTaskDistributor *distributor=nullptr;
     size_t first, last;
 
 public:

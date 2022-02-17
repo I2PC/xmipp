@@ -40,7 +40,7 @@ public:
 	MpiNode *node=nullptr;
 public:
 	// Empty constructor
-	MpiMultireferenceAligneability() {}
+	MpiMultireferenceAligneability() = default;
 	MpiMultireferenceAligneability(const MpiMultireferenceAligneability &)=delete;
 	MpiMultireferenceAligneability(const MpiMultireferenceAligneability &&)=delete;
 

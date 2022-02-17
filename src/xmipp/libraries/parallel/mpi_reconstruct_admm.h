@@ -40,7 +40,7 @@ public:
 	MpiNode *node=nullptr;
 public:
 	// Empty constructor
-	MpiProgReconstructADMM() {}
+	MpiProgReconstructADMM() = default;
 	MpiProgReconstructADMM(const MpiProgReconstructADMM &)=delete;
 	MpiProgReconstructADMM(const MpiProgReconstructADMM &&)=delete;
 

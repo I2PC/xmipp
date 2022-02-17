@@ -381,7 +381,7 @@ public:
     GridVolumeT<int> *GVNeq=nullptr;
     //@}
 public:
-    BasicARTParameters() {}
+    BasicARTParameters() = default;
     BasicARTParameters(const BasicARTParameters &)=delete;
     BasicARTParameters(const BasicARTParameters &&)=delete;
 

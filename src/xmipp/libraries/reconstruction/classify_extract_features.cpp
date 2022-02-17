@@ -387,7 +387,6 @@ void ProgExtractFeatures::extractLBP(const MultidimArray<double> &I,
     }
     min_idxs_sort = min_idxs;
     std::sort(min_idxs_sort.begin(), min_idxs_sort.end());
-    auto last=std::unique(min_idxs_sort.begin(), min_idxs_sort.end());
 
     for (int y = 1; y < (YSIZE(I)-1); y++)
     {

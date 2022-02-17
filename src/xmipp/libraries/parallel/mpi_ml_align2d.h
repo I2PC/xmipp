@@ -153,11 +153,11 @@ public:
 /** Class to parallelize ML_TOMO */
 class MpiProgMLTomo: public ProgMLTomo
 {
-protected:
+private:
     MpiNode *node=nullptr;
 public:
     /** Constructor */
-    MpiProgMLTomo() {}
+    MpiProgMLTomo() = default;
 
     MpiProgMLTomo(const MpiProgMLTomo &)=delete;
     MpiProgMLTomo(const MpiProgMLTomo &&)=delete;
