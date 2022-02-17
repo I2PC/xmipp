@@ -1086,6 +1086,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 	// Iterate through every tilt-image
 	for(size_t n = 0; n<tiltAngles.size(); n++)
 	{	
+		std::cout << "Analyzing coorinates in image "<< n<<std::endl;
 		tiltAngle = tiltAngles[n];
 
 		# ifdef DEBUG
@@ -1147,43 +1148,83 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 			// std::cout << "------------------------------------"<<std::endl;
 			// #endif
 
-		// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
-		for(size_t objId : inputCoordMd.ids())
+
+		if (coordinatesInSlice.size() != 0)
 		{
-			// Iterate though every coordinate in the tilt-image and calculate the minimum distance
-			for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+			// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
+			for(size_t objId : inputCoordMd.ids())
 			{
-				minDistance = MAXDOUBLE;
-
-				inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
-				inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
-				inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
-
-				XX(goldBead3d) = (double) goldBeadX;
-				YY(goldBead3d) = (double) goldBeadY;
-				ZZ(goldBead3d) = (double) goldBeadZ;
-
-				projectedGoldBead = projectionMatrix * goldBead3d;
-
-				distance = abs(XX(projectedGoldBead) - coordinatesInSlice[i].x) + abs(YY(projectedGoldBead) - coordinatesInSlice[i].y);
-
-				if(minDistance > distance)
+				// Iterate though every coordinate in the tilt-image and calculate the minimum distance
+				for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 				{
-					minDistance = distance;
-					minIndex = i;
-				}
-			}
-			
-			Point3D<double> cis(coordinatesInSlice[minIndex].x, coordinatesInSlice[minIndex].y, n);
-			Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
-			Point2D<double> res(coordinatesInSlice[minIndex].x - XX(projectedGoldBead), coordinatesInSlice[minIndex].y - YY(projectedGoldBead)); 
-			
-			CM cm {cis, c3d, res};
-			// cm.detectedCoordinate = coordinatesInSlice[i];
-			// cm.coordinate3d = c3d;
-			// cm.residuals = res;
+					minDistance = MAXDOUBLE;
 
-			vCM.push_back(cm);			
+					inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+					inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+					inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
+
+					XX(goldBead3d) = (double) goldBeadX;
+					YY(goldBead3d) = (double) goldBeadY;
+					ZZ(goldBead3d) = (double) goldBeadZ;
+
+					projectedGoldBead = projectionMatrix * goldBead3d;
+
+					distance = (XX(projectedGoldBead) - coordinatesInSlice[i].x)*(XX(projectedGoldBead) - coordinatesInSlice[i].x) + (YY(projectedGoldBead) - coordinatesInSlice[i].y)*(YY(projectedGoldBead) - coordinatesInSlice[i].y);
+
+					if(distance < minDistance)
+					{
+						std::cout << "------------------------------------------------------------------------------------" << std::endl;
+						std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+						std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+						
+						std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+						std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+						std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+
+						std::cout << "coordinatesInSlice[i].x " << coordinatesInSlice[i].x << std::endl;
+						std::cout << "coordinatesInSlice[i].y " << coordinatesInSlice[i].y << std::endl;
+
+						std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
+						std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
+
+						std::cout << "distance " << distance << std::endl;
+
+						minDistance = distance;
+						minIndex = i;
+					}
+				}
+				
+				Point3D<double> cis(coordinatesInSlice[minIndex].x, coordinatesInSlice[minIndex].y, n);
+				Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
+				Point2D<double> res(coordinatesInSlice[minIndex].x - XX(projectedGoldBead), coordinatesInSlice[minIndex].y - YY(projectedGoldBead)); 
+
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+				
+				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+				std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+
+				std::cout << "coordinatesInSlice[minIndex].x " << coordinatesInSlice[minIndex].x << std::endl;
+				std::cout << "coordinatesInSlice[minIndex].y " << coordinatesInSlice[minIndex].y << std::endl;
+
+				std::cout << "coordinatesInSlice[minIndex].x - XX(projectedGoldBead) " << coordinatesInSlice[minIndex].x - XX(projectedGoldBead) << std::endl;
+				std::cout << "coordinatesInSlice[minIndex].y - YY(projectedGoldBead) " << coordinatesInSlice[minIndex].y - YY(projectedGoldBead) << std::endl;
+
+				std::cout << "minDistance " << minDistance << std::endl;
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+
+				CM cm {cis, c3d, res};
+				// cm.detectedCoordinate = coordinatesInSlice[i];
+				// cm.coordinate3d = c3d;
+				// cm.residuals = res;
+
+				vCM.push_back(cm);
+			}
+		}else
+		{
+			std::cout << "WARNING: No coorinate peaked in slice " << n << ". IMPOSIBLE TO STUDY MISALIGNMENT IN THIS SLICE." << std::endl;
 		}
 	}
 
@@ -1302,17 +1343,18 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 	MetaDataVec md;
 	size_t id;
 
+	//*** TODO Use double values to save coordinates
 	for(size_t i = 0; i < vCM.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, vCM[i].detectedCoordinate.x, id);
-		md.setValue(MDL_YCOOR, vCM[i].detectedCoordinate.y, id);
-		md.setValue(MDL_ZCOOR, vCM[i].detectedCoordinate.z, id);
-		md.setValue(MDL_XCOOR, vCM[i].coordinate3d.x, id);
-		md.setValue(MDL_YCOOR, vCM[i].coordinate3d.y, id);
-		md.setValue(MDL_ZCOOR, vCM[i].coordinate3d.z, id);
-		md.setValue(MDL_X, vCM[i].residuals.x, id);
-		md.setValue(MDL_Y, vCM[i].residuals.y, id);
+		md.setValue(MDL_X, vCM[i].detectedCoordinate.x, id);
+		md.setValue(MDL_Y, vCM[i].detectedCoordinate.y, id);
+		md.setValue(MDL_Z, vCM[i].detectedCoordinate.z, id);
+		md.setValue(MDL_XCOOR, (int)vCM[i].coordinate3d.x, id);
+		md.setValue(MDL_YCOOR, (int)vCM[i].coordinate3d.y, id);
+		md.setValue(MDL_ZCOOR, (int)vCM[i].coordinate3d.z, id);
+		md.setValue(MDL_SHIFT_X, vCM[i].residuals.x, id);
+		md.setValue(MDL_SHIFT_Y, vCM[i].residuals.y, id);
 
 	}
 
@@ -1409,7 +1451,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
         imgTS.read(fnTSimg);
 
-        bandPassFilter(ptrImg);
+        // bandPassFilter(ptrImg);
 
         for (size_t i = 0; i < Ydim; ++i)
         {
@@ -1467,6 +1509,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	MetaDataVec inputCoordMd;
+	std::cout << "Reading input 3D coordinates" << std::endl;
 	inputCoordMd.read(fnInputCoord);
 	calculateResidualVectors(inputCoordMd);
 	
