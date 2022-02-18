@@ -33,7 +33,7 @@ XMIPP_CONDA_ENVS = {
     "channels": ["anaconda", "conda-forge"],
     "pipPackages": [],
     "defaultInstallOptions": {},
-    "xmippEnviron": False
+    "xmippEnviron": True
 }
 
 
