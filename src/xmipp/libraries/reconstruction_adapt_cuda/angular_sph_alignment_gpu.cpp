@@ -36,7 +36,7 @@
 // TODO: Refactor this code to reuse the CPU version when possible
 
 // Empty constructor =======================================================
-ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
+ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu() : Rerunable("")
 {
 	resume = false;
     produces_a_metadata = true;
@@ -53,6 +53,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 	fnVolR = getParam("--ref");
 	fnMaskR = getParam("--mask");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir+"/sphDone.xmd");
     maxShift = getDoubleParam("--max_shift");
     maxAngularChange = getDoubleParam("--max_angular_change");
     maxResol = getDoubleParam("--max_resolution");
@@ -72,7 +73,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 }
 
 // Show ====================================================================
-void ProgAngularSphAlignmentGpu::show()
+void ProgAngularSphAlignmentGpu::show() const
 {
     if (!verbose)
         return;
@@ -131,36 +132,6 @@ void ProgAngularSphAlignmentGpu::defineParams()
 }
 
 // Produce side information ================================================
-void ProgAngularSphAlignmentGpu::createWorkFiles() {
-	auto gpu = GPU(device);
-	gpu.set();
-	// ? Could it be MetaDataVec (not MetaDataDb), dynamic_cast and no casting when equal pointer?
-	auto *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
-	MetaDataDb mdTodo, mdDone;
-	mdTodo =*pmdIn;
-	FileName fn(fnOutDir+"/sphDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-		mdTodo.write(fnOutDir + "/sphTodo.xmd");
-		mdTodo.read(fnOutDir + "/sphTodo.xmd");
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_FLIP);
-		mdDone.addLabel(MDL_SPH_DEFORMATION);
-		mdDone.addLabel(MDL_SPH_COEFFICIENTS);
-		mdDone.addLabel(MDL_COST);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
 
 void ProgAngularSphAlignmentGpu::preProcess()
 {
@@ -239,7 +210,7 @@ void ProgAngularSphAlignmentGpu::preProcess()
 
 void ProgAngularSphAlignmentGpu::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/sphDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // #define DEBUG
@@ -516,7 +487,7 @@ void ProgAngularSphAlignmentGpu::writeImageParameters(const FileName &fnImg) {
 	}
 	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
 	md.setValue(MDL_COST,        correlation, objId);
-	md.append(fnOutDir+"/sphDone.xmd");
+	md.append(Rerunable::getFileName());
 }
 
 void ProgAngularSphAlignmentGpu::numCoefficients(int l1, int l2, int &vecSize)

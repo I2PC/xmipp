@@ -199,7 +199,7 @@ void quaternionCommonLines(const DMatrix &quaternions, CommonLineInfo &clInfo);
 void commonlineMatrixCheat(const DMatrix &quaternions, size_t nRays,
                            DMatrix &clMatrix, DMatrix &clCorr);
 
-void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int i, int j, DMatrix &U);
+void anglesRotationMatrix(size_t nRays, int i, int j, DMatrix &U);
 
 #define SMALL_TRIANGLE -101
 /** Negative output means error
@@ -207,9 +207,9 @@ void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int i, int j, D
  */
 int tripletRotationMatrix(const DMatrix &clMatrix, size_t nRays, int k1, int k2, int k3, DMatrix &R);
 
-void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, DMatrix * pQuaternions=nullptr);
+void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix);
 
-void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions = nullptr);
+void rotationsFromSyncMatrix(const DMatrix &sMatrix);
 
 
 
