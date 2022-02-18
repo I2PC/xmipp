@@ -195,7 +195,6 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 {
     Projection P;
     FileName fn_proj;
-    double rot,tilt,psi;
     int mySize;
     int numberStepsPsi = 1;
 
@@ -228,11 +227,11 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
             if (verbose)
                 progress_bar(i-my_init);
 
-            Matrix1D<double> &nrspa = mysampling.no_redundant_sampling_points_angles[i];
+            auto &nrspa = mysampling.no_redundant_sampling_points_angles[i];
 
-            psi  = psi_sampling*mypsi_idx+ZZ(nrspa);
-            tilt = YY(nrspa);
-            rot  = XX(nrspa);
+            double psi  = psi_sampling*mypsi_idx+ZZ(nrspa);
+            double tilt = YY(nrspa);
+            double rot  = XX(nrspa);
 
 //            if (shears)
 //                projectVolume(*VShears, P, Ydim, Xdim, rot,tilt,psi);
