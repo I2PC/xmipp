@@ -145,6 +145,8 @@ public:
     double blob_r;
 
 public:
+    enum class Direction { ROTATE, UNROTATE };
+    
     /// Empty constructor
 	ProgForwardZernikeImages();
 
@@ -188,6 +190,7 @@ public:
 
     double transformImageSph(double *pclnm);
 
+    template<Direction DIRECTION>
     void rotateCoefficients();
 
     //AJ new

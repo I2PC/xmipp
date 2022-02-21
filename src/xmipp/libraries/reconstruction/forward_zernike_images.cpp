@@ -225,13 +225,21 @@ void ProgForwardZernikeImages::preProcess()
 
 	// Total Volume Mass (Inside Mask)
 	sumV = 0.0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_mask) {
-		if (DIRECT_MULTIDIM_ELEM(V_mask,n) == 1) {
-			sumV += DIRECT_MULTIDIM_ELEM(V(),n);
+	for (int k = STARTINGZ(V()); k <= FINISHINGZ(V()); k += loop_step)
+	{
+		for (int i = STARTINGY(V()); i <= FINISHINGY(V()); i += loop_step)
+		{
+			for (int j = STARTINGX(V()); j <= FINISHINGX(V()); j += loop_step)
+			{
+				if (A3D_ELEM(V_mask, k, i, j) == 1)
+				{
+					sumV += A3D_ELEM(V(), k, i, j);
+				}
+			}
 		}
 	}
 
-    // Construct mask
+	// Construct mask
     if (Rmax<0)
     	Rmax=Xdim/2;
     mask.R1 = Rmax;
@@ -713,8 +721,9 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 		for (int i=0; i<3*vecSize; i++)
 		{
 			clnm[i] = vectortemp[i];
-			p[i] = vectortemp[i];
 		}
+		rotateCoefficients<Direction::ROTATE>();
+		p = clnm;
 	}	
 	
 	// FIXME: Add defocus per image and make CTF correction available
@@ -731,7 +740,12 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 	else
 		hasCTF=false;
 
-	for (int h=1;h<=L2;h++)
+	// If deformation is not optimized, do a single iteration
+	int h = 1;
+	if (!optimizeDeformation)
+		h = L2;
+
+	for (;h<=L2;h++)
 	{
 		if (verbose>=2)
 		{
@@ -825,7 +839,7 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 
 	if (num_images == 1)
 	{
-		rotateCoefficients();
+		rotateCoefficients<Direction::UNROTATE>();
 	}
 
 	//AJ NEW
@@ -967,6 +981,7 @@ void ProgForwardZernikeImages::updateCTFImage(double defocusU, double defocusV, 
 	FilterCTF1.ctf.produceSideInfo();
 }
 
+template<ProgForwardZernikeImages::Direction DIRECTION>
 void ProgForwardZernikeImages::rotateCoefficients() {
 	int pos = 3*vecSize;
 	size_t idxY0=(VEC_XSIZE(clnm)-algn_params-ctf_params)/3;
@@ -979,7 +994,8 @@ void ProgForwardZernikeImages::rotateCoefficients() {
 	Matrix2D<double> R;
 	R.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
-    R = R.inv();
+	if (DIRECTION == Direction::UNROTATE)
+    	R = R.inv();
 	Matrix1D<double> c;
 	c.initZeros(3);
 	for (size_t idx=0; idx<idxY0; idx++) {
@@ -1129,7 +1145,8 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 					// 	A2D_ELEM(mP,y1,x1) += VEC_ELEM(w,7) * voxel_mV;
 					// 	A3D_ELEM(Vdeformed(),z1,y1,x1) += VEC_ELEM(w,7) * voxel_mV;
 					// }
-					sumVd += voxel_mV;
+					if (!mV.outside(pos[2], pos[1], pos[0]))
+						sumVd += voxel_mV;
 					modg += gx*gx+gy*gy+gz*gz;
 					Ncount++;
 				}
