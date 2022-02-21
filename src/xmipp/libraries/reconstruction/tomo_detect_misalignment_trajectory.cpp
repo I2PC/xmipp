@@ -1054,7 +1054,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec inputCoordMd)
+void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec &inputCoordMd)
 {
 	// ***TODO: homogeneizar PointXD y MatrixXD
 	#ifdef VERBOSE_OUTPUT
@@ -1075,10 +1075,10 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 
 	std::vector<Point2D<double>> coordinatesInSlice;
 
-	Matrix2D<double> A_alignment;
-	Matrix1D<double> T_alignment;
-	Matrix2D<double> invW_alignment;
-	Matrix2D<double> alignment_matrix;
+	// Matrix2D<double> A_alignment;
+	// Matrix1D<double> T_alignment;
+	// Matrix2D<double> invW_alignment;
+	// Matrix2D<double> alignment_matrix;
 
 
 	goldBead3d.initZeros(3);
@@ -1095,7 +1095,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 
 		coordinatesInSlice = getCoordinatesInSlice(n);
 
-		Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
+		projectionMatrix = getProjectionMatrix(tiltAngle);
 
 		#ifdef DEBUG_RESID
 		std::cout << "Projection matrix------------------------------------"<<std::endl;
@@ -1154,28 +1154,56 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 			// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
 			for(size_t objId : inputCoordMd.ids())
 			{
+				minDistance = MAXDOUBLE;
+
+				inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+				inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+				inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
+
+				std::cout << "=================================================================================" << std::endl;
+				std::cout << "goldBeadX " << goldBeadX << std::endl;
+				std::cout << "goldBeadY " << goldBeadY << std::endl;
+				std::cout << "goldBeadZ " << goldBeadZ << std::endl;
+
+				//*** TODO coordenadas con z negativo!!!!
+				
+				// Update coordinates wiht origin as the center of the tomogram (needed for rotation matrix multiplicaiton)
+				XX(goldBead3d) = (double) (goldBeadX - (double)xSize/2);
+				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conersion is needed
+				ZZ(goldBead3d) = (double) (goldBeadZ - 150);
+
+				projectedGoldBead = projectionMatrix * goldBead3d;
+
+				XX(projectedGoldBead) += (double)xSize/2;
+				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
+				ZZ(projectedGoldBead) += 150;
+
+				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+				std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+
+				std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
+				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
+				
+				std::cout << "=================================================================================" << std::endl;
+
+
 				// Iterate though every coordinate in the tilt-image and calculate the minimum distance
 				for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 				{
-					minDistance = MAXDOUBLE;
-
-					inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
-					inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
-					inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
-
-					XX(goldBead3d) = (double) goldBeadX;
-					YY(goldBead3d) = (double) goldBeadY;
-					ZZ(goldBead3d) = (double) goldBeadZ;
-
-					projectedGoldBead = projectionMatrix * goldBead3d;
-
 					distance = (XX(projectedGoldBead) - coordinatesInSlice[i].x)*(XX(projectedGoldBead) - coordinatesInSlice[i].x) + (YY(projectedGoldBead) - coordinatesInSlice[i].y)*(YY(projectedGoldBead) - coordinatesInSlice[i].y);
 
 					if(distance < minDistance)
 					{
 						std::cout << "------------------------------------------------------------------------------------" << std::endl;
+						std::cout << "i " << i << std::endl;
+						
+						std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
 						std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
 						std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+						std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
 						
 						std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
 						std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
@@ -1187,7 +1215,9 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 						std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
 						std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
 
+						std::cout << "minDistance " << minDistance << std::endl;
 						std::cout << "distance " << distance << std::endl;
+						std::cout << "------------------------------------------------------------------------------------" << std::endl;
 
 						minDistance = distance;
 						minIndex = i;
@@ -1201,6 +1231,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
 				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
 				
 				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
 				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
@@ -1594,6 +1625,9 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	std::cout << "maxDistace " << maxDistace << std::endl;
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
+
+	// Only for phantom ** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	return true;
 
 	if(ocupation > 0.65)
 	{

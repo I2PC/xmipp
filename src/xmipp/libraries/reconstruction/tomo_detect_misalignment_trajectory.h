@@ -206,7 +206,7 @@ public:
      * @return
      *
     */
-    void calculateResidualVectors(MetaDataVec inputCoordMd);
+    void calculateResidualVectors(MetaDataVec &inputCoordMd);
 
 
     // --------------------------- I/O functions ----------------------------
