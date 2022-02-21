@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
         //std::cerr << "DEBUG_JM: sMatrix: " << sMatrix << std::endl;
 
-        rotationsFromSyncMatrix(sMatrix, &quaternions);
+        rotationsFromSyncMatrix(sMatrix);
     }
     catch (XmippError &xe)
     {

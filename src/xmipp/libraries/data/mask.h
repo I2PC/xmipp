@@ -123,7 +123,6 @@ void BlackmanMask(MultidimArray< double >& mask, int mode = INNER_MASK,
  */
 void SincBlackmanMask(MultidimArray< double >& mask,
                       double omega, double power_percentage,
-                      int mode = INNER_MASK,
                       double x0 = 0, double y0 = 0, double z0 = 0);
 
 /** Creates a circular mask for already sized masks
