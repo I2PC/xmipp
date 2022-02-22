@@ -186,7 +186,10 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-		// padding
+//		FilterCTF.generateMask(proj()); // no padding
+//		FilterCTF.applyMaskSpace(proj());
+
+//		padding
 		Image<double> padp;
 		int pad;
 		pad = int(XSIZE(V())/2);
@@ -198,7 +201,7 @@
 		mproj.window(mpad,STARTINGY(mproj)-pad, STARTINGX(mproj)-pad, FINISHINGY(mproj)+pad, FINISHINGX(mproj)+pad);
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
-		// crop
+//	    crop
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
@@ -240,10 +243,13 @@
 	transformer.FourierTransform(Pctf(),PFourier,false);
 	POCSFourierAmplitudeProj(IFourierMag, PFourier, lambda, radQuotient, (int)XSIZE(I()));
 	transformer.inverseFourierTransform();
+	Pctf.write(formatString("%s4_Pamp.mrc", fnProj.c_str()));
 	POCSMinMaxProj(Pctf(), Imin, Imax);
+	Pctf.write(formatString("%s5_Pminmax.mrc", fnProj.c_str()));
 	transformer.FourierTransform();
 	POCSFourierPhaseProj(PFourierPhase, PFourier);
 	transformer.inverseFourierTransform();
+	Pctf.write(formatString("%s6_Pphase.mrc", fnProj.c_str()));
  }
 
  Image<double> ProgSubtractProjection::thresholdMask(Image<double> &m){
@@ -255,8 +261,13 @@
 	FilterG2.applyMaskSpace(m());
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
 		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>0.5)) ? 1:0;
-	for (int n=0; n<10; ++n) {
+	for (int n=0; n<5; ++n) {
+		dilate2D(m(), m(), 4, 0, 16);
+		m.write(formatString("%s71_dilate.mrc", fnProj.c_str()));
 		closing2D(m(), m(), 4, 0, 16);
+		m.write(formatString("%s72_close.mrc", fnProj.c_str()));
+		erode2D(m(), m(), 4, 0, 16);
+		m.write(formatString("%s73_erode.mrc", fnProj.c_str()));
 	}
  	return m;
  }
@@ -342,15 +353,20 @@
 //    	P.write(formatString("%s20_initalProjectionFOURIER.mrc", fnProj.c_str()));
 
     	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+		P.write(formatString("%s0_P.mrc", fnProj.c_str()));
     	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
     	PmaskVolI = binarizeMask(PmaskVol);
 		FilterG.applyMaskSpace(PmaskVolI());
+    	PmaskVolI.write(formatString("%s1_Mask.mrc", fnProj.c_str()));
 
 		POCSmaskProj(PmaskVolI(), P());
 		POCSmaskProj(PmaskVolI(), I());
+		P.write(formatString("%s2_PMask.mrc", fnProj.c_str()));
+		I.write(formatString("%s2_IMask.mrc", fnProj.c_str()));
 
-//		row.getValueOrDefault(MDL_IMAGE, fnPart, "no_filename");
 		Pctf = applyCTF(row, P);
+		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
+
     	struct Radial radial;
     	radial.meanI = computeRadialAvg(I, radial.meanI);
     	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
@@ -368,6 +384,7 @@
 				Filter2.generateMask(Pctf());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(Pctf());
+				Pctf.write(formatString("%s7_Pfilt.mrc", fnProj.c_str()));
 			}
 		}
 		Image<double> IFiltered;
@@ -381,7 +398,15 @@
 		PmaskInv = invertMask(Pmaskctf);
     	FilterG.w1=sigma;
 		FilterG.applyMaskSpace(Pmaskctf());
+
+		Pctf.write(formatString("%s8_Pfinal.mrc", fnProj.c_str()));
+		I.write(formatString("%s8_I.mrc", fnProj.c_str()));
+		PmaskInv.write(formatString("%s9_maskInv.mrc", fnProj.c_str()));
+		Pmaskctf.write(formatString("%s9_mask.mrc", fnProj.c_str()));
+
 		I = subtraction(I, Pctf, PmaskInv, Pmaskctf, subtractAll);
+		I.write(formatString("%s91_Resultado.mrc", fnProj.c_str()));
+
 		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
