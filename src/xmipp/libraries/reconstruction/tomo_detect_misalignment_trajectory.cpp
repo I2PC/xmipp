@@ -1170,8 +1170,6 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 				std::cout << "goldBeadZ " << goldBeadZ << std::endl;
 				#endif
 
-				//*** TODO coordenadas con z negativo!!!!
-
 				// Update coordinates wiht origin as the center of the tomogram (needed for rotation matrix multiplicaiton)
 				XX(goldBead3d) = (double) (goldBeadX - (double)xSize/2);
 				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conersion is needed
@@ -1239,6 +1237,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 				Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
 				Point2D<double> res(coordinatesInSlice[minIndex].x - XX(projectedGoldBead), coordinatesInSlice[minIndex].y - YY(projectedGoldBead)); 
 
+				#ifdef DEBUG_RESID
 				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
 				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
@@ -1256,6 +1255,8 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 
 				std::cout << "minDistance " << minDistance << std::endl;
 				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				#endif
+
 
 				CM cm {cis, c3d, res};
 				vCM.push_back(cm);
@@ -1975,6 +1976,32 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 	}
 
 	return coordinatesInSlice;
+}
+
+
+std::vector<CM> ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(size_t coodIndex, MetaDataVec &inputCoordMd)
+{
+    std::vector<CM> vCMc;
+
+	int goldBeadX;
+	int goldBeadY;
+	int goldBeadZ;
+
+	inputCoordMd.getValue(MDL_XCOOR, goldBeadX, coodIndex);
+	inputCoordMd.getValue(MDL_YCOOR, goldBeadY, coodIndex);
+	inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, coodIndex);
+
+	for (size_t i = 0; i < vCM.size(); i++)
+	{
+		CM cm = vCM[i];
+
+		if (cm.coordinate3d.x==goldBeadX && cm.coordinate3d.y==goldBeadY && cm.coordinate3d.z==goldBeadZ)
+		{
+			vCMc.push_back(cm);
+		}
+	}
+
+	return vCMc;
 }
 
 
