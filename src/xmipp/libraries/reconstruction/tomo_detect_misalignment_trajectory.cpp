@@ -57,7 +57,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  --inputCoord <output=\"\">								: Input coordinates of the 3D landmarks to calculate the residual vectors.");
+	addParamsLine("  --inputCoord <output=\"\">								: Input coordinates of the 3D landmarks. Origin at top left coordinate (X and Y always positive) and centered at the middle of the volume (Z positive and negative).");
 
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
@@ -1175,7 +1175,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 				// Update coordinates wiht origin as the center of the tomogram (needed for rotation matrix multiplicaiton)
 				XX(goldBead3d) = (double) (goldBeadX - (double)xSize/2);
 				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conersion is needed
-				ZZ(goldBead3d) = (double) (goldBeadZ - 150);
+				ZZ(goldBead3d) = (double) (goldBeadZ);
 
 				projectedGoldBead = projectionMatrix * goldBead3d;
 
@@ -1232,8 +1232,8 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 					}
 				}
 
+				// Back to Xmipp origin (top-left corner)
  				XX(goldBead3d) = (double) goldBeadX;
-
 				
 				Point3D<double> cis(coordinatesInSlice[minIndex].x, coordinatesInSlice[minIndex].y, n);
 				Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
