@@ -49,7 +49,7 @@
 
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
-#define DEBUG_HCC
+// #define DEBUG_HCC
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
 // #define DEBUG_CHAINS
@@ -272,7 +272,7 @@ public:
      * @return
      *
     */
-    void adjustCoordinatesCosineStreching();
+    void adjustCoordinatesCosineStreching(MetaDataVec &inputCoordMd);
 
 
     /**
@@ -332,6 +332,16 @@ public:
      *
     */
     float calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX);
+
+    /**
+     * Description ***
+     *
+     * @param 
+     * @return
+     *
+    */
+    auto getCMFromCoordinate(int x, int y, int z);
+
 
 
 

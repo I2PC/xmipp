@@ -1555,7 +1555,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	writeOutputVCM();
 
 	// bool tmp = detectGlobalMisalignment();
-	adjustCoordinatesCosineStreching();
+	adjustCoordinatesCosineStreching(inputCoordMd);
 
 	detectLandmarkChains();
 	if(globalAlignment){
@@ -1777,7 +1777,46 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 // 	return splittedCoodinates;	
 // }
 
-void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching()
+
+auto ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z)
+{
+    std::vector<CM> vCMc;
+
+	std::cout << "x " <<x <<std::endl;
+	std::cout << "y " <<y <<std::endl;
+	std::cout << "z " <<z <<std::endl;
+
+	for (size_t i = 0; i < vCM.size(); i++)
+	{
+		CM cm = vCM[i];
+
+		std::cout << "cm.coordinate3d.x " <<cm.coordinate3d.x <<std::endl;
+		std::cout << "cm.coordinate3d.y " <<cm.coordinate3d.y <<std::endl;
+		std::cout << "cm.coordinate3d.z " <<cm.coordinate3d.z <<std::endl;
+
+		
+		bool q =cm.coordinate3d.x==x;
+		bool w =cm.coordinate3d.y==y;
+		bool e =cm.coordinate3d.z==z;
+
+		std::cout << "cm.coordinate3d.x==x " <<q<<std::endl;
+		std::cout << "cm.coordinate3d.y==y " <<w<<std::endl;
+		std::cout << "cm.coordinate3d.z==z " <<e<<std::endl;
+
+		if (cm.coordinate3d.x==x && cm.coordinate3d.y==y && cm.coordinate3d.z==z)
+		{
+			std::cout << "ADDED!!!!!!" <<i<<std::endl;
+
+
+			vCMc.push_back(cm);
+		}
+	}
+	std::cout << " vCMc.size()" << vCMc.size() << std::endl;
+
+	return vCMc;
+}
+
+void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(MetaDataVec &inputCoordMd)
 {
 
 	MultidimArray<int> csProyectedCoordinates;
@@ -1787,53 +1826,71 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching()
 	Point3D<double> c3d;
 	int xTA = (int)(xSize/2);
 
-	for (size_t i = 0; i < vCM.size(); i++)
+	int goldBeadX;
+	int goldBeadY;
+	int goldBeadZ;
+
+    std::vector<CM> vCMc;
+
+	for(size_t objId : inputCoordMd.ids())
 	{
-		CM cm = vCM[i];
-		double tiltAngle = tiltAngles[(int)cm.detectedCoordinate.z]* PI/180.0;
 
-		// int csX = (int)((c.x-xTA)*cos(-tiltAngles[(int)c.z]* PI/180.0)+(c.x-xTA)*tan(-tiltAngles[(int)c.z]* PI/180.0)*sin(-tiltAngles[(int)c.z]* PI/180.0)+xTA);
-		// std::cout << "csX=" << csX << std::endl;
+		inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
-		std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
+		vCMc = getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ);
 
-		std::cout << "xTA=" << xTA << std::endl;
-		
-		std::cout << "cm.detectedCoordinate.x=" << cm.detectedCoordinate.x << std::endl;
-		std::cout << "cm.detectedCoordinate.y=" << cm.detectedCoordinate.y << std::endl;
-		std::cout << "cm.detectedCoordinate.z=" << cm.detectedCoordinate.z << std::endl; 
+		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 
-		std::cout << "cm.coordinate3d.x=" << cm.coordinate3d.x << std::endl;
-		std::cout << "cm.coordinate3d.y=" << cm.coordinate3d.y << std::endl;
-		std::cout << "cm.coordinate3d.z=" << cm.coordinate3d.z << std::endl; 
-		
-		std::cout << "(int)cm.detectedCoordinate.x=" << (int)cm.detectedCoordinate.x << std::endl;
-		std::cout << "(int)cm.detectedCoordinate.y=" << (int)cm.detectedCoordinate.y << std::endl;
-		std::cout << "(int)cm.detectedCoordinate.z=" << (int)cm.detectedCoordinate.z << std::endl;
+		for (size_t i = 0; i < vCMc.size(); i++)
+		{
+			CM cm = vCMc[i];
+			double tiltAngle = tiltAngles[(int)cm.detectedCoordinate.z]* PI/180.0;
 
-		std::cout << "(int)cm.coordinate3d.x=" << (int)cm.coordinate3d.x << std::endl;
-		std::cout << "(int)cm.coordinate3d.y=" << (int)cm.coordinate3d.y << std::endl;
-		std::cout << "(int)cm.coordinate3d.z=" << (int)cm.coordinate3d.z << std::endl; 
+			// int csX = (int)((c.x-xTA)*cos(-tiltAngles[(int)c.z]* PI/180.0)+(c.x-xTA)*tan(-tiltAngles[(int)c.z]* PI/180.0)*sin(-tiltAngles[(int)c.z]* PI/180.0)+xTA);
+			// std::cout << "csX=" << csX << std::endl;
 
-		std::cout << "tiltAngle=" << tiltAngle << std::endl;
-		std::cout << "cos(tiltAngle)=" << cos(tiltAngle) << std::endl;
-		std::cout << "sin(tiltAngle)=" << sin(tiltAngle) << std::endl;
+			std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
 
-		// std::cout << "(int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA))" << (int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA)) << std::endl;
+			std::cout << "xTA=" << xTA << std::endl;
+			
+			std::cout << "cm.detectedCoordinate.x=" << cm.detectedCoordinate.x << std::endl;
+			std::cout << "cm.detectedCoordinate.y=" << cm.detectedCoordinate.y << std::endl;
+			std::cout << "cm.detectedCoordinate.z=" << cm.detectedCoordinate.z << std::endl; 
 
-		std::cout << "Xo=" << (int) (((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle))/cos(tiltAngle))+xTA) << std::endl;
+			std::cout << "cm.coordinate3d.x=" << cm.coordinate3d.x << std::endl;
+			std::cout << "cm.coordinate3d.y=" << cm.coordinate3d.y << std::endl;
+			std::cout << "cm.coordinate3d.z=" << cm.coordinate3d.z << std::endl; 
+			
+			std::cout << "(int)cm.detectedCoordinate.x=" << (int)cm.detectedCoordinate.x << std::endl;
+			std::cout << "(int)cm.detectedCoordinate.y=" << (int)cm.detectedCoordinate.y << std::endl;
+			std::cout << "(int)cm.detectedCoordinate.z=" << (int)cm.detectedCoordinate.z << std::endl;
+
+			std::cout << "(int)cm.coordinate3d.x=" << (int)cm.coordinate3d.x << std::endl;
+			std::cout << "(int)cm.coordinate3d.y=" << (int)cm.coordinate3d.y << std::endl;
+			std::cout << "(int)cm.coordinate3d.z=" << (int)cm.coordinate3d.z << std::endl; 
+
+			std::cout << "tiltAngle=" << tiltAngle << std::endl;
+			std::cout << "cos(tiltAngle)=" << cos(tiltAngle) << std::endl;
+			std::cout << "sin(tiltAngle)=" << sin(tiltAngle) << std::endl;
+
+			// std::cout << "(int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA))" << (int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA)) << std::endl;
+
+			std::cout << "Xo=" << (int) (((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle))/cos(tiltAngle))+xTA) << std::endl;
 
 
-		// Apply cosine streching
-		// DIRECT_A2D_ELEM(csProyectedCoordinates, 
-		// 			    (int)cm.detectedCoordinate.y,
-		// 				(int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA))) = 1;
+			// Apply cosine streching
+			// DIRECT_A2D_ELEM(csProyectedCoordinates, 
+			// 			    (int)cm.detectedCoordinate.y,
+			// 				(int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA))) = 1;
 
-		DIRECT_A2D_ELEM(csProyectedCoordinates, 
-				(int)cm.detectedCoordinate.y,
-				(int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = 1;
-		
-		// DIRECT_A2D_ELEM(csProyectedCoordinates, (int)c.y, csX) += 1;
+			DIRECT_A2D_ELEM(csProyectedCoordinates, 
+					        (int)cm.detectedCoordinate.y,
+					        (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = objId;
+			
+			// DIRECT_A2D_ELEM(csProyectedCoordinates, (int)c.y, csX) += 1;
+		}
 	}
 
 	size_t li = fnOut.find_last_of("\\/");
@@ -1978,31 +2035,7 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 	return coordinatesInSlice;
 }
 
-
-std::vector<CM> ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(size_t coodIndex, MetaDataVec &inputCoordMd)
-{
-    std::vector<CM> vCMc;
-
-	int goldBeadX;
-	int goldBeadY;
-	int goldBeadZ;
-
-	inputCoordMd.getValue(MDL_XCOOR, goldBeadX, coodIndex);
-	inputCoordMd.getValue(MDL_YCOOR, goldBeadY, coodIndex);
-	inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, coodIndex);
-
-	for (size_t i = 0; i < vCM.size(); i++)
-	{
-		CM cm = vCM[i];
-
-		if (cm.coordinate3d.x==goldBeadX && cm.coordinate3d.y==goldBeadY && cm.coordinate3d.z==goldBeadZ)
-		{
-			vCMc.push_back(cm);
-		}
-	}
-
-	return vCMc;
-}
+// ++++++++++++++++++++++++++++++++++********************************************
 
 
 // std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_t size)
