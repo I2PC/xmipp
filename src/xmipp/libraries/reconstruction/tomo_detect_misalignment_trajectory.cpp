@@ -1553,7 +1553,6 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 
-
 		// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
 		std::vector<Point3D<double>> proyCoords;
 
@@ -1721,6 +1720,50 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 	
 	return (int)distance;
 }
+
+
+// --------------------------- RESIDUAL ANALYSIS CLASS ----------------------------
+bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(std::vector<Point3D<double>> proyCoords)
+{
+	double sumX = 0;
+	double sumY = 0;
+	double centroidX;
+	double centroidY;
+	double distance;
+	double maxDistance = 0;
+	double totalDistance = 0;
+
+	for (size_t i = 0; i < proyCoords.size(); i++)
+	{
+		sumX += proyCoords[i].x;
+		sumY += proyCoords[i].y;
+	}
+	
+	// Calculate centroid
+	centroidX = sumX/proyCoords.size();
+	centroidY = sumY/proyCoords.size();
+
+	for (size_t i = 0; i < proyCoords.size(); i++)
+	{
+		distance = sqrt((proyCoords[i].x-centroidX)*(proyCoords[i].x-centroidX)+(proyCoords[i].y-centroidY)*(proyCoords[i].y-centroidY));
+
+		// Total distance
+		totalDistance += distance;
+
+		// Maximum distance
+		if (distance > maxDistance)
+		{
+			maxDistance = distance;
+		}
+	}
+
+	// Convex Hull
+
+		//  Perimeter
+
+		// Area
+}
+
 
 
 // --------------------------- UNUSED functions ----------------------------
