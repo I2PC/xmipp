@@ -26,6 +26,7 @@
 #include "tomo_detect_misalignment_trajectory.h"
 #include <chrono>
 
+
 // --------------------------- INFO functions ----------------------------
 
 void ProgTomoDetectMisalignmentTrajectory::readParams()
@@ -48,7 +49,6 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	// }
 
  	fnInputCoord = getParam("--inputCoord");
-
 }
 
 
@@ -68,7 +68,6 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
   	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]				: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
-
 }
 
 
@@ -438,62 +437,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
 	#endif
 
-
-	// Generate pahntom volume
-	// std::vector<std::vector<int>> coords = {{768,1080,290}, {256, 576, 150}, {768, 576, 150}, {256, 1080, 150}, {256, 720, 150}, {768, 720, 150}, {512, 1080, 110}, {512, 576, 10}};
-	// MultidimArray<double> tmpMap;
-	// tmpMap.initZeros(300,1440,1024);
-	// tmpMap.initConstant(0);
-
-
-	// for (size_t i = 0; i < coords.size(); i++)
-	// {
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]+1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]-1) = 1;
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]) = 1;
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]+1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]+1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]+1) = 1;
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]-1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]-1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]-1) = 1;
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]) = 1;
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]+1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]+1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]+1) = 1;
-
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]-1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]-1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]-1) = 1;
-
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]) = 1;
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]+1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]+1) = 1;
-
-
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]-1) = 1;
-	// 	DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]-1) = 1;	
-	// 	}
-
-	// Image<double> saveImage3;
-	// saveImage3() = tmpMap;
-	// saveImage3.write(fnOut.substr(0, fnOut.find_last_of("\\/")) + "/test_map.mrc");
-
-
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
@@ -509,47 +452,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	std::cout << "High contrast coordinates picked succesfully!" << std::endl;
 	#endif
 }
-
-
-// void ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
-// {
-
-// 	// *** MAKE GLOBAL THRESHOLD FOR MINIMUM ANGLE------------------------------------------------------- esto puede que necesite ir en ang y pasar a px
-// 	float thrChainDeviation = 5;
-
-// 	// Struct to sort 3D coordinates (point3D class) by its x component
-// 	struct SortByX
-// 	{
-// 		bool operator() const (Point3D const & L, Point3D const & R) { return L.x < R.x; }
-// 	};
-
-//     std::vector<Point3D<double>> sortXcoordinates3D = coordinates3D;
-// 	std::sort(sortXcoordinates3D.begin(), sortXcoordinates3D.end(),b   SortByX());
-
-// 	// Vector 
-// 	std::vector<size_t> coordinatesIndexID (sortXcoordinates3D, 0);
-// 	size_t indexID = 1;
-
-// 	for (size_t i = 0; i < sortXcoordinates3D.size(); i++)
-// 	{
-// 		Point3D referenceCoord3D = sortXcoordinates3D[i];
-
-// 		for (size_t j = 0; j < sortXcoordinates3D.size(); j++)
-// 		{
-// 			Point3D coord3D = sortXcoordinates3D[j];
-
-// 			if (coordinatesIndexID[i] == 0)
-// 			{
-// 				float deviation = abs(coord3D.y - referenceCoord3D.y);
-
-// 				if (deviation < thrChainDeviation)
-// 				{
-// 					chain.push_back(coord3D);		
-// 				}
-// 			}
-// 		}
-// 	}
-// }
 
 
 void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
@@ -610,7 +512,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	// {
 	// 	std::cout <<  histogramOfLandmarkAppearanceSorted[p] <<std::endl;
 	// }
-
 
 	float absolutePossionPercetile = histogramOfLandmarkAppearanceSorted.size()*poissonLandmarkPercentile;
 	std::cout << absolutePossionPercetile <<std::endl;
@@ -1323,6 +1224,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 	#endif
 }
 
+
 void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 {
 	size_t lastindex = fnOut.find_last_of("\\/");
@@ -1350,32 +1252,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 
 }
 
-// void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
-// {
-// 	MetaDataVec md;
-// 	size_t id;
-
-// 	for(size_t i = 0; i < residualX.size(); i++)
-// 	{
-// 		id = md.addObject();
-// 		md.setValue(MDL_X, residualX[i], id);
-// 		md.setValue(MDL_Y, residualY[i], id);
-// 		md.setValue(MDL_XCOOR, residualCoordinateX[i], id);
-// 		md.setValue(MDL_YCOOR, residualCoordinateY[i], id);
-// 		md.setValue(MDL_ZCOOR, residualCoordinateZ[i], id);
-// 	}
-
-// 	size_t lastindex = fnOut.find_last_of("\\/");
-// 	std::string rawname = fnOut.substr(0, lastindex);
-// 	std::string fnOutResiduals;
-//     fnOutResiduals = rawname + "/residuals2d.xmd";
-
-// 	md.write(fnOutResiduals);
-	
-// 	#ifdef VERBOSE_OUTPUT
-// 	std::cout << "Residuals metadata saved at: " << fnOutResiduals << std::endl;
-// 	#endif
-// }
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 {
@@ -1408,6 +1284,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 	std::cout << "Vector coordinates model metadata saved at: " << fnVCM << std::endl;
 	#endif
 }
+
 
 // --------------------------- MAIN ----------------------------------
 
@@ -1582,7 +1459,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 // --------------------------- UTILS functions ----------------------------
 
-
 bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Only for phantom *** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1649,172 +1525,6 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	// return ocupation;
 }
 
-// bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
-// {
-// 	MultidimArray<double> tiltAxisIntersection;
-
-// 	// tiltAxisIntersection.initZeros(ySize, nSize);
-
-// 	tiltAxisIntersection.initZeros(ySize);
-
-// 	// Extract alignment information of e
-// 	for (size_t tiIndex = 0; tiIndex < nSize; tiIndex++)
-// 	{
-// 		std::vector<Point2D<double>> coordinatesInSlice;
-
-// 		coordinatesInSlice = getCoordinatesInSlice(tiIndex);
-
-// 		std::vector<std::vector<Point2D<double>>> splittedCoords = splitCoordinatesInHalfImage(coordinatesInSlice);
-
-// 		std::vector<Point2D<double>> leftSide = splittedCoords[0];
-// 		std::vector<Point2D<double>> rightSide = splittedCoords[1];
-
-
-// 		int smallArray = (leftSide.size()<rightSide.size()) ? leftSide.size() : rightSide.size();
-
-
-
-// 		// Calculate the intersection of the pair of coordinates with the tilt axis
-// 		for (size_t i = 0; i < smallArray; i++)
-// 		{
-
-// 			Point2D<double> p1 = leftSide[i];
-// 			Point2D<double> p2 = rightSide[i];
-
-// 			int intersectionIndex =  calculateTiltAxisIntersection(p1, p2);
-
-// 			tiltAxisIntersection[intersectionIndex] += 1;
-				
-// 		}
-
-
-// 		// // Calculate the intersection of the pair of coordinates with the tilt axis
-// 		// for (size_t i = 0; i < coordinatesInSlice.size(); i++)
-// 		// {
-// 		// 	for (size_t j = 0; j < coordinatesInSlice.size(); j++)
-// 		// 	{
-// 		// 		Point2D<double> p1 = coordinatesInSlice[i];
-// 		// 		Point2D<double> p2 = coordinatesInSlice[j];
-
-// 		// 		// Do not compare very close coordinates
-// 		// 		int distance2 = (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y);
-
-// 		// 		if(distance2 > (normDim*0.5)*(normDim*0.5))
-// 		// 		{
-// 		// 			int intersectionIndex =  calculateTiltAxisIntersection(p1, p2);
-// 		// 			if (intersectionIndex > 0 && intersectionIndex < ySize)
-// 		// 			{
-// 		// 				// tiltAxisIntersection[intersectionIndex, tiIndex] += 1;
-// 		// 				tiltAxisIntersection[intersectionIndex] += 1;
-// 		// 			}
-// 		// 		}
-// 		// 	}
-// 		// }
-// 	}
-
-// 	// for (size_t i = 0; i < nSize; i++)
-// 	// {
-// 	// std::cout << "line" << i <<"-->[" ;
-
-// 	// 	for (size_t j = 0; j < ySize; j++)
-// 	// 	{
-// 	// 		std::cout << tiltAxisIntersection[j,i] << " ";
-// 	// 	}
-	
-// 	// std::cout << "]" <<  std::endl;
-// 	// }
-
-
-
-// 	std::cout << "[" ;
-
-// 	for (size_t i = 0; i < ySize; i++)
-// 	{
-// 		std::cout << tiltAxisIntersection[i] << " ";
-// 	}
-
-// 	std::cout << "]" << std::endl;
-
-// 	return true;
-	
-// }
-
-// std::vector<std::vector<Point2D<double>>> ProgTomoDetectMisalignmentTrajectory::splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords)
-// {
-// 	std::vector<std::vector<Point2D<double>>> splittedCoodinates;
-
-// 	std::vector<Point2D<double>> leftSide;
-// 	std::vector<Point2D<double>> rightSide;
-
-
-
-// 	for (size_t i = 0; i < inCoords.size(); i++)
-// 	{
-// 		Point2D<double> coord = inCoords[i];
-
-// 		if(coord.x > xSize/2)
-// 		{
-// 			rightSide.push_back(coord);
-// 		}else
-// 		{
-// 			leftSide.push_back(coord);
-// 		}
-// 	}
-
-// 	// Struct to sort 3D coordinates (point3D class) by its x component
-// 	struct SortByY
-// 	{
-// 		bool operator() ( const Point2D<double>& L, const Point2D<double>& R) { return L.y < R.y; };
-// 	};
-
-// 	std::sort(leftSide.begin(), leftSide.end(), SortByY());
-
-// 	std::sort(rightSide.begin(), rightSide.end(), SortByY());
-
-// 	splittedCoodinates.push_back(leftSide);
-// 	splittedCoodinates.push_back(rightSide);
-
-// 	return splittedCoodinates;	
-// }
-
-
-auto ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z)
-{
-    std::vector<CM> vCMc;
-
-	std::cout << "x " <<x <<std::endl;
-	std::cout << "y " <<y <<std::endl;
-	std::cout << "z " <<z <<std::endl;
-
-	for (size_t i = 0; i < vCM.size(); i++)
-	{
-		CM cm = vCM[i];
-
-		std::cout << "cm.coordinate3d.x " <<cm.coordinate3d.x <<std::endl;
-		std::cout << "cm.coordinate3d.y " <<cm.coordinate3d.y <<std::endl;
-		std::cout << "cm.coordinate3d.z " <<cm.coordinate3d.z <<std::endl;
-
-		
-		bool q =cm.coordinate3d.x==x;
-		bool w =cm.coordinate3d.y==y;
-		bool e =cm.coordinate3d.z==z;
-
-		std::cout << "cm.coordinate3d.x==x " <<q<<std::endl;
-		std::cout << "cm.coordinate3d.y==y " <<w<<std::endl;
-		std::cout << "cm.coordinate3d.z==z " <<e<<std::endl;
-
-		if (cm.coordinate3d.x==x && cm.coordinate3d.y==y && cm.coordinate3d.z==z)
-		{
-			std::cout << "ADDED!!!!!!" <<i<<std::endl;
-
-
-			vCMc.push_back(cm);
-		}
-	}
-	std::cout << " vCMc.size()" << vCMc.size() << std::endl;
-
-	return vCMc;
-}
 
 void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(MetaDataVec &inputCoordMd)
 {
@@ -1843,13 +1553,14 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 
+
+		// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
+		std::vector<Point3D<double>> proyCoords;
+
 		for (size_t i = 0; i < vCMc.size(); i++)
 		{
 			CM cm = vCMc[i];
 			double tiltAngle = tiltAngles[(int)cm.detectedCoordinate.z]* PI/180.0;
-
-			// int csX = (int)((c.x-xTA)*cos(-tiltAngles[(int)c.z]* PI/180.0)+(c.x-xTA)*tan(-tiltAngles[(int)c.z]* PI/180.0)*sin(-tiltAngles[(int)c.z]* PI/180.0)+xTA);
-			// std::cout << "csX=" << csX << std::endl;
 
 			std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
 
@@ -1875,24 +1586,22 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 			std::cout << "cos(tiltAngle)=" << cos(tiltAngle) << std::endl;
 			std::cout << "sin(tiltAngle)=" << sin(tiltAngle) << std::endl;
 
-			// std::cout << "(int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA))" << (int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA)) << std::endl;
-
 			std::cout << "Xo=" << (int) (((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle))/cos(tiltAngle))+xTA) << std::endl;
 
+			Point3D<double> proyCoord(((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA), 
+									  cm.detectedCoordinate.y,
+									  objId);
+			proyCoords.push_back(proyCoord);
 
-			// Apply cosine streching
-			// DIRECT_A2D_ELEM(csProyectedCoordinates, 
-			// 			    (int)cm.detectedCoordinate.y,
-			// 				(int) (((cm.detectedCoordinate.x-xTA)/cos(tiltAngle)-((cm.coordinate3d.z)*sin(tiltAngle))+xTA))) = 1;
-
+			#ifdef DEBUG_OUTPUT_FILES
 			DIRECT_A2D_ELEM(csProyectedCoordinates, 
 					        (int)cm.detectedCoordinate.y,
-					        (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = objId;
-			
-			// DIRECT_A2D_ELEM(csProyectedCoordinates, (int)c.y, csX) += 1;
+					        (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = objId;		
+			#endif
 		}
 	}
 
+	#ifdef DEBUG_OUTPUT_FILES
 	size_t li = fnOut.find_last_of("\\/");
 	std::string rn = fnOut.substr(0, li);
 	std::string ofn;
@@ -1901,98 +1610,7 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 	Image<int> si;
 	si() = csProyectedCoordinates;
 	si.write(ofn);
-}
-
-
-
-// int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2)
-// {
-// 	// Eccuation of a line given 2 points:
-// 	// y = [(x-x1)(y2-y1) / (x2-x1)] - y1
-// 	// x = [(y-y1)(x2-x1) / (y2-y1)] - x1
-
-// 	// We calculate the x coordinate at wich the line intersect the tilt axis, given by:
-// 	// y = ySize / 2
-
-
-// 	// We obtain the x coordinate of intersection by substitution:
-// 	// x = [(ySize/2-y1)(x2-x1) / (y2-y1)] - x1
-
-// 	std::cout << "p1=(" << p1.x << ", " << p1.y << ")" << std::endl;
-// 	std::cout << "p2=(" << p2.x << ", " << p2.y << ")" << std::endl;
-// 	std::cout << "xSize/2=" << xSize/2 << std::endl;
-// 	std::cout << "ySize/2=" << ySize/2 << std::endl;
-
-// 	// std::cout << (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x << std::endl;
-// 	std::cout << (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y << std::endl;
-
-
-// 	// return (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x;
-// 	return (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y;
-// }
-
-
-bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
-{
-	// float totalLM = coordinates3D.size();
-	float totalLM = 0;
-	float totalChainLM = 0;
-	float totalIndexes = chainIndexesY.size();
-	float top10LM = 0;
-
-	// We need to recalculate the number of total landmark considering those HCC counted more than once due to the sliding window effect
-	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
-	{
-		totalLM += counterLinesOfLandmarkAppearance[i];
-	}
-
-	for (size_t i = 0; i < totalIndexes; i++)
-	{
-		totalChainLM += counterLinesOfLandmarkAppearance[(int)chainIndexesY[i]];
-	}
-
-	sort(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), std::greater<int>());
-
-	for (size_t i = 0; i < 10; i++)
-	{
-		top10LM += counterLinesOfLandmarkAppearance[i];
-	}
-
-	// Thresholds calculation
-	float top10Chain = 100 * (top10LM / totalLM); 		// Compare to thrTop10Chain
-	float lmChain = 100 * (totalChainLM / (totalLM)); 	// Compare to thrLMChain
-
-	// Thresholds comparison
-	bool top10ChainBool = top10Chain < thrTop10Chain;
-	bool lmChainBool = lmChain < thrLMChain;
-
-	#ifdef DEBUG_GLOBAL_MISALI
-	std::cout << "Global misalignment detection parameters:" << std::endl;
-	std::cout << "Total number of landmarks: " << totalLM << std::endl;
-	std::cout << "Total number of landmarks belonging to the selected chains: " << totalChainLM << std::endl;
-	std::cout << "Total number of landmarks belonging to the top 10 most populated indexes: " << top10LM << std::endl;
-
-	std::cout << "Precentage of LM belonging to the top 10 populated chains respecto to the total number of LM: " << top10Chain << std::endl;
-	std::cout << "Percentage of number LM belonging to the selected chains respect to the number of populated lines and the total number of LM: " << lmChain << std::endl;
-
-	std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
-	std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
 	#endif
-
-	if(top10ChainBool || lmChainBool)
-	{
-		#ifdef VERBOSE_OUTPUT
-		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
-		std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
-		std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
-		#endif
-
-		return false;
-	}
-	else
-	{
-		return true;
-	}
 }
 
 
@@ -2035,34 +1653,25 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 	return coordinatesInSlice;
 }
 
-// ++++++++++++++++++++++++++++++++++********************************************
+
+auto ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z)
+{
+    std::vector<CM> vCMc;
+
+	for (size_t i = 0; i < vCM.size(); i++)
+	{
+		if (cm.coordinate3d.x==x && cm.coordinate3d.y==y && cm.coordinate3d.z==z)
+		{
+			std::cout << "ADDED!!!!!!" <<i<<std::endl;
 
 
-// std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_t size)
-// {
-// 	std::vector<size_t> indexes;
-// 	size_t randomIndex;
+			vCMc.push_back(cm);
+		}
+	}
+	std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 
-// 	randomIndex = rand() % size;
-
-// 	indexes.push_back(randomIndex);
-
-// 	while (indexes.size() != 3)
-// 	{
-// 		randomIndex = rand() % size;
-
-// 		for(size_t n = 0; n < indexes.size(); n++)
-// 		{
-// 			if(indexes[n] != randomIndex)
-// 			{
-// 				indexes.push_back(randomIndex);
-// 				break;
-// 			}
-// 		}
-// 	}
-	
-// 	return indexes;
-// }
+	return vCMc;
+}
 
 
 float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda, size_t k)
@@ -2113,3 +1722,366 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 	return (int)distance;
 }
 
+
+// --------------------------- UNUSED functions ----------------------------
+
+// std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_t size)
+// {
+// 	std::vector<size_t> indexes;
+// 	size_t randomIndex;
+
+// 	randomIndex = rand() % size;
+
+// 	indexes.push_back(randomIndex);
+
+// 	while (indexes.size() != 3)
+// 	{
+// 		randomIndex = rand() % size;
+
+// 		for(size_t n = 0; n < indexes.size(); n++)
+// 		{
+// 			if(indexes[n] != randomIndex)
+// 			{
+// 				indexes.push_back(randomIndex);
+// 				break;
+// 			}
+// 		}
+// 	}
+	
+// 	return indexes;
+// }
+
+
+// bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
+// {
+// 	// float totalLM = coordinates3D.size();
+// 	float totalLM = 0;
+// 	float totalChainLM = 0;
+// 	float totalIndexes = chainIndexesY.size();
+// 	float top10LM = 0;
+
+// 	// We need to recalculate the number of total landmark considering those HCC counted more than once due to the sliding window effect
+// 	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
+// 	{
+// 		totalLM += counterLinesOfLandmarkAppearance[i];
+// 	}
+
+// 	for (size_t i = 0; i < totalIndexes; i++)
+// 	{
+// 		totalChainLM += counterLinesOfLandmarkAppearance[(int)chainIndexesY[i]];
+// 	}
+
+// 	sort(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), std::greater<int>());
+
+// 	for (size_t i = 0; i < 10; i++)
+// 	{
+// 		top10LM += counterLinesOfLandmarkAppearance[i];
+// 	}
+
+// 	// Thresholds calculation
+// 	float top10Chain = 100 * (top10LM / totalLM); 		// Compare to thrTop10Chain
+// 	float lmChain = 100 * (totalChainLM / (totalLM)); 	// Compare to thrLMChain
+
+// 	// Thresholds comparison
+// 	bool top10ChainBool = top10Chain < thrTop10Chain;
+// 	bool lmChainBool = lmChain < thrLMChain;
+
+// 	#ifdef DEBUG_GLOBAL_MISALI
+// 	std::cout << "Global misalignment detection parameters:" << std::endl;
+// 	std::cout << "Total number of landmarks: " << totalLM << std::endl;
+// 	std::cout << "Total number of landmarks belonging to the selected chains: " << totalChainLM << std::endl;
+// 	std::cout << "Total number of landmarks belonging to the top 10 most populated indexes: " << top10LM << std::endl;
+
+// 	std::cout << "Precentage of LM belonging to the top 10 populated chains respecto to the total number of LM: " << top10Chain << std::endl;
+// 	std::cout << "Percentage of number LM belonging to the selected chains respect to the number of populated lines and the total number of LM: " << lmChain << std::endl;
+
+// 	std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
+// 	std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
+// 	#endif
+
+// 	if(top10ChainBool || lmChainBool)
+// 	{
+// 		#ifdef VERBOSE_OUTPUT
+// 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
+// 		std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
+// 		std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
+// 		#endif
+
+// 		return false;
+// 	}
+// 	else
+// 	{
+// 		return true;
+// 	}
+// }
+
+
+// int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2)
+// {
+// 	// Eccuation of a line given 2 points:
+// 	// y = [(x-x1)(y2-y1) / (x2-x1)] - y1
+// 	// x = [(y-y1)(x2-x1) / (y2-y1)] - x1
+
+// 	// We calculate the x coordinate at wich the line intersect the tilt axis, given by:
+// 	// y = ySize / 2
+
+// 	// We obtain the x coordinate of intersection by substitution:
+// 	// x = [(ySize/2-y1)(x2-x1) / (y2-y1)] - x1
+
+// 	std::cout << "p1=(" << p1.x << ", " << p1.y << ")" << std::endl;
+// 	std::cout << "p2=(" << p2.x << ", " << p2.y << ")" << std::endl;
+// 	std::cout << "xSize/2=" << xSize/2 << std::endl;
+// 	std::cout << "ySize/2=" << ySize/2 << std::endl;
+
+// 	// std::cout << (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x << std::endl;
+// 	std::cout << (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y << std::endl;
+
+// 	// return (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x;
+// 	return (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y;
+// }
+
+
+// bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
+// {
+// 	MultidimArray<double> tiltAxisIntersection;
+
+// 	// tiltAxisIntersection.initZeros(ySize, nSize);
+
+// 	tiltAxisIntersection.initZeros(ySize);
+
+// 	// Extract alignment information of e
+// 	for (size_t tiIndex = 0; tiIndex < nSize; tiIndex++)
+// 	{
+// 		std::vector<Point2D<double>> coordinatesInSlice;
+
+// 		coordinatesInSlice = getCoordinatesInSlice(tiIndex);
+
+// 		std::vector<std::vector<Point2D<double>>> splittedCoords = splitCoordinatesInHalfImage(coordinatesInSlice);
+
+// 		std::vector<Point2D<double>> leftSide = splittedCoords[0];
+// 		std::vector<Point2D<double>> rightSide = splittedCoords[1];
+
+// 		int smallArray = (leftSide.size()<rightSide.size()) ? leftSide.size() : rightSide.size();
+
+// 		// Calculate the intersection of the pair of coordinates with the tilt axis
+// 		for (size_t i = 0; i < smallArray; i++)
+// 		{
+
+// 			Point2D<double> p1 = leftSide[i];
+// 			Point2D<double> p2 = rightSide[i];
+
+// 			int intersectionIndex =  calculateTiltAxisIntersection(p1, p2);
+
+// 			tiltAxisIntersection[intersectionIndex] += 1;
+				
+// 		}
+
+// 		// // Calculate the intersection of the pair of coordinates with the tilt axis
+// 		// for (size_t i = 0; i < coordinatesInSlice.size(); i++)
+// 		// {
+// 		// 	for (size_t j = 0; j < coordinatesInSlice.size(); j++)
+// 		// 	{
+// 		// 		Point2D<double> p1 = coordinatesInSlice[i];
+// 		// 		Point2D<double> p2 = coordinatesInSlice[j];
+
+// 		// 		// Do not compare very close coordinates
+// 		// 		int distance2 = (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y);
+
+// 		// 		if(distance2 > (normDim*0.5)*(normDim*0.5))
+// 		// 		{
+// 		// 			int intersectionIndex =  calculateTiltAxisIntersection(p1, p2);
+// 		// 			if (intersectionIndex > 0 && intersectionIndex < ySize)
+// 		// 			{
+// 		// 				// tiltAxisIntersection[intersectionIndex, tiIndex] += 1;
+// 		// 				tiltAxisIntersection[intersectionIndex] += 1;
+// 		// 			}
+// 		// 		}
+// 		// 	}
+// 		// }
+// 	}
+
+// 	// for (size_t i = 0; i < nSize; i++)
+// 	// {
+// 	// std::cout << "line" << i <<"-->[" ;
+
+// 	// 	for (size_t j = 0; j < ySize; j++)
+// 	// 	{
+// 	// 		std::cout << tiltAxisIntersection[j,i] << " ";
+// 	// 	}
+	
+// 	// std::cout << "]" <<  std::endl;
+// 	// }
+
+// 	std::cout << "[" ;
+
+// 	for (size_t i = 0; i < ySize; i++)
+// 	{
+// 		std::cout << tiltAxisIntersection[i] << " ";
+// 	}
+
+// 	std::cout << "]" << std::endl;
+
+// 	return true;
+	
+// }
+
+// std::vector<std::vector<Point2D<double>>> ProgTomoDetectMisalignmentTrajectory::splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords)
+// {
+// 	std::vector<std::vector<Point2D<double>>> splittedCoodinates;
+
+// 	std::vector<Point2D<double>> leftSide;
+// 	std::vector<Point2D<double>> rightSide;
+
+// 	for (size_t i = 0; i < inCoords.size(); i++)
+// 	{
+// 		Point2D<double> coord = inCoords[i];
+
+// 		if(coord.x > xSize/2)
+// 		{
+// 			rightSide.push_back(coord);
+// 		}else
+// 		{
+// 			leftSide.push_back(coord);
+// 		}
+// 	}
+
+// 	// Struct to sort 3D coordinates (point3D class) by its x component
+// 	struct SortByY
+// 	{
+// 		bool operator() ( const Point2D<double>& L, const Point2D<double>& R) { return L.y < R.y; };
+// 	};
+
+// 	std::sort(leftSide.begin(), leftSide.end(), SortByY());
+
+// 	std::sort(rightSide.begin(), rightSide.end(), SortByY());
+
+// 	splittedCoodinates.push_back(leftSide);
+// 	splittedCoodinates.push_back(rightSide);
+
+// 	return splittedCoodinates;	
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
+// {
+
+// 	// *** MAKE GLOBAL THRESHOLD FOR MINIMUM ANGLE------------------------------------------------------- esto puede que necesite ir en ang y pasar a px
+// 	float thrChainDeviation = 5;
+
+// 	// Struct to sort 3D coordinates (point3D class) by its x component
+// 	struct SortByX
+// 	{
+// 		bool operator() const (Point3D const & L, Point3D const & R) { return L.x < R.x; }
+// 	};
+
+//     std::vector<Point3D<double>> sortXcoordinates3D = coordinates3D;
+// 	std::sort(sortXcoordinates3D.begin(), sortXcoordinates3D.end(),b   SortByX());
+
+// 	// Vector 
+// 	std::vector<size_t> coordinatesIndexID (sortXcoordinates3D, 0);
+// 	size_t indexID = 1;
+
+// 	for (size_t i = 0; i < sortXcoordinates3D.size(); i++)
+// 	{
+// 		Point3D referenceCoord3D = sortXcoordinates3D[i];
+
+// 		for (size_t j = 0; j < sortXcoordinates3D.size(); j++)
+// 		{
+// 			Point3D coord3D = sortXcoordinates3D[j];
+
+// 			if (coordinatesIndexID[i] == 0)
+// 			{
+// 				float deviation = abs(coord3D.y - referenceCoord3D.y);
+
+// 				if (deviation < thrChainDeviation)
+// 				{
+// 					chain.push_back(coord3D);		
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
+// {
+// 	MetaDataVec md;
+// 	size_t id;
+
+// 	for(size_t i = 0; i < residualX.size(); i++)
+// 	{
+// 		id = md.addObject();
+// 		md.setValue(MDL_X, residualX[i], id);
+// 		md.setValue(MDL_Y, residualY[i], id);
+// 		md.setValue(MDL_XCOOR, residualCoordinateX[i], id);
+// 		md.setValue(MDL_YCOOR, residualCoordinateY[i], id);
+// 		md.setValue(MDL_ZCOOR, residualCoordinateZ[i], id);
+// 	}
+
+// 	size_t lastindex = fnOut.find_last_of("\\/");
+// 	std::string rawname = fnOut.substr(0, lastindex);
+// 	std::string fnOutResiduals;
+//     fnOutResiduals = rawname + "/residuals2d.xmd";
+
+// 	md.write(fnOutResiduals);
+	
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Residuals metadata saved at: " << fnOutResiduals << std::endl;
+// 	#endif
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::generatePahntomVolume()
+// {
+// 	std::vector<std::vector<int>> coords = {{768,1080,290}, {256, 576, 150}, {768, 576, 150}, {256, 1080, 150}, {256, 720, 150}, {768, 720, 150}, {512, 1080, 110}, {512, 576, 10}};
+// 	MultidimArray<double> tmpMap;
+// 	tmpMap.initZeros(300,1440,1024);
+// 	tmpMap.initConstant(0);
+
+// 	for (size_t i = 0; i < coords.size(); i++)
+// 	{
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]+1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1], coords[i][0]-1) = 1;
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]) = 1;
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]+1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]+1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]+1) = 1;
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1], coords[i][0]-1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]+1, coords[i][0]-1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]+1, coords[i][0]-1) = 1;
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]) = 1;
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]+1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]+1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]+1) = 1;
+
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1], coords[i][0]-1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2], coords[i][1]-1, coords[i][0]-1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]-1, coords[i][0]-1) = 1;
+
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]) = 1;
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]+1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]+1) = 1;
+
+
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]-1, coords[i][1]+1, coords[i][0]-1) = 1;
+// 		DIRECT_A3D_ELEM(tmpMap, coords[i][2]+1, coords[i][1]-1, coords[i][0]-1) = 1;	
+// 		}
+
+// 	Image<double> saveImage3;
+// 	saveImage3() = tmpMap;
+// 	saveImage3.write(fnOut.substr(0, fnOut.find_last_of("\\/")) + "/test_map.mrc");
+// }
