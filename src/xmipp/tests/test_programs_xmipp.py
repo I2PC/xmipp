@@ -1605,52 +1605,36 @@ class VolSubtraction(XmippProgramTest):
 
     def test_case1(self):
         """Test subtraction with radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume1.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
-                     "--cutFreq 1.333333 --sigma 3 --radavg --computeEnergy",
-                     outputs=["output_volume1.mrc"],
-                     validate=self.validate_case1())
-
-    def validate_case1(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/subtraction_radAvg.mrc"))
+        str = "--i1 input/phantomVolSubtraction/V1.vol " \
+              "--i2 input/phantomVolSubtraction/V.vol " +\
+              "-o %o/subtraction.mrc " \
+              "--mask1 input/phantomVolSubtraction/V1_mask.mrc " +\
+              "--mask2 input/phantomVolSubtraction/V_mask.mrc" \
+              " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --computeEnergy"
+        self.runCase(str, outputs=["subtraction.mrc"])
 
     def test_case2(self):
         """Test subtraction without radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume2.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
+                     "-o %o/subtraction_radAvg.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --radavg --lambda 1.0 --sub "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
-                     outputs=["output_volume2.mrc"],
-                     validate=self.validate_case2())
-
-    def validate_case2(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/subtraction.mrc"))
+                     outputs=["subtraction_radAvg.mrc"])
 
     def test_case3(self):
         """Test adjustment without radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume3.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 "
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol  "
+                     "-o %o/Vadjust.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --lambda 1.0 "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
-                     outputs=["output_volume3.mrc"],
-                     validate=self.validate_case3())
+                     outputs=["Vadjust.mrc"])
 
-    def validate_case3(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust.mrc"))
 
     def test_case4(self):
         """Test adjustment with radial average"""
-        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
-                     "-o %o/output_volume4.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
-                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
+                     "-o %o/Vadjust_radAvg.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
-                     outputs=["output_volume4.mrc"],
-                     validate=self.validate_case4())
+                     outputs=["Vadjust_radAvg.mrc"])
 
-    def validate_case4(self):
-        import filecmp
-        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))

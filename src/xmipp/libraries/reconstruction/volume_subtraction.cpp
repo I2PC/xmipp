@@ -170,13 +170,12 @@ void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
 			{
 				FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx)
 				double w = sqrt(wx*wx + wy2_wz2);
-				auto iw = (int)round(w*V1size_x);
+				auto iw = std::min((int)floor(w*V1size_x), (int)XSIZE(rQ) -1);
 				DIRECT_A3D_ELEM(V,k,i,j)*=(1-l)+l*DIRECT_MULTIDIM_ELEM(rQ,iw);
 			}
 		}
 	}
 }
-
 
 void POCSMinMax(MultidimArray<double> &V, double v1m, double v1M) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V) {

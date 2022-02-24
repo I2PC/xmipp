@@ -55,13 +55,13 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 		{
 			// Type of Atom
 			std::string at;
-                        try
-                        {
-			    at = line.substr(13,2);
-                        }catch (const std::out_of_range& oor)
-                        {
-                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
-                        }
+			try
+			{
+				at = line.substr(13,2);
+			}catch (const std::out_of_range& oor)
+			{
+				std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+			}
 
 			if (at == typeOfAtom)
 			{
@@ -70,13 +70,15 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				double x = textToFloat(line.substr(30,8));
 				double y = textToFloat(line.substr(38,8));
 				double z = textToFloat(line.substr(46,8));
+				std::string ch = line.substr(21,1);
 
 				// storing coordinates
 				at_pos.x.push_back(x);
 				at_pos.y.push_back(y);
 				at_pos.z.push_back(z);
+				at_pos.chain.push_back(ch);
 
-                                // Residue Number
+                // Residue Number
 				auto resi = (int) textToFloat(line.substr(23,5));
 				at_pos.residue.push_back(resi);
 
@@ -738,7 +740,7 @@ double electronFormFactorRealSpace(double r,
 
 /* Computation of the low pass filter -------------------------------------- */
 // Returns the impulse response of the lowpass filter
-void hlpf(MultidimArray<double> &f, int M, double T, const std::string &filterType,
+void hlpf(MultidimArray<double> &f, int M,  const std::string &filterType,
           MultidimArray<double> &filter, double reductionFactor=0.8,
           double ripple=0.01, double deltaw=1.0/8.0)
 {
@@ -829,7 +831,7 @@ double Hlpf_fitness(double *p, void *prm)
     // Construct the filter with the current parameters
     MultidimArray<double> filter, auxf;
     auxf=globalf;
-    hlpf(auxf, globalM, globalT, "SincKaiser", filter, reductionFactor,
+    hlpf(auxf, globalM, "SincKaiser", filter, reductionFactor,
          ripple, deltaw);
 
     // Convolve the filter with the atomic profile
@@ -931,7 +933,7 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     powellOptimizer(globalHlpfPrm, 1, 3,
                     &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
-    hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
+    hlpf(f, M, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }
 
 /* Atom radial profile ----------------------------------------------------- */

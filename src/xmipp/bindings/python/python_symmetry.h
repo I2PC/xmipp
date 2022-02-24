@@ -52,15 +52,15 @@ void SymList_dealloc(SymListObject* self);
 
 /* readSymmetryFile */
 PyObject *
-SymList_readSymmetryFile(PyObject * obj, PyObject *args);
+SymList_readSymmetryFile(PyObject * obj, PyObject *args, PyObject *kwargs);
 
 /* computeDistance */
 PyObject *
-SymList_computeDistance(PyObject * obj, PyObject *args);
+SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs);
 
 /* getSymmetryMatrices */
 PyObject *
-SymList_getSymmetryMatrices(PyObject * obj, PyObject *args);
+SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs);
 
 /* SymList methods */
 extern PyMethodDef SymList_methods[];
