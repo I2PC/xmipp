@@ -38,7 +38,8 @@
 #include <starpu.h>
 
 #include "reconstruct_fourier_codelets.h"
-#include "reconstruct_fourier_scheduler.h"
+// #include "reconstruct_fourier_scheduler.h"
+#include <atomic>
 #include "reconstruct_fourier_util.h"
 #include "reconstruct_fourier_starpu_util.h"
 
@@ -318,28 +319,28 @@ void ProgRecFourierStarPU::run() {
 }
 
 void ProgRecFourierStarPU::initStarPU() {
-	// Request more workers per CUDA-capable GPU
-	setenv("STARPU_NWORKER_PER_CUDA",
-	       "2" /* seems to work best, 1 leaves GPU idle for fractions of a second (but shouldn't) */,
-	       false /* don't overwrite user specified value */);
-	// Be more reluctant to discard calibration data
-	setenv("STARPU_HISTORY_MAX_ERROR", "200" /*%*/, false);
-	// Do not let users to specify scheduling policy, because we are using our own and StarPU REALLY doesn't like this conflict
-	setenv("STARPU_SCHED", "", true);
+	// // Request more workers per CUDA-capable GPU
+	// setenv("STARPU_NWORKER_PER_CUDA",
+	//        "2" /* seems to work best, 1 leaves GPU idle for fractions of a second (but shouldn't) */,
+	//        false /* don't overwrite user specified value */);
+	// // Be more reluctant to discard calibration data
+	// setenv("STARPU_HISTORY_MAX_ERROR", "200" /*%*/, false);
+	// // Do not let users to specify scheduling policy, because we are using our own and StarPU REALLY doesn't like this conflict
+	// setenv("STARPU_SCHED", "", true);
 
-	starpu_conf starpu_configuration;
-	starpu_conf_init(&starpu_configuration);
-	starpu_configuration.sched_policy = &schedulers.reconstruct_fourier;
-	CHECK_STARPU(starpu_init(&starpu_configuration));
+	// starpu_conf starpu_configuration;
+	// starpu_conf_init(&starpu_configuration);
+	// starpu_configuration.sched_policy = &schedulers.reconstruct_fourier;
+	CHECK_STARPU(starpu_init(nullptr));//&starpu_configuration));
 
-	int cpuWorkers[STARPU_NMAXWORKERS];
-	unsigned cpuWorkerCount = starpu_worker_get_ids_by_type(starpu_worker_archtype::STARPU_CPU_WORKER, cpuWorkers, STARPU_NMAXWORKERS);
-	if (cpuWorkerCount > 1) {
-		int combinedWorker = starpu_combined_worker_assign_workerid(cpuWorkerCount, cpuWorkers);
-		starpu_sched_ctx_add_workers(&combinedWorker, 1, 0);
+	// int cpuWorkers[STARPU_NMAXWORKERS];
+	// unsigned cpuWorkerCount = starpu_worker_get_ids_by_type(starpu_worker_archtype::STARPU_CPU_WORKER, cpuWorkers, STARPU_NMAXWORKERS);
+	// if (cpuWorkerCount > 1) {
+	// 	int combinedWorker = starpu_combined_worker_assign_workerid(cpuWorkerCount, cpuWorkers);
+	// 	starpu_sched_ctx_add_workers(&combinedWorker, 1, 0);
 
-		schedulers.reconstruct_fourier.add_workers(0, nullptr, 0);// Just force a refresh, not a very clean solution
-	}
+	// 	schedulers.reconstruct_fourier.add_workers(0, nullptr, 0);// Just force a refresh, not a very clean solution
+	// }
 
 	starpu_malloc_set_align(ALIGNMENT);
 }

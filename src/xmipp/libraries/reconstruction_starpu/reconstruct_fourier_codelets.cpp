@@ -82,9 +82,14 @@ Codelets::Codelets() {
 	load_projections.modes[1] = STARPU_W; // Image Data Buffer
 	load_projections.modes[2] = STARPU_W; // Spaces Buffer
 	load_projections.name = "codelet_load_projections";
-	static struct starpu_perfmodel load_projections_model = create_common_perfmodel("load_projections_model");
-	load_projections_model.size_base = load_projections_size_base;
-	load_projections.model = &load_projections_model;
+	// static struct starpu_perfmodel load_projections_model = create_common_perfmodel("load_projections_model");
+	// load_projections_model.size_base = load_projections_size_base;
+	load_projections.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "codelet_load_projections";
+      return &m;
+    }();
 	// cl_arg: LoadProjectionArgs - MUST NOT BE COPIED!!!
 
 
@@ -105,9 +110,14 @@ Codelets::Codelets() {
 	padded_image_to_fft.nodes[2] = STARPU_SPECIFIC_NODE_LOCAL;
 	padded_image_to_fft.nodes[3] = STARPU_SPECIFIC_NODE_CPU;
 	padded_image_to_fft.name = "codelet_padded_image_to_fft";
-	static struct starpu_perfmodel padded_image_to_fft_model = create_common_perfmodel("padded_image_to_fft_model");
-	padded_image_to_fft_model.size_base = padded_image_to_fft_size_base;
-	padded_image_to_fft.model = &padded_image_to_fft_model;
+	// static struct starpu_perfmodel padded_image_to_fft_model = create_common_perfmodel("padded_image_to_fft_model");
+	// padded_image_to_fft_model.size_base = padded_image_to_fft_size_base;
+	padded_image_to_fft.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "codelet_padded_image_to_fft";
+      return &m;
+    }();
 	// cl_arg: PaddedImageToFftArgs
 
 
@@ -136,9 +146,14 @@ Codelets::Codelets() {
 	reconstruct_fft.nodes[4] = STARPU_SPECIFIC_NODE_LOCAL;
 	reconstruct_fft.nodes[5] = STARPU_SPECIFIC_NODE_CPU;
 	reconstruct_fft.name = "codelet_reconstruct_fft";
-	static struct starpu_perfmodel reconstruct_fft_model = create_common_perfmodel("reconstruct_fft_model");
-	reconstruct_fft_model.size_base = reconstruct_fft_size_base;
-	reconstruct_fft.model = &reconstruct_fft_model;
+	// static struct starpu_perfmodel reconstruct_fft_model = create_common_perfmodel("reconstruct_fft_model");
+	// reconstruct_fft_model.size_base = reconstruct_fft_size_base;
+	reconstruct_fft.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "codelet_reconstruct_fft";
+      return &m;
+    }();
 
 	reconstruct_fft_table.where = STARPU_CPU | STARPU_CUDA;
 	// NOTE: From StarPU/examples/cg/cg_kernels.c it seems that STARPU_SPMD applies only to CPU implementations,
@@ -164,10 +179,15 @@ Codelets::Codelets() {
 	reconstruct_fft_table.nodes[3] = STARPU_SPECIFIC_NODE_LOCAL;
 	reconstruct_fft_table.nodes[4] = STARPU_SPECIFIC_NODE_LOCAL;
 	reconstruct_fft_table.nodes[5] = STARPU_SPECIFIC_NODE_CPU;
-	reconstruct_fft_table.name = "codelet_reconstruct_fft";
-	static struct starpu_perfmodel reconstruct_fft_model_table = create_common_perfmodel("reconstruct_fft_model");
-	reconstruct_fft_model_table.size_base = reconstruct_fft_size_base;
-	reconstruct_fft_table.model = &reconstruct_fft_model_table;
+	reconstruct_fft_table.name = "codelet_reconstruct_fft_table";
+	// static struct starpu_perfmodel reconstruct_fft_model_table = create_common_perfmodel("reconstruct_fft_model");
+	// reconstruct_fft_model_table.size_base = reconstruct_fft_size_base;
+	reconstruct_fft_table.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "codelet_reconstruct_fft_table";
+      return &m;
+    }();
 
 	// cl_arg: ReconstructFftArgs
 
@@ -181,8 +201,13 @@ Codelets::Codelets() {
 	redux_init_volume.nbuffers = 1;
 	redux_init_volume.modes[0] = STARPU_W;
 	redux_init_volume.name = "redux_init_volume";
-	static struct starpu_perfmodel redux_init_volume_model = create_common_perfmodel("redux_init_volume_model");
-	redux_init_volume.model = &redux_init_volume_model;
+	// static struct starpu_perfmodel redux_init_volume_model = create_common_perfmodel("redux_init_volume_model");
+	redux_init_volume.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "redux_init_volume";
+      return &m;
+    }();
 	// Init weight
 	redux_init_weights.where = STARPU_CPU | STARPU_CUDA;
 	redux_init_weights.cpu_funcs[0] = func_redux_init_weights_cpu;
@@ -192,8 +217,13 @@ Codelets::Codelets() {
 	redux_init_weights.nbuffers = 1;
 	redux_init_weights.modes[0] = STARPU_W;
 	redux_init_weights.name = "redux_init_weights";
-	static struct starpu_perfmodel redux_init_weights_model = create_common_perfmodel("redux_init_weights_model");
-	redux_init_weights.model = &redux_init_weights_model;
+	// static struct starpu_perfmodel redux_init_weights_model = create_common_perfmodel("redux_init_weights_model");
+	redux_init_weights.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "redux_init_weights";
+      return &m;
+    }();
 	// Sum volume
 	redux_sum_volume.where = STARPU_CPU | STARPU_CUDA;
 	redux_sum_volume.cpu_funcs[0] = func_redux_sum_volume_cpu;
@@ -204,8 +234,13 @@ Codelets::Codelets() {
 	redux_sum_volume.modes[0] = STARPU_RW;
 	redux_sum_volume.modes[1] = STARPU_R;
 	redux_sum_volume.name = "redux_sum_volume";
-	static struct starpu_perfmodel redux_sum_volume_model = create_common_perfmodel("redux_sum_volume_model");
-	redux_sum_volume.model = &redux_sum_volume_model;
+	// static struct starpu_perfmodel redux_sum_volume_model = create_common_perfmodel("redux_sum_volume_model");
+	redux_sum_volume.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "redux_sum_volume";
+      return &m;
+    }();
 	// Sum weight
 	redux_sum_weights.where = STARPU_CPU | STARPU_CUDA;
 	redux_sum_weights.cpu_funcs[0] = func_redux_sum_weights_cpu;
@@ -216,8 +251,13 @@ Codelets::Codelets() {
 	redux_sum_weights.modes[0] = STARPU_RW;
 	redux_sum_weights.modes[1] = STARPU_R;
 	redux_sum_weights.name = "redux_sum_weights";
-	static struct starpu_perfmodel redux_sum_weights_model = create_common_perfmodel("redux_sum_weights_model");
-	redux_sum_weights.model = &redux_sum_weights_model;
+	// static struct starpu_perfmodel redux_sum_weights_model = create_common_perfmodel("redux_sum_weights_model");
+	redux_sum_weights.model = [] {
+      static starpu_perfmodel m = {};
+      m.type = STARPU_HISTORY_BASED;
+      m.symbol = "redux_sum_weights";
+      return &m;
+    }();
 }
 
 Codelets codelets;
