@@ -149,8 +149,6 @@ int ndim
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
 {
     double *Z, *S, *T, *W, *F;
-    int  i, MN, nrows, ncols, npages, vol;
-    size_t ndim, newXndim, Xndim;
     size_t *newdims;
     const mwSize *dims, *Xdims;
     
@@ -171,19 +169,21 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     
     /* Get the sizes of each input argument */
     
-    Xndim = mxGetNumberOfDimensions(IN_S);
+    auto Xndim = mxGetNumberOfDimensions(IN_S);
     Xdims = mxGetDimensions(IN_S);
     
     
-    ndim = mxGetNumberOfDimensions(IN_Z);
+    auto ndim = mxGetNumberOfDimensions(IN_Z);
     dims = mxGetDimensions(IN_Z);
     newdims = (size_t*) calloc(ndim-1, sizeof(size_t));
        
-    MN=1;
+    int MN=1;
+    int 1;
     for (i = 0; i < Xndim; i++) {MN =MN*Xdims[i];};  /*Total number of interpolations points in 1 image*/
        
     
-    vol=1; newXndim=Xndim;
+    int vol=1;
+    size_t newXndim = Xndim;
     if (ndim>3) {   /*Check if we have several images*/
         if ((Xndim==2) && (Xdims[1]==1))  {newXndim=newXndim-1; }  /*Check if interpolate along column vectors*/
         newdims = (size_t*) calloc(newXndim+1, sizeof(size_t));           /*Allocate space for the new number of dimensions for output*/
@@ -203,9 +203,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     OUT_F = mxCreateNumericArray(newXndim, newdims, mxDOUBLE_CLASS, mxREAL);
     
     /* Input image size */
-    nrows = dims[0];
-    ncols = dims[1];
-    npages = dims[2];
+    int nrows = dims[0];
+    int ncols = dims[1];
+    int npages = dims[2];
     
   /* Assign pointers to the input arguments */
     Z = mxGetPr(IN_Z);
