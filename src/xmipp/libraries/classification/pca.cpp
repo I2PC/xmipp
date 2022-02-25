@@ -197,7 +197,10 @@ void PCAAnalyzer::reset(ClassicTrainingVectors const &ts, std::vector<unsigned> 
                     a[iq][ip] = 0.0;
                 else if (fabs(a[iq][ip]) > tresh)
                 {
-                    floatFeature tau, t, s, c;
+                    floatFeature tau;
+                    floatFeature t;
+                    floatFeature s;
+                    floatFeature c;
                     floatFeature h = d[iq] - d[ip];
                     if (fabs(h) + g == fabs(h))
                         t = a[iq][ip] / h;

@@ -38,7 +38,8 @@ void minus(Image<double> &op1, const Image<double> &op2)
 class MinusAdjustedPrm
 {
 public:
-	const MultidimArray<double> *I1, *I2;
+	const MultidimArray<double> *I1;
+    const MultidimArray<double> *I2;
 };
 
 double minusAdjusted_L1(double *x, void *_prm)
@@ -65,7 +66,8 @@ void minusAdjusted(Image<double> &op1, const Image<double> &op2)
 	prm.I1=&op1();
 	prm.I2=&op2();
 
-    Matrix1D<double> p(2), steps(2);
+    Matrix1D<double> p(2);
+    Matrix1D<double> steps(2);
     p(0)=1; // a in I'=a*I+b
     p(1)=0; // b in I'=a*I+b
     steps.initConstant(1);
