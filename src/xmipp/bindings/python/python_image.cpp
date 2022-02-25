@@ -37,8 +37,6 @@
 /* Destructor */
 void Image_dealloc(ImageObject* self)
 {
-
-    delete self->image;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }//function Image_dealloc
 
@@ -230,13 +228,13 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                       PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
                       const char * filename = PyUnicode_AsUTF8(repr);
                       // Now read using both of index and filename
-                      self->image = new ImageGeneric();
+                      self->image = std::make_unique<ImageGeneric>();
                       self->image->read(filename, DATA, index);
 
                     }
                     else if ((pyStr = PyObject_Str(input)) != nullptr)
                     {
-                        self->image = new ImageGeneric(PyUnicode_AsUTF8(pyStr));
+                        self->image = std::make_unique<ImageGeneric>(PyUnicode_AsUTF8(pyStr));
                         //todo: add copy constructor
                     }
                     else
@@ -253,7 +251,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                 }
             }
             else
-                self->image = new ImageGeneric();
+                self->image = std::make_unique<ImageGeneric>();
         }
         else
             return nullptr;
@@ -459,7 +457,7 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
               PyObject *pyStr;
               if ((pyStr = PyObject_Str(input)) != nullptr)
               {
-                  readImagePreview(self->image, PyUnicode_AsUTF8(pyStr), x, slice);
+                  readImagePreview(self->image.get(), PyUnicode_AsUTF8(pyStr), x, slice);
                   Py_RETURN_NONE;
               }
               else
@@ -1226,12 +1224,12 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
             // prepare dims
             auto dims = Dimensions(dimX, dimY);
             // prepare input image
-            ImageGeneric *image = self->image;
+            auto &image = self->image;
             image->convert2Datatype(DT_Double);
             MultidimArray<double> *in;
             MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
             // prepare output image
-            result->image = new ImageGeneric(DT_Double);
+            result->image = std::make_unique<ImageGeneric>(DT_Double);
             MultidimArray<double> *out;
             MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
             // call the estimation
@@ -1260,7 +1258,7 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
             if (PyArg_ParseTuple(args, "O", &pimg2))
             {
                 ImageObject *img2=(ImageObject *)pimg2;
-                result->image = new ImageGeneric(Image_Value(img2));
+                result->image = std::make_unique<ImageGeneric>(Image_Value(img2));
                 MULTIDIM_ARRAY_GENERIC(*result->image).rangeAdjust(MULTIDIM_ARRAY_GENERIC(*self->image));
                 MULTIDIM_ARRAY_GENERIC(*result->image) *=-1;
                 MULTIDIM_ARRAY_GENERIC(*result->image) += MULTIDIM_ARRAY_GENERIC(*self->image);
@@ -1286,13 +1284,13 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject *pimg2 = nullptr;
             if (PyArg_ParseTuple(args, "O", &pimg2))
             {
-	            ImageGeneric *image = self->image;
+	            auto &image = self->image;
 	            image->convert2Datatype(DT_Double);
 	            MultidimArray<double> * pImage=nullptr;
 	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
 
 	            ImageObject *img2=(ImageObject *)pimg2;
-	            ImageGeneric *image2 = img2->image;
+	            auto &image2 = img2->image;
 	            image2->convert2Datatype(DT_Double);
 	            MultidimArray<double> * pImage2=nullptr;
 	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
@@ -1321,13 +1319,13 @@ Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject *pimg2 = nullptr;
             if (PyArg_ParseTuple(args, "O", &pimg2))
             {
-	            ImageGeneric *image = self->image;
+	            auto &image = self->image;
 	            image->convert2Datatype(DT_Double);
 	            MultidimArray<double> * pImage=nullptr;
 	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
 
 	            ImageObject *img2=(ImageObject *)pimg2;
-	            ImageGeneric *image2 = img2->image;
+	            auto &image2 = img2->image;
 	            image2->convert2Datatype(DT_Double);
 	            MultidimArray<double> * pImage2=nullptr;
 	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
@@ -1358,7 +1356,7 @@ Image_add(PyObject *obj1, PyObject *obj2)
     {
         try
         {
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
             Image_Value(result).add(Image_Value(obj2));
         }
         catch (XmippError &xe)
@@ -1379,7 +1377,7 @@ Image_iadd(PyObject *obj1, PyObject *obj2)
     {
         Image_Value(obj1).add(Image_Value(obj2));
         if ((result = PyObject_New(ImageObject, &ImageType)))
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
         //return obj1;
     }
     catch (XmippError &xe)
@@ -1433,7 +1431,7 @@ Image_subtract(PyObject *obj1, PyObject *obj2)
     {
         try
         {
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
             Image_Value(result).subtract(Image_Value(obj2));
         }
         catch (XmippError &xe)
@@ -1454,7 +1452,7 @@ Image_isubtract(PyObject *obj1, PyObject *obj2)
     {
         Image_Value(obj1).subtract(Image_Value(obj2));
         if ((result = PyObject_New(ImageObject, &ImageType)))
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
     }
     catch (XmippError &xe)
     {
@@ -1499,7 +1497,7 @@ Image_multiply(PyObject *obj1, PyObject *obj2)
     {
         try
         {
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
             double value = PyFloat_AsDouble(obj2);
             Image_Value(result).multiply(value);
         }
@@ -1520,7 +1518,7 @@ Image_imultiply(PyObject *obj1, PyObject *obj2)
     {
         ImageObject * result = nullptr;
         if ((result = PyObject_New(ImageObject, &ImageType)))
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
         double value = PyFloat_AsDouble(obj2);
         Image_Value(result).multiply(value);
         return (PyObject*) result;
@@ -1574,7 +1572,7 @@ Image_true_divide(PyObject *obj1, PyObject *obj2)
     {
         try
         {
-            result->image = new ImageGeneric(Image_Value(obj1));
+            result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
             double value = PyFloat_AsDouble(obj2);
             Image_Value(result).divide(value);
         }
@@ -1600,7 +1598,7 @@ Image_idivide(PyObject *obj1, PyObject *obj2)
     {
       ImageObject * result = nullptr;
       if ((result = PyObject_New(ImageObject, &ImageType)))
-          result->image = new ImageGeneric(Image_Value(obj1));
+          result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
       double value = PyFloat_AsDouble(obj2);
       Image_Value(result).divide(value);
       return (PyObject*) result;
@@ -1766,7 +1764,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject * border_value = nullptr;
 
     ImageObject *self = (ImageObject*) obj;
-    ImageGeneric * image = self->image;
+    auto &image = self->image;
     double doubleBorder_value = 1.0;
     size_t Xdim, Ydim, Zdim;
     bool doWrap = true;
@@ -1803,7 +1801,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
             in->setXmippOrigin();
 
             ImageObject *result = PyObject_New(ImageObject, &ImageType);
-            result->image = new ImageGeneric(DT_Double);
+            result->image = std::make_unique<ImageGeneric>(DT_Double);
             MultidimArray<double> *out;
             MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
             out->resize(Ydim,Xdim);
@@ -1881,12 +1879,12 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	        if (PyArg_ParseTuple(args, "|c", &axis)
 	                && (nullptr != result)) {
 	            // prepare input image
-	            ImageGeneric *volume = self->image;
+	            auto &volume = self->image;
 	            volume->convert2Datatype(DT_Double);
 	            MultidimArray<double> *in;
 	            MULTIDIM_ARRAY_GENERIC(*volume).getMultidimArrayPointer(in);
 	            // prepare output image
-	            result->image = new ImageGeneric(DT_Double);
+	            result->image = std::make_unique<ImageGeneric>(DT_Double);
 	            MultidimArray<double> *out;
 	            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
 	            // call the estimation

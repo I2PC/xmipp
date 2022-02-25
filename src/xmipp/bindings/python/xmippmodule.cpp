@@ -1080,7 +1080,7 @@ Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            ImageGeneric *image = self->image;
+            auto &image = self->image;
             image->convert2Datatype(DT_Double);
             MultidimArray<double> *in;
             MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
@@ -1110,7 +1110,7 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 			auto *img1=(ImageObject *)pimg1;
 			auto *img2=(ImageObject *)pimg2;
 
-			result->image = new ImageGeneric(Image_Value(img2));
+			result->image = std::make_unique<ImageGeneric>(Image_Value(img2));
 			*result->image = *img2->image;
 
 			result->image->convert2Datatype(DT_Double);
@@ -1160,7 +1160,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 			if (PyUnicode_Check(input) || MetaData_Check(input))
 			{
 				auto *img = (ImageObject*) pimg;
-				ImageGeneric *image = img->image;
+				auto &image = img->image;
 				image->convert2Datatype(DT_Double);
 				MultidimArray<double> * mImage=nullptr;
 				MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(mImage);
@@ -1217,7 +1217,7 @@ Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
             projectVolume(*mVolume, P, aDim.xdim, aDim.ydim,rot, tilt, psi);
             result = PyObject_New(ImageObject, &ImageType);
             Image <double> I;
-            result->image = new ImageGeneric();
+            result->image = std::make_unique<ImageGeneric>();
             result->image->setDatatype(DT_Double);
             result->image->data->setImage(MULTIDIM_ARRAY(P));
             Py_END_ALLOW_THREADS

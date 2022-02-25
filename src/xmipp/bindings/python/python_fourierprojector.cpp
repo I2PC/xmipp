@@ -104,7 +104,7 @@
         	 MultidimArray<double> *pdata;
         	 Image_Value(image).data->getMultidimArrayPointer(pdata);
         	 pdata->setXmippOrigin();
-        	 self->fourier_projector = new FourierProjector(*pdata, padding_factor, max_freq, spline_degree);
+        	 self->fourier_projector = std::make_unique<FourierProjector>(*pdata, padding_factor, max_freq, spline_degree);
 
          }
      }
@@ -116,7 +116,6 @@
  /* Destructor */
   void FourierProjector_dealloc(FourierProjectorObject* self)
  {
-     delete self->fourier_projector;
      //delete self->dims;
      Py_TYPE(self)->tp_free((PyObject*)self);
  }
