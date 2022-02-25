@@ -1109,11 +1109,10 @@ Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             MDRow &mainHeader = self->image->image->MDMainHeader;
 
-            MDObject * object = createMDObject(label, pyValue);
+            auto object = createMDObject(label, pyValue);
             if (!object)
                 return nullptr;
             mainHeader.setValue(*object);
-            delete object;
             Py_RETURN_TRUE;
         }
         catch (XmippError &xe)
@@ -1168,11 +1167,10 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             MDRow &mainHeader = *(self->image->image->MD[0]);
 
-            MDObject * object = createMDObject(label, pyValue);
+            auto object = createMDObject(label, pyValue);
             if (!object)
                 return nullptr;
             mainHeader.setValue(*object);
-            delete object;
             Py_RETURN_TRUE;
         }
         catch (XmippError &xe)

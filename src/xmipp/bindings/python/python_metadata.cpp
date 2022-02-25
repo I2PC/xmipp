@@ -80,7 +80,6 @@ PyMethodDef MDQuery_methods[] = { { nullptr } /* Sentinel */
 /* Destructor */
 void MDQuery_dealloc(MDQueryObject* self)
 {
-    delete self->query;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -112,13 +111,12 @@ createMDValueRelational(PyObject *args, int op)
                                       &limit, &offset, &orderLabel)) || PyArg_ParseTuple(args, "iO|iii",
                                               &label, &pyValue, &limit, &offset, &orderLabel))
     {
-        MDObject * object = createMDObject(label, pyValue);
+        auto object = createMDObject(label, pyValue);
         if (!object)
             return nullptr;
         auto * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
-        pyQuery->query = new MDValueRelational(*object, (RelationalOp) op,
+        pyQuery->query = std::make_unique<MDValueRelational>(*object, (RelationalOp) op,
                                                limit, offset, (MDLabel) orderLabel);
-        delete object;
         return (PyObject *) pyQuery;
     }
     return nullptr;
@@ -175,15 +173,13 @@ xmipp_MDValueRange(PyObject *obj, PyObject *args, PyObject *kwargs)
     if (PyArg_ParseTuple(args, "iOO|iii", &label, &pyValue1, &pyValue2, &limit,
                          &offset, &orderLabel))
     {
-        MDObject * object1 = createMDObject(label, pyValue1);
-        MDObject * object2 = createMDObject(label, pyValue2);
+        auto object1 = createMDObject(label, pyValue1);
+        auto object2 = createMDObject(label, pyValue2);
         if (!object1 || !object2)
             return nullptr;
         auto * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
-        pyQuery->query = new MDValueRange(*object1, *object2, limit, offset,
+        pyQuery->query = std::make_unique<MDValueRange>(*object1, *object2, limit, offset,
                                           (MDLabel) orderLabel);
-        delete object1;
-        delete object2;
         return (PyObject *) pyQuery;
     }
     return nullptr;
@@ -925,12 +921,11 @@ MetaData_setValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDObject * object = createMDObject(label, pyValue);
+            auto object = createMDObject(label, pyValue);
             if (!object)
                 return nullptr;
             auto *self = (MetaDataObject*) obj;
             self->metadata->setValue(*object, objectId);
-            delete object;
             Py_RETURN_TRUE;
         }
         catch (XmippError &xe)
@@ -952,12 +947,11 @@ MetaData_setValueCol(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDObject * object = createMDObject(label, pyValue);
+            auto object = createMDObject(label, pyValue);
             if (!object)
                 return nullptr;
             auto *self = (MetaDataObject*) obj;
             self->metadata->setValueCol(*object);
-            delete object;
             Py_RETURN_TRUE;
         }
         catch (XmippError &xe)
@@ -2170,7 +2164,7 @@ MetaData_selectPart(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
-MDObject *
+std::unique_ptr<MDObject>
 createMDObject(int label, PyObject *pyValue)
 {
     try
