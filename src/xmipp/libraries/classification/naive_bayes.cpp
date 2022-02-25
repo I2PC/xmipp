@@ -290,7 +290,7 @@ NaiveBayes::NaiveBayes(
 
     // Create a dummy leaf for features that cannot classify
     std::vector < MultidimArray<double> > aux(K);
-    dummyLeaf=new LeafNode(aux,0);
+    auto dummyLeaf = LeafNode(aux,0);
 
     // Build a leafnode for each feature and assign a weight
     __weights.initZeros(Nfeatures);
@@ -298,17 +298,16 @@ NaiveBayes::NaiveBayes(
     {
         for (int k=0; k<K; k++)
             features[k].getCol(f, aux[k]);
-        auto *leaf=new LeafNode(aux,discreteLevels);
-        if (leaf->__discreteLevels>0)
+        auto leaf = LeafNode(aux,discreteLevels);
+        if (leaf.__discreteLevels>0)
         {
             __leafs.push_back(leaf);
-            DIRECT_A1D_ELEM(__weights,f)=__leafs[f]->computeWeight();
+            DIRECT_A1D_ELEM(__weights,f)=__leafs[f].computeWeight();
         }
         else
         {
             __leafs.push_back(dummyLeaf);
             DIRECT_A1D_ELEM(__weights,f)=0;
-            delete leaf;
         }
 #ifdef DEBUG_WEIGHTS
 
@@ -333,34 +332,6 @@ NaiveBayes::NaiveBayes(
         MAT_ELEM(__cost,i,i)=0;
 }
 
-/* Destructor -------------------------------------------------------------- */
-NaiveBayes::~NaiveBayes()
-{
-    int imax=__leafs.size();
-    for (int i = 0; i < imax; i++)
-        if (__leafs[i]!=dummyLeaf)
-            delete __leafs[i];
-    delete dummyLeaf;
-}
-
-// Assignment --------------------------------------------------------------
-NaiveBayes & NaiveBayes::operator=(const NaiveBayes &other)
-{
-	K=other.K;
-	Nfeatures=other.Nfeatures;
-    __priorProbsLog10=other.__priorProbsLog10;
-    __weights=other.__weights;
-    size_t imax=__leafs.size();
-    for (size_t i=0; i<imax; ++i)
-    	delete __leafs[i];
-    __leafs.clear();
-    imax=other.__leafs.size();
-    for (size_t i=0; i<imax; ++i)
-    	__leafs.emplace_back(new LeafNode(*(other.__leafs[i])));
-   __cost=other.__cost;
-   return *this;
-}
-
 /* Set cost matrix --------------------------------------------------------- */
 void NaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
 {
@@ -377,7 +348,7 @@ int NaiveBayes::doInference(const MultidimArray<double> &newFeatures, double &co
     classesProbs=__priorProbsLog10;
     for(int f=0; f<Nfeatures; f++)
     {
-        const LeafNode &leaf_f=*(__leafs[f]);
+        const LeafNode &leaf_f = __leafs[f];
         double newFeatures_f=DIRECT_A1D_ELEM(newFeatures,f);
         for (int k=0; k<K; k++)
         {
@@ -450,7 +421,7 @@ std::ostream & operator << (std::ostream &_out, const NaiveBayes &naive)
     for (int f=0; f<naive.Nfeatures; f++)
     {
         _out << "Node " << f << std::endl;
-        _out << *(naive.__leafs[f]) << std::endl;
+        _out << naive.__leafs[f] << std::endl;
     }
     return _out;
 }
