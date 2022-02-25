@@ -94,7 +94,9 @@
      if (self != nullptr)
      {
          PyObject *image = nullptr;
-         double padding_factor, max_freq, spline_degree;
+         double padding_factor;
+         double max_freq;
+         double spline_degree;
          padding_factor = 2;
          max_freq = 0.5;
          spline_degree = 3;
@@ -126,7 +128,9 @@
 PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
       auto *self = (FourierProjectorObject*) obj;
-      double rot, tilt, psi;
+      double rot;
+      double tilt;
+      double psi;
       PyObject *projection_image = nullptr;
       if (self != nullptr && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))
       {

@@ -397,7 +397,7 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 
             try
             {
-              PyObject *pyStr, *pyStr1;
+              PyObject *pyStr;
               // If the input object is a tuple, consider it (index, filename)
               if (PyTuple_Check(input))
               {
@@ -675,7 +675,10 @@ PyObject *
 Image_getPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    int i, j, k, n;
+    int i;
+    int j;
+    int k;
+    int n;
     double value;
 
     if (self != nullptr && PyArg_ParseTuple(args, "iiii", &n, &k, &i, &j ))
@@ -702,7 +705,10 @@ PyObject *
 Image_setPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    int i, j, k, n;
+    int i;
+    int j;
+    int k;
+    int n;
     double value = -1;
 
     if (self != nullptr && PyArg_ParseTuple(args, "iiiid", &n, &k, &i, &j, &value))
@@ -796,7 +802,9 @@ PyObject *
 Image_resize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    int xDim = 0, yDim = 0, zDim = 1;
+    int xDim = 0;
+    int yDim = 0;
+    int zDim = 1;
     size_t nDim = 1;
 
     if (self != nullptr && PyArg_ParseTuple(args, "ii|in", &xDim, &yDim, &zDim, &nDim))
@@ -819,7 +827,9 @@ PyObject *
 Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    int xDim = 0, yDim = 0, zDim = 1;
+    int xDim = 0;
+    int yDim = 0;
+    int zDim = 1;
     int forceVolume=0;
     if (self != nullptr && PyArg_ParseTuple(args, "ii|ii", &xDim, &yDim, &zDim, &forceVolume))
     {
@@ -887,7 +897,10 @@ Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
                 ImageGeneric Iout;
                 Iout.setDatatype(self->image->getDatatype());
 
-				size_t xdim, ydim, zdim, ndim;
+				size_t xdim;
+                size_t ydim;
+                size_t zdim;
+                size_t ndim;
 				MULTIDIM_ARRAY_GENERIC(*(self->image)).getDimensions(xdim, ydim, zdim, ndim);
 				size_t N=zdim;
 				char caxis=axis[0];
@@ -918,7 +931,8 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
     PyObject *patch;
-    int x = 0, y = 0;
+    int x = 0;
+    int y = 0;
 
     if (self != nullptr && PyArg_ParseTuple(args, "Oii", &patch, &x, &y))
     {
@@ -1011,7 +1025,10 @@ Image_getDimensions(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            size_t xdim, ydim, zdim, ndim;
+            size_t xdim;
+            size_t ydim;
+            size_t zdim;
+            size_t ndim;
             MULTIDIM_ARRAY_GENERIC(*self->image).getDimensions(xdim, ydim, zdim, ndim);
             return Py_BuildValue("iiik", xdim, ydim, zdim, ndim);
         }
@@ -1052,7 +1069,9 @@ Image_getEulerAngles(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            double rot, tilt, psi;
+            double rot;
+            double tilt;
+            double psi;
             self->image->getEulerAngles(rot, tilt, psi);
             return Py_BuildValue("fff", rot, tilt, psi);
 
@@ -1194,7 +1213,10 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            double mean, dev, min, max;
+            double mean;
+            double dev;
+            double min;
+            double max;
             self->image->data->computeStats(mean, dev, min, max);
 
 
@@ -1683,7 +1705,12 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
                 item  = PyList_GetItem(list, i);
                 MAT_ELEM(A,i/4,i%4 ) = PyFloat_AsDouble(item);
             }
-            double scale, shiftX, shiftY, rot,tilt, psi;
+            double scale;
+            double shiftX;
+            double shiftY;
+            double rot;
+            double tilt;
+            double psi;
             tilt = 0.0;
             rot = 0.0;
             bool flip;
@@ -1768,7 +1795,9 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     ImageGeneric * image = self->image;
     double doubleBorder_value = 1.0;
-    size_t Xdim, Ydim, Zdim;
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
     bool doWrap = true;
     image->getDimensions(Xdim, Ydim, Zdim);
     try

@@ -105,7 +105,10 @@ MDQuery_repr(PyObject * obj)
 PyObject *
 createMDValueRelational(PyObject *args, int op)
 {
-    int label, limit = -1, offset = 0, orderLabel = (int) MDL_OBJID;
+    int label;
+    int limit = -1;
+    int offset = 0;
+    auto orderLabel = (int) MDL_OBJID;
     PyObject *pyValue; //Only used to skip label and value
 
     if ((op == -1 && PyArg_ParseTuple(args, "iO|iiii", &label, &pyValue, &op,
@@ -169,8 +172,12 @@ xmipp_MDValueGE(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_MDValueRange(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int label, limit = -1, offset = 0, orderLabel = (int) MDL_OBJID;
-    PyObject *pyValue1, *pyValue2; //Only used to skip label and value
+    int label;
+    int limit = -1;
+    int offset = 0;
+    auto orderLabel = (int) MDL_OBJID;
+    PyObject *pyValue1;
+    PyObject *pyValue2; //Only used to skip label and value
 
     if (PyArg_ParseTuple(args, "iOO|iii", &label, &pyValue1, &pyValue2, &limit,
                          &offset, &orderLabel))
@@ -194,7 +201,8 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
 
-    int label, type;
+    int label;
+    int type;
     PyObject *input = nullptr;
     PyObject *pyStr = nullptr;
     PyObject *pyStr1 = nullptr;
@@ -549,7 +557,8 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
     if (self != nullptr)
     {
         PyObject *list = nullptr; //list can be a list of labels or maxRows
-        PyObject *input = nullptr, *pyStr = nullptr;
+        PyObject *input = nullptr;
+        PyObject *pyStr = nullptr;
         const char *str = nullptr;
         if (PyArg_ParseTuple(args, "O|O", &input,  &list))
         {
@@ -739,7 +748,8 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
     wmd = MD_OVERWRITE;
     if (self != NULL)
     {
-        PyObject *input = NULL, *pyStr = NULL, *pyStr1 = NULL;
+        PyObject *input = nullptr;
+        PyObject *pyStr = nullptr;
         const char *str = NULL;
         if (PyArg_ParseTuple(args, "O|i", &input, &wmd))
         {
@@ -772,7 +782,7 @@ MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     if (self != nullptr)
     {
-        PyObject *input = nullptr, *pyStr = nullptr, *str_exc_type = nullptr;
+        PyObject *input = nullptr;
         if (PyArg_ParseTuple(args, "O", &input))
         {
             try
@@ -1126,7 +1136,7 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 {
-    PyObject *input, *str_exc_type = NULL, *pyStr = NULL;
+    PyObject *input;
     const char *fileName = NULL;
     FileName fn;
     StringVector blocks;
@@ -1211,7 +1221,8 @@ MetaData_containsLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_addLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int label, pos = -1;
+    int label;
+    int pos = -1;
     if (PyArg_ParseTuple(args, "i|i", &label, &pos))
     {
         try
@@ -1250,7 +1261,8 @@ PyObject *
 MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    PyObject *pyValue = nullptr, *pyStr = nullptr;
+    PyObject *pyValue = nullptr;
+    PyObject *pyStr = nullptr;
     if (PyArg_ParseTuple(args, "i|O", &label, &pyValue))
     {
         try
@@ -1302,8 +1314,11 @@ PyObject *
 MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    double op1, op2, op3 = 0.;
-    PyObject *pyValue = nullptr, *pyStr = nullptr, *str_exc_type = nullptr, *pyStr1 = nullptr;
+    double op1 = 0.;
+    double op2 = 0.;
+    double op3 = 0.;
+    PyObject *pyValue = nullptr;
+    PyObject *pyStr = nullptr;
 
     if (PyArg_ParseTuple(args, "iOdd|d", &label, &pyValue, &op1, &op2, &op3))
     {
@@ -1333,7 +1348,8 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_copyColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int labelDst, labelSrc;
+    int labelDst;
+    int labelSrc;
     if (PyArg_ParseTuple(args, "ii", &labelDst, &labelSrc))
     {
         try
@@ -1588,7 +1604,8 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     if (self != nullptr)
     {
-        PyObject *input = nullptr, *pyStr = nullptr, *str_exc_type = nullptr, *pyStr1 = nullptr;
+        PyObject *input = nullptr;
+        PyObject *pyStr = nullptr;
         PyArg_ParseTuple(args, "|O", &input);
         if (input != nullptr)
         {
@@ -2145,7 +2162,8 @@ PyObject *
 MetaData_selectPart(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto label=(int)MDL_OBJID;
-    size_t start, numberOfObjects;
+    size_t start;
+    size_t numberOfObjects;
     PyObject *pyMd = nullptr;
 
     if (PyArg_ParseTuple(args, "Okk|i", &pyMd, &start, &numberOfObjects, &label))
@@ -2237,7 +2255,8 @@ createMDObject(int label, PyObject *pyValue)
 PyObject *
 MetaData_copyColumnTo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int labelDst, labelSrc;
+    int labelDst;
+    int labelSrc;
     PyObject * pyMd;
     if (PyArg_ParseTuple(args, "Oii", &pyMd, &labelDst, &labelSrc))
     {
