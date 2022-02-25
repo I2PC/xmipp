@@ -744,7 +744,7 @@ double electronFormFactorRealSpace(double r,
 
 /* Computation of the low pass filter -------------------------------------- */
 // Returns the impulse response of the lowpass filter
-void hlpf(MultidimArray<double> &f, int M, double T, const std::string &filterType,
+void hlpf(MultidimArray<double> &f, int M,  const std::string &filterType,
           MultidimArray<double> &filter, double reductionFactor=0.8,
           double ripple=0.01, double deltaw=1.0/8.0)
 {
@@ -838,7 +838,7 @@ double Hlpf_fitness(double *p, void *prm)
     MultidimArray<double> filter;
     MultidimArray<double> auxf;
     auxf=globalf;
-    hlpf(auxf, globalM, globalT, "SincKaiser", filter, reductionFactor,
+    hlpf(auxf, globalM, "SincKaiser", filter, reductionFactor,
          ripple, deltaw);
 
     // Convolve the filter with the atomic profile
@@ -942,7 +942,7 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     powellOptimizer(globalHlpfPrm, 1, 3,
                     &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
-    hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
+    hlpf(f, M, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }
 
 /* Atom radial profile ----------------------------------------------------- */

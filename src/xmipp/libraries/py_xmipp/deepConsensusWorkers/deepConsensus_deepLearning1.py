@@ -73,6 +73,36 @@ def writeNetShape(netDataPath, shape, nTrue, nModels):
       os.makedirs(netDataPath )
     with open(netInfoFname, "w" ) as f:
         f.write("inputShape: %d %d %d\ninputNTrue: %d\nnModels: %d" % (shape+(nTrue, nModels)))
+
+def writeNetAccuracy(netDataPath, val_acc):
+  '''
+    netDataPath= self._getExtraPath("nnetData")
+  '''
+  netAccFname = os.path.join(os.path.dirname(netDataPath), "netValAcc.txt")
+  os.makedirs(os.path.dirname(netAccFname), exist_ok=True)
+  with open(netAccFname, "w") as f:
+    f.write("val_acc: %f" %val_acc)
+
+def loadANDwriteNetAccuracy(netDataPath, nModels):
+  '''
+      netDataPath= self._getExtraPath("nnetData")
+  '''
+  list_Acc = []
+  for n in range(nModels):
+    checkPointsName = os.path.join(netDataPath, "tfchkpoints_%d"%n)
+    valAccFn = os.path.join(checkPointsName, "netValAcc.txt")
+    with open(valAccFn) as f:
+      line = f.readline()
+      accuracy = float(line.split()[1])
+      list_Acc.append(accuracy)
+
+  mean_acc = np.mean(list_Acc)
+  print('Mean validation accuracy %f of n %d models' %(mean_acc, nModels))
+
+  netMeanAccFname = os.path.join(netDataPath, "netsMeanValAcc.txt")
+  os.makedirs(os.path.dirname(netDataPath), exist_ok=True)
+  with open(netMeanAccFname, "w") as f:
+    f.write("mean_val_acc: %f" % mean_acc)
         
 class DeepTFSupervised(object):
   def __init__(self, numberOfThreads, rootPath, numberOfModels=1, effective_data_size=-1):
@@ -173,7 +203,6 @@ class DeepTFSupervised(object):
         self.createNet(dataManagerTrain.shape[0], dataManagerTrain.shape[1], dataManagerTrain.shape[2], effective_data_size,
                        learningRate, l2RegStrength)
 #      print(self.nNetModel.summary())
-      
       print("nEpochs : %.1f --> Epochs: %d.\nTraining begins: Epoch 0/%d"%(nEpochs__, nEpochs, nEpochs))
       sys.stdout.flush()
       cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_acc', verbose=1,
@@ -184,11 +213,16 @@ class DeepTFSupervised(object):
       cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, cooldown=1, 
                  min_lr= learningRate*1e-3, verbose=1) ]
 
-      self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
+      history = self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
                                  validation_data=dataManagerTrain.getValidationIterator( batchesPerEpoch= n_batches_per_epoch_val), 
                                  validation_steps=n_batches_per_epoch_val, callbacks=cBacks, epochs=nEpochs, 
                                  use_multiprocessing=True, verbose=2)
+
+      last_val_acc = history.history['val_acc'][-1]
+      writeNetAccuracy(currentCheckPointName, last_val_acc)
       self.closeSession()
+
+    loadANDwriteNetAccuracy(self.rootPath, self.numberOfModels)
       
       
   def predictNet(self, dataManger):

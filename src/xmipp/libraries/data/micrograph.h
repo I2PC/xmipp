@@ -458,7 +458,8 @@ public:
         If this angle is 0 no rotation is applied.*/
     void produce_all_images(int label, double minCost, const FileName &fn_root,
                             const FileName &fn_image = "", double ang = 0,
-                            double gamma = 0., double psi = 0., bool rmStack=false,
+                            //double gamma = 0., double psi = 0.,
+                             bool rmStack=false,
 							bool fillBorders=false,
 							bool extractNoise=false,
 							int Nnoise=-1);

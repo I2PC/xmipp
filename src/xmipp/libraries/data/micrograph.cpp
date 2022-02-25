@@ -316,7 +316,7 @@ int Micrograph::scissor(const Particle_coords &P, MultidimArray<double> &result,
 /* Produce all images ------------------------------------------------------ */
 void Micrograph::produce_all_images(int label, double minCost,
                                     const FileName &fn_rootIn, const FileName &fn_image, double ang,
-                                    double tilt, double psi, bool rmStack, bool fillBorders,
+                                    bool rmStack, bool fillBorders,
 									bool extractNoise, int Nnoise)
 {
     MetaDataVec SF;
