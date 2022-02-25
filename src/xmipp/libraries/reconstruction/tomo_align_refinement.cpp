@@ -160,9 +160,19 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
     << newAlignment.x << " " << newAlignment.y << std::endl;
 #endif
 
-    for (double rot = rot0; rot <= rotF; rot += rot_step)
-        for (double tilt = tilt0; tilt <= tiltF; tilt += tilt_step)
+    size_t totalStepsRot = (int)((rotF-rot0)/rot_step);
+    size_t totalStepsTilt = (int)((tiltF-tilt0)/tilt_step);
+    double rot;
+    double tilt;
+
+    for (size_t nStepRot = 0; nStepRot < totalStepsRot; nStepRot++)
+    {
+        rot = nStepRot * rot_step;
+
+        for (size_t nStepTilt = 0; nStepTilt < totalStepsRot; nStepTilt++)
         {
+            tilt = nStepTilt * tilt_step;
+
             Ip()=I();
             // Take a projection from the given direction
             projectVolume(V(), theo, YSIZE(V()), XSIZE(V()), rot, tilt, 0);
@@ -243,6 +253,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
 
             }
         }
+    }
 
     // Select best alignment
     list_of_assigned[idx]=newAlignment;
