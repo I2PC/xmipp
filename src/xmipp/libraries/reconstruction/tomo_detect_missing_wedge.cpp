@@ -62,13 +62,21 @@ double evaluatePlane(double rot, double tilt,
     int Nneg=0, Npos=0;
     double maxFreq2=maxFreq*maxFreq;
     auto iPlaneWidth=(int)ceil(planeWidth);
-    for (double ix=0; ix<=N; ix++)
+
+    //Keep this comment to understand the while
+    //for (double ix=0; ix<=N; ix++)
+    double ix=0;
+    while(ix<=N)
     {
         XX(freq)=ix*df;
         double fx2=XX(freq)*XX(freq);
         if (fx2>maxFreq2)
             continue;
-        for (double iy=-(int)N; iy<=N; iy++)
+        
+        //keep this comment for understanding the while
+        //for (double iy=-(int)N; iy<=N; iy++)
+        double iy=-(int)N;
+        while(iy<=N)
         {
             YY(freq)=iy*df;
             double fx2fy2=fx2+YY(freq)*YY(freq);
@@ -125,7 +133,9 @@ double evaluatePlane(double rot, double tilt,
                         (*Vdraw)(idx)=1.0/2.0*direction*val;
                 }
             }
+            iy+=1;
         }
+        ix+=1;
     }
     if (fabs(Nneg-Npos)/(0.5*(Nneg+Npos))>0.5)
         // If there is a difference of more than 50%

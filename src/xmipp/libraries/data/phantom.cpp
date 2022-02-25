@@ -936,9 +936,9 @@ const
 {
     double radius2 = radius * radius;
     bool intersects = false;
-    for (double k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
-        for (double i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
-            for (double j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
+    for (int k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
+        for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
+            for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
             {
                 if ((k - ZZ(r))*(k - ZZ(r)) + (i - YY(r))*(i - YY(r)) + (j - XX(r))*(j - XX(r)) >
                     radius2)

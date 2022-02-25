@@ -337,25 +337,61 @@ public:
             int step_time = CEIL((double)times / 60.0);
             Matrix1D<double> r(3);
             Matrix1D<double> trial(9);
-            for (double grey_scale = grey_scale0; grey_scale <= grey_scaleF ; grey_scale += step_grey)
-                for (double grey_shift = grey_shift0; grey_shift <= grey_shiftF ; grey_shift += step_grey_shift)
-                    for (double rot = rot0; rot <= rotF ; rot += step_rot)
-                        for (double tilt = tilt0; tilt <= tiltF ; tilt += step_tilt)
-                            for (double psi = psi0; psi <= psiF ; psi += step_psi)
-                                for (double scale = scale0; scale <= scaleF ; scale += step_scale)
-                                    for (ZZ(r) = z0; ZZ(r) <= zF ; ZZ(r) += step_z)
-                                        for (YY(r) = y0; YY(r) <= yF ; YY(r) += step_y)
-                                            for (XX(r) = x0; XX(r) <= xF ; XX(r) += step_x)
+
+            //keep this comment to understand the while
+            //for (double grey_scale = grey_scale0; grey_scale <= grey_scaleF ; grey_scale += step_grey)
+            double grey_scale = grey_scale0;
+            while(grey_scale <= grey_scaleF)
+            {
+                trial(0) = grey_scale;
+                //keep this comment to understand the while
+                //for (double grey_shift = grey_shift0; grey_shift <= grey_shiftF ; grey_shift += step_grey_shift)
+                double grey_shift = grey_shift0;
+                while(grey_shift <= grey_shiftF)
+                {
+                    trial(1) = grey_shift;
+                    //keep this comment to understand the while
+                    //for (double rot = rot0; rot <= rotF ; rot += step_rot)
+                    double rot = rot0;
+                    while(rot <= rotF)
+                    {
+                        trial(2) = rot;
+                        //keep this comment to understand the while
+                        //for (double tilt = tilt0; tilt <= tiltF ; tilt += step_tilt)
+                        double tilt = tilt0;
+                        while(tilt <= tiltF)
+                        {
+                            trial(3) = tilt;
+                            //keep this comment to understand the while
+                            //for (double psi = psi0; psi <= psiF ; psi += step_psi)
+                            double psi = psi0;
+                            while(psi <= psiF)
+                            {
+                                trial(4) = psi;
+                                //keep this comment to understand the while
+                                //for (double scale = scale0; scale <= scaleF ; scale += step_scale)
+                                double scale = scale0;
+                                while(scale <= scaleF)
+                                {
+                                    trial(5) = scale;
+                                    //keep this comment to understand the while
+                                    // for (ZZ(r) = z0; ZZ(r) <= zF ; ZZ(r) += step_z)
+                                    ZZ(r) = z0;
+                                    while(ZZ(r) <= zF)
+                                    {
+                                        trial(6) = ZZ(r);
+                                        //keep this comment to understand the while
+                                        //for (YY(r) = y0; YY(r) <= yF ; YY(r) += step_y)
+                                        YY(r) = y0;
+                                        while(YY(r) <= yF)
+                                        {
+                                            trial(7) = YY(r);
+                                            //keep this comment to understand the while
+                                            //for (XX(r) = x0; XX(r) <= xF ; XX(r) += step_x)
+                                            XX(r) = x0;
+                                            while(XX(r) <= xF)
                                             {
                                                 // Form trial vector
-                                                trial(0) = grey_scale;
-                                                trial(1) = grey_shift;
-                                                trial(2) = rot;
-                                                trial(3) = tilt;
-                                                trial(4) = psi;
-                                                trial(5) = scale;
-                                                trial(6) = ZZ(r);
-                                                trial(7) = YY(r);
                                                 trial(8) = XX(r);
                                                 // Evaluate
                                                 double fit = fitness(MATRIX1D_ARRAY(trial));
@@ -374,7 +410,26 @@ public:
                                                 else
                                                     if (++itime % step_time == 0)
                                                         progress_bar(itime);
+                                                
+                                                XX(r) += step_x;
                                             }
+                                            YY(r) += step_y;
+                                        }
+                                        ZZ(r) += step_z;
+                                    }
+                                    scale += step_scale;
+                                }
+                                psi += step_psi;
+                            }
+                            tilt += step_tilt;
+                        }
+                        rot += step_rot;
+                    }
+                    grey_shift += step_grey_shift;
+                }
+                grey_scale += step_grey;
+            }
+                
             if (!tell)
                 progress_bar(times);
         }

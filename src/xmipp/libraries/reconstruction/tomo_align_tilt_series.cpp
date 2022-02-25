@@ -373,15 +373,27 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                 double bestCost=2;
                 double stepX=(affy.maxAllowed(4)-affy.minAllowed(4))/40.0;
                 double stepY=(affy.maxAllowed(5)-affy.minAllowed(5))/40.0;
-                for (double shiftY=affy.minAllowed(5); shiftY<=affy.maxAllowed(5); shiftY+=stepY)
-                    for (double shiftX=affy.minAllowed(4); shiftX<=affy.maxAllowed(4); shiftX+=stepX)
+                
+                // for (double shiftY=affy.minAllowed(5); shiftY<=affy.maxAllowed(5); shiftY+=stepY)
+                // Keep this comment to understan the while loops
+                double shiftY = affy.minAllowed(5);
+                while(shiftY<=affy.maxAllowed(5))
+                {
+                    // for (double shiftX=affy.minAllowed(4); shiftX<=affy.maxAllowed(4); shiftX+=stepX)
+                    // Keep this comment to understand the while
+                    double shiftX = affy.minAllowed(4);
+                    while(shiftX<=affy.maxAllowed(4))
                     {
                         A(4)=shiftX;
                         A(5)=shiftY;
                         double cost=affy.affine_fitness_individual(MATRIX1D_ARRAY(A));
                         if (cost<bestCost)
                             bestCost=cost;
+                        
+                        shiftX += stepX;
                     }
+                    shiftY += stepY;
+                }
             }
             else
             {
@@ -2527,7 +2539,10 @@ void ProgTomographAlignment::run()
 
     // Exhaustive search for rot
     double bestError=0, bestRot=-1;
-    for (double rot=0; rot<=180-deltaRot; rot+=deltaRot)
+    double rot=0;
+    //for (double rot=0; rot<=180-deltaRot; rot+=deltaRot)
+    // Keep this comment to understand the loop
+    while(rot<=(180-deltaRot))
     {
         alignment->clear();
         alignment->rot=rot;
@@ -2544,6 +2559,7 @@ void ProgTomographAlignment::run()
             bestError=error;
             *bestPreviousAlignment=*alignment;
         }
+        rot +=deltaRot;
     }
     delete alignment;
     std::cout << "Best rot=" << bestRot
