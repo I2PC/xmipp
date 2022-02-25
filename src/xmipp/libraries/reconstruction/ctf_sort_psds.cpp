@@ -296,7 +296,10 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 	Matrix1D< double > envelope(100);
 	envelope.initZeros();
 	double Nalpha = 180;
-    for (double alpha=0; alpha<=PI; alpha+=PI/Nalpha, N++)
+	double alpha=0;
+	size_t totalSteps_alpha = (int)(PI/(PI/Nalpha));
+
+    for (size_t nStep=0; nStep<=totalSteps_alpha; nStep++, N++)
     {
     	VECTOR_R2(u,cos(alpha),sin(alpha));
 
@@ -328,9 +331,11 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	double damping=CTF1.getValueDampingAt();
     	damping=damping*damping;
     	evaluation.maxDampingAtBorder=XMIPP_MAX(evaluation.maxDampingAtBorder,damping);
-
+    	size_t totalSteps_w = (int)(wmax/(wmax/99.9));
+        double w=0;
         int idx = 0;
-    	for (double w=0; w<wmax; w+=wmax/99.0)
+
+    	for (size_t nStep_w=0 ; nStep_w<totalSteps_w; nStep_w++)
     	{
         	wx=w*XX(u);
         	wy=w*YY(u);
@@ -341,6 +346,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 
         	VEC_ELEM(envelope,idx) += double(fabs(CTF1.getValueDampingAt()));
     		idx++;
+    		w+=wmax/99.0;
     	}
 
     	if (fnCTF2!="") {
@@ -349,15 +355,21 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
         	double diff=ABS(moduleZero-module2);
         	evaluation.firstZeroDisagreement=XMIPP_MAX(evaluation.firstZeroDisagreement,diff);
     	}
+
+    	alpha+=PI/Nalpha;
     }
 
     int idx=0;
-	for (double w=0; w<wmax; w+=wmax/99.0)
+    double w=0;
+    size_t totalSteps_w = (int)(wmax/(wmax/99.0));
+
+	for (size_t nStep=0; nStep<totalSteps_w; nStep++)
 	{
 		size_t objId2 = mdEnvelope.addObject();
 		mdEnvelope.setValue(MDL_RESOLUTION_FREQ,w,objId2);
 		mdEnvelope.setValue(MDL_CTF_ENVELOPE,VEC_ELEM(envelope,idx)/Nalpha,objId2);
 		idx++;
+		w += wmax/99.0;
 	}
     evaluation.firstZeroAvg/=N;
     evaluation.firstZeroRatio=maxModuleZero/minModuleZero;

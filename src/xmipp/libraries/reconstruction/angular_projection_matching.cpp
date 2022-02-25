@@ -941,9 +941,10 @@ void ProgAngularProjectionMatching::scaleAlignOneImage(MultidimArray<double> &im
     //maxcorr = -999;
 
     // 1 (0.01 * scale_step * scale_nsteps)
-    for(double scale = 1 - 0.01 * scale_step * scale_nsteps ;
-        scale <= 1 + 0.01 * scale_step * scale_nsteps;
-        scale += 0.01 * scale_step)
+    double scale = 1 - 0.01 * scale_step * scale_nsteps;
+    size_t totalSteps_scale = (int)((1 + 0.01 * scale_step * scale_nsteps)/(0.01 * scale_step));
+
+    for(size_t nStep = 0; nStep <= totalSteps_scale; nStep++)
     {
 
         if(scale == 1.)
@@ -965,6 +966,8 @@ void ProgAngularProjectionMatching::scaleAlignOneImage(MultidimArray<double> &im
             opt_scale = scale;
             maxcorr = corr;
         }
+
+        scale += 0.01 * scale_step;
     }
 
 #ifdef TIMING

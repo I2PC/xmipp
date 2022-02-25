@@ -424,8 +424,13 @@ void ProgVolumeToPseudoatoms::removeSeeds(int Nseeds)
     double vmin=Vdiff.computeMin();
     if (vmin<0)
     {
-        for (double v=vmin+vmin/20; v<0; v-=vmin/20)
+        double v=vmin+vmin/20;
+    	size_t totalSteps = 21; // = (int)(v/(vmin/20));
+
+        for (size_t nSteps=0; nSteps<totalSteps; nSteps++)
         {
+            v = v - nSteps * (vmin/20);
+
             size_t oldListSize;
             do
             {

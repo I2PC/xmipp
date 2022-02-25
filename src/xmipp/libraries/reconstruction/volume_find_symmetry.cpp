@@ -218,10 +218,24 @@ public:
             {
                 if (verbose>0)
                     std::cerr << "Searching symmetry axis ...\n";
-                for (double rot = rot0; rot <= rotF; rot += step_rot)
-                    for (double tilt = tilt0; tilt <= tiltF; tilt += step_tilt)                    {
+
+                double rot = rot0;
+                size_t totalSteps_rot = (int)(rotF/step_rot);
+
+                double tilt = tilt0;
+                size_t totalSteps_tilt = (int)(tiltF/step_tilt);
+
+
+                //for (double rot = rot0; rot <= rotF; rot += step_rot)
+                for (size_t nStep_rot = 0; nStep_rot <= totalSteps_rot; nStep_rot++)
+                    //for (double tilt = tilt0; tilt <= tiltF; tilt += step_tilt)
+                    for (size_t nStep_tilt = 0, tilt = tilt0; nStep_tilt <= totalSteps_tilt; nStep_tilt++)
+                    {
                         rotVector.push_back(rot);
                         tiltVector.push_back(tilt);
+                        tilt += step_tilt;
+
+                    rot += step_rot;
                     }
                 vbest_corr.resizeNoCopy(numberOfThreads);
                 vbest_corr.initConstant(-1e38);
@@ -290,16 +304,23 @@ public:
             if (!local)
             {
                 int ydim=0, xdim=0;
-				for (double rot = rot0; rot <= rotF; rot += step_rot)
+                double rot = rot0;
+                size_t totalSteps_rot = (int)(rotF/step_rot);
+                double z = z0;
+                size_t totalSteps_z = (int)(zF/step_z);
+
+				for (size_t nStep_rot = 0; nStep_rot <= totalSteps_rot; nStep_rot++)
                 {
                     ydim++;
-					for (double z = z0; z <= zF; z += step_z)
+					for (size_t nStep_z = 0, z = z0; nStep_z <= totalSteps_z;  nStep_z++)
 					{
 						if (ydim==1)
 							xdim++;
 						rotVector.push_back(rot);
 						zVector.push_back(z);
+						z += step_z;
 					}
+					rot += step_rot;
                 }
                 vbest_corr.resizeNoCopy(numberOfThreads);
                 vbest_corr.initConstant(-1e38);

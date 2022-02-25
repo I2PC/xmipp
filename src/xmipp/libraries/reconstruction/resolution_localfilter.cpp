@@ -229,7 +229,7 @@ void ProgResLocalFilter::run()
 	std::cout << "freq = " << lowIdx << std::endl;
 
 
-	for (double idx = lowIdx; idx < highIdx; idx++)
+	for (int idx = lowIdx; idx < highIdx; idx++)
 	{
 		FFT_IDX2DIGFREQ(idx, ZSIZE(resVol()), freq);
 
