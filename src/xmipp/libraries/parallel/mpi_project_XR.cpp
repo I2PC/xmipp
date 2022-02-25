@@ -76,7 +76,9 @@ void ProgMPIXrayProject::run()
     size_t idx = FIRST_IMAGE;
     size_t id;
 
-    for (double angle = projParam.tilt0; angle <= projParam.tiltF; angle += projParam.tiltStep)
+    // for (double angle = projParam.tilt0; angle <= projParam.tiltF; angle += projParam.tiltStep)
+    double angle = projParam.tilt0;
+    while (angle<=projParam.tiltF)
     {
         if (projParam.singleProjection)
             data.fn_proj = projParam.fnOut;
@@ -118,6 +120,7 @@ void ProgMPIXrayProject::run()
 
         mpiData.push_back(data);
         idx++;
+        angle += projParam.tiltStep;
     }
 
     // Creation of MPI Job Handler file
