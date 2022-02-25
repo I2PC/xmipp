@@ -186,9 +186,6 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-//		FilterCTF.generateMask(proj()); // no padding
-//		FilterCTF.applyMaskSpace(proj());
-
 //		padding
 		Image<double> padp;
 		int pad;
@@ -263,11 +260,8 @@
 		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>0.5)) ? 1:0;
 	for (int n=0; n<5; ++n) {
 		dilate2D(m(), m(), 4, 0, 16);
-		m.write(formatString("%s71_dilate.mrc", fnProj.c_str()));
 		closing2D(m(), m(), 4, 0, 16);
-		m.write(formatString("%s72_close.mrc", fnProj.c_str()));
 		erode2D(m(), m(), 4, 0, 16);
-		m.write(formatString("%s73_erode.mrc", fnProj.c_str()));
 	}
  	return m;
  }
@@ -359,10 +353,21 @@
 		FilterG.applyMaskSpace(PmaskVolI());
     	PmaskVolI.write(formatString("%s1_Mask.mrc", fnProj.c_str()));
 
+    	Image<double> Inoise;
+		projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+		PmaskInv = invertMask(Pmask);
+		Inoise = subtraction(I, P, PmaskInv, Pmask, subtractAll);
+		Inoise.write(formatString("%s2_Inoise.mrc", fnProj.c_str()));
+		I.write(formatString("%s2_I.mrc", fnProj.c_str()));
+		PmaskInv.write(formatString("%s2_PmaskInv.mrc", fnProj.c_str()));
+		Pmask.write(formatString("%s2_Pmask.mrc", fnProj.c_str()));
+		I = subtraction(I, Inoise, PmaskInv, Pmask, subtractAll);
+		I.write(formatString("%s2_Iii.mrc", fnProj.c_str()));
+
 		POCSmaskProj(PmaskVolI(), P());
 		POCSmaskProj(PmaskVolI(), I());
-		P.write(formatString("%s2_PMask.mrc", fnProj.c_str()));
-		I.write(formatString("%s2_IMask.mrc", fnProj.c_str()));
+		P.write(formatString("%s3_PMask.mrc", fnProj.c_str()));
+		I.write(formatString("%s3_IMask.mrc", fnProj.c_str()));
 
 		Pctf = applyCTF(row, P);
 		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
@@ -371,8 +376,8 @@
     	radial.meanI = computeRadialAvg(I, radial.meanI);
     	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
     	radQuotient = computeRadQuotient(radQuotient, radial.meanI, radial.meanP);
-//		percentileMinMax(I(), Imin, Imax); // Replace by directly the min and max?
-		I().computeDoubleMinMax(Imin, Imax);
+		percentileMinMax(I(), Imin, Imax);
+//		I().computeDoubleMinMax(Imin, Imax);
 
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
