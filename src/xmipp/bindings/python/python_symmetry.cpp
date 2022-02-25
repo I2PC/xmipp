@@ -86,7 +86,8 @@ SymList_getTrueSymsNo(PyObject * obj, PyObject *args, PyObject *kwargs)
 PyObject *
 SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-    Matrix2D<double>  L(4, 4), R(4, 4);
+    Matrix2D<double> L(4, 4);
+    Matrix2D<double> R(4, 4);
     PyObject * symMatrices;
     PyObject * symMatrix;
     PyObject * row;
@@ -181,7 +182,12 @@ SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
 PyObject *
 SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-	double rot1, tilt1, psi1, rot2, tilt2, psi2;
+	double rot1;
+    double tilt1;
+    double psi1;
+    double rot2;
+    double tilt2;
+    double psi2;
     auto *pyProjdirMode = Py_False;
     auto *pyCheckMirrors = Py_False;
     auto *pyObjectRotation = Py_False;
@@ -219,7 +225,9 @@ SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
 PyObject *
 SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-	double rot, tilt, psi;
+	double rot;
+    double tilt;
+    double psi;
     if (PyArg_ParseTuple(args, "ddd", &rot, &tilt, &psi))
     {
         try
@@ -234,7 +242,10 @@ SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
             PyTuple_SetItem(angles, 2, PyFloat_FromDouble(psi));
             PyList_SetItem(retval,0,angles);
 
-            Matrix2D<double>  L(4, 4), R(4, 4), E, Ep;
+            Matrix2D<double>  L(4, 4);
+            Matrix2D<double> R(4, 4);
+            Matrix2D<double> E;
+            Matrix2D<double> Ep;
             Euler_angles2matrix(rot,tilt,psi,E,false);
             for (int isym = 0; isym < symlist.symsNo(); isym++)
             {

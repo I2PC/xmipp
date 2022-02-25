@@ -136,7 +136,8 @@ CodeBook::CodeBook(unsigned _n, const ClassicTrainingVectors& _ts, const bool _u
         if (_use_rand_cvs)
         {
             // NT: Scan this vector for the range of pixel values
-            floatFeature minval, maxval;
+            floatFeature minval;
+            floatFeature maxval;
             std::vector<floatFeature>::const_iterator viter = v.begin();
             minval = maxval = *viter;
             for (viter++; viter != v.end(); viter++)
@@ -201,7 +202,8 @@ unsigned CodeBook::testIndex(const FeatureVector& _in) const
     double bestDist = euclideanDistance(*i, _in);
 
     // eval the rest
-    unsigned bestIndex = 0, index = 1;
+    unsigned bestIndex = 0;
+    unsigned index = 1;
     for (i++ ; i < itemsEnd() ; i++)
     {
         double dist = euclideanDistance(*i, _in);
@@ -377,7 +379,8 @@ void CodeBook::readSelf(std::istream& _is, long _dim, long _size)
 
         // Determines the number of rows and columns in the training set
 
-        long dim, size;
+        long dim;
+        long size;
         if (_dim == -1)
         {
             _is >> dim;
@@ -389,7 +392,8 @@ void CodeBook::readSelf(std::istream& _is, long _dim, long _size)
             _is >> line;
             if (!sscanf(line.c_str(), "%ld", &size))
             {
-                int x, y;
+                int x;
+                int y;
                 _is >> x;
                 _is >> y;
                 size = x * y;

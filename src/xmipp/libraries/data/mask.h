@@ -123,7 +123,6 @@ void BlackmanMask(MultidimArray< double >& mask, int mode = INNER_MASK,
  */
 void SincBlackmanMask(MultidimArray< double >& mask,
                       double omega, double power_percentage,
-                      int mode = INNER_MASK,
                       double x0 = 0, double y0 = 0, double z0 = 0);
 
 /** Creates a circular mask for already sized masks
@@ -429,7 +428,8 @@ public:
     int blob_order;
     
     /** Blob parameters */
-    double blob_radius, blob_alpha;
+    double blob_radius;
+    double blob_alpha;
 
     /** Height
      * Height for cylinders.
@@ -907,8 +907,10 @@ void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
                                      MultidimArray< T >& v, Histogram1D &hist,
                                      int no_steps)
 {
-    T min_val, max_val;
-    double avg, stddev;
+    T min_val;
+    T max_val;
+    double avg;
+    double stddev;
 
     computeStats_within_binary_mask(mask, v, min_val, max_val, avg, stddev);
     compute_hist_within_binary_mask(mask, v, hist, min_val, max_val, no_steps);
