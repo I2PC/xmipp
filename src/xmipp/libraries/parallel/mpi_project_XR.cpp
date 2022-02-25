@@ -76,7 +76,7 @@ void ProgMPIXrayProject::run()
     size_t idx = FIRST_IMAGE;
     size_t id;
 
-    for (double angle = projParam.tilt0; angle <= projParam.tiltF; angle += projParam.tiltStep)
+    for (int angle = projParam.tilt0; angle <= projParam.tiltF; angle += projParam.tiltStep)
     {
         if (projParam.singleProjection)
             data.fn_proj = projParam.fnOut;
