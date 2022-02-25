@@ -1765,7 +1765,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci()
                     error(i, j) = heavy_penalization;
                     continue;
                 }
-                for (double angle = 0; angle < 180; angle += 45)
+                for (int angle = 0; angle < 180; angle += 45)
                 {
                     int iter;
                     double fitness;

@@ -755,12 +755,12 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 #endif
 
     for (int flip=0; flip<=checkMirrors; ++flip)
-		for (int shiftX = Xoff - max_shift_change; shiftX <= Xoff + max_shift_change; shiftX += shift_step)
-			for (int shiftY = Yoff - max_shift_change; shiftY <= Yoff + max_shift_change; shiftY += shift_step)
+		for (double shiftX = Xoff - max_shift_change; shiftX <= Xoff + max_shift_change; shiftX += shift_step)
+			for (double shiftY = Yoff - max_shift_change; shiftY <= Yoff + max_shift_change; shiftY += shift_step)
 			{
 				if ((shiftX - Xoff)*(shiftX - Xoff) + (shiftY - Yoff)*(shiftY - Yoff) > R2)
 					continue;
-				for (int psi = psi0; psi <= psiF; psi += psi_step)
+				for (double psi = psi0; psi <= psiF; psi += psi_step)
 				{
 					N_trials++;
 
