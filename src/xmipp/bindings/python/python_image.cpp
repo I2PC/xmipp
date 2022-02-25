@@ -934,7 +934,7 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
     int x = 0;
     int y = 0;
 
-    if (nullptr && PyArg_ParseTuple(args, "Oii", &patch, &x, &y); !self)
+    if (self != nullptr && PyArg_ParseTuple(args, "Oii", &patch, &x, &y))
     {
         try
         {

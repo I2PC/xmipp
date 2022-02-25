@@ -195,10 +195,8 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int Xdim;
     int Ydim;
-    int Zdim;
-    size_t Ndim;
-    Zdim=1;
-    Ndim=1;
+    int Zdim=1;
+    size_t Ndim=1;
     DataType dataType = DT_Float;
 
     PyObject * input;

@@ -151,9 +151,9 @@ void ProgImageResize::preProcess()
     {
         //        if (isVol)
         //            REPORT_ERROR(ERR_PARAM_INCORRECT, "The 'fourier' scaling type is only valid for images");
-        auto oxdim2 = (int)xdimOut;
-        auto oydim2 = (int)ydimOut;
-        auto ozdim2 = (int)zdimOut;
+        auto oxdim2 = xdimOut;
+        auto oydim2 = ydimOut;
+        auto ozdim2 = zdimOut;
         scale_type = RESIZE_FOURIER;
 
         xdimOut = getIntParam("--fourier", 0);

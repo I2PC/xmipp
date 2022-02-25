@@ -782,10 +782,7 @@ void * blobs2voxels_SimpleGrid( void * data )
 #ifdef DEBUG_MORE
                                     if (condition)
                                     {
-                                        auto iz = intz;
-                                        auto iy = inty;
-                                        auto ix = intx;
-                                        std::cout << " adding " << A3D_ELEM(*vol_corr, iz, iy, ix)
+                                        std::cout << " adding " << A3D_ELEM(*vol_corr, intz, inty, intx)
                                         << " * " << A1D_ELEM(blob_table, id) << " = "
                                         << contrib << std::endl;
                                         std::cout.flush();
