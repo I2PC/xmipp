@@ -122,7 +122,7 @@ Codelets::Codelets() {
 
 
 	// Reconstruct FFT Codelet
-	reconstruct_fft.where = STARPU_CPU | STARPU_CUDA;
+	reconstruct_fft.where = STARPU_CUDA;
 	// NOTE: From StarPU/examples/cg/cg_kernels.c it seems that STARPU_SPMD applies only to CPU implementations,
 	//       which we rely on. However, the documentation does not say that explicitly, so beware.
 	reconstruct_fft.type = starpu_codelet_type::STARPU_SEQ; // starpu_codelet_type::STARPU_SPMD; Disabled for now due to a bug in StarPU 1.3.2 (memory handles are not correctly copied to all SPMD nodes)
@@ -155,7 +155,7 @@ Codelets::Codelets() {
       return &m;
     }();
 
-	reconstruct_fft_table.where = STARPU_CPU | STARPU_CUDA;
+	reconstruct_fft_table.where = STARPU_CUDA;
 	// NOTE: From StarPU/examples/cg/cg_kernels.c it seems that STARPU_SPMD applies only to CPU implementations,
 	//       which we rely on. However, the documentation does not say that explicitly, so beware.
 	reconstruct_fft_table.type = starpu_codelet_type::STARPU_SEQ; // starpu_codelet_type::STARPU_SPMD; Disabled for now due to a bug in StarPU 1.3.2 (memory handles are not correctly copied to all SPMD nodes)

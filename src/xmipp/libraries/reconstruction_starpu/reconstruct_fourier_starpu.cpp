@@ -533,6 +533,8 @@ ProgRecFourierStarPU::ComputeStarPUResult ProgRecFourierStarPU::computeStarPU(
 		starpu_data_unregister_submit(fftHandle);
 		starpu_data_unregister_submit(traverseSpacesHandle);
 		starpu_data_unregister_submit(amountLoadedHandle);
+		// don't overload scheduler
+		starpu_task_wait_for_n_submitted(200);
 	}
 
 	// Mark helper buffers that are shared between all tasks for removal
