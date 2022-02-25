@@ -52,7 +52,7 @@ void ProgTomoFilterCoordinates::defineParams()
     addUsageLine("percentile to select the number of coordinates to be saved after the scoring need o be ");
     addUsageLine("input. If these three options are input then this criteria will be applied.");
 	addParamsLine("  --inTomo <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
-	addParamsLine("  --mask <xmd_file=\"\">                               : Input xmd file containing the 3D coordinates.");
+	addParamsLine("  [--mask <xmd_file=\"\">]                               : Input xmd file containing the 3D coordinates.");
 	addParamsLine("  --coordinates <xmd_file=\"\">                               : Percentile resolution threshold.");
 	addParamsLine("  --radius <radius=50>                               : Radius of the neighbourhood of the coordinates to get resolution score.");
     addParamsLine("  [--threshold <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
