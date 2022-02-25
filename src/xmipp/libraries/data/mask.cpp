@@ -486,45 +486,28 @@ void BinaryCylinderMask(MultidimArray<int> &mask,
 
 void BinaryConeMask(MultidimArray<int> &mask, double theta, int mode,bool centerOrigin)
 {
+    int halfX = mask.xdim/2;
+    int halfY = mask.ydim/2;
+    int halfZ = mask.zdim/2;
 
-    int halfX;
-    int halfY;
-    int halfZ;
-    int minX;
-    int minY;
-    int minZ;
-    int maxX;
-    int maxY;
-    int maxZ;
-    int ipp;
-    int jpp;
-    int kpp;
+    int minX = -halfX;
+    int minY = -halfY;
+    int minZ = -halfZ;
 
-    halfX = mask.xdim/2;
-    halfY = mask.ydim/2;
-    halfZ = mask.zdim/2;
-
-    minX = -halfX;
-    minY = -halfY;
-    minZ = -halfZ;
-
-    maxX = (int)((mask.xdim-0.5)/2);
-    maxY = (int)((mask.ydim-0.5)/2);
-    maxZ = (int)((mask.zdim-0.5)/2);
+    int maxX = (int)((mask.xdim-0.5)/2);
+    int maxY = (int)((mask.ydim-0.5)/2);
+    int maxZ = (int)((mask.zdim-0.5)/2);
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
     {
+        int kpp = k;
+        int ipp = i;
+        int jpp = j;
         if (centerOrigin)
         {
             kpp = intWRAP (k+halfZ,minZ,maxZ);
             ipp = intWRAP (i+halfY,minY,maxY);
             jpp = intWRAP (j+halfX,minX,maxX);
-        }
-        else
-        {
-            kpp=k;
-            ipp=i;
-            jpp=j;
         }
 
         double rad = tan(PI * theta / 180.) * (double)k;
@@ -540,41 +523,20 @@ void BinaryConeMask(MultidimArray<int> &mask, double theta, int mode,bool center
 void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
                      const Matrix2D<double> &A, bool centerOrigin)
 {
-    int halfX;
-    int halfY;
-    int halfZ;
-    int minX;
-    int minY;
-    int minZ;
-    int maxX;
-    int maxY;
-    int maxZ;
-    int ipp;
-    int jpp;
-    int kpp;
+    int halfX = mask.xdim/2;
+    int halfY = mask.ydim/2;
+    int halfZ = mask.zdim/2;
 
-    halfX = mask.xdim/2;
-    halfY = mask.ydim/2;
-    halfZ = mask.zdim/2;
+    int minX = -halfX;
+    int minY = -halfY;
+    int minZ = -halfZ;
 
-    minX = -halfX;
-    minY = -halfY;
-    minZ = -halfZ;
+    int maxX = (int)((mask.xdim-0.5)/2);
+    int maxY = (int)((mask.ydim-0.5)/2);
+    int maxZ = (int)((mask.zdim-0.5)/2);
 
-    maxX = (int)((mask.xdim-0.5)/2);
-    maxY = (int)((mask.ydim-0.5)/2);
-    maxZ = (int)((mask.zdim-0.5)/2);
-
-
-    double xp;
-    double zp;
-    double tg0;
-    double tgF;
-    double limx0;
-    double limxF;
-
-    tg0 = -tan(PI * (-90. - thetaF) / 180.);
-    tgF = -tan(PI * (90. - theta0) / 180.);
+    auto tg0 = -tan(PI * (-90. - thetaF) / 180.);
+    auto tgF = -tan(PI * (90. - theta0) / 180.);
     if (ABS(tg0) < XMIPP_EQUAL_ACCURACY)
         tg0=0.;
     if (ABS(tgF) < XMIPP_EQUAL_ACCURACY)
@@ -585,8 +547,12 @@ void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
         auto di=(double)i;
         auto dj=(double)j;
         auto dk=(double)k;
-        xp = MAT_ELEM(A, 0, 0) * dj + MAT_ELEM(A, 0, 1) * di + MAT_ELEM(A, 0, 2) * dk;
-        zp = MAT_ELEM(A, 2, 0) * dj + MAT_ELEM(A, 2, 1) * di + MAT_ELEM(A, 2, 2) * dk;
+        auto xp = MAT_ELEM(A, 0, 0) * dj + MAT_ELEM(A, 0, 1) * di + MAT_ELEM(A, 0, 2) * dk;
+        auto zp = MAT_ELEM(A, 2, 0) * dj + MAT_ELEM(A, 2, 1) * di + MAT_ELEM(A, 2, 2) * dk;
+
+        int kpp = k;
+        int ipp = i;
+        int jpp = j;
 
         if (centerOrigin)
         {
@@ -594,15 +560,9 @@ void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
             ipp = intWRAP (i+halfY,minY,maxY);
             jpp = intWRAP (j+halfX,minX,maxX);
         }
-        else
-        {
-            kpp=k;
-            ipp=i;
-            jpp=j;
-        }
 
-        limx0 = tg0 * zp;// + 0.5;
-        limxF = tgF * zp;// + 0.5;
+        auto limx0 = tg0 * zp;// + 0.5;
+        auto limxF = tgF * zp;// + 0.5;
         if (zp >= 0)
         {
             if (xp <= limx0 || xp >= limxF)
