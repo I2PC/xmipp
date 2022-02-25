@@ -995,17 +995,15 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            auto * object = new MDObject((MDLabel) label);
+            auto object = MDObject((MDLabel) label);
             auto *self = (MetaDataObject*) obj;
-            if (self->metadata->getValue(*object, objectId))
+            if (self->metadata->getValue(object, objectId))
             {
-                pyValue = getMDObjectValue(object);
-                delete object;
+                pyValue = getMDObjectValue(&object);
                 return pyValue;
             }
             else
             {
-                delete object;
                 Py_RETURN_NONE;
             }
         }
@@ -1662,12 +1660,11 @@ MetaData_aggregateSingle(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            auto * object = new MDObject((MDLabel) label);
+            auto object = MDObject((MDLabel) label);
             auto *self = (MetaDataObject*) obj;
-            self->metadata->aggregateSingle(*object, (AggregateOperation) op,
+            self->metadata->aggregateSingle(object, (AggregateOperation) op,
                                             (MDLabel) label);
-            pyValue = getMDObjectValue(object);
-            delete object;
+            pyValue = getMDObjectValue(&object);
             return pyValue;
         }
         catch (XmippError &xe)
@@ -1690,12 +1687,11 @@ MetaData_aggregateSingleInt(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            auto * object = new MDObject((MDLabel) label);
+            auto object = MDObject((MDLabel) label);
             auto *self = (MetaDataObject*) obj;
-            self->metadata->aggregateSingleInt(*object, (AggregateOperation) op,
+            self->metadata->aggregateSingleInt(object, (AggregateOperation) op,
                                                (MDLabel) label);
-            pyValue = getMDObjectValue(object);
-            delete object;
+            pyValue = getMDObjectValue(&object);
             return pyValue;
         }
         catch (XmippError &xe)
