@@ -276,7 +276,7 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             else if (MetaData_Check(pyValue))
             {
-                md = ((MetaDataObject*)pyValue)->metadata;
+                md = ((MetaDataObject*)pyValue)->metadata.get();
                 destroyMd = false;
                 size = md->size();
             }

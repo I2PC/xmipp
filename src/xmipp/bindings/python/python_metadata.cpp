@@ -468,8 +468,6 @@ PyTypeObject MetaDataType =
 /* Destructor */
 void MetaData_dealloc(MetaDataObject* self)
 {
-    delete self->metadata;
-    delete self->iter;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -1492,7 +1490,7 @@ MetaData_iter(PyObject *obj)
     try
     {
         auto *self = (MetaDataObject*) obj;
-        self->iter = new MetaDataDb::id_iterator(self->metadata->ids().begin());
+        self->iter = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().begin());
         Py_INCREF(self);
         return (PyObject *) self;
         //return Py_BuildValue("l", self->metadata->iteratorBegin());
@@ -1589,11 +1587,11 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             try
             {
                 if (MetaData_Check(input))
-                    self->metadata = new MetaDataDb(MetaData_Value(input));
+                    self->metadata = std::make_unique<MetaDataDb>(MetaData_Value(input));
                 else if ((pyStr = PyObject_Str(input)) != nullptr)
                 {
                     const char *str = PyUnicode_AsUTF8(pyStr);
-                    self->metadata = new MetaDataDb(str);
+                    self->metadata = std::make_unique<MetaDataDb>(str);
                 }
                 else
                 {
@@ -1610,7 +1608,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         }
         else
         {
-            self->metadata = new MetaDataDb();
+            self->metadata = std::make_unique<MetaDataDb>();
         }
     }
     return (PyObject *)self;

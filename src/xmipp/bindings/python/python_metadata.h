@@ -121,8 +121,8 @@ extern PyTypeObject MDQueryType;
 typedef struct
 {
     PyObject_HEAD
-    MetaDataDb * metadata;
-    MetaDataDb::id_iterator * iter;
+    std::unique_ptr<MetaDataDb> metadata;
+    std::unique_ptr<MetaDataDb::id_iterator> iter;
 }
 MetaDataObject;
 
