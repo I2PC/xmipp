@@ -538,22 +538,22 @@ void processVoxelBlob(
 			int index2D = i * xSize + j;
 #endif
 
-#if usePrecomputedInterpolation
+			float wBlob;
+if (usePrecomputedInterpolation) {
 			int aux = (int) ((distanceSqr * gpuC.cIDeltaSqrt + 0.5f));
 #if SHARED_BLOB_TABLE
-			float wBlob = BLOB_TABLE[aux];
+			wBlob = BLOB_TABLE[aux];
 #else
-			float wBlob = blobTableSqrt[aux];
+			wBlob = blobTableSqrt[aux];
 #endif
-#else
-			float wBlob;
+} else {
 				if (useFastKaiser) {
 					wBlob = kaiserValueFast(distanceSqr);
 				}
 				else {
 					wBlob = kaiserValue<blobOrder>(sqrtf(distanceSqr), gpuC.cBlobRadius) * gpuC.cIw0;
 				}
-#endif
+}
 			float weight = wBlob * dataWeight;
 			w += weight;
 #if SHARED_IMG
