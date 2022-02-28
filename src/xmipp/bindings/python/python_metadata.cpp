@@ -1687,10 +1687,9 @@ MetaData_aggregateSingleInt(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            auto object = MDObject((MDLabel) label);
+            auto object = MDObject(label);
             auto *self = (MetaDataObject*) obj;
-            self->metadata->aggregateSingleInt(object, (AggregateOperation) op,
-                                               (MDLabel) label);
+            self->metadata->aggregateSingleInt(object, op, label);
             pyValue = getMDObjectValue(&object);
             return pyValue;
         }
@@ -1726,8 +1725,8 @@ MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             auto *self = (MetaDataObject*) obj;
             self->metadata->aggregate(MetaData_Value(pyMd),
-                                      (AggregateOperation) op, (MDLabel) aggregateLabel,
-                                      (MDLabel) operateLabel, (MDLabel) resultLabel);
+                                      op, aggregateLabel,
+                                      operateLabel, resultLabel);
             Py_RETURN_NONE;
         }
         catch (XmippError &xe)
