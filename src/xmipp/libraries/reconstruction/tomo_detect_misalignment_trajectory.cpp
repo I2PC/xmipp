@@ -1659,6 +1659,8 @@ auto ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int
 
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
+		auto cm = vCM[i];
+		
 		if (cm.coordinate3d.x==x && cm.coordinate3d.y==y && cm.coordinate3d.z==z)
 		{
 			std::cout << "ADDED!!!!!!" <<i<<std::endl;
@@ -1723,7 +1725,7 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 
 
 // --------------------------- RESIDUAL ANALYSIS CLASS ----------------------------
-bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(std::vector<Point3D<double>> proyCoords)
+bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &proyCoords)
 {
 	double sumX = 0;
 	double sumY = 0;
@@ -1732,6 +1734,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(std::
 	double distance;
 	double maxDistance = 0;
 	double totalDistance = 0;
+	double chPerimeterer = 0;
+	double chArea = 0;
+
+	std::vector<Point3D<double>> hull;
 
 	for (size_t i = 0; i < proyCoords.size(); i++)
 	{
@@ -1739,6 +1745,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(std::
 		sumY += proyCoords[i].y;
 	}
 	
+
 	// Calculate centroid
 	centroidX = sumX/proyCoords.size();
 	centroidY = sumY/proyCoords.size();
@@ -1757,12 +1764,82 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(std::
 		}
 	}
 
+
 	// Convex Hull
+	auto p2dVector = proyCoords;
+	auto remainingP2d = proyCoords;
 
-		//  Perimeter
+	bool cmp(const Size& lp2d, const Size& rp2d)
+	{
+		return lp2d.x < rp2d.x;
+	}
 
-		// Area
+	auto min_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
+	hull.push_back(p2d);
+
+	while (p2dVector.size()>0)
+	{
+		auto p2d = p2dVector[0];
+
+		while (remainingP2d.size()>0)
+		{
+			auto p2d_it = remainingP2d[0];
+
+			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
+
+			if (angle<0)
+			{
+				angle += 2*PI;
+			}
+
+			if (angle < PI)
+			{
+				remainingP2d.erase(0);
+			}
+			else
+			{
+				p2d = p2d_it;
+				remainingP2d.erase(0);
+			}	
+		}
+
+		if (p2d.x==min_p2d.x && p2d.y==min_p2d.y)
+		{
+			break;
+		}
+
+		hull.push_back(p2d);
+
+		p2dVector.erase(0);
+		remainingP2d = p2dVector;
+	}
+	
+
+	// CH-Perimeter
+	int shiftIndex;
+
+	for (size_t i = 0; i < hull.size(); i++)
+	{
+		shiftIndex = (i+1) % hull.size();
+		chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
+		                      (hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y)) 
+	}
+	
+
+	// CH-Area
+	double sum1 = 0;
+	double sum2 = 0;
+
+	for (size_t i = 0; i < hull.size(); i++)
+	{
+		shiftIndex = (i+1) % hull.size();
+		sum1 += hull[i].x * hull[shiftIndex].y;	
+		sum2 += hull[shiftIndex].x * hull[i].y;	
+	}
+
+	chArea = abs(0.5 * (sum1 - sum2));
 }
+
 
 
 
