@@ -163,7 +163,10 @@ public:
     /// Pixel size in Y-dim in lens plane
     double dyl;
     /// Z limits around Zo in the psf generation due to Nyquist Limit
-    double deltaZMaxX, deltaZMaxY, deltaZMinX, deltaZMinY;
+    double deltaZMaxX;
+    double deltaZMaxY;
+    double deltaZMinX;
+    double deltaZMinY;
 
     /// Parameters to change image size to avoid Nyquist limit
     PsfxrAdjust AdjustType;
@@ -198,7 +201,8 @@ public:
     /// object space Z sampling rate
     double dzo;
     /// Size of the image in image plane, to be rescaled if needed
-    size_t Nix, Niy;
+    size_t Nix;
+    size_t Niy;
 
     /// object space XY-plane sampling rate of the PSF Volume
     double dxoPSF;

@@ -66,7 +66,8 @@ void groupCTFMetaData(const MetaDataDb &imgMd, MetaDataDb &ctfMd, std::vector<MD
 
 void generateCTFImageWith2CTFs(const MetaData &MD1, const MetaData &MD2, int Xdim, MultidimArray<double> &imgOut)
 {
-    CTFDescription CTF1, CTF2;
+    CTFDescription CTF1;
+    CTFDescription CTF2;
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
     CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
@@ -112,7 +113,8 @@ double errorBetween2CTFs( MetaData &MD1,
 
     Matrix1D<double> freq(2); // Frequencies for Fourier plane
 
-    CTFDescription CTF1, CTF2;
+    CTFDescription CTF1;
+    CTFDescription CTF2;
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
@@ -125,7 +127,8 @@ double errorBetween2CTFs( MetaData &MD1,
     CTF2.produceSideInfo();
 
     double iTm=1.0/CTF1.Tm;
-    size_t xDim, yDim;
+    size_t xDim;
+    size_t yDim;
     xDim = yDim = Xdim;
 #define DEBUG
 #ifdef DEBUG
@@ -215,7 +218,8 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
 {
     Matrix1D<double> freq(2); // Frequencies for Fourier plane
 
-    CTFDescription CTF1, CTF2;
+    CTFDescription CTF1;
+    CTFDescription CTF2;
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
@@ -228,7 +232,8 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
     CTF2.produceSideInfo();
 
     double iTm=1.0/CTF1.Tm;
-    size_t xDim, yDim;
+    size_t xDim;
+    size_t yDim;
     xDim = yDim = Xdim;
 //#define DEBUG
 #ifdef DEBUG
@@ -698,7 +703,9 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
     double wmax = 1 / (2 * Tm);
     double wstep = wmax / 300;
     int found = 0;
-    double last_ctf = getValuePureNoPrecomputedAt(0), ctf=0.0, state=1;
+    double last_ctf = getValuePureNoPrecomputedAt(0);
+    double ctf=0.0;
+    double state=1;
 
     double w = 0;
 
@@ -1423,7 +1430,9 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
     double wmax = 1 / (2 * Tm);
     double wstep = wmax / 300;
     int found = 0;
-    double last_ctf = getValuePureNoDampingNoPrecomputedAt(0,0) , ctf=0.0, state=1; //getValuePureWithoutDampingAt()
+    double last_ctf = getValuePureNoDampingNoPrecomputedAt(0,0);
+    double ctf=0.0;
+    double state=1; //getValuePureWithoutDampingAt()
     double w = 0;
     while (w <= wmax)
     {

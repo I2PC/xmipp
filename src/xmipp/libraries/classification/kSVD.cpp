@@ -47,7 +47,10 @@ double orthogonalMatchingPursuit(const Matrix1D<double> &x,
     
     // Compute the projection of x onto each of the atoms and look for the
     // maximum
-    Matrix1D<double> c, w, e, u;
+    Matrix1D<double> c;
+    Matrix1D<double> w;
+    Matrix1D<double> e;
+    Matrix1D<double> u;
     c.initZeros(K);
     e.initZeros(K); e.initConstant(1);
     u.initZeros(K); u.initConstant(1);
@@ -181,7 +184,8 @@ double lasso(const Matrix1D<double> &x,
         
         // Prepare for next iteration
         iter++;
-        double normDiff=0, normAlpha=0;
+        double normDiff=0;
+        double normAlpha=0;
         FOR_ALL_ELEMENTS_IN_MATRIX1D(alpha)
         {
             double diff=alpha(i)-alphaOld(i);

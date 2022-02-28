@@ -488,8 +488,12 @@ public:
     void computeAverageAndStddev(double &avg, double &stddev,
                                  int mode = FULL_CIRCLES) const
     {
-        double aux, sum = 0., sum2=0.;
-        double twopi, w, N = 0;
+        double aux;
+        double sum = 0.;
+        double sum2=0.;
+        double twopi;
+        double w;
+        double N = 0;
 
         if (mode == FULL_CIRCLES)
             twopi = 2.*PI;
@@ -586,7 +590,9 @@ public:
         double last_ring   = ring_radius[rings.size()-1];
         float outer       = last_ring + extra_shell;
         float inner       = XMIPP_MAX(0.,first_ring - extra_shell);
-        for (float radius = 0.; radius < outer; radius +=1.)
+        
+        // for (float radius = 0.; radius < outer; radius +=1.)
+        for (int radius = 0; radius < outer; radius++)
         {
             if ( (radius >= inner && radius < first_ring) ||
                  ( radius <= outer && radius > last_ring) )
@@ -624,7 +630,12 @@ public:
                                       double oversample1 = 1., int mode1 = FULL_CIRCLES)
     {
         double twopi;
-        double xp, yp, minxp, maxxp, minyp, maxyp;
+        double xp;
+        double yp;
+        double minxp;
+        double maxxp;
+        double minyp;
+        double maxyp;
 
         auto noOfRings = getNoOfRings(first_ring, last_ring);
         rings.resize(noOfRings);

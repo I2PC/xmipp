@@ -148,7 +148,9 @@ private:
     unsigned numNeurons;
     unsigned numVectors;
     unsigned dim;
-    std::vector<double> tmpV, tmpD, tmpDens;
+    std::vector<double> tmpV;
+    std::vector<double> tmpD;
+    std::vector<double> tmpDens;
     std::vector < std::vector<double> > tmpMap;
 #ifdef UNUSED // detected as unused 29.6.2018
     void showX(const TS& _ts);
