@@ -143,7 +143,7 @@ xmipp_labelHasTag(PyObject *obj, PyObject *args)
 PyObject *
 xmipp_labelIsImage(PyObject *obj, PyObject *args)
 {
-    PyObject * input, *str_exc_type = nullptr, *pyStr = nullptr ;
+    PyObject * input;
     int tag = TAGLABEL_IMAGE;
 
     if (PyArg_ParseTuple(args, "O", &input))
@@ -193,13 +193,13 @@ xmipp_isValidLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int Xdim,Ydim,Zdim;
-    size_t Ndim;
-    Zdim=1;
-    Ndim=1;
+    int Xdim;
+    int Ydim;
+    int Zdim=1;
+    size_t Ndim=1;
     DataType dataType = DT_Float;
 
-    PyObject * input, *str_exc_type = nullptr, *pyStr = nullptr ;
+    PyObject * input;
     if (PyArg_ParseTuple(args, "Oii|iii", &input, &Xdim, &Ydim, &Zdim,
                          &Ndim, &dataType))
     {
@@ -223,7 +223,7 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyValue, *str_exc_type = nullptr, *pyStr1 = nullptr; //Only used to skip label and value
+    PyObject *pyValue;
 
     if (PyArg_ParseTuple(args, "O", &pyValue))
     {
@@ -232,7 +232,10 @@ xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
 
             PyObject * pyStr = PyObject_Str(pyValue);
             auto *str = (char*)PyUnicode_AsUTF8(pyStr);
-            size_t xdim, ydim, zdim, ndim;
+            size_t xdim;
+            size_t ydim;
+            size_t zdim;
+            size_t ndim;
             getImageSize(str, xdim, ydim, zdim, ndim);
             Py_DECREF(pyStr);
             return Py_BuildValue("kkkk", xdim, ydim, zdim, ndim);
@@ -285,7 +288,10 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
                 PyErr_SetString(PyXmippError, "Invalid argument: expected String, FileName or MetaData");
                 return nullptr;
             }
-            size_t xdim, ydim, zdim, ndim;
+            size_t xdim;
+            size_t ydim;
+            size_t zdim;
+            size_t ndim;
             getImageSize(*md, xdim, ydim, zdim, ndim);
 
             if (destroyMd)
@@ -305,7 +311,8 @@ PyObject *
 xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
-    PyObject *input = nullptr, *pyStr = nullptr, *pyStr1 = nullptr;
+    PyObject *input = nullptr;
+    PyObject *pyStr = nullptr;
     char *str = nullptr;
     if (PyArg_ParseTuple(args, "O", &input))
     {
@@ -387,7 +394,8 @@ xmipp_CheckImageCorners(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *filename1, *filename2;
+    PyObject *filename1;
+    PyObject *filename2;
 
     if (PyArg_ParseTuple(args, "OO", &filename1, &filename2))
     {
@@ -417,7 +425,8 @@ xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *filename1, *filename2;
+    PyObject *filename1;
+    PyObject *filename2;
     size_t offset=0;
     if (PyArg_ParseTuple(args, "OO|i", &filename1, &filename2, &offset))
     {
@@ -448,7 +457,8 @@ xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *filename1, *filename2;
+    PyObject *filename1;
+    PyObject *filename2;
     if (PyArg_ParseTuple(args, "OO", &filename1, &filename2))
     {
         try
@@ -475,7 +485,8 @@ xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *filename1, *filename2;
+    PyObject *filename1;
+    PyObject *filename2;
     if (PyArg_ParseTuple(args, "OO", &filename1, &filename2))
     {
         try
@@ -501,7 +512,8 @@ xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *input1, *input2;
+    PyObject *input1;
+    PyObject *input2;
     double tolerance=0.;
 
     if (PyArg_ParseTuple(args, "OO|d", &input1, &input2, &tolerance))
@@ -511,7 +523,8 @@ xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             size_t index1 = 0;
             size_t index2 = 0;
-            char * fn1, *fn2;
+            char * fn1;
+            char * fn2;
 
             // If the inputs objects are tuples, consider it (index, filename)
             if (PyTuple_Check(input1))
@@ -555,7 +568,8 @@ PyObject *
 xmipp_readMetaDataWithTwoPossibleImages(PyObject *obj, PyObject *args,
                                         PyObject *kwargs)
 {
-    PyObject *pyStr, *pyMd; //Only used to skip label and value
+    PyObject *pyStr;
+    PyObject *pyMd; //Only used to skip label and value
 
     if (PyArg_ParseTuple(args, "OO", &pyStr, &pyMd))
     {
@@ -592,15 +606,20 @@ xmipp_readMetaDataWithTwoPossibleImages(PyObject *obj, PyObject *args,
 PyObject *
 xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyStrFnOrig, *pyStrFnOut;
-    int label, skipFirstBlock;
+    PyObject *pyStrFn;
+    PyObject *pyStrFnOrig;
+    PyObject *pyStrFnOut;
+    int label;
+    int skipFirstBlock;
 
     if (PyArg_ParseTuple(args, "OOOii", &pyStrFn, &pyStrFnOrig, &pyStrFnOut,
                          &label, &skipFirstBlock))
     {
         try
         {
-            FileName fn, fnOrig, fnOut;
+            FileName fn;
+            FileName fnOrig;
+            FileName fnOut;
             if (PyUnicode_Check(pyStrFn))
                 fn = (char*)PyUnicode_AsUTF8(pyStrFn);
 
@@ -665,13 +684,16 @@ bool validateInputImageString(PyObject * pyImage, PyObject *pyStrFn, FileName &f
 PyObject *
 xmipp_compareTwoMetadataFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn1, *pyStrFn2, *pyStrAux;
+    PyObject *pyStrFn1;
+    PyObject *pyStrFn2;
+    PyObject *pyStrAux;
 
     if (PyArg_ParseTuple(args, "OO", &pyStrFn1, &pyStrFn2))
     {
         try
         {
-            FileName fn1, fn2;
+            FileName fn1;
+            FileName fn2;
 
             pyStrAux = PyObject_Str(pyStrFn1);
 
@@ -729,7 +751,8 @@ Py_RETURN_NONE;\
 PyObject *
 xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyStrAux;
+    PyObject *pyStrFn;
+    PyObject *pyStrAux;
     FileName fn;
 
     if (PyArg_ParseTuple(args, "O", &pyStrFn))
@@ -748,7 +771,9 @@ PyObject *
 xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     import_array();
-    double rot, tilt, psi;
+    double rot;
+    double tilt;
+    double psi;
     if (PyArg_ParseTuple(args, "ddd", &rot,&tilt,&psi))
     {
         npy_intp dims[2];
@@ -779,7 +804,9 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
         void * data = PyArray_DATA(arr);
         Matrix2D<double> euler(3,3);
         memcpy((euler.mdata),data, 9 * sizeof(double));
-        double rot, tilt, psi;
+        double rot;
+        double tilt;
+        double psi;
         Euler_matrix2angles(euler,rot, tilt, psi);
         return Py_BuildValue("fff", rot, tilt, psi);//fff three real
     }
@@ -790,7 +817,9 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_Euler_direction(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    double rot, tilt, psi;
+    double rot;
+    double tilt;
+    double psi;
     if (PyArg_ParseTuple(args, "ddd", &rot,&tilt,&psi))
     {
         Matrix1D<double> direction(3);
@@ -839,10 +868,12 @@ xmipp_activateRegExtensions(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_fastEstimateEnhancedPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyImage;
+    PyObject *pyStrFn;
+    PyObject *pyImage;
     //ImageObject *pyImage;
     double downsampling;
-    int dim, Nthreads;
+    int dim;
+    int Nthreads;
     FileName fn;
 
     if (PyArg_ParseTuple(args, "OOdii", &pyImage, &pyStrFn, &downsampling, &dim, &Nthreads))
@@ -897,8 +928,11 @@ Py_RETURN_NONE;\
 PyObject *
 xmipp_bandPassFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyImage;
-    double w1, w2, raised_w;
+    PyObject *pyStrFn;
+    PyObject *pyImage;
+    double w1;
+    double w2;
+    double raised_w;
     int dim;
     FileName fn;
 
@@ -916,7 +950,8 @@ xmipp_bandPassFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_gaussianFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyImage;
+    PyObject *pyStrFn;
+    PyObject *pyImage;
     double freqSigma;
     int dim;
     FileName fn;
@@ -935,7 +970,8 @@ xmipp_gaussianFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_realGaussianFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyImage;
+    PyObject *pyStrFn;
+    PyObject *pyImage;
     double realSigma;
     int dim;
     FileName fn;
@@ -954,7 +990,8 @@ xmipp_realGaussianFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_badPixelFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyStrFn, *pyImage;
+    PyObject *pyStrFn;
+    PyObject *pyImage;
     double factor;
     int dim;
     FileName fn;
@@ -974,8 +1011,10 @@ xmipp_badPixelFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_errorBetween2CTFs(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMd1, *pyMd2;
-    double minFreq=0.05,maxFreq=0.25;
+    PyObject *pyMd1;
+    PyObject *pyMd2;
+    double minFreq=0.05;
+    double maxFreq=0.25;
     size_t dim=256;
 
     if (PyArg_ParseTuple(args, "OO|idd"
@@ -1041,7 +1080,8 @@ xmipp_errorMaxFreqCTFs(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_errorMaxFreqCTFs2D(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyMd1, *pyMd2;
+    PyObject *pyMd1;
+    PyObject *pyMd2;
 
     if (PyArg_ParseTuple(args, "OO", &pyMd1, &pyMd2))
     {
@@ -1197,7 +1237,9 @@ Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *pvol = nullptr;
     ImageObject * result = nullptr;
-    double rot, tilt, psi;
+    double rot;
+    double tilt;
+    double psi;
 
     if (PyArg_ParseTuple(args, "Oddd", &pvol, &rot,&tilt,&psi))
     {

@@ -257,8 +257,15 @@ double correlation(const MultidimArray< T >& x,
     SPEED_UP_temps;
 
     double retval = 0; // returned value
-    int i, j, k, ip, jp, kp; // indexes
-    int Rows, Cols, Slices; // of the volumes
+    int i;
+    int j;
+    int k;
+    int ip;
+    int jp;
+    int kp; // indexes
+    int Rows;
+    int Cols;
+    int Slices; // of the volumes
 
     // do the computation
     Cols = XSIZE(x);
@@ -499,8 +506,12 @@ double bestShiftRealSpace(const MultidimArray<double> &I1, MultidimArray<double>
 class AlignmentAux
 {
 public:
-    Matrix2D<double> ARS, ASR, R;
-    MultidimArray<double> IauxSR, IauxRS, rotationalCorr;
+    Matrix2D<double> ARS;
+    Matrix2D<double> ASR;
+    Matrix2D<double> R;
+    MultidimArray<double> IauxSR;
+    MultidimArray<double> IauxRS;
+    MultidimArray<double> rotationalCorr;
     Polar_fftw_plans *plans;
     Polar< std::complex<double> > polarFourierI;
     AlignmentAux();
@@ -557,8 +568,15 @@ double alignImages(const MultidimArray< double >& Iref,
 class VolumeAlignmentAux
 {
 public:
-    MultidimArray<double> IrefCyl, Icyl, corr, I1, I12, I123;
-    Matrix2D<double> R1, R2, R3;
+    MultidimArray<double> IrefCyl;
+    MultidimArray<double> Icyl;
+    MultidimArray<double> corr;
+    MultidimArray<double> I1;
+    MultidimArray<double> I12;
+    MultidimArray<double> I123;
+    Matrix2D<double> R1;
+    Matrix2D<double> R2;
+    Matrix2D<double> R3;
 };
 
 /** Align two volumes by applying a rotation around Z.
@@ -823,7 +841,9 @@ void sort(T a, T b, T c, MultidimArray< T >& v)
 template <typename T>
 void mergeSort(MultidimArray< T >& v1, MultidimArray< T >& v2, MultidimArray< T >& v)
 {
-    int i1 = 0, i2 = 0, i = 0;
+    int i1 = 0;
+    int i2 = 0;
+    int i = 0;
 
     while ((i1 < 3) && (i2 < 3))
     {
@@ -1072,14 +1092,18 @@ void medianFilter3x3(MultidimArray< T >&m, MultidimArray< T >& out)
     int backup_startingy = STARTINGY(m);
 
     STARTINGX(m) = STARTINGY(m) = 0;
-    MultidimArray< T > v1(3), v2(3), v3(3), v4(3);
+    MultidimArray< T > v1(3);
+    MultidimArray< T > v2(3);
+    MultidimArray< T > v3(3);
+    MultidimArray< T > v4(3);
     MultidimArray< T > v(6);
 
     // Set the output matrix size
     out.initZeros(m);
 
     // Set the initial and final matrix indices to explore
-    int initialY = 1, initialX = 1;
+    int initialY = 1;
+    int initialX = 1;
     int finalY = YSIZE(m) - 2;
     int finalX = XSIZE(m) - 2;
 
@@ -1288,7 +1312,8 @@ void boundMedianFilter(MultidimArray< T > &V, const MultidimArray<char> &mask, i
     bool badRemaining;
     T neighbours[125];
     T aux;
-    int N = 0, index;
+    int N = 0;
+    int index;
 
     do
     {
@@ -1355,7 +1380,10 @@ void pixelDesvFilter(MultidimArray< T > &V, double thresFactor)
 {
     if (thresFactor > 0 )
     {
-        double avg, stddev, high, low;
+        double avg;
+        double stddev;
+        double high;
+        double low;
         T dummy;
         MultidimArray<char> mask(ZSIZE(V), YSIZE(V), XSIZE(V));
         avg = stddev = low = high = 0;
@@ -1458,7 +1486,9 @@ public:
     /** Apply filter on bad pixels */
     //4.431-0.4018*LN(ABS(P1+336.6))
     //a-b*ln(x+c)
-    double a,b,c;
+    double a;
+    double b;
+    double c;
     /** Define the parameters for use inside an Xmipp program */
     static void defineParams(XmippProgram * program);
     /** Read from program command line */
