@@ -1737,7 +1737,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	double chPerimeterer = 0;
 	double chArea = 0;
 
-	std::vector<Point3D<double>> hull;
+	std::vector<Point2D<double>> hull;
 
 	for (size_t i = 0; i < proyCoords.size(); i++)
 	{
@@ -1768,15 +1768,23 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	// Convex Hull
 	auto p2dVector = proyCoords;
 	auto remainingP2d = proyCoords;
-	auto p2d;
-	auto p2d_it;
+	Point2D<double> p2d{0, 0};
+	Point2D<double> p2d_it{0, 0};
+	Point2D<double> min_p2d{0, 0};
 
-	bool cmp(const Point2D& lp2d, const Point2D& rp2d)
+	// 	struct SortByY
+	// 	{
+	// 		bool operator() ( const Point2D<double>& L, const Point2D<double>& R) { return L.y < R.y; };
+	// 	};
+
+	// 	std::sort(leftSide.begin(), leftSide.end(), SortByY());
+
+	struct SortByX
 	{
-		return lp2d.x < rp2d.x;
-	}
+		bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
+	};
 
-	auto min_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
+	min_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
 	hull.push_back(p2d);
 
 	while (p2dVector.size()>0)
@@ -1796,12 +1804,12 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 			if (angle < PI)
 			{
-				remainingP2d.erase(0);
+				remainingP2d.erase(remainingP2d.begin());
 			}
 			else
 			{
 				p2d = p2d_it;
-				remainingP2d.erase(0);
+				remainingP2d.erase(remainingP2d.begin());
 			}	
 		}
 
@@ -1812,7 +1820,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 		hull.push_back(p2d);
 
-		p2dVector.erase(0);
+		p2dVector.erase(remainingP2d.begin());
 		remainingP2d = p2dVector;
 	}
 	
@@ -1824,7 +1832,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	{
 		shiftIndex = (i+1) % hull.size();
 		chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
-		                      (hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y)) 
+		                      (hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y));
 	}
 	
 
