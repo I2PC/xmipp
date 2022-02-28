@@ -2232,29 +2232,25 @@ void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
     static bool doRandomize=true;
     Matrix2D<double>  L(3, 3), R(3, 3);  // A matrix from the list
 
-    static unsigned seed = 0;
+    int i;
     if (doRandomize)
     {
-    	seed = std::chrono::system_clock::now().time_since_epoch().count();
+        srand ( time(nullptr) );
         doRandomize=false;
     }
-
     int symOrder = symsNo()+1;
-    std::default_random_engine generator (seed);
-    std::uniform_int_distribution distribution(0,symOrder);
-
-    int i = distribution(generator); //0, 59+1
+    i = rand() % symOrder;
     if (i < symOrder-1)
     {
         getMatrices(i, L, R);
         Euler_matrix2angles(E1 * R, rot2, tilt2, psi2);
     }
     else
-	{
+    	{
     	rot2=rot1;
     	tilt2=tilt1;
     	psi2=psi1;
-	}
+    	}
 }
 
 // Forward declaration

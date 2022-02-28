@@ -178,7 +178,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     newdims = (size_t*) calloc(ndim-1, sizeof(size_t));
        
     int MN=1;
-    int 1;
+    int i = 0;
     for (i = 0; i < Xndim; i++) {MN =MN*Xdims[i];};  /*Total number of interpolations points in 1 image*/
        
     
