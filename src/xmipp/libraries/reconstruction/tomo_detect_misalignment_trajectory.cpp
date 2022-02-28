@@ -1768,8 +1768,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	// Convex Hull
 	auto p2dVector = proyCoords;
 	auto remainingP2d = proyCoords;
+	auto p2d;
+	auto p2d_it;
 
-	bool cmp(const Size& lp2d, const Size& rp2d)
+	bool cmp(const Point2D& lp2d, const Point2D& rp2d)
 	{
 		return lp2d.x < rp2d.x;
 	}
@@ -1779,11 +1781,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	while (p2dVector.size()>0)
 	{
-		auto p2d = p2dVector[0];
+		p2d = p2dVector[0];
 
 		while (remainingP2d.size()>0)
 		{
-			auto p2d_it = remainingP2d[0];
+			p2d_it = remainingP2d[0];
 
 			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
 
@@ -1838,6 +1840,9 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	}
 
 	chArea = abs(0.5 * (sum1 - sum2));
+
+
+	return true;
 }
 
 

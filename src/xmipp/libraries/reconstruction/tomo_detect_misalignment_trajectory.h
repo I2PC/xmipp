@@ -343,6 +343,9 @@ public:
     auto getCMFromCoordinate(int x, int y, int z);
 
 
+    bool detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &proyCoords);
+
+
 
 
     // --------------------------- MAIN ----------------------------------
