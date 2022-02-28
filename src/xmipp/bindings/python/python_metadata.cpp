@@ -1660,10 +1660,9 @@ MetaData_aggregateSingle(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            auto object = MDObject((MDLabel) label);
+            auto object = MDObject(label);
             auto *self = (MetaDataObject*) obj;
-            self->metadata->aggregateSingle(object, (AggregateOperation) op,
-                                            (MDLabel) label);
+            self->metadata->aggregateSingle(object, op, label);
             pyValue = getMDObjectValue(&object);
             return pyValue;
         }
