@@ -239,7 +239,7 @@ ProgMLTomo::readParams()
     // Generate new command line for restart procedure
     cline = "";
     int argc2 = 0;
-    char ** argv2 = NULL;
+    char ** argv2 = nullptr;
 
     if (checkParameter(argc, argv, "-restart"))
     {
@@ -968,7 +968,7 @@ ProgMLTomo::generateInitialReferences()
                 md.getValue(MDL_SHIFT_Z, my_offsets(2), objId);
                 my_offsets *= scale_factor;
 
-                selfTranslate(LINEAR, Itmp(), my_offsets, DONT_WRAP);
+                selfTranslate(xmipp_transformation::LINEAR, Itmp(), my_offsets, xmipp_transformation::DONT_WRAP);
             }
             else
             {
@@ -979,7 +979,7 @@ ProgMLTomo::generateInitialReferences()
             }
 
             Euler_angles2matrix(my_rot, my_tilt, my_psi, my_A, true);
-            selfApplyGeometry(LINEAR, Itmp(), my_A, IS_NOT_INV, DONT_WRAP, 0.);
+            selfApplyGeometry(xmipp_transformation::LINEAR, Itmp(), my_A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.);
 
             int iran_fsc = ROUND(rnd_unif());
             if (iran_fsc == 0)
@@ -1326,9 +1326,9 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
             // This makes that the A2 values of the rotated references are much less sensitive to rotation
             Matrix2D<double> E_rot;
             Euler_angles2matrix(32., 61., 53., E_rot, true);
-            selfApplyGeometry(LINEAR, img(), E_rot, IS_NOT_INV, DONT_WRAP,
+            selfApplyGeometry(xmipp_transformation::LINEAR, img(), E_rot, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP,
                               DIRECT_MULTIDIM_ELEM(img(), 0));
-            selfApplyGeometry(LINEAR, img(), E_rot, IS_INV, DONT_WRAP,
+            selfApplyGeometry(xmipp_transformation::LINEAR, img(), E_rot, xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP,
                               DIRECT_MULTIDIM_ELEM(img(), 0));
             Iref.push_back(img);
             Iold.push_back(img);
@@ -1741,7 +1741,7 @@ ProgMLTomo::maskSphericalAverageOutside(MultidimArray<double> &Min)
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(real_omask)
     {
         DIRECT_MULTIDIM_ELEM(Min,n) *= DIRECT_MULTIDIM_ELEM(real_mask,n);
-        DIRECT_MULTIDIM_ELEM(Min,n) += (outside_density)
+        DIRECT_MULTIDIM_ELEM(Min,n) += outside_density
                                        * DIRECT_MULTIDIM_ELEM(real_omask,n);
     }
 }
@@ -1856,7 +1856,7 @@ ProgMLTomo::postProcessVolume(Image<double> &Vin, double resolution)
             R(3, 0) = sh(0) * dim;
             R(3, 1) = sh(1) * dim;
             R(3, 2) = sh(2) * dim;
-            applyGeometry(LINEAR, Vaux(), Vin(), R.transpose(), IS_NOT_INV, DONT_WRAP,
+            applyGeometry(xmipp_transformation::LINEAR, Vaux(), Vin(), R.transpose(), xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP,
                           DIRECT_MULTIDIM_ELEM(Vin(), 0));
             Vsym() += Vaux();
         }
@@ -1905,8 +1905,8 @@ ProgMLTomo::precalculateA2(std::vector<Image<double> > &Iref)
             A_rot_inv = ((all_angle_info[angno]).A).inv();
             // use DONT_WRAP and put density of first element outside
             // i.e. assume volume has been processed with omask
-            applyGeometry(LINEAR, Maux, Iref_refno, A_rot_inv, IS_NOT_INV,
-                          DONT_WRAP, DIRECT_MULTIDIM_ELEM(Iref_refno,0));
+            applyGeometry(xmipp_transformation::LINEAR, Maux, Iref_refno, A_rot_inv, xmipp_transformation::IS_NOT_INV,
+            		xmipp_transformation::DONT_WRAP, DIRECT_MULTIDIM_ELEM(Iref_refno,0));
             //#define DEBUG_PRECALC_A2_ROTATE
 #ifdef DEBUG_PRECALC_A2_ROTATE
 
@@ -2070,7 +2070,7 @@ ProgMLTomo::expectationSingleImage(MultidimArray<double> &Mimg, int imgno,
         MultidimArray<double> Mmask;
         A_rot = (all_angle_info[opt_angno]).A;
         A_rot_inv = A_rot.inv();
-        applyGeometry(LINEAR, Mmask, Imask(), A_rot_inv, IS_NOT_INV, DONT_WRAP, 0.);
+        applyGeometry(xmipp_transformation::LINEAR, Mmask, Imask(), A_rot_inv, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.);
         Maux *= Mmask;
     }
     // Calculate the unrotated Fourier transform with enforced wedge of Mimg (store in Fimg0)
@@ -2187,8 +2187,8 @@ ProgMLTomo::expectationSingleImage(MultidimArray<double> &Mimg, int imgno,
                     fracpdf = alpha_k(refno) * (1. / nr_ang);
                     // Now (inverse) rotate the reference and calculate its Fourier transform
                     // Use DONT_WRAP and assume map has been omasked
-                    applyGeometry(LINEAR, Maux2, Iref[refno](), A_rot_inv, IS_NOT_INV,
-                                  DONT_WRAP, DIRECT_MULTIDIM_ELEM(Iref[refno](),0));
+                    applyGeometry(xmipp_transformation::LINEAR, Maux2, Iref[refno](), A_rot_inv, xmipp_transformation::IS_NOT_INV,
+                                  xmipp_transformation::DONT_WRAP, DIRECT_MULTIDIM_ELEM(Iref[refno](),0));
                     mycorrAA = corrA2[refno * nr_ang + angno];
                     Maux = Maux2 * mycorrAA;
                     local_transformer.FourierTransform();
@@ -2297,7 +2297,7 @@ ProgMLTomo::expectationSingleImage(MultidimArray<double> &Mimg, int imgno,
                         }
                         local_transformer.inverseFourierTransform();
                         maskSphericalAverageOutside(Maux);
-                        selfApplyGeometry(LINEAR, Maux, A_rot, IS_NOT_INV, DONT_WRAP,
+                        selfApplyGeometry(xmipp_transformation::LINEAR, Maux, A_rot, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP,
                                           DIRECT_MULTIDIM_ELEM(Maux,0));
                         if (do_missing)
                         {
@@ -2468,7 +2468,7 @@ ProgMLTomo::maxConstrainedCorrSingleImage(MultidimArray<double> &Mimg,
         MultidimArray<double> Mmask;
         A_rot = (all_angle_info[opt_angno]).A;
         A_rot_inv = A_rot.inv();
-        applyGeometry(LINEAR, Mmask, Imask(), A_rot_inv, IS_NOT_INV, DONT_WRAP, 0.);
+        applyGeometry(xmipp_transformation::LINEAR, Mmask, Imask(), A_rot_inv, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.);
         Maux *= Mmask;
     }
     // Calculate the unrotated Fourier transform with enforced wedge of Mimg (store in Fimg0)
@@ -2570,8 +2570,8 @@ ProgMLTomo::maxConstrainedCorrSingleImage(MultidimArray<double> &Mimg,
 
                     // Now (inverse) rotate the reference and calculate its Fourier transform
                     // Use DONT_WRAP because the reference has been omasked
-                    applyGeometry(LINEAR, Maux, Iref[refno](), A_rot_inv, IS_NOT_INV,
-                                  DONT_WRAP, DIRECT_MULTIDIM_ELEM(Iref[refno](),0));
+                    applyGeometry(xmipp_transformation::LINEAR, Maux, Iref[refno](), A_rot_inv, xmipp_transformation::IS_NOT_INV,
+                                  xmipp_transformation::DONT_WRAP, DIRECT_MULTIDIM_ELEM(Iref[refno](),0));
                     local_transformer.FourierTransform();
                     if (do_missing)
                     {
@@ -2650,10 +2650,10 @@ ProgMLTomo::maxConstrainedCorrSingleImage(MultidimArray<double> &Mimg,
     XX(opt_offsets) = -(double) ioptx;
     YY(opt_offsets) = -(double) iopty;
     ZZ(opt_offsets) = -(double) ioptz;
-    selfTranslate(LINEAR, Mimg0, opt_offsets, DONT_WRAP);
+    selfTranslate(xmipp_transformation::LINEAR, Mimg0, opt_offsets, xmipp_transformation::DONT_WRAP);
     A_rot = (all_angle_info[opt_angno]).A;
     maskSphericalAverageOutside(Mimg0);
-    selfApplyGeometry(LINEAR, Mimg0, A_rot, IS_NOT_INV, DONT_WRAP,
+    selfApplyGeometry(xmipp_transformation::LINEAR, Mimg0, A_rot, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP,
                       DIRECT_MULTIDIM_ELEM(Mimg0,0));
     maxCC = maxcorr;
 
@@ -2701,7 +2701,7 @@ ProgMLTomo::maxConstrainedCorrSingleImage(MultidimArray<double> &Mimg,
 void *
 threadMLTomoExpectationSingleImage(void * data)
 {
-    structThreadExpectationSingleImage * thread_data =
+    auto * thread_data =
         (structThreadExpectationSingleImage *) data;
 
     // Variables from above
@@ -2767,7 +2767,7 @@ threadMLTomoExpectationSingleImage(void * data)
 
                 if (prm->dont_align || prm->do_only_average)
                 {
-                    selfTranslate(LINEAR, img(), prm->imgs_optoffsets[imgno], DONT_WRAP);
+                    selfTranslate(xmipp_transformation::LINEAR, img(), prm->imgs_optoffsets[imgno], xmipp_transformation::DONT_WRAP);
                 }
                 prm->reScaleVolume(img(), true);
                 missno = (prm->do_missing) ? prm->imgs_missno[imgno] : -1;
@@ -2832,7 +2832,7 @@ threadMLTomoExpectationSingleImage(void * data)
 
     std::cerr<<"finished threadMLTomoExpectationSingleImage"<<std::endl;
 #endif
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -2871,7 +2871,7 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
     sumw.initZeros(nr_ref);
     //Create a task distributor to distribute images to process
     //each thread will process images one by one
-    ThreadTaskDistributor * distributor = new ThreadTaskDistributor(
+    auto * distributor = new ThreadTaskDistributor(
                                               nr_images_local, 1);
 
     Mzero.initZeros();
@@ -2880,8 +2880,8 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
     wsumimgs.assign(2 * nr_ref, Mzero2);
     wsumweds.assign(2 * nr_ref, Mzero);
     // Call threads to calculate the expectation of each image in the selfile
-    pthread_t * th_ids = (pthread_t *) malloc(threads * sizeof(pthread_t));
-    structThreadExpectationSingleImage * threads_d =
+    auto * th_ids = (pthread_t *) malloc(threads * sizeof(pthread_t));
+    auto * threads_d =
         (structThreadExpectationSingleImage *) malloc(
             threads * sizeof(structThreadExpectationSingleImage));
     for (int c = 0; c < threads; c++)
@@ -2902,12 +2902,12 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
         threads_d[c].imgs_id = &imgs_id;
         threads_d[c].distributor = distributor;
         pthread_create(
-            (th_ids + c), NULL, threadMLTomoExpectationSingleImage, (void *)(threads_d+c) );
+            (th_ids + c), nullptr, threadMLTomoExpectationSingleImage, (void *)(threads_d+c) );
     }
     // Wait for threads to finish and get joined MetaData
     for (int c = 0; c < threads; c++)
     {
-        pthread_join(*(th_ids + c), NULL);
+        pthread_join(*(th_ids + c), nullptr);
     }
     //Free some memory
     delete distributor;
@@ -3103,7 +3103,7 @@ ProgMLTomo::maximization(std::vector<MultidimArray<double> > &wsumimgs,
             }
             else
             {
-                sigma_noise = sqrt(wsum_sigma_noise / (sum_complete_wedge));
+                sigma_noise = sqrt(wsum_sigma_noise / sum_complete_wedge);
             }
         }
         else
@@ -3176,7 +3176,7 @@ ProgMLTomo::calculateFsc(MultidimArray<double> &M1, MultidimArray<double> &M2,
         std::complex<double> z2 = w1 * dAkij(FT2, k, i, j);
         double absz1 = abs(z1);
         double absz2 = abs(z2);
-        num(idx) += real(conj(z1) * (z2));
+        num(idx) += real(conj(z1) * z2);
         den1(idx) += absz1 * absz1;
         den2(idx) += absz2 * absz2;
     }
@@ -3228,7 +3228,7 @@ ProgMLTomo::regularize(int iter)
         FileName fnt;
         for (int refno = 0; refno < nr_ref; refno++)
         {
-            fnt = formatString("%s_it%06d_oriref%06d.vol", fn_root.c_str(), iter,
+            fnt = formatString("%s_it%06d_oriref%06d.mrc", fn_root.c_str(), iter,
                                refno + 1);
             Iref[refno].write(fnt);
         }
@@ -3414,7 +3414,7 @@ ProgMLTomo::writeOutputFiles(const int iter,
     //for (int refno = 0; refno < nr_ref; refno++)
     for (size_t objId : MDref.ids())
     {
-        fn_tmp = formatString("%s_ref%06d.vol", fn_base.c_str(), refno + 1);
+        fn_tmp = formatString("%s_ref%06d.mrc", fn_base.c_str(), refno + 1);
         Vt = Iref[refno];
         reScaleVolume(Vt(), false);
         Vt.write(fn_tmp);
@@ -3450,7 +3450,7 @@ ProgMLTomo::writeOutputFiles(const int iter,
 
             CenterFFT(Vt(), true);
             reScaleVolume(Vt(), false);
-            fn_tmp = formatString("%s_wedge%06d.vol", fn_base.c_str(), refno + 1);
+            fn_tmp = formatString("%s_wedge%06d.mrc", fn_base.c_str(), refno + 1);
             Vt.write(fn_tmp);
         }
         refno++;

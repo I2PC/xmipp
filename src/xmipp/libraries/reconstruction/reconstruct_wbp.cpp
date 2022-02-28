@@ -234,6 +234,8 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     Matrix2D<double> A(3, 3);
     Matrix2D<double> L(4, 4), R(4, 4);
     double newrot, newtilt, newpsi, rot, tilt, dum, weight, totimgs = 0.;
+    rot = 0;
+    tilt = 0;
     bool dumB;
     std::vector<double> count_imgs;
 
@@ -271,7 +273,7 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     no_mats = 0;
     for (size_t i = 0; i < NN; i++)
     {
-        int count_i = (int)count_imgs[i];
+        auto count_i = (int)count_imgs[i];
         if (count_i > 0)
         {
             Euler_angles2matrix(rotList[i], -tiltList[i], 0.0, A);
@@ -549,7 +551,7 @@ void ProgRecWbp::apply2DFilterArbitraryGeometry()
         proj.setWeight(weight);
         proj.getTransformationMatrix(A, true);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, proj(), A, IS_INV, WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, proj(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
         if (do_weights)
             proj() *= proj.weight();
         proj().setXmippOrigin();

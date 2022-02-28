@@ -148,10 +148,12 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
     else
     {
         // Compute the minimum and maximum of each class
-        double minval=0., maxval=0.;
+        double minval=0.;
+        double maxval=0.;
         for(int k=0; k<K; k++)
         {
-            double minvalk=0., maxvalk=0.;
+            double minvalk=0.;
+            double maxvalk=0.;
             leafFeatures[k].computeDoubleMinMax(minvalk, maxvalk);
             if (k==0)
             {
@@ -180,7 +182,8 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
         }
 
         // Split the histograms into discrete_level (power of 2) bins
-        std::queue< Matrix1D<int> > intervals, splittedIntervals;
+        std::queue< Matrix1D<int> > intervals;
+        std::queue< Matrix1D<int> > splittedIntervals;
         Matrix1D<int> limits(2);
         VECTOR_R2(limits,0,99);
         intervals.push(limits);
@@ -213,7 +216,8 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
         imax=intervals.size();
         for (int i=0; i<imax; i++)
         {
-            A1D_ELEM(newBins,i) = intervals.front()(1);
+        	if (i<__discreteLevels)
+            	A1D_ELEM(newBins,i) = intervals.front()(1);
             intervals.pop();
         }
 
@@ -294,7 +298,7 @@ NaiveBayes::NaiveBayes(
     {
         for (int k=0; k<K; k++)
             features[k].getCol(f, aux[k]);
-        LeafNode *leaf=new LeafNode(aux,discreteLevels);
+        auto *leaf=new LeafNode(aux,discreteLevels);
         if (leaf->__discreteLevels>0)
         {
             __leafs.push_back(leaf);
@@ -339,10 +343,28 @@ NaiveBayes::~NaiveBayes()
     delete dummyLeaf;
 }
 
+// Assignment --------------------------------------------------------------
+NaiveBayes & NaiveBayes::operator=(const NaiveBayes &other)
+{
+	K=other.K;
+	Nfeatures=other.Nfeatures;
+    __priorProbsLog10=other.__priorProbsLog10;
+    __weights=other.__weights;
+    size_t imax=__leafs.size();
+    for (size_t i=0; i<imax; ++i)
+    	delete __leafs[i];
+    __leafs.clear();
+    imax=other.__leafs.size();
+    for (size_t i=0; i<imax; ++i)
+    	__leafs.emplace_back(new LeafNode(*(other.__leafs[i])));
+   __cost=other.__cost;
+   return *this;
+}
+
 /* Set cost matrix --------------------------------------------------------- */
 void NaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
 {
-    size_t iK=(size_t) K;
+    auto iK=(size_t) K;
     if (MAT_XSIZE(cost)!=iK || MAT_YSIZE(cost)!=iK)
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"Cost matrix does not have the appropriate size");
     __cost=cost;
@@ -449,7 +471,7 @@ EnsembleNaiveBayes::EnsembleNaiveBayes(
 
 #ifdef WEIGHTED_SAMPLING
     // Measure the classification power of each variable
-    NaiveBayes *nb_weights=new NaiveBayes(features, priorProbs, discreteLevels);
+    auto *nb_weights=new NaiveBayes(features, priorProbs, discreteLevels);
     MultidimArray<double> weights=nb_weights->__weights;
     delete nb_weights;
     double sumWeights=weights.sum();
@@ -513,7 +535,7 @@ EnsembleNaiveBayes::EnsembleNaiveBayes(
         }
 
         // Create a Naive Bayes classifier with this data
-        NaiveBayes *nb=new NaiveBayes(newFeatures, priorProbs, discreteLevels);
+        auto *nb=new NaiveBayes(newFeatures, priorProbs, discreteLevels);
         ensemble.push_back(nb);
         ensembleFeatures.push_back(subFeatures);
     }
@@ -526,6 +548,24 @@ EnsembleNaiveBayes::~EnsembleNaiveBayes()
     for (int n=0; n<nmax; n++)
         delete ensemble[n];
 }
+
+/* Assignment -------------------------------------------------------------- */
+EnsembleNaiveBayes & EnsembleNaiveBayes::operator=(const EnsembleNaiveBayes &other)
+{
+    size_t imax=ensemble.size();
+    for (size_t i=0; i<imax; ++i)
+    	delete ensemble[i];
+    ensemble.clear();
+    imax=other.ensemble.size();
+    for (size_t i=0; i<imax; ++i)
+    	ensemble.emplace_back(new NaiveBayes(*(other.ensemble[i])));
+
+    ensembleFeatures=other.ensembleFeatures;
+    K=other.K;
+    judgeCombination=other.judgeCombination;
+    return *this;
+}
+
 
 /* Set cost matrix --------------------------------------------------------- */
 void EnsembleNaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
@@ -541,7 +581,8 @@ int EnsembleNaiveBayes::doInference(const Matrix1D<double> &newFeatures,
                                     Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts)
 {
     int nmax=ensemble.size();
-    MultidimArray<double> minCost, maxCost;
+    MultidimArray<double> minCost;
+    MultidimArray<double> maxCost;
     votes.initZeros(K);
     minCost.initZeros(K);
     minCost.initConstant(1);

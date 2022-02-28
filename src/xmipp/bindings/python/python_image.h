@@ -224,6 +224,10 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* corrAfterAlignment(I1,I2) */
+PyObject *
+Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* applyWarpAffine */
 PyObject *
 Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
@@ -264,6 +268,9 @@ Image_inplaceDivide(PyObject *self, PyObject *args, PyObject *kwargs);
 
 PyObject *
 Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+Image_centerOfMass(PyObject *obj);
 
 
 extern PyNumberMethods Image_NumberMethods;

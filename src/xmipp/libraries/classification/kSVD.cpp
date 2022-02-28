@@ -47,7 +47,10 @@ double orthogonalMatchingPursuit(const Matrix1D<double> &x,
     
     // Compute the projection of x onto each of the atoms and look for the
     // maximum
-    Matrix1D<double> c, w, e, u;
+    Matrix1D<double> c;
+    Matrix1D<double> w;
+    Matrix1D<double> e;
+    Matrix1D<double> u;
     c.initZeros(K);
     e.initZeros(K); e.initConstant(1);
     u.initZeros(K); u.initConstant(1);
@@ -150,20 +153,11 @@ double lasso(const Matrix1D<double> &x,
     double lambda, Matrix1D<double> &alpha,
     const int maxIter, const double tol)
 {
-    int K=D.Xdim();
-
     // Compute the ridge least squares solution
     // Compute D^t*x
-    Matrix1D<double> Dtx(K);
-    FOR_ALL_ELEMENTS_IN_MATRIX1D(Dtx)
-        // Compute the dot product of the i-th column of D and x
-        for (size_t k=0; k<D.Ydim(); k++)
-            Dtx(i)+= D(k,i)*x(k);
-
-    // Now multiply DtdLambdaInv * D^t * x
-    alpha.initZeros(K);
-    FOR_ALL_ELEMENTS_IN_MATRIX2D(DtDlambdaInv)
-        alpha(i)+=DtDlambdaInv(i,j)*Dtx(j);
+    Matrix1D<double> Dtx;
+    matrixOperation_Atx(D,x,Dtx); // Dtx=D^t*x
+    matrixOperation_Ax(DtDlambdaInv,Dtx,alpha); // alpha=DtDlambdaInv*Dtx
 
     // Iterate over alpha
     Matrix1D<double> alphaOld;
@@ -190,7 +184,8 @@ double lasso(const Matrix1D<double> &x,
         
         // Prepare for next iteration
         iter++;
-        double normDiff=0, normAlpha=0;
+        double normDiff=0;
+        double normAlpha=0;
         FOR_ALL_ELEMENTS_IN_MATRIX1D(alpha)
         {
             double diff=alpha(i)-alphaOld(i);

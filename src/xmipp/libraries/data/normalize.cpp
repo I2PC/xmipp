@@ -27,11 +27,13 @@
 #include "normalize.h"
 #include "core/transformations.h"
 #include "core/xmipp_image_generic.h"
+#include "filters.h"
 
 /* Normalizations ---------------------------------------------------------- */
 void normalize_OldXmipp(MultidimArray<double> &I)
 {
-    double mean,std;
+    double mean;
+    double std;
     I.computeAvgStdev(mean,std);
     double istd=1.0/std;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
@@ -40,8 +42,14 @@ void normalize_OldXmipp(MultidimArray<double> &I)
 
 void normalize_Near_OldXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
-    double avg=0., stddev, min, max;
-    double avgbg, stddevbg, minbg, maxbg;
+    double avg=0.;
+    double stddev;
+    double min;
+    double max;
+    double avgbg;
+    double stddevbg;
+    double minbg;
+    double maxbg;
     I.computeStats(avg, stddev, min, max);
     computeStats_within_binary_mask(bg_mask, I, minbg, maxbg, avgbg,
                                     stddevbg);
@@ -52,12 +60,15 @@ void normalize_Near_OldXmipp(MultidimArray<double> &I, const MultidimArray<int> 
 void normalize_OldXmipp_decomposition(MultidimArray<double> &I, const MultidimArray<int> &bg_mask,
                                       const MultidimArray<double> *mask)
 {
-    double avgbg, stddevbg, minbg, maxbg;
+    double avgbg;
+    double stddevbg;
+    double minbg;
+    double maxbg;
     computeStats_within_binary_mask(bg_mask, I, minbg, maxbg, avgbg,
                                     stddevbg);
     I -= avgbg;
     I /= stddevbg;
-    if (mask != NULL)
+    if (mask != nullptr)
         I *= *mask;
     normalize_OldXmipp(I);
 }
@@ -93,7 +104,8 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
     FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
     {
         // Center a mask of size 5x5 and estimate the variance within the mask
-        double meanPiece=0, variancePiece=0;
+        double meanPiece=0;
+        double variancePiece=0;
         double Npiece=0;
         for (int ii=i-L; ii<=i+L; ii++)
         {
@@ -150,7 +162,10 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
 #endif
 
     // Compute the statistics again in the reduced mask
-    double avg, stddev, min, max;
+    double avg;
+    double stddev;
+    double min;
+    double max;
     computeStats_within_binary_mask(mask, I, min, max, avg, stddev);
     double cosTilt=cos(DEG2RAD(tilt));
     double iCosTilt=1.0/cosTilt;
@@ -214,8 +229,14 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
 
 void normalize_Michael(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
-    double avg, stddev, min=0., max;
-    double avgbg, stddevbg, minbg, maxbg;
+    double avg;
+    double stddev;
+    double min=0.;
+    double max;
+    double avgbg;
+    double stddevbg;
+    double minbg;
+    double maxbg;
     I.computeStats(avg, stddev, min, max);
     computeStats_within_binary_mask(bg_mask, I, minbg, maxbg, avgbg,
                                     stddevbg);
@@ -233,7 +254,8 @@ void normalize_Michael(MultidimArray<double> &I, const MultidimArray<int> &bg_ma
 
 void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
-    double avgbg, stddevbg;
+    double avgbg;
+    double stddevbg;
     I.computeAvgStdev_within_binary_mask(bg_mask, avgbg, stddevbg);
     double istddevbg=1.0/stddevbg;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
@@ -243,8 +265,19 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
 void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip)
 {
     std::vector<double> voxel_vector;
-    double maxI, minI;
     SPEED_UP_temps;
+
+    if (bg_mask.computeMax() == 0)
+    {
+        Image<double> mask;
+        mask() = I;
+        static_cast<void>(EntropySegmentation(mask()));
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask())
+        {
+            if (DIRECT_MULTIDIM_ELEM(mask(), n) == 0)
+                DIRECT_MULTIDIM_ELEM(bg_mask,n) = 1;
+        }
+    }
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
     {
@@ -254,33 +287,41 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
 
     std::sort(voxel_vector.begin(), voxel_vector.end());
 
-	double medianBg, p95, ip95;
+	double medianBg;
+    double p99;
+    double ip99;
     int idx;
 	I.computeMedian_within_binary_mask(bg_mask, medianBg);
-	idx = voxel_vector.size() * 0.95;
-    p95 = voxel_vector[idx];
-	ip95 = 1 / p95;
+	idx = (int)(voxel_vector.size() * 0.99);
+    p99 = voxel_vector[idx];
+	ip99 = 1 / p99;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip95;
+        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip99;
 
     if (clip)
     {
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-            if (DIRECT_MULTIDIM_ELEM(I,n) > 1.8787)
+            if (DIRECT_MULTIDIM_ELEM(I,n) > 1.3284)
             {
-                DIRECT_MULTIDIM_ELEM(I,n) = 1.8787;
+                DIRECT_MULTIDIM_ELEM(I,n) = 1.3284;
             }
-            else if (DIRECT_MULTIDIM_ELEM(I,n) < -1.8787)
+            else if (DIRECT_MULTIDIM_ELEM(I,n) < -1.3284)
             {
-                DIRECT_MULTIDIM_ELEM(I,n) = -1.8787;
+                DIRECT_MULTIDIM_ELEM(I,n) = -1.3284;
             }           
     }
 }
 
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
-    double avg=0, stddev, min, max;
-    double avgbg=0, stddevbg, minbg, maxbg;
+    double avg=0;
+    double stddev;
+    double min;
+    double max;
+    double avgbg=0;
+    double stddevbg;
+    double minbg;
+    double maxbg;
     I.computeStats(avg, stddev, min, max);
     computeStats_within_binary_mask(bg_mask, I, minbg, maxbg, avgbg,
                                     stddevbg);
@@ -292,13 +333,15 @@ void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_
 void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
 {
     int Npoints=0;				// # points in mask.
-    double pA, pB, pC;			// Least squares coefficients.
+    double pA;
+    double pB;
+    double pC;			// Least squares coefficients.
 
     // Only 2D ramps implemented
     I.checkDimension(2);
 
     // Check if mask is NULL.
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	Npoints = I.xdim*I.ydim;
     }
@@ -310,7 +353,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
 
     // Fit a least squares plane through the background pixels
     I.setXmippOrigin();
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	least_squares_plane_fit_All_Points(I, pA, pB, pC);
     }
@@ -318,7 +361,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     {
         int idx=0;
     	bg_mask->setXmippOrigin();
-        FitPoint *allpoints=new FitPoint[Npoints];
+        auto *allpoints=new FitPoint[Npoints];
 
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
         {
@@ -339,7 +382,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     // Subtract the plane from the image and compute stddev within mask
     double sum1 = 0;
     double sum2 = 0;
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
         double *ref;
         for (int i=STARTINGY(I); i<=FINISHINGY(I); i++)
@@ -385,8 +428,15 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
                                  const MultidimArray<int> &bg_mask,
                                  const double &threshold)
 {
-    double             pA, pB, pC;
-    double             avgbg, stddevbg, minbg, maxbg, aux, newstddev;
+    double             pA;
+    double             pB;
+    double             pC;
+    double             avgbg;
+    double             stddevbg;
+    double             minbg;
+    double             maxbg;
+    double             aux;
+    double             newstddev;
     double             sum1 = 0.;
     double             sum2 = 0;
     int                N = 0;
@@ -395,8 +445,8 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
     I.checkDimension(2);
 
     // Fit a least squares plane through the background pixels
-    int Npoints=(int)bg_mask.sum();
-    FitPoint *allpoints=new FitPoint[Npoints];
+    auto Npoints=(int)bg_mask.sum();
+    auto *allpoints=new FitPoint[Npoints];
     I.setXmippOrigin();
 
     // Get initial statistics
@@ -579,8 +629,7 @@ void ProgNormalize::readParams()
     // Get background mask
     background_mode = NOBACKGROUND;
     if (method == NEWXMIPP || method == NEWXMIPP2 || method == MICHAEL ||
-        method == NEAR_OLDXMIPP || method == RAMP || method == NEIGHBOUR ||
-		method == ROBUST)
+        method == NEAR_OLDXMIPP || method == RAMP || method == NEIGHBOUR)
     {
         enable_mask = checkParam("--mask");
         if (enable_mask)
@@ -603,6 +652,16 @@ void ProgNormalize::readParams()
                 background_mode = CIRCLE;
             else
                 REPORT_ERROR(ERR_VALUE_INCORRECT, "Normalize: Unknown background mode");
+        }
+    }
+
+    if (method == ROBUST)
+    {
+        enable_mask = checkParam("--mask");
+        if (enable_mask)
+        {
+            mask_prm.allowed_data_types = INT_MASK;
+            mask_prm.readParams(this);
         }
     }
 
@@ -672,7 +731,7 @@ void ProgNormalize::show()
         std::cout << "Background mode: ";
         switch (background_mode)
         {
-        case NONE :
+        case NOBACKGROUND :
             std::cout << "None\n";
             break;
         case FRAME:
@@ -750,7 +809,8 @@ void ProgNormalize::preProcess()
     if (method==TOMOGRAPHY0)
     {
         // Look for the image at 0 degrees
-        double bestTilt=1000, tiltTemp;
+        double bestTilt=1000;
+        double tiltTemp;
         FileName bestImage;
         FileName fn_img;
         ImageGeneric Ig;
@@ -810,19 +870,24 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
 
         // Instead of IS_INV for images use IS_NOT_INV for masks!
         I.getTransformationMatrix(A);
-        selfApplyGeometry(BSPLINE3, tmp, A, IS_NOT_INV, DONT_WRAP, outside);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3, tmp, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
         dAi(bg_mask,n)=(int)round(dAi(tmp,n));
     }
 
-    double a, b;
+    double a;
+    double b;
     if (invert_contrast)
         img *= -1.;
 
     if (remove_black_dust || remove_white_dust)
     {
-        double avg=0., stddev=0., min=0., max=0., zz;
+        double avg=0.;
+        double stddev=0.;
+        double min=0.;
+        double max=0.;
+        double zz;
         img.computeStats(avg, stddev, min, max);
 
         if ((min - avg) / stddev < thresh_black_dust && remove_black_dust)
@@ -846,7 +911,8 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         }
     }
 
-    double mui, sigmai;
+    double mui;
+    double sigmai;
     switch (method)
     {
     case OLDXMIPP:

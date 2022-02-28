@@ -103,7 +103,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     double sign = 1;//;-1;
     int numNorm = 3;
     int numDescriptors0=numNorm;
-    int numDescriptors1;
+    int numDescriptors1=0;
     int numDescriptors2=4;
     int numDescriptors3=11;
     int numDescriptors4=10;
@@ -184,7 +184,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         {
             int enabled;
             SF.getValue(MDL_ENABLED,enabled, objId);
-            if ( (enabled==-1)  )
+            if (enabled==-1)
             {
                 imgno++;
                 continue;
@@ -193,7 +193,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
 
         img.readApplyGeo(SF, objId);
         if (targetXdim!=-1 && targetXdim<XSIZE(img()))
-        	selfScaleToSize(LINEAR,img(),targetXdim,targetXdim,1);
+        	selfScaleToSize(xmipp_transformation::LINEAR,img(),targetXdim,targetXdim,1);
 
         MultidimArray<double> &mI=img();
         mI.setXmippOrigin();
@@ -285,8 +285,8 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         size_t area=0;
         fitEllipse(nI,x0,y0,majorAxis,minorAxis,ellipAng,area);
 
-        A1D_ELEM(v2,0)=majorAxis/((img().xdim) );
-        A1D_ELEM(v2,1)=minorAxis/((img().xdim) );
+        A1D_ELEM(v2,0)=majorAxis/(img().xdim);
+        A1D_ELEM(v2,1)=minorAxis/(img().xdim);
         A1D_ELEM(v2,2)= (fabs((img().xdim)/2-x0)+fabs((img().ydim)/2-y0))/((img().xdim)/2);
         A1D_ELEM(v2,3)=area/( (double)((img().xdim)/2)*((img().ydim)/2) );
 
@@ -345,6 +345,9 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         if (imgno % c == 0 && verbose>0)
             progress_bar(imgno);
     }
+
+    if (imgno == 0)
+        REPORT_ERROR(ERR_MD_NOACTIVE, "All metadata images are disable. Skipping...\n");
 
     std::size_t beg = fn.find_last_of("@") + 1;
     std::size_t end = fn.find_last_of("/") + 1;
@@ -413,7 +416,7 @@ void ProgSortByStatistics::run()
     for (size_t objId: SF.ids())
     {
         SF.getValue(MDL_ENABLED,enabled, objId);
-        if ( (enabled==-1)  )
+        if (enabled==-1)
         {
             A1D_ELEM(finalZscore,imgno) = 1e3;
             A1D_ELEM(ZscoreShape1,imgno) = 1e3;
@@ -545,7 +548,7 @@ void ProgSortByStatistics::run()
         sortedZscoreSNR1.indexSort(sortedSNR1);
         sortedZscoreSNR2.indexSort(sortedSNR2);
         sortedZscoreHist.indexSort(sortedHist);
-        size_t numPartReject = (size_t)std::floor((per/100)*SF.size());
+        auto numPartReject = (size_t)std::floor((per/100)*SF.size());
 
         for (size_t numPar = SF.size()-1; numPar > (SF.size()-numPartReject); --numPar)
         {

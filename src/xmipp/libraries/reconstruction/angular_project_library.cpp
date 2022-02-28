@@ -32,8 +32,8 @@ ProgAngularProjectLibrary::ProgAngularProjectLibrary()
 {
     /** sampling object 1 by default*/
     mysampling.setSampling(1);
-    Vshears=NULL;
-    Vfourier=NULL;
+    Vshears=nullptr;
+    Vfourier=nullptr;
 
 }
 
@@ -76,11 +76,11 @@ void ProgAngularProjectLibrary::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmipp_transformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmipp_transformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmipp_transformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The interpolation kernel can be : nearest, linear, bspline");
     }
@@ -171,11 +171,11 @@ void ProgAngularProjectLibrary::show()
         std::cout << "     pad factor: "   << paddFactor <<std::endl;
         std::cout << "     maxFrequency: " << maxFrequency <<std::endl;
         std::cout << "     interpolator: ";
-        if (BSplineDeg == NEAREST)
+        if (BSplineDeg == xmipp_transformation::NEAREST)
             std::cout << " nearest" <<std::endl;
-        else if (BSplineDeg == LINEAR)
+        else if (BSplineDeg == xmipp_transformation::LINEAR)
             std::cout << " linear" <<std::endl;
-        else if (BSplineDeg == BSPLINE3)
+        else if (BSplineDeg == xmipp_transformation::BSPLINE3)
             std::cout << " bspline" <<std::endl;
     }
     else if (projType == REALSPACE)
@@ -195,7 +195,6 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 {
     Projection P;
     FileName fn_proj;
-    double rot,tilt,psi;
     int mySize;
     int numberStepsPsi = 1;
 
@@ -208,32 +207,31 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 
     if (verbose)
         init_progress_bar(mySize);
-    int myCounter=0;
-
-
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
-        for (int i=0;i<my_init;i++)
-            myCounter++;
 
 //    if (shears && XSIZE(inputVol())!=0 && VShears==NULL)
 //        VShears=new RealShearsInfo(inputVol());
-    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==NULL)
+    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==nullptr)
         Vshears=new RealShearsInfo(inputVol());
-    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==NULL)
+    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==nullptr)
         Vfourier=new FourierProjector(inputVol(),
         		                      paddFactor,
         		                      maxFrequency,
         		                      BSplineDeg);
 
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
+    size_t limPsi = (int) 360.0/psi_sampling + 1;
+
+    for (size_t mypsi_idx=0;mypsi_idx<limPsi; ++mypsi_idx)
     {
         for (int i=my_init;i<=my_end;i++)
         {
             if (verbose)
                 progress_bar(i-my_init);
-            psi= mypsi+ZZ(mysampling.no_redundant_sampling_points_angles[i]);
-            tilt=      YY(mysampling.no_redundant_sampling_points_angles[i]);
-            rot=       XX(mysampling.no_redundant_sampling_points_angles[i]);
+
+            auto &nrspa = mysampling.no_redundant_sampling_points_angles[i];
+
+            double psi  = psi_sampling*mypsi_idx+ZZ(nrspa);
+            double tilt = YY(nrspa);
+            double rot  = XX(nrspa);
 
 //            if (shears)
 //                projectVolume(*VShears, P, Ydim, Xdim, rot,tilt,psi);
@@ -249,7 +247,7 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 
             P.setEulerAngles(rot,tilt,psi);
             P.setDataMode(_DATA_ALL);
-            P.write(output_file,(size_t) (numberStepsPsi * i + mypsi +1),true,WRITE_REPLACE);
+            P.write(output_file,(size_t) (numberStepsPsi * i + psi_sampling*mypsi_idx +1),true,WRITE_REPLACE);
         }
     }
     if (verbose)
@@ -267,7 +265,7 @@ void ProgAngularProjectLibrary::run()
     show();
     //all ranks
     mysampling.setSampling(sampling);
-    srand ( time(NULL) );
+    srand ( time(nullptr) );
     //process the symmetry file
     //only checks symmetry and set pg_order and pg_group, no memory allocation
     if (!mysampling.SL.isSymmetryGroup(fn_sym, symmetry, sym_order))
@@ -375,7 +373,10 @@ void ProgAngularProjectLibrary::run()
     size_t myCounter=0;
     size_t id;
     int ref;
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
+
+    size_t lim_mypsi_idx = (size_t) 360.0/psi_sampling + 1;
+
+    for (size_t mypsi_idx=0; mypsi_idx<lim_mypsi_idx; mypsi_idx++)
     {
         for (size_t objId : mySFin.ids())
         {
@@ -393,7 +394,7 @@ void ProgAngularProjectLibrary::run()
             mySFout.setValue(MDL_ENABLED,1,id);
             mySFout.setValue(MDL_ANGLE_ROT,rot,id);
             mySFout.setValue(MDL_ANGLE_TILT,tilt,id);
-            mySFout.setValue(MDL_ANGLE_PSI,psi+mypsi,id);
+            mySFout.setValue(MDL_ANGLE_PSI,psi+mypsi_idx*psi_sampling,id);
             mySFout.setValue(MDL_X,x,id);
             mySFout.setValue(MDL_Y,y,id);
             mySFout.setValue(MDL_Z,z,id);

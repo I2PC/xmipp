@@ -149,7 +149,9 @@ typedef struct
     Matrix2D<double> *M;
     const MultidimArray<int> *mask;
     double ray_length;
-    double rot,tilt,psi;
+    double rot;
+    double tilt;
+    double psi;
     bool destroy;
 }
 project_thread_params;
@@ -161,7 +163,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                         const Basis *basis,
                         Projection *proj, Projection *norm_proj, int FORW, int eq_mode,
                         const Image<int> *VNeq, Matrix2D<double> *M,
-                        const MultidimArray<int> *mask=NULL,
+                        const MultidimArray<int> *mask=nullptr,
                         double ray_length = -1.0,
                         int thread_id = -1, int num_threads = 1);
 
@@ -193,7 +195,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
  */
 void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
                    double rot, double tilt, double psi,
-                   const Matrix1D<double> *roffset=NULL);
+                   const Matrix1D<double> *roffset=nullptr);
 
 /** From voxel volumes, off-centered tilt axis.
     This routine projects a volume that is rotating (angle) degrees

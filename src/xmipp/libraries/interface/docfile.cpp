@@ -30,27 +30,6 @@
 #include "docfile.h"
 #include <core/args.h>
 
-DocLine::DocLine(const DocLine& line)
-{
-    line_type = line.line_type;
-    text = line.text;
-    key = line.key;
-    data = line.data;
-}
-
-DocLine& DocLine::operator=(const DocLine& line)
-{
-    if (this != &line)
-    {
-        line_type = line.line_type;
-        text = line.text;
-        key = line.key;
-        data = line.data;
-    }
-
-    return *this;
-}
-
 double& DocLine::operator[](size_t i)
 {
     if (i+1 > data.size())
@@ -117,7 +96,7 @@ std::ostream& operator<<(std::ostream& o, const DocLine& line)
     char aux[30];
     switch (line.line_type)
     {
-    case (DocLine::DATALINE):
+    case DocLine::DATALINE:
                     // Print a data line
                     sprintf(aux, "%5d ", line.key);
         o << aux;
@@ -135,7 +114,7 @@ std::ostream& operator<<(std::ostream& o, const DocLine& line)
         o << std::endl;
         break;
 
-    case (DocLine::COMMENT):
+    case DocLine::COMMENT:
                     // Print a comment
                     o << line.text << std::endl;
         break;
@@ -185,7 +164,7 @@ void DocLine::read(std::istream& in)
             // Try unfixed mode first
             readFloatList(line, i, param_no, data);
         }
-        catch (XmippError e)
+        catch (XmippError &e)
         {
             // Try fixed mode then
             data.clear();
@@ -198,15 +177,6 @@ void DocLine::read(std::istream& in)
     }
 }
 
-DocFile::DocFile(const DocFile& doc)
-{
-    fn_doc = doc.fn_doc;
-    m = doc.m;
-    no_lines = doc.no_lines;
-    first_key = doc.first_key;
-    current_line = doc.current_line;
-}
-
 void DocFile::clear()
 {
     fn_doc = "";
@@ -214,20 +184,6 @@ void DocFile::clear()
     no_lines = 0;
     first_key = 1;
     current_line = m.begin();
-}
-
-DocFile& DocFile::operator=(const DocFile& doc)
-{
-    if (this != &doc)
-    {
-        fn_doc = doc.fn_doc;
-        m = doc.m;
-        no_lines = doc.no_lines;
-        first_key = doc.first_key;
-        current_line = doc.current_line;
-    }
-
-    return *this;
 }
 
 DocFile& DocFile::operator=(const Matrix2D< double >& A)
@@ -391,7 +347,7 @@ void DocFile::read(const FileName& name, int overriding)
         {
             temp.read(in);
         }
-        catch (XmippError e)
+        catch (XmippError &e)
         {
             std::cout << "Doc File: Line " << line_no <<
             " is skipped due to an error\n";
@@ -399,15 +355,15 @@ void DocFile::read(const FileName& name, int overriding)
 
         switch (temp.line_type)
         {
-        case (DocLine::NOT_ASSIGNED):
+        case DocLine::NOT_ASSIGNED:
                         break; // Line with an error
 
-        case (DocLine::DATALINE):
+        case DocLine::DATALINE:
                         no_lines++;
             m.push_back(temp);
             break;
 
-        case (DocLine::COMMENT):
+        case DocLine::COMMENT:
                         m.push_back(temp);
             break;
         default:
@@ -520,7 +476,7 @@ void DocFile::get_selfile(MetaData& sel)
     go_beginning();
 
     if ((*current_line).Is_comment())
-        if (strstr(((*current_line).get_text()).c_str(), "Headerinfo") == NULL)
+        if (strstr(((*current_line).get_text()).c_str(), "Headerinfo") == nullptr)
             REPORT_ERROR(ERR_DOCFILE,
                          "DocFile::get_selfile: Docfile is of non-NewXmipp type!");
 
@@ -529,7 +485,7 @@ void DocFile::get_selfile(MetaData& sel)
     FileName img;
     while (!eof())
     {
-        if (strstr(((*current_line).get_text()).c_str(), " ; ") != NULL)
+        if (strstr(((*current_line).get_text()).c_str(), " ; ") != nullptr)
         {
             img = (*current_line).get_text();
             sel.setValue(MDL_IMAGE,img.removeSubstring(" ; "), sel.addObject());
@@ -561,7 +517,7 @@ int DocFile::getColNumberFromHeader(const char * pattern)
     if ((*current_line).Is_comment())
     {
         header = (*current_line).get_text();
-        if (strstr(header.c_str(), "Headerinfo") == NULL)
+        if (strstr(header.c_str(), "Headerinfo") == nullptr)
             REPORT_ERROR(ERR_DOCFILE,"DocFile:: docfile is of non-NewXmipp type!");
         else
         {
@@ -569,7 +525,7 @@ int DocFile::getColNumberFromHeader(const char * pattern)
             tokenize(header,tokens," \t()");
             for (size_t i = 0; i < tokens.size(); i++)
             {
-                if (strstr(tokens[i].c_str(), pattern) != NULL)
+                if (strstr(tokens[i].c_str(), pattern) != nullptr)
                 {
                     return textToInteger(tokens[i+1]);
                 }
@@ -869,7 +825,7 @@ void DocFile::get_image(int key, Image<double> &I, bool apply_geo)
         Matrix2D<double> A;
         I.getTransformationMatrix(A, true);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, I(), A, IS_INV, WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, I(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
     }
 }
 
@@ -1311,25 +1267,25 @@ void DocFile::merge(DocFile& DF, int mode, int sumcol)
         {
             switch (mode)
             {
-            case(DOCMERGE_KEEP_OLD):
+            case DOCMERGE_KEEP_OLD:
                 {
                     // just keep what's there and do nothing
                     break;
                 }
-            case(DOCMERGE_KEEP_NEW):
+            case DOCMERGE_KEEP_NEW:
                 {
                     //Replace current data line with the new one
                     (*current_line) = DL;
                     break;
                 }
-            case(DOCMERGE_SUM_COLUMN):
+            case DOCMERGE_SUM_COLUMN:
                 {
                     // Just sum column
                     w = (*current_line).data[sumcol] + DF(sumcol);
                     (*current_line).set(sumcol, w);
                     break;
                 }
-            case(DOCMERGE_ERROR):
+            case DOCMERGE_ERROR:
                             std::cerr<<"image name = "<<fn_img;
                 REPORT_ERROR(ERR_DOCFILE,"Image occurred in two docfiles to be merged");
             }
@@ -1491,7 +1447,7 @@ void get_subset_docfile(DocFile& DFin, MetaData& SF, DocFile& DFout)
     DL = DFin.get_current_line();
     if (DL.Is_comment())
         fn_tmp = DL.get_text();
-    if (strstr(fn_tmp.c_str(), "Headerinfo") == NULL)
+    if (strstr(fn_tmp.c_str(), "Headerinfo") == nullptr)
         REPORT_ERROR(ERR_DOCFILE,"Input docfile is not of NewXmipp-style");
     else
         // append the same header to DFout

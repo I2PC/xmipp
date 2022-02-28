@@ -197,7 +197,10 @@ void PCAAnalyzer::reset(ClassicTrainingVectors const &ts, std::vector<unsigned> 
                     a[iq][ip] = 0.0;
                 else if (fabs(a[iq][ip]) > tresh)
                 {
-                    floatFeature tau, t, s, c;
+                    floatFeature tau;
+                    floatFeature t;
+                    floatFeature s;
+                    floatFeature c;
                     floatFeature h = d[iq] - d[ip];
                     if (fabs(h) + g == fabs(h))
                         t = a[iq][ip] / h;
@@ -421,10 +424,25 @@ std::istream& operator >> (std::istream &in, PCAAnalyzer &PC)
 /* PCA set destructor ------------------------------------------------------ */
 PCA_set::~PCA_set()
 {
-    int imax = PCA.size();
+    size_t imax = PCA.size();
     for (int i = 0; i < imax; i++)
         delete PCA[i];
 }
+
+/* Assignment -------------------------------------------------------------- */
+PCA_set & PCA_set::operator = (const PCA_set &other)
+{
+	size_t imax = PCA.size();
+    for (size_t i = 0; i < imax; i++)
+        delete PCA[i];
+	PCA.clear();
+
+    imax=other.PCA.size();
+    for (size_t i = 0; i < imax; i++)
+        PCA.emplace_back(new PCAAnalyzer(*(other.PCA[i])));
+	return *this;
+}
+
 
 #ifdef UNUSED // detected as unused 29.6.2018
 /* Create empty PCA -------------------------------------------------------- */

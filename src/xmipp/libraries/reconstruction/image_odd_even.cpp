@@ -76,7 +76,7 @@ void ProgOddEven::fromimageToMd(FileName fnImg, MetaData &movienew, size_t &Xdim
 void ProgOddEven::run()
 {
 	std::cout << "Starting..." << std::endl;
-	size_t Xdim, Ydim;
+	size_t Xdim = 0, Ydim = 0;
 	if ((splitType != "frames") and (splitType != "images"))
 	{
 		std::cout << "ERROR: Please specify the type of splitting in frames or images" << std::endl;
@@ -95,7 +95,7 @@ void ProgOddEven::run()
 		}
 		else
 		{
-        		fromimageToMd(fnImg, movienew, Xdim, Ydim);
+        	fromimageToMd(fnImg, movienew, Xdim, Ydim);
 		}
 	}
 

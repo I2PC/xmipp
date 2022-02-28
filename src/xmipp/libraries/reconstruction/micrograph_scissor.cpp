@@ -152,7 +152,7 @@ public:
               ctfparam.getRow(ctfRow, ctfparam.firstRowId());
               m.set_ctfparams(ctfRow);
             }
-            m.produce_all_images(0, -1, fn_out, fn_orig, 0.,0.,0., rmStack, fillBorders, extractNoise, Nnoise);
+            m.produce_all_images(0, -1, fn_out, fn_orig, 0., rmStack, fillBorders, extractNoise, Nnoise);
             if (extractNoise)
             {
             	MDRowVec row=firstRow(fn_pos);
@@ -191,7 +191,7 @@ public:
             m.add_label("");
             m.set_transmitance_flag(compute_transmitance);
             m.set_inverse_flag(compute_inverse);
-            m.produce_all_images(0, -1, fn_out, "", alpha_u,0.,0.,rmStack);
+            m.produce_all_images(0, -1, fn_out, "", alpha_u, rmStack);
             m.close_micrograph();
 
             // Generate the images for the tilted image
@@ -202,7 +202,7 @@ public:
             mt.add_label("");
             mt.set_transmitance_flag(compute_transmitance);
             mt.set_inverse_flag(compute_inverse);
-            mt.produce_all_images(0, -1, fn_out_tilted, "", 0., tilt_angle, alpha_t, rmStack);
+            mt.produce_all_images(0, -1, fn_out_tilted, "", 0., rmStack);
             mt.close_micrograph();
         }
     }

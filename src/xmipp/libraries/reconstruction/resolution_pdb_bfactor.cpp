@@ -40,6 +40,7 @@ void ProgResBFactor::readParams()
 	fn_locres = getParam("--vol");
 	sampling = getDoubleParam("--sampling");
 	medianTrue = checkParam("--useMedian");
+	centered = checkParam("--centered");
 	fscResolution = getDoubleParam("--fscResolution");
 	fnOut = getParam("-o");
 }
@@ -52,6 +53,7 @@ void ProgResBFactor::defineParams()
 	addParamsLine("  --vol <vol_file=\"\">			: Local resolution map");
 	addParamsLine("  [--sampling <sampling=1>]		: Sampling Rate (A)");
 	addParamsLine("  [--useMedian]			        : The resolution an bfactor per residue are averaged instead of computed the median");
+	addParamsLine("  [--centered]			        : True if the atomic model centered in midle of the local resolution map");
 	addParamsLine("  [--fscResolution <fscResolution=-1>]	: If this is provided, the FSC resolution, R, in Angstrom is used to normalized the local resolution, LR, as (LR-R)/R, where LR is the local resoluion and R is the global resolution");
 	addParamsLine("  -o <output=\"amap.mrc\">		: Output of the algorithm");
 }
@@ -75,8 +77,7 @@ std::vector<size_t> ProgResBFactor::sort_indexes(const std::vector<T> &v)
 }
 
 
-
-void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
+void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 {
 	// Reading Local Resolution Map
 	Image<double> imgResVol;
@@ -85,7 +86,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	resvol = imgResVol();
 
 	// The mask is initialized with the same dimentions of the local resolution map
-        MultidimArray<int> mask;
+    MultidimArray<int> mask;
 	mask.resizeNoCopy(resvol);
 	mask.initZeros();
 
@@ -96,13 +97,13 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	if (zdim == 1)
 		zdim = ndim;
 
-	// idx_residue determines the positional index of the residue
-	// Note that residues are stored in the vector at_pos.residue.
-	// Then, the vector at_pos.residue is sorted from low to high
-	// The new vector idx_residue, determine the position of each
-	// residue in the original vector.
-	std::vector<size_t> idx_residue;
-	idx_residue = sort_indexes(at_pos.residue);
+//	idx_residue determines the positional index of the residue
+//	Note that residues are stored in the vector at_pos.residue.
+//	Then, the vector at_pos.residue is sorted from low to high
+//	The new vector idx_residue, determine the position of each
+//	residue in the original vector.
+//	std::vector<size_t> idx_residue;
+//	idx_residue = sort_indexes(at_pos.residue);
 
 	// The resolution of each residue is stored in each component (as many as components as residues)
 	std::vector<double> resolution_per_residue(0);
@@ -111,7 +112,10 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	std::vector<double> resolution_to_estimate(0);
 
 	// the b-factor per residue
-	std::vector<double> bfactor_per_residue(0), resNumberList(0);
+	std::vector<double> bfactor_per_residue(0);
+
+	// number of residue list
+	std::vector<double> resNumberList(0);
 
 	// vector to estimate the bfactor of each residue
 	std::vector<double> bfactor_to_estimate(0);
@@ -120,101 +124,68 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	std::vector<double> ma_l(0);
 	std::vector<double> ma_c(0);
 
-	// Setting the first residue before the loop that sweeps all residues
-	size_t r = 0;
-	size_t idx = idx_residue[r];
+	// Setting the first residue before the loop that sweeps all residues. r
 
 	// The b-factor and resolution mean per residue, as well as number of voxels contributing to the mean
 	double bfactor_mean = 0;
 	double resolution_mean = 0;
 	int N_elems = 0;
 
-	MetaDataVec md;
-
 	// Selecting the residue
-	int resi, last_resi;
-
-	size_t first_index = 0;
-	size_t last_index = idx_residue.size()-1;
-
-	last_resi = at_pos.residue[idx_residue[first_index]];
-
-	for (size_t r=first_index; r<numberOfAtoms; ++r)
+	int resi;
+	for (size_t r=0; r<numberOfAtoms; ++r)
 	{
-		// Index of the residue in the residue vector
-		idx = idx_residue[r];
-
 		// Selecting the residue
 		resi = at_pos.residue[r];
 
-		if (resi != last_resi)
+		// Storing Residue and bfactor
+		resNumberList.push_back(resi);
+		double bfactorRad = at_pos.b[r];
+		bfactor_per_residue.push_back(bfactorRad);
+
+		int k;
+		int i;
+		int j;
+		if (centered)
 		{
-			double res_resi, bfactor_resi;
-			// The resolution per residue is estimated using the mean of the median
-			if (medianTrue)
-			{
-				std::sort(resolution_to_estimate.begin(), resolution_to_estimate.end());
-				std::sort(bfactor_to_estimate.begin(), bfactor_to_estimate.end());
-
-				res_resi = resolution_to_estimate[size_t(resolution_to_estimate.size()*0.5)];
-				bfactor_resi = bfactor_to_estimate[size_t(bfactor_to_estimate.size()*0.5)];
-
-			}else
-			{
-				res_resi = resolution_mean/N_elems;
-				bfactor_resi = bfactor_mean/bfactor_to_estimate.size();
-			}
-
-                        // If the fsc is provided, then, the local resolution is normalized
-			if (fscResolution>0)
-			{
-				res_resi -= fscResolution;
-				res_resi /= fscResolution;
-			}
-
-			// The resolution of the residue is stored
-			resolution_per_residue.push_back(res_resi);
-			bfactor_per_residue.push_back(bfactor_resi);
-
-			// 0.3 and 0.4 are weigths to smooth the output
-			ma_l.push_back(res_resi*0.3);
-			ma_c.push_back(res_resi*0.4);
-			resNumberList.push_back(last_resi);
-
-			last_resi = resi;
-
-			// The means are reseted
-			bfactor_mean = 0;
-			resolution_mean = 0;
-			N_elems = 0;
-			resolution_to_estimate.clear();
-			bfactor_to_estimate.clear();
+			// Getting the atom position
+			k = round(at_pos.z[r]/sampling) + floor(zdim/2);
+			i = round(at_pos.y[r]/sampling) + floor(ydim/2);
+			j = round(at_pos.x[r]/sampling) + floor(xdim/2);
 		}
-
-		// Getting the atom position
-		int k = round(at_pos.z[idx]/sampling) + floor(zdim/2);
-		int i = round(at_pos.y[idx]/sampling) + floor(ydim/2);
-		int j = round(at_pos.x[idx]/sampling) + floor(xdim/2);
-
-		// Covalent Radius of the atom
-		double covRad = at_pos.atomCovRad[idx];
-
-		// Thermal displacement
-		double bfactorRad = at_pos.b[idx];
-
-		// Storing the bfactor per residue to compute the median
-		bfactor_to_estimate.push_back(bfactorRad);
-
-		// Updating the mean of bfactor
-		bfactor_mean += bfactorRad;
+		else
+		{
+			// Getting the atom position
+			k = round(at_pos.z[r]/sampling);
+			i = round(at_pos.y[r]/sampling);
+			j = round(at_pos.x[r]/sampling);
+		}
 
 		// Total Displacement in voxels
 		int totRad = 3; //round( (covRad + bfactorRad)/sampling );
 
 		// All resolutions around the atom position are stored in a vector to estimate
-                // the local resolution of the residue
+		// the local resolution of the residueresolution_to_estimateresolution_to_estimate
 		estimatingResolutionOfResidue(k, i, j, totRad, mask, resvol, resolution_mean, N_elems, resolution_to_estimate);
-		
+
+		// The resolution of the residue is stored
+		double res_resi = resolution_mean/N_elems;
+		resolution_per_residue.push_back(res_resi);
+
+		// If the fsc is provided, then, the local resolution is normalized
+		if (fscResolution>0)
+		{
+			res_resi /= fscResolution;
+		}
+
+		// 0.3 and 0.4 are weigths to smooth the output
+		ma_l.push_back(res_resi*0.3);
+		ma_c.push_back(res_resi*0.4);
+
+		// The means are reseted
+		bfactor_mean = 0;
+		resolution_mean = 0;
+		N_elems = 0;
 
 	}
 
@@ -228,11 +199,11 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	}
 	smoothedResolution[ma_c.size()-1] = (ma_c[ma_c.size()-1]+ma_l[ma_c.size()-2])/(0.3+0.4);
 
-	std::vector<double> residuesToChimera_aux(at_pos.residue[idx_residue[last_index]]);
-
 	// Creation of the output metadata with the local resolution per residue
 	MetaDataVec mdSmooth;
-	size_t objsmth;
+	MetaDataVec md;
+	MDRowVec row;
+
 	for (size_t nn = 0; nn<resolution_per_residue.size(); ++nn)
 	{
 		double bf, lr;
@@ -242,26 +213,23 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 		bf = bfactor_per_residue[nn];
 		resnumber = resNumberList[nn];
 
-		int idx_resnumber = (int) resnumber;
-
 		lr = smoothedResolution[nn];
-		residuesToChimera_aux[idx_resnumber-1] = lr;
 
-		objsmth = md.addObject();
-		md.setValue(MDL_BFACTOR, bf, objsmth);
-		md.setValue(MDL_RESIDUE, resnumber, objsmth);
-		md.setValue(MDL_RESOLUTION_LOCAL_RESIDUE, lr, objsmth);
+		row.setValue(MDL_BFACTOR, bf);
+		row.setValue(MDL_RESIDUE, resnumber);
+		row.setValue(MDL_RESOLUTION_LOCAL_RESIDUE, lr);
+		md.addRow(row);
 	}
 
+	residuesToChimera_aux = smoothedResolution;
 	FileName fn;
-
+//
 	fn = fnOut + "/bfactor_resolution.xmd";
 	md.write(fn);
 
-        residuesToChimera = residuesToChimera_aux;
 	Image<int> imMask;
 	imMask() = mask;
-        fn = fnOut + "/mask.mrc";
+    fn = fnOut + "/mask.mrc";
 	imMask.write(fn);
 
 }
@@ -278,7 +246,7 @@ void ProgResBFactor::estimatingResolutionOfResidue(int k, int i, int j, int totR
 		size_t jj2kk2 = jj * jj + kk2;
 		for (size_t ii = 0; ii<totRad; ++ii)
 		{
-			size_t dist2 = (ii)*(ii) + (jj)*(jj) + (kk)*(kk);
+			size_t dist2 = ii*ii + jj*jj + kk*kk;
 			if (dist2 <= dim)
 			{
 				A3D_ELEM(mask, k-kk, i-ii, j-jj) = 1;
@@ -361,14 +329,14 @@ void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChim
 			std::string lineEnd = line.substr(66,  std::string::npos);
 
                         // The residue is read
-			int resi = (int) textToFloat(line.substr(23,5));
+			auto resi = (int) textToFloat(line.substr(23,5));
 			std::string lineMiddle;
 			int digitNumber = 5;
 			
 			std::string auxstr = std::to_string(residuesToChimera[resi-1]);
 
 			// The bfactor column has 5 digits so we set the normalized resolution to 
-                        // 5 digits
+            // 5 digits
 			auxstr = auxstr.substr(0, 5);
                         std::stringstream ss;
 			ss << std::setfill('0') << std::setw(5) << residuesToChimera[resi-1];
@@ -392,19 +360,18 @@ void ProgResBFactor::run()
 {
 	std::cout << "Start" << std::endl;
 
-        // Reading the atomic model and getting the atom positions
-	//analyzePDB();
-
-        std::string typeOfAtom = "CA";
-        numberOfAtoms = 0;
-        analyzePDBAtoms(fn_pdb, typeOfAtom, numberOfAtoms, at_pos);
+	// Reading the atomic model and getting the atom positions
+	std::string typeOfAtom = "CA";
+	numberOfAtoms = 0;
+	analyzePDBAtoms(fn_pdb, typeOfAtom, numberOfAtoms, at_pos);
+	std::cout << numberOfAtoms << std::endl;
 
 	// Estimating the local resolution per residue
 	std::vector<double> residuesToChimera;
 	sweepByResidue(residuesToChimera);
 	
 	// Output generation: a new atomic model is generated by substituting the bfactor column by
-        // the local resolution of the residue. Also a smoothing is carried out
+    // the local resolution of the residue. Also a smoothing is carried out
 	generateOutputPDB(residuesToChimera);
 
 	std::cout << "Finished" << std::endl;

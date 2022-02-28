@@ -1,5 +1,5 @@
 #include <mex.h>
-#include <core/metadata.h>
+#include <core/xmipp_metadata_program.h>
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[],
@@ -16,22 +16,17 @@ void mexFunction( int nlhs, mxArray *plhs[],
   mxGetString(prhs[0],runDir,mxGetN(prhs[0])+1);
   
   /* Read metadata */
-  MetaData md;
+  MetaDataVec md;
   md.read(((String)runDir)+"/structureFactor.xmd");
   int nSamples=(int)md.size();
 
   // Allocate output
   plhs[0]=mxCreateDoubleMatrix((mwSize)nSamples, (mwSize)1, mxREAL);
-  double *ptrFreq2=mxGetPr(plhs[0]);
   plhs[1]=mxCreateDoubleMatrix((mwSize)nSamples, (mwSize)1, mxREAL);
-  double *ptrLogStruct=mxGetPr(plhs[1]);
 
   // Fill output
-  int i=0;
-  FOR_ALL_OBJECTS_IN_METADATA(md)
-  {
-	  md.getValue(MDL_RESOLUTION_FREQ2,*ptrFreq2++,__iter.objId);
-	  md.getValue(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR,*ptrLogStruct++,__iter.objId);
-  }
-  
+  std::vector<double> freq2 = md.getColumnValues<double>(MDL_RESOLUTION_FREQ2);
+  std::vector<double> logStruct = md.getColumnValues<double>(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR);
+  memcpy(mxGetData(plhs[0]), &freq2[0], nSamples*sizeof(double));
+  memcpy(mxGetData(plhs[1]), &logStruct[0], nSamples*sizeof(double));
 }

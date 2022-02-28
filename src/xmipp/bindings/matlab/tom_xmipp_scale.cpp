@@ -42,14 +42,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
     {
         Image<double> image;
         getMatrix2D(prhs[0],image());
-		selfScaleToSize(BSPLINE3, image(), outsize[0], outsize[1]);
+		selfScaleToSize(xmipp_transformation::BSPLINE3, image(), outsize[0], outsize[1]);
         setMatrix2D(image(),plhs[0]);
     }
     else 
     {
         Image<double> volume;
         getMatrix3D(prhs[0],volume());
-		selfScaleToSize(BSPLINE3, volume(), outsize[0], outsize[1], outsize[2]);
+		selfScaleToSize(xmipp_transformation::BSPLINE3, volume(), outsize[0], outsize[1], outsize[2]);
         setMatrix3D(volume(),plhs[0]);
     }
 }	

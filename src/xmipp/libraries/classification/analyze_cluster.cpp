@@ -108,7 +108,10 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
     }
 
     // Prepare mask
-    size_t Xdim,Ydim,Zdim, Ndim;
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
+    size_t Ndim;
     getImageSize(SFin,Xdim,Ydim,Zdim,Ndim,image_label);
     mask.resize(Ydim,Xdim);
     mask.setXmippOrigin();
@@ -116,11 +119,12 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
         mask.initConstant(1);
     else
         BinaryCircularMask(mask,Xdim/2, INNER_MASK);
-    int Npixels=(int)mask.sum();
+    auto Npixels=(int)mask.sum();
 
     // Read all images in the class and subtract the mean
     // once aligned
-    Image<double> I, Iaux;
+    Image<double> I;
+    Image<double> Iaux;
     pcaAnalyzer.clear();
     pcaAnalyzer.reserve(SFin.size());
     if (verbose>0)
@@ -130,7 +134,9 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
     }
     int n=0;
     MultidimArray<float> v(Npixels);
-    MultidimArray<double> &mIref=Iref(), Ialigned, ImirrorAligned;
+    const MultidimArray<double> &mIref=Iref();
+    MultidimArray<double> Ialigned;
+    MultidimArray<double> ImirrorAligned;
     Matrix2D<double> M;
     AlignmentAux aux;
     CorrelationAux aux2;
@@ -151,8 +157,8 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
             ImirrorAligned=Ialigned;
             ImirrorAligned.selfReverseX();
             ImirrorAligned.setXmippOrigin();
-            alignImages(mIref,Ialigned,M,WRAP,aux,aux2,aux3);
-            alignImages(mIref,ImirrorAligned,M,WRAP,aux,aux2,aux3);
+            alignImages(mIref,Ialigned,M,xmipp_transformation::WRAP,aux,aux2,aux3);
+            alignImages(mIref,ImirrorAligned,M,xmipp_transformation::WRAP,aux,aux2,aux3);
             double corr=correlationIndex(mIref,Ialigned,&mask);
             double corrMirror=correlationIndex(mIref,ImirrorAligned,&mask);
             if (corr>corrMirror)

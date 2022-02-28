@@ -37,7 +37,7 @@ void PolyZernikes::create(const Matrix1D<int> & coef)
 {
     Matrix2D<int> * fMatT;
 
-    int nMax=(int)VEC_XSIZE(coef);
+    auto nMax=(int)VEC_XSIZE(coef);
     for (int nZ = 0; nZ < nMax; ++nZ)
     {
         if (VEC_ELEM(coef,nZ) == 0)
@@ -93,7 +93,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, c
     int numZer = (size_t)coef.sum();
 
     //Actually polOrder corresponds to the polynomial order +1
-    int polOrder=(int)ZERNIKE_ORDER(coef.size());
+    auto polOrder=(int)ZERNIKE_ORDER(coef.size());
 
     im.setXmippOrigin();
 
@@ -114,7 +114,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, c
 
     FOR_ALL_ELEMENTS_IN_ARRAY2D(im)
     {
-        if ( (A2D_ELEM(ROI,i,j)))
+        if (A2D_ELEM(ROI,i,j))
         {
             //For one i we swap the different j
             double y=i*iMaxDim2;
@@ -139,7 +139,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, c
             {
                 fMat = &fMatV[k];
 
-                if (fMat == NULL)
+                if (fMat == nullptr)
                     continue;
 
                 double temp = 0;
@@ -195,7 +195,7 @@ void PolyZernikes::zernikePols(const Matrix1D<int> coef, MultidimArray<double> &
 
     this->create(coef);
 
-    int polOrder=(int)ZERNIKE_ORDER(coef.size());
+    auto polOrder=(int)ZERNIKE_ORDER(coef.size());
     int numZer = coef.size();
 
     int xdim = XSIZE(im);

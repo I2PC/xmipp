@@ -258,7 +258,7 @@ void ProgReconsADMM::constructHtb()
 	double weight=1.;
 	ApplyGeoParams geoParams;
 	geoParams.only_apply_shifts=true;
-	geoParams.wrap=DONT_WRAP;
+	geoParams.wrap=xmipp_transformation::DONT_WRAP;
 	for (size_t objId : mdIn.ids())
 	{
 		if ((i+1)%Nprocs==rank)
@@ -407,15 +407,15 @@ void ProgReconsADMM::computeHtKH(MultidimArray<double> &kernelV)
 			E.getRow(0,r1);
 			E.getRow(1,r2);
 			double iStep=1.0/kernel.autocorrStep;
-			for (int k=((kernelV).zinit); k<=((kernelV).zinit + (int)(kernelV).zdim - 1); ++k)
+			for (auto k=(kernelV.zinit); k<=(kernelV.zinit + kernelV.zdim - 1); ++k)
 			{
 				double r1_z=k*ZZ(r1);
 				double r2_z=k*ZZ(r2);
-				for (int i=((kernelV).yinit); i<=((kernelV).yinit + (int)(kernelV).ydim - 1); ++i)
+				for (auto i=(kernelV.yinit); i<=(kernelV.yinit + kernelV.ydim - 1); ++i)
 				{
 					double r1_yz=i*YY(r1)+r1_z;
 					double r2_yz=i*YY(r2)+r2_z;
-					for (int j=((kernelV).xinit); j<=((kernelV).xinit + (int)(kernelV).xdim - 1); ++j)
+					for (auto j=(kernelV.xinit); j<=(kernelV.xinit + kernelV.xdim - 1); ++j)
 					{
 						double r1_xyz=j*XX(r1)+r1_yz;
 						double r2_xyz=j*XX(r2)+r2_yz;
@@ -448,7 +448,7 @@ void addGradientTerm(double mu, AdmmKernel &kernel, MultidimArray<double> &L, Fo
 
 	transformer.FourierTransform();
 	double K=mu*MULTIDIM_SIZE(L);
-	double xdim_2=(double)(XSIZE(L)/2);
+	auto xdim_2=(double)(XSIZE(L)/2);
 	double Kargument=2*PI*xdim_2/XSIZE(L);
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(fourierKernelV)
 	{
@@ -763,7 +763,7 @@ void AdmmKernel::applyCTFToKernelAutocorrelation(CTFDescription &ctf, double Ts,
 {
 	double dig2cont=1.0/Ts;
 	double wx, wy;
-	int xdim=(int)XSIZE(projectionAutocorrWithCTF);
+	auto xdim=(int)XSIZE(projectionAutocorrWithCTF);
 	int xdim_2=xdim/2;
 	double ixdim=1.0/xdim;
 	double maxFreq=2*autocorrStep;

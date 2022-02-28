@@ -93,7 +93,7 @@ def getHdf5Name(libdirs):
     return "hdf5"
 
 ALL_LIBS = {'fftw3',
-    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3',
+    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3','libsvm',
     getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
@@ -151,7 +151,7 @@ dirs = ['external','external','libraries','libraries','libraries','libraries','l
 patterns=['condor/*.cpp','delaunay/*.cpp','data/*.cpp','reconstruction/*.cpp',
           'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
 addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs,
-       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads'])
+       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads','svm'])
 
 
 # FRM library
@@ -167,7 +167,7 @@ if cuda:
            libs=['Xmipp','XmippInterfaceCuda','XmippCuda'], mpi=True)
 
     if starpu:
-        starpu_include = [os.environ.get('STARPU_INCLUDE')]
+        starpu_include = os.environ.get('STARPU_INCLUDE').split()
         starpu_lib = ['lib', os.environ.get('STARPU_LIB')]
         starpu_library = os.environ.get('STARPU_LIBRARY')
 
@@ -204,7 +204,7 @@ PROG_DEPS = XMIPP_LIBS
 PROG_LIBS = XMIPP_LIBS + [
     getHdf5Name(env['EXTERNAL_LIBDIRS']),
     'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f',
-    'fftw3f_threads', PYTHON_LIB, 'pthread'
+    'fftw3f_threads', PYTHON_LIB, 'pthread','libsvm'
 ]
 TEST_LIBS = ['libgtest', 'libgtest_main']
 
@@ -373,7 +373,9 @@ def compileMatlabBinding(target, source, env):
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
     command = '%s -O CFLAGS="\$CFLAGS -std=c++11 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
     print(command)
-    os.system(command)
+    matlab_ok = os.system(command)
+    if matlab_ok != 0:
+        raise Exception('MatLab Binding compilation failed...')
 
 # Matlab programs
 def addMatlabBinding(name):
@@ -381,10 +383,9 @@ def addMatlabBinding(name):
     matlabDir = join(XMIPP_PATH, 'bindings', 'matlab')
     source = join(matlabDir, name)
     target = join(matlabDir, name.replace(".cpp",".mexa64"))
-
+    env.Depends(target = target, dependency = XMIPP_LIBS)
     cmdTarget = env.Command(target, source, compileMatlabBinding)
     env.Alias('xmipp-matlab', cmdTarget)
-
     return cmdTarget
 
 if matlab:

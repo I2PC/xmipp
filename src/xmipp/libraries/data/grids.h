@@ -178,19 +178,10 @@ public:
         \\ Ex: SimpleGrid sg; */
     SimpleGrid();
 
-    /** Copy constructor.
-        This constructor builds an exact copy of the simple grid.
-        \\ Ex: SimpleGrid sg2(sg1); */
-    SimpleGrid(const SimpleGrid &SG);
-
     /** Show a Simple grid.
         Shows all information about the simple grid.
         \\Ex: std::cout << sg; */
     friend std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid);
-
-    /** Assignment.
-        \\ Ex: sg2=sg1; */
-    SimpleGrid& operator = (const SimpleGrid &SG);
 
     /** Another function for assigment.*/
     void assign(const SimpleGrid &SG);
@@ -291,7 +282,7 @@ public:
     /// Get relative_size
     double get_relative_size() const
     {
-        return (relative_size);
+        return relative_size;
     }
 
     /** Prepare grid for work.
@@ -583,7 +574,7 @@ public:
         The returned vectors Gcorner1 and Gcorner2 enclose this grid.
         You can supply a deformation matrix (see \ref blobs2voxels )*/
     void voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
-                       const Matrix2D<double> *V = NULL) const;
+                       const Matrix2D<double> *V = nullptr) const;
 };
 
 /*****************************************************************************/
@@ -827,7 +818,7 @@ public:
             G = RV.G;
             for (size_t i = 0; i < RV.VolumesNo(); i++)
             {
-                Image<T>  *V = new Image<T>;
+                auto  *V = new Image<T>;
                 *V = RV(i);
                 LV.push_back(V);
             }
@@ -857,7 +848,7 @@ public:
     {
         // Clear old list of volumes
         for (size_t i = 0; i < VolumesNo(); i++)
-            if (LV[i]!=NULL)
+            if (LV[i]!=nullptr)
                 delete LV[i];
         LV.clear();
 
@@ -865,7 +856,9 @@ public:
         G = _grid;
 
         // Generate a volume for each subgrid
-        int                        Zdim, Ydim, Xdim;
+        int Zdim;
+        int Ydim;
+        int Xdim;
         Image<T> *                 Vol_aux;
         for (size_t i = 0; i < G.GridsNo(); i++)
         {
@@ -903,7 +896,9 @@ public:
             grid.highest.selfCEIL();
 
             // Resize auxiliary volume
-            int Zdim, Ydim, Xdim;
+            int Zdim;
+            int Ydim;
+            int Xdim;
             grid.getSize(Zdim, Ydim, Xdim);
             Vol_aux = new Image<T>;
             (*Vol_aux)().resize(Zdim, Ydim, Xdim);
@@ -1223,7 +1218,9 @@ public:
             return;
 
         // Create the writing volume ............................................
-        size_t Zdim = 0, Ydim = 0, Xdim = 0;
+        size_t Zdim = 0;
+        size_t Ydim = 0;
+        size_t Xdim = 0;
         for (size_t v = 0; v < VolumesNo(); v++)
         {
             const Image<T> & this_vol = (*this)(v);
@@ -1251,8 +1248,12 @@ public:
         int sli = 0;
         for (size_t v = 0; v < VolumesNo(); v++)
         {
-            int pos, ii, jj;           // Position inside the control slice
-            size_t k, i, j;               // Auxiliar counters
+            int pos;                // Position inside the control slice
+            int ii;                 // Position inside the control slice
+            int jj;                 // Position inside the control slice
+            size_t k;               // Auxiliar counters
+            size_t i;               // Auxiliar counters
+            size_t j;               // Auxiliar counters
 
             // Choose grid and volume
             const SimpleGrid & this_grid = grid(v);
@@ -1287,7 +1288,7 @@ public:
             {
                 // We use a trick to save the grid information in the volume
                 // If the following if is true the trick can not be used
-                if ((sizeof(float) != sizeof(int)))
+                if (sizeof(float) != sizeof(int))
                     REPORT_ERROR(ERR_TYPE_INCORRECT,
                                  "GridVolume is integer and (sizeof(float)!= sizeof(int)");
 
@@ -1383,10 +1384,18 @@ public:
 
             while (sli < ZSIZE(V()))
             {
-                int pos, ii, jj;           // Position inside the control slice
-                size_t k, i, j;               // Auxiliary counters
-                size_t Zdim, Ydim, Xdim;
-                int   Zinit, Yinit, Xinit;
+                int pos;                // Position inside the control slice
+                int ii;                 // Position inside the control slice
+                int jj;                 // Position inside the control slice
+                size_t k;               // Auxiliary counters
+                size_t i;               // Auxiliary counters
+                size_t j;               // Auxiliary counters
+                size_t Zdim;
+                size_t Ydim;
+                size_t Xdim;
+                int Zinit;
+                int Yinit;
+                int Xinit;
 
                 // Read Grid data ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
                 pos = 0;
@@ -1408,7 +1417,7 @@ public:
                 {
                     // We use a trick to save the grid information in the volume
                     // If the following if is true the trick can not be used
-                    if ((sizeof(float) != sizeof(int)))
+                    if (sizeof(float) != sizeof(int))
                         REPORT_ERROR(ERR_TYPE_INCORRECT,
                                      "GridVolume is integer and (sizeof(float)!= sizeof(int)");
 

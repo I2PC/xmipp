@@ -43,20 +43,17 @@ class CommonLine
 {
 public:
     /// Angle of the best common line in image i
-    double angi;
+    double angi=0.0;
     /// Angle of the best common line in image j
-    double angj;
+    double angj=0.0;
     /// Distance between both common lines
-    double distanceij;
+    double distanceij=-1;
     /// Index of the maximum
     /// jmax=-5 -> line j has to be shifted 5 pixels to the left  to match line i
     /// jmax= 5 -> line j has to be shifted 5 pixels to the right to match line i
-    int jmax;
+    int jmax=0;
     /// Percentile (good common lines have very high percentiles)
-    double percentile;
-public:
-    /// Empty constructor
-    CommonLine();
+    double percentile=-1;
 };
 
 /// CommonLine Parameters
@@ -202,7 +199,7 @@ void quaternionCommonLines(const DMatrix &quaternions, CommonLineInfo &clInfo);
 void commonlineMatrixCheat(const DMatrix &quaternions, size_t nRays,
                            DMatrix &clMatrix, DMatrix &clCorr);
 
-void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int i, int j, DMatrix &U);
+void anglesRotationMatrix(size_t nRays, int i, int j, DMatrix &U);
 
 #define SMALL_TRIANGLE -101
 /** Negative output means error
@@ -210,9 +207,9 @@ void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int i, int j, D
  */
 int tripletRotationMatrix(const DMatrix &clMatrix, size_t nRays, int k1, int k2, int k3, DMatrix &R);
 
-void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, DMatrix * pQuaternions=NULL);
+void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix);
 
-void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions = NULL);
+void rotationsFromSyncMatrix(const DMatrix &sMatrix);
 
 
 

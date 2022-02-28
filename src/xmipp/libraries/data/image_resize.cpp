@@ -56,7 +56,7 @@ void ProgImageResize::defineParams()
     //params
     addParamsLine("--factor <n=0.5>                 : Resize a factor of dimensions, 0.5 halves and 2 doubles (uses splines or linear interpolation).");
     addParamsLine(" alias -n;");
-    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions (uses splines or linear interpolation)");
+    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions (uses splines / linear interpolation or nearest neighbour method).");
     addParamsLine(" alias -d;");
     addParamsLine("or --fourier <x> <y=x> <z=x> <thr=1>   : Use padding/windowing in Fourier Space to resize. thr=number of threads");
     addParamsLine(" alias -f;");
@@ -66,6 +66,7 @@ void ProgImageResize::defineParams()
     addParamsLine("      where <interpolation_type>");
     addParamsLine("        spline          : Use spline interpolation");
     addParamsLine("        linear          : Use bilinear/trilinear interpolation");
+    addParamsLine("        nearest         : Use nearest neighbour to set new value");
 }
 
 void ProgImageResize::readParams()
@@ -74,9 +75,11 @@ void ProgImageResize::readParams()
     String degree = getParam("--interp");
 
     if (degree == "spline")
-        splineDegree = BSPLINE3;
+        splineDegree = xmipp_transformation::BSPLINE3;
     else if (degree == "linear")
-        splineDegree = LINEAR;
+        splineDegree = xmipp_transformation::LINEAR;
+    else if (degree == "nearest")
+        splineDegree = xmipp_transformation::NEAREST;
 
     scale_type = RESIZE_NONE;
 }
@@ -85,7 +88,9 @@ void ProgImageResize::readParams()
 void ProgImageResize::preProcess()
 {
     double factor=1.0;
-    double oxdim = xdimOut, oydim = ydimOut, ozdim = zdimOut;
+    double oxdim = xdimOut;
+    auto oydim = (double)ydimOut;
+    auto ozdim = (double)zdimOut;
 
     //If zdimOut greater than 1, is a volume and should apply transform
     dim = (isVol = (zdimOut > 1)) ? 3 : 2;
@@ -146,7 +151,9 @@ void ProgImageResize::preProcess()
     {
         //        if (isVol)
         //            REPORT_ERROR(ERR_PARAM_INCORRECT, "The 'fourier' scaling type is only valid for images");
-        int oxdim = xdimOut, oydim = ydimOut, ozdim = zdimOut;
+        auto oxdim2 = xdimOut;
+        auto oydim2 = ydimOut;
+        auto ozdim2 = zdimOut;
         scale_type = RESIZE_FOURIER;
 
         xdimOut = getIntParam("--fourier", 0);
@@ -156,10 +163,10 @@ void ProgImageResize::preProcess()
         else
         	zdimOut=1;
         fourier_threads = getIntParam("--fourier", 3);
-        XX(resizeFactor) = (double)xdimOut / oxdim;
-        YY(resizeFactor) = (double)ydimOut / oydim;
+        XX(resizeFactor) = (double)xdimOut / oxdim2;
+        YY(resizeFactor) = (double)ydimOut / oydim2;
         if (isVol)
-        	ZZ(resizeFactor) = (double)zdimOut / ozdim;
+        	ZZ(resizeFactor) = (double)zdimOut / ozdim2;
         //Do not think this is true
         //            if (oxdim < xdimOut || oydim < ydimOut)
         //                REPORT_ERROR(ERR_PARAM_INCORRECT, "The 'fourier' scaling type can only be used for reducing size");

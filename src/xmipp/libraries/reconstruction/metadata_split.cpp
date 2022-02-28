@@ -131,9 +131,9 @@ public:
         	Image<double> cc;
         	cc.read(fn_cc);
         	MultidimArray<double> &mcc=cc();
-        	int Ndirs=(int)XSIZE(mcc);
-        	int Nvols=(int)YSIZE(mcc);
-        	int Nimgs=(int)ZSIZE(mcc);
+        	auto Ndirs=(int)XSIZE(mcc);
+        	auto Nvols=(int)YSIZE(mcc);
+        	auto Nimgs=(int)ZSIZE(mcc);
         	if (Nvols!=1)
         		REPORT_ERROR(ERR_ARG_INCORRECT,"This program is meant only for cross-correlation volumes of a single reference model");
         	Matrix2D<int> coocurrence(Nimgs,Nimgs);

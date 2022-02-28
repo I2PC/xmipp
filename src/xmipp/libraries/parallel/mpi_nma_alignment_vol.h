@@ -43,7 +43,7 @@ private:
     std::vector<size_t> imgsId;
 
     // main body
-    void createWorkFiles();
+    void createWorkFiles() override;
     
     //Only master do starting progress bar stuff
     void startProcessing();

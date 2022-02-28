@@ -91,7 +91,7 @@ double KerDenSOM::test(const FuzzyMap& _som, const TS& _examples) const
         qerror += euclideanDistance(theBest, _examples.theItems[i]);
         if (verbosity)
         {
-            int tmp = (int)((_examples.size() * 5) / 100);
+        	auto tmp = (int)((_examples.size() * 5) / 100);
             if ((tmp == 0) && (i != 0))
                 tmp = i;
             else
@@ -129,7 +129,7 @@ void KerDenSOM::updateV(FuzzyMap* _som, const TS* _examples, const double& _reg)
         	tmpDens_cc = 0.;
         for (size_t vv = 0; vv < numVectors; vv++)
         {
-            double tmpU = (double) _som->memb[vv][cc];
+        	auto tmpU = (double) _som->memb[vv][cc];
             tmpDens_cc += tmpU;
             const floatFeature * ptrExample=&(_examples->theItems[vv][0]);
             for (size_t j = 0; j < dim; j++)
@@ -139,7 +139,9 @@ void KerDenSOM::updateV(FuzzyMap* _som, const TS* _examples, const double& _reg)
 
     // Update Code vectors using a sort of Gauss-Seidel iterative algorithm.
     // Usually 100 iterations are enough.
-    double convergence = 1, stopError2, stopError1;
+    double convergence = 1;
+    double stopError2;
+    double stopError1;
     double *ptrTmpV=&(tmpV[0]);
     while ((convergence > 1e-5) && (t2 < 100))
     {
@@ -171,7 +173,9 @@ void KerDenSOM::updateV(FuzzyMap* _som, const TS* _examples, const double& _reg)
 double KerDenSOM::mainIterations(FuzzyMap* _som, const TS* _examples, double& _sigma, const double& _reg)
 {
     int verbosity = listener->getVerbosity();
-    double stopError = 1e10, alpha, ts2;
+    double stopError = 1e10;
+    double alpha;
+    double ts2;
     size_t iter = 0;
     if (somNSteps == 0)
         return stopError;
@@ -283,8 +287,12 @@ void KerDenSOM::updateV1(FuzzyMap* _som, const TS* _examples)
 void KerDenSOM::updateU1(FuzzyMap* _som, const TS* _examples)
 {
 
-    double auxProd, auxDist, tmp;
-    size_t k, j, i;
+    double auxProd;
+    double auxDist;
+    double tmp;
+    size_t k;
+    size_t j;
+    size_t i;
 
     // Update Membership matrix
     for (k = 0; k < numVectors; k++)
@@ -325,7 +333,8 @@ void KerDenSOM::updateU1(FuzzyMap* _som, const TS* _examples)
  */
 void KerDenSOM::initU(FuzzyMap* _som)
 {
-    unsigned cc, vv;
+    unsigned cc;
+    unsigned vv;
 
     // Take random samples
     randomize_random_generator();

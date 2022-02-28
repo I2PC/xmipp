@@ -66,9 +66,9 @@ void buildReconsInfo(MetaDataVec &selfile,
         is_ctf_unique = false;
     }
 
-    if (IMG_Inf != NULL)
+    if (IMG_Inf != nullptr)
         delete [] IMG_Inf;
-    if ((IMG_Inf = new ReconsInfo[numIMG]) == NULL)
+    if ((IMG_Inf = new ReconsInfo[numIMG]) == nullptr)
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "Build_Recons_Info: No memory for the sorting");
 
     int i = 0; // It will account for the number of valid projections processed
@@ -279,7 +279,7 @@ void updateResidualVector(BasicARTParameters &prm, GridVolume &vol_basis,
     Projection       read_proj, dummy_proj, new_proj;
     FileName         fn_resi, fn_tmp;
     double           sqrtweight, dim2;
-    Matrix2D<double> *A = NULL;
+    Matrix2D<double> *A = nullptr;
     std::vector<MultidimArray<double> > newres_imgs;
     MultidimArray<int>    mask;
 
@@ -308,7 +308,7 @@ void updateResidualVector(BasicARTParameters &prm, GridVolume &vol_basis,
                            prm.IMG_Inf[iact_proj].rot,
                            prm.IMG_Inf[iact_proj].tilt,
                            prm.IMG_Inf[iact_proj].psi, BACKWARD, prm.eq_mode,
-                           prm.GVNeq, NULL, NULL, prm.ray_length, prm.threads);
+                           prm.GVNeq, nullptr, nullptr, prm.ray_length, prm.threads);
 
         if (!(prm.tell&TELL_SHOW_ERROR))
             if (iact_proj % XMIPP_MAX(1, prm.numIMG / 60) == 0)
@@ -348,7 +348,7 @@ void updateResidualVector(BasicARTParameters &prm, GridVolume &vol_basis,
                            prm.IMG_Inf[iact_proj].rot,
                            prm.IMG_Inf[iact_proj].tilt,
                            prm.IMG_Inf[iact_proj].psi, FORWARD, prm.eq_mode,
-                           prm.GVNeq, A, NULL, prm.ray_length, prm.threads);
+                           prm.GVNeq, A, nullptr, prm.ray_length, prm.threads);
 
         sqrtweight = sqrt(prm.residual_imgs[iact_proj].weight() / prm.sum_weight);
 
@@ -711,7 +711,7 @@ POCSClass::POCSClass(BasicARTParameters *_prm,
     Zoutput_volume_size = _Zoutput_volume_size;
     Youtput_volume_size = _Youtput_volume_size;
     Xoutput_volume_size = _Xoutput_volume_size;
-    apply_POCS = (prm->surface_mask != NULL ||
+    apply_POCS = (prm->surface_mask != nullptr ||
                   prm->positivity || (prm->force_sym != 0 && !prm->is_crystal) ||
                   prm->known_volume != -1);
 }
@@ -734,7 +734,7 @@ void POCSClass::apply(GridVolume &vol_basis, int it, int images)
     if (apply_POCS && POCS_i % POCS_freq == 0)
     {
         Image<double> vol_aux;
-        Image<double> *desired_volume = NULL;
+        Image<double> *desired_volume = nullptr;
 
         // Compute the corresponding voxel volume
         prm->basis.changeToVoxels(vol_basis, &(vol_voxels()),
@@ -747,7 +747,7 @@ void POCSClass::apply(GridVolume &vol_basis, int it, int images)
             std::cout << std::endl;
         }
         // Apply surface restriction
-        if (prm->surface_mask != NULL)
+        if (prm->surface_mask != nullptr)
         {
             vol_POCS() = (*(prm->surface_mask))();
         }
@@ -830,10 +830,10 @@ void POCSClass::apply(GridVolume &vol_basis, int it, int images)
         switch (prm->basis.type)
         {
         case Basis::blobs:
-            if (desired_volume == NULL)
+            if (desired_volume == nullptr)
                 ART_voxels2blobs_single_step(vol_basis, &vol_basis,
                                              prm->basis.blob, prm->D, prm->lambda(it),
-                                             &(theo_POCS_vol()), NULL,
+                                             &(theo_POCS_vol()), nullptr,
                                              &(corr_POCS_vol()),
                                              &(vol_POCS()),
                                              POCS_mean_error, POCS_max_error, VARTK);
@@ -848,7 +848,7 @@ void POCSClass::apply(GridVolume &vol_basis, int it, int images)
                                                  prm->basis.blob, prm->D, prm->lambda(it),
                                                  &(theo_POCS_vol()), &((*desired_volume)()),
                                                  &(corr_POCS_vol()),
-                                                 NULL,
+                                                 nullptr,
                                                  POCS_mean_error, POCS_max_error, VARTK);
                     if (prm->tell&TELL_SAVE_AT_EACH_STEP)
                         std::cout << "    POCS Iteration " << i
@@ -857,7 +857,7 @@ void POCSClass::apply(GridVolume &vol_basis, int it, int images)
             }
             break;
         case Basis::voxels:
-            if (desired_volume == NULL)
+            if (desired_volume == nullptr)
             {
                 FOR_ALL_ELEMENTS_IN_ARRAY3D(vol_POCS())
                 if (vol_POCS(k, i, j))
@@ -880,7 +880,7 @@ void POCSClass::apply(GridVolume &vol_basis, int it, int images)
 
         // Now some control logic
         if (prm->numIMG - images < 100 || images % 100 == 0 ||
-            desired_volume != NULL)
+            desired_volume != nullptr)
         {
             POCS_freq = 1;
             POCS_state = POCS_measuring;

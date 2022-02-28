@@ -384,7 +384,7 @@ ProgReconsBase * ProgIDRXrayTomo::createReconsProgram(const FileName &input, con
         program->read(arguments);
         return program;
     }
-    return NULL;
+    return nullptr;
 }
 
 

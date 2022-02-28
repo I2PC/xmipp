@@ -292,9 +292,13 @@ public:
 	/// Second Gaussian center
 	double Gc2;
 	// Background polynomial
-	double bgR1, bgR2, bgR3;
+	double bgR1;
+	double bgR2;
+	double bgR3;
 	// Envelope polynomial
-	double envR0, envR1, envR2;
+	double envR0;
+	double envR1;
+	double envR2;
 	//Maximum frequency to estimate values
 	double freq_max;
 	//Extra parameters for VPP
@@ -447,14 +451,15 @@ public:
 	 /// Compute CTF pure at (U,V). Continuous frequencies
 	inline double getValuePureAt(bool show = false) const
 	{
-		double VPP;
+		double VPP=0.0;
 		double check_VPP = round(VPP_radius*1000);
 		if(check_VPP != 0)
 			VPP = -phase_shift*(1-exp(-precomputed.u2/(2*pow(VPP_radius,2.0))));
 		else
 			VPP = 0;
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 *precomputed.u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part, &cosine_part); // OK
 		double Eespr = exp(-K3 * precomputed.u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
@@ -474,14 +479,14 @@ public:
 			<< " " << precomputed.u4 << std::endl;
 			std::cout << "   K1,K2,argument=" << K1 << " " << K2 << " " << argument << std::endl;
 			std::cout << "   K3,Eespr=" << K3 << " " << Eespr << std::endl;
-			std::cout << "   K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
+			//std::cout << "   K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
 			std::cout << "   K5,EdeltaF=" << K5 << " " << EdeltaF << std::endl;
 			std::cout << "   EdeltaR=" << EdeltaR << std::endl;
 			std::cout << "   K6,K7,Ealpha=" << K6 << " " << K7 << " " << Ealpha
 			<< std::endl;
 			std::cout << "   Total atenuation(E)= " << E << std::endl;
 			std::cout << "   K,Q0,base_line=" << K << "," << Q0 << "," << base_line << std::endl;
-			std::cout << "   VPP=" << VPP << std::endl;
+			std::cout << "   VPP=" << VPP << " VPPRadius=" << VPP_radius << " phase shift=" << phase_shift << std::endl;
 			std::cout << "   CTF="
 			<< -K*(Ksin*sine_part - Kcos*cosine_part)*E << std::endl;
 		}
@@ -491,26 +496,7 @@ public:
 	/// Compute CTF pure at (U,V). Continuous frequencies
 	inline double getValuePureNoKAt() const
 	{
-		double VPP;
-		double check_VPP = round(VPP_radius*1000);
-		if(check_VPP != 0)
-			VPP = -phase_shift*(1-exp(-precomputed.u2/(2*pow(VPP_radius,2.0))));
-		else
-			VPP = 0;
-		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 *precomputed.u4;
-		double sine_part, cosine_part;
-		sincos(argument,&sine_part, &cosine_part); // OK
-		double Eespr = exp(-K3 * precomputed.u4); // OK
-		//CO: double Eispr=exp(-K4*u4); // OK
-		double EdeltaF = bessj0(K5 * precomputed.u2); // OK
-		double EdeltaR = SINC(precomputed.u * DeltaR); // OK
-		double aux=(K7 * precomputed.u2 * precomputed.u + precomputed.deltaf * precomputed.u);
-		double Ealpha = exp(-K6 * aux * aux); // OK
-		// CO: double E=Eespr*Eispr*EdeltaF*EdeltaR*Ealpha;
-		double E = Eespr * EdeltaF * EdeltaR * Ealpha+envR0+envR1*precomputed.u+envR2*precomputed.u2;
-		if (E < 0)
-			E	= 0;
-		return -(Ksin*sine_part - Kcos*cosine_part)*E;
+		return K*getValuePureAt();
 	}
 
 	/// Compute noise at (X,Y). Continuous frequencies, notice it is squared
@@ -560,7 +546,8 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 * precomputed.u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part,&cosine_part);
 
 		if (show)
@@ -592,7 +579,8 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part, &cosine_part); // OK
 		double Eespr = exp(-K3 * u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
@@ -1076,7 +1064,8 @@ public:
 		else
 			VPP = 0;
         double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-        double sine_part, cosine_part;
+        double sine_part;
+		double cosine_part;
         sincos(argument,&sine_part, &cosine_part); // OK
         double Eespr = exp(-K3 * u4); // OK
         //CO: double Eispr=exp(-K4*u4); // OK
@@ -1094,7 +1083,7 @@ public:
             std::cout << " K1,K2,sin=" << K1 << " " << K2 << " "
             << sine_part << std::endl;
             std::cout << " K3,Eespr=" << K3 << " " << Eespr << std::endl;
-            std::cout << " K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
+            //std::cout << " K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
             std::cout << " K5,EdeltaF=" << K5 << " " << EdeltaF << std::endl;
             std::cout << " EdeltaR=" << EdeltaR << std::endl;
             std::cout << " K6,K7,Ealpha=" << K6 << " " << K7 << " " << Ealpha
@@ -1121,7 +1110,8 @@ public:
 		else
 			VPP = 0;
         double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-        double sine_part, cosine_part;
+        double sine_part;
+		double cosine_part;
         sincos(argument,&sine_part, &cosine_part); // OK
         return -(Ksin*sine_part - Kcos*cosine_part);
     }

@@ -31,13 +31,6 @@
 #include "reconstruction/radon.h"
 #include "core/linear_system_helper.h"
 
-/* Common line ------------------------------------------------------------- */
-CommonLine::CommonLine()
-{
-    angi = angj = 0;
-    distanceij = -1;
-}
-
 /* Read parameters --------------------------------------------------------- */
 void ProgCommonLine::readParams() {
 	fn_sel = getParam("-i");
@@ -112,7 +105,7 @@ struct ThreadPrepareImages {
 
 void * threadPrepareImages(void * args)
 {
-    ThreadPrepareImages * master = (ThreadPrepareImages *) args;
+    auto * master = (ThreadPrepareImages *) args;
     ProgCommonLine * parent = master->parent;
     MetaDataVec SFi = *(master->SFi);
     size_t Ydim, Xdim, Zdim, Ndim;
@@ -122,7 +115,7 @@ void * threadPrepareImages(void * args)
     mask.resize(Ydim, Xdim);
     mask.setXmippOrigin();
     BinaryCircularMask(mask, Xdim / 2, OUTSIDE_MASK);
-    int NInsideMask = (int)(XSIZE(mask) * YSIZE(mask) - mask.sum());
+    auto NInsideMask = (int)(XSIZE(mask) * YSIZE(mask) - mask.sum());
 
     FourierFilter Filter;
     Filter.w1 = -1;
@@ -207,7 +200,7 @@ void * threadPrepareImages(void * args)
 		}
 		ii++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ProgCommonLine::getAndPrepareBlock(int i,
@@ -228,8 +221,8 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 	}
 
 	// Read and preprocess the images
-	pthread_t * th_ids = new pthread_t[Nthr];
-	ThreadPrepareImages * th_args = new ThreadPrepareImages[Nthr];
+	auto * th_ids = new pthread_t[Nthr];
+	auto * th_args = new ThreadPrepareImages[Nthr];
 	for (int nt = 0; nt < Nthr; nt++) {
 		// Passing parameters to each thread
 		th_args[nt].parent = this;
@@ -237,13 +230,13 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 		th_args[nt].SFi = &SFi;
 		th_args[nt].blockRTFs = &blockRTFs;
 		th_args[nt].blockRTs = &blockRTs;
-		pthread_create((th_ids + nt), NULL, threadPrepareImages,
+		pthread_create((th_ids + nt), nullptr, threadPrepareImages,
 				(void *) (th_args + nt));
 	}
 
 	// Waiting for threads to finish
 	for (int nt = 0; nt < Nthr; nt++)
-		pthread_join(*(th_ids + nt), NULL);
+		pthread_join(*(th_ids + nt), nullptr);
 
     // Threads structures are not needed any more
     delete []th_ids;
@@ -312,7 +305,7 @@ struct ThreadCompareImages {
 
 void * threadCompareImages(void * args)
 {
-    ThreadCompareImages * master = (ThreadCompareImages *) args;
+    auto * master = (ThreadCompareImages *) args;
     ProgCommonLine * parent = master->parent;
 
 	int blockIsize = master->RTFsi->size();
@@ -346,7 +339,7 @@ void * threadCompareImages(void * args)
 			parent->CLmatrix[idx_ji].jmax = -parent->CLmatrix[idx_ij].jmax;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ProgCommonLine::processBlock(int i, int j)
@@ -363,8 +356,8 @@ void ProgCommonLine::processBlock(int i, int j)
 
 	// Compare all versus all
 	// Read and preprocess the images
-	pthread_t * th_ids = new pthread_t[Nthr];
-	ThreadCompareImages * th_args = new ThreadCompareImages[Nthr];
+	auto * th_ids = new pthread_t[Nthr];
+	auto * th_args = new ThreadCompareImages[Nthr];
 	for (int nt = 0; nt < Nthr; nt++) {
 		// Passing parameters to each thread
 		th_args[nt].parent = this;
@@ -383,13 +376,13 @@ void ProgCommonLine::processBlock(int i, int j)
 			th_args[nt].RTFsj = &RTFsi;
 			th_args[nt].RTsj = &RTsi;
 		}
-		pthread_create((th_ids + nt), NULL, threadCompareImages,
+		pthread_create((th_ids + nt), nullptr, threadCompareImages,
 				(void *) (th_args + nt));
 	}
 
     // Waiting for threads to finish
     for (int nt = 0; nt < Nthr; nt++)
-        pthread_join(*(th_ids + nt), NULL);
+        pthread_join(*(th_ids + nt), nullptr);
 
     // Threads structures are not needed any more
     delete[] th_ids;
@@ -793,7 +786,7 @@ void commonlineMatrixCheat(const DMatrix &quaternions, size_t nRays,
 
 
 
-void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int clI, int clJ,
+void anglesRotationMatrix(size_t nRays, int clI, int clJ,
                           const DVector &Q1, const DVector &Q2,
                           DMatrix &R)
 {
@@ -867,8 +860,8 @@ int tripletRotationMatrix(const DMatrix &clMatrix, size_t nRays,
     Q23.setCol();
 
     DMatrix R1, R2;
-    anglesRotationMatrix(clMatrix, nRays, (int)cl(1, 2), (int)cl(1, 3), Q12, Q13, R1);
-    anglesRotationMatrix(clMatrix, nRays, (int)cl(2, 1), (int)cl(2, 3), Q12, Q23, R2);
+    anglesRotationMatrix( nRays, (int)cl(1, 2), (int)cl(1, 3), Q12, Q13, R1);
+    anglesRotationMatrix( nRays, (int)cl(2, 1), (int)cl(2, 3), Q12, Q23, R2);
     // Compute rotation matrix according to (4.6)
     R = R1.transpose() * R2;
 
@@ -896,7 +889,7 @@ void putRotationMatrix(const DMatrix &R, int k1, int k2, DMatrix &syncMatrix)
 //% matrix.
 //%
 //% Yoel Shkolnisky, August 2010.
-void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, DMatrix * pQuaternions)
+void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix)
 {
     int K = clMatrix.Xdim();
     DMatrix J, R, S(3,3);
@@ -943,7 +936,7 @@ void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, 
     }
 }//function computeSyncMatrix
 
-void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
+void rotationsFromSyncMatrix(const DMatrix &sMatrix)
 {
     int K = sMatrix.Xdim() / 2;
     int Kx3 = 3 * K;

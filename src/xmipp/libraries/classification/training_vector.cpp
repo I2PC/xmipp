@@ -137,12 +137,14 @@ void ClassicTrainingVectors::readSelf(std::istream& _is)
 
         // Determines the number of rows and columns in the training set
 
-        long dim, size;
+        long dim;
+        long size;
         _is >> dim;
         _is >> line;
         if (!sscanf(line.c_str(), "%ld", &size))
         {
-            int x, y;
+            int x;
+            int y;
             _is >> x;
             _is >> y;
             size = x * y;
@@ -199,7 +201,7 @@ void ClassicTrainingVectors::read(const FileName& fnIn)
         REPORT_ERROR(ERR_IO_NOTEXIST,fnInRaw);
     std::vector<floatFeature> v;
     v.resize(vectorSize);
-    float *buffer=new float[vectorSize];
+    auto *buffer=new float[vectorSize];
     String fnImg;
     size_t order;
 

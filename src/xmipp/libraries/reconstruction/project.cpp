@@ -37,6 +37,7 @@ void ProgProject::readParams()
     fnPhantom = getParam("-i");
     fnOut = getParam("-o");
     samplingRate  = getDoubleParam("--sampling_rate");
+    highTs = getDoubleParam("--high_sampling_rate");
     singleProjection = false;
     if (STR_EQUAL(getParam("--method"), "real_space"))
         projType = REALSPACE;
@@ -49,11 +50,11 @@ void ProgProject::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmipp_transformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmipp_transformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmipp_transformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The values for interpolation can be : nearest, linear, bspline");
 
@@ -96,6 +97,7 @@ void ProgProject::defineParams()
     addParamsLine("   -i <volume_file>                           : Voxel volume, PDB or description file");
     addParamsLine("   -o <image_file>                            : Output stack or image");
     addParamsLine("  [--sampling_rate <Ts=1>]                    : It is only used for PDB phantoms");
+    addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]  : Sampling rate before downsampling. It is only used for PDB phantoms");
     addParamsLine("  [--method <method=real_space>]              : Projection method");
     addParamsLine("        where <method>");
     addParamsLine("                real_space                    : Makes projections by ray tracing in real space");
@@ -186,7 +188,7 @@ void ParametersProjection::from_prog_params(const ProgProject &prog_prm)
 /* Read Projection Parameters ============================================== */
 int translate_randomness(char * str)
 {
-    if (str == NULL)
+    if (str == nullptr)
         return ANGLE_RANGE_DETERMINISTIC;
     if (strcmp(str, "random_group") == 0)
         return ANGLE_RANGE_RANDOM_GROUPS;
@@ -429,7 +431,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
                     enable_angle_range = true;
                     rot_range.ang0 = textToFloat(auxstr);
                     auxstr = nextToken();
-                    if (auxstr == NULL)
+                    if (auxstr == nullptr)
                     {
                         // Fixed mode
                         rot_range.randomness = ANGLE_RANGE_DETERMINISTIC;
@@ -455,7 +457,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 3:
                 tilt_range.ang0 = textToFloat(firstToken(line));
                 auxstr = nextToken();
-                if (auxstr == NULL)
+                if (auxstr == nullptr)
                 {
                     // Fixed mode
                     tilt_range.randomness = ANGLE_RANGE_DETERMINISTIC;
@@ -475,7 +477,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 4:
                 psi_range.ang0 = textToFloat(firstToken(line));
                 auxstr = nextToken();
-                if (auxstr == NULL)
+                if (auxstr == nullptr)
                 {
                     // Fixed mode
                     psi_range.randomness = ANGLE_RANGE_DETERMINISTIC;
@@ -495,7 +497,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 5:
                 rot_range.Ndev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     rot_range.Navg = textToFloat(auxstr);
                 else
                     rot_range.Navg = 0;
@@ -504,7 +506,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 6:
                 tilt_range.Ndev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     tilt_range.Navg = textToFloat(auxstr);
                 else
                     tilt_range.Navg = 0;
@@ -513,7 +515,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 7:
                 psi_range.Ndev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     psi_range.Navg = textToFloat(auxstr);
                 else
                     psi_range.Navg = 0;
@@ -522,7 +524,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 8:
                 Npixel_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Npixel_avg = textToFloat(auxstr);
                 else
                     Npixel_avg = 0;
@@ -531,7 +533,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 9:
                 Ncenter_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Ncenter_avg = textToFloat(auxstr);
                 else
                     Ncenter_avg = 0;
@@ -896,8 +898,13 @@ void PROJECT_Side_Info::produce_Side_Info(ParametersProjection &prm,
     else if (prog_prm.fnPhantom.getExtension()=="pdb")
     {
         phantomPDB.read(prog_prm.fnPhantom);
-        const double highTs=1.0/12.0;
-        int M=ROUND(prog_prm.samplingRate/highTs);
+        for (int i=0; i<phantomPDB.atomList.size(); i++)
+        {
+		phantomPDB.atomList[i].x /=prog_prm.samplingRate;
+		phantomPDB.atomList[i].y /=prog_prm.samplingRate;
+		phantomPDB.atomList[i].z /=prog_prm.samplingRate;
+        }
+        int M=ROUND(prog_prm.samplingRate/prog_prm.highTs);
         interpolator.setup(M,prog_prm.samplingRate/M,true);
         phantomMode = PDB;
         if (prog_prm.singleProjection)
@@ -975,8 +982,8 @@ int PROJECT_Effectively_project(const FileName &fnOut,
 
     int projIdx=FIRST_IMAGE;
     FileName fn_proj;              // Projection name
-    RealShearsInfo *Vshears=NULL;
-    FourierProjector *Vfourier=NULL;
+    RealShearsInfo *Vshears=nullptr;
+    FourierProjector *Vfourier=nullptr;
     if (projType == SHEARS && side.phantomMode==PROJECT_Side_Info::VOXEL)
         Vshears=new RealShearsInfo(side.phantomVol());
     if (projType == FOURIER && side.phantomMode==PROJECT_Side_Info::VOXEL)//////////////////////
@@ -1090,7 +1097,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
             Matrix1D<double> shifts(2);
             XX(shifts) = shiftX;
             YY(shifts) = shiftY;
-            selfTranslate(LINEAR,IMGMATRIX(proj), shifts);
+            selfTranslate(xmipp_transformation::LINEAR,IMGMATRIX(proj), shifts);
         }
         else if (side.phantomMode==PROJECT_Side_Info::PDB)
         {
