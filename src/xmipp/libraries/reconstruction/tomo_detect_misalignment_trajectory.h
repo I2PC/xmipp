@@ -55,7 +55,7 @@
 // #define DEBUG_CHAINS
 // #define DEBUG_GLOBAL_MISALI
 // #define DEBUG_LOCAL_MISALI
-// #define DEBUG_RESID
+#define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
@@ -80,21 +80,23 @@ public:
     float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
     float thrChainDistanceAng;   // Maximum distance of a detected landmark to consider it belongs to a chain
 
-    
-private:
-    /** Input tilt-series dimensions */
-    size_t xSize;
-	size_t ySize;
-	size_t zSize;
-    size_t nSize;
-    size_t normDim;
 
     // Coordinate model structure
     struct CM {
         Point3D<double> detectedCoordinate;     // Coordinate detected in each tilt-image
         Point3D<double> coordinate3d;           // 3D coordinate whose porjection is the closest
         Point2D<double> residuals;              // Residual vector from detected to projected
-    } ;
+    };
+
+
+    
+// private:
+    /** Input tilt-series dimensions */
+    size_t xSize;
+	size_t ySize;
+	size_t zSize;
+    size_t nSize;
+    size_t normDim;
 
     /** Array of coordinate model structures */
     std::vector<CM> vCM;
@@ -135,7 +137,7 @@ private:
     float thrLMChain = 30;                          // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
     /** Alignment report. True = aligned / False = misaligned */
-    bool globalAlignment;
+    bool globalAlignment = true;
     std::vector<bool> localAlignment;
 
 public:
@@ -340,8 +342,10 @@ public:
      * @return
      *
     */
-    auto getCMFromCoordinate(int x, int y, int z);
 
+    // std::vector<CM> getCMFromCoordinate(int x, int y, int z);
+
+    void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
     bool detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &proyCoords);
 

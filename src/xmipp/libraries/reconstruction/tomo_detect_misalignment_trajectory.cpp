@@ -273,7 +273,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-				if (value < threshold)
+				// if (value < threshold) *** only for phantom
+				if(true)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 					
@@ -334,7 +335,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		size_t numberOfCoordinatesPerValue;
 
 
-		std::vector<double> occupancyV;
+		// std::vector<double> occupancyV;
+
+		std::cout << "colour " << colour <<std::endl;
+
 
 		// Trim coordinates based on the characteristics of the labeled region
 		for(size_t value = 0; value < colour; value++)
@@ -354,6 +358,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
 			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+
+			std::cout << "keep " << keep <<std::endl;
 			
 			// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 			// occupancyV.push_back(occupancy);
@@ -536,7 +542,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
-	globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
+	// globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
 
 	#ifdef DEBUG_CHAINS
 	std::cout << "chainIndexesY.size()=" << chainIndexesY.size() << std::endl;
@@ -1017,21 +1023,21 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 		// 	{
 		// 		for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
 		// 		{
-		// 			// def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
-		// 			// 			 YY(projectedGoldBeads[randomIndexes[0]]),
-		// 			// 			 XX(projectedGoldBeads[randomIndexes[1]]),
-		// 			// 			 YY(projectedGoldBeads[randomIndexes[1]]),
-		// 			// 			 XX(projectedGoldBeads[randomIndexes[2]]),
-		// 			// 			 YY(projectedGoldBeads[randomIndexes[2]]),
-		// 			// 			 XX(coordinatesInSlice[i]),
-		// 			// 			 YY(coordinatesInSlice[i]),
-		// 			// 			 XX(coordinatesInSlice[j]),
-		// 			// 			 YY(coordinatesInSlice[j]),
-		// 			// 			 XX(coordinatesInSlice[k]),
-		// 			// 			 YY(coordinatesInSlice[k]),
-		// 			// 			 A_alignment,
-		// 			// 			 T_alignment,
-		// 			// 			 invW_alignment)
+		// 			def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
+		// 						 YY(projectedGoldBeads[randomIndexes[0]]),
+		// 						 XX(projectedGoldBeads[randomIndexes[1]]),
+		// 						 YY(projectedGoldBeads[randomIndexes[1]]),
+		// 						 XX(projectedGoldBeads[randomIndexes[2]]),
+		// 						 YY(projectedGoldBeads[randomIndexes[2]]),
+		// 						 XX(coordinatesInSlice[i]),
+		// 						 YY(coordinatesInSlice[i]),
+		// 						 XX(coordinatesInSlice[j]),
+		// 						 YY(coordinatesInSlice[j]),
+		// 						 XX(coordinatesInSlice[k]),
+		// 						 YY(coordinatesInSlice[k]),
+		// 						 A_alignment,
+		// 						 T_alignment,
+		// 						 invW_alignment)
 
 		// 			MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
 		// 			MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
@@ -1046,11 +1052,11 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 		// 	}
 		// }
 
-			// #ifdef DEBUG_RESID
-			// std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
-			// std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
-			// std::cout << "------------------------------------"<<std::endl;
-			// #endif
+		// 	#ifdef DEBUG_RESID
+		// 	std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
+		// 	std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
+		// 	std::cout << "------------------------------------"<<std::endl;
+		// 	#endif
 
 
 		if (coordinatesInSlice.size() != 0)
@@ -1540,8 +1546,6 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 	int goldBeadY;
 	int goldBeadZ;
 
-    std::vector<CM> vCMc;
-
 	for(size_t objId : inputCoordMd.ids())
 	{
 
@@ -1549,8 +1553,9 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
 		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
-		vCMc = getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ);
-
+	    std::vector<CM> vCMc;
+		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
+		
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 
 		// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
@@ -1652,10 +1657,9 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 	return coordinatesInSlice;
 }
 
-
-auto ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z)
+void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM)
 {
-    std::vector<CM> vCMc;
+    // std::vector<CM> vCMc;
 
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
@@ -1666,12 +1670,12 @@ auto ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int
 			std::cout << "ADDED!!!!!!" <<i<<std::endl;
 
 
-			vCMc.push_back(cm);
+			vCM.push_back(cm);
 		}
 	}
-	std::cout << " vCMc.size()" << vCMc.size() << std::endl;
+	std::cout << " vCM.size()" << vCM.size() << std::endl;
 
-	return vCMc;
+	//return vCMc;
 }
 
 
@@ -1727,6 +1731,8 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 // --------------------------- RESIDUAL ANALYSIS CLASS ----------------------------
 bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &proyCoords)
 {
+
+	// *** OJO QUE NO SON COORD PROYECTADAS SI NO RESIDUOS (AUNQUE TAMBIÉN SEAN UN VECTOR DE POINT2D)
 	double sumX = 0;
 	double sumY = 0;
 	double centroidX;
@@ -1770,22 +1776,36 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	auto remainingP2d = proyCoords;
 	Point2D<double> p2d{0, 0};
 	Point2D<double> p2d_it{0, 0};
-	Point2D<double> min_p2d{0, 0};
+	Point2D<double> minX_p2d{MAXDOUBLE, 0};
 
-	// 	struct SortByY
-	// 	{
-	// 		bool operator() ( const Point2D<double>& L, const Point2D<double>& R) { return L.y < R.y; };
-	// 	};
-
-	// 	std::sort(leftSide.begin(), leftSide.end(), SortByY());
-
-	struct SortByX
+	// Get minimum x component element *** TODO: this can be done more efficientely using std::min_element and defininf a cmp function
+	for (size_t i = 0; i < p2dVector.size(); i++)
 	{
-		bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
-	};
+		if (p2dVector[i].x < minX_p2d.x)
+		{
+			minX_p2d = p2dVector[i];
+		}
+	}
+	
 
-	min_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
-	hull.push_back(p2d);
+	// struct SortByX
+	// {
+	// 	bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
+	// };
+
+	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
+
+	// bool cmp(const Point2D<double>& a, const Point2D<double>& b)
+	// {
+    // 	return a.x < b.x;
+	// }
+
+	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
+
+	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), [](Point2D const& l, Point2D const& r) {return l.x < r.x;});
+
+
+	hull.push_back(minX_p2d);
 
 	while (p2dVector.size()>0)
 	{
@@ -1813,7 +1833,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 			}	
 		}
 
-		if (p2d.x==min_p2d.x && p2d.y==min_p2d.y)
+		if (p2d.x==minX_p2d.x && p2d.y==minX_p2d.y)
 		{
 			break;
 		}
@@ -1851,6 +1871,9 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 
 	return true;
+
+
+	// Random walk (Augmented Dickey–Fuller test)
 }
 
 
