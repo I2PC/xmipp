@@ -350,8 +350,6 @@
     	P.write(formatString("%s0_initalProjectionFOURIER.mrc", fnProj.c_str()));
     	projectVolume(*projectorMask, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
     	PmaskVol.write(formatString("%s0_initalMASKProjectionFOURIER.mrc", fnProj.c_str()));
-//    	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-//    	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
 
     	PmaskVolI = binarizeMask(PmaskVol);
 		FilterG.applyMaskSpace(PmaskVolI());
