@@ -30,6 +30,7 @@
  #include "core/xmipp_image_generic.h"
  #include "core/xmipp_fft.h"
  #include "core/xmipp_fftw.h"
+ #include "data/fourier_projection.h"
  #include "data/projection.h"
  #include "data/mask.h"
  #include "data/filters.h"
@@ -55,10 +56,11 @@
 	fnMaskVol=getParam("--maskVol");
 	iter=getIntParam("--iter");
 	sigma=getIntParam("--sigma");
-	cutFreq=getDoubleParam("--cutFreq");
 	lambda=getDoubleParam("--lambda");
-	fnProj=getParam("--saveProj");
 	subtractAll = checkParam("--subAll");
+	Ts = getDoubleParam("--sampling");
+	padFourier = getDoubleParam("--padding");
+    maxResol = getDoubleParam("--max_resolution");
  }
 
  // Show ====================================================================
@@ -66,14 +68,16 @@
     if (!verbose)
         return;
 	std::cout<< "Input particles:\t" << fnParticles << std::endl
-	<< "Reference volume:\t" << fnVolR      << std::endl
-	<< "Volume mask:\t" << fnMaskVol   << std::endl
-	<< "Mask:\t" << fnMask      << std::endl
-	<< "Sigma:\t" << sigma       << std::endl
-	<< "Iterations:\t" << iter        << std::endl
-	<< "Cutoff frequency:\t" << cutFreq     << std::endl
-	<< "Relaxation factor:\t" << lambda      << std::endl
-	<< "Output particles:\t" << fnOut 	     << std::endl;
+	<< "Reference volume:\t" << fnVolR << std::endl
+	<< "Volume mask:\t" << fnMaskVol << std::endl
+	<< "Mask:\t" << fnMask << std::endl
+	<< "Sigma:\t" << sigma << std::endl
+	<< "Iterations:\t" << iter << std::endl
+	<< "Relaxation factor:\t" << lambda << std::endl
+	<< "Sampling:\t" << Ts << std::endl
+	<< "Padding factor:\t" << padFourier << std::endl
+    << "Max. Resolution:\t" << maxResol << std::endl
+	<< "Output particles:\t" << fnOut << std::endl;
  }
 
  // usage ===================================================================
@@ -90,12 +94,14 @@
      addParamsLine("[--mask <mask=\"\">]\t: 3D mask for the region of subtraction");
      addParamsLine("[--sigma <s=3>]\t: Decay of the filter (sigma) to smooth the mask transition");
      addParamsLine("[--iter <n=1>]\t: Number of iterations");
-     addParamsLine("[--cutFreq <f=0>]\t: Cutoff frequency (<0.5)");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
-	 addParamsLine("[--saveProj <structure=\"\"> ]\t: Save subtraction intermediate files (projection adjusted)");
 	 addParamsLine("[--subAll]\t: Perform the subtraction of the whole image");
+	 addParamsLine("[--sampling <Ts=1>]\t: Sampling rate (A/pixel)");
+	 addParamsLine("[--padding <p=2>]\t: Padding factor");
+	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
+     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol "
+    		 "-o output_particles --iter 5 --lambda 1 --sigma 3 --sampling 1 --padding 2 --max_resolution 4");
  }
 
  void ProgSubtractProjection::POCSmaskProj(const MultidimArray<double> &maskpocs, MultidimArray<double> &Ipocs) const{
@@ -186,7 +192,7 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-//		padding
+		// Padding
 		Image<double> padp;
 		int pad;
 		pad = int(XSIZE(V())/2);
@@ -198,7 +204,7 @@
 		mproj.window(mpad,STARTINGY(mproj)-pad, STARTINGX(mproj)-pad, FINISHINGY(mproj)+pad, FINISHINGX(mproj)+pad);
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
-//	    crop
+	    //Crop
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
@@ -321,7 +327,12 @@
 	Filter2.FilterBand=LOWPASS;
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
-	Filter2.w1=cutFreq;
+	double cutFreq = Ts/maxResol;
+	Filter2.w1 = cutFreq;
+	// Initialize Fourier projectors
+	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+	FourierProjector *projectorMask = new FourierProjector(maskVol(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
@@ -334,40 +345,22 @@
      	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
 
-//     	MultidimArray<double> *ctfImage;
-//    	projector = new FourierProjector(V(),2,1.04/3,xmipp_transformation::BSPLINE3);
-//        ctfImage = nullptr;
-//    	if (ctfImage==nullptr)
-//    		{
-//    			ctfImage = new MultidimArray<double>();
-//    			ctfImage->resizeNoCopy(projector->projection());
-//    			STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
-//    		}
-//    	projectVolume(projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, (const MultidimArray<double> *) ctfImage);
-//    	P.write(formatString("%s20_initalProjectionFOURIER.mrc", fnProj.c_str()));
+     	MultidimArray<double> *ctfImage = nullptr;
+    	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+    	P.write(formatString("%s0_initalProjectionFOURIER.mrc", fnProj.c_str()));
+    	projectVolume(*projectorMask, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+    	PmaskVol.write(formatString("%s0_initalMASKProjectionFOURIER.mrc", fnProj.c_str()));
+//    	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+//    	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
 
-    	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-		P.write(formatString("%s0_P.mrc", fnProj.c_str()));
-    	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
     	PmaskVolI = binarizeMask(PmaskVol);
 		FilterG.applyMaskSpace(PmaskVolI());
     	PmaskVolI.write(formatString("%s1_Mask.mrc", fnProj.c_str()));
 
-    	Image<double> Inoise;
-		projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-		PmaskInv = invertMask(Pmask);
-		Inoise = subtraction(I, P, PmaskInv, Pmask, subtractAll);
-		Inoise.write(formatString("%s2_Inoise.mrc", fnProj.c_str()));
-		I.write(formatString("%s2_I.mrc", fnProj.c_str()));
-		PmaskInv.write(formatString("%s2_PmaskInv.mrc", fnProj.c_str()));
-		Pmask.write(formatString("%s2_Pmask.mrc", fnProj.c_str()));
-		I = subtraction(I, Inoise, PmaskInv, Pmask, subtractAll);
-		I.write(formatString("%s2_Iii.mrc", fnProj.c_str()));
-
 		POCSmaskProj(PmaskVolI(), P());
 		POCSmaskProj(PmaskVolI(), I());
-		P.write(formatString("%s3_PMask.mrc", fnProj.c_str()));
-		I.write(formatString("%s3_IMask.mrc", fnProj.c_str()));
+		P.write(formatString("%s2_PMask.mrc", fnProj.c_str()));
+		I.write(formatString("%s2_IMask.mrc", fnProj.c_str()));
 
 		Pctf = applyCTF(row, P);
 		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
@@ -377,7 +370,6 @@
     	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
     	radQuotient = computeRadQuotient(radQuotient, radial.meanI, radial.meanP);
 		percentileMinMax(I(), Imin, Imax);
-//		I().computeDoubleMinMax(Imin, Imax);
 
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);

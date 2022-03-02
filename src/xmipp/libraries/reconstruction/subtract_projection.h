@@ -48,8 +48,10 @@
     MetaDataVec mdParticles;
     MDRowVec row;
     bool subtractAll;
-	double cutFreq;
 	double lambda;
+	double Ts;
+	double padFourier;
+	double maxResol;
 	int sigma;
 	int iter;
     struct Angles
