@@ -347,9 +347,9 @@ public:
 
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
-    bool detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &proyCoords);
+    bool detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &residuals);
 
-
+    void factorial(size_t base, size_t fact);
 
 
     // --------------------------- MAIN ----------------------------------

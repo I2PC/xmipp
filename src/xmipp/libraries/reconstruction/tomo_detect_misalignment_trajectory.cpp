@@ -1534,7 +1534,6 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(MetaDataVec &inputCoordMd)
 {
-
 	MultidimArray<int> csProyectedCoordinates;
 	csProyectedCoordinates.initZeros(ySize, xSize);
 
@@ -1555,6 +1554,16 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 
 	    std::vector<CM> vCMc;
 		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
+
+		// *** Do this in a global misalingment method detection class
+
+		std::vector<Point2D<double>> residuals;
+		for (size_t i = 0; i < vCMc.size(); i++)
+		{
+			residuals.push_back(vCMc[i].residuals);
+		}
+		
+		detectMisalignmentFromResiduals(residuals);
 		
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 
@@ -1659,8 +1668,6 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 
 void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM)
 {
-    // std::vector<CM> vCMc;
-
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
 		auto cm = vCM[i];
@@ -1674,8 +1681,6 @@ void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int
 		}
 	}
 	std::cout << " vCM.size()" << vCM.size() << std::endl;
-
-	//return vCMc;
 }
 
 
@@ -1687,7 +1692,7 @@ float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda
 	std::cout << "k="<< k <<std::endl;
 	std::cout << "lambda="<< lambda <<std::endl;
 	#endif
-
+	// *** TODO use factorial() function here!!!
 	// Since k! can not be holded we calculate the quotient lambda^k/k!= (lambda/k) * (lambda/(k-1)) * ... * (lambda/1)
 	for (size_t i = 1; i < k+1; i++)
 	{
@@ -1728,13 +1733,25 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 }
 
 
-// --------------------------- RESIDUAL ANALYSIS CLASS ----------------------------
-bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &proyCoords)
+void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 {
+	if (base == 0 || base == 1)
+	{
+		fact = 1;
+	}
+	else
+	{
+		for (size_t i = base; i > 0; i--)
+		{
+			fact *= i;
+		}
+	}
+}
 
-	// *** OJO QUE NO SON COORD PROYECTADAS SI NO RESIDUOS (AUNQUE TAMBIÉN SEAN UN VECTOR DE POINT2D)
-	double sumX = 0;
-	double sumY = 0;
+
+// --------------------------- RESIDUAL ANALYSIS CLASS ----------------------------
+bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &residuals)
+{
 	double centroidX;
 	double centroidY;
 	double distance;
@@ -1745,20 +1762,9 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	std::vector<Point2D<double>> hull;
 
-	for (size_t i = 0; i < proyCoords.size(); i++)
+	for (size_t i = 0; i < residuals.size(); i++)
 	{
-		sumX += proyCoords[i].x;
-		sumY += proyCoords[i].y;
-	}
-	
-
-	// Calculate centroid
-	centroidX = sumX/proyCoords.size();
-	centroidY = sumY/proyCoords.size();
-
-	for (size_t i = 0; i < proyCoords.size(); i++)
-	{
-		distance = sqrt((proyCoords[i].x-centroidX)*(proyCoords[i].x-centroidX)+(proyCoords[i].y-centroidY)*(proyCoords[i].y-centroidY));
+		distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
 
 		// Total distance
 		totalDistance += distance;
@@ -1770,10 +1776,14 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 		}
 	}
 
+	std::cout << "Residual analysis -----------------------------------" << std::endl;
+	std::cout << "totalDistance "  << totalDistance << std::endl;
+	std::cout << "maxDistance "  << maxDistance << std::endl;
+
 
 	// Convex Hull
-	auto p2dVector = proyCoords;
-	auto remainingP2d = proyCoords;
+	auto p2dVector = residuals;
+	auto remainingP2d = residuals;
 	Point2D<double> p2d{0, 0};
 	Point2D<double> p2d_it{0, 0};
 	Point2D<double> minX_p2d{MAXDOUBLE, 0};
@@ -1786,7 +1796,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 			minX_p2d = p2dVector[i];
 		}
 	}
-	
 
 	// struct SortByX
 	// {
@@ -1803,7 +1812,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
 
 	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), [](Point2D const& l, Point2D const& r) {return l.x < r.x;});
-
 
 	hull.push_back(minX_p2d);
 
@@ -1854,6 +1862,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 		chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
 		                      (hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y));
 	}
+
+	std::cout << "chPerimeterer "  << chPerimeterer << std::endl;
 	
 
 	// CH-Area
@@ -1869,11 +1879,65 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	chArea = abs(0.5 * (sum1 - sum2));
 
+	std::cout << "chArea "  << chArea << std::endl;
+
+
+	// Random walk
+
+
+	// Sign test (binomial distribution)
+	size_t x_pos = 0;
+	size_t y_pos = 0;
+	size_t nx_sample = residuals.size();
+	size_t ny_sample = residuals.size();
+
+	double p = 0.5;
+	double binom_x;
+	double binom_y;
+
+	for (size_t i = 0; i < residuals.size(); i++)
+	{
+		if (residuals[i].x > 0)
+		{
+			x_pos++;
+		}
+		else if (residuals[i].x == 0)
+		{
+			nx_sample--;
+		}
+
+		if (residuals[i].y > 0)
+		{
+			y_pos++;
+		}
+		else if (residuals[i].y == 0)
+		{
+			ny_sample--;
+		}	
+	}
+
+	size_t x_pos_fact;
+	size_t nx_sample_fact;
+	size_t nkx_sample_fact;
+	size_t y_pos_fact;
+	size_t ny_sample_fact;
+	size_t nky_sample_fact;
+
+	factorial(x_pos, x_pos_fact);
+	factorial(nx_sample, nx_sample_fact);
+	factorial(nx_sample - x_pos, nkx_sample_fact);
+	factorial(y_pos, y_pos_fact);
+	factorial(ny_sample, ny_sample_fact);
+	factorial(ny_sample - y_pos, nky_sample_fact);
+
+	binom_x =  (nx_sample_fact/(x_pos_fact*nkx_sample_fact))*pow(p, x_pos)*pow(1-p, nx_sample-x_pos);
+	binom_y =  (ny_sample_fact/(y_pos_fact*nky_sample_fact))*pow(p, y_pos)*pow(1-p, ny_sample-y_pos);
+
+	std::cout << "binom_x "  << binom_x << std::endl;
+	std::cout << "binom_y "  << binom_y << std::endl;
+
 
 	return true;
-
-
-	// Random walk (Augmented Dickey–Fuller test)
 }
 
 
