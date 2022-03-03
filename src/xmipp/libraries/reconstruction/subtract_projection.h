@@ -61,18 +61,19 @@
     	double psi;
     };
     Matrix1D<double> roffset;
- 	Image<double> V;
- 	Image<double> mask;
- 	Image<double> PmaskInv;
- 	Image<double> PmaskVolI;
- 	Image<double> maskVol;
- 	Image<double> I;
- 	Projection P;
- 	Projection Pmask;
+ 	Image<double> V; // volume
+ 	Image<double> vM; // mask 3D
+ 	Image<double> M; // mask projected and smooth
+ 	Image<double> I; // particle
+ 	Image<double> iM; // inverse mask
+ 	Projection P; // projection
+ 	Projection Pmask; // mask projection
  	Projection PmaskVol;
 	FourierFilter FilterG;
 	FourierFilter FilterG2;
 	FourierFilter Filter2;
+	// 	Image<double> PmaskVolI;
+	// 	Image<double> maskVol;
     struct Radial
     {
 		MultidimArray<double> meanI;

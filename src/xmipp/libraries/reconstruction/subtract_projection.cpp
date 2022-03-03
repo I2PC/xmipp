@@ -92,7 +92,7 @@
      addParamsLine("\t: If no name is given, then output_particles.xmd");
      addParamsLine("[--maskVol <maskVol=\"\">]\t: 3D mask for input volume");
      addParamsLine("[--mask <mask=\"\">]\t: 3D mask for the region of subtraction");
-     addParamsLine("[--sigma <s=3>]\t: Decay of the filter (sigma) to smooth the mask transition");
+     addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
      addParamsLine("[--iter <n=1>]\t: Number of iterations");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
 	 addParamsLine("[--subAll]\t: Perform the subtraction of the whole image");
@@ -310,11 +310,11 @@
 
  void ProgSubtractProjection::run() {
 	show();
+	// Read input volume and create masks
 	V.read(fnVolR);
 	V().setXmippOrigin();
  	mdParticles.read(fnParticles);
- 	maskVol = createMask(fnMaskVol, maskVol);
- 	mask = createMask(fnMask, mask);
+ 	vM = createMask(fnMaskVol, vM); // Actually now this mask is mask keep and the other seems to not be needed
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
@@ -331,9 +331,10 @@
 	Filter2.w1 = cutFreq;
 	// Initialize Fourier projectors
 	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	FourierProjector *projectorMask = new FourierProjector(maskVol(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
+    	// Read particle and metadata
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
     	struct Angles angles;
@@ -344,64 +345,143 @@
      	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
      	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
-
+     	// Project volume
      	MultidimArray<double> *ctfImage = nullptr;
     	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
-    	P.write(formatString("%s0_initalProjectionFOURIER.mrc", fnProj.c_str()));
-    	projectVolume(*projectorMask, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
-    	PmaskVol.write(formatString("%s0_initalMASKProjectionFOURIER.mrc", fnProj.c_str()));
-
-    	PmaskVolI = binarizeMask(PmaskVol);
-		FilterG.applyMaskSpace(PmaskVolI());
-    	PmaskVolI.write(formatString("%s1_Mask.mrc", fnProj.c_str()));
-
-		POCSmaskProj(PmaskVolI(), P());
-		POCSmaskProj(PmaskVolI(), I());
-		P.write(formatString("%s2_PMask.mrc", fnProj.c_str()));
-		I.write(formatString("%s2_IMask.mrc", fnProj.c_str()));
-
-		Pctf = applyCTF(row, P);
-		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
-
-    	struct Radial radial;
-    	radial.meanI = computeRadialAvg(I, radial.meanI);
-    	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
-    	radQuotient = computeRadQuotient(radQuotient, radial.meanI, radial.meanP);
-		percentileMinMax(I(), Imin, Imax);
-
-		transformer.FourierTransform(I(),IFourier,false);
-		FFT_magnitude(IFourier,IFourierMag);
-		transformer.FourierTransform(Pctf(),PFourierPhase,true);
-		extractPhaseProj(PFourierPhase);
-		for (int n=0; n<iter; ++n) {
-			runIteration();
-			if (cutFreq!=0) {
-				Filter2.generateMask(Pctf());
-				Filter2.do_generate_3dmask=true;
-				Filter2.applyMaskSpace(Pctf());
-				Pctf.write(formatString("%s7_Pfilt.mrc", fnProj.c_str()));
+    	P.write(formatString("%s0_initialProjection.mrc", fnProj.c_str()));
+    	// Project and smooth big mask
+    	projectVolume(*projectorMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+    	Pmask.write(formatString("%s0_initalMaskProjection.mrc", fnProj.c_str()));
+    	M = binarizeMask(Pmask);
+		FilterG.applyMaskSpace(M());
+		M.write(formatString("%s1_MaskSmooth.mrc", fnProj.c_str()));
+    	// Compute inverse mask
+		iM = invertMask(M);
+		// Fourier Transform
+		FourierTransformer transformerP;
+		transformerP.FourierTransform(P(),PFourier,false);
+		// Construct image representing the frequency of each pixel
+		auto deltaWx = 1/(double)XSIZE(P());
+		auto deltaWy = 1/(double)YSIZE(P());
+		MultidimArray<double> wx;
+		wx.initZeros(XSIZE(P()), YSIZE(P()));
+		wx += 1;
+		MultidimArray<double> aux;
+		aux.initZeros(XSIZE(P()), 1);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(aux)
+			DIRECT_MULTIDIM_ELEM(aux,n) += n;
+		for (int j=0; j<YSIZE(wx); ++j)
+		{
+		 	for (int i=0; i<XSIZE(wx); ++i)
+		 	{
+				DIRECT_A2D_ELEM(wx,i,j) *= DIRECT_A2D_ELEM(aux,i,0) * deltaWx - 0.5;
 			}
 		}
-		Image<double> IFiltered;
-    	I.read(fnImage);
-		IFiltered() = I();
-		if (cutFreq!=0)
-			Filter2.applyMaskSpace(IFiltered());
-    	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-    	Pmaskctf = applyCTF(row, Pmask);
-    	Pmaskctf = thresholdMask(Pmaskctf);
-		PmaskInv = invertMask(Pmaskctf);
-    	FilterG.w1=sigma;
-		FilterG.applyMaskSpace(Pmaskctf());
+		MultidimArray<double> wy;
+		wy.initZeros(XSIZE(P()), YSIZE(P()));
+		wy += 1;
+		aux.initZeros(1, YSIZE(P()));
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(aux)
+			DIRECT_MULTIDIM_ELEM(aux,n) += n;
+		for (int j=0; j<YSIZE(wy); ++j)
+		{
+		 	for (int i=0; i<XSIZE(wy); ++i)
+		 	{
+				DIRECT_A2D_ELEM(wy,i,j) *= DIRECT_A2D_ELEM(aux,i,0) * deltaWy- 0.5;
+			}
+		}
+		MultidimArray< std::complex<double> > w;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(w)
+			DIRECT_MULTIDIM_ELEM(w,n) = sqrt(DIRECT_MULTIDIM_ELEM(wx,n)*DIRECT_MULTIDIM_ELEM(wx,n) + DIRECT_MULTIDIM_ELEM(wy,n)*DIRECT_MULTIDIM_ELEM(wy,n));
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(w)
+			DIRECT_MULTIDIM_ELEM(w,n) = round(real(DIRECT_MULTIDIM_ELEM(w,n))*XSIZE(P()));
 
-		Pctf.write(formatString("%s8_Pfinal.mrc", fnProj.c_str()));
-		I.write(formatString("%s8_I.mrc", fnProj.c_str()));
-		PmaskInv.write(formatString("%s9_maskInv.mrc", fnProj.c_str()));
-		Pmaskctf.write(formatString("%s9_mask.mrc", fnProj.c_str()));
+		MultidimArray<double> wi;
+		FourierTransformer transformerw;
+		// HERE IT GETS HANGED
+		std::cout<< "-----1----" << std::endl;
+		transformerw.inverseFourierTransform(w, wi);
+		std::cout<< "-----6----" << std::endl;
+		wi.write(formatString("%s2_wi.mrc", fnProj.c_str()));
+		std::cout<< "-----7----" << std::endl;
+	 	double maxwi;
+	 	double minwi;
+	 	wi.computeDoubleMinMax(minwi, maxwi);
+		std::cout<< "maxwi: " << maxwi << std::endl;
 
-		I = subtraction(I, Pctf, PmaskInv, Pmaskctf, subtractAll);
-		I.write(formatString("%s91_Resultado.mrc", fnProj.c_str()));
+		// Apply CTF
+		Pctf = applyCTF(row, P);
+		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
+		transformer.FourierTransform(Pctf(),PFourier,false);
 
+		// Estimate transformation T(w)
+		Image<double> IiM;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IiM())
+		 	DIRECT_MULTIDIM_ELEM(IiM(),n)*=DIRECT_MULTIDIM_ELEM(iM,n);
+		Pctf.write(formatString("%s4_IiM.mrc", fnProj.c_str()));
+		FourierTransformer transformerIiM;
+		MultidimArray< std::complex<double> > IiMFourier;
+		transformerIiM.FourierTransform(IiM(),IiMFourier,false);
+
+		Image<double> PiM;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiM())
+		 	DIRECT_MULTIDIM_ELEM(PiM(),n)*=DIRECT_MULTIDIM_ELEM(iM,n);
+		Pctf.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
+		FourierTransformer transformerPiM;
+		MultidimArray< std::complex<double> > PiMFourier;
+		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
+
+
+    	// Mask projection and particle
+//		POCSmaskProj(PmaskVolI(), P());
+//		POCSmaskProj(PmaskVolI(), I());
+//		P.write(formatString("%s2_PMask.mrc", fnProj.c_str()));
+//		I.write(formatString("%s2_IMask.mrc", fnProj.c_str()));
+    	// Apply CTF
+//		Pctf = applyCTF(row, P);
+//		Pctf.write(formatString("%s2_Pctf.mrc", fnProj.c_str()));
+		// Compute what is needed for POCS
+//    	struct Radial radial;
+//    	radial.meanI = computeRadialAvg(I, radial.meanI);
+//    	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
+//    	radQuotient = computeRadQuotient(radQuotient, radial.meanI, radial.meanP);
+//		percentileMinMax(I(), Imin, Imax);
+//		transformer.FourierTransform(I(),IFourier,false);
+//		FFT_magnitude(IFourier,IFourierMag);
+//		transformer.FourierTransform(Pctf(),PFourierPhase,true);
+//		extractPhaseProj(PFourierPhase);
+		// Apply POCS
+//		for (int n=0; n<iter; ++n) {
+//			runIteration();
+			// Resolution filter
+//			if (cutFreq!=0) {
+//				Filter2.generateMask(Pctf());
+//				Filter2.do_generate_3dmask=true;
+//				Filter2.applyMaskSpace(Pctf());
+//				Pctf.write(formatString("%s7_Pfilt.mrc", fnProj.c_str()));
+//			}
+//		}
+//		Image<double> IFiltered;
+//    	I.read(fnImage);
+//		IFiltered() = I();
+//		if (cutFreq!=0)
+//			Filter2.applyMaskSpace(IFiltered());
+		// Mask keep
+//    	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
+//    	Pmaskctf = applyCTF(row, Pmask);
+//    	Pmaskctf = thresholdMask(Pmaskctf);
+//		PmaskInv = invertMask(Pmaskctf);
+//    	FilterG.w1=sigma;
+//		FilterG.applyMaskSpace(Pmaskctf());
+		// Subtraction
+//		Pctf.write(formatString("%s8_Pfinal.mrc", fnProj.c_str()));
+//		I.write(formatString("%s8_I.mrc", fnProj.c_str()));
+//		PmaskInv.write(formatString("%s9_maskInv.mrc", fnProj.c_str()));
+//		Pmaskctf.write(formatString("%s9_mask.mrc", fnProj.c_str()));
+//		I = subtraction(I, Pctf, PmaskInv, Pmaskctf, subtractAll);
+//		I.write(formatString("%s91_Resultado.mrc", fnProj.c_str()));
+
+		// Write particle
 		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
