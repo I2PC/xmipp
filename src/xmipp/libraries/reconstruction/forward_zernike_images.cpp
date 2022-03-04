@@ -722,7 +722,8 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 		{
 			clnm[i] = vectortemp[i];
 		}
-		rotateCoefficients<Direction::ROTATE>();
+		if (optimizeDeformation)
+			rotateCoefficients<Direction::ROTATE>();
 		p = clnm;
 	}	
 	
@@ -1069,7 +1070,7 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 						auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 						auto c = std::array<double, 3>{};
 						// XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
-						if (num_images == 1)
+						if (num_images == 1 && optimizeDeformation)
 						{
 							double c_x = VEC_ELEM(clnm,idx);
 							double c_y = VEC_ELEM(clnm,idx+idxY0);
