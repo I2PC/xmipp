@@ -838,7 +838,7 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 		}
 	}
 
-	if (num_images == 1)
+	if (num_images == 1 && optimizeDeformation)
 	{
 		rotateCoefficients<Direction::UNROTATE>();
 	}
