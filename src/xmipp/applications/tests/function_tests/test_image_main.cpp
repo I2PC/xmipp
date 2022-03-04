@@ -40,7 +40,6 @@ protected:
     FileName stackVolName;
     FileName xmippPath;
     FileName imageNameMRC;
-
 };
 
 
@@ -351,6 +350,12 @@ TEST_F( ImageTest, readRAWimage)
 
 TEST_F( ImageTest, readMRC) {
     ASSERT_TRUE(myImage.read(imageNameMRC) == 0);
+
+    ImageInfo info;
+    myImage.getInfo(info);
+
+    ASSERT_TRUE(info.filename == imageNameMRC);
+    ASSERT_TRUE(info.datatype ==  DT_Float);//// Floating point (4-byte)
 }
 
 TEST_F( ImageTest, readPreview)
