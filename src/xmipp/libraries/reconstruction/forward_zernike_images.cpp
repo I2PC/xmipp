@@ -1034,10 +1034,21 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 	// Vdeformed().initZeros(mV);
 
 	auto stepsMask = std::vector<size_t>();
-    for (size_t idx = 0; idx < idxY0; idx++) {
-      if (1 == VEC_ELEM(steps_cp, idx)) {
-        stepsMask.emplace_back(idx);
-      }
+	if (optimizeDeformation)
+	{
+		for (size_t idx = 0; idx < idxY0; idx++)
+		{
+			if (1 == VEC_ELEM(steps_cp, idx))
+			{
+				stepsMask.emplace_back(idx);
+			}
+		}
+	}
+	else {
+		for (size_t idx = 0; idx < idxY0; idx++)
+		{
+			stepsMask.emplace_back(idx);
+		}
 	}
 
 	// TODO: Poner primero i y j en el loop, acumular suma y guardar al final
