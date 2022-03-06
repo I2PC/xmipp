@@ -42,7 +42,7 @@ extern PyObject * PyXmippError;
 #define MDQuery_Check(v) (((v)->ob_type == &MDQueryType))
 #define MDQuery_Value(v)  ((*((MDQueryObject*)(v))->query))
 
-#define RETURN_MDOBJECT(value) return new MDObject((MDLabel)label, value)
+#define RETURN_MDOBJECT(value) return std::make_unique<MDObject>((MDLabel)label, value)
 
 /***************************************************************/
 /*                            MDQuery                          */
@@ -52,7 +52,7 @@ extern PyObject * PyXmippError;
 typedef struct
 {
     PyObject_HEAD
-    MDQuery * query;
+    std::unique_ptr<MDQuery> query;
 }
 MDQueryObject;
 
@@ -121,8 +121,8 @@ extern PyTypeObject MDQueryType;
 typedef struct
 {
     PyObject_HEAD
-    MetaDataDb * metadata;
-    MetaDataDb::id_iterator * iter;
+    std::unique_ptr<MetaDataDb> metadata;
+    std::unique_ptr<MetaDataDb::id_iterator> iter;
 }
 MetaDataObject;
 
@@ -352,7 +352,7 @@ extern PyMethodDef MetaData_methods[];
 extern PyTypeObject MetaDataType;
 
 /*Helper function to create an MDObject from a PyObject */
-MDObject * createMDObject(int label, PyObject *pyValue);
+std::unique_ptr<MDObject> createMDObject(int label, PyObject *pyValue);
 
 void setMDObjectValue(MDObject *obj, PyObject *pyValue);
 
