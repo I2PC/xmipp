@@ -214,6 +214,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	{
 		std::vector<int> sliceVector;
 
+		// *** TODO maybe now we look for the projection of the 3d coordinates we cont want to apply a cosine stretching
 		// search in the cosine streched region common for all the images
 		int xSizeCS = (int)xSize * abs(cos(tiltAngles[k] * PI/180.0));
 		int xCSmin = (int)(xSize-xSizeCS)/2;
@@ -273,8 +274,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-				// if (value < threshold) *** only for phantom
-				if(true)
+				if (value < threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 					
@@ -1552,20 +1552,19 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
 		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
+		std::cout << "Analysis of residuals corresponding to coordinate 3D: x " << goldBeadX << " y " << goldBeadY << " z " << goldBeadZ << std::endl;
 	    std::vector<CM> vCMc;
 		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
-
-		// *** Do this in a global misalingment method detection class
 
 		std::vector<Point2D<double>> residuals;
 		for (size_t i = 0; i < vCMc.size(); i++)
 		{
 			residuals.push_back(vCMc[i].residuals);
 		}
-		
-		detectMisalignmentFromResiduals(residuals);
-		
+
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
+
+		detectMisalignmentFromResiduals(residuals);			
 
 		// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
 		std::vector<Point3D<double>> proyCoords;
@@ -1666,7 +1665,7 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 	return coordinatesInSlice;
 }
 
-void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM)
+void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCMc)
 {
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
@@ -1674,13 +1673,13 @@ void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int
 		
 		if (cm.coordinate3d.x==x && cm.coordinate3d.y==y && cm.coordinate3d.z==z)
 		{
-			std::cout << "ADDED!!!!!!" <<i<<std::endl;
+			std::cout << "ADDED!!!!!! " <<i<<std::endl;
 
 
-			vCM.push_back(cm);
+			vCMc.push_back(cm);
 		}
 	}
-	std::cout << " vCM.size()" << vCM.size() << std::endl;
+	std::cout << "vCMc.size()" << vCMc.size() << std::endl;
 }
 
 
@@ -1764,6 +1763,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	for (size_t i = 0; i < residuals.size(); i++)
 	{
+		std::cout << residuals[i].x << "  " << residuals[i].y << std::endl;
+
 		distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
 
 		// Total distance
@@ -1815,15 +1816,24 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	hull.push_back(minX_p2d);
 
+	std::cout << " minX_p2d" << minX_p2d.x << " " << minX_p2d.y << std::endl;
+	std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
+	std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
+
 	while (p2dVector.size()>0)
 	{
+		std::cout << "iterator 1" << std::endl;
 		p2d = p2dVector[0];
 
 		while (remainingP2d.size()>0)
 		{
+			std::cout << "iterator 2" << std::endl;
+
 			p2d_it = remainingP2d[0];
 
 			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
+			std::cout << "angle " << angle << std::endl;
+
 
 			if (angle<0)
 			{
@@ -1850,6 +1860,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 		p2dVector.erase(remainingP2d.begin());
 		remainingP2d = p2dVector;
+
+		std::cout << "hull.size() " << hull.size() << std::endl;
+		std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
+		std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
 	}
 	
 
