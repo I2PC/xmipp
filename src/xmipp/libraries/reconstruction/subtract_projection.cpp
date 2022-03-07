@@ -425,6 +425,7 @@
 		MultidimArray< std::complex<double> > PiMFourier;
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
 
+		// Estimate transformation T(w)
 
     	// Mask projection and particle
 //		POCSmaskProj(PmaskVolI(), P());
