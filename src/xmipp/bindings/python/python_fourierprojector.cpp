@@ -94,7 +94,9 @@
      if (self != nullptr)
      {
          PyObject *image = nullptr;
-         double padding_factor, max_freq, spline_degree;
+         double padding_factor;
+         double max_freq;
+         double spline_degree;
          padding_factor = 2;
          max_freq = 0.5;
          spline_degree = 3;
@@ -104,7 +106,7 @@
         	 MultidimArray<double> *pdata;
         	 Image_Value(image).data->getMultidimArrayPointer(pdata);
         	 pdata->setXmippOrigin();
-        	 self->fourier_projector = new FourierProjector(*pdata, padding_factor, max_freq, spline_degree);
+        	 self->fourier_projector = std::make_unique<FourierProjector>(*pdata, padding_factor, max_freq, spline_degree);
 
          }
      }
@@ -116,7 +118,6 @@
  /* Destructor */
   void FourierProjector_dealloc(FourierProjectorObject* self)
  {
-     delete self->fourier_projector;
      //delete self->dims;
      Py_TYPE(self)->tp_free((PyObject*)self);
  }
@@ -126,7 +127,9 @@
 PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
       auto *self = (FourierProjectorObject*) obj;
-      double rot, tilt, psi;
+      double rot;
+      double tilt;
+      double psi;
       PyObject *projection_image = nullptr;
       if (self != nullptr && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))
       {

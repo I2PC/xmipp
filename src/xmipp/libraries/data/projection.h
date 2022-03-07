@@ -149,7 +149,9 @@ typedef struct
     Matrix2D<double> *M;
     const MultidimArray<int> *mask;
     double ray_length;
-    double rot,tilt,psi;
+    double rot;
+    double tilt;
+    double psi;
     bool destroy;
 }
 project_thread_params;

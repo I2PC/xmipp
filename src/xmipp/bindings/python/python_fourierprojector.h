@@ -29,6 +29,7 @@
 
 #include "Python.h"
 #include "core/xmipp_array_dim.h"
+#include <memory>
 
 class FourierProjector;
 
@@ -45,7 +46,7 @@ typedef struct
 {
     PyObject_HEAD
     ArrayDim dims;
-    FourierProjector* fourier_projector;
+    std::unique_ptr<FourierProjector> fourier_projector;
 }
 FourierProjectorObject;
 

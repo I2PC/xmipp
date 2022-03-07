@@ -64,9 +64,6 @@ public:
     /** status after am MPI call */
     MPI_Status status;
 
-    /** verbose mode on/off.  */
-    bool verbose;
-
     /*  constructor ------------------------------------------------------- */
     ProgMpiAngularProjectLibrary()
     {

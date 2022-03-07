@@ -26,6 +26,7 @@
 #include "integration.h"
 #include "core/matrix1d.h"
 #include "core/numerical_recipes.h"
+#include <array>
 
 /* Integrate --------------------------------------------------------------- */
 double integrateNewtonCotes(double(*f)(double),
@@ -68,17 +69,18 @@ double integrateNewtonCotes(double(*f)(double),
 
 double Trapeze::operator()()
 {   //adapted from qtrap
-    double s,olds;
+    double s_internal;
+    double olds;
     int j;
     olds = -1.0e30;
     for (j = 1;j <= JMAX;j++)
     {
-        s = Trap(j);    //changed; Trap is integrating fcn
-        if (fabs(s - olds) <= EPS*fabs(olds))
-            return s;
-        if (s == 0.0 && olds == 0.0 && j > 6)
-            return s;
-        olds = s;
+        s_internal = Trap(j);    //changed; Trap is integrating fcn
+        if (fabs(s_internal - olds) <= EPS*fabs(olds))
+            return s_internal;
+        if (s_internal == 0.0 && olds == 0.0 && j > 6)
+            return s_internal;
+        olds = s_internal;
     }
     REPORT_ERROR(ERR_NUMERICAL,"Too many steps in routine qtrap_y\n");
 }
@@ -86,8 +88,11 @@ double Trapeze::operator()()
 
 double Trapeze::Trap(int n)
 { //adapted from trapzd
-    double tnm, sum, del;
-    int j, it;
+    double tnm;
+    double sum;
+    double del;
+    int j;
+    int it;
     if (n == 1)
     {
         it = 1;
@@ -120,18 +125,21 @@ double Trapeze::Trap(int n)
 double Romberg::operator()()
 {  //adapted from qromb
     int j;
-    double ss,dss, h[JMAXP+2], s[JMAXP+2];
+    double ss;
+    double dss;
+    std::array<double, JMAXP+2> h;
+    std::array<double, JMAXP+2> s_internal;
     h[1] = 1.0;
     for (j = 1;j <= JMAXP;j++)
     {
-        s[j] = midpnt(j); //changed; midpnt is integrating
+        s_internal[j] = midpnt(j); //changed; midpnt is integrating
         if (j >= K)
         {     //function
-            polint(&h[j-K], &s[j-K], K, 0.0, ss, dss);
+            polint(&h[j-K], &s_internal[j-K], K, 0.0, ss, dss);
             if (fabs(dss) <= EPS*fabs(ss))
                 return ss;
         }
-        s[j+1] = s[j];
+        s_internal[j+1] = s_internal[j];
         h[j+1] = h[j] / 9.0;
     }
     REPORT_ERROR(ERR_NUMERICAL,"Too many steps in routine Romberg");
@@ -142,8 +150,12 @@ double Romberg::operator()()
 //*
 double Romberg::midpnt(int n)
 {   //adapted from midpoint
-    double tnm, sum, del, ddel;
-    int it, j;
+    double tnm;
+    double sum;
+    double del;
+    double ddel;
+    int it;
+    int j;
     if (n == 1)
     {
         x = 0.5 * (a + b);     //changed; set x
