@@ -228,14 +228,11 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
         double freq, lastResolution=1e38;
         int idx, lastidx = -1;
 
-
-        double res;
-	size_t totalSteps = (int)(maxRes-minRes/step);
-
-	for (size_t nSteps = 0; nSteps < totalSteps; totalSteps++)
+	double res = minRes;
+	// keep this comment to understand the while
+	// for (double res = minRes; res<maxRes; res+=step)
+	while(res<maxRes)
 	{	
-		res = nSteps*step;
-
                 freq = sampling/res;
 
                 DIGFREQ2FFT_IDX(freq, ZSIZE(myfftV), idx);
@@ -269,6 +266,7 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
                 lastweight += weight;
                 lastResolution = res;
                 lastidx = idx;
+		res+=step;
         }
 //		double sigmaBefore=0;
 //        computeAvgStdev_within_binary_mask(resVol, localfilteredVol, sigmaBefore);

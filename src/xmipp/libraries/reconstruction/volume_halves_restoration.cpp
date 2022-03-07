@@ -374,13 +374,11 @@ void ProgVolumeHalvesRestoration::filterBank()
 	std::cerr << "Calculating filter bank ..." << std::endl;
 	init_progress_bar(imax);
 
-	double w;
-	size_t totalSteps = (int)(0.5/filterStep);
-
-	for (size_t nSteps = 0; nSteps < totalSteps; totalSteps++)
+	// keep this comment to understand the while
+	// for (double w=0; w<0.5; w+=filterStep)
+	double w=0;
+	while(w<0.5)
 	{	
-		w = nSteps*filterStep;
-	
 		filterBand(fV1r,bank1,w);
 		filterBand(fV2r,bank2,w);
 
@@ -443,6 +441,7 @@ void ProgVolumeHalvesRestoration::filterBank()
 		save.write("PPPsumWeight.vol");
 		std::cout << "w=" << w << " Press";
 		char c; std::cin >> c;
+	        w+=filterStep;
 #endif
 	}
 	progress_bar(imax);

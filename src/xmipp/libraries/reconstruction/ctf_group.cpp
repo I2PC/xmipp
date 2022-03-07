@@ -397,10 +397,11 @@ bool ProgCtfGroup::isIsotropic(CTFDescription &ctf)
 
     cosp = COSD(ctf.azimuthal_angle);
     sinp = SIND(ctf.azimuthal_angle);
-    double digres = 0;
-    size_t totalSteps_digres = (int)(resol_error/0.001);
 
-    for (size_t nStep = 0; nStep < totalSteps_digres; nStep++)
+    // keep this comment to understand the loop
+    // for (double digres = 0; digres < resol_error; digres+= 0.001)
+    double digres = 0;
+    while(digres < resol_error)
     {
         XX(freq) = cosp * digres;
         YY(freq) = sinp * digres;

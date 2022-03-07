@@ -112,11 +112,13 @@ void ProgMovieEstimateGain::produceSideInfo()
 	sumObs*=2;
 
 	// Initialize sigma values
-	size_t totalSteps = (int)(maxSigma/sigmaStep);
-	
-	for (size_t nStep=0; nStep<=totalSteps; nStep+=1)
+	// keep this comment to understand the while
+	// for (double sigma=0; sigma<=maxSigma; sigma+=sigmaStep)
+	double sigma=0;	
+	while(sigma<=maxSigma)
 	{
-		listOfSigmas.push_back(sigmaStep*nStep);
+		listOfSigmas.push_back(sigma);
+		sigma+=sigmaStep;
 	}
 
 	for (size_t i=0; i<listOfSigmas.size(); ++i)
