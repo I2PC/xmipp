@@ -277,7 +277,7 @@
  	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
- 		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0;
+		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0; 
  	return m;
  }
 
@@ -353,10 +353,9 @@
     	projectVolume(*projectorMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
     	Pmask.write(formatString("%s0_initalMaskProjection.mrc", fnProj.c_str()));
     	M = binarizeMask(Pmask);
+		M.write(formatString("%s1_MaskBin.mrc", fnProj.c_str()));
 		FilterG.applyMaskSpace(M());
 		M.write(formatString("%s1_MaskSmooth.mrc", fnProj.c_str()));
-    	// Compute inverse mask
-		iM = invertMask(M);
 		// Fourier Transform
 		FourierTransformer transformerP;
 		transformerP.FourierTransform(P(),PFourier,false);
@@ -390,43 +389,38 @@
 				DIRECT_A2D_ELEM(wy,i,j) *= DIRECT_A2D_ELEM(aux,i,0) * deltaWy- 0.5;
 			}
 		}
-		MultidimArray< std::complex<double> > w;
+		MultidimArray<double> w;
+		w.initZeros(XSIZE(wx),YSIZE(wx));
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(w)
 			DIRECT_MULTIDIM_ELEM(w,n) = sqrt(DIRECT_MULTIDIM_ELEM(wx,n)*DIRECT_MULTIDIM_ELEM(wx,n) + DIRECT_MULTIDIM_ELEM(wy,n)*DIRECT_MULTIDIM_ELEM(wy,n));
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(w)
-			DIRECT_MULTIDIM_ELEM(w,n) = round(real(DIRECT_MULTIDIM_ELEM(w,n))*XSIZE(P()));
-
-		MultidimArray<double> wi;
-		FourierTransformer transformerw;
-		// HERE IT GETS HANGED
-		std::cout<< "-----1----" << std::endl;
-		transformerw.inverseFourierTransform(w, wi);
-		std::cout<< "-----6----" << std::endl;
-		wi.write(formatString("%s2_wi.mrc", fnProj.c_str()));
-		std::cout<< "-----7----" << std::endl;
-	 	double maxwi;
-	 	double minwi;
-	 	wi.computeDoubleMinMax(minwi, maxwi);
-		std::cout<< "maxwi: " << maxwi << std::endl;
-
+			DIRECT_MULTIDIM_ELEM(w,n) = round(DIRECT_MULTIDIM_ELEM(w,n)*XSIZE(P()));
+		CenterFFT(w, false);
+	 	double maxw;
+	 	double minw;
+	 	w.computeDoubleMinMax(minw, maxw); // compute just max?
 		// Apply CTF
 		Pctf = applyCTF(row, P);
 		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
 		transformer.FourierTransform(Pctf(),PFourier,false);
-
-		// Estimate transformation T(w)
+		// Compute inverse mask
+		iM = invertMask(M);
+		iM.write(formatString("%s4_iM.mrc", fnProj.c_str()));
+		// Compute IiM = I*iM
 		Image<double> IiM;
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IiM())
-		 	DIRECT_MULTIDIM_ELEM(IiM(),n)*=DIRECT_MULTIDIM_ELEM(iM,n);
-		Pctf.write(formatString("%s4_IiM.mrc", fnProj.c_str()));
+		IiM().initZeros(XSIZE(wx),YSIZE(wx));
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+		 	DIRECT_MULTIDIM_ELEM(IiM(),n) = DIRECT_MULTIDIM_ELEM(I(),n) * DIRECT_MULTIDIM_ELEM(iM,n);
+		IiM.write(formatString("%s4_IiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerIiM;
 		MultidimArray< std::complex<double> > IiMFourier;
 		transformerIiM.FourierTransform(IiM(),IiMFourier,false);
-
+		// Compute PiM = P*iM
 		Image<double> PiM;
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiM())
-		 	DIRECT_MULTIDIM_ELEM(PiM(),n)*=DIRECT_MULTIDIM_ELEM(iM,n);
-		Pctf.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
+		PiM().initZeros(XSIZE(wx),YSIZE(wx));
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P())
+		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(P(),n) * DIRECT_MULTIDIM_ELEM(iM,n);
+		PiM.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier;
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
