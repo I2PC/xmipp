@@ -76,7 +76,7 @@ public:
 
     // --------------------------- HEAD functions ----------------------------
 
-    void filterCoordinatesWithMask(MultidimArray<double> &inputVolume);
+    void filterCoordinatesWithMask(MultidimArray<int> &inputVolume);
 
     void defineSphere(MultidimArray<int> &sphere);
 

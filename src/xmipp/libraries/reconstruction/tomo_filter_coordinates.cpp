@@ -62,7 +62,7 @@ void ProgTomoFilterCoordinates::defineParams()
 
 // --------------------------- HEAD functions ----------------------------
 
-void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<double> &inputVolume)
+void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<int> &inputVolume)
 {
 	Point3D<int> coord3D;
 	for (size_t i = 0; i < inputCoords.size(); i++)
@@ -113,8 +113,8 @@ void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &to
 		double meanCoor = 0;
 		double meanCoor2 = 0;
 		double stdCoor = 0;
-		double medianCoor = 0;
-		double madCoor = 0;
+		// double medianCoor = 0;
+		// double madCoor = 0;
 		double value = 0;
 		size_t Nelems = 0;
 		
@@ -215,12 +215,17 @@ void ProgTomoFilterCoordinates::run()
 
 	std::cout << "Starting..." << std::endl;
 
+	// Reading coordinates
+	readInputCoordinates();
+
 	// Reading mask if exists
 	if (fnMask !="")
 	{
 		Image<int> maskImg;
 		maskImg.read(fnMask);
 		auto &mask = maskImg();
+
+		filterCoordinatesWithMask(mask);
 	}
 	
 	// Reading input tomogram
@@ -232,71 +237,11 @@ void ProgTomoFilterCoordinates::run()
 	yDim = YSIZE(tom);
 	zDim = ZSIZE(tom);
 
-	// Reading coordinates
-	readInputCoordinates();
-
 	// CHECK COORDINATES WITH MASK IF APPEARS AS INPUT
-
 	takeCoordinateFromTomo(tom);
-
-
-
-
-
-	// if(execMode)
-	// {
-	// 	std::cout << "Resolution mode" << std::endl;
-	// 	Image<double> inputVolume;
-	// 	inputVolume.read(fnInVol);
-
-	// }else
-	// {
-	// 	std::cout << "Mask mode" << std::endl;
-	// 	Image<double> inputVolume;
-	// 	inputVolume.read(fnInVol);
-
-	// 	std::cout << "Volume read" << std::endl;
-
-	// 	auto &inVol=inputVolume();
-
-	// 	std::cout << "Volume loaded" << std::endl;
-
-	// 	xDim = XSIZE(inVol);
-	// 	yDim = YSIZE(inVol);
-	// 	zDim = ZSIZE(inVol);
-
-	// 	#ifdef DEBUG_DIM
-	// 	std::cout << "Input volume dimensions:" << std::endl;
-	// 	std::cout << "x " << XSIZE(inVol) << std::endl;
-	// 	std::cout << "y " << YSIZE(inVol) << std::endl;
-	// 	std::cout << "z " << ZSIZE(inVol) << std::endl;
-	// 	std::cout << "n " << NSIZE(inVol) << std::endl;
-	// 	#endif
-
-	// 	readInputCoordinates();
-
-	// 	#ifdef VERBOSE_OUTPUT
-	// 	std::cout << "Number of coordinates before filtering: " << inputCoords.size() << std::endl;
-	// 	#endif
-
-
-	// 	if(execMode)
-	// 	{
-	// 		std::cout << "Filtering with resolution map..." << std::endl;
-	// 	}else
-	// 	{
-	// 		std::cout << "Filtering with mask..." << std::endl;
-	// 		filterCoordinatesWithMask(inVol);
-	// 	}
-
-	// 	#ifdef VERBOSE_OUTPUT
-	// 	std::cout << "Number of coordinates after filtering: " << inputCoords.size() << std::endl;
-	// 	#endif
-
-	// 	writeOutputCoordinates();
-	// }
 	
 	auto t2 = high_resolution_clock::now();
+	
 	/* Getting number of milliseconds as an integer. */
     auto ms_int = duration_cast<milliseconds>(t2 - t1);
  	std::cout << "Execution time: " << ms_int.count() << "ms\n";
