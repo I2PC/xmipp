@@ -160,19 +160,17 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
     << newAlignment.x << " " << newAlignment.y << std::endl;
 #endif
 
-    size_t totalStepsRot = (int)((rotF-rot0)/rot_step);
-    size_t totalStepsTilt = (int)((tiltF-tilt0)/tilt_step);
-    double rot;
-    double tilt;
+    double rot = rot0;
 
-    for (size_t nStepRot = 0; nStepRot < totalStepsRot; nStepRot++)
+    // keep this comment to understand the while
+    // for (size_t nStepRot = 0; nStepRot < totalStepsRot; nStepRot++)
+    while(rot <= rotF)
     {
-        rot = nStepRot * rot_step;
-
-        for (size_t nStepTilt = 0; nStepTilt < totalStepsRot; nStepTilt++)
+    	// keep this comment to understand the while
+    	// for (double tilt = tilt0; tilt <= tiltF; tilt += tilt_step)
+	double tilt = tilt0;
+        while(tilt <= tiltF)
         {
-            tilt = nStepTilt * tilt_step;
-
             Ip()=I();
             // Take a projection from the given direction
             projectVolume(V(), theo, YSIZE(V()), XSIZE(V()), rot, tilt, 0);
@@ -193,7 +191,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
                     Ip().rangeAdjust(theo(),&mask);
                 if (adjustGray || generateAligned)
                     Ip.write(fnImgOut);
-#ifdef DEBUG
+		#ifdef DEBUG
 
                 std::cout << "    Improved " << idx << " rot=" << rot << " tilt=" << tilt
                 << " x,y="
@@ -209,7 +207,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
                 save.write("PPPmask.xmp");
                 save()=theo()-Ip();
                 save.write("PPPdiff.xmp");
-#endif
+		#endif
 
             }
 
@@ -233,7 +231,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
                     Ip().rangeAdjust(theo(),&mask);
                 if (adjustGray || generateAligned)
                     Ip.write(fnImgOut);
-#ifdef DEBUG
+		#ifdef DEBUG
 
                 std::cout << "    Improved " << idx << " rot=" << rot << " tilt=" << tilt
                 << " x,y="
@@ -249,10 +247,12 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
                 std::cout << "Press any key\n";
                 char c;
                 std::cin >> c;
-#endif
+		#endif
 
             }
+	    tilt += tilt_step;
         }
+	rot += rot_step;
     }
 
     // Select best alignment

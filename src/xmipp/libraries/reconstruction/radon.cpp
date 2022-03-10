@@ -92,16 +92,16 @@ void Radon_Transform(const MultidimArray<double> &I, double rot_step,
     STARTINGX(RT) = STARTINGX(I);
    
     int l = 0;
-    size_t totalSteps = (int)(360/rot_step);
-    double rot;
+    double rot = 0;
 
-    for (size_t nStep = 0; nStep < totalSteps; nStep++, l++)
+    // Keep this comment to understand the while
+    // for (double rot = 0; rot < 360; rot += rot_step, l++)
+    while(rot < 360)
     {
-        rot = nStep * rot_step;
-
         // Rotate image
     	rotate(xmipp_transformation::LINEAR, rot_I, I, rot);
         // Sum by columns
         FOR_ALL_ELEMENTS_IN_ARRAY2D(rot_I) RT(l, j) += rot_I(i, j);
+	rot += rot_step;
     }
 }

@@ -130,13 +130,12 @@ void ProgXrayProject::run()
     size_t idx = FIRST_IMAGE;
 
     // Project
-    size_t totalSteps = (int)(projParam.tiltF-projParam.tilt0)/projParam.tiltStep;
-    double angle;
+    double angle = projParam.tilt0;
 
-    for (size_t nStep=0; nStep<=totalSteps; nStep+=1)
+    // Keep this comment to understand the while
+    // for (double angle=projParam.tilt0; angle<=projParam.tiltF; angle+=projParam.tiltStep)
+    while(angle<=projParam.tiltF)
     {
-        angle = projParam.tilt0 + nStep*projParam.tiltStep;
-
         if (projParam.singleProjection)
             fn_proj = projParam.fnOut;
         else
@@ -202,6 +201,7 @@ void ProgXrayProject::run()
 
         numProjs++;
         idx++;
+	angle+=projParam.tiltStep;
     }
     if (!(projParam.show_angles))
         progress_bar(expectedNumProjs);
