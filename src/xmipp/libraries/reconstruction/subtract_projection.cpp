@@ -35,6 +35,7 @@
  #include "data/mask.h"
  #include "data/filters.h"
  #include "data/morphology.h"
+ #include <core/alglib/dataanalysis.h>
  #include <iostream>
  #include <string>
  #include <sstream>
@@ -58,9 +59,10 @@
 	sigma=getIntParam("--sigma");
 	lambda=getDoubleParam("--lambda");
 	subtractAll = checkParam("--subAll");
-	Ts = getDoubleParam("--sampling");
+	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
+	fmaskWidth = getDoubleParam("--fmask_width");
  }
 
  // Show ====================================================================
@@ -74,7 +76,7 @@
 	<< "Sigma:\t" << sigma << std::endl
 	<< "Iterations:\t" << iter << std::endl
 	<< "Relaxation factor:\t" << lambda << std::endl
-	<< "Sampling:\t" << Ts << std::endl
+	<< "Sampling:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
@@ -96,62 +98,13 @@
      addParamsLine("[--iter <n=1>]\t: Number of iterations");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
 	 addParamsLine("[--subAll]\t: Perform the subtraction of the whole image");
-	 addParamsLine("[--sampling <Ts=1>]\t: Sampling rate (A/pixel)");
-	 addParamsLine("[--padding <p=2>]\t: Padding factor");
+	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
+	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
+	 addParamsLine("[--fmask_width <w=40>]\t: extra width of final mask (A)"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol "
     		 "-o output_particles --iter 5 --lambda 1 --sigma 3 --sampling 1 --padding 2 --max_resolution 4");
- }
-
- void ProgSubtractProjection::POCSmaskProj(const MultidimArray<double> &maskpocs, MultidimArray<double> &Ipocs) const{
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipocs)
- 	DIRECT_MULTIDIM_ELEM(Ipocs,n)*=DIRECT_MULTIDIM_ELEM(maskpocs,n);
- }
-
- void ProgSubtractProjection::POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI,
-		 double lambdapocs, const MultidimArray<double> &rQ, int Isize) const{
- 	int Isize2 = Isize/2;
- 	double Isizei = 1.0/Isize;
- 	double wx;
- 	double wy;
- 	for (int i=0; i<YSIZE(A); ++i) {
- 		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isizei,wy)
- 		double wy2 = wy*wy;
- 		for (int j=0; j<XSIZE(A); ++j) {
- 			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isizei,wx)
- 			double w = sqrt(wx*wx + wy2);
- 			auto iw = (int)round(w*Isize);
- 			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
- 			if (mod>1e-6)
- 			{
- 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambdapocs)+lambdapocs*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
- 			}
- 		}
- 	}
- }
-
- void ProgSubtractProjection::POCSMinMaxProj(MultidimArray<double> &Ppocs, double Im, double IM) const{
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ppocs) {
- 		double val = DIRECT_MULTIDIM_ELEM(Ppocs,n);
- 		if (val<Im)
- 			DIRECT_MULTIDIM_ELEM(Ppocs,n) = Im;
- 		else if (val>IM)
- 			DIRECT_MULTIDIM_ELEM(Ppocs,n) = IM;
- 		}
- }
-
- void ProgSubtractProjection::extractPhaseProj(MultidimArray< std::complex<double> > &FI) const{
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
- 		const auto *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI,n);
- 		double phi = atan2(*(ptr+1),*ptr);
- 		DIRECT_MULTIDIM_ELEM(FI,n) = std::complex<double>(cos(phi),sin(phi));
- 	}
- }
-
- void ProgSubtractProjection::POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, MultidimArray< std::complex<double> > &FI) const{
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(phase)
- 		DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
  }
 
  Image<double> ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
@@ -170,17 +123,6 @@
 	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
- }
-
- void ProgSubtractProjection::percentileMinMax(const MultidimArray<double> &img, double &m, double &M) const{
- 	MultidimArray<double> sortedI;
- 	long size;
- 	size = img.xdim * img.ydim;
- 	img.sort(sortedI);
- 	auto p005 = static_cast<double>(size) * 0.005;
- 	auto p995 = static_cast<double>(size) * 0.995;
- 	m = DIRECT_MULTIDIM_ELEM(sortedI, int(p005));
- 	M = DIRECT_MULTIDIM_ELEM(sortedI, int(p995));
  }
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
@@ -210,68 +152,6 @@
 	return proj;
  }
 
- MultidimArray<double> computeRadialAvg(const Image<double> &img, MultidimArray<double> &radial_mean){
-	Image<double> imgRad;
- 	imgRad = img;
-	FourierTransformer transformerRad;
-	MultidimArray< std::complex<double> > IFourierRad;
-	MultidimArray<double> IFourierMagRad;
-	transformerRad.completeFourierTransform(imgRad(),IFourierRad);
-	CenterFFT(IFourierRad, true);
-	FFT_magnitude(IFourierRad,IFourierMagRad);
-	// Compute radial average profile (1D)
-	IFourierMagRad.setXmippOrigin();
-	Matrix1D<int> center(2);
-	center.initZeros();
-	MultidimArray<int> radial_count;
-	radialAverage(IFourierMagRad, center, radial_mean, radial_count);
-	int my_rad;
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(IFourierMagRad) {
-		my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-		imgRad(k, i, j) = radial_mean(my_rad);
-	}
-	return radial_mean;
- }
-
- MultidimArray<double> computeRadQuotient(MultidimArray<double> &rq, const MultidimArray<double> & rmI,
-		 const MultidimArray<double> &rmP){
-	rq = rmI/rmP;
-	FOR_ALL_ELEMENTS_IN_ARRAY1D(rq) {
-		rq(i) = std::min(rq(i), 1.0);
-	}
-	return rq;
- }
-
- void ProgSubtractProjection::runIteration() {
-	transformer.FourierTransform(Pctf(),PFourier,false);
-	POCSFourierAmplitudeProj(IFourierMag, PFourier, lambda, radQuotient, (int)XSIZE(I()));
-	transformer.inverseFourierTransform();
-	Pctf.write(formatString("%s4_Pamp.mrc", fnProj.c_str()));
-	POCSMinMaxProj(Pctf(), Imin, Imax);
-	Pctf.write(formatString("%s5_Pminmax.mrc", fnProj.c_str()));
-	transformer.FourierTransform();
-	POCSFourierPhaseProj(PFourierPhase, PFourier);
-	transformer.inverseFourierTransform();
-	Pctf.write(formatString("%s6_Pphase.mrc", fnProj.c_str()));
- }
-
- Image<double> ProgSubtractProjection::thresholdMask(Image<double> &m){
- 	double maxMaskVol;
- 	double minMaskVol;
- 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
-		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>maxMaskVol/20)) ? 1:0;
-	FilterG2.applyMaskSpace(m());
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
-		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>0.5)) ? 1:0;
-	for (int n=0; n<5; ++n) {
-		dilate2D(m(), m(), 4, 0, 16);
-		closing2D(m(), m(), 4, 0, 16);
-		erode2D(m(), m(), 4, 0, 16);
-	}
- 	return m;
- }
-
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
  	double maxMaskVol;
  	double minMaskVol;
@@ -286,20 +166,6 @@
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskI())
 		DIRECT_MULTIDIM_ELEM(PmaskI,n) = (DIRECT_MULTIDIM_ELEM(PmaskI,n)*(-1))+1;
 	return PmaskI;
- }
-
- Image<double> subtraction(Image<double> &I1, const Image<double> &I2,
-		const Image<double> &minv, const Image<double> &m, bool subAll){
-	 if (subAll){
-		 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1())
-			DIRECT_MULTIDIM_ELEM(I1,n) = DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n));
-	 }
-	 else{
-		 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1())
-			DIRECT_MULTIDIM_ELEM(I1,n) = (DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n)))*DIRECT_MULTIDIM_ELEM(m,n);
-	 }
-
-	return I1;
  }
 
  void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img) {
@@ -327,7 +193,7 @@
 	Filter2.FilterBand=LOWPASS;
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
-	double cutFreq = Ts/maxResol;
+	double cutFreq = sampling/maxResol;
 	Filter2.w1 = cutFreq;
 	// Initialize Fourier projectors
 	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
@@ -345,10 +211,12 @@
      	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
      	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
+
      	// Project volume
      	MultidimArray<double> *ctfImage = nullptr;
     	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
     	P.write(formatString("%s0_initialProjection.mrc", fnProj.c_str()));
+
     	// Project and smooth big mask
     	projectVolume(*projectorMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
     	Pmask.write(formatString("%s0_initalMaskProjection.mrc", fnProj.c_str()));
@@ -356,9 +224,11 @@
 		M.write(formatString("%s1_MaskBin.mrc", fnProj.c_str()));
 		FilterG.applyMaskSpace(M());
 		M.write(formatString("%s1_MaskSmooth.mrc", fnProj.c_str()));
+
 		// Fourier Transform
 		FourierTransformer transformerP;
 		transformerP.FourierTransform(P(),PFourier,false);
+
 		// Construct image representing the frequency of each pixel
 		auto deltaWx = 1/(double)XSIZE(P());
 		auto deltaWy = 1/(double)YSIZE(P());
@@ -399,6 +269,7 @@
 	 	double maxw;
 	 	double minw;
 	 	w.computeDoubleMinMax(minw, maxw); // compute just max?
+
 		// Apply CTF
 		Pctf = applyCTF(row, P);
 		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
@@ -418,66 +289,82 @@
 		// Compute PiM = P*iM
 		Image<double> PiM;
 		PiM().initZeros(XSIZE(wx),YSIZE(wx));
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P())
-		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(P(),n) * DIRECT_MULTIDIM_ELEM(iM,n);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pctf())
+		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(Pctf(),n) * DIRECT_MULTIDIM_ELEM(iM,n);
 		PiM.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier;
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
 
-		// Estimate transformation T(w) //
+		// -.-.-.-.-.-.-.-.-
 
-    	// Mask projection and particle
-//		POCSmaskProj(PmaskVolI(), P());
-//		POCSmaskProj(PmaskVolI(), I());
-//		P.write(formatString("%s2_PMask.mrc", fnProj.c_str()));
-//		I.write(formatString("%s2_IMask.mrc", fnProj.c_str()));
-    	// Apply CTF
-//		Pctf = applyCTF(row, P);
-//		Pctf.write(formatString("%s2_Pctf.mrc", fnProj.c_str()));
-		// Compute what is needed for POCS
-//    	struct Radial radial;
-//    	radial.meanI = computeRadialAvg(I, radial.meanI);
-//    	radial.meanP = computeRadialAvg(Pctf, radial.meanP);
-//    	radQuotient = computeRadQuotient(radQuotient, radial.meanI, radial.meanP);
-//		percentileMinMax(I(), Imin, Imax);
-//		transformer.FourierTransform(I(),IFourier,false);
-//		FFT_magnitude(IFourier,IFourierMag);
-//		transformer.FourierTransform(Pctf(),PFourierPhase,true);
-//		extractPhaseProj(PFourierPhase);
-		// Apply POCS
-//		for (int n=0; n<iter; ++n) {
-//			runIteration();
-			// Resolution filter
-//			if (cutFreq!=0) {
-//				Filter2.generateMask(Pctf());
-//				Filter2.do_generate_3dmask=true;
-//				Filter2.applyMaskSpace(Pctf());
-//				Pctf.write(formatString("%s7_Pfilt.mrc", fnProj.c_str()));
-//			}
-//		}
-//		Image<double> IFiltered;
-//    	I.read(fnImage);
-//		IFiltered() = I();
-//		if (cutFreq!=0)
-//			Filter2.applyMaskSpace(IFiltered());
-		// Mask keep
-//    	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, &roffset);
-//    	Pmaskctf = applyCTF(row, Pmask);
-//    	Pmaskctf = thresholdMask(Pmaskctf);
-//		PmaskInv = invertMask(Pmaskctf);
-//    	FilterG.w1=sigma;
-//		FilterG.applyMaskSpace(Pmaskctf());
+		// Estimate transformation T(w) //
+		double nyquist = 2*sampling; 
+		MultidimArray< std::complex<double> > num;
+		num.initZeros(nyquist, 1); 
+		MultidimArray< std::complex<double> > den;
+		den.initZeros(nyquist, 1);
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) 
+		{
+			DIRECT_MULTIDIM_ELEM(num,n) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n)) 
+											+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+			DIRECT_MULTIDIM_ELEM(den,n) += real(DIRECT_MULTIDIM_ELEM(PiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n)) 
+											+ imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+		}
+			
+		alglib::linearmodel lm;
+		alglib::lrreport ar;
+		int info;
+		MultidimArray< std::complex<double> > beta;
+		beta.initZeros(nyquist, 1);
+		MultidimArray<double> R2;
+		R2.initZeros(nyquist, 1);
+
+		for (int i=0; i<nyquist; ++i) 
+		{
+			for (int ix=0; ix<3; ix++)
+			{
+				alglib::real_2d_array quotient = real(num/den);
+				lrbuild(quotient, XSIZE(IiMFourier), ix, info, lm, ar); 
+				beta(ix,i) = lrunpack(lm, quotient, ix);
+				R2(ix, i) = lrrmserror(lm, quotient, XSIZE(IiMFourier));
+			}
+		}
+
+		std::complex<double> beta1 = beta(0).mean();
+		std::complex<double> beta2 = beta(1).mean();
+		std::complex<double> beta3 = beta(2).mean();
+		// double Tw = beta1 + beta2*w + beta3*w*w;
+		std::complex<double> Tw = beta1;
+		MultidimArray< std::complex<double> > PFourierAdjusted;
+		PFourierAdjusted = Tw * PFourier;
+		std::complex<double> beta0;
+		beta0 = IiMFourier(1,1)-beta1*PiMFourier(1,1);
+
+		// Apply adjustment
+		PFourierAdjusted(1,1) = beta0 + Tw*PFourier(1,1);
+		Image<double> PAdjusted;
+		transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted);
+
+		// Build final mask 
+		double fmaskWidth_px;
+		fmaskWidth_px = fmaskWidth/sampling;
+		Image<double> Mfinal;
+		Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
+		Mfinal().initConstant(1.0);
+
 		// Subtraction
-//		Pctf.write(formatString("%s8_Pfinal.mrc", fnProj.c_str()));
-//		I.write(formatString("%s8_I.mrc", fnProj.c_str()));
-//		PmaskInv.write(formatString("%s9_maskInv.mrc", fnProj.c_str()));
-//		Pmaskctf.write(formatString("%s9_mask.mrc", fnProj.c_str()));
-//		I = subtraction(I, Pctf, PmaskInv, Pmaskctf, subtractAll);
-//		I.write(formatString("%s91_Resultado.mrc", fnProj.c_str()));
+		Image<double> Idiff;
+		Idiff().resizeNoCopy(I());  
+		Idiff().initConstant(1.0);
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
+			DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
+											* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
 
 		// Write particle
-		writeParticle(int(i), I);
+		writeParticle(int(i), Idiff);
     }
     mdParticles.write(fnParticles);
  }

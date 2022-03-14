@@ -49,9 +49,10 @@
     MDRowVec row;
     bool subtractAll;
 	double lambda;
-	double Ts;
+	double sampling;
 	double padFourier;
 	double maxResol;
+    double fmaskWidth;
 	int sigma;
 	int iter;
     struct Angles
