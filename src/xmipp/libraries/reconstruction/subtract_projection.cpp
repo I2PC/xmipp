@@ -174,6 +174,61 @@
 	mdParticles.setValue(MDL_IMAGE, out, ix);
  }
 
+ double evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp)
+{
+   double sumY=0, sumY2=0, sumE2=0;
+   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(y)
+   {
+      double e=DIRECT_MULTIDIM_ELEM(y,n)-DIRECT_MULTIDIM_ELEM(yp,n);
+      sumE2+=e*e;
+      sumY+=DIRECT_MULTIDIM_ELEM(y,n);
+      sumY2+=DIRECT_MULTIDIM_ELEM(y,n)*DIRECT_MULTIDIM_ELEM(y,n);
+   }
+   double meanY=sumY/MULTIDIM_SIZE(y);
+   double varY=sumY2/MULTIDIM_SIZE(y)-meanY*meanY;
+   return R2=1-sumE2/varY;
+}
+
+void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap)
+{
+   double N=MULTIDIM_SIZE(beta);
+   MultidimArray<double> idx(N);
+   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(idx)
+      DIRECT_MULTIDIM_ELEM(idx,n)=n;
+
+   // Fit order 0 beta=beta0
+   double beta00=beta.computeMean();
+   MultidimArray<double> betap0;
+   betap0.initZeros(beta);
+   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(beta)
+      DIRECT_MULTIDIM_ELEM(betap0,n)=beta00;
+   double R20=evaluateFitting(beta,betap0);
+   double R20adj=1-(1-R20)*(N-1)/(N-1);
+
+   // Fit order 1 beta=beta0+beta1*idx
+   double sumX=0, sumX2=0, sumY=0, sumXY=0;
+   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(beta)
+   {
+    sumX+=DIRECT_MULTIDIM_ELEM(idx,n);
+ sumX2+=DIRECT_MULTIDIM_ELEM(idx,n)*DIRECT_MULTIDIM_ELEM(idx,n);
+    sumY+=DIRECT_MULTIDIM_ELEM(beta,n);
+ sumXY+=DIRECT_MULTIDIM_ELEM(idx,n)*DIRECT_MULTIDIM_ELEM(beta,n);
+   }
+   double beta11=(N*sumXY-sumX*sumY)/(N*sumX2-sumX*sumX);
+   double beta10=(sumY-beta11*sumX)/N;
+   MultidimArray<double> betap1;
+   betap1.initZeros(beta);
+   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(beta)
+DIRECT_MULTIDIM_ELEM(betap1,n)=beta10+beta11*DIRECT_MULTIDIM_ELEM(idx,n);
+   double R21=evaluateFitting(beta,betap1);
+   double R21adj=1-(1-R20)*(N-1)/(N-1-1);
+
+   if (R21adj>R20adj)
+       betap=beta1p;
+   else
+       betap=beta0p;
+}
+
  void ProgSubtractProjection::run() {
 	show();
 	// Read input volume and create masks
@@ -225,58 +280,35 @@
 		FilterG.applyMaskSpace(M());
 		M.write(formatString("%s1_MaskSmooth.mrc", fnProj.c_str()));
 
-		// Fourier Transform
-		FourierTransformer transformerP;
-		transformerP.FourierTransform(P(),PFourier,false);
+		const MultidimArray<double> &mP = P();
 
-		// Construct image representing the frequency of each pixel
-		auto deltaWx = 1/(double)XSIZE(P());
-		auto deltaWy = 1/(double)YSIZE(P());
-		MultidimArray<double> wx;
-		wx.initZeros(XSIZE(P()), YSIZE(P()));
-		wx += 1;
-		MultidimArray<double> aux;
-		aux.initZeros(XSIZE(P()), 1);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(aux)
-			DIRECT_MULTIDIM_ELEM(aux,n) += n;
-		for (int j=0; j<YSIZE(wx); ++j)
+		// Construct image representing the frequency of each pixel  => OUTSIDE
+		MultidimArray<int> wi;
+		wi.initZeros(PFourier);
+		Matrix1D w(2);
+		for (size_t i=0; i<YSIZE(wi); i++)
 		{
-		 	for (int i=0; i<XSIZE(wx); ++i)
-		 	{
-				DIRECT_A2D_ELEM(wx,i,j) *= DIRECT_A2D_ELEM(aux,i,0) * deltaWx - 0.5;
+			FFT_IDX2DIGFREQ(i,YSIZE(mP),YY(w));
+			for (size_t j=0; j<XSIZE(wi); j++)
+			{
+				FFT_IDX2DIGFREQ(j,XSIZE(mP),XX(w));
+				DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mP));
 			}
 		}
-		MultidimArray<double> wy;
-		wy.initZeros(XSIZE(P()), YSIZE(P()));
-		wy += 1;
-		aux.initZeros(1, YSIZE(P()));
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(aux)
-			DIRECT_MULTIDIM_ELEM(aux,n) += n;
-		for (int j=0; j<YSIZE(wy); ++j)
-		{
-		 	for (int i=0; i<XSIZE(wy); ++i)
-		 	{
-				DIRECT_A2D_ELEM(wy,i,j) *= DIRECT_A2D_ELEM(aux,i,0) * deltaWy- 0.5;
-			}
-		}
-		MultidimArray<double> w;
-		w.initZeros(XSIZE(wx),YSIZE(wx));
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(w)
-			DIRECT_MULTIDIM_ELEM(w,n) = sqrt(DIRECT_MULTIDIM_ELEM(wx,n)*DIRECT_MULTIDIM_ELEM(wx,n) + DIRECT_MULTIDIM_ELEM(wy,n)*DIRECT_MULTIDIM_ELEM(wy,n));
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(w)
-			DIRECT_MULTIDIM_ELEM(w,n) = round(DIRECT_MULTIDIM_ELEM(w,n)*XSIZE(P()));
-		CenterFFT(w, false);
-	 	double maxw;
-	 	double minw;
-	 	w.computeDoubleMinMax(minw, maxw); // compute just max?
+		int maxw = w.computeMax();
 
 		// Apply CTF
 		Pctf = applyCTF(row, P);
 		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
-		transformer.FourierTransform(Pctf(),PFourier,false);
+
+		// Fourier Transform
+		FourierTransformer transformerP;
+		transformerP.FourierTransform(Pctf(),PFourier,false);
+
 		// Compute inverse mask
 		iM = invertMask(M);
 		iM.write(formatString("%s4_iM.mrc", fnProj.c_str()));
+
 		// Compute IiM = I*iM
 		Image<double> IiM;
 		IiM().initZeros(XSIZE(wx),YSIZE(wx));
@@ -300,26 +332,26 @@
 
 		// Estimate transformation T(w) //
 		double nyquist = 2*sampling; 
-		MultidimArray< std::complex<double> > num;
-		num.initZeros(nyquist, 1); 
-		MultidimArray< std::complex<double> > den;
-		den.initZeros(nyquist, 1);
+		MultidimArray<double> num;
+		num.initZeros(maxw); 
+		MultidimArray<double> den;
+		den.initZeros(maxw);
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) 
 		{
-			DIRECT_MULTIDIM_ELEM(num,n) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n)) 
-											+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n));
-			DIRECT_MULTIDIM_ELEM(den,n) += real(DIRECT_MULTIDIM_ELEM(PiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n)) 
-											+ imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n)*DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+			int win = DIRECT_MULTIDIM_ELEM(wi, n);
+			// definir real(P)
+			DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))*real(DIRECT_MULTIDIM_ELEM(PiMFourier,n))) 
+											+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n))*imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n)));
+			DIRECT_MULTIDIM_ELEM(den,win) += real(DIRECT_MULTIDIM_ELEM(PiMFourier,n))*real(DIRECT_MULTIDIM_ELEM(PiMFourier,n))) 
+											+ imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n))*imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n)));
 		}
 			
 		alglib::linearmodel lm;
 		alglib::lrreport ar;
 		int info;
-		MultidimArray< std::complex<double> > beta;
-		beta.initZeros(nyquist, 1);
-		MultidimArray<double> R2;
-		R2.initZeros(nyquist, 1);
+		MultidimArray<double> beta;
+		beta = num/den;
 
 		for (int i=0; i<nyquist; ++i) 
 		{
