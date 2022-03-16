@@ -1951,8 +1951,61 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	std::cout << "binom_y "  << binom_y << std::endl;
 
 
+	// 
+
 	return true;
+
+	// Eigen values ratio of the residual autocorrelation matrix
+
+	double x;
+	double y;
+	double x2;
+	double y2;
+	double xy;
+	double radius;
+	double sumRadius = 0;
+	double a = 0;
+	double b = 0;
+	double c = 0;
+	double d = 0;
+	double root;
+	double lambda1;
+	double lambda2;
+	double lambdaRatio;
+
+	for (size_t i = 0; i < residuals.size(); i++)
+	{
+		x = residuals[i].x;
+		y = residuals[i].y;
+
+		x2 = x*x;
+		y2 = y*y;
+		xy = x*y;
+
+		radius = sqrt(x2 + y2)	;
+
+		a += x2 * radius;
+		b += xy * radius;
+		c += xy * radius;
+		d += y2 * radius;
+		
+		sumRadius += radius;
+	}
+
+	a /= sumRadius;
+	b /= sumRadius;
+	c /= sumRadius;
+	d /= sumRadius;
+
+	root = sqrt((a+d)*(a+d) - 4*(-a*d-c*b));
+
+	lambda1 = (-(a+d)+root)/2;
+	lambda2 = (-(a+d)-root)/2;
+
+	lambdaRatio = (lambda1>lambda2) ? lambda2/lambda1 : lambda1/lambda2;
 }
+
+
 
 
 
