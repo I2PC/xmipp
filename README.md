@@ -63,7 +63,9 @@ We strongy recommend you to install it via your default package manager:
 If you install it using other package management system (such as Conda), it might lead to compile/link time issues caused by incompatible version being fetched.
 
 ### Full list of dependencies
-`sudo apt install -y scons libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-8 g++-8`
+`sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-8 g++-8`
+
+`pip install scons`
 
 # Installing Xmipp as a Scipion plugin
 This is a recommended way for end users.
