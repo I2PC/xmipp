@@ -1822,13 +1822,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	while (p2dVector.size()>0)
 	{
-		std::cout << "iterator 1" << std::endl;
 		p2d = p2dVector[0];
 
 		while (remainingP2d.size()>0)
 		{
-			std::cout << "iterator 2" << std::endl;
-
 			p2d_it = remainingP2d[0];
 
 			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
@@ -1858,12 +1855,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 		hull.push_back(p2d);
 
-		p2dVector.erase(remainingP2d.begin());
+		p2dVector.erase(p2dVector.begin());
 		remainingP2d = p2dVector;
-
-		std::cout << "hull.size() " << hull.size() << std::endl;
-		std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
-		std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
 	}
 	
 
@@ -1895,65 +1888,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	std::cout << "chArea "  << chArea << std::endl;
 
-
-	// Random walk
-
-
-	// Sign test (binomial distribution)
-	size_t x_pos = 0;
-	size_t y_pos = 0;
-	size_t nx_sample = residuals.size();
-	size_t ny_sample = residuals.size();
-
-	double p = 0.5;
-	double binom_x;
-	double binom_y;
-
-	for (size_t i = 0; i < residuals.size(); i++)
-	{
-		if (residuals[i].x > 0)
-		{
-			x_pos++;
-		}
-		else if (residuals[i].x == 0)
-		{
-			nx_sample--;
-		}
-
-		if (residuals[i].y > 0)
-		{
-			y_pos++;
-		}
-		else if (residuals[i].y == 0)
-		{
-			ny_sample--;
-		}	
-	}
-
-	size_t x_pos_fact;
-	size_t nx_sample_fact;
-	size_t nkx_sample_fact;
-	size_t y_pos_fact;
-	size_t ny_sample_fact;
-	size_t nky_sample_fact;
-
-	factorial(x_pos, x_pos_fact);
-	factorial(nx_sample, nx_sample_fact);
-	factorial(nx_sample - x_pos, nkx_sample_fact);
-	factorial(y_pos, y_pos_fact);
-	factorial(ny_sample, ny_sample_fact);
-	factorial(ny_sample - y_pos, nky_sample_fact);
-
-	binom_x =  (nx_sample_fact/(x_pos_fact*nkx_sample_fact))*pow(p, x_pos)*pow(1-p, nx_sample-x_pos);
-	binom_y =  (ny_sample_fact/(y_pos_fact*nky_sample_fact))*pow(p, y_pos)*pow(1-p, ny_sample-y_pos);
-
-	std::cout << "binom_x "  << binom_x << std::endl;
-	std::cout << "binom_y "  << binom_y << std::endl;
-
-
-	// 
-
-	return true;
 
 	// Eigen values ratio of the residual autocorrelation matrix
 
@@ -2003,11 +1937,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	lambda2 = (-(a+d)-root)/2;
 
 	lambdaRatio = (lambda1>lambda2) ? lambda2/lambda1 : lambda1/lambda2;
+
+	std::cout << "lambdaRatio=" << lambdaRatio << std::end;
+
+	return true;
 }
-
-
-
-
 
 
 // --------------------------- UNUSED functions ----------------------------
@@ -2371,4 +2305,59 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // 	Image<double> saveImage3;
 // 	saveImage3() = tmpMap;
 // 	saveImage3.write(fnOut.substr(0, fnOut.find_last_of("\\/")) + "/test_map.mrc");
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::binomialTestOnResiduals()
+// {
+// 	// Sign test (binomial distribution)
+// 	size_t x_pos = 0;
+// 	size_t y_pos = 0;
+// 	size_t nx_sample = residuals.size();
+// 	size_t ny_sample = residuals.size();
+
+// 	double p = 0.5;
+// 	double binom_x;
+// 	double binom_y;
+
+// 	for (size_t i = 0; i < residuals.size(); i++)
+// 	{
+// 		if (residuals[i].x > 0)
+// 		{
+// 			x_pos++;
+// 		}
+// 		else if (residuals[i].x == 0)
+// 		{
+// 			nx_sample--;
+// 		}
+
+// 		if (residuals[i].y > 0)
+// 		{
+// 			y_pos++;
+// 		}
+// 		else if (residuals[i].y == 0)
+// 		{
+// 			ny_sample--;
+// 		}	
+// 	}
+
+// 	size_t x_pos_fact;
+// 	size_t nx_sample_fact;
+// 	size_t nkx_sample_fact;
+// 	size_t y_pos_fact;
+// 	size_t ny_sample_fact;
+// 	size_t nky_sample_fact;
+
+// 	factorial(x_pos, x_pos_fact);
+// 	factorial(nx_sample, nx_sample_fact);
+// 	factorial(nx_sample - x_pos, nkx_sample_fact);
+// 	factorial(y_pos, y_pos_fact);
+// 	factorial(ny_sample, ny_sample_fact);
+// 	factorial(ny_sample - y_pos, nky_sample_fact);
+
+// 	binom_x =  (nx_sample_fact/(x_pos_fact*nkx_sample_fact))*pow(p, x_pos)*pow(1-p, nx_sample-x_pos);
+// 	binom_y =  (ny_sample_fact/(y_pos_fact*nky_sample_fact))*pow(p, y_pos)*pow(1-p, ny_sample-y_pos);
+
+// 	std::cout << "binom_x "  << binom_x << std::endl;
+// 	std::cout << "binom_y "  << binom_y << std::endl;
 // }
