@@ -175,58 +175,56 @@
  }
 
  double evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp)
-{
-   double sumY=0, sumY2=0, sumE2=0;
-   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(y)
-   {
-      double e=DIRECT_MULTIDIM_ELEM(y,n)-DIRECT_MULTIDIM_ELEM(yp,n);
-      sumE2+=e*e;
-      sumY+=DIRECT_MULTIDIM_ELEM(y,n);
-      sumY2+=DIRECT_MULTIDIM_ELEM(y,n)*DIRECT_MULTIDIM_ELEM(y,n);
-   }
-   double meanY=sumY/MULTIDIM_SIZE(y);
-   double varY=sumY2/MULTIDIM_SIZE(y)-meanY*meanY;
-   return R2=1-sumE2/varY;
-}
+ {
+	double sumY = 0, sumY2 = 0, sumE2 = 0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y)
+	{
+		double e = DIRECT_MULTIDIM_ELEM(y, n) - DIRECT_MULTIDIM_ELEM(yp, n);
+		sumE2 += e * e;
+		sumY += DIRECT_MULTIDIM_ELEM(y, n);
+		sumY2 += DIRECT_MULTIDIM_ELEM(y, n) * DIRECT_MULTIDIM_ELEM(y, n);
+	}
+	double meanY = sumY / MULTIDIM_SIZE(y);
+	double varY = sumY2 / MULTIDIM_SIZE(y) - meanY * meanY;
+	double R2;
+	return R2 = 1 - sumE2 / varY;
+ }
 
 void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap)
 {
-   double N=MULTIDIM_SIZE(beta);
-   MultidimArray<double> idx(N);
-   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(idx)
-      DIRECT_MULTIDIM_ELEM(idx,n)=n;
-
-   // Fit order 0 beta=beta0
-   double beta00=beta.computeMean();
-   MultidimArray<double> betap0;
-   betap0.initZeros(beta);
-   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(beta)
-      DIRECT_MULTIDIM_ELEM(betap0,n)=beta00;
-   double R20=evaluateFitting(beta,betap0);
-   double R20adj=1-(1-R20)*(N-1)/(N-1);
-
-   // Fit order 1 beta=beta0+beta1*idx
-   double sumX=0, sumX2=0, sumY=0, sumXY=0;
-   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(beta)
-   {
-    sumX+=DIRECT_MULTIDIM_ELEM(idx,n);
- sumX2+=DIRECT_MULTIDIM_ELEM(idx,n)*DIRECT_MULTIDIM_ELEM(idx,n);
-    sumY+=DIRECT_MULTIDIM_ELEM(beta,n);
- sumXY+=DIRECT_MULTIDIM_ELEM(idx,n)*DIRECT_MULTIDIM_ELEM(beta,n);
-   }
-   double beta11=(N*sumXY-sumX*sumY)/(N*sumX2-sumX*sumX);
-   double beta10=(sumY-beta11*sumX)/N;
-   MultidimArray<double> betap1;
-   betap1.initZeros(beta);
-   FOR_ALL_DIRECT_MULTIDIM_ELEMENTS(beta)
-DIRECT_MULTIDIM_ELEM(betap1,n)=beta10+beta11*DIRECT_MULTIDIM_ELEM(idx,n);
-   double R21=evaluateFitting(beta,betap1);
-   double R21adj=1-(1-R20)*(N-1)/(N-1-1);
-
-   if (R21adj>R20adj)
-       betap=beta1p;
-   else
-       betap=beta0p;
+	double N = MULTIDIM_SIZE(beta);
+	MultidimArray<double> idx(N);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
+		DIRECT_MULTIDIM_ELEM(idx, n) = n;
+	// Fit order 0 beta=beta0
+	double beta00 = beta.computeAvg();
+	MultidimArray<double> betap0;
+	betap0.initZeros(beta);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
+		DIRECT_MULTIDIM_ELEM(betap0, n) = beta00;
+	double R20 = evaluateFitting(beta, betap0);
+	double R20adj = 1 - (1 - R20) * (N - 1) / (N - 1);
+	// Fit order 1 beta=beta0+beta1*idx
+	double sumX = 0, sumX2 = 0, sumY = 0, sumXY = 0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
+	{
+		sumX += DIRECT_MULTIDIM_ELEM(idx, n);
+		sumX2 += DIRECT_MULTIDIM_ELEM(idx, n) * DIRECT_MULTIDIM_ELEM(idx, n);
+		sumY += DIRECT_MULTIDIM_ELEM(beta, n);
+		sumXY += DIRECT_MULTIDIM_ELEM(idx, n) * DIRECT_MULTIDIM_ELEM(beta, n);
+	}
+	double beta11 = (N * sumXY - sumX * sumY) / (N * sumX2 - sumX * sumX);
+	double beta10 = (sumY - beta11 * sumX) / N;
+	MultidimArray<double> betap1;
+	betap1.initZeros(beta);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
+		DIRECT_MULTIDIM_ELEM(betap1, n) = beta10 + beta11 * DIRECT_MULTIDIM_ELEM(idx, n);
+	double R21 = evaluateFitting(beta, betap1);
+	double R21adj = 1 - (1 - R20) * (N - 1) / (N - 1 - 1);
+	if (R21adj > R20adj)
+		betap = betap1;
+	else
+		betap = betap0;
 }
 
  void ProgSubtractProjection::run() {
@@ -254,7 +252,41 @@ DIRECT_MULTIDIM_ELEM(betap1,n)=beta10+beta11*DIRECT_MULTIDIM_ELEM(idx,n);
 	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 
-    for (size_t i = 1; i <= mdParticles.size(); ++i) {
+	// Construct image representing the frequency of each pixel 
+	row = mdParticles.getRowVec(1);
+	readParticle(row);
+	struct Angles angles;
+	row.getValueOrDefault(MDL_ANGLE_ROT, angles.rot, 0);
+	row.getValueOrDefault(MDL_ANGLE_TILT, angles.tilt, 0);
+	row.getValueOrDefault(MDL_ANGLE_PSI, angles.psi, 0);
+	roffset.initZeros(2);
+	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
+	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
+	roffset *= -1;
+	// Project volume
+	MultidimArray<double> *ctfImage = nullptr;
+	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+	P.write(formatString("%s0_initialProjection.mrc", fnProj.c_str()));
+	Pctf = applyCTF(row, P);
+	const MultidimArray<double> &mPctf = Pctf();
+	FourierTransformer transformerP;
+	transformerP.FourierTransform(Pctf(),PFourier,false);
+
+	MultidimArray<int> wi;
+	wi.initZeros(PFourier);
+	Matrix1D<int> w(2);
+	for (size_t i=0; i<YSIZE(wi); i++)
+	{
+		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w));
+		for (size_t j=0; j<XSIZE(wi); j++)
+		{
+			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w));
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mPctf));
+		}
+	}
+	int maxw = w.computeMax(); // = 0 (?)
+
+    for (size_t i = 2; i <= mdParticles.size(); ++i) {
     	// Read particle and metadata
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
@@ -280,26 +312,10 @@ DIRECT_MULTIDIM_ELEM(betap1,n)=beta10+beta11*DIRECT_MULTIDIM_ELEM(idx,n);
 		FilterG.applyMaskSpace(M());
 		M.write(formatString("%s1_MaskSmooth.mrc", fnProj.c_str()));
 
-		const MultidimArray<double> &mP = P();
-
-		// Construct image representing the frequency of each pixel  => OUTSIDE
-		MultidimArray<int> wi;
-		wi.initZeros(PFourier);
-		Matrix1D w(2);
-		for (size_t i=0; i<YSIZE(wi); i++)
-		{
-			FFT_IDX2DIGFREQ(i,YSIZE(mP),YY(w));
-			for (size_t j=0; j<XSIZE(wi); j++)
-			{
-				FFT_IDX2DIGFREQ(j,XSIZE(mP),XX(w));
-				DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mP));
-			}
-		}
-		int maxw = w.computeMax();
-
 		// Apply CTF
 		Pctf = applyCTF(row, P);
 		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
+		const MultidimArray<double> &mPctf2 = Pctf();
 
 		// Fourier Transform
 		FourierTransformer transformerP;
@@ -311,92 +327,80 @@ DIRECT_MULTIDIM_ELEM(betap1,n)=beta10+beta11*DIRECT_MULTIDIM_ELEM(idx,n);
 
 		// Compute IiM = I*iM
 		Image<double> IiM;
-		IiM().initZeros(XSIZE(wx),YSIZE(wx));
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-		 	DIRECT_MULTIDIM_ELEM(IiM(),n) = DIRECT_MULTIDIM_ELEM(I(),n) * DIRECT_MULTIDIM_ELEM(iM,n);
-		IiM.write(formatString("%s4_IiM.mrc", fnProj.c_str()));
+		const MultidimArray<double> &mI = I();
+		IiM().initZeros(XSIZE(mI),YSIZE(mI));
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mI)
+		 	DIRECT_MULTIDIM_ELEM(IiM(),n) = DIRECT_MULTIDIM_ELEM(mI,n) * DIRECT_MULTIDIM_ELEM(iM,n);
+		IiM.write(formatString("%s5_IiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerIiM;
 		MultidimArray< std::complex<double> > IiMFourier;
 		transformerIiM.FourierTransform(IiM(),IiMFourier,false);
+		
 		// Compute PiM = P*iM
 		Image<double> PiM;
-		PiM().initZeros(XSIZE(wx),YSIZE(wx));
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pctf())
-		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(Pctf(),n) * DIRECT_MULTIDIM_ELEM(iM,n);
-		PiM.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
+		PiM().initZeros(XSIZE(mI),YSIZE(mI));
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf2)
+		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(mPctf2,n) * DIRECT_MULTIDIM_ELEM(iM,n);
+		PiM.write(formatString("%s5_PiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier;
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
 
-		// -.-.-.-.-.-.-.-.-
-
 		// Estimate transformation T(w) //
-		double nyquist = 2*sampling; 
+		double nyquist = 2*sampling; // need index!
+		maxw = XSIZE(wi); // because maxw = 0 ...
 		MultidimArray<double> num;
 		num.initZeros(maxw); 
 		MultidimArray<double> den;
 		den.initZeros(maxw);
-
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) 
 		{
 			int win = DIRECT_MULTIDIM_ELEM(wi, n);
-			// definir real(P)
-			DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))*real(DIRECT_MULTIDIM_ELEM(PiMFourier,n))) 
-											+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n))*imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n)));
-			DIRECT_MULTIDIM_ELEM(den,win) += real(DIRECT_MULTIDIM_ELEM(PiMFourier,n))*real(DIRECT_MULTIDIM_ELEM(PiMFourier,n))) 
-											+ imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n))*imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n)));
+			double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+			double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+			DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
+											+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
+			DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
 		}
-			
-		alglib::linearmodel lm;
-		alglib::lrreport ar;
-		int info;
 		MultidimArray<double> beta;
-		beta = num/den;
+		beta.initZeros(maxw); 
+		MultidimArray<double> betap;	
+		betap.initZeros(maxw); 
+		checkBestModel(beta, betap);
 
-		for (int i=0; i<nyquist; ++i) 
-		{
-			for (int ix=0; ix<3; ix++)
-			{
-				alglib::real_2d_array quotient = real(num/den);
-				lrbuild(quotient, XSIZE(IiMFourier), ix, info, lm, ar); 
-				beta(ix,i) = lrunpack(lm, quotient, ix);
-				R2(ix, i) = lrrmserror(lm, quotient, XSIZE(IiMFourier));
-			}
-		}
+		// std::complex<double> beta1 = beta(0).mean();
+		// std::complex<double> beta2 = beta(1).mean();
+		// std::complex<double> beta3 = beta(2).mean();
+		// // double Tw = beta1 + beta2*w + beta3*w*w;
+		// std::complex<double> Tw = beta1;
+		// MultidimArray< std::complex<double> > PFourierAdjusted;
+		// PFourierAdjusted = Tw * PFourier;
+		// std::complex<double> beta0;
+		// beta0 = IiMFourier(1,1)-beta1*PiMFourier(1,1);
 
-		std::complex<double> beta1 = beta(0).mean();
-		std::complex<double> beta2 = beta(1).mean();
-		std::complex<double> beta3 = beta(2).mean();
-		// double Tw = beta1 + beta2*w + beta3*w*w;
-		std::complex<double> Tw = beta1;
-		MultidimArray< std::complex<double> > PFourierAdjusted;
-		PFourierAdjusted = Tw * PFourier;
-		std::complex<double> beta0;
-		beta0 = IiMFourier(1,1)-beta1*PiMFourier(1,1);
+		// // Apply adjustment
+		// PFourierAdjusted(1,1) = beta0 + Tw*PFourier(1,1);
+		// Image<double> PAdjusted;
+		// transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted);
 
-		// Apply adjustment
-		PFourierAdjusted(1,1) = beta0 + Tw*PFourier(1,1);
-		Image<double> PAdjusted;
-		transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted);
+		// // Build final mask 
+		// double fmaskWidth_px;
+		// fmaskWidth_px = fmaskWidth/sampling;
+		// Image<double> Mfinal;
+		// Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
+		// Mfinal().initConstant(1.0);
 
-		// Build final mask 
-		double fmaskWidth_px;
-		fmaskWidth_px = fmaskWidth/sampling;
-		Image<double> Mfinal;
-		Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
-		Mfinal().initConstant(1.0);
+		// // Subtraction
+		// Image<double> Idiff;
+		// Idiff().resizeNoCopy(I());  
+		// Idiff().initConstant(1.0);
 
-		// Subtraction
-		Image<double> Idiff;
-		Idiff().resizeNoCopy(I());  
-		Idiff().initConstant(1.0);
+		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
+		// 	DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
+		// 									* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
-			DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
-											* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
-
-		// Write particle
-		writeParticle(int(i), Idiff);
+		// // Write particle
+		// writeParticle(int(i), Idiff);
     }
     mdParticles.write(fnParticles);
  }
