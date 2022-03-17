@@ -102,10 +102,6 @@ public:
     void read(const FileName& fn, const bool only_apply_shifts = false,
               DataMode datamode = DATA, MDRow * row = nullptr);
 
-    /** Assignment.
-     */
-    Projection& operator=(const Projection& P);
-
     /** Another function for assignment.
      */
     void assign(const Projection& P);

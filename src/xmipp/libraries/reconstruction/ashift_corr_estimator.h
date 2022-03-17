@@ -43,9 +43,16 @@ public:
     AShiftCorrEstimator() {
         setDefault();
     }
+
+    AShiftCorrEstimator(const AShiftCorrEstimator &)=delete;
+    AShiftCorrEstimator(const AShiftCorrEstimator &&)=delete;
+
     virtual ~AShiftCorrEstimator() {
         release();
     }
+
+    AShiftCorrEstimator & operator =(const AShiftCorrEstimator &)=delete;
+    AShiftCorrEstimator & operator =(const AShiftCorrEstimator &&)=delete;
 
     virtual void init2D(const std::vector<HW*> &hw, AlignType type,
             const FFTSettingsNew<T> &dims, size_t maxShift,
