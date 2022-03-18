@@ -66,15 +66,18 @@ void ProgPdbSphDeform::run()
 	fillVectorTerms();
 	size_t idxY0=clnm.size()/3;
 	size_t idxZ0=2*idxY0;
+	Matrix1D<double> cm;
+	cm.initZeros(3);
+	centerOfMass(pdb, cm);
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
 	{
 		double gx=0.0; 
 		double gy=0.0; 
 		double gz=0.0;
 		RichAtom& atom_i=pdb.atomList[a];
-		auto k = (int)(atom_i.z);
-		auto i = (int)(atom_i.y);
-		auto j = (int)(atom_i.x);
+		auto k = atom_i.z - VEC_ELEM(cm, 2);
+		auto i = atom_i.y - VEC_ELEM(cm, 1);
+		auto j = atom_i.x - VEC_ELEM(cm, 0);
 		for (size_t idx=0; idx<idxY0; idx++)
 		{
 			double Rmax=basisParams[2];
@@ -157,4 +160,23 @@ void ProgPdbSphDeform::fillVectorTerms()
             }
         }
     }
+}
+
+void ProgPdbSphDeform::centerOfMass(PDBRichPhantom pdb, Matrix1D<double> &cm) 
+{
+	size_t numAtoms = pdb.getNumberOfAtoms();
+	for (size_t a=0; a<numAtoms; a++)
+	{
+		RichAtom& atom_i=pdb.atomList[a];
+		auto z = atom_i.z;
+		auto y = atom_i.y;
+		auto x = atom_i.x;
+		VEC_ELEM(cm, 0) += x;
+		VEC_ELEM(cm, 1) += y;
+		VEC_ELEM(cm, 2) += z;
+
+	}
+	VEC_ELEM(cm, 0) /= numAtoms;
+	VEC_ELEM(cm, 1) /= numAtoms;
+	VEC_ELEM(cm, 2) /= numAtoms;
 }

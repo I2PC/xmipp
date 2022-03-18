@@ -75,6 +75,9 @@ public:
 
     /** Fill degree and order vectors */
     void fillVectorTerms();
+
+    /** Compute center of mass of the PDB file */
+    void centerOfMass(PDBRichPhantom pdb, Matrix1D<double> &cm);
 };
 //@}
 #endif
