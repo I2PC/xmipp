@@ -25,7 +25,12 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+            fetch-depth: 0
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.0' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+
           
       # This will try to fetch cache for current commit
       # Since no such cache exists, it will try to bring newest restore-key one
