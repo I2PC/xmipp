@@ -60,7 +60,7 @@ jobs:
         run: sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip libopencv-dev
 
       - name: Install pip libraries
-        run:  python3 pip install scons
+        run:  python pip install scons
 
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
