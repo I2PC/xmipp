@@ -71,7 +71,7 @@ PyTypeObject MDQueryType =
         0, /* tp_dictoffset */
         0, /* tp_init */
         0, /* tp_alloc */
-        0 /* tp_new */
+        MDQuery_new /* tp_new */
     }; //MDQueryType
 
 PyMethodDef MDQuery_methods[] = { { nullptr } /* Sentinel */
@@ -80,7 +80,17 @@ PyMethodDef MDQuery_methods[] = { { nullptr } /* Sentinel */
 /* Destructor */
 void MDQuery_dealloc(MDQueryObject* self)
 {
+    self->~MDQueryObject();
     Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+/* Constructor */
+PyObject *
+MDQuery_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    auto *self = (MDQueryObject*)type->tp_alloc(type, 0);
+    new (self) MDQueryObject(); // Construct the object in place
+    return (PyObject *)self;
 }
 
 /* String representation */
@@ -476,7 +486,52 @@ PyTypeObject MetaDataType =
 /* Destructor */
 void MetaData_dealloc(MetaDataObject* self)
 {
+    self->~MetaDataObject(); // Call the destructor
     Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+/* Constructor */
+PyObject *
+MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    auto *self = (MetaDataObject*)type->tp_alloc(type, 0);
+    new (self) MetaDataObject(); // Construct the object in place
+
+    if (self != nullptr)
+    {
+        PyObject *input = nullptr;
+        PyObject *pyStr = nullptr;
+        PyArg_ParseTuple(args, "|O", &input);
+        if (input != nullptr)
+        {
+            try
+            {
+                if (MetaData_Check(input))
+                    self->metadata = std::make_unique<MetaDataDb>(MetaData_Value(input));
+                else if ((pyStr = PyObject_Str(input)) != nullptr)
+                {
+                    const char *str = PyUnicode_AsUTF8(pyStr);
+                    self->metadata = std::make_unique<MetaDataDb>(str);
+                }
+                else
+                {
+                    PyErr_SetString(PyExc_TypeError,
+                                    "MetaData_new: Bad string value for reading metadata");
+                    return nullptr;
+                }
+            }
+            catch (XmippError &xe)
+            {
+                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                return nullptr;
+            }
+        }
+        else
+        {
+            self->metadata = std::make_unique<MetaDataDb>();
+        }
+    }
+    return (PyObject *)self;
 }
 
 int MetaData_print(PyObject *obj, FILE *fp, int flags)
@@ -1585,48 +1640,6 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     return nullptr;
-}
-
-PyObject *
-MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
-{
-    auto *self = (MetaDataObject*)type->tp_alloc(type, 0);
-
-    if (self != nullptr)
-    {
-        PyObject *input = nullptr;
-        PyObject *pyStr = nullptr;
-        PyArg_ParseTuple(args, "|O", &input);
-        if (input != nullptr)
-        {
-            try
-            {
-                if (MetaData_Check(input))
-                    self->metadata = std::make_unique<MetaDataDb>(MetaData_Value(input));
-                else if ((pyStr = PyObject_Str(input)) != nullptr)
-                {
-                    const char *str = PyUnicode_AsUTF8(pyStr);
-                    self->metadata = std::make_unique<MetaDataDb>(str);
-                }
-                else
-                {
-                    PyErr_SetString(PyExc_TypeError,
-                                    "MetaData_new: Bad string value for reading metadata");
-                    return nullptr;
-                }
-            }
-            catch (XmippError &xe)
-            {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
-                return nullptr;
-            }
-        }
-        else
-        {
-            self->metadata = std::make_unique<MetaDataDb>();
-        }
-    }
-    return (PyObject *)self;
 }
 
 /* importObjects */

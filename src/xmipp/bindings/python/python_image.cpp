@@ -34,11 +34,6 @@
 /*                            Image                         */
 /**************************************************************/
 
-/* Destructor */
-void Image_dealloc(ImageObject* self)
-{
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}//function Image_dealloc
 
 
 /* Image methods that behave like numbers */
@@ -204,11 +199,20 @@ PyTypeObject ImageType = {
                              Image_new, /* tp_new */
                          };//ImageType
 
+/* Destructor */
+void Image_dealloc(ImageObject* self)
+{
+    self->~ImageObject(); // Call the destructor
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}//function Image_dealloc
+
 /* Constructor */
 PyObject *
 Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*)type->tp_alloc(type, 0);
+    new (self) ImageObject(); //Call the constructor in place
+
     if (self != nullptr)
     {
         PyObject *input = nullptr;
