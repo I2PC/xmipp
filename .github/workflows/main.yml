@@ -61,8 +61,10 @@ jobs:
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
-      - name: Install pip libraries
-        run:  python3 pip install scons
+      - name: Install python dependencies
+        run:  |
+           python -m pip install --upgrade pip
+           pip install scons
 
       - name: Install dependencies
         run: sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip libopencv-dev
