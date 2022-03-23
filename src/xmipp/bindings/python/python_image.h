@@ -51,8 +51,6 @@ typedef struct
 }
 ImageObject;
 
-#define ImageObject_New() (ImageObject*)malloc(sizeof(ImageObject))
-
 /* Destructor */
 void Image_dealloc(ImageObject* self);
 
