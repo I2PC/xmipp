@@ -80,7 +80,7 @@ PyMethodDef MDQuery_methods[] = { { nullptr } /* Sentinel */
 /* Destructor */
 void MDQuery_dealloc(MDQueryObject* self)
 {
-    self->~MDQueryObject();
+    self->~MDQueryObject(); // Call the destructor
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -89,7 +89,6 @@ PyObject *
 MDQuery_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     auto *self = (MDQueryObject*)type->tp_alloc(type, 0);
-    new (self) MDQueryObject(); // Construct the object in place
     return (PyObject *)self;
 }
 
@@ -127,7 +126,7 @@ createMDValueRelational(PyObject *args, int op)
         auto object = createMDObject(label, pyValue);
         if (!object)
             return nullptr;
-        auto * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
+        auto *pyQuery = (MDQueryObject*)PyObject_CallFunction((PyObject*)&MDQueryType, "");
         pyQuery->query = std::make_unique<MDValueRelational>(*object, (RelationalOp) op,
                                                limit, offset, (MDLabel) orderLabel);
         return (PyObject *) pyQuery;
@@ -194,7 +193,7 @@ xmipp_MDValueRange(PyObject *obj, PyObject *args, PyObject *kwargs)
         auto object2 = createMDObject(label, pyValue2);
         if (!object1 || !object2)
             return nullptr;
-        auto * pyQuery = PyObject_New(MDQueryObject, &MDQueryType);
+        auto *pyQuery = (MDQueryObject*)PyObject_CallFunction((PyObject*)&MDQueryType, "");
         pyQuery->query = std::make_unique<MDValueRange>(*object1, *object2, limit, offset,
                                           (MDLabel) orderLabel);
         return (PyObject *) pyQuery;
@@ -495,7 +494,6 @@ PyObject *
 MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     auto *self = (MetaDataObject*)type->tp_alloc(type, 0);
-    new (self) MetaDataObject(); // Construct the object in place
 
     if (self != nullptr)
     {
