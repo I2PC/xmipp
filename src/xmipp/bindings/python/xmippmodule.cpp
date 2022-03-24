@@ -1142,7 +1142,7 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *pimg1 = nullptr;
     PyObject *pimg2 = nullptr;
-    auto * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
 	try
 	{
 		if (PyArg_ParseTuple(args, "OO", &pimg1, &pimg2))
@@ -1257,7 +1257,7 @@ Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
             mVolume->getDimensions(aDim);
             mVolume->setXmippOrigin();
             projectVolume(*mVolume, P, aDim.xdim, aDim.ydim,rot, tilt, psi);
-            result = PyObject_New(ImageObject, &ImageType);
+            result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
             Image <double> I;
             result->image = std::make_unique<ImageGeneric>();
             result->image->setDatatype(DT_Double);
