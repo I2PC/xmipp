@@ -211,7 +211,6 @@ PyObject *
 Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*)type->tp_alloc(type, 0);
-    new (self) ImageObject(); //Call the constructor in place
 
     if (self != nullptr)
     {
