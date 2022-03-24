@@ -337,9 +337,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		// std::vector<double> occupancyV;
 
-		std::cout << "colour " << colour <<std::endl;
-
-
 		// Trim coordinates based on the characteristics of the labeled region
 		for(size_t value = 0; value < colour; value++)
 		{
@@ -358,9 +355,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
 			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-
-			std::cout << "keep " << keep <<std::endl;
-			
+		
 			// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 			// occupancyV.push_back(occupancy);
 
@@ -520,8 +515,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	// }
 
 	float absolutePossionPercetile = histogramOfLandmarkAppearanceSorted.size()*poissonLandmarkPercentile;
-	std::cout << absolutePossionPercetile <<std::endl;
-	std::cout << (int)absolutePossionPercetile <<std::endl;
 
 	float poissonAverage = histogramOfLandmarkAppearanceSorted[(int)absolutePossionPercetile];
 	
@@ -1552,7 +1545,10 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
 		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
+		#ifdef DEBUG_COORDS_CS
 		std::cout << "Analysis of residuals corresponding to coordinate 3D: x " << goldBeadX << " y " << goldBeadY << " z " << goldBeadZ << std::endl;
+		#endif
+
 	    std::vector<CM> vCMc;
 		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
 
@@ -1562,7 +1558,11 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 			residuals.push_back(vCMc[i].residuals);
 		}
 
+		#ifdef DEBUG_COORDS_CS
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
+		#endif
+
+		std::cout << "Analyzing residuals corresponding to coordinate 3D " << goldBeadX << ", " << goldBeadY << ", " << goldBeadZ << std::endl;
 
 		detectMisalignmentFromResiduals(residuals);			
 
@@ -1574,6 +1574,7 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 			CM cm = vCMc[i];
 			double tiltAngle = tiltAngles[(int)cm.detectedCoordinate.z]* PI/180.0;
 
+			#ifdef DEBUG_COORDS_CS
 			std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
 
 			std::cout << "xTA=" << xTA << std::endl;
@@ -1599,6 +1600,7 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 			std::cout << "sin(tiltAngle)=" << sin(tiltAngle) << std::endl;
 
 			std::cout << "Xo=" << (int) (((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle))/cos(tiltAngle))+xTA) << std::endl;
+			#endif
 
 			Point3D<double> proyCoord(((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA), 
 									  cm.detectedCoordinate.y,
@@ -1673,13 +1675,17 @@ void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int
 		
 		if (cm.coordinate3d.x==x && cm.coordinate3d.y==y && cm.coordinate3d.z==z)
 		{
+			#ifdef DEBUG_COORDS_CS
 			std::cout << "ADDED!!!!!! " <<i<<std::endl;
-
+			#endif
 
 			vCMc.push_back(cm);
 		}
 	}
+	
+	#ifdef DEBUG_COORDS_CS
 	std::cout << "vCMc.size()" << vCMc.size() << std::endl;
+	#endif
 }
 
 
@@ -1763,7 +1769,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	for (size_t i = 0; i < residuals.size(); i++)
 	{
+
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
 		std::cout << residuals[i].x << "  " << residuals[i].y << std::endl;
+		#endif
 
 		distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
 
@@ -1777,7 +1786,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 		}
 	}
 
-	std::cout << "Residual analysis -----------------------------------" << std::endl;
 	std::cout << "totalDistance "  << totalDistance << std::endl;
 	std::cout << "maxDistance "  << maxDistance << std::endl;
 
@@ -1816,9 +1824,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	hull.push_back(minX_p2d);
 
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
 	std::cout << " minX_p2d" << minX_p2d.x << " " << minX_p2d.y << std::endl;
 	std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
 	std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
+	#endif
 
 	while (p2dVector.size()>0)
 	{
@@ -1829,8 +1839,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 			p2d_it = remainingP2d[0];
 
 			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
-			std::cout << "angle " << angle << std::endl;
-
 
 			if (angle<0)
 			{
@@ -1938,7 +1946,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	lambdaRatio = (lambda1>lambda2) ? lambda2/lambda1 : lambda1/lambda2;
 
-	std::cout << "lambdaRatio=" << lambdaRatio << std::end;
+	std::cout << "lambdaRatio=" << lambdaRatio << std::endl;
 
 	return true;
 }
