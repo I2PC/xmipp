@@ -296,10 +296,11 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 	Matrix1D< double > envelope(100);
 	envelope.initZeros();
 	double Nalpha = 180;
-	double alpha=0;
-	size_t totalSteps_alpha = (int)(PI/(PI/Nalpha));
-
-    for (size_t nStep=0; nStep<=totalSteps_alpha; nStep++, N++)
+    
+    double alpha=0;
+    // Keep this comment to understand the loop
+    // for (double alpha=0; alpha<=PI; alpha+=PI/Nalpha, N++)
+    while(alpha<=PI)
     {
     	VECTOR_R2(u,cos(alpha),sin(alpha));
 
@@ -331,11 +332,12 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	double damping=CTF1.getValueDampingAt();
     	damping=damping*damping;
     	evaluation.maxDampingAtBorder=XMIPP_MAX(evaluation.maxDampingAtBorder,damping);
-    	size_t totalSteps_w = (int)(wmax/(wmax/99.9));
-        double w=0;
         int idx = 0;
+        double w=0;
 
-    	for (size_t nStep_w=0 ; nStep_w<totalSteps_w; nStep_w++)
+        // Keep this comment to understand the while
+    	// for (double w=0; w<wmax; w+=wmax/99.0)
+        while(w<wmax)
     	{
         	wx=w*XX(u);
         	wy=w*YY(u);
@@ -357,13 +359,15 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	}
 
     	alpha+=PI/Nalpha;
+        N++;
     }
 
     int idx=0;
     double w=0;
-    size_t totalSteps_w = (int)(wmax/(wmax/99.0));
-
-	for (size_t nStep=0; nStep<totalSteps_w; nStep++)
+    
+        //keep this comment to understand the while
+        //for (double w=0; w<wmax; w+=wmax/99.0)
+	while(w<wmax)
 	{
 		size_t objId2 = mdEnvelope.addObject();
 		mdEnvelope.setValue(MDL_RESOLUTION_FREQ,w,objId2);
