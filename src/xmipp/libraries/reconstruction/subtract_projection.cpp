@@ -335,7 +335,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		FourierTransformer transformerIiM;
 		MultidimArray< std::complex<double> > IiMFourier;
 		transformerIiM.FourierTransform(IiM(),IiMFourier,false);
-		
+
 		// Compute PiM = P*iM
 		Image<double> PiM;
 		PiM().initZeros(XSIZE(mI),YSIZE(mI));
@@ -367,40 +367,45 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		MultidimArray<double> betap;	
 		betap.initZeros(maxw); 
 		checkBestModel(beta, betap);
+		std::cout << "---0---" << std::endl;
+		double betaMean = betap.computeAvg(); // = 0 (?)
+		std::cout << "---betaMean---" << betaMean << std::endl;
 
-		// std::complex<double> beta1 = beta(0).mean();
-		// std::complex<double> beta2 = beta(1).mean();
-		// std::complex<double> beta3 = beta(2).mean();
-		// // double Tw = beta1 + beta2*w + beta3*w*w;
-		// std::complex<double> Tw = beta1;
-		// MultidimArray< std::complex<double> > PFourierAdjusted;
-		// PFourierAdjusted = Tw * PFourier;
-		// std::complex<double> beta0;
-		// beta0 = IiMFourier(1,1)-beta1*PiMFourier(1,1);
+		std::complex<double> beta0;  // freq 0 
+		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1);
+		std::cout << "---beta0---" << beta0 << std::endl;
 
-		// // Apply adjustment
-		// PFourierAdjusted(1,1) = beta0 + Tw*PFourier(1,1);
-		// Image<double> PAdjusted;
-		// transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted);
+		// Apply adjustment
+		MultidimArray< std::complex<double> > PFourierAdjusted;
+		PFourierAdjusted(1,1) = beta0 + betaMean*PFourier(1,1); // Fails here
+		std::cout << "---1---" << std::endl;
+		Image<double> PAdjusted;
+		transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted());
+		std::cout << "---2---" << std::endl;
 
-		// // Build final mask 
-		// double fmaskWidth_px;
-		// fmaskWidth_px = fmaskWidth/sampling;
-		// Image<double> Mfinal;
-		// Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
-		// Mfinal().initConstant(1.0);
+		// Build final mask 
+		double fmaskWidth_px;
+		fmaskWidth_px = fmaskWidth/sampling;
+		std::cout << "---fmaskWidth_px---" << fmaskWidth_px << std::endl;
+		Image<double> Mfinal;
+		Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
+		Mfinal().initConstant(1.0);
+    	Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
 
-		// // Subtraction
-		// Image<double> Idiff;
-		// Idiff().resizeNoCopy(I());  
-		// Idiff().initConstant(1.0);
+		// Subtraction
+		Image<double> Idiff;
+		Idiff().resizeNoCopy(I());  
+		std::cout << "---3---" << std::endl;
+		Idiff().initConstant(1.0);
+		std::cout << "---4---" << std::endl;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
+			DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
+											* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
 
-		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
-		// 	DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
-		// 									* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
-
-		// // Write particle
-		// writeParticle(int(i), Idiff);
+		// Write particle
+		std::cout << "---5---" << std::endl;
+		writeParticle(int(i), Idiff);
+		std::cout << "---6---" << std::endl;
     }
     mdParticles.write(fnParticles);
  }
