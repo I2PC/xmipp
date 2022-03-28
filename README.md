@@ -80,12 +80,7 @@ Start by cloning the repository and then navigate to the right directory.
 
 You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest.
 
-Next is to compile xmipp. There are to possibilities. 1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:
-`./xmipp`
-
-or alternatively 2) Compile Xmipp via Scipion (if you want to use Xmipp in Scipion)
-
-`scipion3 installb xmippDev -j 8`
+Next is to compile xmipp. There are to possibilities. 1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` or alternatively 2) Compile Xmipp via Scipion `scipion3 run xmipp`. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#))
 
 It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 
