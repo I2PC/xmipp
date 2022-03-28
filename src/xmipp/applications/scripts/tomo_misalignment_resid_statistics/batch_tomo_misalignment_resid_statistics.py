@@ -27,6 +27,9 @@
 
 
 from cmath import sqrt
+from select import select
+from statistics import variance
+from time import sleep
 from xmipp_base import *
 
 from pwem.emlib import metadata as md
@@ -34,23 +37,23 @@ import xmippLib
   
 from statsmodels.tsa.stattools import adfuller
 from scipy import stats
+import numpy as np
 
 
-class ScriptDeepDenoising(XmippScript):
+class ScriptTomoResidualStatistics(XmippScript):
 
   def __init__(self):
     XmippScript.__init__(self)
 
     self.p = 0.5
-    self.residSize
-    self.residX = []
-    self.residY = []
-    self.residXAcc = []
-    self.residYAcc = []
-    self.moduleAcc = []
-    self.nPosX = 0
-    self.nPosY = 0
-
+    self.residSize = {}
+    self.residX = {}
+    self.residY = {}
+    self.residXAcc = {}
+    self.residYAcc = {}
+    self.moduleAcc = {}
+    self.nPosX = {}
+    self.nPosY = {}
 
   def defineParams(self):
     """
@@ -75,59 +78,111 @@ class ScriptDeepDenoising(XmippScript):
     mData = md.Metadata(mdFilePath)
 
     for objId in mData:
-      self.residX.append(mData.getValue(md.MDL_SHIFT_X, objId))
-      self.residY.append(mData.getValue(md.MDL_SHIFT_Y, objId))
+      id = mData.getValue(md.MDL_FRAME_ID, objId)
+
+      if id in self.residX.keys():
+        self.residX[id].append(mData.getValue(md.MDL_SHIFT_X, objId))
+        self.residY[id].append(mData.getValue(md.MDL_SHIFT_Y, objId))
+
+      else:
+        self.residX[id] = [mData.getValue(md.MDL_SHIFT_X, objId)]
+        self.residY[id] = [mData.getValue(md.MDL_SHIFT_Y, objId)]
 
 
   def generateSideInfo(self):
     """
       Generate residual side information to perform posterior tests
     """
+    
+    for key in self.residX.keys():
+      # Residual info vectors
+      self.residSize[key] = len(self.residX[key])
 
-    self.residSize = len(self.residX)
+      nPosX = 0
+      nPosY = 0
 
-    for i, r in enumerate(self.residX):
-      if r > 0:
-        self.nPosX += 1
+      for i, r in enumerate(self.residX[key]):
+        if r > 0:
+          nPosX += 1
 
-      if i == 0:
-        self.residXAcc.append(r)
-      else:
-        self.residXAcc.append(r+self.residXAcc[i-1])
+        if i == 0:
+          self.residXAcc[key] = [r]
+        else:
+          self.residXAcc[key].append(r+self.residXAcc[key][i-1])
 
-    for i, r in enumerate(self.residX):
-      if r > 0:
-        self.nPosY += 1
+      for i, r in enumerate(self.residY[key]):
+        if r > 0:
+          nPosY += 1
 
-      if i == 0:
-        self.residYAcc.append(r)
-      else:
-        self.residYAcc.append(r+self.residYAcc[i-1])
+        if i == 0:
+          self.residYAcc[key] = [r]
+        else:
+          self.residYAcc[key].append(r+self.residYAcc[key][i-1])
 
-    for i in range(self.residSize):
-      self.moduleAcc.append(sqrt(self.residXAcc[i]*self.residXAcc[i] + self.residYAcc[i]*self.residYAcc[i]))
-  
+      self.nPosX[key] = nPosX
+      self.nPosY[key] = nPosY
 
-  def binomialTest(self, nPos):
+      for i in range(self.residSize[key]):
+        if i == 0:
+          self.moduleAcc[key] = [sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i])]
+        else:
+          self.moduleAcc[key].append(sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i]))
+
+
+  def binomialTest(self, nPos, rs):
     """
       Binomial test for sign distribution
     """
 
-    stats.binom_test(nPos, self.residSize , self.p)
+    stats.binom_test(nPos, rs , self.p)
+
+
+  def fTestVar(self, fStatistic, rs):
+    """
+      F-test of equality of variances
+    """
+
+    stats.f.cdf(fStatistic, rs-1, rs-1)
 
   
-  def signSequenceTest(self):
-    """
-      Test for sign sequence randomness
-    """
-
-    pass
-
-
-  def augmentedDickeyFullerTest(self):
+  def augmentedDickeyFullerTest(self, modAcc):
     """
       Augmented Dickey-Fuller test for random walk
     """
 
-    adfuller(self.moduleAcc)
+    adfuller(modAcc)
+
+
+  def run(self):
+    self.readResidInfo()
+    self.generateSideInfo()
+
+    for key in self.residX():
+      rs = self.residSize[key]
+
+      self.binomialTest(self.nPosX[key], rs)
+      self.binomialTest(self.nPosY[key], rs)
+
+
+      # Variance distribution matrix
+      # sumRadius = 0
+      varianceMatrix = np.empty([2, 2])
+
+      for i, rx in enumerate(self.residX[key]):
+        ry = self.residY[key][i]
+
+        rx2 = rx * rx
+        ry2 = ry * ry
+        rxy = rx * ry
+
+        # sumRadius += sqrt(rx2+ry2)
+        varianceMatrix += np.matrix([rx2, rxy], [rxy, ry2])
+
+      [lambda1, lambda2], _ = np.linalg.eig(self.varianceMatrix)
+
+      self.fTestVar(lambda1/lambda2, rs)
+
+      self.augmentedDickeyFullerTest(self.moduleAcc[key])
+
+
 
