@@ -1054,6 +1054,8 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 
 		if (coordinatesInSlice.size() != 0)
 		{
+			size_t coordinate3dId = 0;
+
 			// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
 			for(size_t objId : inputCoordMd.ids())
 			{
@@ -1158,8 +1160,10 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 				#endif
 
 
-				CM cm {cis, c3d, res};
+				CM cm {cis, c3d, res, coordinate3dId};
 				vCM.push_back(cm);
+
+				coordinate3dId += 1;
 			}
 		}else
 		{
@@ -1269,6 +1273,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 		md.setValue(MDL_ZCOOR, (int)vCM[i].coordinate3d.z, id);
 		md.setValue(MDL_SHIFT_X, vCM[i].residuals.x, id);
 		md.setValue(MDL_SHIFT_Y, vCM[i].residuals.y, id);
+		md.setValue(MDL_FRAME_ID, vCM[i].id, id);
 
 	}
 
@@ -1564,7 +1569,7 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 
 		std::cout << "Analyzing residuals corresponding to coordinate 3D " << goldBeadX << ", " << goldBeadY << ", " << goldBeadZ << std::endl;
 
-		detectMisalignmentFromResiduals(residuals);			
+		bool foo = detectMisalignmentFromResiduals(residuals);			
 
 		// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
 		std::vector<Point3D<double>> proyCoords;
@@ -1896,57 +1901,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	std::cout << "chArea "  << chArea << std::endl;
 
-
-	// Eigen values ratio of the residual autocorrelation matrix
-
-	double x;
-	double y;
-	double x2;
-	double y2;
-	double xy;
-	double radius;
-	double sumRadius = 0;
-	double a = 0;
-	double b = 0;
-	double c = 0;
-	double d = 0;
-	double root;
-	double lambda1;
-	double lambda2;
-	double lambdaRatio;
-
-	for (size_t i = 0; i < residuals.size(); i++)
-	{
-		x = residuals[i].x;
-		y = residuals[i].y;
-
-		x2 = x*x;
-		y2 = y*y;
-		xy = x*y;
-
-		radius = sqrt(x2 + y2)	;
-
-		a += x2 * radius;
-		b += xy * radius;
-		c += xy * radius;
-		d += y2 * radius;
-		
-		sumRadius += radius;
-	}
-
-	a /= sumRadius;
-	b /= sumRadius;
-	c /= sumRadius;
-	d /= sumRadius;
-
-	root = sqrt((a+d)*(a+d) - 4*(-a*d-c*b));
-
-	lambda1 = (-(a+d)+root)/2;
-	lambda2 = (-(a+d)-root)/2;
-
-	lambdaRatio = (lambda1>lambda2) ? lambda2/lambda1 : lambda1/lambda2;
-
-	std::cout << "lambdaRatio=" << lambdaRatio << std::endl;
 
 	return true;
 }
@@ -2368,4 +2322,61 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 // 	std::cout << "binom_x "  << binom_x << std::endl;
 // 	std::cout << "binom_y "  << binom_y << std::endl;
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::eigenAutocorrMatrix()
+// {
+// 	// Eigen values ratio of the residual autocorrelation matrix
+
+// 	double x;
+// 	double y;
+// 	double x2;
+// 	double y2;
+// 	double xy;
+// 	double radius;
+// 	double sumRadius = 0;
+// 	double a = 0;
+// 	double b = 0;
+// 	double c = 0;
+// 	double d = 0;
+// 	double root;
+// 	double lambda1;
+// 	double lambda2;
+// 	double lambdaRatio;
+
+// 	for (size_t i = 0; i < residuals.size(); i++)
+// 	{
+// 		x = residuals[i].x;
+// 		y = residuals[i].y;
+
+// 		x2 = x*x;
+// 		y2 = y*y;
+// 		xy = x*y;
+
+// 		radius = sqrt(x2 + y2)	;
+
+// 		a += x2 * radius;
+// 		b += xy * radius;
+// 		c += xy * radius;
+// 		d += y2 * radius;
+		
+// 		sumRadius += radius;
+// 	}
+
+// 	a /= sumRadius;
+// 	b /= sumRadius;
+// 	c /= sumRadius;
+// 	d /= sumRadius;
+
+// 	root = sqrt((a+d)*(a+d) - 4*(-a*d-c*b));
+
+// 	lambda1 = (-(a+d)+root)/2;
+// 	lambda2 = (-(a+d)-root)/2;
+
+// 	lambdaRatio = (lambda1>lambda2) ? lambda2/lambda1 : lambda1/lambda2;
+
+// 	std::cout << "lambdaRatio=" << lambdaRatio << std::endl;
+
+// 	return true;
 // }
