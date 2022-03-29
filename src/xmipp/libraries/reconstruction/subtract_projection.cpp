@@ -274,7 +274,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 
 	MultidimArray<int> wi;
 	wi.initZeros(PFourier);
-	Matrix1D<int> w(2);
+	Matrix1D<int> w(2); //??
 	for (size_t i=0; i<YSIZE(wi); i++)
 	{
 		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w));
@@ -282,11 +282,13 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		{
 			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w));
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mPctf));
+			std::cout << "---wi,i,j: " << DIRECT_A2D_ELEM(wi,i,j) << std::endl;	
 		}
 	}
-	int maxw = w.computeMax(); // = 0 (?)
+	float maxw = wi.computeMax(); // = 0 (?) -> all wi are 0...
+	std::cout << "---maxw: " << maxw << std::endl;
 
-    for (size_t i = 2; i <= mdParticles.size(); ++i) {
+    for (size_t i = 2; i <= mdParticles.size(); ++i) {  // particle 1 is not used in the adjustment...
     	// Read particle and metadata
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
@@ -347,7 +349,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
 
 		// Estimate transformation T(w) //
-		double nyquist = 2*sampling; // need index!
+		double nyquist = 2*sampling; // need index! => buscar freq nyquist en wi y calcular su indice?
 		maxw = XSIZE(wi); // because maxw = 0 ...
 		MultidimArray<double> num;
 		num.initZeros(maxw); 
@@ -364,11 +366,12 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		}
 		MultidimArray<double> beta;
 		beta.initZeros(maxw); 
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) 
+			DIRECT_MULTIDIM_ELEM(beta,n) = DIRECT_MULTIDIM_ELEM(num,n) * DIRECT_MULTIDIM_ELEM(den,n);
 		MultidimArray<double> betap;	
 		betap.initZeros(maxw); 
 		checkBestModel(beta, betap);
-		std::cout << "---0---" << std::endl;
-		double betaMean = betap.computeAvg(); // = 0 (?)
+		double betaMean = betap.computeAvg(); // = 0 because all betap are 0 because all beta are 0 (?)
 		std::cout << "---betaMean---" << betaMean << std::endl;
 
 		std::complex<double> beta0;  // freq 0 
@@ -377,35 +380,35 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 
 		// Apply adjustment
 		MultidimArray< std::complex<double> > PFourierAdjusted;
-		PFourierAdjusted(1,1) = beta0 + betaMean*PFourier(1,1); // Fails here
+		PFourierAdjusted(1,1) = beta0 + betaMean*PFourier(1,1); // FAILS HERE
 		std::cout << "---1---" << std::endl;
 		Image<double> PAdjusted;
 		transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted());
 		std::cout << "---2---" << std::endl;
 
-		// Build final mask 
-		double fmaskWidth_px;
-		fmaskWidth_px = fmaskWidth/sampling;
-		std::cout << "---fmaskWidth_px---" << fmaskWidth_px << std::endl;
-		Image<double> Mfinal;
-		Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
-		Mfinal().initConstant(1.0);
-    	Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
+		// // Build final mask 
+		// double fmaskWidth_px;
+		// fmaskWidth_px = fmaskWidth/sampling;
+		// std::cout << "---fmaskWidth_px---" << fmaskWidth_px << std::endl;
+		// Image<double> Mfinal;
+		// Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
+		// Mfinal().initConstant(1.0);
+    	// Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
 
-		// Subtraction
-		Image<double> Idiff;
-		Idiff().resizeNoCopy(I());  
-		std::cout << "---3---" << std::endl;
-		Idiff().initConstant(1.0);
-		std::cout << "---4---" << std::endl;
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
-			DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
-											* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
+		// // Subtraction
+		// Image<double> Idiff;
+		// Idiff().resizeNoCopy(I());  
+		// std::cout << "---3---" << std::endl;
+		// Idiff().initConstant(1.0);
+		// std::cout << "---4---" << std::endl;
+		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
+		// 	DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
+		// 									* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
 
-		// Write particle
-		std::cout << "---5---" << std::endl;
-		writeParticle(int(i), Idiff);
-		std::cout << "---6---" << std::endl;
+		// // Write particle
+		// std::cout << "---5---" << std::endl;
+		// writeParticle(int(i), Idiff);
+		// std::cout << "---6---" << std::endl;
     }
     mdParticles.write(fnParticles);
  }
