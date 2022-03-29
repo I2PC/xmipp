@@ -282,7 +282,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		{
 			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w));
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mPctf));
-			std::cout << "---wi,i,j: " << DIRECT_A2D_ELEM(wi,i,j) << std::endl;	
+			// std::cout << "---wi,i,j: " << DIRECT_A2D_ELEM(wi,i,j) << std::endl;	
 		}
 	}
 	float maxw = wi.computeMax(); // = 0 (?) -> all wi are 0...
@@ -308,7 +308,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 
     	// Project and smooth big mask
     	projectVolume(*projectorMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
-    	Pmask.write(formatString("%s0_initalMaskProjection.mrc", fnProj.c_str()));
+    	Pmask.write(formatString("%s1_initalMaskProjection.mrc", fnProj.c_str()));
     	M = binarizeMask(Pmask);
 		M.write(formatString("%s1_MaskBin.mrc", fnProj.c_str()));
 		FilterG.applyMaskSpace(M());
@@ -316,7 +316,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 
 		// Apply CTF
 		Pctf = applyCTF(row, P);
-		Pctf.write(formatString("%s3_Pctf.mrc", fnProj.c_str()));
+		Pctf.write(formatString("%s2_Pctf.mrc", fnProj.c_str()));
 		const MultidimArray<double> &mPctf2 = Pctf();
 
 		// Fourier Transform
@@ -325,7 +325,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 
 		// Compute inverse mask
 		iM = invertMask(M);
-		iM.write(formatString("%s4_iM.mrc", fnProj.c_str()));
+		iM.write(formatString("%s3_iM.mrc", fnProj.c_str()));
 
 		// Compute IiM = I*iM
 		Image<double> IiM;
@@ -333,7 +333,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		IiM().initZeros(XSIZE(mI),YSIZE(mI));
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mI)
 		 	DIRECT_MULTIDIM_ELEM(IiM(),n) = DIRECT_MULTIDIM_ELEM(mI,n) * DIRECT_MULTIDIM_ELEM(iM,n);
-		IiM.write(formatString("%s5_IiM.mrc", fnProj.c_str()));
+		IiM.write(formatString("%s4_IiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerIiM;
 		MultidimArray< std::complex<double> > IiMFourier;
 		transformerIiM.FourierTransform(IiM(),IiMFourier,false);
@@ -343,7 +343,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		PiM().initZeros(XSIZE(mI),YSIZE(mI));
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf2)
 		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(mPctf2,n) * DIRECT_MULTIDIM_ELEM(iM,n);
-		PiM.write(formatString("%s5_PiM.mrc", fnProj.c_str()));
+		PiM.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
 		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier;
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
@@ -378,13 +378,18 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1);
 		std::cout << "---beta0---" << beta0 << std::endl;
 
-		// Apply adjustment
+		// Apply adjustment: PFourierAdjusted = PFourier*betaMean
 		MultidimArray< std::complex<double> > PFourierAdjusted;
-		PFourierAdjusted(1,1) = beta0 + betaMean*PFourier(1,1); // FAILS HERE
-		std::cout << "---1---" << std::endl;
+		PFourierAdjusted.initZeros(PFourier); 
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourierAdjusted) 
+			DIRECT_MULTIDIM_ELEM(PFourierAdjusted,n) = DIRECT_MULTIDIM_ELEM(PFourier,n) * betaMean;
+		PFourierAdjusted(1,1) = beta0 + betaMean*PFourier(1,1); // Component at 0 freq (DC)
+		std::cout << "---0---" << std::endl;
 		Image<double> PAdjusted;
+		PAdjusted = P;
 		transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted());
-		std::cout << "---2---" << std::endl;
+		std::cout << "---1---" << std::endl;
+		PiM.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
 
 		// // Build final mask 
 		// double fmaskWidth_px;
