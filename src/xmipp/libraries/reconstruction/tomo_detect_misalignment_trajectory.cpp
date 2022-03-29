@@ -1901,6 +1901,17 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 
 	std::cout << "chArea "  << chArea << std::endl;
 
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string fnVCM;
+	std::string fnStats;
+    fnVCM = rawname + "/vCM.xmd";
+	fnStats = rawname + "/residualStatistics.xmd";
+
+	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+
+	std::cout << cmd << std::endl;
+	system(cmd.c_str());
 
 	return true;
 }
