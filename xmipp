@@ -635,7 +635,7 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
                          % (task, dest, url, dataSet),
                          cwd=cwd, show_command=False,
-                         inParallel=not dedicatedMode)
+                         in_parallel=not dedicatedMode)
     if dedicatedMode:
         ok = pDLdownload
     else:  # in parallel poll() is None untill finished
