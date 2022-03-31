@@ -619,7 +619,7 @@ def downloadDeepLearningModels(dest, dedicatedMode=False):
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 
-    if dest is 'build':
+    if dest == 'build':
         modelsPath = os.path.join(dest, 'models')
     else:
         modelsPath = dest
