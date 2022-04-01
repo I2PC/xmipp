@@ -2139,7 +2139,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
         std::ostringstream msg;
         msg << "Division by zero: nr_nomirror_flips == 0";
         throw std::runtime_error(msg.str()); 
-    } 
+    }
 
     // Acummulate all weighted sums
     // and normalize them by sum_refw, such that sum over all weights is one!
