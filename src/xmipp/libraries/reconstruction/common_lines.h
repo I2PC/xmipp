@@ -201,7 +201,7 @@ void commonlineMatrixCheat(const DMatrix &quaternions, size_t nRays,
 
 void anglesRotationMatrix(size_t nRays, int i, int j, DMatrix &U);
 
-#define SMALL_TRIANGLE -101
+constexpr signed int  SMALL_TRIANGLE = -101;
 /** Negative output means error
  * -101 Triangle too small
  */

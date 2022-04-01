@@ -26,9 +26,9 @@
 
 #ifndef _CORE_PROG_SPARMA_HH
 #define _CORE_PROG_SPARMA_HH
-#define AR          0   // To distinguish between an AR parameter or a MA
-#define MA        1   // parameter, or sigma in the output ARMAParameters matrix
-#define SIGMA       2   // returned by functions.
+constexpr int  AR          =0;   // To distinguish between an AR parameter or a MA
+constexpr int  MA        =1;   // parameter, or sigma in the output ARMAParameters matrix
+constexpr int  SIGMA       =2;   // returned by functions.
 
 #include <core/multidim_array.h>
 #include <core/xmipp_program.h>

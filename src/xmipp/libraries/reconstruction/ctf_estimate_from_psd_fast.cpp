@@ -38,17 +38,17 @@ double CTF_fitness_fast(double *, void *);
 extern double CTF_fitness(double *p, void *vprm);
 
 /* Number of CTF parameters */
-#define ALL_CTF_PARAMETERS2D         38
-#define ALL_CTF_PARAMETERS           28
-#define CTF_PARAMETERS               20
-#define PARAMETRIC_CTF_PARAMETERS    16
-#define BACKGROUND_CTF_PARAMETERS     9
-#define SQRT_CTF_PARAMETERS           6
-#define ENVELOPE_PARAMETERS          11
-#define DEFOCUS_PARAMETERS            3
-#define FIRST_SQRT_PARAMETER         14
-#define FIRST_ENVELOPE_PARAMETER      2
-#define FIRST_DEFOCUS_PARAMETER       0
+constexpr int ALL_CTF_PARAMETERS2D =         38;
+constexpr int ALL_CTF_PARAMETERS =           28;
+constexpr int CTF_PARAMETERS =               20;
+constexpr int PARAMETRIC_CTF_PARAMETERS =    16;
+constexpr int BACKGROUND_CTF_PARAMETERS =     9;
+constexpr int SQRT_CTF_PARAMETERS =           6;
+constexpr int ENVELOPE_PARAMETERS =          11;
+constexpr int DEFOCUS_PARAMETERS =            3;
+constexpr int FIRST_SQRT_PARAMETER =         14;
+constexpr int FIRST_ENVELOPE_PARAMETER =      2;
+constexpr int FIRST_DEFOCUS_PARAMETER =       0;
 
 //#define DEBUG_WITH_TEXTFILES
 #ifdef DEBUG_WITH_TEXTFILES

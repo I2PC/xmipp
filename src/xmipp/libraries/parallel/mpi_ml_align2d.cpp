@@ -26,9 +26,9 @@
 #include "mpi_ml_align2d.h"
 
 /* Some constast to message passing tags */
-#define TAG_SEED 1
-#define TAG_DOCFILESIZE 2
-#define TAG_DOCFILE 3
+constexpr int TAG_SEED = 1;
+constexpr int TAG_DOCFILESIZE = 2;
+constexpr int TAG_DOCFILE = 3;
 
 MpiML2DBase::MpiML2DBase(XmippProgram * prm)
 {
