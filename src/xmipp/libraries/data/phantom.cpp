@@ -1293,7 +1293,7 @@ double Cone::intersection(
 void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
                          const Matrix2D<double> &PV) const
 {
-constexpr int SUBSAMPLING = 2;                  // for every measure 2x2 line
+constexpr float SUBSAMPLING = 2;                  // for every measure 2x2 line
     // integrals will be taken to
     // avoid numerical errors
 constexpr float SUBSTEP = 1/(SUBSAMPLING*2.0);

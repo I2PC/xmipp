@@ -28,7 +28,7 @@
 
 typedef float MATRIX[3][3];
 constexpr int BLOB_TABLE_SIZE_SQRT= 10000;
-constexpr float ACCURACY= 0.001;
+constexpr double ACCURACY= 0.001;
 
 #define PASCAL
 

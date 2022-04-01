@@ -1090,7 +1090,7 @@ void projectAtom(const Atom &atom, Projection &P,
                  const Matrix2D<double> &VP, const Matrix2D<double> &PV,
                  const AtomInterpolator &interpolator)
 {
-constexpr int SUBSAMPLING = 2;                  // for every measure 2x2 line
+constexpr float SUBSAMPLING = 2;                  // for every measure 2x2 line
     // integrals will be taken to
     // avoid numerical errors
 constexpr float SUBSTEP = 1/(SUBSAMPLING*2.0);

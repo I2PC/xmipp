@@ -49,7 +49,7 @@
 #define VSIG_ITEM dAi(Vsig[ifocus], irr)
 
 #define SIGNIFICANT_WEIGHT_LOW 1e-8
-constexpr int  SMALLVALUE = 1e-4;
+constexpr double  SMALLVALUE = 1e-4;
 constexpr float  HISTMIN = -6.;
 constexpr float  HISTMAX = 6.;
 constexpr int  HISTSTEPS = 120;
