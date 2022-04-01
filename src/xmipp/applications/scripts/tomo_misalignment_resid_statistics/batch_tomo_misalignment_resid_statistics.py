@@ -257,25 +257,24 @@ class ScriptTomoResidualStatistics(XmippScript):
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
       residualStats.append([pvBinX, pvBinY, pvF, pvADF])
-      pValues.append(pvBinX)
-      pValues.append(pvBinY)
-      pValues.append(pvF)
-      pValues.append(pvADF)
+      pValues.append([pvBinX, str(key) + "_pvBinX"])
+      pValues.append([pvBinY, str(key) + "_pvBinY"])
+      pValues.append([pvF, str(key) + "_pvF"])
+      pValues.append([pvADF, str(key) + "_pvADF"])
 
     print(residualStats)
 
     self.writeOutputStatsInfo(residualStats)
     pValues.sort()
+   
+    for j, p in enumerate(pValues):
+      i = j + 1
+      if p[0]*i > self.alpha:
+        print("Failed test "+ str(p[1]) + " with value " + str(p[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
+        break
 
-    for i in range(len(pValues)):
-      pValues[i] *= i
+    # TODO : generate two lists containig passed and not passed test
 
-    for i, p in enumerate(pValues):
-      if p > self.alpha:
-        print("Failed test " + str(i) + " out of " + str(len(pValues)) + " with value " + str(p))
-
-
-  
 if __name__ == '__main__':
 
   exitCode=ScriptTomoResidualStatistics().tryRun()
