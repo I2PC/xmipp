@@ -259,16 +259,16 @@ void solve(const Matrix2D<T>& A, const Matrix2D<T>& b, Matrix2D<T>& result);
 // Last Modified: 6/8/98
 // Revision: 1.0
 
-#define stBest1Exp   0
-#define stRand1Exp   1
-#define stRandToBest1Exp 2
-#define stBest2Exp   3
-#define stRand2Exp   4
-#define stBest1Bin   5
-#define stRand1Bin   6
-#define stRandToBest1Bin 7
-#define stBest2Bin   8
-#define stRand2Bin   9
+constexpr int stBest1Exp =   0;
+constexpr int stRand1Exp =   1;
+constexpr int stRandToBest1Exp = 2;
+constexpr int stBest2Exp =   3;
+constexpr int stRand2Exp =   4;
+constexpr int stBest1Bin =   5;
+constexpr int stRand1Bin =   6;
+constexpr int stRandToBest1Bin = 7;
+constexpr int stBest2Bin =   8;
+constexpr int stRand2Bin =   9;
 
 class DESolver;
 

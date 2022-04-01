@@ -26,7 +26,7 @@
 #ifndef CORE_FILTERS_H
 #define CORE_FILTERS_H
 
-#define LOG2 0.693147181
+constexpr double LOG2 = 0.693147181;
 
 #include "core/xmipp_image.h"
 #include "core/matrix2d.h"

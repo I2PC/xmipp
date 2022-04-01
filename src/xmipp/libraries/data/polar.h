@@ -37,12 +37,12 @@
 #include "core/xmipp_fftw.h"
 #include "core/xmipp_filename.h"
 
-#define FULL_CIRCLES 0
-#define HALF_CIRCLES 1
-#define DONT_CONJUGATE false
-#define CONJUGATE true
-#define DONT_KEEP_TRANSFORM false
-#define KEEP_TRANSFORM true
+constexpr int FULL_CIRCLES = 0;
+constexpr int HALF_CIRCLES = 1;
+constexpr bool DONT_CONJUGATE = false;
+constexpr bool CONJUGATE = true;
+constexpr bool DONT_KEEP_TRANSFORM = false;
+constexpr bool KEEP_TRANSFORM = true;
 
 /// @defgroup Polar Polar coordinates
 /// @ingroup DataLibrary

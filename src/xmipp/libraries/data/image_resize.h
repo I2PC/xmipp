@@ -33,7 +33,7 @@
 
 
 typedef enum { RESIZE_NONE, RESIZE_FACTOR, RESIZE_FOURIER, RESIZE_PYRAMID_EXPAND, RESIZE_PYRAMID_REDUCE } ScaleType;
-#define INTERP_FOURIER -1
+constexpr signed int INTERP_FOURIER = -1;
 /**@defgroup ProgImageResize Image Resize class
    @ingroup DataLibrary */
 //@{

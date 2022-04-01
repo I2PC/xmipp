@@ -716,9 +716,9 @@ void TiltPairAligner::passToUntilted(int _mtX, int _mtY, int &_muX, int &_muY)
 /* Compute tilting angle --------------------------------------------------- */
 void TiltPairAligner::computeGamma()
 {
-#define TRIANGLE_NO 15000
-#define MIN_AREA       15
-#define MAX_AREA   250000
+constexpr int  TRIANGLE_NO =  15000;
+constexpr int  MIN_AREA =        15;
+constexpr int  MAX_AREA =    250000;
     gamma = 0;
     Matrix1D<int> iju(2); // From i to j in untilted
     Matrix1D<int> iku(2); // From i to j in untilted
