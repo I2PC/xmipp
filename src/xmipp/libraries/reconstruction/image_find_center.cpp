@@ -34,16 +34,16 @@
 #include "core/xmipp_image.h"
 
 // Old code -----------------------------------------------------------------
-#define NATURAL       1                /* natural, 1 byte/pixel format */
-#define INTFMT        2                /* integer, 2 byte/pixel format */
-#define LONGFMT       3                /* long, 4 bytes/pixel format   */
-#define FLOATFMT      4                /* float, 4 bytes/pixel format  */
-#define FOURIER       5                /* Fourier transform format     */
-#define SPIDER        6                /* Spider (header) format       */
-#define DEF_IT     5  /*Default iterations number */
-#define DEF_DEL    2
-#define DEF_IN     2
-#define ALLOC_SIZE  65000              /* Allocation unit size         */
+#define  NATURAL        1               /* natural, 1 byte/pixel format */
+constexpr int  INTFMT =        2;                /* integer, 2 byte/pixel format */
+constexpr int  LONGFMT =       3;                /* long, 4 bytes/pixel format   */
+constexpr int  FLOATFMT =      4;                /* float, 4 bytes/pixel format  */
+constexpr int  FOURIER =       5;                /* Fourier transform format     */
+constexpr int  SPIDER =        6;                /* Spider (header) format       */
+constexpr int  DEF_IT =     5;  /*Default iterations number */
+constexpr int  DEF_DEL =    2;
+constexpr int  DEF_IN =     2;
+constexpr int  ALLOC_SIZE =  65000;              /* Allocation unit size         */
 typedef unsigned char  BYTE;       /*** Only this and float are used ***/
 typedef unsigned short UWORD;
 typedef unsigned long  ULONG;
