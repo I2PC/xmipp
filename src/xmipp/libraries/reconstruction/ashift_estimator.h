@@ -48,7 +48,17 @@ public:
     AShiftEstimator(const AShiftEstimator &&)=delete;
 
     virtual ~AShiftEstimator() {
-        release();
+        try
+        {
+            release();
+        }
+        catch (std::exception&)
+        {
+            std::string msg;
+            msg = "Error releasing memory";
+            throw std::runtime_error(msg);
+        }
+
     }
 
     AShiftEstimator & operator=(const AShiftEstimator &)=delete;

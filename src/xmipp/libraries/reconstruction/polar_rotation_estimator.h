@@ -43,7 +43,16 @@ public:
     }
 
     virtual ~PolarRotationEstimator() {
-        release();
+        try
+        {
+            release();
+        }
+        catch (std::exception&)
+        {
+            std::string msg;
+            msg = "Error releasing memory";
+            throw std::runtime_error(msg);
+        }
     }
 
     PolarRotationEstimator(PolarRotationEstimator& o) = delete;
