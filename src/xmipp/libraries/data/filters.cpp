@@ -2039,9 +2039,9 @@ void computeAlignmentTransforms(const MultidimArray<double>& I, AlignmentTransfo
     polarFourierTransform<true>(I, ITransforms.polarFourierI, false, XSIZE(I) / 5, XSIZE(I) / 2, aux.plans, 1);
 }
 
-constexpr float SHIFT_THRESHOLD = 0.95;             // Shift threshold in pixels.
+constexpr double SHIFT_THRESHOLD = 0.95;             // Shift threshold in pixels.
 constexpr float  ROTATE_THRESHOLD  =	1.0	;		// Rotate threshold in degrees.
-constexpr float  INITIAL_SHIFT_THRESHOLD =	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr double  INITIAL_SHIFT_THRESHOLD =	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
 constexpr float  INITIAL_ROTATE_THRESHOLD = ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms, MultidimArray<double>& I,

@@ -495,7 +495,7 @@ void project_crystal(Phantom &phantom, Projection &P,
 #undef DEBUG_MORE
 
 /* Find crystal limits ----------------------------------------------------- */
-constexpr float MIN_MODULE = 1e-2;
+constexpr double MIN_MODULE = 1e-2;
 void find_crystal_limits(
     const Matrix1D<double> &proj_corner1, const Matrix1D<double> &proj_corner2,
     const Matrix1D<double> &cell_corner1, const Matrix1D<double> &cell_corner2,

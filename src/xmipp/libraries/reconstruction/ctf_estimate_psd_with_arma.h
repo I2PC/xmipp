@@ -23,6 +23,8 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include <core/multidim_array.h>
+#include <core/xmipp_program.h>
 
 #ifndef _CORE_PROG_SPARMA_HH
 #define _CORE_PROG_SPARMA_HH
@@ -30,8 +32,7 @@ constexpr int  AR          =0;   // To distinguish between an AR parameter or a 
 constexpr int  MA        =1;   // parameter, or sigma in the output ARMAParameters matrix
 constexpr int  SIGMA       =2;   // returned by functions.
 
-#include <core/multidim_array.h>
-#include <core/xmipp_program.h>
+
 
 /**@defgroup SpARMA Spectrum modelling by ARMA filters
    @ingroup ReconsLibrary */

@@ -40,8 +40,8 @@
 constexpr int  BLOB_TABLE_SIZE= 5000;
 constexpr int  BLOB_TABLE_SIZE_SQRT= 10000;
 
-constexpr float  MINIMUMWEIGHT= 0.001;
-constexpr float  ACCURACY= 0.001;
+constexpr double  MINIMUMWEIGHT= 0.001;
+constexpr double ACCURACY= 0.001;
 
 constexpr int EXIT_THREAD= 0;
 constexpr int PROCESS_IMAGE= 1;

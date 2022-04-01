@@ -23,15 +23,14 @@
 *  e-mail address 'xmipp@cnb.csic.es'
 ***************************************************************************/
 
-#ifndef CORE_FILTERS_H
-#define CORE_FILTERS_H
-
-constexpr double LOG2 = 0.693147181;
-
 #include "core/xmipp_image.h"
 #include "core/matrix2d.h"
 #include "data/numerical_tools.h"
 #include "data/polar.h"
+
+#ifndef CORE_FILTERS_H
+#define CORE_FILTERS_H
+constexpr double LOG2 = 0.693147181;
 
 class XmippProgram;
 class MetaData;
