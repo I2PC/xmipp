@@ -246,6 +246,13 @@ public:
         // create clusters and choose K points as their centers centers
         std::vector<int> prohibited_indexes;
 
+        if (total_points == 0)
+        {
+            std::ostringstream msg;
+            msg << "Division by zero: total_points == 0";
+            throw std::runtime_error(msg.str()); 
+        }
+
         for (int i = 0; i < K; i++)
         {
             while (true)
