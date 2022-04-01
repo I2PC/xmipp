@@ -226,6 +226,7 @@ public:
     Romberg(doubleFunction& f, double& Var, double min, double max,
             double precision = 1.0e-7) : func(f), x(Var)
     {
+    	s = 0.0;
         a = min;
         b = max;
         EPS = precision;

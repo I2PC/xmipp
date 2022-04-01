@@ -107,9 +107,6 @@ public:
      */
     SparseMatrix2D(std::vector<SparseElement> &_elements, int _Nelements);
 
-    /** Assig operator *this=X */
-    SparseMatrix2D &operator =(const SparseMatrix2D &X);
-
     /// Fill the sparse matrix A with the elements of the vector.
     void sparseMatrix2DFromVector(std::vector<SparseElement> &_elements);
 
