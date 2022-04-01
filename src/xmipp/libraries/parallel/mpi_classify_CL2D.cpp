@@ -92,6 +92,11 @@ CL2DClass::CL2DClass()
 
 CL2DClass::CL2DClass(const CL2DClass &other)
 {
+	*this=other;
+}
+
+CL2DClass & CL2DClass::operator =(const CL2DClass &other)
+{
     plans = NULL;
 
     CL2DAssignment assignment;
@@ -104,6 +109,8 @@ CL2DClass::CL2DClass(const CL2DClass &other)
     histClass = other.histClass;
     histNonClass = other.histNonClass;
     neighboursIdx = other.neighboursIdx;
+
+    return *this;
 }
 
 CL2DClass::~CL2DClass()

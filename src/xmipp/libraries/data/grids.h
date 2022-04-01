@@ -549,15 +549,6 @@ public:
         return o;
     }
 
-    /** Assignment.
-        \\ Ex: Grid BCC2=BCC1; */
-    Grid& operator = (const Grid &G)
-    {
-        if (&G != this)
-            LG = G.LG;
-        return *this;
-    }
-
     /** Another function for assignment.*/
     void assign(const Grid &G)
     {

@@ -25,11 +25,6 @@
 
 #include "mpi_reconstruct_significant.h"
 
-MpiProgReconstructSignificant::MpiProgReconstructSignificant()
-{
-	node=nullptr;
-}
-
 MpiProgReconstructSignificant::~MpiProgReconstructSignificant()
 {
 	delete node;
