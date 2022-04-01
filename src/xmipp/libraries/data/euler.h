@@ -238,7 +238,7 @@ bool  _parityEven  :
 Axis  _initialAxis  :
     2; // First axis of rotation
 };
-#define eulerOrderNumber 24
+constexpr int eulerOrderNumber = 24;
 Euler::eulerOrder eulerOrderList[eulerOrderNumber] =
     {
         Euler::XYZ , Euler::XZY , Euler::YZX , Euler::YXZ , Euler::ZXY , Euler::ZYX ,

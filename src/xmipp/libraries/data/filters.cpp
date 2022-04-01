@@ -2039,11 +2039,10 @@ void computeAlignmentTransforms(const MultidimArray<double>& I, AlignmentTransfo
     polarFourierTransform<true>(I, ITransforms.polarFourierI, false, XSIZE(I) / 5, XSIZE(I) / 2, aux.plans, 1);
 }
 
-#define SHIFT_THRESHOLD 	0.95		// Shift threshold in pixels.
-#define ROTATE_THRESHOLD 	1.0			// Rotate threshold in degrees.
-
-#define INITIAL_SHIFT_THRESHOLD 	SHIFT_THRESHOLD + 1.0		// Shift threshold in pixels.
-#define INITIAL_ROTATE_THRESHOLD 	ROTATE_THRESHOLD + 1.0		// Rotate threshold in degrees.
+constexpr float SHIFT_THRESHOLD = 0.95;             // Shift threshold in pixels.
+constexpr float  ROTATE_THRESHOLD  =	1.0	;		// Rotate threshold in degrees.
+constexpr float  INITIAL_SHIFT_THRESHOLD =	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr float  INITIAL_ROTATE_THRESHOLD = ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms, MultidimArray<double>& I,
                    Matrix2D<double>&M, bool wrap, AlignmentAux &aux, CorrelationAux &aux2,
@@ -2717,7 +2716,7 @@ double Update_edge_Shah(MultidimArray<double> &img,
 }
 
 /* Smoothing Shah ---------------------------------------------------------- */
-#define SHAH_CONVERGENCE_THRESHOLD  0.0001
+constexpr double SHAH_CONVERGENCE_THRESHOLD = 0.0001;
 void smoothingShah(MultidimArray<double> &img,
                    MultidimArray<double> &surface_strength,
                    MultidimArray<double> &edge_strength, const Matrix1D<double> &W,

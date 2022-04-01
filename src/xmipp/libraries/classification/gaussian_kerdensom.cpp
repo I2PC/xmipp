@@ -35,7 +35,7 @@
 #include "gaussian_kerdensom.h"
 #include <core/metadata_vec.h>
 
-#define  MAXZ -11282
+constexpr signed int MAXZ =  -11282;
 
 //-----------------------------------------------------------------------------
 /**

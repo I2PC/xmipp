@@ -171,14 +171,14 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
 /* PROJECTION GENERATION                                                     */
 /*---------------------------------------------------------------------------*/
 // Projecting functions ====================================================
-#define FORWARD  1
-#define BACKWARD 0
+constexpr int FORWARD =  1;
+constexpr int BACKWARD = 0;
 
-#define ARTK     1
-#define CAVK     2
-#define COUNT_EQ 3
-#define CAV      4
-#define CAVARTK  5
+constexpr int ARTK =     1;
+constexpr int CAVK =     2;
+constexpr int COUNT_EQ = 3;
+constexpr int CAV =      4;
+constexpr int CAVARTK =  5;
 
 /** From voxel volumes.
     The voxel volume is projected onto a projection plane defined by
