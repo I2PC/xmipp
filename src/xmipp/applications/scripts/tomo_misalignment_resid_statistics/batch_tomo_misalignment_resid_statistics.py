@@ -44,6 +44,8 @@ class ScriptTomoResidualStatistics(XmippScript):
     XmippScript.__init__(self)
 
     self.p = 0.5
+    self.alpha = 0.05
+
     self.residSize = {}
     self.residX = {}
     self.residY = {}
@@ -168,6 +170,18 @@ class ScriptTomoResidualStatistics(XmippScript):
     print("F test for variance p-value: " + str(pValue))
 
     return pValue
+
+
+  def compensatedTest(self, residualStats):
+    """
+      Overall analysis of the performed statictical tests
+    """
+
+    pValue = stats.f.cdf(fStatistic, rs-1, rs-1)
+
+    print("F test for variance p-value: " + str(pValue))
+
+    return pValue
   
   def augmentedDickeyFullerTest(self, modAcc):
     """
@@ -211,6 +225,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     # print(self.nPosY)
 
     residualStats = []
+    pValues = []
 
     for key in self.residX.keys():
       rs = self.residSize[key]
@@ -242,9 +257,23 @@ class ScriptTomoResidualStatistics(XmippScript):
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
       residualStats.append([pvBinX, pvBinY, pvF, pvADF])
+      pValues.append(pvBinX)
+      pValues.append(pvBinY)
+      pValues.append(pvF)
+      pValues.append(pvADF)
+
     print(residualStats)
 
     self.writeOutputStatsInfo(residualStats)
+    pValues.sort()
+
+    for i in range(len(pValues)):
+      pValues[i] *= i
+
+    for i, p in enumerate(pValues):
+      if p > self.alpha:
+        print("Failed test " + str(i) + " out of " + str(len(pValues)) + " with value " + str(p))
+
 
   
 if __name__ == '__main__':
