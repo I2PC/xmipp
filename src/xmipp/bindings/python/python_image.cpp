@@ -1209,15 +1209,12 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            double mean;
-            double dev;
-            double min;
-            double max;
+            double mean=0.0;
+            double dev=0.0;
+            double min=0.0;
+            double max=0.0;
             self->image->data->computeStats(mean, dev, min, max);
-
-
             return Py_BuildValue("ffff", mean, dev, min, max);
-
         }
         catch (XmippError &xe)
         {
