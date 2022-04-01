@@ -30,8 +30,8 @@
 #include "core/geometry.h"
 #include "core/xmipp_image.h"
 
-#define FORWARD   1
-#define BACKWARD -1
+constexpr signed int FORWARD =   1;
+constexpr signed int BACKWARD = -1;
 
 /** Projection of a pseudoatom volume */
 void project_Pseudo(const std::vector< Matrix1D<double> > &atomPosition,

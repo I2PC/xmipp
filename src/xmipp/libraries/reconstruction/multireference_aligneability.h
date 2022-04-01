@@ -25,7 +25,7 @@
 
 #ifndef MULTIREFERENCE_ALIGNEABILITY_H_
 #define MULTIREFERENCE_ALIGNEABILITY_H_
-#define PI 3.14159265
+constexpr double PI = 3.14159265;
 
 #include <core/xmipp_program.h>
 #include "validation_nontilt.h"
