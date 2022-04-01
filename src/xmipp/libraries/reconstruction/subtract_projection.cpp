@@ -91,9 +91,9 @@
      addParamsLine("-i <particles>\t: Particles metadata (.xmd file)");
      addParamsLine("--ref <volume>\t: Reference volume to subtract");
      addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for subtracted particles");
-     addParamsLine("\t: If no name is given, then output_particles.xmd");
-     addParamsLine("[--maskVol <maskVol=\"\">]\t: 3D mask for input volume");
-     addParamsLine("[--mask <mask=\"\">]\t: 3D mask for the region of subtraction");
+     addParamsLine("\t: If no name is given, then output_particles");
+     addParamsLine("[--maskVol <maskVol=\"\">]\t: 3D mask for region to keep");
+     addParamsLine("[--mask <mask=\"\">]\t: final 3D mask for the region of subtraction");
      addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
      addParamsLine("[--iter <n=1>]\t: Number of iterations");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
@@ -123,6 +123,7 @@
 	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
+	I.write(formatString("%s0_I.mrc", fnProj.c_str())); 
  }
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
@@ -196,6 +197,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	MultidimArray<double> idx(N);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
 		DIRECT_MULTIDIM_ELEM(idx, n) = n;
+
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
 	MultidimArray<double> betap0;
@@ -204,6 +206,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		DIRECT_MULTIDIM_ELEM(betap0, n) = beta00;
 	double R20 = evaluateFitting(beta, betap0);
 	double R20adj = 1 - (1 - R20) * (N - 1) / (N - 1);
+
 	// Fit order 1 beta=beta0+beta1*idx
 	double sumX = 0, sumX2 = 0, sumY = 0, sumXY = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
@@ -221,6 +224,8 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		DIRECT_MULTIDIM_ELEM(betap1, n) = beta10 + beta11 * DIRECT_MULTIDIM_ELEM(idx, n);
 	double R21 = evaluateFitting(beta, betap1);
 	double R21adj = 1 - (1 - R20) * (N - 1) / (N - 1 - 1);
+
+	// Decide fitting
 	if (R21adj > R20adj)
 		betap = betap1;
 	else
@@ -233,7 +238,8 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	V.read(fnVolR);
 	V().setXmippOrigin();
  	mdParticles.read(fnParticles);
- 	vM = createMask(fnMaskVol, vM); // Actually now this mask is mask keep and the other seems to not be needed
+ 	vM = createMask(fnMaskVol, vM); // Actually now this mask is mask keep and the other is the final one
+
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
@@ -248,6 +254,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	Filter2.raised_w=0.02;
 	double cutFreq = sampling/maxResol;
 	Filter2.w1 = cutFreq;
+
 	// Initialize Fourier projectors
 	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
@@ -263,6 +270,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
+
 	// Project volume
 	MultidimArray<double> *ctfImage = nullptr;
 	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
@@ -272,23 +280,26 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	FourierTransformer transformerP;
 	transformerP.FourierTransform(Pctf(),PFourier,false);
 
+	// Construct frequencies image
 	MultidimArray<int> wi;
 	wi.initZeros(PFourier);
-	Matrix1D<int> w(2); //??
-	for (size_t i=0; i<YSIZE(wi); i++)
+	Matrix1D<double> w(2); 	
+	for (int i=0; i<YSIZE(wi); i++) 
 	{
-		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w));
-		for (size_t j=0; j<XSIZE(wi); j++)
+		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w)); 
+		for (int j=0; j<XSIZE(wi); j++)  
 		{
 			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w));
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mPctf));
-			// std::cout << "---wi,i,j: " << DIRECT_A2D_ELEM(wi,i,j) << std::endl;	
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mPctf)); 
 		}
 	}
-	float maxw = wi.computeMax(); // = 0 (?) -> all wi are 0...
-	std::cout << "---maxw: " << maxw << std::endl;
+	int maxwiIdx = XSIZE(wi);
+	// int maxwiIdx = YSIZE(mPctf);
+	Image<double> wi_img;
+	typeCast(wi, wi_img());
+	wi_img.write(formatString("%s0_wi.mrc", fnProj.c_str()));
 
-    for (size_t i = 2; i <= mdParticles.size(); ++i) {  // particle 1 is not used in the adjustment...
+    for (size_t i = 1; i <= mdParticles.size(); ++i) {  // the begining is done twice for the first particle
     	// Read particle and metadata
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
@@ -349,71 +360,63 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		transformerPiM.FourierTransform(PiM(),PiMFourier,false);
 
 		// Estimate transformation T(w) //
-		double nyquist = 2*sampling; // need index! => buscar freq nyquist en wi y calcular su indice?
-		maxw = XSIZE(wi); // because maxw = 0 ...
 		MultidimArray<double> num;
-		num.initZeros(maxw); 
+		num.initZeros(maxwiIdx); 
 		MultidimArray<double> den;
-		den.initZeros(maxw);
+		den.initZeros(maxwiIdx);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) 
 		{
-			int win = DIRECT_MULTIDIM_ELEM(wi, n);
-			double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
-			double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
-			DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
-											+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
-			DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+			if (n <= maxwiIdx)
+			{
+				int win = DIRECT_MULTIDIM_ELEM(wi, n);
+				double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+				double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
+				DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
+												+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
+				DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+			}
 		}
 		MultidimArray<double> beta;
-		beta.initZeros(maxw); 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) 
-			DIRECT_MULTIDIM_ELEM(beta,n) = DIRECT_MULTIDIM_ELEM(num,n) * DIRECT_MULTIDIM_ELEM(den,n);
+		beta.initZeros(maxwiIdx); 
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
+		{
+			if (DIRECT_MULTIDIM_ELEM(den,n) == 0)
+				DIRECT_MULTIDIM_ELEM(beta,n) = 0;
+			else
+				DIRECT_MULTIDIM_ELEM(beta,n) = DIRECT_MULTIDIM_ELEM(num,n) / DIRECT_MULTIDIM_ELEM(den,n);	
+		} 
 		MultidimArray<double> betap;	
-		betap.initZeros(maxw); 
+		betap.initZeros(maxwiIdx); 
 		checkBestModel(beta, betap);
-		double betaMean = betap.computeAvg(); // = 0 because all betap are 0 because all beta are 0 (?)
-		std::cout << "---betaMean---" << betaMean << std::endl;
-
-		std::complex<double> beta0;  // freq 0 
+		double betaMean = betap.computeAvg(); 
+		std::complex<double> beta0; 
 		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1);
-		std::cout << "---beta0---" << beta0 << std::endl;
+
+		std::cout << "---i: " << i << std::endl;
+		std::cout << "---betaMean: " << betaMean << std::endl;
+		std::cout << "---beta0: " << beta0 << std::endl;
 
 		// Apply adjustment: PFourierAdjusted = PFourier*betaMean
-		MultidimArray< std::complex<double> > PFourierAdjusted;
-		PFourierAdjusted.initZeros(PFourier); 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourierAdjusted) 
-			DIRECT_MULTIDIM_ELEM(PFourierAdjusted,n) = DIRECT_MULTIDIM_ELEM(PFourier,n) * betaMean;
-		PFourierAdjusted(1,1) = beta0 + betaMean*PFourier(1,1); // Component at 0 freq (DC)
-		std::cout << "---0---" << std::endl;
-		Image<double> PAdjusted;
-		PAdjusted = P;
-		transformer.inverseFourierTransform(PFourierAdjusted, PAdjusted());
-		std::cout << "---1---" << std::endl;
-		PiM.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
+		std::complex<double> PFourier11 = PFourier(1,1);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
+			DIRECT_MULTIDIM_ELEM(PFourier,n) *= betaMean;
+		PFourier(1,1) = beta0 + betaMean*PFourier11;
+		transformer.inverseFourierTransform(PFourier, P());
+		P.write(formatString("%s5_Padj.mrc", fnProj.c_str())); // IT IS NOT COMPLETE
 
-		// // Build final mask 
-		// double fmaskWidth_px;
-		// fmaskWidth_px = fmaskWidth/sampling;
-		// std::cout << "---fmaskWidth_px---" << fmaskWidth_px << std::endl;
-		// Image<double> Mfinal;
-		// Mfinal().resizeNoCopy(I());  // Change by a mask fmaskWidth_px bigger for each side than Idiff != 0
-		// Mfinal().initConstant(1.0);
-    	// Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
+		// Build final mask 
+		double fmaskWidth_px;
+		fmaskWidth_px = fmaskWidth/sampling;
+		Image<double> Mfinal;
+		Mfinal = M; // Change by a mask fmaskWidth_px bigger for each side 
+    	Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
 
-		// // Subtraction
-		// Image<double> Idiff;
-		// Idiff().resizeNoCopy(I());  
-		// std::cout << "---3---" << std::endl;
-		// Idiff().initConstant(1.0);
-		// std::cout << "---4---" << std::endl;
-		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
-		// 	DIRECT_MULTIDIM_ELEM(Idiff(),i) = (DIRECT_MULTIDIM_ELEM(I(),i)-DIRECT_MULTIDIM_ELEM(PAdjusted(),i)) 
-		// 									* DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
+		// Subtraction
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+			DIRECT_MULTIDIM_ELEM(I(),n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n)); // * DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
 
-		// // Write particle
-		// std::cout << "---5---" << std::endl;
-		// writeParticle(int(i), Idiff);
-		// std::cout << "---6---" << std::endl;
+		// Write particle
+		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
  }
