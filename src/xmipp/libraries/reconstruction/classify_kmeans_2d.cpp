@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <random>
 #include "data/filters.h"
 #include "core/metadata_vec.h"
 #include "core/xmipp_image.h"
@@ -245,6 +246,9 @@ public:
 	{
         // create clusters and choose K points as their centers centers
         std::vector<int> prohibited_indexes;
+        std::random_device rd;  // Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+        std::uniform_int_distribution<> udistr(0,total_points-1);
 
         if (total_points == 0)
         {
@@ -257,7 +261,7 @@ public:
         {
             while (true)
             {
-                int index_point = rand() % total_points;
+                int index_point = udistr(gen);
 
                 if (find(prohibited_indexes.begin(), prohibited_indexes.end(),
                     index_point) == prohibited_indexes.end())
