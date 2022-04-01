@@ -57,13 +57,8 @@ public:
         try
         {
             release();
-        }
-        catch (std::exception&)
-        {
-            std::string msg;
-            msg = "Error releasing memory";
-            throw std::runtime_error(msg);
-        }
+        }        
+        catch (XmippError &XE) {}
     }
     BSplineGeoTransformer &operator=(const BSplineGeoTransformer&)=delete;
     BSplineGeoTransformer &operator=(const BSplineGeoTransformer&&)=delete;

@@ -47,12 +47,7 @@ public:
         {
             release();
         }
-        catch (std::exception&)
-        {
-            std::string msg;
-            msg = "Error releasing memory";
-            throw std::runtime_error(msg);
-        }
+        catch (XmippError &XE) {}
     }
 
     PolarRotationEstimator(PolarRotationEstimator& o) = delete;
