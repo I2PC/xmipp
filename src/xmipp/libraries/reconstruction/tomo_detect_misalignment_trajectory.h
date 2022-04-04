@@ -350,7 +350,7 @@ public:
 
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
-    bool detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &residuals);
+    bool detectMisalignmentFromResiduals(MetaDataVec &inputCoordMd);
 
     void factorial(size_t base, size_t fact);
 
