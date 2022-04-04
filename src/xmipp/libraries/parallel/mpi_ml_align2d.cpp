@@ -435,12 +435,6 @@ void MpiProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputTyp
     node->barrierWait();
 }
 
-
-/** Constructor */
-MpiProgMLTomo::MpiProgMLTomo()
-{
-    node = nullptr;
-}
 /** Destructor */
 MpiProgMLTomo::~MpiProgMLTomo()
 {
