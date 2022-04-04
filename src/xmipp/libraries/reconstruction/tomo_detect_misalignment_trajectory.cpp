@@ -71,8 +71,6 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 }
 
 
-// --------------------------- HEAD functions ----------------------------
-
 void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 {
 	#ifdef VERBOSE_OUTPUT
@@ -123,6 +121,10 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	std::cout << "Side info generated succesfully!" << std::endl;
 	#endif
 }
+
+
+
+// --------------------------- HEAD functions ----------------------------
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
 {
@@ -452,6 +454,342 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "High contrast coordinates picked succesfully!" << std::endl;
 	#endif
+}
+
+
+void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec &inputCoordMd)
+{
+	// ***TODO: homogeneizar PointXD y MatrixXD
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Calculating residual vectors" << std::endl;
+	#endif
+
+	size_t objId;
+	size_t minIndex;
+	double tiltAngle;
+	double distance;
+	double minDistance;
+
+	int goldBeadX, goldBeadY, goldBeadZ;
+
+	Matrix2D<double> projectionMatrix;
+	Matrix1D<double> goldBead3d;
+	Matrix1D<double> projectedGoldBead;
+
+	std::vector<Point2D<double>> coordinatesInSlice;
+
+	// Matrix2D<double> A_alignment;
+	// Matrix1D<double> T_alignment;
+	// Matrix2D<double> invW_alignment;
+	// Matrix2D<double> alignment_matrix;
+
+
+	goldBead3d.initZeros(3);
+
+	// Iterate through every tilt-image
+	for(size_t n = 0; n<tiltAngles.size(); n++)
+	{	
+		#ifdef DEBUG_RESID
+		std::cout << "Analyzing coorinates in image "<< n<<std::endl;
+		#endif
+
+		tiltAngle = tiltAngles[n];
+
+		# ifdef DEBUG
+		std::cout << "Calculating residual vectors at slice " << n << " with tilt angle " << tiltAngle << "º" << std::endl;
+		#endif
+
+		coordinatesInSlice = getCoordinatesInSlice(n);
+
+		projectionMatrix = getProjectionMatrix(tiltAngle);
+
+		#ifdef DEBUG_RESID
+		std::cout << "Projection matrix------------------------------------"<<std::endl;
+		std::cout << MAT_ELEM(projectionMatrix, 0, 0) << " " << MAT_ELEM(projectionMatrix, 0, 1) << " " << MAT_ELEM(projectionMatrix, 0, 2) << std::endl;
+		std::cout << MAT_ELEM(projectionMatrix, 1, 0) << " " << MAT_ELEM(projectionMatrix, 1, 1) << " " << MAT_ELEM(projectionMatrix, 1, 2) << std::endl;
+		std::cout << MAT_ELEM(projectionMatrix, 2, 0) << " " << MAT_ELEM(projectionMatrix, 2, 1) << " " << MAT_ELEM(projectionMatrix, 2, 2) << std::endl;
+		std::cout << "------------------------------------"<<std::endl;
+		#endif 
+
+		if (coordinatesInSlice.size() != 0)
+		{
+			size_t coordinate3dId = 0;
+
+			// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
+			for(size_t objId : inputCoordMd.ids())
+			{
+				minDistance = MAXDOUBLE;
+
+				inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+				inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+				inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
+
+				#ifdef DEBUG_RESID
+				std::cout << "=================================================================================" << std::endl;
+				std::cout << "goldBeadX " << goldBeadX << std::endl;
+				std::cout << "goldBeadY " << goldBeadY << std::endl;
+				std::cout << "goldBeadZ " << goldBeadZ << std::endl;
+				#endif
+
+				// Update coordinates wiht origin as the center of the tomogram (needed for rotation matrix multiplicaiton)
+				XX(goldBead3d) = (double) (goldBeadX - (double)xSize/2);
+				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conersion is needed
+				ZZ(goldBead3d) = (double) (goldBeadZ);
+
+				projectedGoldBead = projectionMatrix * goldBead3d;
+
+				XX(projectedGoldBead) += (double)xSize/2;
+				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
+				ZZ(projectedGoldBead) += 150;
+
+				#ifdef DEBUG_RESID
+				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+				std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+
+				std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
+				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
+				
+				std::cout << "=================================================================================" << std::endl;
+				#endif
+
+				// Iterate though every coordinate in the tilt-image and calculate the minimum distance
+				for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+				{
+					distance = (XX(projectedGoldBead) - coordinatesInSlice[i].x)*(XX(projectedGoldBead) - coordinatesInSlice[i].x) + (YY(projectedGoldBead) - coordinatesInSlice[i].y)*(YY(projectedGoldBead) - coordinatesInSlice[i].y);
+
+					#ifdef DEBUG_RESID
+					std::cout << "------------------------------------------------------------------------------------" << std::endl;
+					std::cout << "i/i_total " << i << "/" << coordinatesInSlice.size()-1 << std::endl;
+					
+					std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
+					std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+					std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+					std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
+					
+					std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+					std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+					std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+
+					std::cout << "coordinatesInSlice[i].x " << coordinatesInSlice[i].x << std::endl;
+					std::cout << "coordinatesInSlice[i].y " << coordinatesInSlice[i].y << std::endl;
+
+					std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
+					std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
+
+					std::cout << "minDistance " << minDistance << std::endl;
+					std::cout << "distance " << distance << std::endl;
+					std::cout << "------------------------------------------------------------------------------------" << std::endl;					
+					#endif
+					
+					if(distance < minDistance)
+					{
+						minDistance = distance;
+						minIndex = i;
+					}
+				}
+
+				// Back to Xmipp origin (top-left corner)
+ 				XX(goldBead3d) = (double) goldBeadX;
+				
+				Point3D<double> cis(coordinatesInSlice[minIndex].x, coordinatesInSlice[minIndex].y, n);
+				Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
+				Point2D<double> res(coordinatesInSlice[minIndex].x - XX(projectedGoldBead), coordinatesInSlice[minIndex].y - YY(projectedGoldBead)); 
+
+				#ifdef DEBUG_RESID
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
+				
+				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+				std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+
+				std::cout << "coordinatesInSlice[minIndex].x " << coordinatesInSlice[minIndex].x << std::endl;
+				std::cout << "coordinatesInSlice[minIndex].y " << coordinatesInSlice[minIndex].y << std::endl;
+
+				std::cout << "coordinatesInSlice[minIndex].x - XX(projectedGoldBead) " << coordinatesInSlice[minIndex].x - XX(projectedGoldBead) << std::endl;
+				std::cout << "coordinatesInSlice[minIndex].y - YY(projectedGoldBead) " << coordinatesInSlice[minIndex].y - YY(projectedGoldBead) << std::endl;
+
+				std::cout << "minDistance " << minDistance << std::endl;
+				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+				#endif
+
+
+				CM cm {cis, c3d, res, coordinate3dId};
+				vCM.push_back(cm);
+
+				coordinate3dId += 1;
+			}
+		}else
+		{
+			std::cout << "WARNING: No coorinate peaked in slice " << n << ". IMPOSIBLE TO STUDY MISALIGNMENT IN THIS SLICE." << std::endl;
+		}
+	}
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Residual vectors calculated: " << residualX.size() << std::endl;
+	#endif
+}
+
+
+bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &residuals)
+{
+	double centroidX;
+	double centroidY;
+	double distance;
+	double maxDistance = 0;
+	double totalDistance = 0;
+	double chPerimeterer = 0;
+	double chArea = 0;
+
+	std::vector<Point2D<double>> hull;
+
+	for (size_t i = 0; i < residuals.size(); i++)
+	{
+
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << residuals[i].x << "  " << residuals[i].y << std::endl;
+		#endif
+
+		distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
+
+		// Total distance
+		totalDistance += distance;
+
+		// Maximum distance
+		if (distance > maxDistance)
+		{
+			maxDistance = distance;
+		}
+	}
+
+	std::cout << "totalDistance "  << totalDistance << std::endl;
+	std::cout << "maxDistance "  << maxDistance << std::endl;
+
+
+	// Convex Hull
+	auto p2dVector = residuals;
+	auto remainingP2d = residuals;
+	Point2D<double> p2d{0, 0};
+	Point2D<double> p2d_it{0, 0};
+	Point2D<double> minX_p2d{MAXDOUBLE, 0};
+
+	// Get minimum x component element *** TODO: this can be done more efficientely using std::min_element and defininf a cmp function
+	for (size_t i = 0; i < p2dVector.size(); i++)
+	{
+		if (p2dVector[i].x < minX_p2d.x)
+		{
+			minX_p2d = p2dVector[i];
+		}
+	}
+
+	// struct SortByX
+	// {
+	// 	bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
+	// };
+
+	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
+
+	// bool cmp(const Point2D<double>& a, const Point2D<double>& b)
+	// {
+    // 	return a.x < b.x;
+	// }
+
+	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
+
+	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), [](Point2D const& l, Point2D const& r) {return l.x < r.x;});
+
+	hull.push_back(minX_p2d);
+
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
+	std::cout << " minX_p2d" << minX_p2d.x << " " << minX_p2d.y << std::endl;
+	std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
+	std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
+	#endif
+
+	while (p2dVector.size()>0)
+	{
+		p2d = p2dVector[0];
+
+		while (remainingP2d.size()>0)
+		{
+			p2d_it = remainingP2d[0];
+
+			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
+
+			if (angle<0)
+			{
+				angle += 2*PI;
+			}
+
+			if (angle < PI)
+			{
+				remainingP2d.erase(remainingP2d.begin());
+			}
+			else
+			{
+				p2d = p2d_it;
+				remainingP2d.erase(remainingP2d.begin());
+			}	
+		}
+
+		if (p2d.x==minX_p2d.x && p2d.y==minX_p2d.y)
+		{
+			break;
+		}
+
+		hull.push_back(p2d);
+
+		p2dVector.erase(p2dVector.begin());
+		remainingP2d = p2dVector;
+	}
+	
+
+	// CH-Perimeter
+	int shiftIndex;
+
+	for (size_t i = 0; i < hull.size(); i++)
+	{
+		shiftIndex = (i+1) % hull.size();
+		chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
+		                      (hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y));
+	}
+
+	std::cout << "chPerimeterer "  << chPerimeterer << std::endl;
+	
+
+	// CH-Area
+	double sum1 = 0;
+	double sum2 = 0;
+
+	for (size_t i = 0; i < hull.size(); i++)
+	{
+		shiftIndex = (i+1) % hull.size();
+		sum1 += hull[i].x * hull[shiftIndex].y;	
+		sum2 += hull[shiftIndex].x * hull[i].y;	
+	}
+
+	chArea = abs(0.5 * (sum1 - sum2));
+
+	std::cout << "chArea "  << chArea << std::endl;
+
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string fnVCM;
+	std::string fnStats;
+    fnVCM = rawname + "/vCM.xmd";
+	fnStats = rawname + "/residualStatistics.xmd";
+
+	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+
+	std::cout << cmd << std::endl;
+	system(cmd.c_str());
+
+	return true;
 }
 
 
@@ -952,230 +1290,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 	std::cout << "Misalignment in tilt-images succesfully detected!" << std::endl;
 	#endif
 }
-
-
-void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec &inputCoordMd)
-{
-	// ***TODO: homogeneizar PointXD y MatrixXD
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Calculating residual vectors" << std::endl;
-	#endif
-
-	size_t objId;
-	size_t minIndex;
-	double tiltAngle;
-	double distance;
-	double minDistance;
-
-	int goldBeadX, goldBeadY, goldBeadZ;
-
-	Matrix2D<double> projectionMatrix;
-	Matrix1D<double> goldBead3d;
-	Matrix1D<double> projectedGoldBead;
-
-	std::vector<Point2D<double>> coordinatesInSlice;
-
-	// Matrix2D<double> A_alignment;
-	// Matrix1D<double> T_alignment;
-	// Matrix2D<double> invW_alignment;
-	// Matrix2D<double> alignment_matrix;
-
-
-	goldBead3d.initZeros(3);
-
-	// Iterate through every tilt-image
-	for(size_t n = 0; n<tiltAngles.size(); n++)
-	{	
-		#ifdef DEBUG_RESID
-		std::cout << "Analyzing coorinates in image "<< n<<std::endl;
-		#endif
-
-		tiltAngle = tiltAngles[n];
-
-		# ifdef DEBUG
-		std::cout << "Calculating residual vectors at slice " << n << " with tilt angle " << tiltAngle << "º" << std::endl;
-		#endif
-
-		coordinatesInSlice = getCoordinatesInSlice(n);
-
-		projectionMatrix = getProjectionMatrix(tiltAngle);
-
-		#ifdef DEBUG_RESID
-		std::cout << "Projection matrix------------------------------------"<<std::endl;
-		std::cout << MAT_ELEM(projectionMatrix, 0, 0) << " " << MAT_ELEM(projectionMatrix, 0, 1) << " " << MAT_ELEM(projectionMatrix, 0, 2) << std::endl;
-		std::cout << MAT_ELEM(projectionMatrix, 1, 0) << " " << MAT_ELEM(projectionMatrix, 1, 1) << " " << MAT_ELEM(projectionMatrix, 1, 2) << std::endl;
-		std::cout << MAT_ELEM(projectionMatrix, 2, 0) << " " << MAT_ELEM(projectionMatrix, 2, 1) << " " << MAT_ELEM(projectionMatrix, 2, 2) << std::endl;
-		std::cout << "------------------------------------"<<std::endl;
-		#endif 
-
-		// std::vector<size_t> randomIndexes = getRandomIndexes(projectedGoldBead.size());
-
-		// for(size_t i = 0; i < coordinatesInSlice.size(); i ++)
-		// {
-		// 	for(size_t j = 0; j < coordinatesInSlice.size(); j ++)
-		// 	{
-		// 		for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
-		// 		{
-		// 			def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
-		// 						 YY(projectedGoldBeads[randomIndexes[0]]),
-		// 						 XX(projectedGoldBeads[randomIndexes[1]]),
-		// 						 YY(projectedGoldBeads[randomIndexes[1]]),
-		// 						 XX(projectedGoldBeads[randomIndexes[2]]),
-		// 						 YY(projectedGoldBeads[randomIndexes[2]]),
-		// 						 XX(coordinatesInSlice[i]),
-		// 						 YY(coordinatesInSlice[i]),
-		// 						 XX(coordinatesInSlice[j]),
-		// 						 YY(coordinatesInSlice[j]),
-		// 						 XX(coordinatesInSlice[k]),
-		// 						 YY(coordinatesInSlice[k]),
-		// 						 A_alignment,
-		// 						 T_alignment,
-		// 						 invW_alignment)
-
-		// 			MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
-		// 			MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
-		// 			MAT_ELEM(alignment_matrix, 1, 0) = MAT_ELEM(A_alignment, 1, 0);
-		// 			MAT_ELEM(alignment_matrix, 1, 1) = MAT_ELEM(A_alignment, 1, 1);
-		// 			MAT_ELEM(alignment_matrix, 0, 2) = XX(T_alignment);
-		// 			MAT_ELEM(alignment_matrix, 1, 2) = YY(T_alignment);
-		// 			MAT_ELEM(alignment_matrix, 2, 0) = 0;
-		// 			MAT_ELEM(alignment_matrix, 2, 1) = 0;
-		// 			MAT_ELEM(alignment_matrix, 2, 2) = 1;
-		// 		}
-		// 	}
-		// }
-
-		// 	#ifdef DEBUG_RESID
-		// 	std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
-		// 	std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
-		// 	std::cout << "------------------------------------"<<std::endl;
-		// 	#endif
-
-
-		if (coordinatesInSlice.size() != 0)
-		{
-			size_t coordinate3dId = 0;
-
-			// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
-			for(size_t objId : inputCoordMd.ids())
-			{
-				minDistance = MAXDOUBLE;
-
-				inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
-				inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
-				inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
-
-				#ifdef DEBUG_RESID
-				std::cout << "=================================================================================" << std::endl;
-				std::cout << "goldBeadX " << goldBeadX << std::endl;
-				std::cout << "goldBeadY " << goldBeadY << std::endl;
-				std::cout << "goldBeadZ " << goldBeadZ << std::endl;
-				#endif
-
-				// Update coordinates wiht origin as the center of the tomogram (needed for rotation matrix multiplicaiton)
-				XX(goldBead3d) = (double) (goldBeadX - (double)xSize/2);
-				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conersion is needed
-				ZZ(goldBead3d) = (double) (goldBeadZ);
-
-				projectedGoldBead = projectionMatrix * goldBead3d;
-
-				XX(projectedGoldBead) += (double)xSize/2;
-				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
-				ZZ(projectedGoldBead) += 150;
-
-				#ifdef DEBUG_RESID
-				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
-				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
-				std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
-
-				std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
-				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
-				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
-				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
-				
-				std::cout << "=================================================================================" << std::endl;
-				#endif
-
-				// Iterate though every coordinate in the tilt-image and calculate the minimum distance
-				for(size_t i = 0; i < coordinatesInSlice.size(); i++)
-				{
-					distance = (XX(projectedGoldBead) - coordinatesInSlice[i].x)*(XX(projectedGoldBead) - coordinatesInSlice[i].x) + (YY(projectedGoldBead) - coordinatesInSlice[i].y)*(YY(projectedGoldBead) - coordinatesInSlice[i].y);
-
-					#ifdef DEBUG_RESID
-					std::cout << "------------------------------------------------------------------------------------" << std::endl;
-					std::cout << "i/i_total " << i << "/" << coordinatesInSlice.size()-1 << std::endl;
-					
-					std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
-					std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
-					std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
-					std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
-					
-					std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
-					std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
-					std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
-
-					std::cout << "coordinatesInSlice[i].x " << coordinatesInSlice[i].x << std::endl;
-					std::cout << "coordinatesInSlice[i].y " << coordinatesInSlice[i].y << std::endl;
-
-					std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
-					std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
-
-					std::cout << "minDistance " << minDistance << std::endl;
-					std::cout << "distance " << distance << std::endl;
-					std::cout << "------------------------------------------------------------------------------------" << std::endl;					
-					#endif
-					
-					if(distance < minDistance)
-					{
-						minDistance = distance;
-						minIndex = i;
-					}
-				}
-
-				// Back to Xmipp origin (top-left corner)
- 				XX(goldBead3d) = (double) goldBeadX;
-				
-				Point3D<double> cis(coordinatesInSlice[minIndex].x, coordinatesInSlice[minIndex].y, n);
-				Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
-				Point2D<double> res(coordinatesInSlice[minIndex].x - XX(projectedGoldBead), coordinatesInSlice[minIndex].y - YY(projectedGoldBead)); 
-
-				#ifdef DEBUG_RESID
-				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
-				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
-				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
-				
-				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
-				std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
-				std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
-
-				std::cout << "coordinatesInSlice[minIndex].x " << coordinatesInSlice[minIndex].x << std::endl;
-				std::cout << "coordinatesInSlice[minIndex].y " << coordinatesInSlice[minIndex].y << std::endl;
-
-				std::cout << "coordinatesInSlice[minIndex].x - XX(projectedGoldBead) " << coordinatesInSlice[minIndex].x - XX(projectedGoldBead) << std::endl;
-				std::cout << "coordinatesInSlice[minIndex].y - YY(projectedGoldBead) " << coordinatesInSlice[minIndex].y - YY(projectedGoldBead) << std::endl;
-
-				std::cout << "minDistance " << minDistance << std::endl;
-				std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-				#endif
-
-
-				CM cm {cis, c3d, res, coordinate3dId};
-				vCM.push_back(cm);
-
-				coordinate3dId += 1;
-			}
-		}else
-		{
-			std::cout << "WARNING: No coorinate peaked in slice " << n << ". IMPOSIBLE TO STUDY MISALIGNMENT IN THIS SLICE." << std::endl;
-		}
-	}
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Residual vectors calculated: " << residualX.size() << std::endl;
-	#endif
-}
-
 
 // --------------------------- I/O functions ----------------------------
 
@@ -1759,164 +1873,6 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 }
 
 
-// --------------------------- RESIDUAL ANALYSIS CLASS ----------------------------
-bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const std::vector<Point2D<double>> &residuals)
-{
-	double centroidX;
-	double centroidY;
-	double distance;
-	double maxDistance = 0;
-	double totalDistance = 0;
-	double chPerimeterer = 0;
-	double chArea = 0;
-
-	std::vector<Point2D<double>> hull;
-
-	for (size_t i = 0; i < residuals.size(); i++)
-	{
-
-		#ifdef DEBUG_RESIDUAL_ANALYSIS
-		std::cout << residuals[i].x << "  " << residuals[i].y << std::endl;
-		#endif
-
-		distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
-
-		// Total distance
-		totalDistance += distance;
-
-		// Maximum distance
-		if (distance > maxDistance)
-		{
-			maxDistance = distance;
-		}
-	}
-
-	std::cout << "totalDistance "  << totalDistance << std::endl;
-	std::cout << "maxDistance "  << maxDistance << std::endl;
-
-
-	// Convex Hull
-	auto p2dVector = residuals;
-	auto remainingP2d = residuals;
-	Point2D<double> p2d{0, 0};
-	Point2D<double> p2d_it{0, 0};
-	Point2D<double> minX_p2d{MAXDOUBLE, 0};
-
-	// Get minimum x component element *** TODO: this can be done more efficientely using std::min_element and defininf a cmp function
-	for (size_t i = 0; i < p2dVector.size(); i++)
-	{
-		if (p2dVector[i].x < minX_p2d.x)
-		{
-			minX_p2d = p2dVector[i];
-		}
-	}
-
-	// struct SortByX
-	// {
-	// 	bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
-	// };
-
-	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
-
-	// bool cmp(const Point2D<double>& a, const Point2D<double>& b)
-	// {
-    // 	return a.x < b.x;
-	// }
-
-	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
-
-	// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), [](Point2D const& l, Point2D const& r) {return l.x < r.x;});
-
-	hull.push_back(minX_p2d);
-
-	#ifdef DEBUG_RESIDUAL_ANALYSIS
-	std::cout << " minX_p2d" << minX_p2d.x << " " << minX_p2d.y << std::endl;
-	std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
-	std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
-	#endif
-
-	while (p2dVector.size()>0)
-	{
-		p2d = p2dVector[0];
-
-		while (remainingP2d.size()>0)
-		{
-			p2d_it = remainingP2d[0];
-
-			double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
-
-			if (angle<0)
-			{
-				angle += 2*PI;
-			}
-
-			if (angle < PI)
-			{
-				remainingP2d.erase(remainingP2d.begin());
-			}
-			else
-			{
-				p2d = p2d_it;
-				remainingP2d.erase(remainingP2d.begin());
-			}	
-		}
-
-		if (p2d.x==minX_p2d.x && p2d.y==minX_p2d.y)
-		{
-			break;
-		}
-
-		hull.push_back(p2d);
-
-		p2dVector.erase(p2dVector.begin());
-		remainingP2d = p2dVector;
-	}
-	
-
-	// CH-Perimeter
-	int shiftIndex;
-
-	for (size_t i = 0; i < hull.size(); i++)
-	{
-		shiftIndex = (i+1) % hull.size();
-		chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
-		                      (hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y));
-	}
-
-	std::cout << "chPerimeterer "  << chPerimeterer << std::endl;
-	
-
-	// CH-Area
-	double sum1 = 0;
-	double sum2 = 0;
-
-	for (size_t i = 0; i < hull.size(); i++)
-	{
-		shiftIndex = (i+1) % hull.size();
-		sum1 += hull[i].x * hull[shiftIndex].y;	
-		sum2 += hull[shiftIndex].x * hull[i].y;	
-	}
-
-	chArea = abs(0.5 * (sum1 - sum2));
-
-	std::cout << "chArea "  << chArea << std::endl;
-
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string fnVCM;
-	std::string fnStats;
-    fnVCM = rawname + "/vCM.xmd";
-	fnStats = rawname + "/residualStatistics.xmd";
-
-	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
-
-	std::cout << cmd << std::endl;
-	system(cmd.c_str());
-
-	return true;
-}
-
-
 // --------------------------- UNUSED functions ----------------------------
 
 // std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_t size)
@@ -1944,6 +1900,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 	
 // 	return indexes;
 // }
+
 
 
 // bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
@@ -2010,6 +1967,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // }
 
 
+
 // int ProgTomoDetectMisalignmentTrajectory::calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2)
 // {
 // 	// Eccuation of a line given 2 points:
@@ -2033,6 +1991,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // 	// return (int)((ySize/2-p1.y)*(p2.x-p1.x) / (p2.y-p1.y)) + p1.x;
 // 	return (int)(((xSize/2)-p1.x)*(p2.y-p1.y) / (p2.x-p1.x)) + p1.y;
 // }
+
 
 
 // bool ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
@@ -2156,6 +2115,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // }
 
 
+
 // void ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 // {
 
@@ -2197,6 +2157,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // }
 
 
+
 // void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
 // {
 // 	MetaDataVec md;
@@ -2223,6 +2184,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // 	std::cout << "Residuals metadata saved at: " << fnOutResiduals << std::endl;
 // 	#endif
 // }
+
 
 
 // void ProgTomoDetectMisalignmentTrajectory::generatePahntomVolume()
@@ -2281,6 +2243,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // }
 
 
+
 // void ProgTomoDetectMisalignmentTrajectory::binomialTestOnResiduals()
 // {
 // 	// Sign test (binomial distribution)
@@ -2334,6 +2297,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // 	std::cout << "binom_x "  << binom_x << std::endl;
 // 	std::cout << "binom_y "  << binom_y << std::endl;
 // }
+
 
 
 // void ProgTomoDetectMisalignmentTrajectory::eigenAutocorrMatrix()
@@ -2390,4 +2354,82 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(const
 // 	std::cout << "lambdaRatio=" << lambdaRatio << std::endl;
 
 // 	return true;
+// }
+
+
+
+// void ProgTomoDetectMisalignmentTrajectory::calculateAffinity(MetaDataVec &inputCoordMd)
+// {
+// 	// ***TODO: homogeneizar PointXD y MatrixXD
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Calculating residual vectors" << std::endl;
+// 	#endif
+
+// 	size_t objId;
+// 	size_t minIndex;
+// 	double tiltAngle;
+// 	double distance;
+// 	double minDistance;
+
+// 	int goldBeadX, goldBeadY, goldBeadZ;
+
+// 	Matrix2D<double> projectionMatrix;
+// 	Matrix1D<double> goldBead3d;
+// 	Matrix1D<double> projectedGoldBead;
+
+// 	std::vector<Point2D<double>> coordinatesInSlice;
+
+// 	// Matrix2D<double> A_alignment;
+// 	// Matrix1D<double> T_alignment;
+// 	// Matrix2D<double> invW_alignment;
+// 	// Matrix2D<double> alignment_matrix;
+
+
+// 	goldBead3d.initZeros(3);
+
+// 	// Iterate through every tilt-image
+// 	for(size_t n = 0; n<tiltAngles.size(); n++)
+// 	{	
+// 		std::vector<size_t> randomIndexes = getRandomIndexes(projectedGoldBead.size());
+
+// 		for(size_t i = 0; i < coordinatesInSlice.size(); i ++)
+// 		{
+// 			for(size_t j = 0; j < coordinatesInSlice.size(); j ++)
+// 			{
+// 				for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
+// 				{
+// 					def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
+// 									YY(projectedGoldBeads[randomIndexes[0]]),
+// 									XX(projectedGoldBeads[randomIndexes[1]]),
+// 									YY(projectedGoldBeads[randomIndexes[1]]),
+// 									XX(projectedGoldBeads[randomIndexes[2]]),
+// 									YY(projectedGoldBeads[randomIndexes[2]]),
+// 									XX(coordinatesInSlice[i]),
+// 									YY(coordinatesInSlice[i]),
+// 									XX(coordinatesInSlice[j]),
+// 									YY(coordinatesInSlice[j]),
+// 									XX(coordinatesInSlice[k]),
+// 									YY(coordinatesInSlice[k]),
+// 									A_alignment,
+// 									T_alignment,
+// 									invW_alignment)
+
+// 					MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
+// 					MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
+// 					MAT_ELEM(alignment_matrix, 1, 0) = MAT_ELEM(A_alignment, 1, 0);
+// 					MAT_ELEM(alignment_matrix, 1, 1) = MAT_ELEM(A_alignment, 1, 1);
+// 					MAT_ELEM(alignment_matrix, 0, 2) = XX(T_alignment);
+// 					MAT_ELEM(alignment_matrix, 1, 2) = YY(T_alignment);
+// 					MAT_ELEM(alignment_matrix, 2, 0) = 0;
+// 					MAT_ELEM(alignment_matrix, 2, 1) = 0;
+// 					MAT_ELEM(alignment_matrix, 2, 2) = 1;
+// 				}
+// 			}
+// 		}
+
+// 			#ifdef DEBUG_RESID
+// 			std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
+// 			std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
+// 			std::cout << "------------------------------------"<<std::endl;
+// 			#endif	
 // }
