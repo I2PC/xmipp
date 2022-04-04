@@ -212,7 +212,7 @@ void CL2DClass::transferUpdate(bool centerReference)
 constexpr double SHIFT_THRESHOLD = 	0.95;		// Shift threshold in pixels.
 constexpr float ROTATE_THRESHOLD = 	1.0	;		// Rotate threshold in degrees.
 
-constexpr float INITIAL_SHIFT_THRESHOLD = 	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr double INITIAL_SHIFT_THRESHOLD = 	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
 constexpr float INITIAL_ROTATE_THRESHOLD = 	ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 //#define DEBUG
