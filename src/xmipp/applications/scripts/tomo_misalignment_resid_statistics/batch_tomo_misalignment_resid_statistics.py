@@ -101,10 +101,10 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     for i in range(len(residualStats)):
       id = mData.addObject()
-      mData.setValue(xmippLib.MDL_SCORE_BY_ALIGNABILITY, residualStats[i][0], id)
-      mData.setValue(xmippLib.MDL_SCORE_BY_ALIGNABILITY_PRECISION, residualStats[i][1], id)
-      mData.setValue(xmippLib.MDL_SCORE_BY_ALIGNABILITY_ACCURACY, residualStats[i][2], id)
-      mData.setValue(xmippLib.MDL_SCORE_BY_ALIGNABILITY_PRECISION_EXP, residualStats[i][3], id)
+      mData.setValue(xmippLib.MDL_ENABLED, residualStats[i][0], id)
+      mData.setValue(xmippLib.MDL_MIN, residualStats[i][1], id)
+      mData.setValue(xmippLib.MDL_MAX, residualStats[i][2], id)
+      mData.setValue(xmippLib.MDL_IMAGE, residualStats[i][3], id)
 
       
     mData.write(mdFilePath)
@@ -156,7 +156,7 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     pValue = stats.binom_test(nPos, rs , self.p)
 
-    print("Binomial test p-value: " + str(pValue))
+    # print("Binomial test p-value: " + str(pValue))
 
     return pValue
 
@@ -167,7 +167,7 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     pValue = stats.f.cdf(fStatistic, rs-1, rs-1)
 
-    print("F test for variance p-value: " + str(pValue))
+    # print("F test for variance p-value: " + str(pValue))
 
     return pValue
 
@@ -179,7 +179,7 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     pValue = stats.f.cdf(fStatistic, rs-1, rs-1)
 
-    print("F test for variance p-value: " + str(pValue))
+    # print("F test for variance p-value: " + str(pValue))
 
     return pValue
   
@@ -193,16 +193,16 @@ class ScriptTomoResidualStatistics(XmippScript):
     pValue = result[1]
     criticalValues = result[4]
 
-    print("Augmented Dickey-Fuller test for random walk ADF statistic: " + str(adfStatistic))
-    print("Augmented Dickey-Fuller test for random walk p-value: " + str(pValue))
-    print("Augmented Dickey-Fuller test for random walk critical values: ")
+    # print("Augmented Dickey-Fuller test for random walk ADF statistic: " + str(adfStatistic))
+    # print("Augmented Dickey-Fuller test for random walk p-value: " + str(pValue))
+    # print("Augmented Dickey-Fuller test for random walk critical values: ")
     for key, value in criticalValues.items():
       print('\t%s: %.3f' % (key, value))
     
     return adfStatistic, pValue, criticalValues
 
   def run(self):
-    print("Running statistical analysis of misalingment residuals...")
+    # print("Running statistical analysis of misalingment residuals...")
 
     self.readResidInfo()
     self.generateSideInfo()
@@ -224,7 +224,6 @@ class ScriptTomoResidualStatistics(XmippScript):
     # print("nPosY")
     # print(self.nPosY)
 
-    residualStats = []
     pValues = []
 
     for key in self.residX.keys():
@@ -248,7 +247,7 @@ class ScriptTomoResidualStatistics(XmippScript):
         # sumRadius += sqrt(rx2+ry2)
         varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
 
-      print(varianceMatrix)
+      # print(varianceMatrix)
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
@@ -256,24 +255,33 @@ class ScriptTomoResidualStatistics(XmippScript):
 
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
-      residualStats.append([pvBinX, pvBinY, pvF, pvADF])
       pValues.append([pvBinX, str(key) + "_pvBinX"])
       pValues.append([pvBinY, str(key) + "_pvBinY"])
       pValues.append([pvF, str(key) + "_pvF"])
       pValues.append([pvADF, str(key) + "_pvADF"])
 
-    print(residualStats)
-
-    self.writeOutputStatsInfo(residualStats)
     pValues.sort()
    
-    for j, p in enumerate(pValues):
-      i = j + 1
-      if p[0]*i > self.alpha:
-        print("Failed test "+ str(p[1]) + " with value " + str(p[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
-        break
+    residualStats = []
+    firstFail = True
 
-    # TODO : generate two lists containig passed and not passed test
+    for j, pv in enumerate(pValues):
+      i = j + 1
+
+      if pv[0]*i > self.alpha:
+        residualStats.append([-1, pv[0], pv[0]*i, pv[1]])
+        
+        if firstFail:
+          print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
+          firstFail = False
+      
+      else:
+        residualStats.append([1, pv[0], pv[0]*i, pv[1]])
+
+    print(residualStats)
+    self.writeOutputStatsInfo(residualStats)
+
+
 
 if __name__ == '__main__':
 
