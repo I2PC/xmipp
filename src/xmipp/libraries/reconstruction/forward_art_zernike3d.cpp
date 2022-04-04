@@ -401,6 +401,7 @@ void ProgForwardArtZernike3D::splattingAtPos(std::array<float, 2> r, float weigh
 	int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
 	auto alpha = blob.alpha;
 	auto order = blob.order;
+	int size = gaussianProjectionTable.size();
 	// Perform splatting at this position r
 	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
 	for (int i = i0; i <= iF; i++)
@@ -415,9 +416,12 @@ void ProgForwardArtZernike3D::splattingAtPos(std::array<float, 2> r, float weigh
 			// A2D_ELEM(mP, i, j) += weight * val;
 			// A2D_ELEM(mW, i, j) += val * val;
 			// A2D_ELEM(mW, i, j)++;
-			float gw = VEC_ELEM(gaussianProjectionTable,idx);
-			A2D_ELEM(mP, i, j) += weight * gw;
-			A2D_ELEM(mW, i, j) += gw * gw;
+			if (idx < size)
+			{
+				float gw = gaussianProjectionTable.vdata[idx];
+				A2D_ELEM(mP, i, j) += weight * gw;
+				A2D_ELEM(mW, i, j) += gw * gw;
+			}
 		}
 	}
 }
@@ -592,6 +596,9 @@ void ProgForwardArtZernike3D::run()
 		}
 		num_images = 1;
 		current_save_iter = 1;
+
+		recoverVol();
+		Vout.write(fnVolO.removeAllExtensions() + "_iter" + std::to_string(current_iter + 1) + ".mrc");
 
 		// Vrefined().threshold("below", 0, 0);
 		// Mask mask;
@@ -826,53 +833,56 @@ void ProgForwardArtZernike3D::zernikeModel()
 			for (int j = STARTINGX(mV); j <= lastX; j += step)
 			{
 				float gx = 0.0f, gy = 0.0f, gz = 0.0f;
-				if (USESZERNIKE && A3D_ELEM(Vmask, k, i, j) == 1)
+				if (A3D_ELEM(Vmask, k, i, j) > 0.01)
 				{
-					auto k2 = k * k;
-					auto kr = k * iRmaxF;
-					auto k2i2 = k2 + i * i;
-					auto ir = i * iRmaxF;
-					auto r2 = k2i2 + j * j;
-					auto jr = j * iRmaxF;
-					auto rr = sqrt(r2) * iRmaxF;
-					for (size_t idx = 0; idx < idxY0; idx++)
-					{
-						auto l1 = VEC_ELEM(vL1, idx);
-						auto n = VEC_ELEM(vN, idx);
-						auto l2 = VEC_ELEM(vL2, idx);
-						auto m = VEC_ELEM(vM, idx);
-						if (rr > 0 || l2 == 0)
+					if (USESZERNIKE) {
+						auto k2 = k * k;
+						auto kr = k * iRmaxF;
+						auto k2i2 = k2 + i * i;
+						auto ir = i * iRmaxF;
+						auto r2 = k2i2 + j * j;
+						auto jr = j * iRmaxF;
+						auto rr = sqrt(r2) * iRmaxF;
+						for (size_t idx = 0; idx < idxY0; idx++)
 						{
-							auto zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
-							gx += clnm[idx] * (zsph);
-							gy += clnm[idx + idxY0] * (zsph);
-							gz += clnm[idx + idxZ0] * (zsph);
+							auto l1 = VEC_ELEM(vL1, idx);
+							auto n = VEC_ELEM(vN, idx);
+							auto l2 = VEC_ELEM(vL2, idx);
+							auto m = VEC_ELEM(vM, idx);
+							if (rr > 0 || l2 == 0)
+							{
+								auto zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+								gx += clnm[idx] * (zsph);
+								gy += clnm[idx + idxY0] * (zsph);
+								gz += clnm[idx + idxZ0] * (zsph);
+							}
 						}
 					}
-				}
-				auto r_x = j + gx;
-				auto r_y = i + gy;
-				auto r_z = k + gz;
 
-				if (A3D_ELEM(Vmask, k, i, j) == 1 && DIRECTION == Direction::Forward)
-				{
-					auto pos = std::array<float, 2>{};
-					pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
-					pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-					float voxel_mV = A3D_ELEM(mV, k, i, j);
-					splattingAtPos(pos, voxel_mV, mP, mW, mV);
-				}
-				else if (A3D_ELEM(Vmask, k, i, j) == 1 && DIRECTION == Direction::Backward)
-				{
-					// auto pos = std::array<float, 3>{};
-					auto pos_x = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
-					auto pos_y = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-					// pos[0] = j;
-					// pos[1] = i;
-					// pos[2] = k;
-					float voxel = mId.interpolatedElement2D(pos_x, pos_y);
-					A3D_ELEM(mV, k, i, j) += voxel;
-					// updateVoxel(pos, voxel, mV);
+					auto r_x = j + gx;
+					auto r_y = i + gy;
+					auto r_z = k + gz;
+
+					if (DIRECTION == Direction::Forward)
+					{
+						auto pos = std::array<float, 2>{};
+						pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
+						pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
+						float voxel_mV = A3D_ELEM(mV, k, i, j);
+						splattingAtPos(pos, voxel_mV, mP, mW, mV);
+					}
+					else if (DIRECTION == Direction::Backward)
+					{
+						// auto pos = std::array<float, 3>{};
+						auto pos_x = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
+						auto pos_y = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
+						// pos[0] = j;
+						// pos[1] = i;
+						// pos[2] = k;
+						float voxel = mId.interpolatedElement2D(pos_x, pos_y);
+						A3D_ELEM(mV, k, i, j) += voxel;
+						// updateVoxel(pos, voxel, mV);
+					}
 				}
 			}
 		}

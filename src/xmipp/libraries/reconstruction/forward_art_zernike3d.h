@@ -183,6 +183,9 @@ public:
     void deformVol(MultidimArray<float> &mP, MultidimArray<float> &mW,
                    const MultidimArray<float> &mV,
                    float rot, float tilt, float psi);
+    
+    void recoverVol();
+    virtual void finishProcessing();
 
     // void updateCTFImage(float defocusU, float defocusV, float angle);
 
@@ -203,11 +206,8 @@ public:
                         MultidimArray<float> &mV);
 
     void updateVoxel(std::array<float, 3> r, float &voxel, MultidimArray<float> &mV);
-    void recoverVol();
 
     // virtual void checkPoint();
-    
-    virtual void finishProcessing();
 
     virtual void run();
 
