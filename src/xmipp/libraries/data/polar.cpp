@@ -163,7 +163,8 @@ void polarFourierTransform(const MultidimArray<double> &in,
                 BsplineOrder);
     }
     if (NORMALIZE) {
-        double mean, stddev;
+        double mean;
+		double stddev;
         inAux.computeAverageAndStddev(mean, stddev);
         inAux.normalize(mean, stddev);
     }
@@ -196,7 +197,8 @@ template void polarFourierTransform<false>(const MultidimArray<double> &in,
 void normalizedPolarFourierTransform(Polar<double> &polarIn,
         Polar<std::complex<double> > &out, bool conjugated,
         Polar_fftw_plans *&plans) {
-    double mean, stddev;
+    double mean;
+	double stddev;
     polarIn.computeAverageAndStddev(mean, stddev);
     polarIn.normalize(mean, stddev);
     if (plans == nullptr) {
@@ -235,7 +237,8 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 	I2.setXmippOrigin();
 
 	Polar_fftw_plans *plans = nullptr;
-	Polar<std::complex<double> > polarFourierI2, polarFourierI1;
+	Polar<std::complex<double> > polarFourierI2;
+	Polar<std::complex<double> > polarFourierI1;
 	polarFourierTransform<true>(I1, polarFourierI1, false, XSIZE(I1) / 5,
 			XSIZE(I1) / 2, plans);
 	polarFourierTransform<true>(I2, polarFourierI2, true, XSIZE(I2) / 5,
@@ -324,7 +327,8 @@ void volume_convertCartesianToCylindrical(const MultidimArray<double> &in,
 		rotation3DMatrix(RAD2DEG(rotAng), v, M, false);
 	}
 
-	Matrix1D<double> p(3), pc(3);
+	Matrix1D<double> p(3);
+	Matrix1D<double> pc(3);
 	SPEED_UP_temps012;
 	for (size_t i = 0; i < NAngSteps; ++i) {
 		float angle = angMin + i * deltaAng;

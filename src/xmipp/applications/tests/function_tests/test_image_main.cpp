@@ -24,6 +24,7 @@ protected:
         imageName = "image/singleImage.spi";
         stackName = "image/smallStack.stk";
         stackVolName= "image/smallVolumeStack.stk";
+        imageNameMRC = "image/singleImage.mrc";
         myImage.read(imageName);
         myStack.read(stackName);
         myVolStack.read(stackVolName);
@@ -38,7 +39,7 @@ protected:
     FileName stackName;
     FileName stackVolName;
     FileName xmippPath;
-
+    FileName imageNameMRC;
 };
 
 
@@ -345,6 +346,16 @@ TEST_F( ImageTest, readRAWimage)
     EXPECT_EQ(myImage,auxImage);
     auxFn.deleteFile();
     XMIPP_CATCH
+}
+
+TEST_F( ImageTest, readMRC) {
+    ASSERT_TRUE(myImage.read(imageNameMRC) == 0);
+
+    ImageInfo info;
+    myImage.getInfo(info);
+
+    ASSERT_TRUE(info.filename == imageNameMRC);
+    ASSERT_TRUE(info.datatype ==  DT_Float);//// Floating point (4-byte)
 }
 
 TEST_F( ImageTest, readPreview)

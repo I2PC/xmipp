@@ -83,6 +83,11 @@ public:
     /// Destructor
     ~ProgClassifyCL2DCore();
 
+    ProgClassifyCL2DCore(const ProgClassifyCL2DCore &)=delete;
+    ProgClassifyCL2DCore(const ProgClassifyCL2DCore &&)=delete;
+    ProgClassifyCL2DCore & operator=(const ProgClassifyCL2DCore &)=delete;
+    ProgClassifyCL2DCore & operator=(const ProgClassifyCL2DCore &&)=delete;
+
     /// Read argument from command line
     void readParams();
 
@@ -94,6 +99,9 @@ public:
 
     /// Produce side info
     void produceSideInfo();
+
+    /// Produce class input format
+    void produceClassInfo();
 
     /// Remove outliers
     void computeCores();

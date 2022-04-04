@@ -488,8 +488,12 @@ public:
     void computeAverageAndStddev(double &avg, double &stddev,
                                  int mode = FULL_CIRCLES) const
     {
-        double aux, sum = 0., sum2=0.;
-        double twopi, w, N = 0;
+        double aux;
+        double sum = 0.;
+        double sum2=0.;
+        double twopi;
+        double w;
+        double N = 0;
 
         if (mode == FULL_CIRCLES)
             twopi = 2.*PI;
@@ -555,7 +559,7 @@ public:
     void getCartesianCoordinates(std::vector<double> &x,
                                  std::vector<double> &y,
                                  std::vector<T> &data,
-                                 const double extra_shell = GRIDDING_K/2)
+                                 const int extra_shell = GRIDDING_K/2)
     {
         // Only for full circles for now!
         if (mode != FULL_CIRCLES)
@@ -582,15 +586,16 @@ public:
         // Add additional points on the inside and outside of the rings
         // Add a maximum of "extra_shell" rings
         // Set data to zero here
-        double first_ring  = ring_radius[0];
-        double last_ring   = ring_radius[rings.size()-1];
-        float outer       = last_ring + extra_shell;
-        float inner       = XMIPP_MAX(0.,first_ring - extra_shell);
-        for (float radius = 0.; radius < outer; radius +=1.)
+        auto first_ring  = (int)floor(ring_radius[0]);
+        auto last_ring   = (int)ceil(ring_radius[rings.size()-1]);
+        int outer       = last_ring + extra_shell;
+        int inner       = XMIPP_MAX(0,first_ring - extra_shell);
+        for (int iradius = 0; iradius < outer; iradius +=1)
         {
-            if ( (radius >= inner && radius < first_ring) ||
-                 ( radius <= outer && radius > last_ring) )
+            if ( (iradius >= inner && iradius < first_ring) ||
+                 (iradius <= outer && iradius > last_ring) )
             {
+            	double radius=iradius;
                 int nsam = 2 * (int)( 0.5 * oversample * TWOPI * radius );
                 nsam = XMIPP_MAX(1, nsam);
                 float dphi = TWOPI / (float)nsam;
@@ -603,7 +608,6 @@ public:
                 }
             }
         }
-
     }
 
     /** Convert cartesian MultidimArray to Polar using B-spline interpolation
@@ -624,7 +628,12 @@ public:
                                       double oversample1 = 1., int mode1 = FULL_CIRCLES)
     {
         double twopi;
-        double xp, yp, minxp, maxxp, minyp, maxyp;
+        double xp;
+        double yp;
+        double minxp;
+        double maxxp;
+        double minyp;
+        double maxyp;
 
         auto noOfRings = getNoOfRings(first_ring, last_ring);
         rings.resize(noOfRings);

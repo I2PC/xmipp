@@ -549,15 +549,6 @@ public:
         return o;
     }
 
-    /** Assignment.
-        \\ Ex: Grid BCC2=BCC1; */
-    Grid& operator = (const Grid &G)
-    {
-        if (&G != this)
-            LG = G.LG;
-        return *this;
-    }
-
     /** Another function for assignment.*/
     void assign(const Grid &G)
     {
@@ -856,7 +847,9 @@ public:
         G = _grid;
 
         // Generate a volume for each subgrid
-        int                        Zdim, Ydim, Xdim;
+        int Zdim;
+        int Ydim;
+        int Xdim;
         Image<T> *                 Vol_aux;
         for (size_t i = 0; i < G.GridsNo(); i++)
         {
@@ -894,7 +887,9 @@ public:
             grid.highest.selfCEIL();
 
             // Resize auxiliary volume
-            int Zdim, Ydim, Xdim;
+            int Zdim;
+            int Ydim;
+            int Xdim;
             grid.getSize(Zdim, Ydim, Xdim);
             Vol_aux = new Image<T>;
             (*Vol_aux)().resize(Zdim, Ydim, Xdim);
@@ -1214,7 +1209,9 @@ public:
             return;
 
         // Create the writing volume ............................................
-        size_t Zdim = 0, Ydim = 0, Xdim = 0;
+        size_t Zdim = 0;
+        size_t Ydim = 0;
+        size_t Xdim = 0;
         for (size_t v = 0; v < VolumesNo(); v++)
         {
             const Image<T> & this_vol = (*this)(v);
@@ -1242,8 +1239,12 @@ public:
         int sli = 0;
         for (size_t v = 0; v < VolumesNo(); v++)
         {
-            int pos, ii, jj;           // Position inside the control slice
-            size_t k, i, j;               // Auxiliar counters
+            int pos;                // Position inside the control slice
+            int ii;                 // Position inside the control slice
+            int jj;                 // Position inside the control slice
+            size_t k;               // Auxiliar counters
+            size_t i;               // Auxiliar counters
+            size_t j;               // Auxiliar counters
 
             // Choose grid and volume
             const SimpleGrid & this_grid = grid(v);
@@ -1374,10 +1375,18 @@ public:
 
             while (sli < ZSIZE(V()))
             {
-                int pos, ii, jj;           // Position inside the control slice
-                size_t k, i, j;               // Auxiliary counters
-                size_t Zdim, Ydim, Xdim;
-                int   Zinit, Yinit, Xinit;
+                int pos;                // Position inside the control slice
+                int ii;                 // Position inside the control slice
+                int jj;                 // Position inside the control slice
+                size_t k;               // Auxiliary counters
+                size_t i;               // Auxiliary counters
+                size_t j;               // Auxiliary counters
+                size_t Zdim;
+                size_t Ydim;
+                size_t Xdim;
+                int Zinit;
+                int Yinit;
+                int Xinit;
 
                 // Read Grid data ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
                 pos = 0;

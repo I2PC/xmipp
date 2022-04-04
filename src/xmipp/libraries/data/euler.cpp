@@ -48,7 +48,9 @@ Euler::angleMapping(int &i, int &j, int &k) const
 void
 Euler::setXYZVector(const Matrix1D<double> &v)
 {
-    int i,j,k;
+    int i;
+    int j;
+    int k;
     angleMapping(i,j,k);
     vec3(i) = XX(v);
     vec3(j) = YY(v);
@@ -58,7 +60,9 @@ Euler::setXYZVector(const Matrix1D<double> &v)
 //inline Matrix1D<double>
 void Euler::toXYZVector(Matrix1D<double> &v) const
 {
-    int i,j,k;
+    int i;
+    int j;
+    int k;
     angleMapping(i,j,k);
     VEC_ELEM(v, 0) = vec3(i);
     VEC_ELEM(v, 1) = vec3(j);
@@ -151,7 +155,9 @@ Euler::Euler( const Matrix2D<double> &M, Euler::eulerOrder p )
 
 void Euler::extract(const Matrix2D<double> &M)
 {
-    int i,j,k;
+    int i;
+    int j;
+    int k;
     angleOrder(i,j,k);
     if (_initialRepeated)
     {
@@ -243,7 +249,9 @@ void Euler::extract(const Matrix2D<double> &M)
 
 void Euler::toMatrix(Matrix2D<double>& M) const
 {
-    int i,j,k;
+    int i;
+    int j;
+    int k;
     angleOrder(i,j,k);
 
     Matrix1D<double> angles;
@@ -370,7 +378,9 @@ std::ostream& operator << (std::ostream &o, const Euler &euler)
     char a[3] = { 'X', 'Y', 'Z' };
 
     const char* r = euler.frameStatic() ? "" : "r";
-    int i,j,k;
+    int i;
+    int j;
+    int k;
     euler.angleOrder(i,j,k);
 
     if ( euler.initialRepeated() )
@@ -410,7 +420,9 @@ Euler::nearestRotation (Matrix1D<double> &xyzRot,
                         const Matrix1D<double> &targetXyzRot,
                         eulerOrder order)
 {
-    int i,j,k;
+    int i;
+    int j;
+    int k;
     Euler e (0,0,0, order);
     e.angleOrder(i,j,k);
 
@@ -452,10 +464,21 @@ Euler::makeNear (const Euler &target)
 void Euler::eulerRotate (Matrix2D <double> &M,
                          const Matrix1D <double> &r)
 {
-    double cos_rz, sin_rz, cos_ry, sin_ry, cos_rx, sin_rx;
-    double m00, m01, m02;
-    double m10, m11, m12;
-    double m20, m21, m22;
+    double cos_rz;
+    double sin_rz;
+    double cos_ry;
+    double sin_ry;
+    double cos_rx;
+    double sin_rx;
+    double m00;
+    double m01;
+    double m02;
+    double m10;
+    double m11;
+    double m12;
+    double m20;
+    double m21;
+    double m22;
 
     cos_rz = cos (ZZ(r));
     cos_ry = cos (YY(r));

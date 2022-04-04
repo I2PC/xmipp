@@ -197,7 +197,10 @@ void PCAAnalyzer::reset(ClassicTrainingVectors const &ts, std::vector<unsigned> 
                     a[iq][ip] = 0.0;
                 else if (fabs(a[iq][ip]) > tresh)
                 {
-                    floatFeature tau, t, s, c;
+                    floatFeature tau;
+                    floatFeature t;
+                    floatFeature s;
+                    floatFeature c;
                     floatFeature h = d[iq] - d[ip];
                     if (fabs(h) + g == fabs(h))
                         t = a[iq][ip] / h;
@@ -418,28 +421,6 @@ std::istream& operator >> (std::istream &in, PCAAnalyzer &PC)
     return in;
 }
 
-/* PCA set destructor ------------------------------------------------------ */
-PCA_set::~PCA_set()
-{
-    size_t imax = PCA.size();
-    for (int i = 0; i < imax; i++)
-        delete PCA[i];
-}
-
-/* Assignment -------------------------------------------------------------- */
-PCA_set & PCA_set::operator = (const PCA_set &other)
-{
-	size_t imax = PCA.size();
-    for (size_t i = 0; i < imax; i++)
-        delete PCA[i];
-	PCA.clear();
-
-    imax=other.PCA.size();
-    for (size_t i = 0; i < imax; i++)
-        PCA.emplace_back(new PCAAnalyzer(*(other.PCA[i])));
-	return *this;
-}
-
 
 #ifdef UNUSED // detected as unused 29.6.2018
 /* Create empty PCA -------------------------------------------------------- */
@@ -459,7 +440,7 @@ std::ostream& operator << (std::ostream &out, const PCA_set &PS)
     int imax = PS.PCA.size();
     out << "Number of PCAs: " << imax << std::endl;
     for (int i = 0; i < imax; i++)
-        out << *(PS.PCA[i]);
+        out << PS.PCA[i];
     return out;
 }
 
@@ -472,8 +453,7 @@ std::istream& operator >> (std::istream &in, PCA_set &PS)
     PS.PCA.resize(imax);
     for (int i = 0; i < imax; i++)
     {
-        PS.PCA[i] = new PCAAnalyzer;
-        in >> *(PS.PCA[i]);
+        in >> PS.PCA[i];
     }
     return in;
 }

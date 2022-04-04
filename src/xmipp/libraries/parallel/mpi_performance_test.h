@@ -38,13 +38,17 @@ public:
 	FileName fnIn;
 public:
     // Mpi node
-    MpiNode *node;
+    MpiNode *node=nullptr;
 public:
     /// Empty constructor
     ProgPerformanceTest(int argc, char **argv);
+    ProgPerformanceTest(const ProgPerformanceTest&)=delete;
+    ProgPerformanceTest(const ProgPerformanceTest&&)=delete;
 
     /// Destructor
     ~ProgPerformanceTest();
+    ProgPerformanceTest & operator =(const ProgPerformanceTest &)=delete;
+    ProgPerformanceTest & operator =(const ProgPerformanceTest &&)=delete;
 
     /// Read argument from command line
     void readParams();

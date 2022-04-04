@@ -50,10 +50,14 @@ public:
     BSplineGeoTransformer() {
         setDefault();
     }
+    BSplineGeoTransformer(const BSplineGeoTransformer&)=delete;
+    BSplineGeoTransformer(const BSplineGeoTransformer&&)=delete;
 
     virtual ~BSplineGeoTransformer() {
         release();
     }
+    BSplineGeoTransformer &operator=(const BSplineGeoTransformer&)=delete;
+    BSplineGeoTransformer &operator=(const BSplineGeoTransformer&&)=delete;
 
     virtual void setSrc(const T *data) override {
         m_src = data;

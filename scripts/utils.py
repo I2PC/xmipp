@@ -47,6 +47,18 @@ def blue(text):
     return "\033[34m "+text+"\033[0m"
 
 
+def printXmippLogo(indentation):
+    print('\n')
+    print(indentation, r'''  /\\¯¯¯¯//\ ''')
+    print(indentation, r''' /  \\  //  \ ''')
+    print(indentation, r'''|   ''', end='')
+    print(green('mipp'), end='')
+    print('''    | ''')
+    print(indentation, r''' \  //  \\  / ''')
+    #print(indentation, r''' \   //     \\   / ''')
+    print(indentation, r'''  \//____\\/ ''')
+
+
 def find_newest(program, versions, show):
     for v in versions:
         p = program + '-' + str(v) if v else program
@@ -73,12 +85,13 @@ def find(program, path=[]):
 
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
-           inParallel=False):
+           in_parallel=False):
+    str_out = []
     if show_command:
         print(green(cmd))
-    p = subprocess.Popen(cmd, cwd=cwd, env=environ,
-                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-    while not inParallel:
+    p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, shell=True)
+    while not in_parallel:
         output = p.stdout.readline().decode("utf-8")
         if output == '' and p.poll() is not None:
             break
@@ -86,12 +99,19 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
             l = output.rstrip()
             if show_output:
                 print(l)
+            elif log is None:
+                str_out.append(l)
             if log is not None:
                 log.append(l)
-    if inParallel:
+    if in_parallel:
         return p
+    elif 0 == p.poll():
+        return True
     else:
-        return 0 == p.poll()
+        if show_output is False and log is None:
+            print(yellow(''.join(str_out)))
+            print('\n')
+        return False
 
 
 def whereis(program, findReal=False, env=None):
