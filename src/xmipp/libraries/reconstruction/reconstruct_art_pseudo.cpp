@@ -30,7 +30,7 @@
 #include "core/geometry.h"
 #include "core/xmipp_image.h"
 
-constexpr signed int FORWARD =   1;
+constexpr int FORWARD =   1;
 constexpr signed int BACKWARD = -1;
 
 /** Projection of a pseudoatom volume */
