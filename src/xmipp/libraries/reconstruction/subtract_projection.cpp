@@ -119,11 +119,20 @@
 	return m;
  }
 
- void ProgSubtractProjection::readParticle(const MDRowVec &r){
-	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
-	I.read(fnImage);
-	I().setXmippOrigin();
-	I.write(formatString("%s0_I.mrc", fnProj.c_str())); 
+ Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
+ 	double maxMaskVol;
+ 	double minMaskVol;
+ 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
+ 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
+		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0; 
+ 	return m;
+ }
+
+ Image<double> invertMask(const Image<double> &m) {
+	Image<double> PmaskI = m;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskI())
+		DIRECT_MULTIDIM_ELEM(PmaskI,n) = (DIRECT_MULTIDIM_ELEM(PmaskI,n)*(-1))+1;
+	return PmaskI;
  }
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
@@ -153,28 +162,6 @@
 	return proj;
  }
 
- Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
- 	double maxMaskVol;
- 	double minMaskVol;
- 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
-		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0; 
- 	return m;
- }
-
- Image<double> invertMask(const Image<double> &m) {
-	Image<double> PmaskI = m;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskI())
-		DIRECT_MULTIDIM_ELEM(PmaskI,n) = (DIRECT_MULTIDIM_ELEM(PmaskI,n)*(-1))+1;
-	return PmaskI;
- }
-
- void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img) {
-	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
-	img.write(out);
-	mdParticles.setValue(MDL_IMAGE, out, ix);
- }
-
  double evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp)
  {
 	double sumY = 0, sumY2 = 0, sumE2 = 0;
@@ -187,16 +174,13 @@
 	}
 	double meanY = sumY / MULTIDIM_SIZE(y);
 	double varY = sumY2 / MULTIDIM_SIZE(y) - meanY * meanY;
-	double R2;
-	return R2 = 1 - sumE2 / varY;
+	double R2 = 1 - sumE2 / varY;
+	return R2;
  }
 
 void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap)
 {
 	double N = MULTIDIM_SIZE(beta);
-	MultidimArray<double> idx(N);
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
-		DIRECT_MULTIDIM_ELEM(idx, n) = n;
 
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
@@ -208,6 +192,9 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	double R20adj = 1 - (1 - R20) * (N - 1) / (N - 1);
 
 	// Fit order 1 beta=beta0+beta1*idx
+	MultidimArray<double> idx(N);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
+		DIRECT_MULTIDIM_ELEM(idx, n) = n;
 	double sumX = 0, sumX2 = 0, sumY = 0, sumXY = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
 	{
@@ -223,7 +210,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
 		DIRECT_MULTIDIM_ELEM(betap1, n) = beta10 + beta11 * DIRECT_MULTIDIM_ELEM(idx, n);
 	double R21 = evaluateFitting(beta, betap1);
-	double R21adj = 1 - (1 - R20) * (N - 1) / (N - 1 - 1);
+	double R21adj = 1 - (1 - R21) * (N - 1) / (N - 1 - 1);
 
 	// Decide fitting
 	if (R21adj > R20adj)
@@ -231,6 +218,19 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	else
 		betap = betap0;
 }
+
+ void ProgSubtractProjection::readParticle(const MDRowVec &r){
+	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
+	I.read(fnImage);
+	I().setXmippOrigin();
+	I.write(formatString("%s0_I.mrc", fnProj.c_str())); 
+ }
+
+ void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img) {
+	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
+	img.write(out);
+	mdParticles.setValue(MDL_IMAGE, out, ix);
+ }
 
  void ProgSubtractProjection::run() {
 	show();
@@ -244,20 +244,20 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
-	// Initialize Gaussian LPF to threshold mask with ctf
-	FilterG2.FilterShape=REALGAUSSIAN;
-	FilterG2.FilterBand=LOWPASS;
-	FilterG2.w1=2;
-	// Initialize LPF to filter at desired resolution
-	Filter2.FilterBand=LOWPASS;
-	Filter2.FilterShape=RAISED_COSINE;
-	Filter2.raised_w=0.02;
-	double cutFreq = sampling/maxResol;
-	Filter2.w1 = cutFreq;
 
 	// Initialize Fourier projectors
+	double cutFreq = sampling/maxResol;
 	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+	// Dilate final mask in 3D and initialize its projector
+	// double fmaskWidth_px;
+	// fmaskWidth_px = fmaskWidth/sampling;
+	// Image<double> Mfinal;
+	// Mfinal = vM; 
+	// Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
+	// dilate3D(Mfinal(), Mfinal(), 26, 0, 40);
+	// Mfinal.write(formatString("%s66_maskFinalDILATED.mrc", fnProj.c_str()));
+	// FourierProjector *projectorMaskDilated = new FourierProjector(Mfinal(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 
 	// Construct image representing the frequency of each pixel 
 	row = mdParticles.getRowVec(1);
@@ -388,32 +388,41 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		MultidimArray<double> betap;	
 		betap.initZeros(maxwiIdx); 
 		checkBestModel(beta, betap);
-		double betaMean = betap.computeAvg(); 
+		double betaMean = betap.computeAvg();
 		std::complex<double> beta0; 
-		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1);
-
-		std::cout << "---i: " << i << std::endl;
-		std::cout << "---betaMean: " << betaMean << std::endl;
-		std::cout << "---beta0: " << beta0 << std::endl;
+		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1); // if betap = beta1 (order 1) -> betaMean is ok?
 
 		// Apply adjustment: PFourierAdjusted = PFourier*betaMean
 		std::complex<double> PFourier11 = PFourier(1,1);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
-			DIRECT_MULTIDIM_ELEM(PFourier,n) *= betaMean;
-		PFourier(1,1) = beta0 + betaMean*PFourier11;
+		{
+			if (n <= maxwiIdx)
+				DIRECT_MULTIDIM_ELEM(PFourier,n) *= DIRECT_MULTIDIM_ELEM(betap,n);
+		}
+		PFourier(1,1) = beta0 + betaMean*PFourier11; // if betap = beta1 (order 1) -> betaMean is ok?
 		transformer.inverseFourierTransform(PFourier, P());
-		P.write(formatString("%s5_Padj.mrc", fnProj.c_str())); // IT IS NOT COMPLETE
+		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
 
 		// Build final mask 
+		//already projected + 2D dilation 
 		double fmaskWidth_px;
 		fmaskWidth_px = fmaskWidth/sampling;
 		Image<double> Mfinal;
-		Mfinal = M; // Change by a mask fmaskWidth_px bigger for each side 
-    	Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
+		Mfinal = M; 
+		dilate2D(Mfinal(), Mfinal(), 8, 0, 8);
+		Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str())); // It seems there is no change
+
+			// already dilated in 3D + projection
+		// projectVolume(*projectorMaskDilated, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+		// PmaskVol.write(formatString("%s6_maskDilated.mrc", fnProj.c_str()));
 
 		// Subtraction
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-			DIRECT_MULTIDIM_ELEM(I(),n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n)); // * DIRECT_MULTIDIM_ELEM(Mfinal(),i); 
+			DIRECT_MULTIDIM_ELEM(I(),n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+		I.write(formatString("%s7_subtraction.mrc", fnProj.c_str()));
+		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I()) 
+		// 	DIRECT_MULTIDIM_ELEM(I(),n) *= DIRECT_MULTIDIM_ELEM(Mfinal(),i); // Join this to the loop above	?
+		// I.write(formatString("%s8_subtractionMasked.mrc", fnProj.c_str())); // Same but with values ~1e-17
 
 		// Write particle
 		writeParticle(int(i), I);

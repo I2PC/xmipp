@@ -44,9 +44,11 @@
     FileName fnMask;
     FileName fnMaskVol;
     FileName fnPart;
-    FileName fnProj;
+    FileName fnProj; 
+
     MetaDataVec mdParticles;
     MDRowVec row;
+
     bool subtractAll;
 	double lambda;
 	double sampling;
@@ -55,41 +57,27 @@
     double fmaskWidth;
 	int sigma;
 	int iter;
+    Matrix1D<double> roffset;
     struct Angles
     {
     	double rot;
     	double tilt;
     	double psi;
     };
-    Matrix1D<double> roffset;
+
  	Image<double> V; // volume
  	Image<double> vM; // mask 3D
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
  	Image<double> iM; // inverse mask
+    Image<double> Pctf; // projection with CTF applied
  	Projection P; // projection
- 	Projection Pmask; // mask projection
- 	Projection PmaskVol;
-	FourierFilter FilterG;
-	FourierFilter FilterG2;
-	FourierFilter Filter2;
-	// 	Image<double> PmaskVolI;
-	// 	Image<double> maskVol;
-    struct Radial
-    {
-		MultidimArray<double> meanI;
-		MultidimArray<double> meanP;
-    };
-	MultidimArray<double> radQuotient;
+ 	Projection Pmask; // mask projection for region to keep
+ 	Projection PmaskVol; // final dilated mask projection
+	FourierFilter FilterG; // Gaussian LPF to smooth mask
+
 	FourierTransformer transformer;
-	MultidimArray< std::complex<double> > IFourier;
 	MultidimArray< std::complex<double> > PFourier;
-	MultidimArray<double> IFourierMag;
-	MultidimArray<std::complex<double> > PFourierPhase;
-	double Imin;
-	double Imax;
-	Image<double> Pctf;
-	Image<double> Pmaskctf;
 
     /// Read argument from command line
     void readParams() override;
@@ -97,23 +85,15 @@
     void show() const override;
     /// Define parameters
     void defineParams() override;
-    /// Processing methods
-    void POCSmaskProj(const MultidimArray<double> &, MultidimArray<double> &) const;
-    void POCSFourierAmplitudeProj(const MultidimArray<double> &, MultidimArray< std::complex<double> > &, double, const MultidimArray<double> &, int) const;
-    void POCSMinMaxProj(MultidimArray<double> &, double, double) const;
-    void extractPhaseProj(MultidimArray< std::complex<double> > &) const;
-    void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &, MultidimArray< std::complex<double> > &) const;
-    Image<double> createMask(const FileName &, Image<double> &);
+    /// Read and write methods
     void readParticle(const MDRowVec &);
-    void percentileMinMax(const MultidimArray<double> &, double &, double &) const;
-    Image<double> applyCTF(const MDRowVec &, Projection &);
-    void runIteration();
-    Image<double> thresholdMask(Image<double> &);
-    Image<double> binarizeMask(Projection &) const;
     void writeParticle(const int &, Image<double> &);
+    /// Processing methods
+    Image<double> createMask(const FileName &, Image<double> &);
+    Image<double> binarizeMask(Projection &) const;
+    Image<double> applyCTF(const MDRowVec &, Projection &);
     /// Run
     void run() override;
-
  };
  //@}
  #endif
