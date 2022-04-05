@@ -34,7 +34,7 @@
 #include "core/xmipp_image.h"
 
 // Old code -----------------------------------------------------------------
-//constexpr int  NATURAL =      1;              /* natural, 1 byte/pixel format */
+//constexpr int  NATURAL =      1;               natural, 1 byte/pixel format
 constexpr int  INTFMT =        2;                /* integer, 2 byte/pixel format */
 constexpr int  LONGFMT =       3;                /* long, 4 bytes/pixel format   */
 constexpr int  FLOATFMT =      4;                /* float, 4 bytes/pixel format  */
