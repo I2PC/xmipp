@@ -47,6 +47,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     self.alpha = 0.05
 
     self.residSize = {}
+    self.coords = {}
     self.residX = {}
     self.residY = {}
     self.residXAcc = {}
@@ -87,6 +88,9 @@ class ScriptTomoResidualStatistics(XmippScript):
         self.residY[id].append(mData.getValue(xmippLib.MDL_SHIFT_Y, objId))
 
       else:
+        self.coords[id] = [mData.getValue(xmippLib.MDL_XCOOR, objId),
+                           mData.getValue(xmippLib.MDL_YCOOR, objId),
+                           mData.getValue(xmippLib.MDL_ZCOOR, objId)]
         self.residX[id] = [mData.getValue(xmippLib.MDL_SHIFT_X, objId)]
         self.residY[id] = [mData.getValue(xmippLib.MDL_SHIFT_Y, objId)]
 
@@ -105,8 +109,10 @@ class ScriptTomoResidualStatistics(XmippScript):
       mData.setValue(xmippLib.MDL_MIN, residualStats[i][1], id)
       mData.setValue(xmippLib.MDL_MAX, residualStats[i][2], id)
       mData.setValue(xmippLib.MDL_IMAGE, residualStats[i][3], id)
+      mData.setValue(xmippLib.MDL_XCOOR, residualStats[i][4], id)
+      mData.setValue(xmippLib.MDL_YCOOR, residualStats[i][5], id)
+      mData.setValue(xmippLib.MDL_ZCOOR, residualStats[i][6], id)
 
-      
     mData.write(mdFilePath)
 
   def generateSideInfo(self):
@@ -170,19 +176,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     # print("F test for variance p-value: " + str(pValue))
 
     return pValue
-
-
-  def compensatedTest(self, residualStats):
-    """
-      Overall analysis of the performed statictical tests
-    """
-
-    pValue = stats.f.cdf(fStatistic, rs-1, rs-1)
-
-    # print("F test for variance p-value: " + str(pValue))
-
-    return pValue
-  
+ 
   def augmentedDickeyFullerTest(self, modAcc):
     """
       Augmented Dickey-Fuller test for random walk
@@ -196,8 +190,8 @@ class ScriptTomoResidualStatistics(XmippScript):
     # print("Augmented Dickey-Fuller test for random walk ADF statistic: " + str(adfStatistic))
     # print("Augmented Dickey-Fuller test for random walk p-value: " + str(pValue))
     # print("Augmented Dickey-Fuller test for random walk critical values: ")
-    for key, value in criticalValues.items():
-      print('\t%s: %.3f' % (key, value))
+    # for key, value in criticalValues.items():
+    #   print('\t%s: %.3f' % (key, value))
     
     return adfStatistic, pValue, criticalValues
 
@@ -255,10 +249,10 @@ class ScriptTomoResidualStatistics(XmippScript):
 
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
-      pValues.append([pvBinX, str(key) + "_pvBinX"])
-      pValues.append([pvBinY, str(key) + "_pvBinY"])
-      pValues.append([pvF, str(key) + "_pvF"])
-      pValues.append([pvADF, str(key) + "_pvADF"])
+      pValues.append([pvBinX, str(key) + "_pvBinX", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+      pValues.append([pvBinY, str(key) + "_pvBinY", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+      pValues.append([pvF,    str(key) + "_pvF",    self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+      pValues.append([pvADF,  str(key) + "_pvADF",  self.coords[key][0], self.coords[key][1], self.coords[key][2]])
 
     pValues.sort()
    
@@ -269,17 +263,19 @@ class ScriptTomoResidualStatistics(XmippScript):
       i = j + 1
 
       if pv[0]*i > self.alpha:
-        residualStats.append([-1, pv[0], pv[0]*i, pv[1]])
+        residualStats.append([-1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
         
         if firstFail:
           print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
           firstFail = False
       
       else:
-        residualStats.append([1, pv[0], pv[0]*i, pv[1]])
+        residualStats.append([1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
 
-    print(residualStats)
+    # print(residualStats)
     self.writeOutputStatsInfo(residualStats)
+
+    print("\n")
 
 
 
