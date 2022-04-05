@@ -58,6 +58,9 @@ MDQueryObject;
 
 /* Destructor */
 void MDQuery_dealloc(MDQueryObject* self);
+/* Constructor */
+PyObject *
+MDQuery_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
 /* String representation */
 PyObject *
@@ -129,6 +132,9 @@ MetaDataObject;
 /* Destructor */
 void MetaData_dealloc(MetaDataObject* self);
 /* Constructor */
+PyObject *
+MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+
  PyObject *
 MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs);
 
@@ -156,8 +162,6 @@ MetaData_intersection(PyObject *obj, PyObject *args, PyObject *kwargs);
  PyObject *
 MetaData_merge(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-PyObject *
-MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
  PyObject *
 MetaData_operate(PyObject *obj, PyObject *args, PyObject *kwargs);

@@ -34,11 +34,6 @@
 /*                            Image                         */
 /**************************************************************/
 
-/* Destructor */
-void Image_dealloc(ImageObject* self)
-{
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}//function Image_dealloc
 
 
 /* Image methods that behave like numbers */
@@ -204,11 +199,19 @@ PyTypeObject ImageType = {
                              Image_new, /* tp_new */
                          };//ImageType
 
+/* Destructor */
+void Image_dealloc(ImageObject* self)
+{
+    self->~ImageObject(); // Call the destructor
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}//function Image_dealloc
+
 /* Constructor */
 PyObject *
 Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*)type->tp_alloc(type, 0);
+
     if (self != nullptr)
     {
         PyObject *input = nullptr;
@@ -1238,7 +1241,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
         int dimX = 384;
         int dimY = 384;
         unsigned threads = 1;
-        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+        ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
         if (PyArg_ParseTuple(args, "|fIIb", &overlap, &dimX, &dimY, &threads)
                 && (nullptr != result)) {
             // prepare dims
@@ -1270,7 +1273,7 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     const auto *self = reinterpret_cast<ImageObject*>(obj);
     PyObject *pimg2 = nullptr;
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    ImageObject * result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
     if (self != nullptr)
     {
         try
@@ -1371,7 +1374,7 @@ Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    ImageObject * result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
     if (result != nullptr)
     {
         try
@@ -1396,7 +1399,7 @@ Image_iadd(PyObject *obj1, PyObject *obj2)
     try
     {
         Image_Value(obj1).add(Image_Value(obj2));
-        if ((result = PyObject_New(ImageObject, &ImageType)))
+        if ((result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "")))
             result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
         //return obj1;
     }
@@ -1446,7 +1449,7 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_subtract(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    ImageObject * result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
     if (result != nullptr)
     {
         try
@@ -1471,7 +1474,7 @@ Image_isubtract(PyObject *obj1, PyObject *obj2)
     try
     {
         Image_Value(obj1).subtract(Image_Value(obj2));
-        if ((result = PyObject_New(ImageObject, &ImageType)))
+        if ((result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "")))
             result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
     }
     catch (XmippError &xe)
@@ -1512,7 +1515,7 @@ Image_inplaceSubtract(PyObject *self, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_multiply(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    ImageObject * result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
     if (result != nullptr)
     {
         try
@@ -1537,7 +1540,7 @@ Image_imultiply(PyObject *obj1, PyObject *obj2)
     try
     {
         ImageObject * result = nullptr;
-        if ((result = PyObject_New(ImageObject, &ImageType)))
+        if ((result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "")))
             result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
         double value = PyFloat_AsDouble(obj2);
         Image_Value(result).multiply(value);
@@ -1587,7 +1590,7 @@ PyObject *
 Image_true_divide(PyObject *obj1, PyObject *obj2)
 {
     std::cerr << "TODO: not working Image_divide_____________________________" << std::endl;
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    ImageObject * result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
     if (result != nullptr)
     {
         try
@@ -1617,7 +1620,7 @@ Image_idivide(PyObject *obj1, PyObject *obj2)
     try
     {
       ImageObject * result = nullptr;
-      if ((result = PyObject_New(ImageObject, &ImageType)))
+      if ((result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "")))
           result->image = std::make_unique<ImageGeneric>(Image_Value(obj1));
       double value = PyFloat_AsDouble(obj2);
       Image_Value(result).divide(value);
@@ -1827,7 +1830,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
             MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
             in->setXmippOrigin();
 
-            ImageObject *result = PyObject_New(ImageObject, &ImageType);
+            ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
             result->image = std::make_unique<ImageGeneric>(DT_Double);
             MultidimArray<double> *out;
             MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
@@ -1902,7 +1905,7 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	    if (nullptr == self) return nullptr;
 	    try {
 	    	char axis = 'z';
-	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+	        ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
 	        if (PyArg_ParseTuple(args, "|c", &axis)
 	                && (nullptr != result)) {
 	            // prepare input image
