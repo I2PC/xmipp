@@ -30,12 +30,10 @@
  #include "core/xmipp_image_generic.h"
  #include "core/xmipp_fft.h"
  #include "core/xmipp_fftw.h"
- #include "data/fourier_projection.h"
  #include "data/projection.h"
  #include "data/mask.h"
  #include "data/filters.h"
  #include "data/morphology.h"
- #include <core/alglib/dataanalysis.h>
  #include <iostream>
  #include <string>
  #include <sstream>
@@ -164,7 +162,9 @@
 
  double evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp)
  {
-	double sumY = 0, sumY2 = 0, sumE2 = 0;
+	double sumY = 0;
+	double sumY2 = 0;
+	double sumE2 = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y)
 	{
 		double e = DIRECT_MULTIDIM_ELEM(y, n) - DIRECT_MULTIDIM_ELEM(yp, n);
@@ -172,15 +172,15 @@
 		sumY += DIRECT_MULTIDIM_ELEM(y, n);
 		sumY2 += DIRECT_MULTIDIM_ELEM(y, n) * DIRECT_MULTIDIM_ELEM(y, n);
 	}
-	double meanY = sumY / MULTIDIM_SIZE(y);
-	double varY = sumY2 / MULTIDIM_SIZE(y) - meanY * meanY;
-	double R2 = 1 - sumE2 / varY;
+	auto meanY = sumY / MULTIDIM_SIZE(y);
+	auto varY = sumY2 / MULTIDIM_SIZE(y) - meanY * meanY;
+	auto R2 = 1 - sumE2 / varY;
 	return R2;
  }
 
 void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap)
 {
-	double N = MULTIDIM_SIZE(beta);
+	auto N = MULTIDIM_SIZE(beta);
 
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
@@ -194,8 +194,11 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	// Fit order 1 beta=beta0+beta1*idx
 	MultidimArray<double> idx(N);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
-		DIRECT_MULTIDIM_ELEM(idx, n) = n;
-	double sumX = 0, sumX2 = 0, sumY = 0, sumXY = 0;
+		DIRECT_MULTIDIM_ELEM(idx, n) = double(n);
+	double sumX = 0;
+	double sumX2 = 0;
+	double sumY = 0;
+	double sumXY = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
 	{
 		sumX += DIRECT_MULTIDIM_ELEM(idx, n);
@@ -249,31 +252,22 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	double cutFreq = sampling/maxResol;
 	FourierProjector *projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	// Dilate final mask in 3D and initialize its projector
-	// double fmaskWidth_px;
-	// fmaskWidth_px = fmaskWidth/sampling;
-	// Image<double> Mfinal;
-	// Mfinal = vM; 
-	// Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str()));
-	// dilate3D(Mfinal(), Mfinal(), 26, 0, 40);
-	// Mfinal.write(formatString("%s66_maskFinalDILATED.mrc", fnProj.c_str()));
-	// FourierProjector *projectorMaskDilated = new FourierProjector(Mfinal(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 
 	// Construct image representing the frequency of each pixel 
 	row = mdParticles.getRowVec(1);
 	readParticle(row);
-	struct Angles angles;
-	row.getValueOrDefault(MDL_ANGLE_ROT, angles.rot, 0);
-	row.getValueOrDefault(MDL_ANGLE_TILT, angles.tilt, 0);
-	row.getValueOrDefault(MDL_ANGLE_PSI, angles.psi, 0);
+	struct Angles part_angles;
+	row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
+	row.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
+	row.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
 	roffset.initZeros(2);
 	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 
 	// Project volume
-	MultidimArray<double> *ctfImage = nullptr;
-	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+	const MultidimArray<double> *ctfImage = nullptr;
+	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	P.write(formatString("%s0_initialProjection.mrc", fnProj.c_str()));
 	Pctf = applyCTF(row, P);
 	const MultidimArray<double> &mPctf = Pctf();
@@ -286,14 +280,14 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 	Matrix1D<double> w(2); 	
 	for (int i=0; i<YSIZE(wi); i++) 
 	{
-		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w)); 
+		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  
 		{
-			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w));
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * XSIZE(mPctf)); 
+			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w))
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); 
 		}
 	}
-	int maxwiIdx = XSIZE(wi);
+	auto maxwiIdx = XSIZE(wi);
 	// int maxwiIdx = YSIZE(mPctf);
 	Image<double> wi_img;
 	typeCast(wi, wi_img());
@@ -303,22 +297,22 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
     	// Read particle and metadata
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
-    	struct Angles angles;
-     	row.getValueOrDefault(MDL_ANGLE_ROT, angles.rot, 0);
-     	row.getValueOrDefault(MDL_ANGLE_TILT, angles.tilt, 0);
-     	row.getValueOrDefault(MDL_ANGLE_PSI, angles.psi, 0);
+    	struct Angles part_angles;
+     	row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
+     	row.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
+     	row.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
      	roffset.initZeros(2);
      	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
      	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
 
      	// Project volume
-     	MultidimArray<double> *ctfImage = nullptr;
-    	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+     	const MultidimArray<double> *ctfImage2 = nullptr;
+    	projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()), part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage2);
     	P.write(formatString("%s0_initialProjection.mrc", fnProj.c_str()));
 
     	// Project and smooth big mask
-    	projectVolume(*projectorMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
+    	projectVolume(*projectorMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage2);
     	Pmask.write(formatString("%s1_initalMaskProjection.mrc", fnProj.c_str()));
     	M = binarizeMask(Pmask);
 		M.write(formatString("%s1_MaskBin.mrc", fnProj.c_str()));
@@ -331,8 +325,8 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		const MultidimArray<double> &mPctf2 = Pctf();
 
 		// Fourier Transform
-		FourierTransformer transformerP;
-		transformerP.FourierTransform(Pctf(),PFourier,false);
+		FourierTransformer transformerP2;
+		transformerP2.FourierTransform(Pctf(),PFourier,false);
 
 		// Compute inverse mask
 		iM = invertMask(M);
@@ -341,7 +335,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		// Compute IiM = I*iM
 		Image<double> IiM;
 		const MultidimArray<double> &mI = I();
-		IiM().initZeros(XSIZE(mI),YSIZE(mI));
+		IiM().initZeros((int)XSIZE(mI),(int)YSIZE(mI));
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mI)
 		 	DIRECT_MULTIDIM_ELEM(IiM(),n) = DIRECT_MULTIDIM_ELEM(mI,n) * DIRECT_MULTIDIM_ELEM(iM,n);
 		IiM.write(formatString("%s4_IiM.mrc", fnProj.c_str()));
@@ -351,7 +345,7 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 
 		// Compute PiM = P*iM
 		Image<double> PiM;
-		PiM().initZeros(XSIZE(mI),YSIZE(mI));
+		PiM().initZeros((int)XSIZE(mI),(int)YSIZE(mI));
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf2)
 		 	DIRECT_MULTIDIM_ELEM(PiM(),n) = DIRECT_MULTIDIM_ELEM(mPctf2,n) * DIRECT_MULTIDIM_ELEM(iM,n);
 		PiM.write(formatString("%s4_PiM.mrc", fnProj.c_str()));
@@ -409,12 +403,8 @@ void checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &be
 		fmaskWidth_px = fmaskWidth/sampling;
 		Image<double> Mfinal;
 		Mfinal = M; 
-		dilate2D(Mfinal(), Mfinal(), 8, 0, 8);
+		dilate2D(Mfinal(), Mfinal(), 0, 0, fmaskWidth_px); 
 		Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str())); // It seems there is no change
-
-			// already dilated in 3D + projection
-		// projectVolume(*projectorMaskDilated, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), angles.rot, angles.tilt, angles.psi, ctfImage);
-		// PmaskVol.write(formatString("%s6_maskDilated.mrc", fnProj.c_str()));
 
 		// Subtraction
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
