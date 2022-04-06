@@ -26,7 +26,9 @@
 """
 
 
+from cgi import print_directory
 import re
+from xml.dom import XML_NAMESPACE
 from xmipp_base import *
 import xmippLib
   
@@ -35,7 +37,7 @@ import os
 from math import sqrt
 from statsmodels.tsa.stattools import adfuller
 from scipy import stats
-from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull, QhullError
 import numpy as np
 
 
@@ -167,26 +169,42 @@ class ScriptTomoResidualStatistics(XmippScript):
     for i in range(len(self.residX[key])):
       residualVectors.append([self.residX[key][i], self.residY[key][i]])
 
-    convexHull = ConvexHull(residualVectors)
+    try:
+      convexHull = ConvexHull(residualVectors)
 
-    hullPerimeter = 0
+      hullPerimeter = 0
 
-    # For 2-Dimensional convex hulls volume attribute equals to the area.
-    hullArea = [convexHull.volume][0]
+      # For 2-Dimensional convex hulls volume attribute equals to the area.
+      hullArea = [convexHull.volume][0]
 
-    hullVertices = []
+      hullVertices = []
 
-    for position in convexHull.vertices:
-        hullVertices.append(convexHull.points[position])
+      for position in convexHull.vertices:
+          hullVertices.append(convexHull.points[position])
 
-    for i in range(len(hullVertices)):
-        shiftedIndex = (i + 1) % len(hullVertices)
+      for i in range(len(hullVertices)):
+          shiftedIndex = (i + 1) % len(hullVertices)
 
-        distanceVector = np.array(hullVertices[i]) - np.array(hullVertices[shiftedIndex])
-        distanceVector = [i ** 2 for i in distanceVector]
-        hullPerimeter += np.sqrt(sum(distanceVector))
+          distanceVector = np.array(hullVertices[i]) - np.array(hullVertices[shiftedIndex])
+          distanceVector = [i ** 2 for i in distanceVector]
+          hullPerimeter += np.sqrt(sum(distanceVector))
+      
+    except QhullError:
+      print("ERROR: Invalid geometry, lack of dimensionality (probably all residuals belong to a line). Only perieter calculated as the lenght of this line.")
 
-    return hullArea, round(hullPerimeter, 2)
+      hullArea = 0.0
+
+      xMin = min([item[0] for item in residualVectors])
+      xMax = max([item[0] for item in residualVectors])
+      yMin = min([item[1] for item in residualVectors])
+      yMax = max([item[1] for item in residualVectors])
+
+      xDiff = xMax-xMin
+      yDiff = yMax-yMin
+
+      hullPerimeter = xDiff if xDiff > yDiff else yDiff
+
+    return hullArea, hullPerimeter
 
 
   def binomialTest(self, nPos, rs):
@@ -288,11 +306,15 @@ class ScriptTomoResidualStatistics(XmippScript):
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
+      try:
+        fTestStat = lambda1/lambda2
+      except ZeroDivisionError:
+        fTestStat = 1
 
       # Statistical tests
       pvBinX = self.binomialTest(self.nPosX[key], rs)
       pvBinY = self.binomialTest(self.nPosY[key], rs)
-      pvF = self.fTestVar(lambda1/lambda2, rs)
+      pvF = self.fTestVar(fTestStat, rs)
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
       pValues.append([pvBinX, str(key) + "_pvBinX", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
