@@ -226,18 +226,14 @@ class Config:
 
             if os.path.isfile('opencv2/cudaoptflow.hpp'):
                 cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
-                print('is opencv2/cudaoptflow.hpp')
             else:
-                print('is opencv2/core/cuda.hpp')
                 cppProg += "#include <opencv2/core/cuda.hpp>\n"
 
             cppProg += "int main(){}\n"
-            log = []
             with open("xmipp_test_opencv.cpp", "w") as cppFile:
                 cppFile.write(cppProg)
             self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                                                           (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False, log = log)
-            print(log)
+                                                           (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
             print(green("OPENCV-%s detected %s CUDA support"
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
@@ -447,7 +443,7 @@ class Config:
         if self.configDict["OPENCV"] == "True":
             cppProg += "#include <opencv2/core/core.hpp>\n"
             if self.configDict["OPENCVSUPPORTSCUDA"] == "True":
-                if self.configDict["OPENCV3"] == "True":
+                if os.path.isfile('opencv2/cudaoptflow.hpp'):
                     cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
                 else:
                     cppProg += "#include <opencv2/core/cuda.hpp>\n"
