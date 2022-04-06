@@ -349,6 +349,3 @@ if __name__ == '__main__':
 
   exitCode=ScriptTomoResidualStatistics().tryRun()
   sys.exit(exitCode)
-
-
-

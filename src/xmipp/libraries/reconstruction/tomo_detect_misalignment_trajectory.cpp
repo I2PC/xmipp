@@ -42,12 +42,6 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	thrSDHCC = getIntParam("--thrSDHCC");
 	thrNumberCoords = getIntParam("--thrNumberCoords");
 	thrChainDistanceAng = getDoubleParam("--thrChainDistanceAng");
-	
-	// checkInputCoord = checkParam("--inputCoord");
-	// if(checkInputCoord)
-	// {
-	// 	fnInputCoord = getParam("--inputCoord");
-	// }
 
  	fnInputCoord = getParam("--inputCoord");
 }
@@ -658,10 +652,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(MetaD
 	std::string cmd1 = ". /home/fdeisidro/xmipp_devel/build/xmipp.bashrc";
 	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
 
-	std::cout << cmd << std::endl;
 	std::cout << cmd1 << std::endl;
-
 	system(cmd1.c_str());
+
+	std::cout << cmd << std::endl;
 	system(cmd.c_str());
 
 	return true;
@@ -1550,6 +1544,10 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
 		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
+		#ifdef DEBUG_COORDS_CS
+		std::cout << "Analyzing residuals corresponding to coordinate 3D " << goldBeadX << ", " << goldBeadY << ", " << goldBeadZ << std::endl;
+		#endif
+
 	    std::vector<CM> vCMc;
 		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
 
@@ -1562,8 +1560,6 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 		#ifdef DEBUG_COORDS_CS
 		std::cout << " vCMc.size()" << vCMc.size() << std::endl;
 		#endif
-
-		std::cout << "Analyzing residuals corresponding to coordinate 3D " << goldBeadX << ", " << goldBeadY << ", " << goldBeadZ << std::endl;
 
 		// These are the proyected 2D points. The Z component is the id for each 3D coordinate (cluster projections).
 		std::vector<Point3D<double>> proyCoords;
@@ -1751,6 +1747,7 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 		}
 	}
 }
+
 
 
 // --------------------------- UNUSED functions ----------------------------
@@ -2315,6 +2312,7 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 // 			std::cout << "------------------------------------"<<std::endl;
 // 			#endif	
 // }
+
 
 
 // void ProgTomoDetectMisalignmentTrajectory::calculateAffinity(MetaDataVec &inputCoordMd)
