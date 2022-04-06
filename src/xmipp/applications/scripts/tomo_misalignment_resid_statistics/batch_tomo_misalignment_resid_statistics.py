@@ -161,7 +161,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     """
       Calculate the convex hull from the residual vectors returning its area and perimeter
     """
-    
+
     residualVectors = []
 
     for i in range(len(self.residX[key])):
@@ -172,7 +172,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     hullPerimeter = 0
 
     # For 2-Dimensional convex hulls volume attribute equals to the area.
-    hullArea = [convexHull.volume]
+    hullArea = [convexHull.volume][0]
 
     hullVertices = []
 
@@ -186,7 +186,7 @@ class ScriptTomoResidualStatistics(XmippScript):
         distanceVector = [i ** 2 for i in distanceVector]
         hullPerimeter += np.sqrt(sum(distanceVector))
 
-    return hullArea, '%.2f' % hullPerimeter
+    return hullArea, round(hullPerimeter, 2)
 
 
   def binomialTest(self, nPos, rs):
@@ -257,12 +257,17 @@ class ScriptTomoResidualStatistics(XmippScript):
     # print(self.nPosY)
 
     pValues = []
+    ch = []
 
     for key in self.residX.keys():
       rs = self.residSize[key]
 
-      pvBinX = self.binomialTest(self.nPosX[key], rs)
-      pvBinY = self.binomialTest(self.nPosY[key], rs)
+      # Convex hull
+      convexHullArea, convexHullPerimeter = self.convexHull(key=key)
+
+      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+
 
       # Variance distribution matrix
       # sumRadius = 0
@@ -283,8 +288,11 @@ class ScriptTomoResidualStatistics(XmippScript):
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
-      pvF = self.fTestVar(lambda1/lambda2, rs)
 
+      # Statistical tests
+      pvBinX = self.binomialTest(self.nPosX[key], rs)
+      pvBinY = self.binomialTest(self.nPosY[key], rs)
+      pvF = self.fTestVar(lambda1/lambda2, rs)
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
       pValues.append([pvBinX, str(key) + "_pvBinX", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
@@ -293,8 +301,8 @@ class ScriptTomoResidualStatistics(XmippScript):
       pValues.append([pvADF,  str(key) + "_pvADF",  self.coords[key][0], self.coords[key][1], self.coords[key][2]])
 
     pValues.sort()
-   
-    residualStats = []
+ 
+    residualStats = ch
     firstFail = True
 
     for j, pv in enumerate(pValues):
@@ -310,7 +318,6 @@ class ScriptTomoResidualStatistics(XmippScript):
       else:
         residualStats.append([1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
 
-    # print(residualStats)
     self.writeOutputStatsInfo(residualStats)
 
     print("\n")
