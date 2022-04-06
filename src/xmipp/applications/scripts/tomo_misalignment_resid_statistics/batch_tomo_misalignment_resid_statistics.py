@@ -35,6 +35,7 @@ import os
 from math import sqrt
 from statsmodels.tsa.stattools import adfuller
 from scipy import stats
+from scipy.spatial import ConvexHull
 import numpy as np
 
 
@@ -115,6 +116,7 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     mData.write(mdFilePath)
 
+
   def generateSideInfo(self):
     """
       Generate residual side information to perform posterior tests
@@ -155,6 +157,38 @@ class ScriptTomoResidualStatistics(XmippScript):
           self.moduleAcc[key].append(sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i]))
 
 
+  def convexHull(self, key):
+    """
+      Calculate the convex hull from the residual vectors returning its area and perimeter
+    """
+    
+    residualVectors = []
+
+    for i in range(len(self.residX[key])):
+      residualVectors.append([self.residX[key][i], self.residY[key][i]])
+
+    convexHull = ConvexHull(residualVectors)
+
+    hullPerimeter = 0
+
+    # For 2-Dimensional convex hulls volume attribute equals to the area.
+    hullArea = [convexHull.volume]
+
+    hullVertices = []
+
+    for position in convexHull.vertices:
+        hullVertices.append(convexHull.points[position])
+
+    for i in range(len(hullVertices)):
+        shiftedIndex = (i + 1) % len(hullVertices)
+
+        distanceVector = np.array(hullVertices[i]) - np.array(hullVertices[shiftedIndex])
+        distanceVector = [i ** 2 for i in distanceVector]
+        hullPerimeter += np.sqrt(sum(distanceVector))
+
+    return hullArea, '%.2f' % hullPerimeter
+
+
   def binomialTest(self, nPos, rs):
     """
       Binomial test for sign distribution
@@ -166,6 +200,7 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     return pValue
 
+
   def fTestVar(self, fStatistic, rs):
     """
       F-test of equality of variances
@@ -176,7 +211,8 @@ class ScriptTomoResidualStatistics(XmippScript):
     # print("F test for variance p-value: " + str(pValue))
 
     return pValue
- 
+
+
   def augmentedDickeyFullerTest(self, modAcc):
     """
       Augmented Dickey-Fuller test for random walk
@@ -194,6 +230,8 @@ class ScriptTomoResidualStatistics(XmippScript):
     #   print('\t%s: %.3f' % (key, value))
     
     return adfStatistic, pValue, criticalValues
+
+
 
   def run(self):
     # print("Running statistical analysis of misalingment residuals...")
