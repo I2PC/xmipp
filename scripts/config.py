@@ -223,8 +223,12 @@ class Config:
 
             # Check CUDA Support
             cppProg = "#include <opencv2/core/version.hpp>\n"
-            cppProg += "#include <opencv2/cudaoptflow.hpp>\n" if self.configDict[
-                "OPENCV3"] else "#include <opencv2/core/cuda.hpp>\n"
+
+            if os.path.isfile('opencv2/cudaoptflow.hpp'):
+                cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
+            else:
+                cppProg += "#include <opencv2/core/cuda.hpp>\n"
+
             cppProg += "int main(){}\n"
             with open("xmipp_test_opencv.cpp", "w") as cppFile:
                 cppFile.write(cppProg)
