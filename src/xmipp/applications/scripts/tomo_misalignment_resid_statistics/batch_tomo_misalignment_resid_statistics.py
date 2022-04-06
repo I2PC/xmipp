@@ -201,7 +201,6 @@ class ScriptTomoResidualStatistics(XmippScript):
 
       xDiff = xMax-xMin
       yDiff = yMax-yMin
-
       hullPerimeter = xDiff if xDiff > yDiff else yDiff
 
     return hullArea, hullPerimeter

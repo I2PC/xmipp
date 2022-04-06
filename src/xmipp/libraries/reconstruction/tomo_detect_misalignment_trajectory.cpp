@@ -644,171 +644,9 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec 
 
 bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(MetaDataVec &inputCoordMd)
 {
-	int goldBeadX;
-	int goldBeadY;
-	int goldBeadZ;
+	// Run XmippScript for statistical residual analysis
 
-	for(size_t objId : inputCoordMd.ids())
-	{
-		inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
-		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
-		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
-
-		#ifdef DEBUG_COORDS_CS
-		std::cout << "Analysis of residuals corresponding to coordinate 3D: x " << goldBeadX << " y " << goldBeadY << " z " << goldBeadZ << std::endl;
-		#endif
-
-	    std::vector<CM> vCMc;
-		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
-
-		std::vector<Point2D<double>> residuals;
-		for (size_t i = 0; i < vCMc.size(); i++)
-		{
-			residuals.push_back(vCMc[i].residuals);
-		}
-	
-		double centroidX;
-		double centroidY;
-		double distance;
-		double maxDistance = 0;
-		double totalDistance = 0;
-		double chPerimeterer = 0;
-		double chArea = 0;
-
-		std::vector<Point2D<double>> hull;
-
-		for (size_t i = 0; i < residuals.size(); i++)
-		{
-
-			#ifdef DEBUG_RESIDUAL_ANALYSIS
-			std::cout << residuals[i].x << "  " << residuals[i].y << std::endl;
-			#endif
-
-			distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
-
-			// Total distance
-			totalDistance += distance;
-
-			// Maximum distance
-			if (distance > maxDistance)
-			{
-				maxDistance = distance;
-			}
-		}
-
-		std::cout << "totalDistance "  << totalDistance << std::endl;
-		std::cout << "maxDistance "  << maxDistance << std::endl;
-
-
-		// Convex Hull
-		auto p2dVector = residuals;
-		auto remainingP2d = residuals;
-		Point2D<double> p2d{0, 0};
-		Point2D<double> p2d_it{0, 0};
-		Point2D<double> minX_p2d{MAXDOUBLE, 0};
-
-		// Get minimum x component element *** TODO: this can be done more efficientely using std::min_element and defininf a cmp function
-		for (size_t i = 0; i < p2dVector.size(); i++)
-		{
-			if (p2dVector[i].x < minX_p2d.x)
-			{
-				minX_p2d = p2dVector[i];
-			}
-		}
-
-		// struct SortByX
-		// {
-		// 	bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
-		// };
-
-		// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
-
-		// bool cmp(const Point2D<double>& a, const Point2D<double>& b)
-		// {
-		// 	return a.x < b.x;
-		// }
-
-		// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
-
-		// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), [](Point2D const& l, Point2D const& r) {return l.x < r.x;});
-
-		hull.push_back(minX_p2d);
-
-		#ifdef DEBUG_RESIDUAL_ANALYSIS
-		std::cout << " minX_p2d" << minX_p2d.x << " " << minX_p2d.y << std::endl;
-		std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
-		std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
-		#endif
-
-		while (p2dVector.size()>0)
-		{
-			p2d = p2dVector[0];
-
-			while (remainingP2d.size()>0)
-			{
-				p2d_it = remainingP2d[0];
-
-				double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
-
-				if (angle<0)
-				{
-					angle += 2*PI;
-				}
-
-				if (angle < PI)
-				{
-					remainingP2d.erase(remainingP2d.begin());
-				}
-				else
-				{
-					p2d = p2d_it;
-					remainingP2d.erase(remainingP2d.begin());
-				}	
-			}
-
-			if (p2d.x==minX_p2d.x && p2d.y==minX_p2d.y)
-			{
-				break;
-			}
-
-			hull.push_back(p2d);
-
-			p2dVector.erase(p2dVector.begin());
-			remainingP2d = p2dVector;
-		}
-		
-
-		// CH-Perimeter
-		int shiftIndex;
-
-		for (size_t i = 0; i < hull.size(); i++)
-		{
-			shiftIndex = (i+1) % hull.size();
-			chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
-								(hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y));
-		}
-
-		std::cout << "chPerimeterer "  << chPerimeterer << std::endl;
-		
-
-		// CH-Area
-		double sum1 = 0;
-		double sum2 = 0;
-
-		for (size_t i = 0; i < hull.size(); i++)
-		{
-			shiftIndex = (i+1) % hull.size();
-			sum1 += hull[i].x * hull[shiftIndex].y;	
-			sum2 += hull[shiftIndex].x * hull[i].y;	
-		}
-
-		chArea = abs(0.5 * (sum1 - sum2));
-
-		std::cout << "chArea "  << chArea << std::endl;
-	}
-
-
-	// Run XmippScrip for statistical residual analysis
+	std::cout << "\n\nRunning residual statistical analysis..." << std::endl;
 
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
@@ -817,9 +655,13 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals(MetaD
     fnVCM = rawname + "/vCM.xmd";
 	fnStats = rawname + "/residualStatistics.xmd";
 
+	std::string cmd1 = ". /home/fdeisidro/xmipp_devel/build/xmipp.bashrc";
 	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
 
 	std::cout << cmd << std::endl;
+	std::cout << cmd1 << std::endl;
+
+	system(cmd1.c_str());
 	system(cmd.c_str());
 
 	return true;
@@ -1708,10 +1550,6 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching(Meta
 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
 		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
-		#ifdef DEBUG_COORDS_CS
-		std::cout << "Analysis of residuals corresponding to coordinate 3D: x " << goldBeadX << " y " << goldBeadY << " z " << goldBeadZ << std::endl;
-		#endif
-
 	    std::vector<CM> vCMc;
 		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
 
@@ -2120,6 +1958,8 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 	
 // }
 
+
+
 // std::vector<std::vector<Point2D<double>>> ProgTomoDetectMisalignmentTrajectory::splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords)
 // {
 // 	std::vector<std::vector<Point2D<double>>> splittedCoodinates;
@@ -2161,7 +2001,7 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 // void ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 // {
 
-// 	// *** MAKE GLOBAL THRESHOLD FOR MINIMUM ANGLE------------------------------------------------------- esto puede que necesite ir en ang y pasar a px
+// 	// MAKE GLOBAL THRESHOLD FOR MINIMUM ANGLE  esto puede que necesite ir en ang y pasar a px
 // 	float thrChainDeviation = 5;
 
 // 	// Struct to sort 3D coordinates (point3D class) by its x component
@@ -2402,7 +2242,7 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 
 // void ProgTomoDetectMisalignmentTrajectory::calculateAffinity(MetaDataVec &inputCoordMd)
 // {
-// 	// ***TODO: homogeneizar PointXD y MatrixXD
+// 	// TODO: homogeneizar PointXD y MatrixXD
 // 	#ifdef VERBOSE_OUTPUT
 // 	std::cout << "Calculating residual vectors" << std::endl;
 // 	#endif
@@ -2474,4 +2314,170 @@ void ProgTomoDetectMisalignmentTrajectory::factorial(size_t base, size_t fact)
 // 			std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
 // 			std::cout << "------------------------------------"<<std::endl;
 // 			#endif	
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::calculateAffinity(MetaDataVec &inputCoordMd)
+// 	int goldBeadX;
+// 	int goldBeadY;
+// 	int goldBeadZ;
+
+// 	for(size_t objId : inputCoordMd.ids())
+// 	{
+// 		inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+// 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+// 		inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS
+// 		std::cout << "Analysis of residuals corresponding to coordinate 3D: x " << goldBeadX << " y " << goldBeadY << " z " << goldBeadZ << std::endl;
+// 		#endif
+
+// 	    std::vector<CM> vCMc;
+// 		getCMFromCoordinate(goldBeadX, goldBeadY, goldBeadZ, vCMc);
+
+// 		std::vector<Point2D<double>> residuals;
+// 		for (size_t i = 0; i < vCMc.size(); i++)
+// 		{
+// 			residuals.push_back(vCMc[i].residuals);
+// 		}
+	
+// 		double centroidX;
+// 		double centroidY;
+// 		double distance;
+// 		double maxDistance = 0;
+// 		double totalDistance = 0;
+// 		double chPerimeterer = 0;
+// 		double chArea = 0;
+
+// 		std::vector<Point2D<double>> hull;
+
+// 		for (size_t i = 0; i < residuals.size(); i++)
+// 		{
+
+// 			#ifdef DEBUG_RESIDUAL_ANALYSIS
+// 			std::cout << residuals[i].x << "  " << residuals[i].y << std::endl;
+// 			#endif
+
+// 			distance = sqrt((residuals[i].x * residuals[i].x) + (residuals[i].y * residuals[i].y));
+
+// 			// Total distance
+// 			totalDistance += distance;
+
+// 			// Maximum distance
+// 			if (distance > maxDistance)
+// 			{
+// 				maxDistance = distance;
+// 			}
+// 		}
+
+// 		std::cout << "totalDistance "  << totalDistance << std::endl;
+// 		std::cout << "maxDistance "  << maxDistance << std::endl;
+
+
+// 		// Convex Hull
+// 		auto p2dVector = residuals;
+// 		auto remainingP2d = residuals;
+// 		Point2D<double> p2d{0, 0};
+// 		Point2D<double> p2d_it{0, 0};
+// 		Point2D<double> minX_p2d{MAXDOUBLE, 0};
+
+// 		// Get minimum x component element *** TODO: this can be done more efficientely using std::min_element and defininf a cmp function
+// 		for (size_t i = 0; i < p2dVector.size(); i++)
+// 		{
+// 			if (p2dVector[i].x < minX_p2d.x)
+// 			{
+// 				minX_p2d = p2dVector[i];
+// 			}
+// 		}
+
+// 		// struct SortByX
+// 		// {
+// 		// 	bool operator() (const Point2D<double>& lp2d, const Point2D<double>& rp2d) 	{return lp2d.x < rp2d.x;};
+// 		// };
+
+// 		// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), SortByX());
+
+// 		// bool cmp(const Point2D<double>& a, const Point2D<double>& b)
+// 		// {
+// 		// 	return a.x < b.x;
+// 		// }
+
+// 		// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), cmp);
+
+// 		// minX_p2d = std::min_element(p2dVector.begin(), p2dVector.end(), [](Point2D const& l, Point2D const& r) {return l.x < r.x;});
+
+// 		hull.push_back(minX_p2d);
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS
+// 		std::cout << " minX_p2d" << minX_p2d.x << " " << minX_p2d.y << std::endl;
+// 		std::cout << "p2dVector.size() " << p2dVector.size() << std::endl;
+// 		std::cout << "remainingP2d.size() " << remainingP2d.size() << std::endl;
+// 		#endif
+
+// 		while (p2dVector.size()>0)
+// 		{
+// 			p2d = p2dVector[0];
+
+// 			while (remainingP2d.size()>0)
+// 			{
+// 				p2d_it = remainingP2d[0];
+
+// 				double angle = atan2(p2d_it.y-p2d.y, p2d_it.x-p2d.x) - atan2(hull[hull.size()].y-p2d.y, hull[hull.size()].x-p2d.x);
+
+// 				if (angle<0)
+// 				{
+// 					angle += 2*PI;
+// 				}
+
+// 				if (angle < PI)
+// 				{
+// 					remainingP2d.erase(remainingP2d.begin());
+// 				}
+// 				else
+// 				{
+// 					p2d = p2d_it;
+// 					remainingP2d.erase(remainingP2d.begin());
+// 				}	
+// 			}
+
+// 			if (p2d.x==minX_p2d.x && p2d.y==minX_p2d.y)
+// 			{
+// 				break;
+// 			}
+
+// 			hull.push_back(p2d);
+
+// 			p2dVector.erase(p2dVector.begin());
+// 			remainingP2d = p2dVector;
+// 		}
+		
+
+// 		// CH-Perimeter
+// 		int shiftIndex;
+
+// 		for (size_t i = 0; i < hull.size(); i++)
+// 		{
+// 			shiftIndex = (i+1) % hull.size();
+// 			chPerimeterer += sqrt((hull[i].x-hull[shiftIndex].x)*(hull[i].x-hull[shiftIndex].x)+
+// 								(hull[i].y-hull[shiftIndex].y)*(hull[i].y-hull[shiftIndex].y));
+// 		}
+
+// 		std::cout << "chPerimeterer "  << chPerimeterer << std::endl;
+		
+
+// 		// CH-Area
+// 		double sum1 = 0;
+// 		double sum2 = 0;
+
+// 		for (size_t i = 0; i < hull.size(); i++)
+// 		{
+// 			shiftIndex = (i+1) % hull.size();
+// 			sum1 += hull[i].x * hull[shiftIndex].y;	
+// 			sum2 += hull[shiftIndex].x * hull[i].y;	
+// 		}
+
+// 		chArea = abs(0.5 * (sum1 - sum2));
+
+// 		std::cout << "chArea "  << chArea << std::endl;
+// 	}
 // }
