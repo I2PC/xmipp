@@ -54,7 +54,7 @@
 	double sampling;
 	double padFourier;
 	double maxResol;
-    double fmaskWidth;
+    int fmaskWidth;
 	int sigma;
 	int iter;
     Matrix1D<double> roffset;
@@ -64,18 +64,17 @@
     	double tilt;
     	double psi;
     };
-
+    struct Angles part_angles; // particle angles for projections
  	Image<double> V; // volume
  	Image<double> vM; // mask 3D
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
- 	Image<double> iM; // inverse mask
     Image<double> Pctf; // projection with CTF applied
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
  	Projection PmaskVol; // final dilated mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
-
+    FourierProjector *projector;
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > PFourier;
 
@@ -91,7 +90,14 @@
     /// Processing methods
     Image<double> createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
+    Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);
+    void projectVolumeFunc(FourierProjector *, Projection &, const int, const double, const double, const double);
+    void processParticle(int, int, FourierTransformer &);
+    MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, const MultidimArray<double> &, FourierTransformer &);
+    double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &);
+    void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &);
+
     /// Run
     void run() override;
  };
