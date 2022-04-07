@@ -92,12 +92,12 @@
     /// Processing methods
     Image<double> createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
-    Image<double> invertMask(const Image<double> &);
+    Image<double> invertMask(const Image<double> &) const;
     Image<double> applyCTF(const MDRowVec &, Projection &);
-    void projectVolumeFunc(FourierProjector *, Projection &, const int, const double, const double, const double);
-    void processParticle(int, int, FourierTransformer &);
+    void projectVolumeFunc(FourierProjector *, Projection &, const int, const double, const double, const double) const;
+    void processParticle(size_t, int, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, const MultidimArray<double> &, FourierTransformer &);
-    double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &);
+    double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &) const;
     void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &);
 
     /// Run

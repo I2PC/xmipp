@@ -139,7 +139,7 @@
  	return m;
  }
 
- Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) {
+ Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) const{
 	Image<double> PmaskI = m;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskI())
 		DIRECT_MULTIDIM_ELEM(PmaskI,n) = (DIRECT_MULTIDIM_ELEM(PmaskI,n)*(-1))+1;
@@ -173,14 +173,13 @@
 	return proj;
  }
 
-void ProgSubtractProjection::projectVolumeFunc(FourierProjector *fprojector, Projection &proj, const int sizeProj, const double rotproj, const double tiltproj, const double psiproj)
-{
+void ProgSubtractProjection::projectVolumeFunc(FourierProjector *fprojector, Projection &proj, const int sizeProj, 
+const double rotproj, const double tiltproj, const double psiproj) const{
  	const MultidimArray<double> *ctfImage = nullptr;
 	projectVolume(*fprojector, proj, sizeProj, sizeProj, rotproj, tiltproj, psiproj, ctfImage);
 }
 
-void ProgSubtractProjection::processParticle(int iparticle, int sizeImg, FourierTransformer &transformerImg)
-{
+void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, FourierTransformer &transformerImg) {
 	row = mdParticles.getRowVec(iparticle);
 	readParticle(row);
 	row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
@@ -196,10 +195,9 @@ void ProgSubtractProjection::processParticle(int iparticle, int sizeImg, Fourier
 	transformerImg.FourierTransform(Pctf(), PFourier, false);
 }
 
-MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM)
-{
+MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
+const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	Image<double> ImgiM;
-	// FourierTransformer transformerImgiM;
 	MultidimArray< std::complex<double> > ImgiMFourier;
 	ImgiM().initZeros((int)XSIZE(Img),(int)YSIZE(Img));
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
@@ -209,13 +207,11 @@ MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationI
 	return ImgiMFourier;
 }
 
- double ProgSubtractProjection::evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp)
- {
+ double ProgSubtractProjection::evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp) const{
 	double sumY = 0;
 	double sumY2 = 0;
 	double sumE2 = 0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y)
-	{
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y) {
 		double e = DIRECT_MULTIDIM_ELEM(y, n) - DIRECT_MULTIDIM_ELEM(yp, n);
 		sumE2 += e * e;
 		sumY += DIRECT_MULTIDIM_ELEM(y, n);
@@ -227,10 +223,8 @@ MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationI
 	return R2;
  }
 
-void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap)
-{
+void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap) {
 	auto N = (double)MULTIDIM_SIZE(beta);
-
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
 	MultidimArray<double> betap0;
@@ -239,7 +233,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		DIRECT_MULTIDIM_ELEM(betap0, n) = beta00;
 	double R20 = evaluateFitting(beta, betap0);
 	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
-
 	// Fit order 1 beta=beta0+beta1*idx
 	MultidimArray<double> idx(N);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
@@ -248,8 +241,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	double sumX2 = 0;
 	double sumY = 0;
 	double sumXY = 0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
-	{
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) {
 		sumX += DIRECT_MULTIDIM_ELEM(idx, n);
 		sumX2 += DIRECT_MULTIDIM_ELEM(idx, n) * DIRECT_MULTIDIM_ELEM(idx, n);
 		sumY += DIRECT_MULTIDIM_ELEM(beta, n);
@@ -263,7 +255,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		DIRECT_MULTIDIM_ELEM(betap1, n) = beta10 + beta11 * DIRECT_MULTIDIM_ELEM(idx, n);
 	double R21 = evaluateFitting(beta, betap1);
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
-
 	// Decide fitting
 	if (R21adj > R20adj)
 		betap = betap1;
@@ -278,32 +269,26 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	V().setXmippOrigin();
  	mdParticles.read(fnParticles);
  	vM = createMask(fnMaskVol, vM); // Actually now this mask is mask keep and the other is the final one
-
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
-
 	// Initialize Fourier projectors
 	double cutFreq = sampling/maxResol;
 	projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
 	FourierTransformer transformerP;
 	processParticle(1, sizeI, transformerP);
 	const MultidimArray<double> &mPctf = Pctf();
-
 	// Construct frequencies image
 	MultidimArray<int> wi;
 	wi.initZeros(PFourier);
 	Matrix1D<double> w(2); 	
-	for (int i=0; i<YSIZE(wi); i++) 
-	{
+	for (int i=0; i<YSIZE(wi); i++) {
 		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w)) 
-		for (int j=0; j<XSIZE(wi); j++)  
-		{
+		for (int j=0; j<XSIZE(wi); j++)  {
 			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w))
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); 
 		}
@@ -318,7 +303,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
      	// Project volume (for particle 1 it is already done before the loop)
 		if (i != 1)
 			processParticle(i, sizeI, transformer);
-
     	// Project and smooth big mask		
 		projectVolumeFunc(projectorMask, Pmask, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi);
     	M = binarizeMask(Pmask);
@@ -327,24 +311,19 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		// Compute inverse mask
 		Image<double> iM = invertMask(M);
 		iM.write(formatString("%s3_iM.mrc", fnProj.c_str()));
-
 		// Compute IiM = I*iM		
 		FourierTransformer transformerIiM;
 		MultidimArray< std::complex<double> > IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
-
 		// Compute PiM = P*iM
 		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
-	
 		// Estimate transformation T(w) 
 		MultidimArray<double> num;
 		num.initZeros(maxwiIdx); 
 		MultidimArray<double> den;
 		den.initZeros(maxwiIdx);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) 
-		{
-			if (n <= maxwiIdx)
-			{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
+			if (n <= maxwiIdx) {
 				int win = DIRECT_MULTIDIM_ELEM(wi, n);
 				double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
@@ -355,8 +334,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		}
 		MultidimArray<double> beta;
 		beta.initZeros(maxwiIdx); 
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
-		{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) {
 			if (DIRECT_MULTIDIM_ELEM(den,n) == 0)
 				DIRECT_MULTIDIM_ELEM(beta,n) = 0;
 			else
@@ -368,11 +346,9 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		double betaMean = betap.computeAvg();
 		std::complex<double> beta0; 
 		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1); // if betap = beta1 (order 1) -> betaMean is ok?
-		
 		// Apply adjustment: PFourierAdjusted = PFourier*betaMean
 		std::complex<double> PFourier11 = PFourier(1,1);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
-		{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
 			if (n <= maxwiIdx)
 				DIRECT_MULTIDIM_ELEM(PFourier,n) *= DIRECT_MULTIDIM_ELEM(betap,n);
 		}
@@ -386,7 +362,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		Mfinal = M; 
 		dilate2D(Mfinal(), Mfinal(), 0, 0, fmaskWidth_px); 
 		Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str())); // It seems there is no change
-
 		// Subtraction
 		Image<double> Idiff;
 		Idiff().initZeros(I());
