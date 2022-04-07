@@ -33,7 +33,6 @@ from xmipp_base import *
 import xmippLib
   
 import sys
-import os
 from math import sqrt
 from statsmodels.tsa.stattools import adfuller
 from scipy import stats
