@@ -173,12 +173,6 @@
 	return proj;
  }
 
-void ProgSubtractProjection::projectVolumeFunc(FourierProjector *fprojector, Projection &proj, const int sizeProj, 
-const double rotproj, const double tiltproj, const double psiproj) const{
- 	const MultidimArray<double> *ctfImage = nullptr;
-	projectVolume(*fprojector, proj, sizeProj, sizeProj, rotproj, tiltproj, psiproj, ctfImage);
-}
-
 void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, FourierTransformer &transformerImg) {
 	row = mdParticles.getRowVec(iparticle);
 	readParticle(row);
@@ -189,7 +183,7 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
-	projectVolumeFunc(projector, P, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi);
+	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 	P.write(formatString("%s0_P.mrc", fnProj.c_str()));
 	Pctf = applyCTF(row, P);
 	transformerImg.FourierTransform(Pctf(), PFourier, false);
@@ -223,8 +217,8 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return R2;
  }
 
-void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap) {
-	auto N = (double)MULTIDIM_SIZE(beta);
+void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap) const{
+	auto N = (int)MULTIDIM_SIZE(beta);
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
 	MultidimArray<double> betap0;
@@ -275,12 +269,12 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	FilterG.w1=sigma;
 	// Initialize Fourier projectors
 	double cutFreq = sampling/maxResol;
-	projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	FourierProjector *projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+	std::unique_ptr<FourierProjector> projectorMask;
+	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
-	FourierTransformer transformerP;
-	processParticle(1, sizeI, transformerP);
+	processParticle(1, sizeI, transformer);
 	const MultidimArray<double> &mPctf = Pctf();
 	// Construct frequencies image
 	MultidimArray<int> wi;
@@ -304,7 +298,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		if (i != 1)
 			processParticle(i, sizeI, transformer);
     	// Project and smooth big mask		
-		projectVolumeFunc(projectorMask, Pmask, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi);
+		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
     	M = binarizeMask(Pmask);
 		FilterG.applyMaskSpace(M());
 		M.write(formatString("%s2_MaskSmooth.mrc", fnProj.c_str()));

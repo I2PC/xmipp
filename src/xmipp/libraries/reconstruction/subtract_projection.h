@@ -32,21 +32,19 @@
  #include "data/fourier_filter.h"
  #include "data/fourier_projection.h"
 
-
  class ProgSubtractProjection: public XmippProgram
  {
  private:
     // Input params
-    FileName fnVolR;
-    FileName fnParticles;
-	FileName fnImage;
-    FileName fnOut;
-    FileName fnMask;
-    FileName fnMaskVol;
-    FileName fnPart;
-    FileName fnProj; 
-    bool subtractAll;
-	double lambda;
+    FileName fnVolR; // Input reference volume
+    FileName fnParticles; // Input metadata
+	FileName fnImage; // Particle filename
+    FileName fnOut; // Output metadata
+    FileName fnMask; // NOT USED but can be final mask? -> DELETE?
+    FileName fnMaskVol; // Input 3D mask for reference volume
+    FileName fnProj; // JUST FOR SAVING INTERM FILES -> DELETE
+    bool subtractAll; // not used now... -> DELETE?
+	double lambda; // not used now... -> DELETE?
 	double sampling;
 	double padFourier;
 	double maxResol;
@@ -64,7 +62,8 @@
  	Projection Pmask; // mask projection for region to keep
  	Projection PmaskVol; // final dilated mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
-    FourierProjector *projector;
+    std::unique_ptr<FourierProjector> projector;
+    const MultidimArray<double> *ctfImage = nullptr;
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > PFourier;
 
@@ -94,11 +93,10 @@
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &) const;
     Image<double> applyCTF(const MDRowVec &, Projection &);
-    void projectVolumeFunc(FourierProjector *, Projection &, const int, const double, const double, const double) const;
     void processParticle(size_t, int, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &) const;
-    void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &);
+    void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &) const;
 
     /// Run
     void run() override;
