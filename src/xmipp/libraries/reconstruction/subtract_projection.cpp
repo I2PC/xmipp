@@ -183,7 +183,6 @@ void ProgSubtractProjection::processParticle(int iparticle, int sizeImg, Fourier
 {
 	row = mdParticles.getRowVec(iparticle);
 	readParticle(row);
-	struct Angles part_angles;
 	row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 	row.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
 	row.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
@@ -192,9 +191,6 @@ void ProgSubtractProjection::processParticle(int iparticle, int sizeImg, Fourier
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolumeFunc(projector, P, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi);
-	std::cout << "--1 part_angles.rot: " << part_angles.rot << std::endl	;
-	std::cout << "--1 part_angles.tilt: " << part_angles.tilt << std::endl;
-	std::cout << "--1 part_angles.psi: " << part_angles.psi << std::endl;
 	P.write(formatString("%s0_P.mrc", fnProj.c_str()));
 	Pctf = applyCTF(row, P);
 	transformerImg.FourierTransform(Pctf(), PFourier, false);
@@ -318,38 +314,12 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	typeCast(wi, wi_img());
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));
 
-    for (size_t i = 1; i <= mdParticles.size(); ++i) {  // the begining is done twice for the first particle
-
+    for (size_t i = 1; i <= mdParticles.size(); ++i) {  
      	// Project volume (for particle 1 it is already done before the loop)
 		if (i != 1)
-		{
-			std::cout << "---0---" << std::endl;
-			FourierTransformer transformerP2;
-			processParticle(i, sizeI, transformerP2);
-			std::cout << "---1---" << std::endl;
-			// // Read particle and metadata
-			// row = mdParticles.getRowVec(i);
-			// readParticle(row);
-			// struct Angles part_angles;
-			// row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
-			// row.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
-			// row.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
-			// roffset.initZeros(2);
-			// row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
-			// row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
-			// roffset *= -1;
-			// // Project volume
-			// projectVolumeFunc(projector, P, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi);
-    		// P.write(formatString("%s0_initialProjection.mrc", fnProj.c_str()));
-			// Pctf = applyCTF(row, P);
-			// transformerP2.FourierTransform(Pctf(),PFourier,false);
-		}
+			processParticle(i, sizeI, transformer);
 
-    	// Project and smooth big mask
-		std::cout << "--part_angles.rot: " << part_angles.rot << std::endl;
-		std::cout << "--part_angles.tilt: " << part_angles.tilt << std::endl;
-		std::cout << "--part_angles.psi: " << part_angles.psi << std::endl;
-		
+    	// Project and smooth big mask		
 		projectVolumeFunc(projectorMask, Pmask, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi);
     	M = binarizeMask(Pmask);
 		FilterG.applyMaskSpace(M());
@@ -365,8 +335,8 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		// Compute PiM = P*iM
 		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
-
-		// Estimate transformation T(w) //
+	
+		// Estimate transformation T(w) 
 		MultidimArray<double> num;
 		num.initZeros(maxwiIdx); 
 		MultidimArray<double> den;
@@ -398,7 +368,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		double betaMean = betap.computeAvg();
 		std::complex<double> beta0; 
 		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1); // if betap = beta1 (order 1) -> betaMean is ok?
-
+		
 		// Apply adjustment: PFourierAdjusted = PFourier*betaMean
 		std::complex<double> PFourier11 = PFourier(1,1);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
@@ -410,8 +380,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		transformer.inverseFourierTransform(PFourier, P());
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
 
-		// Build final mask 
-		//already projected + 2D dilation 
+		// Build final mask (already projected mask + 2D dilation)
 		auto fmaskWidth_px = fmaskWidth/(int)sampling;
 		Image<double> Mfinal;
 		Mfinal = M; 
@@ -419,15 +388,17 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str())); // It seems there is no change
 
 		// Subtraction
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-			DIRECT_MULTIDIM_ELEM(I(),n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
-		I.write(formatString("%s7_subtraction.mrc", fnProj.c_str()));
+		Image<double> Idiff;
+		Idiff().initZeros(I());
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
+			DIRECT_MULTIDIM_ELEM(Idiff(),n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+		Idiff.write(formatString("%s7_subtraction.mrc", fnProj.c_str()));
 		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I()) 
 		// 	DIRECT_MULTIDIM_ELEM(I(),n) *= DIRECT_MULTIDIM_ELEM(Mfinal(),i); // (Join this to the loop above)
 		// I.write(formatString("%s8_subtractionMasked.mrc", fnProj.c_str())); // Same but with values ~1e-17
 
 		// Write particle
-		writeParticle(int(i), I);
+		writeParticle(int(i), Idiff);
     }
     mdParticles.write(fnParticles);
  }

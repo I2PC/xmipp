@@ -36,7 +36,7 @@
  class ProgSubtractProjection: public XmippProgram
  {
  private:
-    /** Filename of the reference volume */
+    // Input params
     FileName fnVolR;
     FileName fnParticles;
 	FileName fnImage;
@@ -45,10 +45,6 @@
     FileName fnMaskVol;
     FileName fnPart;
     FileName fnProj; 
-
-    MetaDataVec mdParticles;
-    MDRowVec row;
-
     bool subtractAll;
 	double lambda;
 	double sampling;
@@ -57,14 +53,8 @@
     int fmaskWidth;
 	int sigma;
 	int iter;
-    Matrix1D<double> roffset;
-    struct Angles
-    {
-    	double rot;
-    	double tilt;
-    	double psi;
-    };
-    struct Angles part_angles; // particle angles for projections
+
+    // Data variables
  	Image<double> V; // volume
  	Image<double> vM; // mask 3D
  	Image<double> M; // mask projected and smooth
@@ -77,6 +67,18 @@
     FourierProjector *projector;
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > PFourier;
+
+    // Particle metadata
+    MetaDataVec mdParticles;
+    MDRowVec row;
+    Matrix1D<double> roffset;
+    struct Angles
+    {
+    	double rot;
+    	double tilt;
+    	double psi;
+    };
+    struct Angles part_angles; // particle angles for projections
 
     /// Read argument from command line
     void readParams() override;
