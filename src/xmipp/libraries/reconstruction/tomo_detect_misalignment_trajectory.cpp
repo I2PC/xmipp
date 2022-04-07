@@ -685,6 +685,69 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	std::cout << cmd << std::endl;
 	system(cmd.c_str());
 
+
+	// Read results from analysis
+
+	float avgAreaCH = 0;
+	float avgPerimeterCH = 0;
+	size_t testBinPassed = 0;
+	size_t testFvarPassed = 0;
+	size_t testRandomWalkPassed = 0;
+
+	size_t numberOfChains = inputCoords.size();
+
+	MetaDataVec residualStatsMd;
+	size_t objId;
+
+	residualStatsMd.read(fnStats);
+
+	int enable;
+	double value;
+	std::string statistic;
+	std::string statisticName;
+
+
+	for(size_t objId : residualStatsMd.ids())
+	{
+		residualStatsMd.getValue(MDL_ENABLED, enable, objId);
+		residualStatsMd.getValue(MDL_IMAGE, statistic, objId);
+		residualStatsMd.getValue(MDL_MIN, value, objId);
+
+		statisticName = statistic.substr(1, statistic.find("_"));
+		
+		if (enable == 1)
+		{
+			if (strcmp(statisticName.c_str(), "pvBinX") == 0 || strcmp(statisticName.c_str(), "pvBinY") == 0)
+			{
+				testBinPassed += 1;
+			}
+
+			else if (strcmp(statisticName.c_str(), "pvF") == 0)
+			{
+				testFvarPassed += 1;
+			}
+
+			else if (strcmp(statisticName.c_str(), "pvADF") == 0)
+			{
+				testRandomWalkPassed += 1;
+			}
+
+			else if (strcmp(statisticName.c_str(), "chArea") == 0)
+			{
+				testRandomWalkPassed += value;
+			}
+
+			else if (strcmp(statisticName.c_str(), "chPerim") == 0)
+			{
+				testRandomWalkPassed += value;
+			}
+		}
+	}
+
+
+	// Analyze results from analysis
+
+	return true;
 }
 
 
