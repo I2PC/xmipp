@@ -68,7 +68,6 @@ public:
     FileName fnVol;
     FileName fnOut;
     FileName fnTiltAngles;
-
     FileName fnInputCoord;
 
     /** Input info */
@@ -106,6 +105,9 @@ public:
 
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
+
+    /** Vector containig the input 3D coorinates used for alignment */
+    std::vector<Point3D<int>> inputCoords;
 
     /** Angle step */
     float tiltAngleStep;
@@ -211,7 +213,7 @@ public:
      * @return
      *
     */
-    void calculateResidualVectors(MetaDataVec &inputCoordMd);
+    void calculateResidualVectors();
 
 
     // --------------------------- I/O functions ----------------------------
@@ -277,7 +279,7 @@ public:
      * @return
      *
     */
-    void adjustCoordinatesCosineStreching(MetaDataVec &inputCoordMd);
+    void adjustCoordinatesCosineStreching();
 
 
     /**
@@ -350,9 +352,9 @@ public:
 
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
-    bool detectMisalignmentFromResiduals(MetaDataVec &inputCoordMd);
+    bool detectMisalignmentFromResiduals();
 
-    void factorial(size_t base, size_t fact);
+    // void factorial(size_t base, size_t fact);
 
 
     // --------------------------- MAIN ----------------------------------
