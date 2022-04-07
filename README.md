@@ -59,10 +59,11 @@ If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be
 ### HDF5
 We sometimes see issues regarding the HDF5 dependency.
 We recommend removing all hdf5 versions and install just hdf5-devel. To do that:
-`sudo yum remove hdf5`
-`sudo yum remove hdf5-devel`
-`pip uninstall h5py`
-
+```
+sudo apt remove hdf5
+sudo apt remove hdf5-devel
+pip uninstall h5py
+```
 Remove all files related to hdf5 in /usr/lib64/libhdf5*, /usr/include/hdf5* and .../anaconda3/include/hdf5*. 
 
 We strongy recommend you to install it via your default package manager:
