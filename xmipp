@@ -614,12 +614,15 @@ def addDeepLearninModel(login, modelPath='', update=None):
 
 
 pDLdownload = None
-def downloadDeepLearningModels(cwd, dedicatedMode=False):
+def downloadDeepLearningModels(dest, dedicatedMode=False):
     if not buildConfig.is_true('USE_DL') and not dedicatedMode:
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
-    dest = "models"
-    modelsPath = os.path.join(cwd, dest)
+
+    if dest == 'build':
+        modelsPath = os.path.join(dest, 'models')
+    else:
+        modelsPath = dest
     dataSet = "DLmodels"
 
     # downloading/updating the DLmodels
@@ -634,8 +637,8 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     # using Popen instead of runJob in order to download in parallel
     pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
                          % (task, dest, url, dataSet),
-                         cwd=cwd, show_command=False,
-                         inParallel=not dedicatedMode)
+                         cwd='build', show_command=False,
+                         in_parallel=not dedicatedMode)
     if dedicatedMode:
         ok = pDLdownload
     else:  # in parallel poll() is None untill finished

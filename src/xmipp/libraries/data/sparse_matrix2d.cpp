@@ -107,18 +107,6 @@ void SparseMatrix2D::sparseMatrix2DFromVector(std::vector<SparseElement> &_eleme
 	N = actualRow+1;
 }
 
-SparseMatrix2D &SparseMatrix2D::operator =(const SparseMatrix2D &X)
-{
-	if (this!=&X)
-	{
-		N=X.N;
-		values=X.values;
-		iIdx=X.iIdx;
-		jIdx=X.jIdx;
-	}
-	return *this;
-}
-
 /**
  * It computes y <- this*x
  */
