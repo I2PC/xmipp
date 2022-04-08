@@ -52,11 +52,7 @@
 	if (fnOut=="")
 		fnOut="output_particle_";
 	fnMask=getParam("--mask");
-	fnMaskVol=getParam("--maskVol");
-	iter=getIntParam("--iter");
 	sigma=getIntParam("--sigma");
-	lambda=getDoubleParam("--lambda");
-	subtractAll = checkParam("--subAll");
 	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
@@ -69,12 +65,9 @@
         return;
 	std::cout<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
-	<< "Volume mask:\t" << fnMaskVol << std::endl
-	<< "Mask:\t" << fnMask << std::endl
-	<< "Sigma:\t" << sigma << std::endl
-	<< "Iterations:\t" << iter << std::endl
-	<< "Relaxation factor:\t" << lambda << std::endl
-	<< "Sampling:\t" << sampling << std::endl
+	<< "Mask of the region to keep:\t" << fnMask << std::endl
+	<< "Sigma of low pass filter:\t" << sigma << std::endl
+	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
@@ -88,21 +81,17 @@
      //Parameters
      addParamsLine("-i <particles>\t: Particles metadata (.xmd file)");
      addParamsLine("--ref <volume>\t: Reference volume to subtract");
-     addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for subtracted particles");
+     addParamsLine("[--mask <maskVol=\"\">]\t: 3D mask for region to keep");
+	 addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for subtracted particles");
      addParamsLine("\t: If no name is given, then output_particles");
-     addParamsLine("[--maskVol <maskVol=\"\">]\t: 3D mask for region to keep");
-     addParamsLine("[--mask <mask=\"\">]\t: final 3D mask for the region of subtraction");
-     addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
-     addParamsLine("[--iter <n=1>]\t: Number of iterations");
-     addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
-	 addParamsLine("[--subAll]\t: Perform the subtraction of the whole image");
 	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
-	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
 	 addParamsLine("[--fmask_width <w=40>]\t: extra width of final mask (A)"); 
+	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
+	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol "
-    		 "-o output_particles --iter 5 --lambda 1 --sigma 3 --sampling 1 --padding 2 --max_resolution 4");
+     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
+    		 "-o output_particles --sampling 1 --max_resolution 4");
  }
 
  void ProgSubtractProjection::readParticle(const MDRowVec &r){
@@ -155,7 +144,7 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-		// Padding
+		// Padding before apply CTF
 		Image<double> padp;
 		int pad;
 		pad = int(XSIZE(V())/2);
@@ -167,7 +156,7 @@
 		mproj.window(mpad,STARTINGY(mproj)-pad, STARTINGX(mproj)-pad, FINISHINGY(mproj)+pad, FINISHINGX(mproj)+pad);
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
-	    //Crop
+	    //Crop to restore original size
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
@@ -262,7 +251,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	V.read(fnVolR);
 	V().setXmippOrigin();
  	mdParticles.read(fnParticles);
- 	vM = createMask(fnMaskVol, vM); // Actually now this mask is mask keep and the other is the final one
+ 	vM = createMask(fnMask, vM); 
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
@@ -288,7 +277,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		}
 	}
 	auto maxwiIdx = (int)XSIZE(wi);
-	// int maxwiIdx = YSIZE(mPctf);
+	// auto maxwiIdx = (int)YSIZE(mPctf);
 	Image<double> wi_img;
 	typeCast(wi, wi_img());
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));

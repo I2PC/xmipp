@@ -40,17 +40,13 @@
     FileName fnParticles; // Input metadata
 	FileName fnImage; // Particle filename
     FileName fnOut; // Output metadata
-    FileName fnMask; // NOT USED but can be final mask? -> DELETE?
-    FileName fnMaskVol; // Input 3D mask for reference volume
+    FileName fnMask; // Input 3D mask for region to keep
     FileName fnProj; // JUST FOR SAVING INTERM FILES -> DELETE
-    bool subtractAll; // not used now... -> DELETE?
-	double lambda; // not used now... -> DELETE?
-	double sampling;
-	double padFourier;
+	double sampling; 
+	double padFourier; 
 	double maxResol;
     int fmaskWidth;
 	int sigma;
-	int iter;
 
     // Data variables
  	Image<double> V; // volume
@@ -63,21 +59,21 @@
  	Projection PmaskVol; // final dilated mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
     std::unique_ptr<FourierProjector> projector;
-    const MultidimArray<double> *ctfImage = nullptr;
+    const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformer;
-	MultidimArray< std::complex<double> > PFourier;
+	MultidimArray< std::complex<double> > PFourier; // FT(projection)
 
     // Particle metadata
     MetaDataVec mdParticles;
     MDRowVec row;
-    Matrix1D<double> roffset;
-    struct Angles
+    Matrix1D<double> roffset; // particle shifts
+    struct Angles // particle angles for projection
     {
     	double rot;
     	double tilt;
     	double psi;
     };
-    struct Angles part_angles; // particle angles for projections
+    struct Angles part_angles; 
 
     /// Read argument from command line
     void readParams() override;
