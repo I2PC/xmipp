@@ -85,7 +85,6 @@
     void readParticle(const MDRowVec &);
     void writeParticle(const int &, Image<double> &);
     /// Processing methods
-    Image<double> createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &) const;
     Image<double> applyCTF(const MDRowVec &, Projection &);

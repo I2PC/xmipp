@@ -57,6 +57,7 @@
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
 	fmaskWidth = getIntParam("--fmask_width");
+	fnProj = getParam("--save"); // JUST FOR SAVING INTERM FILES -> DELETE
  }
 
  // Show ====================================================================
@@ -70,7 +71,8 @@
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
-	<< "Output particles:\t" << fnOut << std::endl;
+	<< "Output particles:\t" << fnOut << std::endl
+	<< "Path for saving:\t" << fnProj << std::endl; // JUST FOR SAVING INTERM FILES -> DELETE
  }
 
  // usage ===================================================================
@@ -81,7 +83,7 @@
      //Parameters
      addParamsLine("-i <particles>\t: Particles metadata (.xmd file)");
      addParamsLine("--ref <volume>\t: Reference volume to subtract");
-     addParamsLine("[--mask <maskVol=\"\">]\t: 3D mask for region to keep");
+     addParamsLine("[--mask <mask>]\t: 3D mask for region to keep");
 	 addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for subtracted particles");
      addParamsLine("\t: If no name is given, then output_particles");
 	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
@@ -89,6 +91,7 @@
 	 addParamsLine("[--fmask_width <w=40>]\t: extra width of final mask (A)"); 
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
+	 addParamsLine("[--save <structure=\"\">]\t: path for saving intermediate files"); // JUST FOR SAVING INTERM FILES -> DELETE
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
     		 "-o output_particles --sampling 1 --max_resolution 4");
@@ -105,18 +108,6 @@
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
- }
-
- Image<double> ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
-	if (fnM.isEmpty()) {
-		m().resizeNoCopy(I());
-		m().initConstant(1.0);
-	}
-	else {
-		m.read(fnM);
-		m().setXmippOrigin();
-	}
-	return m;
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
@@ -247,11 +238,12 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 
  void ProgSubtractProjection::run() {
 	show();
-	// Read input volume and create masks
+	// Read input volume and masks
 	V.read(fnVolR);
 	V().setXmippOrigin();
  	mdParticles.read(fnParticles);
- 	vM = createMask(fnMask, vM); 
+	vM.read(fnMask);
+	vM().setXmippOrigin();
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
