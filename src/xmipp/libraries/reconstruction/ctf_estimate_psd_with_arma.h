@@ -130,4 +130,3 @@ void ARMAFilter(MultidimArray<double> &Img, MultidimArray< double > &Filter,
                 ARMA_parameters &prm);
 //@}
 
-#endif
