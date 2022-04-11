@@ -31,7 +31,7 @@
 #include "core/xmipp_image.h"
 
 constexpr int FORWARD =   1;
-constexpr signed int BACKWARD = -1;
+constexpr int BACKWARD = -1;
 
 /** Projection of a pseudoatom volume */
 void project_Pseudo(const std::vector< Matrix1D<double> > &atomPosition,
