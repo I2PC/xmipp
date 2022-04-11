@@ -173,7 +173,7 @@ MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationI
 const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	Image<double> ImgiM;
 	MultidimArray< std::complex<double> > ImgiMFourier;
-	ImgiM().initZeros((int)XSIZE(Img),(int)YSIZE(Img));
+	ImgiM().initZeros(Img);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
 		DIRECT_MULTIDIM_ELEM(ImgiM(),n) = DIRECT_MULTIDIM_ELEM(Img,n) * DIRECT_MULTIDIM_ELEM(InvM,n);
 	transformerImgiM.FourierTransform(ImgiM(),ImgiMFourier,false);
@@ -269,7 +269,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		}
 	}
 	auto maxwiIdx = (int)XSIZE(wi);
-	// auto maxwiIdx = (int)YSIZE(mPctf);
 	Image<double> wi_img;
 	typeCast(wi, wi_img());
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));
@@ -281,6 +280,12 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
     	// Project and smooth big mask		
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
     	M = binarizeMask(Pmask);
+		// Build final mask (projected mask + 2D dilation)
+		M.write(formatString("%s2_MaskBin.mrc", fnProj.c_str()));
+		auto fmaskWidth_px = fmaskWidth/(int)sampling;
+		Mfinal().initZeros(M());
+		dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
+		Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str())); // It seems there is no change
 		FilterG.applyMaskSpace(M());
 		M.write(formatString("%s2_MaskSmooth.mrc", fnProj.c_str()));
 		// Compute inverse mask
@@ -320,33 +325,21 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		checkBestModel(beta, betap);
 		double betaMean = betap.computeAvg();
 		std::complex<double> beta0; 
-		beta0 = IiMFourier(1,1)-betaMean*PiMFourier(1,1); // if betap = beta1 (order 1) -> betaMean is ok?
+		beta0 = IiMFourier(0,0)-betaMean*PiMFourier(0,0); // if betap = beta1 (order 1) -> betaMean is ok?
 		// Apply adjustment: PFourierAdjusted = PFourier*betaMean
-		std::complex<double> PFourier11 = PFourier(1,1);
+		std::complex<double> PFourier00 = PFourier(0,0);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
 			if (n <= maxwiIdx)
 				DIRECT_MULTIDIM_ELEM(PFourier,n) *= DIRECT_MULTIDIM_ELEM(betap,n);
 		}
-		PFourier(1,1) = beta0 + betaMean*PFourier11; // if betap = beta1 (order 1) -> betaMean is ok?
+		PFourier(0,0) = beta0 + betaMean*PFourier00; // if betap = beta1 (order 1) -> betaMean is ok?
 		transformer.inverseFourierTransform(PFourier, P());
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
-
-		// Build final mask (already projected mask + 2D dilation)
-		auto fmaskWidth_px = fmaskWidth/(int)sampling;
-		Image<double> Mfinal;
-		Mfinal = M; 
-		dilate2D(Mfinal(), Mfinal(), 0, 0, fmaskWidth_px); 
-		Mfinal.write(formatString("%s6_maskFinal.mrc", fnProj.c_str())); // It seems there is no change
 		// Subtraction
-		Image<double> Idiff;
 		Idiff().initZeros(I());
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
-			DIRECT_MULTIDIM_ELEM(Idiff(),n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+			DIRECT_MULTIDIM_ELEM(Idiff(),n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 		Idiff.write(formatString("%s7_subtraction.mrc", fnProj.c_str()));
-		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I()) 
-		// 	DIRECT_MULTIDIM_ELEM(I(),n) *= DIRECT_MULTIDIM_ELEM(Mfinal(),i); // (Join this to the loop above)
-		// I.write(formatString("%s8_subtractionMasked.mrc", fnProj.c_str())); // Same but with values ~1e-17
-
 		// Write particle
 		writeParticle(int(i), Idiff);
     }

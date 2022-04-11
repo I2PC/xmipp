@@ -54,6 +54,8 @@
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
     Image<double> Pctf; // projection with CTF applied
+    Image<double> Mfinal; // final dilated mask
+    Image<double> Idiff; // final subtracted image
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
  	Projection PmaskVol; // final dilated mask projection
