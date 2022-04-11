@@ -274,6 +274,10 @@ void ProgForwardArtZernike3D::processImage(const FileName &fnImg, const FileName
 {
 	flagEnabled = 1;
 
+	int img_enabled;
+	rowIn.getValue(MDL_ENABLED, img_enabled);
+	if (img_enabled == -1) return;
+
 	// double auxRot, auxTilt, auxPsi, auxShiftX, auxShiftY;
 	rowIn.getValue(MDL_ANGLE_ROT, rot);
 	rowIn.getValue(MDL_ANGLE_TILT, tilt);
@@ -527,6 +531,7 @@ void ProgForwardArtZernike3D::run()
 			objId = A1D_ELEM(ordered_list, i) + 1;
 			++objIndex;
 			auto rowIn = getInputMd()->getRow(objId);
+			if (rowIn == nullptr) continue;
 			rowIn->getValue(image_label, fnImg);
 
 			if (fnImg.empty())
