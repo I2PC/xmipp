@@ -128,7 +128,7 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	int goldBeadY;
 	int goldBeadZ;
 
-	for(size_t objIdCoord : inputTiltAnglesMd.ids())
+	for(size_t objIdCoord : inputCoordMd.ids())
 	{
 		inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objIdCoord);
 		inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objIdCoord);
@@ -566,7 +566,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 				XX(projectedGoldBead) += (double)xSize/2;
 				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
-				ZZ(projectedGoldBead) += 150;
+				ZZ(projectedGoldBead) += (double)zSize/2;
 
 				#ifdef DEBUG_RESID
 				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
@@ -676,12 +676,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
     fnVCM = rawname + "/vCM.xmd";
 	fnStats = rawname + "/residualStatistics.xmd";
 
-	std::string cmd1 = ". /home/fdeisidro/xmipp_devel/build/xmipp.bashrc";
-	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
-
-	std::cout << cmd1 << std::endl;
-	system(cmd1.c_str());
-
+	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug ";
+	//std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
 	std::cout << cmd << std::endl;
 	system(cmd.c_str());
 
@@ -713,8 +709,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		residualStatsMd.getValue(MDL_IMAGE, statistic, objId);
 		residualStatsMd.getValue(MDL_MIN, value, objId);
 
-		statisticName = statistic.substr(1, statistic.find("_"));
-		
+		statisticName = statistic.substr(statistic.find("_")+1);
+
 		if (enable == 1)
 		{
 			if (strcmp(statisticName.c_str(), "pvBinX") == 0 || strcmp(statisticName.c_str(), "pvBinY") == 0)
@@ -734,18 +730,51 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 			else if (strcmp(statisticName.c_str(), "chArea") == 0)
 			{
-				testRandomWalkPassed += value;
+				avgAreaCH += value;
 			}
 
 			else if (strcmp(statisticName.c_str(), "chPerim") == 0)
 			{
-				testRandomWalkPassed += value;
+				avgPerimeterCH += value;
 			}
 		}
 	}
 
+	avgAreaCH /= numberOfChains;
+	avgPerimeterCH /= numberOfChains;
+
+	std::cout << "Average convex hull area: " << avgAreaCH << std::endl;
+	std::cout << "Average convex hull perimeter: " << avgPerimeterCH << std::endl;
+	std::cout << "Binomial test passed: " << testBinPassed << "/" << 2 * numberOfChains << std::endl;
+	std::cout << "F variance test passed: " << testFvarPassed << "/" << numberOfChains << std::endl;
+	std::cout << "Random walk test passed: " << testRandomWalkPassed << "/" << numberOfChains << std::endl;
+
 
 	// Analyze results from analysis
+
+	// Maybe with only one threshold like "max average displacement" it is possible to acotate the hull parameters
+	bool alignment = true;
+
+	float maxAvgDisplacement = 20; //pixels? *** 
+	float reductionFactor = 0.8;
+
+	float thrArea = (2*PI*maxAvgDisplacement*maxAvgDisplacement)*reductionFactor;
+	float thrPerimeter = (maxAvgDisplacement*numberOfChains) * reductionFactor*reductionFactor;
+
+	if (avgAreaCH > thrArea)
+	{
+		return false;
+	}
+	else if (avgPerimeterCH > thrPerimeter)
+	{
+		return false;
+	}
+	else if (testBinPassed        < 2 * numberOfChains * 0.4 || 
+			 testFvarPassed       <     numberOfChains * 0.4 || 
+			 testRandomWalkPassed <     numberOfChains * 0.4)
+	{
+		return false;
+	}
 
 	return true;
 }
