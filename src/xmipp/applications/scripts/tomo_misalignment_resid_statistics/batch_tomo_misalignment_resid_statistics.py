@@ -26,8 +26,6 @@
 """
 
 
-from cgi import print_directory
-import re
 from xml.dom import XML_NAMESPACE
 from xmipp_base import *
 import xmippLib
@@ -58,6 +56,8 @@ class ScriptTomoResidualStatistics(XmippScript):
     self.nPosX = {}
     self.nPosY = {}
 
+    self.debug = False
+
   def defineParams(self):
     """
       Define program parameters
@@ -72,6 +72,7 @@ class ScriptTomoResidualStatistics(XmippScript):
                         xmipp_tomo_detect_misalignment_trajectory program.\n')
 
     self.addParamsLine(' -o <outputMetadaFile>   : output residual statistics file path. Location to save the calulated statistics from the residual model \n')
+    self.addParamsLine(' [ --debug ]             : add this option to output extra information for debugging \n')
 
 
   def readResidInfo(self):
@@ -96,6 +97,10 @@ class ScriptTomoResidualStatistics(XmippScript):
         self.residX[id] = [mData.getValue(xmippLib.MDL_SHIFT_X, objId)]
         self.residY[id] = [mData.getValue(xmippLib.MDL_SHIFT_Y, objId)]
 
+    # Debug
+    if self.checkParam('--debug'):
+      self.debug=True
+               
 
   def writeOutputStatsInfo(self, residualStats):
     """
@@ -250,33 +255,20 @@ class ScriptTomoResidualStatistics(XmippScript):
 
 
   def run(self):
-    # print("Running statistical analysis of misalingment residuals...")
+    print("Running statistical analysis of misalingment residuals...")
 
     self.readResidInfo()
     self.generateSideInfo()
-
-    # print("resid size")
-    # print(self.residSize)
-    # print("residx")
-    # print(self.residX)
-    # print("residY")
-    # print(self.residY)
-    # print("residXAcc")
-    # print(self.residXAcc)
-    # print("residAccY")
-    # print(self.residYAcc)
-    # print("moduleAcc")
-    # print(self.moduleAcc)
-    # print("nPosX")
-    # print(self.nPosX)
-    # print("nPosY")
-    # print(self.nPosY)
 
     pValues = []
     ch = []
 
     for key in self.residX.keys():
       rs = self.residSize[key]
+
+      if self.debug:
+        print("KEY--------->" + str(key))
+        print("resid size" + str(self.residSize[key]))
 
       # Convex hull
       convexHullArea, convexHullPerimeter = self.convexHull(key=key)
@@ -286,7 +278,7 @@ class ScriptTomoResidualStatistics(XmippScript):
 
 
       # Variance distribution matrix
-      # sumRadius = 0
+      sumRadius = 0
       varianceMatrix = np.zeros([2, 2])
 
       for i in range(len(self.residX[key])):
@@ -297,12 +289,28 @@ class ScriptTomoResidualStatistics(XmippScript):
         ry2 = ry * ry
         rxy = rx * ry
 
-        # sumRadius += sqrt(rx2+ry2)
-        varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
+        sumRadius += sqrt(rx2+ry2)
 
-      # print(varianceMatrix)
+        if(sqrt(rx2+ry2) == 0):
+          varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
+        else:
+          varianceMatrix += np.matrix([[rx2/sqrt(rx2+ry2), rxy/sqrt(rx2+ry2)], [rxy/sqrt(rx2+ry2), ry2/sqrt(rx2+ry2)]])
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
+
+      if self.debug:
+        print("lambda1: " + str(lambda1))
+        print("lambda2: " + str(lambda2))
+        print("self.moduleAcc")
+        print(self.moduleAcc[key])
+        print("self.residYAcc")
+        print(self.residYAcc[key])
+        print("self.residXAcc")
+        print(self.residXAcc[key])
+        print("self.residY")
+        print(self.residY[key])
+        print("self.residX")
+        print(self.residX[key]) 
 
       try:
         fTestStat = lambda1/lambda2
@@ -315,6 +323,10 @@ class ScriptTomoResidualStatistics(XmippScript):
       pvF = self.fTestVar(fTestStat, rs)
       adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
 
+      if self.debug:
+        print("self.nPosX[key]" + str(self.nPosX[key]))
+        print("self.nPosY[key]" + str(self.nPosY[key]))
+
       pValues.append([pvBinX, str(key) + "_pvBinX", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
       pValues.append([pvBinY, str(key) + "_pvBinY", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
       pValues.append([pvF,    str(key) + "_pvF",    self.coords[key][0], self.coords[key][1], self.coords[key][2]])
@@ -325,11 +337,16 @@ class ScriptTomoResidualStatistics(XmippScript):
     residualStats = ch
     firstFail = True
 
+    if self.debug:
+      print("Pvalues------")
+      for p in pValues:
+        print(p)
+
     for j, pv in enumerate(pValues):
       i = j + 1
 
-      if pv[0]*i > self.alpha:
-        residualStats.append([-1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
+      if pv[0] > self.alpha:
+        residualStats.append([-1, pv[0], pv[0], pv[1], pv[2], pv[3], pv[4]])
         
         if firstFail:
           print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
