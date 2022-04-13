@@ -119,8 +119,8 @@ double Trapeze::Trap(int n)
 //**********************************************************
 // Implementation of the integral using the Romberg method
 //**********************************************************mask.cpp to adapt
-#define JMAXP 30
-#define K 5
+constexpr int JMAXP = 30;
+constexpr int K = 5;
 
 double Romberg::operator()()
 {  //adapted from qromb
