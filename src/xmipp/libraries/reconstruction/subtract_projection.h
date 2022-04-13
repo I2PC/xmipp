@@ -40,6 +40,7 @@
     FileName fnParticles; // Input metadata
 	FileName fnImage; // Particle filename
     FileName fnOut; // Output metadata
+    FileName fnMaskVol; // Input 3D mask of the reference volume
     FileName fnMask; // Input 3D mask for region to keep
     FileName fnProj; // JUST FOR SAVING INTERM FILES -> DELETE
 	double sampling; 
@@ -50,15 +51,17 @@
 
     // Data variables
  	Image<double> V; // volume
+    // Image<double> vrM; // reference volume mask
  	Image<double> vM; // mask 3D
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
     Image<double> Pctf; // projection with CTF applied
+    Image<double> iM; // inverse mask of the region to keep
     Image<double> Mfinal; // final dilated mask
     Image<double> Idiff; // final subtracted image
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
- 	Projection PmaskVol; // final dilated mask projection
+    Projection PmaskVol; // reference volume mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
     std::unique_ptr<FourierProjector> projector;
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
@@ -87,13 +90,14 @@
     void readParticle(const MDRowVec &);
     void writeParticle(const int &, Image<double> &);
     /// Processing methods
+    void createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &) const;
     Image<double> applyCTF(const MDRowVec &, Projection &);
     void processParticle(size_t, int, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &) const;
-    void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &) const;
+    void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &, int) const;
 
     /// Run
     void run() override;
