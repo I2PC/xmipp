@@ -115,7 +115,7 @@
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
 	if (fnM.isEmpty()) 
-		m().initZeros(XSIZE(V()),YSIZE(V()));
+		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()));
 	else {
 		m.read(fnM);
 		m().setXmippOrigin();
@@ -387,7 +387,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 			beta0 = IiMFourier(0,0)-(beta1+betap(0)*wi(0,0))*PiMFourier(0,0); 
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
 				if (n <= maxwiIdx)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta1+betap(n)*DIRECT_MULTIDIM_ELEM(wi,n));
+					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta1+betap((int)n)*DIRECT_MULTIDIM_ELEM(wi,n));
 			}
 			PFourier(0,0) = beta0 + (beta1+betap(0)*wi(0,0))*PFourier(0,0); 
 		}
