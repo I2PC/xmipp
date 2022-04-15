@@ -66,6 +66,7 @@ void ProgForwardZernikeImagesPriors::readParams()
 	loop_step = getIntParam("--step");
 	image_mode = getIntParam("--image_mode");
 	resume = checkParam("--resume");
+	lambda = getDoubleParam("--regularization");
 	Rerunable::setFileName(fnOutDir + "/sphDone.xmd");
 	blob_r = getDoubleParam("--blobr");
 	keep_input_columns = true;
@@ -93,6 +94,7 @@ void ProgForwardZernikeImagesPriors::show()
 	<< "Correct CTF:         " << useCTF             << std::endl
     << "Optimize alignment:  " << optimizeAlignment  << std::endl
 	<< "Optimize defocus:    " << optimizeDefocus    << std::endl
+	<< "Regularization:      " << lambda             << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
 	<< "Blob radius:         " << blob_r             << std::endl
 	<< "Image mode:          " << image_mode         << std::endl
@@ -120,6 +122,7 @@ void ProgForwardZernikeImagesPriors::defineParams()
     addParamsLine("  [--RDef <r=-1>]              : Maximum radius of the deformation (px). -1=Half of volume size");
     addParamsLine("  [--l1 <l1=3>]                : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("  [--l2 <l2=2>]                : Harmonical depth of the deformation=1,2,3,...");
+	addParamsLine("  [--regularization <l=0.005>] : Regularization weight");
 	addParamsLine("  [--step <step=1>]            : Voxel index step");
 	addParamsLine("  [--useCTF]                   : Correct CTF");
     addParamsLine("  [--optimizeAlignment]        : Optimize alignment");
@@ -517,7 +520,7 @@ double ProgForwardZernikeImagesPriors::transformImageSph(double *pc_priors)
 
 	if (showOptimization)
 		std::cout << cost << " " << deformation << std::endl;
-	return any_neg * cost;
+	return any_neg * cost + lamba * deformation;
 }
 
 double continuousZernikePriorsCost(double *x, void *_prm)

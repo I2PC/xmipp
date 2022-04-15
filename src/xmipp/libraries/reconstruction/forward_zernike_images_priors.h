@@ -75,6 +75,8 @@ public:
     bool optimizeRadius;
     // Phase Flipped
     bool phaseFlipped;
+    // Regularization weight
+    double lambda;
     // Maximum radius for the deformation
     int RmaxDef;
     // Number of images (execution mode) (single image == 1, pair == 2, or triplet == 3)
