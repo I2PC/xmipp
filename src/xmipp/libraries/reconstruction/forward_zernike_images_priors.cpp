@@ -520,7 +520,7 @@ double ProgForwardZernikeImagesPriors::transformImageSph(double *pc_priors)
 
 	if (showOptimization)
 		std::cout << cost << " " << deformation << std::endl;
-	return any_neg * cost + lamba * deformation;
+	return any_neg * cost + lambda * deformation;
 }
 
 double continuousZernikePriorsCost(double *x, void *_prm)
