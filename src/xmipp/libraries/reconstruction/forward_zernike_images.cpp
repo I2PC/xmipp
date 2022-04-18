@@ -276,7 +276,7 @@ void ProgForwardZernikeImages::preProcess()
 	// Blob
 	blob.radius = blob_r;   // Blob radius in voxels
 	blob.order  = 2;        // Order of the Bessel function
-    blob.alpha  = 3.6;      // Smoothness parameter
+    blob.alpha  = 7.05;      // Smoothness parameter
 
 }
 
@@ -742,8 +742,11 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 		hasCTF=false;
 
 	// If deformation is not optimized, do a single iteration
+	//? Si usamos priors es mejor ir poco a poco, ir poco a poco pero usar todos los coeffs cada vez (mas lento)
+	//? O dar solo una iteracion con todos los coeffs?
 	int h = 1;
-	if (!optimizeDeformation)
+	// if (!optimizeDeformation)
+	if (rowIn.containsLabel(MDL_SPH_COEFFICIENTS))
 		h = L2;
 
 	for (;h<=L2;h++)
@@ -1083,12 +1086,17 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 						// XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
 						if (num_images == 1 && optimizeDeformation)
 						{
+							//? Hacer algun check para ahorrarnos cuentas si no usamos priors (en ese 
+							//? caso podemos usar las lineas comentadas)
 							double c_x = VEC_ELEM(clnm,idx);
 							double c_y = VEC_ELEM(clnm,idx+idxY0);
-							// double c_z = VEC_ELEM(clnm,idx+idxZ0);
-							c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y;
-							c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y;
-							c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y;
+							// c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y;
+							// c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y;
+							// c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y;
+							double c_z = VEC_ELEM(clnm, idx + idxZ0);
+							c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
+							c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
+							c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
 						}
 						else {
 							c[0] = VEC_ELEM(clnm,idx);
