@@ -11,7 +11,8 @@
 - Reported error if happen on installation - runjob
 - Ensuring that target directory for the libraries exists
 
-###Protocols scipion-em-xmipp
+
+### Protocols scipion-em-xmipp
 - **protocol_core_analysis**: New protocol
 - **protocol_compare_angles**: Bug fix in compare angles under some conditions
 - **protocol_center_particles**: protocol simplified (removed setofCoordinates as output)
@@ -23,16 +24,12 @@
 - **protocol_compare_reprojections**: improve computation of residuals + tests + fix + formatting
 - **protocol_screen_deepConsensus**: multiple fixes in batch processing, trainging and streaming mode
 
-###Others
+### Others
+- New XMIPP logo
 - subtract_projection: adding new flag + fix
 - Add intersection size metadata (bindings/python)
 - Fixed unitialized unique pointers (bindings/python)
-- mrc read test: added new test that read mrc files
-- CL2D Core Analysis: format metadata input file correctly for using the program independently
-- Deep consensus: allow early stop on accuracy threshold, fixing AND consensus bug
-- Printing intermediate results to trace why the test fails on Buildbot
-- Bug fixing: Resolution directional and anisotropic filtering
-fixing the test
+- Bug fixing: Resolution directional and anisotropic filtering fixing the test
 - Removed SonarCloud issues
   - Replaced defines with constexpr
   - Removing Unused funtion parameters
