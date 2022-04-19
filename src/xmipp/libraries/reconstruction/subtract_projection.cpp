@@ -206,7 +206,7 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return R2;
  }
 
-void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap, int deg) const{
+int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap) const{
 	auto N = (int)MULTIDIM_SIZE(beta);
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
@@ -239,6 +239,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	double R21 = evaluateFitting(beta, betap1);
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
 	// Decide fitting
+	int deg;
 	if (R21adj > R20adj)
 	{
 		betap = betap1;
@@ -249,6 +250,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		betap = betap0;
 		deg = 0;
 	}
+	return deg;
 }
 
  void ProgSubtractProjection::run() {
@@ -345,8 +347,8 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		} 
 		MultidimArray<double> betap;	
 		betap.initZeros(maxwiIdx); 
-		int degree;
-		checkBestModel(beta, betap, degree);  
+		int degree = checkBestModel(beta, betap);  
+		std::cout << "particula: " << i << " degree: " << degree <<std::endl;
 		double beta1 = betap.computeAvg();
 		std::complex<double> beta0;
 		// Apply adjustment: PFourierAdjusted = T(w) * PFourier

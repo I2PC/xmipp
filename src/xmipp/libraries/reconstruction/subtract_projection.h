@@ -97,7 +97,7 @@
     void processParticle(size_t, int, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &) const;
-    void checkBestModel(const MultidimArray<double> &, MultidimArray<double> &, int) const;
+    int checkBestModel(const MultidimArray<double> &, MultidimArray<double> &) const;
 
     /// Run
     void run() override;
