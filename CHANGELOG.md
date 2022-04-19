@@ -23,7 +23,7 @@
 
 - **protocol_compare_reprojections**: improve computation of residuals + tests + fix + formatting
 - **protocol_screen_deepConsensus**: multiple fixes in batch processing, trainging and streaming mode
-
+- **protocol_shift_particles**: apply transform is now optional
 ### Others
 - New XMIPP logo
 - subtract_projection: adding new flag + fix
