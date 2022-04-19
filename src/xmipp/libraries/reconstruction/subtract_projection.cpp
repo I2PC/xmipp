@@ -51,7 +51,6 @@
 	fnOut=getParam("-o");
 	if (fnOut=="")
 		fnOut="output_particle_";
-	// fnMaskVol=getParam("--maskVol");
 	fnMask=getParam("--mask");
 	sigma=getIntParam("--sigma");
 	sampling = getDoubleParam("--sampling");
@@ -67,7 +66,6 @@
         return;
 	std::cout<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
-	// << "Mask of the reference volume:\t" << fnMaskVol << std::endl
 	<< "Mask of the region to keep:\t" << fnMask << std::endl
 	<< "Sigma of low pass filter:\t" << sigma << std::endl
 	<< "Sampling rate:\t" << sampling << std::endl
@@ -85,7 +83,6 @@
      //Parameters
      addParamsLine("-i <particles>\t: Particles metadata (.xmd file)");
      addParamsLine("--ref <volume>\t: Reference volume to subtract");
-	//  addParamsLine("[--maskVol <maskVol>]\t: 3D mask for the reference volume");
      addParamsLine("[--mask <mask=\"\">]\t: 3D mask for region to keep, no mask implies subtraction of whole images");
 	 addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for subtracted particles");
      addParamsLine("\t: If no name is given, then output_particles");
@@ -256,11 +253,9 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 
  void ProgSubtractProjection::run() {
 	show();
-	// Read input volume, masks and particles metadata
+	// Read input volume, mask and particles metadata
 	V.read(fnVolR);
 	V().setXmippOrigin();
-	// vrM.read(fnMaskVol);
-	// vrM().setXmippOrigin();
 	createMask(fnMask, vM);
 	vM().setXmippOrigin();
 	mdParticles.read(fnParticles);
@@ -271,8 +266,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	// Initialize Fourier projectors
 	double cutFreq = sampling/maxResol;
 	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	// std::unique_ptr<FourierProjector> projectorMaskVol;
-	// projectorMaskVol = std::make_unique<FourierProjector>(vrM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	std::unique_ptr<FourierProjector> projectorMask;
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	// Read first particle
@@ -296,21 +289,10 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));
 
     for (size_t i = 1; i <= mdParticles.size(); ++i) {  
-     	// Project volume (for particle 1 it is already done before the loop)
+     	// Project volume and process projection (for particle 1 it is already done before the loop)
 		if (i != 1)
 			processParticle(i, sizeI, transformer);
-    	// Project and process masks
-
-		// Volume mask
-		// projectVolume(*projectorMaskVol, PmaskVol, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-		// Image<double> p_img = binarizeMask(PmaskVol);
-		// p_img.write(formatString("%s1_maskVol.mrc", fnProj.c_str())); 		
-		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P())
-		// 	DIRECT_MULTIDIM_ELEM(P(),n) *= DIRECT_MULTIDIM_ELEM(p_img(),n);	
-		// typeCast(P(), p_img());
-		// p_img.write(formatString("%s1_pmask.mrc", fnProj.c_str())); 
-
-		// Keep mask
+    	// Project and process keep mask
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 		Pmask.write(formatString("%s2_Mask.mrc", fnProj.c_str()));
 		M = binarizeMask(Pmask);
