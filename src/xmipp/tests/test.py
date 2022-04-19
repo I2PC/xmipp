@@ -27,6 +27,7 @@
 # **************************************************************************
 
 import os
+import signal
 
 import time
 import unittest
@@ -53,19 +54,13 @@ class Command(object):
         self.env = env
 
     def run(self, timeout):
-        # type: (object) -> object
-        def target():
-            self.process = subprocess.Popen(self.cmd, shell=True, env=self.env)
-            self.process.communicate()
-
-        thread = threading.Thread(target=target)
-        thread.start()
-
-        thread.join(timeout)
-        if thread.is_alive():
+        self.process = subprocess.Popen(self.cmd, shell=True, env=self.env,preexec_fn=os.setsid)
+        try:
+            self.process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # https://stackoverflow.com/a/4791612
             print(red('ERROR: timeout reached for this process'))
-            self.process.terminate()
-            thread.join()
+            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
         self.process = None
     
     def terminate(self):
