@@ -351,25 +351,26 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 		std::cout << "particula: " << i << " degree: " << degree <<std::endl;
 		double beta1 = betap.computeAvg();
 		std::complex<double> beta0;
+		std::complex<double> Tw;
 		// Apply adjustment: PFourierAdjusted = T(w) * PFourier
 		if (degree == 0) // Degree 0: T(w) = b1
 		{
-			beta0 = IiMFourier(0,0)-beta1*PiMFourier(0,0); 
+			Tw = beta1;
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
 				if (n <= maxwiIdx)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= beta1;
+					DIRECT_MULTIDIM_ELEM(PFourier,n) *= Tw;
 			}
-			PFourier(0,0) = beta0 + beta1*PFourier(0,0); 
 		}
 		else if (degree == 1) // Degree 1: T(w) = b1 + b2*wi
 		{
-			beta0 = IiMFourier(0,0)-(beta1+betap(0)*wi(0,0))*PiMFourier(0,0); 
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
 				if (n <= maxwiIdx)
 					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta1+betap((int)n)*DIRECT_MULTIDIM_ELEM(wi,n));
 			}
-			PFourier(0,0) = beta0 + (beta1+betap(0)*wi(0,0))*PFourier(0,0); 
+			Tw = beta1+betap(0)*wi(0,0);
 		}
+		beta0 = IiMFourier(0,0) - Tw*PiMFourier(0,0); 
+		PFourier(0,0) = beta0 + Tw*PFourier(0,0); 
 		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
