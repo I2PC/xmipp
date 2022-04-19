@@ -127,7 +127,7 @@
  	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
-		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0; 
+		DIRECT_MULTIDIM_ELEM(m(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)>0.1*maxMaskVol) ? 1:0; 
  	return m;
  }
 
@@ -252,11 +252,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 		betap = betap0;
 		deg = 0;
 	}
-	std::cout << "Degree: " << deg << std::endl;
-	std::cout << "R20: " << R20 << std::endl;
-	std::cout << "R20adj: " << R20adj << std::endl;
-	std::cout << "R21: " << R21 << std::endl;
-	std::cout << "R21adj: " << R21adj << std::endl;
 }
 
  void ProgSubtractProjection::run() {
@@ -301,7 +296,6 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));
 
     for (size_t i = 1; i <= mdParticles.size(); ++i) {  
-		std::cout << "---Particle: " << i << std::endl;
      	// Project volume (for particle 1 it is already done before the loop)
 		if (i != 1)
 			processParticle(i, sizeI, transformer);
@@ -318,7 +312,8 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 
 		// Keep mask
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
-    	M = binarizeMask(Pmask);
+		Pmask.write(formatString("%s2_Mask.mrc", fnProj.c_str()));
+		M = binarizeMask(Pmask);
 		M.write(formatString("%s2_MaskBin.mrc", fnProj.c_str()));
 		// Build final mask (projected mask + 2D dilation)
 		auto fmaskWidth_px = fmaskWidth/(int)sampling;
@@ -391,6 +386,7 @@ void ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, M
 			}
 			PFourier(0,0) = beta0 + (beta1+betap(0)*wi(0,0))*PFourier(0,0); 
 		}
+		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
 		// Subtraction
