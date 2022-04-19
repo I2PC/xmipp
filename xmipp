@@ -783,7 +783,6 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
-    printXmippLogo("           ")
 
     print("\n"
           "  ********************************************\n"
