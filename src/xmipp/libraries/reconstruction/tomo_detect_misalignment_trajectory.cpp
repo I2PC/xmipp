@@ -102,8 +102,9 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	localAlignment.resize(nSize, true);
 
 	// Update thresholds depending on input tilt-series sampling rate
-	minDistancePx = minDistanceAng * samplingRate;
-	thrChainDistancePx = thrChainDistanceAng * samplingRate;
+	minDistancePx = minDistanceAng / samplingRate;
+	thrChainDistancePx = thrChainDistanceAng / samplingRate;
+	fiducialSizePx = fiducialSize / samplingRate; 
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Thresholds:" << std::endl;
@@ -769,8 +770,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	{
 		return false;
 	}
-	else if (testBinPassed        < 2 * numberOfChains * 0.4 || 
-			 testFvarPassed       <     numberOfChains * 0.4 || 
+	else if (testBinPassed        < 2 * numberOfChains * 0.4 ||
+			 testFvarPassed       <     numberOfChains * 0.4 ||
 			 testRandomWalkPassed <     numberOfChains * 0.4)
 	{
 		return false;

@@ -136,6 +136,7 @@ public:
     // Thresholds measured in pixels updated in generateSideInfo function
     float minDistancePx;                          
     double thrChainDistancePx;
+    size_t fiducialSizePx;
 
     // Global alignment thresholds
     float thrTop10Chain = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
