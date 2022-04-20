@@ -97,7 +97,7 @@
     		 "-o output_particles --sampling 1 --max_resolution 4");
  }
 
- void ProgSubtractProjection::readParticle(const MDRowVec &r){
+ void ProgSubtractProjection::readParticle(const MDRowVec &r) {
 	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
@@ -119,7 +119,7 @@
 	}
  }
 
- Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
+ Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const {
  	double maxMaskVol;
  	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
@@ -128,7 +128,7 @@
  	return m;
  }
 
- Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) const{
+ Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) const {
 	Image<double> PmaskI = m;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskI())
 		DIRECT_MULTIDIM_ELEM(PmaskI,n) = (DIRECT_MULTIDIM_ELEM(PmaskI,n)*(-1))+1;
@@ -240,13 +240,11 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
 	// Decide fitting
 	int deg;
-	if (R21adj > R20adj)
-	{
+	if (R21adj > R20adj) {
 		betap = betap1;
 		deg = 1;
 	}
-	else
-	{
+	else {
 		betap = betap0;
 		deg = 0;
 	}
@@ -289,7 +287,7 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 	Image<double> wi_img;
 	typeCast(wi, wi_img());
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));
-
+	// For each particle in metadata:
     for (size_t i = 1; i <= mdParticles.size(); ++i) {  
      	// Project volume and process projection (for particle 1 it is already done before the loop)
 		if (i != 1)
@@ -328,44 +326,47 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 		MultidimArray<double> den;
 		den.initZeros(maxwiIdx);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
-			if (n <= maxwiIdx) {
+			if (n < maxwiIdx) {
 				int win = DIRECT_MULTIDIM_ELEM(wi, n);
 				double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
 												+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
 				DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+
 			}
 		}
 		MultidimArray<double> beta;
 		beta.initZeros(maxwiIdx); 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) {
-			if (DIRECT_MULTIDIM_ELEM(den,n) == 0)
-				DIRECT_MULTIDIM_ELEM(beta,n) = 0;
-			else
-				DIRECT_MULTIDIM_ELEM(beta,n) = DIRECT_MULTIDIM_ELEM(num,n) / DIRECT_MULTIDIM_ELEM(den,n);	
+			int win2 = DIRECT_MULTIDIM_ELEM(wi, n);
+			if (DIRECT_MULTIDIM_ELEM(den,win2) == 0)
+				DIRECT_MULTIDIM_ELEM(beta,win2) = 0;
+			else {
+				DIRECT_MULTIDIM_ELEM(beta,win2) = DIRECT_MULTIDIM_ELEM(num,win2) / DIRECT_MULTIDIM_ELEM(den,win2);	
+				if (abs(DIRECT_MULTIDIM_ELEM(beta,win2)) > 100.0) // ****Without mask keep or with noise for certain freqs (win2) beta become too big (win=80 for apo, win=63 for prot)
+					DIRECT_MULTIDIM_ELEM(beta,win2) = 0;
+			}
 		} 
 		MultidimArray<double> betap;	
-		betap.initZeros(maxwiIdx); 
+		betap.initZeros(maxwiIdx); 		
 		int degree = checkBestModel(beta, betap);  
 		std::cout << "particula: " << i << " degree: " << degree <<std::endl;
 		double beta1 = betap.computeAvg();
 		std::complex<double> beta0;
 		std::complex<double> Tw;
 		// Apply adjustment: PFourierAdjusted = T(w) * PFourier
-		if (degree == 0) // Degree 0: T(w) = b1
-		{
+		if (degree == 0) { // Degree 0: T(w) = b1 
 			Tw = beta1;
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
-				if (n <= maxwiIdx)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= Tw;
+				if (n < maxwiIdx)
+					DIRECT_MULTIDIM_ELEM(PFourier,n) *= Tw; // --> ****some VERTICAL STRIPES
 			}
 		}
-		else if (degree == 1) // Degree 1: T(w) = b1 + b2*wi
-		{
+		else if (degree == 1) { // Degree 1: T(w) = b1 + b2*wi 
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
-				if (n <= maxwiIdx)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta1+betap((int)n)*DIRECT_MULTIDIM_ELEM(wi,n));
+				if (n < maxwiIdx)
+					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta1+betap((int)n)*DIRECT_MULTIDIM_ELEM(wi,n)); // --> ****HIGH CONTRAST VERTICAL STRIPES
 			}
 			Tw = beta1+betap(0)*wi(0,0);
 		}
