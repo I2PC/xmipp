@@ -285,7 +285,8 @@ protected:
      */
     double thresh_neigh;
 
-    MultidimArray<int> bg_mask, bg_mask_bck;
+    MultidimArray<int> bg_mask;
+    MultidimArray<int> bg_mask_bck;
     bool enable_mask;
 
     /* Mask parameter
@@ -294,7 +295,8 @@ protected:
 
 public:
     // Mean and standard deviation of the image 0. Used for tomography
-    double mu0, sigma0;
+    double mu0;
+    double sigma0;
 
 protected:
     void defineParams();

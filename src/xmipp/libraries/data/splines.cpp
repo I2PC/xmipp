@@ -215,10 +215,8 @@ void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_spline
     Matrix1D<double> beginY(3);              // Coord: Voxel coordinates of the
     // blob at the 3D point
     // (z0,y0,XX(lowest))
-    Matrix1D<double> corner2(3), corner1(3); // Coord: Corners of the
-    // blob in the voxel volume
+    Matrix1D<int> corner2(3), corner1(3);    // Coord: Corners of the blob in the voxel volume
     Matrix1D<double> gcurrent(3);            // Position in g of current point
-    double        intx, inty, intz;          // Nearest integer voxel
     int           i, j, k;                   // Index within the blob volume
     bool          process;                   // True if this blob has to be
     // processed
@@ -315,16 +313,21 @@ void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_spline
 #endif
 
                     // Effectively convert
-                    for (intz = ZZ(corner1); intz <= ZZ(corner2); intz++)
-                        for (inty = YY(corner1); inty <= YY(corner2); inty++)
-                            for (intx = XX(corner1); intx <= XX(corner2); intx++)
+                    for (int iz = ZZ(corner1); iz <= ZZ(corner2); iz++)
+                    {
+                    	double intz=iz;
+                        for (int iy = YY(corner1); iy <= YY(corner2); iy++)
+                        {
+                        	double inty=iy;
+                            for (int ix = XX(corner1); ix <= XX(corner2); ix++)
                             {
-                                int iz = (int)intz, iy = (int)inty, ix = (int)intx;
                                 if (vol_mask != nullptr)
                                     if (!A3D_ELEM(*vol_mask, iz, iy, ix)) continue;
+                            	double intx=ix;
 
                                 // Compute the spline value at this point
-                                VECTOR_R3(gcurrent, intx, inty, intz);
+                                VECTOR_R3(gcurrent, static_cast<double>(intx),
+                                static_cast<double>(inty), static_cast<double>(intz));
                                 V3_MINUS_V3(gcurrent, act_coord, gcurrent);
                                 double spline_value = spatial_Bspline03(gcurrent);
 #ifdef DEBUG_MORE
@@ -351,6 +354,8 @@ void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_spline
                                 }
 #endif
                             }
+                        }
+                    }
                 }
 
                 // Prepare for next iteration

@@ -36,34 +36,34 @@
 //Tags already defined in xmipp
 //#define TAG_WORK                     0
 //#define TAG_STOP                     1
-#define TAG_I_FINISH_WRITTING        12
-#define TAG_MAY_I_WRITE              13
-#define TAG_YES_YOU_MAY_WRITE        14
-#define TAG_DO_NOT_DARE_TO_WRITE     15
-#define TAG_I_AM_FREE                16
+constexpr int TAG_I_FINISH_WRITTING =         12;
+constexpr int TAG_MAY_I_WRITE =               13;
+constexpr int TAG_YES_YOU_MAY_WRITE =         14;
+constexpr int TAG_DO_NOT_DARE_TO_WRITE =      15;
+constexpr int TAG_I_AM_FREE =                 16;
 
-#define lockWeightIndexesSize 5
-#define index_lockIndex 0
-#define index_weight 1
-#define index_weights1 2
-#define index_weights2 3
-#define index_ref3d 4
+constexpr int lockWeightIndexesSize =  5;
+constexpr int index_lockIndex =  0;
+constexpr int index_weight =  1;
+constexpr int index_weights1 =  2;
+constexpr int index_weights2 =  3;
+constexpr int index_ref3d =  4;
 
-#define ArraySize 8
-#define index_DefGroup 0
-#define index_2DRef 1
-#define index_3DRef 2
-#define index_Order 3
-#define index_Count 4
-#define index_jobId 5
-#define index_Rot 6
-#define index_Tilt 7
+constexpr int ArraySize =  8;
+constexpr int index_DefGroup =  0;
+constexpr int index_2DRef =  1;
+constexpr int index_3DRef =  2;
+constexpr int index_Order =  3;
+constexpr int index_Count =  4;
+constexpr int index_jobId =  5;
+constexpr int index_Rot =  6;
+constexpr int index_Tilt =  7;
 
-#define AVG_OUPUT_SIZE 10
+constexpr int AVG_OUPUT_SIZE =  10;
 
-#define split0 0
-#define split1 1
-#define split2 2
+constexpr int split0 =  0;
+constexpr int split1 =  1;
+constexpr int split2 =  2;
 
 /// @defgroup MpiProgAngularClassAverage MPI Angular Class Average
 /// @ingroup ParallelLibrary
@@ -214,10 +214,6 @@ public:
         Image<double> avg,
         Image<double> avg1,
         Image<double> avg2,
-        const MetaDataDb& SFclass,
-        const MetaDataDb& SFclass1,
-        const MetaDataDb& SFclass2,
-        const MetaDataDb& SFclassDiscarded,
         double w1,
         double w2,
         double old_w,

@@ -350,7 +350,7 @@ void blobs2voxels(const GridVolume &vol_blobs,
 void blobs2space_coefficients(const GridVolume &vol_blobs, const struct blobtype &blob,
                               MultidimArray<double> *vol_coefs);
 
-#define SHOW_CONVERSION 1
+constexpr int SHOW_CONVERSION = 1;
 /** Voxels ---> Blobs.
     The voxels to blobs procedure is an iterative process resolved by
     ART as an iterative technique to solve an equation system. The blobs to
@@ -375,8 +375,8 @@ void voxels2blobs(const MultidimArray<double> *vol_voxels,
                   const Matrix2D<double> *D = nullptr,
                   double final_error_change = 0.01, int tell = 0, double R = -1, int threads = 1);
 
-#define VARTK 1
-#define VMAXARTK 2
+constexpr int VARTK = 1;
+constexpr int VMAXARTK = 2;
 
 /** Voxels ---> Blobs, single step.
     This is the basic step of the voxels to blobs conversion. It applies

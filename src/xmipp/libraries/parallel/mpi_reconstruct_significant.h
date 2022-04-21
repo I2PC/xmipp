@@ -37,13 +37,17 @@
 class MpiProgReconstructSignificant: public ProgReconstructSignificant
 {
 public:
-	MpiNode *node;
+	MpiNode *node=nullptr;
 public:
 	// Empty constructor
-	MpiProgReconstructSignificant();
+	MpiProgReconstructSignificant() = default;
+	MpiProgReconstructSignificant(const MpiProgReconstructSignificant &)=delete;
+	MpiProgReconstructSignificant(const MpiProgReconstructSignificant &&)=delete;
 
 	// Destructor
 	~MpiProgReconstructSignificant();
+	MpiProgReconstructSignificant & operator=(const MpiProgReconstructSignificant &)=delete;
+	MpiProgReconstructSignificant & operator=(const MpiProgReconstructSignificant &&)=delete;
 
 	// Redefine how to read the command line
 	void read(int argc, char** argv);

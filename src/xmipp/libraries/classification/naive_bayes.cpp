@@ -148,10 +148,12 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
     else
     {
         // Compute the minimum and maximum of each class
-        double minval=0., maxval=0.;
+        double minval=0.;
+        double maxval=0.;
         for(int k=0; k<K; k++)
         {
-            double minvalk=0., maxvalk=0.;
+            double minvalk=0.;
+            double maxvalk=0.;
             leafFeatures[k].computeDoubleMinMax(minvalk, maxvalk);
             if (k==0)
             {
@@ -180,7 +182,8 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
         }
 
         // Split the histograms into discrete_level (power of 2) bins
-        std::queue< Matrix1D<int> > intervals, splittedIntervals;
+        std::queue< Matrix1D<int> > intervals;
+        std::queue< Matrix1D<int> > splittedIntervals;
         Matrix1D<int> limits(2);
         VECTOR_R2(limits,0,99);
         intervals.push(limits);
@@ -287,7 +290,7 @@ NaiveBayes::NaiveBayes(
 
     // Create a dummy leaf for features that cannot classify
     std::vector < MultidimArray<double> > aux(K);
-    dummyLeaf=new LeafNode(aux,0);
+    auto dummyLeaf = LeafNode(aux,0);
 
     // Build a leafnode for each feature and assign a weight
     __weights.initZeros(Nfeatures);
@@ -295,17 +298,16 @@ NaiveBayes::NaiveBayes(
     {
         for (int k=0; k<K; k++)
             features[k].getCol(f, aux[k]);
-        auto *leaf=new LeafNode(aux,discreteLevels);
-        if (leaf->__discreteLevels>0)
+        auto leaf = LeafNode(aux,discreteLevels);
+        if (leaf.__discreteLevels>0)
         {
             __leafs.push_back(leaf);
-            DIRECT_A1D_ELEM(__weights,f)=__leafs[f]->computeWeight();
+            DIRECT_A1D_ELEM(__weights,f)=__leafs[f].computeWeight();
         }
         else
         {
             __leafs.push_back(dummyLeaf);
             DIRECT_A1D_ELEM(__weights,f)=0;
-            delete leaf;
         }
 #ifdef DEBUG_WEIGHTS
 
@@ -330,34 +332,6 @@ NaiveBayes::NaiveBayes(
         MAT_ELEM(__cost,i,i)=0;
 }
 
-/* Destructor -------------------------------------------------------------- */
-NaiveBayes::~NaiveBayes()
-{
-    int imax=__leafs.size();
-    for (int i = 0; i < imax; i++)
-        if (__leafs[i]!=dummyLeaf)
-            delete __leafs[i];
-    delete dummyLeaf;
-}
-
-// Assignment --------------------------------------------------------------
-NaiveBayes & NaiveBayes::operator=(const NaiveBayes &other)
-{
-	K=other.K;
-	Nfeatures=other.Nfeatures;
-    __priorProbsLog10=other.__priorProbsLog10;
-    __weights=other.__weights;
-    size_t imax=__leafs.size();
-    for (size_t i=0; i<imax; ++i)
-    	delete __leafs[i];
-    __leafs.clear();
-    imax=other.__leafs.size();
-    for (size_t i=0; i<imax; ++i)
-    	__leafs.emplace_back(new LeafNode(*(other.__leafs[i])));
-   __cost=other.__cost;
-   return *this;
-}
-
 /* Set cost matrix --------------------------------------------------------- */
 void NaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
 {
@@ -374,7 +348,7 @@ int NaiveBayes::doInference(const MultidimArray<double> &newFeatures, double &co
     classesProbs=__priorProbsLog10;
     for(int f=0; f<Nfeatures; f++)
     {
-        const LeafNode &leaf_f=*(__leafs[f]);
+        const LeafNode &leaf_f = __leafs[f];
         double newFeatures_f=DIRECT_A1D_ELEM(newFeatures,f);
         for (int k=0; k<K; k++)
         {
@@ -447,7 +421,7 @@ std::ostream & operator << (std::ostream &_out, const NaiveBayes &naive)
     for (int f=0; f<naive.Nfeatures; f++)
     {
         _out << "Node " << f << std::endl;
-        _out << *(naive.__leafs[f]) << std::endl;
+        _out << naive.__leafs[f] << std::endl;
     }
     return _out;
 }
@@ -578,7 +552,8 @@ int EnsembleNaiveBayes::doInference(const Matrix1D<double> &newFeatures,
                                     Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts)
 {
     int nmax=ensemble.size();
-    MultidimArray<double> minCost, maxCost;
+    MultidimArray<double> minCost;
+    MultidimArray<double> maxCost;
     votes.initZeros(K);
     minCost.initZeros(K);
     minCost.initConstant(1);

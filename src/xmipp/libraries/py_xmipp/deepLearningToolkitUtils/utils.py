@@ -50,5 +50,4 @@ def updateEnviron(gpus=None):
         return [int(elem) for elem in gpus]
       else:
         return [int(gpus)]
-  return None
 

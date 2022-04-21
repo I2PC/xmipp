@@ -25,11 +25,6 @@
 
 #include "mpi_angular_accuracy_pca.h"
 
-MpiProgAngularAccuracyPCA::MpiProgAngularAccuracyPCA()
-{
-	node=nullptr;
-}
-
 MpiProgAngularAccuracyPCA::~MpiProgAngularAccuracyPCA()
 {
 	delete node;

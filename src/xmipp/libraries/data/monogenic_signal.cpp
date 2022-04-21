@@ -69,12 +69,16 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 {
 	double criticalZ = icdf_gauss(0.95);
 	radiuslimit = XSIZE(inputmap)/2;
-	double last_mean=0, last_std2=1e-38;
+	double last_mean=0;
+	double last_std2=1e-38;
 
 	for (int rad = radius; rad<radiuslimit; rad++)
 	{
-		double sum=0, sum2=0, N=0;
-		int sup, inf;
+		double sum=0;
+		double sum2=0;
+		double N=0;
+		int sup;
+		int inf;
 		inf = rad*rad;
 		sup = (rad + 1)*(rad + 1);
 		FOR_ALL_ELEMENTS_IN_ARRAY3D(inputmap)
@@ -157,7 +161,12 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 
 	iu.initZeros(myfftV);
 
-	double uz, uy, ux, uz2, u2, uz2y2;
+	double uz;
+	double uy;
+	double ux;
+	double uz2;
+	double u2;
+	double uz2y2;
 	long n=0;
 	//  TODO: Take ZSIZE(myfftV) out of the loop
 	//	TODO: Use freq_fourier_x instead of calling FFT_IDX2DIGFREQ
@@ -346,7 +355,8 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 
 	// Calculate second and third component of Riesz vector
 	n=0;
-	double uy, uz;
+	double uy;
+	double uz;
 	for(size_t k=0; k<ZSIZE(myfftV); ++k)
 	{
 		uz = VEC_ELEM(freq_fourier_z,k);
@@ -416,7 +426,10 @@ void Monogenic::statisticsInBinaryMask2(const MultidimArray<double> &volS,
 		MultidimArray<int> &mask, double &meanS, double &sdS2,
 		double &meanN, double &sdN2, double &significance, double &thr95, double &NS, double &NN)
 {
-	double sumS = 0, sumS2 = 0, sumN = 0, sumN2 = 0;
+	double sumS = 0;
+	double sumS2 = 0;
+	double sumN = 0;
+	double sumN2 = 0;
 	NN = 0;
 	NS = 0;
 	std::vector<double> noiseValues;
@@ -458,7 +471,10 @@ void Monogenic::statisticsInOutBinaryMask2(const MultidimArray<double> &volS,
 		MultidimArray<int> &mask, double &meanS, double &sdS2,
 		double &meanN, double &sdN2, double &significance, double &thr95, double &NS, double &NN)
 {
-	double sumS = 0, sumS2 = 0, sumN = 0, sumN2 = 0;
+	double sumS = 0;
+	double sumS2 = 0;
+	double sumN = 0;
+	double sumN2 = 0;
 	NN = 0;
 	NS = 0;
 
@@ -559,12 +575,15 @@ void Monogenic::setLocalResolutionMap(const MultidimArray<double> &amplitudeMS,
 void Monogenic::monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<double> > &myfftV,
 		MultidimArray<double> &iu, MultidimArray<double> &amplitude, int numberOfThreads)
 {
-	Matrix1D<double> freq_fourier_z, freq_fourier_y, freq_fourier_x;
+	Matrix1D<double> freq_fourier_z;
+	Matrix1D<double> freq_fourier_y;
+	Matrix1D<double> freq_fourier_x;
 
 	iu = fourierFreqs_3D(myfftV, amplitude, freq_fourier_x, freq_fourier_y, freq_fourier_z);
 
 	// Filter the input volume and add it to amplitude
-	MultidimArray< std::complex<double> > fftVRiesz, fftVRiesz_aux;
+	MultidimArray< std::complex<double> > fftVRiesz;
+	MultidimArray< std::complex<double> > fftVRiesz_aux;
 	fftVRiesz.initZeros(myfftV);
 	fftVRiesz_aux.initZeros(myfftV);
 	std::complex<double> J(0,1);
@@ -590,7 +609,9 @@ void Monogenic::monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<
 		DIRECT_MULTIDIM_ELEM(amplitude,n) = DIRECT_MULTIDIM_ELEM(VRiesz,n)*DIRECT_MULTIDIM_ELEM(VRiesz,n);
 
 	// Calculate first component of Riesz vector
-	double uz, uy, ux;
+	double uz;
+	double uy;
+	double ux;
 	n=0;
 	for(size_t k=0; k<ZSIZE(myfftV); ++k)
 	{
@@ -660,8 +681,12 @@ void Monogenic::addNoise(MultidimArray<double> &vol, double mean, double stddev)
 MultidimArray<double> Monogenic::createDataTest(size_t xdim, size_t ydim, size_t zdim,
 		double wavelength)
 {
-	int siz_z, siz_y, siz_x;
-	double x, y, z;
+	int siz_z;
+	int siz_y;
+	int siz_x;
+	double x;
+	double y;
+	double z;
 
 	siz_z = xdim/2;
 	siz_y = ydim/2;
