@@ -257,8 +257,16 @@ public:
      * @return
      *
     */
-    // double filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+
+    /**
+     * Filter labeled regions.
+     *
+     * @param
+     * @return
+     *
+    */
+    void fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value);
 
     /**
      * Filter labeled regions.

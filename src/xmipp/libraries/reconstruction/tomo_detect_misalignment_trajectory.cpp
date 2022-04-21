@@ -1519,7 +1519,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	for(size_t n; n < coordinates3D.size(); n++)
 	{
-		DIRECT_A2D_ELEM(proyectedCoordinates, (int)coordinates3D[n].y, (int)coordinates3D[n].x) = 1;
+		// DIRECT_A2D_ELEM(proyectedCoordinates, (int)coordinates3D[n].y, (int)coordinates3D[n].x) = 1;
+		fillImageLandmark(proyectedCoordinates, (int)coordinates3D[n].x, (int)coordinates3D[n].y, 1);
 	}
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -1629,6 +1630,22 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	// return ocupation;
 }
 
+void ProgTomoDetectMisalignmentTrajectory::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
+{
+	int distance = fiducialSizePx/4;
+
+	for (int i = -distance; i <= distance; i++)
+	{
+		for (int j = -distance; j <= distance; j++)
+		{
+			if (j + y > 0 && i + x  > 0 && j + y < ySize && i + x < xSize && i*i+j*j <= distance*distance)
+			{
+				DIRECT_A2D_ELEM(proyectedImage, (j + y), (i + x)) = value;
+			}
+		}
+	}
+}
+
 
 void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching()
 {
@@ -1710,7 +1727,12 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching()
 			#ifdef DEBUG_OUTPUT_FILES
 			DIRECT_A2D_ELEM(csProyectedCoordinates, 
 					        (int)cm.detectedCoordinate.y,
-					        (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = i;		
+					        (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = i;
+
+			// fillImageLandmark(csProyectedCoordinates,
+			// 				  (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA),
+			// 				  (int)cm.detectedCoordinate.y,
+			// 				  i);
 			#endif
 		}
 	}
