@@ -1519,7 +1519,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	for(size_t n; n < coordinates3D.size(); n++)
 	{
-		// DIRECT_A2D_ELEM(proyectedCoordinates, (int)coordinates3D[n].y, (int)coordinates3D[n].x) = 1;
 		fillImageLandmark(proyectedCoordinates, (int)coordinates3D[n].x, (int)coordinates3D[n].y, 1);
 	}
 
@@ -1725,14 +1724,10 @@ void ProgTomoDetectMisalignmentTrajectory::adjustCoordinatesCosineStreching()
 			proyCoords.push_back(proyCoord);
 
 			#ifdef DEBUG_OUTPUT_FILES
-			DIRECT_A2D_ELEM(csProyectedCoordinates, 
-					        (int)cm.detectedCoordinate.y,
-					        (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA)) = i;
-
-			// fillImageLandmark(csProyectedCoordinates,
-			// 				  (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA),
-			// 				  (int)cm.detectedCoordinate.y,
-			// 				  i);
+			fillImageLandmark(csProyectedCoordinates,
+							  (int) ((((cm.detectedCoordinate.x-xTA)-((cm.coordinate3d.z)*sin(tiltAngle)))/cos(tiltAngle))+xTA),
+							  (int)cm.detectedCoordinate.y,
+							  i);
 			#endif
 		}
 	}
