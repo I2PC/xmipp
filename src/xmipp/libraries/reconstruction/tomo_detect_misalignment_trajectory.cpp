@@ -1175,13 +1175,13 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 				// *** optimizar: cada vez que se aumenta la distancia se revisitan los pixeles ya comprobados en distancias menores
 				for (int distance = 1; distance < thrChainDistancePx; distance++)
 				{
-					for (int i = -distance; i < distance; i++)
+					for (int i = -distance; i <= distance; i++)
 					{
-						for (int j = -(distance - abs(i)); j <= (distance - abs(i)); j++)
+						for (int j = -distance; j <= distance; j++)
 						{
-							if (j + coord2D.y > 0 && i + coord2D.x  > 0 && j + coord2D.y < ySize && i + coord2D.x < xSize )
+							if (j + coord2D.y > 0 && i + coord2D.x  > 0 && j + coord2D.y < ySize && i + coord2D.x < xSize && i*i+j*j <= distance*distance)
 							{
-								if ((abs(j)+abs(i) == distance) && (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0))
+								if (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0)
 								{
 									if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
 									{
@@ -1193,7 +1193,9 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 										matchCoordX = i;
 										matchCoordX = j;
 
-										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)*** no estoy seguro de esto
+										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)***
+										// *** Tal vez sería mas interesante medir la distancia media de la coordenadas y no cuantas están más alla de una distancia, nos
+										// ahorraríamos un threshold.
 										// break;
 									}
 								}
@@ -1480,7 +1482,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
         imgTS.read(fnTSimg);
 
-        // bandPassFilter(ptrImg);
+		// Comment for phantom
+        bandPassFilter(ptrImg);
 
         for (size_t i = 0; i < Ydim; ++i)
         {
@@ -1565,8 +1568,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
-	// Only for phantom *** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	return true;
+	// Uncomment for phantom
+	// return true;
 
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < thrNumberCoords)
@@ -1631,7 +1634,7 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 void ProgTomoDetectMisalignmentTrajectory::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
 {
-	int distance = fiducialSizePx/4;
+	int distance = fiducialSizePx/6;
 
 	for (int i = -distance; i <= distance; i++)
 	{
