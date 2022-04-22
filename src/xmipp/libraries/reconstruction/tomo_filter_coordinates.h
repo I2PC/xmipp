@@ -26,13 +26,11 @@
 #ifndef __TOMO_FILTER_COORDINATES
 #define __TOMO_FILTER_COORDINATES
 
-
-#include <iostream>
-#include <core/xmipp_program.h>
 #include <core/xmipp_filename.h>
-#include <core/xmipp_image.h>
 #include <data/point3D.h>
-#include <core/metadata_vec.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_program.h>
+
 
 #define VERBOSE_OUTPUT
 //#define DEBUG_DIM
@@ -41,15 +39,12 @@
 class ProgTomoFilterCoordinates : public XmippProgram
 {
 
-public:
+private:
     /** Filenames */
     FileName fnInTomo, fnMask, fnInCoord, fnOut;
 
     /** Threshold */
     double resThr;
-
-    /** Check params **/
-    bool checkResThr;
 
     /** Execution mode: 0 -> mask, 1 -> resolution **/
     bool execMode;
@@ -57,8 +52,6 @@ public:
     /** Radius map amalysis*/
     int radius;
 
-
-private:
     /** Tomogram size */
     size_t xDim, yDim, zDim;
 
@@ -66,7 +59,7 @@ private:
     std::vector<Point3D<int>> inputCoords;
 
 
-public:
+private:
     // --------------------------- INFO functions ----------------------------
 
     void readParams();
@@ -89,7 +82,7 @@ public:
 
     void writeOutputCoordinates();
 
-    void takeCoordinateFromTomo(MultidimArray<double> &tom);
+    void calculateCoordinateStatistics(MultidimArray<double> &tom);
 
 
     // --------------------------- MAIN ----------------------------------

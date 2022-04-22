@@ -26,7 +26,8 @@
 #include "tomo_filter_coordinates.h"
 #include <core/metadata_extension.h>
 #include <core/metadata_vec.h>
-#include <chrono>
+#include <iostream>
+#include <core/utils/time_utils.h>
 
 
 // --------------------------- INFO functions ----------------------------
@@ -37,25 +38,21 @@ void ProgTomoFilterCoordinates::readParams()
 	fnMask = getParam("--mask");
 	fnInCoord = getParam("--coordinates");
 	radius = getIntParam("--radius");
-    checkResThr = checkParam("--threshold");
    	fnOut = getParam("-o");
 }
 
 
 void ProgTomoFilterCoordinates::defineParams()
 {
-	addUsageLine("This program filters a set of coordinates with one of two criteria:.");
-	addUsageLine("\nUsing a mask. In this case a set of coordinates and a mask with the regions to preserve ");
-    addUsageLine("coordinates different than 0 need to be input. If only these two options are input this ");
-    addUsageLine("criteria will be applied, if not the second one will be applied");
-	addUsageLine("\nUsing a resolution. In this case a set of coordinates, a resolution map, and a resolution ");
-    addUsageLine("percentile to select the number of coordinates to be saved after the scoring need o be ");
-    addUsageLine("input. If these three options are input then this criteria will be applied.");
-	addParamsLine("  --inTomo <mrcs_file=\"\">                                : Input volume (mask or resolution map).");
-	addParamsLine("  [--mask <xmd_file=\"\">]                               : Input xmd file containing the 3D coordinates.");
-	addParamsLine("  --coordinates <xmd_file=\"\">                               : Percentile resolution threshold.");
-	addParamsLine("  --radius <radius=50>                               : Radius of the neighbourhood of the coordinates to get resolution score.");
-    addParamsLine("  [--threshold <outCoord=\"filteredCoordinates3D.xmd\">]   : Output file containing the filtered 3D coordinates.");
+	addUsageLine("This program generates a new metatada coordinates file with local information given by the input tomogram (e.g. local ");
+	addUsageLine("resolution map). \n"); 
+	addUsageLine("Given a set of coordinates and a tomogram, local statistics will be calculated for each coordinate (given by the radius). "); 
+	addUsageLine("Optionally a mask can be provided, and then those coordinates outside of the mask (value = 0) will be removed.");
+	
+	addParamsLine("  --inTomo <mrcs_file=\"\">                     : Input volume (mask or resolution map).");
+	addParamsLine("  [--mask <xmd_file=\"\">]                      : Input xmd file containing the 3D coordinates.");
+	addParamsLine("  --coordinates <xmd_file=\"\">                 : Percentile resolution threshold.");
+	addParamsLine("  --radius <radius=50>                          : Radius of the neighbourhood of the coordinates to get resolution score.");
 	addParamsLine("  -o <outCoord=\"filteredCoordinates3D.xmd\">   : Output file containing the filtered 3D coordinates.");
 }
 
@@ -95,7 +92,7 @@ void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<int> &in
 }
 
 
-void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &tom)
+void ProgTomoFilterCoordinates::calculateCoordinateStatistics(MultidimArray<double> &tom)
 {
 	MetaDataVec scoredMd;
 	MDRowVec row;
@@ -106,7 +103,7 @@ void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &to
 
 		if (((coor.z - radius) < 0) || ((coor.z + radius) > (zDim-1)) || ((coor.y - radius) < 0) || ((coor.y + radius) > (yDim-1)) || ((coor.x - radius) < 0) || ((coor.x + radius) > (xDim-1)))
 		{
-			std::cout << "WARNNING: Coordinate at (x=" << coor.x<< ", y=" << coor.y << ", z=" << coor.z << ") erased due to its out of the mask." << std::endl;
+			std::cout << "WARNNING: Coordinate at (x=" << coor.x<< ", y=" << coor.y << ", z=" << coor.z << ") masked out." << std::endl;
 			continue;
 		}
 				
@@ -131,8 +128,7 @@ void ProgTomoFilterCoordinates::takeCoordinateFromTomo(MultidimArray<double> &to
 					
 					if (r2 <= radius)
 					{
-						double value;
-						value = DIRECT_A3D_ELEM(tom, coor.z + k, coor.y + i, coor.x + j);
+						auto value = DIRECT_A3D_ELEM(tom, coor.z + k, coor.y + i, coor.x + j);
 						meanCoor += value;
 						Nelems++;
 						meanCoor2 += value*value;
@@ -184,16 +180,15 @@ void ProgTomoFilterCoordinates::readInputCoordinates()
 void ProgTomoFilterCoordinates::writeOutputCoordinates()
 {
 	MetaDataVec outCoordMd;
-	size_t id;
 
 	for(size_t i = 0; i < inputCoords.size(); i++)
 	{
-		id = outCoordMd.addObject();
-		outCoordMd.setValue(MDL_XCOOR, inputCoords[i].x, id);
-		outCoordMd.setValue(MDL_YCOOR, inputCoords[i].y, id);
-		outCoordMd.setValue(MDL_ZCOOR, inputCoords[i].z, id);
+		MDRowVec row;
+		row.setValue(MDL_XCOOR, inputCoords[i].x);
+		row.setValue(MDL_YCOOR, inputCoords[i].y);
+		row.setValue(MDL_ZCOOR, inputCoords[i].z);
+		outCoordMd.addRow(row);
 	}
-
 	outCoordMd.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
@@ -206,12 +201,7 @@ void ProgTomoFilterCoordinates::writeOutputCoordinates()
 
 void ProgTomoFilterCoordinates::run()
 {
-	using std::chrono::high_resolution_clock;
-    using std::chrono::duration_cast;
-    using std::chrono::duration;
-    using std::chrono::milliseconds;	
-
-	auto t1 = high_resolution_clock::now();
+	timeUtils::reportTimeMs("Execution time", [&]{
 
 	std::cout << "Starting..." << std::endl;
 
@@ -220,7 +210,7 @@ void ProgTomoFilterCoordinates::run()
 
 	// Reading mask if exists
 	if (fnMask !="")
-	{
+	{	
 		Image<int> maskImg;
 		maskImg.read(fnMask);
 		auto &mask = maskImg();
@@ -237,12 +227,6 @@ void ProgTomoFilterCoordinates::run()
 	yDim = YSIZE(tom);
 	zDim = ZSIZE(tom);
 
-	// CHECK COORDINATES WITH MASK IF APPEARS AS INPUT
-	takeCoordinateFromTomo(tom);
-	
-	auto t2 = high_resolution_clock::now();
-	
-	/* Getting number of milliseconds as an integer. */
-    auto ms_int = duration_cast<milliseconds>(t2 - t1);
- 	std::cout << "Execution time: " << ms_int.count() << "ms\n";
+	calculateCoordinateStatistics(tom);
+	});
 }
