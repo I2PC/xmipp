@@ -240,14 +240,14 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
 	// Decide fitting
 	int deg;
-	if (R21adj > R20adj) {
-		betap = betap1;
-		deg = 1;
-	}
-	else {
+	// if (R21adj > R20adj) {
+	// 	betap = betap1;
+	// 	deg = 1;
+	// }
+	// else {
 		betap = betap0;
 		deg = 0;
-	}
+	// }
 	return deg;
 }
 
@@ -326,52 +326,51 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 		MultidimArray<double> den;
 		den.initZeros(maxwiIdx);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
-			if (n < maxwiIdx) {
-				int win = DIRECT_MULTIDIM_ELEM(wi, n);
+			if (n < maxwiIdx)
+			{
+				int win = DIRECT_MULTIDIM_ELEM(wi, n); 
 				double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
 												+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
 				DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
-
 			}
 		}
 		MultidimArray<double> beta;
 		beta.initZeros(maxwiIdx); 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) {
-			int win2 = DIRECT_MULTIDIM_ELEM(wi, n);
-			if (DIRECT_MULTIDIM_ELEM(den,win2) == 0)
-				DIRECT_MULTIDIM_ELEM(beta,win2) = 0;
+			if (DIRECT_MULTIDIM_ELEM(den,n) == 0)
+				DIRECT_MULTIDIM_ELEM(beta,n) = 0;
 			else {
-				DIRECT_MULTIDIM_ELEM(beta,win2) = DIRECT_MULTIDIM_ELEM(num,win2) / DIRECT_MULTIDIM_ELEM(den,win2);	
-				if (abs(DIRECT_MULTIDIM_ELEM(beta,win2)) > 100.0) // ****Without mask keep or with noise for certain freqs (win2) beta become too big (win=80 for apo, win=63 for prot)
-					DIRECT_MULTIDIM_ELEM(beta,win2) = 0;
+				DIRECT_MULTIDIM_ELEM(beta,n) = DIRECT_MULTIDIM_ELEM(num,n) / DIRECT_MULTIDIM_ELEM(den,n);	
+				if (abs(DIRECT_MULTIDIM_ELEM(beta,n)) > 100.0 or (DIRECT_MULTIDIM_ELEM(beta,n) < 0)) 
+					DIRECT_MULTIDIM_ELEM(beta,n) = 0;
 			}
 		} 
 		MultidimArray<double> betap;	
 		betap.initZeros(maxwiIdx); 		
 		int degree = checkBestModel(beta, betap);  
-		std::cout << "particula: " << i << " degree: " << degree <<std::endl;
-		double beta1 = betap.computeAvg();
-		std::complex<double> beta0;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
+			std::cout << n << " " << DIRECT_MULTIDIM_ELEM(beta,n) << std::endl;
+		double beta0 = betap.computeAvg();
+		std::cout << "beta.computeAvg(): " << beta.computeAvg() << std::endl;
+		std::cout << "beta0: " << beta0 << std::endl;
+		std::complex<double> beta00;
 		std::complex<double> Tw;
 		// Apply adjustment: PFourierAdjusted = T(w) * PFourier
-		if (degree == 0) { // Degree 0: T(w) = b1 
-			Tw = beta1;
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
-				if (n < maxwiIdx)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= Tw; // --> ****some VERTICAL STRIPES
-			}
+		if (degree == 0) { // Degree 0: T(w) = b0 
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
+				DIRECT_MULTIDIM_ELEM(PFourier,n) *= beta0; 
+			beta00 = IiMFourier(0,0) - beta0*PiMFourier(0,0); 
+			PFourier(0,0) = beta00 + beta0*PFourier(0,0); 
 		}
-		else if (degree == 1) { // Degree 1: T(w) = b1 + b2*wi 
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) {
-				if (n < maxwiIdx)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta1+betap((int)n)*DIRECT_MULTIDIM_ELEM(wi,n)); // --> ****HIGH CONTRAST VERTICAL STRIPES
-			}
-			Tw = beta1+betap(0)*wi(0,0);
-		}
-		beta0 = IiMFourier(0,0) - Tw*PiMFourier(0,0); 
-		PFourier(0,0) = beta0 + Tw*PFourier(0,0); 
+		// else if (degree == 1) { // Degree 1: T(w) = b0 + b1*wi 
+		// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier)
+		// 		DIRECT_MULTIDIM_ELEM(PFourier,n) *= (beta0+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
+		// 	beta00 = IiMFourier(0,0) - beta0+beta1*wi(0,0)*PiMFourier(0,0); 
+		// 	PFourier(0,0) = beta00 + beta0+beta1*wi(0,0)*PFourier(0,0); 
+		// }
+
 		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
