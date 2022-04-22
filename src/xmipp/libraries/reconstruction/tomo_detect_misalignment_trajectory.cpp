@@ -753,23 +753,23 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	// Analyze results from analysis
 
-	// Maybe with only one threshold like "max average displacement" it is possible to acotate the hull parameters
-	bool alignment = true;
+	// 30% of the bead size in pixels
+	float maxDeviation = 0.3 * (fiducialSize / samplingRate);
 
-	float maxAvgDisplacement = 20; //pixels? *** 
-	float reductionFactor = 0.8;
+	float thrArea = 2*PI*maxDeviation*maxDeviation;
+	float thrPerimeter = maxDeviation*numberOfChains;
 
-	float thrArea = (2*PI*maxAvgDisplacement*maxAvgDisplacement)*reductionFactor;
-	float thrPerimeter = (maxAvgDisplacement*numberOfChains) * reductionFactor*reductionFactor;
+	std::cout << "thrArea " << thrArea << std::endl;
+	std::cout << "thrPerimeter " << thrPerimeter << std::endl;
+	std::cout << "avgAreaCH " << avgAreaCH << std::endl;
+	std::cout << "avgPerimeterCH " << avgPerimeterCH << std::endl;
 
-	if (avgAreaCH > thrArea)
+	if ((avgAreaCH < thrArea) && (avgPerimeterCH < thrPerimeter))
 	{
 		return false;
 	}
-	else if (avgPerimeterCH > thrPerimeter)
-	{
-		return false;
-	}
+
+	// Revisar esta forma de descartar por test si no pasa los criterios de CH
 	else if (testBinPassed        < 2 * numberOfChains * 0.4 ||
 			 testFvarPassed       <     numberOfChains * 0.4 ||
 			 testRandomWalkPassed <     numberOfChains * 0.4)
