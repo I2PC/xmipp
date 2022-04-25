@@ -53,7 +53,7 @@
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
 // #define DEBUG_CHAINS
-// #define DEBUG_GLOBAL_MISALI
+#define DEBUG_GLOBAL_MISALI
 // #define DEBUG_LOCAL_MISALI
 // #define DEBUG_RESID
 // #define DEBUG_COORDS_CS

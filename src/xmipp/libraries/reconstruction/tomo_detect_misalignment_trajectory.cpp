@@ -677,11 +677,18 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
     fnVCM = rawname + "/vCM.xmd";
 	fnStats = rawname + "/residualStatistics.xmd";
 
-	std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug ";
-	//std::string cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+	std::string cmd;
+
+	#ifdef DEBUG_GLOBAL_MISALI
+	// Debug command
+	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug ";
+	#else
+	// No debug command
+	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+	#endif
+	
 	std::cout << cmd << std::endl;
 	system(cmd.c_str());
-
 
 	// Read results from analysis
 
@@ -744,40 +751,33 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	avgAreaCH /= numberOfChains;
 	avgPerimeterCH /= numberOfChains;
 
+	#ifdef DEBUG_GLOBAL_MISALI
 	std::cout << "Average convex hull area: " << avgAreaCH << std::endl;
 	std::cout << "Average convex hull perimeter: " << avgPerimeterCH << std::endl;
 	std::cout << "Binomial test passed: " << testBinPassed << "/" << 2 * numberOfChains << std::endl;
 	std::cout << "F variance test passed: " << testFvarPassed << "/" << numberOfChains << std::endl;
 	std::cout << "Random walk test passed: " << testRandomWalkPassed << "/" << numberOfChains << std::endl;
-
+	#endif
 
 	// Analyze results from analysis
 
 	// 30% of the bead size in pixels
 	float maxDeviation = 0.3 * (fiducialSize / samplingRate);
 
-	float thrArea = 2*PI*maxDeviation*maxDeviation;
-	float thrPerimeter = maxDeviation*numberOfChains;
+	float thrAreaCH = PI*maxDeviation*maxDeviation;
+	float thrPerimeterCH = 2*PI*maxDeviation;
 
-	std::cout << "thrArea " << thrArea << std::endl;
-	std::cout << "thrPerimeter " << thrPerimeter << std::endl;
-	std::cout << "avgAreaCH " << avgAreaCH << std::endl;
-	std::cout << "avgPerimeterCH " << avgPerimeterCH << std::endl;
+	#ifdef DEBUG_GLOBAL_MISALI
+	std::cout << "Threshold convex hull area: " << thrAreaCH << std::endl;
+	std::cout << "Threshold convex hull perimeter: " << thrPerimeterCH << std::endl;
+	#endif
 
-	if ((avgAreaCH < thrArea) && (avgPerimeterCH < thrPerimeter))
+	if ((avgAreaCH < thrAreaCH) && (avgPerimeterCH < thrPerimeterCH))
 	{
-		return false;
+		return true;
 	}
-
-	// Revisar esta forma de descartar por test si no pasa los criterios de CH
-	else if (testBinPassed        < 2 * numberOfChains * 0.4 ||
-			 testFvarPassed       <     numberOfChains * 0.4 ||
-			 testRandomWalkPassed <     numberOfChains * 0.4)
-	{
-		return false;
-	}
-
-	return true;
+	
+	return false;
 }
 
 
@@ -1543,10 +1543,12 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	calculateResidualVectors();
 	writeOutputVCM();
 
-	// bool tmp = detectGlobalMisalignment();
 	adjustCoordinatesCosineStreching();
 
+	// DETECT GLOBAL MISALIGNMENT
 	globalAlignment = detectMisalignmentFromResiduals();			
+
+	std::cout << "Global alignment: " << globalAlignment << std::endl;
 
 	// LOCAL MIASALIGNMENT DETECTION
 	detectLandmarkChains();
@@ -1923,7 +1925,6 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 // 	bool top10ChainBool = top10Chain < thrTop10Chain;
 // 	bool lmChainBool = lmChain < thrLMChain;
 
-// 	#ifdef DEBUG_GLOBAL_MISALI
 // 	std::cout << "Global misalignment detection parameters:" << std::endl;
 // 	std::cout << "Total number of landmarks: " << totalLM << std::endl;
 // 	std::cout << "Total number of landmarks belonging to the selected chains: " << totalChainLM << std::endl;
@@ -1934,7 +1935,6 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 
 // 	std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
 // 	std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
-// 	#endif
 
 // 	if(top10ChainBool || lmChainBool)
 // 	{
