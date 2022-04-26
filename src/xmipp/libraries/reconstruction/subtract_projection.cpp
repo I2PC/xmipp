@@ -101,14 +101,13 @@
 	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
-	I.write(formatString("%s0_I.mrc", fnProj.c_str())); 
  }
 
- void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, const float R2a) {
+ void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, const std::complex<double> R2a) {
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
-	// mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // TODO: fix write R2adj in metadata
+	// mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // fix write R2adj in metadata ??
  }
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
@@ -130,7 +129,7 @@
  	return m;
  }
 
- Image<double> ProgSubtractProjection::invertMask(Image<double> &m) {
+ Image<double> ProgSubtractProjection::invertMask(const Image<double> &m) {
 	PmaskI = m;
 	MultidimArray<double> &mPmaskI=PmaskI();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPmaskI)
@@ -173,7 +172,6 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
-	P.write(formatString("%s0_P.mrc", fnProj.c_str()));
 	Pctf = applyCTF(row, P);
 	transformerImg.FourierTransform(Pctf(), PFourier, false);
 }
@@ -184,73 +182,45 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
 		DIRECT_MULTIDIM_ELEM(ImgiM(),n) = DIRECT_MULTIDIM_ELEM(Img,n) * DIRECT_MULTIDIM_ELEM(InvM,n);
 	transformerImgiM.FourierTransform(ImgiM(),ImgiMFourier,false);
-	ImgiM.write(formatString("%s4_ImgiM.mrc", fnProj.c_str()));
 	return ImgiMFourier;
 }
 
- double ProgSubtractProjection::evaluateFitting(const MultidimArray<double> &y, const MultidimArray<double> &yp) const{
-	double sumY = 0;
-	double sumY2 = 0;
-	double sumE2 = 0;
+ float ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y, const MultidimArray< std::complex<double> > &yp) const{
+	float sumY = 0;
+	float sumY2 = 0;
+	float sumE2 = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y) {
-		double e = DIRECT_MULTIDIM_ELEM(y, n) - DIRECT_MULTIDIM_ELEM(yp, n);
+		float realyn = real(DIRECT_MULTIDIM_ELEM(y, n)); // take just real part is OK ??
+		float e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); // TF(projection) - TF(predictedProjection) is OK ??
 		sumE2 += e * e;
-		sumY += DIRECT_MULTIDIM_ELEM(y, n);
-		sumY2 += DIRECT_MULTIDIM_ELEM(y, n) * DIRECT_MULTIDIM_ELEM(y, n);
+		sumY += realyn;
+		sumY2 += realyn * realyn;
 	}
-	auto meanY = sumY / (double)MULTIDIM_SIZE(y);
-	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY * meanY;
-	auto R2 = 1 - sumE2 / varY;
+	auto meanY = sumY / (float)MULTIDIM_SIZE(y);
+	auto varY = sumY2 / (float)MULTIDIM_SIZE(y) - meanY * meanY;
+	auto R2 = 1.0 - sumE2 / varY;
 	return R2;
  }
 
 float ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, 
-const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< std::complex<double> > &PFourierf1) const{ 
-	// TODO: compute R20 and R21
-	float R21adj = 0;
-	float R20adj = 1;
-	// // pasar TF(particula) y prediccion TF(particula) segun cada modelo
-	// auto N = (int)MULTIDIM_SIZE(beta);
-	// // Fit order 0 beta=beta0
-	// double beta00 = beta.computeAvg();
-	// MultidimArray<double> betap0;
-	// betap0.initZeros(beta);
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
-	// 	DIRECT_MULTIDIM_ELEM(betap0, n) = beta00;
-	// float R20 = evaluateFitting(beta, betap0);
-	// float R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
-	// // Fit order 1 beta=beta0+beta1*idx
-	// MultidimArray<double> idx(N);
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(idx)
-	// 	DIRECT_MULTIDIM_ELEM(idx, n) = double(n);
-	// float sumX = 0;
-	// float sumX2 = 0;
-	// float sumY = 0;
-	// float sumXY = 0;
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) {
-	// 	sumX += DIRECT_MULTIDIM_ELEM(idx, n);
-	// 	sumX2 += DIRECT_MULTIDIM_ELEM(idx, n) * DIRECT_MULTIDIM_ELEM(idx, n);
-	// 	sumY += DIRECT_MULTIDIM_ELEM(beta, n);
-	// 	sumXY += DIRECT_MULTIDIM_ELEM(idx, n) * DIRECT_MULTIDIM_ELEM(beta, n);
-	// }
-	// float beta11 = (N * sumXY - sumX * sumY) / (N * sumX2 - sumX * sumX);
-	// float beta10 = (sumY - beta11 * sumX) / N;
-	// MultidimArray<double> betap1;
-	// betap1.initZeros(beta);
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
-	// 	DIRECT_MULTIDIM_ELEM(betap1, n) = beta10 + beta11 * DIRECT_MULTIDIM_ELEM(idx, n);
-	// float R21 = evaluateFitting(beta, betap1);
-	// float R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
-	
+const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< std::complex<double> > &PFourierf1) const { 
+	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
+	auto N = (float)MULTIDIM_SIZE(PFourierf);
+	float R20 = evaluateFitting(PFourierf, PFourierf0);
+	float R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
+	float R21 = evaluateFitting(PFourierf, PFourierf1);
+	float R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
+	// Decide best fitting
 	float R2;
-	// Decide fitting
-	if (R21adj > R20adj) { // Degree 1: T(w) = b01 + b1*wi 
+	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
 		PFourierf = PFourierf1;
 		R2 = R21adj;
+		std::cout << "R21: " << R2 << std::endl;
 	} 
-	else { // Degree 0: T(w) = b00 
+	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
 		R2 = R20adj;
+		std::cout << "R20: " << R2 << std::endl;
 	}
 	return R2;
 }
@@ -287,7 +257,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); 
 		}
 	}
-	auto maxwiIdx = (int)XSIZE(wi);
+	auto maxwiIdx = (int)XSIZE(wi); // TODO: if a resolution is provided, compute the freq index (wi) correspondent to that resolution
 	// Declare complex structures that will be used in the loop
 	FourierTransformer transformerIiM;
 	FourierTransformer transformerPiM;
@@ -353,7 +323,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		PFourier1(0,0) = betaDC + beta01+beta1*wi(0,0)*PFourier1(0,0); 
 
 		// Check best model
-		float R2adj = checkBestModel(PFourier, PFourier0, PFourier1);  
+		float R2adj = checkBestModel(PFourier, PFourier0, PFourier1); 
 
 		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());
@@ -364,7 +334,6 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		mIdiff.initZeros(I());
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
 			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-		Idiff.write(formatString("%s7_subtraction.mrc", fnProj.c_str()));
 
 		// Write particle
 		writeParticle(int(i), Idiff, R2adj);  

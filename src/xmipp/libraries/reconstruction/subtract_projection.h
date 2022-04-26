@@ -97,16 +97,16 @@
     void defineParams() override;
     /// Read and write methods
     void readParticle(const MDRowVec &);
-    void writeParticle(const int &, Image<double> &, const float);
+    void writeParticle(const int &, Image<double> &, const std::complex<double>);
     /// Processing methods
     void createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
-    Image<double> invertMask(Image<double> &);
+    Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);
     void processParticle(size_t, int, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
         const MultidimArray<double> &, FourierTransformer &);
-    double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &) const;
+    float evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     float checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &) const;
 
