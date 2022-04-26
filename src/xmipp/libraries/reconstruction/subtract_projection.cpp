@@ -206,7 +206,8 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return R2;
  }
 
-int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap) const{
+int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, MultidimArray<double> &betap) const{ 
+	// pasar TF(particula) y prediccion TF(particula) segun cada modelo
 	auto N = (int)MULTIDIM_SIZE(beta);
 	// Fit order 0 beta=beta0
 	double beta00 = beta.computeAvg();
@@ -287,11 +288,13 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 	Image<double> wi_img;
 	typeCast(wi, wi_img());
 	wi_img.write(formatString("%s1_wi.mrc", fnProj.c_str()));
+	FourierTransformer transformerIiM;
+	FourierTransformer transformerPiM;
+
 	// For each particle in metadata:
     for (size_t i = 1; i <= mdParticles.size(); ++i) {  
      	// Project volume and process projection (for particle 1 it is already done before the loop)
-		if (i != 1)
-			processParticle(i, sizeI, transformer);
+		processParticle(i, sizeI, transformer);
     	// Project and process keep mask
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 		Pmask.write(formatString("%s2_Mask.mrc", fnProj.c_str()));
@@ -315,20 +318,19 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 			iM.write(formatString("%s3_iM.mrc", fnProj.c_str()));
 		}
 		// Compute IiM = I*iM		
-		FourierTransformer transformerIiM;
 		MultidimArray< std::complex<double> > IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		// Compute PiM = P*iM
-		FourierTransformer transformerPiM;
 		MultidimArray< std::complex<double> > PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
 		// Estimate transformation T(w) 
 		MultidimArray<double> num;
-		num.initZeros(maxwiIdx); 
+		num.initZeros(maxwiIdx+1); 
 		MultidimArray<double> den;
-		den.initZeros(maxwiIdx);
+		den.initZeros(maxwiIdx+1);
+
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
-			if (n < maxwiIdx)
+			int win = DIRECT_MULTIDIM_ELEM(wi, n);
+			if (win < maxwiIdx)
 			{
-				int win = DIRECT_MULTIDIM_ELEM(wi, n); 
 				double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
@@ -336,25 +338,28 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 				DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
 			}
 		}
+
+		// double beta = sum(num)/sum(den);
 		MultidimArray<double> beta;
-		beta.initZeros(maxwiIdx); 
+		beta.initZeros(maxwiIdx);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta) {
 			if (DIRECT_MULTIDIM_ELEM(den,n) == 0)
 				DIRECT_MULTIDIM_ELEM(beta,n) = 0;
 			else {
 				DIRECT_MULTIDIM_ELEM(beta,n) = DIRECT_MULTIDIM_ELEM(num,n) / DIRECT_MULTIDIM_ELEM(den,n);	
 				if (abs(DIRECT_MULTIDIM_ELEM(beta,n)) > 100.0 or (DIRECT_MULTIDIM_ELEM(beta,n) < 0)) 
-					DIRECT_MULTIDIM_ELEM(beta,n) = 0;
+					DIRECT_MULTIDIM_ELEM(beta,n) = 1;
 			}
 		} 
 		MultidimArray<double> betap;	
-		betap.initZeros(maxwiIdx); 		
+		betap.initZeros(maxwiIdx+1); 		
 		int degree = checkBestModel(beta, betap);  
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(beta)
 			std::cout << n << " " << DIRECT_MULTIDIM_ELEM(beta,n) << std::endl;
 		double beta0 = betap.computeAvg();
 		std::cout << "beta.computeAvg(): " << beta.computeAvg() << std::endl;
 		std::cout << "beta0: " << beta0 << std::endl;
+
 		std::complex<double> beta00;
 		std::complex<double> Tw;
 		// Apply adjustment: PFourierAdjusted = T(w) * PFourier
@@ -376,11 +381,12 @@ int ProgSubtractProjection::checkBestModel(const MultidimArray<double> &beta, Mu
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
 		// Subtraction
 		Idiff().initZeros(I());
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff())
-			DIRECT_MULTIDIM_ELEM(Idiff(),n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+		MultidimArray<double> &mIdiff=Idiff();
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 		Idiff.write(formatString("%s7_subtraction.mrc", fnProj.c_str()));
 		// Write particle
-		writeParticle(int(i), Idiff);
+		writeParticle(int(i), Idiff);  // write R2adj in metadata
     }
     mdParticles.write(fnParticles);
  }
