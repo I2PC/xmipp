@@ -185,33 +185,33 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return ImgiMFourier;
 }
 
- float ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y, const MultidimArray< std::complex<double> > &yp) const{
-	float sumY = 0;
-	float sumY2 = 0;
-	float sumE2 = 0;
+ double ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y, const MultidimArray< std::complex<double> > &yp) const{
+	double sumY = 0;
+	double sumY2 = 0;
+	double sumE2 = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y) {
-		float realyn = real(DIRECT_MULTIDIM_ELEM(y, n)); // take just real part is OK ??
-		float e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); // TF(projection) - TF(predictedProjection) is OK ??
+		double realyn = real(DIRECT_MULTIDIM_ELEM(y, n)); // take just real part is OK ??
+		double e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); // TF(projection) - TF(predictedProjection) is OK ??
 		sumE2 += e * e;
 		sumY += realyn;
 		sumY2 += realyn * realyn;
 	}
-	auto meanY = sumY / (float)MULTIDIM_SIZE(y);
-	auto varY = sumY2 / (float)MULTIDIM_SIZE(y) - meanY * meanY;
+	auto meanY = sumY / (double)MULTIDIM_SIZE(y);
+	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY * meanY;
 	auto R2 = 1.0 - sumE2 / varY;
 	return R2;
  }
 
-float ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, 
+double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, 
 const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< std::complex<double> > &PFourierf1) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
-	auto N = (float)MULTIDIM_SIZE(PFourierf);
-	float R20 = evaluateFitting(PFourierf, PFourierf0);
-	float R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
-	float R21 = evaluateFitting(PFourierf, PFourierf1);
-	float R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
+	auto N = (double)MULTIDIM_SIZE(PFourierf);
+	double R20 = evaluateFitting(PFourierf, PFourierf0);
+	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
+	double R21 = evaluateFitting(PFourierf, PFourierf1);
+	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
 	// Decide best fitting
-	float R2;
+	double R2;
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
 		PFourierf = PFourierf1;
 		R2 = R21adj;
@@ -323,7 +323,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		PFourier1(0,0) = betaDC + beta01+beta1*wi(0,0)*PFourier1(0,0); 
 
 		// Check best model
-		float R2adj = checkBestModel(PFourier, PFourier0, PFourier1); 
+		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1); 
 
 		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());
