@@ -67,6 +67,15 @@
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > PFourier; // FT(projection)
+    MultidimArray< std::complex<double> > PFourier0; // FT(projection) estimation of order 0
+	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
+
+    CTFDescription ctf;
+	FourierFilter FilterCTF;
+	Image<double> padp; // padded image when applying CTF
+	Image<double> PmaskI; // inverted projected mask
+	Image<double> ImgiM; // auxiliary image for computing estimation images
+	MultidimArray< std::complex<double> > ImgiMFourier; // FT(ImgiM)
 
     // Particle metadata
     MetaDataVec mdParticles;
@@ -88,16 +97,18 @@
     void defineParams() override;
     /// Read and write methods
     void readParticle(const MDRowVec &);
-    void writeParticle(const int &, Image<double> &);
+    void writeParticle(const int &, Image<double> &, const float);
     /// Processing methods
     void createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
-    Image<double> invertMask(const Image<double> &) const;
+    Image<double> invertMask(Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);
     void processParticle(size_t, int, FourierTransformer &);
-    MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, const MultidimArray<double> &, FourierTransformer &);
+    MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
+        const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray<double> &, const MultidimArray<double> &) const;
-    int checkBestModel(const MultidimArray<double> &, MultidimArray<double> &) const;
+    float checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
+        const MultidimArray< std::complex<double> > &) const;
 
     /// Run
     void run() override;
