@@ -30,6 +30,7 @@
  #include "core/xmipp_image_generic.h"
  #include "core/xmipp_fft.h"
  #include "core/xmipp_fftw.h"
+ #include "core/linear_system_helper.h"
  #include "data/projection.h"
  #include "data/mask.h"
  #include "data/filters.h"
@@ -57,6 +58,7 @@
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
 	fmaskWidth = getIntParam("--fmask_width");
+	limitfreq = getIntParam("--limit_freq");
 	fnProj = getParam("--save"); // JUST FOR SAVING INTERM FILES -> DELETE
  }
 
@@ -71,6 +73,7 @@
 	<< "Sampling rate:\t" << sampling << std::endl
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
+	<< "Limit freequency:\t" << limitfreq << std::endl
 	<< "Output particles:\t" << fnOut << std::endl
 	<< "Path for saving:\t" << fnProj << std::endl; // JUST FOR SAVING INTERM FILES -> DELETE
  }
@@ -88,10 +91,11 @@
      addParamsLine("\t: If no name is given, then output_particles");
 	 addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
 	 addParamsLine("[--max_resolution <f=4>]\t: Maximum resolution (A)");
-	 addParamsLine("[--fmask_width <w=40>]\t: extra width of final mask (A)"); 
+	 addParamsLine("[--fmask_width <w=40>]\t: Extra width of final mask (A)"); 
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
-	 addParamsLine("[--save <structure=\"\">]\t: path for saving intermediate files"); // JUST FOR SAVING INTERM FILES -> DELETE
+	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
+	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); // JUST FOR SAVING INTERM FILES -> DELETE
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
     		 "-o output_particles --sampling 1 --max_resolution 4");
@@ -107,7 +111,7 @@
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
-	// mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // fix write R2adj in metadata ??
+	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // fix write R2adj in metadata ??
  }
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
@@ -210,17 +214,19 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
 	double R21 = evaluateFitting(PFourierf, PFourierf1);
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
+	std::cout << "R20: " << R20adj << std::endl;
+	std::cout << "R21: " << R21adj << std::endl;
 	// Decide best fitting
 	double R2;
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
 		PFourierf = PFourierf1;
 		R2 = R21adj;
-		std::cout << "R21: " << R2 << std::endl;
+		std::cout << "Model of order 1" << std::endl;
 	} 
 	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
 		R2 = R20adj;
-		std::cout << "R20: " << R2 << std::endl;
+		std::cout << "Model of order 0" << std::endl;
 	}
 	return R2;
 }
@@ -257,7 +263,13 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); 
 		}
 	}
-	auto maxwiIdx = (int)XSIZE(wi); // TODO: if a resolution is provided, compute the freq index (wi) correspondent to that resolution
+	int maxwiIdx;
+	if (limitfreq == 0)
+		maxwiIdx = (int)XSIZE(wi); 
+	else
+		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(PFourier), maxwiIdx); // YSIZE OK ??
+	std::cout << "max freq user: " << maxwiIdx << std::endl;
+
 	// Declare complex structures that will be used in the loop
 	FourierTransformer transformerIiM;
 	FourierTransformer transformerPiM;
@@ -286,24 +298,36 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
 
-		// Estimate transformation with model of order 0: T(w) = beta00
-		MultidimArray<double> num;
-		num.initZeros(maxwiIdx+1); 
-		MultidimArray<double> den;
-		den.initZeros(maxwiIdx+1);
+		// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
+		MultidimArray<double> num0;
+		num0.initZeros(maxwiIdx+1); 
+		MultidimArray<double> den0;
+		den0.initZeros(maxwiIdx+1);
+		Matrix2D<double> A1;
+		A1.initZeros(2,2);
+		Matrix1D<double> b1;
+		b1.initZeros(2);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
 			int win = DIRECT_MULTIDIM_ELEM(wi, n);
-			if (win < maxwiIdx)
+			if (win < maxwiIdx) 
 			{
 				double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
 				double imagPiMFourier = imag(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
-				DIRECT_MULTIDIM_ELEM(num,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
+				DIRECT_MULTIDIM_ELEM(num0,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
 												+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
-				DIRECT_MULTIDIM_ELEM(den,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+				DIRECT_MULTIDIM_ELEM(den0,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+				A1(0,0) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+				A1(0,1) += win*(realPiMFourier + imagPiMFourier);
+				A1(1,0) += A1(0,1);
+				A1(1,1) += 2*win;
+				b1(0) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier + imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
+				b1(1) += win*(real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))+imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)));
 			}
 		}
-		double beta00 = num.sum()/den.sum(); 		
+		// Compute beta00 from order 0 model
+		double beta00 = num0.sum()/den0.sum(); 		
 		std::cout << "beta00: " << beta00 << std::endl;
+
 		// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 		PFourier0 = PFourier;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
@@ -311,19 +335,26 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		std::complex<double> betaDC = IiMFourier(0,0) - beta00*PiMFourier(0,0); 
 		PFourier0(0,0) = betaDC + beta00*PFourier0(0,0); 
 
-		// Estimate transformation with model of order 1: T(w) = beta01 + beta1*w
-		PFourier1 = PFourier;
-		// TODO: compute beta01 and beta1
-		double beta01 = 1;
-		double beta1 = 1;
+		// Compute beta01 and beta1 from order 1 model
+		PseudoInverseHelper h;
+		h.A = A1;
+		h.b = b1;
+		Matrix1D<double> betas1;
+		solveLinearSystem(h,betas1); // OK ??
+		double beta01 = betas1(0);
+		double beta1 = betas1(1);
+		std::cout << "beta01: " << beta01 << std::endl;
+		std::cout << "beta1: " << beta1 << std::endl;
+
 		// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
+		PFourier1 = PFourier;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
 			DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 		betaDC = IiMFourier(0,0) - beta01+beta1*wi(0,0)*PiMFourier(0,0); 
 		PFourier1(0,0) = betaDC + beta01+beta1*wi(0,0)*PFourier1(0,0); 
 
 		// Check best model
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1); 
+		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1); // R21 always is very negative, OK ??
 
 		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());

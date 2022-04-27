@@ -48,6 +48,7 @@
 	double maxResol;
     int fmaskWidth;
 	int sigma;
+    int limitfreq;
 
     // Data variables
  	Image<double> V; // volume
