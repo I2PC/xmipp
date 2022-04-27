@@ -111,7 +111,7 @@
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
-	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // fix write R2adj in metadata ??
+	// mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // fix write R2adj in metadata ??
  }
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
