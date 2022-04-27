@@ -267,7 +267,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 	if (limitfreq == 0)
 		maxwiIdx = (int)XSIZE(wi); 
 	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(PFourier), maxwiIdx); // YSIZE OK ??
+		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(PFourier), maxwiIdx) // YSIZE OK ??
 	std::cout << "max freq user: " << maxwiIdx << std::endl;
 
 	// Declare complex structures that will be used in the loop
