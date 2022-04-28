@@ -107,11 +107,11 @@
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, const std::complex<double> R2a) {
+ void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, double R2a) {
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
-	// mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); // fix write R2adj in metadata ??
+	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); 
  }
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
@@ -194,15 +194,15 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	double sumY2 = 0;
 	double sumE2 = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y) {
-		double realyn = real(DIRECT_MULTIDIM_ELEM(y, n)); // take just real part is OK ??
-		double e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); // TF(projection) - TF(predictedProjection) is OK ??
+		double realyn = real(DIRECT_MULTIDIM_ELEM(y, n)); // TODO: compute also imag part
+		double e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); // TODO: change by TF(particula) - TF(predictedProjection) 
 		sumE2 += e * e;
 		sumY += realyn;
 		sumY2 += realyn * realyn;
 	}
 	auto meanY = sumY / (double)MULTIDIM_SIZE(y);
 	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY * meanY;
-	auto R2 = 1.0 - sumE2 / varY;
+	auto R2 = 1.0 - sumE2 / varY; // TODO: check R2 because is reporting wrong values
 	return R2;
  }
 
@@ -267,7 +267,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 	if (limitfreq == 0)
 		maxwiIdx = (int)XSIZE(wi); 
 	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(PFourier), maxwiIdx) // YSIZE OK ??
+		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(PFourier), maxwiIdx)
 	std::cout << "max freq user: " << maxwiIdx << std::endl;
 
 	// Declare complex structures that will be used in the loop
@@ -318,12 +318,12 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 				DIRECT_MULTIDIM_ELEM(den0,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
 				A1(0,0) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
 				A1(0,1) += win*(realPiMFourier + imagPiMFourier);
-				A1(1,0) += A1(0,1);
 				A1(1,1) += 2*win;
 				b1(0) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier + imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
 				b1(1) += win*(real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))+imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)));
 			}
 		}
+		A1(1,0) = A1(0,1);
 		// Compute beta00 from order 0 model
 		double beta00 = num0.sum()/den0.sum(); 		
 		std::cout << "beta00: " << beta00 << std::endl;
@@ -340,7 +340,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		h.A = A1;
 		h.b = b1;
 		Matrix1D<double> betas1;
-		solveLinearSystem(h,betas1); // OK ??
+		solveLinearSystem(h,betas1); 
 		double beta01 = betas1(0);
 		double beta1 = betas1(1);
 		std::cout << "beta01: " << beta01 << std::endl;
@@ -354,7 +354,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		PFourier1(0,0) = betaDC + beta01+beta1*wi(0,0)*PFourier1(0,0); 
 
 		// Check best model
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1); // R21 always is very negative, OK ??
+		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1); 
 
 		// Recover adjusted projection (P) in real space
 		transformer.inverseFourierTransform(PFourier, P());

@@ -98,7 +98,7 @@
     void defineParams() override;
     /// Read and write methods
     void readParticle(const MDRowVec &);
-    void writeParticle(const int &, Image<double> &, const std::complex<double>);
+    void writeParticle(const int &, Image<double> &, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
