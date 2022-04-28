@@ -679,7 +679,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	std::string cmd;
 
-	#ifdef DEBUG_GLOBAL_MISALI
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
 	// Debug command
 	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug ";
 	#else
