@@ -49,10 +49,10 @@ void ProgTomoFilterCoordinates::defineParams()
 	addUsageLine("Given a set of coordinates and a tomogram, local statistics will be calculated for each coordinate (given by the radius). "); 
 	addUsageLine("Optionally a mask can be provided, and then those coordinates outside of the mask (value = 0) will be removed.");
 	
-	addParamsLine("  --inTomo <mrcs_file=\"\">                     : Input volume (mask or resolution map).");
-	addParamsLine("  [--mask <xmd_file=\"\">]                      : Input xmd file containing the 3D coordinates.");
-	addParamsLine("  --coordinates <xmd_file=\"\">                 : Percentile resolution threshold.");
-	addParamsLine("  --radius <radius=50>                          : Radius of the neighbourhood of the coordinates to get resolution score.");
+	addParamsLine("  --inTomo <mrcs_file=\"\">                     : Input tomogram (density or resolution tomogram).");
+	addParamsLine("  [--mask <xmd_file=\"\">]                      : Input xmd file containing the mask.");
+	addParamsLine("  --coordinates <xmd_file=\"\">                 : Input xmd file containing the 3D coordinates.");
+	addParamsLine("  --radius <radius=50>                          : Radius in pixels of the neighbourhood of the coordinates to get resolution score.");
 	addParamsLine("  -o <outCoord=\"filteredCoordinates3D.xmd\">   : Output file containing the filtered 3D coordinates.");
 }
 
@@ -62,7 +62,7 @@ void ProgTomoFilterCoordinates::defineParams()
 void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<int> &inputVolume)
 {
 	Point3D<int> coord3D;
-	for (size_t i = 0; i < inputCoords.size(); i++)
+	for (int i = 0; i < inputCoords.size(); i++)
 	{
 		coord3D = inputCoords[i];
 
