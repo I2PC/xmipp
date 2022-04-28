@@ -102,10 +102,6 @@ public:
     void read(const FileName& fn, const bool only_apply_shifts = false,
               DataMode datamode = DATA, MDRow * row = nullptr);
 
-    /** Assignment.
-     */
-    Projection& operator=(const Projection& P);
-
     /** Another function for assignment.
      */
     void assign(const Projection& P);
@@ -130,7 +126,8 @@ public:
     MultidimArray<double> *volume;
 
     // Real and imaginary B-spline coefficients for Fourier of the volume
-    MultidimArray< double > VfourierRealCoefs, VfourierImagCoefs;
+    MultidimArray< double > VfourierRealCoefs;
+    MultidimArray< double > VfourierImagCoefs;
 
     // Projection in Fourier space
     MultidimArray< std::complex<double> > projectionFourier;
@@ -139,7 +136,8 @@ public:
     Image<double> projection;
 
     // Phase shift image
-    MultidimArray<double> phaseShiftImgB, phaseShiftImgA;
+    MultidimArray<double> phaseShiftImgB;
+    MultidimArray<double> phaseShiftImgA;
 
     // Original volume size
     int volumeSize;

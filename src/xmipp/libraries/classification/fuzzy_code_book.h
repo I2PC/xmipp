@@ -272,7 +272,8 @@ public:
 private:
 
     // Dimensions of the membership matrix
-    unsigned numClusters, numVectors;
+    unsigned numClusters;
+    unsigned numVectors;
 
 };
 //@}

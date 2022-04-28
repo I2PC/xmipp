@@ -614,7 +614,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			}
 			Ip.write(fnImgOut);
 		}
-		catch (XmippError XE)
+		catch (XmippError &XE)
 		{
 			std::cerr << XE << std::endl;
 			std::cerr << "Warning: Cannot refine " << fnImg << std::endl;

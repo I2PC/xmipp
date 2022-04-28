@@ -313,7 +313,8 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 size_t size = PyList_Size(list);
                 PyObject * item = nullptr;
-                PyObject *pyStr1 = nullptr, *str_exc_type = nullptr;
+                PyObject *pyStr1 = nullptr;
+                PyObject *str_exc_type = nullptr;
                 auto ** argv = new char*[size];
                 std::vector<double> vValue(size);
                 for (size_t i = 0; i < size; ++i)

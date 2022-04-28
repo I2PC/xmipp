@@ -26,8 +26,7 @@
 #include <fstream>
 #include "ctf_correct_wiener3d.h"
 
-#define OVERSAMPLE 8
-
+constexpr int OVERSAMPLE = 8;
 /* Read parameters from command line. -------------------------------------- */
 void ProgCtfCorrectAmplitude3D::readParams()
 {

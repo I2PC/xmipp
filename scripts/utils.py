@@ -47,18 +47,6 @@ def blue(text):
     return "\033[34m "+text+"\033[0m"
 
 
-def printXmippLogo(indentation):
-    print('\n')
-    print(indentation, r'''  /\\¯¯¯¯¯¯//\ ''')
-    print(indentation, r''' /  \\    //  \ ''')
-    print(indentation, r'''|    ''', end='')
-    print(green('mipp'), end='')
-    print('''     | ''')
-    print(indentation, r''' \  //    \\  / ''')
-    #print(indentation, r''' \   //     \\   / ''')
-    print(indentation, r'''  \//______\\/ ''')
-
-
 def find_newest(program, versions, show):
     for v in versions:
         p = program + '-' + str(v) if v else program

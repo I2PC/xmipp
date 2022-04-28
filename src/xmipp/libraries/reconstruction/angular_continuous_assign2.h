@@ -38,8 +38,8 @@ class FourierProjector;
    @ingroup ReconsLibrary */
 //@{
 
-#define CONTCOST_CORR 0
-#define CONTCOST_L1 1
+constexpr int  CONTCOST_CORR = 0;
+constexpr int  CONTCOST_L1 = 1;
 
 /** Predict Continuous Parameters. */
 class ProgAngularContinuousAssign2: public XmippMetadataProgram

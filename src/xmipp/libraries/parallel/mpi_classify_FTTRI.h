@@ -123,9 +123,13 @@ public:
 public:
     /// Empty constructor
     ProgClassifyFTTRI(int argc, char **argv);
+    ProgClassifyFTTRI(const ProgClassifyFTTRI &)=delete;
+    ProgClassifyFTTRI(const ProgClassifyFTTRI &&)=delete;
 
     /// Destructor
     ~ProgClassifyFTTRI();
+    ProgClassifyFTTRI & operator = (const ProgClassifyFTTRI &)=delete;
+    ProgClassifyFTTRI & operator = (const ProgClassifyFTTRI &&)=delete;
 
     /// Read argument from command line
     void readParams();

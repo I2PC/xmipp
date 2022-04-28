@@ -320,7 +320,9 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
                    const Matrix2D<double> &A, bool centerPDB,
                    const std::string &intensityColumn)
 {
-    Matrix1D<double> centerOfMass, limit0, limitF;
+    Matrix1D<double> centerOfMass;
+    Matrix1D<double> limit0;
+    Matrix1D<double> limitF;
     if (centerPDB)
     {
         computePDBgeometry(fn_in, centerOfMass,limit0, limitF,
@@ -403,7 +405,8 @@ void PDBPhantom::read(const FileName &fnPDB)
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    std::string line, kind;
+    std::string line;
+    std::string kind;
     Atom atom;
     while (!fh_in.eof())
     {
@@ -453,7 +456,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    std::string line, kind;
+    std::string line;
+    std::string kind;
 
     RichAtom atom;
     while (!fh_in.eof())
@@ -740,7 +744,7 @@ double electronFormFactorRealSpace(double r,
 
 /* Computation of the low pass filter -------------------------------------- */
 // Returns the impulse response of the lowpass filter
-void hlpf(MultidimArray<double> &f, int M, double T, const std::string &filterType,
+void hlpf(MultidimArray<double> &f, int M,  const std::string &filterType,
           MultidimArray<double> &filter, double reductionFactor=0.8,
           double ripple=0.01, double deltaw=1.0/8.0)
 {
@@ -775,14 +779,16 @@ void fhlpf(const MultidimArray<double> &f, const MultidimArray<double> &filter,
 {
 	// Expand the two input signals
     int Nmax=FINISHINGX(filter);
-    MultidimArray<double> auxF, auxFilter;
+    MultidimArray<double> auxF;
+    MultidimArray<double> auxFilter;
     auxF=f;
     auxFilter=filter;
     auxF.selfWindow(STARTINGX(f)-Nmax,FINISHINGX(f)+Nmax);
     auxFilter.selfWindow(STARTINGX(filter)-Nmax,FINISHINGX(filter)+Nmax);
 
     // Convolve in Fourier
-    MultidimArray< std::complex<double> > F, Filter;
+    MultidimArray< std::complex<double> > F;
+    MultidimArray< std::complex<double> > Filter;
     FourierTransform(auxF,F);
     FourierTransform(auxFilter,Filter);
     F*=Filter;
@@ -829,9 +835,10 @@ double Hlpf_fitness(double *p, void *prm)
         return 1e38;
 
     // Construct the filter with the current parameters
-    MultidimArray<double> filter, auxf;
+    MultidimArray<double> filter;
+    MultidimArray<double> auxf;
     auxf=globalf;
-    hlpf(auxf, globalM, globalT, "SincKaiser", filter, reductionFactor,
+    hlpf(auxf, globalM, "SincKaiser", filter, reductionFactor,
          ripple, deltaw);
 
     // Convolve the filter with the atomic profile
@@ -854,7 +861,9 @@ double Hlpf_fitness(double *p, void *prm)
 
     // Build the frequency response of the convolved and coarsely sampled
     // atom
-    MultidimArray<double> aux, FfilterMag, freq;
+    MultidimArray<double> aux;
+    MultidimArray<double> FfilterMag;
+    MultidimArray<double> freq;
     MultidimArray< std::complex<double> > Ffilter;
     aux=fhlpfCoarselySampled;
     aux.selfWindow(-10*FINISHINGX(aux),10*FINISHINGX(aux));
@@ -933,7 +942,7 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     powellOptimizer(globalHlpfPrm, 1, 3,
                     &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
-    hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
+    hlpf(f, M, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }
 
 /* Atom radial profile ----------------------------------------------------- */
@@ -981,7 +990,8 @@ class AtomValueFunc: public doubleFunction
 {
 public:
     int M;
-    double r0_2, z;
+    double r0_2;
+    double z;
     const MultidimArray<double> *profileCoefficients;
     virtual double operator()()
     {
@@ -1080,16 +1090,17 @@ void projectAtom(const Atom &atom, Projection &P,
                  const Matrix2D<double> &VP, const Matrix2D<double> &PV,
                  const AtomInterpolator &interpolator)
 {
-#define SUBSAMPLING 2                  // for every measure 2x2 line
+constexpr float SUBSAMPLING = 2;                  // for every measure 2x2 line
     // integrals will be taken to
     // avoid numerical errors
-#define SUBSTEP 1/(SUBSAMPLING*2.0)
+constexpr float SUBSTEP = 1/(SUBSAMPLING*2.0);
 
     Matrix1D<double> origin(3);
     Matrix1D<double> direction;
     VP.getRow(2, direction);
     direction.selfTranspose();
-    Matrix1D<double> corner1(3), corner2(3);
+    Matrix1D<double> corner1(3);
+    Matrix1D<double> corner2(3);
     Matrix1D<double> act(3);
     SPEED_UP_temps012;
 

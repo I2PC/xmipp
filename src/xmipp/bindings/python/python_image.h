@@ -33,6 +33,7 @@
 #include "core/xmipp_image_generic.h"
 #include <numpy/ndarraytypes.h>
 #include <numpy/arrayobject.h>
+#include <memory>
 
 extern PyObject * PyXmippError;
 /***************************************************************/
@@ -46,11 +47,9 @@ extern PyObject * PyXmippError;
 typedef struct
 {
     PyObject_HEAD
-    ImageGeneric * image;
+    std::unique_ptr<ImageGeneric> image;
 }
 ImageObject;
-
-#define ImageObject_New() (ImageObject*)malloc(sizeof(ImageObject))
 
 /* Destructor */
 void Image_dealloc(ImageObject* self);

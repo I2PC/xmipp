@@ -93,34 +93,19 @@ public:
     MultidimArray<double> __weights;
 
     /// The vector containing the Leafs (as many leafs as features)
-    std::vector<LeafNode*>  __leafs;
+    std::vector<LeafNode>  __leafs;
     
     /** Cost matrix
         C(i,j) is the cost of predicting class j when the true
        class is class i.*/
     Matrix2D<double> __cost;
 
-public:
-    // Dummy leaf for non-classificatory features
-    LeafNode *dummyLeaf;
 public:	
     /// Constructor
     NaiveBayes(
         const std::vector < MultidimArray<double> >  &features,
         const Matrix1D<double> &priorProbs,
         int discreteLevels);
-
-    /// Destructor
-    ~NaiveBayes();
-
-    // Copy constructor
-    NaiveBayes(const NaiveBayes &other)
-    {
-    	*this=other;
-    }
-
-    /// Assignment
-    NaiveBayes & operator=(const NaiveBayes &other);
 
     /// Set cost matrix
     void setCostMatrix(const Matrix2D<double> &cost);

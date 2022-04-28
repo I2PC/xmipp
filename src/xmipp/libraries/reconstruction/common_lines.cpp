@@ -786,7 +786,7 @@ void commonlineMatrixCheat(const DMatrix &quaternions, size_t nRays,
 
 
 
-void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int clI, int clJ,
+void anglesRotationMatrix(size_t nRays, int clI, int clJ,
                           const DVector &Q1, const DVector &Q2,
                           DMatrix &R)
 {
@@ -817,8 +817,8 @@ void anglesRotationMatrix(const DMatrix &clMatrix, size_t nRays, int clI, int cl
     R = U * Q.transpose();
 }//function
 
-#define  EPS 1.0e-13 // % Should be 1.0e-13 after fixing XXX below.
-#define  MAX_COND 1000 // % Largest allowed condition number for the system of equations
+constexpr long double  EPS = 1.0e-13; // % Should be 1.0e-13 after fixing XXX below.
+constexpr int  MAX_COND = 1000; // % Largest allowed condition number for the system of equations
 #define cl(i, j) dMij(clMatrix, k##i, k##j)
 
 /** Negative output means error
@@ -860,8 +860,8 @@ int tripletRotationMatrix(const DMatrix &clMatrix, size_t nRays,
     Q23.setCol();
 
     DMatrix R1, R2;
-    anglesRotationMatrix(clMatrix, nRays, (int)cl(1, 2), (int)cl(1, 3), Q12, Q13, R1);
-    anglesRotationMatrix(clMatrix, nRays, (int)cl(2, 1), (int)cl(2, 3), Q12, Q23, R2);
+    anglesRotationMatrix( nRays, (int)cl(1, 2), (int)cl(1, 3), Q12, Q13, R1);
+    anglesRotationMatrix( nRays, (int)cl(2, 1), (int)cl(2, 3), Q12, Q23, R2);
     // Compute rotation matrix according to (4.6)
     R = R1.transpose() * R2;
 
@@ -889,7 +889,7 @@ void putRotationMatrix(const DMatrix &R, int k1, int k2, DMatrix &syncMatrix)
 //% matrix.
 //%
 //% Yoel Shkolnisky, August 2010.
-void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, DMatrix * pQuaternions)
+void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix)
 {
     int K = clMatrix.Xdim();
     DMatrix J, R, S(3,3);
@@ -936,7 +936,7 @@ void computeSyncMatrix(const DMatrix &clMatrix, size_t nRays, DMatrix &sMatrix, 
     }
 }//function computeSyncMatrix
 
-void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
+void rotationsFromSyncMatrix(const DMatrix &sMatrix)
 {
     int K = sMatrix.Xdim() / 2;
     int Kx3 = 3 * K;

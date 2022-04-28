@@ -92,6 +92,11 @@ CL2DClass::CL2DClass()
 
 CL2DClass::CL2DClass(const CL2DClass &other)
 {
+	*this=other;
+}
+
+CL2DClass & CL2DClass::operator =(const CL2DClass &other)
+{
     plans = NULL;
 
     CL2DAssignment assignment;
@@ -104,6 +109,8 @@ CL2DClass::CL2DClass(const CL2DClass &other)
     histClass = other.histClass;
     histNonClass = other.histNonClass;
     neighboursIdx = other.neighboursIdx;
+
+    return *this;
 }
 
 CL2DClass::~CL2DClass()
@@ -202,11 +209,11 @@ void CL2DClass::transferUpdate(bool centerReference)
 }
 #undef DEBUG
 
-#define SHIFT_THRESHOLD 	0.95		// Shift threshold in pixels.
-#define ROTATE_THRESHOLD 	1.0			// Rotate threshold in degrees.
+constexpr double SHIFT_THRESHOLD = 	0.95;		// Shift threshold in pixels.
+constexpr float ROTATE_THRESHOLD = 	1.0	;		// Rotate threshold in degrees.
 
-#define INITIAL_SHIFT_THRESHOLD 	SHIFT_THRESHOLD + 1.0		// Shift threshold in pixels.
-#define INITIAL_ROTATE_THRESHOLD 	ROTATE_THRESHOLD + 1.0		// Rotate threshold in degrees.
+constexpr double INITIAL_SHIFT_THRESHOLD = 	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr float INITIAL_ROTATE_THRESHOLD = 	ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 //#define DEBUG
 //#define DEBUG_MORE
