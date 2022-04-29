@@ -40,8 +40,8 @@ void ProjectionData::clean() {
     delete img;
     delete CTF;
     delete modulator;
-    img = 0;
-    CTF = modulator = 0;
+    img = nullptr;
+    CTF = modulator = nullptr;
     skip = true;
 }
 
@@ -306,7 +306,7 @@ void ProgRecFourierAccel::preloadBuffer(LoadThreadParams* threadParams,
 	FourierTransformer localTransformerImg;
 	MultidimArray< std::complex<double> > localPaddedFourier;
     params.only_apply_shifts = true;
-	if (0 == threadParams->buffer1) {
+	if (nullptr == threadParams->buffer1) {
 		threadParams->buffer1 = new ProjectionData[parent->bufferSize];
 	}
 	for (int bIndex = 0; bIndex < parent->bufferSize; bIndex++) {
@@ -613,7 +613,7 @@ inline void ProgRecFourierAccel::processVoxel(int x, int y, int z, const float t
 	int imgX = clamp((int)(imgPos.x + 0.5f), 0, data->img->getXSize() - 1);
 	int imgY = clamp((int)(imgPos.y + 0.5f + maxVolumeIndexYZ / 2), 0, data->img->getYSize() - 1);
 
-	if (0 != data->CTF) {
+	if (nullptr != data->CTF) {
 		wCTF = (*data->CTF)(imgX, imgY);
 		wModulator = (*data->modulator)(imgX, imgY);
 	}
@@ -656,7 +656,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 	std::complex<float>* targetVolume = &tempVolume[z][y][x];
 	float* targetWeight = &tempWeights[z][y][x];
 	// ugly spaghetti code, but improves performance by app. 10%
-	if (0 != data->CTF) {
+	if (nullptr != data->CTF) {
 		// check which pixel in the vicinity that should contribute
 		for (int i = minY; i <= maxY; i++) {
 			float ySqr = (imgPos.y - i) * (imgPos.y - i);
