@@ -29,10 +29,6 @@
 #include "core/xmipp_filename.h"
 
 // Sparse matrices --------------------------------------------------------
-SparseMatrix2D::SparseMatrix2D(){
-	N 		= 0;
-}
-
 SparseMatrix2D::SparseMatrix2D(std::vector<SparseElement> &_elements, int _Nelements)
 {
 	//First of all, we sort the elements by rows and then by columns
@@ -109,18 +105,6 @@ void SparseMatrix2D::sparseMatrix2DFromVector(std::vector<SparseElement> &_eleme
 		}
 	}
 	N = actualRow+1;
-}
-
-SparseMatrix2D &SparseMatrix2D::operator =(const SparseMatrix2D &X)
-{
-	if (this!=&X)
-	{
-		N=X.N;
-		values=X.values;
-		iIdx=X.iIdx;
-		jIdx=X.jIdx;
-	}
-	return *this;
 }
 
 /**

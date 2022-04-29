@@ -387,7 +387,8 @@ void ClassificationMap::readSelf(std::istream& _is)
 {
     clear();
     int dim;
-    std::string layout, str;
+    std::string layout;
+    std::string str;
     _is >> dim;
     _is >> layout;
     toLower(layout);
@@ -644,7 +645,8 @@ double RECTLayout::numNeig(const FuzzyMap* _som, const SomPos& _center) const
 
 double HEXALayout::dist(const SomPos& _center, const SomPos& _v) const
 {
-    double ret, diff;
+    double ret;
+    double diff;
     diff = _center.first - _v.first;
 
     if (((_center.second - _v.second) % 2) != 0)
@@ -1112,7 +1114,8 @@ void FuzzyMap::readSelf(std::istream& _is, const unsigned _size)
 {
     clear();
     int dim;
-    std::string layout, str;
+    std::string layout;
+    std::string str;
     _is >> dim;
     _is >> layout;
     if (layout == "HEXA")

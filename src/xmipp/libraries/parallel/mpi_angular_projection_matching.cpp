@@ -27,8 +27,8 @@
 #include "core/xmipp_image_macros.h"
 
 /*Some constast to message passing tags */
-#define TAG_JOB_REQUEST 1
-#define TAG_JOB_REPLY 2
+constexpr int  TAG_JOB_REQUEST =  1;
+constexpr int  TAG_JOB_REPLY =  2;
 
 /*Constructor */
 MpiProgAngularProjectionMatching::MpiProgAngularProjectionMatching()

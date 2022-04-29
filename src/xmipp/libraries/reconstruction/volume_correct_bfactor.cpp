@@ -74,15 +74,15 @@ void ProgVolumeCorrectBfactor::readParams()
     {
         fn_ref= getParam("--ref");
         String strMode=getParam("--ref",1);
-        mode =  strMode=="allpoints" ? ALLPOINTS_REF : BFACTOR_REF;
+        bMode = strMode=="allpoints" ? MODES::ALLPOINTS_REF : MODES::BFACTOR_REF;
     }
     else if (checkParam("--adhoc"))
     {
-        mode = BFACTOR_ADHOC;
+        bMode = MODES::BFACTOR_ADHOC;
         adhocB = getDoubleParam("--adhoc");
     }
     else if (checkParam("--auto"))
-        mode = BFACTOR_AUTO;
+        bMode = MODES::BFACTOR_AUTO;
     else
         REPORT_ERROR(ERR_DEBUG_IMPOSIBLE, "This should not happens, review program definition");
     sampling_rate = getDoubleParam("--sampling");
@@ -100,15 +100,15 @@ void ProgVolumeCorrectBfactor::show()
     XmippMetadataProgram::show();
     std::cout << "Pixel size : " << sampling_rate << " Angstrom" << std::endl;
     std::cout << "Maximum resolution: " << apply_maxres << " Angstrom" << std::endl;
-    if (mode == BFACTOR_REF || mode == BFACTOR_AUTO)
+    if (bMode == MODES::BFACTOR_REF || bMode == MODES::BFACTOR_AUTO)
     {
         std::cerr<<"Fit within resolutions: " << fit_minres << " - " << fit_maxres << " Angstrom" << std::endl;
     }
-    if (mode == BFACTOR_REF)
+    if (bMode == MODES::BFACTOR_REF)
     {
         std::cout << "Adjust B-factor according to reference "<<fn_ref<<std::endl;
     }
-    else if (mode == BFACTOR_ADHOC)
+    else if (bMode == MODES::BFACTOR_ADHOC)
     {
         std::cout << "Apply ad-hoc B-factor of "<< adhocB <<" squared Angstroms" << std::endl;
     }
@@ -136,7 +136,7 @@ ProgVolumeCorrectBfactor::ProgVolumeCorrectBfactor()
     fit_maxres    = -1.;
     apply_maxres  = -1.;
     sampling_rate = 1.;
-    mode          = BFACTOR_AUTO;
+    bMode          = MODES::BFACTOR_AUTO;
     xsize         = -1;
     fn_ref        = "";
     fn_fsc        = "";
@@ -333,9 +333,9 @@ void  ProgVolumeCorrectBfactor::write_guinierfile(const FileName &fn_guinier,
     for (size_t i = 0; i < guinierin.size(); i++)
     {
         fh << (guinierin[i]).x << " " << (guinierin[i]).y << " " << (guinierweighted[i]).y << " " <<(guiniernew[i]).y;
-        if (mode==BFACTOR_AUTO)
+        if (bMode==MODES::BFACTOR_AUTO)
             fh << " " << intercept;
-        else if (mode==BFACTOR_REF || mode==ALLPOINTS_REF)
+        else if (bMode==MODES::BFACTOR_REF || bMode==MODES::ALLPOINTS_REF)
         {
             fh << " " << (guinierref[i]).y + intercept;
         }
@@ -369,13 +369,13 @@ void ProgVolumeCorrectBfactor::bfactor_correction(MultidimArray< double > &m1,
     else
         guinierweighted=guinierin;
 
-    if (mode == BFACTOR_AUTO)
+    if (bMode == MODES::BFACTOR_AUTO)
     {
         least_squares_line_fit(guinierweighted, slope, intercept);
         std::cerr<<" Fitted slope= "<<slope<<" intercept= "<<intercept<<std::endl;
         adhocB = 4. * slope;
     }
-    else if (mode == BFACTOR_REF || mode == ALLPOINTS_REF)
+    else if (bMode == MODES::BFACTOR_REF || bMode == MODES::ALLPOINTS_REF)
     {
         Image<double> ref;
         ref.read(fn_ref);
@@ -387,7 +387,7 @@ void ProgVolumeCorrectBfactor::bfactor_correction(MultidimArray< double > &m1,
         {
             (guinierdiff[i]).y -= (guinierref[i]).y;
         }
-        if (mode == BFACTOR_REF)
+        if (bMode == MODES::BFACTOR_REF)
         {
             least_squares_line_fit(guinierdiff, slope, intercept);
             std::cerr<<" Fitted slope= "<<slope<<" intercept= "<<intercept<<std::endl;
@@ -395,7 +395,7 @@ void ProgVolumeCorrectBfactor::bfactor_correction(MultidimArray< double > &m1,
         }
     }
 
-    if (mode == ALLPOINTS_REF)
+    if (bMode == MODES::ALLPOINTS_REF)
     {
         // Now apply the allpoints correction
         std::cerr<<"Adjust power spectrum to that of reference "<<std::endl;
