@@ -76,7 +76,7 @@ public:
     /* constructor providing an MpiNode
      * this is useful for using this programs from others
      */
-    ProgMPIRecFourier(MpiNode * node);
+    ProgMPIRecFourier(const std::shared_ptr<MpiNode> &node);
 
     /* Special way of reading to sync all nodes */
     void read(int argc, char** argv);
