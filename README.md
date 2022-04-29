@@ -73,7 +73,7 @@ If you install it using other package management system (such as Conda), it migh
 ### Full list of dependencies
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-8 g++-8`
 
-`pip install scons; numpy`
+`pip install scons numpy`
 
 # Installing Xmipp as a Scipion plugin
 This is a recommended way for end users.
