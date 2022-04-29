@@ -218,7 +218,7 @@ void kNearestNeighbours(const Matrix2D<double> &X, int K, Matrix2D<int> &idx, Ma
 		{
 			// Compute the distance between i1 and i2
 			double d=0;
-			if (f==NULL)
+			if (f==nullptr)
 				for (int j=0; j<MAT_XSIZE(X); ++j)
 				{
 					double diff=MAT_ELEM(X,i1,j)-MAT_ELEM(X,i2,j);
@@ -244,7 +244,7 @@ void computeRandomPointsDistance(const Matrix2D<double> &X, Matrix1D<double> &di
 	{
 		// Compute the distance between ind1[i] and ind2[i]
 		double d=0;
-		if (f==NULL){
+		if (f==nullptr){
 			for (size_t j=0; j<MAT_XSIZE(X); ++j)
 			{
 			double diff=MAT_ELEM(X,ind1(i1),j)-MAT_ELEM(X,ind2(i1),j);
@@ -271,7 +271,7 @@ void computeDistance(const Matrix2D<double> &X, Matrix2D<double> &distance, DimR
 		{
 			// Compute the distance between i1 and i2
 			double d=0;
-			if (f==NULL)
+			if (f==nullptr)
 				for (int j=0; j<MAT_XSIZE(X); ++j)
 				{
 					double diff=MAT_ELEM(X,i1,j)-MAT_ELEM(X,i2,j);
@@ -395,7 +395,7 @@ double intrinsicDimensionalityCorrDim(const Matrix2D<double> &X, DimRedDistance2
 		{
 			// Compute the distance between i1 and i2
 			double d=0;
-			if (f==NULL)
+			if (f==nullptr)
 				for (int j=0; j<MAT_XSIZE(X); ++j)
 				{
 					double diff=MAT_ELEM(X,i1,j)-MAT_ELEM(X,i2,j);
@@ -452,8 +452,8 @@ void extractNearestNeighbours(const Matrix2D<double> &X, Matrix2D<int> &idx, int
 
 DimRedAlgorithm::DimRedAlgorithm()
 {
-	X=NULL;
-	distance=NULL;
+	X=nullptr;
+	distance=nullptr;
 }
 
 void DimRedAlgorithm::setInputData(Matrix2D<double> &X)
