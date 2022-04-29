@@ -76,11 +76,7 @@ void ProgProjectTomography::run()
     int idx = 1;
     size_t objId;
 
-    double angle=projParam.tilt0;
-
-    // Keep this comment to understand the while
-    // for (double angle=projParam.tilt0; angle<=projParam.tiltF; angle+=projParam.tiltStep)
-    while(angle<=projParam.tiltF)
+    for (double angle=projParam.tilt0; angle<=projParam.tiltF; angle+=projParam.tiltStep)
     {
         if (projParam.singleProjection)
             fn_proj = projParam.fnOut;
@@ -137,7 +133,6 @@ void ProgProjectTomography::run()
 
         numProjs++;
         idx++;
-	angle+=projParam.tiltStep;
     }
     if (!projParam.show_angles)
         progress_bar(expectedNumProjs);

@@ -424,11 +424,7 @@ void ProgVolumeToPseudoatoms::removeSeeds(int Nseeds)
     double vmin=Vdiff.computeMin();
     if (vmin<0)
     {
-        double v=vmin+vmin/20;
-
-        // for (double v=vmin+vmin/20; v<0; v-=vmin/20)
-	// Keep this cooment to understand the while
-	while(v<0)
+        for (double v=vmin+vmin/20; v<0; v-=vmin/20)
         {
             size_t oldListSize;
             do
@@ -484,7 +480,6 @@ void ProgVolumeToPseudoatoms::removeSeeds(int Nseeds)
             while (oldListSize>atoms.size() && alreadyRemoved<fromNegative);
             if (alreadyRemoved==fromNegative)
                 break;
-	    v-=vmin/20;
         }
     }
 

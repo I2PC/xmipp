@@ -2342,11 +2342,11 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
             continue;
         double rot=atan2((double)i,(double)j)+rot0;
         double rho=sqrt((double)i*i+(double)j*j);
-        int l0=ceil((STARTINGZ(Vin)-k)*izHelical);
+        double l0=ceil((STARTINGZ(Vin)-k)*izHelical);
         double lF=l0+Llength;
         double finalValue=0;
-        int L=0;
-        for (int l=l0; l<=lF; ++l)
+        double L=0;
+        for (double l=l0; l<=lF; ++l)
         {
             double kp=k+l*zHelical;
             if (kp>=zFirst && kp<=zLast)
@@ -2423,16 +2423,10 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 	bestCorr = bestRot = bestZ = std::numeric_limits<double>::min();
 
 	
-    double rot = -180;
-    // Keep this comment to understand the loop
-    //for (double rot=-180; rot<180; rot+=rotStep)
-    while (rot<180)
+    for (double rot=-180; rot<180; rot+=rotStep)
     {
 		rotation3DMatrix(rot,'Z',AZ,true);
-        // Keep this comment to understand the loop
-        // for (double z=zmin; z<=zmax; z+=zStep)
-        double z = zmin;
-        while (z<=zmax)
+        for (double z=zmin; z<=zmax; z+=zStep)
 		{
 			MAT_ELEM(AZ,2,3)=z;
 			applyGeometry(xmipp_transformation::LINEAR,Vout,Vin,AZ,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
@@ -2443,9 +2437,7 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 				bestRot=rot;
 				bestZ=z;
 			}
-            z += zStep;
 		}
-        rot += rotStep;
 	}
 
 	rotation3DMatrix(-bestRot/2,'Z',AZ,true);

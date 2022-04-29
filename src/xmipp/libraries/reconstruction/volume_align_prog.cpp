@@ -338,58 +338,31 @@ public:
             Matrix1D<double> r(3);
             Matrix1D<double> trial(9);
 
-            //keep this comment to understand the while
-            //for (double grey_scale = grey_scale0; grey_scale <= grey_scaleF ; grey_scale += step_grey)
-            double grey_scale = grey_scale0;
-            while(grey_scale <= grey_scaleF)
+            for (double grey_scale = grey_scale0; grey_scale <= grey_scaleF ; grey_scale += step_grey)
             {
                 trial(0) = grey_scale;
-                //keep this comment to understand the while
-                //for (double grey_shift = grey_shift0; grey_shift <= grey_shiftF ; grey_shift += step_grey_shift)
-                double grey_shift = grey_shift0;
-                while(grey_shift <= grey_shiftF)
+                for (double grey_shift = grey_shift0; grey_shift <= grey_shiftF ; grey_shift += step_grey_shift)
                 {
                     trial(1) = grey_shift;
-                    //keep this comment to understand the while
-                    //for (double rot = rot0; rot <= rotF ; rot += step_rot)
-                    double rot = rot0;
-                    while(rot <= rotF)
+                    for (double rot = rot0; rot <= rotF ; rot += step_rot)
                     {
                         trial(2) = rot;
-                        //keep this comment to understand the while
-                        //for (double tilt = tilt0; tilt <= tiltF ; tilt += step_tilt)
-                        double tilt = tilt0;
-                        while(tilt <= tiltF)
+                        for (double tilt = tilt0; tilt <= tiltF ; tilt += step_tilt)
                         {
                             trial(3) = tilt;
-                            //keep this comment to understand the while
-                            //for (double psi = psi0; psi <= psiF ; psi += step_psi)
-                            double psi = psi0;
-                            while(psi <= psiF)
+                            for (double psi = psi0; psi <= psiF ; psi += step_psi)
                             {
                                 trial(4) = psi;
-                                //keep this comment to understand the while
-                                //for (double scale = scale0; scale <= scaleF ; scale += step_scale)
-                                double scale = scale0;
-                                while(scale <= scaleF)
+                                for (double scale = scale0; scale <= scaleF ; scale += step_scale)
                                 {
                                     trial(5) = scale;
-                                    //keep this comment to understand the while
-                                    // for (ZZ(r) = z0; ZZ(r) <= zF ; ZZ(r) += step_z)
-                                    ZZ(r) = z0;
-                                    while(ZZ(r) <= zF)
+                                    for (ZZ(r) = z0; ZZ(r) <= zF ; ZZ(r) += step_z)
                                     {
                                         trial(6) = ZZ(r);
-                                        //keep this comment to understand the while
-                                        //for (YY(r) = y0; YY(r) <= yF ; YY(r) += step_y)
-                                        YY(r) = y0;
-                                        while(YY(r) <= yF)
+                                        for (YY(r) = y0; YY(r) <= yF ; YY(r) += step_y)
                                         {
                                             trial(7) = YY(r);
-                                            //keep this comment to understand the while
-                                            //for (XX(r) = x0; XX(r) <= xF ; XX(r) += step_x)
-                                            XX(r) = x0;
-                                            while(XX(r) <= xF)
+                                            for (XX(r) = x0; XX(r) <= xF ; XX(r) += step_x)
                                             {
                                                 // Form trial vector
                                                 trial(8) = XX(r);
@@ -410,24 +383,16 @@ public:
                                                 else
                                                     if (++itime % step_time == 0)
                                                         progress_bar(itime);
-                                                
-                                                XX(r) += step_x;
                                             }
-                                            YY(r) += step_y;
                                         }
-                                        ZZ(r) += step_z;
                                     }
-                                    scale += step_scale;
+
                                 }
-                                psi += step_psi;
                             }
-                            tilt += step_tilt;
                         }
-                        rot += step_rot;
+
                     }
-                    grey_shift += step_grey_shift;
                 }
-                grey_scale += step_grey;
             }
                 
             if (!tell)
