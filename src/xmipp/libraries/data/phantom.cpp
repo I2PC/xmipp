@@ -947,16 +947,18 @@ const
     {
         //for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
         // Keep this comment to understand the while
+        double distk2=(k - ZZ(r))*(k - ZZ(r));
         double i = FLOOR(YY(r) - radius);
         for(; i <= CEIL(YY(r) + radius) && !intersects; i++)
         {
             //for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
             // Keep this comment to understand the while
+            double distki2=distk2+(i - YY(r))*(i - YY(r));
             double j = FLOOR(XX(r) - radius);
             for(; j <= CEIL(XX(r) + radius) && !intersects; j++)
             {
             	auto dj=(double) j;
-                if (distki2+(dj - XX(r))*(dj - XX(r))>radius2)
+                if (distki2+(j - XX(r))*(j - XX(r))>radius2)
                     continue;
                 VECTOR_R3(aux3, j, i, k);
                 intersects = voxel_inside(aux3, aux1, aux2);

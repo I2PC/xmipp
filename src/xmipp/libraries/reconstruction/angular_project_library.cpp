@@ -207,7 +207,6 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 
     if (verbose)
         init_progress_bar(mySize);
-    int myCounter=0;
 
     int myCounter=0;
 
