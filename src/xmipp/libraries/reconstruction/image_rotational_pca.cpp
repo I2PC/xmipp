@@ -34,20 +34,12 @@ ProgImageRotationalPCA::ProgImageRotationalPCA()
 {
   rank = 0;
   verbose = 1;
-  fileMutex = NULL;
-  threadMutex = NULL;
-  taskDistributor = NULL;
-  thMgr = NULL;
 }
 
 // MPI destructor
 ProgImageRotationalPCA::~ProgImageRotationalPCA()
 {
   clearHbuffer();
-  delete fileMutex;
-  delete threadMutex;
-  delete taskDistributor;
-  delete thMgr;
 }
 
 void
@@ -124,9 +116,9 @@ void ProgImageRotationalPCA::comunicateMatrix(Matrix2D<double> &W)
 
 void ProgImageRotationalPCA::createMutexes(size_t Nimgs)
 {
-  fileMutex = new Mutex();
-  threadMutex = new Mutex();
-  taskDistributor = new ThreadTaskDistributor(Nimgs, XMIPP_MAX(1,Nimgs/5));
+  fileMutex = std::make_unique<Mutex>();
+  threadMutex = std::make_unique<Mutex>();
+  taskDistributor = std::make_unique<ThreadTaskDistributor>(Nimgs, XMIPP_MAX(1,Nimgs/5));
 }
 
 // Produce side info =====================================================
@@ -154,7 +146,7 @@ void ProgImageRotationalPCA::produceSideInfo()
     Npixels = (int) mask.sum();
 
     // Thread Manager
-    thMgr = new ThreadManager(Nthreads, this);
+    thMgr = std::make_unique<ThreadManager>(Nthreads, this);
     Image<double> dummy;
     Matrix2D<double> dummyMatrix, dummyHblock, dummyW;
     dummyW.resizeNoCopy(Npixels, Neigen + 2);
@@ -236,7 +228,6 @@ void threadApplyT(ThreadArgument &thArg)
   auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
-  ThreadTaskDistributor *taskDistributor=self->taskDistributor;
   std::vector<size_t> &objId=self->objId;
   MetaDataVec &MD=self->MD[thArg.thread_id];
 
@@ -258,7 +249,7 @@ void threadApplyT(ThreadArgument &thArg)
     std::cout << "Applying T ...\n";
     init_progress_bar(objId.size());
   }
-  while (taskDistributor->getTasks(first, last))
+  while (self->taskDistributor->getTasks(first, last))
   {
     for (size_t idx=first; idx<=last; ++idx)
     {
@@ -352,7 +343,6 @@ void threadApplyTt(ThreadArgument &thArg)
   auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
-  ThreadTaskDistributor *taskDistributor=self->taskDistributor;
   std::vector<size_t> &objId=self->objId;
   MetaDataVec &MD=self->MD[thArg.thread_id];
 
@@ -373,7 +363,7 @@ void threadApplyTt(ThreadArgument &thArg)
     std::cout << "Applying Tt ...\n";
     init_progress_bar(objId.size());
   }
-  while (taskDistributor->getTasks(first, last))
+  while (self->taskDistributor->getTasks(first, last))
   {
     for (size_t idx=first; idx<=last; ++idx)
     {
