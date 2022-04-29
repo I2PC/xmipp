@@ -300,7 +300,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     double alpha=0;
     // Keep this comment to understand the loop
     // for (double alpha=0; alpha<=PI; alpha+=PI/Nalpha, N++)
-    while(alpha<=PI)
+    for(; alpha<=PI; alpha+=PI/Nalpha, N++)
     {
     	VECTOR_R2(u,cos(alpha),sin(alpha));
 
@@ -337,7 +337,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 
         // Keep this comment to understand the while
     	// for (double w=0; w<wmax; w+=wmax/99.0)
-        while(w<wmax)
+        for(; w<wmax; w+=wmax/99.0)
     	{
         	wx=w*XX(u);
         	wy=w*YY(u);
@@ -348,7 +348,6 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 
         	VEC_ELEM(envelope,idx) += double(fabs(CTF1.getValueDampingAt()));
     		idx++;
-    		w+=wmax/99.0;
     	}
 
     	if (fnCTF2!="") {
@@ -357,9 +356,6 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
         	double diff=ABS(moduleZero-module2);
         	evaluation.firstZeroDisagreement=XMIPP_MAX(evaluation.firstZeroDisagreement,diff);
     	}
-
-    	alpha+=PI/Nalpha;
-        N++;
     }
 
     int idx=0;
@@ -367,13 +363,12 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     
         //keep this comment to understand the while
         //for (double w=0; w<wmax; w+=wmax/99.0)
-	while(w<wmax)
+	for(; w<wmax; w+=wmax/99.0)
 	{
 		size_t objId2 = mdEnvelope.addObject();
 		mdEnvelope.setValue(MDL_RESOLUTION_FREQ,w,objId2);
 		mdEnvelope.setValue(MDL_CTF_ENVELOPE,VEC_ELEM(envelope,idx)/Nalpha,objId2);
 		idx++;
-		w += wmax/99.0;
 	}
     evaluation.firstZeroAvg/=N;
     evaluation.firstZeroRatio=maxModuleZero/minModuleZero;

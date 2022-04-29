@@ -939,28 +939,25 @@ const
     //for (int k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
     // Keep this comment to understand the while
     double k = FLOOR(ZZ(r) - radius);
-    while(k <= CEIL(ZZ(r) + radius) && !intersects)
+    for(; k <= CEIL(ZZ(r) + radius) && !intersects; k++)
     {
         //for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
         // Keep this comment to understand the while
         double i = FLOOR(YY(r) - radius);
-        while(i <= CEIL(YY(r) + radius) && !intersects)
+        for(; i <= CEIL(YY(r) + radius) && !intersects; i++)
         {
             //for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
             // Keep this comment to understand the while
             double j = FLOOR(XX(r) - radius);
-            while(j <= CEIL(XX(r) + radius) && !intersects)
+            for(; j <= CEIL(XX(r) + radius) && !intersects; j++)
             {
                 if ((k - ZZ(r))*(k - ZZ(r)) + (i - YY(r))*(i - YY(r)) + (j - XX(r))*(j - XX(r)) >
                     radius2)
                     continue;
                 VECTOR_R3(aux3, j, i, k);
                 intersects = voxel_inside(aux3, aux1, aux2);
-                j++;
             }
-            i++;
         }
-        k++;
     }
         
     return intersects;

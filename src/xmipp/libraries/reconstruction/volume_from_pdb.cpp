@@ -470,12 +470,11 @@ void ProgPdbConverter::blobProperties() const
 
     // keep this comment to understand the while
     // for (double w = 0; w < 1.0 / (2*highTs); w += 1.0 / (highTs * 500))
-    while(w<wMax)
+    for(; w < 1.0 / (2*highTs); w += 1.0 / (highTs * 500))
     {
         double H = kaiser_Fourier_value(w * highTs, periodicTable(0, 0) / highTs,
                                         blob.alpha, blob.order);
         fh_out << w << " " << 10*log10(H*H) << std::endl;
-	w+=wStep;
     }
     fh_out.close();
 }

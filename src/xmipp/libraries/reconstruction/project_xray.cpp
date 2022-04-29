@@ -134,7 +134,7 @@ void ProgXrayProject::run()
 
     // Keep this comment to understand the while
     // for (double angle=projParam.tilt0; angle<=projParam.tiltF; angle+=projParam.tiltStep)
-    while(angle<=projParam.tiltF)
+    for(; angle<=projParam.tiltF; angle+=projParam.tiltStep)
     {
         if (projParam.singleProjection)
             fn_proj = projParam.fnOut;
@@ -201,7 +201,6 @@ void ProgXrayProject::run()
 
         numProjs++;
         idx++;
-	angle+=projParam.tiltStep;
     }
     if (!(projParam.show_angles))
         progress_bar(expectedNumProjs);

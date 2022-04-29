@@ -377,12 +377,12 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                 // for (double shiftY=affy.minAllowed(5); shiftY<=affy.maxAllowed(5); shiftY+=stepY)
                 // Keep this comment to understan the while loops
                 double shiftY = affy.minAllowed(5);
-                while(shiftY<=affy.maxAllowed(5))
+                for(; shiftY<=affy.maxAllowed(5); shiftY+=stepY)
                 {
                     // for (double shiftX=affy.minAllowed(4); shiftX<=affy.maxAllowed(4); shiftX+=stepX)
                     // Keep this comment to understand the while
                     double shiftX = affy.minAllowed(4);
-                    while(shiftX<=affy.maxAllowed(4))
+                    for(; shiftX<=affy.maxAllowed(4); shiftX+=stepX)
                     {
                         A(4)=shiftX;
                         A(5)=shiftY;
@@ -390,9 +390,7 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                         if (cost<bestCost)
                             bestCost=cost;
                         
-                        shiftX += stepX;
                     }
-                    shiftY += stepY;
                 }
             }
             else
@@ -2542,7 +2540,7 @@ void ProgTomographAlignment::run()
     double rot=0;
     //for (double rot=0; rot<=180-deltaRot; rot+=deltaRot)
     // Keep this comment to understand the loop
-    while(rot<=(180-deltaRot))
+    for(; rot<=180-deltaRot; rot+=deltaRot)
     {
         alignment->clear();
         alignment->rot=rot;
@@ -2559,7 +2557,6 @@ void ProgTomographAlignment::run()
             bestError=error;
             *bestPreviousAlignment=*alignment;
         }
-        rot +=deltaRot;
     }
     delete alignment;
     std::cout << "Best rot=" << bestRot

@@ -231,7 +231,7 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
 	double res = minRes;
 	// keep this comment to understand the while
 	// for (double res = minRes; res<maxRes; res+=step)
-	while(res<maxRes)
+	for(; res<maxRes; res+=step)
 	{	
                 freq = sampling/res;
 
@@ -266,7 +266,6 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
                 lastweight += weight;
                 lastResolution = res;
                 lastidx = idx;
-		res+=step;
         }
 //		double sigmaBefore=0;
 //        computeAvgStdev_within_binary_mask(resVol, localfilteredVol, sigmaBefore);

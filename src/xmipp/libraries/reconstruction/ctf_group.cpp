@@ -401,7 +401,7 @@ bool ProgCtfGroup::isIsotropic(CTFDescription &ctf)
     // keep this comment to understand the loop
     // for (double digres = 0; digres < resol_error; digres+= 0.001)
     double digres = 0;
-    while(digres < resol_error)
+    for(; digres < resol_error; digres+= 0.001)
     {
         XX(freq) = cosp * digres;
         YY(freq) = sinp * digres;
@@ -416,8 +416,6 @@ bool ProgCtfGroup::isIsotropic(CTFDescription &ctf)
             <<" "<<ctf.getValueAt()<<std::endl;
             return false;
         }
-
-        digres+= 0.001;
     }
     return true;
 }

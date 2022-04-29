@@ -79,7 +79,7 @@ void ProgMPIXrayProject::run()
     // Keep this code to understand the while 
     // for (double angle = projParam.tilt0; angle <= projParam.tiltF; angle += projParam.tiltStep)
     double angle = projParam.tilt0;
-    while (angle<=projParam.tiltF)
+    for (; angle <= projParam.tiltF; angle += projParam.tiltStep)
     {
         if (projParam.singleProjection)
             data.fn_proj = projParam.fnOut;
@@ -121,7 +121,6 @@ void ProgMPIXrayProject::run()
 
         mpiData.push_back(data);
         idx++;
-        angle += projParam.tiltStep;
     }
 
     // Creation of MPI Job Handler file
