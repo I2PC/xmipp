@@ -66,7 +66,9 @@
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
     std::unique_ptr<FourierProjector> projector;
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
-	FourierTransformer transformer;
+	FourierTransformer transformerP; // Fourier transformer for projection
+    FourierTransformer transformerI; // Fourier transformer for particle
+    MultidimArray< std::complex<double> > IFourier; // FT(particle)
 	MultidimArray< std::complex<double> > PFourier; // FT(projection)
     MultidimArray< std::complex<double> > PFourier0; // FT(projection) estimation of order 0
 	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
@@ -104,12 +106,12 @@
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);
-    void processParticle(size_t, int, FourierTransformer &);
+    void processParticle(size_t, int, FourierTransformer &, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     double checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &) const;
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 
     /// Run
     void run() override;

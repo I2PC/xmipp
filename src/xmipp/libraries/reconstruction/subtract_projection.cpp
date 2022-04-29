@@ -165,7 +165,7 @@
 	return proj;
  }
 
-void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, FourierTransformer &transformerImg) {
+void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, FourierTransformer &transformerPf, FourierTransformer &transformerIf) {
 	row = mdParticles.getRowVec(iparticle);
 	readParticle(row);
 	row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
@@ -177,7 +177,8 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 	Pctf = applyCTF(row, P);
-	transformerImg.FourierTransform(Pctf(), PFourier, false);
+	transformerPf.FourierTransform(Pctf(), PFourier, false);
+	transformerIf.FourierTransform(I(), IFourier, false);
 }
 
 MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
@@ -195,19 +196,29 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	double sumE2 = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(y) {
 		double realyn = real(DIRECT_MULTIDIM_ELEM(y, n)); // TODO: compute also imag part
-		double e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); // TODO: change by TF(particula) - TF(predictedProjection) 
+		double e = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n)); 
+		std::cout << "e: " << e << std::endl;
 		sumE2 += e * e;
-		sumY += realyn;
-		sumY2 += realyn * realyn;
+		sumY += std::abs(realyn);
+		sumY2 += std::abs(realyn) * std::abs(realyn);
 	}
+	std::cout << "sumE2: " << sumE2 << std::endl;
+	std::cout << "sumY: " << sumY << std::endl;
+	std::cout << "sumY2: " << sumY2 << std::endl;
+
 	auto meanY = sumY / (double)MULTIDIM_SIZE(y);
-	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY * meanY;
+	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY*meanY;
+
+	std::cout << "meanY: " << meanY << std::endl;
+	std::cout << "varY: " << varY << std::endl;
+
 	auto R2 = 1.0 - sumE2 / varY; // TODO: check R2 because is reporting wrong values
+	std::cout << "R2: " << R2 << std::endl;
 	return R2;
  }
 
-double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, 
-const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< std::complex<double> > &PFourierf1) const { 
+double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
+ const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = (double)MULTIDIM_SIZE(PFourierf);
 	double R20 = evaluateFitting(PFourierf, PFourierf0);
@@ -250,7 +261,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
-	processParticle(1, sizeI, transformer);
+	processParticle(1, sizeI, transformerP, transformerI);
 	const MultidimArray<double> &mPctf = Pctf();
 	// Construct frequencies image
 	MultidimArray<int> wi;
@@ -279,7 +290,7 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 	// For each particle in metadata:
     for (size_t i = 1; i <= mdParticles.size(); ++i) {  
      	// Project and process volume and mask keep projections 
-		processParticle(i, sizeI, transformer);
+		processParticle(i, sizeI, transformerP, transformerI);
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 		M = binarizeMask(Pmask);
 		// Build final mask (projected mask + 2D dilation)
@@ -354,10 +365,10 @@ const MultidimArray< std::complex<double> > &PFourierf0, const MultidimArray< st
 		PFourier1(0,0) = betaDC + beta01+beta1*wi(0,0)*PFourier1(0,0); 
 
 		// Check best model
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1); 
+		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier); 
 
 		// Recover adjusted projection (P) in real space
-		transformer.inverseFourierTransform(PFourier, P());
+		transformerP.inverseFourierTransform(PFourier, P());
 		P.write(formatString("%s5_Padj.mrc", fnProj.c_str()));
 
 		// Subtraction
