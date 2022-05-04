@@ -21,7 +21,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
-      - name: Set up GCC
+      - name: Set up GCC  #https://github.com/marketplace/actions/install-gcc
         uses: egor-tensin/setup-gcc@v1
         with:
           version: 8
@@ -35,13 +35,6 @@ jobs:
           python-version: '3.*' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
 
-#       - name: Set up GCC #https://github.com/marketplace/actions/install-gcc
-#         uses: egor-tensin/setup-gcc@v1
-#         with:
-#           version: 8
-#           platform: x64
-      - name:  gcc version
-        run: gcc --version
       
       # This will try to fetch cache for current commit
       # Since no such cache exists, it will try to bring newest restore-key one
