@@ -18,12 +18,14 @@ jobs:
   build:
     # The type of runner that the job will run on
     - runs-on: ubuntu-20.04
-      compiler: gcc
-      gcc: 8
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
-
+      - name: Set up GCC
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: 8
+          platform: x64
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
