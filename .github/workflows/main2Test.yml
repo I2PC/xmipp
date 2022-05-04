@@ -17,11 +17,13 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-18.04
+    - runs-on: ubuntu-20.04
+      compiler: gcc
+      gcc: 8
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
-      - run: gcc --version
+
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
@@ -36,8 +38,8 @@ jobs:
 #         with:
 #           version: 8
 #           platform: x64
-          
-
+      - name:  gcc version
+        run: gcc --version
       
       # This will try to fetch cache for current commit
       # Since no such cache exists, it will try to bring newest restore-key one
@@ -67,14 +69,6 @@ jobs:
           cuda: 11.2.2
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
-
-        - run:
-          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
-
-        - run:
-          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-
-        - run: nvcc -V
 
       - name: Install python dependencies
         run:  |
