@@ -64,9 +64,17 @@ jobs:
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@v0.2.5
         with: 
-          cuda: 11.6.1
+          cuda: 11.5.1
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
+
+        - run:
+          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
+
+        - run:
+          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+
+        - run: nvcc -V
 
       - name: Install python dependencies
         run:  |
