@@ -658,7 +658,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 	}
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Residual vectors calculated: " << residualX.size() << std::endl;
+	std::cout << "Residual vectors calculated: " << vCM.size() << std::endl;
 	#endif
 }
 
