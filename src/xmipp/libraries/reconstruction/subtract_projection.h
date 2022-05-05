@@ -52,7 +52,6 @@
 
     // Data variables
  	Image<double> V; // volume
-    // Image<double> vrM; // reference volume mask
  	Image<double> vM; // mask 3D
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
