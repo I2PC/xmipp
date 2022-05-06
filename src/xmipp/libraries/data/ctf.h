@@ -1314,7 +1314,7 @@ public:
             	FFT_IDX2DIGFREQ(j, XSIZE(CTF), wx);
                 double fx=wx*iTs;
 				precomputeValues(fx, fy);
-				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt();
+				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt(); //(??) I guess you need the minus sign, but should the envelope be always positive?
 				#ifdef DEBUG
 						if (i == 0)
 							std::cout << i << " " << j << " " << YY(freq) << " " << XX(freq)
