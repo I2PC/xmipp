@@ -321,7 +321,31 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 
 	//covarianceMatrix(mE, prm->C);
 	//double div=computeCovarianceMatrixDivergence(prm->C0,prm->C)/MAT_XSIZE(prm->C);
-#undef DEBUG2
+#ifdef DEBUG
+	std::cout << "A=" << A << std::endl;
+	Image<double> save;
+	save()=a*prm->P()+b;
+	save.write("PPPtheo.xmp");
+	save()=prm->Ifilteredp();
+	save.write("PPPfilteredp.xmp");
+	save()=prm->Ifiltered();
+	save.write("PPPfiltered.xmp");
+	save()=prm->E();
+	save.write("PPPe.xmp");
+	//save()=prm->C;
+	//save.write("PPPc.xmp");
+	//save()=prm->C0;
+	//save.write("PPPc0.xmp");
+	//std::cout << "Cost=" << cost << " Div=" << div << " avg=" << avg << std::endl;
+	std::cout << "Cost=" << cost << std::endl;
+	std::cout << "Press any key" << std::endl;
+	char c; std::cin >> c;
+#endif
+	//return div+prm->penalization*fabs(avg);
+	//return cost+prm->penalization*fabs(avg);
+	//return div;
+	return cost;
+}
 
 
 double continuous2cost(double *x, void *_prm)
