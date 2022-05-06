@@ -321,42 +321,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 
 	//covarianceMatrix(mE, prm->C);
 	//double div=computeCovarianceMatrixDivergence(prm->C0,prm->C)/MAT_XSIZE(prm->C);
-#ifdef DEBUG
-	std::cout << "Ifilteredp stats:"; mIfilteredp.printStats(); std::cout << std::endl;
-	std::cout << "P stats:"; mP.printStats(); std::cout << std::endl;
-	std::cout << "A=" << A << std::endl;
-	Image<double> save;
-	save()=a*prm->P()+b;
-	save.write("PPPtheo.xmp");
-	save()=prm->Ifilteredp();
-	save.write("PPPfilteredp.xmp");
-	save()=prm->Ifiltered();
-	save.write("PPPfiltered.xmp");
-	save()=prm->E();
-	save.write("PPPe.xmp");
-	//save()=prm->C;
-	//save.write("PPPc.xmp");
-	//save()=prm->C0;
-	//save.write("PPPc0.xmp");
-	//std::cout << "Cost=" << cost << " Div=" << div << " avg=" << avg << std::endl;
-	MultidimArray< std::complex<double> > F;
-	MultidimArray<double> radialAvg;
-	radial_magnitude(a*prm->P()+b
-			, F, radialAvg);
-	radialAvg.write("PPPtheoRadialMagnitude.txt");
-	radial_magnitude(prm->Ifilteredp(), F, radialAvg);
-	radialAvg.write("PPPIfilteredpRadialMagnitude.txt");
-
-	std::cout << "Cost=" << cost << std::endl;
-	std::cout << "Press any key" << std::endl;
-	char c; std::cin >> c;
-#endif
-	//return div+prm->penalization*fabs(avg);
-	//return cost+prm->penalization*fabs(avg);
-	//return div;
-	return cost;
-}
-#undef DEBUG
 #undef DEBUG2
 
 
