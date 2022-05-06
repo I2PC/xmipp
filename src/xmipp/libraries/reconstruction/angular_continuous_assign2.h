@@ -41,6 +41,9 @@ class FourierProjector;
 constexpr int  CONTCOST_CORR = 0;
 constexpr int  CONTCOST_L1 = 1;
 
+// Force defocusU = defocusV
+bool sameDefocus;
+
 /** Predict Continuous Parameters. */
 class ProgAngularContinuousAssign2: public XmippMetadataProgram
 {
@@ -89,6 +92,7 @@ public:
     bool phaseFlipped;
     // Penalization for the average
     // double penalization;
+
 public:
     // Rank (used for MPI version)
     int rank;
