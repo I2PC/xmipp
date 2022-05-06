@@ -205,8 +205,7 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	}
 	auto meanY = sumY / (double)MULTIDIM_SIZE(y);
 	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY*meanY;
-	auto R2 = 1.0 - sumE2 / varY; // R2 because is reporting wrong values (??)
-
+	auto R2 = 1.0 - sumE2 / varY; // R2 is reporting wrong values (??)
 	std::cout << "sumY: " << sumY << std::endl;
 	std::cout << "sumY2: " << sumY2 << std::endl;
 	std::cout << "sumE2: " << sumE2 << std::endl;
@@ -220,12 +219,10 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
  const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = (double)MULTIDIM_SIZE(PFourierf);
-	double R20 = evaluateFitting(IFourierf, PFourierf0);
+	double R20 = evaluateFitting(PFourierf, PFourierf0); // (IFourierf, PFourierf0)
 	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
-	double R21 = evaluateFitting(IFourierf, PFourierf1);
+	double R21 = evaluateFitting(PFourierf, PFourierf1); // (IFourierf, PFourierf1)
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
-	std::cout << "R20: " << R20adj << std::endl;
-	std::cout << "R21: " << R21adj << std::endl;
 	// Decide best fitting
 	double R2;
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
@@ -238,13 +235,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		R2 = R20adj;
 		std::cout << "Model of order 0" << std::endl;
 	}
-	FourierTransformer transformer; // remove until
-	Image<double> Padj;
-	Padj() = P();
-	transformer.inverseFourierTransform(PFourierf1, Padj());
-	Padj.write(formatString("%sPadj_1.mrc", fnProj.c_str()));
-	transformer.inverseFourierTransform(PFourierf0, Padj());
-	Padj.write(formatString("%sPadj_0.mrc", fnProj.c_str())); // here
 	return R2;
 }
 
