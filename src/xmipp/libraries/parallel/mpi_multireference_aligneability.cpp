@@ -25,11 +25,6 @@
 
 #include "mpi_multireference_aligneability.h"
 
-MpiMultireferenceAligneability::MpiMultireferenceAligneability()
-{
-	node=nullptr;
-}
-
 MpiMultireferenceAligneability::~MpiMultireferenceAligneability()
 {
 	delete node;

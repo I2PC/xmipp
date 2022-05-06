@@ -34,9 +34,9 @@ from scripts import *
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.22.01.0'        #
-XMIPP_VERNAME = 'Eris'           #
-RELEASE_DATE = '24/01/2022'        #
+XMIPP_VERSION = '3.22.04.0'        #
+XMIPP_VERNAME = 'Gaia'           #
+RELEASE_DATE = '21/04/2022'        #
 ####################################
 
 
@@ -614,12 +614,15 @@ def addDeepLearninModel(login, modelPath='', update=None):
 
 
 pDLdownload = None
-def downloadDeepLearningModels(cwd, dedicatedMode=False):
+def downloadDeepLearningModels(dest, dedicatedMode=False):
     if not buildConfig.is_true('USE_DL') and not dedicatedMode:
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
-    dest = "models"
-    modelsPath = os.path.join(cwd, dest)
+
+    if dest == 'build':
+        modelsPath = os.path.join(dest, 'models')
+    else:
+        modelsPath = dest
     dataSet = "DLmodels"
 
     # downloading/updating the DLmodels
@@ -634,8 +637,8 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
     # using Popen instead of runJob in order to download in parallel
     pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
                          % (task, dest, url, dataSet),
-                         cwd=cwd, show_command=False,
-                         inParallel=not dedicatedMode)
+                         cwd='build', show_command=False,
+                         in_parallel=not dedicatedMode)
     if dedicatedMode:
         ok = pDLdownload
     else:  # in parallel poll() is None untill finished
@@ -650,12 +653,15 @@ def linkToScipion(dirname):
     scipionBindings = os.path.join(scipionSoftware, 'bindings')
     scipionSoftwareEM = os.path.join(scipionSoftware, 'em')
     xmippHomeLink = os.path.join(scipionSoftwareEM, 'xmipp')
+    print(yellow(str("xmippHomeLink: " + xmippHomeLink)))
     currentDir = os.getcwd()
+
 
     if os.path.isdir(scipionLibs) and\
             os.path.isdir(scipionBindings):
         runJob("ln -srf %s %s" % (dirname, xmippHomeLink))
         xmippLink = os.readlink(xmippHomeLink)
+        print(yellow(str("xmippLink: " + xmippLink)))
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
@@ -667,6 +673,7 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
+        print(green("Xmipp linked to Scipion3"))
     else:
         print(yellow("No scipion3 found. If you intended to use Xmipp in "
                      "the Scipion framework, check the binding at "
@@ -780,14 +787,18 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
-    printXmippLogo("           ")
 
     print("\n"
           "  ********************************************\n"
           "  *                                          *\n"
-          "  *  Xmipp has been successfully installed!  *\n"
+          "  * ", end='')
+    print(green('Xmipp has been successfully installed!'), end='')
+    print("  *\n"
           "  *                                          *\n"
           "  ********************************************\n\n")
+
+
+
     return True
 
 

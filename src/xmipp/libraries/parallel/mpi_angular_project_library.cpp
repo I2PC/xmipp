@@ -37,10 +37,10 @@
 
 #include <reconstruction/angular_project_library.h>
 
-#define TAG_WORKFORWORKER   0
-#define TAG_STOP   1
-#define TAG_WAIT   2
-#define TAG_FREEWORKER   3
+constexpr int  TAG_WORKFORWORKER =   0;
+constexpr int  TAG_STOP =   1;
+constexpr int  TAG_WAIT =   2;
+constexpr int  TAG_FREEWORKER =   3;
 
 #define DEBUG
 class ProgMpiAngularProjectLibrary: public ProgAngularProjectLibrary
@@ -63,9 +63,6 @@ public:
 
     /** status after am MPI call */
     MPI_Status status;
-
-    /** verbose mode on/off.  */
-    bool verbose;
 
     /*  constructor ------------------------------------------------------- */
     ProgMpiAngularProjectLibrary()

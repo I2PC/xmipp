@@ -22,11 +22,6 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-
-#ifndef MULTIREFERENCE_ALIGNEABILITY_H_
-#define MULTIREFERENCE_ALIGNEABILITY_H_
-#define PI 3.14159265
-
 #include <core/xmipp_program.h>
 #include "validation_nontilt.h"
 #include <math.h>
@@ -34,6 +29,12 @@
 #include <string.h>
 #include <data/mask.h>
 #include <core/symmetries.h>
+
+#ifndef MULTIREFERENCE_ALIGNEABILITY_H_
+#define MULTIREFERENCE_ALIGNEABILITY_H_
+//#define PI  3.14159265
+
+
 
 /**@defgroup MultireferenceAligneability Multireference Aligneability
    @ingroup ReconsLibrary */

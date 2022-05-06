@@ -17,11 +17,15 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-18.04
-
+    runs-on: ubuntu-20.04
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
+      - name: Set up GCC  #https://github.com/marketplace/actions/install-gcc
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: 8
+          platform: x64
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
@@ -31,7 +35,7 @@ jobs:
           python-version: '3.*' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
 
-          
+      
       # This will try to fetch cache for current commit
       # Since no such cache exists, it will try to bring newest restore-key one
       # i.e. the one from latest build. See https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows#matching-a-cache-key
@@ -55,9 +59,9 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.0.3
                 
       - name: Install CUDA
-        uses: Jimver/cuda-toolkit@v0.2.0
+        uses: Jimver/cuda-toolkit@v0.2.5
         with: 
-          cuda: 10.2.89
+          cuda: 11.5.1
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
