@@ -123,7 +123,7 @@ void ProgForwardArtZernike3D::defineParams()
 	addParamsLine("                               : previous projections");
 	addParamsLine("  [--resume]                   : Resume processing");
 	addExampleLine("A typical use is:", false);
-	addExampleLine("xmipp_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
+	addExampleLine("xmipp_forward_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
 }
 
 // // Produce side information ================================================

@@ -129,7 +129,7 @@ void ProgForwardZernikeSubtomos::defineParams()
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
 	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
+    addExampleLine("xmipp_forward_zernike_subtomos -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
 
 void ProgForwardZernikeSubtomos::preProcess()
