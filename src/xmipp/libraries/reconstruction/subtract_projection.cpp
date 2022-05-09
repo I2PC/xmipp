@@ -105,6 +105,7 @@
 	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
+	I.write(formatString("%sI.mrc", fnProj.c_str()));
  }
 
  void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, double R2a) {
@@ -177,6 +178,7 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 	Pctf = applyCTF(row, P);
+	Pctf.write(formatString("%sPctf.mrc", fnProj.c_str()));
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -305,6 +307,9 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
 
+		IiMFourier.write(formatString("%IiMFourier.mrc", fnProj.c_str()));
+		PiMFourier.write(formatString("%PiMFourier.mrc", fnProj.c_str()));
+
 		// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
 		MultidimArray<double> num0;
 		num0.initZeros(maxwiIdx+1); 
@@ -365,6 +370,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
 		// Recover adjusted projection (P) in real space
 		transformerP.inverseFourierTransform(PFourier, P());
+		P.write(formatString("%Padjusted.mrc", fnProj.c_str()));
 
 		// Subtraction
 		MultidimArray<double> &mIdiff=Idiff();
