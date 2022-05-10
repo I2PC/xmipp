@@ -34,13 +34,15 @@
 #include <opencv2/video/video.hpp>
 
 #ifdef GPU
-#ifndef CV_VERSION_EPOCH // == version 3 or newer
-#include <opencv2/cudaoptflow.hpp>
-#include <opencv2/cudaarithm.hpp>
-#else
-#include <opencv2/core/cuda.hpp>
-#endif 
-#endif // GPU
+    #ifndef CV_VERSION_EPOCH // == version 3 or newer
+        #if CV_VERSION_MAJOR == 3
+            #include <opencv2/cudaoptflow.hpp>
+            #include <opencv2/cudaarithm.hpp>
+        #endif
+    #else
+        #include <opencv2/core/cuda.hpp>
+    #endif
+#endif// GPU
 
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>

@@ -219,20 +219,26 @@ class Config:
                 versionStr = f.readline()
                 f.close()
                 version = int(versionStr.split('.', 1)[0])
-                self.configDict["OPENCV3"] = version >= 3
+                self.configDict["OPENCV3"] = version == 3
+                self.configDict["OPENCV4"] = version == 4
 
             # Check CUDA Support
-            cppProg = "#include <opencv2/core/version.hpp>\n"
-            cppProg += "#include <opencv2/cudaoptflow.hpp>\n" if self.configDict[
-                "OPENCV3"] else "#include <opencv2/core/cuda.hpp>\n"
-            cppProg += "int main(){}\n"
-            with open("xmipp_test_opencv.cpp", "w") as cppFile:
-                cppFile.write(cppProg)
-            self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                                                           (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
+            if self.configDict["OPENCV4"] == True:
+                self.configDict["OPENCVSUPPORTSCUDA"] = False
+                print(yellow('Xmipp has no CUDA support for OpenCV 4 '))
+            else:
+                cppProg = "#include <opencv2/core/version.hpp>\n"
+                cppProg += "#include <opencv2/core/cuda.hpp>\n" if self.configDict[
+                    "OPENCV4"] else "#include <opencv2/cudaoptflow.hpp>\n"
 
-            print(green("OPENCV-%s detected %s CUDA support"
-                        % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
+                cppProg += "int main(){}\n"
+                with open("xmipp_test_opencv.cpp", "w") as cppFile:
+                    cppFile.write(cppProg)
+                self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
+                                                               (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
+
+                print(green("OPENCV-%s detected %s CUDA support"
+                            % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
 
     def _get_help_msg(self):
