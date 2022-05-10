@@ -54,6 +54,8 @@ To install CUDA for your operating system, follow the [official install guide](h
 
 ### OpenCV
 OpenCV is used for several programs, however, it is not required.
+
+OpenCV-4 does not support OpenCV-CUDA. Please use OpenCV-3 or older.
 If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be automatically picked up by the Xmipp script
 
 ### HDF5
