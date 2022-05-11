@@ -65,7 +65,9 @@ void ProgForwardArtZernike3D::readParams()
 	save_iter = getIntParam("--save_iter");
 	sort_last_N = getIntParam("--sort_last");
 	// fnDone = fnOutDir + "/sphDone.xmd";
-	fnVolO = fnOutDir + "/Refined.vol";
+	FileName outPath = getParam("-o");
+	outPath = outPath.afterLastOf("/");
+	fnVolO = fnOutDir + "/" + outPath;
 }
 
 // Show ====================================================================
@@ -469,29 +471,30 @@ void ProgForwardArtZernike3D::recoverVol()
 	const auto &mV = Vrefined();
 	mVout.initZeros(mV);
 
-	const auto lastZ = FINISHINGZ(mV);
-	const auto lastY = FINISHINGY(mV);
-	const auto lastX = FINISHINGX(mV);
-	// const int step = DIRECTION == Direction::Forward ? loop_step : 1;
-	const int step = loop_step;
-	auto pos = std::array<float, 3>{};
+	// const auto lastZ = FINISHINGZ(mV);
+	// const auto lastY = FINISHINGY(mV);
+	// const auto lastX = FINISHINGX(mV);
+	// // const int step = DIRECTION == Direction::Forward ? loop_step : 1;
+	// const int step = loop_step;
+	// auto pos = std::array<float, 3>{};
 
-	for (int k = STARTINGZ(mV); k <= lastZ; k++)
-	{
-		for (int i = STARTINGY(mV); i <= lastY; i++)
-		{
-			for (int j = STARTINGX(mV); j <= lastX; j++)
-			{
-				if (A3D_ELEM(Vmask, k, i, j) == 1)
-				{
-					pos[0] = j;
-					pos[1] = i;
-					pos[2] = k;
-					updateVoxel(pos, A3D_ELEM(mV, k, i, j), mVout);
-				}
-			}
-		}
-	}
+	// for (int k = STARTINGZ(mV); k <= lastZ; k++)
+	// {
+	// 	for (int i = STARTINGY(mV); i <= lastY; i++)
+	// 	{
+	// 		for (int j = STARTINGX(mV); j <= lastX; j++)
+	// 		{
+	// 			if (A3D_ELEM(Vmask, k, i, j) == 1)
+	// 			{
+	// 				pos[0] = j;
+	// 				pos[1] = i;
+	// 				pos[2] = k;
+	// 				updateVoxel(pos, A3D_ELEM(mV, k, i, j), mVout);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	mVout = mV;
 }
 
 void ProgForwardArtZernike3D::run()
@@ -533,6 +536,7 @@ void ProgForwardArtZernike3D::run()
 			auto rowIn = getInputMd()->getRow(objId);
 			if (rowIn == nullptr) continue;
 			rowIn->getValue(image_label, fnImg);
+			rowIn->getValue(MDL_ITEM_ID, num_images);
 
 			if (fnImg.empty())
 				break;
@@ -597,9 +601,9 @@ void ProgForwardArtZernike3D::run()
 				current_save_iter = 1;
 			}
 			current_save_iter++;
-			num_images++;
+			// num_images++;
 		}
-		num_images = 1;
+		// num_images = 1;
 		current_save_iter = 1;
 
 		recoverVol();
