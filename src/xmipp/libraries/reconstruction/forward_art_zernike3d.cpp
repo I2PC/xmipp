@@ -537,6 +537,7 @@ void ProgForwardArtZernike3D::run()
 			if (rowIn == nullptr) continue;
 			rowIn->getValue(image_label, fnImg);
 			rowIn->getValue(MDL_ITEM_ID, num_images);
+			std::cout << "Current image ID:  " << num_images << std::endl;
 
 			if (fnImg.empty())
 				break;
