@@ -28,9 +28,11 @@
 **************************************************************************
 """
 from os.path import splitext
+import math
 import numpy as np
 import pywt
 import pywt.data
+from scipy.ndimage import zoom
 from xmipp_base import XmippScript
 import xmippLib
 
@@ -57,13 +59,24 @@ class ScriptVolumeConsensus(XmippScript):
         outputMin = None
         fnCoef = splitext(outVolFn)[0] + '_coef.txt'
         fhCoef = open(fnCoef, 'w')
+        xdim2 = None
+        xdimOrig = None
         with open(inputFile) as f:
             for line in f:
                 fileName = line.split()[0]
                 if fileName.endswith('.mrc'):
                     fileName += ':mrc'
-                V = xmippLib.Image(line.split()[0])
+                V = xmippLib.Image(fileName)
                 vol = V.getData()
+                if xdimOrig is None:
+                    xdimOrig = vol.shape[0]
+                    xdim2 = 2**(math.ceil(math.log(xdimOrig, 2))) # Next power of 2
+                    ydimOrig = vol.shape[1]
+                    ydim2 = 2 ** (math.ceil(math.log(ydimOrig, 2)))  # Next power of 2
+                    zdimOrig = vol.shape[2]
+                    zdim2 = 2 ** (math.ceil(math.log(zdimOrig, 2)))  # Next power of 2
+                if xdimOrig!=xdim2 or ydimOrig!=ydim2 or zdimOrig!=zdim2:
+                    vol = zoom(vol, (xdim2/xdimOrig,ydim2/ydimOrig,zdim2/zdimOrig))
                 nlevel = pywt.swt_max_level(len(vol))
                 wt = pywt.swtn(vol, wavelet, nlevel, 0)
                 if outputWt == None:
@@ -82,6 +95,8 @@ class ScriptVolumeConsensus(XmippScript):
             f.close()
         fhCoef.close()
         consensus = pywt.iswtn(outputWt, wavelet)
+        if xdimOrig!=xdim2 or ydimOrig!=ydim2 or zdimOrig!=zdim2:
+            consensus = zoom(consensus, (xdimOrig/xdim2,ydimOrig/ydim2,zdimOrig/zdim2))
         V = xmippLib.Image()
         V.setData(consensus)
         V.write(outVolFn)
