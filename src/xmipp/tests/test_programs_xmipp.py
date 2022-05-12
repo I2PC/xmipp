@@ -1629,7 +1629,6 @@ class VolSubtraction(XmippProgramTest):
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
                      outputs=["Vadjust.mrc"])
 
-
     def test_case4(self):
         """Test adjustment with radial average"""
         self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
@@ -1638,3 +1637,16 @@ class VolSubtraction(XmippProgramTest):
                      "--cutFreq 1.333333 --sigma 3 --computeEnergy",
                      outputs=["Vadjust_radAvg.mrc"])
 
+
+class ProjSubtraction(XmippProgramTest):
+    _owner = EFG
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_subtract_projection'
+
+    def test_case1(self):
+        """Test projection subtraction"""
+        self.runCase("-i input/projectionsBacteriorhodopsin.xmd  --ref input/Bacteriorhodopsin_rec_art.vol "
+                     "-o %o/output_particles --sampling 1.0 --max_resolution 3.0 "
+                     "--fmask_width 40.0 --padding 2.0 --sigma 3 --limit_freq 0 ",
+                     outputs=["output_particles.mrcs"])
