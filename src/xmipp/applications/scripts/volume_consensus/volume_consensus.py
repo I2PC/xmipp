@@ -57,8 +57,8 @@ class ScriptVolumeConsensus(XmippScript):
     def computeVolumeConsensus(self, inputFile, outVolFn, wavelet='sym11'):
         outputWt = None
         outputMin = None
-        fnCoef = splitext(outVolFn)[0] + '_coef.txt'
-        fhCoef = open(fnCoef, 'w')
+        # fnCoef = splitext(outVolFn)[0] + '_coef.txt'
+        # fhCoef = open(fnCoef, 'w')
         xdim2 = None
         xdimOrig = None
         with open(inputFile) as f:
@@ -89,11 +89,11 @@ class ScriptVolumeConsensus(XmippScript):
                         for key in wtLevel:
                             outputWtLevel[key] = np.where(np.abs(outputWtLevel[key]) > np.abs(wtLevel[key]),
                                                           outputWtLevel[key], wtLevel[key])
-                            fhCoef.write(str(outputWtLevel[key]))
+                            # fhCoef.write(str(outputWtLevel[key]))
                             diff = np.abs(np.abs(outputWtLevel[key]) - np.abs(wtLevel[key]))
                             outputMin = np.where(outputMin > diff, outputMin, diff)
             f.close()
-        fhCoef.close()
+        # fhCoef.close()
         consensus = pywt.iswtn(outputWt, wavelet)
         if xdimOrig!=xdim2 or ydimOrig!=ydim2 or zdimOrig!=zdim2:
             consensus = zoom(consensus, (xdimOrig/xdim2,ydimOrig/ydim2,zdimOrig/zdim2))
