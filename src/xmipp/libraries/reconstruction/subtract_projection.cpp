@@ -307,9 +307,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
 
-		IiMFourier.write(formatString("%IiMFourier.mrc", fnProj.c_str()));
-		PiMFourier.write(formatString("%PiMFourier.mrc", fnProj.c_str()));
-
 		// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
 		MultidimArray<double> num0;
 		num0.initZeros(maxwiIdx+1); 
@@ -370,7 +367,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
 		// Recover adjusted projection (P) in real space
 		transformerP.inverseFourierTransform(PFourier, P());
-		P.write(formatString("%Padjusted.mrc", fnProj.c_str()));
+		// P.write(formatString("%Padjusted.mrc", fnProj.c_str()));
 
 		// Subtraction
 		MultidimArray<double> &mIdiff=Idiff();
