@@ -694,9 +694,14 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	float avgAreaCH = 0;
 	float avgPerimeterCH = 0;
+	float stdAreaCH = 0;
+	float stdPerimeterCH = 0;
 	size_t testBinPassed = 0;
 	size_t testFvarPassed = 0;
 	size_t testRandomWalkPassed = 0;
+
+	std::vector<float> areaCHV;
+	std::vector<float> perimCHV;
 
 	size_t numberOfChains = inputCoords.size();
 
@@ -738,22 +743,72 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 			else if (strcmp(statisticName.c_str(), "chArea") == 0)
 			{
-				avgAreaCH += value;
+				areaCHV.push_back(value);
 			}
 
 			else if (strcmp(statisticName.c_str(), "chPerim") == 0)
 			{
-				avgPerimeterCH += value;
+				perimCHV.push_back(value);
 			}
 		}
 	}
 
-	avgAreaCH /= numberOfChains;
-	avgPerimeterCH /= numberOfChains;
+	float sumAreaCH = 0;
+	float sumPerimeterCH = 0;
+	float sum2AreaCH = 0;
+	float sum2PerimeterCH = 0;
+	
+	for (size_t i = 0; i < perimCHV.size(); i++)
+	{
+		sumAreaCH += areaCHV[i];
+		sum2AreaCH += areaCHV[i]*areaCHV[i];
+		sumPerimeterCH += perimCHV[i];
+		sum2PerimeterCH += perimCHV[i]*perimCHV[i];
+	}
+	
+	avgAreaCH = sumAreaCH/numberOfChains;
+	avgPerimeterCH = sumPerimeterCH / numberOfChains;
+
+	stdAreaCH = sqrt(sum2AreaCH/numberOfChains - avgAreaCH * avgAreaCH);
+	stdPerimeterCH = sqrt(sum2PerimeterCH/numberOfChains - avgPerimeterCH * avgPerimeterCH);
+
+	float rmOutliersAreaCH = 0;
+	float rmOutliersPerimCH = 0;
+	size_t counterArea = 0;
+	size_t counterPerim = 0;
+
+	for (size_t i = 0; i < perimCHV.size(); i++)
+	{
+		if (abs(areaCHV[i]-avgAreaCH)<3*stdAreaCH)
+		{
+			rmOutliersAreaCH += areaCHV[i];
+			counterArea += 1;
+		}
+
+		if (abs(perimCHV[i]-avgPerimeterCH)<3*stdPerimeterCH)
+		{
+			rmOutliersPerimCH += perimCHV[i];
+			counterPerim += 1;
+		}
+	}
+
+	rmOutliersAreaCH /= counterArea;
+	rmOutliersPerimCH /= counterPerim;
+
+	std::cout << "-----------------------------------" << std::endl;
+	std::cout << avgAreaCH << std::endl;
+	std::cout << avgPerimeterCH << std::endl;
+	std::cout << stdAreaCH << std::endl;
+	std::cout << stdPerimeterCH << std::endl;
+	std::cout << counterArea << std::endl;
+	std::cout << counterPerim << std::endl;
+	std::cout << stdAreaCH << std::endl;
+	std::cout << stdPerimeterCH << std::endl;
+	std::cout << "-----------------------------------" << std::endl;
 
 	#ifdef DEBUG_GLOBAL_MISALI
-	std::cout << "Average convex hull area: " << avgAreaCH << std::endl;
-	std::cout << "Average convex hull perimeter: " << avgPerimeterCH << std::endl;
+	std::cout << "Average convex hull area (removing outliers): " << rmOutliersAreaCH << std::endl;
+	std::cout << "Average convex hull perimeter (removing outliers): " << rmOutliersPerimCH << std::endl;
 	std::cout << "Binomial test passed: " << testBinPassed << "/" << 2 * numberOfChains << std::endl;
 	std::cout << "F variance test passed: " << testFvarPassed << "/" << numberOfChains << std::endl;
 	std::cout << "Random walk test passed: " << testRandomWalkPassed << "/" << numberOfChains << std::endl;
