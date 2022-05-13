@@ -43,7 +43,6 @@ ProgAngularContinuousAssign2::~ProgAngularContinuousAssign2()
 {
 	delete projector;
 	delete ctfImage;
-	delete ctfEnvelope;
 }
 
 // Read arguments ==========================================================
@@ -236,26 +235,16 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 		ctfImage->resizeNoCopy(I());
 		STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
 
-		ctfEnvelope = new MultidimArray<double>();
+		ctfEnvelope = std::make_unique<MultidimArray<double>>();
 		ctfEnvelope->resizeNoCopy(I());
 		STARTINGY(*ctfEnvelope)=STARTINGX(*ctfEnvelope)=0;
 	}
-	ctf.generateCTF(YSIZE(I()),XSIZE(I()),*ctfImage,Ts);
-	ctf.generateEnvelope(YSIZE(I()),XSIZE(I()),*ctfEnvelope,Ts);
+	ctf.generateCTF((int)YSIZE(I()),(int)XSIZE(I()),*ctfImage,Ts);
+	ctf.generateEnvelope((int)YSIZE(I()),(int)XSIZE(I()),*ctfEnvelope,Ts);
 	if (phaseFlipped)
 		FOR_ALL_ELEMENTS_IN_ARRAY2D(*ctfImage)
 			A2D_ELEM(*ctfImage,i,j)=fabs(A2D_ELEM(*ctfImage,i,j));
-#ifdef DEBUG
-	Image<double> save;
-	save()=*ctfImage;
-	save.write("PPPctf.xmp");
-	save()=*ctfEnvelope;
-	save.write("PPPenvelope.xmp");
-//	std::cout << "CTFs saved, press any key" << std::endl;
-//	char c; std::cin >> c;
-#endif
 }
-#undef DEBUG
 
 //#define DEBUG
 //#define DEBUG2
@@ -265,11 +254,11 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
     if (prm->hasCTF)
     {
     	double defocusU=prm->old_defocusU+deltaDefocusU;
-		double defocusV;
-		if (sameDefocus)
-    		defocusV=prm->old_defocusV+deltaDefocusU; 
-		else
-			defocusV=prm->old_defocusV+deltaDefocusV;
+		double defocusV=prm->old_defocusV+deltaDefocusV;
+		if (prm->sameDefocus){
+    		defocusV-=deltaDefocusV;
+			defocusV+=deltaDefocusU; 
+		}
     	double angle=prm->old_defocusAngle+deltaDefocusAngle;
     	if (defocusU!=prm->currentDefocusU || defocusV!=prm->currentDefocusV || angle!=prm->currentAngle)
     		prm->updateCTFImage(defocusU,defocusV,angle);

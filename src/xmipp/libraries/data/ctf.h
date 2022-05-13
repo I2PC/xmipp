@@ -655,18 +655,26 @@ public:
 	void getAverageProfile(double fmax, int nsamples, MultidimArray<double> &profiles);
 
 	//#define DEBUG
+
+	/// Function to initialize CTF to avoid duplicated code
+	template <class T>
+	double initCTF(int Ydim, int Xdim, MultidimArray< T > &CTF, double Ts=-1)
+    {
+        CTF.resizeNoCopy(Ydim, Xdim);
+        if (Ts<0)
+        	Ts=Tm;
+		#ifdef DEBUG
+			std::cout << "CTF:\n" << *this << std::endl;
+		#endif
+        double iTs=1.0/Ts;
+		return iTs;
+	}
+
    /// Generate CTF image.
 	template <class T>
 	void generateCTF(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
 	{
-		CTF.resizeNoCopy(Ydim, Xdim);
-		if (Ts<0)
-			Ts=Tm;
-		#ifdef DEBUG
-			std::cout << "CTF:\n" << *this << std::endl;
-		#endif
-
-		double iTs=1.0/Ts;
+		double iTs = initCTF(Ydim, Xdim, CTF, Ts=-1);
 		for (int i=0; i<Ydim; ++i)
 		{
 			double wy;
@@ -692,14 +700,7 @@ public:
 	template <class T>
 	void generateCTFWithoutDamping(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
 	{
-		CTF.resizeNoCopy(Ydim, Xdim);
-		if (Ts<0)
-			Ts=Tm;
-		#ifdef DEBUG
-			std::cout << "CTF:\n" << *this << std::endl;
-		#endif
-
-		double iTs=1.0/Ts;
+		double iTs = initCTF(Ydim, Xdim, CTF, Ts=-1);
 		for (int i=0; i<Ydim; ++i)
 		{
 			double wy;
@@ -1229,14 +1230,7 @@ public:
     template <class T>
     void generateCTF(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-        CTF.resizeNoCopy(Ydim, Xdim);
-        if (Ts<0)
-        	Ts=Tm;
-		#ifdef DEBUG
-			std::cout << "CTF:\n" << *this << std::endl;
-		#endif
-
-        double iTs=1.0/Ts;
+		double iTs = initCTF(Ydim, Xdim, CTF, Ts=-1);
         for (int i=0; i<Ydim; ++i)
         {
         	double wy;
@@ -1262,14 +1256,7 @@ public:
     template <class T>
     void generateCTFWithoutDamping(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-        CTF.resizeNoCopy(Ydim, Xdim);
-        if (Ts<0)
-        	Ts=Tm;
-		#ifdef DEBUG
-			std::cout << "CTF:\n" << *this << std::endl;
-		#endif
-
-        double iTs=1.0/Ts;
+		double iTs = initCTF(Ydim, Xdim, CTF, Ts=-1);
         for (int i=0; i<Ydim; ++i)
         {
         	double wy;
@@ -1295,23 +1282,16 @@ public:
     template <class T>
     void generateEnvelope(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-        CTF.resizeNoCopy(Ydim, Xdim);
-        if (Ts<0)
-        	Ts=Tm;
-		#ifdef DEBUG
-			std::cout << "CTF:\n" << *this << std::endl;
-		#endif
-
-        double iTs=1.0/Ts;
+        double iTs = initCTF(Ydim, Xdim, CTF, Ts=-1);
         for (int i=0; i<Ydim; ++i)
         {
         	double wy;
-        	FFT_IDX2DIGFREQ(i, YSIZE(CTF), wy);
+        	FFT_IDX2DIGFREQ(i, YSIZE(CTF), wy)
             double fy=wy*iTs;
         	for (int j=0; j<Xdim; ++j)
         	{
             	double wx;
-            	FFT_IDX2DIGFREQ(j, XSIZE(CTF), wx);
+            	FFT_IDX2DIGFREQ(j, XSIZE(CTF), wx)
                 double fx=wx*iTs;
 				precomputeValues(fx, fy);
 				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt(); //(??) I guess you need the minus sign, but should the envelope be always positive?
@@ -1323,7 +1303,6 @@ public:
         	}
         }
     }
-    #undef DEBUG
 
     /** Check physical meaning.
         true if the CTF parameters have physical meaning.
