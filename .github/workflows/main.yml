@@ -61,13 +61,19 @@ jobs:
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
+      - name: Install OpenCV-3
+        - uses: actions/checkout@v2
+        - uses: Dovyski/setup-opencv-action@v1
+          with:
+            opencv-version: '3.4.16'
+
       - name: Install python dependencies
         run:  |
            python -m pip install --upgrade pip
            pip install scons numpy
 
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip libopencv-dev
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
 
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk

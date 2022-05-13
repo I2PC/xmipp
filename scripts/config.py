@@ -172,7 +172,7 @@ class Config:
         labels = [Config.KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
                   'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
                   'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
-                  'MATLAB_DIR', 'CUDA', 'DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
+                  'MATLAB_DIR', 'CUDA', 'DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCVVERSION',
                   'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
                   'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
                   'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
@@ -194,7 +194,7 @@ class Config:
             print(yellow("OpenCV not found"))
             self.configDict["OPENCV"] = False
             self.configDict["OPENCVSUPPORTSCUDA"] = False
-            self.configDict["OPENCV3"] = False
+            self.configDict["OPENCVVERSION"] = False
         else:
             self.configDict["OPENCV"] = True
 
@@ -211,7 +211,7 @@ class Config:
             if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
                           % (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
                              self.configDict["INCDIRFLAGS"]), show_output=False):
-                self.configDict["OPENCV3"] = False
+                self.configDict["OPENCVVERSION"] = False
                 version = 2  # Just in case
             else:
                 runJob("./xmipp_test_opencv")
@@ -219,17 +219,17 @@ class Config:
                 versionStr = f.readline()
                 f.close()
                 version = int(versionStr.split('.', 1)[0])
-                self.configDict["OPENCV3"] = version == 3
-                self.configDict["OPENCV4"] = version == 4
+                self.configDict["OPENCVVERSION"] = version
+
 
             # Check CUDA Support
-            if self.configDict["OPENCV4"] == True:
+            if self.configDict["OPENCVVERSION"] == 4:
                 self.configDict["OPENCVSUPPORTSCUDA"] = False
-                print(yellow('Xmipp has no CUDA support for OpenCV 4 '))
+                print(yellow('OpenCV-4 has not CUDA support for Xmipp'))
             else:
                 cppProg = "#include <opencv2/core/version.hpp>\n"
-                cppProg += "#include <opencv2/core/cuda.hpp>\n" if self.configDict[
-                    "OPENCV4"] else "#include <opencv2/cudaoptflow.hpp>\n"
+                cppProg += "#include <opencv2/core/cuda.hpp>\n" if self.configDict["OPENCVVERSION"] == 2 \
+                    else "#include <opencv2/cudaoptflow.hpp>\n"
 
                 cppProg += "int main(){}\n"
                 with open("xmipp_test_opencv.cpp", "w") as cppFile:
@@ -378,7 +378,7 @@ class Config:
                 ["-I%s" % iDir for iDir in incDirs])
 
         self.configDict["OPENCV"] = os.environ.get("OPENCV", "")
-        if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"] or self.configDict["OPENCV3"]:
+        if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"] or self.configDict["OPENCVVERSION"]:
             self._config_OpenCV()
 
     def _get_GCC_version(self, compiler):
@@ -446,7 +446,7 @@ class Config:
         if self.configDict["OPENCV"] == "True":
             cppProg += "#include <opencv2/core/core.hpp>\n"
             if self.configDict["OPENCVSUPPORTSCUDA"] == "True":
-                if self.configDict["OPENCV3"] == "True":
+                if self.configDict["OPENCVVERSION"] == 3:
                     cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
                 else:
                     cppProg += "#include <opencv2/core/cuda.hpp>\n"
