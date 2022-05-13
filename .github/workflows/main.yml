@@ -54,12 +54,12 @@ jobs:
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
                 
-#       - name: Install CUDA
-#         uses: Jimver/cuda-toolkit@v0.2.0
-#         with: 
-#           cuda: 10.2.89
-#           method: network
-#           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
+      - name: Install CUDA
+        uses: Jimver/cuda-toolkit@v0.2.0
+        with: 
+          cuda: 10.2.89
+          method: network
+          sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
       - name: Install python dependencies
         run:  |
