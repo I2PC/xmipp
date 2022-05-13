@@ -34,10 +34,10 @@ ProgImageRotationalPCA::ProgImageRotationalPCA()
 {
   rank = 0;
   verbose = 1;
-  fileMutex = NULL;
-  threadMutex = NULL;
-  taskDistributor = NULL;
-  thMgr = NULL;
+  fileMutex = nullptr;
+  threadMutex = nullptr;
+  taskDistributor = nullptr;
+  thMgr = nullptr;
 }
 
 // MPI destructor

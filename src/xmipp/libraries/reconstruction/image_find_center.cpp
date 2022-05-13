@@ -121,20 +121,20 @@ void **imalloc(int row, int col, int format)
 
     /********************* Allocate base pointer ********************************/
 
-    if ((temp = (char **) malloc(row * pointer_size)) == NULL)
-        return NULL;               /* Not even this little bit of memory */
+    if ((temp = (char **) malloc(row * pointer_size)) == nullptr)
+        return nullptr;               /* Not even this little bit of memory */
 
     /*********************** Allocate most blocks *******************************/
 
     j = 0;
     for (i = 0; i < no_blocks; i++)
     {
-        if ((aux = (char *)malloc((long)all_size)) == NULL)
+        if ((aux = (char *)malloc((long)all_size)) == nullptr)
         {
             for (j = 0; j < i; j++)
                 free(temp[j*row_alloc]);
             free((char *) temp);
-            return NULL;
+            return nullptr;
         }
         for (k = 0; k < row_alloc; k++, j++)
             temp [j] = aux + k * col * element_size;
@@ -144,12 +144,12 @@ void **imalloc(int row, int col, int format)
 
     if (rest_size != 0)
     {
-        if ((aux = (char *)malloc((long)rest_size)) == NULL)
+        if ((aux = (char *)malloc((long)rest_size)) == nullptr)
         {
             for (j = 0; j < no_blocks; j++)
                 free(temp[j*row_alloc]);
             free(temp);
-            return NULL;
+            return nullptr;
         }
         for (k = 0; k < rest_rows; k++, j++)
             temp [j] = aux + k * col * element_size;
@@ -176,7 +176,7 @@ void imfree(char **image, int row, int  col, int format)
     unsigned row_alloc;             /* No. of rows to alloc at the same time*/
     unsigned all_size;              /* No. of bits to alloc at one time     */
 
-    if (image == NULL)                  /* No allocation at the moment */
+    if (image == nullptr)                  /* No allocation at the moment */
         return;
 
     if (format == FOURIER)
@@ -209,12 +209,12 @@ void imfree(char **image, int row, int  col, int format)
     /*************************** Free most blocks *******************************/
 
     for (i = 0; i < no_blocks; i++)
-        if (image [i*row_alloc] != NULL)
+        if (image [i*row_alloc] != nullptr)
             free(image [i*row_alloc]);
 
     /*************************** Free the last block ****************************/
 
-    if (image [i*row_alloc] != NULL)
+    if (image [i*row_alloc] != nullptr)
         free(image [i*row_alloc]);
 
     free(image);
@@ -712,7 +712,7 @@ public:
             I.write(fnOroot+"_analyzed_image.xmp");
 
         // Adapt to old code
-        if ((imagen = (unsigned char **)imalloc(YSIZE(I()) + 1, XSIZE(I()) + 1, NATURAL)) == NULL)
+        if ((imagen = (unsigned char **)imalloc(YSIZE(I()) + 1, XSIZE(I()) + 1, NATURAL)) == nullptr)
             REPORT_ERROR(ERR_MEM_NOTENOUGH,"");
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I())
         imagen[i+1][j+1]=(unsigned char)IMGPIXEL(I,i,j);

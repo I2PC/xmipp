@@ -102,13 +102,13 @@ protected:
 	 * Lowest frequencies are in the center, i.e. Fourier space creates a
 	 * sphere within a cube.
 	 */
-	std::complex<float>*** tempVolume = NULL;
+	std::complex<float>*** tempVolume = nullptr;
 
 	/**
 	 * 3D volume holding the weights of the Fourier coefficients stored
 	 * in tempVolume.
 	 */
-	float*** tempWeights = NULL;
+	float*** tempWeights = nullptr;
 
 	/**
 	 * 3D volume holding the cropped (without high frequencies) Fourier space.
@@ -117,14 +117,14 @@ protected:
 	 * Valid for GPU, i.e. it is equivalent to tempVolume, which has been flattened
 	 * Each two successive values represent one complex number
 	 */
-	float* tempVolumeGPU = NULL;
+	float* tempVolumeGPU = nullptr;
 
 	/**
 	 * 3D volume holding the weights of the Fourier coefficients stored
 	 * in tempVolume.
 	 * Valid for GPU, i.e. it is equivalent to tempWeights, which has been flattened
 	 */
-	float* tempWeightsGPU = NULL;
+	float* tempWeightsGPU = nullptr;
 
 
     /** Holds number of cores available at the host system */
@@ -406,7 +406,7 @@ private:
      * If space is already allocated, method will have no effect
      */
     void allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier) {
-    	if ((NULL == VoutFourier.data) || (0 == VoutFourier.getSize())) {
+    	if ((nullptr == VoutFourier.data) || (0 == VoutFourier.getSize())) {
     		VoutFourier.initZeros(paddedImgSize, paddedImgSize, paddedImgSize/2 +1);
     	}
     }

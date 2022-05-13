@@ -128,7 +128,7 @@ void ProgTransformDimRed::produceSideInfo()
     if (distance=="Correlation")
         algorithm->distance=&correlationDistance;
     else
-        algorithm->distance=NULL;
+        algorithm->distance=nullptr;
 }
 
 void ProgTransformDimRed::insertImageInDataMatrix(size_t index, const MultidimArray<double> &mImg)

@@ -69,8 +69,8 @@ struct ProjectionData
 	bool skip;
 public:
 	ProjectionData() {
-		img = 0;
-		CTF = modulator = 0;
+		img = nullptr;
+		CTF = modulator = nullptr;
 		skip = true;
 		weight = 0;
 		imgIndex = -1;
@@ -99,7 +99,7 @@ struct LoadThreadParams
 class ProgRecFourierAccel : public ProgReconsBase
 {
 public:
-	ProgRecFourierAccel() : tempVolume(NULL), tempWeights(NULL) {};
+	ProgRecFourierAccel() : tempVolume(nullptr), tempWeights(nullptr) {};
     /**
      * Run the image processing.
      * Method will load data, process them and store result to final destination.

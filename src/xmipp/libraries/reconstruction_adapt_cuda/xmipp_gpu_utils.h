@@ -42,13 +42,13 @@ public:
 	GpuMultidimArrayAtCpu()
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		data=NULL;
+		data=nullptr;
     }
 
 	GpuMultidimArrayAtCpu(int _Xdim, int _Ydim=1, int _Zdim=1, int _Ndim=1)
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		data=NULL;
+		data=nullptr;
 		resize(_Xdim, _Ydim, _Zdim, _Ndim);
     }
 
@@ -73,7 +73,7 @@ public:
         	//data=new T[nzyxdim];
         	cpuMalloc((void**)&data, nzyxdim*sizeof(T));
         }else
-        	data=NULL;
+        	data=nullptr;
     }
 
 	void fillImage(int n, const MultidimArray<T> &from)

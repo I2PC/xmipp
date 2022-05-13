@@ -131,7 +131,7 @@ void ProgRecFourierGPU::show()
 
 void ProgRecFourierGPU::parseNoOfThreads() {
 	const char* threadsStr = progDef->getParam("--thr");
-	noOfThreads = strtol(threadsStr, NULL, 10); // get from cmd
+	noOfThreads = strtol(threadsStr, nullptr, 10); // get from cmd
 	if (noOfThreads <= 0) {
 		if (strcmp(threadsStr, "all")) {
 			std::cerr << "'" << threadsStr << "' is invalid int. Using default value instead." << std::endl;
@@ -200,7 +200,7 @@ void ProgRecFourierGPU::createWorkThread(int gpuStream, int startIndex, int endI
 	thread.startImageIndex = startIndex;
 	thread.endImageIndex = endIndex;
 	thread.gpuStream = gpuStream;
-	pthread_create( &thread.id , NULL, threadRoutine, (void *)(&thread) );
+	pthread_create( &thread.id , nullptr, threadRoutine, (void *)(&thread) );
 }
 
 
@@ -468,12 +468,12 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     unpinMemory(threadParams->buffer);
     threadParams->buffer->~RecFourierBufferData(); // <- explicit destructor call
     free(rawMem);
-    threadParams->buffer = NULL;
-    threadParams->selFile = NULL;
+    threadParams->buffer = nullptr;
+    threadParams->selFile = nullptr;
     barrier_wait( &parent->barrier );// notify that thread finished
 
 	XMIPP_CATCH // catch possible exception
-	return NULL;
+	return nullptr;
 }
 
 inline void ProgRecFourierGPU::multiply(const float transform[3][3], Point3D<float>& inOut) {
@@ -620,7 +620,7 @@ void ProgRecFourierGPU::release(T***& array, int ySize, int zSize) {
 		delete[] array[z];
 	}
 	delete[] array;
-	array = NULL;
+	array = nullptr;
 }
 
 template<typename T>
@@ -685,11 +685,11 @@ void ProgRecFourierGPU::convertToExpectedSpace(T*** input, int size,
 }
 
 void ProgRecFourierGPU::getGPUData() {
-	if (NULL == tempVolume) {
+	if (nullptr == tempVolume) {
 		allocate(tempVolume, maxVolumeIndexYZ + 1, maxVolumeIndexYZ + 1,
 				maxVolumeIndexYZ + 1);
 	}
-	if (NULL == tempWeights) {
+	if (nullptr == tempWeights) {
 		allocate(tempWeights, maxVolumeIndexYZ + 1, maxVolumeIndexYZ + 1,
 				maxVolumeIndexYZ + 1);
 	}
@@ -839,10 +839,10 @@ void ProgRecFourierGPU::processImages( int firstImageIndex, int lastImageIndex)
 	GPU::setDevice(device);
 
 // initialize GPU
-    if (NULL == tempVolumeGPU) {
+    if (nullptr == tempVolumeGPU) {
     	allocateTempVolumeGPU(tempVolumeGPU, maxVolumeIndexYZ+1, sizeof(std::complex<float>));
     }
-    if (NULL == tempWeightsGPU) {
+    if (nullptr == tempWeightsGPU) {
     	allocateTempVolumeGPU(tempWeightsGPU, maxVolumeIndexYZ+1, sizeof(float));
     }
     createStreams(noOfThreads);
@@ -867,7 +867,7 @@ void ProgRecFourierGPU::processImages( int firstImageIndex, int lastImageIndex)
 
 	// clean threads and GPU
 	for (int i = 0; i < noOfThreads; i++) {
-		pthread_join(workThreads[i].id, NULL);
+		pthread_join(workThreads[i].id, nullptr);
 	}
 	barrier_destroy( &barrier );
 	delete[] workThreads;

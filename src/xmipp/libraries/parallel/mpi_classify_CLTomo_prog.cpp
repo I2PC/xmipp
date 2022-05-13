@@ -32,8 +32,8 @@
 #include "parallel/mpi_classify_CLTomo.h"
 
 // Pointer to parameters
-ProgClassifyCL3D *prmCL3Dprog = NULL;
-FILE * _logCL3D = NULL;
+ProgClassifyCL3D *prmCL3Dprog = nullptr;
+FILE * _logCL3D = nullptr;
 
 //#define DEBUG_WITH_LOG
 #ifdef DEBUG_WITH_LOG
@@ -95,7 +95,7 @@ CL3DClass::CL3DClass()
     //PupdateReal=Paux;
     Pupdate.initZeros(transformer.fFourier);
     PupdateMask.initZeros(Pupdate);
-    pyIfourierMaskFRM=NULL;
+    pyIfourierMaskFRM=nullptr;
     //weightSum=0;
 }
 
@@ -315,10 +315,10 @@ void CL3DClass::constructFourierMaskFRM()
 
     PyObject *pyMask=Python::convertToNumpy(IfourierMaskFRM);
 	PyObject *arglist = Py_BuildValue("(Oi)", pyMask,0);
-	if (pyIfourierMaskFRM!=NULL)
+	if (pyIfourierMaskFRM!=nullptr)
 		Py_DECREF(pyIfourierMaskFRM);
 	pyIfourierMaskFRM = PyObject_CallObject(prmCL3Dprog->wedgeClass, arglist);
-	/*if (PyErr_Occurred()!=NULL)
+	/*if (PyErr_Occurred()!=nullptr)
 		PyErr_Print();*/
 	Py_DECREF(arglist);
 	Py_DECREF(pyMask);
@@ -510,7 +510,7 @@ void CL3D::shareSplitAssignments(Matrix1D<int> &assignment, CL3DClass *node1,
     // Share code updates
     std::vector<CL3DAssignment> auxList;
     std::vector<double> auxList2;
-    CL3DClass *node = NULL;
+    CL3DClass *node = nullptr;
     for (int q = 0; q < 2; q++)
     {
         if (q == 0)
@@ -1034,8 +1034,8 @@ void CL3D::splitNode(CL3DClass *node, CL3DClass *&node1, CL3DClass *&node2,
     MultidimArray<double> Iaux1, Iaux2, corrList;
     MultidimArray<int> idx;
     CL3DAssignment assignment, assignment1, assignment2;
-    CL3DClass *firstSplitNode1 = NULL;
-    CL3DClass *firstSplitNode2 = NULL;
+    CL3DClass *firstSplitNode1 = nullptr;
+    CL3DClass *firstSplitNode2 = nullptr;
     auto minAllowedSize = (size_t)(prmCL3Dprog->PminSize * 0.01 * node->currentListImg.size());
 
     bool finish;
@@ -1087,7 +1087,7 @@ void CL3D::splitNode(CL3DClass *node, CL3DClass *&node1, CL3DClass *&node2,
         LOG(formatString("Splitting node corrThreshold=%f",corrThreshold));
         if (corrThreshold == 0)
         {
-            if (firstSplitNode1 != NULL)
+            if (firstSplitNode1 != nullptr)
             {
                 toDelete.push_back(node1);
                 toDelete.push_back(node2);
@@ -1149,7 +1149,7 @@ void CL3D::splitNode(CL3DClass *node, CL3DClass *&node1, CL3DClass *&node2,
         shareSplitAssignments(newAssignment, node1, node2);
 
         // Backup the first split in case it fails
-        if (firstSplitNode1 == NULL)
+        if (firstSplitNode1 == nullptr)
         {
             firstSplitAssignment = newAssignment;
             firstSplitNode1 = new CL3DClass(*node1);
@@ -1292,7 +1292,7 @@ void CL3D::splitFirstNode()
     std::vector<size_t> splitAssignment;
     splitNode(P[0], P[Q], P[Q + 1], splitAssignment, Q>1);
     delete P[0];
-    P[0] = NULL;
+    P[0] = nullptr;
     P.erase(P.begin());
 }
 
@@ -1408,7 +1408,7 @@ void ProgClassifyCL3D::defineParams()
     addParamsLine("   [--randomizeStartingOrientation] : Use this option to avoid aligning all missing wedges");
     addParamsLine("   [--dontAlign]             : Do not align volumes, only classify");
     addParamsLine("   [--generateAlignedVolumes]: Generate aligned subvolumes at the end");
-    Mask::defineParams(this,INT_MASK,NULL,NULL,true);
+    Mask::defineParams(this,INT_MASK,nullptr,nullptr,true);
     addExampleLine("The MPI program as to be called through a python wrapper that encapsulates some path setting",false);
     addExampleLine(" ",false);
     addExampleLine("Call the program as xmipp_classify_CLTomo [numberOfMPIProcessors] [arguments as above]",false);
