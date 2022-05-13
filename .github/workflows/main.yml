@@ -55,7 +55,7 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.0.3
                 
       - name: Install CUDA
-        uses: Jimver/cuda-toolkit@v0.2.0
+        uses: Jimver/cuda-toolkit@v0.2.6
         with: 
           cuda: 10.2.89
           method: network
