@@ -66,6 +66,7 @@ jobs:
         with:
           opencv-version: '3.4.16'
           opencv-extra-modules: OFF
+          install-deps: OFF
 
       - name: Install python dependencies
         run:  |
