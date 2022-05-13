@@ -65,6 +65,7 @@ jobs:
         uses: Dovyski/setup-opencv-action@v1
         with:
           opencv-version: '3.4.16'
+          opencv-extra-modules: OFF
 
       - name: Install python dependencies
         run:  |
