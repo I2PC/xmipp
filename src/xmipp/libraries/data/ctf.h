@@ -658,7 +658,7 @@ public:
 
 	/// Function to initialize CTF to avoid duplicated code
 	template <class T>
-	double initCTF(int Ydim, int Xdim, MultidimArray< T > &CTF, double Ts=-1)
+	double initCTF(int Ydim, int Xdim, MultidimArray< T > &CTF, double Ts=-1) const
     {
         CTF.resizeNoCopy(Ydim, Xdim);
         if (Ts<0)
