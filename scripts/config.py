@@ -223,18 +223,16 @@ class Config:
             # Check CUDA Support
             if self.configDict["OPENCV_VERSION"] == 4:
                 self.configDict["OPENCVSUPPORTSCUDA"] = False
-                print(yellow('OpenCV-4 has not CUDA support for Xmipp'))
+                print(yellow('OpenCV-4 detected. OpenCV-4 has no CUDA support for Xmipp'))
             else:
                 cppProg = "#include <opencv2/core/version.hpp>\n"
                 cppProg += "#include <opencv2/core/cuda.hpp>\n" if self.configDict["OPENCV_VERSION"] == 2 \
                     else "#include <opencv2/cudaoptflow.hpp>\n"
-
                 cppProg += "int main(){}\n"
                 with open("xmipp_test_opencv.cpp", "w") as cppFile:
                     cppFile.write(cppProg)
                 self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
                                                                (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
-
                 print(green("OPENCV-%s detected %s CUDA support"
                             % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
