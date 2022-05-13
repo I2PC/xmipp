@@ -61,7 +61,6 @@ jobs:
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
-      - uses: actions/checkout@v2
       - name: Install OpenCV-3
         uses: Dovyski/setup-opencv-action@v1
         with:
