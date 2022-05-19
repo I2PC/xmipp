@@ -242,8 +242,11 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		// search in the cosine streched region common for all the images
 		int xSizeCS = (int)xSize * abs(cos(tiltAngles[k] * PI/180.0));
-		int xCSmin = (int)((xSize-xSizeCS)/2)*0.9;
-		int xCSmax = (int)((xSize+xSizeCS)/2)*1.1;
+		// int xCSmin = (int)((xSize-xSizeCS)/2)*0.9;
+		// int xCSmax = (int)((xSize+xSizeCS)/2)*1.1;
+
+		int xCSmin = 0;
+		int xCSmax = xSize;
 
 		#ifdef DEBUG_HCC
 		std::cout << "Tilt angle: "<< tiltAngles[k] << "º" << std::endl;
@@ -783,7 +786,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	avgAreaCH = sumAreaCH/numberOfChains;
 	avgPerimeterCH = sumPerimeterCH / numberOfChains;
-	
 
 	stdAreaCH = sqrt(sum2AreaCH/numberOfChains - avgAreaCH * avgAreaCH);
 	stdPerimeterCH = sqrt(sum2PerimeterCH/numberOfChains - avgPerimeterCH * avgPerimeterCH);
