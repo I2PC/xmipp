@@ -1646,7 +1646,7 @@ class ProjSubtraction(XmippProgramTest):
 
     def test_case1(self):
         """Test projection subtraction"""
-        self.runCase("-i input/projectionsBacteriorhodopsin.xmd  --ref input/Bacteriorhodopsin_rec_art.vol "
+        self.runCase("-i input/projectionSubtraction/images.xmd  --ref input/projectionSubtraction/phantom.vol "
                      "-o %o/output_particles --sampling 1.0 --max_resolution 3.0 "
                      "--fmask_width 40.0 --padding 2.0 --sigma 3 --limit_freq 0 ",
                      outputs=["output_particles.mrcs"])
