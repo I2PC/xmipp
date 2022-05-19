@@ -32,7 +32,7 @@ jobs:
         id: current-time
         with:
           format: YYYYMMDD-HH
-          utcOffset: "+08:00"
+          utcOffset: "+02:00"
       - name: Use current time
         env:
           R_TIME: "${{ steps.current-time.outputs.readableTime }}"
