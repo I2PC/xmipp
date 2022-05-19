@@ -44,10 +44,10 @@ void apply_geo_cont_2D_mask(MultidimArray< double >& mask,
 /// @ingroup DataLibrary
 //@{
 
-#define INNER_MASK 1
-#define OUTSIDE_MASK 2
-#define NO_ACTIVATE 0
-#define ACTIVATE 1
+constexpr int INNER_MASK = 1;
+constexpr int OUTSIDE_MASK = 2;
+constexpr int NO_ACTIVATE = 0;
+constexpr int ACTIVATE = 1;
 
 ///@name Actual masks
 //@{
@@ -428,7 +428,8 @@ public:
     int blob_order;
     
     /** Blob parameters */
-    double blob_radius, blob_alpha;
+    double blob_radius;
+    double blob_alpha;
 
     /** Height
      * Height for cylinders.
@@ -906,8 +907,10 @@ void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
                                      MultidimArray< T >& v, Histogram1D &hist,
                                      int no_steps)
 {
-    T min_val, max_val;
-    double avg, stddev;
+    T min_val;
+    T max_val;
+    double avg;
+    double stddev;
 
     computeStats_within_binary_mask(mask, v, min_val, max_val, avg, stddev);
     compute_hist_within_binary_mask(mask, v, hist, min_val, max_val, no_steps);
@@ -936,9 +939,9 @@ void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
     }
 }
 
-#define COUNT_ABOVE 1
-#define COUNT_BELOW 2
-#define COUNT_BETWEEN 3
+constexpr int  COUNT_ABOVE = 1;
+constexpr int  COUNT_BELOW = 2;
+constexpr int  COUNT_BETWEEN = 3;
 
 /** Count pixels/voxels with mask and above a threshold
  *

@@ -49,10 +49,10 @@
 #define VSIG_ITEM dAi(Vsig[ifocus], irr)
 
 #define SIGNIFICANT_WEIGHT_LOW 1e-8
-#define SMALLVALUE 1e-4
-#define HISTMIN -6.
-#define HISTMAX 6.
-#define HISTSTEPS 120
+constexpr double  SMALLVALUE = 1e-4;
+constexpr float  HISTMIN = -6.;
+constexpr float  HISTMAX = 6.;
+constexpr int  HISTSTEPS = 120;
 
 /** Some filename convetions for output files */
 #define FN_EXTRA(file) formatString("%sextra/%s", fn_root.c_str(), file)

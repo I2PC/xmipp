@@ -51,11 +51,11 @@ void SVMClassifier::setParameters(double c,double gamma)
     param.shrinking = 1;
     param.probability = 1;
     param.nr_weight = 0;
-    param.weight_label = NULL;
-    param.weight = NULL;
-    model=NULL;
-    prob.y=NULL;
-    prob.x=NULL;
+    param.weight_label = nullptr;
+    param.weight = nullptr;
+    model=nullptr;
+    prob.y=nullptr;
+    prob.x=nullptr;
 }
 
 SVMClassifier & SVMClassifier::operator=(const SVMClassifier &other)
@@ -71,9 +71,9 @@ SVMClassifier::~SVMClassifier()
 {
     svm_free_and_destroy_model(&model);
     svm_destroy_param(&param);
-    if (prob.y!=NULL)
+    if (prob.y!=nullptr)
         delete [] prob.y;
-    if (prob.x!=NULL)
+    if (prob.x!=nullptr)
     {
         for(int i=0;i<prob.l;i++)
             delete [] prob.x[i];

@@ -133,7 +133,7 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
  */
 ClassificationMap::ClassificationMap(std::istream& _is, bool _cv) : CodeBook(false)
 {
-    somLayout = NULL;
+    somLayout = nullptr;
     if (_cv)
         readSelf(_is);
     else
@@ -291,7 +291,7 @@ const Label& ClassificationMap::targetAtPos(const SomPos& _pos) const
 void ClassificationMap::clear()
 {
     CodeBook::clear();
-    somLayout = NULL;
+    somLayout = nullptr;
     if (somLayout)
         delete somLayout;
     somWidth = 0;
@@ -387,7 +387,8 @@ void ClassificationMap::readSelf(std::istream& _is)
 {
     clear();
     int dim;
-    std::string layout, str;
+    std::string layout;
+    std::string str;
     _is >> dim;
     _is >> layout;
     toLower(layout);
@@ -644,7 +645,8 @@ double RECTLayout::numNeig(const FuzzyMap* _som, const SomPos& _center) const
 
 double HEXALayout::dist(const SomPos& _center, const SomPos& _v) const
 {
-    double ret, diff;
+    double ret;
+    double diff;
     diff = _center.first - _v.first;
 
     if (((_center.second - _v.second) % 2) != 0)
@@ -836,7 +838,7 @@ FuzzyMap::FuzzyMap(const std::string& _layout,  unsigned _width,
  */
 FuzzyMap::FuzzyMap(std::istream& _is, const unsigned _size, bool _cv) : FuzzyCodeBook(false)
 {
-    somLayout = NULL;
+    somLayout = nullptr;
     if (_cv)
         readSelf(_is, _size);
     else
@@ -1112,7 +1114,8 @@ void FuzzyMap::readSelf(std::istream& _is, const unsigned _size)
 {
     clear();
     int dim;
-    std::string layout, str;
+    std::string layout;
+    std::string str;
     _is >> dim;
     _is >> layout;
     if (layout == "HEXA")

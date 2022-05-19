@@ -32,8 +32,8 @@
 #include "data/mask.h"
 
 // Pointer to parameters
-ProgClassifyCL2D *prm = NULL;
-FILE * _logCL2D = NULL;
+ProgClassifyCL2D *prm = nullptr;
+FILE * _logCL2D = nullptr;
 
 //#define DEBUG_WITH_LOG
 #ifdef DEBUG_WITH_LOG
@@ -84,7 +84,7 @@ bool CL2DAssignmentComparator(const CL2DAssignment& d1, const CL2DAssignment& d2
 /* CL2DClass basics ---------------------------------------------------- */
 CL2DClass::CL2DClass()
 {
-    plans = NULL;
+    plans = nullptr;
     P.initZeros(prm->Ydim, prm->Xdim);
     P.setXmippOrigin();
     Pupdate = P;
@@ -92,7 +92,12 @@ CL2DClass::CL2DClass()
 
 CL2DClass::CL2DClass(const CL2DClass &other)
 {
-    plans = NULL;
+	*this=other;
+}
+
+CL2DClass & CL2DClass::operator =(const CL2DClass &other)
+{
+    plans = nullptr;
 
     CL2DAssignment assignment;
     assignment.corr = 1;
@@ -104,6 +109,8 @@ CL2DClass::CL2DClass(const CL2DClass &other)
     histClass = other.histClass;
     histNonClass = other.histNonClass;
     neighboursIdx = other.neighboursIdx;
+
+    return *this;
 }
 
 CL2DClass::~CL2DClass()
@@ -202,11 +209,11 @@ void CL2DClass::transferUpdate(bool centerReference)
 }
 #undef DEBUG
 
-#define SHIFT_THRESHOLD 	0.95		// Shift threshold in pixels.
-#define ROTATE_THRESHOLD 	1.0			// Rotate threshold in degrees.
+constexpr double SHIFT_THRESHOLD = 	0.95;		// Shift threshold in pixels.
+constexpr float ROTATE_THRESHOLD = 	1.0	;		// Rotate threshold in degrees.
 
-#define INITIAL_SHIFT_THRESHOLD 	SHIFT_THRESHOLD + 1.0		// Shift threshold in pixels.
-#define INITIAL_ROTATE_THRESHOLD 	ROTATE_THRESHOLD + 1.0		// Rotate threshold in degrees.
+constexpr double INITIAL_SHIFT_THRESHOLD = 	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr float INITIAL_ROTATE_THRESHOLD = 	ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 //#define DEBUG
 //#define DEBUG_MORE
@@ -640,7 +647,7 @@ void CL2D::shareSplitAssignments(Matrix1D<int> &assignment, CL2DClass *node1,
     // Share code updates
     std::vector<CL2DAssignment> auxList;
     std::vector<double> auxList2;
-    CL2DClass *node = NULL;
+    CL2DClass *node = nullptr;
     for (int q = 0; q < 2; q++)
     {
         if (q == 0)
@@ -1272,8 +1279,8 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
     MultidimArray<double> Iaux1, Iaux2, corrList;
     MultidimArray<int> idx;
     CL2DAssignment assignment, assignment1, assignment2;
-    CL2DClass *firstSplitNode1 = NULL;
-    CL2DClass *firstSplitNode2 = NULL;
+    CL2DClass *firstSplitNode1 = nullptr;
+    CL2DClass *firstSplitNode2 = nullptr;
     size_t minAllowedSize = 0;
 
     bool oldclassicalMultiref = prm->classicalMultiref;
@@ -1341,7 +1348,7 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
 #endif
         if (corrThreshold == 0)
         {
-            if (firstSplitNode1 != NULL)
+            if (firstSplitNode1 != nullptr)
             {
                 toDelete.push_back(node1);
                 toDelete.push_back(node2);
@@ -1432,7 +1439,7 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
 #endif
 
 	// Backup the first split in case it fails
-        if (firstSplitNode1 == NULL)
+        if (firstSplitNode1 == nullptr)
         {
 #ifdef DEBUG
 	std::cout << "Creating backup\n";
@@ -1632,7 +1639,7 @@ void CL2D::splitFirstNode()
     std::vector<size_t> splitAssignment;
     splitNode(P[0], P[Q], P[Q + 1], splitAssignment);
     delete P[0];
-    P[0] = NULL;
+    P[0] = nullptr;
     P.erase(P.begin());
 }
 

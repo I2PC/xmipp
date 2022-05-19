@@ -817,8 +817,8 @@ void anglesRotationMatrix(size_t nRays, int clI, int clJ,
     R = U * Q.transpose();
 }//function
 
-#define  EPS 1.0e-13 // % Should be 1.0e-13 after fixing XXX below.
-#define  MAX_COND 1000 // % Largest allowed condition number for the system of equations
+constexpr long double  EPS = 1.0e-13; // % Should be 1.0e-13 after fixing XXX below.
+constexpr int  MAX_COND = 1000; // % Largest allowed condition number for the system of equations
 #define cl(i, j) dMij(clMatrix, k##i, k##j)
 
 /** Negative output means error

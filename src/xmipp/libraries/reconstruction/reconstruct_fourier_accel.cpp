@@ -40,8 +40,8 @@ void ProjectionData::clean() {
     delete img;
     delete CTF;
     delete modulator;
-    img = 0;
-    CTF = modulator = 0;
+    img = nullptr;
+    CTF = modulator = nullptr;
     skip = true;
 }
 

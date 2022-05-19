@@ -72,11 +72,17 @@ public:
             verbose=0;
     }
 
+    ProgSortImages(const ProgSortImages&)=delete;
+    ProgSortImages(const ProgSortImages&&)=delete;
+
     /// MPI destructor
     ~ProgSortImages()
     {
         delete node;
     }
+
+    ProgSortImages & operator =(const ProgSortImages&)=delete;
+    ProgSortImages & operator =(const ProgSortImages&&)=delete;
 
     /// Read argument from command line
     void readParams()

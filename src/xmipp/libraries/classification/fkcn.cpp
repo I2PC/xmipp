@@ -59,9 +59,17 @@ void FuzzyKohonenCMeans::train(FuzzyCodeBook& _xmippDS, const TS& _examples) con
 
     unsigned numClusters = _xmippDS.size();
     unsigned numVectors = _examples.size();
-    unsigned i, j, k, cc, vv;
-    double stopError = 0, auxError = 0;
-    double auxDist, auxProd, auxExp, auxSum;
+    unsigned i;
+    unsigned j;
+    unsigned k;
+    unsigned cc;
+    unsigned vv;
+    double stopError = 0;
+    double auxError = 0;
+    double auxDist;
+    double auxProd;
+    double auxExp;
+    double auxSum;
     unsigned t = 0;  // Iteration index
 
     // Initialize auxiliary Codebook
