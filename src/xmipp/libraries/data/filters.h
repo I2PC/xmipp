@@ -627,7 +627,7 @@ double alignImagesConsideringMirrors(const MultidimArray< double >& Iref,
                                      CorrelationAux &aux2,
                                      RotationalCorrelationAux &aux3,
                                      bool wrap=xmipp_transformation::WRAP,
-                                     const MultidimArray< int >* mask = nullptr);
+                                     const MultidimArray< int >* mask = NULL);
 
 /** Align a set of images.
  * Align a set of images and produce a class average as well as the set of

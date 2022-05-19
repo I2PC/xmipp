@@ -1342,13 +1342,13 @@ void ProgGpuCorrelation::run()
 
 	//PROJECTION IMAGES
 	size_t Xdim, Ydim, Zdim, Ndim;
-	SF.read(fn_ref,nullptr);
+	SF.read(fn_ref,NULL);
 	size_t mdInSize = SF.size();
 	getImageSize(SF, Xdim, Ydim, Zdim, Ndim);
 
 
 	//EXPERIMENTAL IMAGES
-	SFexp.read(fn_exp,nullptr);
+	SFexp.read(fn_exp,NULL);
 	size_t mdExpSize = SFexp.size();
 
 	// Generate mask

@@ -1408,7 +1408,7 @@ void ProgClassifyCL3D::defineParams()
     addParamsLine("   [--randomizeStartingOrientation] : Use this option to avoid aligning all missing wedges");
     addParamsLine("   [--dontAlign]             : Do not align volumes, only classify");
     addParamsLine("   [--generateAlignedVolumes]: Generate aligned subvolumes at the end");
-    Mask::defineParams(this,INT_MASK,nullptr,nullptr,true);
+    Mask::defineParams(this,INT_MASK,NULL,NULL,true);
     addExampleLine("The MPI program as to be called through a python wrapper that encapsulates some path setting",false);
     addExampleLine(" ",false);
     addExampleLine("Call the program as xmipp_classify_CLTomo [numberOfMPIProcessors] [arguments as above]",false);

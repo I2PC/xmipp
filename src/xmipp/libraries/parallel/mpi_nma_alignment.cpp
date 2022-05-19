@@ -42,9 +42,9 @@ public:
     /** Empty Constructor */
     MpiProgNMA()
     {
-    	node=nullptr;
-    	distributor=nullptr;
-    	fileMutex=nullptr;
+    	node=NULL;
+    	distributor=NULL;
+    	fileMutex=NULL;
     }
 
     /** Destructor */
