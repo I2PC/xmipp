@@ -240,11 +240,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	{
 		std::vector<int> sliceVector;
 
-		// *** TODO maybe now we look for the projection of the 3d coordinates we cont want to apply a cosine stretching
 		// search in the cosine streched region common for all the images
 		int xSizeCS = (int)xSize * abs(cos(tiltAngles[k] * PI/180.0));
-		int xCSmin = (int)(xSize-xSizeCS)/2;
-		int xCSmax = (int)(xSize+xSizeCS)/2;
+		int xCSmin = (int)((xSize-xSizeCS)/2)*0.9;
+		int xCSmax = (int)((xSize+xSizeCS)/2)*1.1;
 
 		#ifdef DEBUG_HCC
 		std::cout << "Tilt angle: "<< tiltAngles[k] << "º" << std::endl;
@@ -269,6 +268,14 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         double standardDeviation = 0;
         double sliceVectorSize = sliceVector.size();
 
+		// ***TODO: value = (value-min)^2 aplicar no linearidad
+
+		int minimum = *min_element(sliceVector.begin(), sliceVector.end());
+		for (size_t i = 0; i < sliceVectorSize; i++)
+		{
+			sliceVector[i] = (sliceVector[i]-minimum)*(sliceVector[i]-minimum);
+		}
+		
         for(size_t e = 0; e < sliceVectorSize; e++)
         {
             int value = sliceVector[e];
@@ -300,7 +307,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-				if (value < threshold)
+				if ((value-minimum)*(value-minimum) < threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 					
@@ -552,7 +559,8 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 				goldBeadZ = inputCoords[j].z;
 
 				#ifdef DEBUG_RESID
-				std::cout << "=================================================================================" << std::endl;
+				std::cout << "=============================================================================================================" << std::endl;
+				std::cout << "Analyzing image " << n << std::endl;
 				std::cout << "goldBeadX " << goldBeadX << std::endl;
 				std::cout << "goldBeadY " << goldBeadY << std::endl;
 				std::cout << "goldBeadZ " << goldBeadZ << std::endl;
@@ -567,7 +575,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 				XX(projectedGoldBead) += (double)xSize/2;
 				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
-				ZZ(projectedGoldBead) += (double)zSize/2;
+				// ZZ(projectedGoldBead) += (double)zSize/2;
 
 				#ifdef DEBUG_RESID
 				std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
@@ -578,8 +586,13 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 				std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
 				std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
 				std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
+
+				for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+				{
+					std::cout << coordinatesInSlice[i].x << ", " << coordinatesInSlice[i].y << std::endl;
+				}
 				
-				std::cout << "=================================================================================" << std::endl;
+				std::cout << "=============================================================================================================" << std::endl;
 				#endif
 
 				// Iterate though every coordinate in the tilt-image and calculate the minimum distance
@@ -770,6 +783,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	avgAreaCH = sumAreaCH/numberOfChains;
 	avgPerimeterCH = sumPerimeterCH / numberOfChains;
+	
 
 	stdAreaCH = sqrt(sum2AreaCH/numberOfChains - avgAreaCH * avgAreaCH);
 	stdPerimeterCH = sqrt(sum2PerimeterCH/numberOfChains - avgPerimeterCH * avgPerimeterCH);
@@ -798,8 +812,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	rmOutliersPerimCH /= counterPerim;
 
 	std::cout << "-----------------------------------" << std::endl;
+	std::cout << numberOfChains << std::endl;
 	std::cout << avgAreaCH << std::endl;
 	std::cout << avgPerimeterCH << std::endl;
+	std::cout << sum2AreaCH << std::endl;
+	std::cout << sum2PerimeterCH << std::endl;
 	std::cout << stdAreaCH << std::endl;
 	std::cout << stdPerimeterCH << std::endl;
 	std::cout << counterArea << std::endl;
@@ -829,7 +846,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	std::cout << "Threshold convex hull perimeter: " << thrPerimeterCH << std::endl;
 	#endif
 
-	if ((avgAreaCH < thrAreaCH) && (avgPerimeterCH < thrPerimeterCH))
+	if ((rmOutliersAreaCH < thrAreaCH) && (rmOutliersPerimCH < thrPerimeterCH))
 	{
 		return true;
 	}

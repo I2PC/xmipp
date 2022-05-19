@@ -55,7 +55,7 @@
 // #define DEBUG_CHAINS
 #define DEBUG_GLOBAL_MISALI
 // #define DEBUG_LOCAL_MISALI
-// #define DEBUG_RESID
+#define DEBUG_RESID
 // #define DEBUG_COORDS_CS
 // #define DEBUG_RESIDUAL_ANALYSIS
 #define DEBUG_OUTPUT_FILES
