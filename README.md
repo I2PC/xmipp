@@ -55,8 +55,8 @@ To install CUDA for your operating system, follow the [official install guide](h
 ### OpenCV
 OpenCV is used for several programs, however, it is not required.
 
-OpenCV-4 has not CUDA support in Xmipp. Please use OpenCV-3 or older.
-If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be automatically picked up by the Xmipp script
+OpenCV-4 has not CUDA support in Xmipp-movie_optical_aligment. Please use OpenCV-3 or older.
+If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it installed the last version and should be automatically picked up by the Xmipp script
 
 ### HDF5
 We sometimes see issues regarding the HDF5 dependency.
