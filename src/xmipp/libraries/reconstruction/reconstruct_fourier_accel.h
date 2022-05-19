@@ -69,8 +69,8 @@ struct ProjectionData
 	bool skip;
 public:
 	ProjectionData() {
-		img = nullptr;
-		CTF = modulator = nullptr;
+		img = 0;
+		CTF = modulator = 0;
 		skip = true;
 		weight = 0;
 		imgIndex = -1;
