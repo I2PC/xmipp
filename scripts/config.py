@@ -226,8 +226,7 @@ class Config:
                 print(yellow('OpenCV-4 detected. OpenCV-4 has no CUDA support for Xmipp'))
             else:
                 cppProg = "#include <opencv2/core/version.hpp>\n"
-                cppProg += "#include <opencv2/core/cuda.hpp>\n" if self.configDict["OPENCV_VERSION"] == 2 \
-                    else "#include <opencv2/cudaoptflow.hpp>\n"
+                cppProg += "#include <opencv2/core/cuda.hpp>\n" 
                 cppProg += "int main(){}\n"
                 with open("xmipp_test_opencv.cpp", "w") as cppFile:
                     cppFile.write(cppProg)
