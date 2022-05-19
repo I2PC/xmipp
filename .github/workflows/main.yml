@@ -35,12 +35,8 @@ jobs:
           utcOffset: "+08:00"
       - name: Use current time
         env:
-          TIME: "${{ steps.current-time.outputs.time }}"
           R_TIME: "${{ steps.current-time.outputs.readableTime }}"
-          F_TIME: "${{ steps.current-time.outputs.formattedTime }}"
-          YEAR: "${{ steps.current-time.outputs.year }}"
-          DAY: "${{ steps.current-time.outputs.day }}"
-        run: echo $TIME $R_TIME $F_TIME $YEAR $DAY
+        run: echo $R_TIME
 
       - uses: actions/setup-python@v3
         with:
