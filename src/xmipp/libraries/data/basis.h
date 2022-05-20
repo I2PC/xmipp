@@ -102,7 +102,7 @@ public:
 
     /**  Definition of paramaters
      */
-    static void defineParams(XmippProgram * program, const char* prefix=nullptr, const char* comment=nullptr);
+    static void defineParams(XmippProgram * program, const char* prefix=NULL, const char* comment=NULL);
 
     /** Read the parameters from the command line
      */

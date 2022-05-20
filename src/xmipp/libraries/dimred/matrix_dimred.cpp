@@ -28,7 +28,7 @@
 
 ProgDimRed::ProgDimRed()
 {
-	algorithm=nullptr;
+	algorithm=NULL;
 }
 
 void ProgDimRed::readParams()

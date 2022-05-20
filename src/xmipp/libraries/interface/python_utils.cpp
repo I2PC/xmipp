@@ -53,9 +53,9 @@ std::string print_traceback() {
 std::string whichPython() {
     char path[1035];
     FILE *fp = popen("which python", "r");
-    if (fp == nullptr)
+    if (fp == NULL)
         REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot execute which python");
-    if (fgets(path, sizeof(path)-1, fp) == nullptr)
+    if (fgets(path, sizeof(path)-1, fp) == NULL)
         REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot find python");
     pclose(fp);
     return path;
@@ -64,7 +64,7 @@ std::string whichPython() {
 void initPython(const std::string &path) {
 #if PY_MAJOR_VERSION >= 3
 #if PY_MINOR_VERSION > 4
-    auto program = Py_DecodeLocale(path.c_str(), nullptr);
+    auto program = Py_DecodeLocale(path.c_str(), NULL);
 #else // PY_MINOR_VERSION > 4
     std::vector<wchar_t> tmp(path.begin(), path.end());
     auto program = tmp.data();

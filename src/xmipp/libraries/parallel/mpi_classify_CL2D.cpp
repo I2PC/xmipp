@@ -32,8 +32,8 @@
 #include "data/mask.h"
 
 // Pointer to parameters
-ProgClassifyCL2D *prm = nullptr;
-FILE * _logCL2D = nullptr;
+ProgClassifyCL2D *prm = NULL;
+FILE * _logCL2D = NULL;
 
 //#define DEBUG_WITH_LOG
 #ifdef DEBUG_WITH_LOG
@@ -84,7 +84,7 @@ bool CL2DAssignmentComparator(const CL2DAssignment& d1, const CL2DAssignment& d2
 /* CL2DClass basics ---------------------------------------------------- */
 CL2DClass::CL2DClass()
 {
-    plans = nullptr;
+    plans = NULL;
     P.initZeros(prm->Ydim, prm->Xdim);
     P.setXmippOrigin();
     Pupdate = P;
@@ -97,7 +97,7 @@ CL2DClass::CL2DClass(const CL2DClass &other)
 
 CL2DClass & CL2DClass::operator =(const CL2DClass &other)
 {
-    plans = nullptr;
+    plans = NULL;
 
     CL2DAssignment assignment;
     assignment.corr = 1;
@@ -647,7 +647,7 @@ void CL2D::shareSplitAssignments(Matrix1D<int> &assignment, CL2DClass *node1,
     // Share code updates
     std::vector<CL2DAssignment> auxList;
     std::vector<double> auxList2;
-    CL2DClass *node = nullptr;
+    CL2DClass *node = NULL;
     for (int q = 0; q < 2; q++)
     {
         if (q == 0)
@@ -1279,8 +1279,8 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
     MultidimArray<double> Iaux1, Iaux2, corrList;
     MultidimArray<int> idx;
     CL2DAssignment assignment, assignment1, assignment2;
-    CL2DClass *firstSplitNode1 = nullptr;
-    CL2DClass *firstSplitNode2 = nullptr;
+    CL2DClass *firstSplitNode1 = NULL;
+    CL2DClass *firstSplitNode2 = NULL;
     size_t minAllowedSize = 0;
 
     bool oldclassicalMultiref = prm->classicalMultiref;
@@ -1348,7 +1348,7 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
 #endif
         if (corrThreshold == 0)
         {
-            if (firstSplitNode1 != nullptr)
+            if (firstSplitNode1 != NULL)
             {
                 toDelete.push_back(node1);
                 toDelete.push_back(node2);
@@ -1439,7 +1439,7 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
 #endif
 
 	// Backup the first split in case it fails
-        if (firstSplitNode1 == nullptr)
+        if (firstSplitNode1 == NULL)
         {
 #ifdef DEBUG
 	std::cout << "Creating backup\n";
@@ -1639,7 +1639,7 @@ void CL2D::splitFirstNode()
     std::vector<size_t> splitAssignment;
     splitNode(P[0], P[Q], P[Q + 1], splitAssignment);
     delete P[0];
-    P[0] = nullptr;
+    P[0] = NULL;
     P.erase(P.begin());
 }
 

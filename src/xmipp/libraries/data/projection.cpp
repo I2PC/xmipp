@@ -1208,7 +1208,7 @@ void count_eqs_in_projection(GridVolumeT<int> &GVNeq,
 {
     for (size_t i = 0; i < GVNeq.VolumesNo(); i++)
         project_SimpleGrid(&(GVNeq(i)), &(GVNeq.grid(i)), &basis,
-                           &read_proj, &read_proj, FORWARD, COUNT_EQ, nullptr, nullptr);
+                           &read_proj, &read_proj, FORWARD, COUNT_EQ, NULL, NULL);
 }
 
 template <class T>
@@ -1235,9 +1235,9 @@ void *project_SimpleGridThread( void * params )
 
     int FORW;
     int eq_mode;
-    const Image<int> *VNeq=nullptr;
-    Matrix2D<double> *M=nullptr;
-    const MultidimArray<int> *mask=nullptr;
+    const Image<int> *VNeq=NULL;
+    Matrix2D<double> *M=NULL;
+    const MultidimArray<int> *mask=NULL;
     double ray_length;
 
     double rot;
@@ -1307,7 +1307,7 @@ void *project_SimpleGridThread( void * params )
     }
     while(1);
 
-    return (void *)nullptr;
+    return (void *)NULL;
 }
 
 template <class T>
@@ -1381,7 +1381,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
     bool   isVolPSF = false;    // Blob footprint is VolumePSF
 
     // Prepare system matrix for printing ...................................
-    if (M != nullptr)
+    if (M != NULL)
         M->initZeros(YSIZE((*proj)())*XSIZE((*proj)()), grid->get_number_of_samples());
 
     // Project grid axis ....................................................
@@ -1414,7 +1414,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
         Vsampling         = basis->blobprint.Vstep();
 
         // Set the limit for grid points out of PSF
-        if (basis->VolPSF != nullptr)
+        if (basis->VolPSF != NULL)
         {
             isVolPSF = true;
             ZZ_footprint_size = basis->blobprint.wmax();
@@ -1599,7 +1599,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                             foot_U = foot_U1;
                             for (int x = XX_corner1; x <= XX_corner2; x++)
                             {
-                                if (!((mask != nullptr) && A2D_ELEM(*mask,y,x)<0.5))
+                                if (!((mask != NULL) && A2D_ELEM(*mask,y,x)<0.5))
                                 {
 #ifdef DEBUG
                                     if (condition)
@@ -1757,7 +1757,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                                         case ARTK:
                                             IMGPIXEL(*proj, y, x) += VOLVOXEL(*vol, k, i, j) * a;
                                             IMGPIXEL(*norm_proj, y, x) += a2;
-                                            if (M != nullptr)
+                                            if (M != NULL)
                                             {
                                                 int py;
                                                 int px;
@@ -1921,10 +1921,10 @@ void project_GridVolume(
     for (size_t i = 0; i < vol.VolumesNo(); i++)
     {
         Image<int> *VNeq;
-        if (GVNeq != nullptr)
+        if (GVNeq != NULL)
             VNeq = &((*GVNeq)(i));
         else
-            VNeq = nullptr;
+            VNeq = NULL;
 
         if( threads > 1 )
         {

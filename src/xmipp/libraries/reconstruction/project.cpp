@@ -394,11 +394,11 @@ void ParametersProjection::read(const FileName &fn_proj_param)
         int     lineNo = 0;
         char    *auxstr;
 
-        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == nullptr)
+        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == NULL)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (String)"Prog_Project_Parameters::read: There is a problem "
                          "opening the file " + fn_proj_param);
-        while (fgets(line, 200, fh_param) != nullptr)
+        while (fgets(line, 200, fh_param) != NULL)
         {
             if (line[0] == 0)
                 continue;
