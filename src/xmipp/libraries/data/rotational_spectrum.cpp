@@ -275,7 +275,7 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     // Read the information from the Cylindrical Wave Decomposition .........
     auto c = (double *) calloc(5191, sizeof(double));
     auto s = (double *) calloc(5191, sizeof(double));
-    if ((nullptr == c) || (nullptr == s))
+    if ((NULL == c) || (NULL == s))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
 
     int numin  = cwd.numin;
@@ -293,12 +293,12 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     auto m = (int)((rh - rl) / dr + 1);
     for (int i = 1; i <= n; i++) {
         e[i] = (double *) calloc(m + 1, sizeof(double));
-        if (nullptr == e[i])
+        if (NULL == e[i])
             REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     }
     auto rv = (double *) calloc(m + 1, sizeof(double));
     auto st = (double *) calloc(m + 1, sizeof(double));
-    if ((nullptr == rv) || (nullptr == st))
+    if ((NULL == rv) || (NULL == st))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
 
     // Computations .........................................................
@@ -350,13 +350,13 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     for (int i = 1; i <= n; i++) {
         ep[i] = (double *) calloc(ncol + 1, sizeof(double));
         erp[i] = (double *) calloc(ncol + 1, sizeof(double));
-        if ((nullptr == ep[i]) || (nullptr == erp[i]))
+        if ((NULL == ep[i]) || (NULL == erp[i]))
             REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     }
     auto rp1 = (double *) calloc(ncol + 1, sizeof(double));
     auto rp2 = (double *) calloc(ncol + 1, sizeof(double));
     auto sp  = (double *) calloc(ncol + 1, sizeof(double));
-    if ((nullptr == rp1) || (nullptr == rp2) || (nullptr == sp))
+    if ((NULL == rp1) || (NULL == rp2) || (NULL == sp))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     for (k = 1; k <= ncol; k++)
     {
