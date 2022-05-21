@@ -261,7 +261,9 @@ double Basis::maxLength() const
 void Basis::changeToVoxels(GridVolume &vol_basis, MultidimArray<double> *vol_voxels,
                            int Zdim, int Ydim, int Xdim, int threads ) const
 {
-    int xdiff, ydiff, zdiff;
+    int xdiff;
+    int ydiff;
+    int zdiff;
     switch (type)
     {
     case blobs:
@@ -293,7 +295,8 @@ void Basis::changeFromVoxels(const MultidimArray<double> &vol_voxels,
                              const Matrix2D<double> *D, double R, int threads) const
 {
     Grid grid;
-    Matrix1D<double> corner1(3), corner2(3);
+    Matrix1D<double> corner1(3);
+    Matrix1D<double> corner2(3);
     double R2 = R * R;
     switch (type)
     {
@@ -366,8 +369,11 @@ double Basis::projectionAt(const Matrix1D<double> & u, const Matrix1D<double> & 
     const double p0 = 1.0 / (2 * PIXEL_SUBSAMPLING) - 0.5;
     const double pStep = 1.0 / PIXEL_SUBSAMPLING;
     const double pAvg = 1.0 / (PIXEL_SUBSAMPLING * PIXEL_SUBSAMPLING);
-    double module_r, px, py;
-    int i, j;
+    double module_r;
+    double px;
+    double py;
+    int i;
+    int j;
     switch (type)
     {
     case blobs:

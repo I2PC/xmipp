@@ -25,6 +25,8 @@
 
 #include <stdio.h>
 #include <limits>
+#include <chrono>
+#include <random>
 #include "symmetries.h"
 
 // Symmetrize_crystal_vectors==========================================
@@ -2223,8 +2225,7 @@ double SymList::computeDistance(double rot1, double tilt1, double psi1,
 }
 
 void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
-                              double &rot2, double &tilt2, double &psi2
-                              )
+                            double &rot2, double &tilt2, double &psi2)
 {
     Matrix2D<double> E1;
     Euler_angles2matrix(rot1, tilt1, psi1, E1, true);
@@ -2238,22 +2239,18 @@ void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
         doRandomize=false;
     }
     int symOrder = symsNo()+1;
-    //std::cerr << "DEBUG_ROB: symOrder: " << symOrder << std::endl;
-    i = rand() % symOrder;//59+1
-    //std::cerr << "DEBUG_ROB: i: " << i << std::endl;
+    i = rand() % symOrder;
     if (i < symOrder-1)
     {
         getMatrices(i, L, R);
-        //std::cerr  << R << std::endl;
         Euler_matrix2angles(E1 * R, rot2, tilt2, psi2);
     }
     else
     	{
-    	//std::cerr << "else" <<std::endl;
-    	rot2=rot1; tilt2=tilt1;psi2=psi1;
+    	rot2=rot1;
+    	tilt2=tilt1;
+    	psi2=psi1;
     	}
-//    if (rot2==0)
-//:    	std::cerr << "rot2  is zero " << i << R << L << std::endl;
 }
 
 // Forward declaration
@@ -2342,12 +2339,13 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
             continue;
         double rot=atan2((double)i,(double)j)+rot0;
         double rho=sqrt((double)i*i+(double)j*j);
-        double l0=ceil((STARTINGZ(Vin)-k)*izHelical);
-        double lF=l0+Llength;
+        int l0=(int)ceil((STARTINGZ(Vin)-k)*izHelical);
+        int lF=l0+Llength;
         double finalValue=0;
         double L=0;
-        for (double l=l0; l<=lF; ++l)
+        for (int il=l0; il<=lF; ++il)
         {
+        	double l=il;
             double kp=k+l*zHelical;
             if (kp>=zFirst && kp<=zLast)
             {
@@ -2422,7 +2420,6 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 	double bestCorr, bestRot, bestZ;
 	bestCorr = bestRot = bestZ = std::numeric_limits<double>::min();
 
-	
     for (double rot=-180; rot<180; rot+=rotStep)
     {
 		rotation3DMatrix(rot,'Z',AZ,true);
@@ -2437,7 +2434,9 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 				bestRot=rot;
 				bestZ=z;
 			}
+			z+=zStep;
 		}
+
 	}
 
 	rotation3DMatrix(-bestRot/2,'Z',AZ,true);

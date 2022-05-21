@@ -77,7 +77,7 @@ typedef double (*DimRedDistance2)  (const Matrix2D<double> &X, size_t i1, size_t
 /** Compute the distance of all vs all elements in a matrix of observations.
  * Each observation is a row of the matrix X.
  */
-void computeDistance(const Matrix2D<double> &X, Matrix2D<double> &distance, DimRedDistance2 f=NULL, bool computeSqrt=true);
+void computeDistance(const Matrix2D<double> &X, Matrix2D<double> &distance, DimRedDistance2 f=nullptr, bool computeSqrt=true);
 
 /**
  * Compute the distance of the elements said by the arrays ind1 and ind2
@@ -88,7 +88,7 @@ void computeRandomPointsDistance(const Matrix2D<double> &X, Matrix1D<double> &di
  * Each observation is a row of the matrix X.
  * If there are N observations, the size of distance is NxN.
  */
-void computeDistanceToNeighbours(const Matrix2D<double> &X, int K, Matrix2D<double> &distance, DimRedDistance2 f=NULL, bool computeSqrt=true);
+void computeDistanceToNeighbours(const Matrix2D<double> &X, int K, Matrix2D<double> &distance, DimRedDistance2 f=nullptr, bool computeSqrt=true);
 
 /** Compute a similarity matrix from a squared distance matrix.
  * dij=exp(-dij/(2*sigma^2))
@@ -115,7 +115,7 @@ void computeGraphLaplacian(const Matrix2D<double> &G, Matrix2D<double> &L);
  *
  * Original code by Laurens van der Maaten, Delft University of Technology
  */
-double intrinsicDimensionality(Matrix2D<double> &X, const String &method="MLE", bool normalize=true, DimRedDistance2 f=NULL);
+double intrinsicDimensionality(Matrix2D<double> &X, const String &method="MLE", bool normalize=true, DimRedDistance2 f=nullptr);
 
 /** k-Nearest neighbours.
  * Given a data matrix (each row is a sample, each column a variable), this function
@@ -126,7 +126,7 @@ double intrinsicDimensionality(Matrix2D<double> &X, const String &method="MLE", 
  *
  * You can provide a distance function of your own. If not, Euclidean distance is used.
  */
-void kNearestNeighbours(const Matrix2D<double> &X, int K, Matrix2D<int> &idx, Matrix2D<double> &distance, DimRedDistance2 f=NULL, bool computeSqrt=true);
+void kNearestNeighbours(const Matrix2D<double> &X, int K, Matrix2D<int> &idx, Matrix2D<double> &distance, DimRedDistance2 f=nullptr, bool computeSqrt=true);
 
 /** Extract k-nearest neighbours.
  * This function extracts from the matrix X, the neighbours given by idx for the i-th observation.

@@ -44,9 +44,15 @@ public:
     AShiftEstimator() {
         setDefault();
     }
+    AShiftEstimator(const AShiftEstimator &)=delete;
+    AShiftEstimator(const AShiftEstimator &&)=delete;
+
     virtual ~AShiftEstimator() {
         release();
     }
+
+    AShiftEstimator & operator=(const AShiftEstimator &)=delete;
+    AShiftEstimator & operator=(const AShiftEstimator &&)=delete;
 
     virtual void init2D(const std::vector<HW*> &hw, AlignType type,
                const Dimensions &dims, size_t batch, size_t maxShift) = 0;

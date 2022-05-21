@@ -37,7 +37,7 @@
 template<typename T>
 class Image;
 
-#define MY_OUPUT_SIZE 10
+constexpr int MY_OUPUT_SIZE = 10;
 
 class ProgAngularProjectionMatching;
 

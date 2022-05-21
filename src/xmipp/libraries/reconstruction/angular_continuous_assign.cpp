@@ -1305,20 +1305,20 @@ int return_gradhesscost(
               double costchanged[1];
 
               da = (double *)malloc((size_t)ma * sizeof(double));
-              if (da == (double *)NULL)
+              if (da == (double *)nullptr)
               {
                   WRITE_ERROR(levenberg_cst, "ERROR - Not enough memory for da in levenberg_cst");
                   return(ERROR);
               }
               u = (double *)malloc((size_t)(ma * ma) * sizeof(double));
-              if (u == (double *)NULL)
+              if (u == (double *)nullptr)
               {
                   free(da);
                   WRITE_ERROR(levenberg_cst, "ERROR - Not enough memory for u in levenberg_cst");
                   return(ERROR);
               }
               v = (double *)malloc((size_t)(ma * ma) * sizeof(double));
-              if (v == (double *)NULL)
+              if (v == (double *)nullptr)
               {
                   free(u);
                   free(da);
@@ -1326,7 +1326,7 @@ int return_gradhesscost(
                   return(ERROR);
               }
               w = (double *)malloc((size_t)ma * sizeof(double));
-              if (w == (double *)NULL)
+              if (w == (double *)nullptr)
               {
                   free(v);
                   free(u);
@@ -1504,7 +1504,7 @@ int return_gradhesscost(
           int cstregistrationCheck(struct cstregistrationStruct *Data)
           {
 
-              if (Data == (struct cstregistrationStruct *)NULL)
+              if (Data == (struct cstregistrationStruct *)nullptr)
               {
                   WRITE_ERROR(cstregistrationCheck, "Invalid data pointer.");
                   return(ERROR);
@@ -1663,7 +1663,7 @@ int return_gradhesscost(
 
               long   MaxIter;
 
-              if (Data == (struct cstregistrationStruct *)NULL)
+              if (Data == (struct cstregistrationStruct *)nullptr)
               {
                   WRITE_ERROR(cstregistrationSize, "Invalid data pointer");
                   return(ERROR);
@@ -1707,7 +1707,7 @@ int return_gradhesscost(
               double   sum_xx_re, sum_xx_im, dftproj_inp_re, dftproj_inp_im, sc_re, sc_im;
               time_t   time1, time2, *tp1 = nullptr, *tp2 = nullptr;
 
-              if (Data == (struct cstregistrationStruct *)NULL)
+              if (Data == (struct cstregistrationStruct *)nullptr)
               {
                   WRITE_ERROR(cstregistration, "Invalid data pointer");
                   return(ERROR);

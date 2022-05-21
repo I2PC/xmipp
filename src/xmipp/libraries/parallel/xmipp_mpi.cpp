@@ -238,11 +238,6 @@ template void MpiNode::gatherMetadatas<MetaDataVec>(MetaDataVec&, const FileName
 template void MpiNode::gatherMetadatas<MetaDataDb>(MetaDataDb&, const FileName&);
 
 /* -------------------- XmippMPIProgram ---------------------- */
-
-XmippMpiProgram::XmippMpiProgram()
-{
-    node = nullptr;
-}
 /** destructor */
 XmippMpiProgram::~XmippMpiProgram()
 {
@@ -291,12 +286,6 @@ int XmippMpiProgram::tryRun()
 }
 
 /* -------------------- MpiMetadataProgram ------------------- */
-MpiMetadataProgram::MpiMetadataProgram()
-{
-    node = nullptr;
-    distributor = nullptr;
-}
-
 MpiMetadataProgram::~MpiMetadataProgram()
 {
     delete distributor;

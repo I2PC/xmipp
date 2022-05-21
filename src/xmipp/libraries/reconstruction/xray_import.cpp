@@ -613,7 +613,7 @@ void ProgXrayImport::run()
     fnOut.deleteFile();
 
     /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
 
     if (dSource == MISTRAL)
         H5File.openFile(fnInput, H5F_ACC_RDONLY);

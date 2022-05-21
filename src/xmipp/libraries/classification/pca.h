@@ -4,7 +4,7 @@
  *              Carlos Oscar Sanchez Sorzano
  *              Alberto Pascual Montano (pascual@cnb.csic.es)
  *
- * Departamento de Arquitectura de Computadores, Universidad de M�laga
+ * Departamento de Arquitectura de Computadores, Universidad de Malaga
  *
  * Copyright (c) 2001 , CSIC/UMA.
  *
@@ -188,25 +188,13 @@ class PCA_set
 {
 public:
     /** Set of PCA analysis. */
-    std::vector<PCAAnalyzer *> PCA;
-
-public:
-    /** Copy constructor */
-    PCA_set(const PCA_set &other)
-	{
-		*this=other;
-	}
-
-    /** Destructor */
-    ~PCA_set();
+    std::vector<PCAAnalyzer> PCA;
 
 #ifdef UNUSED // detected as unused 29.6.2018
     /** Create empty PCA.
         Creates space for n new PCA and returns the index of the first one */
     int create_empty_PCA(int n = 1);
 #endif
-
-    PCA_set & operator = (const PCA_set &other);
 
     /** Returns the number of PCA analysis.*/
     int PCANo() const
@@ -215,9 +203,9 @@ public:
     }
 
     /** Returns a pointer to PCA number i*/
-    PCAAnalyzer * operator()(int i) const
+    const PCAAnalyzer * operator()(int i) const
     {
-        return PCA[i];
+        return &(PCA[i]);
     }
 
     /** Show all PCA */

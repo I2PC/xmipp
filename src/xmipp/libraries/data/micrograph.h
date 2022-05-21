@@ -80,7 +80,8 @@ class Micrograph
 public:
     struct Point
     {
-        double x,y;
+        double x;
+        double y;
     };
 private:
     /* This image will contain a single particle from the micrograph,
@@ -108,8 +109,12 @@ private:
     Image<unsigned int>        IUInt = {};
     Image<float>               IFloat = {};
 public:
-    Point                    point1, point2;
-    size_t                   Xdim,Ydim,Zdim,Ndim;
+    size_t                   Xdim;
+    size_t                   Ydim;
+    size_t                   Zdim;
+    size_t                   Ndim;
+    Point                    point1;
+    Point                    point2;
     std::vector<Particle_coords> coords;
 
     /** Clear */
