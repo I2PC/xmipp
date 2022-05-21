@@ -2424,6 +2424,7 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
     {
 		rotation3DMatrix(rot,'Z',AZ,true);
         for (double z=zmin; z<=zmax; z+=zStep)
+
 		{
 			MAT_ELEM(AZ,2,3)=z;
 			applyGeometry(xmipp_transformation::LINEAR,Vout,Vin,AZ,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
