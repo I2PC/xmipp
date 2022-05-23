@@ -28,7 +28,7 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": False
   },
   "xmipp_deepHand": {
-    "pythonVersion": "3.8",
+    "pythonVersion": "3.6",
     "dependencies": ["pytorch=1.6"],
     "channels": ["anaconda", "conda-forge"],
     "pipPackages": [],
