@@ -204,16 +204,16 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		sumY += realyn + imagyn;
 		sumY2 += realyn*realyn + imagyn*imagyn;
 	}
-	auto meanY = sumY / (2.0*MULTIDIM_SIZE(y));
-	auto varY = sumY2 / (2.0*MULTIDIM_SIZE(y)) - meanY*meanY;
-	auto R2 = 1.0 - (sumE2/(2.0*MULTIDIM_SIZE(y))) / varY; 
+	auto meanY = sumY / (2.0*(double)MULTIDIM_SIZE(y));
+	auto varY = sumY2 / (2.0*(double)MULTIDIM_SIZE(y)) - meanY*meanY;
+	auto R2 = 1.0 - (sumE2/(2.0*(double)MULTIDIM_SIZE(y))) / varY; 
 	return R2;
  }
 
 double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
  const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
-	auto N = 2.0*MULTIDIM_SIZE(PFourierf);
+	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
 	double R20 = evaluateFitting(IFourierf, PFourierf0); // (IFourierf, PFourierf0)
 	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
 	double R21 = evaluateFitting(IFourierf, PFourierf1); // (IFourierf, PFourierf1)
