@@ -151,6 +151,135 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
 {
+		// Detect interpolation region
+	MultidimArray<double> tmpImage = tiltImage;
+
+	for (size_t i = 1; i < xSize-1; i++)
+	{
+		for (size_t j = 1; j < ySize-1; j++)
+		{
+			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
+											    -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
+												-1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
+												-1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
+									 			4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
+		}
+	}
+
+	int x1;
+	int x2;
+	int x3;
+	int x4;
+	int y1;
+	int y2;
+	int y3;
+	int y4;
+
+	double epsilon = 0.0001;
+
+	bool found = false;
+
+	for (size_t i = 1; i < xSize; i++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon && found == false)
+		{
+			x1=i-1;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) < epsilon && found == true)
+		{
+			x2=i;
+			break;
+		}
+	}
+
+	found = false;
+
+	for (size_t i = 1; i < xSize; i++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon && found == false)
+		{
+			x3=i-1;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i))< epsilon && found == true)
+		{
+			x4=i;
+			break;
+		}
+	}
+
+	found = false;
+
+	for (size_t j = 1; j < ySize; j++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon && found == false)
+		{
+			y1=j-1;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) < epsilon && found == true)
+		{
+			y2=j;
+			break;
+		}
+	}
+
+	found = false;
+
+	for (size_t j = 1; j < ySize; j++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon && !found)
+		{
+			y3=j-1;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) < epsilon && found)
+		{
+			y4=j;
+			break;
+		}
+	}
+
+	// Apply smoothing kernel to interpolation edges to tilt-image with kernel:
+	//     1/16 1/8 1/16
+	// k = 1/8  1/4 1/8
+	//     1/16 1/8 1/16
+
+	size_t jj;
+	double m1 = (y2-y1)/(x1-x2);
+	double m2 = (y2-y1)/(x1-x2);
+	double m3 = (y2-y1)/(x1-x2);
+	double m4 = (y2-y1)/(x1-x2);
+
+
+	for (size_t ii = 1; ii < xSize-1; ii++)
+	{
+		// Interpolation line 1
+		m1 
+		jj = (
+
+		// Interpolation line 2
+
+		// Interpolation line 3
+
+		// Interpolation line 4
+	}
+
+	std::cout << x0 << std::endl;
+	std::cout << x2 << std::endl;
+	std::cout << x3 << std::endl;
+	std::cout << x4 << std::endl;
+	std::cout << y1 << std::endl;
+	std::cout << y2 << std::endl;
+	std::cout << y3 << std::endl;
+	std::cout << y4 << std::endl;
+
+	std::cout << "--------------" << std::endl;
+
+
+
+	// Bandpass filer image
 	FourierTransformer transformer1(FFTW_BACKWARD);
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(tiltImage, fftImg, true);
