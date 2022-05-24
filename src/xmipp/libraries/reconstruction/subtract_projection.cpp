@@ -60,6 +60,7 @@
 	fmaskWidth = getIntParam("--fmask_width");
 	limitfreq = getIntParam("--limit_freq");
 	fnProj = getParam("--save"); 
+ }
 
  // Show ====================================================================
  void ProgSubtractProjection::show() const{
