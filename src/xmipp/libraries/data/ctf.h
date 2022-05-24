@@ -565,13 +565,9 @@ public:
 		return -(Ksin*sine_part - Kcos*cosine_part);
 	}
 
-	 /// Compute CTF pure at (U,V). Continuous frequencies
-	inline double getValuePureNoPrecomputedAt(double X, bool show = false) const
+	void getSineAndCosineParts(double sine_part, double cosine_part, double E, double u2, double u, 
+	double u4, double deltaf, bool show)
 	{
-		double u2 = X * X;
-		double u = sqrt(u2);
-		double u4 = u2 * u2;
-		double deltaf = Defocus;
 		double VPP;
 		double check_VPP = round(VPP_radius*1000);
 		if(check_VPP != 0)
@@ -579,8 +575,6 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-		double sine_part;
-		double cosine_part;
 		sincos(argument,&sine_part, &cosine_part); // OK
 		double Eespr = exp(-K3 * u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
@@ -588,7 +582,7 @@ public:
 		double EdeltaR = sinc(u * DeltaR); // OK
 		double Ealpha = exp(-K6 * (K7 * u2 * u + deltaf * u) * (K7 * u2 * u + deltaf * u)); // OK
 		// CO: double E=Eespr*Eispr*EdeltaF*EdeltaR*Ealpha;
-		double E = Eespr * EdeltaF * EdeltaR * Ealpha+envR0+envR1*precomputed.u+envR2*precomputed.u2;
+		E = Eespr * EdeltaF * EdeltaR * Ealpha+envR0+envR1*precomputed.u+envR2*precomputed.u2;
 		if (E < 0)
 			E	= 0;
 		if (show)
@@ -605,6 +599,22 @@ public:
 			<< std::endl;
 			std::cout << " Total atenuation(E)= " << E << std::endl;
 			std::cout << " K,Q0,base_line=" << K << "," << Q0 << "," << base_line << std::endl;
+		}
+	}
+
+	 /// Compute CTF pure at (U,V). Continuous frequencies
+	inline double getValuePureNoPrecomputedAt(double X, bool show = false) 
+	{
+		double u2 = X * X;
+		double u = sqrt(u2);
+		double u4 = u2 * u2;
+		double deltaf = Defocus;
+		double sine_part;
+		double cosine_part;
+		double E;
+		getSineAndCosineParts(sine_part, cosine_part, E, u2, u, u4, deltaf, show);
+		if (show)
+		{
 			std::cout << " (X)=(" << X << ") CTF="
 			<< -K*(Ksin*sine_part - Kcos*cosine_part)*E + base_line << std::endl;
 		}
@@ -1051,46 +1061,19 @@ public:
     }
 
     /// Compute CTF pure at (U,V). Continuous frequencies
-    inline double getValuePureNoPrecomputedAt(double X, double Y, bool show = false) const
+    inline double getValuePureNoPrecomputedAt(double X, double Y, bool show = false) 
     {
         double u2 = X * X + Y * Y;
         double u = sqrt(u2);
         double u4 = u2 * u2;
         //if (u2>=ua2) return 0;
         double deltaf = getDeltafNoPrecomputed(X, Y);
-        double VPP;
-        double check_VPP = round(VPP_radius*1000);
-		if(check_VPP != 0)
-			VPP = -phase_shift*(1-exp(-u2/(2*pow(VPP_radius,2.0))));
-		else
-			VPP = 0;
-        double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-        double sine_part;
+		double sine_part;
 		double cosine_part;
-        sincos(argument,&sine_part, &cosine_part); // OK
-        double Eespr = exp(-K3 * u4); // OK
-        //CO: double Eispr=exp(-K4*u4); // OK
-        double EdeltaF = bessj0(K5 * u2); // OK
-        double EdeltaR = sinc(u * DeltaR); // OK
-        double Ealpha = exp(-K6 * (K7 * u2 * u + deltaf * u) * (K7 * u2 * u + deltaf * u)); // OK
-        // CO: double E=Eespr*Eispr*EdeltaF*EdeltaR*Ealpha;
-        double E = Eespr * EdeltaF * EdeltaR * Ealpha+envR0+envR1*precomputed.u+envR2*precomputed.u2;
-        if (E < 0)
-        	E	= 0;
+		double E;
+		getSineAndCosineParts(sine_part, cosine_part, E, u2, u, u4, deltaf, show);
         if (show)
         {
-            std::cout << " Deltaf=" << deltaf << std::endl;
-            std::cout << " u,u2,u4=" << u << " " << u2 << " " << u4 << std::endl;
-            std::cout << " K1,K2,sin=" << K1 << " " << K2 << " "
-            << sine_part << std::endl;
-            std::cout << " K3,Eespr=" << K3 << " " << Eespr << std::endl;
-            //std::cout << " K4,Eispr=" << K4 << " " << /*Eispr <<*/ std::endl;
-            std::cout << " K5,EdeltaF=" << K5 << " " << EdeltaF << std::endl;
-            std::cout << " EdeltaR=" << EdeltaR << std::endl;
-            std::cout << " K6,K7,Ealpha=" << K6 << " " << K7 << " " << Ealpha
-            << std::endl;
-            std::cout << " Total atenuation(E)= " << E << std::endl;
-            std::cout << " K,Q0,base_line=" << K << "," << Q0 << "," << base_line << std::endl;
             std::cout << " (X,Y)=(" << X << "," << Y << ") CTF="
             << -K*(Ksin*sine_part - Kcos*cosine_part)*E + base_line << std::endl;
         }
@@ -1297,7 +1280,7 @@ public:
             	FFT_IDX2DIGFREQ(j, XSIZE(CTF), wx)
                 double fx=wx*iTs;
 				precomputeValues(fx, fy);
-				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt(); //(??) I guess you need the minus sign, but should the envelope be always positive?
+				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt(); // - needed??
 				#ifdef DEBUG
 						if (i == 0)
 							std::cout << i << " " << j << " " << YY(freq) << " " << XX(freq)
