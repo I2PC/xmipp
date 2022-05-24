@@ -219,6 +219,58 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	}
 
 	transformer1.inverseFourierTransform(fftImg, tiltImage);
+
+
+	// MultidimArray<double> tmpImage = tiltImage;
+	
+	// RetinexFilter rf;
+	// rf.laplacian(tiltImage, fftImg, false); 
+	// transformer1.inverseFourierTransform(fftImg, tiltImage);
+
+	// Apply Laplacian to tilt-image with kernel:
+	//     0  1 0
+	// k = 1 -4 1
+	//     0  1 0
+
+	// MultidimArray<double> tmpImage = tiltImage;
+
+	// for (size_t i = 1; i < xSize-1; i++)
+	// {
+	// 	for (size_t j = 1; j < ySize-1; j++)
+	// 	{
+	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = (DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+	// 										    DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+	// 											DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+	// 											DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+	// 								 			-4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+	// 	}	
+	// }	
+
+    // Apply Laplacian to tilt-image with kernel:
+	//     0 -1 0
+	// k = -1 4 -1
+	//     0 -1 0
+
+	// MultidimArray<double> tmpImage = tiltImage;
+
+	for (size_t i = 1; i < xSize-1; i++)
+	{
+		for (size_t j = 1; j < ySize-1; j++)
+		{
+			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+											    -1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+									 			4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+		}	
+	}
+
+	// tiltImage.rangeAdjust(0, 255);
+
+	// // Rolling ball
+	// substractBackgroundRollingBall(tiltImage, (int)(samplingRate/(fiducialSize)));
+	// MultidimArray<double> tmpImage = tiltImage;
+	// closing2D(tmpImage, tiltImage, 8, 8, 8);
 }
 
 
