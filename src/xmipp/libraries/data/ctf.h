@@ -565,9 +565,10 @@ public:
 		return -(Ksin*sine_part - Kcos*cosine_part);
 	}
 
-	void getSineAndCosineParts(double sine_part, double cosine_part, double E, double u2, double u, 
-	double u4, double deltaf, bool show)
+	void getSineAndCosineParts(double sine_part, double cosine_part, double E,	double u2, double deltaf, bool show) const
 	{
+		double u = sqrt(u2);
+		double u4 = u2 * u2;
 		double VPP;
 		double check_VPP = round(VPP_radius*1000);
 		if(check_VPP != 0)
@@ -606,13 +607,11 @@ public:
 	inline double getValuePureNoPrecomputedAt(double X, bool show = false) 
 	{
 		double u2 = X * X;
-		double u = sqrt(u2);
-		double u4 = u2 * u2;
 		double deltaf = Defocus;
-		double sine_part;
-		double cosine_part;
-		double E;
-		getSineAndCosineParts(sine_part, cosine_part, E, u2, u, u4, deltaf, show);
+		double sine_part = 0;
+		double cosine_part = 0;
+		double E = 0;
+		getSineAndCosineParts(sine_part, cosine_part, E, u2, deltaf, show);
 		if (show)
 		{
 			std::cout << " (X)=(" << X << ") CTF="
@@ -1061,17 +1060,15 @@ public:
     }
 
     /// Compute CTF pure at (U,V). Continuous frequencies
-    inline double getValuePureNoPrecomputedAt(double X, double Y, bool show = false) 
+    inline double getValuePureNoPrecomputedAt(double X, double Y, bool show = false)
     {
         double u2 = X * X + Y * Y;
-        double u = sqrt(u2);
-        double u4 = u2 * u2;
         //if (u2>=ua2) return 0;
         double deltaf = getDeltafNoPrecomputed(X, Y);
-		double sine_part;
-		double cosine_part;
-		double E;
-		getSineAndCosineParts(sine_part, cosine_part, E, u2, u, u4, deltaf, show);
+		double sine_part = 0;
+		double cosine_part = 0;
+		double E = 0;
+		getSineAndCosineParts(sine_part, cosine_part, E, u2, deltaf, show);
         if (show)
         {
             std::cout << " (X,Y)=(" << X << "," << Y << ") CTF="
