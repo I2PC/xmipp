@@ -59,8 +59,7 @@
     maxResol = getDoubleParam("--max_resolution");
 	fmaskWidth = getIntParam("--fmask_width");
 	limitfreq = getIntParam("--limit_freq");
-	fnProj = getParam("--save"); // JUST FOR SAVING INTERM FILES -> DELETE
- }
+	fnProj = getParam("--save"); 
 
  // Show ====================================================================
  void ProgSubtractProjection::show() const{
@@ -75,7 +74,7 @@
     << "Max. Resolution:\t" << maxResol << std::endl
 	<< "Limit freequency:\t" << limitfreq << std::endl
 	<< "Output particles:\t" << fnOut << std::endl
-	<< "Path for saving:\t" << fnProj << std::endl; // JUST FOR SAVING INTERM FILES -> DELETE
+	<< "Path for saving:\t" << fnProj << std::endl; 
  }
 
  // usage ===================================================================
@@ -95,7 +94,7 @@
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
-	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); // JUST FOR SAVING INTERM FILES -> DELETE
+	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
     		 "-o output_particles --sampling 1 --fmask_width 40 --max_resolution 4");
@@ -105,7 +104,6 @@
 	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
-	I.write(formatString("%sI.mrc", fnProj.c_str()));
  }
 
  void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, double R2a) {
@@ -176,9 +174,8 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
-	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	Pctf = applyCTF(row, P);
-	Pctf.write(formatString("%sPctf.mrc", fnProj.c_str()));
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -192,7 +189,8 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return ImgiMFourier;
 }
 
- double ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y, const MultidimArray< std::complex<double> > &yp) const{
+ double ProgSubtractProjection::evaluateFitting(const MultidimArray< std::complex<double> > &y,
+                                                const MultidimArray< std::complex<double> > &yp) const{
 	double sumY = 0;
 	double sumY2 = 0;
 	double sumE2 = 0;
@@ -201,41 +199,33 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		double imagyn = imag(DIRECT_MULTIDIM_ELEM(y, n)); 
 		double ereal = realyn - real(DIRECT_MULTIDIM_ELEM(yp, n));
 		double eimag = imagyn - imag(DIRECT_MULTIDIM_ELEM(yp, n));  
-		sumE2 += ereal*ereal + eimag*eimag; // compute also imag part (??)
+		sumE2 += ereal*ereal + eimag*eimag;
 		sumY += realyn + imagyn;
 		sumY2 += realyn*realyn + imagyn*imagyn;
 	}
-	auto meanY = sumY / (double)MULTIDIM_SIZE(y);
-	auto varY = sumY2 / (double)MULTIDIM_SIZE(y) - meanY*meanY;
-	auto R2 = 1.0 - sumE2 / varY; // R2 is reporting wrong values (??)
-	std::cout << "sumY: " << sumY << std::endl;
-	std::cout << "sumY2: " << sumY2 << std::endl;
-	std::cout << "sumE2: " << sumE2 << std::endl;
-	std::cout << "meanY: " << meanY << std::endl;
-	std::cout << "varY: " << varY << std::endl;
-	std::cout << "R2: " << R2 << std::endl;
+	auto meanY = sumY / (2.0*MULTIDIM_SIZE(y));
+	auto varY = sumY2 / (2.0*MULTIDIM_SIZE(y)) - meanY*meanY;
+	auto R2 = 1.0 - (sumE2/(2.0*MULTIDIM_SIZE(y))) / varY; 
 	return R2;
  }
 
 double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
  const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
-	auto N = (double)MULTIDIM_SIZE(PFourierf);
-	double R20 = evaluateFitting(PFourierf, PFourierf0); // (IFourierf, PFourierf0)
+	auto N = 2.0*MULTIDIM_SIZE(PFourierf);
+	double R20 = evaluateFitting(IFourierf, PFourierf0); // (IFourierf, PFourierf0)
 	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
-	double R21 = evaluateFitting(PFourierf, PFourierf1); // (IFourierf, PFourierf1)
+	double R21 = evaluateFitting(IFourierf, PFourierf1); // (IFourierf, PFourierf1)
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
 	// Decide best fitting
 	double R2;
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
 		PFourierf = PFourierf1;
 		R2 = R21adj;
-		std::cout << "Model of order 1" << std::endl;
 	} 
 	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
 		R2 = R20adj;
-		std::cout << "Model of order 0" << std::endl;
 	}
 	return R2;
 }
@@ -289,7 +279,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
      	// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
-		if (fnMask.isEmpty() or fmaskWidth == -1) {
+		if (fnMask.isEmpty() || fmaskWidth == -1) {
 			Mfinal().initZeros(P());
 			iM = invertMask(Mfinal);
 			Mfinal = iM;		
@@ -333,16 +323,15 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			}
 		}
 		A1(1,0) = A1(0,1);
+
 		// Compute beta00 from order 0 model
 		double beta00 = num0.sum()/den0.sum(); 		
-		std::cout << "beta00: " << beta00 << std::endl;
 
 		// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 		PFourier0 = PFourier;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
 			DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
-		std::complex<double> betaDC = IiMFourier(0,0) - beta00*PiMFourier(0,0); 
-		PFourier0(0,0) = betaDC + beta00*PFourier0(0,0); 
+		PFourier0(0,0) = IiMFourier(0,0); 
 
 		// Compute beta01 and beta1 from order 1 model
 		PseudoInverseHelper h;
@@ -352,22 +341,18 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		solveLinearSystem(h,betas1); 
 		double beta01 = betas1(0);
 		double beta1 = betas1(1);
-		std::cout << "beta01: " << beta01 << std::endl;
-		std::cout << "beta1: " << beta1 << std::endl;
 
 		// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
 		PFourier1 = PFourier;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
 			DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
-		betaDC = IiMFourier(0,0) - beta01+beta1*wi(0,0)*PiMFourier(0,0); 
-		PFourier1(0,0) = betaDC + beta01+beta1*wi(0,0)*PFourier1(0,0); 
+		PFourier1(0,0) = IiMFourier(0,0); 
 
 		// Check best model
 		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier); 
 
 		// Recover adjusted projection (P) in real space
 		transformerP.inverseFourierTransform(PFourier, P());
-		// P.write(formatString("%Padjusted.mrc", fnProj.c_str()));
 
 		// Subtraction
 		MultidimArray<double> &mIdiff=Idiff();
