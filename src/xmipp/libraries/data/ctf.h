@@ -604,7 +604,7 @@ public:
 	}
 
 	 /// Compute CTF pure at (U,V). Continuous frequencies
-	inline double getValuePureNoPrecomputedAt(double X, bool show = false) 
+	inline double getValuePureNoPrecomputedAt(double X, bool show = false) const
 	{
 		double u2 = X * X;
 		double deltaf = Defocus;
@@ -632,11 +632,11 @@ public:
 	/// Apply CTF to an image
 	void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
 
-    /// Correct phase flip of an image
-    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+	/// Correct phase flip of an image
+	void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
 
-    /// Correct phase flip of an image
-    void correctPhase(MultidimArray<double> &I, double Ts);
+	/// Correct phase flip of an image
+	void correctPhase(MultidimArray<double> &I, double Ts);
 
 	/** Generate CTF image.
 		The sample image is used only to take its dimensions. */
@@ -1060,7 +1060,7 @@ public:
     }
 
     /// Compute CTF pure at (U,V). Continuous frequencies
-    inline double getValuePureNoPrecomputedAt(double X, double Y, bool show = false)
+    inline double getValuePureNoPrecomputedAtxy(double X, double Y, bool show = false) const
     {
         double u2 = X * X + Y * Y;
         //if (u2>=ua2) return 0;
