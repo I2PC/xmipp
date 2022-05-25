@@ -132,7 +132,7 @@ void ProgForwardZernikeImages::defineParams()
 	addParamsLine("  [--image_mode <im=-1>]       : Image mode (single, pairs, triplets). By default, it will be automatically identified.");
 	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
+    addExampleLine("xmipp_forward_zernike_images_priors -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
 
 void ProgForwardZernikeImages::preProcess()
