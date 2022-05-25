@@ -148,6 +148,495 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 
 // --------------------------- HEAD functions ----------------------------
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis)
+{
+	double dsFactor;
+	double targetFiducialSize = 10;
+
+	dsFactor = (samplingRate/(fiducialSize))
+
+	// Detect interpolation region
+	MultidimArray<double> tmpImage = tiltImage;
+
+	for (size_t i = 1; i < xSize-1; i++)
+	{
+		for (size_t j = 1; j < ySize-1; j++)
+		{
+			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
+											    -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
+												-1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
+												-1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
+									 			4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
+		}
+	}
+
+	int x1;  // (x1, 0)
+	int x2;  // (x2, 0)
+	int x3;  // (x3, ySize)
+	int x4;  // (x4, ySize)
+	int y1;  // (y1, 0)
+	int y2;  // (xSize, y2)
+	int y3;  // (0, y3)
+	int y4;  // (xSize, y4)
+
+	double epsilon = 0.00000001;
+
+	bool found = false;
+
+	for (size_t i = 1; i < xSize; i++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon && found == false)
+		{
+			x1=i;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) < epsilon && found == true)
+		{
+			x2=i-1;
+			break;
+		}
+	}
+
+	found = false;
+
+	for (size_t i = 1; i < xSize; i++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon && found == false)
+		{
+			x3=i;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i))< epsilon && found == true)
+		{
+			x4=i-1;
+			break;
+		}
+	}
+
+	found = false;
+
+	for (size_t j = 1; j < ySize; j++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon && found == false)
+		{
+			y1=j;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) < epsilon && found == true)
+		{
+			y3=j-1;
+			break;
+		}
+	}
+
+	found = false;
+
+	for (size_t j = 1; j < ySize; j++)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon && !found)
+		{
+			y2=j;
+			found = true;
+		}
+		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) < epsilon && found)
+		{
+			y4=j-1;
+			break;
+		}
+	}
+
+	std::cout<< "x1: " << x1<<std::endl;
+	std::cout<< "x2: " << x2<<std::endl;
+	std::cout<< "x3: " << x3<<std::endl;
+	std::cout<< "x4: " << x4<<std::endl;
+	std::cout<< "y1: " << y1<<std::endl;
+	std::cout<< "y2: " << y2<<std::endl;
+	std::cout<< "y3: " << y3<<std::endl;
+	std::cout<< "y4: " << y4<<std::endl;
+
+	
+	// Apply smoothing kernel to interpolation edge:
+	//     1/16 1/8 1/16
+	// k = 1/8  1/4 1/8
+	//     1/16 1/8 1/16
+
+	tmpImage = tiltImage;
+
+	int jj;
+	double m1 = (double)(-y1)/(x1);
+	double m2 = (double)(-y2)/(x2-(double)xSize);
+	double m3 = (double)(y3-(double)ySize)/(-x3);
+	double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+	std::cout<< "m1: " << m1<<std::endl;
+	std::cout<< "m2: " << m2<<std::endl;
+	std::cout<< "m3: " << m3<<std::endl;
+	std::cout<< "m4: " << m4<<std::endl;
+
+	// tmpImage.initZeros();
+
+	// Draw horizontal line
+	for (int ii = 1; ii < xSize-1; ii++)
+	{
+		// Interpolation line 1
+		jj = (int)(m1*(ii)+y1);
+
+		if (jj > 0 and jj < ySize)
+		{
+			for (int i = 0; i < 11; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}		
+
+		// Interpolation line 2
+		jj = (int)(m2*(ii-(double)xSize)+y2);
+
+		if (jj > 0 and jj < ySize)
+		{
+			for (int i = -11; i < 0; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}	
+
+		// Interpolation line 3
+		jj = (int)(m3*(ii-x3)+(double)ySize);
+
+		if (jj > 0 and jj < ySize)
+		{
+			for (int i = 0; i < 11; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}	
+
+		// Interpolation line 4
+		jj = (int)(m4*(ii-x4)+(double)ySize);
+
+		if (jj > 0 and jj < ySize)
+		{
+			for (int i = -11; i < 0; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}	
+	}
+
+	int ii;
+	// Draw vertical line
+	m1 = (double)(x1)/(-y1);
+	m2 = (double)(x2-(double)xSize)/(-y2);
+	m3 = (double)(-x3)/(y3-(double)ySize);
+	m4 = (double)((double)xSize-x4)/(y4-(double)ySize);
+
+	for (int jj = 0; jj < ySize; jj++)
+	{
+		// Interpolation line 1
+		ii = (int)(m1*(jj-y1));
+
+		if (ii > 0 and ii < xSize)
+		{
+			for (int i = 0; i < 11; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
+					
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) * 4 +
+
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) * 7 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) * 7 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) * 7 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) * 7 +
+														   
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) * 16 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) * 16 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) * 16 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) * 16 +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) * 26 + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) * 26 + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) * 26 + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) * 26 +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) * 41) / 273;
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
+					
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) +
+
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) +
+														   
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i)) / 25;
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}		
+
+		// Interpolation line 2
+		ii = (int)(m2*(jj-y2)+((double)xSize));
+
+		if (ii > 0 and ii < xSize)
+		{
+			for (int i = -11; i < 0; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}	
+
+		// Interpolation line 3
+		ii = (int)(m3*(jj-(double)ySize)+x3);
+
+		if (ii > 0 and ii < xSize)
+		{
+			for (int i = 0; i < 11; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}		
+			}
+		}	
+
+		// Interpolation line 4
+		ii = (int)(m4*(jj-(double)ySize)+x4);
+
+		if (ii > 0 and ii < xSize)
+		{
+			for (int i = -11; i < 0; i++)
+			{
+				if ((ii + i)>0 && (ii + i)<xSize)
+				{
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+				}	
+			}
+		}	
+	}
+
+	tiltImage = tmpImage;
+
+	// Bandpass filer image
+	FourierTransformer transformer1(FFTW_BACKWARD);
+	MultidimArray<std::complex<double>> fftImg;
+	transformer1.FourierTransform(tiltImage, fftImg, true);
+
+	normDim = (xSize>ySize) ? xSize : ySize;
+
+	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+	double w = 43.2 / normDim;
+
+    double lowFreqFilt = samplingRate/(1.1*fiducialSize);
+	double highFreqFilt = samplingRate/(0.9*fiducialSize);
+
+	double tail_high = highFreqFilt + w;
+    double tail_low = lowFreqFilt - w;
+
+	double delta = PI / w;
+
+    double uy;
+	double ux;
+	double u;
+	double uy2;
+
+	#ifdef DEBUG_PREPROCESS
+	std::cout << "Filter params: " << std::endl;
+	std::cout << "samplingRate: " << samplingRate << std::endl;
+	std::cout << "normDim: " << normDim << std::endl;
+	std::cout << "w: " << w << std::endl;
+	std::cout << "lowFreqFilt: " << lowFreqFilt << std::endl;
+	std::cout << "highFreqFilt: " << highFreqFilt << std::endl;
+	std::cout << "tail_low: " << tail_low << std::endl;
+	std::cout << "tail_high: " << tail_high << std::endl;
+	std::cout << "delta: " << delta << std::endl;
+	#endif
+
+	long n=0;
+
+	for(size_t i=0; i<YSIZE(fftImg); ++i)
+	{
+		FFT_IDX2DIGFREQ(i, ySize, uy);
+		uy2=uy*uy;
+
+		for(size_t j=0; j<XSIZE(fftImg); ++j)
+		{
+			FFT_IDX2DIGFREQ(j, xSize, ux);
+			u=sqrt(uy2+ux*ux);
+
+			if (u > tail_high || u < tail_low)
+			{
+				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
+			}
+			else
+			{
+				if (u >= highFreqFilt && u <=tail_high)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
+				}
+
+				if (u <= lowFreqFilt && u >= tail_low)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
+				}
+			}
+
+			++n;
+		}
+	}
+
+	transformer1.inverseFourierTransform(fftImg, tiltImage);
+
+	MultidimArray<double> dsImage;
+	selfScaleToSizeFourier(512, 512, dsImage, 1);
+
+}
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
 {
@@ -183,12 +672,12 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon && found == false)
 		{
-			x1=i-1;
+			x1=i;
 			found = true;
 		}
 		else if (abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) < epsilon && found == true)
 		{
-			x2=i;
+			x2=i-1;
 			break;
 		}
 	}
@@ -199,12 +688,12 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon && found == false)
 		{
-			x3=i-1;
+			x3=i;
 			found = true;
 		}
 		else if (abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i))< epsilon && found == true)
 		{
-			x4=i;
+			x4=i-1;
 			break;
 		}
 	}
@@ -215,12 +704,12 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon && found == false)
 		{
-			y1=j-1;
+			y1=j;
 			found = true;
 		}
 		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) < epsilon && found == true)
 		{
-			y3=j;
+			y3=j-1;
 			break;
 		}
 	}
@@ -231,12 +720,12 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon && !found)
 		{
-			y2=j-1;
+			y2=j;
 			found = true;
 		}
 		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) < epsilon && found)
 		{
-			y4=j;
+			y4=j-1;
 			break;
 		}
 	}
@@ -251,7 +740,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout<< "y4: " << y4<<std::endl;
 
 	
-	// Apply smoothing kernel to interpolation edges to tilt-image with kernel:
+	// Apply smoothing kernel to interpolation edge:
 	//     1/16 1/8 1/16
 	// k = 1/8  1/4 1/8
 	//     1/16 1/8 1/16
@@ -277,51 +766,51 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		// Interpolation line 1
 		jj = (int)(m1*(ii)+y1);
 
-
-		if (jj > 0 and jj < (ySize-1))
+		if (jj > 0 and jj < ySize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = 0; i < 11; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}		
 
 		// Interpolation line 2
 		jj = (int)(m2*(ii-(double)xSize)+y2);
-		std::cout<< "jj: " << jj<<std::endl;
-		std::cout<< "ii: " << ii<<std::endl;
-		std::cout<< "m1*(ii)+y1: " << m1*(ii)+y1<<std::endl;
 
-		if (jj > 0 and jj < (ySize-1))
+		if (jj > 0 and jj < ySize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = -11; i < 0; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}	
@@ -329,23 +818,25 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		// Interpolation line 3
 		jj = (int)(m3*(ii-x3)+(double)ySize);
 
-		if (jj > 0 and jj < (ySize-1))
+		if (jj > 0 and jj < ySize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = 0; i < 11; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}	
@@ -353,23 +844,25 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		// Interpolation line 4
 		jj = (int)(m4*(ii-x4)+(double)ySize);
 
-		if (jj > 0 and jj < (ySize-1))
+		if (jj > 0 and jj < ySize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = -11; i < 0; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}	
@@ -382,28 +875,94 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	m3 = (double)(-x3)/(y3-(double)ySize);
 	m4 = (double)((double)xSize-x4)/(y4-(double)ySize);
 
-	for (int jj = 1; jj < ySize-1; jj++)
+	for (int jj = 0; jj < ySize; jj++)
 	{
 		// Interpolation line 1
 		ii = (int)(m1*(jj-y1));
 
-		if (ii > 0 and ii < (xSize-1))
+		if (ii > 0 and ii < xSize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = 0; i < 11; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
+					
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) * 4 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) * 4 +
+
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) * 7 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) * 7 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) * 7 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) * 7 +
+														   
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) * 16 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) * 16 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) * 16 +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) * 16 +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) * 26 + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) * 26 + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) * 26 + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) * 26 +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) * 41) / 273;
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
+					
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) +
+
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) +
+														   
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) +
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) + 
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) +
+
+					// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i)) / 25;
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}		
@@ -411,23 +970,25 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		// Interpolation line 2
 		ii = (int)(m2*(jj-y2)+((double)xSize));
 
-		if (ii > 0 and ii < (xSize-1))
+		if (ii > 0 and ii < xSize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = -11; i < 0; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}	
@@ -435,23 +996,25 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		// Interpolation line 3
 		ii = (int)(m3*(jj-(double)ySize)+x3);
 
-		if (ii > 0 and ii < (xSize-1))
+		if (ii > 0 and ii < xSize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = 0; i < 11; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}		
 			}
 		}	
@@ -459,23 +1022,25 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		// Interpolation line 4
 		ii = (int)(m4*(jj-(double)ySize)+x4);
 
-		if (ii > 0 and ii < (xSize-1))
+		if (ii > 0 and ii < xSize)
 		{
-			for (int i = -1; i < 2; i++)
+			for (int i = -11; i < 0; i++)
 			{
-				if ((ii + i -1)>0 && (ii + i + 1)<xSize)
+				if ((ii + i)>0 && (ii + i)<xSize)
 				{
-					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-													   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-													       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-													       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+					DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
 
-					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = 1;
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+					// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+					// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+					// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
 				}	
 			}
 		}	
@@ -483,106 +1048,110 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	tiltImage = tmpImage;
 
-	// // Bandpass filer image
-	// FourierTransformer transformer1(FFTW_BACKWARD);
-	// MultidimArray<std::complex<double>> fftImg;
-	// transformer1.FourierTransform(tiltImage, fftImg, true);
+	// Bandpass filer image
+	FourierTransformer transformer1(FFTW_BACKWARD);
+	MultidimArray<std::complex<double>> fftImg;
+	transformer1.FourierTransform(tiltImage, fftImg, true);
 
-	// normDim = (xSize>ySize) ? xSize : ySize;
+	normDim = (xSize>ySize) ? xSize : ySize;
 
-	// // 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
-	// double w = 43.2 / normDim;
+	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+	double w = 43.2 / normDim;
 
-    // double lowFreqFilt = samplingRate/(1.1*fiducialSize);
-	// double highFreqFilt = samplingRate/(0.9*fiducialSize);
+    double lowFreqFilt = samplingRate/(1.1*fiducialSize);
+	double highFreqFilt = samplingRate/(0.9*fiducialSize);
 
-	// double tail_high = highFreqFilt + w;
-    // double tail_low = lowFreqFilt - w;
+	double tail_high = highFreqFilt + w;
+    double tail_low = lowFreqFilt - w;
 
-	// double delta = PI / w;
+	double delta = PI / w;
 
-    // double uy;
-	// double ux;
-	// double u;
-	// double uy2;
+    double uy;
+	double ux;
+	double u;
+	double uy2;
 
-	// #ifdef DEBUG_PREPROCESS
-	// std::cout << "Filter params: " << std::endl;
-	// std::cout << "samplingRate: " << samplingRate << std::endl;
-	// std::cout << "normDim: " << normDim << std::endl;
-	// std::cout << "w: " << w << std::endl;
-	// std::cout << "lowFreqFilt: " << lowFreqFilt << std::endl;
-	// std::cout << "highFreqFilt: " << highFreqFilt << std::endl;
-	// std::cout << "tail_low: " << tail_low << std::endl;
-	// std::cout << "tail_high: " << tail_high << std::endl;
-	// std::cout << "delta: " << delta << std::endl;
-	// #endif
+	#ifdef DEBUG_PREPROCESS
+	std::cout << "Filter params: " << std::endl;
+	std::cout << "samplingRate: " << samplingRate << std::endl;
+	std::cout << "normDim: " << normDim << std::endl;
+	std::cout << "w: " << w << std::endl;
+	std::cout << "lowFreqFilt: " << lowFreqFilt << std::endl;
+	std::cout << "highFreqFilt: " << highFreqFilt << std::endl;
+	std::cout << "tail_low: " << tail_low << std::endl;
+	std::cout << "tail_high: " << tail_high << std::endl;
+	std::cout << "delta: " << delta << std::endl;
+	#endif
 
-	// long n=0;
+	long n=0;
 
-	// for(size_t i=0; i<YSIZE(fftImg); ++i)
-	// {
-	// 	FFT_IDX2DIGFREQ(i, ySize, uy);
-	// 	uy2=uy*uy;
+	for(size_t i=0; i<YSIZE(fftImg); ++i)
+	{
+		FFT_IDX2DIGFREQ(i, ySize, uy);
+		uy2=uy*uy;
 
-	// 	for(size_t j=0; j<XSIZE(fftImg); ++j)
-	// 	{
-	// 		FFT_IDX2DIGFREQ(j, xSize, ux);
-	// 		u=sqrt(uy2+ux*ux);
+		for(size_t j=0; j<XSIZE(fftImg); ++j)
+		{
+			FFT_IDX2DIGFREQ(j, xSize, ux);
+			u=sqrt(uy2+ux*ux);
 
-	// 		if (u > tail_high || u < tail_low)
-	// 		{
-	// 			DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
-	// 		}
-	// 		else
-	// 		{
-	// 			if (u >= highFreqFilt && u <=tail_high)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
-	// 			}
+			if (u > tail_high || u < tail_low)
+			{
+				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
+			}
+			else
+			{
+				if (u >= highFreqFilt && u <=tail_high)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
+				}
 
-	// 			if (u <= lowFreqFilt && u >= tail_low)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
-	// 			}
-	// 		}
+				if (u <= lowFreqFilt && u >= tail_low)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
+				}
+			}
 
-	// 		++n;
-	// 	}
-	// }
+			++n;
+		}
+	}
 
-	// transformer1.inverseFourierTransform(fftImg, tiltImage);
+	transformer1.inverseFourierTransform(fftImg, tiltImage);
+
+	MultidimArray<double> dsImage;
+	selfScaleToSizeFourier(512, 512, dsImage, 1);
 
 
-	// // MultidimArray<double> tmpImage = tiltImage;
+
+	// // // MultidimArray<double> tmpImage = tiltImage;
 	
-	// // RetinexFilter rf;
-	// // rf.laplacian(tiltImage, fftImg, false); 
-	// // transformer1.inverseFourierTransform(fftImg, tiltImage);
+	// // // RetinexFilter rf;
+	// // // rf.laplacian(tiltImage, fftImg, false); 
+	// // // transformer1.inverseFourierTransform(fftImg, tiltImage);
 
-	// // Apply Laplacian to tilt-image with kernel:
-	// //     0  1 0
-	// // k = 1 -4 1
-	// //     0  1 0
+	// // // Apply Laplacian to tilt-image with kernel:
+	// // //     0  1 0
+	// // // k = 1 -4 1
+	// // //     0  1 0
 
-	// // MultidimArray<double> tmpImage = tiltImage;
+	// // // MultidimArray<double> tmpImage = tiltImage;
 
-	// // for (size_t i = 1; i < xSize-1; i++)
-	// // {
-	// // 	for (size_t j = 1; j < ySize-1; j++)
-	// // 	{
-	// // 		DIRECT_A2D_ELEM(tiltImage, j ,i) = (DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
-	// // 										    DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
-	// // 											DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
-	// // 											DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
-	// // 								 			-4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
-	// // 	}	
-	// // }	
+	// // // for (size_t i = 1; i < xSize-1; i++)
+	// // // {
+	// // // 	for (size_t j = 1; j < ySize-1; j++)
+	// // // 	{
+	// // // 		DIRECT_A2D_ELEM(tiltImage, j ,i) = (DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+	// // // 										    DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+	// // // 											DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+	// // // 											DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+	// // // 								 			-4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+	// // // 	}	
+	// // // }	
 
-    // // Apply Laplacian to tilt-image with kernel:
-	// //     0 -1 0
-	// // k = -1 4 -1
-	// //     0 -1 0
+    // Apply Laplacian to tilt-image with kernel:
+	//     0 -1 0
+	// k = -1 4 -1
+	//     0 -1 0
 
 	// tmpImage = tiltImage;
 	// int jmin;
@@ -590,50 +1159,40 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	// for (int i = 1; i < xSize-1; i++)
 	// {
-	// 	// minimum y index for interation
-	// 	if(i < x1-1)
-	// 	{
-	// 		jmin = m1*(i-x1);
-	// 	}
-	// 	else if (i > x2+1)
-	// 	{
-	// 		jmin = m2*(i-x2);
-	// 	}
-	// 	else
-	// 	{
-	// 		jmin = 0;
-	// 	}
+	// 	// // minimum y index for interation
+	// 	// if(i < x1-1)
+	// 	// {
+	// 	// 	jmin = m1*(i-x1);
+	// 	// }
+	// 	// else if (i > x2+1)
+	// 	// {
+	// 	// 	jmin = m2*(i-x2);
+	// 	// }
+	// 	// else
+	// 	// {
+	// 	// 	jmin = 0;
+	// 	// }
 		
-	// 	// maximum y index for interation
-	// 	if(i < x3-1)
-	// 	{
-	// 		jmax = m3*i+y2;
-	// 	}
-	// 	else if (i > x4+1)
-	// 	{
-	// 		jmax = m4*(i-xSize)+y4;
-	// 	}
-	// 	else
-	// 	{
-	// 		jmax = ySize-1;
-	// 	}
+	// 	// // maximum y index for interation
+	// 	// if(i < x3-1)
+	// 	// {
+	// 	// 	jmax = m3*i+y2;
+	// 	// }
+	// 	// else if (i > x4+1)
+	// 	// {
+	// 	// 	jmax = m4*(i-xSize)+y4;
+	// 	// }
+	// 	// else
+	// 	// {
+	// 	// 	jmax = ySize-1;
+	// 	// }
 
-	// 	std::cout<< "jmin: " << jmin<<std::endl;
-	// 	std::cout << "jmax: " << jmax<<std::endl;
+	// 	// std::cout<< "jmin: " << jmin<<std::endl;
+	// 	// std::cout << "jmax: " << jmax<<std::endl;
 
 		
-	// 	// Apply laplazian in when y belongs to (jmin, jmax)
-	// 	for (int j = jmin; j <= jmax; j++)
-	// 	{
-	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
-	// 										    -1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
-	// 											-1 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
-	// 											-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
-	// 								 			4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
-	// 	}	
-
-
-	// 	// for (size_t j = 1; j < ySize-1; j++)
+	// 	// // Apply laplazian in when y belongs to (jmin, jmax)
+	// 	// for (int j = jmin; j <= jmax; j++)
 	// 	// {
 	// 	// 	DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
 	// 	// 									    -1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
@@ -641,14 +1200,24 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	// 	// 										-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
 	// 	// 							 			4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
 	// 	// }	
+
+
+	// 	for (size_t j = 1; j < ySize-1; j++)
+	// 	{
+	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+	// 										    -1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+	// 											-1 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+	// 											-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+	// 								 			4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+	// 	}	
 	// }
 
-	// // tiltImage.rangeAdjust(0, 255);
+	// // // tiltImage.rangeAdjust(0, 255);
 
-	// // // Rolling ball
-	// // substractBackgroundRollingBall(tiltImage, (int)(samplingRate/(fiducialSize)));
-	// // MultidimArray<double> tmpImage = tiltImage;
-	// // closing2D(tmpImage, tiltImage, 8, 8, 8);
+	// Rolling ball
+	// substractBackgroundRollingBall(tiltImage, (int)(samplingRate/(fiducialSize)));
+	// // // MultidimArray<double> tmpImage = tiltImage;
+	// // // closing2D(tmpImage, tiltImage, 8, 8, 8);
 }
 
 
