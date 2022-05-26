@@ -180,6 +180,8 @@ public:
     */
     void bandPassFilter(MultidimArray<double> &inputTiltSeries);
 
+    void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
+
     /**
      * Peaks high contrast regions in a volume.
      *
