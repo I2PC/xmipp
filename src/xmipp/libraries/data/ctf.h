@@ -1277,7 +1277,7 @@ public:
             	FFT_IDX2DIGFREQ(j, XSIZE(CTF), wx)
                 double fx=wx*iTs;
 				precomputeValues(fx, fy);
-				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt(); // - needed??
+				A2D_ELEM(CTF, i, j) = (T) -getValueDampingAt(); 
 				#ifdef DEBUG
 						if (i == 0)
 							std::cout << i << " " << j << " " << YY(freq) << " " << XX(freq)

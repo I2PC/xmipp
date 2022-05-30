@@ -456,8 +456,6 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(fftE)
 			DIRECT_A2D_ELEM(fftE,i,j)*=DIRECT_A2D_ELEM(*ctfEnvelope,i,j);
 		fftTransformer.inverseFourierTransform();
-		// save intermediate files here
-		Ifiltered.write("Ifiltered.mrc");
 	}
 	else
 		hasCTF=false;
