@@ -284,6 +284,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
+	#ifdef DEBUG_PREPROCESS
 	std::cout<< "x1: " << x1<<std::endl;
 	std::cout<< "x2: " << x2<<std::endl;
 	std::cout<< "x3: " << x3<<std::endl;
@@ -292,6 +293,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout<< "y2: " << y2<<std::endl;
 	std::cout<< "y3: " << y3<<std::endl;
 	std::cout<< "y4: " << y4<<std::endl;
+	# endif 
 
 	// Bandpass filer image
 	FourierTransformer transformer1(FFTW_BACKWARD);
@@ -400,7 +402,9 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	int marginThickness = (int)((fiducialSize/samplingRate)*1.25);
 
+	#ifdef DEBUG_PREPROCESS
 	std::cout << "marginThickness: " << marginThickness << std::endl;
+	#endif
 
 	x1 += marginThickness;  // (x1, 0)
 	x2 -= marginThickness;  // (x2, 0)
@@ -416,10 +420,12 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	double m3 = (double)(y3-(double)ySize)/(-x3);
 	double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
 	
+	#ifdef DEBUG_PREPROCESS
 	std::cout<< "m1: " << m1<<std::endl;
 	std::cout<< "m2: " << m2<<std::endl;
 	std::cout<< "m3: " << m3<<std::endl;
 	std::cout<< "m4: " << m4<<std::endl;
+	#endif
 
 	for (int i = 1; i < xSize-2; i++)
 	{
