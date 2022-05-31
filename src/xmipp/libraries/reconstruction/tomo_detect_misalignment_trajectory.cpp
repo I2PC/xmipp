@@ -293,341 +293,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout<< "y3: " << y3<<std::endl;
 	std::cout<< "y4: " << y4<<std::endl;
 
-	///////////////////////////////////////////////////////////////////////////////////// LETS AVOID THIS
-	// // Apply smoothing kernel to interpolation edges:
-	// //     1/16 1/8 1/16
-	// // k = 1/8  1/4 1/8
-	// //     1/16 1/8 1/16
-
-	// tmpImage = tiltImage;
-
-	// int jj;
-	
-	// double m1 = (double)(-y1)/(x1);
-	// double m2 = (double)(-y2)/(x2-(double)xSize);
-	// double m3 = (double)(y3-(double)ySize)/(-x3);
-	// double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
-
-	// std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
-	// 							DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
-	// 							DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
-	// 							DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
-
-	// sort(corners.begin(), corners.end(), std::greater<double>());
-
-	// double backgroundValue = (corners[1]+corners[2])/2;  // Background value as the median of the corners
-
-	// std::cout<< "m1: " << m1<<std::endl;
-	// std::cout<< "m2: " << m2<<std::endl;
-	// std::cout<< "m3: " << m3<<std::endl;
-	// std::cout<< "m4: " << m4<<std::endl;
-
-	// // tmpImage.initZeros();
-
-	// // Draw horizontal line
-	// for (int ii = 1; ii < xSize-1; ii++)
-	// {
-	// 	DIRECT_A2D_ELEM(tmpImage, 0 ,ii) = backgroundValue;
-	// 	DIRECT_A2D_ELEM(tmpImage, ySize-1 ,ii) = backgroundValue;
-
-	// 	// Interpolation line 1
-	// 	jj = (int)(m1*(ii)+y1);
-
-	// 	if (jj > 0 and jj < ySize)
-	// 	{
-	// 		for (int i = 0; i < 11; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}		
-
-	// 	// Interpolation line 2
-	// 	jj = (int)(m2*(ii-(double)xSize)+y2);
-
-	// 	if (jj > 0 and jj < ySize)
-	// 	{
-	// 		for (int i = -11; i < 0; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}	
-
-	// 	// Interpolation line 3
-	// 	jj = (int)(m3*(ii-x3)+(double)ySize);
-
-	// 	if (jj > 0 and jj < ySize)
-	// 	{
-	// 		for (int i = 0; i < 11; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}	
-
-	// 	// Interpolation line 4
-	// 	jj = (int)(m4*(ii-x4)+(double)ySize);
-
-	// 	if (jj > 0 and jj < ySize)
-	// 	{
-	// 		for (int i = -11; i < 0; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}	
-	// }
-
-	// int ii;
-	// // Draw vertical line
-	// m1 = (double)(x1)/(-y1);
-	// m2 = (double)(x2-(double)xSize)/(-y2);
-	// m3 = (double)(-x3)/(y3-(double)ySize);
-	// m4 = (double)((double)xSize-x4)/(y4-(double)ySize);
-
-	// for (int jj = 0; jj < ySize; jj++)
-	// {
-	// 	DIRECT_A2D_ELEM(tmpImage, jj, 0) = backgroundValue;
-	// 	DIRECT_A2D_ELEM(tmpImage, jj, xSize-1) = backgroundValue;
-
-	// 	// Interpolation line 1
-	// 	ii = (int)(m1*(jj-y1));
-
-	// 	if (ii > 0 and ii < xSize)
-	// 	{
-	// 		for (int i = 0; i < 11; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
-					
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) * 4 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) * 4 +
-
-
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) * 7 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) * 7 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) * 7 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) * 7 +
-														   
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) * 16 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) * 16 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) * 16 +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) * 16 +
-
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) * 26 + 
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) * 26 + 
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) * 26 + 
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) * 26 +
-
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) * 41) / 273;
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
-					
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) +
-
-
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) +
-														   
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) +
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) +
-
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) + 
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) + 
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) + 
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) +
-
-	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i)) / 25;
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}		
-
-	// 	// Interpolation line 2
-	// 	ii = (int)(m2*(jj-y2)+((double)xSize));
-
-	// 	if (ii > 0 and ii < xSize)
-	// 	{
-	// 		for (int i = -11; i < 0; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}	
-
-	// 	// Interpolation line 3
-	// 	ii = (int)(m3*(jj-(double)ySize)+x3);
-
-	// 	if (ii > 0 and ii < xSize)
-	// 	{
-	// 		for (int i = 0; i < 11; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}		
-	// 		}
-	// 	}	
-
-	// 	// Interpolation line 4
-	// 	ii = (int)(m4*(jj-(double)ySize)+x4);
-
-	// 	if (ii > 0 and ii < xSize)
-	// 	{
-	// 		for (int i = -11; i < 0; i++)
-	// 		{
-	// 			if ((ii + i)>0 && (ii + i)<xSize)
-	// 			{
-	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
-	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
-	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
-
-	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
-	// 			}	
-	// 		}
-	// 	}	
-	// }
-
-	// tiltImage = tmpImage;
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 	// Bandpass filer image
 	FourierTransformer transformer1(FFTW_BACKWARD);
 	MultidimArray<std::complex<double>> fftImg;
@@ -3284,4 +2949,339 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 // }
 
 
+// void ProgTomoDetectMisalignmentTrajectory::smoothInterpolationEdges()  // NOT IMPLEMENTED 
+// {
+	// // Apply smoothing kernel to interpolation edges:
+	// //     1/16 1/8 1/16
+	// // k = 1/8  1/4 1/8
+	// //     1/16 1/8 1/16
+
+	// tmpImage = tiltImage;
+
+	// int jj;
+	
+	// double m1 = (double)(-y1)/(x1);
+	// double m2 = (double)(-y2)/(x2-(double)xSize);
+	// double m3 = (double)(y3-(double)ySize)/(-x3);
+	// double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+	// std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
+	// 							DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
+	// 							DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
+	// 							DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
+
+	// sort(corners.begin(), corners.end(), std::greater<double>());
+
+	// double backgroundValue = (corners[1]+corners[2])/2;  // Background value as the median of the corners
+
+	// std::cout<< "m1: " << m1<<std::endl;
+	// std::cout<< "m2: " << m2<<std::endl;
+	// std::cout<< "m3: " << m3<<std::endl;
+	// std::cout<< "m4: " << m4<<std::endl;
+
+	// // tmpImage.initZeros();
+
+	// // Draw horizontal line
+	// for (int ii = 1; ii < xSize-1; ii++)
+	// {
+	// 	DIRECT_A2D_ELEM(tmpImage, 0 ,ii) = backgroundValue;
+	// 	DIRECT_A2D_ELEM(tmpImage, ySize-1 ,ii) = backgroundValue;
+
+	// 	// Interpolation line 1
+	// 	jj = (int)(m1*(ii)+y1);
+
+	// 	if (jj > 0 and jj < ySize)
+	// 	{
+	// 		for (int i = 0; i < 11; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}		
+
+	// 	// Interpolation line 2
+	// 	jj = (int)(m2*(ii-(double)xSize)+y2);
+
+	// 	if (jj > 0 and jj < ySize)
+	// 	{
+	// 		for (int i = -11; i < 0; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}	
+
+	// 	// Interpolation line 3
+	// 	jj = (int)(m3*(ii-x3)+(double)ySize);
+
+	// 	if (jj > 0 and jj < ySize)
+	// 	{
+	// 		for (int i = 0; i < 11; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}	
+
+	// 	// Interpolation line 4
+	// 	jj = (int)(m4*(ii-x4)+(double)ySize);
+
+	// 	if (jj > 0 and jj < ySize)
+	// 	{
+	// 		for (int i = -11; i < 0; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj, xSize-1);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 										DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}	
+	// }
+
+	// int ii;
+	// // Draw vertical line
+	// m1 = (double)(x1)/(-y1);
+	// m2 = (double)(x2-(double)xSize)/(-y2);
+	// m3 = (double)(-x3)/(y3-(double)ySize);
+	// m4 = (double)((double)xSize-x4)/(y4-(double)ySize);
+
+	// for (int jj = 0; jj < ySize; jj++)
+	// {
+	// 	DIRECT_A2D_ELEM(tmpImage, jj, 0) = backgroundValue;
+	// 	DIRECT_A2D_ELEM(tmpImage, jj, xSize-1) = backgroundValue;
+
+	// 	// Interpolation line 1
+	// 	ii = (int)(m1*(jj-y1));
+
+	// 	if (ii > 0 and ii < xSize)
+	// 	{
+	// 		for (int i = 0; i < 11; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
+					
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) * 4 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) * 4 +
+
+
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) * 7 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) * 7 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) * 7 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) * 7 +
+														   
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) * 16 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) * 16 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) * 16 +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) * 16 +
+
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) * 26 + 
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) * 26 + 
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) * 26 + 
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) * 26 +
+
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) * 41) / 273;
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+2) +		
+					
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i-1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i+1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i-1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i+1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+2) +
+
+
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-2 ,ii+i) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+2 ,ii+i) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-2) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+2) +
+														   
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) +
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) +
+
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) + 
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) + 
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) + 
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) +
+
+	// 				// 									   DIRECT_A2D_ELEM(tiltImage, jj ,ii+i)) / 25;
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}		
+
+	// 	// Interpolation line 2
+	// 	ii = (int)(m2*(jj-y2)+((double)xSize));
+
+	// 	if (ii > 0 and ii < xSize)
+	// 	{
+	// 		for (int i = -11; i < 0; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}	
+
+	// 	// Interpolation line 3
+	// 	ii = (int)(m3*(jj-(double)ySize)+x3);
+
+	// 	if (ii > 0 and ii < xSize)
+	// 	{
+	// 		for (int i = 0; i < 11; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,0);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}		
+	// 		}
+	// 	}	
+
+	// 	// Interpolation line 4
+	// 	ii = (int)(m4*(jj-(double)ySize)+x4);
+
+	// 	if (ii > 0 and ii < xSize)
+	// 	{
+	// 		for (int i = -11; i < 0; i++)
+	// 		{
+	// 			if ((ii + i)>0 && (ii + i)<xSize)
+	// 			{
+	// 				DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = backgroundValue;
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = DIRECT_A2D_ELEM(tiltImage, jj,xSize-1);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = (DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i-1) / 16 +
+	// 				// 								   	   DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i-1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i+1) / 16 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj-1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj+1 ,ii+i) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i-1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i+1) / 8 +
+	// 				// 								       DIRECT_A2D_ELEM(tiltImage, jj ,ii+i) / 4);
+
+	// 				// DIRECT_A2D_ELEM(tmpImage, jj ,ii+i) = -99;
+	// 			}	
+	// 		}
+	// 	}	
+	// }
+
+	// tiltImage = tmpImage;
+
+// }
 
