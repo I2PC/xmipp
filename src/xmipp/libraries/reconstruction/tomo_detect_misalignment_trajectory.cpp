@@ -148,48 +148,6 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 
 // --------------------------- HEAD functions ----------------------------
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis)
-{
-	double dsFactor;
-	double targetFiducialSize = 10;
-
-	dsFactor = targetFiducialSize/(fiducialSize/samplingRate);
-
-	size_t ySizeDS= (size_t) (ySize* dsFactor);
-	size_t xSizeDS= (size_t) (xSize* dsFactor);
-
-	tiltImageBis.initZeros( ySizeDS, xSizeDS);
-
-	MultidimArray<double> dsImage;
-	selfScaleToSizeFourier(512, 512, dsImage, 1);
-
-
-	// Apply gold bead kernel to tilt image
-	//    1           9          36          84         126         126          84          36           9           1
-	//    9          81         324         756        1134        1134         756         324          81           9
-	//   36         324        1296        3024        4536        4536        3024        1296         324          36
-	//   84         756        3024        7056       10584       10584        7056        3024         756          84
-	//  126        1134        4536       10584       15876       15876       10584        4536        1134         126  /262144
-	//  126        1134        4536       10584       15876       15876       10584        4536        1134         126
-	//   84         756        3024        7056       10584       10584        7056        3024         756          84
-	//   36         324        1296        3024        4536        4536        3024        1296         324          36
-	//    9          81         324         756        1134        1134         756         324          81           9
-	//    1           9          36          84         126         126          84          36           9           1
-
-
-	// for (int i = 0; i < xSizeDS; i++)
-	// {
-	// 	for (int j = 0; j < ySizeDS; i++)
-	// 	{
-	// 	// Interpolation line 1
-	// 	jj = (int)(m1*(ii)+y1);
-
-	// 	if (jj > 0 and jj < ySize)
-	// 	{
-	// 	}}
-
-}
-
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
 {
 	tiltImage.rangeAdjust(0, 1024);
