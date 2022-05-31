@@ -36,7 +36,7 @@ ProgMPIRecFourierAccel::ProgMPIRecFourierAccel(int argc, char *argv[])
 /* constructor providing an MpiNode
  * this is useful for using this programs from others
  */
-ProgMPIRecFourierAccel::ProgMPIRecFourierAccel(MpiNode * node)
+ProgMPIRecFourierAccel::ProgMPIRecFourierAccel(const std::shared_ptr<MpiNode> &node)
 {
     this->setNode(node);
 }
