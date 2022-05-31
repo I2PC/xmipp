@@ -638,8 +638,8 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
 	double w = 43.2 / normDim;
 
-    double lowFreqFilt = samplingRate/(1.1*fiducialSize);
-	double highFreqFilt = samplingRate/(0.9*fiducialSize);
+    double lowFreqFilt = samplingRate/(1.05*fiducialSize);
+	double highFreqFilt = samplingRate/(0.95*fiducialSize);
 
 	double tail_high = highFreqFilt + w;
     double tail_low = lowFreqFilt - w;
@@ -733,63 +733,80 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	int jmin;
 	int jmax;
 
+	int marginThickness = (int)((fiducialSize/samplingRate)*1.25);
+
+	std::cout << "marginThickness: " << marginThickness << std::endl;
+
+	x1 += marginThickness;  // (x1, 0)
+	x2 -= marginThickness;  // (x2, 0)
+	x3 += marginThickness;  // (x3, ySize)
+	x4 -= marginThickness;  // (x4, ySize)
+	y1 += marginThickness;  // (y1, 0)
+	y2 += marginThickness;  // (xSize, y2)
+	y3 -= marginThickness;  // (0, y3)
+	y4 -= marginThickness;  // (xSize, y4)
+
 	double m1 = (double)(-y1)/(x1);
 	double m2 = (double)(-y2)/(x2-(double)xSize);
 	double m3 = (double)(y3-(double)ySize)/(-x3);
 	double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
-
+	
 	std::cout<< "m1: " << m1<<std::endl;
 	std::cout<< "m2: " << m2<<std::endl;
 	std::cout<< "m3: " << m3<<std::endl;
 	std::cout<< "m4: " << m4<<std::endl;
 
-
-	size_t marginThickness = (int)((fiducialSize/samplingRate)/3);
-
-	std::cout << "marginThickness: " << marginThickness << std::endl;
-
-	for (int i = marginThickness; i < xSize-marginThickness; i++)
+	for (int i = 1; i < xSize-2; i++)
 	{
 		// minimum y index for interation
 		if(i < x1)
 		{
-			jmin = (int)(m1*i+y1)+marginThickness;
+			jmin = (int)(m1*i+y1);
 		}
 		else if (i > x2)
 		{
-			jmin = (int)(m2*(i-(int)xSize)+y2)+marginThickness;
+			jmin = (int)(m2*(i-(int)xSize)+y2);
 		}
 		else
 		{
-			jmin = marginThickness;
+			jmin = 1;
 		}
 		
 		// maximum y index for interation
 		if(i < x3)
 		{
-			jmax = (int)(m3*(i-x3)+(int)ySize)-marginThickness;
+			jmax = (int)(m3*(i-x3)+(int)ySize);
 		}
 		else if (i > x4)
 		{
-			jmax = (int)(m4*(i-x4)+(int)ySize)-marginThickness;
+			jmax = (int)(m4*(i-x4)+(int)ySize);
 		}
 		else
 		{
-			jmax = (int)ySize-marginThickness;
+			jmax = (int)(ySize-2);
+		}
+
+		// check range in image size
+		if(jmin < 1)
+		{
+			jmin = 1;
+		}
+
+		if(jmax > (int)(ySize-2))
+		{
+			jmax = (int)(ySize-2);
 		}
 		
 		// Apply laplazian in when y belongs to (jmin, jmax)
 		for (int j = jmin; j <= jmax; j++)
 		{
-			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
-											    -1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
-												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
-												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
-									 			4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-2 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+											    -2 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
 		}	
 	}
-
-	// tiltImage.rangeAdjust(0, 255);
 
 	// Rolling ball
 	// substractBackgroundRollingBall(tiltImage, (int)(samplingRate/(fiducialSize)));
@@ -849,12 +866,12 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		// ***TODO: value = (value-min)^2 aplicar no linearidad
 
-		int minimum = *min_element(sliceVector.begin(), sliceVector.end());
-		for (size_t i = 0; i < sliceVectorSize; i++)
-		{
-			sliceVector[i] = (sliceVector[i]-minimum)*(sliceVector[i]-minimum);
-		}
-		
+		// int minimum = *min_element(sliceVector.begin(), sliceVector.end());
+		// for (size_t i = 0; i < sliceVectorSize; i++)
+		// {
+		// 	sliceVector[i] = (sliceVector[i]-minimum)*(sliceVector[i]-minimum);
+		// }
+
         for(size_t e = 0; e < sliceVectorSize; e++)
         {
             int value = sliceVector[e];
@@ -867,7 +884,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
         // double threshold = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
-        double threshold = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
+        double threshold = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
 
         #ifdef DEBUG_HCC
 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << " Threshold: " << threshold << std::endl;
@@ -886,7 +903,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-				if ((value-minimum)*(value-minimum) > threshold)
+				// if ((value-minimum)*(value-minimum) > threshold)
+				// {
+				
+				if (value < threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 					
@@ -3262,3 +3282,6 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 // 		}
 // 	}
 // }
+
+
+
