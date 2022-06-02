@@ -895,7 +895,6 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 					coordinate3dId += 1;
 				}
-				break;
 			}
 		}else
 		{
@@ -912,12 +911,37 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 {
+	// Analyze residuals out of range distribution
+	MultidimArray<int> resDistribution;
+	resDistribution.initZeros(nSize, inputCoords.size());
+
+	double mod2Thr = 0.5 * (fiducialSize / samplingRate);
+
+	for (size_t i = 0; i < vCM.size(); i++)
+	{
+		double mod2 = (vCM[i].residuals.x*vCM[i].residuals.x)*(vCM[i].residuals.y*vCM[i].residuals.y);
+
+		if (mod2 > mod2Thr)
+		{
+			DIRECT_A2D_ELEM(resDistribution, vCM[i].id, (size_t)vCM[i].detectedCoordinate.z) = 1;
+		}
+	}
+
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outFileName = rawname + "/ts_resDistribution.mrc";
+
+	Image<int> saveImage;
+	saveImage() = resDistribution;
+	saveImage.write(outFileName);
+
+
 	// Run XmippScript for statistical residual analysis
 
 	std::cout << "\nRunning residual statistical analysis..." << std::endl;
 
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
+	lastindex = fnOut.find_last_of("\\/");
+	rawname = fnOut.substr(0, lastindex);
 	std::string fnVCM;
 	std::string fnStats;
     fnVCM = rawname + "/vCM.xmd";
@@ -1065,10 +1089,8 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	std::cout << "Random walk test passed: " << testRandomWalkPassed << "/" << numberOfChains << std::endl;
 	#endif
 
-	// Analyze results from analysis
-
 	// 30% of the bead size in pixels
-	float maxDeviation = 0.3 * (fiducialSize / samplingRate);
+	float maxDeviation = mod2Thr;
 
 	float thrAreaCH = PI*maxDeviation*maxDeviation;
 	float thrPerimeterCH = 2*PI*maxDeviation;
