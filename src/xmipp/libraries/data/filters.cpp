@@ -1523,8 +1523,7 @@ double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
 			sumWI1I2 +=wp1a*p2a;
 		}
 	}
-	sumWI1I2*=iN;
-	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI1I2);
+	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI2I2);
 
 	return corrW1W2;
 }
