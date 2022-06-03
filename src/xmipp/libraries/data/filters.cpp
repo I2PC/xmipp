@@ -1446,8 +1446,7 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 			sumMI1I2+=p1a*p2a;
 		}
 	}
-	sumMI1I2*=iN1;
-	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI1I2);
+	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI2I2);
 
 	return corrM1M2;
 }
