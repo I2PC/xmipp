@@ -530,8 +530,8 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 				cost=-cost;
 			if (verbose>=2)
 				std::cout << "I'=" << p(0) << "*I" << "+" << p(1) << " Dshift=(" << p(2) << "," << p(3) << ") "
-				          << "scale=(" << 1+p(4) << "," << 1+p(5) << ") Drot=" << p(6) << " Dtilt=" << p(7)
-				          << " Dpsi=" << p(8) << " DU=" << p(9) << " DV=" << p(10) << " Dalpha=" << p(11) << std::endl;
+				          << "scale=(" << 1+p(4) << "," << 1+p(5) << ", angle=" << p(6) << ") Drot=" << p(7) << " Dtilt=" << p(8)
+				          << " Dpsi=" << p(9) << " DU=" << p(10) << " DV=" << p(11) << " Dalpha=" << p(12) << std::endl;
 			// Apply
 			FileName fnOrig;
 			rowIn.getValue(MDL::str2Label(originalImageLabel),fnOrig);
