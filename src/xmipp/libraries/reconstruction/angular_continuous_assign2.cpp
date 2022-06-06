@@ -258,7 +258,8 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 		if (prm->sameDefocus){
     		defocusV=defocusU;
 		}
-		defocusV=prm->old_defocusV+deltaDefocusV;
+		else
+			defocusV=prm->old_defocusV+deltaDefocusV;
     	double angle=prm->old_defocusAngle+deltaDefocusAngle;
     	if (defocusU!=prm->currentDefocusU || defocusV!=prm->currentDefocusV || angle!=prm->currentAngle)
     		prm->updateCTFImage(defocusU,defocusV,angle);
