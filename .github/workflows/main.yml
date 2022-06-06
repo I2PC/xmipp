@@ -26,6 +26,18 @@ jobs:
       - uses: actions/checkout@v2
         with:
             fetch-depth: 0
+
+      - name: Get current time
+        uses: josStorer/get-current-time@v2
+        id: current-time
+        with:
+          format: YYYYMMDD-HH
+          utcOffset: "+02:00"
+      - name: Use current time
+        env:
+          R_TIME: "${{ steps.current-time.outputs.readableTime }}"
+        run: echo $R_TIME
+
       - uses: actions/setup-python@v3
         with:
           python-version: '3.*' # Version range or exact version of a Python version to use, using SemVer's version range syntax

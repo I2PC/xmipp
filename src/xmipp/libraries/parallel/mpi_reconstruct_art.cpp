@@ -43,7 +43,7 @@ ProgMPIReconsArt::ProgMPIReconsArt(int argc, char *argv[])
 /* constructor providing an MpiNode
  * this is useful for using this program from others
  */
-ProgMPIReconsArt::ProgMPIReconsArt(MpiNode * node)
+ProgMPIReconsArt::ProgMPIReconsArt(const std::shared_ptr<MpiNode> &node)
 {
     this->setNode(node);
 }
