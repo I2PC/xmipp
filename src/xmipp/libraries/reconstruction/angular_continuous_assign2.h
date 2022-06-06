@@ -41,6 +41,7 @@ class FourierProjector;
 constexpr int  CONTCOST_CORR = 0;
 constexpr int  CONTCOST_L1 = 1;
 
+
 /** Predict Continuous Parameters. */
 class ProgAngularContinuousAssign2: public XmippMetadataProgram
 {
@@ -89,6 +90,10 @@ public:
     bool phaseFlipped;
     // Penalization for the average
     // double penalization;
+    
+    // Force defocusU = defocusV
+    bool sameDefocus;
+
 public:
     // Rank (used for MPI version)
     int rank;
@@ -133,6 +138,11 @@ public:
 	double currentDefocusU, currentDefocusV, currentAngle;
 	// CTF image
 	MultidimArray<double> *ctfImage;
+    std::unique_ptr<MultidimArray<double>> ctfEnvelope;
+	// Fourier Transformer
+	FourierTransformer fftTransformer;
+	// Fourier transforms
+	MultidimArray< std::complex<double> > fftE;
 public:
     /// Empty constructor
     ProgAngularContinuousAssign2();
