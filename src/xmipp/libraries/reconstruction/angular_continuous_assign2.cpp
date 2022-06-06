@@ -515,7 +515,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 						currentAngle = old_defocusAngle;
 					}
 					else
-						currentDefocusU = currentDefocusV = currentAngle = std::numeric_limits<double>::quiet_NaN(); // initialize default values
+						currentDefocusU = currentDefocusV = currentAngle = 0;
 				}
 			}
 			powellOptimizer(p, 1, 13, &continuous2cost, this, 0.01, cost, iter, steps, verbose>=2);
@@ -646,8 +646,10 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 		else
 			rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusV+p(11));
     	rowOut.setValue(MDL_CTF_DEFOCUS_ANGLE,old_defocusAngle+p(12));
-		if (!sameDefocus)
-    		rowOut.setValue(MDL_CTF_DEFOCUS_CHANGE,0.5*(p(10)+p(11)));
+		if (sameDefocus)
+			rowOut.setValue(MDL_CTF_DEFOCUS_CHANGE,0.5*(p(10)+p(10)));
+		else
+			rowOut.setValue(MDL_CTF_DEFOCUS_CHANGE,0.5*(p(10)+p(11)));
     	if (old_defocusU+p(10)<0 || old_defocusU+p(11)<0)
     		rowOut.setValue(MDL_ENABLED,-1);
     }
