@@ -254,11 +254,11 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
     if (prm->hasCTF)
     {
     	double defocusU=prm->old_defocusU+deltaDefocusU;
-		double defocusV=prm->old_defocusV+deltaDefocusV;
+		double defocusV;
 		if (prm->sameDefocus){
-    		defocusV-=deltaDefocusV;
-			defocusV+=deltaDefocusU; 
+    		defocusV=defocusU;
 		}
+		defocusV=prm->old_defocusV+deltaDefocusV;
     	double angle=prm->old_defocusAngle+deltaDefocusAngle;
     	if (defocusU!=prm->currentDefocusU || defocusV!=prm->currentDefocusV || angle!=prm->currentAngle)
     		prm->updateCTFImage(defocusU,defocusV,angle);
@@ -508,7 +508,14 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 					steps(10)=steps(12)=1.; 
 				else {
 					steps(10)=steps(11)=steps(12)=1.;
-					currentDefocusU = currentDefocusV = currentAngle = std::numeric_limits<double>::quiet_NaN(); // initialize default values
+					if (hasCTF)
+					{
+						currentDefocusU = old_defocusU;
+						currentDefocusV = old_defocusV;
+						currentAngle = old_defocusAngle;
+					}
+					else
+						currentDefocusU = currentDefocusV = currentAngle = std::numeric_limits<double>::quiet_NaN(); // initialize default values
 				}
 			}
 			powellOptimizer(p, 1, 13, &continuous2cost, this, 0.01, cost, iter, steps, verbose>=2);
@@ -635,11 +642,11 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     {
     	rowOut.setValue(MDL_CTF_DEFOCUSU,old_defocusU+p(10));
 		if (sameDefocus)
-    		rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusV+p(10)); 
+    		rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusU+p(10)); 
 		else
 			rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusV+p(11));
     	rowOut.setValue(MDL_CTF_DEFOCUS_ANGLE,old_defocusAngle+p(12));
-		if (sameDefocus)
+		if (!sameDefocus)
     		rowOut.setValue(MDL_CTF_DEFOCUS_CHANGE,0.5*(p(10)+p(11)));
     	if (old_defocusU+p(10)<0 || old_defocusU+p(11)<0)
     		rowOut.setValue(MDL_ENABLED,-1);

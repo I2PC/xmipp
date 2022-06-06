@@ -1264,7 +1264,6 @@ public:
     template <class T>
     void generateEnvelope(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-		Ts=-1;
 		double iTs = initCTF(Ydim, Xdim, CTF, Ts);
         for (int i=0; i<Ydim; ++i)
         {
