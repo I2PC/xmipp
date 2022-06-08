@@ -1,4 +1,14 @@
-## Release 3.22.04 - 
+## Release 3.22.07 - 
+
+### Installation and user guide
+
+### Protocols scipion-em-xmipp
+- **protocol_subtract_projection**: New implementation based on adjustment by regression instead of POCS and improved performance
+ 
+### Others
+
+
+## Release 3.22.04 - Gaia
 
 ### Installation and user guide
 - Updated readme
