@@ -1908,19 +1908,19 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
         int xF = 384;
         int yF = 384;
         int dim = 1;
-        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+        ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
 
         if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
                 && (nullptr != result)) {
             // prepare dims
             auto dims = Dimensions(xF-x0+1, yF-y0+1); //quitar esta linea no lo usas
             // prepare input image
-            ImageGeneric *image = self->image;
+            const auto& image = self->image;
             image->convert2Datatype(DT_Double);
             MultidimArray<double> *pImage_in;
             MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage_in);
             // prepare output image
-            result->image = new ImageGeneric(DT_Double);
+            result->image = std::make_unique<ImageGeneric>(DT_Double);
             MultidimArray<double> *pImage_out;
             MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(pImage_out);
             // call the estimation
