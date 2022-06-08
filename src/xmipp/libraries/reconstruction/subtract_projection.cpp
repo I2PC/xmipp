@@ -214,10 +214,9 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
  const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
-	double R20 = evaluateFitting(IFourierf, PFourierf0); 
-	double R20adj = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 1.0);
+	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
 	double R21 = evaluateFitting(IFourierf, PFourierf1); 
-	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 1.0 - 1.0);
+	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
 	// Decide best fitting
 	double R2;
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
