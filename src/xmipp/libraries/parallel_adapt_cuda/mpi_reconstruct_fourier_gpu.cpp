@@ -33,7 +33,7 @@ ProgMPIRecFourierGPU::ProgMPIRecFourierGPU(int argc, char *argv[])
 /* constructor providing an MpiNode
  * this is useful for using this programs from others
  */
-ProgMPIRecFourierGPU::ProgMPIRecFourierGPU(MpiNode * node)
+ProgMPIRecFourierGPU::ProgMPIRecFourierGPU(const std::shared_ptr<MpiNode> &node)
 {
     this->setNode(node);
 }

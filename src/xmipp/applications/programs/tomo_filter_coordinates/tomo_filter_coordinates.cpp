@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     Carlos Oscar Sorzano (coss@cnb.csic.es)
+ * Authors:     Federico P. de Isidro-Gomez (fp.deisidro@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,10 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <parallel/mpi_reconstruct_wbp.h>
+#include <reconstruction/tomo_filter_coordinates.h>
 
 int main(int argc, char **argv)
 {
-    ProgMPIRecWbp program(argc,argv);
-    return program.tryRun();
+    ProgTomoFilterCoordinates prm;
+    prm.read(argc,argv);
+    return prm.tryRun();
 }

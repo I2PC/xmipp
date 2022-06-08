@@ -33,7 +33,7 @@ void MpiProgNMAVol::read(int argc, char **argv)
 	node = std::make_shared<MpiNode>(argc, argv);
 	if (!node->isMaster())
 		verbose=0;
-	fileMutex = std::make_shared<MpiFileMutex>(node.get());
+	fileMutex = std::make_shared<MpiFileMutex>(node);
 	ProgNmaAlignmentVol::read(argc, argv);
 }
 
@@ -51,7 +51,7 @@ void MpiProgNMAVol::createWorkFiles()
 	node->barrierWait();//Sync all before start working
 	mdIn.read(fnOutDir + list_of_volumes);
 	mdIn.findObjects(imgsId);//get objects ids
-	distributor = std::make_shared<MpiTaskDistributor>(mdIn.size(), 1, node.get());
+	distributor = std::make_shared<MpiTaskDistributor>(mdIn.size(), 1, node);
 }
 
 
