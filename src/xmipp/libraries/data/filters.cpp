@@ -1446,8 +1446,7 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 			sumMI1I2+=p1a*p2a;
 		}
 	}
-	sumMI1I2*=iN1;
-	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI1I2);
+	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI2I2);
 
 	return corrM1M2;
 }
@@ -1523,8 +1522,7 @@ double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
 			sumWI1I2 +=wp1a*p2a;
 		}
 	}
-	sumWI1I2*=iN;
-	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI1I2);
+	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI2I2);
 
 	return corrW1W2;
 }

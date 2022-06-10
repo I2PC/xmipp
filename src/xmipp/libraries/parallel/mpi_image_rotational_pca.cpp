@@ -32,15 +32,10 @@
 // Empty constructor =======================================================
 MpiProgImageRotationalPCA::MpiProgImageRotationalPCA(int argc, char **argv)
 {
-    node = new MpiNode(argc,argv);
+	node = std::make_shared<MpiNode>(argc, argv);
     rank = node->rank;
     if (!IS_MASTER)
         verbose = 0;
-}
-
-MpiProgImageRotationalPCA::~MpiProgImageRotationalPCA()
-{
-  delete node;
 }
 
 void MpiProgImageRotationalPCA::selectPartFromMd(MetaData &MDin)
@@ -68,9 +63,9 @@ void MpiProgImageRotationalPCA::comunicateMatrix(Matrix2D<double> &W)
 
 void MpiProgImageRotationalPCA::createMutexes(size_t Nimgs)
 {
-  fileMutex = new MpiFileMutex(node);
-  threadMutex = new Mutex();
-  taskDistributor = new MpiTaskDistributor(Nimgs, XMIPP_MAX(1,Nimgs/(5*node->size)), node);
+  fileMutex = std::make_unique<MpiFileMutex>(node);
+  threadMutex = std::make_unique<Mutex>();
+  taskDistributor = std::make_unique<MpiTaskDistributor>(Nimgs, XMIPP_MAX(1,Nimgs/(5*node->size)), node);
 }
 
 /** Last part of function applyT */

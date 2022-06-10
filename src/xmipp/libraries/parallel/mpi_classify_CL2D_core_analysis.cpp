@@ -37,20 +37,13 @@ std::ostream & operator << (std::ostream &out, const CL2DBlock &block)
 // Empty constructor =======================================================
 ProgClassifyCL2DCore::ProgClassifyCL2DCore(int argc, char **argv)
 {
-    node=new MpiNode(argc,argv);
+    node=std::make_shared<MpiNode>(argc, argv);
     if (!node->isMaster())
         verbose=0;
     taskDistributor=nullptr;
     maxLevel=-1;
     tolerance=0;
     thPCAZscore=3;
-}
-
-// MPI destructor
-ProgClassifyCL2DCore::~ProgClassifyCL2DCore()
-{
-    delete taskDistributor;
-    delete node;
 }
 
 // Read arguments ==========================================================
@@ -138,7 +131,7 @@ void ProgClassifyCL2DCore::produceSideInfo()
 
     // Create a task file distributor for all blocks
     size_t Nblocks=blocks.size();
-    taskDistributor=new MpiTaskDistributor(Nblocks,1,node);
+    taskDistributor=std::make_unique<MpiTaskDistributor>(Nblocks,1,node);
 
     // Get image dimensions
     if (Nblocks>0)

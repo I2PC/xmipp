@@ -36,14 +36,8 @@
 /** Program class for the project program */
 class ProgMPIXrayProject: public ProgXrayProject
 {
-    MpiNode *node=nullptr;
+    std::shared_ptr<MpiNode> node;
 public:
-    ProgMPIXrayProject() = default;
-    ProgMPIXrayProject(const ProgMPIXrayProject&)=delete;
-    ProgMPIXrayProject(const ProgMPIXrayProject&&)=delete;
-    ~ProgMPIXrayProject();
-    ProgMPIXrayProject & operator =(const ProgMPIXrayProject &)=delete;
-    ProgMPIXrayProject & operator =(const ProgMPIXrayProject &&)=delete;
     void read(int argc, char** argv);
 
     void run();
