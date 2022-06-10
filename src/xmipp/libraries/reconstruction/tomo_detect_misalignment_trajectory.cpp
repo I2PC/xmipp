@@ -167,77 +167,85 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	int x1;  // (x1, 0)
-	int x2;  // (x2, 0)
-	int x3;  // (x3, ySize)
-	int x4;  // (x4, ySize)
-	int y1;  // (y1, 0)
-	int y2;  // (xSize, y2)
-	int y3;  // (0, y3)
-	int y4;  // (xSize, y4)
+	int x1 = 0;  			// (x1, 0)
+	int x2 = xSize - 1;  	// (x2, 0)
+	int x3 = 0;  			// (x3, ySize)
+	int x4 = xSize - 1;  	// (x4, ySize)
+	int y1 = 0;  			// (y1, 0)
+	int y2 = ySize - 1;  	// (xSize, y2)
+	int y3 = 0;  			// (0, y3)
+	int y4 = ySize -1;  	// (xSize, y4)
 
-	double epsilon = 0.00000001;
-
-	bool found = false;
+	double epsilon = 0.00000000000001;
 
 	for (size_t i = 1; i < xSize; i++)
 	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon && found == false)
+		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
 		{
 			x1=i;
-			found = true;
-		}
-		else if (abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) < epsilon && found == true)
-		{
-			x2=i-1;
 			break;
 		}
 	}
 
-	found = false;
+	for (size_t i = xSize-1; i > 0; i--)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
+		{
+			x2=i;
+			break;
+		}
+	}
 
 	for (size_t i = 1; i < xSize; i++)
 	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon && found == false)
+		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
 		{
 			x3=i;
-			found = true;
-		}
-		else if (abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i))< epsilon && found == true)
-		{
-			x4=i-1;
 			break;
 		}
 	}
 
-	found = false;
+	for (size_t i = xSize-1; i > 0; i--)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
+		{
+			x4=i;
+			break;
+		}
+	}
 
 	for (size_t j = 1; j < ySize; j++)
 	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon && found == false)
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
 		{
 			y1=j;
-			found = true;
-		}
-		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) < epsilon && found == true)
-		{
-			y3=j-1;
 			break;
 		}
 	}
 
-	found = false;
-
 	for (size_t j = 1; j < ySize; j++)
 	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon && !found)
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
 		{
 			y2=j;
-			found = true;
+			break;
 		}
-		else if (abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) < epsilon && found)
+	}
+
+	for (size_t j = ySize-1; j > 0; j--)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
 		{
-			y4=j-1;
+			y3=j;
+			break;
+		}
+	}
+
+	for (size_t j = ySize-1; j > 0; j--)
+	{
+		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
+		{
+			y4=j;
 			break;
 		}
 	}
