@@ -716,7 +716,6 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/lib/")
-
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
     createDir(dirname+"/bindings/python/sh_alignment")
