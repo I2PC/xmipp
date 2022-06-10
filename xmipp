@@ -663,7 +663,7 @@ def linkToScipion(dirname):
         xmippLink = os.readlink(xmippHomeLink)
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         libXmipp = os.path.join(xmippLink, "lib", "libXmipp.so")
-        xmippLib = os.path.join(xmippLink, "lib", "xmippLib.so") #Nuevo
+        xmippLib = os.path.join(xmippLink, "lib", "xmippLib.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
         bindings = os.path.join(xmippLink, "bindings", "python", "*")
 
