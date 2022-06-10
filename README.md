@@ -90,7 +90,9 @@ Start by cloning the repository and then navigate to the right directory.
 
 You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest.
 
-Next is to compile xmipp. There are to possibilities. 1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` or alternatively 2) Compile Xmipp via Scipion `scipion3 run ./xmipp`. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#))
+Next is to compile xmipp. There are to possibilities. 
+1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will run xmipp out of Scipion or alternatively 
+2) Compile Xmipp via Scipion `scipion3 run ./xmipp` that way you will can run xmipp in Scipion (see linking step). To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#))
 
 It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 
