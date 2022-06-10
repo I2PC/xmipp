@@ -662,13 +662,15 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink))
         xmippLink = os.readlink(xmippHomeLink)
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
-        xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
+        libXmipp = os.path.join(xmippLink, "lib", "libXmipp.so")
+        xmippLib = os.path.join(xmippLink, "lib", "xmippLib.so") #Nuevo
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
         bindings = os.path.join(xmippLink, "bindings", "python", "*")
 
         os.chdir(scipionSoftwareEM)
         runJob("ln -srf %s %s" % (coreLib, scipionLibs))
         runJob("ln -srf %s %s" % (SVMLib, scipionLibs))
+        runJob("ln -srf %s %s" % (libXmipp, scipionLibs))
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
@@ -713,6 +715,8 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/lib/")
+
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
     createDir(dirname+"/bindings/python/sh_alignment")
