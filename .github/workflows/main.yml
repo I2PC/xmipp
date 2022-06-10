@@ -73,10 +73,10 @@ jobs:
           method: network
           sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
-      - name: Install OpenCV-3
+      - name: Install OpenCV-4
         uses: Dovyski/setup-opencv-action@v1
         with:
-          opencv-version: '3.4.16'
+          opencv-version: '4.1.0'
           opencv-extra-modules: OFF
           install-deps: OFF
 
