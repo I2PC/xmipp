@@ -53,7 +53,7 @@ Xmipp supports Cuda 8 through 11. CUDA is optional but highly recommended. We re
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
 ### OpenCV
-OpenCV is used for several programs, however, it is not required.
+OpenCV is used for some programs: movie_optical_alignment (with GPU support) and volume_homogenizer, however, it is not required.
 If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be automatically picked up by the Xmipp script
 
 ### HDF5
