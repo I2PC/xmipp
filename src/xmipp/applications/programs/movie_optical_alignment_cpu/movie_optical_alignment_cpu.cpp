@@ -36,6 +36,7 @@
 #ifdef GPU
     #ifndef CV_VERSION_EPOCH // == version 3 or newer
         #include <opencv2/cudaoptflow.hpp>
+        #include <opencv2/cudaarithm.hpp>
     #else
         #include <opencv2/core/cuda.hpp>
     #endif
