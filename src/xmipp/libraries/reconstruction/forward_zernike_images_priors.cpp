@@ -128,7 +128,7 @@ void ProgForwardZernikeImagesPriors::defineParams()
     addParamsLine("  [--optimizeAlignment]        : Optimize alignment");
 	addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
-	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
+	addParamsLine("  [--blobr <b=1.5>]            : Blob radius for forward mapping splatting");
 	addParamsLine("  [--image_mode <im=-1>]       : Image mode (single, pairs, triplets). By default, it will be automatically identified.");
 	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
@@ -154,6 +154,8 @@ void ProgForwardZernikeImagesPriors::preProcess()
 			std::vector<double> basisParams = string2vector(line);
 			L1 = (int)basisParams[0]; L2 = (int)basisParams[1]; RmaxDef = (int)basisParams[2];
 			first_line = false;
+			for (int idx=3; idx < basisParams.size(); idx++)
+				prior_deformations.push_back(basisParams[idx]);
 		}
 		else 
 		{
@@ -278,6 +280,14 @@ void ProgForwardZernikeImagesPriors::preProcess()
 	blob.radius = blob_r;   // Blob radius in voxels
 	blob.order  = 2;        // Order of the Bessel function
     blob.alpha  = 3.6;      // Smoothness parameter
+
+	// sigma4 = 2 * blob_r;
+	// gaussianProjectionTable.resize(CEIL(sigma4 * sqrt(2) * 1000));
+	// FOR_ALL_ELEMENTS_IN_MATRIX1D(gaussianProjectionTable)
+	// gaussianProjectionTable(i) = gaussian1D(i / 1000.0, blob_r);
+	// gaussianProjectionTable *= gaussian1D(0, blob_r);
+	// gaussianProjectionTable2 = gaussianProjectionTable;
+	// gaussianProjectionTable2 *= gaussianProjectionTable;
 
 }
 
@@ -509,18 +519,27 @@ double ProgForwardZernikeImagesPriors::transformImageSph(double *pc_priors)
 		char c; std::cin >> c;
     }
 
-	double any_neg = 1.0;
-	// for (int i=0; i < priors.size(); i++) {
-	// 	if (c_priors[i] < 0.0)
-	// 	{
-	// 		any_neg = 0.0;
-	// 		break;
-	// 	}
-	// }
+	double bound = 1.0;
+	double sum = 0.0;
+	for (int i=0; i < priors.size(); i++) {
+		sum += c_priors[i];
+		if (c_priors[i] < 0.0)
+		{
+			bound = 0.0;
+			break;
+		}
+	}
+
+	if (sum > 1.0 && bound == 1.0)
+		bound = 0.0;
+
+	// double sum = c_priors.sum();
+	// if (sum > 1.0 && bound == 1.0)
+	// 	bound = 0.0;
 
 	if (showOptimization)
 		std::cout << cost << " " << deformation << std::endl;
-	return any_neg * cost + lambda * deformation;
+	return bound * cost + lambda * abs(deformation - prior_deformation);
 }
 
 double continuousZernikePriorsCost(double *x, void *_prm)
@@ -740,10 +759,18 @@ void ProgForwardZernikeImagesPriors::processImage(const FileName &fnImg, const F
 	else
 		hasCTF=false;
 
+	prior_deformation = 0.0;
 	optimalPowellOrder();
 	p.initZeros(totalSize);
 	c_priors.initZeros(totalSize);
 	clnm.initZeros(3*vecSize);
+	if (!do_not_init)
+	{
+		p[0] = 1.0;
+		c_priors[0] = 1.0;
+		clnm = priors[0];
+		prior_deformation = prior_deformations[0];
+	}
 
 	if (verbose >= 2)
 	{
@@ -1132,25 +1159,58 @@ void ProgForwardZernikeImagesPriors::splattingAtPos(std::array<double, 3> r, dou
 	// Find the part of the volume that must be updated
 	double x_pos = r[0];
 	double y_pos = r[1];
-	// double z_pos = r[2];
+	double z_pos = r[2];
 	// int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
 	// int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
 	int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
 	int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
 	int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
 	int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
+	// int k0 = XMIPP_MAX(FLOOR(z_pos - sigma4), STARTINGZ(mVO1));
+	// int kF = XMIPP_MIN(CEIL(z_pos + sigma4), FINISHINGZ(mVO1));
+	// int i0 = XMIPP_MAX(FLOOR(y_pos - sigma4), STARTINGY(mV));
+	// int iF = XMIPP_MIN(CEIL(y_pos + sigma4), FINISHINGY(mV));
+	// int j0 = XMIPP_MAX(FLOOR(x_pos - sigma4), STARTINGX(mV));
+	// int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
+	// int size = gaussianProjectionTable.size();
 	// Perform splatting at this position r
 	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
+	// for (int i = i0; i <= iF; i++)
+	// {
+	// 	double y2 = (y_pos - i) * (y_pos - i);
+	// 	for (int j = j0; j <= jF; j++)
+	// 	{
+	// 		double mod = sqrt((x_pos - j) * (x_pos - j) + y2);
+	// 		// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
+	// 		// A2D_ELEM(mP,i,j) += weight * kaiser_proj(mod, blob.radius, blob.alpha, blob.order);
+
+	// 		double didx = mod * 1000;
+	// 		int idx = ROUND(didx);
+	// 		if (idx < size)
+	// 		{
+	// 			double gw = gaussianProjectionTable.vdata[idx];
+	// 			A2D_ELEM(mP, i, j) += weight * gw;
+	// 		}
+	// 	}
+	// }
+
+	// for (int k = k0; k <= kF; k++)
+	// {
+		// double z_val = bspline1(k - z_pos);
 	for (int i = i0; i <= iF; i++)
 	{
-		double y2 = (y_pos - i) * (y_pos - i);
+		double y_val = bspline1(i - y_pos);
 		for (int j = j0; j <= jF; j++)
 		{
-			double mod = sqrt((x_pos - j) * (x_pos - j) + y2);
-			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-			A2D_ELEM(mP,i,j) += weight * kaiser_proj(mod, blob.radius, blob.alpha, blob.order);
+			double x_val = bspline1(j - x_pos);
+			A2D_ELEM(mP, i, j) += weight * x_val * y_val;
+			// A3D_ELEM(mVO2, k, i, j) += weight * x_val * y_val * z_val;
+			// A3D_ELEM(mVO1,k, i, j) += weight * kaiser_value(mod, blob.radius, blob.alpha, blob.order);
+			// A3D_ELEM(mVO2,k, i, j) += weight * kaiser_value(mod, 2, blob.alpha, blob.order);
 		}
 	}
+	// }
+
 	// The old version (following commented code) gives slightly different results
 	// Matrix1D<double> rdiff(3);
 	// for (int k = k0; k <= kF; k++)
@@ -1191,9 +1251,127 @@ void ProgForwardZernikeImagesPriors::linearCombinationClnm()
 
 void ProgForwardZernikeImagesPriors::optimalPowellOrder()
 {
+	do_not_init = false;
+	std::vector<double> z(priors[0].size(), 0.0);
+	priors.push_back(z);
 	Matrix1D<double> cost_vec;
 	cost_vec.initZeros(priors.size());
 	int totalSize = priors.size() + algn_params + ctf_params;
+
+	// Initialize some values
+	// TODO: Optimize parameters for each image (not sharing)
+	// prm->deltaDefocusU[0]=x[idx+6]; prm->deltaDefocusU[1]=x[idx+6]; 
+	// prm->deltaDefocusV[0]=x[idx+7]; prm->deltaDefocusV[1]=x[idx+7]; 
+	// prm->deltaDefocusAngle[0]=x[idx+8]; prm->deltaDefocusAngle[1]=x[idx+8];
+
+	switch (num_images)
+	{
+	case 2:
+		deltaX[0] = 0;
+		deltaY[0] = 0;
+		deltaRot[0] = 0;
+		deltaTilt[0] = 0;
+		deltaPsi[0] = 0;
+		// prm->deltaDefocusU[0]=x[idx + 11];
+		// prm->deltaDefocusV[0]=x[idx + 13];
+		// prm->deltaDefocusAngle[0]=x[idx + 15];
+
+		deltaX[1] = 0;
+		deltaY[1] = 0;
+		deltaRot[1] = 0;
+		deltaTilt[1] = 0;
+		deltaPsi[1] = 0;
+		// prm->deltaDefocusU[1]=x[idx + 12];
+		// prm->deltaDefocusV[1]=x[idx + 14];
+		// prm->deltaDefocusAngle[1]=x[idx + 16];
+
+		MAT_ELEM(A1, 0, 2) = old_shiftX[0];
+		MAT_ELEM(A1, 1, 2) = old_shiftY[0];
+		MAT_ELEM(A1, 0, 0) = 1;
+		MAT_ELEM(A1, 0, 1) = 0;
+		MAT_ELEM(A1, 1, 0) = 0;
+		MAT_ELEM(A1, 1, 1) = 1;
+
+		MAT_ELEM(A2, 0, 2) = old_shiftX[1];
+		MAT_ELEM(A2, 1, 2) = old_shiftY[1];
+		MAT_ELEM(A2, 0, 0) = 1;
+		MAT_ELEM(A2, 0, 1) = 0;
+		MAT_ELEM(A2, 1, 0) = 0;
+		MAT_ELEM(A2, 1, 1) = 1;
+		break;
+
+	case 3:
+		deltaX[0] = 0;
+		deltaY[0] = 0;
+		deltaRot[0] = 0;
+		deltaTilt[0] = 0;
+		deltaPsi[0] = 0;
+		// prm->deltaDefocusU[0]=x[idx + 16];
+		// prm->deltaDefocusV[0]=x[idx + 19];
+		// prm->deltaDefocusAngle[0]=x[idx + 22];
+
+		deltaX[1] = 0;
+		deltaY[1] = 0;
+		deltaRot[1] = 0;
+		deltaTilt[1] = 0;
+		deltaPsi[1] = 0;
+		// prm->deltaDefocusU[1]=x[idx + 17];
+		// prm->deltaDefocusV[1]=x[idx + 20];
+		// prm->deltaDefocusAngle[1]=x[idx + 23];
+
+		deltaX[2] = 0;
+		deltaY[2] = 0;
+		deltaRot[2] = 0;
+		deltaTilt[2] = 0;
+		deltaPsi[2] = 0;
+		// prm->deltaDefocusU[2]=x[idx + 18];
+		// prm->deltaDefocusV[2]=x[idx + 21];
+		// prm->deltaDefocusAngle[2]=x[idx + 24];
+
+		MAT_ELEM(A1, 0, 2) = old_shiftX[0];
+		MAT_ELEM(A1, 1, 2) = old_shiftY[0];
+		MAT_ELEM(A1, 0, 0) = 1;
+		MAT_ELEM(A1, 0, 1) = 0;
+		MAT_ELEM(A1, 1, 0) = 0;
+		MAT_ELEM(A1, 1, 1) = 1;
+
+		MAT_ELEM(A2, 0, 2) = old_shiftX[1];
+		MAT_ELEM(A2, 1, 2) = old_shiftY[1];
+		MAT_ELEM(A2, 0, 0) = 1;
+		MAT_ELEM(A2, 0, 1) = 0;
+		MAT_ELEM(A2, 1, 0) = 0;
+		MAT_ELEM(A2, 1, 1) = 1;
+
+		MAT_ELEM(A3, 0, 2) = old_shiftX[2];
+		MAT_ELEM(A3, 1, 2) = old_shiftY[2];
+		MAT_ELEM(A3, 0, 0) = 1;
+		MAT_ELEM(A3, 0, 1) = 0;
+		MAT_ELEM(A3, 1, 0) = 0;
+		MAT_ELEM(A3, 1, 1) = 1;
+		break;
+
+	
+	default:
+		deltaX[0] = 0;
+		deltaY[0] = 0;
+		deltaRot[0] = 0;
+		deltaTilt[0] = 0;
+		deltaPsi[0] = 0;
+		deltaDefocusU[0] = 0;
+		deltaDefocusV[0] = 0;
+		deltaDefocusAngle[0] = 0;
+
+		MAT_ELEM(A1, 0, 2) = old_shiftX[0];
+		MAT_ELEM(A1, 1, 2) = old_shiftY[0];
+		MAT_ELEM(A1, 0, 0) = 1;
+		MAT_ELEM(A1, 0, 1) = 0;
+		MAT_ELEM(A1, 1, 0) = 0;
+		MAT_ELEM(A1, 1, 1) = 1;
+		break;
+	}
+
+	auto lambda_aux = lambda;
+	lambda = 0.0;
 	for (int idx=0; idx < priors.size(); idx++)
 	{
 		clnm.initZeros(3*vecSize);
@@ -1202,6 +1380,7 @@ void ProgForwardZernikeImagesPriors::optimalPowellOrder()
     	double *pptr = p.adaptForNumericalRecipes();
 		cost_vec[idx] = transformImageSph(pptr);
 	}
+	lambda = lambda_aux;
 
 	std::vector<std::size_t> index_vec;
 	for (std::size_t i = 0; i != priors.size(); ++i)
@@ -1214,9 +1393,32 @@ void ProgForwardZernikeImagesPriors::optimalPowellOrder()
 		[&](std::size_t a, std::size_t b)
 		{ return cost_vec[a] < cost_vec[b]; });
 
-	auto priors_aux = priors; 
+	auto priors_aux = priors;
+	auto prior_deformations_aux = prior_deformations;
+	priors.clear();
+	prior_deformations.clear();
 	for (std::size_t i = 0; i != index_vec.size(); ++i)
 	{
-		priors[i] = priors_aux[index_vec[i]];
+		auto v = priors_aux[index_vec[i]];
+		auto d = prior_deformations_aux[index_vec[i]];
+		bool zeros = std::all_of(v.begin(), v.end(), [](double j) { return j==0.0; });
+		if (!zeros)
+		{
+			priors.push_back(v);
+			prior_deformations.push_back(d);
+		}
+		else if (zeros && i==0)
+			do_not_init = true;
 	}
+}
+
+double ProgForwardZernikeImagesPriors::bspline1(double x)
+{
+	double m = 1 / blob_r;
+	if (0. < x && x < blob_r)
+		return m * (blob_r - x);
+	else if (-blob_r < x && x <= 0.)
+		return m * (blob_r + x);
+	else
+		return 0.;
 }

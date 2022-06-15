@@ -90,6 +90,14 @@ public:
     int image_mode;
     bool useCTF;
 
+    // double sigma4;
+    // // Gaussian projection table
+    // Matrix1D<double> gaussianProjectionTable;
+
+    // // Gaussian projection2 table
+    // Matrix1D<double> gaussianProjectionTable2;
+
+
 public:
     /** Resume computations */
     bool resume;
@@ -137,7 +145,8 @@ public:
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
 	//Total Deformation
-	double totalDeformation;
+	double totalDeformation, prior_deformation;
+    std::vector<double> prior_deformations;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
@@ -147,6 +156,7 @@ public:
     // Blob
     struct blobtype blob;
     double blob_r;
+    bool do_not_init;
 
 public:
     enum class Direction { ROTATE, UNROTATE };
@@ -215,6 +225,8 @@ public:
     void linearCombinationClnm();
 
     void optimalPowellOrder();
+
+    double bspline1(double x);
 
 protected:
     void createWorkFiles() { return Rerunable::createWorkFiles(resume, getInputMd()); }
