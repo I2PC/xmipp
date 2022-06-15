@@ -63,7 +63,7 @@ public:
     // Ignore CTF
     bool ignoreCTF;
     // Regularization ART
-    float lambda;
+    double lambda;
     // Save each # iter
     int save_iter;
     // Correct CTF
@@ -85,29 +85,29 @@ public:
     // Volume size
     size_t Xdim;
     // Input image
-	Image<float> V, Vrefined, Vout, Ifilteredp;
+	Image<double> V, Vrefined, Vout, Ifilteredp;
     // INput image
     Image<double> I;
     // Spherical mask
     MultidimArray<int> Vmask;
 	// Theoretical projection
-	Image<float> P;
+	Image<double> P;
     // Weight Image
-    Image<float> W;
+    Image<double> W;
     // Difference Image
-    Image<float> Idiff;
+    Image<double> Idiff;
     // Transformation matrix
-    Matrix2D<float> A;
+    Matrix2D<double> A;
     // Original angles
-    float rot, tilt, psi;
+    double rot, tilt, psi;
     // Original shift
-	float shiftX, shiftY;
+	double shiftX, shiftY;
 	// Original flip
 	bool flip;
     // CTF Check
     bool hasCTF;
     // Original defocus
-	float defocusU, defocusV, defocusAngle;
+	double defocusU, defocusV, defocusAngle;
 	// CTF
 	CTFDescription ctf;
     // CTF filter
@@ -115,7 +115,7 @@ public:
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
-	std::vector<float> clnm;
+	std::vector<double> clnm;
 	// Show optimization
 	bool showOptimization;
     // Row ids ordered in a orthogonal fashion
@@ -138,6 +138,9 @@ public:
 
     // Gaussian projection2 table
     Matrix1D<double> gaussianProjectionTable2;
+
+    // Filter
+    FourierFilter filter, filter2;
 public:
     enum class Mode { Proj, Vol };
 
@@ -180,14 +183,16 @@ public:
                          Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<float> &mP, MultidimArray<float> &mW,
-                   const MultidimArray<float> &mV,
-                   float rot, float tilt, float psi);
+    void deformVol(MultidimArray<double> &mP, MultidimArray<double> &mW,
+                   const MultidimArray<double> &mV,
+                   double rot, double tilt, double psi);
     
     void recoverVol();
     virtual void finishProcessing();
 
-    // void updateCTFImage(float defocusU, float defocusV, float angle);
+    double bspline1(double x);
+
+    // void updateCTFImage(double defocusU, double defocusV, double angle);
 
   private:
     enum class Direction { Forward, Backward };
@@ -201,11 +206,11 @@ public:
     void zernikeModel();
 
     // Spaltting at position r
-    void splattingAtPos(std::array<float, 2> r, float weight, 
-                        MultidimArray<float> &mP, MultidimArray<float> &mW, 
-                        MultidimArray<float> &mV);
+    void splattingAtPos(std::array<double, 2> r, double weight, 
+                        MultidimArray<double> &mP, MultidimArray<double> &mW, 
+                        MultidimArray<double> &mV);
 
-    void updateVoxel(std::array<float, 3> r, float &voxel, MultidimArray<float> &mV);
+    void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
 
     // virtual void checkPoint();
 

@@ -161,7 +161,7 @@ void ProgForwardArtZernike3D::preProcess()
 	else
 	{
 		FileName fn_first_image;
-		Image<float> first_image;
+		Image<double> first_image;
 		getInputMd()->getRow(1)->getValue(MDL_IMAGE, fn_first_image);
 		first_image.read(fn_first_image);
 		size_t Xdim_first = XSIZE(first_image());
@@ -249,6 +249,13 @@ void ProgForwardArtZernike3D::preProcess()
 	initZ = STARTINGZ(Vrefined());
 	endZ = FINISHINGZ(Vrefined());
 
+	filter.FilterBand=LOWPASS;
+	filter.FilterShape=REALGAUSSIAN;
+    filter.w1=sigma;
+	filter2.FilterBand=LOWPASS;
+	filter2.FilterShape=REALGAUSSIAN2;
+    filter2.w1=sigma;
+
 	// Blob
 	blob.radius = blob_r; // Blob radius in voxels
 	blob.order = 2;		  // Order of the Bessel function
@@ -291,17 +298,17 @@ void ProgForwardArtZernike3D::processImage(const FileName &fnImg, const FileName
 	// rowIn.getValue(MDL_ANGLE_PSI,auxPsi);
 	// rowIn.getValueOrDefault(MDL_SHIFT_X,auxShiftX,0.0);
 	// rowIn.getValueOrDefault(MDL_SHIFT_Y,auxShiftY,0.0);
-	// rot = static_cast<float>(auxRot);
-	// tilt = static_cast<float>(auxTilt);
-	// psi = static_cast<float>(auxPsi);
-	// shiftX = static_cast<float>(auxShiftX);
-	// shiftY = static_cast<float>(auxShiftY);
+	// rot = static_cast<double>(auxRot);
+	// tilt = static_cast<double>(auxTilt);
+	// psi = static_cast<double>(auxPsi);
+	// shiftX = static_cast<double>(auxShiftX);
+	// shiftY = static_cast<double>(auxShiftY);
 	// std::vector<double> vectortemp;
 	std::vector<double> vectortemp;
 	if (useZernike)
 	{
 		rowIn.getValue(MDL_SPH_COEFFICIENTS, vectortemp);
-		std::vector<float> vec(vectortemp.begin(), vectortemp.end());
+		std::vector<double> vec(vectortemp.begin(), vectortemp.end());
 		clnm = vec;
 	}
 	rowIn.getValueOrDefault(MDL_FLIP, flip, false);
@@ -388,55 +395,62 @@ void ProgForwardArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1
 	}
 }
 
-// void ProgForwardArtZernike3D::updateCTFImage(float defocusU, float defocusV, float angle)
+// void ProgForwardArtZernike3D::updateCTFImage(double defocusU, double defocusV, double angle)
 // {
 // 	ctf.K=1; // get pure CTF with no envelope
 // 	ctf.produceSideInfo();
 // }
 
-void ProgForwardArtZernike3D::splattingAtPos(std::array<float, 2> r, float weight,
-											 MultidimArray<float> &mP, MultidimArray<float> &mW,
-											 MultidimArray<float> &mV)
+void ProgForwardArtZernike3D::splattingAtPos(std::array<double, 2> r, double weight,
+											 MultidimArray<double> &mP, MultidimArray<double> &mW,
+											 MultidimArray<double> &mV)
 {
 	// Find the part of the volume that must be updated
-	float x_pos = r[0];
-	float y_pos = r[1];
-	int i0 = XMIPP_MAX(FLOOR(y_pos - sigma4), STARTINGY(mV));
-	int iF = XMIPP_MIN(CEIL(y_pos + sigma4), FINISHINGY(mV));
-	int j0 = XMIPP_MAX(FLOOR(x_pos - sigma4), STARTINGX(mV));
-	int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
-	auto alpha = blob.alpha;
-	auto order = blob.order;
-	int size = gaussianProjectionTable.size();
-	// Perform splatting at this position r
-	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
-	for (int i = i0; i <= iF; i++)
-	{
-		float y2 = (y_pos - i) * (y_pos - i);
-		for (int j = j0; j <= jF; j++)
-		{
-			float mod = sqrt((x_pos - j) * (x_pos - j) + y2);
-			float didx = mod * 1000;
-			int idx = ROUND(didx);
-			// float val = kaiser_proj(mod, blob_r, alpha, order);
-			// A2D_ELEM(mP, i, j) += weight * val;
-			// A2D_ELEM(mW, i, j) += val * val;
-			// A2D_ELEM(mW, i, j)++;
-			if (idx < size)
-			{
-				float gw = gaussianProjectionTable.vdata[idx];
-				A2D_ELEM(mP, i, j) += weight * gw;
-				A2D_ELEM(mW, i, j) += gw * gw;
-			}
-		}
-	}
+	// double x_pos = r[0];
+	// double y_pos = r[1];
+	// int i0 = XMIPP_MAX(FLOOR(y_pos - sigma4), STARTINGY(mV));
+	// int iF = XMIPP_MIN(CEIL(y_pos + sigma4), FINISHINGY(mV));
+	// int j0 = XMIPP_MAX(FLOOR(x_pos - sigma4), STARTINGX(mV));
+	// int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
+	// auto alpha = blob.alpha;
+	// auto order = blob.order;
+	// int size = gaussianProjectionTable.size();
+	// // Perform splatting at this position r
+	// // ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
+	// for (int i = i0; i <= iF; i++)
+	// {
+	// 	double y2 = (y_pos - i) * (y_pos - i);
+	// 	for (int j = j0; j <= jF; j++)
+	// 	{
+	// 		double mod = sqrt((x_pos - j) * (x_pos - j) + y2);
+	// 		double didx = mod * 1000;
+	// 		int idx = ROUND(didx);
+	// 		// double val = kaiser_proj(mod, blob_r, alpha, order);
+	// 		// A2D_ELEM(mP, i, j) += weight * val;
+	// 		// A2D_ELEM(mW, i, j) += val * val;
+	// 		// A2D_ELEM(mW, i, j)++;
+	// 		if (idx < size)
+	// 		{
+	// 			double gw = gaussianProjectionTable.vdata[idx];
+	// 			A2D_ELEM(mP, i, j) += weight * gw;
+	// 			A2D_ELEM(mW, i, j) += gw * gw;
+	// 		}
+	// 	}
+	// }
+	int i = round(r[1]);
+	int j = round(r[0]);
+	double gw = bspline1(j - r[0]) * bspline1(i - r[1]);
+	A2D_ELEM(mP, i, j) += weight * gw;
+	A2D_ELEM(mW, i, j) += gw * gw;
+	// A2D_ELEM(mP, i, j) += weight;
+	// A2D_ELEM(mW, i, j) += 1;
 }
 
-void ProgForwardArtZernike3D::updateVoxel(std::array<float, 3> r, float &voxel, MultidimArray<float> &mV)
+void ProgForwardArtZernike3D::updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV)
 {
 	// Find the part of the volume that must be updated
-	float x_pos = r[0];
-	float y_pos = r[1];
+	double x_pos = r[0];
+	double y_pos = r[1];
 	double z_pos = r[2];
 	double hsigma4 = 1.5 * sqrt(2);
 	double hsigma = sigma / 4;
@@ -476,7 +490,7 @@ void ProgForwardArtZernike3D::recoverVol()
 	// const auto lastX = FINISHINGX(mV);
 	// // const int step = DIRECTION == Direction::Forward ? loop_step : 1;
 	// const int step = loop_step;
-	// auto pos = std::array<float, 3>{};
+	// auto pos = std::array<double, 3>{};
 
 	// for (int k = STARTINGZ(mV); k <= lastZ; k++)
 	// {
@@ -537,7 +551,8 @@ void ProgForwardArtZernike3D::run()
 			if (rowIn == nullptr) continue;
 			rowIn->getValue(image_label, fnImg);
 			rowIn->getValue(MDL_ITEM_ID, num_images);
-			std::cout << "Current image ID:  " << num_images << std::endl;
+			if (verbose > 2)
+				std::cout << "Current image ID:  " << num_images << std::endl;
 
 			if (fnImg.empty())
 				break;
@@ -721,7 +736,7 @@ void ProgForwardArtZernike3D::artModel()
 {
 	if (DIRECTION == Direction::Forward)
 	{
-		Image<float> I_shifted;
+		Image<double> I_shifted;
 		P().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
 		P().setXmippOrigin();
 		W().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
@@ -736,6 +751,10 @@ void ProgForwardArtZernike3D::artModel()
 		else
 			zernikeModel<false, Direction::Forward>();
 
+		filter.generateMask(P());
+		filter.applyMaskSpace(P());
+		filter2.generateMask(W());
+		filter2.applyMaskSpace(W());
 		if (hasCTF)
 		{
 			// updateCTFImage(defocusU, defocusV, defocusAngle);
@@ -753,7 +772,7 @@ void ProgForwardArtZernike3D::artModel()
 		}
 
 		applyGeometry(xmipp_transformation::LINEAR, I_shifted(), I(), A,
-					  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.f);
+					  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.);
 
 		// P.write(fnOutDir + "/PPPtheo.xmp");
 		// I_shifted.write(fnOutDir + "/PPPexp.xmp");
@@ -761,8 +780,8 @@ void ProgForwardArtZernike3D::artModel()
 		// char c; std::cin >> c;
 
 		// Compute difference image and divide by weights
-		float error = 0.0f;
-		float N = 0.0f;
+		double error = 0.0;
+		double N = 0.0;
 		const auto &mP = P();
 		const auto &mW = W();
 		const auto &mIsh = I_shifted();
@@ -790,7 +809,8 @@ void ProgForwardArtZernike3D::artModel()
 
 		// Creo que Carlos no usa un RMSE si no un MSE
 		error = std::sqrt(error / N);
-		std::cout << "Error for image " << num_images << " in iteration " << current_iter + 1 << " : " << error << std::endl;
+		if (verbose > 2)
+			std::cout << "Error for image " << num_images << " in iteration " << current_iter + 1 << " : " << error << std::endl;
 	}
 	else if (DIRECTION == Direction::Backward)
 	{
@@ -810,14 +830,14 @@ void ProgForwardArtZernike3D::zernikeModel()
 	auto &mW = W();
 	const size_t idxY0 = USESZERNIKE ? (clnm.size() / 3) : 0;
 	const size_t idxZ0 = USESZERNIKE ? (2 * idxY0) : 0;
-	const float RmaxF = USESZERNIKE ? RmaxDef : 0;
-	const float RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0;
-	const float iRmaxF = USESZERNIKE ? (1.0 / RmaxF) : 0;
+	const double RmaxF = USESZERNIKE ? RmaxDef : 0;
+	const double RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0;
+	const double iRmaxF = USESZERNIKE ? (1.0 / RmaxF) : 0;
 	// Rotation Matrix
 	constexpr size_t matrixSize = 3;
-	const Matrix2D<float> R = [this]()
+	const Matrix2D<double> R = [this]()
 	{
-		auto tmp = Matrix2D<float>();
+		auto tmp = Matrix2D<double>();
 		tmp.initIdentity(matrixSize);
 		Euler_angles2matrix(rot, tilt, psi, tmp, false);
 		return tmp;
@@ -842,7 +862,7 @@ void ProgForwardArtZernike3D::zernikeModel()
 		{
 			for (int j = STARTINGX(mV); j <= lastX; j += step)
 			{
-				float gx = 0.0f, gy = 0.0f, gz = 0.0f;
+				double gx = 0.0, gy = 0.0, gz = 0.0;
 				if (A3D_ELEM(Vmask, k, i, j) > 0.01)
 				{
 					if (USESZERNIKE) {
@@ -875,21 +895,21 @@ void ProgForwardArtZernike3D::zernikeModel()
 
 					if (DIRECTION == Direction::Forward)
 					{
-						auto pos = std::array<float, 2>{};
+						auto pos = std::array<double, 2>{};
 						pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
 						pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-						float voxel_mV = A3D_ELEM(mV, k, i, j);
+						double voxel_mV = A3D_ELEM(mV, k, i, j);
 						splattingAtPos(pos, voxel_mV, mP, mW, mV);
 					}
 					else if (DIRECTION == Direction::Backward)
 					{
-						// auto pos = std::array<float, 3>{};
+						// auto pos = std::array<double, 3>{};
 						auto pos_x = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
 						auto pos_y = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
 						// pos[0] = j;
 						// pos[1] = i;
 						// pos[2] = k;
-						float voxel = mId.interpolatedElement2D(pos_x, pos_y);
+						double voxel = mId.interpolatedElement2D(pos_x, pos_y);
 						A3D_ELEM(mV, k, i, j) += voxel;
 						// updateVoxel(pos, voxel, mV);
 					}
@@ -897,4 +917,15 @@ void ProgForwardArtZernike3D::zernikeModel()
 			}
 		}
 	}
+}
+
+double ProgForwardArtZernike3D::bspline1(double x)
+{
+	double m = 1 / sigma;
+	if (0. < x && x < sigma)
+		return m * (sigma - x);
+	else if (-sigma < x && x <= 0.)
+		return m * (sigma + x);
+	else
+		return 0.;
 }
