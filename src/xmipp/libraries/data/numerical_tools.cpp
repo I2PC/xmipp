@@ -1067,10 +1067,12 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 	//Variables needed for l>=5
 	double tht=0.0;
     double phi=0.0;
-    double cost=0.0;
-    double sint=0.0;
-    double cost2=0.0;
-    double sint2=0.0;
+    double costh=0.0;
+    double sinth=0.0;
+    double costh2=0.0;
+    double sinth2=0.0;
+    double cosph=0.0;
+    double cosph2=0.0;
 	if (L2>=5)
 	{
 		tht = atan2(yr,xr);
