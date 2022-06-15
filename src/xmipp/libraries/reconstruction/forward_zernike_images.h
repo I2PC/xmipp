@@ -107,7 +107,7 @@ public:
 	// Theoretical projections
     std::vector<Image<double>> P;
 	// Filter
-    FourierFilter filter;
+    FourierFilter filter, filterp;
     // Transformation matrix
     Matrix2D<double> A1, A2, A3;
     // Original angles
@@ -129,11 +129,12 @@ public:
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
-	Matrix1D<double> clnm;
+	Matrix1D<double> clnm, prev_clnm;
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
 	//Total Deformation, sumV, sumVd
-	double totalDeformation, sumV, sumVd;
+    double totalDeformation, prior_deformation;
+	int sumV;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
@@ -143,6 +144,12 @@ public:
     // Blob
     struct blobtype blob;
     double blob_r;
+
+    // Deformation field and positions
+    MultidimArray<double> vpos, df;
+    std::vector<size_t> idx_z_clnm;
+    std::vector<double> z_clnm_diff;
+    Matrix2D<double> R;
 
 public:
     enum class Direction { ROTATE, UNROTATE };
@@ -208,6 +215,16 @@ public:
     Matrix1D<double> weightsInterpolation3D(double x, double y, double z);
     
     void splattingAtPos(std::array<double, 3> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV);
+
+    double bspline1(double x);
+
+    double bspline3(double x);
+
+    void removePixels();
+
+    void rotatePositions(double rot, double tilt, double psi);
+
+    void preComputeDF();
 
 protected:
     void createWorkFiles() { return Rerunable::createWorkFiles(resume, getInputMd()); }
