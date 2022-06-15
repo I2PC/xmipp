@@ -119,6 +119,8 @@ void ProgApplyCoeffZernike3D::run()
 		V_mask.setXmippOrigin();
 	}
 
+	double deformation = 0.0;
+	double Ncount = 0.0;
 	for (int k=STARTINGZ(mVI); k<=FINISHINGZ(mVI); k+=loop_step)
 	{
 		for (int i=STARTINGY(mVI); i<=FINISHINGY(mVI); i+=loop_step)
@@ -145,7 +147,7 @@ void ProgApplyCoeffZernike3D::run()
 							auto l2 = VEC_ELEM(vL2,idx);
 							auto m = VEC_ELEM(vM,idx);
 							auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-							if (rr>0 && l2!=0)
+							if (rr>0 || l2==0)
 							{
 								gx += clnm[idx]        *zsph;
 								gy += clnm[idx+idxY0]  *zsph;
@@ -154,25 +156,29 @@ void ProgApplyCoeffZernike3D::run()
 						}
 					}
 
-					if (fn_mask == "") 
-					{
-						voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
-						A3D_ELEM(VO(), k, i, j)=voxelI;
-					}
-					else 
-					{
+					// if (fn_mask == "") 
+					// {
+					// 	voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
+					// 	A3D_ELEM(VO(), k, i, j)=voxelI;
+					// }
+					// else 
+					// {
 						auto pos = std::array<double, 3>{};
-						pos[0] = j + gx;
-						pos[1] = i + gy;
-						pos[2] = k + gz;
+						pos[0] = (double)j + gx;
+						pos[1] = (double)i + gy;
+						pos[2] = (double)k + gz;
 						double voxel_mV = A3D_ELEM(mVI,k,i,j);
 						splattingAtPos(pos, voxel_mV, mVO);
-					}
+						deformation += gx*gx+gy*gy+gz*gz;
+						Ncount++;
+					// }
 
 				}
 			}
 		}
 	}
+	deformation = sqrt(deformation/Ncount);
+	std::cout << "Deformation = " << deformation << std::endl;
 	VO.write(fn_out);
 }
 
@@ -238,10 +244,27 @@ void ProgApplyCoeffZernike3D::splattingAtPos(std::array<double, 3> r, double wei
 	int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mVO));
 	// Perform splatting at this position r
 	for (int k = k0; k <= kF; k++)
+	{
+		double z_val = bspline1(k - z_pos);
 		for (int i = i0; i <= iF; i++)
+		{
+			double y_val = bspline1(i - y_pos);
 			for (int j = j0; j <= jF; j++)
 			{
-				double mod = sqrt((x_pos - j) * (x_pos - j) + (y_pos - i) * (y_pos - i) + (z_pos - k) * (z_pos - k));
-				A3D_ELEM(mVO,k, i, j) += weight * blob_val(mod, blob);
+				double x_val = bspline1(j - x_pos);
+				A3D_ELEM(mVO,k, i, j) += weight * x_val * y_val * z_val;
 			}
+		}
+	}
+}
+
+double ProgApplyCoeffZernike3D::bspline1(double x)
+{
+	double m = 1 / blob_r;
+	if (0. < x && x < blob_r)
+		return m * (blob_r - x);
+	else if (-blob_r < x && x <= 0.)
+		return m * (blob_r + x);
+	else
+		return 0.;
 }

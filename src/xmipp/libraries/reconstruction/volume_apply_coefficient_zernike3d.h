@@ -88,6 +88,8 @@ private:
     /** Splatting at position r */
     void splattingAtPos(std::array<double, 3> r, double weight, const MultidimArray<double> &mVO);
 
+    double bspline1(double x);
+
 };
 //@}
 #endif
