@@ -36,10 +36,8 @@
 /** Program class for the project program */
 class ProgMPIXrayProject: public ProgXrayProject
 {
-    MpiNode *node;
+    std::shared_ptr<MpiNode> node;
 public:
-
-    ~ProgMPIXrayProject();
     void read(int argc, char** argv);
 
     void run();

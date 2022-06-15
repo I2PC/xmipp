@@ -197,6 +197,10 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &map
 			}
 		}
 	}
+
+	// Image<double> img;
+	// img() = freqMap;
+	// img.write("freqMap.mrc");
 	real_z1z2.initZeros(Ncomps);
 }
 
@@ -469,9 +473,9 @@ void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 			freqMat[i] = freqMat[i] + T;
 		}
 		
-		MDRowVec row;
-		row.setValue(MDL_RESOLUTION_FRC, (double) dAi(fsc,i));
-		mdOut.addRow(row);
+		// MDRowVec row;
+		// row.setValue(MDL_RESOLUTION_FRC, (double) dAi(fsc,i));
+		// mdOut.addRow(row);
 
 		if (flagRes && (i>2) && (dAi(fsc,i)<=thrs))
 		{
@@ -480,9 +484,9 @@ void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 			resol = 1./ff;
 		}
 	}
-	FileName auxfn;
-	auxfn = formatString("fscDirection_%i.xmd", dirnum);
-	mdOut.write(auxfn);
+	// FileName auxfn;
+	// auxfn = formatString("fscDirection_%i.xmd", dirnum);
+	// mdOut.write(auxfn);
 
 	// the 3dfsc is computed and updated
 	if (do_3dfsc_filter)
@@ -1077,6 +1081,116 @@ void ProgFSO::directionalFilter(MultidimArray<std::complex<double>> &FThalf1,
     }
 
 
+void ProgFSO::directionalFilterHalves(MultidimArray<std::complex<double>> &FThalf1,
+			MultidimArray<double> &threeDfsc)
+{
+	Image<double> imgHalf1, imgHalf2;
+	imgHalf1.read(fnhalf1);
+	imgHalf2.read(fnhalf2);
+
+	auto &half1 = imgHalf1();
+	auto &half2 = imgHalf2();
+	
+	if (fnmask!="")
+	{
+		Image<double> msk;
+		msk.read(fnmask);
+		auto &pmsk = msk();
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(threeDfsc)
+		{
+			double mskValue = DIRECT_MULTIDIM_ELEM(pmsk, n);
+			DIRECT_MULTIDIM_ELEM(half1, n) *= mskValue;
+			DIRECT_MULTIDIM_ELEM(half2, n) *= mskValue;
+		}
+	}
+
+
+	FourierTransformer transformer1(FFTW_BACKWARD);
+	transformer1.FourierTransform(half1, FThalf1);//, false);
+	FourierTransformer transformer2(FFTW_BACKWARD);
+	MultidimArray<std::complex<double>> FThalf2;
+	FThalf2.resizeNoCopy(FThalf1);
+	transformer2.FourierTransform(half2, FThalf2);
+
+	// std::random_device r;
+	// std::mt19937 gen(r());
+	// std::uniform_int_distribution<> dis(1, 9);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(threeDfsc)
+	{
+		double fscValue;
+		fscValue = DIRECT_MULTIDIM_ELEM(threeDfsc, n);
+		// if (fscValue < 0.1)
+		// {
+		// 	DIRECT_MULTIDIM_ELEM(FThalf1, n) *= 0.05;//(rand() % 19 - 9)*1e-38;
+		// 	DIRECT_MULTIDIM_ELEM(FThalf2, n) *= 0.05;//(rand() % 19 - 9)*1e-38;
+		// }
+		// else
+		// {
+			DIRECT_MULTIDIM_ELEM(FThalf1, n) *= 1;//fscValue;
+			DIRECT_MULTIDIM_ELEM(FThalf2, n) *= 1;//fscValue;
+	}
+
+	MultidimArray<double> filteredMap1, filteredMap2;
+
+	filteredMap1.resizeNoCopy(xvoldim, yvoldim, zvoldim);
+	filteredMap2.resizeNoCopy(xvoldim, yvoldim, zvoldim);
+
+	transformer1.inverseFourierTransform(FThalf1, filteredMap1);
+	transformer2.inverseFourierTransform(FThalf2, filteredMap2);
+
+	// int N_smoothing = 5;
+
+	// int siz_z = zvoldim*0.5;
+	// int siz_y = yvoldim*0.5;
+	// int siz_x = xvoldim*0.5;
+
+
+	// int limit_distance_x = (siz_x-N_smoothing);
+	// int limit_distance_y = (siz_y-N_smoothing);
+	// int limit_distance_z = (siz_z-N_smoothing);
+
+	// long n=0;
+	// for(int k=0; k<zvoldim; ++k)
+	// {
+	// 	double uz = (k - siz_z);
+	// 	for(int i=0; i<yvoldim; ++i)
+	// 	{
+	// 		double uy = (i - siz_y);
+	// 		for(int j=0; j<xvoldim; ++j)
+	// 		{
+	// 			double ux = (j - siz_x);
+
+	// 			if (abs(ux)>=limit_distance_x)
+	// 			{
+	// 				double val = 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/N_smoothing));
+	// 				DIRECT_MULTIDIM_ELEM(filteredMap1, n) *= val;
+	// 				DIRECT_MULTIDIM_ELEM(filteredMap2, n) *= val;
+	// 			}
+	// 			if (abs(uy)>=limit_distance_y)
+	// 			{
+	// 				double val = 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/N_smoothing));
+	// 				DIRECT_MULTIDIM_ELEM(filteredMap1, n) *= val;
+	// 				DIRECT_MULTIDIM_ELEM(filteredMap2, n) *= val;
+	// 			}
+	// 			if (abs(uz)>=limit_distance_z)
+	// 			{
+	// 				double val = 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/N_smoothing));
+	// 				DIRECT_MULTIDIM_ELEM(filteredMap1, n) *= val;
+	// 				DIRECT_MULTIDIM_ELEM(filteredMap2, n) *= val;
+	// 			}
+	// 			++n;
+	// 		}
+	// 	}
+	// }
+
+	Image<double> saveImg(filteredMap1);
+	saveImg.write(fnOut+"/filteredHalfMap1.mrc");
+	saveImg() = filteredMap2;
+	saveImg.write(fnOut+"/filteredHalfMap2.mrc");
+
+}
+
 void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName &fn)
     {
     	Matrix2D<int> anglesResolution;
@@ -1095,13 +1209,16 @@ void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName 
 		for (int i=0; i<Nrot; i++)
 		{
 			float rotmatrix =  i*PI/180.0;
+			float cr = cosf(rotmatrix);
+			float sr = sinf(rotmatrix);
 
 			for (int j=0; j<Ntilt; j++)
 			{
 				float tiltmatrix = j*PI/180.0;
 				// position on the spehere
-				float xx = sinf(tiltmatrix)*cosf(rotmatrix);
-				float yy = sinf(tiltmatrix)*sinf(rotmatrix);
+				float st = sinf(tiltmatrix);
+				float xx = st*cr;
+				float yy = st*sr;
 				float zz = cosf(tiltmatrix);
 
 				// initializing the weights
@@ -1334,7 +1451,6 @@ void ProgFSO::run()
 				T2 = T*T;
 				trT2 = T2.trace();
 				double pdim = 3;
-	//    		std::cout << trT2 << std::endl;
 				dAi(isotropyMatrix, i) = 0.5*pdim*(pdim+2)*(2*aniParams.at(0)[i])*(trT2 - 1./pdim);
 				// The factor 2 is because we need to compute the point in the whole sphere, but currently
 				// we are measuing half of the sphere due to the symmetry of the problem
@@ -1354,8 +1470,16 @@ void ProgFSO::run()
     		DIRECT_MULTIDIM_ELEM(aniParams.at(0), k) = 1.0;
     	MetaDataVec mdani;
 		saveAnisotropyToMetadata(mdani, freq, aniParams.at(0), isotropyMatrix);
-		FileName fn;
+
 		
+		// DIRECTIONAL RESOLUTION DISTRIBUTION ON THE PROJECTION SPHERE
+		FileName fn;
+		fn = fnOut+"/Resolution_Distribution.xmd";
+		
+		resolutionDistribution(resDirFSC, fn);
+
+
+		// 3DFSC and ANISOTROPIC FILTER
 		if (do_3dfsc_filter)
 		{
 			// HALF 3DFSC MAP
@@ -1380,12 +1504,18 @@ void ProgFSO::run()
 					if (std::isnan(value))
 						value = 1.0;
 
-					if (DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs)//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
-						DIRECT_MULTIDIM_ELEM(aniFilter, n) = 1;
-
 					size_t idx = DIRECT_MULTIDIM_ELEM(arr2indx, n);
 					DIRECT_MULTIDIM_ELEM(d3_FSCMap, idx) = value;
-					DIRECT_MULTIDIM_ELEM(d3_aniFilter, idx) = DIRECT_MULTIDIM_ELEM(aniFilter, n);
+					
+					if (DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs)//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
+					{
+						DIRECT_MULTIDIM_ELEM(d3_aniFilter, idx) = 1; //;DIRECT_MULTIDIM_ELEM(aniFilter, n) = 1;
+					}
+					else
+					{
+						DIRECT_MULTIDIM_ELEM(d3_aniFilter, idx) = value;//DIRECT_MULTIDIM_ELEM(aniFilter, n);
+					}
+					
 			}
 
 			// This code fix the empty line line in Fourier space
@@ -1393,17 +1523,25 @@ void ProgFSO::run()
 			auxVal = YSIZE(d3_FSCMap)/2;
 
 			size_t j = 0;
-			for(size_t i=0; i<YSIZE(d3_FSCMap); ++i)
-			{
-				if (i>auxVal)
+			for(size_t i=(auxVal+1); i<YSIZE(d3_FSCMap); ++i)
+		{
+				for(size_t k=0; k<ZSIZE(d3_FSCMap); ++k)
 				{
-					for(size_t k=0; k<ZSIZE(d3_FSCMap); ++k)
-					{
-						DIRECT_A3D_ELEM(d3_FSCMap,k,i,j) = DIRECT_A3D_ELEM(d3_FSCMap,k,i,j+1);
-						DIRECT_A3D_ELEM(d3_aniFilter,k,i,j) = DIRECT_A3D_ELEM(d3_aniFilter,k,i,j+1);
-					}
+					DIRECT_A3D_ELEM(d3_FSCMap,k,i,0) = DIRECT_A3D_ELEM(d3_FSCMap,k,i,1);
+					DIRECT_A3D_ELEM(d3_aniFilter,k,i,0) = DIRECT_A3D_ELEM(d3_aniFilter,k,i,1);
 				}
 			}
+			size_t i=0;
+			for(size_t k=0; k<ZSIZE(d3_FSCMap); ++k)
+			{
+				DIRECT_A3D_ELEM(d3_FSCMap,k,0,0) = DIRECT_A3D_ELEM(d3_FSCMap,k,0, 1);
+				DIRECT_A3D_ELEM(d3_aniFilter,k,0,0) = DIRECT_A3D_ELEM(d3_aniFilter,k,0,1);
+			}
+
+
+			Image<double> img;
+			img() = d3_FSCMap;
+			img.write("threeD_FSC.mrc");
 
 			double sigma = 3;
 
@@ -1411,22 +1549,17 @@ void ProgFSO::run()
 
 			// DIRECTIONAL FILTERED MAP
 			MultidimArray<double> filteredMap;
-			directionalFilter(FT1, d3_aniFilter, filteredMap, xvoldim, yvoldim, zvoldim);
-			Image<double> saveImg2(filteredMap);
-			saveImg2.write(fnOut+"/filteredMap.mrc");
-
+			//directionalFilter(FT1, d3_aniFilter, filteredMap, xvoldim, yvoldim, zvoldim);
+			directionalFilterHalves(FT1, d3_aniFilter);
 
 			//FULL 3DFSC MAP
-
 			fn = fnOut+"/3dFSC.mrc";
 			createFullFourier(d3_FSCMap, fn, xvoldim, yvoldim, zvoldim);
-
 		}
 
-		// DIRECTIONAL RESOLUTION DISTRIBUTION ON THE PROJECTION SPHERE
-		fn = fnOut+"/Resolution_Distribution.xmd";
-		
-		resolutionDistribution(resDirFSC, fn);
+
 		
 		std::cout << "-------------Finished-------------" << std::endl;
 }
+
+

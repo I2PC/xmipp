@@ -191,7 +191,8 @@ public:
         you needn't supply the auxiliar vectors. */
     int voxel_inside(const Matrix1D<double> &r) const
     {
-        Matrix1D<double> aux1(3), aux2(3);
+        Matrix1D<double> aux1(3);
+        Matrix1D<double> aux2(3);
         return voxel_inside(r, aux1, aux2);
     }
 
@@ -220,7 +221,9 @@ public:
         you needn't supply the auxiliar vectors. */
     int intersects_sphere(const Matrix1D<double> &r, double radius) const
     {
-        Matrix1D<double> aux1(3), aux2(3), aux3(3);
+        Matrix1D<double> aux1(3);
+        Matrix1D<double> aux2(3);
+        Matrix1D<double> aux3(3);
         return intersects_sphere(r, radius, aux1, aux2, aux3);
     }
 
@@ -271,7 +274,8 @@ public:
     double intersection(const Matrix1D<double> &direction,
                         const Matrix1D<double> &passing_point) const
     {
-        Matrix1D<double> r(3), u(3);
+        Matrix1D<double> r(3);
+        Matrix1D<double> u(3);
         return intersection(direction, passing_point, r, u);
     }
 
@@ -1388,6 +1392,11 @@ public:
         read(fn_phantom);
     }
 
+    /** Copy constructor.
+        The empty phantom is 0x0x0, background density=0, no feature is inside
+        and no name. */
+    Phantom(const Phantom &other);
+
     /** Destructor.
         All features are freed. */
     ~Phantom()
@@ -1485,7 +1494,8 @@ public:
         vectors. */
     int voxel_inside_any_feat(const Matrix1D<double> &r) const
     {
-        Matrix1D<double> aux1(3), aux2(3);
+        Matrix1D<double> aux1(3);
+        Matrix1D<double> aux2(3);
         return voxel_inside_any_feat(r, aux1, aux2);
     }
 
@@ -1505,7 +1515,9 @@ public:
     int any_feature_intersects_sphere(const Matrix1D<double> &r,
                                       double radius) const
     {
-        Matrix1D<double> aux1(3), aux2(3), aux3(3);
+        Matrix1D<double> aux1(3);
+        Matrix1D<double> aux2(3);
+        Matrix1D<double> aux3(3);
         return any_feature_intersects_sphere(r, radius, aux1, aux2, aux3);
     }
 

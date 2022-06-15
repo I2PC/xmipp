@@ -52,6 +52,8 @@ public:
     size_t rank, size, active;//, activeNodes;
     MpiNode(int &argc, char **& argv);
     ~MpiNode();
+    MpiNode(const MpiNode &)=delete;
+    MpiNode & operator =(const MpiNode &)=delete;
 
     /** Check if the node is master */
     bool isMaster() const;
@@ -88,12 +90,12 @@ protected:
 class MpiTaskDistributor: public ThreadTaskDistributor
 {
 protected:
-    MpiNode * node;
+	std::shared_ptr<MpiNode> node;
 
     virtual bool distribute(size_t &first, size_t &last);
 
 public:
-    MpiTaskDistributor(size_t nTasks, size_t bSize, MpiNode *node);
+    MpiTaskDistributor(size_t nTasks, size_t bSize, const std::shared_ptr<MpiNode> &node);
     /** All nodes wait until distribution is done.
      * In particular, the master node should wait for the distribution thread.
      */
@@ -116,12 +118,12 @@ private:
 class MpiFileMutex: public Mutex
 {
 protected:
-    MpiNode * node;
+	std::shared_ptr<MpiNode> node;
     int lockFile;
     bool fileCreator;
 public:
     /** Default constructor. */
-    MpiFileMutex(MpiNode * node);
+    MpiFileMutex(const std::shared_ptr<MpiNode> &node);
 
     /** Destructor. */
     ~MpiFileMutex();
@@ -159,8 +161,7 @@ class XmippMpiProgram: public virtual XmippProgram
 {
 protected:
     /** Mpi node */
-    MpiNode * node;
-    bool created_node;
+    std::shared_ptr<MpiNode> node;
     /** Number of Processors **/
     size_t nProcs;
     /** Number of independent MPI jobs **/
@@ -168,11 +169,8 @@ protected:
     /** status after an MPI call */
     MPI_Status status;
 
-    XmippMpiProgram();
-    ~XmippMpiProgram();
-
     /** Provide a node when calling from another MPI program  */
-    void setNode(MpiNode * node);
+    void setNode(const std::shared_ptr<MpiNode> & node);
 
 public:
     /** Read MPI params from command line */
@@ -188,15 +186,21 @@ class MpiMetadataProgram: public XmippMpiProgram
 protected:
     /** Divide the job in this number block with this number of images */
     int blockSize;
-    MpiTaskDistributor *distributor;
     std::vector<size_t> imgsId;
+    MpiTaskDistributor *distributor=nullptr;
     size_t first, last;
 
 public:
     /** Constructor */
-    MpiMetadataProgram();
+    MpiMetadataProgram() {}
+    MpiMetadataProgram(const MpiMetadataProgram &)=delete;
+    MpiMetadataProgram(const MpiMetadataProgram &&)=delete;
+
     /** Destructor */
     ~MpiMetadataProgram();
+    MpiMetadataProgram & operator=(const MpiMetadataProgram &)=delete;
+    MpiMetadataProgram & operator=(const MpiMetadataProgram &&)=delete;
+
     /** Read arguments */
     void read(int argc, char **argv);
 

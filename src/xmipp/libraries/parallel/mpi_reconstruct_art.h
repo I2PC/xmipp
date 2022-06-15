@@ -44,7 +44,7 @@ public:
     /* constructor providing an MpiNode
      * this is useful for using this programs from others
      */
-    ProgMPIReconsArt(MpiNode * node);
+    ProgMPIReconsArt(const std::shared_ptr<MpiNode> & node);
 
     /* Run --------------------------------------------------------------------- */
     void run();

@@ -281,11 +281,16 @@ void quadraticProgramming(const Matrix2D<double> &C, const Matrix1D<double> &d,
     int    nineq = A.Ydim();  // Number of linear inequations
     int    neq = Aeq.Ydim();  // Number of linear equations
     int    inform;
-    int    ncsrl = 0, ncsrn = 0, nfsr = 0, mesh_pts[] = {0};
+    int    ncsrl = 0;
+    int    ncsrn = 0;
+    int    nfsr = 0;
+    int    mesh_pts[] = {0};
 
     if (x.size() == 0)
         x.initZeros(nparam);
-    Matrix1D<double> f(nf), g(nineq + neq), lambda(nineq + neq + nf + nparam);
+    Matrix1D<double> f(nf);
+    Matrix1D<double> g(nineq + neq);
+    Matrix1D<double> lambda(nineq + neq + nf + nparam);
 
     // Call the minimization routine
     cfsqp(nparam, nf, nfsr, nineqn, nineq, neqn, neq, ncsrl, ncsrn, mesh_pts,
@@ -417,7 +422,8 @@ DESolver::~DESolver(void)
 void DESolver::Setup(double min[], double max[],
                      int deStrategy, double diffScale, double crossoverProb)
 {
-    int i,j;
+    int i;
+    int j;
 
     strategy = deStrategy;
     scale  = diffScale;
@@ -516,7 +522,8 @@ bool DESolver::Solve(int maxGenerations)
 
 void DESolver::Best1Exp(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -536,7 +543,9 @@ void DESolver::Best1Exp(int candidate)
 
 void DESolver::Rand1Exp(int candidate)
 {
-    int r1, r2, r3;
+    int r1;
+    int r2;
+    int r3;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3);
@@ -556,7 +565,8 @@ void DESolver::Rand1Exp(int candidate)
 
 void DESolver::RandToBest1Exp(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -576,7 +586,10 @@ void DESolver::RandToBest1Exp(int candidate)
 
 void DESolver::Best2Exp(int candidate)
 {
-    int r1, r2, r3, r4;
+    int r1;
+    int r2;
+    int r3;
+    int r4;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3, &r4);
@@ -598,7 +611,11 @@ void DESolver::Best2Exp(int candidate)
 
 void DESolver::Rand2Exp(int candidate)
 {
-    int r1, r2, r3, r4, r5;
+    int r1;
+    int r2;
+    int r3;
+    int r4;
+    int r5;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3, &r4, &r5);
@@ -620,7 +637,8 @@ void DESolver::Rand2Exp(int candidate)
 
 void DESolver::Best1Bin(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -641,7 +659,9 @@ void DESolver::Best1Bin(int candidate)
 
 void DESolver::Rand1Bin(int candidate)
 {
-    int r1, r2, r3;
+    int r1;
+    int r2;
+    int r3;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3);
@@ -662,7 +682,8 @@ void DESolver::Rand1Bin(int candidate)
 
 void DESolver::RandToBest1Bin(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -683,7 +704,10 @@ void DESolver::RandToBest1Bin(int candidate)
 
 void DESolver::Best2Bin(int candidate)
 {
-    int r1, r2, r3, r4;
+    int r1;
+    int r2;
+    int r3;
+    int r4;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3, &r4);
@@ -789,7 +813,9 @@ double checkRandomness(const std::string &sequence)
     int imax=sequence.size();
     if (imax<=1)
         return 0;
-    double n0=1, n1=0, R=1;
+    double n0=1;
+    double n1=0;
+    double R=1;
     int current=0;
     for (int i=1; i<imax; ++i)
     {
@@ -1033,10 +1059,18 @@ template<int L1, int L2>
 double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, double r)
 {
 	// General variables
-	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
+	double r2=r*r;
+    double xr2=xr*xr;
+    double yr2=yr*yr;
+    double zr2=zr*zr;
 
 	//Variables needed for l>=5
-	double tht=0.0,phi=0.0,costh=0.0,sinth=0.0,costh2=0.0,sinth2=0.0, cosph=0.0, cosph2=0.0;
+	double tht=0.0;
+    double phi=0.0;
+    double cost=0.0;
+    double sint=0.0;
+    double cost2=0.0;
+    double sint2=0.0;
 	if (L2>=5)
 	{
 		tht = atan2(yr,xr);
@@ -2162,7 +2196,8 @@ void solveBySVD(const Matrix2D< T >& A, const Matrix1D< T >& b,
 
     // First perform de single value decomposition
     // Xmipp interface that calls to svdcmp of numerical recipes
-    Matrix2D< double > u, v;
+    Matrix2D< double > u;
+    Matrix2D< double > v;
     Matrix1D< double > w;
     svdcmp(A, u, w, v);
 

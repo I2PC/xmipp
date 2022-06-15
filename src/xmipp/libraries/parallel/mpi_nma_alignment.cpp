@@ -33,35 +33,19 @@
 class MpiProgNMA: public ProgNmaAlignment
 {
 private:
-    MpiNode *node;
-    MpiTaskDistributor *distributor;
+    std::shared_ptr<MpiNode> node;
+    std::unique_ptr<MpiTaskDistributor> distributor;
     std::vector<size_t> imgsId;
-    MpiFileMutex *fileMutex;
+    std::unique_ptr<MpiFileMutex> fileMutex;
 
 public:
-    /** Empty Constructor */
-    MpiProgNMA()
-    {
-    	node=NULL;
-    	distributor=NULL;
-    	fileMutex=NULL;
-    }
-
-    /** Destructor */
-    ~MpiProgNMA()
-    {
-        delete node;
-        delete fileMutex;
-        delete distributor;
-    }
-
     /** Redefine read to initialize MPI environment */
     void read(int argc, char **argv)
     {
-        node = new MpiNode(argc, argv);
+    	node = std::make_shared<MpiNode>(argc, argv);
         if (!node->isMaster())
         	verbose=0;
-        fileMutex = new MpiFileMutex(node);
+        fileMutex = std::make_unique<MpiFileMutex>(node);
         ProgNmaAlignment::read(argc, argv);
     }
     /** main body */
@@ -79,7 +63,7 @@ public:
         mdIn.read(fnOutDir + "/nmaTodo.xmd");
         mdIn.findObjects(imgsId);//get objects ids
         rangen = node->rank;
-        distributor = new MpiTaskDistributor(mdIn.size(), 1, node);
+        distributor = std::make_unique<MpiTaskDistributor>(mdIn.size(), 1, node);
     }
     //Only master do starting progress bar stuff
     void startProcessing()

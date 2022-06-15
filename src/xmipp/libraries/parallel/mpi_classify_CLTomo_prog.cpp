@@ -101,13 +101,22 @@ CL3DClass::CL3DClass()
 
 CL3DClass::CL3DClass(const CL3DClass &other)
 {
-    CL3DAssignment assignment;
-    assignment.score = -1e38;
-    updateProjection((MultidimArray<double> &)other.P,assignment);
-    transferUpdate();
+	*this=other;
+}
 
-    currentListImg = other.currentListImg;
-    neighboursIdx = other.neighboursIdx;
+CL3DClass & CL3DClass::operator=(const CL3DClass &other)
+{
+	if (this!=&other)
+	{
+		CL3DAssignment assignment;
+		assignment.score = -1e38;
+		updateProjection((MultidimArray<double> &)other.P,assignment);
+		transferUpdate();
+
+		currentListImg = other.currentListImg;
+		neighboursIdx = other.neighboursIdx;
+	}
+	return *this;
 }
 
 //#define DEBUG

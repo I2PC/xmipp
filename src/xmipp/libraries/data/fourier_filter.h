@@ -113,7 +113,11 @@ public:
     double sampling_rate;
 
     /** Wedge and cone filter parameters */
-    double t1, t2,rot,tilt,psi;
+    double t1;
+    double t2;
+    double rot;
+    double tilt;
+    double psi;
 
     /** Percentage of coefficients to throw */
     double percentage;
@@ -194,10 +198,12 @@ public:
     FourierTransformer transformer;
 
     // Auxiliary variables for sparsify
-    MultidimArray<double> vMag, vMagSorted;
+    MultidimArray<double> vMag;
+    MultidimArray<double> vMagSorted;
 
     // Auxiliary variables for FSC profile
-    std::vector<double> freqContFSC, FSC;
+    std::vector<double> freqContFSC;
+    std::vector<double> FSC;
 };
 
 class SoftNegativeFilter: public XmippFilter

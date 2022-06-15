@@ -1316,6 +1316,14 @@ void ProgML2D::doThreadExpectationSingleImageRefno()
     // and this will make the if-statement that checks SIGNIFICANT_WEIGHT_LOW
     // effective right from the start
     //std::cerr << "DEBUG_JM: doThreadExpectationSingleImageRefno: " << std::endl;
+
+    if (nr_nomirror_flips == 0)
+    {
+        std::ostringstream msg;
+        msg << "Division by zero: nr_nomirror_flips == 0";
+        throw std::runtime_error(msg.str()); 
+    }
+
     FOR_ALL_THREAD_REFNO()
     {
 

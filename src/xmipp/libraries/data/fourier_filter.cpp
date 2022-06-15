@@ -826,7 +826,10 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	MultidimArray<int> &mMask=mask();
 	mMask.setXmippOrigin();
 	img.setXmippOrigin();
-	double sum=0, sum2=0, N=0, R2max=(XSIZE(img)/2)*(XSIZE(img)/2);
+	double sum=0;
+    double sum2=0;
+    double N=0;
+    auto R2max=(double)((XSIZE(img)/2)*(XSIZE(img)/2));
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mMask)
 	{
 		A3D_ELEM(mMask,k,i,j)=1-A3D_ELEM(mMask,k,i,j);
@@ -854,7 +857,8 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	if (avg<0)
 		threshold+=avg;
 	// std::cout << "avg=" << avg << " sigma=" << stddev << " threshold=" << threshold << std::endl;
-	MultidimArray<double> softMask, imgThresholded;
+	MultidimArray<double> softMask;
+    MultidimArray<double> imgThresholded;
 	softMask.initZeros(mMask);
 	imgThresholded.initZeros(mMask);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mMask)

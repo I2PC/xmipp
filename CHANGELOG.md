@@ -1,4 +1,54 @@
-## Release 3.22.01 -
+## Release 3.22.07 - 
+
+### Installation and user guide
+
+### Protocols scipion-em-xmipp
+- **protocol_subtract_projection**: New implementation based on adjustment by regression instead of POCS and improved performance
+ 
+### Others
+
+
+## Release 3.22.04 - Gaia
+
+### Installation and user guide
+- Updated readme
+  - Updated hdf5 info troubleshoting
+  - Updated Standalone installation 
+  - Updated Scons installation 
+- xmipp get_models: fixing the run and download path
+- Updating xmipp links for Scipion on installation
+- Removed fatal message in installation
+- Reported error if happen on installation - runjob
+- Ensuring that target directory for the libraries exists
+
+
+### Protocols scipion-em-xmipp
+- **protocol_core_analysis**: New protocol
+- **protocol_compare_angles**: Bug fix in compare angles under some conditions
+- **protocol_center_particles**: protocol simplified (removed setofCoordinates as output)
+- **protocol_CTF_consensus**: concurrency error fixed
+- **protocol_convert_pdb**: remove size if deactivated
+- **protocol_resolution_deepres**: binary masked not stored in Extra folder and avoiding memory problems on GPUs
+- **protocol_add_noise**: fixes
+
+- **protocol_compare_reprojections**: improve computation of residuals + tests + fix + formatting
+- **protocol_screen_deepConsensus**: multiple fixes in batch processing, trainging and streaming mode
+- **protocol_shift_particles**: apply transform is now optional
+### Others
+- New XMIPP logo
+- subtract_projection: adding new flag + fix
+- Add intersection size metadata (bindings/python)
+- Fixed unitialized unique pointers (bindings/python)
+- Bug fixing: Resolution directional and anisotropic filtering fixing the test
+- Removed SonarCloud issues
+  - Replaced defines with constexpr
+  - Removing Unused funtion parameters
+  - Division by zero
+  - Memory management
+  - Removed field shadowing
+  - Destructors should not throw exceptions
+
+## Release 3.22.01 - Eris
 
 
 - Updating to C++17
@@ -44,7 +94,7 @@
 
 
 
-## Release 3.21.06 -
+## Release 3.21.06 - Caerus
 
 - CUDA-11 support
 - New protocol: Deep align
@@ -56,7 +106,7 @@
 - Improved documentation
 
 
-## Release 3.20.07 -
+## Release 3.20.07 - Boreas
 
 - Fast CTF estimation
 - CTF includes phase shifts now

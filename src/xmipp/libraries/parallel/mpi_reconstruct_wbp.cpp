@@ -29,7 +29,7 @@ ProgMPIRecWbp::ProgMPIRecWbp(int argc, char **argv)
 {
     this->read(argc, argv);
 }
-ProgMPIRecWbp::ProgMPIRecWbp(MpiNode *node)
+ProgMPIRecWbp::ProgMPIRecWbp(const std::shared_ptr<MpiNode> &node)
 {
 	this->setNode(node);
 }
