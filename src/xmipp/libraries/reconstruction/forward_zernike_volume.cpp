@@ -133,7 +133,7 @@ void ProgForwardZernikeVol::defineParams() {
 	addParamsLine("  [--blobr <b=4>]                      : Blob radius for forward mapping splatting");
 	addParamsLine("  [--step <step=1>]                    : Voxel index step");
 	addParamsLine("  [--clnm <metadata_file=\"\">]        : List of deformation coefficients");
-	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
+	addExampleLine("xmipp_forward_zernike_volume -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
 }
 
 // Read arguments ==========================================================
