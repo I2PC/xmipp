@@ -187,7 +187,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t i = xSize-1; i > 0; i--)
+	for (size_t i = xSize-2; i > x1; i--)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
 		{
@@ -205,7 +205,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t i = xSize-1; i > 0; i--)
+	for (size_t i = xSize-2; i > x3; i--)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
 		{
@@ -232,7 +232,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t j = ySize-1; j > 0; j--)
+	for (size_t j = ySize-2; j > y1; j--)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
 		{
@@ -241,7 +241,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t j = ySize-1; j > 0; j--)
+	for (size_t j = ySize-2; j > y2; j--)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
 		{
@@ -260,6 +260,126 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout<< "y3: " << y3<<std::endl;
 	std::cout<< "y4: " << y4<<std::endl;
 	# endif 
+
+	// Remove interpolation edges
+	// tmpImage = tiltImage;
+	// tiltImage.initZeros(ySize, xSize);
+	int jmin;
+	int jmax;
+
+	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
+								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
+								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
+								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
+
+	sort(corners.begin(), corners.end(), std::greater<double>());
+
+	double backgroundValue = (corners[1]+corners[2])/2;  // Background value as the median of the corners
+
+	double m1 = (double)(-y1)/(x1);
+	double m2 = (double)(-y2)/(x2-(double)xSize);
+	double m3 = (double)(y3-(double)ySize)/(-x3);
+	double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+	#ifdef DEBUG_PREPROCESS
+	std::cout<< "m1: " << m1<<std::endl;
+	std::cout<< "m2: " << m2<<std::endl;
+	std::cout<< "m3: " << m3<<std::endl;
+	std::cout<< "m4: " << m4<<std::endl;
+	#endif
+
+	int marginThickness = (int)((fiducialSize/samplingRate) * 3); // *** sin and cos for x and y dimensions
+
+	x1 += marginThickness * cos(abs(atan(m1)));  // (x1, 0)
+	x2 -= marginThickness * cos(abs(atan(m2)));  // (x2, 0)
+	x3 += marginThickness * cos(abs(atan(m3)));  // (x3, ySize)
+	x4 -= marginThickness * cos(abs(atan(m4)));  // (x4, ySize)
+	y1 += marginThickness * sin(abs(atan(m1)));  // (y1, 0)
+	y2 += marginThickness * sin(abs(atan(m2)));  // (xSize, y2)
+	y3 -= marginThickness * sin(abs(atan(m3)));  // (0, y3)
+	y4 -= marginThickness * sin(abs(atan(m4)));  // (xSize, y4)
+
+	m1 = (double)(-y1)/(x1);
+	m2 = (double)(-y2)/(x2-(double)xSize);
+	m3 = (double)(y3-(double)ySize)/(-x3);
+	m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+
+	#ifdef DEBUG_PREPROCESS
+	std::cout<< "x1: " << x1<<std::endl;
+	std::cout<< "x2: " << x2<<std::endl;
+	std::cout<< "x3: " << x3<<std::endl;
+	std::cout<< "x4: " << x4<<std::endl;
+	std::cout<< "y1: " << y1<<std::endl;
+	std::cout<< "y2: " << y2<<std::endl;
+	std::cout<< "y3: " << y3<<std::endl;
+	std::cout<< "y4: " << y4<<std::endl;
+	# endif 
+	
+	#ifdef DEBUG_PREPROCESS
+	std::cout<< "m1: " << m1<<std::endl;
+	std::cout<< "m2: " << m2<<std::endl;
+	std::cout<< "m3: " << m3<<std::endl;
+	std::cout<< "m4: " << m4<<std::endl;
+	#endif
+
+	std::cout  << "backgroundValue " << backgroundValue << std::endl;
+	std::cout  << "marginThickness " << marginThickness << std::endl;
+	std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
+	std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
+
+	for (int i = 0; i < xSize; i++)
+	{
+		// minimum y index for interation
+		if(i < x1)
+		{
+			jmin = (int)(m1*i+y1);
+		}
+		else if (i > x2)
+		{
+			jmin = (int)(m2*(i-(int)xSize)+y2);
+		}
+		else
+		{
+			jmin = 1;
+		}
+		
+		// maximum y index for interation
+		if(i < x3)
+		{
+			jmax = (int)(m3*(i-x3)+(int)ySize);
+		}
+		else if (i > x4)
+		{
+			jmax = (int)(m4*(i-x4)+(int)ySize);
+		}
+		else
+		{
+			jmax = (int)(ySize-2);
+		}
+
+		// check range in image size
+		if(jmin < 1)
+		{
+			jmin = 1;
+		}
+
+		if(jmax > (int)(ySize-2))
+		{
+			jmax = (int)(ySize-2);
+		}
+		
+		// Remove edges
+		for (int j = 0; j <= jmin; j++)
+		{
+			DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
+		}
+
+		for (int j = jmax; j < ySize; j++)
+		{
+			DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
+		}
+	}
 
 	// Bandpass filer image
 	FourierTransformer transformer1(FFTW_BACKWARD);
@@ -338,35 +458,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	tmpImage = tiltImage;
 	tiltImage.initZeros(ySize, xSize);
-	int jmin;
-	int jmax;
-
-	int marginThickness = (int)((fiducialSize/samplingRate)*1.25);
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout << "marginThickness: " << marginThickness << std::endl;
-	#endif
-
-	x1 += marginThickness;  // (x1, 0)
-	x2 -= marginThickness;  // (x2, 0)
-	x3 += marginThickness;  // (x3, ySize)
-	x4 -= marginThickness;  // (x4, ySize)
-	y1 += marginThickness;  // (y1, 0)
-	y2 += marginThickness;  // (xSize, y2)
-	y3 -= marginThickness;  // (0, y3)
-	y4 -= marginThickness;  // (xSize, y4)
-
-	double m1 = (double)(-y1)/(x1);
-	double m2 = (double)(-y2)/(x2-(double)xSize);
-	double m3 = (double)(y3-(double)ySize)/(-x3);
-	double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
-	
-	#ifdef DEBUG_PREPROCESS
-	std::cout<< "m1: " << m1<<std::endl;
-	std::cout<< "m2: " << m2<<std::endl;
-	std::cout<< "m3: " << m3<<std::endl;
-	std::cout<< "m4: " << m4<<std::endl;
-	#endif
 
 	for (int i = 1; i < xSize-2; i++)
 	{
@@ -473,10 +564,14 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		// ***TODO: value = (value-min)^2 aplicar no linearidad
 
-		// int minimum = *min_element(sliceVector.begin(), sliceVector.end());
+		// int maximum = *max_element(sliceVector.begin(), sliceVector.end());
+		// #ifdef DEBUG_HCC
+		// std::cout << "maximum: " <<  maximum << std::endl;
+        // #endif
+
 		// for (size_t i = 0; i < sliceVectorSize; i++)
 		// {
-		// 	sliceVector[i] = (sliceVector[i]-minimum)*(sliceVector[i]-minimum);
+		// 	sliceVector[i] = (sliceVector[i]-maximum)*(sliceVector[i]-maximum);
 		// }
 
         for(size_t e = 0; e < sliceVectorSize; e++)
@@ -490,8 +585,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        // double threshold = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
         double threshold = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
+        // double threshold = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
 
         #ifdef DEBUG_HCC
 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << " Threshold: " << threshold << std::endl;
@@ -510,7 +605,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-				// if ((value-minimum)*(value-minimum) > threshold)
+				// if ((value-maximum)*(value-maximum) > threshold)
 				// {
 				
 				if (value < threshold)
@@ -528,8 +623,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
 		#endif
 
-		// The value 8 is the neighbourhood
-		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
+		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
 		for(size_t i = 0; i < ySize; i++)
 		{
@@ -774,7 +868,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 				// Update coordinates wiht origin as the center of the tomogram (needed for rotation matrix multiplicaiton)
 				XX(goldBead3d) = (double) (goldBeadX - (double)xSize/2);
-				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conersion is needed
+				YY(goldBead3d) = (double) goldBeadY; // Since we are rotating respect to Y axis, no conversion is needed
 				ZZ(goldBead3d) = (double) (goldBeadZ);
 
 				projectedGoldBead = projectionMatrix * goldBead3d;
