@@ -148,6 +148,10 @@ PyMethodDef Image_methods[] =
           "Divide image by a constant (does not create another Image instance)" },
         { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
+        { "align", (PyCFunction) Image_alignNotConsideringMirrors, METH_VARARGS,
+          "align(imgRef, img) aligns img respect imgRef. Returns the aligned image" },
+        { "alignConsideringMirrors", (PyCFunction) Image_alignConsideringMirrors, METH_VARARGS,
+          "alignConsideringMirrors(imgRef, img) aligns img respect imgRef. Returns the aligned image" },
 		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
 		  "compute radial average around an axis" },
         { "centerOfMass", (PyCFunction) Image_centerOfMass, METH_VARARGS,
@@ -1851,6 +1855,91 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
+/* align */
+PyObject *
+Image_alignNotConsideringMirrors(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    const auto *self = reinterpret_cast<ImageObject*>(obj);
+    if (self != nullptr)
+    {
+        try
+        {
+            PyObject *other = nullptr;
+            if (PyArg_ParseTuple(args, "O", &other))
+            {
+	            // Copy the data to the result image
+                ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
+	            result->image = std::make_unique<ImageGeneric>(Image_Value(other));
+
+                // Convert the data
+	            auto &image = self->image;
+	            image->convert2Datatype(DT_Double);
+	            MultidimArray<double> *pImage = nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
+	            pImage->setXmippOrigin();
+
+	            auto &image2 = result->image;
+	            image2->convert2Datatype(DT_Double);
+	            MultidimArray<double> *pImage2 = nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
+	            pImage2->setXmippOrigin();
+
+	            Matrix2D<double> M;
+
+	            double corr = alignImages(*pImage, *pImage2, M, xmipp_transformation::WRAP);
+                return (PyObject*)result;
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
+
+/* alignConsideringMirrors */
+PyObject *
+Image_alignConsideringMirrors(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    const auto *self = reinterpret_cast<ImageObject*>(obj);
+    if (self != nullptr)
+    {
+        try
+        {
+            PyObject *other = nullptr;
+            if (PyArg_ParseTuple(args, "O", &other))
+            {
+	            // Copy the data to the result image
+                ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
+	            result->image = std::make_unique<ImageGeneric>(Image_Value(other));
+
+                // Convert the data
+	            auto &image = self->image;
+	            image->convert2Datatype(DT_Double);
+	            MultidimArray<double> *pImage = nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
+	            pImage->setXmippOrigin();
+
+	            auto &image2 = result->image;
+	            image2->convert2Datatype(DT_Double);
+	            MultidimArray<double> *pImage2 = nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
+	            pImage2->setXmippOrigin();
+
+	            Matrix2D<double> M;
+
+	            double corr = alignImagesConsideringMirrors(*pImage, *pImage2, M, xmipp_transformation::WRAP);
+                return (PyObject*)result;
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
 
 PyObject *
 Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)

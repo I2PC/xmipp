@@ -231,6 +231,12 @@ Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* align */
+PyObject *
+Image_alignNotConsideringMirrors(PyObject *obj, PyObject *args, PyObject *kwargs);
+/* alignConsideringMirrors */
+PyObject *
+Image_alignConsideringMirrors(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 
 PyObject *
