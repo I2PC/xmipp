@@ -1979,8 +1979,7 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < thrNumberCoords)
 	{
-		// return false;
-		return 0;
+		return false;
 	}
 
 	// Check spehricity of the label
@@ -2047,6 +2046,8 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	{
 		return false;
 	}
+
+	// return ocupation;
 }
 
 void ProgTomoDetectMisalignmentTrajectory::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
