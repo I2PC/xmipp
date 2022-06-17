@@ -439,7 +439,10 @@ void ProgForwardArtZernike3D::splattingAtPos(std::array<double, 2> r, double wei
 	// }
 	int i = round(r[1]);
 	int j = round(r[0]);
-	double gw = bspline1(j - r[0]) * bspline1(i - r[1]);
+	double m = 1. / loop_step;
+	double a = m * ABS(i - r[1]);
+	double b = m * ABS(j - r[0]);
+	double gw = 1 - a - b + a*b;
 	A2D_ELEM(mP, i, j) += weight * gw;
 	A2D_ELEM(mW, i, j) += gw * gw;
 	// A2D_ELEM(mP, i, j) += weight;
@@ -537,6 +540,7 @@ void ProgForwardArtZernike3D::run()
 	size_t objIndex;
 	current_save_iter = 1;
 	num_images = 1;
+	current_image = 1;
 	for (current_iter = 0; current_iter < niter; current_iter++)
 	{
 		std::cout << "Running iteration " << current_iter + 1 << " with lambda=" << lambda << std::endl;
@@ -617,9 +621,9 @@ void ProgForwardArtZernike3D::run()
 				current_save_iter = 1;
 			}
 			current_save_iter++;
-			// num_images++;
+			current_image++;
 		}
-		// num_images = 1;
+		current_image = 1;
 		current_save_iter = 1;
 
 		recoverVol();
@@ -809,8 +813,8 @@ void ProgForwardArtZernike3D::artModel()
 
 		// Creo que Carlos no usa un RMSE si no un MSE
 		error = std::sqrt(error / N);
-		if (verbose > 2)
-			std::cout << "Error for image " << num_images << " in iteration " << current_iter + 1 << " : " << error << std::endl;
+		if (verbose >= 2)
+			std::cout << "Error for image " << num_images << " (" << current_image << ") in iteration " << current_iter + 1 << " : " << error << std::endl;
 	}
 	else if (DIRECTION == Direction::Backward)
 	{

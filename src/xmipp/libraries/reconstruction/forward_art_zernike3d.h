@@ -124,6 +124,7 @@ public:
     int current_save_iter;
     // Image counter
     size_t num_images;
+    size_t current_image;
     // Current ART iteration
     int current_iter;
     // Volume dimensions
