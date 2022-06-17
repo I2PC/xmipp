@@ -1973,10 +1973,14 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	// Uncomment for phantom
 	// return true;
 
+
+	// *** TODO: filtering by number of coordinates might not be the best method, i could be better just filter by occupancy and max distance (radius)
+
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < thrNumberCoords)
 	{
-		return false;
+		// return false;
+		return 0;
 	}
 
 	// Check spehricity of the label
@@ -2003,7 +2007,20 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 	double maxDistace;
 	maxDistace = sqrt(maxSquareDistance);
+
+	std::cout << "maxDistace " << maxDistace << std::endl;
+	std::cout << "fiducialSizePx " << fiducialSizePx/2 << std::endl;
+
 	
+
+	// Check the max radius of the labeled region compared with the size of the gold bead
+	if (abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 > 0.95)
+	{
+		std::cout << "##### dicarded with abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 " << abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 << std::endl;
+		// return false;
+		return 0;
+	}
+
 	double area;
 	double ocupation;
 
@@ -2030,8 +2047,6 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	{
 		return false;
 	}
-
-	// return ocupation;
 }
 
 void ProgTomoDetectMisalignmentTrajectory::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
