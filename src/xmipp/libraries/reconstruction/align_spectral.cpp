@@ -352,6 +352,8 @@ void ProgAlignSpectral::learnReferences() {
     Image<double> image;
     ImageTransformer transformer;
     std::vector<Matrix1D<double>> bandData;
+    init_progress_bar(md.size()*nRotations*translations.size());
+    size_t counter = 0;
     for(const auto& row : md) {
         // Read an image from disk
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -362,9 +364,10 @@ void ProgAlignSpectral::learnReferences() {
             image(),
             nRotations,
             translations,
-            [this, &bandData] (const auto& x) {
+            [this, &bandData, &counter] (const auto& x) {
                 this->m_bandMap.flattenForPca(x, bandData);
                 this->m_pca.learn(bandData);
+                progress_bar(++counter);
             }
         );
     }
@@ -378,6 +381,8 @@ void ProgAlignSpectral::learnExperimental() {
     FourierTransformer fourier;
     MultidimArray<std::complex<double>> spectrum;
     std::vector<Matrix1D<double>> bandData;
+    init_progress_bar(md.size());
+    size_t counter = 0;
     for(const auto& row : md) {
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -387,6 +392,7 @@ void ProgAlignSpectral::learnExperimental() {
         fourier.FourierTransform(image(), spectrum, false);
         m_bandMap.flattenForPca(spectrum, bandData);
         m_pca.learn(bandData);
+        progress_bar(++counter);
     }
 }
 
