@@ -293,16 +293,40 @@ void ProgAlignSpectral::SpectralPca::learn(const std::vector<Matrix1D<double>>& 
 }
 
 void ProgAlignSpectral::SpectralPca::project(   const std::vector<Matrix1D<double>>& bands, 
-                                                std::vector<Matrix1D<double>>& projections) const
+                                                Matrix2D<double>& projections) const
 {
     if (bands.size() != m_bandPcas.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
 
-    projections.resize(bands.size());
+    projections.resizeNoCopy(m_bandPcas.front().getPrincipalComponentCount(), m_bandPcas.size());
+
+    // Project column by column
+    Matrix1D<double> column;
     for (size_t i = 0; i < m_bandPcas.size(); ++i) {
-        m_bandPcas[i].project(bands[i], projections[i]);
-    } 
+        m_bandPcas[i].project(bands[i], column);
+        projections.setCol(i, column);
+    }
+}
+
+void ProgAlignSpectral::SpectralPca::unproject( const Matrix2D<double>& projections,
+                                                std::vector<Matrix1D<double>>& bands ) const
+{
+    if (MAT_YSIZE(projections) != m_bandPcas.front().getPrincipalComponentCount()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Received principal component count does not match");
+    }
+    if (MAT_XSIZE(projections) != m_bandPcas.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
+    }
+
+    bands.resize(m_bandPcas.size());
+
+    // Project column by column
+    Matrix1D<double> column;
+    for (size_t i = 0; i < m_bandPcas.size(); ++i) {
+        projections.getCol(i, column);
+        m_bandPcas[i].unproject(column, bands[i]);
+    }
 }
 
 

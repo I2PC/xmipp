@@ -140,8 +140,9 @@ private:
         void reset(const std::vector<size_t>& sizes, size_t nPc);
         void learn(const std::vector<Matrix1D<double>>& bands);
         void project(   const std::vector<Matrix1D<double>>& bands, 
-                        std::vector<Matrix1D<double>>& projections) const;
-
+                        Matrix2D<double>& projections) const;
+        void unproject( const Matrix2D<double>& projections,
+                        std::vector<Matrix1D<double>>& bands ) const;
     private:
         std::vector<SgaNnOnlinePca<double>> m_bandPcas;
     };
