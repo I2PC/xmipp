@@ -789,6 +789,130 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 
 
+bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
+{
+	std::vector<size_t> coordinatesInSlice;
+	std::vector<size_t> coordinatesInSlice_left;
+	std::vector<size_t> coordinatesInSlice_right;
+
+	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
+
+
+	// debug
+	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
+	{
+		std::cout << coord3DVotes_V[i] << " ";
+	}
+
+	float thrVottingDistance2 = (fiducialSizePx/2)*(fiducialSizePx/2);
+
+	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
+
+	// Votting step	
+	for (size_t n = 1; n < nSize-1; n++) //*** expand to first and last images
+	{
+		coordinatesInSlice = getCoordinatesInSliceIndex(n);
+		coordinatesInSlice_left = getCoordinatesInSliceIndex(n-1);
+		coordinatesInSlice_right = getCoordinatesInSliceIndex(n+1);
+
+		std::cout << "votting image " << n << std::endl;
+
+		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+		{
+			Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
+
+			for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
+			{
+				Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
+				float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+
+				if(distance2 < thrVottingDistance2)
+				{
+					coord3DVotes_V[coordinatesInSlice[i]] += 1;
+				}
+			}
+
+			for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
+			{
+				Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
+				float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
+
+				if(distance2 < thrVottingDistance2)
+				{
+					coord3DVotes_V[coordinatesInSlice[i]] += 1;
+				}
+			}
+		}
+	}
+
+	// debug
+	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
+	{
+		std::cout << coord3DVotes_V[i] << " ";
+	}
+
+	// Trimming step
+	size_t deletedIndexes = 0;
+
+	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
+	{
+		if (coord3DVotes_V[i] == 0)
+		{
+			coordinates3D.erase(coordinates3D.begin()+(i-deletedIndexes));
+			deletedIndexes++;
+		}
+	}
+	
+	// Generate output labeled and filtered series
+	#ifdef DEBUG_OUTPUT_FILES
+	MultidimArray<int> filteredLabeledTS;
+	filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
+
+	std::vector<Point2D<double>> cis;
+
+	for (size_t n = 0; n < nSize; n++)
+	{
+		cis = getCoordinatesInSlice(n);
+
+		MultidimArray<int> filteredLabeledTS_Image;
+		filteredLabeledTS_Image.initZeros(ySize, xSize);
+
+		for(size_t i = 0; i < cis.size(); i++)
+		{
+			fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
+		}
+
+		for (size_t i = 0; i < ySize; ++i)
+		{
+			for (size_t j = 0; j < xSize; ++j)
+			{
+				DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
+			}
+		}
+	}
+
+	size_t lastindexBis = fnOut.find_last_of("\\/");
+	std::string rawnameBis = fnOut.substr(0, lastindexBis);
+	std::string outputFileNameFilteredVolumeBis;
+    outputFileNameFilteredVolumeBis = rawnameBis + "/ts_labeled_filtered.mrcs";
+
+	Image<int> saveImageBis;
+	saveImageBis() = filteredLabeledTS;
+	saveImageBis.write(outputFileNameFilteredVolumeBis);
+	#endif
+
+	if (deletedIndexes != 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
+
 void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 {
 	// ***TODO: homogeneizar PointXD y MatrixXD
@@ -1917,6 +2041,13 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	getHighContrastCoordinates(filteredTiltSeries);
 
+	bool continueVotting = true;
+	while (continueVotting)
+	{
+		continueVotting = votingHCC();
+	}
+	
+
 	MultidimArray<int> proyectedCoordinates;
 	proyectedCoordinates.initZeros(ySize, xSize);
 
@@ -2007,17 +2138,10 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	double maxDistace;
 	maxDistace = sqrt(maxSquareDistance);
 
-	std::cout << "maxDistace " << maxDistace << std::endl;
-	std::cout << "fiducialSizePx " << fiducialSizePx/2 << std::endl;
-
-	
-
 	// Check the max radius of the labeled region compared with the size of the gold bead
 	if (abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 > 0.95)
 	{
-		std::cout << "##### dicarded with abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 " << abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 << std::endl;
-		// return false;
-		return 0;
+		return false;
 	}
 
 	double area;
@@ -2204,6 +2328,25 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 
 	return coordinatesInSlice;
 }
+
+
+std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSliceIndex(size_t slice)
+{
+	std::vector<size_t> coordinatesInSlice;
+
+	for(size_t n = 0; n < coordinates3D.size(); n++)
+	{
+		if(slice == coordinates3D[n].z)
+		{
+			coordinatesInSlice.push_back(n);
+			std::cout << n << " ";
+		}
+	}
+		std::cout <<" " << std::endl;
+
+	return coordinatesInSlice;
+}
+
 
 void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCMc)
 {

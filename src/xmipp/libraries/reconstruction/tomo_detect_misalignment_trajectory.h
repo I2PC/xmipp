@@ -182,6 +182,9 @@ public:
 
     void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
 
+    bool votingHCC();
+
+
     /**
      * Peaks high contrast regions in a volume.
      *
@@ -321,6 +324,8 @@ public:
     */
     std::vector<Point2D<double>> getCoordinatesInSlice(size_t slice);
 
+
+    std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
 
     /**
      * Retrieve a vector contaiing 3 different indexes as i > 0 && i > size.
