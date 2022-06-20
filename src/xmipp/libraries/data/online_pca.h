@@ -53,23 +53,60 @@ public:
 
    SgaNnOnlinePca& operator=(const SgaNnOnlinePca& other) = default;
 
+   size_t getComponentCount() const;
+   size_t getPrincipalComponentCount() const;
+
    void reset();
 
    void learn(const Matrix1D<T>& v, const T& gamma);
    void learn(const Matrix1D<T>& v);
+   void learnNoEigenValues(const Matrix1D<T>& v, const T& gamma);
+   void learnNoEigenValues(const Matrix1D<T>& v);
 
    void project(const Matrix1D<T>& v, Matrix1D<T>& p) const;
+   void unproject(const Matrix1D<T>& p, Matrix1D<T>& v) const;
 
 private:
+   class EigenVectorUpdater {
+   public:
+      EigenVectorUpdater() = default;
+      explicit EigenVectorUpdater(size_t nRows);
+      EigenVectorUpdater(const EigenVectorUpdater& other) = default;
+      ~EigenVectorUpdater() = default;
+      
+      EigenVectorUpdater& operator=(const EigenVectorUpdater& other) = default;
+
+      void operator()(  Matrix2D<T>& vectors, 
+                        const Matrix1D<T>& centered, 
+                        const Matrix1D<T>& gradient, 
+                        const T& gamma );
+
+   private:
+      Matrix1D<T> m_column;
+      Matrix1D<T> m_sigma;
+      Matrix1D<T> m_aux;
+
+   };
+
    size_t m_counter;
    Matrix1D<T> m_mean;
+   Matrix1D<T> m_centered;
    Matrix1D<T> m_gradient;
-   Matrix1D<T> m_eigen;
-   Matrix2D<T> m_basis;
+   Matrix1D<T> m_eigenValues;
+   Matrix2D<T> m_eigenVectors;
 
+   EigenVectorUpdater m_eigenVectorUpdater;
 
+   T calculateGamma() const;
    void learnFirst(const Matrix1D<T>& v);
+   void learnFirstNoEigenValues(const Matrix1D<T>& v);
    void learnOthers(const Matrix1D<T>& v, const T& gamma);
+   void learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma);
+
+   static void updateMean(Matrix1D<T>& mean, size_t count, const Matrix1D<T>& v);
+   static void updateMeanCentered(Matrix1D<T>& centered, const Matrix1D<T>& mean, const Matrix1D<T>& v);
+   static void updateGradient(Matrix1D<T>& gradient, const Matrix2D<T>& basis, const Matrix1D<T>& centered);
+   static void updateEigenValues(Matrix1D<T>& values, const Matrix1D<T>& gradient, const T& gamma);
 
 };
 

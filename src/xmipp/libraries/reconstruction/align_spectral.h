@@ -32,7 +32,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
-#include "../data/basic_pca.h"
+#include "../data/online_pca.h"
 
 #include <vector>
 #include <string_view>
@@ -57,7 +57,7 @@ private:
         TranslationFilter(double dx, double dy, size_t nx, size_t ny)
             : m_dy(dy)
             , m_dx(dx)
-            , m_coefficients(ny, nx/2+1) //Half FFT as real
+            , m_coefficients(ny, toFourierXSize(nx)) //Half FFT as real
         {
             computeCoefficients();
         }
@@ -95,6 +95,56 @@ private:
         MultidimArray<std::complex<double>> m_translatedDft;
 
     };
+    
+    class BandMap {
+    public:
+        BandMap() = default;
+        explicit BandMap(const MultidimArray<int>& bands);
+        BandMap(const BandMap& other) = default;
+        BandMap(BandMap&& other) = default;
+        ~BandMap() = default;
+
+        BandMap& operator=(const BandMap& other) = default;
+        BandMap& operator=(BandMap&& other) = default;
+
+        void reset(const MultidimArray<int>& bands);
+
+        const MultidimArray<int>& getBands() const;
+        const std::vector<size_t>& getBandSizes() const;
+        void flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
+                            std::vector<Matrix1D<double>>& data ) const;
+        void flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
+                            size_t band,
+                            Matrix1D<double>& data ) const;
+
+    private:
+        MultidimArray<int> m_bands;
+        std::vector<size_t> m_sizes;
+
+        static std::vector<size_t> computeBandSizes(const MultidimArray<int>& bands);
+
+    };
+
+    class SpectralPca {
+    public:
+        SpectralPca() = default;
+        SpectralPca(const std::vector<size_t>& sizes, size_t nPc);
+        SpectralPca(const SpectralPca& other) = default;
+        SpectralPca(SpectralPca&& other) = default;
+        ~SpectralPca() = default;
+
+        SpectralPca& operator=(const SpectralPca& other) = default;
+        SpectralPca& operator=(SpectralPca&& other) = default;
+
+        void reset();
+        void reset(const std::vector<size_t>& sizes, size_t nPc);
+        void learn(const std::vector<Matrix1D<double>>& bands);
+        void project(   const std::vector<Matrix1D<double>>& bands, 
+                        std::vector<Matrix1D<double>>& projections) const;
+
+    private:
+        std::vector<SgaNnOnlinePca<double>> m_bandPcas;
+    };
 
     struct RuntimeParameters {
         FileName fnExperimental;
@@ -106,11 +156,6 @@ private:
         double maxShift;
     };
 
-    struct ThreadData {
-        Image<double> reader;
-        ImageTransformer transformer;
-    };
-
 
 
     RuntimeParameters m_parameters;
@@ -119,9 +164,15 @@ private:
     MetaDataVec m_mdReference;
 
     std::vector<TranslationFilter> m_translations;
+    BandMap m_bandMap;
+    SpectralPca m_pca;
+
+
 
     void readInput();
-    void calculateTranslations();
+    void calculateTranslationFilters();
+    void calculateBands();
+    void initPcas();
     void learnReferences();
     void learnExperimental();
     void projectReferences();
@@ -131,10 +182,18 @@ private:
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);
 
+    static constexpr size_t toFourierXSize(size_t nx) { return nx/2 + 1; }
+    static constexpr size_t fromFourierXSize(size_t nx) { return (nx - 1)*2; }
+
     static std::vector<TranslationFilter> computeTranslationFilters(size_t nx, 
                                                                     size_t ny, 
                                                                     size_t nTranslations,
                                                                     double maxShift );
+
+    MultidimArray<int> computeBands(const size_t nx, 
+                                    const size_t ny, 
+                                    const double lowCutoffLimit,
+                                    const double highCutoffLimit );
 
 };
 
