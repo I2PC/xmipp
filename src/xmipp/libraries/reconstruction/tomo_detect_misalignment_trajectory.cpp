@@ -262,8 +262,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	# endif 
 
 	// Remove interpolation edges
-	// tmpImage = tiltImage;
-	// tiltImage.initZeros(ySize, xSize);
 	int jmin;
 	int jmax;
 
@@ -327,6 +325,9 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout  << "marginThickness " << marginThickness << std::endl;
 	std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
 	std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
+
+	interpolationCorners ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
+	vIC.push_back(ic);
 
 	for (int i = 0; i < xSize; i++)
 	{
@@ -520,7 +521,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	std::cout << "Picking high contrast coordinates..." << std::endl;
 	#endif
 
-	// *** reutilizar binaryCoordinatesMapSlice slice a slice y descartar labelCoordiantesMap	
+	// *** reutilizar binaryCoordinatesMapSlice slice a slice y descartar labelCoordiantesMap
+	// OJO perdería mos el debug de la serie con el labelling
     MultidimArray<double> binaryCoordinatesMapSlice;
     MultidimArray<double> labelCoordiantesMapSlice;
     MultidimArray<double> labelCoordiantesMap;
@@ -531,29 +533,55 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	{
 		std::vector<int> sliceVector;
 
-		// search in the cosine streched region common for all the images
-		int xSizeCS = (int)xSize * abs(cos(tiltAngles[k] * PI/180.0));
-		// int xCSmin = (int)((xSize-xSizeCS)/2)*0.9;
-		// int xCSmax = (int)((xSize+xSizeCS)/2)*1.1;
-
-		int xCSmin = 0;
-		int xCSmax = xSize;
-
-		#ifdef DEBUG_HCC
-		std::cout << "Tilt angle: "<< tiltAngles[k] << "º" << std::endl;
-		std::cout << "Cosine streched searching region: (" << xCSmin << ", " <<  xCSmax << ")" << std::endl;
-		std::cout << "Cosine streched searching region size: " << xSizeCS << std::endl;
-		#endif
-
 		// Calculate threshold value for each image of the series
-        for(size_t i = 0; i < ySize; ++i)
+		interpolationCorners ic = vIC[k];
+		int jmin;
+		int jmax;
+
+        for(size_t i = 0; i < xSize; ++i)
         {
-			// search in the cosine streched region common for all the images
-            for(size_t j = xCSmin; j < xCSmax; ++j)
-            {
-				/// *** enhance performance: do not use slice vector, sum directly from image
-                sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
-            }
+			// Search inside the interpolation edges
+			if(i < ic.x1)
+			{
+				jmin = (int)(ic.m1*i+ic.y1);
+			}
+			else if (i > ic.x2)
+			{
+				jmin = (int)(ic.m2*(i-(int)xSize)+ic.y2);
+			}
+			else
+			{
+				jmin = 0;
+			}
+			
+			if(i < ic.x3)
+			{
+				jmax = (int)(ic.m3*(i-ic.x3)+(int)ySize);
+			}
+			else if (i > ic.x4)
+			{
+				jmax = (int)(ic.m4*(i-ic.x4)+(int)ySize);
+			}
+			else
+			{
+				jmax = (int)(ySize-1);
+			}
+
+			if(jmin < 0)
+			{
+				jmin = 0;
+			}
+
+			if(jmax > (int)(ySize))
+			{
+				jmax = (int)(ySize);
+			}
+			
+			for (int j = jmin; j < jmax; j++)
+			{
+					/// *** enhance performance: do not use slice vector, sum directly from image
+					sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+			}	
         }
 
         double sum = 0, sum2 = 0;
@@ -600,8 +628,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		for(size_t i = 0; i < ySize; i++)
 		{
-			// Search in the cosine streched region common for all the images
-            for(size_t j = xCSmin; j < xCSmax; ++j)
+            for(size_t j = 0; j < xSize; ++j)
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
@@ -627,8 +654,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		for(size_t i = 0; i < ySize; i++)
 		{
-			// search in the cosine streched region common for all the images
-            for(size_t j = xCSmin; j < xCSmax; ++j)
+            for(size_t j = 0; j < xSize; ++j)
 			{
 				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 				
@@ -648,8 +674,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		for(size_t i = 0; i < ySize; i++)
 		{
-			// search in the cosine streched region common for all the images
-            for(size_t j = xCSmin; j < xCSmax; ++j)
+            for(size_t j = 0; j < xSize; ++j)
 			{
 				int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 

@@ -91,8 +91,23 @@ public:
     };
 
 
+    // Interpolation corners structure for each tilt-image
+    struct interpolationCorners {
+        int x1;  // Top-left corner (x1, 0)
+        int x2;  // Top-right corner (x2, 0)
+        int x3;  // Bottom-left corner (x3, ySize)
+        int x4;  // Bottom-right corner (x4, ySize)
+        int y1;  // Top-left corner (y1, 0)
+        int y2;  // Top-right corner (xSize, y2)
+        int y3;  // Bottom-left corner (0, y3)
+        int y4;  // Bottom-right corner (xSize, y4)
+        float m1;   // Slope of top-left edge
+	    float m2;   // Slope of top-right edge
+	    float m3;   // Slope of bottom-left edge
+	    float m4;   // Slope of bottom-right edge
+    };
+
     
-// private:
     /** Input tilt-series dimensions */
     size_t xSize;
 	size_t ySize;
@@ -102,6 +117,9 @@ public:
 
     /** Array of coordinate model structures */
     std::vector<CM> vCM;
+
+    /** Array of interpolation corner structures */
+    std::vector<interpolationCorners> vIC;
 
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
