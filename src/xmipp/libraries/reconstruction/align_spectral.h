@@ -33,10 +33,12 @@
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
 #include "../data/online_pca.h"
+#include <CTPL/ctpl_stl.h>
 
 #include <vector>
 #include <string_view>
 #include <functional>
+#include <mutex>
 
 /**@defgroup Alignment Alignment
    @ingroup ReconsLibrary */
@@ -136,15 +138,28 @@ private:
         SpectralPca& operator=(const SpectralPca& other) = default;
         SpectralPca& operator=(SpectralPca&& other) = default;
 
+        size_t getBandCount() const;
+        size_t getBandPrincipalComponentCount() const;
+        size_t getTotalPrincipalComponentCount() const;
+
         void reset();
         void reset(const std::vector<size_t>& sizes, size_t nPc);
         void learn(const std::vector<Matrix1D<double>>& bands);
+        void learnConcurrent(const std::vector<Matrix1D<double>>& bands);
         void project(   const std::vector<Matrix1D<double>>& bands, 
-                        Matrix2D<double>& projections) const;
-        void unproject( const Matrix2D<double>& projections,
+                        MultidimArray<double>& projections) const;
+        void unproject( const MultidimArray<double>& projections,
                         std::vector<Matrix1D<double>>& bands ) const;
     private:
         std::vector<SgaNnOnlinePca<double>> m_bandPcas;
+        std::vector<std::mutex> m_bandMutex;
+
+    };
+
+    struct ReferenceMetadata {
+        size_t position;
+        double dx, dy;
+        double rotation;
     };
 
     struct RuntimeParameters {
@@ -155,11 +170,19 @@ private:
         size_t nRotations;
         size_t nTranslations;
         double maxShift;
+
+        size_t nBandPc;
+        double lowResLimit;
+        double highResLimit;
+
+        size_t nThreads;
     };
 
 
 
     RuntimeParameters m_parameters;
+
+    ctpl::thread_pool m_threadPool;
 
     MetaDataVec m_mdExperimental;
     MetaDataVec m_mdReference;
@@ -167,9 +190,13 @@ private:
     std::vector<TranslationFilter> m_translations;
     BandMap m_bandMap;
     SpectralPca m_pca;
+    MultidimArray<double> m_projExperimental;
+    MultidimArray<double> m_projReference;
+    std::vector<ReferenceMetadata> m_referenceData;
 
 
 
+    void initThreads();
     void readInput();
     void calculateTranslationFilters();
     void calculateBands();
@@ -179,6 +206,8 @@ private:
     void projectReferences();
     void projectExperimental();
 
+    template<typename Ite, typename Func>
+    void processParallel(Ite first, Ite last, Func func, size_t batch);
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);
@@ -191,10 +220,10 @@ private:
                                                                     size_t nTranslations,
                                                                     double maxShift );
 
-    MultidimArray<int> computeBands(const size_t nx, 
-                                    const size_t ny, 
-                                    const double lowCutoffLimit,
-                                    const double highCutoffLimit );
+    static MultidimArray<int> computeBands( const size_t nx, 
+                                            const size_t ny, 
+                                            const double lowCutoffLimit,
+                                            const double highCutoffLimit );
 
 };
 

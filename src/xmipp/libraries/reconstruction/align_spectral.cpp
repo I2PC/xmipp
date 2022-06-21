@@ -45,6 +45,12 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   --rotations <rotations>         : Number of rotations to consider");
     addParamsLine("   --translations <transtions>     : Number of translations to consider");
     addParamsLine("   --maxShift <maxShift>           : Maximum translation in percentage relative to the image size");
+    
+    addParamsLine("   --pc <pc>                       : Number of principal components to consider in each band");
+    addParamsLine("   --lowRes <low_resolution>       : Lowest resolution to consider [0, 1] in terms of the Nyquist freq.");
+    addParamsLine("   --highRes <high_resolution>     : Highest resolution to consider [0, 1] in terms of the Nyquist freq.");
+
+    addParamsLine("   --thr <threads>                 : Number of threads");
 }
 
 void ProgAlignSpectral::readParams() {
@@ -57,6 +63,12 @@ void ProgAlignSpectral::readParams() {
     param.nRotations = getIntParam("--rotations");
     param.nTranslations = getIntParam("--translations");
     param.maxShift = getDoubleParam("--maxShift") / 100;
+
+    param.nBandPc = getIntParam("--pc");
+    param.lowResLimit = getDoubleParam("--lowRes") * M_PI;
+    param.highResLimit = getDoubleParam("--highRes") * M_PI;
+
+    param.nThreads = getIntParam("--thr");
 }
 
 void ProgAlignSpectral::show() const {
@@ -71,6 +83,11 @@ void ProgAlignSpectral::show() const {
     std::cout << "Translations                : " << param.nTranslations << "\n";
     std::cout << "Maximum shift               : " << param.maxShift*100 << "%\n";
 
+    std::cout << "Number of PC per band       : " << param.nBandPc << "\n";
+    std::cout << "Low resolution limit        : " << param.lowResLimit << "rad\n";
+    std::cout << "High resolution limit       : " << param.highResLimit << "rad\n";
+
+    std::cout << "Number of threads           : " << param.nThreads << "\n";
     std::cout.flush();
 }
 
@@ -266,6 +283,22 @@ ProgAlignSpectral::SpectralPca::SpectralPca(const std::vector<size_t>& sizes,
     reset(sizes, nPc);
 }
 
+
+
+size_t ProgAlignSpectral::SpectralPca::getBandCount() const {
+    return m_bandPcas.size();
+}
+
+size_t ProgAlignSpectral::SpectralPca::getBandPrincipalComponentCount() const {
+    return m_bandPcas.front().getPrincipalComponentCount();
+}
+
+size_t ProgAlignSpectral::SpectralPca::getTotalPrincipalComponentCount() const {
+    return getBandCount() * getBandPrincipalComponentCount();
+}
+
+
+
 void ProgAlignSpectral::SpectralPca::reset() {
     for (auto& pca : m_bandPcas) {
         pca.reset();
@@ -280,58 +313,91 @@ void ProgAlignSpectral::SpectralPca::reset(const std::vector<size_t>& sizes, siz
     for (const auto& size : sizes) {
         m_bandPcas.emplace_back(size*2, nPc); //*2 as we are are using complex numbers
     }
+    assert(m_bandPcas.size() == sizes.size());
+
+    m_bandMutex = std::vector<std::mutex>(m_bandPcas.size());
 }
 
 void ProgAlignSpectral::SpectralPca::learn(const std::vector<Matrix1D<double>>& bands) {
-    if (bands.size() != m_bandPcas.size()) {
+    if (bands.size() != getBandCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
 
-    for (size_t i = 0; i < m_bandPcas.size(); ++i) {
+    for (size_t i = 0; i < getBandCount(); ++i) {
+        m_bandPcas[i].learnNoEigenValues(bands[i]);
+    } 
+}
+
+void ProgAlignSpectral::SpectralPca::learnConcurrent(const std::vector<Matrix1D<double>>& bands) {
+    if (bands.size() != getBandCount()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
+    }
+
+    for (size_t i = 0; i < getBandCount(); ++i) {
+        std::lock_guard<std::mutex> lock(m_bandMutex[i]);
         m_bandPcas[i].learnNoEigenValues(bands[i]);
     } 
 }
 
 void ProgAlignSpectral::SpectralPca::project(   const std::vector<Matrix1D<double>>& bands, 
-                                                Matrix2D<double>& projections) const
+                                                MultidimArray<double>& projections) const
 {
-    if (bands.size() != m_bandPcas.size()) {
+    if (bands.size() != getBandCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
 
-    projections.resizeNoCopy(m_bandPcas.front().getPrincipalComponentCount(), m_bandPcas.size());
+    projections.resizeNoCopy(getBandCount(), getBandPrincipalComponentCount());
 
-    // Project column by column
-    Matrix1D<double> column;
-    for (size_t i = 0; i < m_bandPcas.size(); ++i) {
-        m_bandPcas[i].project(bands[i], column);
-        projections.setCol(i, column);
+    // Create an alias for the rows
+    Matrix1D<double> rowAlias;
+    rowAlias.destroyData = false;
+    rowAlias.vdata = MULTIDIM_ARRAY(projections);
+    rowAlias.vdim = XSIZE(projections);
+
+    // Project row by row
+    for (size_t i = 0; i < getBandCount(); ++i) {
+        m_bandPcas[i].project(bands[i], rowAlias);
+        rowAlias.vdata += rowAlias.vdim;
     }
+    assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
 }
 
-void ProgAlignSpectral::SpectralPca::unproject( const Matrix2D<double>& projections,
+void ProgAlignSpectral::SpectralPca::unproject( const MultidimArray<double>& projections,
                                                 std::vector<Matrix1D<double>>& bands ) const
 {
-    if (MAT_YSIZE(projections) != m_bandPcas.front().getPrincipalComponentCount()) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Received principal component count does not match");
-    }
-    if (MAT_XSIZE(projections) != m_bandPcas.size()) {
+    if (YSIZE(projections) != getBandCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
-
-    bands.resize(m_bandPcas.size());
-
-    // Project column by column
-    Matrix1D<double> column;
-    for (size_t i = 0; i < m_bandPcas.size(); ++i) {
-        projections.getCol(i, column);
-        m_bandPcas[i].unproject(column, bands[i]);
+    if (XSIZE(projections) != getBandPrincipalComponentCount()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Received principal component count does not match");
     }
+    if (YXSIZE(projections) != MULTIDIM_SIZE(projections)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Input projection array must have 2 dimensions");
+    }
+
+    bands.resize(getBandCount());
+
+    // Create an alias for the rows
+    Matrix1D<double> rowAlias;
+    rowAlias.destroyData = false;
+    rowAlias.vdata = MULTIDIM_ARRAY(projections);
+    rowAlias.vdim = XSIZE(projections);
+
+    // Unproject row by row
+    for (size_t i = 0; i < getBandCount(); ++i) {
+        m_bandPcas[i].unproject(rowAlias, bands[i]);
+        rowAlias.vdata += rowAlias.vdim;
+    }
+    assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
 }
 
 
 
 
+
+void ProgAlignSpectral::initThreads() {
+    m_threadPool.resize(m_parameters.nThreads);
+}
 
 void ProgAlignSpectral::readInput() {
     readMetadata(m_parameters.fnExperimental, m_mdExperimental);
@@ -359,25 +425,31 @@ void ProgAlignSpectral::calculateBands() {
     size_t nx, ny, nz, nn;
     getImageSize(md, nx, ny, nz, nn);
 
-    m_bandMap.reset(computeBands(nx, ny, M_PI/8, M_PI)); //TODO determine frequencies
+    const auto bands = computeBands(
+        nx, ny, 
+        m_parameters.lowResLimit, 
+        m_parameters.highResLimit
+    );
+    m_bandMap.reset(bands);
 }
 
 void ProgAlignSpectral::initPcas() {
-    //TODO determine pca count
-    m_pca.reset(m_bandMap.getBandSizes(), 128);
+    m_pca.reset(
+        m_bandMap.getBandSizes(), 
+        m_parameters.nBandPc
+    );
 }
 
 void ProgAlignSpectral::learnReferences() {
     // Shorthands
     const auto& md = m_mdReference;
-    const auto& nRotations = m_parameters.nRotations;
-    const auto& translations = m_translations;
+    const auto nImages = md.size()*m_parameters.nRotations*m_translations.size();
 
     Image<double> image;
     ImageTransformer transformer;
     std::vector<Matrix1D<double>> bandData;
-    init_progress_bar(md.size()*nRotations*translations.size());
     size_t counter = 0;
+    init_progress_bar(nImages);
     for(const auto& row : md) {
         // Read an image from disk
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -386,27 +458,30 @@ void ProgAlignSpectral::learnReferences() {
         // For each in-plane transformation train the PCA
         transformer.forEachInPlaneTransform(
             image(),
-            nRotations,
-            translations,
+            m_parameters.nRotations,
+            m_translations,
             [this, &bandData, &counter] (const auto& x) {
                 this->m_bandMap.flattenForPca(x, bandData);
                 this->m_pca.learn(bandData);
+
                 progress_bar(++counter);
             }
         );
     }
+    assert(counter == nImages);
 }
 
 void ProgAlignSpectral::learnExperimental() {
     // Shorthands
     const auto& md = m_mdExperimental;
+    const auto nImages = md.size();
 
     Image<double> image;
     FourierTransformer fourier;
     MultidimArray<std::complex<double>> spectrum;
     std::vector<Matrix1D<double>> bandData;
-    init_progress_bar(md.size());
     size_t counter = 0;
+    init_progress_bar(nImages);
     for(const auto& row : md) {
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -416,16 +491,101 @@ void ProgAlignSpectral::learnExperimental() {
         fourier.FourierTransform(image(), spectrum, false);
         m_bandMap.flattenForPca(spectrum, bandData);
         m_pca.learn(bandData);
+
         progress_bar(++counter);
     }
+    assert(counter == nImages);
 }
 
 void ProgAlignSpectral::projectReferences() {
+    // Shorthands
+    const auto& md = m_mdReference;
+    auto& proj = m_projReference;
+    auto& projData = m_referenceData;
+    const auto nImages = md.size()*m_parameters.nRotations*m_translations.size();
 
+    // Allocate space
+    proj.resizeNoCopy(
+        nImages,
+        m_pca.getBandCount(),
+        m_pca.getBandPrincipalComponentCount()
+    );
+    projData.resize(nImages);
+
+    
+    // Project all images and their inplane transformations 
+    // onto the PCs
+    Image<double> image;
+    ImageTransformer transformer;
+    std::vector<Matrix1D<double>> bandData;
+    MultidimArray<double> slice;
+    size_t counter = 0;
+    init_progress_bar(nImages);
+    for(const auto& row : md) {
+        // Read an image from disk
+        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
+        readImage(fnImage, image);
+
+        // For each in-plane transformation train the PCA
+        transformer.forEachInPlaneTransform(
+            image(),
+            m_parameters.nRotations,
+            m_translations,
+            [this, &bandData, &counter, &proj, &slice] (const auto& x) {
+                // Alias an slice of the input array
+                slice.aliasSlice(proj, counter);
+
+                // Project the image
+                this->m_bandMap.flattenForPca(x, bandData);
+                this->m_pca.project(bandData, slice);
+
+                // Store the data for it
+                //TODO
+
+                progress_bar(++counter);
+            }
+        );
+    }
+    assert(counter == nImages);
 }
 
 void ProgAlignSpectral::projectExperimental() {
+    // Shorthands
+    const auto& md = m_mdExperimental;
+    auto& proj = m_projExperimental;
+    const auto nImages = md.size();
 
+    // Allocate space
+    proj.resizeNoCopy(
+        md.size(),
+        m_pca.getBandCount(),
+        m_pca.getBandPrincipalComponentCount()
+    );
+
+    // Project all images onto the PCs
+    Image<double> image;
+    FourierTransformer fourier;
+    MultidimArray<std::complex<double>> spectrum;
+    std::vector<Matrix1D<double>> bandData;
+    MultidimArray<double> slice;
+    size_t counter = 0;
+    init_progress_bar(nImages);
+    for(const auto& row : md) {
+        // Read an image
+        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
+        readImage(fnImage, image);
+
+        // Alias an slice of the input array
+        slice.aliasSlice(proj, counter);
+
+        // Project the image
+        fourier.FourierTransform(image(), spectrum, false);
+        m_bandMap.flattenForPca(spectrum, bandData);
+        m_pca.project(bandData, slice);
+
+        progress_bar(++counter);
+    }
+    assert(counter == nImages);
 }
 
 
