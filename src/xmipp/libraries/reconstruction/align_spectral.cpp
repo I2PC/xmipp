@@ -506,7 +506,6 @@ void ProgAlignSpectral::projectReferences() {
     // Shorthands
     const auto& md = m_mdReference;
     auto& proj = m_projReference;
-    auto& projData = m_referenceData;
     const auto nImages = md.size()*m_parameters.nRotations*m_translations.size();
 
     // Allocate space
@@ -515,8 +514,6 @@ void ProgAlignSpectral::projectReferences() {
         m_pca.getBandCount(),
         m_pca.getBandPrincipalComponentCount()
     );
-    projData.resize(nImages);
-
     
     // Project all images and their inplane transformations 
     // onto the PCs
@@ -543,9 +540,6 @@ void ProgAlignSpectral::projectReferences() {
                 // Project the image
                 this->m_bandMap.flattenForPca(x, bandData);
                 this->m_pca.project(bandData, slice);
-
-                // Store the data for it
-                //TODO
 
                 ++counter;
                 if(counter % 64 == 0) progress_bar(counter);

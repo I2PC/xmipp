@@ -156,12 +156,6 @@ private:
 
     };
 
-    struct ReferenceMetadata {
-        size_t position;
-        double dx, dy;
-        double rotation;
-    };
-
     struct RuntimeParameters {
         FileName fnExperimental;
         FileName fnReference;
@@ -192,7 +186,6 @@ private:
     SpectralPca m_pca;
     MultidimArray<double> m_projExperimental;
     MultidimArray<double> m_projReference;
-    std::vector<ReferenceMetadata> m_referenceData;
 
 
 
