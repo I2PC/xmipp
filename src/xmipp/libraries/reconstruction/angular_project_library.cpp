@@ -208,11 +208,7 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
     if (verbose)
         init_progress_bar(mySize);
 
-    int myCounter=0;
 
-    for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
-        for (int i=0;i<my_init;i++)
-            myCounter++;
 
 //    if (shears && XSIZE(inputVol())!=0 && VShears==NULL)
 //        VShears=new RealShearsInfo(inputVol());

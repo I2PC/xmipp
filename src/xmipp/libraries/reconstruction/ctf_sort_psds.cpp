@@ -298,8 +298,6 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 	double Nalpha = 180;
     
     double alpha=0;
-    // Keep this comment to understand the loop
-    // for (double alpha=0; alpha<=PI; alpha+=PI/Nalpha, N++)
     for(; alpha<=PI; alpha+=PI/Nalpha, N++)
     {
     	VECTOR_R2(u,cos(alpha),sin(alpha));
