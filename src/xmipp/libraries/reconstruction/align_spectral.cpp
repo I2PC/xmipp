@@ -466,7 +466,7 @@ void ProgAlignSpectral::learnReferences() {
                 this->m_pca.learn(bandData);
 
                 ++counter;
-                if(counter % 64) progress_bar(counter);
+                if(counter % 64 == 0) progress_bar(counter);
             }
         );
     }
@@ -496,7 +496,7 @@ void ProgAlignSpectral::learnExperimental() {
         m_pca.learn(bandData);
 
         ++counter;
-        if(counter % 64) progress_bar(counter);
+        if(counter % 64 == 0) progress_bar(counter);
     }
     assert(counter == nImages);
     progress_bar(counter);
@@ -548,7 +548,7 @@ void ProgAlignSpectral::projectReferences() {
                 //TODO
 
                 ++counter;
-                if(counter % 64) progress_bar(counter);
+                if(counter % 64 == 0) progress_bar(counter);
             }
         );
     }
@@ -591,7 +591,7 @@ void ProgAlignSpectral::projectExperimental() {
         m_pca.project(bandData, slice);
 
         ++counter;
-        if(counter % 64) progress_bar(counter);
+        if(counter % 64 == 0) progress_bar(counter);
     }
     assert(counter == nImages);
     progress_bar(counter);
