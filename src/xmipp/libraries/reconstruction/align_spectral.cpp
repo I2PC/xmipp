@@ -92,6 +92,7 @@ void ProgAlignSpectral::show() const {
 }
 
 void ProgAlignSpectral::run() {
+    initThreads();
     readInput();
     calculateTranslationFilters();
     calculateBands();

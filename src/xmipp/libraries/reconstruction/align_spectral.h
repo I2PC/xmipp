@@ -206,8 +206,6 @@ private:
     void projectReferences();
     void projectExperimental();
 
-    static void processParallel()
-
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);
 
