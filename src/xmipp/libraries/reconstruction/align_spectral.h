@@ -206,8 +206,7 @@ private:
     void projectReferences();
     void projectExperimental();
 
-    template<typename Ite, typename Func>
-    void processParallel(Ite first, Ite last, Func func, size_t batch);
+    static void processParallel()
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);
