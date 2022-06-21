@@ -31,6 +31,8 @@
 #include <iostream>
 #include <cmath>
 #include <cassert>
+#include <thread>
+#include <atomic>
 
 
 namespace Alignment {
@@ -38,8 +40,8 @@ namespace Alignment {
 void ProgAlignSpectral::defineParams() {
     addUsageLine("Find alignment of the experimental images in respect to a set of references");
 
-    addParamsLine("   -i <md_file>                    : Metadata file with the experimental images");
     addParamsLine("   -r <md_file>                    : Metadata file with the reference images");
+    addParamsLine("   -i <md_file>                    : Metadata file with the experimental images");
     addParamsLine("   -o <md_file>                    : Resulting metadata file with the aligned images");
     
     addParamsLine("   --rotations <rotations>         : Number of rotations to consider");
@@ -56,8 +58,8 @@ void ProgAlignSpectral::defineParams() {
 void ProgAlignSpectral::readParams() {
     auto& param = m_parameters;
 
-    param.fnExperimental = getParam("-i");
     param.fnReference = getParam("-r");
+    param.fnExperimental = getParam("-i");
     param.fnOutput = getParam("-o");
 
     param.nRotations = getIntParam("--rotations");
@@ -92,7 +94,6 @@ void ProgAlignSpectral::show() const {
 }
 
 void ProgAlignSpectral::run() {
-    initThreads();
     readInput();
     calculateTranslationFilters();
     calculateBands();
@@ -396,13 +397,9 @@ void ProgAlignSpectral::SpectralPca::unproject( const MultidimArray<double>& pro
 
 
 
-void ProgAlignSpectral::initThreads() {
-    m_threadPool.resize(m_parameters.nThreads);
-}
-
 void ProgAlignSpectral::readInput() {
-    readMetadata(m_parameters.fnExperimental, m_mdExperimental);
     readMetadata(m_parameters.fnReference, m_mdReference);
+    readMetadata(m_parameters.fnExperimental, m_mdExperimental);
 }
 
 void ProgAlignSpectral::calculateTranslationFilters() {
@@ -446,32 +443,35 @@ void ProgAlignSpectral::learnReferences() {
     const auto& md = m_mdReference;
     const auto nImages = md.size()*m_parameters.nRotations*m_translations.size();
 
-    Image<double> image;
-    ImageTransformer transformer;
-    std::vector<Matrix1D<double>> bandData;
-    size_t counter = 0;
-    init_progress_bar(nImages);
-    for(const auto& row : md) {
+    struct ThreadData {
+        Image<double> image;
+        ImageTransformer transformer;
+        std::vector<Matrix1D<double>> bandCoefficients;
+    };
+
+    // Create a lambda to run in parallel
+    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image from disk
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, image);
+        readImage(fnImage, data.image);
 
         // For each in-plane transformation train the PCA
-        transformer.forEachInPlaneTransform(
-            image(),
+        data.transformer.forEachInPlaneTransform(
+            data.image(),
             m_parameters.nRotations,
             m_translations,
-            [this, &bandData, &counter] (const auto& x) {
-                this->m_bandMap.flattenForPca(x, bandData);
-                this->m_pca.learn(bandData);
+            [this, &data] (const auto& x) {
+                this->m_bandMap.flattenForPca(x, data.bandCoefficients);
+                this->m_pca.learnConcurrent(data.bandCoefficients);
 
-                ++counter;
-                if(counter % 64 == 0) progress_bar(counter);
+                //++counter;
+                //if(counter % 64 == 0) progress_bar(counter);
             }
         );
-    }
-    assert(counter == nImages);
-    progress_bar(counter);
+    };
+
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    processRowsInParallel(md, func, threadData);
 }
 
 void ProgAlignSpectral::learnExperimental() {
@@ -479,33 +479,36 @@ void ProgAlignSpectral::learnExperimental() {
     const auto& md = m_mdExperimental;
     const auto nImages = md.size();
 
-    Image<double> image;
-    FourierTransformer fourier;
-    MultidimArray<std::complex<double>> spectrum;
-    std::vector<Matrix1D<double>> bandData;
-    size_t counter = 0;
-    init_progress_bar(nImages);
-    for(const auto& row : md) {
+    struct ThreadData {
+        Image<double> image;
+        FourierTransformer fourier;
+        MultidimArray<std::complex<double>> spectrum;
+        std::vector<Matrix1D<double>> bandCoefficients;
+    };
+
+    // Create a lambda to run in parallel
+    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, image);
+        readImage(fnImage, data.image);
 
         // Use the image to train the pca
-        fourier.FourierTransform(image(), spectrum, false);
-        m_bandMap.flattenForPca(spectrum, bandData);
-        m_pca.learn(bandData);
+        data.fourier.FourierTransform(data.image(), data.spectrum, false);
+        m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
+        m_pca.learnConcurrent(data.bandCoefficients);
 
-        ++counter;
-        if(counter % 64 == 0) progress_bar(counter);
-    }
-    assert(counter == nImages);
-    progress_bar(counter);
+        //++counter;
+        //if(counter % 64 == 0) progress_bar(counter);
+    };
+
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    processRowsInParallel(md, func, threadData);
 }
 
 void ProgAlignSpectral::projectReferences() {
     // Shorthands
     const auto& md = m_mdReference;
-    auto& proj = m_projReference;
+    auto& proj = m_referenceProjections;
     const auto nImages = md.size()*m_parameters.nRotations*m_translations.size();
 
     // Allocate space
@@ -515,80 +518,127 @@ void ProgAlignSpectral::projectReferences() {
         m_pca.getBandPrincipalComponentCount()
     );
     
-    // Project all images and their inplane transformations 
-    // onto the PCs
-    Image<double> image;
-    ImageTransformer transformer;
-    std::vector<Matrix1D<double>> bandData;
-    MultidimArray<double> slice;
-    size_t counter = 0;
-    init_progress_bar(nImages);
-    for(const auto& row : md) {
+    struct ThreadData {
+        Image<double> image;
+        ImageTransformer transformer;
+        std::vector<Matrix1D<double>> bandCoefficients;
+    };
+
+    // Create a lambda to run in parallel
+    const auto func = [this, &proj] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image from disk
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, image);
+        readImage(fnImage, data.image);
 
         // For each in-plane transformation train the PCA
-        transformer.forEachInPlaneTransform(
-            image(),
+        data.transformer.forEachInPlaneTransform(
+            data.image(),
             m_parameters.nRotations,
             m_translations,
-            [this, &bandData, &counter, &proj, &slice] (const auto& x) {
+            [this, i, &data, &proj] (const auto& x) {
+                MultidimArray<double> slice;
+
                 // Alias an slice of the input array
-                slice.aliasSlice(proj, counter);
+                slice.aliasSlice(proj, i);
 
                 // Project the image
-                this->m_bandMap.flattenForPca(x, bandData);
-                this->m_pca.project(bandData, slice);
+                this->m_bandMap.flattenForPca(x, data.bandCoefficients);
+                this->m_pca.project(data.bandCoefficients, slice);
 
-                ++counter;
-                if(counter % 64 == 0) progress_bar(counter);
+                //++counter;
+                //if(counter % 64 == 0) progress_bar(counter);
             }
         );
-    }
-    assert(counter == nImages);
-    progress_bar(counter);
+    };
+
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    processRowsInParallel(md, func, threadData);
 }
 
 void ProgAlignSpectral::projectExperimental() {
     // Shorthands
     const auto& md = m_mdExperimental;
-    auto& proj = m_projExperimental;
     const auto nImages = md.size();
 
-    // Allocate space
-    proj.resizeNoCopy(
-        md.size(),
-        m_pca.getBandCount(),
-        m_pca.getBandPrincipalComponentCount()
-    );
+    struct ThreadData {
+        Image<double> image;
+        FourierTransformer fourier;
+        MultidimArray<std::complex<double>> spectrum;
+        std::vector<Matrix1D<double>> bandCoefficients;
+        MultidimArray<double> projection;
+    };
 
-    // Project all images onto the PCs
-    Image<double> image;
-    FourierTransformer fourier;
-    MultidimArray<std::complex<double>> spectrum;
-    std::vector<Matrix1D<double>> bandData;
-    MultidimArray<double> slice;
-    size_t counter = 0;
-    init_progress_bar(nImages);
-    for(const auto& row : md) {
+    // Create a lambda to run in parallel
+    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, image);
-
-        // Alias an slice of the input array
-        slice.aliasSlice(proj, counter);
+        readImage(fnImage, data.image);
 
         // Project the image
-        fourier.FourierTransform(image(), spectrum, false);
-        m_bandMap.flattenForPca(spectrum, bandData);
-        m_pca.project(bandData, slice);
+        data.fourier.FourierTransform(data.image(), data.spectrum, false);
+        m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
+        m_pca.project(data.bandCoefficients, data.projection);
 
-        ++counter;
-        if(counter % 64 == 0) progress_bar(counter);
+        // Compare the projection to find a match
+        compareProjection(data.projection);
+
+        //++counter;
+        //if(counter % 64 == 0) progress_bar(counter);
+    };
+
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    processRowsInParallel(md, func, threadData);
+}
+
+
+
+template<typename F, typename T>
+void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md, 
+                                                F&& func, 
+                                                std::vector<T>& threadData ) 
+{
+    std::atomic<size_t> currRowNum(0);
+    const auto mdSize = md.size();
+
+    // Create a worker function which atomically aquires a row and
+    // dispatches the provided function
+    const auto workerFunc = [&md, &func, &threadData, &currRowNum, mdSize] (T& data) {
+        auto rowNum = currRowNum++;
+        while(rowNum < mdSize) {
+            const auto row = md.getRowVec(md.getRowId(rowNum));
+            func(rowNum, row, data);
+            rowNum = currRowNum++;
+        }
+    };
+
+    // Create some workers
+    std::vector<std::thread> threads;
+    threads.reserve(threadData.size());
+    for(size_t i = 0; i < threadData.size(); ++i) {
+        threads.emplace_back(workerFunc, std::ref(threadData[i]));
     }
-    assert(counter == nImages);
-    progress_bar(counter);
+
+    //Wait for them to finish
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+
+void ProgAlignSpectral::compareProjection(const MultidimArray<double>& experimentalProjection) {
+    MultidimArray<double> referenceProjection;
+    for(size_t i = 0; i < ZSIZE(m_referenceProjections); ++i) {
+        // Obtain the current reference particle's PCA projection
+        referenceProjection.aliasSlice(m_referenceProjections, i);
+        assert(referenceProjection.sameShape(experimentalProjection));
+
+        double sum = 0;
+        FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(referenceProjection) {
+            const auto& r = DIRECT_A2D_ELEM(referenceProjection, i, j);
+            const auto& e = DIRECT_A2D_ELEM(experimentalProjection, i, j);
+            const auto delta = e - r;
+            sum += delta;
+        }
+    }
 }
 
 

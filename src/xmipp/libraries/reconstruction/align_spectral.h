@@ -33,7 +33,6 @@
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
 #include "../data/online_pca.h"
-#include <CTPL/ctpl_stl.h>
 
 #include <vector>
 #include <string_view>
@@ -157,8 +156,8 @@ private:
     };
 
     struct RuntimeParameters {
-        FileName fnExperimental;
         FileName fnReference;
+        FileName fnExperimental;
         FileName fnOutput;
 
         size_t nRotations;
@@ -176,20 +175,16 @@ private:
 
     RuntimeParameters m_parameters;
 
-    ctpl::thread_pool m_threadPool;
-
-    MetaDataVec m_mdExperimental;
     MetaDataVec m_mdReference;
+    MetaDataVec m_mdExperimental;
 
     std::vector<TranslationFilter> m_translations;
     BandMap m_bandMap;
     SpectralPca m_pca;
-    MultidimArray<double> m_projExperimental;
-    MultidimArray<double> m_projReference;
+    MultidimArray<double> m_referenceProjections;
 
 
 
-    void initThreads();
     void readInput();
     void calculateTranslationFilters();
     void calculateBands();
@@ -198,6 +193,10 @@ private:
     void learnExperimental();
     void projectReferences();
     void projectExperimental();
+
+    template<typename F, typename T>
+    void processRowsInParallel(const MetaDataVec& md, F&& func, std::vector<T>& threadData);
+    void compareProjection(const MultidimArray<double>& experimentalProjection);
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);
