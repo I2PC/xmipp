@@ -941,19 +941,13 @@ const
     bool intersects = false;
 
 
-    //for (int k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
-    // Keep this comment to understand the while
     double k = FLOOR(ZZ(r) - radius);
     for(; k <= CEIL(ZZ(r) + radius) && !intersects; k++)
     {
-        //for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
-        // Keep this comment to understand the while
         double distk2=(k - ZZ(r))*(k - ZZ(r));
         double i = FLOOR(YY(r) - radius);
         for(; i <= CEIL(YY(r) + radius) && !intersects; i++)
         {
-            //for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
-            // Keep this comment to understand the while
             double distki2=distk2+(i - YY(r))*(i - YY(r));
             double j = FLOOR(XX(r) - radius);
             for(; j <= CEIL(XX(r) + radius) && !intersects; j++)

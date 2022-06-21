@@ -162,12 +162,8 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
 
     double rot = rot0;
 
-    // keep this comment to understand the while
-    // for (size_t nStepRot = 0; nStepRot < totalStepsRot; nStepRot++)
     for(; rot <= rotF; rot += rot_step)
     {
-    	// keep this comment to understand the while
-    	// for (double tilt = tilt0; tilt <= tiltF; tilt += tilt_step)
 	double tilt = tilt0;
         for(; tilt <= tiltF; tilt += tilt_step)
         {

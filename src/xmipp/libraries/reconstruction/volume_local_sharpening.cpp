@@ -229,8 +229,6 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
         int idx, lastidx = -1;
 
 	double res = minRes;
-	// keep this comment to understand the while
-	// for (double res = minRes; res<maxRes; res+=step)
 	for(; res<maxRes; res+=step)
 	{	
                 freq = sampling/res;

@@ -94,8 +94,6 @@ void Radon_Transform(const MultidimArray<double> &I, double rot_step,
     int l = 0;
     double rot = 0;
 
-    // Keep this comment to understand the while
-    // for (double rot = 0; rot < 360; rot += rot_step, l++)
     for(; rot < 360; rot += rot_step, l++)
     {
         // Rotate image

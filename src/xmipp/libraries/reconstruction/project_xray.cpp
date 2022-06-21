@@ -132,8 +132,6 @@ void ProgXrayProject::run()
     // Project
     double angle = projParam.tilt0;
 
-    // Keep this comment to understand the while
-    // for (double angle=projParam.tilt0; angle<=projParam.tiltF; angle+=projParam.tiltStep)
     for(; angle<=projParam.tiltF; angle+=projParam.tiltStep)
     {
         if (projParam.singleProjection)

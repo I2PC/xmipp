@@ -374,13 +374,9 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                 double stepX=(affy.maxAllowed(4)-affy.minAllowed(4))/40.0;
                 double stepY=(affy.maxAllowed(5)-affy.minAllowed(5))/40.0;
                 
-                // for (double shiftY=affy.minAllowed(5); shiftY<=affy.maxAllowed(5); shiftY+=stepY)
-                // Keep this comment to understan the while loops
                 double shiftY = affy.minAllowed(5);
                 for(; shiftY<=affy.maxAllowed(5); shiftY+=stepY)
                 {
-                    // for (double shiftX=affy.minAllowed(4); shiftX<=affy.maxAllowed(4); shiftX+=stepX)
-                    // Keep this comment to understand the while
                     double shiftX = affy.minAllowed(4);
                     for(; shiftX<=affy.maxAllowed(4); shiftX+=stepX)
                     {
@@ -2538,8 +2534,6 @@ void ProgTomographAlignment::run()
     // Exhaustive search for rot
     double bestError=0, bestRot=-1;
     double rot=0;
-    //for (double rot=0; rot<=180-deltaRot; rot+=deltaRot)
-    // Keep this comment to understand the loop
     for(; rot<=180-deltaRot; rot+=deltaRot)
     {
         alignment->clear();

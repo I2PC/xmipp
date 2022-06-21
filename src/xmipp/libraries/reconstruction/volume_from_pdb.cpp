@@ -468,8 +468,6 @@ void ProgPdbConverter::blobProperties() const
     double wStep = 1.0 / (highTs * 500);
     double wMax = 1.0 / (2*highTs);
 
-    // keep this comment to understand the while
-    // for (double w = 0; w < 1.0 / (2*highTs); w += 1.0 / (highTs * 500))
     for(; w < 1.0 / (2*highTs); w += 1.0 / (highTs * 500))
     {
         double H = kaiser_Fourier_value(w * highTs, periodicTable(0, 0) / highTs,

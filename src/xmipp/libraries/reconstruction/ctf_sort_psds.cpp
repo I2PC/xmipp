@@ -333,8 +333,6 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
         int idx = 0;
         double w=0;
 
-        // Keep this comment to understand the while
-    	// for (double w=0; w<wmax; w+=wmax/99.0)
         for(; w<wmax; w+=wmax/99.0)
     	{
         	wx=w*XX(u);
@@ -359,8 +357,6 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     int idx=0;
     double w=0;
     
-        //keep this comment to understand the while
-        //for (double w=0; w<wmax; w+=wmax/99.0)
 	for(; w<wmax; w+=wmax/99.0)
 	{
 		size_t objId2 = mdEnvelope.addObject();

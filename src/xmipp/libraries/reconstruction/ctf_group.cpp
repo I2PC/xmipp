@@ -398,8 +398,6 @@ bool ProgCtfGroup::isIsotropic(CTFDescription &ctf)
     cosp = COSD(ctf.azimuthal_angle);
     sinp = SIND(ctf.azimuthal_angle);
 
-    // keep this comment to understand the loop
-    // for (double digres = 0; digres < resol_error; digres+= 0.001)
     double digres = 0;
     for(; digres < resol_error; digres+= 0.001)
     {
