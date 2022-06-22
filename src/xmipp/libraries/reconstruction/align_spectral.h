@@ -204,6 +204,9 @@ private:
     static constexpr size_t toFourierXSize(size_t nx) { return nx/2 + 1; }
     static constexpr size_t fromFourierXSize(size_t nx) { return (nx - 1)*2; }
 
+    static void aliasFirstRow(const MultidimArray<double>& md, Matrix1D<double>& v);
+    static void aliasNextRow(Matrix1D<double>& v);
+
     static std::vector<TranslationFilter> computeTranslationFilters(size_t nx, 
                                                                     size_t ny, 
                                                                     size_t nTranslations,

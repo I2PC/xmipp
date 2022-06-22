@@ -335,7 +335,8 @@ void ProgAlignSpectral::SpectralPca::learnConcurrent(const std::vector<Matrix1D<
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
 
-    for (size_t i = 0; i < getBandCount(); ++i) {
+    // Learn backwawds so that hopefully only once is blocked
+    for (size_t i = getBandCount() - 1; i < getBandCount(); --i) {
         std::lock_guard<std::mutex> lock(m_bandMutex[i]);
         m_bandPcas[i].learnNoEigenValues(bands[i]);
     } 
@@ -352,14 +353,12 @@ void ProgAlignSpectral::SpectralPca::project(   const std::vector<Matrix1D<doubl
 
     // Create an alias for the rows
     Matrix1D<double> rowAlias;
-    rowAlias.destroyData = false;
-    rowAlias.vdata = MULTIDIM_ARRAY(projections);
-    rowAlias.vdim = XSIZE(projections);
+    aliasFirstRow(projections, rowAlias);
 
     // Project row by row
     for (size_t i = 0; i < getBandCount(); ++i) {
         m_bandPcas[i].project(bands[i], rowAlias);
-        rowAlias.vdata += rowAlias.vdim;
+        aliasNextRow(rowAlias);
     }
     assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
 }
@@ -381,14 +380,12 @@ void ProgAlignSpectral::SpectralPca::unproject( const MultidimArray<double>& pro
 
     // Create an alias for the rows
     Matrix1D<double> rowAlias;
-    rowAlias.destroyData = false;
-    rowAlias.vdata = MULTIDIM_ARRAY(projections);
-    rowAlias.vdim = XSIZE(projections);
+    aliasFirstRow(projections, rowAlias);
 
     // Unproject row by row
     for (size_t i = 0; i < getBandCount(); ++i) {
         m_bandPcas[i].unproject(rowAlias, bands[i]);
-        rowAlias.vdata += rowAlias.vdim;
+        aliasNextRow(rowAlias);
     }
     assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
 }
@@ -463,9 +460,6 @@ void ProgAlignSpectral::learnReferences() {
             [this, &data] (const auto& x) {
                 this->m_bandMap.flattenForPca(x, data.bandCoefficients);
                 this->m_pca.learnConcurrent(data.bandCoefficients);
-
-                //++counter;
-                //if(counter % 64 == 0) progress_bar(counter);
             }
         );
     };
@@ -496,9 +490,6 @@ void ProgAlignSpectral::learnExperimental() {
         data.fourier.FourierTransform(data.image(), data.spectrum, false);
         m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
         m_pca.learnConcurrent(data.bandCoefficients);
-
-        //++counter;
-        //if(counter % 64 == 0) progress_bar(counter);
     };
 
     std::vector<ThreadData> threadData(m_parameters.nThreads);
@@ -544,9 +535,6 @@ void ProgAlignSpectral::projectReferences() {
                 // Project the image
                 this->m_bandMap.flattenForPca(x, data.bandCoefficients);
                 this->m_pca.project(data.bandCoefficients, slice);
-
-                //++counter;
-                //if(counter % 64 == 0) progress_bar(counter);
             }
         );
     };
@@ -581,9 +569,6 @@ void ProgAlignSpectral::projectExperimental() {
 
         // Compare the projection to find a match
         compareProjection(data.projection);
-
-        //++counter;
-        //if(counter % 64 == 0) progress_bar(counter);
     };
 
     std::vector<ThreadData> threadData(m_parameters.nThreads);
@@ -602,41 +587,80 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
 
     // Create a worker function which atomically aquires a row and
     // dispatches the provided function
-    const auto workerFunc = [&md, &func, &threadData, &currRowNum, mdSize] (T& data) {
+    const auto workerFunc = [&md, &func, &currRowNum, mdSize] (T& data, bool first) {
         auto rowNum = currRowNum++;
         while(rowNum < mdSize) {
+            // Process a row
             const auto row = md.getRowVec(md.getRowId(rowNum));
             func(rowNum, row, data);
+
+            // Update the progress bar only from the first thread 
+            // due to concurrency issues
+            if (first) {
+                progress_bar(rowNum+1);
+            }
+
+            // Aquire the next row
             rowNum = currRowNum++;
         }
     };
+
+    // Initialzie the progress bar
+    init_progress_bar(mdSize);
 
     // Create some workers
     std::vector<std::thread> threads;
     threads.reserve(threadData.size());
     for(size_t i = 0; i < threadData.size(); ++i) {
-        threads.emplace_back(workerFunc, std::ref(threadData[i]));
+        threads.emplace_back(workerFunc, std::ref(threadData[i]), i==0);
     }
 
     //Wait for them to finish
     for (auto& thread : threads) {
         thread.join();
     }
+
+    // Set the progress bar as finished
+    progress_bar(mdSize);
 }
 
-void ProgAlignSpectral::compareProjection(const MultidimArray<double>& experimentalProjection) {
-    MultidimArray<double> referenceProjection;
+void ProgAlignSpectral::compareProjection(const MultidimArray<double>& experimentalBands) {
+    MultidimArray<double> referenceBands;
+    Matrix1D<double> experimentalBand, referenceBand, diffrenceBand;
+
+    // Compare it with all the reference images using the B&B approach
+    size_t best;
+    double bestScore = std::numeric_limits<double>::infinity();
     for(size_t i = 0; i < ZSIZE(m_referenceProjections); ++i) {
         // Obtain the current reference particle's PCA projection
-        referenceProjection.aliasSlice(m_referenceProjections, i);
-        assert(referenceProjection.sameShape(experimentalProjection));
+        referenceBands.aliasSlice(m_referenceProjections, i);
+        assert(referenceBands.sameShape(experimentalBands));
+        
+        // Setup aliases
+        aliasFirstRow(experimentalBands, experimentalBand);
+        aliasFirstRow(referenceBands, referenceBand);
 
-        double sum = 0;
-        FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(referenceProjection) {
-            const auto& r = DIRECT_A2D_ELEM(referenceProjection, i, j);
-            const auto& e = DIRECT_A2D_ELEM(experimentalProjection, i, j);
-            const auto delta = e - r;
-            sum += delta;
+        // Add band by band using Branch and Bound
+        double score = 0.0;
+        for (size_t j = 0; j < YSIZE(experimentalBands) && score < bestScore; ++j) {
+            // Compute the difference between the bands
+            diffrenceBand = experimentalBand;
+            diffrenceBand -= referenceBand;
+            
+            //Increment the score
+            const auto weight = 1.0; //TODO
+            const auto bandDistance = diffrenceBand.sum2();
+            score += weight * bandDistance;
+            
+            // Continue
+            aliasNextRow(experimentalBand);
+            aliasNextRow(referenceBand);
+        }
+
+        // Update the score if necessary
+        if (score < bestScore) {
+            best = i;
+            bestScore = score;
         }
     }
 }
@@ -652,7 +676,15 @@ void ProgAlignSpectral::readImage(const FileName& fn, Image<double>& result) {
     result.read(fn);
 }
 
+void ProgAlignSpectral::aliasFirstRow(const MultidimArray<double>& md, Matrix1D<double>& v) {
+    v.vdata = MULTIDIM_ARRAY(md);
+    v.destroyData = false;
+    v.vdim = XSIZE(md);
+}
 
+void ProgAlignSpectral::aliasNextRow(Matrix1D<double>& v) {
+    v.vdata += v.vdim;
+}
 
 
 
