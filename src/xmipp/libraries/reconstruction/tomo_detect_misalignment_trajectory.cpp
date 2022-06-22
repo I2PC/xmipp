@@ -321,12 +321,14 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout<< "m4: " << m4<<std::endl;
 	#endif
 
+	#ifdef DEBUG_PREPROCESS
 	std::cout  << "backgroundValue " << backgroundValue << std::endl;
 	std::cout  << "marginThickness " << marginThickness << std::endl;
 	std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
 	std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
+	#endif
 
-	interpolationCorners ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
+	IC ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
 	vIC.push_back(ic);
 
 	for (int i = 0; i < xSize; i++)
@@ -534,7 +536,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		std::vector<int> sliceVector;
 
 		// Calculate threshold value for each image of the series
-		interpolationCorners ic = vIC[k];
+		IC ic = vIC[k];
 		int jmin;
 		int jmax;
 
@@ -822,16 +824,11 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 
 	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
 
+	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx);
 
-	// debug
-	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
-	{
-		std::cout << coord3DVotes_V[i] << " ";
-	}
-
-	float thrVottingDistance2 = (fiducialSizePx/2)*(fiducialSizePx/2);
-
+	#ifdef DEBUG_VOTTING
 	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
+	#endif
 
 	// Votting step	
 	for (size_t n = 1; n < nSize-1; n++) //*** expand to first and last images
@@ -840,7 +837,9 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 		coordinatesInSlice_left = getCoordinatesInSliceIndex(n-1);
 		coordinatesInSlice_right = getCoordinatesInSliceIndex(n+1);
 
+		#ifdef DEBUG_VOTTING
 		std::cout << "votting image " << n << std::endl;
+		#endif
 
 		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 		{
@@ -868,12 +867,6 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 				}
 			}
 		}
-	}
-
-	// debug
-	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
-	{
-		std::cout << coord3DVotes_V[i] << " ";
 	}
 
 	// Trimming step
@@ -961,12 +954,6 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 	std::vector<Point2D<double>> coordinatesInSlice;
 
-	// Matrix2D<double> A_alignment;
-	// Matrix1D<double> T_alignment;
-	// Matrix2D<double> invW_alignment;
-	// Matrix2D<double> alignment_matrix;
-
-
 	goldBead3d.initZeros(3);
 
 	// Iterate through every tilt-image
@@ -1026,8 +1013,9 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
 				// ZZ(projectedGoldBead) += (double)zSize/2;
 
-				// Check that the coordinate is not proyected out of the image
-				if (XX(projectedGoldBead) > 0 and XX(projectedGoldBead) < xSize)
+				// Check that the coordinate is not proyected out of the interpolation edges for this tilt-image
+				bool coordInIC = checkProjectedCoordinateInInterpolationEdges(projectedGoldBead, n);
+				if (coordInIC)
 				{
 					#ifdef DEBUG_RESID
 					std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
@@ -1289,17 +1277,17 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	rmOutliersPerimCH /= counterPerim;
 
 	std::cout << "-----------------------------------" << std::endl;
-	std::cout << numberOfChains << std::endl;
-	std::cout << avgAreaCH << std::endl;
-	std::cout << avgPerimeterCH << std::endl;
-	std::cout << sum2AreaCH << std::endl;
-	std::cout << sum2PerimeterCH << std::endl;
-	std::cout << stdAreaCH << std::endl;
-	std::cout << stdPerimeterCH << std::endl;
-	std::cout << counterArea << std::endl;
-	std::cout << counterPerim << std::endl;
-	std::cout << stdAreaCH << std::endl;
-	std::cout << stdPerimeterCH << std::endl;
+	std::cout << "numberOfChains: " << numberOfChains << std::endl;
+	std::cout << "avgAreaCH: " << avgAreaCH << std::endl;
+	std::cout << "avgPerimeterCH: " << avgPerimeterCH << std::endl;
+	std::cout << "sum2AreaCH: " << sum2AreaCH << std::endl;
+	std::cout << "sum2PerimeterCH: " << sum2PerimeterCH << std::endl;
+	std::cout << "stdAreaCH: " << stdAreaCH << std::endl;
+	std::cout << "stdPerimeterCH: " << stdPerimeterCH << std::endl;
+	std::cout << "counterArea: " << counterArea << std::endl;
+	std::cout << "counterPerim: " << counterPerim << std::endl;
+	std::cout << "stdAreaCH: " << stdAreaCH << std::endl;
+	std::cout << "stdPerimeterCH: " << stdPerimeterCH << std::endl;
 	std::cout << "-----------------------------------" << std::endl;
 
 	#ifdef DEBUG_GLOBAL_MISALI
@@ -2164,7 +2152,10 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	maxDistace = sqrt(maxSquareDistance);
 
 	// Check the max radius of the labeled region compared with the size of the gold bead
-	if (abs(maxDistace-fiducialSizePx/2)/fiducialSizePx/2 > 0.95)
+	double relativeDistance = abs(maxDistace-fiducialSizePx/2)/(fiducialSizePx/2);
+
+	std::cout << "relativeDistance:" << relativeDistance << std::endl;
+	if (relativeDistance > 2 || relativeDistance < 0.2)
 	{
 		return false;
 	}
@@ -2364,10 +2355,8 @@ std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSliceI
 		if(slice == coordinates3D[n].z)
 		{
 			coordinatesInSlice.push_back(n);
-			std::cout << n << " ";
 		}
 	}
-		std::cout <<" " << std::endl;
 
 	return coordinatesInSlice;
 }
@@ -2441,6 +2430,62 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 	}
 	
 	return (int)distance;
+}
+
+
+bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice)
+{
+	IC ic = vIC[slice];
+
+	int x = (int)(XX(projectedCoordinate));
+	int y = (int)(YY(projectedCoordinate));
+	int jmin;
+	int jmax;
+
+	if(x < ic.x1)
+	{
+		jmin = (int)(ic.m1*x+ic.y1);
+	}
+	else if (x > ic.x2)
+	{
+		jmin = (int)(ic.m2*(x-(int)xSize)+ic.y2);
+	}
+	else
+	{
+		jmin = 0;
+	}
+	
+	if(x < ic.x3)
+	{
+		jmax = (int)(ic.m3*(x-ic.x3)+(int)ySize);
+	}
+	else if (x > ic.x4)
+	{
+		jmax = (int)(ic.m4*(x-ic.x4)+(int)ySize);
+	}
+	else
+	{
+		jmax = (int)(ySize);
+	}
+
+	if(jmin < 0)
+	{
+		jmin = 0;
+	}
+
+	if(jmax > (int)(ySize))
+	{
+		jmax = (int)(ySize);
+	}
+
+	if (y > jmax || y < jmin)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 

@@ -48,12 +48,13 @@
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
-#define DEBUG_PREPROCESS
-#define DEBUG_HCC
+// #define DEBUG_PREPROCESS
+// #define DEBUG_HCC
+#define DEBUG_VOTTING
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
 // #define DEBUG_CHAINS
-// #define DEBUG_GLOBAL_MISALI
+#define DEBUG_GLOBAL_MISALI
 // #define DEBUG_LOCAL_MISALI
 #define DEBUG_RESID
 // #define DEBUG_COORDS_CS
@@ -92,7 +93,7 @@ public:
 
 
     // Interpolation corners structure for each tilt-image
-    struct interpolationCorners {
+    struct IC {
         int x1;  // Top-left corner (x1, 0)
         int x2;  // Top-right corner (x2, 0)
         int x3;  // Bottom-left corner (x3, ySize)
@@ -101,10 +102,10 @@ public:
         int y2;  // Top-right corner (xSize, y2)
         int y3;  // Bottom-left corner (0, y3)
         int y4;  // Bottom-right corner (xSize, y4)
-        float m1;   // Slope of top-left edge
-	    float m2;   // Slope of top-right edge
-	    float m3;   // Slope of bottom-left edge
-	    float m4;   // Slope of bottom-right edge
+        double m1;   // Slope of top-left edge
+	    double m2;   // Slope of top-right edge
+	    double m3;   // Slope of bottom-left edge
+	    double m4;   // Slope of bottom-right edge
     };
 
     
@@ -119,7 +120,7 @@ public:
     std::vector<CM> vCM;
 
     /** Array of interpolation corner structures */
-    std::vector<interpolationCorners> vIC;
+    std::vector<IC> vIC;
 
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
@@ -387,6 +388,9 @@ public:
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
     bool detectMisalignmentFromResiduals();
+
+    bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
+
 
     // void factorial(size_t base, size_t fact);
 
