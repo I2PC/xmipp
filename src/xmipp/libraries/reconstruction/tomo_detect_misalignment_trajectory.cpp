@@ -714,6 +714,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
+			std::cout << "FILTERING LABELED REGIONS IN IMAGE " << k << std::endl;
+
 			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 		
 			// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
@@ -831,39 +833,57 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 	#endif
 
 	// Votting step	
-	for (size_t n = 1; n < nSize-1; n++) //*** expand to first and last images
+	for (int n = 0; n < nSize; n++) //*** expand to first and last images
 	{
-		coordinatesInSlice = getCoordinatesInSliceIndex(n);
-		coordinatesInSlice_left = getCoordinatesInSliceIndex(n-1);
-		coordinatesInSlice_right = getCoordinatesInSliceIndex(n+1);
-
 		#ifdef DEBUG_VOTTING
 		std::cout << "votting image " << n << std::endl;
 		#endif
+
+		coordinatesInSlice = getCoordinatesInSliceIndex(n);
+		
+		// Skip for first image in the series
+		if (n != 0)
+		{
+			coordinatesInSlice_left = getCoordinatesInSliceIndex(n-1);
+		}
+
+		// Skip for last image in the series
+		if (n != (nSize-1))
+		{		
+			coordinatesInSlice_right = getCoordinatesInSliceIndex(n+1);
+		}
 
 		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 		{
 			Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
 
-			for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
+			// Skip for first image in the series
+			if (n != 0)
 			{
-				Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
-				float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
-
-				if(distance2 < thrVottingDistance2)
+				for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
 				{
-					coord3DVotes_V[coordinatesInSlice[i]] += 1;
+					Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
+					float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+
+					if(distance2 < thrVottingDistance2)
+					{
+						coord3DVotes_V[coordinatesInSlice[i]] += 1;
+					}
 				}
 			}
 
-			for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
-			{
-				Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
-				float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
-
-				if(distance2 < thrVottingDistance2)
+			// Skip for last image in the series
+			if (n != (nSize-1))
+			{		
+				for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
 				{
-					coord3DVotes_V[coordinatesInSlice[i]] += 1;
+					Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
+					float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
+
+					if(distance2 < thrVottingDistance2)
+					{
+						coord3DVotes_V[coordinatesInSlice[i]] += 1;
+					}
 				}
 			}
 		}
@@ -2117,16 +2137,15 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	// Uncomment for phantom
 	// return true;
 
-
 	// *** TODO: filtering by number of coordinates might not be the best method, i could be better just filter by occupancy and max distance (radius)
 
-	// Check number of elements of the label
-	if(coordinatesPerLabelX.size() < thrNumberCoords)
-	{
-		return false;
-	}
+	// Check number of elements of the label <----------------------------*** ESTO NO HACE NADA CON EL THR ACTUAL
+	// if(coordinatesPerLabelX.size() < thrNumberCoords)
+	// {
+	// 	return false;
+	// }
 
-	// Check spehricity of the label
+	// Calculate the furthest point of the region from the centroid
 	double maxSquareDistance = 0;
 	double distance;
 
@@ -2138,7 +2157,7 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	{
 		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
 
-		if(distance > maxSquareDistance)
+		if(distance >= maxSquareDistance)
 		{
 			#ifdef DEBUG_FILTERLABEL
 			debugN = n;
@@ -2151,42 +2170,49 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	double maxDistace;
 	maxDistace = sqrt(maxSquareDistance);
 
-	// Check the max radius of the labeled region compared with the size of the gold bead
-	double relativeDistance = abs(maxDistace-fiducialSizePx/2)/(fiducialSizePx/2);
-
-	std::cout << "relativeDistance:" << relativeDistance << std::endl;
-	if (relativeDistance > 2 || relativeDistance < 0.2)
-	{
-		return false;
-	}
-
-	double area;
+	// Check sphericity of the labeled region
+	double circumscribedArea = PI * (maxDistace * maxDistace);;
+	double area = 0.0 + (double)coordinatesPerLabelX.size();
 	double ocupation;
 
-	area = PI * (maxDistace * maxDistace);
-
-	ocupation = 0.0 + (double)coordinatesPerLabelX.size();
-	ocupation = ocupation  / area;
+	ocupation = area / circumscribedArea;
 
 	#ifdef DEBUG_FILTERLABEL
+	std::cout << "debugN " << debugN << std::endl;
 	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
 	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
 	std::cout << "centroX " << centroX << std::endl;
 	std::cout << "centroY " << centroY << std::endl;
 	std::cout << "area " << area << std::endl;
+	std::cout << "circumscribedArea " << circumscribedArea << std::endl;
 	std::cout << "maxDistace " << maxDistace << std::endl;
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
-	if(ocupation > 0.65)
+	if(ocupation < 0.5)
 	{
-		return true;
-	}
-	if(ocupation <= 0.65)
-	{
+		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF OCCUPATION"<< std::endl;
 		return false;
 	}
 
+	// Check the relative area compared with the expected goldbead
+	double expectedArea = PI * ((fiducialSizePx/2) * fiducialSizePx/2);
+	double relativeArea = (4*area)/expectedArea;  // Due to filtering and labelling processes labeled gold beads tend to reduce its radius in half
+
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "expectedArea " << expectedArea << std::endl;
+	std::cout << "relativeArea " << relativeArea << std::endl;
+	std::cout << "-------------------------------------------"  << std::endl;
+	#endif
+
+
+	if (relativeArea > 4 || relativeArea < 0.25)
+	{
+		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
+		return false;
+	}
+	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
+	return true;
 	// return ocupation;
 }
 
