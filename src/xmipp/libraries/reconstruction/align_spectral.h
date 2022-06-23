@@ -168,6 +168,8 @@ private:
         double lowResLimit;
         double highResLimit;
 
+        double training;
+
         size_t nThreads;
     };
 
@@ -195,7 +197,7 @@ private:
     void projectExperimental();
 
     template<typename F, typename T>
-    void processRowsInParallel(const MetaDataVec& md, F&& func, std::vector<T>& threadData);
+    void processRowsInParallel(const MetaDataVec& md, F&& func, std::vector<T>& threadData, double percentage=1.0);
     void compareProjection(const MultidimArray<double>& experimentalProjection);
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);

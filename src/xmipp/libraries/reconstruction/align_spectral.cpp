@@ -51,6 +51,8 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   --pc <pc>                       : Number of principal components to consider in each band");
     addParamsLine("   --lowRes <low_resolution>       : Lowest resolution to consider [0, 1] in terms of the Nyquist freq.");
     addParamsLine("   --highRes <high_resolution>     : Highest resolution to consider [0, 1] in terms of the Nyquist freq.");
+    
+    addParamsLine("   --training <percentage>         : Percentage of images used when training the PCAs");
 
     addParamsLine("   --thr <threads>                 : Number of threads");
 }
@@ -69,6 +71,8 @@ void ProgAlignSpectral::readParams() {
     param.nBandPc = getIntParam("--pc");
     param.lowResLimit = getDoubleParam("--lowRes") * M_PI;
     param.highResLimit = getDoubleParam("--highRes") * M_PI;
+    
+    param.training = getDoubleParam("--training") / 100;
 
     param.nThreads = getIntParam("--thr");
 }
@@ -88,6 +92,8 @@ void ProgAlignSpectral::show() const {
     std::cout << "Number of PC per band       : " << param.nBandPc << "\n";
     std::cout << "Low resolution limit        : " << param.lowResLimit << "rad\n";
     std::cout << "High resolution limit       : " << param.highResLimit << "rad\n";
+
+    std::cout << "Training percentage         : " << param.training*100 << "%\n";
 
     std::cout << "Number of threads           : " << param.nThreads << "\n";
     std::cout.flush();
@@ -465,7 +471,7 @@ void ProgAlignSpectral::learnReferences() {
     };
 
     std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(md, func, threadData);
+    processRowsInParallel(md, func, threadData, m_parameters.training);
 }
 
 void ProgAlignSpectral::learnExperimental() {
@@ -493,7 +499,7 @@ void ProgAlignSpectral::learnExperimental() {
     };
 
     std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(md, func, threadData);
+    processRowsInParallel(md, func, threadData, m_parameters.training);
 }
 
 void ProgAlignSpectral::projectReferences() {
@@ -580,24 +586,30 @@ void ProgAlignSpectral::projectExperimental() {
 template<typename F, typename T>
 void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md, 
                                                 F&& func, 
-                                                std::vector<T>& threadData ) 
+                                                std::vector<T>& threadData,
+                                                double percentage ) 
 {
     std::atomic<size_t> currRowNum(0);
     const auto mdSize = md.size();
 
     // Create a worker function which atomically aquires a row and
     // dispatches the provided function
-    const auto workerFunc = [&md, &func, &currRowNum, mdSize] (T& data, bool first) {
+    const auto workerFunc = [&md, &func, &currRowNum, mdSize, percentage] (T& data, bool first) {
         auto rowNum = currRowNum++;
-        while(rowNum < mdSize) {
-            // Process a row
-            const auto row = md.getRowVec(md.getRowId(rowNum));
-            func(rowNum, row, data);
 
-            // Update the progress bar only from the first thread 
-            // due to concurrency issues
-            if (first) {
-                progress_bar(rowNum+1);
+
+        while(rowNum < mdSize) {
+            // Randomly determine if it needs to be processed
+            if(static_cast<double>(rand()) / RAND_MAX <= percentage) {
+                // Process a row
+                const auto row = md.getRowVec(md.getRowId(rowNum));
+                func(rowNum, row, data);
+
+                // Update the progress bar only from the first thread 
+                // due to concurrency issues
+                if (first) {
+                    progress_bar(rowNum+1);
+                }
             }
 
             // Aquire the next row
