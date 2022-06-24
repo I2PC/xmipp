@@ -606,3 +606,59 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 }
 
 
+// --------------------------- MAIN ----------------------------------
+
+void ProgImagePeakHighContrast::run()
+{
+	using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
+
+	auto t1 = high_resolution_clock::now();
+	
+	Image<double> inputVolume;
+	inputVolume.read(fnVol);
+
+	auto &inputTomo=inputVolume();
+
+	xSize = XSIZE(inputTomo);
+	ySize = YSIZE(inputTomo);
+	zSize = ZSIZE(inputTomo);
+
+	#ifdef DEBUG_DIM
+	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
+	std::cout << "x " << XSIZE(inputTomo) << std::endl;
+	std::cout << "y " << YSIZE(inputTomo) << std::endl;
+	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
+	std::cout << "n " << NSIZE(inputTomo) << std::endl;
+	#endif
+
+ 	preprocessVolume(inputTomo);
+
+	#ifdef DEBUG_DIM
+	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
+	std::cout << "x " << XSIZE(volFiltered) << std::endl;
+	std::cout << "y " << YSIZE(volFiltered) << std::endl;
+	std::cout << "z " << ZSIZE(volFiltered) << std::endl;
+	std::cout << "n " << NSIZE(volFiltered) << std::endl;
+	#endif
+	
+	getHighContrastCoordinates(inputTomo);
+
+	clusterHighContrastCoordinates();
+
+	if(centerFeatures==true)
+	{
+		centerCoordinates(inputTomo);
+	}
+
+	writeOutputCoordinates();
+	
+	auto t2 = high_resolution_clock::now();
+	/* Getting number of milliseconds as an integer. */
+    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+ 	std::cout << "Execution time: " << ms_int.count() << "ms\n";
+}
+
+
