@@ -46,6 +46,7 @@
 #define VERBOSE_OUTPUT
 #define DEBUG_HCC
 #define DEBUG_FILTERPARAMS
+// #define DEBUG_FILTERLABEL
 // #define DEBUG_DIM
 // #define DEBUG_DIST
 #define DEBUG_OUTPUT_FILES

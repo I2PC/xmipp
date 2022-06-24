@@ -277,6 +277,18 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
+		for (size_t j = 0; j < xSize; j++)
+		{
+			for (size_t i = 0; i < ySize; i++)
+			{
+				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+				if (value != 0)
+				{
+					DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = value;
+				}
+			}
+		}
+
 		#ifdef DEBUG_HCC
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
@@ -324,9 +336,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			{
 				Point3D<double> point3D(xCoorCM, yCoorCM, k);
 				coordinates3D.push_back(point3D);
-				// coordinates3Dx.push_back(xCoorCM);
-				// coordinates3Dy.push_back(yCoorCM);
-				// coordinates3Dz.push_back(k);
 			}
 		}
 
@@ -713,6 +722,8 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
+	std::cout << "occupation " << ocupation << std::endl;
+
 	if(ocupation < 0.5)
 	{
 		#ifdef DEBUG_FILTERLABEL
@@ -720,4 +731,6 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 		#endif
 		return false;
 	}
+
+	return true;
 }
