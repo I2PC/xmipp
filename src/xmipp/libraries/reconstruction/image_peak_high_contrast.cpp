@@ -59,7 +59,7 @@ void ProgImagePeakHighContrast::defineParams()
 }
 
 
-MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
+void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Preprocessing volume..." << std::endl;
@@ -67,44 +67,44 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	// Smoothing
 	
-	int siz_x = xSize*0.5;
-	int siz_y = ySize*0.5;
-	int siz_z = zSize*0.5;
-	int N_smoothing = 10;
+	// int siz_x = xSize*0.5;
+	// int siz_y = ySize*0.5;
+	// int siz_z = zSize*0.5;
+	// int N_smoothing = 10;
 
-	int ux, uy, uz, uz2, uz2y2;
+	// int ux, uy, uz, uz2, uz2y2;
 
-	int limit_distance_x = (siz_x-N_smoothing);
-	int limit_distance_y = (siz_y-N_smoothing);
-	int limit_distance_z = (siz_z-N_smoothing);
+	// int limit_distance_x = (siz_x-N_smoothing);
+	// int limit_distance_y = (siz_y-N_smoothing);
+	// int limit_distance_z = (siz_z-N_smoothing);
 
-	long n=0;
-	for(int k=0; k<zSize; ++k)
-	{
-		uz = (k - siz_z);
-		for(int i=0; i<ySize; ++i)
-		{
-			uy = (i - siz_y);
-			for(int j=0; j<xSize; ++j)
-			{
-				ux = (j - siz_x);
+	// long n=0;
+	// for(int k=0; k<zSize; ++k)
+	// {
+	// 	uz = (k - siz_z);
+	// 	for(int i=0; i<ySize; ++i)
+	// 	{
+	// 		uy = (i - siz_y);
+	// 		for(int j=0; j<xSize; ++j)
+	// 		{
+	// 			ux = (j - siz_x);
 
-				if (abs(ux)>=limit_distance_x)
-				{
-					DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
-				}
-				if (abs(uy)>=limit_distance_y)
-				{
-					DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
-				}
-				if (abs(uz)>=limit_distance_z)
-				{
-					DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
-				}
-				++n;
-			}
-		}
-	}
+	// 			if (abs(ux)>=limit_distance_x)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+	// 			}
+	// 			if (abs(uy)>=limit_distance_y)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+	// 			}
+	// 			if (abs(uz)>=limit_distance_z)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+	// 			}
+	// 			++n;
+	// 		}
+	// 	}
+	// }
 
 
 	// Band-pass filtering
@@ -114,7 +114,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	FourierTransformer transformer;
 	transformer.FourierTransform(inputTomo, fftV, false);
 
-	n=0;
+	int ux, uy, uz, uz2, uz2y2;
+
+	int n=0;
 
 	MultidimArray< std::complex<double> >  fftFiltered;
 
@@ -128,12 +130,12 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	double delta = PI / w;
 
 	#ifdef DEBUG_FILTERPARAMS
-	std::cout << samplingRate << std::endl;
-	std::cout << fiducialSize << std::endl;
-	std::cout << freqLow << std::endl;
-	std::cout << freqHigh << std::endl;
-	std::cout << cutoffFreqLow << std::endl;
-	std::cout << cutoffFreqHigh << std::endl;
+	std::cout << "samplingRate " << samplingRate << std::endl;
+	std::cout << "fiducialSize " << fiducialSize << std::endl;
+	std::cout << "freqLow " << freqLow << std::endl;
+	std::cout << "freqHigh " << freqHigh << std::endl;
+	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl;
+	std::cout << "cutoffFreqHigh " << cutoffFreqHigh << std::endl;
 	#endif
 
 	for(size_t k=0; k<ZSIZE(fftV); ++k)
@@ -175,8 +177,11 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
 	}
 
+	std::cout << "check 1 " << std::endl;
+
 	// Input tomogram (inputTomo) is overrided with the filtered volume searching memory efficency
 	transformer.inverseFourierTransform(fftFiltered, inputTomo);
+	std::cout << "check 2 " << std::endl;
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
@@ -188,12 +193,13 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	saveImage() = inputTomo;
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
+		std::cout << "check 3 " << std::endl;
 
-	return inputTomo;
 }
 
 
-	void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered)
+
+void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
@@ -370,7 +376,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 }
 
 
-	void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
+
+void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Clustering coordinates..." << std::endl;
@@ -618,6 +625,8 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 }
 
+
+// --------------------------- MAIN ----------------------------------
 void ProgImagePeakHighContrast::run()
 {
 	using std::chrono::high_resolution_clock;
@@ -644,9 +653,7 @@ void ProgImagePeakHighContrast::run()
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 
-	MultidimArray<double> volFiltered;
-
- 	volFiltered = preprocessVolume(inputTomo);
+ 	preprocessVolume(inputTomo);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
@@ -656,13 +663,13 @@ void ProgImagePeakHighContrast::run()
 	std::cout << "n " << NSIZE(volFiltered) << std::endl;
 	#endif
 	
-	getHighContrastCoordinates(volFiltered);
+	getHighContrastCoordinates(inputTomo);
 
 	clusterHighContrastCoordinates();
 
 	if(centerFeatures==true)
 	{
-		centerCoordinates(volFiltered);
+		centerCoordinates(inputTomo);
 	}
 
 	writeOutputCoordinates();

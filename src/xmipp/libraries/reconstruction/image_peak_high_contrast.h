@@ -43,7 +43,7 @@
 
 #define VERBOSE_OUTPUT
 // #define DEBUG
-// #define DEBUG_FILTERPARAMS
+#define DEBUG_FILTERPARAMS
 // #define DEBUG_DIM
 // #define DEBUG_DIST
 #define DEBUG_OUTPUT_FILES
@@ -93,7 +93,7 @@ public:
      * @return
      *
     */
-    MultidimArray<double> preprocessVolume(MultidimArray<double> &inputTomo);
+    void preprocessVolume(MultidimArray<double> &inputTomo);
 
     /**
      * Peaks the high contrast regions in a volume.
