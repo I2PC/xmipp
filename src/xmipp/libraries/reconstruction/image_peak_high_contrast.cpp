@@ -324,9 +324,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			{
 				Point3D<double> point3D(xCoorCM, yCoorCM, k);
 				coordinates3D.push_back(point3D);
-				coordinates3Dx.push_back(xCoorCM);
-				coordinates3Dy.push_back(yCoorCM);
-				coordinates3Dz.push_back(k);
+				// coordinates3Dx.push_back(xCoorCM);
+				// coordinates3Dy.push_back(yCoorCM);
+				// coordinates3Dz.push_back(k);
 			}
 		}
 
@@ -393,7 +393,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
     }
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
+	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
 	#endif
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -423,11 +423,11 @@ void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 
 	for(int i=0;i<numberCenterOfMass;i++)
 	{
-		int randomIndex = rand() % coordinates3Dx.size();
+		int randomIndex = rand() % coordinates3D.size();
 
-		int cx = coordinates3Dx[randomIndex];
-		int cy = coordinates3Dy[randomIndex];
-		int cz = coordinates3Dz[randomIndex];
+		int cx = coordinates3D[randomIndex].x;
+		int cy = coordinates3D[randomIndex].y;
+		int cz = coordinates3D[randomIndex].z;
 		centerOfMassX.push_back(cx);
 		centerOfMassY.push_back(cy);
 		centerOfMassZ.push_back(cz);
@@ -448,14 +448,14 @@ void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 	int squareDistanceThr = distanceThr*distanceThr;
 	bool attractedToMassCenter = false;
 
-	for(size_t i = 0; i < coordinates3Dx.size(); i++)
+	for(size_t i = 0; i < coordinates3D.size(); i++)
 	{
 		// Check if the coordinate is attracted to any centre of mass
 		attractedToMassCenter = false; 
 
-		int xCoor = coordinates3Dx[i];
-		int yCoor = coordinates3Dy[i];
-		int zCoor = coordinates3Dz[i];
+		int xCoor = coordinates3D[i].x;
+		int yCoor = coordinates3D[i].y;
+		int zCoor = coordinates3D[i].y;
 
 		for(size_t j = 0; j < centerOfMassX.size(); j++)
 		{

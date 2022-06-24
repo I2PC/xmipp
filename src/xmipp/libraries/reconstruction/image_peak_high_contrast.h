@@ -72,11 +72,6 @@ private:
 	size_t ySize;
 	size_t zSize;
 
-    /** Vectors for peaked coordinates components */
-    std::vector<int> coordinates3Dx;
-    std::vector<int> coordinates3Dy;
-    std::vector<int> coordinates3Dz;
-
     /** Vectors for centers of mass components after coordinates clusterings */
     std::vector<int> centerOfMassX;
     std::vector<int> centerOfMassY;
