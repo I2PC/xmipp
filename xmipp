@@ -653,15 +653,14 @@ def linkToScipion(dirname):
     scipionBindings = os.path.join(scipionSoftware, 'bindings')
     scipionSoftwareEM = os.path.join(scipionSoftware, 'em')
     xmippHomeLink = os.path.join(scipionSoftwareEM, 'xmipp')
-    print(yellow(str("xmippHomeLink: " + xmippHomeLink)))
     currentDir = os.getcwd()
-
-
-    if os.path.isdir(scipionLibs) and\
-            os.path.isdir(scipionBindings):
-        runJob("ln -srf %s %s" % (dirname, xmippHomeLink))
+    dirnameAbs = os.path.join(currentDir,dirname)
+    if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
+        print("Linking to Scipion ------------------------------------------")
+        if os.path.isdir(xmippHomeLink):
+            runJob("rm %s" %xmippHomeLink)
+        runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink))
         xmippLink = os.readlink(xmippHomeLink)
-        print(yellow(str("xmippLink: " + xmippLink)))
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
@@ -673,10 +672,13 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
+        print(green(str("xmipp Link for Scipion: " + xmippHomeLink)))
         print(green("Xmipp linked to Scipion3"))
+
     else:
         print(yellow("No scipion3 found. If you intended to use Xmipp in "
-                     "the Scipion framework, check the binding at "
+                     "the Scipion framework:\ncompile Xmipp "
+                     "with Scipion './scipion3 run ./xmipp' or check the binding at "
                      "SCIPION_HOME/software/bindings..."))
 
 

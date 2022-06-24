@@ -187,7 +187,7 @@ void SOM::clear()
 {
     somNeigh = GAUSSIAN;
     somNSteps = 0;
-    listener = nullptr; // it can not be deleted here
+    listener = NULL; // it can not be deleted here
 }
 
 /**

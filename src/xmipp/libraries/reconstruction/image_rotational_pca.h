@@ -84,9 +84,9 @@ public:
     // Buffer maximum length
     static const int HbufferMax=20;
     // Mpi file lock
-    Mutex *fileMutex;
+    std::unique_ptr<Mutex> fileMutex;
     // Thread mutex
-    Mutex *threadMutex;
+    std::unique_ptr<Mutex> threadMutex;
     // SVD matrix
     Matrix2D<double> H;
     // SVD matrix
@@ -107,9 +107,9 @@ public:
     // Mask
     MultidimArray< unsigned char > mask;
     // FileTaskDistributor
-    ThreadTaskDistributor *taskDistributor;
+    std::unique_ptr<ThreadTaskDistributor> taskDistributor;
     // Thread Manager
-    ThreadManager *thMgr;
+    std::unique_ptr<ThreadManager> thMgr;
     // Vector of object ids
     std::vector<size_t> objId;
 public:
@@ -117,7 +117,7 @@ public:
     ProgImageRotationalPCA();
 
     /// Destructor
-    virtual ~ProgImageRotationalPCA();
+    ~ProgImageRotationalPCA();
 
     /// Read argument from command line
     void readParams();

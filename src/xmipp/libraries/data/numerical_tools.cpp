@@ -393,8 +393,8 @@ DESolver::DESolver(int dim, int popSize) :
 nDim(dim), nPop(popSize),
 generations(0), strategy(stRand1Exp),
 scale(0.7), probability(0.5), bestEnergy(0.0),
-trialSolution(nullptr), bestSolution(nullptr),
-popEnergy(nullptr), population(nullptr)
+trialSolution(0), bestSolution(0),
+popEnergy(0), population(0)
 {
     trialSolution = new double[nDim];
     bestSolution  = new double[nDim];

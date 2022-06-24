@@ -30,8 +30,7 @@
 #include "core/xmipp_macros.h"
 #include "core/metadata_db.h"
 
-MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize,
-                                       MpiNode *node) :
+MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize, const std::shared_ptr<MpiNode> &node) :
         ThreadTaskDistributor(nTasks, bSize)
 {
     this->node = node;
@@ -89,7 +88,7 @@ void MpiTaskDistributor::wait()
 }
 
 // ================= FILE MUTEX ==========================
-MpiFileMutex::MpiFileMutex(MpiNode * node)
+MpiFileMutex::MpiFileMutex(const std::shared_ptr<MpiNode>& node)
 {
     fileCreator = false;
 
@@ -238,22 +237,14 @@ template void MpiNode::gatherMetadatas<MetaDataVec>(MetaDataVec&, const FileName
 template void MpiNode::gatherMetadatas<MetaDataDb>(MetaDataDb&, const FileName&);
 
 /* -------------------- XmippMPIProgram ---------------------- */
-/** destructor */
-XmippMpiProgram::~XmippMpiProgram()
-{
-    if (created_node)
-        delete node;
-}
-
 void XmippMpiProgram::read(int argc, char **argv)
 {
     errorCode = 0; //suppose no errors
 
     if (node == nullptr)
     {
-        node = new MpiNode(argc, argv);
+        node = std::shared_ptr<MpiNode>(new MpiNode(argc, argv));
         nProcs = node->size;
-        created_node = true;
 
         if (!node->isMaster())
             verbose = false;
@@ -262,10 +253,9 @@ void XmippMpiProgram::read(int argc, char **argv)
     XmippProgram::read(argc, (const char **)argv);
 }
 
-void XmippMpiProgram::setNode(MpiNode *node)
+void XmippMpiProgram::setNode(const std::shared_ptr<MpiNode> &node)
 {
     this->node = node;
-    created_node = false;
     verbose = node->isMaster();
 }
 
