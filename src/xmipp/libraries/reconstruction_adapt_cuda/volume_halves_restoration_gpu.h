@@ -32,6 +32,9 @@
 
 #include "reconstruction_cuda/cuda_volume_halves_restorator.h"
 
+/**@defgroup ProgVolumeHalvesRestorationGpu Volume Halves Restoration GPU
+   @ingroup ReconsLibrary */
+//@{
 /*
  * This is GPU implementation of reconstruction/volume_halves_restoration.h
  * It checks validity of input and delegates the computation to VolumeHalvesRestorator
@@ -94,5 +97,5 @@ private:
     void saveResults(const VolumeHalvesRestorator<T>& restorator);
     void saveImage(Image<T>& image, std::string&& filename);
 };
-
+//@}
 #endif

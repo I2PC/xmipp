@@ -30,6 +30,9 @@
 #include "gpu.h"
 #include "core/utils/memory_utils.h"
 
+/**@defgroup CudaCorrelationComputer Cuda Correlation Computer
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class CudaCorrelationComputer : public AMeritComputer<T> {
 public:
@@ -93,5 +96,5 @@ private:
     GPU *m_stream;
 
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CORRELATION_COMPUTER_H_ */

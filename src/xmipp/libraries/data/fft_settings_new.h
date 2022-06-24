@@ -30,6 +30,9 @@
 #include <cassert>
 #include <complex>
 
+/**@defgroup FFTSettingsNew FFTSettingsNew
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 class FFTSettingsNew {
 public:
@@ -155,5 +158,5 @@ private:
     bool m_isInPlace;
     bool m_isForward;
 };
-
+//@}
 #endif /* FFTSETTINGS_NEW_H_ */

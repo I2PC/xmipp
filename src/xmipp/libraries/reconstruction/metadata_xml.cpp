@@ -25,7 +25,7 @@
 
 #include <fstream>
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 class ProgTest: public XmippProgram
 {
@@ -54,7 +54,7 @@ class ProgTest: public XmippProgram
     void run()
     {
 
-        MetaData MD, sortedMD;
+        MetaDataVec MD, sortedMD;
         std::ofstream fhOut;
         StringVector blockList;
         fhOut.open(fnOut.c_str());
@@ -71,10 +71,10 @@ class ProgTest: public XmippProgram
                 sTemp=blockList[i];
                 micName=sTemp.removeUntilPrefix("_");
                 fhOut<<"<micrograph id=\""<<micName<<"\">"<<std::endl;
-                FOR_ALL_OBJECTS_IN_METADATA(MD)
+                for (size_t objId : MD.ids())
                 {
-                    MD.getValue(MDL_XCOOR, x, __iter.objId);
-                    MD.getValue(MDL_YCOOR, y, __iter.objId);
+                    MD.getValue(MDL_XCOOR, x, objId);
+                    MD.getValue(MDL_YCOOR, y, objId);
                     fhOut<<"<coordinate x=\""<<x<<"\" y=\""<<y<<"\"/>"<<std::endl;
                 }
                 fhOut<<"</micrograph>"<<std::endl;
@@ -89,27 +89,28 @@ class ProgTest: public XmippProgram
             std::cout << fnIn << std::endl;
             sortedMD.sort(MD,MDL_MICROGRAPH);
 
-            sortedMD.getValue(MDL_MICROGRAPH, name, MD.firstObject());
+            sortedMD.getValue(MDL_MICROGRAPH, name, MD.firstRowId());
             nodirName=name.removeDirectories();
             nodirName=nodirName.removeAllExtensions();
             fhOut<<"<micrograph id=\""<<nodirName<<"\">"<<std::endl;
 
-            sortedMD.getValue(MDL_XCOOR, x, sortedMD.firstObject());
-            sortedMD.getValue(MDL_YCOOR, y, sortedMD.firstObject());
+            sortedMD.getValue(MDL_XCOOR, x, sortedMD.firstRowId());
+            sortedMD.getValue(MDL_YCOOR, y, sortedMD.firstRowId());
             fhOut<<"<coordinate x=\""<<x<<"\" y=\""<<y<<"\"/>"<<std::endl;
 
-            FOR_ALL_OBJECTS_IN_METADATA(sortedMD)
+            for (auto idIt = sortedMD.ids().begin(); idIt != sortedMD.ids().end(); ++idIt)
             {
+            	if (*idIt == MD.firstRowId())
+                    ++idIt;
 
-            	if (__iter.objId == MD.firstObject())
-            		__iter.moveNext();
+                size_t objId = *idIt;
 
-            	sortedMD.getValue(MDL_MICROGRAPH, newName, __iter.objId);
+            	sortedMD.getValue(MDL_MICROGRAPH, newName, objId);
 
                 if (name == newName)
                 {
-                	sortedMD.getValue(MDL_XCOOR, x, __iter.objId);
-                	sortedMD.getValue(MDL_YCOOR, y, __iter.objId);
+                	sortedMD.getValue(MDL_XCOOR, x, objId);
+                	sortedMD.getValue(MDL_YCOOR, y, objId);
                     fhOut<<"<coordinate x=\""<<x<<"\" y=\""<<y<<"\"/>"<<std::endl;
                 }
                 else
@@ -119,8 +120,8 @@ class ProgTest: public XmippProgram
                     nodirName=name.removeDirectories();
                     nodirName=nodirName.removeAllExtensions();
                     fhOut<<"<micrograph id=\""<<nodirName<<"\">"<<std::endl;
-                    sortedMD.getValue(MDL_XCOOR, x, __iter.objId);
-                    sortedMD.getValue(MDL_YCOOR, y, __iter.objId);
+                    sortedMD.getValue(MDL_XCOOR, x, objId);
+                    sortedMD.getValue(MDL_YCOOR, y, objId);
                     fhOut<<"<coordinate x=\""<<x<<"\" y=\""<<y<<"\"/>"<<std::endl;
                 }
             }

@@ -103,7 +103,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     double sign = 1;//;-1;
     int numNorm = 3;
     int numDescriptors0=numNorm;
-    int numDescriptors1;
+    int numDescriptors1=0;
     int numDescriptors2=4;
     int numDescriptors3=11;
     int numDescriptors4=10;
@@ -178,22 +178,22 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     Image<double> img;
     FourierTransformer transformer(FFTW_BACKWARD);
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         if (thereIsEnable)
         {
             int enabled;
-            SF.getValue(MDL_ENABLED,enabled,__iter.objId);
-            if ( (enabled==-1)  )
+            SF.getValue(MDL_ENABLED,enabled, objId);
+            if (enabled==-1)
             {
                 imgno++;
                 continue;
             }
         }
 
-        img.readApplyGeo(SF,__iter.objId);
+        img.readApplyGeo(SF, objId);
         if (targetXdim!=-1 && targetXdim<XSIZE(img()))
-        	selfScaleToSize(LINEAR,img(),targetXdim,targetXdim,1);
+        	selfScaleToSize(xmipp_transformation::LINEAR,img(),targetXdim,targetXdim,1);
 
         MultidimArray<double> &mI=img();
         mI.setXmippOrigin();
@@ -285,8 +285,8 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         size_t area=0;
         fitEllipse(nI,x0,y0,majorAxis,minorAxis,ellipAng,area);
 
-        A1D_ELEM(v2,0)=majorAxis/((img().xdim) );
-        A1D_ELEM(v2,1)=minorAxis/((img().xdim) );
+        A1D_ELEM(v2,0)=majorAxis/(img().xdim);
+        A1D_ELEM(v2,1)=minorAxis/(img().xdim);
         A1D_ELEM(v2,2)= (fabs((img().xdim)/2-x0)+fabs((img().ydim)/2-y0))/((img().xdim)/2);
         A1D_ELEM(v2,3)=area/( (double)((img().xdim)/2)*((img().ydim)/2) );
 
@@ -326,7 +326,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         }
         tempPcaAnalyzer4.addVector(v4);
         if (addFeatures)
-        	SF.setValue(MDL_SCORE_BY_SCREENING,v04,__iter.objId);
+        	SF.setValue(MDL_SCORE_BY_SCREENING,v04, objId);
         v04all.push_back(v04);
 
 #ifdef DEBUG
@@ -345,6 +345,9 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         if (imgno % c == 0 && verbose>0)
             progress_bar(imgno);
     }
+
+    if (imgno == 0)
+        REPORT_ERROR(ERR_MD_NOACTIVE, "All metadata images are disable. Skipping...\n");
 
     std::size_t beg = fn.find_last_of("@") + 1;
     std::size_t end = fn.find_last_of("/") + 1;
@@ -372,7 +375,7 @@ void ProgSortByStatistics::run()
     // Process input selfile ..............................................
     SF.read(fn);
     SF.removeDisabled();
-    MetaData SF2 = SF;
+    MetaDataVec SF2 = SF;
     SF = SF2;
 
     if (fn_train != "")
@@ -410,10 +413,10 @@ void ProgSortByStatistics::run()
     double zScore=0;
     int enabled;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId: SF.ids())
     {
-        SF.getValue(MDL_ENABLED,enabled,__iter.objId);
-        if ( (enabled==-1)  )
+        SF.getValue(MDL_ENABLED,enabled, objId);
+        if (enabled==-1)
         {
             A1D_ELEM(finalZscore,imgno) = 1e3;
             A1D_ELEM(ZscoreShape1,imgno) = 1e3;
@@ -461,7 +464,7 @@ void ProgSortByStatistics::run()
     pcaAnalyzer.clear();
 
     // Produce output .....................................................
-    MetaData SFout;
+    MetaDataVec SFout;
     std::ofstream fh_zind;
 
     if (verbose==2 && !fn_out.empty())
@@ -472,13 +475,13 @@ void ProgSortByStatistics::run()
 
     int nr_imgs = SF.size();
     bool thereIsEnable=SF.containsLabel(MDL_ENABLED);
-    MDRow row;
+    MDRowVec row;
 
     for (int imgno = 0; imgno < nr_imgs; imgno++)
     {
-        int isort_1 = DIRECT_A1D_ELEM(sorted,imgno);
-        int isort = isort_1 - 1;
-        SF.getRow(row, isort_1);
+        int isort = DIRECT_A1D_ELEM(sorted,imgno) - 1;
+        size_t objId = SF.getRowId(isort);
+        SF.getRow(row, objId);
 
         if (thereIsEnable)
         {
@@ -505,13 +508,13 @@ void ProgSortByStatistics::run()
         {
             row.setValue(MDL_ENABLED,-1);
             if (addToInput)
-                SF.setValue(MDL_ENABLED,-1,isort_1);
+                SF.setValue(MDL_ENABLED, -1, objId);
         }
         else
         {
             row.setValue(MDL_ENABLED,1);
             if (addToInput)
-                SF.setValue(MDL_ENABLED,1,isort_1);
+                SF.setValue(MDL_ENABLED, 1, objId);
         }
 
         row.setValue(MDL_ZSCORE,zscore);
@@ -523,12 +526,12 @@ void ProgSortByStatistics::run()
 
         if (addToInput)
         {
-            SF.setValue(MDL_ZSCORE,zscore,isort_1);
-            SF.setValue(MDL_ZSCORE_SHAPE1,zscoreShape1,isort_1);
-            SF.setValue(MDL_ZSCORE_SHAPE2,zscoreShape2,isort_1);
-            SF.setValue(MDL_ZSCORE_SNR1,zscoreSNR1,isort_1);
-            SF.setValue(MDL_ZSCORE_SNR2,zscoreSNR2,isort_1);
-            SF.setValue(MDL_ZSCORE_HISTOGRAM,zscoreHist,isort_1);
+            SF.setValue(MDL_ZSCORE, zscore, objId);
+            SF.setValue(MDL_ZSCORE_SHAPE1, zscoreShape1, objId);
+            SF.setValue(MDL_ZSCORE_SHAPE2, zscoreShape2, objId);
+            SF.setValue(MDL_ZSCORE_SNR1, zscoreSNR1, objId);
+            SF.setValue(MDL_ZSCORE_SNR2, zscoreSNR2, objId);
+            SF.setValue(MDL_ZSCORE_HISTOGRAM, zscoreHist, objId);
         }
 
         SFout.addRow(row);
@@ -545,34 +548,15 @@ void ProgSortByStatistics::run()
         sortedZscoreSNR1.indexSort(sortedSNR1);
         sortedZscoreSNR2.indexSort(sortedSNR2);
         sortedZscoreHist.indexSort(sortedHist);
-        size_t numPartReject = (size_t)std::floor((per/100)*SF.size());
+        auto numPartReject = (size_t)std::floor((per/100)*SF.size());
 
         for (size_t numPar = SF.size()-1; numPar > (SF.size()-numPartReject); --numPar)
         {
-            int isort_1 = DIRECT_A1D_ELEM(sortedShape1,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
-
-            isort_1 = DIRECT_A1D_ELEM(sortedShape2,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
-
-            isort_1 = DIRECT_A1D_ELEM(sortedSNR1,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
-
-            isort_1 = DIRECT_A1D_ELEM(sortedSNR2,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
-
-            isort_1 = DIRECT_A1D_ELEM(sortedHist,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
+            SFout.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedShape1,numPar)-1));
+            SFout.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedShape2,numPar)-1));
+            SFout.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedSNR1,numPar)-1));
+            SFout.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedSNR2,numPar)-1));
+            SFout.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedHist,numPar)));
 
             if (addToInput)
             {
@@ -582,30 +566,11 @@ void ProgSortByStatistics::run()
                 ZscoreSNR2.indexSort(sortedSNR2SF);
                 ZscoreHist.indexSort(sortedHistSF);
 
-                isort_1 = DIRECT_A1D_ELEM(sortedShapeSF1,numPar);
-                SF.getRow(row, isort_1);
-                row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
-
-                isort_1 = DIRECT_A1D_ELEM(sortedShapeSF2,numPar);
-                SF.getRow(row, isort_1);
-                row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
-
-                isort_1 = DIRECT_A1D_ELEM(sortedSNR1SF,numPar);
-                SF.getRow(row, isort_1);
-                row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
-
-                isort_1 = DIRECT_A1D_ELEM(sortedSNR2SF,numPar);
-                SF.getRow(row, isort_1);
-                row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
-
-                isort_1 = DIRECT_A1D_ELEM(sortedHistSF,numPar);
-                SF.getRow(row, isort_1);
-                row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
+                SF.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedShapeSF1,numPar)-1));
+                SF.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedShapeSF2,numPar)-1));
+                SF.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedSNR1SF,numPar)-1));
+                SF.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedSNR2SF,numPar)-1));
+                SF.setValue(MDL_ENABLED, -1, SF.getRowId(DIRECT_A1D_ELEM(sortedHistSF,numPar)-1));
             }
         }
     }
@@ -614,22 +579,20 @@ void ProgSortByStatistics::run()
         fh_zind.close();
     if (!fn_out.empty())
     {
-        MetaData SFsorted;
+        MetaDataVec SFsorted;
         if (fn_out.exists()) SFsorted.read(fn_out);
         int countItems = 0;
-        MDRow row;
-        FOR_ALL_OBJECTS_IN_METADATA(SFsorted)
+        for (const auto& row : SFsorted)
         {
             countItems++;
-    	    SFsorted.getRow(row, countItems);
-    	    SFout.addRow(row);
-    	}
+            SFout.addRow(dynamic_cast<const MDRowVec&>(row));
+        }
         SFsorted.sort(SFout,MDL_ZSCORE);
         SFsorted.write(formatString("@%s", fn_out.c_str()), MD_APPEND);
     }
     if (addToInput)
     {
-        MetaData SFsorted;
+        MetaDataVec SFsorted;
         SFsorted.sort(SF,MDL_ZSCORE);
         SFsorted.write(fn,MD_APPEND);
     }

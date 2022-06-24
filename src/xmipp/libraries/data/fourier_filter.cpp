@@ -581,9 +581,9 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
 
     if (FilterShape==FSCPROFILE)
     {
-    	MetaData mdFSC(fnFSC);
-        mdFSC.getColumnValues(MDL_RESOLUTION_FREQ,freqContFSC);
-        mdFSC.getColumnValues(MDL_RESOLUTION_FRC,FSC);
+        MetaDataVec mdFSC(fnFSC);
+        mdFSC.getColumnValues(MDL_RESOLUTION_FREQ, freqContFSC);
+        mdFSC.getColumnValues(MDL_RESOLUTION_FRC, FSC);
     }
     // std::cout << "Generating mask " << do_generate_3dmask << std::endl;
 
@@ -615,7 +615,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         {
         	Image<double> filter;
         	filter.read(fnFilter);
-            scaleToSize(BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
+            scaleToSize(xmipp_transformation::BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
             maskFourierd.resize(Fourier);
             return;
         }
@@ -650,7 +650,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         {
         	Image<double> filter;
         	filter.read(fnFilter);
-            scaleToSize(BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
+            scaleToSize(xmipp_transformation::BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
             maskFourierd.resize(Fourier);
             return;
         }
@@ -689,8 +689,8 @@ void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, Multid
     }
     else if (XSIZE(maskFourierd)!=0)
     {
-        double *ptrV=(double*)&DIRECT_MULTIDIM_ELEM(V,0);
-        double *ptrMask=(double*)&DIRECT_MULTIDIM_ELEM(maskFourierd,0);
+        auto *ptrV=(double*)&DIRECT_MULTIDIM_ELEM(V,0);
+        auto *ptrMask=(double*)&DIRECT_MULTIDIM_ELEM(maskFourierd,0);
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         {
             *ptrV++ *= *ptrMask;
@@ -706,7 +706,7 @@ void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, Multid
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         if (DIRECT_MULTIDIM_ELEM(vMag,n)<minMagnitude)
         {
-            double *ptr=(double*)&DIRECT_MULTIDIM_ELEM(V,n);
+            auto *ptr=(double*)&DIRECT_MULTIDIM_ELEM(V,n);
             *ptr=0;
             *(ptr+1)=0;
         }
@@ -823,7 +823,10 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	MultidimArray<int> &mMask=mask();
 	mMask.setXmippOrigin();
 	img.setXmippOrigin();
-	double sum=0, sum2=0, N=0, R2max=(XSIZE(img)/2)*(XSIZE(img)/2);
+	double sum=0;
+    double sum2=0;
+    double N=0;
+    auto R2max=(double)((XSIZE(img)/2)*(XSIZE(img)/2));
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mMask)
 	{
 		A3D_ELEM(mMask,k,i,j)=1-A3D_ELEM(mMask,k,i,j);
@@ -851,7 +854,8 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	if (avg<0)
 		threshold+=avg;
 	// std::cout << "avg=" << avg << " sigma=" << stddev << " threshold=" << threshold << std::endl;
-	MultidimArray<double> softMask, imgThresholded;
+	MultidimArray<double> softMask;
+    MultidimArray<double> imgThresholded;
 	softMask.initZeros(mMask);
 	imgThresholded.initZeros(mMask);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mMask)

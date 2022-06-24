@@ -30,7 +30,6 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
 #include <string>
 #include "core/metadata_extension.h"
 

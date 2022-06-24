@@ -111,7 +111,7 @@ void alignSingleImage(size_t nImg, ProgVolumeInitialSimulatedAnnealing &prm, Met
 		mCurrentImageAligned=mCurrentImage;
 		mGalleryProjection.aliasImageInStack(prm.gallery(),nGallery);
 		mGalleryProjection.setXmippOrigin();
-		double corr=alignImagesConsideringMirrors(mGalleryProjection,mCurrentImageAligned,M,DONT_WRAP);
+		double corr=alignImagesConsideringMirrors(mGalleryProjection,mCurrentImageAligned,M,xmipp_transformation::DONT_WRAP);
 #ifdef DEBUG
 		mdGallery.getValue(MDL_MAXCC,corr,__iter.objId);
 #endif
@@ -232,7 +232,7 @@ void threadAlignSubset(ThreadArgument &thArg)
 
 	results.sumCorr=results.sumImprovement=0.0;
 	results.mdReconstruction.clear();
-	int nMax=(int)prm.mdInp.size();
+	auto nMax=(int)prm.mdInp.size();
 	for (int nImg=0; nImg<nMax; ++nImg)
 	{
 		if ((nImg+1)%prm.Nthr==thArg.thread_id)
@@ -279,8 +279,8 @@ void ProgVolumeInitialSimulatedAnnealing::run()
     	thMgr.run(threadAlignSubset);
     	progress_bar(mdIn.size());
     	size_t nImg=0;
-    	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
-    		mdIn.setValue(MDL_MAXCC,mdInp[nImg++].maxcc,__iter.objId);
+        for (size_t objId : mdIn.ids())
+    		mdIn.setValue(MDL_MAXCC,mdInp[nImg++].maxcc,objId);
     	std::cout << "Iter " << iter << " avg.correlation=" << sumCorr/mdIn.size()
     			  << " avg.improvement=" << sumImprovement/mdIn.size() << std::endl;
 
@@ -300,14 +300,14 @@ void ProgVolumeInitialSimulatedAnnealing::run()
 
 void ProgVolumeInitialSimulatedAnnealing::filterByCorrelation()
 {
-	MetaData mdAux;
+	MetaDataVec mdAux;
 	mdAux=mdReconstruction;
 	mdAux.removeDisabled();
 
 	std::vector<double> correlations;
 	mdAux.getColumnValues(MDL_MAXCC,correlations);
 	std::sort(correlations.begin(),correlations.end());
-	size_t skip=(size_t)floor(correlations.size()*(rejection/100.0));
+	auto skip=(size_t)floor(correlations.size()*(rejection/100.0));
 	double minCorr=correlations[skip];
 	//double maxCorr=correlations[correlations.size()-skip/4-1];
 
@@ -317,15 +317,15 @@ void ProgVolumeInitialSimulatedAnnealing::filterByCorrelation()
 	double minWeight=weights[skip];
 	//double maxWeight=weights[weights.size()-skip/4-1];
 
-	FOR_ALL_OBJECTS_IN_METADATA(mdAux)
+	for (size_t objId : mdAux.ids())
 	{
 		double cc, weight;
-		mdAux.getValue(MDL_MAXCC,cc,__iter.objId);
+		mdAux.getValue(MDL_MAXCC,cc,objId);
 		if (cc<minCorr) // COSS || cc>maxCorr)
-			mdAux.setValue(MDL_ENABLED,-1,__iter.objId);
-		mdAux.getValue(MDL_WEIGHT,weight,__iter.objId);
+			mdAux.setValue(MDL_ENABLED,-1,objId);
+		mdAux.getValue(MDL_WEIGHT,weight,objId);
 		if (weight<minWeight) // COSS || weight>maxWeight)
-			mdAux.setValue(MDL_ENABLED,-1,__iter.objId);
+			mdAux.setValue(MDL_ENABLED,-1,objId);
 	}
 	mdAux.removeDisabled();
 	mdAux.write(fnAngles);
@@ -366,14 +366,14 @@ void ProgVolumeInitialSimulatedAnnealing::generateProjections()
 	String cmd=(String)"xmipp_angular_project_library "+args;
 	if (system(cmd.c_str())==-1)
 		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
-	MetaData mdAux(fnGalleryMetaData);
+	MetaDataVec mdAux(fnGalleryMetaData);
 	mdGallery.clear();
-	FOR_ALL_OBJECTS_IN_METADATA(mdAux)
+	for (size_t objId : mdAux.ids())
 	{
 		GalleryImage I;
-		mdAux.getValue(MDL_IMAGE,I.fnImg,__iter.objId);
-		mdAux.getValue(MDL_ANGLE_ROT,I.rot,__iter.objId);
-		mdAux.getValue(MDL_ANGLE_TILT,I.tilt,__iter.objId);
+		mdAux.getValue(MDL_IMAGE,I.fnImg,objId);
+		mdAux.getValue(MDL_ANGLE_ROT,I.rot,objId);
+		mdAux.getValue(MDL_ANGLE_TILT,I.tilt,objId);
 		mdGallery.push_back(I);
 	}
 	gallery.read(fnGallery);
@@ -404,10 +404,10 @@ void ProgVolumeInitialSimulatedAnnealing::produceSideinfo()
 	Image<double> I;
 	size_t n=0;
 	MultidimArray<double> mCurrentImage;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (size_t objId : mdIn.ids())
 	{
 		InputImage Ip;
-		mdIn.getValue(MDL_IMAGE,Ip.fnImg,__iter.objId);
+		mdIn.getValue(MDL_IMAGE,Ip.fnImg,objId);
 		Ip.maxcc=0.0;
 		mdInp.push_back(Ip);
 		I.read(Ip.fnImg);

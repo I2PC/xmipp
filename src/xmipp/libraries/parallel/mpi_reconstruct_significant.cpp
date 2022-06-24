@@ -25,11 +25,6 @@
 
 #include "mpi_reconstruct_significant.h"
 
-MpiProgReconstructSignificant::MpiProgReconstructSignificant()
-{
-	node=NULL;
-}
-
 MpiProgReconstructSignificant::~MpiProgReconstructSignificant()
 {
 	delete node;
@@ -79,7 +74,7 @@ void MpiProgReconstructSignificant::gatherAlignment()
 	// Now the master takes all of them
 	if (rank==0)
 	{
-		MetaData MDAux;
+		MetaDataDb MDAux;
 		for (size_t otherRank=1; otherRank<Nprocessors; ++otherRank)
 		{
 			for (size_t n=0; n<mdReconstructionPartial.size(); ++n)

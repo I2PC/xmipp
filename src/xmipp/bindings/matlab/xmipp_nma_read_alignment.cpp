@@ -1,5 +1,6 @@
+#include <fstream>
 #include <mex.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[],
@@ -16,7 +17,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   mxGetString(prhs[0],nmaDir,mxGetN(prhs[0])+1);
   
   /* Read images */
-  MetaData mdImages;
+  MetaDataVec mdImages;
   mdImages.read(((String)nmaDir)+"/images.xmd");
   if (!mdImages.containsLabel(MDL_NMA))
   {
@@ -52,7 +53,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   int nImgs=(int)mdImages.size();
 
   /* Read modes */
-  MetaData mdModes;
+  MetaDataVec mdModes;
   mdModes.read(((String)nmaDir)+"/modes.xmd");
   mdModes.removeDisabled();
   int nModes=(int)mdModes.size();
@@ -70,14 +71,14 @@ void mexFunction( int nlhs, mxArray *plhs[],
   int i=0;
   String fnImg;
   std::vector<double> lambda;
-  FOR_ALL_OBJECTS_IN_METADATA(mdImages)
+  for (auto objId : mdImages.ids())
   {
-	  mdImages.getValue(MDL_IMAGE,fnImg,__iter.objId);
+	  mdImages.getValue(MDL_IMAGE,fnImg,objId);
 	  mxSetCell(plhs[0], i, mxCreateString(fnImg.c_str()));
-	  mdImages.getValue(MDL_NMA,lambda,__iter.objId);
+	  mdImages.getValue(MDL_NMA,lambda,objId);
 	  for (int j=0; j<nModes; ++j)
 		  ptrNMADistplacements[j*nImgs+i]=lambda[j]; // x*Ydim+y
-	  mdImages.getValue(MDL_COST,*ptrCost,__iter.objId);
+	  mdImages.getValue(MDL_COST,*ptrCost,objId);
 	  i++;
 	  ptrCost++;
   }

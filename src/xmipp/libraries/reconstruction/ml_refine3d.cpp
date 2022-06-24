@@ -425,9 +425,9 @@ void ProgMLRefine3D::run()
                 int refno = 0;
 
                 // Read new references from disc (I could just as well keep them in memory, maybe...)
-                FOR_ALL_OBJECTS_IN_METADATA(ml2d->MDref)
+                for (size_t objId : ml2d->MDref.ids())
                 {
-                    ml2d->MDref.getValue(MDL_IMAGE, fn, __iter.objId);
+                    ml2d->MDref.getValue(MDL_IMAGE, fn, objId);
                     img.read(fn);
                     img().setXmippOrigin();
                     ml2d->model.Iref[refno]() = img();
@@ -550,11 +550,10 @@ void ProgMLRefine3D::projectVolumes(MetaData &mdProj)
     volno = nr_dir = 0;
 
     //std::cerr << "DEBUG_JM: ProgMLRefine3D::projectVolumes" <<std::endl;
-    MDIterator iter(mdVol);
+    auto idIter = mdVol.ids().begin();
     for (size_t i = 0; i < Nvols; ++i)
-    //FOR_ALL_OBJECTS_IN_METADATA(mdVol)
     {
-        mdVol.getValue(MDL_IMAGE, fn_tmp, iter.objId);
+        mdVol.getValue(MDL_IMAGE, fn_tmp, *idIter);
         //std::cerr << "DEBUG_JM: fn_tmp: " << fn_tmp << std::endl;
         vol.read(fn_tmp);
         vol().setXmippOrigin();
@@ -588,7 +587,7 @@ void ProgMLRefine3D::projectVolumes(MetaData &mdProj)
             if (verbose && (nr_dir % bar_step == 0))
                 progress_bar(nr_dir);
         }
-        iter.moveNext();
+        ++idIter;
     }
 
     if (verbose)
@@ -616,12 +615,11 @@ void ProgMLRefine3D::makeNoiseImages()
 
     Image<double> img;
     std::vector<Image<double> > & Iref = ml2d->model.Iref;
-    FileName   fn_noise(FN_NOISE_IMG), fn_img;
-    MetaData    mdNoise(ml2d->MDref);
+    FileName fn_noise(FN_NOISE_IMG), fn_img;
+    MetaDataVec mdNoise(ml2d->MDref);
     int refno = 0;
-    MDRow row;
 
-    FOR_ALL_OBJECTS_IN_METADATA(mdNoise)
+    for (size_t objId : mdNoise.ids())
     {
         img = Iref[refno];
         img().initZeros();
@@ -631,7 +629,7 @@ void ProgMLRefine3D::makeNoiseImages()
             img() /= sqrt(Iref[refno].weight());
         fn_img.compose(++refno, fn_noise);
         img.write(fn_img);
-        mdNoise.setValue(MDL_IMAGE, fn_img, __iter.objId);
+        mdNoise.setValue(MDL_IMAGE, fn_img, objId);
         if (refno == ml2d->model.n_ref)
             break;
     }
@@ -731,7 +729,7 @@ ProgReconsBase * ProgMLRefine3D::createReconsProgram(FileName &input, FileName &
         //        // Reconstruct using weighted least-squares ART
         //        Basic_ROUT_Art(art_prm, dummy, new_vol, new_blobs);
     }
-    return NULL;
+    return nullptr;
 }
 
 // Reconstruction using the ML-weights ==========================================
@@ -740,7 +738,7 @@ void ProgMLRefine3D::reconstructVolumes()
   LOG_FUNCTION();
 
     FileName fn_vol, fn_vol_prev, fn_one;
-    MetaData mdOne, mdProj, mdOutVols;
+    MetaDataVec mdOne, mdProj, mdOutVols;
     size_t id;
 
 
@@ -794,7 +792,7 @@ void ProgMLRefine3D::calculate3DSSNR(MultidimArray<double> &spectral_signal)
 
   LOG_FUNCTION();
 
-    MetaData                    mdNoiseAll, mdNoiseOne;
+    MetaDataVec                 mdNoiseAll, mdNoiseOne;
     MultidimArray<std::complex<double> >  Faux;
     Image<double>              vol, nvol;
     FileName                    fn_tmp, fn_tmp2;
@@ -849,11 +847,11 @@ void ProgMLRefine3D::calculate3DSSNR(MultidimArray<double> &spectral_signal)
         volweight = 0.;
         bool first_time = true;
 
-        FOR_ALL_OBJECTS_IN_METADATA(mdNoiseOne)
+        for (size_t objId: mdNoiseOne.ids())
         {
-            mdNoiseOne.getValue(MDL_WEIGHT, weight, __iter.objId);
-            mdNoiseOne.getValue(MDL_ANGLE_ROT, rot, __iter.objId);
-            mdNoiseOne.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
+            mdNoiseOne.getValue(MDL_WEIGHT, weight, objId);
+            mdNoiseOne.getValue(MDL_ANGLE_ROT, rot, objId);
+            mdNoiseOne.getValue(MDL_ANGLE_TILT, tilt, objId);
 
             // accumulate alpha denominator
             SUM_INIT(alpha_N, Mone * weight);
@@ -958,15 +956,15 @@ void ProgMLRefine3D::copyVolumes()
     FileName fn_vol, fn_base = FN_INITIAL_BASE;
     size_t volno = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(mdVol)
+    for (size_t objId : mdVol.ids())
     {
-        mdVol.getValue(MDL_IMAGE, fn_vol, __iter.objId);
+        mdVol.getValue(MDL_IMAGE, fn_vol, objId);
         img.read(fn_vol);
         //fn_vol.compose(++volno, fn_base);
         COMPOSE_VOL_FN(fn_vol, ++volno, fn_base);
         img.write(fn_vol);
-        mdVol.setValue(MDL_IMAGE, fn_vol, __iter.objId);
-        mdVol.setValue(MDL_ENABLED, 1, __iter.objId);
+        mdVol.setValue(MDL_IMAGE, fn_vol, objId);
+        mdVol.setValue(MDL_ENABLED, 1, objId);
     }
 }
 
@@ -983,8 +981,9 @@ void ProgMLRefine3D::updateVolumesMetadata()
         {
         	COMPOSE_VOL_FN(fn_vol, volno, fn_base);
             //fn_vol.compose(volno, fn_base);
-            mdVol.setValue(MDL_IMAGE, fn_vol, mdVol.addObject());
-            mdVol.setValue(MDL_ENABLED, 1);
+            auto objId = mdVol.addObject();
+            mdVol.setValue(MDL_IMAGE, fn_vol, objId);
+            mdVol.setValue(MDL_ENABLED, objId);
         }
     }
 }
@@ -1006,14 +1005,14 @@ void ProgMLRefine3D::postProcessVolumes()
         REPORT_ERROR(ERR_NUMERICAL, (String)"ml_refine3d::run Invalid symmetry" +  fn_sym);
     locsampling.SL.readSymmetryFile(fn_sym);
 
-    if ( !(fn_sym == "c1" || fn_sym == "C1" ) || (lowpass > 0) ||
-         (fn_solv != "") || (do_prob_solvent) || (threshold_solvent != 999))
+    if ( !(fn_sym == "c1" || fn_sym == "C1" ) || lowpass > 0 ||
+         fn_solv != "" || do_prob_solvent || threshold_solvent != 999)
     {
     	LOG_LEVEL(postProcessVolumes_IF);
 
-        FOR_ALL_OBJECTS_IN_METADATA(mdVol)
+        for (size_t objId : mdVol.ids())
         {
-            mdVol.getValue(MDL_IMAGE, fn_vol, __iter.objId);
+            mdVol.getValue(MDL_IMAGE, fn_vol, objId);
             // Read corresponding volume from disc
             LOG("   ProgMLRefine3D::postProcessVolumes READING vol");
             vol.read(fn_vol);

@@ -29,42 +29,45 @@
 //mpirun -np 5 xmipp_mpi_angular_class_average --nJobs 70
 
 #include "parallel/xmipp_mpi.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/xmipp_image.h"
 #include "data/polar.h"
 
 //Tags already defined in xmipp
 //#define TAG_WORK                     0
 //#define TAG_STOP                     1
-#define TAG_I_FINISH_WRITTING        12
-#define TAG_MAY_I_WRITE              13
-#define TAG_YES_YOU_MAY_WRITE        14
-#define TAG_DO_NOT_DARE_TO_WRITE     15
-#define TAG_I_AM_FREE                16
+constexpr int TAG_I_FINISH_WRITTING =         12;
+constexpr int TAG_MAY_I_WRITE =               13;
+constexpr int TAG_YES_YOU_MAY_WRITE =         14;
+constexpr int TAG_DO_NOT_DARE_TO_WRITE =      15;
+constexpr int TAG_I_AM_FREE =                 16;
 
-#define lockWeightIndexesSize 5
-#define index_lockIndex 0
-#define index_weight 1
-#define index_weights1 2
-#define index_weights2 3
-#define index_ref3d 4
+constexpr int lockWeightIndexesSize =  5;
+constexpr int index_lockIndex =  0;
+constexpr int index_weight =  1;
+constexpr int index_weights1 =  2;
+constexpr int index_weights2 =  3;
+constexpr int index_ref3d =  4;
 
-#define ArraySize 8
-#define index_DefGroup 0
-#define index_2DRef 1
-#define index_3DRef 2
-#define index_Order 3
-#define index_Count 4
-#define index_jobId 5
-#define index_Rot 6
-#define index_Tilt 7
+constexpr int ArraySize =  8;
+constexpr int index_DefGroup =  0;
+constexpr int index_2DRef =  1;
+constexpr int index_3DRef =  2;
+constexpr int index_Order =  3;
+constexpr int index_Count =  4;
+constexpr int index_jobId =  5;
+constexpr int index_Rot =  6;
+constexpr int index_Tilt =  7;
 
-#define AVG_OUPUT_SIZE 10
+constexpr int AVG_OUPUT_SIZE =  10;
 
-#define split0 0
-#define split1 1
-#define split2 2
+constexpr int split0 =  0;
+constexpr int split1 =  1;
+constexpr int split2 =  2;
 
+/// @defgroup MpiProgAngularClassAverage MPI Angular Class Average
+/// @ingroup ParallelLibrary
+//@{
 class MpiProgAngularClassAverage : public XmippMpiProgram
 {
 public:
@@ -72,12 +75,12 @@ public:
     unsigned int master_seed;
 
     // Metadata with the list of jobs
-    MetaData mdJobList;
+    MetaDataDb mdJobList;
 
     /** Input and library docfiles */
-    MetaData         DF, DFlib, DFscore;
+    MetaDataDb      DF, DFlib, DFscore;
     /** metadata with classes which have experimental images applied to them */
-    MetaData         DFclassesExp;
+    MetaDataDb      DFclassesExp;
     /** Output rootnames */
     FileName         fn_out, fn_out1, fn_out2, fn_wien, fn_ref;
     /** Column numbers */
@@ -105,7 +108,7 @@ public:
     /** Wiener filter image */
     MultidimArray<double> Mwien;
     /** Selfiles containing all class averages */
-    MetaData         SFclasses, SFclasses1, SFclasses2;
+    MetaDataDb      SFclasses, SFclasses1, SFclasses2;
 
     /** Re-alignment of classes */
 
@@ -211,10 +214,6 @@ public:
         Image<double> avg,
         Image<double> avg1,
         Image<double> avg2,
-        MetaData SFclass,
-        MetaData SFclass1,
-        MetaData SFclass2,
-        MetaData SFclassDiscarded,
         double w1,
         double w2,
         double old_w,
@@ -228,11 +227,11 @@ public:
             Image<double> avg,
             Image<double> avg1,
             Image<double> avg2,
-            MetaData SFclass,
-            MetaData SFclass1,
-            MetaData SFclass2,
-            MetaData SFclassDiscarded,
-            MetaData _DF,
+            const MetaDataDb& SFclass,
+            const MetaDataDb& SFclass1,
+            const MetaDataDb& SFclass2,
+            const MetaDataDb& SFclassDiscarded,
+            const MetaDataDb& _DF,
             double w1,
             double w2,
 	    double w,
@@ -273,7 +272,7 @@ public:
     void applyWienerFilter(MultidimArray<double> &img);
 
 };
-
+//@}
 #endif /* MPI_ANGULAR_CLASS_AVERAGE_H_ */
 
 

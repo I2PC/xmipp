@@ -25,7 +25,7 @@
 
 #include "projection.h"
 #include "core/geometry.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_macros.h"
@@ -130,10 +130,10 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
 {
     if (fn_proj_param.isMetaData())
     {
-        MetaData MD;
+        MetaDataVec MD;
         size_t objId;
         MD.read(fn_proj_param);
-        objId = MD.firstObject();
+        objId = MD.firstRowId();
         //        MD.getValue(MDL_PRJ_VOL, fnPhantom, objId);
         std::vector<double> vecD;
         MD.getValue(MDL_PRJ_DIMENSIONS, vecD, objId);
@@ -186,11 +186,11 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
         int     lineNo = 0;
         char    *auxstr;
 
-        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == NULL)
+        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (std::string)"ParametersProjectionTomography::read: There is a problem "
                          "opening the file " + fn_proj_param);
-        while (fgets(line, 200, fh_param) != NULL)
+        while (fgets(line, 200, fh_param) != nullptr)
         {
             if (line[0] == 0)
                 continue;
@@ -209,7 +209,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
                     firstWord(line);
                 // Next two parameters are optional
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     starting =
                         textToInteger(auxstr);
                 fn_projection_extension = nextToken();
@@ -241,7 +241,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
             case 6:
                 Nangle_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Nangle_avg = textToFloat(auxstr);
                 else
                     Nangle_avg = 0;
@@ -250,7 +250,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
             case 7:
                 Npixel_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Npixel_avg = textToFloat(auxstr);
                 else
                     Npixel_avg = 0;
@@ -259,7 +259,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
             case 8:
                 Ncenter_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Ncenter_avg = textToFloat(auxstr);
                 else
                     Ncenter_avg = 0;
@@ -280,10 +280,13 @@ void ParametersProjectionTomography::calculateProjectionAngles(Projection &P, do
     // Find Euler rotation matrix
     Matrix1D<double> axis;
     Euler_direction(axisRot,axisTilt,0,axis);
-    Matrix2D<double> Raxis, Rinplane;
+    Matrix2D<double> Raxis;
+    Matrix2D<double> Rinplane;
     rotation3DMatrix(angle,axis,Raxis,false);
     rotation3DMatrix(inplaneRot,'Z',Rinplane,false);
-    double rot, tilt, psi;
+    double rot;
+    double tilt;
+    double psi;
     Euler_matrix2angles(Rinplane*Raxis, rot, tilt, psi);
 
 
@@ -342,9 +345,12 @@ void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
     P.setAngles(rot, tilt, psi);
 
     // Compute the distance for this line crossing one voxel
-    int x_0 = STARTINGX(V), x_F = FINISHINGX(V);
-    int y_0 = STARTINGY(V), y_F = FINISHINGY(V);
-    int z_0 = STARTINGZ(V), z_F = FINISHINGZ(V);
+    int x_0 = STARTINGX(V);
+    int x_F = FINISHINGX(V);
+    int y_0 = STARTINGY(V);
+    int y_F = FINISHINGY(V);
+    int z_0 = STARTINGZ(V);
+    int z_F = FINISHINGZ(V);
 
     // Distances in X and Y between the center of the projection pixel begin
     // computed and each computed ray
@@ -403,7 +409,7 @@ void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
             }
 
             // Express r_p in the universal coordinate system
-            if (roffset!=NULL)
+            if (roffset!=nullptr)
                 r_p-=*roffset;
             M3x3_BY_V3x1(p1, P.eulert, r_p);
             XX(p1_shifted)=XX(p1)-half_x_sign;
@@ -419,7 +425,8 @@ void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
             double alpha_zmin = (z_0 - 0.5 - ZZ(p1))* iZZP_direction;
             double alpha_zmax = (z_F + 0.5 - ZZ(p1))* iZZP_direction;
 
-            double auxMin, auxMax;
+            double auxMin;
+            double auxMax;
             if (alpha_xmin<alpha_xmax)
             {
                 auxMin=alpha_xmin;
@@ -478,8 +485,12 @@ void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
 #endif
 
             // Compute the first point in the volume intersecting the ray
-            double zz_idxd, yy_idxd, xx_idxd;
-            int    zz_idx , yy_idx , xx_idx;
+            double zz_idxd;
+            double yy_idxd;
+            double xx_idxd;
+            int    zz_idx;
+            int    yy_idx;
+            int    xx_idx;
             V3_BY_CT(v, P.direction, alpha_min);
             V3_PLUS_V3(v, p1, v);
 
@@ -600,9 +611,12 @@ void singleWBP(MultidimArray<double> &V, Projection &P)
     SPEED_UP_temps012;
 
     // Compute the distance for this line crossing one voxel
-    int x_0 = STARTINGX(V), x_F = FINISHINGX(V);
-    int y_0 = STARTINGY(V), y_F = FINISHINGY(V);
-    int z_0 = STARTINGZ(V), z_F = FINISHINGZ(V);
+    int x_0 = STARTINGX(V);
+    int x_F = FINISHINGX(V);
+    int y_0 = STARTINGY(V);
+    int y_F = FINISHINGY(V);
+    int z_0 = STARTINGZ(V);
+    int z_F = FINISHINGZ(V);
 
     // Avoids divisions by zero and allows orthogonal rays computation
     if (XX(P.direction) == 0)
@@ -793,21 +807,27 @@ void project_Crystal_SimpleGrid(Image<double> &vol, const SimpleGrid &grid,
     // R2 vector (umax,vmax).
     Matrix1D<double> deffootprint_size(2);   // The footprint size
     // in the deformed space
-    int XX_corner2, XX_corner1;              // Coord: Corners of the
-    int YY_corner2, YY_corner1;              // footprint when it is projected
+    int XX_corner2;
+    int XX_corner1;                          // Coord: Corners of the
+    int YY_corner2;
+    int YY_corner1;                          // footprint when it is projected
     // onto the projection plane
-    Matrix1D<double> rc(2), r(2);            // Position vector which will
+    Matrix1D<double> rc(2);
+    Matrix1D<double> r(2);                   // Position vector which will
     // move from corner1 to corner2.
     // In rc the wrapping is not
     // considered, while it is in r
-    int           foot_V, foot_U;            // Img Coord: coordinate
+    int           foot_V;
+    int           foot_U;                    // Img Coord: coordinate
     // corresponding to the blobprint
     // point which matches with this
     // pixel position
     double        vol_corr=0.;               // Correction for a volume element
     int           N_eq;                      // Number of equations in which
     // a blob is involved
-    int           i, j, k;                   // volume element indexes
+    int           i;
+    int           j;
+    int           k;                         // volume element indexes
     SPEED_UP_temps01;                        // Auxiliary variables for
     // fast multiplications
 
@@ -877,7 +897,8 @@ void project_Crystal_SimpleGrid(Image<double> &vol, const SimpleGrid &grid,
     // A is a matrix such that
     // A*prjaint=(Xdim,0)'
     // A*prjbint=(0,Ydim)'
-    Matrix2D<double> A(2, 2), Ainv(2, 2);
+    Matrix2D<double> A(2, 2);
+    Matrix2D<double> Ainv(2, 2);
     A(0, 0) = YY(prjbint) * xDim;
     A(0, 1) = -XX(prjbint) * xDim;
     A(1, 0) = -YY(prjaint) * yDim;
@@ -910,7 +931,8 @@ void project_Crystal_SimpleGrid(Image<double> &vol, const SimpleGrid &grid,
     XX(footprint_size) = basis.blobprint.umax();
     YY(footprint_size) = basis.blobprint.vmax();
     N_eq = (2 * basis.blobprint.umax() + 1) * (2 * basis.blobprint.vmax() + 1);
-    Matrix1D<double> c1(3), c2(3);
+    Matrix1D<double> c1(3);
+    Matrix1D<double> c2(3);
     XX(c1)           = XX(footprint_size);
     YY(c1)           = YY(footprint_size);
     XX(c2)           = -XX(c1);
@@ -931,10 +953,10 @@ void project_Crystal_SimpleGrid(Image<double> &vol, const SimpleGrid &grid,
 #endif
 
     // This type conversion gives more speed
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = XMIPP_MAX((int) YY(grid.lowest), STARTINGY(mask));
     int XX_lowest = XMIPP_MAX((int) XX(grid.lowest), STARTINGX(mask));
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = XMIPP_MIN((int) YY(grid.highest), FINISHINGY(mask));
     int XX_highest = XMIPP_MIN((int) XX(grid.highest), FINISHINGX(mask));
 
@@ -1052,7 +1074,8 @@ void project_Crystal_SimpleGrid(Image<double> &vol, const SimpleGrid &grid,
                                 continue;
 
                             // Wrap positions
-                            int yw, xw;
+                            int yw;
+                            int xw;
                             wrap_as_Crystal(x, y, xw, yw);
 #ifdef DEBUG
 
@@ -1191,7 +1214,7 @@ void count_eqs_in_projection(GridVolumeT<int> &GVNeq,
 template <class T>
 void *project_SimpleGridThread( void * params )
 {
-    project_thread_params * thread_data = (project_thread_params *)params;
+	auto * thread_data = (project_thread_params *)params;
 
     Image<T> * vol;
     const SimpleGrid * grid;
@@ -1204,8 +1227,8 @@ void *project_SimpleGridThread( void * params )
     Projection * proj;
     Projection * norm_proj;
 
-    Projection * forw_proj = new Projection();
-    Projection * forw_norm_proj = new Projection();
+    auto * forw_proj = new Projection();
+    auto * forw_norm_proj = new Projection();
 
     Projection * global_proj;
     Projection * global_norm_proj;
@@ -1217,7 +1240,9 @@ void *project_SimpleGridThread( void * params )
     const MultidimArray<int> *mask=NULL;
     double ray_length;
 
-    double rot,tilt,psi;
+    double rot;
+    double tilt;
+    double psi;
 
     do
     {
@@ -1326,26 +1351,33 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
     // This footprint size is the
     // R2 vector (umax,vmax).
 
-    int XX_corner2, XX_corner1;              // Coord: Corners of the
-    int YY_corner2, YY_corner1;              // footprint when it is projected
+    int XX_corner2;
+    int XX_corner1;              // Coord: Corners of the
+    int YY_corner2;
+    int YY_corner1;              // footprint when it is projected
     // onto the projection plane
-    int           foot_V1=0, foot_U1=0;      // Img Coord: coordinate (in
+    int           foot_V1=0;
+    int           foot_U1=0;      // Img Coord: coordinate (in
     // an image fashion, not in an
     // oversampled image fashion)
     // inside the blobprint of the
     // corner1
-    int        foot_V, foot_U;            // Img Coord: coordinate
+    int        foot_V;
+    int        foot_U;            // Img Coord: coordinate
     int        foot_W = 0;
     // corresponding to the blobprint
     // point which matches with this
     // pixel position
-    int           Vsampling=0, Usampling=0;  // Sampling rate in Y and X
+    int           Vsampling=0;
+    int           Usampling=0;  // Sampling rate in Y and X
     // directions respectively
     // inside the blobprint
     double        vol_corr=0.;               // Correction for a volume element
     int           N_eq;                      // Number of equations in which
     // a blob is involved
-    int           i, j, k;                   // volume element indexes
+    int           i;
+    int           j;
+    int           k;                   // volume element indexes
     bool   isVolPSF = false;    // Blob footprint is VolumePSF
 
     // Prepare system matrix for printing ...................................
@@ -1408,16 +1440,16 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
 
     // This type conversion gives more speed
 
-    int ZZ_lowest = (int) ZZ(grid->lowest);
+    auto ZZ_lowest = (int) ZZ(grid->lowest);
 
     if( thread_id != -1 )
         ZZ_lowest += thread_id;
 
-    int YY_lowest = (int) YY(grid->lowest);
-    int XX_lowest = (int) XX(grid->lowest);
-    int ZZ_highest = (int) ZZ(grid->highest);
-    int YY_highest = (int) YY(grid->highest);
-    int XX_highest = (int) XX(grid->highest);
+    auto YY_lowest = (int) YY(grid->lowest);
+    auto XX_lowest = (int) XX(grid->lowest);
+    auto ZZ_highest = (int) ZZ(grid->highest);
+    auto YY_highest = (int) YY(grid->highest);
+    auto XX_highest = (int) XX(grid->highest);
 
     beginZ = (double)XX_lowest * prjX + (double)YY_lowest * prjY + (double)ZZ_lowest * prjZ + prjOrigin;
 
@@ -1486,7 +1518,8 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
             {
                 // Ray length interesting
                 bool ray_length_interesting = true;
-                double zCenterDist, z = 0; // z = 0 standard value for non 3D blobprints
+                double zCenterDist;
+                double z = 0; // z = 0 standard value for non 3D blobprints
 
                 if (ray_length != -1 || isVolPSF)
                 {
@@ -1584,7 +1617,8 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                                         }
                                     }
 #endif
-                                    double a, a2;
+                                    double a;
+                                    double a2;
                                     // Check if volumetric interpolation (i.e., SSNR)
                                     if (VSSNR_mode)
                                     {
@@ -1649,8 +1683,10 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                                                 const double p0 = 1.0 / (2 * ART_PIXEL_SUBSAMPLING) - 0.5;
                                                 const double pStep = 1.0 / ART_PIXEL_SUBSAMPLING;
                                                 const double pAvg = 1.0 / (ART_PIXEL_SUBSAMPLING * ART_PIXEL_SUBSAMPLING);
-                                                int ii, jj;
-                                                double px, py;
+                                                int ii;
+                                                int jj;
+                                                double px;
+                                                double py;
                                                 a = 0;
 #ifdef DEBUG
 
@@ -1723,7 +1759,8 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                                             IMGPIXEL(*norm_proj, y, x) += a2;
                                             if (M != NULL)
                                             {
-                                                int py, px;
+                                                int py;
+                                                int px;
                                                 (*proj)().toPhysical(y, x, py, px);
                                                 int number_of_pixel = py * XSIZE((*proj)()) + px;
                                                 dMij(*M, number_of_pixel, number_of_basis) = a;

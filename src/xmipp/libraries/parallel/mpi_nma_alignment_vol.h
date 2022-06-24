@@ -30,6 +30,9 @@
 #include <reconstruction/nma_alignment_vol.h>
 #include <memory>
 
+/// @defgroup MpiProgNMAVol NMA Alignment for volumes with  MPI parallelization
+/// @ingroup ParallelLibrary
+//@{
 /** Class to perform the NMA Alignment for volumes with  MPI parallelization */
 class MpiProgNMAVol: public ProgNmaAlignmentVol
 {
@@ -40,7 +43,7 @@ private:
     std::vector<size_t> imgsId;
 
     // main body
-    void createWorkFiles();
+    void createWorkFiles() override;
     
     //Only master do starting progress bar stuff
     void startProcessing();
@@ -48,8 +51,7 @@ private:
     //Only master show progress
     void showProgress();
     
-    //Now use the distributor to grasp volumes
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override;
 
     void finishProcessing();
 
@@ -59,4 +61,5 @@ public:
     // Redefine read to initialize MPI environment
     void read(int argc, char **argv);
 }
+//@}
 ;//end of class MpiProgNMAVol

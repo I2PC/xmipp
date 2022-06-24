@@ -32,6 +32,9 @@
 #include "fftwT.h"
 #include "single_extrema_finder.h"
 
+/**@defgroup ShiftCorrEstimator Shift Correlation Estimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -117,5 +120,5 @@ private:
 };
 
 }  /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_ */

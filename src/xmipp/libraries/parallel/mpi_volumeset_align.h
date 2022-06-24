@@ -30,6 +30,10 @@
 #include "parallel/xmipp_mpi.h"
 #include "reconstruction/volumeset_align.h"
 
+/**@defgroup MpiProgVolumeSetAlign MPI Volume Set Align
+ @ingroup Programs */
+//@{
+
 class MpiProgVolumeSetAlign: public ProgVolumeSetAlign
 {
 private:
@@ -39,7 +43,7 @@ private:
     std::vector<size_t> imgsId;
 
     // main body
-    void createWorkFiles();
+    void createWorkFiles() override;
     
     //Only master do starting progress bar stuff
     void startProcessing();
@@ -47,8 +51,7 @@ private:
     //Only master show progress
     void showProgress();
     
-    //Now use the distributor to grasp volumes
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override;
 
     void finishProcessing();
 
@@ -59,4 +62,5 @@ public:
     //void read(int arg1, char **arg2);
     void read(int argc, char ** argv, bool reportErrors = true) override;
 }
+//@}
 ;//end of class MpiProgVolumeSetAlign

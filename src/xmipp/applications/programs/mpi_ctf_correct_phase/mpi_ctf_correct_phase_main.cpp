@@ -26,7 +26,7 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/ctf_correct_phase.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgCorrectPhaseFlip2D, MpiProgCorrectPhaseFlip2D)
+class MpiProgCorrectPhaseFlip2D
+    : public BasicMpiMetadataProgram<ProgCorrectPhaseFlip2D> {};
 
 RUN_XMIPP_PROGRAM(MpiProgCorrectPhaseFlip2D)

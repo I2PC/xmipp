@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "aalign_significant.h"
+#include "core/xmipp_image_extension.h"
 
 namespace Alignment {
 
@@ -91,7 +92,7 @@ void AProgAlignSignificant<T>::show() const {
 template<typename T>
 template<bool IS_REF>
 void AProgAlignSignificant<T>::load(DataHelper &h) {
-    auto &md = h.md;
+    MetaDataVec &md = h.md;
     md.read(h.fn);
     size_t origN = md.size();
     md.removeDisabled();
@@ -100,7 +101,7 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     size_t Ydim;
     size_t Zdim;
     size_t Ndim;
-    getImageSize(h.fn, Xdim, Ydim, Zdim, Ndim);
+    getImageSize(md, Xdim, Ydim, Zdim, Ndim);
     Ndim = md.size();
 
     if (IS_REF && (origN != Ndim)) {
@@ -154,28 +155,28 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
     if (IS_REF) {
-        h.rots.reserve(Ndim);
-        if ( ! md.getColumnValuesOpt(MDL_ANGLE_ROT, h.rots)) {
+        if (!md.containsLabel(MDL_ANGLE_ROT)) {
             std::cerr << "No roration specified for reference images. Using 0 by default\n";
             h.rots.resize(Ndim, 0); // rotation not specified, use default value
+        } else {
+            h.rots = md.getColumnValues<float>(MDL_ANGLE_ROT);
         }
         h.tilts.reserve(Ndim);
-        if ( ! md.getColumnValuesOpt(MDL_ANGLE_TILT, h.tilts)) {
+        if (!md.containsLabel(MDL_ANGLE_TILT)) {
             std::cerr << "No tilt specified for reference images. Using 0 by default\n";
             h.tilts.resize(Ndim, 0); // tilt not specified, use default value
+        } else {
+            h.tilts = md.getColumnValues<float>(MDL_ANGLE_TILT);
         }
-        h.indexes.reserve(Ndim);
-        md.getColumnValuesOpt(MDL_REF, h.indexes);
+        h.indexes = md.getColumnValues<int>(MDL_REF);
     }
 
-    std::vector<FileName> fileNames;
-    fileNames.reserve(Ndim);
-    md.getColumnValuesOpt(MDL_IMAGE, fileNames);
+    auto fileNames = md.getColumnValues<FileName>(MDL_IMAGE);
     size_t i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(md) {
+    for (size_t objId : md.ids()) {
         FileName fn;
-        if ( ! IS_REF) {
-            h.rowIds.emplace_back(__iter.objId);
+        if (! IS_REF) {
+            h.rowIds.emplace_back(objId);
         }
         if (mustCrop) {
             futures.emplace_back(m_threadPool.push(routineCrop, fileNames.at(i), i));
@@ -400,8 +401,8 @@ void AProgAlignSignificant<T>::computeAssignment(
                 continue; // skip saving the particles which have non-positive figure of merit to the reference
             }
             const auto &p = IS_ESTIMATION_TRANSPOSED
-                    ? (est.at(i).poses.at(refIndex).inv())
-                    : (est.at(refIndex).poses.at(i));
+                    ? est.at(i).poses.at(refIndex).inv()
+                    : est.at(refIndex).poses.at(i);
             m_assignments.emplace_back(refIndex, i,
                     m_weights.at(refIndex).at(i), val,
                     p);
@@ -413,7 +414,7 @@ template<typename T>
 template<bool USE_WEIGHT>
 void AProgAlignSignificant<T>::storeAlignedImages() {
     if (0 == m_assignments.size()) {
-    	MetaData().write(m_fnOut);
+    	MetaDataVec().write(m_fnOut);
     	return;
     }
 
@@ -428,39 +429,38 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
                   :(l.merit > r.merit));
     });
 
-    std::vector<MDRow> rows;
+    std::vector<MDRowVec> rows;
     size_t indexMeta = 0;
     size_t indexAssign = 0; // if we're here, we have at least one assignment
     rows.reserve(m_assignments.size());
-    FOR_ALL_OBJECTS_IN_METADATA(md) {
-		// we migh have skipped some images due to bad reference
-		if (indexMeta != m_assignments.at(indexAssign).imgIndex) {
-			indexMeta++;
-			continue;
-		}
-		// we found the first row in metadata with image that we have
-		// get the original row from the input metadata
-		MDRow row;
-		md.getRow(row, __iter.objId);
-		auto maxVote = m_assignments.at(indexAssign).merit; // because we sorted it above
-		while (m_assignments.at(indexAssign).imgIndex == indexMeta) {
-			// create new record using the data
-			rows.emplace_back(row);
-			auto &r = rows.back();
-			const auto &a = m_assignments.at(indexAssign);
-			fillRow(r, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
-			// continue with next assignment
-			indexAssign++;
-			if (indexAssign == m_assignments.size()) {
-				goto storeData; // we're done here
-			}
-		}
-    	indexMeta++;
+    for (const auto& _row : md) {
+        const auto& row = dynamic_cast<const MDRowVec&>(_row);
+        // we migh have skipped some images due to bad reference
+        if (indexMeta != m_assignments.at(indexAssign).imgIndex) {
+            indexMeta++;
+            continue;
+        }
+        // we found the first row in metadata with image that we have
+        // get the original row from the input metadata
+        auto maxVote = m_assignments.at(indexAssign).merit; // because we sorted it above
+        while (m_assignments.at(indexAssign).imgIndex == indexMeta) {
+            // create new record using the data
+            rows.emplace_back(row);
+            auto &r = rows.back();
+            const auto &a = m_assignments.at(indexAssign);
+            fillRow(r, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
+            // continue with next assignment
+            indexAssign++;
+            if (indexAssign == m_assignments.size()) {
+                goto storeData; // we're done here
+            }
+        }
+        indexMeta++;
     }
 
     storeData:
-	const auto labels = rows.at(0).getLabels();
-	MetaData mdOut(&labels);
+	const auto labels = rows.at(0).labels();
+	MetaDataVec mdOut(labels);
 	mdOut.addRows(rows);
 	mdOut.write(m_fnOut);
 }
@@ -518,12 +518,12 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
     // name of the reference
     refName.compose(indexInStk, m_updateHelper.fnStk);
     // some info about it
-    auto refRow = MDRow();
+    auto refRow = MDRowVec();
     assert(std::numeric_limits<int>::max() >= refIndex);
     refRow.setValue(MDL_REF, getRefMetaIndex(refIndex), true);
     refRow.setValue(MDL_IMAGE, refName, true);
     refRow.setValue(MDL_CLASS_COUNT, images.size(), true);
-    refMeta.addRowOpt(refRow);
+    refMeta.addRows({refRow});
 
     // create image description block
     std::sort(images.begin(), images.end(), [](const Assignment &l, const Assignment &r) {
@@ -532,16 +532,16 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
 
     const size_t noOfImages = images.size();
     if (0 != noOfImages) {
-        std::vector<MDRow> rows(noOfImages);
+        std::vector<MDRowVec> rows(noOfImages);
         for (size_t i = 0; i < noOfImages; ++i) {
             auto &row = rows.at(i);
             const auto &a = images.at(i);
             getImgRow(row, a.imgIndex);
             fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
         }
-        const auto labels = rows.at(0).getLabels();
+        const auto& labels = rows.at(0).labels();
         if (0 == m_updateHelper.imgBlocks.size()) {
-            m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n(), &labels);
+            m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n(), labels);
         }
         auto &md = m_updateHelper.imgBlocks.at(refIndex);
         md.addRows(rows);
@@ -563,7 +563,7 @@ void AProgAlignSignificant<T>::updateRefs() {
     }
     // make sure we start from scratch
     m_updateHelper.imgBlocks.clear(); // postpone allocation for better performance
-    m_updateHelper.refBlock = MetaData();
+    m_updateHelper.refBlock = MetaDataVec();
     // update references. Metadata will be updated on background
     updateRefs(m_referenceImages.data.get(), m_imagesToAlign.data.get(), m_assignments);
     // store result to drive

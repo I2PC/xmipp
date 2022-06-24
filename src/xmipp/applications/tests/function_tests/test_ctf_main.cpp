@@ -42,7 +42,7 @@ protected:
 TEST_F( CtfTest, generateImageWithTwoCTFs)
 {
     XMIPP_TRY
-    MetaData metadata1;
+    MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 1., objectId);
     metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);
@@ -63,7 +63,7 @@ TEST_F( CtfTest, generateImageWithTwoCTFs)
 TEST_F( CtfTest, errorBetween2CTFs)
 {
     XMIPP_TRY
-    MetaData metadata1;
+    MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 2.1, objectId);
     metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);
@@ -73,7 +73,7 @@ TEST_F( CtfTest, errorBetween2CTFs)
     metadata1.setValue(MDL_CTF_CS, 2., objectId);
     metadata1.setValue(MDL_CTF_Q0, 0.1, objectId);
 
-    MetaData metadata2;
+    MetaDataVec metadata2;
     objectId = metadata2.addObject();
     metadata2.setValue(MDL_CTF_SAMPLING_RATE, 2.1, objectId);
     metadata2.setValue(MDL_CTF_VOLTAGE, 300., objectId);
@@ -94,7 +94,7 @@ TEST_F( CtfTest, errorBetween2CTFs)
 TEST_F( CtfTest, errorMaxFreqCTFs)
 {
     XMIPP_TRY
-    MetaData metadata1;
+    MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 2., objectId);
     metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);
@@ -117,7 +117,7 @@ TEST_F( CtfTest, errorMaxFreqCTFs)
 TEST_F( CtfTest, errorMaxFreqCTFs2D)
 {
     XMIPP_TRY
-    MetaData metadata1;
+    MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 2., objectId);
     metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);
@@ -127,7 +127,7 @@ TEST_F( CtfTest, errorMaxFreqCTFs2D)
     metadata1.setValue(MDL_CTF_CS, 2., objectId);
     metadata1.setValue(MDL_CTF_Q0, 0.1, objectId);
 
-    MetaData metadata2;
+    MetaDataVec metadata2;
     objectId = metadata2.addObject();
     metadata2.setValue(MDL_CTF_SAMPLING_RATE, 2., objectId);
     metadata2.setValue(MDL_CTF_VOLTAGE, 300., objectId);
@@ -146,7 +146,7 @@ TEST_F( CtfTest, errorMaxFreqCTFs2D)
 TEST_F( CtfTest, phaseFlip)
 {
     XMIPP_TRY
-    MetaData metadata1;
+    MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 1., objectId);
     metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);

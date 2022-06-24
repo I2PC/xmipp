@@ -25,7 +25,7 @@
 
 #include "core/geometry.h"
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/transformations.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
@@ -34,7 +34,7 @@ class ProgAngularRotate: public XmippProgram
 {
 protected:
     FileName   fnIn, fnOut;
-    MetaData   mdIn, mdOut;
+    MetaDataVec mdIn, mdOut;
     Matrix2D<double> R, T, B;
     bool       writeMatrix;
 
@@ -104,11 +104,9 @@ protected:
 
     void run()
     {
-        MDRow input;
         bool containsScale=mdIn.containsLabel(MDL_SCALE);
-        FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+        for (auto& input : mdIn)
         {
-            mdIn.getRow(input, __iter.objId);//Get geometric transformation for image
             geo2TransformationMatrix(input, B);
 
             T = R * B;
@@ -116,7 +114,7 @@ protected:
             transformationMatrix2Geo(T, input);
             if (!containsScale)
             	input.setValue(MDL_SCALE,1.0);
-            mdOut.addRow(input);
+            mdOut.addRow(dynamic_cast<MDRowVec&>(input));
 
             if (writeMatrix)
                 std::cout << T << std::endl;

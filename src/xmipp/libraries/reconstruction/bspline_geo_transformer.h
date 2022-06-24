@@ -30,6 +30,9 @@
 #include "CTPL/ctpl_stl.h"
 #include "data/cpu.h"
 
+/**@defgroup BSplineTransformSettings BSpline Transform Settings
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class BSplineTransformSettings : public GeoTransformerSettings<T> {
 public:
@@ -47,10 +50,14 @@ public:
     BSplineGeoTransformer() {
         setDefault();
     }
+    BSplineGeoTransformer(const BSplineGeoTransformer&)=delete;
+    BSplineGeoTransformer(const BSplineGeoTransformer&&)=delete;
 
     virtual ~BSplineGeoTransformer() {
         release();
     }
+    BSplineGeoTransformer &operator=(const BSplineGeoTransformer&)=delete;
+    BSplineGeoTransformer &operator=(const BSplineGeoTransformer&&)=delete;
 
     virtual void setSrc(const T *data) override {
         m_src = data;
@@ -83,6 +90,5 @@ private:
     const T *m_src;
     ctpl::thread_pool m_threadPool;
 };
-
-
+//@{
 #endif /* LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_ */

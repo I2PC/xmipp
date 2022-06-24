@@ -29,6 +29,9 @@
 #include <reconstruction_cuda/cuda_gpu_correlation.h>
 #include <reconstruction_cuda/cuda_xmipp_utils.h>
 
+/**@defgroup GpuMultidimArrayAtCpu GPU MultidimArray At CPU
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class GpuMultidimArrayAtCpu
 {

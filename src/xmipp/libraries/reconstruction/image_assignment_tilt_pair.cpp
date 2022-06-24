@@ -94,7 +94,7 @@ void ProgassignmentTiltPair::search_affine_transform(float u1x, float u1y, float
 //		if ( fabs(det_A - cos_tilt_max)>0.1)
 //			continue;
 
-		double discriminant_A = 0.25*(trace_A)*(trace_A) - det_A;
+		double discriminant_A = 0.25*trace_A*trace_A - det_A;
 
 		if (discriminant_A < DBL_EPSILON)
 			continue;
@@ -226,7 +226,7 @@ void ProgassignmentTiltPair::run()
 	std::cout << "Starting..." << std::endl;
 
 	//LOAD METADATA and TRIANGULATIONS
-	MetaData md_untilt, md_tilt, mduntilt, mdtilt;
+	MetaDataVec md_untilt, md_tilt, mduntilt, mdtilt;
 	size_t Ndim, Zdim, Ydim , Xdim, objId;
 
 	getImageSize(fnmic, Xdim, Ydim, Zdim, Ndim);
@@ -248,10 +248,10 @@ void ProgassignmentTiltPair::run()
 	struct Delaunay_T delaunay_untilt;
 	Matrix1D<double> ux(md_untilt.size()), uy(md_untilt.size()), tx(md_tilt.size()), ty(md_tilt.size());
 	init_Delaunay( &delaunay_untilt, md_untilt.size());
-	FOR_ALL_OBJECTS_IN_METADATA(md_untilt)
+	for (size_t objId : md_untilt.ids())
 	{
-		md_untilt.getValue(MDL_XCOOR, x, __iter.objId);
-		md_untilt.getValue(MDL_YCOOR, y, __iter.objId);
+		md_untilt.getValue(MDL_XCOOR, x, objId);
+		md_untilt.getValue(MDL_YCOOR, y, objId);
 
 		VEC_ELEM(ux,len_u) = x;
 		VEC_ELEM(uy,len_u) = y;
@@ -265,10 +265,10 @@ void ProgassignmentTiltPair::run()
 	//storing tilted points and creating Delaunay triangulation
 	struct Delaunay_T delaunay_tilt;
 	init_Delaunay( &delaunay_tilt, md_tilt.size());
-	FOR_ALL_OBJECTS_IN_METADATA(md_tilt)
+	for (size_t objId : md_tilt.ids())
 	{
-		md_tilt.getValue(MDL_XCOOR, x,__iter.objId);
-		md_tilt.getValue(MDL_YCOOR, y,__iter.objId);
+		md_tilt.getValue(MDL_XCOOR, x, objId);
+		md_tilt.getValue(MDL_YCOOR, y, objId);
 
 		VEC_ELEM(tx,len_t) = x;
 		VEC_ELEM(ty,len_t) = y;
@@ -362,7 +362,7 @@ void ProgassignmentTiltPair::run()
 		for (int j=0; j<tri_number_tilt; j++)
 		{
 			//std::cout << "Iteration k = " << k << "     Iteration j = " << j << std::endl;
-			if ( (trig_untilt_area(k) < trig_tilt_area(j)) )
+			if (trig_untilt_area(k) < trig_tilt_area(j))
 				continue;
 
 			if ( (trig_untilt_area(k)*cos_tilt_min < trig_tilt_area(j)) || (trig_untilt_area(k)*cos_tilt_max > trig_tilt_area(j)) )
@@ -444,7 +444,7 @@ void ProgassignmentTiltPair::run()
 		A_con.initZeros(2,2);
 		def_A.initZeros(2,2);
 		def_T.initZeros(2);
-		bool flag;
+		bool flag = false;
 
 
 		if ((count >= bestInliers) && (count >= 0.2*thrs))

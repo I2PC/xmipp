@@ -127,7 +127,7 @@ void ProgAngularDistance::run()
     	return;
     }
 
-    MetaData DF_out;
+    MetaDataDb DF_out;
     double angular_distance=0;
     double shift_distance=0;
 
@@ -150,8 +150,10 @@ void ProgAngularDistance::run()
     std::vector<double> output;
     output.resize(17,0);
     bool fillOutput=fn_out!="";
-    MDRow row;
-    FOR_ALL_OBJECTS_IN_METADATA2(DF1, DF2)
+
+    auto iter1(DF1.ids().begin());
+    auto iter2(DF2.ids().begin());
+    for (; iter1 != DF1.ids().end(); ++iter1, ++iter2)
     {
         // Read input data
         double rot1,  tilt1,  psi1;
@@ -159,19 +161,19 @@ void ProgAngularDistance::run()
         double rot2p, tilt2p, psi2p;
         double distp;
         double X1, X2, Y1, Y2;
-        DF1.getValue(MDL_IMAGE,fnImg,__iter.objId);
+        DF1.getValue(MDL_IMAGE,fnImg, *iter1);
 
-        DF1.getValue(MDL_ANGLE_ROT,rot1,__iter.objId);
-        DF1.getValue(MDL_ANGLE_TILT,tilt1,__iter.objId);
-        DF1.getValue(MDL_ANGLE_PSI,psi1,__iter.objId);
-        DF1.getValue(MDL_SHIFT_X,X1,__iter.objId);
-        DF1.getValue(MDL_SHIFT_Y,Y1,__iter.objId);
+        DF1.getValue(MDL_ANGLE_ROT,rot1, *iter1);
+        DF1.getValue(MDL_ANGLE_TILT,tilt1, *iter1);
+        DF1.getValue(MDL_ANGLE_PSI,psi1, *iter1);
+        DF1.getValue(MDL_SHIFT_X,X1, *iter1);
+        DF1.getValue(MDL_SHIFT_Y,Y1, *iter1);
 
-        DF2.getValue(MDL_ANGLE_ROT,rot2,__iter2.objId);
-        DF2.getValue(MDL_ANGLE_TILT,tilt2,__iter2.objId);
-        DF2.getValue(MDL_ANGLE_PSI,psi2,__iter2.objId);
-        DF2.getValue(MDL_SHIFT_X,X2,__iter2.objId);
-        DF2.getValue(MDL_SHIFT_Y,Y2,__iter2.objId);
+        DF2.getValue(MDL_ANGLE_ROT,rot2, *iter2);
+        DF2.getValue(MDL_ANGLE_TILT,tilt2, *iter2);
+        DF2.getValue(MDL_ANGLE_PSI,psi2, *iter2);
+        DF2.getValue(MDL_SHIFT_X,X2, *iter2);
+        DF2.getValue(MDL_SHIFT_Y,Y2, *iter2);
 
         // Bring both angles to a normalized set
         rot1 = realWRAP(rot1, -180, 180);
@@ -204,6 +206,7 @@ void ProgAngularDistance::run()
         // Fill the output result
         if (fillOutput)
         {
+            MDRowSql row;
             //output[0]=rot1;
             row.setValue(MDL_ANGLE_ROT, rot1);
             //output[1]=rot2p;
@@ -285,7 +288,7 @@ void ProgAngularDistance::run()
 
 void ProgAngularDistance::computeWeights()
 {
-	MetaData DF1sorted, DF2sorted, DFweights;
+	MetaDataDb DF1sorted, DF2sorted, DFweights;
 	MDLabel label=MDL::str2Label(idLabel);
 	DF1sorted.sort(DF1,label);
 	DF2sorted.sort(DF2,label);
@@ -317,14 +320,16 @@ void ProgAngularDistance::computeWeights()
 		shiftDiffLabel=MDL_SHIFT_DIFF0;
 		weightLabel=MDL_WEIGHT_JUMPER0;
 		break;
+    default:
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Set value is out of range. It shoudl be 0, 1 or 2.\n");
 	}
 
-    // for(MDIterator __iter(__md); __iter.hasNext(); __iter.moveNext())
-    MDIterator iter1(DF1sorted), iter2(DF2sorted);
+    auto iter1(DF1sorted.ids().begin());
+    auto iter2(DF2sorted.ids().begin());
     std::vector< Matrix1D<double> > ang1, ang2;
     Matrix1D<double> rotTiltPsi(5);
 	size_t currentId;
-	bool anotherImageIn2=iter2.hasNext();
+	bool anotherImageIn2 = iter2 != DF2sorted.ids().end();
 	size_t id1, id2;
 	bool mirror;
     while (anotherImageIn2)
@@ -333,22 +338,22 @@ void ProgAngularDistance::computeWeights()
     	ang2.clear();
 
     	// Take current id
-    	DF2sorted.getValue(label,currentId,iter2.objId);
+    	DF2sorted.getValue(label,currentId, *iter2);
 
     	// Grab all the angles in DF2 associated to this id
     	bool anotherIteration=false;
     	do
     	{
-    		DF2sorted.getValue(label,id2,iter2.objId);
+    		DF2sorted.getValue(label,id2,*iter2);
 			anotherIteration=false;
     		if (id2==currentId)
     		{
-				DF2sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),iter2.objId);
-				DF2sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),iter2.objId);
-				DF2sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),iter2.objId);
-				DF2sorted.getValue(MDL_SHIFT_X,VEC_ELEM(rotTiltPsi,3),iter2.objId);
-				DF2sorted.getValue(MDL_SHIFT_Y,VEC_ELEM(rotTiltPsi,4),iter2.objId);
-				DF2sorted.getValue(MDL_FLIP,mirror,iter2.objId);
+				DF2sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),*iter2);
+				DF2sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),*iter2);
+				DF2sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),*iter2);
+				DF2sorted.getValue(MDL_SHIFT_X,VEC_ELEM(rotTiltPsi,3),*iter2);
+				DF2sorted.getValue(MDL_SHIFT_Y,VEC_ELEM(rotTiltPsi,4),*iter2);
+				DF2sorted.getValue(MDL_FLIP,mirror,*iter2);
 				if (mirror)
 				{
 					double rotp, tiltp, psip;
@@ -358,8 +363,8 @@ void ProgAngularDistance::computeWeights()
 					ZZ(rotTiltPsi)=psip;
 				}
 				ang2.push_back(rotTiltPsi);
-				iter2.moveNext();
-				if (iter2.hasNext())
+				++iter2;
+				if (iter2 != DF2sorted.ids().end())
 					anotherIteration=true;
     		}
     	} while (anotherIteration);
@@ -367,34 +372,34 @@ void ProgAngularDistance::computeWeights()
     	// Advance Iter 1 to catch Iter 2
     	double N=0, cumulatedDistance=0, cumulatedDistanceShift=0;
     	size_t newObjId=0;
-    	if (iter1.objId>0)
+    	if (*iter1 > 0)
     	{
-			DF1sorted.getValue(label,id1,iter1.objId);
-			while (id1<currentId && iter1.hasNext())
+			DF1sorted.getValue(label,id1,*iter1);
+			while (id1<currentId && iter1 != DF1sorted.ids().end())
 			{
-				iter1.moveNext();
-				if (iter1.hasNext())
-					DF1sorted.getValue(label,id1,iter1.objId);
+				++iter1;
+				if (iter1 != DF1sorted.ids().end())
+					DF1sorted.getValue(label,id1,*iter1);
 			}
 
 			// If we are at the end of DF1, then we did not find id1 such that id1==currentId
-			if (!iter1.hasNext())
+			if (iter1 == DF1sorted.ids().end())
 				break;
 
 			// Grab all the angles in DF1 associated to this id
 			anotherIteration=false;
 			do
 			{
-				DF1sorted.getValue(label,id1,iter1.objId);
+				DF1sorted.getValue(label,id1,*iter1);
 				anotherIteration=false;
 				if (id1==currentId)
 				{
-					DF1sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),iter1.objId);
-					DF1sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),iter1.objId);
-					DF1sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),iter1.objId);
-					DF1sorted.getValue(MDL_SHIFT_X,VEC_ELEM(rotTiltPsi,3),iter1.objId);
-					DF1sorted.getValue(MDL_SHIFT_Y,VEC_ELEM(rotTiltPsi,4),iter1.objId);
-					DF1sorted.getValue(MDL_FLIP,mirror,iter1.objId);
+					DF1sorted.getValue(MDL_ANGLE_ROT,XX(rotTiltPsi),*iter1);
+					DF1sorted.getValue(MDL_ANGLE_TILT,YY(rotTiltPsi),*iter1);
+					DF1sorted.getValue(MDL_ANGLE_PSI,ZZ(rotTiltPsi),*iter1);
+					DF1sorted.getValue(MDL_SHIFT_X,VEC_ELEM(rotTiltPsi,3),*iter1);
+					DF1sorted.getValue(MDL_SHIFT_Y,VEC_ELEM(rotTiltPsi,4),*iter1);
+					DF1sorted.getValue(MDL_FLIP,mirror,*iter1);
 					if (mirror)
 					{
 						double rotp, tiltp, psip;
@@ -404,8 +409,8 @@ void ProgAngularDistance::computeWeights()
 						ZZ(rotTiltPsi)=psip;
 					}
 					ang1.push_back(rotTiltPsi);
-					iter1.moveNext();
-					if (iter1.hasNext())
+					++iter1;
+					if (iter1 != DF1sorted.ids().end())
 						anotherIteration=true;
 				}
 			} while (anotherIteration);
@@ -465,7 +470,7 @@ void ProgAngularDistance::computeWeights()
 				ang1.clear();
 				ang2.clear();
     		}
-        anotherImageIn2=iter2.hasNext();
+        anotherImageIn2 = iter2 != DF2sorted.ids().end();
     }
     if (ang2.size()>0)
     {
@@ -476,13 +481,13 @@ void ProgAngularDistance::computeWeights()
     }
 
     // If there are more images in MD1 than in MD2, set the last images to 0
-    while (iter2.hasNext())
+    while (iter2 != DF2sorted.ids().end())
     {
 		size_t newObjId=DFweights.addObject();
 		DFweights.setValue(label,currentId,newObjId);
 		DFweights.setValue(angleDiffLabel,-1.0,newObjId);
 		DFweights.setValue(shiftDiffLabel,-1.0,newObjId);
-		iter2.moveNext();
+		++iter2;
     }
 
     // Calculate the deviation with respect to angleDiff=0 of the angular distances
@@ -512,11 +517,12 @@ void ProgAngularDistance::computeWeights()
     // Adjust the jumper weights according to a Gaussian
     double isigma2=-0.5/sigma2;
     double isigma2D=-0.5/sigma2D;
-    FOR_ALL_OBJECTS_IN_METADATA(DFweights)
+
+    for (size_t objId : DFweights.ids())
     {
     	double d;
     	double weight=1.0;
-		DFweights.getValue(angleDiffLabel,d,__iter.objId);
+		DFweights.getValue(angleDiffLabel,d,objId);
 		if (d>0)
 			weight=exp(d*d*isigma2);
 		else
@@ -524,17 +530,17 @@ void ProgAngularDistance::computeWeights()
 
 		if (minSigmaD>0)
 		{
-			DFweights.getValue(shiftDiffLabel,d,__iter.objId);
+			DFweights.getValue(shiftDiffLabel,d,objId);
 			if (d>0)
 				weight*=exp(d*d*isigma2D);
 			else
 				weight*=0.5;
 		}
-		DFweights.setValue(weightLabel,weight,__iter.objId);
+		DFweights.setValue(weightLabel,weight,objId);
     }
 
     // Transfer these weights to the DF2 metadata
-    MetaData DF2weighted;
+    MetaDataDb DF2weighted;
 	if (DF2.containsLabel(angleDiffLabel))
 		DF2.removeLabel(angleDiffLabel);
 	if (DF2.containsLabel(angleDiffLabel))
@@ -542,20 +548,21 @@ void ProgAngularDistance::computeWeights()
 	if (DF2.containsLabel(weightLabel))
 		DF2.removeLabel(weightLabel);
     DF2weighted.join1(DF2,DFweights,label,INNER);
-    FOR_ALL_OBJECTS_IN_METADATA(DF2weighted)
+
+    for (size_t objId : DF2weighted.ids())
     {
     	double d;
-    	DF2weighted.getValue(angleDiffLabel,d,__iter.objId);
+    	DF2weighted.getValue(angleDiffLabel,d,objId);
     	if (d<0)
     	{
-    		// DF2weighted.setValue(MDL_ENABLED,-1,__iter.objId);
-    		DF2weighted.setValue(angleDiffLabel,0.0,__iter.objId);
+    		// DF2weighted.setValue(MDL_ENABLED,-1,objId);
+    		DF2weighted.setValue(angleDiffLabel,0.0,objId);
     	}
-    	DF2weighted.getValue(shiftDiffLabel,d,__iter.objId);
+    	DF2weighted.getValue(shiftDiffLabel,d,objId);
     	if (d<0)
     	{
-    		// DF2weighted.setValue(MDL_ENABLED,-1,__iter.objId);
-    		DF2weighted.setValue(shiftDiffLabel,0.0,__iter.objId);
+    		// DF2weighted.setValue(MDL_ENABLED,-1,objId);
+    		DF2weighted.setValue(shiftDiffLabel,0.0,objId);
     	}
     }
     DF2weighted.removeDisabled();

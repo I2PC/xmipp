@@ -31,6 +31,9 @@
 #include "core/xmipp_error.h"
 #include <vector>
 
+/**@defgroup MeritSettings MeritSettings
+   @ingroup ReconsLibrary */
+//@{
 enum class MeritType {
     OneToN // we have one reference item and many others to compare
 };
@@ -122,5 +125,5 @@ private:
     bool m_isInit;
     bool m_isRefLoaded;
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_AMERIT_COMPUTER_H_ */

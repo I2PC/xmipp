@@ -29,6 +29,9 @@
 
 #include "cuda_cdf.h"
 
+/**@defgroup VolumeRestorationKernels Volume Restoration Kernels
+   @ingroup ReconsLibrary */
+//@{
 namespace Gpu {
 /*
  * Because Xmipp currently doesn't allow to inlude cuda_runtime in header files,
@@ -78,5 +81,5 @@ public:
 };
 
 } // namespace Gpu
-
+//@}
 #endif // CUDA_VOLUME_RESTORATION_KERNELS

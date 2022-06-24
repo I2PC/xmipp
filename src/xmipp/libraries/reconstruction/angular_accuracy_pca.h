@@ -26,7 +26,8 @@
 #ifndef ANGULAR_ACCURACY_PCA_H_
 #define ANGULAR_ACCURACY_PCA_H_
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
 #include "data/basic_pca.h"
@@ -37,25 +38,21 @@
 //@{
 class ProgAngularAccuracyPCA: public XmippProgram
 {
-
-
 public:
     /** Filenames */
     FileName fnPhantom, fnNeighbours, fnOut, fnOutQ;
 
     Image<double> phantomVol;
 
-    MetaData mdPartial;
+    MetaDataDb mdPartial;
 
     size_t rank, Nprocessors;
 
     PCAMahalanobisAnalyzer pca;
 
-	int newXdim;
+    int newXdim;
 
-	int newYdim;
-
-
+    int newYdim;
 
 public:
 
@@ -78,5 +75,5 @@ public:
     virtual void synchronize() {}
 
 };
-
+//@}
 #endif /* ANGULAR_ACCURACY_PCA_H_ */

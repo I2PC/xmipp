@@ -33,7 +33,7 @@
 double evaluatePlane(double rot, double tilt,
                      const MultidimArray<double> *V, const MultidimArray<double> *Vmag,
                      double maxFreq, double planeWidth, int direction,
-                     MultidimArray<double> *Vdraw=NULL,
+                     MultidimArray<double> *Vdraw=nullptr,
                      bool setPos=false, double rotPos=0, double tiltPos=0)
 {
     if (rot<0 || rot>360 || tilt<-90 || tilt>90)
@@ -61,7 +61,7 @@ double evaluatePlane(double rot, double tilt,
     double sumNeg=0, sumPos=0;
     int Nneg=0, Npos=0;
     double maxFreq2=maxFreq*maxFreq;
-    int iPlaneWidth=(int)ceil(planeWidth);
+    auto iPlaneWidth=(int)ceil(planeWidth);
     for (double ix=0; ix<=N; ix++)
     {
         XX(freq)=ix*df;
@@ -114,14 +114,14 @@ double evaluatePlane(double rot, double tilt,
                 {
                     sumNeg+=val;
                     Nneg++;
-                    if (Vdraw!=NULL)
+                    if (Vdraw!=nullptr)
                         (*Vdraw)(idx)=2*direction*val;
                 }
                 else
                 {
                     sumPos+=val;
                     Npos++;
-                    if (Vdraw!=NULL)
+                    if (Vdraw!=nullptr)
                         (*Vdraw)(idx)=1.0/2.0*direction*val;
                 }
             }
@@ -162,14 +162,14 @@ public:
 
     ~WedgeSolver()
     {
-        V = NULL;
-        Vmag = NULL;
+        V = nullptr;
+        Vmag = nullptr;
     }
 
     double EnergyFunction(double trial[],bool &bAtSolution)
     {
         double result=evaluatePlane(trial[0],trial[1],V,Vmag,
-                                    maxFreq, planeWidth, direction, NULL, setPos, rotPos, tiltPos);
+                                    maxFreq, planeWidth, direction, nullptr, setPos, rotPos, tiltPos);
         if (count++ % (5*nPop) == 0)
             std::cout << "Evaluations= " << count/nPop
             << " energy= "     << Energy()
@@ -195,7 +195,7 @@ public:
 double wrapperFitnessDetectMissingWedge(double *p, void* extraArgs)
 {
     bool dummy;
-    WedgeSolver *wegde_solver=(WedgeSolver *) extraArgs;
+    auto *wegde_solver=(WedgeSolver *) extraArgs;
     return wegde_solver->EnergyFunction(p+1,dummy);
 }
 
@@ -211,7 +211,7 @@ void lookForPlane(const MultidimArray<double> *V, const MultidimArray<double> *V
     double min_allowed[] = {0,-90};
     double max_allowed[] = {360,90};
 
-    WedgeSolver * solver = new WedgeSolver(length,length*Npop,V,Vmag,maxFreq,planeWidth,direction);
+    auto * solver = new WedgeSolver(length,length*Npop,V,Vmag,maxFreq,planeWidth,direction);
     solver->Setup( min_allowed, max_allowed, stBest2Bin, 0.5, 0.8);
 
     if (setPos)
@@ -238,7 +238,7 @@ void lookForPlane(const MultidimArray<double> *V, const MultidimArray<double> *V
 
     delete solver;
 
-    solver = NULL;
+    solver = nullptr;
 }
 
 // Draw wedge --------------------------------------------------------------
@@ -334,7 +334,7 @@ void ProgDetectMissingWedge::run()
     // Detect one of the planes
     lookForPlane(mdaV, Vmag, maxFreq, planeWidth, 1, rotPos, tiltPos);
 
-    Image<double> * Vdraw = new Image<double>();
+    auto * Vdraw = new Image<double>();
 
     if (saveMarks)
     {

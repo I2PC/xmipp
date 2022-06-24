@@ -28,7 +28,9 @@
 
 #include <iostream>
 #include "dimensions.h"
-
+/**@defgroup FFTSettings FFTSettings
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 struct FFTSettings {
     explicit FFTSettings(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
@@ -75,5 +77,5 @@ struct FFTSettings {
         return os;
     }
 };
-
+//@}
 #endif /* FFTSETTINGS_H_ */

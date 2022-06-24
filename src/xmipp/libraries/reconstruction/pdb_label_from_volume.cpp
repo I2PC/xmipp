@@ -30,7 +30,7 @@
 #include <iomanip>
 #include "pdb_label_from_volume.h"
 #include "core/xmipp_image.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /* Usage ------------------------------------------------------------------- */
 
@@ -127,7 +127,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
     std::ofstream fh_out(fn_out);
     fh_pdb.open(fn_pdb.c_str());
 
-    MetaData mdmean;
+    MetaDataVec mdmean;
     size_t objId;
     objId = mdmean.addObject();
 

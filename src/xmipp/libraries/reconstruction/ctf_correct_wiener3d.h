@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "data/fourier_filter.h"
 
@@ -54,7 +55,7 @@ public:
     FourierFilter ctf;
     
     /// Side Info: ctfdat
-    MetaData ctfdat;
+    MetaDataVec ctfdat;
 
     /// The 3D CTFs and Wiener filters
     std::vector< MultidimArray<double> > Vctfs1D, Vwien1D;

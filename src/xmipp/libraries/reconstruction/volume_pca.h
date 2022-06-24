@@ -27,7 +27,7 @@
 
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "data/basic_pca.h"
 #include "data/mask.h"
 
@@ -56,7 +56,7 @@ public:
     FileName fnOutStack;
 public:
     // Metadata with volumes
-    MetaData mdVols;
+    MetaDataVec mdVols;
 
     // Input volume
     Image<double> V;

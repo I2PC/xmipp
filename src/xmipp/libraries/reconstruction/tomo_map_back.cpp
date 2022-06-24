@@ -125,16 +125,14 @@ void ProgTomoMapBack::run()
     MultidimArray<double> referenceRotated;
     Matrix2D<double> A;
     A.initIdentity(4);
-    MDRow row;
 
-    FOR_ALL_OBJECTS_IN_METADATA(mdGeom)
+    for (const auto& row : mdGeom)
     {
-    	mdGeom.getRow(row,__iter.objId);
     	row.getValue(MDL_XCOOR,x);
     	row.getValue(MDL_YCOOR,y);
     	row.getValue(MDL_ZCOOR,z);
     	geo2TransformationMatrix(row,A);
-    	applyGeometry(LINEAR, referenceRotated, mReference, A, IS_NOT_INV, DONT_WRAP);
+    	applyGeometry(xmipp_transformation::LINEAR, referenceRotated, mReference, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 
     	double avg=0, avgN=0;
     	if (mode==2)

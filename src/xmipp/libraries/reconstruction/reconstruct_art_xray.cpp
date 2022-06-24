@@ -150,7 +150,7 @@ double ProgReconsXrayART::singleStep(MultidimArray<double> &muVol, const Project
 
     double outside = 0; //phantom.iniVol.getPixel(0,0,0,0);
 
-    applyGeometry(1, rotVol, muVol, R, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, rotVol, muVol, R, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
     psf.adjustParam(rotVol);
 
@@ -220,20 +220,20 @@ void ProgReconsXrayART::run()
     {
         //        preIteration();
         double itError=0;
-        FOR_ALL_OBJECTS_IN_METADATA(MDin)
+        for (size_t objId : MDin.ids())
         {
             FileName fnExp;
-            MDin.getValue( MDL_IMAGE, fnExp,__iter.objId);
+            MDin.getValue( MDL_IMAGE, fnExp,objId);
             double rot;
-            MDin.getValue( MDL_ANGLE_ROT, rot,__iter.objId);
+            MDin.getValue( MDL_ANGLE_ROT, rot,objId);
             double tilt;
-            MDin.getValue( MDL_ANGLE_TILT, tilt,__iter.objId);
+            MDin.getValue( MDL_ANGLE_TILT, tilt,objId);
             double psi;
-            MDin.getValue( MDL_ANGLE_PSI, psi,__iter.objId);
+            MDin.getValue( MDL_ANGLE_PSI, psi,objId);
             double shiftX;
-            MDin.getValue( MDL_SHIFT_X, shiftX,__iter.objId);
+            MDin.getValue( MDL_SHIFT_X, shiftX,objId);
             double shiftY;
-            MDin.getValue( MDL_SHIFT_Y, shiftY,__iter.objId);
+            MDin.getValue( MDL_SHIFT_Y, shiftY,objId);
 
             projExp.read(fnExp);
             projExp().setXmippOrigin();

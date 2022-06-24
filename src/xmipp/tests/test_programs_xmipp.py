@@ -281,15 +281,22 @@ class CtfEstimateFromMicrograph(XmippProgramTest):
     def test_case1(self):
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --dont_estimate_ctf",
                 outputs=["micrograph.psd"])
+    
     def test_case2(self):
+        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        print(yellow('test_case2 is skipped as ' + cause))
+        self.skipTest(cause)
         self.setTimeOut(400)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000",
                 postruns=["xmipp_metadata_utilities -i %o/micrograph.ctfparam --operate keep_column 'ctfDefocusU ctfDefocusV' -o %o/Defocus.xmd" ,
                           'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusU = round(ctfDefocusU/100.0)" ',
                           'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusV = round(ctfDefocusV/100.0)" '],
                 outputs=["micrograph.psd","micrograph_enhanced_psd.xmp","micrograph.ctfparam","Defocus.xmd"])
-
+    
     def test_case3(self):
+        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        print(yellow('test_case3 is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000 --acceleration1D",
         postruns=["xmipp_metadata_utilities -i %o/micrograph.ctfparam --operate keep_column 'ctfDefocusU ctfDefocusV' -o %o/Defocus.xmd",
             'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusU = round(ctfDefocusU/100.0)" ',
@@ -793,12 +800,69 @@ class PdbNmaDeform(XmippProgramTest):
     def getProgram(cls):
         return 'xmipp_pdb_nma_deform'
 
-    def test_case1(self):  # FIXME: change deformed2.pdb to deformed.pdb at -o arg and output
+    def test_case1(self):
         self.runCase("--pdb 2tbv.pdb -o deformed2.pdb --nma modelist.xmd --deformations 1000",
                 preruns=["cp input/2tbv* %o ; cp input/modelist.xmd %o ; cp input/mode0.mod0028 %o" ],
-                outputs=["deformed2.pdb"],
-		changeDir=True)
+                outputs=["deformed2.pdb"], random=True, validate=self.validate,
+		        changeDir=True)
 
+    def validate(self):
+        fileGoldStd = os.path.join(self.goldDir, "deformed2.pdb")
+        outFile = os.path.join(self._testDir, self.outputDir, "deformed2.pdb")
+        print("Checking ",fileGoldStd,outFile)
+        with open(fileGoldStd,"r") as fh:
+            linesGold = [line.rstrip() for line in fh.readlines()]
+        with open(outFile,"r") as fh:
+            lines = [line.rstrip() for line in fh.readlines()]
+
+        def splitPDBLine(line):
+            # ATOM      1  CA  GLY A 102     -22.617  31.293 119.792  1.00 20.00       CA
+            token0 = line[0:6]
+            token1 = line[6:11]
+            token2 = line[12:16]
+            token3 = line[16:17]
+            token4 = line[17:20]
+            token5 = line[21:22]
+            token6 = line[22:26]
+            token7 = line[26:27]
+            token8 = line[30:38] # x
+            token9 = line[38:46] # y
+            token10 = line[46:54] # z
+            token11 = line[54:60] # occupancy
+            token12 = line[60:66] # temperature
+            token13 = line[76:78]
+            return [token0, token1, token2, token3, token4, token5, token6, token7, token8, token9, token10, token11,
+                    token12, token13]
+
+        ok = True
+        for lineG, line in zip(linesGold,lines):
+            try:
+                tokensG = splitPDBLine(lineG)
+                tokens = splitPDBLine(line)
+            except:
+                ok = False
+                break
+            if len(tokensG)!=14 or len(tokens)!=14:
+                print("The following two lines are not well formed")
+                print("Gold: %s"%lineG)
+                print("Test: %s"%line)
+                ok = False
+                break
+            for i in [0,1,2,3,4,5,6,7,13]:
+                if not tokensG[i]==tokens[i]:
+                    print("The following two lines are not equal")
+                    print("Gold: %s"%lineG)
+                    print("Test: %s"%line)
+                    ok = False
+                    break
+            for i in [8,9,10,11,12]:
+                if abs(float(tokensG[i])-float(tokens[i]))>1e-2:
+                    print("The following two lines are not equal")
+                    print("Gold: %s"%lineG)
+                    print("Test: %s"%line)
+                    ok = False
+                    break
+        self.assertTrue(ok)
 
 class PhantomCreate(XmippProgramTest):
     _owner = VAHID
@@ -951,6 +1015,9 @@ class TomoExtractSubvolume(XmippProgramTest):
         return 'xmipp_tomo_extract_subvolume'
 
     def test_case1(self):
+        cause = 'it is testing a deprecated program'
+        print(yellow('test TomoExtractSubvolume is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("-i input/ico.vol --oroot %o/vertices --center 0 0 50 --size 30 --sym i3",
                 outputs=["vertices.stk","vertices.xmd"])
 
@@ -987,19 +1054,19 @@ class TransformAddNoise(XmippProgramTest):
         return 'xmipp_transform_add_noise'
 
     def test_case1(self):
+        ''' Test to check if noise is properly simulated '''
         self.runCase("-i input/cleanImage.spi --type gaussian 10 5 -o %o/noisyGaussian.spi",
                 outputs=["noisyGaussian.spi"], random=True)
 
-
-class TransformAdjustVolumeGreyLevels(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_transform_adjust_volume_grey_levels'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomBacteriorhodopsin.vol -m input/projectionsBacteriorhodopsin.xmd -o %o/adjusted.vol",
-                outputs=["adjusted.vol"])
+    def test_case2(self):
+        ''' Test to check if particle alignment is not applied '''
+        self.runCase("-i input/projectionsBacteriorhodopsin.xmd --type gaussian 0 0 -o %o/notNoisyGaussian.stk",
+                outputs=["notNoisyGaussian.stk"], random=True, validate=self.validate_case2)
+    
+    def validate_case2(self):
+        import filecmp
+        output = os.path.join(self.outputDir, "notNoisyGaussian.stk")
+        self.assertTrue(filecmp.cmp(output, "input/projectionsBacteriorhodopsin.stk"))
 
 
 class TransformCenterImage(XmippProgramTest):
@@ -1530,3 +1597,56 @@ class MlTomoMpi(XmippProgramTest):
                 outputs=["test1/iter22_img.xmd","test1/iter22_it000001_ref.xmd","test1/iter22_ref.xmd"])
 
 
+class VolSubtraction(XmippProgramTest):
+    _owner = EFG
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_volume_subtraction'
+
+    def test_case1(self):
+        """Test subtraction with radial average"""
+        str = "--i1 input/phantomVolSubtraction/V1.vol " \
+              "--i2 input/phantomVolSubtraction/V.vol " +\
+              "-o %o/subtraction.mrc " \
+              "--mask1 input/phantomVolSubtraction/V1_mask.mrc " +\
+              "--mask2 input/phantomVolSubtraction/V_mask.mrc" \
+              " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --computeEnergy"
+        self.runCase(str, outputs=["subtraction.mrc"])
+
+    def test_case2(self):
+        """Test subtraction without radial average"""
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
+                     "-o %o/subtraction_radAvg.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --radavg --lambda 1.0 --sub "
+                     "--cutFreq 1.333333 --sigma 3 --computeEnergy",
+                     outputs=["subtraction_radAvg.mrc"])
+
+    def test_case3(self):
+        """Test adjustment without radial average"""
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol  "
+                     "-o %o/Vadjust.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --lambda 1.0 "
+                     "--cutFreq 1.333333 --sigma 3 --computeEnergy",
+                     outputs=["Vadjust.mrc"])
+
+    def test_case4(self):
+        """Test adjustment with radial average"""
+        self.runCase("--i1 input/phantomVolSubtraction/V1.vol --i2 input/phantomVolSubtraction/V.vol "
+                     "-o %o/Vadjust_radAvg.mrc --mask1 input/phantomVolSubtraction/V1_mask.mrc "
+                     "--mask2 input/phantomVolSubtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
+                     "--cutFreq 1.333333 --sigma 3 --computeEnergy",
+                     outputs=["Vadjust_radAvg.mrc"])
+
+
+class ProjSubtraction(XmippProgramTest):
+    _owner = EFG
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_subtract_projection'
+
+    def test_case1(self):
+        """Test projection subtraction"""
+        self.runCase("-i input/projectionSubtraction/images.xmd  --ref input/projectionSubtraction/phantom.vol "
+                     "-o %o/output_particles --sampling 1.0 --max_resolution 3.0 "
+                     "--fmask_width 40.0 --padding 2.0 --sigma 3 --limit_freq 0 ",
+                     outputs=["output_particles.mrcs"], errorthreshold=0.01)

@@ -45,7 +45,7 @@ void powellOptimizer(Matrix1D<double> &p, int i0, int n,
                      double ftol, double &fret,
                      int &iter, const Matrix1D<double> &steps, bool show)
 {
-    double *xi = NULL;
+    double *xi = nullptr;
 
     // Adapt indexes of p
     double *pptr = p.adaptForNumericalRecipes();
@@ -104,7 +104,7 @@ double solveNonNegative(const Matrix2D<double> &C, const Matrix1D<double> &d,
     int success = nnls(MATRIX2D_ARRAY(Ct), Ct.Xdim(), Ct.Ydim(),
                        MATRIX1D_ARRAY(d),
                        MATRIX1D_ARRAY(result),
-                       &rnorm, NULL, NULL, NULL);
+                       &rnorm, nullptr, nullptr, nullptr);
     if (success == 1)
         std::cerr << "Warning, too many iterations in nnls\n";
     else if (success == 2)
@@ -173,7 +173,7 @@ CDAB;
 /* To calculate the value of the objective function */
 void quadraticProgramming_obj32(int nparam, int j, double* x, double* fj, void* cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     Matrix2D<double> X(nparam,1);
     for (int i=0; i<nparam; ++i)
         X(i,0)=x[i];
@@ -186,7 +186,7 @@ void quadraticProgramming_obj32(int nparam, int j, double* x, double* fj, void* 
 /* To calculate the value of the jth constraint */
 void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void* cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     *gj = 0;
     for (int k = 0; k < nparam; k++)
         *gj += in->A(j - 1, k) * x[k];
@@ -194,9 +194,9 @@ void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void*
 }
 
 /* To calculate the value of the derivative of objective function */
-void quadraticProgramming_grob32(int nparam, int j, double* x, double* gradfj, void(*mydummy)(int, int, double*, double*, void*), void *cd)
+void quadraticProgramming_grob32(int nparam,  double* x, double* gradfj, void *cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     Matrix2D<double> X(1,nparam);
     for (int i=0; i<nparam; ++i)
         X(0,i)=x[i];
@@ -208,9 +208,9 @@ void quadraticProgramming_grob32(int nparam, int j, double* x, double* gradfj, v
 }
 
 /* To calculate the value of the derivative of jth constraint */
-void quadraticProgramming_grcn32(int nparam, int j, double *x, double *gradgj, void(*mydummy)(int, int, double*, double*, void*), void *cd)
+void quadraticProgramming_grcn32(int nparam, int j, double *gradgj, void *cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     for (int k = 0; k < nparam; k++)
         gradgj[k] = in->A(j - 1, k);
 }
@@ -281,11 +281,16 @@ void quadraticProgramming(const Matrix2D<double> &C, const Matrix1D<double> &d,
     int    nineq = A.Ydim();  // Number of linear inequations
     int    neq = Aeq.Ydim();  // Number of linear equations
     int    inform;
-    int    ncsrl = 0, ncsrn = 0, nfsr = 0, mesh_pts[] = {0};
+    int    ncsrl = 0;
+    int    ncsrn = 0;
+    int    nfsr = 0;
+    int    mesh_pts[] = {0};
 
     if (x.size() == 0)
         x.initZeros(nparam);
-    Matrix1D<double> f(nf), g(nineq + neq), lambda(nineq + neq + nf + nparam);
+    Matrix1D<double> f(nf);
+    Matrix1D<double> g(nineq + neq);
+    Matrix1D<double> lambda(nineq + neq + nf + nparam);
 
     // Call the minimization routine
     cfsqp(nparam, nf, nfsr, nineqn, nineq, neqn, neq, ncsrl, ncsrn, mesh_pts,
@@ -374,9 +379,7 @@ void regularizedLeastSquare(const Matrix2D< double >& A,
     X.inv(Xinv);
 
     // Now multiply Xinv * A^t * d
-    x.initZeros(Nx);
-    FOR_ALL_ELEMENTS_IN_MATRIX2D(Xinv)
-    x(i) += Xinv(i,j) * Atd(j);
+    matrixOperation_Ax(Xinv, Atd, x);
 }
 
 
@@ -412,14 +415,15 @@ DESolver::~DESolver(void)
     if (population)
         delete [] population;
 
-    trialSolution = bestSolution = popEnergy = population = NULL;
+    trialSolution = bestSolution = popEnergy = population = nullptr;
     return;
 }
 
 void DESolver::Setup(double min[], double max[],
                      int deStrategy, double diffScale, double crossoverProb)
 {
-    int i,j;
+    int i;
+    int j;
 
     strategy = deStrategy;
     scale  = diffScale;
@@ -513,12 +517,13 @@ bool DESolver::Solve(int maxGenerations)
         }
 
     generations = generation;
-    return(bAtSolution);
+    return bAtSolution;
 }
 
 void DESolver::Best1Exp(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -538,7 +543,9 @@ void DESolver::Best1Exp(int candidate)
 
 void DESolver::Rand1Exp(int candidate)
 {
-    int r1, r2, r3;
+    int r1;
+    int r2;
+    int r3;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3);
@@ -558,7 +565,8 @@ void DESolver::Rand1Exp(int candidate)
 
 void DESolver::RandToBest1Exp(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -578,7 +586,10 @@ void DESolver::RandToBest1Exp(int candidate)
 
 void DESolver::Best2Exp(int candidate)
 {
-    int r1, r2, r3, r4;
+    int r1;
+    int r2;
+    int r3;
+    int r4;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3, &r4);
@@ -600,7 +611,11 @@ void DESolver::Best2Exp(int candidate)
 
 void DESolver::Rand2Exp(int candidate)
 {
-    int r1, r2, r3, r4, r5;
+    int r1;
+    int r2;
+    int r3;
+    int r4;
+    int r5;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3, &r4, &r5);
@@ -622,7 +637,8 @@ void DESolver::Rand2Exp(int candidate)
 
 void DESolver::Best1Bin(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -643,7 +659,9 @@ void DESolver::Best1Bin(int candidate)
 
 void DESolver::Rand1Bin(int candidate)
 {
-    int r1, r2, r3;
+    int r1;
+    int r2;
+    int r3;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3);
@@ -664,7 +682,8 @@ void DESolver::Rand1Bin(int candidate)
 
 void DESolver::RandToBest1Bin(int candidate)
 {
-    int r1, r2;
+    int r1;
+    int r2;
     int n;
 
     SelectSamples(candidate, &r1, &r2);
@@ -685,7 +704,10 @@ void DESolver::RandToBest1Bin(int candidate)
 
 void DESolver::Best2Bin(int candidate)
 {
-    int r1, r2, r3, r4;
+    int r1;
+    int r2;
+    int r3;
+    int r4;
     int n;
 
     SelectSamples(candidate, &r1, &r2, &r3, &r4);
@@ -739,7 +761,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r1 = (int)rnd_unif(0.0, (double)nPop);
         }
         while (*r1 == candidate);
-    }
+    } else
+    	return;
 
     if (r2)
     {
@@ -748,7 +771,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r2 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r2 == candidate) || (*r2 == *r1));
-    }
+    } else
+    	return;
 
     if (r3)
     {
@@ -757,7 +781,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r3 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r3 == candidate) || (*r3 == *r2) || (*r3 == *r1));
-    }
+    } else
+    	return;
 
     if (r4)
     {
@@ -766,7 +791,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r4 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r4 == candidate) || (*r4 == *r3) || (*r4 == *r2) || (*r4 == *r1));
-    }
+    } else
+    	return;
 
     if (r5)
     {
@@ -777,8 +803,6 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
         while ((*r5 == candidate) || (*r5 == *r4) || (*r5 == *r3)
                || (*r5 == *r2) || (*r5 == *r1));
     }
-
-    return;
 }
 
 /* Check Randomness ------------------------------------------------------- */
@@ -789,7 +813,9 @@ double checkRandomness(const std::string &sequence)
     int imax=sequence.size();
     if (imax<=1)
         return 0;
-    double n0=1, n1=0, R=1;
+    double n0=1;
+    double n1=0;
+    double R=1;
     int current=0;
     for (int i=1; i<imax; ++i)
     {
@@ -816,14 +842,15 @@ double checkRandomness(const std::string &sequence)
     return ABS(z);
 }
 
-double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r)
+#ifdef NEVERDEFINED
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r)
 {
 	// General variables
 	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
 
 	//Variables needed for l>=5
 	double tht=0.0,phi=0.0,cost=0.0,sint=0.0,cost2=0.0,sint2=0.0;
-	if (l>=5)
+	if (l2>=5)
 	{
 		tht = atan2(yr,xr);
 		phi = atan2(zr,sqrt(xr2 + yr2));
@@ -834,7 +861,7 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 	// Zernike polynomial
 	double R=0.0;
 
-	switch (l)
+	switch (l1)
 	{
 	case 0:
 		R = 1.0;
@@ -892,7 +919,7 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 	// Spherical harmonic
 	double Y=0.0;
 
-	switch (l)
+	switch (l2)
 	{
 	case 0:
 		Y = (1.0/2.0)*sqrt(1.0/PI);
@@ -1025,6 +1052,302 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 	}
 
 	return R*Y;
+}
+#endif
+
+template<int L1, int L2>
+double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, double r)
+{
+	// General variables
+	double r2=r*r;
+    double xr2=xr*xr;
+    double yr2=yr*yr;
+    double zr2=zr*zr;
+
+	//Variables needed for l>=5
+	double tht=0.0;
+    double phi=0.0;
+    double cost=0.0;
+    double sint=0.0;
+    double cost2=0.0;
+    double sint2=0.0;
+	if (L2>=5)
+	{
+		tht = atan2(yr,xr);
+		phi = atan2(zr,sqrt(xr2 + yr2));
+		sint = sin(phi); cost = cos(tht);
+		sint2 = sint*sint; cost2 = cost*cost;
+	}
+
+	// Zernike polynomial
+	double R=0.0;
+
+	switch (L1)
+	{
+	case 0:
+		R = std::sqrt(3.0);
+		break;
+	case 1:
+		R = std::sqrt(5.0)*r;
+		break;
+	case 2:
+		switch (n)
+		{
+		case 0:
+			R = -0.5*std::sqrt(7.0)*(2.5*(1-2*r2)+0.5);
+			break;
+		case 2:
+			R = std::sqrt(7.0)*r2;
+			break;
+		} break;
+	case 3:
+		switch (n)
+		{
+		case 1:
+			R = -1.5*r*(3.5*(1-2*r2)+1.5);
+			break;
+		case 3:
+			R = 3.0*r2*r;
+		} break;
+	case 4:
+		switch (n)
+		{
+		case 0:
+			R = std::sqrt(11.0)*((63.0*r2*r2/8.0)-(35.0*r2/4.0)+(15.0/8.0));
+			break;
+		case 2:
+			R = -0.5*std::sqrt(11.0)*r2*(4.5*(1-2*r2)+2.5);
+			break;
+		case 4:
+			R = std::sqrt(11.0)*r2*r2;
+			break;
+		} break;
+	case 5:
+		switch (n)
+		{
+		case 1:
+			R = std::sqrt(13.0)*r*((99.0*r2*r2/8.0)-(63.0*r2/4.0)+(35.0/8.0));
+			break;
+		case 3:
+			R = -0.5*std::sqrt(13.0)*r2*r*(5.5*(1-2*r2)+3.5);
+			break;
+        case 5:
+            R = std::sqrt(13.0)*r2*r2*r;
+            break;
+		} break;
+    default: break;
+	}
+
+	// Spherical harmonic
+	double Y=0.0;
+
+	switch (L2)
+	{
+	case 0:
+		Y = (1.0/2.0)*sqrt(1.0/PI);
+		break;
+	case 1:
+		switch (m)
+		{
+		case -1:
+			Y = sqrt(3.0/(4.0*PI))*yr;
+			break;
+		case 0:
+			Y = sqrt(3.0/(4.0*PI))*zr;
+			break;
+		case 1:
+			Y = sqrt(3.0/(4.0*PI))*xr;
+			break;
+		} break;
+	case 2:
+		switch (m)
+		{
+		case -2:
+			Y = sqrt(15.0/(4.0*PI))*xr*yr;
+			break;
+		case -1:
+			Y = sqrt(15.0/(4.0*PI))*zr*yr;
+			break;
+		case 0:
+			Y = sqrt(5.0/(16.0*PI))*(-xr2-yr2+2.0*zr2);
+			break;
+		case 1:
+			Y = sqrt(15.0/(4.0*PI))*xr*zr;
+			break;
+		case 2:
+			Y = sqrt(15.0/(16.0*PI))*(xr2-yr2);
+			break;
+		} break;
+	case 3:
+		switch (m)
+		{
+		case -3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*yr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt(105.0/(4.0*PI))*zr*yr*xr;
+			break;
+		case -1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*yr*(4.0*zr2-xr2-yr2);
+			break;
+		case 0:
+			Y = sqrt(7.0/(16.0*PI))*zr*(2.0*zr2-3.0*xr2-3.0*yr2);
+			break;
+		case 1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*xr*(4.0*zr2-xr2-yr2);
+			break;
+		case 2:
+			Y = sqrt(105.0/(16.0*PI))*zr*(xr2-yr2);
+			break;
+		case 3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*xr*(xr2-3.0*yr2);
+			break;
+		} break;
+	case 4:
+		switch (m)
+		{
+		case -4:
+			Y = sqrt((35.0*9.0)/(16.0*PI))*yr*xr*(xr2-yr2);
+			break;
+		case -3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*yr*zr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt((9.0*5.0)/(16.0*PI))*yr*xr*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case -1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*yr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 0:
+			Y = sqrt(9.0/(16.0*16.0*PI))*(35.0*zr2*zr2-30.0*zr2+3.0);
+			break;
+		case 1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*xr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 2:
+			Y = sqrt((9.0*5.0)/(8.0*8.0*PI))*(xr2-yr2)*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case 3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*xr*zr*(xr2-3.0*yr2);
+			break;
+		case 4:
+			Y = sqrt((9.0*35.0)/(16.0*16.0*PI))*(xr2*(xr2-3.0*yr2)-yr2*(3.0*xr2-yr2));
+			break;
+		} break;
+	case 5:
+		switch (m)
+		{
+		case -5:
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*sin(5.0*phi);
+			break;
+		case -4:
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*sin(4.0*phi);
+			break;
+		case -3:
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*sin(3.0*phi);
+			break;
+		case -2:
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*sin(2.0*phi);
+			break;
+		case -1:
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
+			break;
+		case 0:
+			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*cost2*cost2*cost-70.0*cost2*cost+15.0*cost);
+			break;
+		case 1:
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
+			break;
+		case 2:
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*cos(2.0*phi);
+			break;
+		case 3:
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*cos(3.0*phi);
+			break;
+		case 4:
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*cos(4.0*phi);
+			break;
+		case 5:
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*cos(5.0*phi);
+			break;
+		}break;
+    default: break;
+	}
+
+	return R*Y;
+}
+
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r) {
+    switch (l1) {
+        case 0 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<0, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<0, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<0, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<0, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<0, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<0, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 1 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<1, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<1, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<1, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<1, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<1, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<1, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 2 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<2, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<2, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<2, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<2, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<2, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<2, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 3 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<3, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<3, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<3, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<3, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<3, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<3, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 4 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<4, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<4, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<4, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<4, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<4, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<4, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 5 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<5, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<5, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<5, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<5, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<5, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<5, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        default: break;
+    }
+    REPORT_ERROR(ERR_ARG_INCORRECT, "ZernikeSphericalHarmonics not supported for l1 = " + std::to_string(l1) + " and l2 = " + std::to_string(l2));
 }
 
 #ifdef NEVERDEFINED
@@ -1234,106 +1557,23 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
 }
 #endif
 
-void spherical_index2lnm(int idx, int &l, int &n, int &m)
+void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int max_l1)
 {
-	if (idx==0)
-	{
-		l=0; n=0; n=0;
-	}
-	else if (idx<=3)
-	{
-		l=1; n=1; m=idx-2;
-	}
-	else if (idx<=13)
-	{
-		l=2;
-		if (idx<=8)
-		{
-			n=0; m=idx-6;
-		}
-		else
-		{
-			n=2; m=idx-11;
-		}
-
-	}
-	else if (idx<=27)
-	{
-		l=3;
-		if (idx<=20)
-		{
-			n=1; m=idx-17;
-		}
-		else
-		{
-			n=3; m=idx-24;
-		}
-	}
-	else if (idx<=54)
-	{
-		l=4;
-		if (idx<=36)
-		{
-			n=0; m=idx-32;
-		}
-		else if (idx>36&idx<=45)
-		{
-			n=2; m=idx-41;
-		}
-		else
-		{
-			n=4; m = idx-50;
-		}
-	}
+    auto numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
+    double aux_id = std::floor(idx-(idx/numR)*numR);
+    l1 = static_cast<int>(std::floor((1.0+std::sqrt(1.0+4.0*aux_id))/2.0) + std::floor((2.0+2.0*std::sqrt(aux_id))/2.0) - 2.0);
+    n = static_cast<int>(std::ceil((4.0*aux_id - l1*(l1+2.0))/2.0));
+    l2 = static_cast<int>(std::floor(std::sqrt(std::floor(idx/numR))));
+    m = static_cast<int>(std::floor(idx/numR)-l2*(l2+1));
 }
 
-int spherical_lnm2index(int l, int n, int m)
+int spherical_lnm2index(int l1, int n, int l2, int m, int max_l1)
 {
-	int idx=0;
-
-	switch (l)
-	{
-	case 0:
-		idx=0;
-		break;
-	case 1:
-		idx=m+2;
-		break;
-	case 2:
-		switch (n)
-		{
-		case 0:
-			idx=m+6;
-			break;
-		case 2:
-			idx=m+11;
-			break;
-		}break;
-	case 3:
-		switch (n)
-		{
-		case 1:
-			idx=m+17;
-			break;
-		case 3:
-			idx=m+24;
-			break;
-		}break;
-	case 4:
-		switch (n)
-		{
-		case 0:
-			idx=m+32;
-			break;
-		case 2:
-			idx=m+41;
-			break;
-		case 4:
-			idx=m+50;
-			break;
-		}break;
-	}
-	return idx;
+    auto numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
+    int id_SH = l2*(l2+1)+m;
+    auto id_R = static_cast<int>(std::floor((2*n + l1*(l1 + 2))/4));
+    int id_Z = id_SH*numR+id_R;
+    return id_Z;
 }
 
 template<typename T>
@@ -1354,7 +1594,8 @@ void solveBySVD(const Matrix2D< T >& A, const Matrix1D< T >& b,
 
     // First perform de single value decomposition
     // Xmipp interface that calls to svdcmp of numerical recipes
-    Matrix2D< double > u, v;
+    Matrix2D< double > u;
+    Matrix2D< double > v;
     Matrix1D< double > w;
     svdcmp(A, u, w, v);
 

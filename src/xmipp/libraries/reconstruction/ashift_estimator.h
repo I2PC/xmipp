@@ -33,6 +33,9 @@
 #include "align_type.h"
 #include <vector>
 
+/**@defgroup AShiftEstimator AShiftEstimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -41,9 +44,15 @@ public:
     AShiftEstimator() {
         setDefault();
     }
+    AShiftEstimator(const AShiftEstimator &)=delete;
+    AShiftEstimator(const AShiftEstimator &&)=delete;
+
     virtual ~AShiftEstimator() {
         release();
     }
+
+    AShiftEstimator & operator=(const AShiftEstimator &)=delete;
+    AShiftEstimator & operator=(const AShiftEstimator &&)=delete;
 
     virtual void init2D(const std::vector<HW*> &hw, AlignType type,
                const Dimensions &dims, size_t batch, size_t maxShift) = 0;
@@ -100,5 +109,5 @@ protected:
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_ */

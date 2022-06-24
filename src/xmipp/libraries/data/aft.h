@@ -32,6 +32,9 @@
 #include "hw.h"
 #include "data/fft_settings_new.h"
 
+/**@defgroup AFTLibrary AFT Library
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 class AFT {
 public:
@@ -62,5 +65,5 @@ public:
 protected:
     virtual void setDefault() = 0;
 };
-
+//@}
 #endif /* LIBRARIES_DATA_AFT_H_ */

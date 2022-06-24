@@ -33,6 +33,10 @@
 
 #include <reconstruction_cuda/cuda_xmipp_utils.h>
 
+/**@defgroup CUDAGPURecFourier Cuda GPU Reconstruct Fourier
+   @ingroup ReconsLibrary */
+//@{
+
 struct RecFourierBufferDataGPU;
 
 /**
@@ -151,4 +155,5 @@ void processBufferGPU(float* tempVolumeGPU, float* tempWeightsGPU,
 		float blobRadius, int maxVolIndexYZ, bool useFast,
 		float maxResolutionSqr, int stream, int blobOrder, float blobAlpha);
 
+//@}
 #endif /* XMIPP_LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GPU_RECONSTRUCT_FOURIER_H_ */

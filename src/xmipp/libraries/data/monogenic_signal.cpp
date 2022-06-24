@@ -69,12 +69,16 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 {
 	double criticalZ = icdf_gauss(0.95);
 	radiuslimit = XSIZE(inputmap)/2;
-	double last_mean=0, last_std2=1e-38;
+	double last_mean=0;
+	double last_std2=1e-38;
 
 	for (int rad = radius; rad<radiuslimit; rad++)
 	{
-		double sum=0, sum2=0, N=0;
-		int sup, inf;
+		double sum=0;
+		double sum2=0;
+		double N=0;
+		int sup;
+		int inf;
 		inf = rad*rad;
 		sup = (rad + 1)*(rad + 1);
 		FOR_ALL_ELEMENTS_IN_ARRAY3D(inputmap)
@@ -115,7 +119,7 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
 	{
 		double aux = k*k + i*i + j*j;
-		if ( aux>=(raux) )
+		if (aux>=raux)
 			A3D_ELEM(mask, k, i, j) = -1;
 	}
 
@@ -129,7 +133,7 @@ Matrix1D<double> Monogenic::fourierFreqVector(size_t dimarrayFourier, size_t dim
 {
         double u;
         Matrix1D<double> freq_fourier;
-	freq_fourier.initZeros(dimarrayFourier);
+	      freq_fourier.initZeros(dimarrayFourier);
         VEC_ELEM(freq_fourier,0) = 1e-38; //A really low value to represent 0 avooiding singularities
 	for(size_t k=1; k<dimarrayFourier; ++k){
 		FFT_IDX2DIGFREQ(k,dimarrayReal, u);
@@ -157,7 +161,12 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 
 	iu.initZeros(myfftV);
 
-	double uz, uy, ux, uz2, u2, uz2y2;
+	double uz;
+	double uy;
+	double ux;
+	double uz2;
+	double u2;
+	double uz2y2;
 	long n=0;
 	//  TODO: Take ZSIZE(myfftV) out of the loop
 	//	TODO: Use freq_fourier_x instead of calling FFT_IDX2DIGFREQ
@@ -206,8 +215,7 @@ void Monogenic::resolution2eval(int &count_res, double step,
 		int &last_fourier_idx,
 		int &volsize,
 		bool &continueIter,	bool &breakIter,
-		double &sampling, double &minRes, double &maxRes,
-		bool &doNextIteration)
+		double &sampling, double &maxRes)
 {
 //TODO: simplify this function
 	resolution = maxRes - count_res*step;
@@ -239,7 +247,7 @@ void Monogenic::resolution2eval(int &count_res, double step,
 		last_resolution = resolution;
         }
 
-	if ( ( resolution<Nyquist ))// || (resolution > last_resolution) )
+	if (resolution<Nyquist)// || (resolution > last_resolution) )
 	{
 		breakIter = true;
 		return;
@@ -323,7 +331,6 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
 		DIRECT_MULTIDIM_ELEM(amplitude,n) *= DIRECT_MULTIDIM_ELEM(amplitude,n);
 
-
 	//TODO: create a macro with these kind of code
 	// Calculate first component of Riesz vector
 	double ux;
@@ -348,7 +355,8 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 
 	// Calculate second and third component of Riesz vector
 	n=0;
-	double uy, uz;
+	double uy;
+	double uz;
 	for(size_t k=0; k<ZSIZE(myfftV); ++k)
 	{
 		uz = VEC_ELEM(freq_fourier_z,k);
@@ -384,7 +392,7 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftVRiesz)
 	{
 		double un=1.0/DIRECT_MULTIDIM_ELEM(iu,n);
-		if ((freqL)>=un && un>=freq)
+		if (freqL>=un && un>=freq)
 		{
 			DIRECT_MULTIDIM_ELEM(fftVRiesz,n) *= 0.5*(1 + cos(raised_w*(un-freq)));
 		}
@@ -418,7 +426,10 @@ void Monogenic::statisticsInBinaryMask2(const MultidimArray<double> &volS,
 		MultidimArray<int> &mask, double &meanS, double &sdS2,
 		double &meanN, double &sdN2, double &significance, double &thr95, double &NS, double &NN)
 {
-	double sumS = 0, sumS2 = 0, sumN = 0, sumN2 = 0;
+	double sumS = 0;
+	double sumS2 = 0;
+	double sumN = 0;
+	double sumN2 = 0;
 	NN = 0;
 	NS = 0;
 	std::vector<double> noiseValues;
@@ -460,7 +471,10 @@ void Monogenic::statisticsInOutBinaryMask2(const MultidimArray<double> &volS,
 		MultidimArray<int> &mask, double &meanS, double &sdS2,
 		double &meanN, double &sdN2, double &significance, double &thr95, double &NS, double &NN)
 {
-	double sumS = 0, sumS2 = 0, sumN = 0, sumN2 = 0;
+	double sumS = 0;
+	double sumS2 = 0;
+	double sumN = 0;
+	double sumN2 = 0;
 	NN = 0;
 	NS = 0;
 
@@ -491,7 +505,6 @@ void Monogenic::statisticsInOutBinaryMask2(const MultidimArray<double> &volS,
 	meanN = sumN/NN;
 	sdS2 = sumS2/NS - meanS*meanS;
 	sdN2 = sumN2/NN - meanN*meanN;
-
 }
 
 
@@ -562,12 +575,15 @@ void Monogenic::setLocalResolutionMap(const MultidimArray<double> &amplitudeMS,
 void Monogenic::monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<double> > &myfftV,
 		MultidimArray<double> &iu, MultidimArray<double> &amplitude, int numberOfThreads)
 {
-	Matrix1D<double> freq_fourier_z, freq_fourier_y, freq_fourier_x;
+	Matrix1D<double> freq_fourier_z;
+	Matrix1D<double> freq_fourier_y;
+	Matrix1D<double> freq_fourier_x;
 
 	iu = fourierFreqs_3D(myfftV, amplitude, freq_fourier_x, freq_fourier_y, freq_fourier_z);
 
 	// Filter the input volume and add it to amplitude
-	MultidimArray< std::complex<double> > fftVRiesz, fftVRiesz_aux;
+	MultidimArray< std::complex<double> > fftVRiesz;
+	MultidimArray< std::complex<double> > fftVRiesz_aux;
 	fftVRiesz.initZeros(myfftV);
 	fftVRiesz_aux.initZeros(myfftV);
 	std::complex<double> J(0,1);
@@ -593,7 +609,9 @@ void Monogenic::monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<
 		DIRECT_MULTIDIM_ELEM(amplitude,n) = DIRECT_MULTIDIM_ELEM(VRiesz,n)*DIRECT_MULTIDIM_ELEM(VRiesz,n);
 
 	// Calculate first component of Riesz vector
-	double uz, uy, ux;
+	double uz;
+	double uy;
+	double ux;
 	n=0;
 	for(size_t k=0; k<ZSIZE(myfftV); ++k)
 	{
@@ -661,10 +679,14 @@ void Monogenic::addNoise(MultidimArray<double> &vol, double mean, double stddev)
 // as a multidimArray, with  dimensions given by xdim, ydim and zdim. The 
 // wavelength of the pattern is given by double wavelength
 MultidimArray<double> Monogenic::createDataTest(size_t xdim, size_t ydim, size_t zdim,
-		double wavelength, double mean, double sigma)
+		double wavelength)
 {
-	int siz_z, siz_y, siz_x;
-	double x, y, z;
+	int siz_z;
+	int siz_y;
+	int siz_x;
+	double x;
+	double y;
+	double z;
 
 	siz_z = xdim/2;
 	siz_y = ydim/2;
@@ -687,7 +709,7 @@ MultidimArray<double> Monogenic::createDataTest(size_t xdim, size_t ydim, size_t
 				x = (j - siz_x);
 				x = x*x;
 				x = sqrt(x + y);
-				DIRECT_MULTIDIM_ELEM(testmap, n) = cos(2*PI/(wavelength)*x);
+				DIRECT_MULTIDIM_ELEM(testmap, n) = cos(2*PI/wavelength*x);
 				++n;
 			}
 		}

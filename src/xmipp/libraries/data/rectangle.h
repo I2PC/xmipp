@@ -29,7 +29,9 @@
 #include "dimensions.h"
 #include "point2D.h"
 #include <assert.h>
-
+/**@defgroup Rectangle Rectangle
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 class Rectangle {
 public:
@@ -50,5 +52,5 @@ public:
     const T tl; // top left corner
     const T br; // bottom right corner
 };
-
+//@}
 #endif /* LIBRARIES_DATA_RECTANGLE_H_ */

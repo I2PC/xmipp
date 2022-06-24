@@ -27,11 +27,11 @@
 #ifndef _PYTHON_METADATA_H
 #define _PYTHON_METADATA_H
 
+#include "core/metadata_db.h"
+#include "core/metadata_object.h"
 #include "Python.h"
 
 class MDQuery;
-class MetaData;
-class MDIterator;
 class MDObject;
 extern PyObject * PyXmippError;
 
@@ -42,7 +42,7 @@ extern PyObject * PyXmippError;
 #define MDQuery_Check(v) (((v)->ob_type == &MDQueryType))
 #define MDQuery_Value(v)  ((*((MDQueryObject*)(v))->query))
 
-#define RETURN_MDOBJECT(value) return new MDObject((MDLabel)label, value)
+#define RETURN_MDOBJECT(value) return std::make_unique<MDObject>((MDLabel)label, value)
 
 /***************************************************************/
 /*                            MDQuery                          */
@@ -52,12 +52,15 @@ extern PyObject * PyXmippError;
 typedef struct
 {
     PyObject_HEAD
-    MDQuery * query;
+    std::unique_ptr<MDQuery> query;
 }
 MDQueryObject;
 
 /* Destructor */
 void MDQuery_dealloc(MDQueryObject* self);
+/* Constructor */
+PyObject *
+MDQuery_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
 /* String representation */
 PyObject *
@@ -121,14 +124,17 @@ extern PyTypeObject MDQueryType;
 typedef struct
 {
     PyObject_HEAD
-    MetaData * metadata;
-    MDIterator * iter;
+    std::unique_ptr<MetaDataDb> metadata;
+    std::unique_ptr<MetaDataDb::id_iterator> iter;
 }
 MetaDataObject;
 
 /* Destructor */
 void MetaData_dealloc(MetaDataObject* self);
 /* Constructor */
+PyObject *
+MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
+
  PyObject *
 MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs);
 
@@ -156,8 +162,6 @@ MetaData_intersection(PyObject *obj, PyObject *args, PyObject *kwargs);
  PyObject *
 MetaData_merge(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-PyObject *
-MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
  PyObject *
 MetaData_operate(PyObject *obj, PyObject *args, PyObject *kwargs);
@@ -352,7 +356,7 @@ extern PyMethodDef MetaData_methods[];
 extern PyTypeObject MetaDataType;
 
 /*Helper function to create an MDObject from a PyObject */
-MDObject * createMDObject(int label, PyObject *pyValue);
+std::unique_ptr<MDObject> createMDObject(int label, PyObject *pyValue);
 
 void setMDObjectValue(MDObject *obj, PyObject *pyValue);
 

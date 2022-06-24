@@ -53,8 +53,16 @@ public:
     MpiML2DBase(XmippProgram * prm);
     /** Constructor passing the MpiNode */
     MpiML2DBase(XmippProgram * prm, MpiNode * node);
+
+    MpiML2DBase(const MpiML2DBase &)=delete;
+    MpiML2DBase(const MpiML2DBase &&)=delete;
+
     /** Destructor */
     ~MpiML2DBase();
+
+    MpiML2DBase & operator =(const MpiML2DBase &)=delete;
+    MpiML2DBase & operator =(const MpiML2DBase &&)=delete;
+
     /** This function is only valid for 2D ML programs*/
     void sendDocfile(const MultidimArray<double> &data);
 }
@@ -145,13 +153,19 @@ public:
 /** Class to parallelize ML_TOMO */
 class MpiProgMLTomo: public ProgMLTomo
 {
-protected:
-    MpiNode *node;
+private:
+    MpiNode *node=nullptr;
 public:
     /** Constructor */
-    MpiProgMLTomo();
+    MpiProgMLTomo() = default;
+
+    MpiProgMLTomo(const MpiProgMLTomo &)=delete;
+    MpiProgMLTomo(const MpiProgMLTomo &&)=delete;
+
     /** Destructor */
     ~MpiProgMLTomo();
+    MpiProgMLTomo & operator=(const MpiProgMLTomo &)=delete;
+    MpiProgMLTomo & operator=(const MpiProgMLTomo &&)=delete;
 
     /** Redefine the basic Program read to do it sequentially */
     void read(int argc, char ** argv, bool reportErrors = true);
@@ -161,7 +175,7 @@ public:
     void generateInitialReferences();
 
     /// Integrate over all experimental images, join result from all nodes
-    void expectation(MetaData &MDimg, std::vector< Image<double> > &Iref, int iter,
+    void expectation(MetaDataVec &MDimg, std::vector< Image<double> > &Iref, int iter,
                      double &LL, double &sumfracweight,
                      std::vector<MultidimArray<double> > &wsumimgs,
                      std::vector<MultidimArray<double> > &wsumweds,

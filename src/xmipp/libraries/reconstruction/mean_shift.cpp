@@ -40,7 +40,7 @@ struct ThreadProcessPlaneArgs
 
 void * thread_process_plane( void * args )
 {
-    ThreadProcessPlaneArgs * thrParams = (ThreadProcessPlaneArgs *) args;
+    auto * thrParams = (ThreadProcessPlaneArgs *) args;
 
     unsigned int myID = thrParams->myID;
     unsigned int numThreads = thrParams->numThreads;
@@ -65,7 +65,7 @@ void * thread_process_plane( void * args )
     double inv_2_sigma_s_2 = 1.0/( 2.0* sigma_s * sigma_s);
     double inv_2_sigma_r_2 = 1.0/( 2.0* sigma_r * sigma_r);
     double sigma_r_2 = sigma_r * sigma_r;
-    int _3_sigma_s = (int)(3 * sigma_s);
+    auto _3_sigma_s = (int)(3 * sigma_s);
     double _3_sigma_r = 3.0 * sigma_r;
     int y_min = input.startingY();
     int y_max = input.finishingY();
@@ -281,7 +281,7 @@ void * thread_process_plane( void * args )
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Define params ------------------------------------------------------------------- */
@@ -314,8 +314,8 @@ void MeanShiftFilter::apply(MultidimArray<double> &input)
 {
     MultidimArray<double> output(input);
 
-    pthread_t * th_ids = new pthread_t[numThreads];
-    ThreadProcessPlaneArgs * th_args = new ThreadProcessPlaneArgs[numThreads];
+    auto * th_ids = new pthread_t[numThreads];
+    auto * th_args = new ThreadProcessPlaneArgs[numThreads];
 
     for( int iter = 0 ; iter < iters ; ++iter )
     {
@@ -332,12 +332,12 @@ void MeanShiftFilter::apply(MultidimArray<double> &input)
             th_args[nt].output = &output;
             th_args[nt].fast = fast;
 
-            pthread_create( (th_ids+nt), NULL, thread_process_plane, (void *)(th_args+nt));
+            pthread_create( (th_ids+nt), nullptr, thread_process_plane, (void *)(th_args+nt));
         }
 
         for( int nt = 0; nt < numThreads ; nt++ )
         {
-            pthread_join( *(th_ids+nt), NULL);
+            pthread_join( *(th_ids+nt), nullptr);
         }
 
         if( save_iters )

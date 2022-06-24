@@ -25,11 +25,6 @@
 
 #include "mpi_reconstruct_admm.h"
 
-MpiProgReconstructADMM::MpiProgReconstructADMM()
-{
-	node=NULL;
-}
-
 MpiProgReconstructADMM::~MpiProgReconstructADMM()
 {
 	delete node;

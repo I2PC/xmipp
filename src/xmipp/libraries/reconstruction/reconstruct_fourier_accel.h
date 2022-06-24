@@ -34,7 +34,7 @@
 #include "recons.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_threads.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/matrix1d.h"
 #include "data/blobs.h"
 
@@ -43,14 +43,14 @@ class MultidimArray;
 template<typename T>
 struct Array2D;
 
-#define BLOB_TABLE_SIZE 5000
-#define BLOB_TABLE_SIZE_SQRT 10000
+constexpr int  BLOB_TABLE_SIZE= 5000;
+constexpr int  BLOB_TABLE_SIZE_SQRT= 10000;
 
-#define MINIMUMWEIGHT 0.001
-#define ACCURACY 0.001
+constexpr double  MINIMUMWEIGHT= 0.001;
+constexpr double  ACCURACY= 0.001;
 
-#define EXIT_THREAD 0
-#define PRELOAD_IMAGE 1
+constexpr int  EXIT_THREAD= 0;
+constexpr int  PRELOAD_IMAGE= 1;
 
 /**@defgroup FourierReconstruction Fourier reconstruction
    @ingroup ReconsLibrary */
@@ -123,7 +123,7 @@ protected:
     LoadThreadParams loadThread;
 
     /** SelFile containing all projections */
-    MetaData SF;
+    MetaDataVec SF;
 
     /** Output file name */
     FileName fn_out;

@@ -31,7 +31,9 @@
 #include "core/multidim_array.h"
 
 class FitPoint;
-
+/**@defgroup ProgExtractFeatures ProgExtractFeatures
+   @ingroup ReconsLibrary */
+//@{
 class ProgExtractFeatures: public XmippProgram
 {
 public:
@@ -66,8 +68,12 @@ public:
     bool useZernike;
 
 public:
-    ProgExtractFeatures();
+    ProgExtractFeatures() = default;
+    ProgExtractFeatures(const ProgExtractFeatures &)=delete;
+    ProgExtractFeatures(const ProgExtractFeatures &&)=delete;
     ~ProgExtractFeatures();
+    ProgExtractFeatures & operator=(const ProgExtractFeatures &)=delete;
+    ProgExtractFeatures & operator=(const ProgExtractFeatures &&)=delete;
 
     /// Read argument
     void readParams();
@@ -121,7 +127,8 @@ public:
     MultidimArray<int> masks[7];
 
     MultidimArray<int> rampMask;
-    FitPoint *fitPoints;
+    FitPoint *fitPoints=nullptr;
     int NmaskPoints;
 };
+//@}
 #endif

@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
-#include <core/metadata.h>
 //@{
 /** Routines for computing Euler angles following different
  * approaches
@@ -220,9 +219,13 @@ public:
     }
 
     Matrix1D <double> vec3;
-    double x,y,z;
+    double x;
+    double y;
+    double z;
 
     void eulerRotate (Matrix2D <double> &M, const Matrix1D <double> &r);
+
+    ~Euler() = default; // do nothing
 
 protected:
 
@@ -235,7 +238,7 @@ bool  _parityEven  :
 Axis  _initialAxis  :
     2; // First axis of rotation
 };
-#define eulerOrderNumber 24
+constexpr int eulerOrderNumber = 24;
 Euler::eulerOrder eulerOrderList[eulerOrderNumber] =
     {
         Euler::XYZ , Euler::XZY , Euler::YZX , Euler::YXZ , Euler::ZXY , Euler::ZYX ,

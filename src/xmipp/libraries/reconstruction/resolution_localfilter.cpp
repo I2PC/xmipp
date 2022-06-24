@@ -98,15 +98,15 @@ void ProgResLocalFilter::produceSideInfo()
 
 				if (abs(ux)>=limit_distance_x)
 				{
-					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/N_smoothing));
 				}
 				if (abs(uy)>=limit_distance_y)
 				{
-					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/N_smoothing));
 				}
 				if (abs(uz)>=limit_distance_z)
 				{
-					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/N_smoothing));
 				}
 				++n;
 			}
@@ -274,7 +274,7 @@ void ProgResLocalFilter::run()
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filtered_aux)
 		{
-			double weight, sumweight, digitalfreq;
+			double weight, sumweight = 0., digitalfreq;
 			//TODO: make the converstion in the produdesideinfo
 			digitalfreq = sampling/DIRECT_MULTIDIM_ELEM(resVol, n);
 

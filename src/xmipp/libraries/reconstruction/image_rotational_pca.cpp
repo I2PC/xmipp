@@ -34,20 +34,12 @@ ProgImageRotationalPCA::ProgImageRotationalPCA()
 {
   rank = 0;
   verbose = 1;
-  fileMutex = NULL;
-  threadMutex = NULL;
-  taskDistributor = NULL;
-  thMgr = NULL;
 }
 
 // MPI destructor
 ProgImageRotationalPCA::~ProgImageRotationalPCA()
 {
   clearHbuffer();
-  delete fileMutex;
-  delete threadMutex;
-  delete taskDistributor;
-  delete thMgr;
 }
 
 void
@@ -114,7 +106,7 @@ ProgImageRotationalPCA::defineParams()
 
 void ProgImageRotationalPCA::selectPartFromMd(MetaData &MDin)
 {
-    MetaData MDaux;
+    MetaDataVec MDaux;
     MDaux.randomize(MDin);
     MDin.selectPart(MDaux, 0, maxNimgs);
 }
@@ -124,16 +116,16 @@ void ProgImageRotationalPCA::comunicateMatrix(Matrix2D<double> &W)
 
 void ProgImageRotationalPCA::createMutexes(size_t Nimgs)
 {
-  fileMutex = new Mutex();
-  threadMutex = new Mutex();
-  taskDistributor = new ThreadTaskDistributor(Nimgs, XMIPP_MAX(1,Nimgs/5));
+  fileMutex = std::make_unique<Mutex>();
+  threadMutex = std::make_unique<Mutex>();
+  taskDistributor = std::make_unique<ThreadTaskDistributor>(Nimgs, XMIPP_MAX(1,Nimgs/5));
 }
 
 // Produce side info =====================================================
 void ProgImageRotationalPCA::produceSideInfo()
 {
   time_config();
-  MetaData MDin(fnIn);
+  MetaDataVec MDin(fnIn);
 
   if (maxNimgs > 0)
     selectPartFromMd(MDin);
@@ -154,7 +146,7 @@ void ProgImageRotationalPCA::produceSideInfo()
     Npixels = (int) mask.sum();
 
     // Thread Manager
-    thMgr = new ThreadManager(Nthreads, this);
+    thMgr = std::make_unique<ThreadManager>(Nthreads, this);
     Image<double> dummy;
     Matrix2D<double> dummyMatrix, dummyHblock, dummyW;
     dummyW.resizeNoCopy(Npixels, Neigen + 2);
@@ -233,12 +225,11 @@ void ProgImageRotationalPCA::flushHBuffer()
 // Apply T ================================================================
 void threadApplyT(ThreadArgument &thArg)
 {
-  ProgImageRotationalPCA *self=(ProgImageRotationalPCA *) thArg.workClass;
+  auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
-  ThreadTaskDistributor *taskDistributor=self->taskDistributor;
   std::vector<size_t> &objId=self->objId;
-  MetaData &MD=self->MD[thArg.thread_id];
+  MetaDataVec &MD=self->MD[thArg.thread_id];
 
   Image<double> &I=self->I[thArg.thread_id];
   MultidimArray<double> &Iaux=self->Iaux[thArg.thread_id];
@@ -258,7 +249,7 @@ void threadApplyT(ThreadArgument &thArg)
     std::cout << "Applying T ...\n";
     init_progress_bar(objId.size());
   }
-  while (taskDistributor->getTasks(first, last))
+  while (self->taskDistributor->getTasks(first, last))
   {
     for (size_t idx=first; idx<=last; ++idx)
     {
@@ -291,7 +282,7 @@ void threadApplyT(ThreadArgument &thArg)
               MAT_ELEM(A,0,2)=x;
 
               // Rotate and shift image
-              applyGeometry(1,Iaux,mI,A,IS_INV,true);
+              applyGeometry(xmipp_transformation::LINEAR,Iaux,mI,A,xmipp_transformation::IS_INV,true);
 
               // Update Wnode
               int i=0;
@@ -304,7 +295,7 @@ void threadApplyT(ThreadArgument &thArg)
                 double *ptrHblock=&MAT_ELEM(Hblock,block_idx,0);
                 for (int j=0; j<jmax; j+=unroll, ptrHblock+=unroll, ptrWnode+=unroll)
                 {
-                  (*(ptrWnode )) +=pixval*(*ptrHblock );
+                  (*ptrWnode) +=pixval*(*ptrHblock);
                   (*(ptrWnode+1)) +=pixval*(*(ptrHblock+1));
                   (*(ptrWnode+2)) +=pixval*(*(ptrHblock+2));
                   (*(ptrWnode+3)) +=pixval*(*(ptrHblock+3));
@@ -314,7 +305,7 @@ void threadApplyT(ThreadArgument &thArg)
                   (*(ptrWnode+7)) +=pixval*(*(ptrHblock+7));
                 }
                 for (size_t j=jmax; j<MAT_XSIZE(Wnode); ++j, ptrHblock+=1, ptrWnode+=1)
-                (*(ptrWnode )) +=pixval*(*ptrHblock );
+                (*ptrWnode) +=pixval*(*ptrHblock );
                 ++i;
               }
             }
@@ -349,12 +340,11 @@ void ProgImageRotationalPCA::applyT()
 // Apply T ================================================================
 void threadApplyTt(ThreadArgument &thArg)
 {
-  ProgImageRotationalPCA *self=(ProgImageRotationalPCA *) thArg.workClass;
+  auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
-  ThreadTaskDistributor *taskDistributor=self->taskDistributor;
   std::vector<size_t> &objId=self->objId;
-  MetaData &MD=self->MD[thArg.thread_id];
+  MetaDataVec &MD=self->MD[thArg.thread_id];
 
   Image<double> &I=self->I[thArg.thread_id];
   MultidimArray<double> &Iaux=self->Iaux[thArg.thread_id];
@@ -373,7 +363,7 @@ void threadApplyTt(ThreadArgument &thArg)
     std::cout << "Applying Tt ...\n";
     init_progress_bar(objId.size());
   }
-  while (taskDistributor->getTasks(first, last))
+  while (self->taskDistributor->getTasks(first, last))
   {
     for (size_t idx=first; idx<=last; ++idx)
     {
@@ -401,7 +391,7 @@ void threadApplyTt(ThreadArgument &thArg)
               MAT_ELEM(A,0,2)=x;
 
               // Rotate and shift image
-              applyGeometry(1,Iaux,mI,A,IS_INV,true);
+              applyGeometry(xmipp_transformation::LINEAR,Iaux,mI,A,xmipp_transformation::IS_INV,true);
 
               // Update Hblock
               for (size_t j=0; j<MAT_XSIZE(Hblock); j++)
@@ -412,8 +402,8 @@ void threadApplyTt(ThreadArgument &thArg)
                 const double *ptrWtranspose=&MAT_ELEM(Wtranspose,j,0);
                 for (size_t n=0; n<nmax; n+=unroll, ptrIaux+=unroll, ptrMask+=unroll)
                 {
-                  if (*(ptrMask ))
-                  dotproduct+=(*(ptrIaux ))*(*ptrWtranspose++);
+                  if (*ptrMask)
+                  dotproduct+=(*ptrIaux)*(*ptrWtranspose++);
                   if (*(ptrMask+1))
                   dotproduct+=(*(ptrIaux+1))*(*ptrWtranspose++);
                   if (*(ptrMask+2))
@@ -551,7 +541,7 @@ void ProgImageRotationalPCA::applySVD()
     I().resizeNoCopy(Xdim,Xdim);
     const MultidimArray<double> &mI=I();
     FileName fnImg;
-    MetaData MD;
+    MetaDataVec MD;
     for (int eig=0; eig<Neigen; eig++)
     {
       int Un=0;

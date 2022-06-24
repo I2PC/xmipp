@@ -56,9 +56,6 @@
 class Projection: public Image<double>
 {
 public:
-    /** Empty constructor */
-    Projection();
-
     /** Vector perpendicular to the projection plane.
      * It is calculated as a function of rot and tilt.
      */
@@ -103,11 +100,7 @@ public:
       * direction is computed and stored in the Projection structure.
       */
     void read(const FileName& fn, const bool only_apply_shifts = false,
-              DataMode datamode = DATA, MDRow * row = NULL );
-
-    /** Assignment.
-     */
-    Projection& operator=(const Projection& P);
+              DataMode datamode = DATA, MDRow * row = nullptr);
 
     /** Another function for assignment.
      */
@@ -133,7 +126,8 @@ public:
     MultidimArray<double> *volume;
 
     // Real and imaginary B-spline coefficients for Fourier of the volume
-    MultidimArray< double > VfourierRealCoefs, VfourierImagCoefs;
+    MultidimArray< double > VfourierRealCoefs;
+    MultidimArray< double > VfourierImagCoefs;
 
     // Projection in Fourier space
     MultidimArray< std::complex<double> > projectionFourier;
@@ -142,7 +136,8 @@ public:
     Image<double> projection;
 
     // Phase shift image
-    MultidimArray<double> phaseShiftImgB, phaseShiftImgA;
+    MultidimArray<double> phaseShiftImgB;
+    MultidimArray<double> phaseShiftImgA;
 
     // Original volume size
     int volumeSize;
@@ -164,7 +159,7 @@ public:
     /**
      * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
      */
-    void project(double rot, double tilt, double psi, const MultidimArray<double> *ctf=NULL);
+    void project(double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
@@ -180,7 +175,7 @@ public:
  * This function gets an object form the FourierProjection class and makes the desired projection in Fourier space
  */
 void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdim,
-                   double rot, double tilt, double psi, const MultidimArray<double> *ctf=NULL);
+                   double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
 
 //@}
 

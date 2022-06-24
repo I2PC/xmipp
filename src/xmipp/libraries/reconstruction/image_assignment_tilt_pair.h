@@ -28,13 +28,16 @@
 
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 template<typename T>
 class Matrix1D;
 template<typename T>
 class Matrix2D;
 
+/**@defgroup ProgassignmentTiltPair Image Assignment Tilt Pair
+   @ingroup ReconsLibrary */
+//@{
 class ProgassignmentTiltPair: public XmippProgram
 {
 
@@ -55,7 +58,7 @@ public:
     /** Tilt estimation angle*/
     double tiltest;
 
-    MetaData mdPartial;
+    MetaDataVec mdPartial;
 
 public:
 
@@ -75,4 +78,5 @@ public:
 
 
 };
+//@}
 #endif

@@ -25,7 +25,7 @@
 #ifndef _PROG_VQ_PROJECTIONS
 #define _PROG_VQ_PROJECTIONS
 
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "data/polar.h"
 #include "core/histogram.h"
 #include "data/numerical_tools.h"
@@ -110,9 +110,14 @@ public:
 
     /** Copy constructor */
     CL2DClass(const CL2DClass &other);
+    CL2DClass(const CL2DClass &&)=delete;
 
     /** Destructor */
     ~CL2DClass();
+
+    /** Copy assignment */
+    CL2DClass & operator =(const CL2DClass &other);
+    CL2DClass & operator =(const CL2DClass &&)=delete;
 
     /** Update projection. */
     void updateProjection(const MultidimArray<double> &I,
@@ -155,23 +160,30 @@ struct SDescendingClusterSort
 class CL2D {
 public:
 	/// Number of images
-	size_t Nimgs;
+	size_t Nimgs=0;
 
 	/// Pointer to input metadata
-	MetaData *SF;
+	MetaDataDb *SF=nullptr;
 
     /// List of nodes
     std::vector<CL2DClass *> P;
-    
-public:
+
+    /** Empty constructor */
+    CL2D() {}
+
     /** Destructor */
     ~CL2D();
+
+    CL2D(const CL2D &)=delete;
+    CL2D(const CL2D &&)=delete;
+    CL2D & operator=(const CL2D &)=delete;
+    CL2D & operator=(const CL2D &&)=delete;
 
     /// Read Image
     void readImage(Image<double> &I, size_t objId, bool applyGeo) const;
 
     /// Initialize
-    void initialize(MetaData &_SF,
+    void initialize(MetaDataDb &_SF,
     		        std::vector< MultidimArray<double> > &_codes0);
     
     /// Share assignments
@@ -277,6 +289,12 @@ public:
     /// Destructor
     ~ProgClassifyCL2D();
 
+    ProgClassifyCL2D(const ProgClassifyCL2D &)=delete;
+    ProgClassifyCL2D(const ProgClassifyCL2D &&)=delete;
+    ProgClassifyCL2D & operator =(const ProgClassifyCL2D &)=delete;
+    ProgClassifyCL2D & operator =(const ProgClassifyCL2D &&)=delete;
+
+
     /// Read
     void readParams();
     
@@ -293,7 +311,7 @@ public:
     void run();
 public:
     // Selfile with all the input images
-    MetaData SF;
+    MetaDataDb SF;
     
     // Object Ids
     std::vector<size_t> objId;

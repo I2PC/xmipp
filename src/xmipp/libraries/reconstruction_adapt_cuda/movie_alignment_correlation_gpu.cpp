@@ -62,9 +62,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     if (device < 0)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Invalid GPU device");
-    auto tmp = GPU(device);
-    tmp.set();
-    gpu = core::optional<GPU>(tmp);
+    gpu = core::optional<GPU>(device);
+    gpu.value().set();
 
     // read permanent storage
     storage = this->getParam("--storage");
@@ -94,9 +93,10 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
+    gpu.value().updateMemoryInfo();
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
-    this->loadFrame(movie, movie.firstObject(), frame);
+    this->loadFrame(movie, movie.firstRowId(), frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
 
     if (optimize) {
@@ -110,6 +110,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &s) {
+    gpu.value().updateMemoryInfo();
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
         size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
         while ((size / (float)v) < minScale) {
@@ -133,6 +134,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
+    gpu.value().updateMemoryInfo();
     const auto reqSize = this->getRequestedPatchSize();
     Dimensions hint(reqSize.first, reqSize.second,
             orig.dim.z(), orig.dim.n());
@@ -261,7 +263,6 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
             && UserSettings::get(storage).find(*this,
                     getKey(minMemoryStr, dim, applyCrop), neededMB);
     // check available memory
-    gpu.value().updateMemoryInfo();
     res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
     if (res) {
         return core::optional<FFTSettings<T>>(
@@ -332,6 +333,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
     }
+    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x() 
+        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+            throw std::logic_error("More control points than patches. Decrease the number of control points.");
+    }
 
     if ((movieSettings.dim.x() < patchSettings.dim.x())
         || (movieSettings.dim.y() < patchSettings.dim.y())) {
@@ -367,8 +372,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     size_t patchesElements = std::max(
         patchSettings.elemsFreq(),
         patchSettings.elemsSpacial());
-    T *patchesData1 = new T[patchesElements];
-    T *patchesData2 = new T[patchesElements];
+    auto *patchesData1 = new T[patchesElements];
+    auto *patchesData2 = new T[patchesElements];
 
     std::thread* processing_thread = nullptr;
 
@@ -481,8 +486,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
-    Image<T> croppedFrame(rawMovieDim.x(), rawMovieDim.y());
-    T *croppedFrameData = croppedFrame.data.data;
     Image<T> reducedFrame, shiftedFrame;
     int frameIndex = -1;
     Ninitial = N = 0;
@@ -504,8 +507,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             // by deducting the first frame that was aligned, we get proper offset to the stored memory
             int frameOffset = frameIndex - this->nfirst;
             // load frame
-            // we can point to proper part of the already loaded movie
-            croppedFrame.data.data = movieRawData + (frameOffset * rawMovieDim.xy());
+            // we can point to proper part of the already loaded 
+            auto *data = movieRawData + (frameOffset * rawMovieDim.xy());
+            auto croppedFrame = MultidimArray(1, 1, rawMovieDim.y(), rawMovieDim.x(), data);
 
             if (binning > 0) {
                 // FIXME add templates to respective functions/classes to avoid type casting
@@ -515,29 +519,32 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                  */
                 Image<double> croppedFrameDouble;
                 Image<double> reducedFrameDouble;
-                typeCast(croppedFrame(), croppedFrameDouble());
-
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
-                        floor(XSIZE(croppedFrame()) / binning),
-                        croppedFrameDouble(), reducedFrameDouble());
+                typeCast(croppedFrame, croppedFrameDouble());
+                auto scale = [binning](auto dim) {
+                  return static_cast<int>(
+                      std::floor(static_cast<T>(dim) / binning));
+                };
+                scaleToSizeFourier(1, scale(croppedFrame.ydim),
+                                   scale(croppedFrame.xdim),
+                                   croppedFrameDouble(), reducedFrameDouble());
 
                 typeCast(reducedFrameDouble(), reducedFrame());
-
-                croppedFrame() = reducedFrame();
+                croppedFrame.clear(); // forget whatever it pointed to before
+                croppedFrame = reducedFrame(); // assign new content
             }
 
             if ( ! this->fnInitialAvg.isEmpty()) {
                 if (frameIndex == this->nfirstSum)
-                    initialMic() = croppedFrame();
+                    initialMic() = croppedFrame;
                 else
-                    initialMic() += croppedFrame();
+                    initialMic() += croppedFrame;
                 Ninitial++;
             }
 
             if (this->fnAligned != "" || this->fnAvg != "") {
-                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, alignment.movieDim.n(),
+                transformer.initLazyForBSpline(croppedFrame.xdim, croppedFrame.ydim, alignment.movieDim.n(),
                         this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, frameOffset);
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame, coeffs, frameOffset);
 
 
                 if (this->fnAligned != "")
@@ -556,8 +563,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             }
         }
     }
-    // assign original data to avoid memory leak
-    croppedFrame.data.data = croppedFrameData;
 }
 
 template<typename T>
@@ -643,7 +648,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
     Image<T> frame;
 
     int movieImgIndex = -1;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         // update variables
         movieImgIndex++;
@@ -651,7 +656,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, igain, __iter.objId, frame);
+        this->loadFrame(movie, dark, igain, objId, frame);
 
         if (nullptr == imgs) {
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,

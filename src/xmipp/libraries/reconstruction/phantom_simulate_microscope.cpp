@@ -25,6 +25,7 @@
 
 #include "phantom_simulate_microscope.h"
 #include "core/metadata_extension.h"
+#include "core/metadata_generator.h"
 #include "core/histogram.h"
 #include "core/transformations.h"
 
@@ -34,7 +35,7 @@ void ProgSimulateMicroscope::readParams()
     XmippMetadataProgram::readParams();
 
     fn_ctf = "";//initialize empty, force recalculation of first time
-    pmdIn = getInputMd();
+    pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
     CTFpresent=true;
     if (checkParam("--ctf"))
     {
@@ -50,7 +51,7 @@ void ProgSimulateMicroscope::readParams()
         {
             //sort the images according to the ctf to avoid the recaculation of it
             //beeten images of the same ctf group
-            MetaData md(*pmdIn);
+            MetaDataDb md(*pmdIn);
             pmdIn->sort(md, MDL_CTF_MODEL);
         }
         else
@@ -151,9 +152,9 @@ void ProgSimulateMicroscope::estimateSigma()
     FileName fnImg;
     Image<double> proj;
     size_t nImg=0;
-    FOR_ALL_OBJECTS_IN_METADATA(*pmdIn)
+    for (size_t objId : pmdIn->ids())
     {
-        pmdIn->getValue(image_label, fnImg,__iter.objId);
+        pmdIn->getValue(image_label, fnImg,objId);
         proj.read(fnImg);
         MultidimArray<double> mProj=proj();
 

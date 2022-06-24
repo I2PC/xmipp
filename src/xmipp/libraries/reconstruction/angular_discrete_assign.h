@@ -28,6 +28,7 @@
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
 #include "core/multidim_array.h"
+#include "core/metadata_vec.h"
 #include "angular_distance.h"
 
 template<typename T>
@@ -85,7 +86,7 @@ public:
     // Subband size
     Matrix1D<int> SBsize;
     // Selfile with the reference projections
-    MetaData SF_ref;
+    MetaDataVec SF_ref;
     // Mask disitribution of DWT coefficients.
     // It is created when the training sets
     MultidimArray<int> Mask_no;
@@ -169,10 +170,6 @@ public:
     int pick_view(int method,
                   std::vector< std::vector<int> > &groups,
                   std::vector<double> &vscore,
-                  std::vector<double> &vrot,
-                  std::vector<double> &vtilt,
-                  std::vector<double> &vpsi,
-                  const std::vector<int> &best_idx,
                   const std::vector<int> &candidate_idx, const std::vector<double> &candidate_rates);
 
     /** Predict rotational and tilting angles.

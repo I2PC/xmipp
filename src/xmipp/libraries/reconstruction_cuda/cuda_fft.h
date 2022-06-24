@@ -41,6 +41,9 @@
 // unsigned, but the header (v.8) uses int
 typedef int cufftHandle;
 
+/**@defgroup CudaFFT CudaFFT
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class CudaFFT : public AFT<T> {
 public:
@@ -94,5 +97,5 @@ private:
     static void manyHelper(const FFTSettingsNew<T> &settings, F function);
     void check();
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FFT_H_ */

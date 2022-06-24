@@ -28,7 +28,7 @@
 #include "condor/Solver.h"
 
 // Empty constructor =======================================================
-ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
+ProgNmaAlignmentVol::ProgNmaAlignmentVol() : Rerunable("") {
 	rangen = 0;
 	resume = false;
 	currentVolName = "";
@@ -81,6 +81,7 @@ void ProgNmaAlignmentVol::readParams() {
 	fnPDB = getParam("--pdb");
 	fnOutPDB = getParam("--opdb");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir + "/nmaDone.xmd");
 	fnModeList = getParam("--modes");
 	resume = checkParam("--resume");
 	sampling_rate = getDoubleParam("--sampling_rate");
@@ -126,36 +127,8 @@ void ProgNmaAlignmentVol::show() {
 // Produce side information ================================================
 ProgNmaAlignmentVol *global_nma_vol_prog;
 
-void ProgNmaAlignmentVol::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/nmaDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_SHIFT_Z);
-		mdDone.addLabel(MDL_NMA);
-		mdDone.addLabel(MDL_NMA_ENERGY);
-		mdDone.addLabel(MDL_MAXCC);
-		mdDone.addLabel(MDL_ANGLE_Y);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
-
 void ProgNmaAlignmentVol::preProcess() {
-	MetaData SF(fnModeList);
+	MetaDataVec SF(fnModeList);
 	SF.removeDisabled();
 	numberOfModes = SF.size();
 	// Get the size of the images in the selfile
@@ -174,7 +147,7 @@ void ProgNmaAlignmentVol::preProcess() {
 
 void ProgNmaAlignmentVol::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/nmaDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // Create deformed PDB =====================================================
@@ -224,7 +197,7 @@ FileName ProgNmaAlignmentVol::createDeformedPDB() const {
 	return fnRandom;
 }
 
-bool ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
+bool ProgNmaAlignmentVol::updateBestFit(double fitness) {
 	if (fitness < fitness_min) {
 		fitness_min = fitness;
 		trial_best = trial;
@@ -286,7 +259,7 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 		//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
 	}
 
-	if(global_nma_vol_prog->updateBestFit(retval, dim) && global_nma_vol_prog->alignVolumes){
+	if(global_nma_vol_prog->updateBestFit(retval) && global_nma_vol_prog->alignVolumes){
 		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		for (int i = 0; i < 6; i++){
 			err = fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->Best_Angles_Shifts[i]);
@@ -346,7 +319,7 @@ void ProgNmaAlignmentVol::processImage(const FileName &fnImg,
 }
 
 void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);
@@ -378,5 +351,5 @@ void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
 		md.setValue(MDL_ANGLE_Y, 0.0 , objId);
 	}
 
-	md.append(fnOutDir+"/nmaDone.xmd");
+	md.append(Rerunable::getFileName());
 }

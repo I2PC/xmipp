@@ -163,7 +163,7 @@ void BlackmanMask(MultidimArray<double> &mask, int mode,
 }
 
 void SincBlackmanMask(MultidimArray<double> &mask,
-                      double omega, double power_percentage, int mode,
+                      double omega, double power_percentage,
                       double x0, double y0, double z0)
 {
     MultidimArray<double> blackman;
@@ -359,7 +359,9 @@ void BinaryDWTCircularMask2D(MultidimArray<int> &mask, double radius,
     mask.initZeros();
     for (int s = smin; s <= smax; s++)
     {
-        Matrix1D<int> corner1(2), corner2(2), r(2);
+        Matrix1D<int> corner1(2);
+        Matrix1D<int> corner2(2);
+        Matrix1D<int> r(2);
         Matrix1D<double> center(2);
         if (quadrant == "xx")
         {
@@ -444,7 +446,9 @@ void BinaryDWTSphericalMask3D(MultidimArray<int> &mask, double radius,
     double radius2 = radius * radius / (4 * (smin + 1));
     for (int s = smin; s <= smax; s++)
     {
-        Matrix1D<int> corner1(3), corner2(3), r(3);
+        Matrix1D<int> corner1(3);
+        Matrix1D<int> corner2(3);
+        Matrix1D<int> r(3);
         Matrix1D<double> center(3);
         if (quadrant == "xxx")
         {
@@ -482,37 +486,28 @@ void BinaryCylinderMask(MultidimArray<int> &mask,
 
 void BinaryConeMask(MultidimArray<int> &mask, double theta, int mode,bool centerOrigin)
 {
+    int halfX = mask.xdim/2;
+    int halfY = mask.ydim/2;
+    int halfZ = mask.zdim/2;
 
-    int halfX, halfY,halfZ;
-    int minX,minY,minZ;
-    int maxX,maxY,maxZ;
-    int ipp,jpp,kpp;
+    int minX = -halfX;
+    int minY = -halfY;
+    int minZ = -halfZ;
 
-    halfX = mask.xdim/2;
-    halfY = mask.ydim/2;
-    halfZ = mask.zdim/2;
-
-    minX = -halfX;
-    minY = -halfY;
-    minZ = -halfZ;
-
-    maxX = (int)((mask.xdim-0.5)/2);
-    maxY = (int)((mask.ydim-0.5)/2);
-    maxZ = (int)((mask.zdim-0.5)/2);
+    int maxX = (int)((mask.xdim-0.5)/2);
+    int maxY = (int)((mask.ydim-0.5)/2);
+    int maxZ = (int)((mask.zdim-0.5)/2);
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
     {
+        int kpp = k;
+        int ipp = i;
+        int jpp = j;
         if (centerOrigin)
         {
             kpp = intWRAP (k+halfZ,minZ,maxZ);
             ipp = intWRAP (i+halfY,minY,maxY);
             jpp = intWRAP (j+halfX,minX,maxX);
-        }
-        else
-        {
-            kpp=k;
-            ipp=i;
-            jpp=j;
         }
 
         double rad = tan(PI * theta / 180.) * (double)k;
@@ -528,29 +523,20 @@ void BinaryConeMask(MultidimArray<int> &mask, double theta, int mode,bool center
 void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
                      const Matrix2D<double> &A, bool centerOrigin)
 {
-    int halfX, halfY,halfZ;
-    int minX,minY,minZ;
-    int maxX,maxY,maxZ;
-    int ipp,jpp,kpp;
+    int halfX = mask.xdim/2;
+    int halfY = mask.ydim/2;
+    int halfZ = mask.zdim/2;
 
-    halfX = mask.xdim/2;
-    halfY = mask.ydim/2;
-    halfZ = mask.zdim/2;
+    int minX = -halfX;
+    int minY = -halfY;
+    int minZ = -halfZ;
 
-    minX = -halfX;
-    minY = -halfY;
-    minZ = -halfZ;
+    int maxX = (int)((mask.xdim-0.5)/2);
+    int maxY = (int)((mask.ydim-0.5)/2);
+    int maxZ = (int)((mask.zdim-0.5)/2);
 
-    maxX = (int)((mask.xdim-0.5)/2);
-    maxY = (int)((mask.ydim-0.5)/2);
-    maxZ = (int)((mask.zdim-0.5)/2);
-
-
-    double xp, zp;
-    double tg0, tgF, limx0, limxF;
-
-    tg0 = -tan(PI * (-90. - thetaF) / 180.);
-    tgF = -tan(PI * (90. - theta0) / 180.);
+    auto tg0 = -tan(PI * (-90. - thetaF) / 180.);
+    auto tgF = -tan(PI * (90. - theta0) / 180.);
     if (ABS(tg0) < XMIPP_EQUAL_ACCURACY)
         tg0=0.;
     if (ABS(tgF) < XMIPP_EQUAL_ACCURACY)
@@ -558,11 +544,15 @@ void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
     // ROB: A=A.inv(); A no const
     FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
     {
-        double di=(double)i;
-        double dj=(double)j;
-        double dk=(double)k;
-        xp = MAT_ELEM(A, 0, 0) * dj + MAT_ELEM(A, 0, 1) * di + MAT_ELEM(A, 0, 2) * dk;
-        zp = MAT_ELEM(A, 2, 0) * dj + MAT_ELEM(A, 2, 1) * di + MAT_ELEM(A, 2, 2) * dk;
+        auto di=(double)i;
+        auto dj=(double)j;
+        auto dk=(double)k;
+        auto xp = MAT_ELEM(A, 0, 0) * dj + MAT_ELEM(A, 0, 1) * di + MAT_ELEM(A, 0, 2) * dk;
+        auto zp = MAT_ELEM(A, 2, 0) * dj + MAT_ELEM(A, 2, 1) * di + MAT_ELEM(A, 2, 2) * dk;
+
+        int kpp = k;
+        int ipp = i;
+        int jpp = j;
 
         if (centerOrigin)
         {
@@ -570,15 +560,9 @@ void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
             ipp = intWRAP (i+halfY,minY,maxY);
             jpp = intWRAP (j+halfX,minX,maxX);
         }
-        else
-        {
-            kpp=k;
-            ipp=i;
-            jpp=j;
-        }
 
-        limx0 = tg0 * zp;// + 0.5;
-        limxF = tgF * zp;// + 0.5;
+        auto limx0 = tg0 * zp;// + 0.5;
+        auto limxF = tgF * zp;// + 0.5;
         if (zp >= 0)
         {
             if (xp <= limx0 || xp >= limxF)
@@ -1218,16 +1202,17 @@ void Mask::write_mask(const FileName &fn)
 void Mask::defineParams(XmippProgram * program, int allowed_data_types,
                         const char* prefix, const char* comment, bool moreOptions)
 {
-    char tempLine[256], tempLine2[256];
+    char tempLine[256];
+    char tempLine2[512];
 
     char advanced=' ';
     if (moreOptions)
     	advanced='+';
-    if(prefix == NULL)
+    if(prefix == nullptr)
         sprintf(tempLine, "  [--mask%c <mask_type=circular>] ",advanced);
     else
         sprintf(tempLine,"%s --mask%c <mask_type=circular> ", prefix,advanced);
-    if (comment != NULL)
+    if (comment != nullptr)
         sprintf(tempLine2, "%s : %s", tempLine, comment);
     else
     	strcpy(tempLine2,tempLine);
@@ -1703,7 +1688,7 @@ void apply_geo_binary_2D_mask(MultidimArray<int> &mask,
     MultidimArray<double> tmp2;
     tmp2 = tmp;
     // Instead of IS_INV for images use IS_NOT_INV for masks!
-    applyGeometry(1, tmp, tmp2, A, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, tmp, tmp2, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
     // The type cast gives strange results here, using round instead
     //typeCast(tmp, mask);
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mask)
@@ -1720,7 +1705,7 @@ void apply_geo_cont_2D_mask(MultidimArray<double> &mask,
     double outside = DIRECT_A2D_ELEM(mask, 0, 0);
     MultidimArray<double> tmp = mask;
     // Instead of IS_INV for images use IS_NOT_INV for masks!
-    applyGeometry(1, tmp, mask, A, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, tmp, mask, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 }
 
 int count_with_mask(const MultidimArray<int> &mask,
@@ -1733,15 +1718,15 @@ int count_with_mask(const MultidimArray<int> &mask,
     if (A2D_ELEM(mask, i, j))
         switch (mode)
         {
-        case (COUNT_ABOVE):
+        case COUNT_ABOVE:
                         if (abs(A3D_ELEM(m, k, i, j)) >= th1)
                             N++;
             break;
-        case (COUNT_BELOW):
+        case COUNT_BELOW:
                         if (abs(A3D_ELEM(m, k, i, j)) <= th1)
                             N++;
             break;
-        case (COUNT_BETWEEN):
+        case COUNT_BETWEEN:
                         if (abs(A3D_ELEM(m, k, i, j)) >= th1 && abs(A3D_ELEM(m, k, i, j)) <= th2)
                             N++;
             break;
@@ -1759,7 +1744,7 @@ void rangeAdjust_within_mask(const MultidimArray<double> *mask,
     b.initZeros();
     SPEED_UP_tempsInt;
     // Compute Least squares solution
-    if (mask == NULL)
+    if (mask == nullptr)
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(m1, m2)
         {

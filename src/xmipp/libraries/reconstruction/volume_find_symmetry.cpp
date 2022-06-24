@@ -90,7 +90,7 @@ public:
         addParamsLine("[--rotHelical <rot0=-357> <rotF=357> <step=3>]: Search space for rotation around Z");
         addParamsLine("[--localHelical <z> <rot>]      : Perform a local search around this angle and shift");
         addParamsLine("[--heightFraction <f=1>]        : Use this fraction of the volume");
-        mask_prm.defineParams(this,INT_MASK,NULL,"Restrict the comparison to the mask area.",true);
+        mask_prm.defineParams(this,INT_MASK,nullptr,"Restrict the comparison to the mask area.",true);
         addExampleLine("A typical application for a rotational symmetry axis is ",false);
         addExampleLine("xmipp_volume_center -i volume.vol");
         addExampleLine("xmipp_volume_find_symmetry -i volume.vol --sym rot 3");
@@ -209,7 +209,7 @@ public:
         volume().setXmippOrigin();
         mask_prm.generate_mask(volume());
         double best_corr, best_rot, best_tilt, best_z;
-        td=NULL;
+        td=nullptr;
 
         if (!helical && !helicalDihedral)
         {
@@ -266,7 +266,7 @@ public:
                 direction.push_back(YY(sym_axis));
                 direction.push_back(ZZ(sym_axis));
 
-                MetaData MD;
+                MetaDataVec MD;
                 size_t id=MD.addObject();
                 MD.setValue(MDL_ANGLE_ROT,best_rot,id);
                 MD.setValue(MDL_ANGLE_TILT,best_tilt,id);
@@ -337,7 +337,7 @@ public:
                 std::cout << "Symmetry parameters (z,rot)= " << best_z*Ts << " " << best_rot << " correlation=" << best_corr << std::endl;
             if (fn_output!="")
             {
-                MetaData MD;
+                MetaDataVec MD;
                 size_t id=MD.addObject();
                 MD.setValue(MDL_ANGLE_ROT,best_rot,id);
                 MD.setValue(MDL_SHIFT_Z,best_z*Ts,id);
@@ -380,11 +380,11 @@ public:
             {
                 rotation3DMatrix(360.0 / rot_sym * n, sym_axis, sym_matrix);
                 if (useSplines)
-                    applyGeometry(BSPLINE3, volume_aux, mVolume, sym_matrix,
-                                  IS_NOT_INV, DONT_WRAP);
+                    applyGeometry(xmipp_transformation::BSPLINE3, volume_aux, mVolume, sym_matrix,
+                                  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
                 else
-                    applyGeometry(LINEAR, volume_aux, mVolume, sym_matrix,
-                                  IS_NOT_INV, DONT_WRAP);
+                    applyGeometry(xmipp_transformation::LINEAR, volume_aux, mVolume, sym_matrix,
+                                  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
                 volume_sym += volume_aux;
             }
             return -correlationIndex(mVolume, volume_sym, &mask_prm.get_binary_mask());

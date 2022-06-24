@@ -30,7 +30,6 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <data/mask.h>
-#include <core/metadata.h>
 #include <memory>
 
 /**@defgroup AngularPredictContinuous angular_continuous_assign (Continuous angular assignment)

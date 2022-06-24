@@ -26,7 +26,7 @@
 #ifndef SERIES_REMOVE_FLUCTUATIONS_H
 #define SERIES_REMOVE_FLUCTUATIONS_H
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
 
@@ -48,7 +48,7 @@ public:
     double maxFreq;
 public:
     // Selfile with the input mages
-    MetaData SF;
+    MetaDataVec SF;
     
     // Volume for holding the whole tilt series
     Image<double> V;

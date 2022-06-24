@@ -24,8 +24,9 @@
  ***************************************************************************/
 
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/metadata_sql.h"
+#include "core/metadata_generator.h"
 #include "core/xmipp_image_macros.h"
 #include "core/xmipp_funcs.h"
 
@@ -34,7 +35,7 @@ class ProgMetadataUtilities: public XmippProgram
 private:
     WriteModeMetaData mode;
     FileName fn_in, fn_out, fn_md2;
-    MetaData mdIn, md2;
+    MetaDataDb mdIn, md2;
     MDLabel label;
     std::vector<MDLabel> labels;
     String operation, order;
@@ -229,19 +230,19 @@ protected:
             mdIn.subtraction(md2, label);
         else if (operation == "join")
         {
-            MetaData md;
+            MetaDataDb md;
             md.join1(mdIn, md2, label);
             mdIn = md;
         }
         else if (operation == "natural_join")
         {
-            MetaData md;
+            MetaDataDb md;
             md.joinNatural(mdIn, md2);
             mdIn = md;
         }
         else if (operation == "inner_join")
         {
-            MetaData md;
+            MetaDataDb md;
             md.join2(mdIn, md2, label, label2, INNER);
             mdIn = md;
         }
@@ -268,7 +269,7 @@ protected:
         }
         else if ( operation == "remove_duplicates")
         {
-        	MetaData aux;
+        	MetaDataDb aux;
         	aux.removeDuplicates(mdIn,MDL::str2Label(getParam("--operate", 1)));
         	mdIn=aux;
         }
@@ -284,14 +285,14 @@ protected:
         else if (operation == "expand")// modify_values
         {
             int factor = getIntParam("--operate", 1);
-            MetaData md;
+            MetaDataDb md;
             for (int i = 0; i < factor; i++)
                 md.unionAll(mdIn);
 
             mdIn = md;
         }else
         {
-            MetaData md(mdIn);
+            MetaDataDb md(mdIn);
             if (operation == "sort")
             {
                 String order=getParam("--operate",2);
@@ -303,8 +304,8 @@ protected:
                 double n=1;
                 double iN=1.0/md.size();
                 MDLabel labelOut=MDL::str2Label(getParam("--operate", 2));
-				FOR_ALL_OBJECTS_IN_METADATA(mdIn)
-                	mdIn.setValue(labelOut,(n++)*iN,__iter.objId);
+                for (size_t objId : mdIn.ids())
+                    mdIn.setValue(labelOut,(n++)*iN,objId);
             }
             else if (operation == "randomize")
                 mdIn.randomize(md);
@@ -313,22 +314,22 @@ protected:
                 std::vector<size_t> objId;
                 objId.resize(md.size());
                 size_t n=0;
-                FOR_ALL_OBJECTS_IN_METADATA(md)
-                objId[n++]=__iter.objId;
+                for (size_t id : md.ids())
+                    objId[n++] = id;
                 // md.getColumnValues(MDL_OBJID,objId); COSS: It should work, but it does not
                 int N_1=((int)objId.size())-1;
-                MDRow row;
-                MetaData mdAux;
-                FOR_ALL_OBJECTS_IN_METADATA(md)
+                MDRowSql row;
+                MetaDataDb mdAux;
+                for (size_t _ : md.ids())
                 {
-                    md.getRow(row,objId[(size_t)rnd_unif(0,N_1)]);
+                    md.getRow(row, objId[(size_t)rnd_unif(0,N_1)]);
                     mdAux.setRow(row,mdAux.addObject());
                 }
                 mdIn.sort(mdAux,MDL_IMAGE);
             }
             else if (operation == "random_subset")
             {
-                MetaData mdAux, mdAux2;
+                MetaDataDb mdAux, mdAux2;
                 mdAux.randomize(md);
                 md.clear();
                 mdAux2.selectPart(mdAux, 0, getIntParam("--operate", 1));
@@ -347,7 +348,7 @@ protected:
             REPORT_ERROR(ERR_PARAM_INCORRECT, "You should provide at least one label to fill out");
 
         operation = getParam("--fill", 1);
-        MDValueGenerator * generator=NULL;
+        MDValueGenerator * generator=nullptr;
 
         // Select which generator to use
         if (operation == "expand")
@@ -475,10 +476,9 @@ protected:
             doWrite = !doDelete;
 
             int counter=FIRST_IMAGE;
-            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            for (size_t objId : mdIn.ids())
             {
-
-                mdIn.getValue(label, inFnImg, __iter.objId);
+                mdIn.getValue(label, inFnImg, objId);
                 bool isStack=inFnImg.isInStack();
                 if (doDelete)
                 {
@@ -500,7 +500,7 @@ protected:
                         oldOutFnImg = outFnImg;
                         outFnImg.compose(counter, outFnImg);
                     }
-                    mdIn.setValue(label, outFnImg, __iter.objId);
+                    mdIn.setValue(label, outFnImg, objId);
                     //output file name for copy
                     if (operation == "copy" && isStack)
                     {

@@ -28,24 +28,23 @@
 
 void ExtractSubset::createSubset(const Settings &s) {
     s.check();
-    auto it = MDIterator(s.md);
+    auto it = s.md.ids().begin();
     // get to proper position
-    for (size_t i = 0; i < s. first; ++i) {
-        it.moveNext();
-    }
-    MDRow row;
-    auto destMD = MetaData();
+    for (size_t i = 0; i < s.first; ++i)
+        ++it;
+
+    auto destMD = MetaDataVec();
     auto img = Image<float>();
     // iterate through all items
-    for (size_t i = 0; i < s.count; it.moveNext(), i++) {
+    for (size_t i = 0; i < s.count; ++it, i++) {
         // orig name
         FileName origName;
-        s.md.getValue(MDL_IMAGE, origName, it.objId);
+        s.md.getValue(MDL_IMAGE, origName, *it);
         // new name
         FileName newName;
         newName.compose(i + 1, s.outStk); // within stk file, index images from one (1)
         // copy row, replace name
-        s.md.getRow(row, it.objId);
+        MDRowVec row = s.md.getRowVec(*it);
         row.setValue(MDL_IMAGE, newName);
         row.setValue(MDL_ENABLED, 1);
         destMD.addRow(row);

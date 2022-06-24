@@ -4,7 +4,7 @@
 #include <core/xmipp_image_extension.h>
 #include <iostream>
 #include <gtest/gtest.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include "core/transformations.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
@@ -24,6 +24,7 @@ protected:
         imageName = "image/singleImage.spi";
         stackName = "image/smallStack.stk";
         stackVolName= "image/smallVolumeStack.stk";
+        imageNameMRC = "image/singleImage.mrc";
         myImage.read(imageName);
         myStack.read(stackName);
         myVolStack.read(stackVolName);
@@ -38,7 +39,7 @@ protected:
     FileName stackName;
     FileName stackVolName;
     FileName xmippPath;
-
+    FileName imageNameMRC;
 };
 
 
@@ -82,7 +83,7 @@ TEST_F( ImageTest, readApplyGeo)
 {
     XMIPP_TRY
     FileName auxFn = "image/test2.spi";
-    MetaData md;
+    MetaDataVec md;
     size_t id = md.addObject();
     md.setValue(MDL_IMAGE, auxFn, id);
     md.setValue(MDL_ANGLE_PSI, 45., id);
@@ -105,7 +106,7 @@ TEST_F( ImageTest, readApplyGeoFromMatrix)
   // Same as readApplyGeo, but using the transformation matrix
     XMIPP_TRY
     FileName auxFn = "image/test2.spi";
-    MetaData md;
+    MetaDataVec md;
     size_t id = md.addObject();
     md.setValue(MDL_IMAGE, auxFn, id);
     // Equivalent matrix to a 45 in-plane rotation
@@ -135,8 +136,8 @@ TEST_F( ImageTest, readImageFromStackMetadata)
     stackSliceFn.compose(2, stackName);
     Image<double> img1;
     img1.read(stackSliceFn);
-    MetaData md(stackSliceFn);
-    size_t id = md.firstObject();
+    MetaDataVec md(stackSliceFn);
+    size_t id = md.firstRowId();
     md.getValue(MDL_IMAGE, auxFn, id);
     Image<double> img2;
     img2.read(auxFn);
@@ -234,32 +235,32 @@ TEST_F( ImageTest, writeIMAGICstack)
     XMIPP_CATCH
 }
 
-TEST_F( ImageTest, writeMRCimage)
+void checkMRC(Image<double> &myImage, const FileName &suffixIn, const FileName &suffixOut)
 {
     XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_mrc_XXXXXX");
-    auxFn = auxFn + ":mrc";
-    myImage.write(auxFn);
+    myImage.write(auxFn+suffixIn);
     Image<double> auxImage;
-    auxImage.read(auxFn);
+    auxImage.read(auxFn+suffixOut);
     EXPECT_EQ(myImage,auxImage);
     auxFn.deleteFile();
     XMIPP_CATCH
 }
 
+TEST_F( ImageTest, writeMRCimage)
+{
+	checkMRC(myImage,":mrc",":mrc");
+}
+
 TEST_F( ImageTest, writeMRCstack)
 {
-    XMIPP_TRY
-    FileName auxFn;
-    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
-    auxFn = auxFn + ":mrcs";
-    myStack.write(auxFn);
-    Image<double> auxStack;
-    auxStack.read(auxFn);
-    EXPECT_EQ(myStack,auxStack);
-    auxFn.deleteFile();
-    XMIPP_CATCH
+	checkMRC(myImage,":mrcs",":mrcs");
+	checkMRC(myImage,".ali:mrcs",".ali");
+	checkMRC(myImage,".preali:mrcs",".preali");
+
+	setenv("XMIPP_MRC_EXTENSIONS", "aux", 1);
+	checkMRC(myImage,".aux",".aux");
 }
 
 TEST_F( ImageTest, writeMRCVOLstack)
@@ -277,6 +278,27 @@ TEST_F( ImageTest, writeMRCVOLstack)
     myVolStack.getDimensions(StackArrayDim);
     auxStack.getDimensions(auxStackArrayDim);
     EXPECT_TRUE(StackArrayDim==auxStackArrayDim);
+    auxFn.deleteFile();
+    XMIPP_CATCH
+}
+
+TEST_F( ImageTest, writeMRCVOLstack2)
+{
+    XMIPP_TRY
+    FileName auxFn;
+    auxFn.initUniqueName("/tmp/temp_mrcvol_XXXXXX");
+    auxFn = auxFn + ".rec";
+    myVolStack.write(auxFn+":mrc");
+    Image<double> auxVol;
+    auxVol.read(auxFn);
+    EXPECT_EQ(myVolStack,auxVol);
+    ArrayDim volArrayDim;
+    ArrayDim stackArrayDim;
+    myVolStack.getDimensions(stackArrayDim);
+    auxVol.getDimensions(volArrayDim);
+    EXPECT_TRUE(stackArrayDim.xdim==volArrayDim.xdim);
+    EXPECT_TRUE(stackArrayDim.ydim==volArrayDim.ydim);
+    EXPECT_TRUE(stackArrayDim.ndim==volArrayDim.zdim);
     auxFn.deleteFile();
     XMIPP_CATCH
 }
@@ -326,6 +348,16 @@ TEST_F( ImageTest, readRAWimage)
     XMIPP_CATCH
 }
 
+TEST_F( ImageTest, readMRC) {
+    ASSERT_TRUE(myImage.read(imageNameMRC) == 0);
+
+    ImageInfo info;
+    myImage.getInfo(info);
+
+    ASSERT_TRUE(info.filename == imageNameMRC);
+    ASSERT_TRUE(info.datatype ==  DT_Float);//// Floating point (4-byte)
+}
+
 TEST_F( ImageTest, readPreview)
 {
     XMIPP_TRY
@@ -334,7 +366,7 @@ TEST_F( ImageTest, readPreview)
     img1.read(auxFn);
 
     img1().setXmippOrigin();
-    selfScaleToSize(NEAREST, img1(),32,32,4);
+    selfScaleToSize(xmipp_transformation::NEAREST, img1(),32,32,4);
 
     img2.readPreview(auxFn, 32,32, ALL_SLICES);
     img1().setXmippOrigin();
@@ -354,7 +386,7 @@ TEST_F( ImageTest, getPreview)
     img1.getPreview(&img2, 32,32, ALL_SLICES);
 
     img1().setXmippOrigin();
-    selfScaleToSize(NEAREST, img1(),32,32,4);
+    selfScaleToSize(xmipp_transformation::NEAREST, img1(),32,32,4);
 
     img1().setXmippOrigin();
     img2().setXmippOrigin();

@@ -27,7 +27,6 @@
 
 int main(int argc, char **argv)
 {
-    ProgMPIRecWbp program;
-    program.read(argc,argv);
+    ProgMPIRecWbp program(argc,argv);
     return program.tryRun();
 }

@@ -31,6 +31,9 @@
 #include <functional>
 #include "aextrema_finder.h"
 
+/**@defgroup SingleExtremaFinder Single Extrema Finder
+   @ingroup ReconsLibrary */
+//@{
 namespace ExtremaFinder {
 
 template<typename T>
@@ -126,5 +129,5 @@ private:
 };
 
 } /* namespace ExtremaFinder */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_SINGLE_EXTREMA_FINDER_H_ */

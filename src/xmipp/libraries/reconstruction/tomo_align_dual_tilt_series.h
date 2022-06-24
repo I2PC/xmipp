@@ -27,7 +27,7 @@
 #define ANGULAR_ALIGN_DUAL_TILT_SERIES_H_
 
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/multidim_array.h"
 #include "core/xmipp_program.h"
 
@@ -93,10 +93,10 @@ public:
     bool debugging;
 
     // Reference tilt series
-    MetaData SFRef;
+    MetaDataVec SFRef;
 
     // Dual tilt series
-    MetaData SFDual;
+    MetaDataVec SFDual;
 
     // List of angles in ref
     MultidimArray<double> tiltRef;

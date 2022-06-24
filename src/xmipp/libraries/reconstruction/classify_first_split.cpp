@@ -73,7 +73,7 @@ void ProgClassifyFirstSplit::run()
 {
     show();
 
-    MetaData md, mdRec;
+    MetaDataDb md, mdRec;
     md.read(fnClasses);
 
     // Generate the mean
@@ -106,21 +106,21 @@ void ProgClassifyFirstSplit::run()
     	if (Nsym>1)
     	{
     		double rot, tilt, psi, rotp, tiltp, psip;
-    		FOR_ALL_OBJECTS_IN_METADATA(mdRec)
+            for (size_t objId : mdRec.ids())
 			{
     			int idx=round(rnd_unif(0,Nsym));
     			if (idx>0)
     			{
-					mdRec.getValue(MDL_ANGLE_ROT, rot, __iter.objId);
-					mdRec.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
-					mdRec.getValue(MDL_ANGLE_PSI, psi, __iter.objId);
+					mdRec.getValue(MDL_ANGLE_ROT, rot, objId);
+					mdRec.getValue(MDL_ANGLE_TILT, tilt, objId);
+					mdRec.getValue(MDL_ANGLE_PSI, psi, objId);
 
     	            SL.getMatrices(idx - 1, L, R, false);
 					Euler_apply_transf(L, R, rot, tilt, psi, rotp, tiltp, psip);
 
-					mdRec.setValue(MDL_ANGLE_ROT, rotp, __iter.objId);
-					mdRec.setValue(MDL_ANGLE_TILT, tiltp, __iter.objId);
-					mdRec.setValue(MDL_ANGLE_PSI, psip, __iter.objId);
+					mdRec.setValue(MDL_ANGLE_ROT, rotp, objId);
+					mdRec.setValue(MDL_ANGLE_TILT, tiltp, objId);
+					mdRec.setValue(MDL_ANGLE_PSI, psip, objId);
     			}
 			}
     	}

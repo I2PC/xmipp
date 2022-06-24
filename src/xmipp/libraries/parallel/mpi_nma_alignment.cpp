@@ -33,39 +33,23 @@
 class MpiProgNMA: public ProgNmaAlignment
 {
 private:
-    MpiNode *node;
-    MpiTaskDistributor *distributor;
+    std::shared_ptr<MpiNode> node;
+    std::unique_ptr<MpiTaskDistributor> distributor;
     std::vector<size_t> imgsId;
-    MpiFileMutex *fileMutex;
+    std::unique_ptr<MpiFileMutex> fileMutex;
 
 public:
-    /** Empty Constructor */
-    MpiProgNMA()
-    {
-    	node=NULL;
-    	distributor=NULL;
-    	fileMutex=NULL;
-    }
-
-    /** Destructor */
-    ~MpiProgNMA()
-    {
-        delete node;
-        delete fileMutex;
-        delete distributor;
-    }
-
     /** Redefine read to initialize MPI environment */
     void read(int argc, char **argv)
     {
-        node = new MpiNode(argc, argv);
+    	node = std::make_shared<MpiNode>(argc, argv);
         if (!node->isMaster())
         	verbose=0;
-        fileMutex = new MpiFileMutex(node);
+        fileMutex = std::make_unique<MpiFileMutex>(node);
         ProgNmaAlignment::read(argc, argv);
     }
     /** main body */
-    void createWorkFiles()
+    void createWorkFiles() override
     {
         //Master node should prepare some stuff before start working
         MetaData &mdIn = *getInputMd(); //get a reference to input metadata
@@ -79,7 +63,7 @@ public:
         mdIn.read(fnOutDir + "/nmaTodo.xmd");
         mdIn.findObjects(imgsId);//get objects ids
         rangen = node->rank;
-        distributor = new MpiTaskDistributor(mdIn.size(), 1, node);
+        distributor = std::make_unique<MpiTaskDistributor>(mdIn.size(), 1, node);
     }
     //Only master do starting progress bar stuff
     void startProcessing()
@@ -94,7 +78,7 @@ public:
             ProgNmaAlignment::showProgress();
     }
     //Now use the distributor to grasp images
-    bool getImageToProcess(size_t &objId, size_t &objIndex)
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         size_t first, last;
         bool moreTasks = distributor->getTasks(first, last);

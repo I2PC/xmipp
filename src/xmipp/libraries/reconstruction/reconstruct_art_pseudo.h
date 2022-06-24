@@ -30,7 +30,7 @@
 
 #include "core/matrix1d.h"
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
 
@@ -89,7 +89,7 @@ public:
         const std::vector<double> &lambda);
 public:
     // Input images
-    MetaData DF;
+    MetaDataVec DF;
 
     // Atomic positions
     std::vector< Matrix1D<double> > atomPosition;

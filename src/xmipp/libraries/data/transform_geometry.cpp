@@ -77,6 +77,7 @@ void ProgTransformGeometry::defineParams()
     addParamsLine("                                    : and the alignment information is stored in metadata");
     addParamsLine("[--dont_wrap]                       : By default, the image/volume is wrapped");
     addParamsLine("[--write_matrix]                    : Print transformation matrix to screen");
+    addParamsLine("[--shift_to <x=0> <y=0> <z=0>]      : Shift each particle to x,y,z position");
     //examples
     addExampleLine("Write a metadata with geometrical transformations keeping the reference to original images:", false);
     addExampleLine("xmipp_transform_geometry -i mD1.xmd --shift 2 3 4 --scale 1.2 --rotate 23 -o newGeo.xmd");
@@ -101,9 +102,9 @@ void ProgTransformGeometry::readParams()
     wrap = ! checkParam("--dont_wrap");
     String degree = getParam("--interp");
     if (degree == "spline")
-        splineDegree = BSPLINE3;
+        splineDegree = xmipp_transformation::BSPLINE3;
     else if (degree == "linear")
-        splineDegree = LINEAR;
+        splineDegree = xmipp_transformation::LINEAR;
     flip = checkParam("--flip");
 
     /** In most cases output "-o" is a metadata with the new geometry keeping 
@@ -175,7 +176,7 @@ void ProgTransformGeometry::preProcess()
     R.initIdentity(dim + 1);
     A.initIdentity(dim + 1);
 
-    MDRow rowGeo;
+    MDRowVec rowGeo;
     rowGeo.setValue(MDL_SHIFT_X, getDoubleParam("--shift", 0));
     rowGeo.setValue(MDL_SHIFT_Y, getDoubleParam("--shift", 1));
     rowGeo.setValue(MDL_SCALE, getDoubleParam("--scale"));
@@ -237,13 +238,45 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
     if (applyTransform || fnImg != fnImgOut)
         img.read(fnImg);
 
+
+    if (checkParam("--shift_to"))
+	{
+    	double rot, tilt, psi;
+    	rowIn.getValue(MDL_ANGLE_ROT, rot);
+    	rowIn.getValue(MDL_ANGLE_TILT, tilt);
+        rowIn.getValue(MDL_ANGLE_PSI, psi);
+    	Matrix1D<double> pos, posp;
+    	pos.initZeros(3);
+    	posp.initZeros(3);
+		pos(0) = getDoubleParam("--shift_to", 0);
+		pos(1) = getDoubleParam("--shift_to", 1);
+		pos(2) = getDoubleParam("--shift_to", 2);
+		R.initIdentity(3);
+		Euler_angles2matrix(rot, tilt, psi, R, false);
+		if (checkParam("--inverse"))
+			R = R.inv();
+		posp = R * pos;
+		rowOut.setValue(MDL_SHIFT_X, -posp(0));
+		rowOut.setValue(MDL_SHIFT_Y, -posp(1));
+		T.initIdentity(3);
+		int nx;
+		rowIn.getValue(MDL_XCOOR, nx);
+		nx += int(-posp(0));
+		rowOut.setValue(MDL_XCOOR, nx);
+		int ny;
+		rowIn.getValue(MDL_YCOOR, ny);
+		ny += int(-posp(1));
+		rowOut.setValue(MDL_YCOOR, ny);
+		geo2TransformationMatrix(rowOut, T, true);
+    }
+
     if (applyTransform)
     {
         img().setXmippOrigin();
         imgOut.setDatatype(img.getDatatype());
         imgOut().resize(1, zdimOut, ydimOut, xdimOut, false);
         imgOut().setXmippOrigin();
-        applyGeometry(splineDegree, imgOut(), img(), T, IS_NOT_INV, wrap, 0.);
+        applyGeometry(splineDegree, imgOut(), img(), T, xmipp_transformation::IS_NOT_INV, wrap, 0.);
         imgOut.write(fnImgOut);
         rowOut.resetGeo(false);
     }

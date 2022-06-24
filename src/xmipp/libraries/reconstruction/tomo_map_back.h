@@ -27,7 +27,7 @@
 
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 ///@defgroup TomoMapBack Tomo map back
 ///@ingroup ReconsLibrary
@@ -43,7 +43,7 @@ public:
 public:
     // Input volume
     Image<double> tomo, reference;
-    MetaData mdGeom;
+    MetaDataVec mdGeom;
     int mode;
     double K;
     double threshold;

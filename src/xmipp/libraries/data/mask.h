@@ -44,10 +44,10 @@ void apply_geo_cont_2D_mask(MultidimArray< double >& mask,
 /// @ingroup DataLibrary
 //@{
 
-#define INNER_MASK 1
-#define OUTSIDE_MASK 2
-#define NO_ACTIVATE 0
-#define ACTIVATE 1
+constexpr int INNER_MASK = 1;
+constexpr int OUTSIDE_MASK = 2;
+constexpr int NO_ACTIVATE = 0;
+constexpr int ACTIVATE = 1;
 
 ///@name Actual masks
 //@{
@@ -123,7 +123,6 @@ void BlackmanMask(MultidimArray< double >& mask, int mode = INNER_MASK,
  */
 void SincBlackmanMask(MultidimArray< double >& mask,
                       double omega, double power_percentage,
-                      int mode = INNER_MASK,
                       double x0 = 0, double y0 = 0, double z0 = 0);
 
 /** Creates a circular mask for already sized masks
@@ -388,7 +387,7 @@ public:
 #define ALL_KINDS   INT_MASK | DOUBLE_MASK
 
     static void defineParams(XmippProgram * program, int allowed_data_types = ALL_KINDS,
-                             const char* prefix=NULL, const char* comment=NULL, bool moreOptions=false);
+                             const char* prefix=nullptr, const char* comment=nullptr, bool moreOptions=false);
     void readParams(XmippProgram * program);
 
 
@@ -429,7 +428,8 @@ public:
     int blob_order;
     
     /** Blob parameters */
-    double blob_radius, blob_alpha;
+    double blob_radius;
+    double blob_alpha;
 
     /** Height
      * Height for cylinders.
@@ -907,8 +907,10 @@ void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
                                      MultidimArray< T >& v, Histogram1D &hist,
                                      int no_steps)
 {
-    T min_val, max_val;
-    double avg, stddev;
+    T min_val;
+    T max_val;
+    double avg;
+    double stddev;
 
     computeStats_within_binary_mask(mask, v, min_val, max_val, avg, stddev);
     compute_hist_within_binary_mask(mask, v, hist, min_val, max_val, no_steps);
@@ -937,9 +939,9 @@ void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
     }
 }
 
-#define COUNT_ABOVE 1
-#define COUNT_BELOW 2
-#define COUNT_BETWEEN 3
+constexpr int  COUNT_ABOVE = 1;
+constexpr int  COUNT_BELOW = 2;
+constexpr int  COUNT_BETWEEN = 3;
 
 /** Count pixels/voxels with mask and above a threshold
  *
@@ -987,17 +989,17 @@ int count_with_mask(const MultidimArray< int >& mask,
     if (A3D_ELEM(mask, k, i, j))
         switch (mode)
         {
-        case (COUNT_ABOVE):
+        case COUNT_ABOVE:
                         if (A3D_ELEM(m, k, i, j) >= th1)
                             N++;
             break;
 
-        case (COUNT_BELOW):
+        case COUNT_BELOW:
                         if (A3D_ELEM(m, k, i, j) <= th1)
                             N++;
             break;
 
-        case (COUNT_BETWEEN):
+        case COUNT_BETWEEN:
                         if (A3D_ELEM(m, k, i, j) >= th1 && A3D_ELEM(m, k, i, j) <= th2)
                             N++;
             break;

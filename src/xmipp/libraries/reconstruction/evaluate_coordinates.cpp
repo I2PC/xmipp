@@ -62,7 +62,6 @@ void ProgEvaluateCoordinates::defineParams()
 
 void ProgEvaluateCoordinates::run()
 {
-    MDRow row;
     int evalXCoor, evalYCoor, gtXCoor, gtYCoor;
     int truePosivites = 0, totalEval = 0, totalGT = 0;
 
@@ -77,14 +76,15 @@ void ProgEvaluateCoordinates::run()
         Eval.read(micEval);
 
         int iterE = 1;
-        FOR_ALL_OBJECTS_IN_METADATA(Eval)
+        for (size_t objIdEval : Eval.ids())
         {
+            MDRowVec row;
             Eval.getRow(row, iterE);
             row.getValue(MDL_XCOOR, evalXCoor);
             row.getValue(MDL_YCOOR, evalYCoor);
 
             int iterG = 1;
-            FOR_ALL_OBJECTS_IN_METADATA(GT)
+            for (size_t objIdGT : GT.ids())
             {
                 GT.getRow(row, iterG);
                 row.getValue(MDL_XCOOR, gtXCoor);

@@ -43,7 +43,7 @@ ProgMPIReconsArt::ProgMPIReconsArt(int argc, char *argv[])
 /* constructor providing an MpiNode
  * this is useful for using this program from others
  */
-ProgMPIReconsArt::ProgMPIReconsArt(MpiNode * node)
+ProgMPIReconsArt::ProgMPIReconsArt(const std::shared_ptr<MpiNode> &node)
 {
     this->setNode(node);
 }
@@ -451,7 +451,7 @@ void ProgMPIReconsArt::run()
 
                 if (artPrm.parallel_mode == BasicARTParameters::pfSIRT)
                 {
-                    double norm_value = (double) num_img_tot;
+                    auto norm_value = (double) num_img_tot;
                     vol_basis(jj)() = vol_aux2(jj)() + (vol_basis_aux(jj)() / norm_value);
                 }
                 else if (artPrm.parallel_mode == BasicARTParameters::pSIRT)

@@ -33,7 +33,7 @@
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 // Forward declaration
 class DocFile;
@@ -81,14 +81,6 @@ public:
      */
     DocLine() : line_type(NOT_ASSIGNED)
     {}
-
-    /** Copy constructor.
-     */
-    DocLine(const DocLine& line);
-
-    /** Assignment.
-     */
-    DocLine& operator=(const DocLine& line);
     //@}
 
     /// @name Component access
@@ -258,14 +250,6 @@ public:
         read(doc_name);
     }
 
-    /** Copy constructor.
-     *
-     * @code
-     * DocFile DF2(DF1);
-     * @endcode
-     */
-    DocFile(const DocFile& DF);
-
     /** Empties the object.
      *
      * @code
@@ -290,14 +274,6 @@ public:
 
     /// @name DocFile operators
     //@{
-
-    /** Assignment
-     *
-     * @code
-     * DF2 = DF1;
-     * @endcode
-     */
-    DocFile& operator=(const DocFile &DF);
 
     /** Assignment from matrix.
      *

@@ -26,8 +26,7 @@
 #include <fstream>
 #include "ctf_correct_wiener3d.h"
 
-#define OVERSAMPLE 8
-
+constexpr int OVERSAMPLE = 8;
 /* Read parameters from command line. -------------------------------------- */
 void ProgCtfCorrectAmplitude3D::readParams()
 {
@@ -81,7 +80,7 @@ void ProgCtfCorrectAmplitude3D::produceSideInfo()
     ctfdat.read(fnIn);
 
     // Get dimensions of the volumes
-    size_t id = ctfdat.firstObject();
+    size_t id = ctfdat.firstRowId();
     FileName fnVol, fnCTF;
     ctfdat.getValue(MDL_IMAGE,fnVol, id);
     ctfdat.getValue(MDL_CTF_MODEL,fnCTF, id);
@@ -131,23 +130,23 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
     double tot_nr_imgs = 0;
     // Oversample the 1D CTF and Wiener filter vectors OVERSAMPLE times
     // Use 0.55*sqrt(3) to make sure all pixels fit in...
-    size_t nr_steps= (size_t)ceil(OVERSAMPLE * 0.55 * sqrt((double)(Zdim*Zdim + Ydim*Ydim + Xdim*Xdim)));
+    auto nr_steps= (size_t)ceil(OVERSAMPLE * 0.55 * sqrt((double)(Zdim*Zdim + Ydim*Ydim + Xdim*Xdim)));
 
     Vctfs1D.clear();
     Vwien1D.clear();
     int ii = 0;
     FileName fnVol, fnCTF;
-    FOR_ALL_OBJECTS_IN_METADATA(ctfdat)
+    for (size_t objId : ctfdat.ids())
     {
         // Calculate 1D CTF
-        ctfdat.getValue(MDL_IMAGE,fnVol,__iter.objId);
-        ctfdat.getValue(MDL_CTF_MODEL,fnCTF,__iter.objId);
+        ctfdat.getValue(MDL_IMAGE,fnVol,objId);
+        ctfdat.getValue(MDL_CTF_MODEL,fnCTF,objId);
         generateCTF1D(fnCTF,nr_steps,CTF1D);
         Vctfs1D.push_back(CTF1D);
 
         // Get the number of images contributing to this group
         size_t NumberOfImages;
-        ctfdat.getValue(MDL_CLASS_COUNT,NumberOfImages,__iter.objId);
+        ctfdat.getValue(MDL_CLASS_COUNT,NumberOfImages,objId);
         tot_nr_imgs += NumberOfImages;
 
         // Calculate denominator of the Wiener filter
@@ -166,10 +165,10 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
 
     double maxwien=0, minwien=1e38;
     ii=0;
-    FOR_ALL_OBJECTS_IN_METADATA(ctfdat)
+    for (size_t objId : ctfdat.ids())
     {
         size_t NumberOfImages;
-        ctfdat.getValue(MDL_CLASS_COUNT,NumberOfImages,__iter.objId);
+        ctfdat.getValue(MDL_CLASS_COUNT,NumberOfImages,objId);
         CTF1D=Vctfs1D[ii];
         CTF1D*=NumberOfImages;
         CTF1D/=sumterm;
@@ -181,7 +180,7 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
             FileName fn_tmp;
             fn_tmp = fnRoot + "_wien";
             fn_tmp.compose(fn_tmp, ii+1, "txt");
-            fh.open((fn_tmp).c_str(), std::ios::out);
+            fh.open(fn_tmp.c_str(), std::ios::out);
             if (!fh)
                 REPORT_ERROR(ERR_IO_NOWRITE, fn_tmp);
             for (size_t step = 0; step < nr_steps; step++)
@@ -219,10 +218,10 @@ void ProgCtfCorrectAmplitude3D::generateVolumes()
     double Xdim2=Xdim*Xdim;
     double Ydim2=Ydim*Ydim;
     double Zdim2=Zdim*Zdim;
-    FOR_ALL_OBJECTS_IN_METADATA(ctfdat)
+    for (size_t objId : ctfdat.ids())
     {
-        ctfdat.getValue(MDL_IMAGE,fnVol,__iter.objId);
-        ctfdat.getValue(MDL_CTF_MODEL,fnCTF,__iter.objId);
+        ctfdat.getValue(MDL_IMAGE,fnVol,objId);
+        ctfdat.getValue(MDL_CTF_MODEL,fnCTF,objId);
         V.read(fnVol);
         FourierTransform(V(),fft);
         if (ii == 0)
@@ -234,7 +233,7 @@ void ProgCtfCorrectAmplitude3D::generateVolumes()
             YY(idx) = i;
             ZZ(idx) = k;
             FFT_idx2digfreq(fft, idx, freq);
-            int ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
+            auto ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
                                                  YY(freq)*YY(freq)*Ydim2+
                                                  ZZ(freq)*ZZ(freq)*Zdim2));
             A3D_ELEM(fft_out,k,i,j)+=A1D_ELEM(Vwien1D_ii,ires)*A3D_ELEM(fft,k,i,j);
@@ -249,10 +248,10 @@ void ProgCtfCorrectAmplitude3D::generateVolumes()
 
     // Calculate CTF-affected volumes
     ii = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(ctfdat)
+    for (size_t objId : ctfdat.ids())
     {
-        ctfdat.getValue(MDL_IMAGE,fnVol,__iter.objId);
-        ctfdat.getValue(MDL_CTF_MODEL,fnCTF,__iter.objId);
+        ctfdat.getValue(MDL_IMAGE,fnVol,objId);
+        ctfdat.getValue(MDL_CTF_MODEL,fnCTF,objId);
         MultidimArray<double>& Vwien1D_ii=Vwien1D[ii];
         FOR_ALL_ELEMENTS_IN_ARRAY3D(fft)
         {
@@ -260,7 +259,7 @@ void ProgCtfCorrectAmplitude3D::generateVolumes()
             YY(idx) = i;
             ZZ(idx) = k;
             FFT_idx2digfreq(fft, idx, freq);
-            int ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
+            auto ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
                                                  YY(freq)*YY(freq)*Ydim2+
                                                  ZZ(freq)*ZZ(freq)*Zdim2));
             A3D_ELEM(fft,k,i,j)+=A1D_ELEM(Vwien1D_ii,ires)*A3D_ELEM(fft_out,k,i,j);

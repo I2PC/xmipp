@@ -26,6 +26,7 @@
 #include <algorithm>
 #include "metadata_split_3D.h"
 #include "core/geometry.h"
+#include "core/metadata_vec.h"
 #include "data/filters.h"
 #include "data/basic_pca.h"
 
@@ -69,27 +70,27 @@ void ProgMetadataSplit3D::defineParams()
     addExampleLine("xmipp_metadata_split_3D -i projections.sel --vol volume.vol --oroot split");
 }
 
-void getNeighbours(MetaData &mdIn, const Matrix1D<double> &projectionDir, MetaData &mdNeighbours, double maxDist)
+void getNeighbours(MetaDataDb &mdIn, const Matrix1D<double> &projectionDir, MetaDataDb &mdNeighbours, double maxDist)
 {
 	Matrix1D<double> projectionDir2;
 	FileName fnImg;
 	mdNeighbours.clear();
-	MetaData mdAux;
+	MetaDataDb mdAux;
 	size_t refno;
 	double cc;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (size_t objId : mdIn.ids())
 	{
 		double rot, tilt;
-		mdIn.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-		mdIn.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-		mdIn.getValue(MDL_IMAGE_IDX,refno,__iter.objId);
-		mdIn.getValue(MDL_MAXCC,cc,__iter.objId);
+		mdIn.getValue(MDL_ANGLE_ROT,rot, objId);
+		mdIn.getValue(MDL_ANGLE_TILT,tilt, objId);
+		mdIn.getValue(MDL_IMAGE_IDX,refno, objId);
+		mdIn.getValue(MDL_MAXCC,cc, objId);
 		Euler_direction(rot,tilt,0,projectionDir2);
 
 		double angle=acos(dotProduct(projectionDir,projectionDir2));
 		if (angle<maxDist)
 		{
-			mdIn.getValue(MDL_IMAGE,fnImg,__iter.objId);
+			mdIn.getValue(MDL_IMAGE,fnImg, objId);
 			size_t id=mdAux.addObject();
 			mdAux.setValue(MDL_IMAGE,fnImg,id);
 			mdAux.setValue(MDL_IMAGE_IDX,refno,id);
@@ -111,14 +112,14 @@ void analyzeNeighbours(MetaData &mdNeighbours, const FileName &fnRef)
 	std::sort(cc.begin(),cc.end());
 
 	double ccMedian=cc[cc.size()/2];
-	FOR_ALL_OBJECTS_IN_METADATA(mdNeighbours)
+	for (size_t objId : mdNeighbours.ids())
 	{
 		double cci;
-		mdNeighbours.getValue(MDL_MAXCC,cci,__iter.objId);
+		mdNeighbours.getValue(MDL_MAXCC, cci, objId);
 		if (cci>ccMedian)
-			mdNeighbours.setValue(MDL_COST,1.0,__iter.objId);
+			mdNeighbours.setValue(MDL_COST, 1.0, objId);
 		else
-			mdNeighbours.setValue(MDL_COST,-1.0,__iter.objId);
+			mdNeighbours.setValue(MDL_COST, -1.0, objId);
 	}
 }
 
@@ -144,9 +145,9 @@ void ProgMetadataSplit3D::run()
 
 	// Get the maximum reference number
 	size_t maxRef=0, refno;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (size_t objId : mdIn.ids())
 	{
-		mdIn.getValue(MDL_IMAGE_IDX,refno,__iter.objId);
+		mdIn.getValue(MDL_IMAGE_IDX, refno, objId);
 		if (refno>maxRef)
 			maxRef=refno;
 	}
@@ -157,18 +158,19 @@ void ProgMetadataSplit3D::run()
 	std::vector<FileName> fnNeighbours;
 	FileName fnImg;
 	maxDist=DEG2RAD(maxDist);
-    MetaData mdNeighbours;
+    MetaDataDb mdNeighbours;
     std::vector<size_t> refs;
     std::vector<double> upperHalf;
     int i=0;
     std::cerr << "Classifying projections ...\n";
     init_progress_bar(mdRef.size());
-	FOR_ALL_OBJECTS_IN_METADATA(mdRef)
+
+	for (size_t objId : mdRef.ids())
 	{
 		// Get the projection direction of this image
 		double rot, tilt;
-		mdRef.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-		mdRef.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
+		mdRef.getValue(MDL_ANGLE_ROT,rot, objId);
+		mdRef.getValue(MDL_ANGLE_TILT,tilt, objId);
 		Euler_direction(rot,tilt,0,projectionDir);
 
 		// Get all images in the input metadata that are close to this one
@@ -177,7 +179,7 @@ void ProgMetadataSplit3D::run()
 		// Check if it is upper or lower half
 		if (mdNeighbours.size()>0)
 		{
-			mdRef.getValue(MDL_IMAGE,fnImg,__iter.objId);
+			mdRef.getValue(MDL_IMAGE,fnImg, objId);
 			analyzeNeighbours(mdNeighbours,fnImg);
 			mdNeighbours.getColumnValues(MDL_IMAGE_IDX,refs);
 			mdNeighbours.getColumnValues(MDL_COST,upperHalf);
@@ -192,12 +194,10 @@ void ProgMetadataSplit3D::run()
 	progress_bar(mdRef.size());
 
 	// Split in two metadatas
-	MetaData mdUpper, mdLower;
-	MDRow row;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	MetaDataVec mdUpper, mdLower;
+	for (auto& row : mdIn)
 	{
-		mdIn.getValue(MDL_IMAGE_IDX,refno,__iter.objId);
-		mdIn.getRow(row,__iter.objId);
+		mdIn.getValue(MDL_IMAGE_IDX, refno, row.id());
 		row.setValue(MDL_COST,(double)VEC_ELEM(correlatesWell,refno));
 
 		if (VEC_ELEM(correlatesWell,refno)>0)

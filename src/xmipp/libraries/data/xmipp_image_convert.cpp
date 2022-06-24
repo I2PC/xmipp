@@ -25,7 +25,6 @@
  ***************************************************************************/
 
 #include "xmipp_image_convert.h"
-#include "core/metadata.h"
 
 ProgConvImg::ProgConvImg()
 {
@@ -177,7 +176,7 @@ void ProgConvImg::readParams()
 
     if (checkParam("--depth"))
     {
-        String depthTemp = (String)getParam("--depth");
+        auto depthTemp = (String)getParam("--depth");
         if (depthTemp != "default")
             depth = "%" + depthTemp;
     }

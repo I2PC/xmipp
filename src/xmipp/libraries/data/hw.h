@@ -29,7 +29,9 @@
 #include <string>
 #include <cstddef>
 
-
+/**@defgroup HW HW
+   @ingroup DataLibrary */
+//@{
 class HW {
 public:
     explicit HW(unsigned parallelUnits) :
@@ -81,5 +83,5 @@ protected:
 
     virtual void obtainUUID() = 0;
 };
-
+//@}
 #endif /* LIBRARIES_DATA_HW_H_ */

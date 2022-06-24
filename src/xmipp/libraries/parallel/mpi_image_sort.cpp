@@ -28,7 +28,7 @@
 #include <data/filters.h>
 #include <core/xmipp_image.h>
 #include <data/mask.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_program.h>
 
 
@@ -50,10 +50,10 @@ public:
     bool center;
 
     // Output selfile
-    MetaData SFout;
+    MetaDataVec SFout;
 
     // SelFile images
-    std::vector< MDRow > toClassify;
+    std::vector< MDRowVec > toClassify;
 
     // Control vector to specify which ones have already been done
     Matrix1D<int> stillToDo;
@@ -72,11 +72,17 @@ public:
             verbose=0;
     }
 
+    ProgSortImages(const ProgSortImages&)=delete;
+    ProgSortImages(const ProgSortImages&&)=delete;
+
     /// MPI destructor
     ~ProgSortImages()
     {
         delete node;
     }
+
+    ProgSortImages & operator =(const ProgSortImages&)=delete;
+    ProgSortImages & operator =(const ProgSortImages&&)=delete;
 
     /// Read argument from command line
     void readParams()
@@ -128,19 +134,18 @@ public:
             fnStack.deleteFile();
 
         // Read input selfile and reference
-        MetaData SF;
+        MetaDataVec SF;
         SF.read(fnSel);
         FileName fnImg;
         toClassify.reserve(SF.size());
         FileName fnImageStack;
         CorrelationAux aux;
         RotationalCorrelationAux aux2;
-        MDRow row;
         bool thereIsClassCount=SF.containsLabel(MDL_CLASS_COUNT);
         bool firstSelected=false;
-        FOR_ALL_OBJECTS_IN_METADATA(SF)
+
+        for (auto& row : SF)
         {
-            SF.getRow(row,__iter.objId);
             bool proceed=true;
             if (thereIsClassCount)
             {
@@ -151,7 +156,8 @@ public:
             }
             if (proceed)
             {
-                toClassify.push_back(row);
+                row.detach(); // so that we can copy it outside of the metadata
+                toClassify.emplace_back(dynamic_cast<MDRowVec&>(row));
                 row.getValue(MDL_IMAGE,fnImg);
                 if (!firstSelected)
                 {
@@ -166,7 +172,7 @@ public:
                     {
                         row.setValue(MDL_IMAGE_ORIGINAL,fnImg);
                         row.setValue(MDL_MAXCC,1.0);
-                        SFout.addRow(row);
+                        SFout.addRow(dynamic_cast<MDRowVec&>(row));
                     }
                     firstSelected=true;
                 }
@@ -269,7 +275,7 @@ public:
             int idxStack=SFout.size();
             fnImageStack.compose(idxStack+1,fnStack);
             bestImage.write(fnStack,idxStack,true,WRITE_APPEND);
-            MDRow &row=toClassify[bestIdx];
+            MDRowVec &row = toClassify[bestIdx];
             FileName fnImgOrig;
             row.getValue(MDL_IMAGE,fnImgOrig);
             row.setValue(MDL_IMAGE_ORIGINAL,fnImgOrig);

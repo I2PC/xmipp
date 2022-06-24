@@ -102,7 +102,7 @@ void ProgCoordinatesNoisyZonesFilter::run()
     }
 
     // creating a MetaData with the coordinates and the Scores VAR and GINI
-    MetaData MD;
+    MetaDataVec MD;
     int imax = allCoords.size();
     size_t id;
     for (int i = 0; i < imax; i++)

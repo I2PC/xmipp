@@ -27,14 +27,13 @@
 #define LIBRARIES_RECONSTRUCTION_FFTWT_H_
 
 #include <fftw3.h>
-#include <array>
-#include <typeinfo>
 
 #include "data/aft.h"
-#include "core/xmipp_error.h"
 #include "data/cpu.h"
 
-
+/**@defgroup FFTwT FFTwT
+   @ingroup ReconsLibrary */
+//@{
 namespace FFTwT_planType {
     template<class T>
     struct plan{ typedef T type; };
@@ -153,5 +152,5 @@ private:
         return static_cast<typename FFTwT_planType::plan<T>::type>(p);
     }
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_FFTWT_H_ */

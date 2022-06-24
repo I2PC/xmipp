@@ -29,8 +29,6 @@
 #ifndef _XMIPP_SPIDER_HH
 #define _XMIPP_SPIDER_HH
 
-#include <core/metadata.h>
-
 #include <core/xmipp_funcs.h>
 #include <interface/docfile.h>
 #include <core/xmipp_image.h>

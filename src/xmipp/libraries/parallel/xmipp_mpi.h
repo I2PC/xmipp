@@ -29,7 +29,8 @@
 #include <mpi.h>
 #include "core/xmipp_threads.h"
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 
 class FileName;
 
@@ -51,6 +52,8 @@ public:
     size_t rank, size, active;//, activeNodes;
     MpiNode(int &argc, char **& argv);
     ~MpiNode();
+    MpiNode(const MpiNode &)=delete;
+    MpiNode & operator =(const MpiNode &)=delete;
 
     /** Check if the node is master */
     bool isMaster() const;
@@ -59,7 +62,8 @@ public:
     void barrierWait();
 
     /** Gather metadatas */
-    void gatherMetadatas(MetaData &MD, const FileName &rootName);
+    template <typename T> // T = MetaData*
+    void gatherMetadatas(T &MD, const FileName &rootName);
 
     /** Update the MPI communicator to connect the currently active nodes */
 //    void updateComm();
@@ -86,12 +90,12 @@ protected:
 class MpiTaskDistributor: public ThreadTaskDistributor
 {
 protected:
-    MpiNode * node;
+	std::shared_ptr<MpiNode> node;
 
     virtual bool distribute(size_t &first, size_t &last);
 
 public:
-    MpiTaskDistributor(size_t nTasks, size_t bSize, MpiNode *node);
+    MpiTaskDistributor(size_t nTasks, size_t bSize, const std::shared_ptr<MpiNode> &node);
     /** All nodes wait until distribution is done.
      * In particular, the master node should wait for the distribution thread.
      */
@@ -114,12 +118,12 @@ private:
 class MpiFileMutex: public Mutex
 {
 protected:
-    MpiNode * node;
+	std::shared_ptr<MpiNode> node;
     int lockFile;
     bool fileCreator;
 public:
     /** Default constructor. */
-    MpiFileMutex(MpiNode * node);
+    MpiFileMutex(const std::shared_ptr<MpiNode> &node);
 
     /** Destructor. */
     ~MpiFileMutex();
@@ -157,8 +161,7 @@ class XmippMpiProgram: public virtual XmippProgram
 {
 protected:
     /** Mpi node */
-    MpiNode * node;
-    bool created_node;
+    std::shared_ptr<MpiNode> node;
     /** Number of Processors **/
     size_t nProcs;
     /** Number of independent MPI jobs **/
@@ -166,11 +169,8 @@ protected:
     /** status after an MPI call */
     MPI_Status status;
 
-    XmippMpiProgram();
-    ~XmippMpiProgram();
-
     /** Provide a node when calling from another MPI program  */
-    void setNode(MpiNode * node);
+    void setNode(const std::shared_ptr<MpiNode> & node);
 
 public:
     /** Read MPI params from command line */
@@ -186,15 +186,21 @@ class MpiMetadataProgram: public XmippMpiProgram
 protected:
     /** Divide the job in this number block with this number of images */
     int blockSize;
-    MpiTaskDistributor *distributor;
     std::vector<size_t> imgsId;
+    MpiTaskDistributor *distributor=nullptr;
     size_t first, last;
 
 public:
     /** Constructor */
-    MpiMetadataProgram();
+    MpiMetadataProgram() {}
+    MpiMetadataProgram(const MpiMetadataProgram &)=delete;
+    MpiMetadataProgram(const MpiMetadataProgram &&)=delete;
+
     /** Destructor */
     ~MpiMetadataProgram();
+    MpiMetadataProgram & operator=(const MpiMetadataProgram &)=delete;
+    MpiMetadataProgram & operator=(const MpiMetadataProgram &&)=delete;
+
     /** Read arguments */
     void read(int argc, char **argv);
 
@@ -203,77 +209,67 @@ public:
     /** Create task distributor */
     void createTaskDistributor(MetaData &mdIn, size_t blockSize = 0);
     /** Preprocess */
-    void preProcess();
+    virtual void preProcess() { /* nothing to do */ };
     /** finishProcessing */
-    void finishProcessing();
+    virtual void finishProcessing() { /* nothing to do */ };
     /** Get task to process */
     bool getTaskToProcess(size_t &objId, size_t &objIndex);
 };
 
 /** Macro to define a simple MPI parallelization
  * of a program based on XmippMetaDataProgram */
-#define CREATE_MPI_METADATA_PROGRAM(baseClassName, mpiClassName) \
-class mpiClassName: public baseClassName, public MpiMetadataProgram\
-{\
-public:\
-    void defineParams()\
-    {\
-        baseClassName::defineParams();\
-        MpiMetadataProgram::defineParams();\
-    }\
-    void readParams()\
-    {\
-        MpiMetadataProgram::readParams();\
-        baseClassName::readParams();\
-    }\
-    void read(int argc, char **argv, bool reportErrors = true)\
-    {\
-        MpiMetadataProgram::read(argc,argv);\
-    }\
-    void preProcess()\
-    {\
-        baseClassName::preProcess();\
-        MetaData &mdIn = *getInputMd();\
-        mdIn.addLabel(MDL_GATHER_ID);\
-        mdIn.fillLinear(MDL_GATHER_ID,1,1);\
-        createTaskDistributor(mdIn, blockSize);\
-    }\
-    void startProcessing()\
-    {\
-        if (node->rank==1)\
-        { \
-        	verbose=1; \
-            baseClassName::startProcessing();\
-        } \
-        node->barrierWait();\
-    }\
-    void showProgress()\
-    {\
-        if (node->rank==1)\
-        {\
-            time_bar_done=first+1;\
-            baseClassName::showProgress();\
-        }\
-    }\
-    bool getImageToProcess(size_t &objId, size_t &objIndex)\
-    {\
-        return getTaskToProcess(objId, objIndex);\
-    }\
-    void finishProcessing()\
-    {\
-        node->gatherMetadatas(*getOutputMd(), fn_out);\
-    	MetaData MDaux; \
-    	MDaux.sort(*getOutputMd(), MDL_GATHER_ID); \
-        MDaux.removeLabel(MDL_GATHER_ID); \
-        *getOutputMd()=MDaux; \
-        if (node->isMaster())\
-            baseClassName::finishProcessing();\
-    }\
-    void wait()\
-    {\
-		distributor->wait();\
-    }\
-};\
+template <typename BASE_CLASS>
+class BasicMpiMetadataProgram : public BASE_CLASS, public MpiMetadataProgram {
+protected:
+  void defineParams() override {
+    BASE_CLASS::defineParams();
+    MpiMetadataProgram::defineParams();
+  }
+
+  void readParams() override {
+    MpiMetadataProgram::readParams();
+    BASE_CLASS::readParams();
+  }
+
+  void preProcess() override {
+    BASE_CLASS::preProcess();
+    MetaData &mdIn = *this->getInputMd();
+    mdIn.addLabel(MDL_GATHER_ID);
+    mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
+    createTaskDistributor(mdIn, blockSize);
+  }
+
+  void startProcessing() {
+    if (node->rank == 1) {
+      verbose = 1;
+      BASE_CLASS::startProcessing();
+    }
+    node->barrierWait();
+  }
+
+  void showProgress() {
+    if (node->rank == 1) {
+      BASE_CLASS::time_bar_done = first + 1;
+      BASE_CLASS::showProgress();
+    }
+  }
+
+  bool getImageToProcess(size_t &objId, size_t &objIndex) override {
+    return getTaskToProcess(objId, objIndex);
+  }
+
+  void finishProcessing() override {
+    node->gatherMetadatas(this->getOutputMd(), BASE_CLASS::fn_out);
+    MetaDataVec MDaux;
+    MDaux.sort(this->getOutputMd(), MDL_GATHER_ID);
+    MDaux.removeLabel(MDL_GATHER_ID);
+    this->getOutputMd() = MDaux;
+    if (node->isMaster())
+      BASE_CLASS::finishProcessing();
+  }
+
+  void wait() { distributor->wait(); }
+};
 
 /** MPI Reduce with memory constraint.
  * MPI_Reduce may give a segmentation fault when sharing large objects

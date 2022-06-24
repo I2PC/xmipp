@@ -47,6 +47,9 @@
 #include "reconstruction/gpu_geo_transformer_defines.h"
 #include "cuda_xmipp_utils.h"
 
+/**@defgroup GeoTransformer Cuda GPU GeoTransformer
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class GeoTransformer {
 
@@ -265,5 +268,5 @@ private:
     constexpr static const T transposeBlockRow = (T)8;
     constexpr static const int pixelsPerThread = 2;
 };
-
+//@}
 #endif // CUDA_GEO_TRANSFORMER

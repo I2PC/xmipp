@@ -26,7 +26,6 @@
 #define _MPI_PROG_IMAGE_ROTATIONAL_PCA
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 #include <classification/pca.h>
 #include <reconstruction/image_rotational_pca.h>
 
@@ -38,14 +37,11 @@ class MpiProgImageRotationalPCA: public ProgImageRotationalPCA
 {
 public:
     // Mpi node
-    MpiNode *node;
+    std::shared_ptr<MpiNode> node;
     // H buffer
 
     /// Empty constructor
     MpiProgImageRotationalPCA(int argc, char **argv);
-
-    /// Destructor
-    ~MpiProgImageRotationalPCA();
 
     /** Read input images */
     virtual void selectPartFromMd(MetaData &MDin);

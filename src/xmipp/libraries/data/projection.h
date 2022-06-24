@@ -42,6 +42,10 @@ class SimpleGrid;
 class Basis;
 class XmippProgram;
 
+/**@defgroup ParametersProjectionTomography Parameters Projection for Tomography
+   @ingroup DataLibrary */
+//@{
+
 // These two structures are needed when projecting and backprojecting using
 // threads. They make mutual exclusion and synchronization possible.
 extern barrier_t project_barrier;
@@ -145,7 +149,9 @@ typedef struct
     Matrix2D<double> *M;
     const MultidimArray<int> *mask;
     double ray_length;
-    double rot,tilt,psi;
+    double rot;
+    double tilt;
+    double psi;
     bool destroy;
 }
 project_thread_params;
@@ -157,7 +163,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
                         const Basis *basis,
                         Projection *proj, Projection *norm_proj, int FORW, int eq_mode,
                         const Image<int> *VNeq, Matrix2D<double> *M,
-                        const MultidimArray<int> *mask=NULL,
+                        const MultidimArray<int> *mask=nullptr,
                         double ray_length = -1.0,
                         int thread_id = -1, int num_threads = 1);
 
@@ -165,14 +171,14 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
 /* PROJECTION GENERATION                                                     */
 /*---------------------------------------------------------------------------*/
 // Projecting functions ====================================================
-#define FORWARD  1
-#define BACKWARD 0
+constexpr int FORWARD =  1;
+constexpr int BACKWARD = 0;
 
-#define ARTK     1
-#define CAVK     2
-#define COUNT_EQ 3
-#define CAV      4
-#define CAVARTK  5
+constexpr int ARTK =     1;
+constexpr int CAVK =     2;
+constexpr int COUNT_EQ = 3;
+constexpr int CAV =      4;
+constexpr int CAVARTK =  5;
 
 /** From voxel volumes.
     The voxel volume is projected onto a projection plane defined by
@@ -189,7 +195,7 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
  */
 void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
                    double rot, double tilt, double psi,
-                   const Matrix1D<double> *roffset=NULL);
+                   const Matrix1D<double> *roffset=nullptr);
 
 /** From voxel volumes, off-centered tilt axis.
     This routine projects a volume that is rotating (angle) degrees

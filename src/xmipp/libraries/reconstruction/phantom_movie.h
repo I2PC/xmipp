@@ -29,6 +29,9 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 
+/**@defgroup PhantomMovie Phantom Movie
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class PhantomMovie: public XmippProgram {
 public:
@@ -75,4 +78,6 @@ protected:
     const std::string barrel_param = std::string("--barrel");
     FileName fn_out;};
 
+//@}
 #endif /* PHANTOM_MOVIE_H_ */
+

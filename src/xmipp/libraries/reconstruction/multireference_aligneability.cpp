@@ -32,7 +32,6 @@
 #include "data/sampling.h"
 #include "project.h"
 #include <string>
-#include <core/metadata.h>
 #include "core/metadata_sql.h"
 
 MultireferenceAligneability::MultireferenceAligneability()
@@ -78,8 +77,8 @@ void MultireferenceAligneability::run()
 	//xmipp_multireference_aligneability --volume 1BRD.vol --sym c3 --odir testMultiReference/ --angles_file testMultiReference/angles_iter001_00.xmd --angles_file_ref testMultiReference/gallery_alignment/angles_iter001_00.xmd &
     randomize_random_generator();
 
-    MetaData mdOutQ;
-	MetaData mdExp, mdExpSort, mdProj, mdGallery, mdInputParticles, mdInputParticlesRef;
+    MetaDataVec mdOutQ;
+	MetaDataDb mdExp, mdExpSort, mdProj, mdGallery, mdInputParticles, mdInputParticlesRef;
 	size_t maxNImg;
 	FileName fnOutCL, fnOutQ;
 	fnOutCL = fnDir+"/pruned_particles_alignability.xmd";
@@ -98,7 +97,7 @@ void MultireferenceAligneability::run()
 	mdExpSort.getValue(MDL_IMAGE_IDX,maxNImg,sz);
 
 	String expression;
-	MDRow row,rowInput,rowInputRef;
+	MDRowSql row,rowInput,rowInputRef;
 
 	double validationAlignabilityPrecision, validationAlignabilityAccuracy, validationAlignability, validationMirror;
 	validationAlignabilityPrecision = 0;
@@ -109,7 +108,7 @@ void MultireferenceAligneability::run()
 	if (rank==0)
 		init_progress_bar(maxNImg);
 
-	MetaData tempMdExp, tempMdProj;
+	MetaDataVec tempMdExp, tempMdProj;
 	double sum_w_exp;
 	double sum_w_proj;
 	double sum_noise;
@@ -210,11 +209,11 @@ void MultireferenceAligneability::run()
 		mdPartialParticles.write(fnOutCL);
 		row.clear();
 
-		FOR_ALL_OBJECTS_IN_METADATA(mdPartialParticles)
+		for (size_t objId : mdPartialParticles.ids())
 		{
-			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_PRECISION,rankPrec,__iter.objId);
-			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_ACCURACY,rankAccMirror,__iter.objId);
-			mdPartialParticles.getValue(MDL_SCORE_BY_MIRROR,rankAccNoMirror,__iter.objId);
+			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_PRECISION,rankPrec,objId);
+			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_ACCURACY,rankAccMirror,objId);
+			mdPartialParticles.getValue(MDL_SCORE_BY_MIRROR,rankAccNoMirror,objId);
 
 			validationAlignabilityPrecision += (rankPrec>0.5);
 			validationAlignabilityAccuracy += (rankAccMirror > 0.5);
@@ -259,9 +258,6 @@ void MultireferenceAligneability::write_projection_file()
 	myfile.close();
 }
 
-#define _FOR_ALL_OBJECTS_IN_METADATA2(__md) \
-        for(MDIterator __iter2(__md); __iter2.hasNext(); __iter2.moveNext())
-
 void MultireferenceAligneability::calc_sumu(const MetaData & tempMd, double & sum_W, double & mirrorProb)
 {
     double a;
@@ -276,19 +272,19 @@ void MultireferenceAligneability::calc_sumu(const MetaData & tempMd, double & su
     sum_W = 0;
     mirrorProb = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(tempMd)
+    for (size_t objId : tempMd.ids())
     {
-        tempMd.getValue(MDL_ANGLE_ROT,rotRef,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_TILT,tiltRef,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_PSI,psiRef,__iter.objId);
-        tempMd.getValue(MDL_MAXCC,wRef,__iter.objId);
+        tempMd.getValue(MDL_ANGLE_ROT,rotRef,objId);
+        tempMd.getValue(MDL_ANGLE_TILT,tiltRef,objId);
+        tempMd.getValue(MDL_ANGLE_PSI,psiRef,objId);
+        tempMd.getValue(MDL_MAXCC,wRef,objId);
 
-        _FOR_ALL_OBJECTS_IN_METADATA2(tempMd)
+        for (size_t objId2 : tempMd.ids())
         {
-        	tempMd.getValue(MDL_ANGLE_ROT,rot,__iter2.objId);
-        	tempMd.getValue(MDL_ANGLE_TILT,tilt,__iter2.objId);
-            tempMd.getValue(MDL_ANGLE_PSI,psi,__iter2.objId);
-        	tempMd.getValue(MDL_MAXCC,w2,__iter2.objId);
+        	tempMd.getValue(MDL_ANGLE_ROT,rot,objId2);
+        	tempMd.getValue(MDL_ANGLE_TILT,tilt,objId2);
+            tempMd.getValue(MDL_ANGLE_PSI,psi,objId2);
+        	tempMd.getValue(MDL_MAXCC,w2,objId2);
 
 
 #ifdef DEBUG
@@ -335,9 +331,9 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
 	size_t trials=500;
     double xRan,yRan,zRan;
     double x,y;
-    double * xRanArray = new double[num];
-    double * yRanArray = new double[num];
-    double * zRanArray  = new double[num];
+    auto * xRanArray = new double[num];
+    auto * yRanArray = new double[num];
+    auto * zRanArray  = new double[num];
 
     sumw=0;
 
@@ -377,7 +373,7 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
             for (size_t nS2=0; nS2<num; nS2++)
             {
                 a = std::abs(std::acos(xRanArray[nS1]*xRanArray[nS2]+yRanArray[nS1]*yRanArray[nS2]+zRanArray[nS1]*zRanArray[nS2]));
-                if ( (a != 0))
+                if (a != 0)
                     WRan += a;
             }
         }
@@ -399,11 +395,11 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
 	const size_t numGallery= mdGallery.size()+1;
 	const double trials = 500;
     size_t indx;
-    size_t * indxArray = new size_t[numGallery];
+    auto * indxArray = new size_t[numGallery];
     double sumWRan;
-    double * rotArray = new double[num];
-    double * tiltArray = new double[num];
-    double * psiArray  = new double[num];
+    auto * rotArray = new double[num];
+    auto * tiltArray = new double[num];
+    auto * psiArray  = new double[num];
     double rot,tilt,psi;
     sumWRan = 0;
 
@@ -503,13 +499,13 @@ void MultireferenceAligneability::obtainAngularAccuracy(const MetaData & tempMd,
     accuracy = 0;
 	sumOfW = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(tempMd)
+    for (size_t objId : tempMd.ids())
     {
-        tempMd.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-        tempMd.getValue(MDL_MAXCC,w,__iter.objId);
-        tempMd.getValue(MDL_FLIP,mirror,__iter.objId);
+        tempMd.getValue(MDL_ANGLE_ROT,rot,objId);
+        tempMd.getValue(MDL_ANGLE_TILT,tilt,objId);
+        tempMd.getValue(MDL_ANGLE_PSI,psi,objId);
+        tempMd.getValue(MDL_MAXCC,w,objId);
+        tempMd.getValue(MDL_FLIP,mirror,objId);
 
         rotAux = rot;
         tiltAux = tilt;
@@ -549,8 +545,8 @@ void MultireferenceAligneability::obtainAngularAccuracy(const MetaData & tempMd,
 
     }
 
-    accuracy /= (sumOfW);
-    accuracyMirror /= (sumOfW);
+    accuracy /= sumOfW;
+    accuracyMirror /= sumOfW;
 
 #ifdef DEBUG
         std::cout << " accuracy : " << " " << accuracy << " " << std::endl;

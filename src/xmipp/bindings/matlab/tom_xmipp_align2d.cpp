@@ -24,6 +24,7 @@
 
 /*xmipp includes */
 #include <core/xmipp_image.h>
+#include <core/transformations.h>
 #include <data/polar.h>
 #include <data/filters.h>
 #include "tom_xmipp_helpers.h"
@@ -59,8 +60,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
             	M(1,2)=shiftY;
                 break;
             case 2:
-                normalizedPolarFourierTransform(image(), polarFourierImage, true, XSIZE(image()) / 5, XSIZE(image()) / 2-2, plans, 1);
-                normalizedPolarFourierTransform(ref,     polarFourierRef,   true, XSIZE(image()) / 5, XSIZE(image()) / 2-2, plans, 1);
+            	polarFourierTransform<true>(image(), polarFourierImage, true, XSIZE(image()) / 5, XSIZE(image()) / 2-2, plans, 1);
+            	polarFourierTransform<true>(ref,     polarFourierRef,   true, XSIZE(image()) / 5, XSIZE(image()) / 2-2, plans, 1);
                 rot = best_rotation(polarFourierRef,polarFourierImage,auxRot);
                 rotation2DMatrix(rot,M,true);
                 break;

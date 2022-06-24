@@ -235,9 +235,13 @@ double FuzzySOM::updateU(FuzzyMap& _som, const TS& _examples, const double& _m)
 
     // Create auxiliar stuff
 
-    unsigned i, j, k;
+    unsigned i;
+    unsigned j;
+    unsigned k;
     double var = 0;
-    double auxDist, auxProd, auxExp;
+    double auxDist;
+    double auxProd;
+    double auxExp;
 
     auxExp = 1. / (_m - 1.);
     // Update Membership matrix
@@ -281,7 +285,9 @@ double FuzzySOM::updateU(FuzzyMap& _som, const TS& _examples, const double& _m)
  */
 void FuzzySOM::updateV(FuzzyMap& _som, const TS& _examples, const double& _m)
 {
-    unsigned j, cc, vv;
+    unsigned j;
+    unsigned cc;
+    unsigned vv;
     unsigned t2 = 0;  // Iteration index
 
     // Calculate Temporal scratch values
@@ -292,7 +298,7 @@ void FuzzySOM::updateV(FuzzyMap& _som, const TS& _examples, const double& _m)
         tmpDens[cc] = reg;
         for (vv = 0; vv < numVectors; vv++)
         {
-            double tmpU = (double) pow((double)(_som.memb[vv][cc]), (double)_m);
+        	auto tmpU = (double) pow((double)(_som.memb[vv][cc]), (double)_m);
             tmpDens[cc] += tmpU;
             for (j = 0; j < dim; j++)
             {
@@ -337,8 +343,12 @@ void FuzzySOM::updateV(FuzzyMap& _som, const TS& _examples, const double& _m)
  */
 double FuzzySOM::functional(const TS& _examples, const FuzzyMap& _som, double _m, double _reg, double& _fidelity, double& _penalty)
 {
-    unsigned j, vv, cc;
-    double t, t1, t2 = 0;
+    unsigned j;
+    unsigned vv;
+    unsigned cc;
+    double t;
+    double t1;
+    double t2 = 0;
     _fidelity = 0;
     for (vv = 0; vv < numVectors; vv++)
     {

@@ -35,16 +35,14 @@
 /* Define parameters ===================================================== */
 void CrystalARTRecons::defineParams(XmippProgram *program, const char* prefix, const char* comment)
 {
-    char tempLine[256];
+    std::string line = "  [--crystal ]   : Crystal mode activation";
 
-    if(prefix == NULL)
-        sprintf(tempLine, "  [--crystal ]   : Crystal mode activation");
-    else
-        sprintf(tempLine,"%s   [--crystal ]   : Crystal mode activation", prefix);
-    if (comment != NULL)
-        sprintf(tempLine, "%s : %s", tempLine, comment);
+    if(nullptr != prefix)
+        line = prefix + line;
+    if (nullptr != comment)
+        line = line + " : " + comment;
 
-    program->addParamsLine(tempLine);
+    program->addParamsLine(line);
     program->addParamsLine("   [--mag_a <mag>]         : Magnitude of the first  lattice vector");
     program->addParamsLine("   [--mag_b <mag>]         : Magnitude of the second lattice vector");
     program->addParamsLine("   [--ang_a2b_deg <angle>] : Angle from vector a to vector b");
@@ -350,8 +348,8 @@ void CrystalARTRecons::singleStep(
         //copy theo_proj to a temporal matrix
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(theo_proj())
         dAij(alig_proj(), i, j) = dAij(read_proj(), i, j);
-        applyGeometry(LINEAR, IMGMATRIX(alig_proj), IMGMATRIX(read_proj), Correction,
-                      IS_NOT_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, IMGMATRIX(alig_proj), IMGMATRIX(read_proj), Correction,
+                      xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
     }
     // Now compute differences .................................................
     double applied_lambda = lambda / numIMG; // In ART mode, numIMG=1

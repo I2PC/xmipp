@@ -29,21 +29,21 @@
 /* him. Translated into C by Juan P. Secilla (MSC)  Jun/86      */
 /****************************************************************************/
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 
 // Old code -----------------------------------------------------------------
-#define NATURAL       1                /* natural, 1 byte/pixel format */
-#define INTFMT        2                /* integer, 2 byte/pixel format */
-#define LONGFMT       3                /* long, 4 bytes/pixel format   */
-#define FLOATFMT      4                /* float, 4 bytes/pixel format  */
-#define FOURIER       5                /* Fourier transform format     */
-#define SPIDER        6                /* Spider (header) format       */
-#define DEF_IT     5  /*Default iterations number */
-#define DEF_DEL    2
-#define DEF_IN     2
-#define ALLOC_SIZE  65000              /* Allocation unit size         */
+//constexpr int  NATURAL =      1;               natural, 1 byte/pixel format
+constexpr int  INTFMT =        2;                /* integer, 2 byte/pixel format */
+constexpr int  LONGFMT =       3;                /* long, 4 bytes/pixel format   */
+constexpr int  FLOATFMT =      4;                /* float, 4 bytes/pixel format  */
+constexpr int  FOURIER =       5;                /* Fourier transform format     */
+constexpr int  SPIDER =        6;                /* Spider (header) format       */
+constexpr int  DEF_IT =     5;  /*Default iterations number */
+constexpr int  DEF_DEL =    2;
+constexpr int  DEF_IN =     2;
+constexpr int  ALLOC_SIZE =  65000;              /* Allocation unit size         */
 typedef unsigned char  BYTE;       /*** Only this and float are used ***/
 typedef unsigned short UWORD;
 typedef unsigned long  ULONG;
@@ -673,11 +673,11 @@ public:
         Image<double> I, Iaux;
         if (fnIn.isMetaData())
         {
-            MetaData MD(fnIn);
+            MetaDataVec MD(fnIn);
             int N=0;
-            FOR_ALL_OBJECTS_IN_METADATA(MD)
+            for (size_t objId : MD.ids())
             {
-                Iaux.readApplyGeo(MD,__iter.objId);
+                Iaux.readApplyGeo(MD, objId);
                 if (N==0)
                     I()=Iaux();
                 else
@@ -740,7 +740,7 @@ public:
         largo=YSIZE(I());
         lancho=XSIZE(I());
         busca();
-        MetaData MD;
+        MetaDataVec MD;
         id=MD.addObject();
         if (yc0>0)
         {

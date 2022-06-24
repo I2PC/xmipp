@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "tomo_align_refinement.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/transformations.h"
 #include "data/filters.h"
 #include "data/fourier_projection.h"
@@ -103,17 +103,17 @@ void ProgTomoAlignRefinement::produce_side_info()
 {
     V.read(fn_ref);
     V().setXmippOrigin();
-    MetaData SF(fn_sel);
+    MetaDataVec SF(fn_sel);
     Image<double> I;
     FileName fnImg;
     ApplyGeoParams params;
     params.datamode = HEADER;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         AlignmentTomography dummy;
-        SF.getValue(MDL_IMAGE,fnImg,__iter.objId);
-        I.readApplyGeo(fnImg,SF,__iter.objId, params);
+        SF.getValue(MDL_IMAGE,fnImg,objId);
+        I.readApplyGeo(fnImg,SF,objId, params);
         I().setXmippOrigin();
         dummy.rot=I.rot();
         dummy.tilt=I.tilt();
@@ -204,7 +204,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
             }
 
             // Look for better alignment
-            alignImages(theo(),Ip(),M, DONT_WRAP);
+            alignImages(theo(),Ip(),M, xmipp_transformation::DONT_WRAP);
 
             // Measure the new correlation
             newCorr=correlationIndex(theo(),Ip(),&mask);
@@ -253,7 +253,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
 void ProgTomoAlignRefinement::run()
 {
     produce_side_info();
-    MetaData DF;
+    MetaDataVec DF;
     FileName fnMaskOut, fnImgOut;
     Projection theo;
     Image<double> Imask, I;

@@ -37,10 +37,10 @@
 
 #include <reconstruction/angular_project_library.h>
 
-#define TAG_WORKFORWORKER   0
-#define TAG_STOP   1
-#define TAG_WAIT   2
-#define TAG_FREEWORKER   3
+constexpr int  TAG_WORKFORWORKER =   0;
+constexpr int  TAG_STOP =   1;
+constexpr int  TAG_WAIT =   2;
+constexpr int  TAG_FREEWORKER =   3;
 
 #define DEBUG
 class ProgMpiAngularProjectLibrary: public ProgAngularProjectLibrary
@@ -64,15 +64,12 @@ public:
     /** status after am MPI call */
     MPI_Status status;
 
-    /** verbose mode on/off.  */
-    bool verbose;
-
     /*  constructor ------------------------------------------------------- */
     ProgMpiAngularProjectLibrary()
     {
         //parent class constructor will be called by deault without parameters
-        MPI_Comm_size(MPI_COMM_WORLD, &(nProcs));
-        MPI_Comm_rank(MPI_COMM_WORLD, &(rank));
+        MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         //Blocks until all process have reached this routine.
         //very likelly this is
         MPI_Barrier(MPI_COMM_WORLD);
@@ -319,7 +316,7 @@ public:
                 // worker is free
                 if (status.MPI_TAG == TAG_FREEWORKER)
                 {
-                    MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                    MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                              MPI_COMM_WORLD, &status);
                     //#define DEBUG
 #ifdef DEBUG
@@ -356,7 +353,7 @@ public:
             //send TAG_STOP
             while (stopTagsSent < (nProcs-1))
             {
-                MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                          MPI_COMM_WORLD, &status);
 #ifdef DEBUG
 
@@ -365,54 +362,55 @@ public:
 #endif
     #undef DEBUG
 
-                MPI_Send(0, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
+                MPI_Send(nullptr, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
                 stopTagsSent++;
             }
             //only rank 0 create sel file
             if(rank==0)
             {
 
-                MetaData  mySFin;
+                MetaDataVec  mySFin;
                 mySFin.read(output_file_root + "_angles.doc");
 #define ANGLESDOC
 #ifdef ANGLESDOC
 //       std::cerr << "DEBUG_ROB, output_file_root + angle.doc:"
 //    		     << output_file_root + "_angles.doc" << std::endl;
 #endif
-                MetaData  mySF;
+                MetaDataVec  mySF;
                 FileName fn_temp;
 
                 size_t myCounter = 0;
                 size_t id;
                 int ref;
-                for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i)
-                    //for (int i=0;i<=mysampling.no_redundant_sampling_points_angles.size()-1;i++)
-                    FOR_ALL_OBJECTS_IN_METADATA(mySFin)
+
+                for (size_t objId : mySFin.ids())
                 {
-
+                    // FIXME: read whole row at once
                     double x,y,z, rot, tilt, psi;
-                    mySFin.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-                    mySFin.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-                    mySFin.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-                    mySFin.getValue(MDL_X,x,__iter.objId);
-                    mySFin.getValue(MDL_Y,y,__iter.objId);
-                    mySFin.getValue(MDL_Z,z,__iter.objId);
-                    mySFin.getValue(MDL_REF,ref,__iter.objId);
+                    mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
+                    mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
+                    mySFin.getValue(MDL_ANGLE_PSI,psi,objId);
+                    mySFin.getValue(MDL_X,x,objId);
+                    mySFin.getValue(MDL_Y,y,objId);
+                    mySFin.getValue(MDL_Z,z,objId);
+                    mySFin.getValue(MDL_REF,ref,objId);
 
-                    //FIXME, do I have order?
-                    fn_temp.compose( ++myCounter,output_file);
-                    id = mySF.addObject();
-                    mySF.setValue(MDL_IMAGE,fn_temp, id);
-                    mySF.setValue(MDL_ENABLED,1, id);
+                    for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i) {
+                        //FIXME, do I have order?
+                        fn_temp.compose(++myCounter,output_file);
+                        id = mySF.addObject();
+                        mySF.setValue(MDL_IMAGE,fn_temp, id);
+                        mySF.setValue(MDL_ENABLED,1, id);
 
-                    mySF.setValue(MDL_ANGLE_ROT,rot, id);
-                    mySF.setValue(MDL_ANGLE_TILT,tilt, id);
-                    mySF.setValue(MDL_ANGLE_PSI,psi + i * psi_sampling, id);
-                    mySF.setValue(MDL_X,x, id);
-                    mySF.setValue(MDL_Y,y, id);
-                    mySF.setValue(MDL_Z,z, id);
-                    mySF.setValue(MDL_SCALE,1.0,id);
-                    mySF.setValue(MDL_REF,ref,id);
+                        mySF.setValue(MDL_ANGLE_ROT,rot, id);
+                        mySF.setValue(MDL_ANGLE_TILT,tilt, id);
+                        mySF.setValue(MDL_ANGLE_PSI,psi + i * psi_sampling, id);
+                        mySF.setValue(MDL_X,x, id);
+                        mySF.setValue(MDL_Y,y, id);
+                        mySF.setValue(MDL_Z,z, id);
+                        mySF.setValue(MDL_SCALE,1.0,id);
+                        mySF.setValue(MDL_REF,ref,id);
+                    }
                 }
                 fn_temp=output_file_root+".doc";
                 mySF.setComment("x,y,z refer to the coordinates of the unitary vector at direction given by the euler angles");
@@ -433,7 +431,7 @@ public:
             {
                 int jobNumber;
                 //I am free
-                MPI_Send(0, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
+                MPI_Send(nullptr, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
                 //#define DEBUG
 #ifdef DEBUG
 
@@ -452,7 +450,7 @@ public:
                     //If I  do not read this tag
                     //master will no further process
                     //a posibility is a non-blocking send
-                    MPI_Recv(0, 0, MPI_INT, 0, TAG_STOP,
+                    MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_STOP,
                              MPI_COMM_WORLD, &status);
 #ifdef DEBUG
 

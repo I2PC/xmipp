@@ -154,10 +154,10 @@ void ProgAngularDiscreteAssign::preProcess()
     rot.resize(SF_ref.size());
     tilt.resize(SF_ref.size());
     int i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(SF_ref)
+    for (size_t objId : SF_ref.ids())
     {
-        SF_ref.getValue(MDL_ANGLE_ROT, rot[i],__iter.objId);
-        SF_ref.getValue(MDL_ANGLE_TILT, tilt[i],__iter.objId);
+        SF_ref.getValue(MDL_ANGLE_ROT, rot[i], objId);
+        SF_ref.getValue(MDL_ANGLE_TILT, tilt[i], objId);
         i++;
     }
 
@@ -210,7 +210,7 @@ void ProgAngularDiscreteAssign::preProcess()
 void ProgAngularDiscreteAssign::postProcess()
 {
 	if (single_image)
-		getOutputMd()->write(fn_out);
+		getOutputMd().write(fn_out);
 }
 
 // Produce library -----------------------------------------------------------
@@ -224,7 +224,7 @@ void ProgAngularDiscreteAssign::produce_library()
     Matrix1D<int> SBidx(SBNo);
     for (int m = 0; m < SBNo; m++)
     {
-        MultidimArray<double> *subband = new MultidimArray<double>;
+        auto *subband = new MultidimArray<double>;
         subband->resize(number_of_imgs, SBsize(m));
         library.push_back(subband);
     }
@@ -236,9 +236,9 @@ void ProgAngularDiscreteAssign::produce_library()
         init_progress_bar(number_of_imgs);
     }
     int n = 0, nstep = XMIPP_MAX(1, number_of_imgs / 60); // For progress bar
-    FOR_ALL_OBJECTS_IN_METADATA(SF_ref)
+    for (size_t objId : SF_ref.ids())
     {
-        I.readApplyGeo(SF_ref,__iter.objId);
+        I.readApplyGeo(SF_ref, objId);
         library_name.push_back(I.name());
 
         // Make and distribute its DWT coefficients in the different PCA bins
@@ -343,7 +343,7 @@ void ProgAngularDiscreteAssign::refine_candidate_list_with_correlation(
         }
     }
     std::sort(sortedCorr.begin(),sortedCorr.end());
-    int idx=(int)floor(sortedCorr.size()*(1-th/100.0));
+    auto idx=(int)floor(sortedCorr.size()*(1-th/100.0));
 
     double corr_th = sortedCorr[idx];
 
@@ -367,7 +367,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
                      "experimental images must be of a size that is power of 2");
 
     // Build initial candidate list
-    bool* candidate_list=new bool[rot.size()];
+    auto* candidate_list=new bool[rot.size()];
     std::vector<double> cumulative_corr;
     std::vector<double> sumxy;
     build_ref_candidate_list(I, candidate_list, cumulative_corr, sumxy);
@@ -380,7 +380,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
     SBidx.initZeros();
     for (int m = 0; m < SBNo; m++)
     {
-        Matrix1D<double> *subband = new Matrix1D<double>;
+        auto *subband = new Matrix1D<double>;
         subband->resize(SBsize(m));
         Idwt.push_back(subband);
     }
@@ -598,10 +598,6 @@ void ProgAngularDiscreteAssign::group_views(const std::vector<double> &vrot,
 int ProgAngularDiscreteAssign::pick_view(int method,
         std::vector< std::vector<int> > &groups,
         std::vector<double> &vscore,
-        std::vector<double> &vrot,
-        std::vector<double> &vtilt,
-        std::vector<double> &vpsi,
-        const std::vector<int> &best_idx,
         const std::vector<int> &candidate_idx, const std::vector<double> &candidate_rate)
 {
     if (method == 0)
@@ -715,7 +711,7 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
     img.read(fnImg);
     img.setGeo(rowIn);
     if (rowIn.containsLabel(MDL_ANGLE_PSI))
-    	img.setPsi(-img.psi());
+        img.setPsi(-img.psi());
 
     double best_rot, best_tilt, best_psi, best_shiftX, best_shiftY,
     best_score = 0, best_rate;
@@ -758,96 +754,101 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
     double bestCorr=-1e38;
 #endif
 
-    for (int flip=0; flip<=checkMirrors; ++flip)
-		for (double shiftX = Xoff - max_shift_change; shiftX <= Xoff + max_shift_change; shiftX += shift_step)
-			for (double shiftY = Yoff - max_shift_change; shiftY <= Yoff + max_shift_change; shiftY += shift_step)
-			{
-				if ((shiftX - Xoff)*(shiftX - Xoff) + (shiftY - Yoff)*(shiftY - Yoff) > R2)
-					continue;
-				for (double psi = psi0; psi <= psiF; psi += psi_step)
-				{
-					N_trials++;
+    for (int flip = 0; flip <= checkMirrors; ++flip) 
+    {
+        for (double shiftX = Xoff - max_shift_change; shiftX <= Xoff + max_shift_change; shiftX += shift_step)
+        {
+            for (double shiftY = Yoff - max_shift_change; shiftY <= Yoff + max_shift_change; shiftY += shift_step)
+            {
+                {
+                    if ((shiftX - Xoff) * (shiftX - Xoff) + (shiftY - Yoff) * (shiftY - Yoff) > R2)
+                        continue;
+                    for (double psi = psi0; psi <= psiF; psi += psi_step)
+                    {
+                        N_trials++;
 
-					// Flip if necessary
-					Ip()=img();
-					if (flip)
-						Ip().selfReverseX();
+                        // Flip if necessary
+                        Ip() = img();
+                        if (flip)
+                            Ip().selfReverseX();
 
-					// Shift image if necessary
-					if (shiftX != 0 || shiftY != 0)
-					{
-						VECTOR_R2(shift, shiftX, shiftY);
-						selfTranslate(LINEAR,Ip(),shift,WRAP);
-					}
+                        // Shift image if necessary
+                        if (shiftX != 0 || shiftY != 0)
+                        {
+                            VECTOR_R2(shift, shiftX, shiftY);
+                            selfTranslate(xmipp_transformation::LINEAR, Ip(), shift, xmipp_transformation::WRAP);
+                        }
 
-					// Rotate image if necessary
-					// Adding 2 is a trick to avoid that the 0, 90, 180 and 270
-					// are treated in a different way
-					selfRotate(LINEAR,Ip(),psi + 2, WRAP);
-					selfRotate(LINEAR,Ip(),-2, WRAP);
+                        // Rotate image if necessary
+                        // Adding 2 is a trick to avoid that the 0, 90, 180 and 270
+                        // are treated in a different way
+                        selfRotate(xmipp_transformation::LINEAR, Ip(), psi + 2, xmipp_transformation::WRAP);
+                        selfRotate(xmipp_transformation::LINEAR, Ip(), -2, xmipp_transformation::WRAP);
 #ifdef DEBUG
-					Image<double> Ipsave;
-					Ipsave()=Ip();
+                        Image<double> Ipsave;
+                        Ipsave() = Ip();
 #endif
 
-					// Project the resulting image onto the visible space
-					double proj_error = 0.0, proj_compact = 0.0;
+                        // Project the resulting image onto the visible space
+                        double proj_error = 0.0, proj_compact = 0.0;
 
-					// Search for the best tilt, rot angles
-					double rotp, tiltp;
-					int best_ref_idx;
-					double corrp =
-						predict_rot_tilt_angles(Ip, rotp, tiltp, best_ref_idx);
+                        // Search for the best tilt, rot angles
+                        double rotp, tiltp;
+                        int best_ref_idx;
+                        double corrp =
+                            predict_rot_tilt_angles(Ip, rotp, tiltp, best_ref_idx);
 
-					double aux_rot = rotp, aux_tilt = tiltp, aux_psi = psi;
-					double ang_jump = distance_prm.SL.computeDistance(
-										  img.rot(), img.tilt(), img.psi(),
-										  aux_rot, aux_tilt, aux_psi,
-										  false, false, false);
+                        double aux_rot = rotp, aux_tilt = tiltp, aux_psi = psi;
+                        double ang_jump = distance_prm.SL.computeDistance(
+                            img.rot(), img.tilt(), img.psi(),
+                            aux_rot, aux_tilt, aux_psi,
+                            false, false, false);
 
-					double shiftXp=shiftX;
-					double shiftYp=shiftY;
-					double psip=psi;
-					if (flip)
-					{
-						// std::cout << "       before flipping " << rotp << " " << tiltp << " " << psip << " " << shiftXp << " " << shiftYp << " " << corrp << std::endl;
-						shiftXp=-shiftXp;
-						double newrot, newtilt, newpsi;
-						Euler_mirrorY(rotp,tiltp,psi,newrot,newtilt,newpsi);
-						rotp=newrot;
-						tiltp=newtilt;
-						psip=newpsi;
-					}
+                        double shiftXp = shiftX;
+                        double shiftYp = shiftY;
+                        double psip = psi;
+                        if (flip)
+                        {
+                            // std::cout << "       before flipping " << rotp << " " << tiltp << " " << psip << " " << shiftXp << " " << shiftYp << " " << corrp << std::endl;
+                            shiftXp = -shiftXp;
+                            double newrot, newtilt, newpsi;
+                            Euler_mirrorY(rotp, tiltp, psi, newrot, newtilt, newpsi);
+                            rotp = newrot;
+                            tiltp = newtilt;
+                            psip = newpsi;
+                        }
 
-					vshiftX.push_back(shiftXp);
-					vshiftY.push_back(shiftYp);
-					vrot.push_back(rotp);
-					vtilt.push_back(tiltp);
-					vpsi.push_back(psip);
-					vcorr.push_back(corrp);
-					vproj_error.push_back(proj_error);
-					vproj_compact.push_back(proj_compact);
-					vang_jump.push_back(ang_jump);
-					vref_idx.push_back(best_ref_idx);
-					// std::cout << flip << " " << rotp << " " << tiltp << " " << psip << " " << shiftXp << " " << shiftYp << " " << corrp << std::endl;
+                        vshiftX.push_back(shiftXp);
+                        vshiftY.push_back(shiftYp);
+                        vrot.push_back(rotp);
+                        vtilt.push_back(tiltp);
+                        vpsi.push_back(psip);
+                        vcorr.push_back(corrp);
+                        vproj_error.push_back(proj_error);
+                        vproj_compact.push_back(proj_compact);
+                        vang_jump.push_back(ang_jump);
+                        vref_idx.push_back(best_ref_idx);
+                        // std::cout << flip << " " << rotp << " " << tiltp << " " << psip << " " << shiftXp << " " << shiftYp << " " << corrp << std::endl;
 
-	#ifdef DEBUG
-					if (corrp>bestCorr)
-					{
-						Ipsave.write("PPPafter_denoising.xmp");
-						Image<double> Iref;
-						Iref.read(library_name[best_ref_idx]);
-						Iref.write("PPPref.xmp");
-						std::cerr << "This is index " << vcorr.size()-1 << std::endl;
-						std::cerr << "corrp=" << corrp << "\nPress any key\n";
-						bestCorr=corrp;
-						char c;
-						std::cin >> c;
-					}
-	#endif
-
-				}
-			}
+#ifdef DEBUG
+                        if (corrp > bestCorr)
+                        {
+                            Ipsave.write("PPPafter_denoising.xmp");
+                            Image<double> Iref;
+                            Iref.read(library_name[best_ref_idx]);
+                            Iref.write("PPPref.xmp");
+                            std::cerr << "This is index " << vcorr.size() - 1 << std::endl;
+                            std::cerr << "corrp=" << corrp << "\nPress any key\n";
+                            bestCorr = corrp;
+                            char c;
+                            std::cin >> c;
+                        }
+#endif
+                    }
+                }
+            }
+        }
+    }
 
     // Compute extrema of all scoring factors
     double max_corr        = vcorr[0],         min_corr        = vcorr[0];
@@ -1032,8 +1033,8 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
             std::cout << "Partition: " << groups << std::endl;
 
         // Pick the best image from the groups
-        jbest = pick_view(pick, groups, vscore, vrot, vtilt, vpsi,
-                          best_idx, candidate_local_maxima, candidate_rate);
+        jbest = pick_view(pick, groups, vscore,
+                          candidate_local_maxima, candidate_rate);
         ibest = candidate_local_maxima[jbest];
     }
 
@@ -1045,13 +1046,13 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
         //TODO: Check if this is correct
         Iref.read(library_name[vref_idx[ibest]]);
         Iref().setXmippOrigin();
-        selfRotate(LINEAR,Iref(),-vpsi[ibest]);
+        selfRotate(xmipp_transformation::LINEAR,Iref(),-vpsi[ibest]);
         if (Xoff == 0 && Yoff == 0)
             Ip() = img();
         else
         {
             VECTOR_R2(shift, Xoff, Yoff);
-            translate(LINEAR,Ip(),img(),shift,WRAP);
+            translate(xmipp_transformation::LINEAR,Ip(),img(),shift,xmipp_transformation::WRAP);
         }
         Ip().setXmippOrigin();
 

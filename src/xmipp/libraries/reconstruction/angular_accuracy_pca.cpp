@@ -60,7 +60,7 @@ void ProgAngularAccuracyPCA::defineParams()
 
 void ProgAngularAccuracyPCA::run()
 {
-	MetaData md;
+	MetaDataVec md;
     StringVector blocks;
     getBlocksInMetaDataFile(fnNeighbours, blocks);
 
@@ -81,7 +81,7 @@ void ProgAngularAccuracyPCA::run()
     		if (md.size() <= 1)
     			continue;
 
-    		else if ( (md.size() > 20) )
+    		else if ( md.size() > 20 )
     			numPCAs = 3;
     		else if ( (md.size() >= 5) & (md.size() < 20) )
     			numPCAs = 2;
@@ -90,12 +90,8 @@ void ProgAngularAccuracyPCA::run()
 
     		obtainPCAs(md,numPCAs);
 
-    		MDRow row;
-    		FOR_ALL_OBJECTS_IN_METADATA(md)
-    		{
-    			md.getRow(row,__iter.objId);
-    			mdPartial.addRow(row);
-    		}
+            for (auto& row : md)
+                mdPartial.addRow(dynamic_cast<MDRowVec&>(row));
 
 			if (rank==0)
 				progress_bar(i+1);
@@ -115,18 +111,17 @@ void ProgAngularAccuracyPCA::run()
 
 		String expression;
 		size_t maxIdx;
-		MetaData MDSort, tempMd,MDOut, MDOutQ;
+		MDRowSql row;
+		MetaDataDb MDSort, tempMd, MDOut, MDOutQ;
 		MDSort.sort(mdPartial,MDL_ITEM_ID,true,-1,0);
-		MDSort.getValue(MDL_ITEM_ID,maxIdx,MDSort.lastObject());
-
-		MDRow row;
+		MDSort.getValue(MDL_ITEM_ID,maxIdx,MDSort.lastRowId());
 
 		for (size_t i=0; i<=maxIdx;i++)
 		{
 			expression = formatString("itemId == %lu",i);
 			tempMd.importObjects(MDSort, MDExpression(expression));
 
-			if ( (tempMd.size() <= 0))
+			if (tempMd.size() <= 0)
 				continue;
 
 			pcaResidualProj = -1e3;
@@ -134,23 +129,23 @@ void ProgAngularAccuracyPCA::run()
 			pcaResidual = -1e3;
 			Zscore = -1e3;
 
-			tempMd.getRow(row,tempMd.firstObject());
+			row = tempMd.getRowSql(tempMd.firstRowId());
 
-			FOR_ALL_OBJECTS_IN_METADATA(tempMd)
+            for (size_t objId : tempMd.ids())
 			{
-				tempMd.getValue(MDL_SCORE_BY_PCA_RESIDUAL_PROJ,temp,__iter.objId);
+				tempMd.getValue(MDL_SCORE_BY_PCA_RESIDUAL_PROJ, temp, objId);
 				if (temp > pcaResidualProj)
 					pcaResidualProj=temp;
 
-				tempMd.getValue(MDL_SCORE_BY_PCA_RESIDUAL_EXP,temp,__iter.objId);
+				tempMd.getValue(MDL_SCORE_BY_PCA_RESIDUAL_EXP, temp, objId);
 				if (temp > pcaResidualExp)
 					pcaResidualExp=temp;
 
-				tempMd.getValue(MDL_SCORE_BY_PCA_RESIDUAL,temp,__iter.objId);
+				tempMd.getValue(MDL_SCORE_BY_PCA_RESIDUAL, temp, objId);
 				if (temp > pcaResidual)
 					pcaResidual=temp;
 
-				tempMd.getValue(MDL_SCORE_BY_ZSCORE,temp,__iter.objId);
+				tempMd.getValue(MDL_SCORE_BY_ZSCORE, temp, objId);
 				if (temp > Zscore)
 					Zscore=temp;
 			}
@@ -196,7 +191,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	size_t  Xdim, Ydim, Zdim, Ndim;
 	phantomVol().getDimensions(Xdim,Ydim,Zdim,Ndim);
 
-	if (  (newXdim == -1) )
+	if (  newXdim == -1 )
 	{
 		newXdim = Xdim;
 		newYdim = Ydim;
@@ -212,20 +207,20 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	Matrix1D<double> opt_offsets(2);
 
 #ifdef DEBUG
-	FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
 	{
 		int enabled;
-		SF.getValue(MDL_ENABLED,enabled,__iter.objId);
+		SF.getValue(MDL_ENABLED, enabled, objId);
 		if ( (enabled==-1)  )
 		{
 			imgno++;
 			continue;
 		}
 
-		SF.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-		SF.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-		SF.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-		SF.getValue(MDL_FLIP,mirror,__iter.objId);
+		SF.getValue(MDL_ANGLE_ROT, rot, objId);
+		SF.getValue(MDL_ANGLE_TILT, tilt, objId);
+		SF.getValue(MDL_ANGLE_PSI, psi, objId);
+		SF.getValue(MDL_FLIP, mirror, objId);
 
 		if (mirror)
 		{
@@ -254,12 +249,12 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		{
 			{
 				size_t val;
-				SF.getValue(MDL_ITEM_ID,val,__iter.objId);
+				SF.getValue(MDL_ITEM_ID,val, objId);
 				{
 					std::cout << E << std::endl;
 					std::cout << (angle*180)/3.14159 << std::endl;
 					P.write("kk_proj.tif");
-					SF.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+					SF.getValue(MDL_ANGLE_PSI,psi, objId);
 					std::cout << rot << " " << tilt << " " << psi << std::endl;
 					char c;
 					std::getchar();
@@ -280,14 +275,15 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	imgno = 0;
 	FileName f;
 
-	FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
 	{
 		int enabled;
-		SF.getValue(MDL_ENABLED,enabled,__iter.objId);
-		SF.getValue(MDL_SHIFT_X,shiftX,__iter.objId);
-		SF.getValue(MDL_SHIFT_Y,shiftY,__iter.objId);
+		SF.getValue(MDL_ENABLED, enabled, objId);
+		SF.getValue(MDL_SHIFT_X, shiftX, objId);
+		SF.getValue(MDL_SHIFT_Y, shiftY, objId);
+		SF.getValue(MDL_FLIP, mirror, objId);
 
-		if ( (enabled==-1)  )
+		if ( enabled==-1  )
 		{
 			imgno++;
 			continue;
@@ -296,13 +292,13 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		//geo2TransformationMatrix(input, Trans);
 		//ApplyGeoParams params;
 		//params.only_apply_shifts = true;
-		//img.readApplyGeo(SF,__iter.objId,params);
+		//img.readApplyGeo(SF,objId,params);
 
-		SF.getValue(MDL_IMAGE,f,__iter.objId);
+		SF.getValue(MDL_IMAGE, f, objId);
 		img.read(f);
-		SF.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-		SF.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-		SF.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+		SF.getValue(MDL_ANGLE_ROT, rot, objId);
+		SF.getValue(MDL_ANGLE_TILT, tilt, objId);
+		SF.getValue(MDL_ANGLE_PSI, psi, objId);
 
 		if (mirror)
 		{
@@ -322,17 +318,17 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	    dMij(Trans, 0, 2) = shiftX;
 	    dMij(Trans, 1, 2) = shiftY;
 
-	    selfApplyGeometry(BSPLINE3, img(), Trans, IS_NOT_INV, WRAP);
+	    selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), Trans, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
 #ifdef DEBUG
 		{
 			std::cout <<  MAT_ELEM(Trans,0,0) << " " << MAT_ELEM(Trans,0,1) << " " << MAT_ELEM(Trans,0,2) << " " << MAT_ELEM(Trans,1,0) << " " <<  MAT_ELEM(Trans,1,1) << " " << MAT_ELEM(Trans,1,2) << " " << MAT_ELEM(Trans,2,0) << " " << MAT_ELEM(Trans,2,1) << " " << MAT_ELEM(Trans,2,2) << " " << std::endl;
 			std::cout <<  MAT_ELEM(E,0,0) << " " << MAT_ELEM(E,0,1) << " " << MAT_ELEM(E,0,2) << " " << MAT_ELEM(E,1,0) << " " <<  MAT_ELEM(E,1,1) << " " << MAT_ELEM(E,1,2) << " " << MAT_ELEM(E,2,0) << " " << MAT_ELEM(E,2,1) << " " << MAT_ELEM(E,2,2) << " " << std::endl;
 			size_t val;
-			SF.getValue(MDL_ITEM_ID,val,__iter.objId);
+			SF.getValue(MDL_ITEM_ID, val, objId);
 			if (true)
 			{
-				SF.getValue(MDL_IMAGE,f,__iter.objId);
+				SF.getValue(MDL_IMAGE, f, objId);
 				std::cout << f << std::endl;
 				img.write("kk_exp.tif");
 
@@ -344,7 +340,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 #endif
 
 		typeCast(img(), temp);
-		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
+		selfScaleToSize(xmipp_transformation::LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
 		temp.statisticsAdjust(0.f,1.f);
 		pca.addVector(temp);
@@ -383,21 +379,21 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
     ROI.resize(newYdim*newXdim);
     ROI.setXmippOrigin();
 
-	FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
 	{
 		int enabled;
-		SF.getValue(MDL_ENABLED,enabled,__iter.objId);
-		if ( (enabled==-1)  )
+		SF.getValue(MDL_ENABLED, enabled, objId);
+		if ( enabled==-1  )
 		{
 			imgno++;
 			continue;
 		}
 
 		//Projected Image
-		SF.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-		SF.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-		SF.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-		SF.getValue(MDL_FLIP,mirror,__iter.objId);
+		SF.getValue(MDL_ANGLE_ROT, rot, objId);
+		SF.getValue(MDL_ANGLE_TILT, tilt, objId);
+		SF.getValue(MDL_ANGLE_PSI, psi, objId);
+		SF.getValue(MDL_FLIP, mirror, objId);
 
 		if (mirror)
 		{
@@ -414,9 +410,9 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		Euler_angles2matrix(rot, tilt, psi, E, false);
 		double angle = atan2(MAT_ELEM(E,0,1),MAT_ELEM(E,0,0));
 		angle = -(angle*180)/3.14159;
-		selfRotate(LINEAR, P(),angle , WRAP);
+		selfRotate(xmipp_transformation::LINEAR, P(),angle , xmipp_transformation::WRAP);
 		typeCast(P(), temp);
-		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
+		selfScaleToSize(xmipp_transformation::LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
 		temp.statisticsAdjust(0.f,1.f);
 		temp.setXmippOrigin();
@@ -428,39 +424,39 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 
 		R2_Proj = correlationIndex(temp,recons[imgno],&ROI);
 
-		SF.getValue(MDL_SHIFT_X,shiftX,__iter.objId);
-		SF.getValue(MDL_SHIFT_Y,shiftY,__iter.objId);
+		SF.getValue(MDL_SHIFT_X, shiftX, objId);
+		SF.getValue(MDL_SHIFT_Y, shiftY, objId);
 
-		SF.getValue(MDL_IMAGE,f,__iter.objId);
+		SF.getValue(MDL_IMAGE, f, objId);
 		img.read(f);
 
 		rotation2DMatrix(angle, Trans, true);
 		dMij(Trans, 0, 2) = shiftX;
 		dMij(Trans, 1, 2) = shiftY;
-		selfApplyGeometry(BSPLINE3, img(), Trans, IS_NOT_INV, WRAP);
+		selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), Trans, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 
 		typeCast(img(), temp);
-		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
+		selfScaleToSize(xmipp_transformation::LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
 		temp.statisticsAdjust(0.f,1.f);
 		temp.setXmippOrigin();
 
 		R2_Exp = correlationIndex(temp,recons[imgno],&ROI);
 
-		SF.setValue(MDL_SCORE_BY_PCA_RESIDUAL_PROJ,R2_Proj,__iter.objId);
-		SF.setValue(MDL_SCORE_BY_PCA_RESIDUAL_EXP,R2_Exp,__iter.objId);
-		SF.setValue(MDL_SCORE_BY_PCA_RESIDUAL,R2_Proj*R2_Exp,__iter.objId);
-		SF.setValue(MDL_SCORE_BY_ZSCORE, exp(-A1D_ELEM(pca.Zscore,imgno)),__iter.objId);
+		SF.setValue(MDL_SCORE_BY_PCA_RESIDUAL_PROJ,R2_Proj,objId);
+		SF.setValue(MDL_SCORE_BY_PCA_RESIDUAL_EXP,R2_Exp,objId);
+		SF.setValue(MDL_SCORE_BY_PCA_RESIDUAL,R2_Proj*R2_Exp,objId);
+		SF.setValue(MDL_SCORE_BY_ZSCORE, exp(-A1D_ELEM(pca.Zscore,imgno)),objId);
 
 		#ifdef DEBUG
 		{
 			size_t val;
-			SF.getValue(MDL_ITEM_ID,val,__iter.objId);
+			SF.getValue(MDL_ITEM_ID,val,objId);
 			if (true)
 			{
 			Image<float>  imgRecons;
 			Image<double> imgAvg;
-			SF.getValue(MDL_IMAGE,f,__iter.objId);
+			SF.getValue(MDL_IMAGE,f,objId);
 
 			img.write("kk_exp0.tif");
 			apply_binary_mask(ROI,temp,imgRecons());
@@ -477,10 +473,10 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 			imgAvg.write("kk_average.tif");
 
 			//Projected Image
-			SF.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-			SF.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-			SF.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-			SF.getValue(MDL_FLIP,mirror,__iter.objId);
+			SF.getValue(MDL_ANGLE_ROT,rot,objId);
+			SF.getValue(MDL_ANGLE_TILT,tilt,objId);
+			SF.getValue(MDL_ANGLE_PSI,psi,objId);
+			SF.getValue(MDL_FLIP,mirror,objId);
 
 			if (mirror)
 			{

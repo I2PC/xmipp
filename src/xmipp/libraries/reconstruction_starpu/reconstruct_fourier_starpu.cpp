@@ -109,11 +109,10 @@ void ProgRecFourierStarPU::readParams() {
 	}
 }
 
-void ProgRecFourierStarPU::prepareMetaData(const FileName& fn_in, MetaData& SF) {
+void ProgRecFourierStarPU::prepareMetaData(const FileName& fn_in, MetaDataVec& SF) {
 	// Read the input images
 	SF.read(fn_in);
 	SF.removeDisabled();
-	SF.getDatabase()->activateThreadMuting();
 }
 
 uint32_t ProgRecFourierStarPU::computeBatchCount(const ProgRecFourierStarPU::Params &params, const MetaData &SF) {
@@ -124,7 +123,7 @@ void ProgRecFourierStarPU::prepareConstants(const Params& params, const MetaData
 	// Ask for memory for the output volume and its Fourier transform
 	size_t imageSize;
 	{
-		size_t objId = SF.firstObject();
+		size_t objId = SF.firstRowId();
 		FileName fnImg;
 		SF.getValue(MDL_IMAGE, fnImg, objId);
 		Image<double> I;

@@ -26,7 +26,7 @@
 #ifndef _TRANSFROM_DIMRED
 #define _TRANSFROM_DIMRED
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "data/mask.h"
 #include "data/filters.h"
 #include "matrix_dimred.h"
@@ -45,7 +45,7 @@ public:
     /** Distance between images */
     String distance;
 public:
-    MetaData SFin;
+    MetaDataVec SFin;
     Mask mask;
 
     // Auxiliary variables for alignment

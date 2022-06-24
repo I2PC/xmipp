@@ -31,6 +31,9 @@
 #include "hw.h"
 #include "core/xmipp_error.h"
 
+/**@defgroup CPU CPU support class
+   @ingroup DataLibrary */
+//@{
 class CPU : public HW {
 public:
     CPU(unsigned cores=1) : HW(cores) {}
@@ -65,5 +68,5 @@ private:
             unsigned int *ecx, unsigned int *edx);
 };
 
-
+//@}
 #endif /* LIBRARIES_DATA_CPU_H_ */

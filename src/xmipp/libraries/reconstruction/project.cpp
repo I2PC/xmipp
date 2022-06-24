@@ -37,6 +37,7 @@ void ProgProject::readParams()
     fnPhantom = getParam("-i");
     fnOut = getParam("-o");
     samplingRate  = getDoubleParam("--sampling_rate");
+    highTs = getDoubleParam("--high_sampling_rate");
     singleProjection = false;
     if (STR_EQUAL(getParam("--method"), "real_space"))
         projType = REALSPACE;
@@ -49,11 +50,11 @@ void ProgProject::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmipp_transformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmipp_transformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmipp_transformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The values for interpolation can be : nearest, linear, bspline");
 
@@ -96,6 +97,7 @@ void ProgProject::defineParams()
     addParamsLine("   -i <volume_file>                           : Voxel volume, PDB or description file");
     addParamsLine("   -o <image_file>                            : Output stack or image");
     addParamsLine("  [--sampling_rate <Ts=1>]                    : It is only used for PDB phantoms");
+    addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]  : Sampling rate before downsampling. It is only used for PDB phantoms");
     addParamsLine("  [--method <method=real_space>]              : Projection method");
     addParamsLine("        where <method>");
     addParamsLine("                real_space                    : Makes projections by ray tracing in real space");
@@ -173,7 +175,7 @@ void ProgProject::defineParams()
 void ProgProject::run()
 {
     Projection proj;
-    MetaData SF;
+    MetaDataVec SF;
     ROUT_project(*this, proj, SF);
 }
 
@@ -186,7 +188,7 @@ void ParametersProjection::from_prog_params(const ProgProject &prog_prm)
 /* Read Projection Parameters ============================================== */
 int translate_randomness(char * str)
 {
-    if (str == NULL)
+    if (str == nullptr)
         return ANGLE_RANGE_DETERMINISTIC;
     if (strcmp(str, "random_group") == 0)
         return ANGLE_RANGE_RANDOM_GROUPS;
@@ -220,7 +222,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
 
     if (fn_proj_param.isMetaData())
     {
-        MetaData MD;
+        MetaDataVec MD;
         MD.read(fn_proj_param);
         //if X and Y those not exists add them
         if (!MD.containsLabel(MDL_SHIFT_X))
@@ -238,7 +240,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
         size_t objId;
 
         // Read data from the MetaData
-        objId = MD.firstObject();
+        objId = MD.firstRowId();
         MD.getValue(MDL_DIMENSIONS_2D, ParamVec, objId);
         proj_Xdim = (int)ParamVec[0];
         proj_Ydim = (int)ParamVec[1];
@@ -429,7 +431,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
                     enable_angle_range = true;
                     rot_range.ang0 = textToFloat(auxstr);
                     auxstr = nextToken();
-                    if (auxstr == NULL)
+                    if (auxstr == nullptr)
                     {
                         // Fixed mode
                         rot_range.randomness = ANGLE_RANGE_DETERMINISTIC;
@@ -455,7 +457,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 3:
                 tilt_range.ang0 = textToFloat(firstToken(line));
                 auxstr = nextToken();
-                if (auxstr == NULL)
+                if (auxstr == nullptr)
                 {
                     // Fixed mode
                     tilt_range.randomness = ANGLE_RANGE_DETERMINISTIC;
@@ -475,7 +477,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 4:
                 psi_range.ang0 = textToFloat(firstToken(line));
                 auxstr = nextToken();
-                if (auxstr == NULL)
+                if (auxstr == nullptr)
                 {
                     // Fixed mode
                     psi_range.randomness = ANGLE_RANGE_DETERMINISTIC;
@@ -495,7 +497,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 5:
                 rot_range.Ndev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     rot_range.Navg = textToFloat(auxstr);
                 else
                     rot_range.Navg = 0;
@@ -504,7 +506,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 6:
                 tilt_range.Ndev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     tilt_range.Navg = textToFloat(auxstr);
                 else
                     tilt_range.Navg = 0;
@@ -513,7 +515,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 7:
                 psi_range.Ndev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     psi_range.Navg = textToFloat(auxstr);
                 else
                     psi_range.Navg = 0;
@@ -522,7 +524,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 8:
                 Npixel_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Npixel_avg = textToFloat(auxstr);
                 else
                     Npixel_avg = 0;
@@ -531,7 +533,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
             case 9:
                 Ncenter_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Ncenter_avg = textToFloat(auxstr);
                 else
                     Ncenter_avg = 0;
@@ -556,14 +558,14 @@ void ParametersProjection::read(const FileName &fn_proj_param)
 #define Npsi  prm.psi_range.samples
 #define proj_number(base,irot,itilt,ipsi) base+irot*Ntilt*Npsi+itilt*Npsi+ipsi
 void generate_angles(int ExtProjs, const Angle_range &range,
-                     MetaData &DF, char ang_name, const ParametersProjection &prm)
+                     MetaDataVec &DF, char ang_name, const ParametersProjection &prm)
 {
     double ang;
     int   N1=0, N2=0;
     int   i, j, k;
     size_t iproj, idx=0;
     int   limit=0;
-    MetaData DFaux=DF;
+    MetaDataVec DFaux=DF;
 
     // Select loop limit ....................................................
     switch (range.randomness)
@@ -701,14 +703,14 @@ void generate_angles(int ExtProjs, const Angle_range &range,
 }
 
 /* Generate evenly distributed angles ====================================== */
-void generate_even_angles(int ExtProjs, int Nrottilt, MetaData &DF,
+void generate_even_angles(int ExtProjs, int Nrottilt, MetaDataVec &DF,
                           const ParametersProjection &prm)
 {
     // We will run over the tilt angle in a deterministic way
     // then for every tilt angle, a rot_step is computed so that
     // it keeps the same distance in the circle generated by tilt
     // as the sample distance at the equator (tilt=90).
-    MetaData DFaux;
+    MetaDataVec DFaux;
     int N = 0;
     int limit = prm.tilt_range.samples;
     double rot_step_at_equator = (prm.rot_range.angF - prm.rot_range.ang0) /
@@ -794,7 +796,7 @@ int count_even_angles(const ParametersProjection &prm)
 }
 
 /* Assign angles =========================================================== */
-int Assign_angles(MetaData &DF, const ParametersProjection &prm,
+int Assign_angles(MetaDataVec &DF, const ParametersProjection &prm,
                   const FileName &fn_sym)
 {
     int ExtProjs = 0, IntProjs = 0;    // External and internal projections
@@ -896,8 +898,13 @@ void PROJECT_Side_Info::produce_Side_Info(ParametersProjection &prm,
     else if (prog_prm.fnPhantom.getExtension()=="pdb")
     {
         phantomPDB.read(prog_prm.fnPhantom);
-        const double highTs=1.0/12.0;
-        int M=ROUND(prog_prm.samplingRate/highTs);
+        for (int i=0; i<phantomPDB.atomList.size(); i++)
+        {
+		phantomPDB.atomList[i].x /=prog_prm.samplingRate;
+		phantomPDB.atomList[i].y /=prog_prm.samplingRate;
+		phantomPDB.atomList[i].z /=prog_prm.samplingRate;
+        }
+        int M=ROUND(prog_prm.samplingRate/prog_prm.highTs);
         interpolator.setup(M,prog_prm.samplingRate/M,true);
         phantomMode = PDB;
         if (prog_prm.singleProjection)
@@ -947,8 +954,8 @@ int PROJECT_Effectively_project(const FileName &fnOut,
     //#define DEBUG
 #ifdef DEBUG
 
-    MetaData mdShifts;
-    MetaData mdRotations;
+    MetaDataVec mdShifts;
+    MetaDataVec mdRotations;
     /**
      * Here we create two auxiliary metadata files to check that the
      * Alignment information that is created by project is correct
@@ -975,8 +982,8 @@ int PROJECT_Effectively_project(const FileName &fnOut,
 
     int projIdx=FIRST_IMAGE;
     FileName fn_proj;              // Projection name
-    RealShearsInfo *Vshears=NULL;
-    FourierProjector *Vfourier=NULL;
+    RealShearsInfo *Vshears=nullptr;
+    FourierProjector *Vfourier=nullptr;
     if (projType == SHEARS && side.phantomMode==PROJECT_Side_Info::VOXEL)
         Vshears=new RealShearsInfo(side.phantomVol());
     if (projType == FOURIER && side.phantomMode==PROJECT_Side_Info::VOXEL)//////////////////////
@@ -994,7 +1001,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
     	existFlip = true;
 
 
-    FOR_ALL_OBJECTS_IN_METADATA(side.DF)
+    for (size_t objId : side.DF.ids())
     {
         size_t DFmov_objId=SF.addObject();
         if (!singleProjection)
@@ -1005,23 +1012,23 @@ int PROJECT_Effectively_project(const FileName &fnOut,
         // Choose angles .....................................................
         double rot, tilt, psi, x=0, y=0;    // Actual projecting angles
         bool flip=false;
-        side.DF.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-        side.DF.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-        side.DF.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+        side.DF.getValue(MDL_ANGLE_ROT,rot,objId);
+        side.DF.getValue(MDL_ANGLE_TILT,tilt,objId);
+        side.DF.getValue(MDL_ANGLE_PSI,psi,objId);
 
         if (prm.applyShift)
         {
         	if (side.DF.containsLabel(MDL_SHIFT_X))
-        		side.DF.getValue(MDL_SHIFT_X,x,__iter.objId);
+        		side.DF.getValue(MDL_SHIFT_X,x,objId);
         	if (side.DF.containsLabel(MDL_SHIFT_Y))
-        		side.DF.getValue(MDL_SHIFT_Y,y,__iter.objId);
+        		side.DF.getValue(MDL_SHIFT_Y,y,objId);
         }
         realWRAP(rot, 0, 360);
         realWRAP(tilt, 0, 360);
         realWRAP(psi, 0, 360);
 
         if (existFlip)
-        	side.DF.getValue(MDL_FLIP,flip,__iter.objId);
+        	side.DF.getValue(MDL_FLIP,flip,objId);
 
 
         SF.setValue(MDL_ANGLE_ROT,rot,DFmov_objId);
@@ -1046,8 +1053,8 @@ int PROJECT_Effectively_project(const FileName &fnOut,
     	{
     		//JV he tenido que tocar esta funcion para poder acceder al sampling rate
     		hasCTF = true;
-    		MDRow row;
-    		side.DF.getRow(row,__iter.objId);
+    		MDRowVec row;
+    		side.DF.getRow(row,objId);
     		ctf.readFromMdRow(row);
         	ctf.produceSideInfo();
     	}
@@ -1090,7 +1097,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
             Matrix1D<double> shifts(2);
             XX(shifts) = shiftX;
             YY(shifts) = shiftY;
-            selfTranslate(LINEAR,IMGMATRIX(proj), shifts);
+            selfTranslate(xmipp_transformation::LINEAR,IMGMATRIX(proj), shifts);
         }
         else if (side.phantomMode==PROJECT_Side_Info::PDB)
         {
@@ -1176,10 +1183,10 @@ int ROUT_project(ProgProject &prm, Projection &proj, MetaData &SF)
     side.doCrystal=false;
     if (prm.fn_proj_param != "")
     {
-        MetaData MD;
+        MetaDataVec MD;
         size_t objId;
         MD.read(prm.fn_proj_param);
-        objId = MD.firstObject();
+        objId = MD.firstRowId();
         MD.getValue(MDL_CRYSTAL_PROJ,side.doCrystal,objId);
     }
     if (side.doCrystal)
@@ -1191,28 +1198,29 @@ int ROUT_project(ProgProject &prm, Projection &proj, MetaData &SF)
         if (crystal_proj_prm.DF_shift_bool == true)
             crystal_proj_prm.DF_shift.read(crystal_proj_prm.fn_shift);
         double my_scale = (side.phantomDescr).phantom_scale;
-        FOR_ALL_OBJECTS_IN_METADATA(crystal_proj_prm.DF_shift)
+
+        for (size_t objId : crystal_proj_prm.DF_shift.ids())
         {
             double xcell, ycell;
-            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_CELLX,xcell,__iter.objId);
-            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_CELLY,ycell,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_CELLX,xcell*my_scale,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_CELLY,ycell*my_scale,__iter.objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_CELLX,xcell,objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_CELLY,ycell,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_CELLX,xcell*my_scale,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_CELLY,ycell*my_scale,objId);
 
             double x,y,z;
-            crystal_proj_prm.DF_shift.getValue(MDL_SHIFT_X,x,__iter.objId);
-            crystal_proj_prm.DF_shift.getValue(MDL_SHIFT_Y,y,__iter.objId);
-            crystal_proj_prm.DF_shift.getValue(MDL_SHIFT_Z,z,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_SHIFT_X,x*my_scale,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_SHIFT_Y,y*my_scale,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_SHIFT_Z,z*my_scale,__iter.objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_SHIFT_X,x,objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_SHIFT_Y,y,objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_SHIFT_Z,z,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_SHIFT_X,x*my_scale,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_SHIFT_Y,y*my_scale,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_SHIFT_Z,z*my_scale,objId);
 
-            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_SHIFTX,x,__iter.objId);
-            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_SHIFTY,y,__iter.objId);
-            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_SHIFTZ,z,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_SHIFTX,x*my_scale,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_SHIFTY,y*my_scale,__iter.objId);
-            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_SHIFTZ,z*my_scale,__iter.objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_SHIFTX,x,objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_SHIFTY,y,objId);
+            crystal_proj_prm.DF_shift.getValue(MDL_CRYSTAL_SHIFTZ,z,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_SHIFTX,x*my_scale,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_SHIFTY,y*my_scale,objId);
+            crystal_proj_prm.DF_shift.setValue(MDL_CRYSTAL_SHIFTZ,z*my_scale,objId);
         }
     }
 

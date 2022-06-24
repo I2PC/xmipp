@@ -30,23 +30,22 @@
 #include "xmipp_mpi.h"
 #include <reconstruction/reconstruct_wbp.h>
 
+/**@defgroup ProgMPIRecWbp ProgMPIRecWbp
+   @ingroup Programs */
+//@{
 class ProgMPIRecWbp: public ProgRecWbp, public MpiMetadataProgram
 {
 public:
-    //Empty constructor
-    ProgMPIRecWbp()
-    {
-    }
     ProgMPIRecWbp(int argc, char **argv);
-    ProgMPIRecWbp(MpiNode *node);
+    ProgMPIRecWbp(const std::shared_ptr<MpiNode> &node);
     void defineParams();
     void readParams();
     void read(int argc, char **argv);
     void produceSideInfo();
     void showProgress();
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
+    bool getImageToProcess(size_t &objId) override;
     void finishProcessing();
 };
-
+//@}
 
 #endif /* MPI_RECONSTRUCT_WBP_H_ */

@@ -32,6 +32,9 @@
 template<typename T>
 class MultidimArray;
 
+/**@defgroup Polynomials Polynomials
+   @ingroup DataLibrary */
+//@{
 // This class performs all the work related with Polynomials. This is a base class
 class Polynomials
 {

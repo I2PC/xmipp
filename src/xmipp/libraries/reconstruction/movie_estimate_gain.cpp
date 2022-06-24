@@ -27,7 +27,6 @@
 
 #include <algorithm>
 #include "movie_estimate_gain.h"
-#include <core/metadata.h>
 #include <core/xmipp_image_generic.h>
 
 void ProgMovieEstimateGain::defineParams()
@@ -75,7 +74,7 @@ void ProgMovieEstimateGain::produceSideInfo()
 		exit(0);
 	Image<double> Iframe;
 	FileName fnFrame;
-	mdIn.getValue(MDL_IMAGE,fnFrame,mdIn.firstObject());
+	mdIn.getValue(MDL_IMAGE,fnFrame,mdIn.firstRowId());
 	Iframe.read(fnFrame);
 	Xdim=XSIZE(Iframe());
 	Ydim=YSIZE(Iframe());
@@ -97,11 +96,11 @@ void ProgMovieEstimateGain::produceSideInfo()
 	sumObs.initZeros(Ydim,Xdim);
 
     int iFrame=0;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+    for (size_t objId : mdIn.ids())
 	{
 	    if (iFrame%frameStep==0)
 	    {
-               mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+               mdIn.getValue(MDL_IMAGE,fnFrame,objId);
                Iframe.read(fnFrame);
                MultidimArray<double>  mIframe=Iframe();
                MultidimArray<double>  mIGain=IGain();
@@ -120,7 +119,7 @@ void ProgMovieEstimateGain::produceSideInfo()
 	{
 	    int jmax=ceil(3*listOfSigmas[i]);
 	    listOfWidths.push_back(jmax);
-	    double *weights=new double[jmax+1];
+	    auto *weights=new double[jmax+1];
 	    double K=1;
             if (listOfSigmas[i]>0)
                K=-0.5/(listOfSigmas[i]*listOfSigmas[i]);
@@ -163,9 +162,9 @@ void ProgMovieEstimateGain::run()
 	{
             int idx=1;
             createEmptyFile(fnCorrected, Xdim, Ydim, 1, mdIn.size());
-            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            for (size_t objId : mdIn.ids())
             {
-                mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+                mdIn.getValue(MDL_IMAGE,fnFrame,objId);
                 Iframe.read(fnFrame);
                 MultidimArray<double> &mIframe = Iframe();
                 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
@@ -180,11 +179,11 @@ void ProgMovieEstimateGain::run()
             std::cout << "Iteration " << n << std::endl;
             sumIdeal.initZeros(Ydim,Xdim);
             int iFrame=0;
-            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            for (size_t objId : mdIn.ids())
             {
                 if (iFrame%frameStep==0)
                 {
-                    mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+                    mdIn.getValue(MDL_IMAGE,fnFrame,objId);
                     std::cout << "   Frame " << fnFrame << std::endl;
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();
@@ -262,8 +261,8 @@ void ProgMovieEstimateGain::run()
 
 void ProgMovieEstimateGain::computeHistograms(const MultidimArray<double> &Iframe)
 {
-		double* auxElemC=new double[Ydim];
-		double* auxElemR=new double[Xdim];
+	auto* auxElemC=new double[Ydim];
+	auto* auxElemR=new double[Xdim];
 
 		for(size_t j=0; j<XSIZE(columnH); j++)
 		{

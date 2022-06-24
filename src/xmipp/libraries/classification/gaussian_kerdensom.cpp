@@ -33,9 +33,9 @@
 #include <ctime>
 
 #include "gaussian_kerdensom.h"
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
-#define  MAXZ -11282
+constexpr signed int MAXZ =  -11282;
 
 //-----------------------------------------------------------------------------
 /**
@@ -48,8 +48,8 @@
 void GaussianKerDenSOM::train(FuzzyMap& _som, TS& _examples, FileName& _fn,
                               bool _update, double _sigma, bool _saveIntermediate)
 {
-	MetaData MDconvergence;
-	FileName tmpN;
+    MetaDataVec MDconvergence;
+    FileName tmpN;
     numNeurons = _som.size();
     numVectors = _examples.size();
     dim = _examples.theItems[0].size();
@@ -88,7 +88,11 @@ void GaussianKerDenSOM::train(FuzzyMap& _som, TS& _examples, FileName& _fn,
     }
 
 
-    double regtmp, tmpregMax, tmpregMin, pen, lkhood;
+    double regtmp;
+    double tmpregMax;
+    double tmpregMin;
+    double pen;
+    double lkhood;
     tmpregMax = log(reg0);
     tmpregMin = log(reg1);
 
@@ -246,7 +250,11 @@ double GaussianKerDenSOM::updateU(FuzzyMap* _som, const TS* _examples,
 {
     // Create auxiliar stuff
     double auxDist;
-    double rr2, max1, d1, tmp, r1;
+    double rr2;
+    double max1;
+    double d1;
+    double tmp;
+    double r1;
 
     double irr1 =1.0/( 2.0 * _sigma);
     _alpha = 0;
@@ -304,7 +312,8 @@ double GaussianKerDenSOM::updateU(FuzzyMap* _som, const TS* _examples,
 // Estimate Sigma part II
 double GaussianKerDenSOM::updateSigmaII(FuzzyMap* _som, const TS* _examples, const double& _reg, const double& _alpha)
 {
-    size_t cc, j;
+    size_t cc;
+    size_t j;
 
     if (_reg == 0)
         return(_alpha / (double)(numVectors*dim));
@@ -314,7 +323,7 @@ double GaussianKerDenSOM::updateSigmaII(FuzzyMap* _som, const TS* _examples, con
     for (cc = 0; cc < numNeurons; cc++)
     {
         _som->localAve(_som->indexToPos(cc), tmpV);
-        double t1 = (double) _som->getLayout().numNeig(_som, (SomPos) _som->indexToPos(cc));
+        auto t1 = (double) _som->getLayout().numNeig(_som, (SomPos) _som->indexToPos(cc));
         for (j = 0; j < dim; j++)
             q += (t1 * ((double)_som->theItems[cc][j]) - (double)(tmpV[j])) * ((double)_som->theItems[cc][j]);
     }
@@ -387,7 +396,9 @@ double GaussianKerDenSOM::functional(const TS* _examples, const FuzzyMap* _som,
 		                             double _sigma, double _reg, double& _likelihood,
 		                             double& _penalty)
 {
-    unsigned j, vv, cc;
+    unsigned j;
+    unsigned vv;
+    unsigned cc;
     double t;
     _likelihood = 0;
     for (vv = 0; vv < numVectors; vv++)
