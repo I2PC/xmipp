@@ -177,11 +177,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 		}
 	}
 
-	std::cout << "check 1 " << std::endl;
-
-	// Input tomogram (inputTomo) is overrided with the filtered volume searching memory efficency
 	transformer.inverseFourierTransform(fftFiltered, inputTomo);
-	std::cout << "check 2 " << std::endl;
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
@@ -214,57 +210,41 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	std::cout << "Sampling region from slice " << minSamplingSlice << " to " << maxSamplingSlice << std::endl;
 	#endif
 
-	double maxThreshold = MAXDOUBLE;
-	
-	for(size_t k = 0; k < zSize; ++k)
+	// Calculate threshols value for the central slices of the volume
+	std::vector<int> sliceVector;
+
+	for(size_t k = minSamplingSlice; k < maxSamplingSlice; ++k)
 	{
-		std::vector<int> sliceVector;
-		
-		// Calculate threshols value for the central slices of the volume
-		if(k < maxSamplingSlice && k > minSamplingSlice)
+		for(size_t j = 0; j < ySize; ++j)
 		{
-			for(size_t j = 0; j < ySize; ++j)
+			for(size_t i = 0; i < xSize; ++i)
 			{
-				for(size_t i = 0; i < xSize; ++i)
-				{
-					#ifdef DEBUG_DIM
-					std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
-					#endif
-
-					sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
-				}
+				sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
 			}
-
-			double sum = 0, sum2 = 0;
-			int Nelems = 0;
-			double average = 0;
-			double standardDeviation = 0;
-			double sliceVectorSize = sliceVector.size();
-
-			for(size_t e = 0; e < sliceVectorSize; e++)
-			{
-				int value = sliceVector[e];
-				sum += value;
-				sum2 += value*value;
-				++Nelems;
-			}
-
-			average = sum / sliceVectorSize;
-			standardDeviation = sqrt(sum2/Nelems - average*average);
-
-			double threshold = average-sdThreshold*standardDeviation;
-
-			if (maxThreshold > threshold)
-				maxThreshold = threshold;
-
-			#ifdef DEBUG
-			std::cout<< "Slice: " << k <<  " Threshold: " << threshold << std::endl;
-			#endif
 		}
 	}
+		
+	double sum = 0, sum2 = 0;
+	int Nelems = 0;
+	double average = 0;
+	double standardDeviation = 0;
+	double sliceVectorSize = sliceVector.size();
+
+	for(size_t e = 0; e < sliceVectorSize; e++)
+	{
+		int value = sliceVector[e];
+		sum += value;
+		sum2 += value*value;
+		++Nelems;
+	}
+
+	average = sum / sliceVectorSize;
+	standardDeviation = sqrt(sum2/Nelems - average*average);
+
+	double threshold = average-sdThreshold*standardDeviation;
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Threshold value = " << maxThreshold << std::endl;
+	std::cout << "Threshold value = " << threshold << std::endl;
 	#endif
 
 	MultidimArray<double> binaryCoordinatesMapSlice;
@@ -284,7 +264,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			{
 				double value = DIRECT_A3D_ELEM(volFiltered, k, i, j);
 
-				if (value<maxThreshold)
+				if (value < threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -626,56 +606,3 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 }
 
 
-// --------------------------- MAIN ----------------------------------
-void ProgImagePeakHighContrast::run()
-{
-	using std::chrono::high_resolution_clock;
-    using std::chrono::duration_cast;
-    using std::chrono::duration;
-    using std::chrono::milliseconds;
-
-	auto t1 = high_resolution_clock::now();
-	
-	Image<double> inputVolume;
-	inputVolume.read(fnVol);
-
-	auto &inputTomo=inputVolume();
-
-	xSize = XSIZE(inputTomo);
-	ySize = YSIZE(inputTomo);
-	zSize = ZSIZE(inputTomo);
-
-	#ifdef DEBUG_DIM
-	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
-	#endif
-
- 	preprocessVolume(inputTomo);
-
-	#ifdef DEBUG_DIM
-	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(volFiltered) << std::endl;
-	std::cout << "y " << YSIZE(volFiltered) << std::endl;
-	std::cout << "z " << ZSIZE(volFiltered) << std::endl;
-	std::cout << "n " << NSIZE(volFiltered) << std::endl;
-	#endif
-	
-	getHighContrastCoordinates(inputTomo);
-
-	clusterHighContrastCoordinates();
-
-	if(centerFeatures==true)
-	{
-		centerCoordinates(inputTomo);
-	}
-
-	writeOutputCoordinates();
-	
-	auto t2 = high_resolution_clock::now();
-	/* Getting number of milliseconds as an integer. */
-    auto ms_int = duration_cast<milliseconds>(t2 - t1);
- 	std::cout << "Execution time: " << ms_int.count() << "ms\n";
-}
