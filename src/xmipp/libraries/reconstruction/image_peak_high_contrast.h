@@ -29,7 +29,7 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
 #include <math.h>

@@ -72,7 +72,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	int siz_z = zSize*0.5;
 	int N_smoothing = 10;
 
-	size_t ux, uy, uz, uz2, uz2y2;
+	int ux, uy, uz, uz2, uz2y2;
 
 	int limit_distance_x = (siz_x-N_smoothing);
 	int limit_distance_y = (siz_y-N_smoothing);
@@ -599,7 +599,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 	void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
-	MetaData md;
+	MetaDataVec md;
 	size_t id;
 
 	for(size_t i=0;i<centerOfMassX.size();i++)
@@ -613,7 +613,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	md.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Coordinates metadata saved at: " << fnOut << std::endl;
+	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
 
 }
