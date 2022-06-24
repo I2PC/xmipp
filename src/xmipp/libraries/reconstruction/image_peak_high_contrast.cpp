@@ -720,6 +720,12 @@ void ProgImagePeakHighContrast::run()
 
 bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
+	// Check number of elements of the label
+	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
+	{
+		return false;
+	}
+
 	// Calculate the furthest point of the region from the centroid
 	double maxSquareDistance = 0;
 	double distance;
