@@ -40,9 +40,11 @@
 #include <string>
 #include "symmetrize.h"
 #include <data/morphology.h>
+#include <data/point3D.h>
+
 
 #define VERBOSE_OUTPUT
-// #define DEBUG
+#define DEBUG_HCC
 #define DEBUG_FILTERPARAMS
 // #define DEBUG_DIM
 // #define DEBUG_DIST
@@ -79,6 +81,9 @@ private:
     std::vector<int> centerOfMassX;
     std::vector<int> centerOfMassY;
     std::vector<int> centerOfMassZ;
+
+
+    std::vector<Point3D<double>> coordinates3D;
 
 public:
 
@@ -130,6 +135,9 @@ public:
      *
     */
     void writeOutputCoordinates();
+
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+
 
     void run();
 };

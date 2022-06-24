@@ -205,7 +205,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	size_t minSamplingSlice = centralSlice - (numberSampSlices / 2);
 	size_t maxSamplingSlice = centralSlice + (numberSampSlices / 2);
 
-	#ifdef DEBUG
+	#ifdef DEBUG_HCC
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
 	std::cout << "Sampling region from slice " << minSamplingSlice << " to " << maxSamplingSlice << std::endl;
 	#endif
@@ -270,73 +270,126 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 				}
 			}
 		}
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		std::cout << "Labeling slice " << k << std::endl;
 		#endif
 
 		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
 
-		// Remove coordinates thresholding the number of elements per label
+		std::vector<std::vector<int>> coordinatesPerLabelX (colour);
+		std::vector<std::vector<int>> coordinatesPerLabelY (colour);
 
-		// These vectors will hold the list of labels and the nuber of coordinates associated to each of them
-		std::vector<int> label;
-		std::vector<int> numberCoordsPerLabel;
-		
-		for(size_t j = 0; j < xSize; j++)
+		for(size_t i = 0; i < ySize; i++)
 		{
-			for(size_t i = 0; i < ySize; i++)
+            for(size_t j = 0; j < xSize; ++j)
 			{
 				int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
 				if(value!=0)
 				{
-					bool labelExists = false;
-					
-					for(size_t n=0; n<label.size(); n++)
-					{
-						if(label[n]==value)
-						{
-						 	numberCoordsPerLabel[n] += 1;
-							labelExists = true;
-						}
-					}
-
-					if(labelExists==false)
-					{
-						label.push_back(value);
-						numberCoordsPerLabel.push_back(1);
-					}
+					coordinatesPerLabelX[value-1].push_back(j);
+					coordinatesPerLabelY[value-1].push_back(i);
 				}
 			}
 		}
 
-		for(size_t j = 0; j < xSize; j++)
+		size_t numberOfCoordinatesPerValue;
+
+		// Trim coordinates based on the characteristics of the labeled region
+		for(size_t value = 0; value < colour; value++)
 		{
-			for(size_t i = 0; i < ySize; i++)
+			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+			int xCoor = 0;
+			int yCoor = 0;
+
+			for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
 			{
-				for(size_t n=0; n<label.size(); n++)
-				{
-					if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
-					{
-						if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
-						{						
-							coordinates3Dx.push_back(j);
-							coordinates3Dy.push_back(i);
-							coordinates3Dz.push_back(k);
+				xCoor += coordinatesPerLabelX[value][coordinate];
+				yCoor += coordinatesPerLabelY[value][coordinate];
+			}
 
-							DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-						}
+			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-						break;
-					}
-				}
+
+			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+
+			if(keep)
+			{
+				Point3D<double> point3D(xCoorCM, yCoorCM, k);
+				coordinates3D.push_back(point3D);
+				coordinates3Dx.push_back(xCoorCM);
+				coordinates3Dy.push_back(yCoorCM);
+				coordinates3Dz.push_back(k);
 			}
 		}
+
+		#ifdef DEBUG_HCC
+		std::cout << "Colour: " << colour << std::endl;
+		#endif
+
+		// // Remove coordinates thresholding the number of elements per label
+
+		// // These vectors will hold the list of labels and the nuber of coordinates associated to each of them
+		// std::vector<int> label;
+		// std::vector<int> numberCoordsPerLabel;
+		
+		// for(size_t j = 0; j < xSize; j++)
+		// {
+		// 	for(size_t i = 0; i < ySize; i++)
+		// 	{
+		// 		int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+		// 		if(value!=0)
+		// 		{
+		// 			bool labelExists = false;
+					
+		// 			for(size_t n=0; n<label.size(); n++)
+		// 			{
+		// 				if(label[n]==value)
+		// 				{
+		// 				 	numberCoordsPerLabel[n] += 1;
+		// 					labelExists = true;
+		// 				}
+		// 			}
+
+		// 			if(labelExists==false)
+		// 			{
+		// 				label.push_back(value);
+		// 				numberCoordsPerLabel.push_back(1);
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		// for(size_t j = 0; j < xSize; j++)
+		// {
+		// 	for(size_t i = 0; i < ySize; i++)
+		// 	{
+		// 		for(size_t n=0; n<label.size(); n++)
+		// 		{
+		// 			if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
+		// 			{
+		// 				if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
+		// 				{						
+		// 					coordinates3Dx.push_back(j);
+		// 					coordinates3Dy.push_back(i);
+		// 					coordinates3Dz.push_back(k);
+
+		// 					DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+		// 				}
+
+		// 				break;
+		// 			}
+		// 		}
+		// 	}
+		// }
     }
 
 	#ifdef VERBOSE_OUTPUT
@@ -662,3 +715,60 @@ void ProgImagePeakHighContrast::run()
 }
 
 
+
+// --------------------------- UTILS functions ----------------------------
+
+bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+{
+	// Calculate the furthest point of the region from the centroid
+	double maxSquareDistance = 0;
+	double distance;
+
+	#ifdef DEBUG_FILTERLABEL
+	size_t debugN;
+	#endif
+
+	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
+	{
+		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
+
+		if(distance >= maxSquareDistance)
+		{
+			#ifdef DEBUG_FILTERLABEL
+			debugN = n;
+			#endif
+
+			maxSquareDistance = distance;
+		}
+	}
+
+	double maxDistace;
+	maxDistace = sqrt(maxSquareDistance);
+
+	// Check sphericity of the labeled region
+	double circumscribedArea = PI * (maxDistace * maxDistace);;
+	double area = 0.0 + (double)coordinatesPerLabelX.size();
+	double ocupation;
+
+	ocupation = area / circumscribedArea;
+
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "debugN " << debugN << std::endl;
+	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+	std::cout << "centroX " << centroX << std::endl;
+	std::cout << "centroY " << centroY << std::endl;
+	std::cout << "area " << area << std::endl;
+	std::cout << "circumscribedArea " << circumscribedArea << std::endl;
+	std::cout << "maxDistace " << maxDistace << std::endl;
+	std::cout << "ocupation " << ocupation << std::endl;
+	#endif
+
+	if(ocupation < 0.5)
+	{
+		#ifdef DEBUG_FILTERLABEL
+		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF OCCUPATION"<< std::endl;
+		#endif
+		return false;
+	}
+}
