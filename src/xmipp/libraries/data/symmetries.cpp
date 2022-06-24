@@ -2435,7 +2435,6 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 				bestRot=rot;
 				bestZ=z;
 			}
-			z+=zStep;
 		}
 
 	}
