@@ -179,6 +179,35 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 
 	transformer.inverseFourierTransform(fftFiltered, inputTomo);
 
+	// Apply Laplacian to tomo with kernel:
+	//     0  0 0    0 -1  0    0 0 0
+	// k = 0 -1 0    -1 4 -1    0 -1 0
+	//     0  0 0    0 -1  0    0 0 0
+	MultidimArray<double> tmpTomo;
+	tmpTomo = inputTomo;
+
+	inputTomo.initZeros(zSize, ySize, xSize);
+
+	std::cout << "check1" << std::endl;
+
+	for (int k = 1; k < zSize-2; k++)
+	{
+		for (int i = 1; i < ySize-2; i++)
+		{
+			for (int j = 1; j < xSize-2; j++)
+			{				
+				DIRECT_A3D_ELEM(inputTomo, k, j ,i) = (-1 * DIRECT_A3D_ELEM(tmpTomo, k-1, j,   i  ) +
+													   -1 * DIRECT_A3D_ELEM(tmpTomo, k+1, j,   i  ) +
+													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j-1, i  ) +
+													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j+1, i  ) +
+													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j,   i-1) +
+													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j,   i+1) +
+													    6 * DIRECT_A3D_ELEM(tmpTomo, k,   j,   i  ));
+			}	
+		}
+	} 
+	std::cout << "check2" << std::endl;
+
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
 	std::string rawname = fnOut.substr(0, lastindex);
@@ -189,7 +218,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	saveImage() = inputTomo;
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
-		std::cout << "check 3 " << std::endl;
+		std::cout << "check2" << std::endl;
 
 }
 
