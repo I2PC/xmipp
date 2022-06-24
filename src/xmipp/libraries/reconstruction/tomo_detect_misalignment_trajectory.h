@@ -51,7 +51,7 @@
 // #define DEBUG_PREPROCESS
 // #define DEBUG_HCC
 // #define DEBUG_VOTTING
-#define DEBUG_FILTERLABEL
+// #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
 // #define DEBUG_CHAINS
 // #define DEBUG_GLOBAL_MISALI

@@ -384,7 +384,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	// Bandpass filer image
+	// Bandpass filter image
 	FourierTransformer transformer1(FFTW_BACKWARD);
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(tiltImage, fftImg, true);
@@ -1144,7 +1144,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	MultidimArray<int> resDistribution;
 	resDistribution.initZeros(nSize, inputCoords.size());
 
-	double mod2Thr = 0.5 * (fiducialSize / samplingRate);
+	double mod2Thr = 0.5 * fiducialSizePx;
 
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
@@ -1267,11 +1267,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		sum2PerimeterCH += perimCHV[i]*perimCHV[i];
 	}
 
-	avgAreaCH = sumAreaCH/numberOfChains;
+	avgAreaCH = sumAreaCH / numberOfChains;
 	avgPerimeterCH = sumPerimeterCH / numberOfChains;
 
-	stdAreaCH = sqrt(sum2AreaCH/numberOfChains - avgAreaCH * avgAreaCH);
-	stdPerimeterCH = sqrt(sum2PerimeterCH/numberOfChains - avgPerimeterCH * avgPerimeterCH);
+	stdAreaCH = sqrt(sum2AreaCH / numberOfChains - avgAreaCH * avgAreaCH);
+	stdPerimeterCH = sqrt(sum2PerimeterCH / numberOfChains - avgPerimeterCH * avgPerimeterCH);
 
 	float rmOutliersAreaCH = 0;
 	float rmOutliersPerimCH = 0;
@@ -2191,7 +2191,9 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 	if(ocupation < 0.5)
 	{
+		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF OCCUPATION"<< std::endl;
+		#endif
 		return false;
 	}
 
@@ -2206,14 +2208,17 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	#endif
 
 
-	if (relativeArea > 4 || relativeArea < 0.25)
+	if (relativeArea > 4 || relativeArea < 0.1)
 	{
+		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
+		#endif
 		return false;
 	}
+	#ifdef DEBUG_FILTERLABEL
 	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
+	#endif
 	return true;
-	// return ocupation;
 }
 
 void ProgTomoDetectMisalignmentTrajectory::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
