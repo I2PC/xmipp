@@ -333,63 +333,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		#ifdef DEBUG_HCC
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
-
-		// // Remove coordinates thresholding the number of elements per label
-
-		// // These vectors will hold the list of labels and the nuber of coordinates associated to each of them
-		// std::vector<int> label;
-		// std::vector<int> numberCoordsPerLabel;
-		
-		// for(size_t j = 0; j < xSize; j++)
-		// {
-		// 	for(size_t i = 0; i < ySize; i++)
-		// 	{
-		// 		int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-
-		// 		if(value!=0)
-		// 		{
-		// 			bool labelExists = false;
-					
-		// 			for(size_t n=0; n<label.size(); n++)
-		// 			{
-		// 				if(label[n]==value)
-		// 				{
-		// 				 	numberCoordsPerLabel[n] += 1;
-		// 					labelExists = true;
-		// 				}
-		// 			}
-
-		// 			if(labelExists==false)
-		// 			{
-		// 				label.push_back(value);
-		// 				numberCoordsPerLabel.push_back(1);
-		// 			}
-		// 		}
-		// 	}
-		// }
-
-		// for(size_t j = 0; j < xSize; j++)
-		// {
-		// 	for(size_t i = 0; i < ySize; i++)
-		// 	{
-		// 		for(size_t n=0; n<label.size(); n++)
-		// 		{
-		// 			if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
-		// 			{
-		// 				if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
-		// 				{						
-		// 					coordinates3Dx.push_back(j);
-		// 					coordinates3Dy.push_back(i);
-		// 					coordinates3Dz.push_back(k);
-
-		// 					DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-		// 				}
-
-		// 				break;
-		// 			}
-		// 		}
-		// 	}
-		// }
     }
 
 	#ifdef VERBOSE_OUTPUT
