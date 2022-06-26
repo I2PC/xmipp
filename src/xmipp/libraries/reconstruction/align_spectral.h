@@ -65,6 +65,8 @@ private:
         TranslationFilter(const TranslationFilter& other) = default;
         ~TranslationFilter() = default;
 
+        void getTranslation(double& dx, double& dy) const;
+
         TranslationFilter& operator=(const TranslationFilter& other) = default;
 
         void operator()(const MultidimArray<std::complex<double>>& in, 
@@ -145,14 +147,47 @@ private:
         void reset(const std::vector<size_t>& sizes, size_t nPc);
         void learn(const std::vector<Matrix1D<double>>& bands);
         void learnConcurrent(const std::vector<Matrix1D<double>>& bands);
-        void project(   const std::vector<Matrix1D<double>>& bands, 
-                        MultidimArray<double>& projections) const;
-        void unproject( const MultidimArray<double>& projections,
-                        std::vector<Matrix1D<double>>& bands ) const;
+        void centerAndProject(  std::vector<Matrix1D<double>>& bands, 
+                                MultidimArray<double>& projections) const;
+        void unprojectAndUncenter(  const MultidimArray<double>& projections,
+                                    std::vector<Matrix1D<double>>& bands ) const;
     private:
         std::vector<SgaNnOnlinePca<double>> m_bandPcas;
         std::vector<std::mutex> m_bandMutex;
 
+    };
+
+    class ReferencePcaProjections {
+    public:
+        ReferencePcaProjections() = default;
+        ReferencePcaProjections(size_t nImages, size_t nBands, size_t nComponents);
+        ReferencePcaProjections(const ReferencePcaProjections& other) = default;
+        ~ReferencePcaProjections() = default;
+
+        ReferencePcaProjections& operator=(const ReferencePcaProjections& other) = default;
+
+        void reset(size_t nImages, size_t nBands, size_t nComponents);
+
+        size_t getImageCount() const;
+        size_t getBandCount() const;
+        size_t getComponentCount() const;
+
+        void getPcaProjection(size_t i, MultidimArray<double>& referenceBands);
+        size_t matchPcaProjection(const MultidimArray<double>& experimentalBands) const;
+
+        void setMetadata(size_t i, size_t pos, double rot, double sx, double sy);
+        void getMetadata(size_t i, size_t& pos, double& rot, double& sx, double& sy) const;
+
+    private:
+        struct Metadata {
+            size_t position;
+            double rotation;
+            double shiftX;
+            double shiftY;
+        };
+
+        MultidimArray<double> m_projections;
+        std::vector<Metadata> m_metadata;
     };
 
     struct RuntimeParameters {
@@ -183,22 +218,22 @@ private:
     std::vector<TranslationFilter> m_translations;
     BandMap m_bandMap;
     SpectralPca m_pca;
-    MultidimArray<double> m_referenceProjections;
-
-
+    ReferencePcaProjections m_references;
 
     void readInput();
     void calculateTranslationFilters();
     void calculateBands();
-    void initPcas();
+    void initializeLearning();
     void learnReferences();
     void learnExperimental();
     void projectReferences();
     void projectExperimental();
+    void generateOutput();
+
+    void updateRow(MDRowVec& row, size_t matchIndex) const;
 
     template<typename F, typename T>
-    void processRowsInParallel(const MetaDataVec& md, F&& func, std::vector<T>& threadData, double percentage=1.0);
-    void compareProjection(const MultidimArray<double>& experimentalProjection);
+    void processRowsInParallel(MetaDataVec& md, F&& func, std::vector<T>& threadData, double percentage=1.0);
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);

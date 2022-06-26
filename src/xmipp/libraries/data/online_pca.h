@@ -62,9 +62,18 @@ public:
    void learn(const Matrix1D<T>& v);
    void learnNoEigenValues(const Matrix1D<T>& v, const T& gamma);
    void learnNoEigenValues(const Matrix1D<T>& v);
+   void getBasis(Matrix2D<T>& basis);
 
-   void project(const Matrix1D<T>& v, Matrix1D<T>& p) const;
-   void unproject(const Matrix1D<T>& p, Matrix1D<T>& v) const;
+   void center(Matrix1D<T>& v) const;
+   void center(const Matrix1D<T>& v, Matrix1D<T>& c) const;
+   void uncenter(Matrix1D<T>& v) const;
+   void uncenter(const Matrix1D<T>& c, Matrix1D<T>& v) const;
+
+   void projectCentered(const Matrix1D<T>& v, Matrix1D<T>& p) const;
+   void unprojectCentered(const Matrix1D<T>& p, Matrix1D<T>& v) const;
+
+   void centerAndProject(Matrix1D<T>& v, Matrix1D<T>& p) const;
+   void unprojectAndUncenter(const Matrix1D<T>& p, Matrix1D<T>& v) const;
 
 private:
    class EigenVectorUpdater {
@@ -104,8 +113,6 @@ private:
    void learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma);
 
    static void updateMean(Matrix1D<T>& mean, size_t count, const Matrix1D<T>& v);
-   static void updateMeanCentered(Matrix1D<T>& centered, const Matrix1D<T>& mean, const Matrix1D<T>& v);
-   static void updateGradient(Matrix1D<T>& gradient, const Matrix2D<T>& basis, const Matrix1D<T>& centered);
    static void updateEigenValues(Matrix1D<T>& values, const Matrix1D<T>& gradient, const T& gamma);
 
 };

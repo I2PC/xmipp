@@ -30,7 +30,8 @@
 
 template<typename T>
 SgaNnOnlinePca<T>::SgaNnOnlinePca(size_t nComponents, size_t nPrincipalComponents)
-    : m_mean(nComponents)
+    : m_counter(0)
+    , m_mean(nComponents)
     , m_centered(nComponents)
     , m_gradient(nPrincipalComponents)
     , m_eigenValues(nPrincipalComponents)
@@ -91,7 +92,43 @@ void SgaNnOnlinePca<T>::learnNoEigenValues(const Matrix1D<T>& v) {
 }
 
 template<typename T>
-void SgaNnOnlinePca<T>::project(const Matrix1D<T>& v, Matrix1D<T>& p) const {
+void SgaNnOnlinePca<T>::center(Matrix1D<T>& v) const {
+    if(!v.sameShape(m_mean)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
+    }
+
+    v -= m_mean;
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::center(const Matrix1D<T>& v, Matrix1D<T>& c) const {
+    if(!v.sameShape(m_mean)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
+    }
+
+    c.resizeNoCopy(v);
+    FOR_ALL_ELEMENTS_IN_MATRIX1D(c) {
+        VEC_ELEM(c, i) = VEC_ELEM(v, i) - VEC_ELEM(m_mean, i);
+    }
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::uncenter(Matrix1D<T>& v) const {
+    if(!v.sameShape(m_mean)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
+    }
+
+    v += m_mean;
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::uncenter(const Matrix1D<T>& c, Matrix1D<T>& v) const {
+    v = c;
+    uncenter(v); //TODO more efficient impl
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::projectCentered(const Matrix1D<T>& v, Matrix1D<T>& p) const {
     if (VEC_XSIZE(v) != getComponentCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
     }
@@ -99,12 +136,27 @@ void SgaNnOnlinePca<T>::project(const Matrix1D<T>& v, Matrix1D<T>& p) const {
 }
 
 template<typename T>
-void SgaNnOnlinePca<T>::unproject(const Matrix1D<T>& p, Matrix1D<T>& v) const {
+void SgaNnOnlinePca<T>::unprojectCentered(const Matrix1D<T>& p, Matrix1D<T>& v) const {
     if (VEC_XSIZE(p) != getPrincipalComponentCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
     }
     matrixOperation_Ax(m_eigenVectors, p, v);
 }
+
+
+template<typename T>
+void SgaNnOnlinePca<T>::centerAndProject(Matrix1D<T>& v, Matrix1D<T>& p) const {
+    center(v);
+    projectCentered(v, p);
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::unprojectAndUncenter(const Matrix1D<T>& p, Matrix1D<T>& v) const {
+    unprojectCentered(p, v);
+    uncenter(v);
+}
+
+
 
 
 
@@ -151,8 +203,8 @@ void SgaNnOnlinePca<T>::learnOthers(const Matrix1D<T>& v, const T& gamma) {
 template<typename T>
 void SgaNnOnlinePca<T>::learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma) {
     updateMean(m_mean, m_counter, v);
-    updateMeanCentered(m_centered, m_mean, v);
-    updateGradient(m_gradient, m_eigenVectors, m_centered);
+    center(v, m_centered);
+    projectCentered(m_centered, m_gradient);
     m_eigenVectorUpdater(m_eigenVectors, m_centered, m_gradient, gamma);
 
     // Increment the counter
@@ -169,29 +221,6 @@ void SgaNnOnlinePca<T>::updateMean(Matrix1D<T>& mean, size_t count, const Matrix
     mean *= count;
     mean += v;
     mean /= count + 1;
-}
-
-template<typename T>
-void SgaNnOnlinePca<T>::updateMeanCentered( Matrix1D<T>& centered, 
-                                            const Matrix1D<T>& mean, 
-                                            const Matrix1D<T>& v) 
-{
-    assert(centered.sameShape(mean));
-    assert(centered.sameShape(v));
-
-    // centered = v - mean
-    FOR_ALL_ELEMENTS_IN_MATRIX1D(centered) {
-        VEC_ELEM(centered, i) = VEC_ELEM(v, i) - VEC_ELEM(mean, i);
-    }
-}
-
-template<typename T>
-void SgaNnOnlinePca<T>::updateGradient( Matrix1D<T>& gradient, 
-                                        const Matrix2D<T>& basis, 
-                                        const Matrix1D<T>& centered ) 
-{
-    // Dot product of each columnn of the basis with the centered vector
-    matrixOperation_Atx(basis, centered, gradient);
 }
 
 template<typename T>
