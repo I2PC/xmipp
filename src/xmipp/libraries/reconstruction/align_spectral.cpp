@@ -398,7 +398,6 @@ void ProgAlignSpectral::SpectralPca::unprojectAndUncenter(  const MultidimArray<
     // Unproject row by row
     for (size_t i = 0; i < getBandCount(); ++i) {
         m_bandPcas[i].unprojectAndUncenter(rowAlias, bands[i]);
-
         aliasNextRow(rowAlias);
     }
     assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
@@ -726,6 +725,10 @@ void ProgAlignSpectral::processRowsInParallel(  MetaDataVec& md,
                                                 std::vector<T>& threadData,
                                                 double percentage ) 
 {
+    if(threadData.size() < 1) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "There needs to be at least one thread");
+    }
+
     std::atomic<size_t> currRowNum(0);
     const auto mdSize = md.size();
 
@@ -758,12 +761,15 @@ void ProgAlignSpectral::processRowsInParallel(  MetaDataVec& md,
 
     // Create some workers
     std::vector<std::thread> threads;
-    threads.reserve(threadData.size());
-    for(size_t i = 0; i < threadData.size(); ++i) {
-        threads.emplace_back(workerFunc, std::ref(threadData[i]), i==0);
+    threads.reserve(threadData.size() - 1);
+    for(size_t i = 1; i < threadData.size(); ++i) {
+        threads.emplace_back(workerFunc, std::ref(threadData[i]), false);
     }
 
-    //Wait for them to finish
+    // Use the local thread
+    workerFunc(threadData[0], true);
+
+    //Wait for the others to finish
     for (auto& thread : threads) {
         thread.join();
     }
