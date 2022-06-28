@@ -219,6 +219,7 @@ private:
     BandMap m_bandMap;
     SpectralPca m_pca;
     ReferencePcaProjections m_references;
+    std::vector<size_t> m_classification;
 
     void readInput();
     void calculateTranslationFilters();
@@ -227,13 +228,13 @@ private:
     void learnReferences();
     void learnExperimental();
     void projectReferences();
-    void projectExperimental();
+    void classifyExperimental();
     void generateOutput();
 
     void updateRow(MDRowVec& row, size_t matchIndex) const;
 
     template<typename F, typename T>
-    void processRowsInParallel(MetaDataVec& md, F&& func, std::vector<T>& threadData, double percentage=1.0);
+    void processRowsInParallel(const MetaDataVec& md, F&& func, std::vector<T>& threadData, double percentage=1.0);
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);

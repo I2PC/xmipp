@@ -108,7 +108,7 @@ void ProgAlignSpectral::run() {
     learnReferences();
     learnExperimental();
     projectReferences();
-    projectExperimental();
+    classifyExperimental();
     generateOutput();
 }
 
@@ -662,7 +662,15 @@ void ProgAlignSpectral::projectReferences() {
     processRowsInParallel(m_mdReference, func, threadData);
 }
 
-void ProgAlignSpectral::projectExperimental() {
+void ProgAlignSpectral::classifyExperimental() {
+    // Initialize the classification vector with invalid 
+    // data and the appropiate size
+    m_classification.clear();
+    m_classification.resize(
+        m_mdExperimental.size(), // size
+        m_references.getImageCount() // invalid value
+    );
+
     struct ThreadData {
         Image<double> image;
         FourierTransformer fourier;
@@ -672,7 +680,7 @@ void ProgAlignSpectral::projectExperimental() {
     };
 
     // Create a lambda to run in parallel
-    const auto func = [this] (size_t i, MDRowVec& row, ThreadData& data) {
+    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
         readImage(fnImage, data.image);
@@ -683,8 +691,7 @@ void ProgAlignSpectral::projectExperimental() {
         m_pca.centerAndProject(data.bandCoefficients, data.projection);
 
         // Compare the projection to find a match
-        const auto index = m_references.matchPcaProjection(data.projection);
-        updateRow(row, index);
+        m_classification[i] = m_references.matchPcaProjection(data.projection);
     };
 
     std::vector<ThreadData> threadData(m_parameters.nThreads);
@@ -692,6 +699,13 @@ void ProgAlignSpectral::projectExperimental() {
 }
 
 void ProgAlignSpectral::generateOutput() {
+    // Modify the experimental data
+    assert(m_mdExperimental.size() == m_classification.size());
+    for(size_t i = 0; i < m_mdExperimental.size(); ++i) {
+        auto row = m_mdExperimental.getRowVec(m_mdExperimental.getRowId(i));
+        updateRow(row, m_classification[i]);
+    }
+
     // Write the data
     m_mdExperimental.write(m_parameters.fnOutput);
 }
@@ -714,13 +728,12 @@ void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
     row.setValue(MDL_ANGLE_PSI, rotation);
     row.setValue(MDL_SHIFT_X, shiftX);
     row.setValue(MDL_SHIFT_Y, shiftY);
-    //TODO
 }
 
 
 
 template<typename F, typename T>
-void ProgAlignSpectral::processRowsInParallel(  MetaDataVec& md, 
+void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md, 
                                                 F&& func, 
                                                 std::vector<T>& threadData,
                                                 double percentage ) 
@@ -741,7 +754,7 @@ void ProgAlignSpectral::processRowsInParallel(  MetaDataVec& md,
             // Randomly determine if it needs to be processed
             if(static_cast<double>(rand()) / RAND_MAX <= percentage) {
                 // Process a row
-                auto row = md.getRowVec(md.getRowId(rowNum));
+                const auto row = md.getRowVec(md.getRowId(rowNum));
                 func(rowNum, row, data);
 
                 // Update the progress bar only from the first thread 
