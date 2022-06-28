@@ -33,7 +33,7 @@ SgaNnOnlinePca<T>::SgaNnOnlinePca(size_t nComponents, size_t nPrincipalComponent
     : m_counter(0)
     , m_mean(nComponents)
     , m_centered(nComponents)
-    , m_gradient(nPrincipalComponents)
+    , m_projection(nPrincipalComponents)
     , m_eigenValues(nPrincipalComponents)
     , m_eigenVectors(nComponents, nPrincipalComponents)
     , m_eigenVectorUpdater(nComponents)
@@ -182,12 +182,11 @@ void SgaNnOnlinePca<T>::learnFirstNoEigenValues(const Matrix1D<T>& v) {
     // the mean is the first vector itself
     m_centered.initZeros();
 
-    // The gradient of the first iteration is also zero because
+    // The projection of the first iteration is also zero because
     // it depends on the dot product with the centered vector
-    m_gradient.initZeros();
+    m_projection.initZeros();
 
     // Initialize the eigenvectors (basis) with random values. 
-    // TODO determine with COSS if OK
     m_eigenVectors.initGaussian(MAT_YSIZE(m_eigenVectors), MAT_XSIZE(m_eigenVectors), 0, 1);
 
     // Increment the counter
@@ -197,15 +196,15 @@ void SgaNnOnlinePca<T>::learnFirstNoEigenValues(const Matrix1D<T>& v) {
 template<typename T>
 void SgaNnOnlinePca<T>::learnOthers(const Matrix1D<T>& v, const T& gamma) {
     learnOthersNoEigenValues(v, gamma);
-    updateEigenValues(m_eigenValues, m_gradient, gamma);
+    updateEigenValues(m_eigenValues, m_projection, gamma);
 }
 
 template<typename T>
 void SgaNnOnlinePca<T>::learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma) {
     updateMean(m_mean, m_counter, v);
     center(v, m_centered);
-    projectCentered(m_centered, m_gradient);
-    m_eigenVectorUpdater(m_eigenVectors, m_centered, m_gradient, gamma);
+    projectCentered(m_centered, m_projection);
+    m_eigenVectorUpdater(m_eigenVectors, m_centered, m_projection, gamma);
 
     // Increment the counter
     ++m_counter;
@@ -225,17 +224,17 @@ void SgaNnOnlinePca<T>::updateMean(Matrix1D<T>& mean, size_t count, const Matrix
 
 template<typename T>
 void SgaNnOnlinePca<T>::updateEigenValues(  Matrix1D<T>& values, 
-                                            const Matrix1D<T>& gradient, 
+                                            const Matrix1D<T>& projection, 
                                             const T& gamma )
 {
-    //values' = values + gamma*(gradient^2 - values)
-    // = (1 - gamma)*values + gamma*gradient^2
-    assert(values.sameShape(gradient));
+    //values' = values + gamma*(projection^2 - values)
+    // = (1 - gamma)*values + gamma*projection^2
+    assert(values.sameShape(projection));
 
     values *= (1 - gamma);
 
     FOR_ALL_ELEMENTS_IN_MATRIX1D(values) {
-        const auto& g = VEC_ELEM(gradient, i);
+        const auto& g = VEC_ELEM(projection, i);
         auto& l = VEC_ELEM(values, i);
         l += gamma*g*g;
     }
@@ -254,44 +253,47 @@ SgaNnOnlinePca<T>::EigenVectorUpdater::EigenVectorUpdater(size_t nRows)
 template<typename T>
 void SgaNnOnlinePca<T>::EigenVectorUpdater::operator()( Matrix2D<T>& vectors, 
                                                         const Matrix1D<T>& centered, 
-                                                        const Matrix1D<T>& gradient, 
+                                                        const Matrix1D<T>& projection, 
                                                         const T& gamma )
 {
-    // vector_i' = vector_i + gamma*gradient_i*(centered - gradient_i*vector_i + 2*sum(gradient_j*vector_j, j=1:j-1))
-    // = vector_i + gamma*gradient_i*(centered + gradient_i*vector_i + 2*sum(gradient_j*vector_j, j=1:i)
+    // vector_i' = vector_i + gamma*projection_i*(centered - projection_i*vector_i + 2*sum(projection_j*vector_j, j=1:j-1))
+    // = vector_i + gamma*projection_i*(centered + projection_i*vector_i + 2*sum(projection_j*vector_j, j=1:i)
 
     // Shorthands
     const auto nCols =  MAT_XSIZE(vectors);
     const auto nRows =  MAT_YSIZE(vectors);
     assert(VEC_XSIZE(centered) == nRows);
-    assert(VEC_XSIZE(gradient) == nCols);
+    assert(VEC_XSIZE(projection) == nCols);
 
     // Aux variables
     auto& column = m_column; // Contains the current working column
-    auto& sigma = m_sigma; // Contains 2*sum(gradient_j*vector_j, j=1:i)
+    auto& sigma = m_sigma; // Contains 2*sum(projection_j*vector_j, j=1:i)
     auto& aux = m_aux; // Contains the term to be added to the column for updating it
 
     // Compute the basis column by column
     sigma.initZeros(); // Initialize the sum to zeros
     for (size_t i = 0; i < nCols; ++i) {
-        // Get the vector and gradient for this iteration
+        // Get the vector and projection for this iteration
         vectors.getCol(i, column);
-        const auto& phi = VEC_ELEM(gradient, i);
+        const auto& phi = VEC_ELEM(projection, i);
 
         // Update sigma (add phi_i*column_i to it to consider the sum
         // of all elements upto i)
         aux = column;
         aux *= (2*phi); //aux = 2*phi*column
-        sigma += aux; //sigma = 2*sum(gradient_j*vector_j, j=1:i)
+        sigma += aux; //sigma = 2*sum(projection_j*vector_j, j=1:i)
 
         // Calculate the new column value
         // We have 2*phi*column in aux as an starting point
         aux /= 2; //aux = phi*column
         aux += centered; // aux = centered + phi*column
-        aux -= sigma; // aux = centered + phi*column - 2*sum(gradient_j*vector_j, j=1:i)
+        aux -= sigma; // aux = centered + phi*column - 2*sum(projection_j*vector_j, j=1:i)
         aux *= gamma*phi; // aux = gamma*phi*(centered + phi*column - 2*sum(...))
         column += aux;
         
+        //Make the column length 1
+        column.selfNormalize();
+
         // Update the column
         vectors.setCol(i, column);
     }

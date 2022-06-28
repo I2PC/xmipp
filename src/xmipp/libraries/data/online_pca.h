@@ -87,7 +87,7 @@ private:
 
       void operator()(  Matrix2D<T>& vectors, 
                         const Matrix1D<T>& centered, 
-                        const Matrix1D<T>& gradient, 
+                        const Matrix1D<T>& projection, 
                         const T& gamma );
 
    private:
@@ -100,7 +100,7 @@ private:
    size_t m_counter;
    Matrix1D<T> m_mean;
    Matrix1D<T> m_centered;
-   Matrix1D<T> m_gradient;
+   Matrix1D<T> m_projection;
    Matrix1D<T> m_eigenValues;
    Matrix2D<T> m_eigenVectors;
 
@@ -113,7 +113,7 @@ private:
    void learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma);
 
    static void updateMean(Matrix1D<T>& mean, size_t count, const Matrix1D<T>& v);
-   static void updateEigenValues(Matrix1D<T>& values, const Matrix1D<T>& gradient, const T& gamma);
+   static void updateEigenValues(Matrix1D<T>& values, const Matrix1D<T>& projection, const T& gamma);
 
 };
 
