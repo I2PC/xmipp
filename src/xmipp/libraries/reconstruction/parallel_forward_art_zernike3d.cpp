@@ -430,20 +430,23 @@ void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<double, 2> r, do
 {
 	int i = round(r[1]);
 	int j = round(r[0]);
-	int idy = (i) - STARTINGY(mP); 
-	int idx = (j) - STARTINGX(mP);
-	int idn = (idy)*(mP).xdim+(idx);
-	double m = 1. / loop_step;
-	double a = m * ABS(i - r[1]);
-	double b = m * ABS(j - r[0]);
-	double gw = 1 - a - b + a*b;
-	while ((*p_busy_elem[idn]) == &A2D_ELEM(mP, i, j));
-	(*p_busy_elem[idn]).exchange(&A2D_ELEM(mP, i, j));
-	(*w_busy_elem[idn]).exchange(&A2D_ELEM(mW, i, j));
-	A2D_ELEM(mP, i, j) += weight * gw;
-	A2D_ELEM(mW, i, j) += gw * gw;
-	(*p_busy_elem[idn]).exchange(nullptr);
-	(*w_busy_elem[idn]).exchange(nullptr);
+	if (!mP.outside(i, j))
+	{
+		int idy = (i)-STARTINGY(mP);
+		int idx = (j)-STARTINGX(mP);
+		int idn = (idy) * (mP).xdim + (idx);
+		double m = 1. / loop_step;
+		double a = m * ABS(i - r[1]);
+		double b = m * ABS(j - r[0]);
+		double gw = 1 - a - b + a * b;
+		while ((*p_busy_elem[idn]) == &A2D_ELEM(mP, i, j));
+		(*p_busy_elem[idn]).exchange(&A2D_ELEM(mP, i, j));
+		(*w_busy_elem[idn]).exchange(&A2D_ELEM(mW, i, j));
+		A2D_ELEM(mP, i, j) += weight * gw;
+		A2D_ELEM(mW, i, j) += gw * gw;
+		(*p_busy_elem[idn]).exchange(nullptr);
+		(*w_busy_elem[idn]).exchange(nullptr);
+	}
 }
 
 void ProgParallelForwardArtZernike3D::updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV)
@@ -910,7 +913,7 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			double gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(Vmask, k, i, j) > 0.01)
+			if (A3D_ELEM(Vmask, k, i, j) == 1)
 			{
 				if (usesZernike)
 				{
@@ -978,7 +981,7 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			double gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(Vmask, k, i, j) > 0.01)
+			if (A3D_ELEM(Vmask, k, i, j) == 1)
 			{
 				if (usesZernike)
 				{

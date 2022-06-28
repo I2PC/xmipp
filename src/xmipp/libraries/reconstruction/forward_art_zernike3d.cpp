@@ -439,12 +439,15 @@ void ProgForwardArtZernike3D::splattingAtPos(std::array<double, 2> r, double wei
 	// }
 	int i = round(r[1]);
 	int j = round(r[0]);
-	double m = 1. / loop_step;
-	double a = m * ABS(i - r[1]);
-	double b = m * ABS(j - r[0]);
-	double gw = 1 - a - b + a*b;
-	A2D_ELEM(mP, i, j) += weight * gw;
-	A2D_ELEM(mW, i, j) += gw * gw;
+	if (!mP.outside(i, j))
+	{
+		double m = 1. / loop_step;
+		double a = m * ABS(i - r[1]);
+		double b = m * ABS(j - r[0]);
+		double gw = 1 - a - b + a * b;
+		A2D_ELEM(mP, i, j) += weight * gw;
+		A2D_ELEM(mW, i, j) += gw * gw;
+	}
 	// A2D_ELEM(mP, i, j) += weight;
 	// A2D_ELEM(mW, i, j) += 1;
 }
