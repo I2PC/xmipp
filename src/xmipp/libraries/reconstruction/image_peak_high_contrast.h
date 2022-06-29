@@ -41,13 +41,14 @@
 #include "symmetrize.h"
 #include <data/morphology.h>
 #include <data/point3D.h>
+#include <data/point2D.h>
 
 
 #define VERBOSE_OUTPUT
 #define DEBUG_HCC
 #define DEBUG_FILTERPARAMS
 // #define DEBUG_FILTERLABEL
-// #define DEBUG_DIM
+#define DEBUG_DIM
 // #define DEBUG_DIST
 #define DEBUG_OUTPUT_FILES
 
@@ -66,6 +67,8 @@ public:
 
     /** Center features **/
     bool centerFeatures;
+
+    double fiducialSizePx;
     
 private:
     /** Input tomogram dimensions */
@@ -85,6 +88,8 @@ public:
 
     void readParams();
     void defineParams();
+    // void generateSideInfo();
+    void bandpassFilter(MultidimArray< std::complex<double> > &fftV);
 
 
     /**
@@ -94,7 +99,8 @@ public:
      * @return
      *
     */
-    void preprocessVolume(MultidimArray<double> &inputTomo);
+    // void preprocessVolume(MultidimArray<double> &inputTomo);
+    void preprocessVolume(MultidimArray<double> &inputTomo, MultidimArray<double> &preprocessedTomo);
 
     /**
      * Peaks the high contrast regions in a volume.
@@ -134,6 +140,7 @@ public:
 
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
 
+    // std::vector<Point2D<double>> getCoordinatesInSliceIndex(size_t slice);
 
     void run();
 };

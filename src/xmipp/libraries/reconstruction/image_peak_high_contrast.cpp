@@ -59,7 +59,89 @@ void ProgImagePeakHighContrast::defineParams()
 }
 
 
-void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
+// void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Generating side info..." << std::endl;
+// 	#endif
+
+// 	fiducialSizePx = fiducialSize / samplingRate;
+// }
+
+
+void ProgImagePeakHighContrast::bandpassFilter(MultidimArray< std::complex<double> > &fftV)
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Bandpass filter volume..." << std::endl;
+	#endif
+
+	// Band-pass filtering
+	int ux, uy, uz, uz2, uz2y2;
+
+	int n=0;
+
+	double freqLow = samplingRate / (fiducialSize*1.1);
+	double freqHigh = samplingRate/(fiducialSize*0.9);
+	
+	double w = 0.02; 
+	double cutoffFreqHigh = freqHigh + w;
+	double cutoffFreqLow = freqLow - w;
+	double delta = PI / w;
+
+	#ifdef DEBUG_FILTERPARAMS
+	std::cout << "samplingRate " << samplingRate << std::endl;
+	std::cout << "fiducialSize " << fiducialSize << std::endl;
+	std::cout << "freqLow " << freqLow << std::endl;
+	std::cout << "freqHigh " << freqHigh << std::endl;
+	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl;
+	std::cout << "cutoffFreqHigh " << cutoffFreqHigh << std::endl;
+	#endif
+
+	for(size_t k=0; k<ZSIZE(fftV); ++k)
+	{
+		double uz, uy, ux, uz2y2, uz2;
+
+		FFT_IDX2DIGFREQ(k,zSize,uz);
+		uz2=uz*uz;
+
+		for(size_t i=0; i<YSIZE(fftV); ++i)
+		{
+			FFT_IDX2DIGFREQ(i,ySize,uy);
+			uz2y2=uz2+uy*uy;
+
+			for(size_t j=0; j<XSIZE(fftV); ++j)
+			{
+				FFT_IDX2DIGFREQ(j,xSize,ux);
+				double u=sqrt(uz2y2+ux*ux);
+
+				if(u > cutoffFreqHigh || u < cutoffFreqLow)
+				{
+					DIRECT_MULTIDIM_ELEM(fftV, n) = 0;
+				} 
+				else
+				{
+					if(u >= freqHigh && u < cutoffFreqHigh)
+					{
+						DIRECT_MULTIDIM_ELEM(fftV, n) *= 0.5*(1+cos((u-freqHigh)*delta));
+					}
+				
+					if (u <= freqLow && u > cutoffFreqLow) //*** this can be an else condition
+					{
+						DIRECT_MULTIDIM_ELEM(fftV, n) *= 0.5*(1+cos((u-freqLow)*delta));
+					}
+				}
+				
+				++n;
+			}
+		}
+	}
+
+	std::cout << "end of bandpass" << std::endl;
+}
+
+
+void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo, 
+												 MultidimArray<double> &preprocessedTomo)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Preprocessing volume..." << std::endl;
@@ -106,89 +188,17 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	// 	}
 	// }
 
-
-	// Band-pass filtering
-
-	MultidimArray< std::complex<double> > fftV;
-
-	FourierTransformer transformer;
-	transformer.FourierTransform(inputTomo, fftV, false);
-
-	int ux, uy, uz, uz2, uz2y2;
-
-	int n=0;
-
-	MultidimArray< std::complex<double> >  fftFiltered;
-
-	fftFiltered = fftV;
-	double freqLow = samplingRate / (fiducialSize*1.1);
-	double freqHigh = samplingRate/(fiducialSize*0.9);
-	
-	double w = 0.02; 
-	double cutoffFreqHigh = freqHigh + w;
-	double cutoffFreqLow = freqLow - w;
-	double delta = PI / w;
-
-	#ifdef DEBUG_FILTERPARAMS
-	std::cout << "samplingRate " << samplingRate << std::endl;
-	std::cout << "fiducialSize " << fiducialSize << std::endl;
-	std::cout << "freqLow " << freqLow << std::endl;
-	std::cout << "freqHigh " << freqHigh << std::endl;
-	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl;
-	std::cout << "cutoffFreqHigh " << cutoffFreqHigh << std::endl;
-	#endif
-
-	for(size_t k=0; k<ZSIZE(fftV); ++k)
-	{
-		double uz, uy, ux, uz2y2, uz2;
-
-		FFT_IDX2DIGFREQ(k,ZSIZE(inputTomo),uz);
-		uz2=uz*uz;
-
-		for(size_t i=0; i<YSIZE(fftV); ++i)
-		{
-			FFT_IDX2DIGFREQ(i,YSIZE(inputTomo),uy);
-			uz2y2=uz2+uy*uy;
-
-			for(size_t j=0; j<XSIZE(fftV); ++j)
-			{
-				FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
-				double u=sqrt(uz2y2+ux*ux);
-
-				if(u > cutoffFreqHigh || u < cutoffFreqLow)
-				{
-					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
-				} 
-				else
-				{
-					if(u >= freqHigh && u < cutoffFreqHigh)
-					{
-						DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
-					}
-				
-					if (u <= freqLow && u > cutoffFreqLow)
-					{
-						DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqLow)*delta));
-					}
-				}
-				
-				++n;
-			}
-		}
-	}
-
-	transformer.inverseFourierTransform(fftFiltered, inputTomo);
-
 	// Apply Laplacian to tomo with kernel:
 	//     0  0 0    0 -1  0    0 0 0
 	// k = 0 -1 0    -1 4 -1    0 -1 0
 	//     0  0 0    0 -1  0    0 0 0
-	MultidimArray<double> tmpTomo;
-	tmpTomo = inputTomo;
-
-	inputTomo.initZeros(zSize, ySize, xSize);
 
 	std::cout << "check1" << std::endl;
+
+	preprocessedTomo.initZeros(1, zSize, ySize, xSize);
+
+	std::cout << "check3" << std::endl;
+
 
 	for (int k = 1; k < zSize-2; k++)
 	{
@@ -196,30 +206,38 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 		{
 			for (int j = 1; j < xSize-2; j++)
 			{				
-				DIRECT_A3D_ELEM(inputTomo, k, j ,i) = (-1 * DIRECT_A3D_ELEM(tmpTomo, k-1, j,   i  ) +
-													   -1 * DIRECT_A3D_ELEM(tmpTomo, k+1, j,   i  ) +
-													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j-1, i  ) +
-													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j+1, i  ) +
-													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j,   i-1) +
-													   -1 * DIRECT_A3D_ELEM(tmpTomo, k,   j,   i+1) +
-													    6 * DIRECT_A3D_ELEM(tmpTomo, k,   j,   i  ));
-			}	
+				DIRECT_A3D_ELEM(preprocessedTomo, k, i, j) = (-1 * DIRECT_A3D_ELEM(inputTomo, k-1, i,   j) +
+													   -1 * DIRECT_A3D_ELEM(inputTomo, k+1, i,   j) +
+													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j-1) +
+													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j+1) +
+													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i-1, j) +
+													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i+1, j) +
+													    6 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j));
+			}
 		}
 	} 
+
 	std::cout << "check2" << std::endl;
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameFilteredVolume;
+	FileName rawname = fnOut.substr(0, lastindex);
+	FileName outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
+
+	std::cout << outputFileNameFilteredVolume << std::endl;
 
 	Image<double> saveImage;
 	saveImage() = inputTomo;
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
-		std::cout << "check2" << std::endl;
+	
+	
+	std::cout << "check3" << std::endl;
 
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Volume preprocessed succesfully!" << std::endl;
+	#endif
 }
 
 
@@ -389,6 +407,177 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	#endif
 }
 
+
+
+// void ProgImagePeakHighContrast::clusterHCC()
+// {
+// 	std::vector<size_t> coordinatesInSlice;
+// 	std::vector<size_t> coordinatesInSlice_up;
+// 	std::vector<size_t> coordinatesInSlice_down;
+
+// 	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
+
+// 	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx);
+
+// 	#ifdef DEBUG_CLUSTER
+// 	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
+// 	#endif
+	
+// 	size_t deletedIndexes = 0;
+
+// 	// Erase non-consistent coordinates with a voting systen
+// 	while(deletedIndexes != 0)
+// 	{
+// 		// Votting step	
+// 		for (int n = 0; n < nSize; n++)
+// 		{
+// 			#ifdef DEBUG_CLUSTER
+// 			std::cout << "votting image " << n << std::endl;
+// 			#endif
+
+// 			coordinatesInSlice = getCoordinatesInSliceIndex(n);
+			
+// 			// Skip for first slice
+// 			if (n != 0)
+// 			{
+// 				coordinatesInSlice_up = getCoordinatesInSliceIndex(n-1);
+// 			}
+
+// 			// Skip for last slice
+// 			if (n != (nSize-1))
+// 			{		
+// 				coordinatesInSlice_down = getCoordinatesInSliceIndex(n+1);
+// 			}
+
+// 			for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+// 			{
+// 				Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
+
+// 				// Skip for first image in the series
+// 				if (n != 0)
+// 				{
+// 					for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
+// 					{
+// 						Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
+// 						float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+
+// 						if(distance2 < thrVottingDistance2)
+// 						{
+// 							coord3DVotes_V[coordinatesInSlice[i]] += 1;
+// 						}
+// 					}
+// 				}
+
+// 				// Skip for last image in the series
+// 				if (n != (nSize-1))
+// 				{		
+// 					for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
+// 					{
+// 						Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
+// 						float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
+
+// 						if(distance2 < thrVottingDistance2)
+// 						{
+// 							coord3DVotes_V[coordinatesInSlice[i]] += 1;
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		// Trimming step
+// 		for (size_t i = 0; i < coord3DVotes_V.size(); i++)
+// 		{
+// 			if (coord3DVotes_V[i] == 0)
+// 			{
+// 				coordinates3D.erase(coordinates3D.begin()+(i-deletedIndexes));
+// 				deletedIndexes++;
+// 			}
+// 		}
+		
+// 		// // Generate output labeled and filtered series
+// 		// #ifdef DEBUG_OUTPUT_FILES
+// 		// MultidimArray<int> filteredLabeledTS;
+// 		// filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
+
+// 		// std::vector<Point2D<double>> cis;
+
+// 		// for (size_t n = 0; n < nSize; n++)
+// 		// {
+// 		// 	cis = getCoordinatesInSlice(n);
+
+// 		// 	MultidimArray<int> filteredLabeledTS_Image;
+// 		// 	filteredLabeledTS_Image.initZeros(ySize, xSize);
+
+// 		// 	for(size_t i = 0; i < cis.size(); i++)
+// 		// 	{
+// 		// 		fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
+// 		// 	}
+
+// 		// 	for (size_t i = 0; i < ySize; ++i)
+// 		// 	{
+// 		// 		for (size_t j = 0; j < xSize; ++j)
+// 		// 		{
+// 		// 			DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
+// 		// 		}
+// 		// 	}
+// 		// }
+// 	}
+
+
+// 	// Cluster most voted coordinates
+// 	std::vector<size_t> coord3DId_V(coordinates3D.size(), 0);
+// 	size_t currentId = 1;
+
+
+// 	///***???$$$ TE HAS QUEDADO AQUI
+
+// 	for (int n = 0; n < nSize-1; n++)
+// 	{
+// 		#ifdef DEBUG_CLUSTER
+// 		std::cout << "clustering image " << n << std::endl;
+// 		#endif
+
+// 		coordinatesInSlice = getCoordinatesInSliceIndex(n);	
+// 		coordinatesInSlice_down = getCoordinatesInSliceIndex(n+1);
+
+// 		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+// 		{
+// 			Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
+
+// 			// Skip for first image in the series
+// 			if (n != 0)
+// 			{
+// 				for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
+// 				{
+// 					Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
+// 					float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+
+// 					if(distance2 < thrVottingDistance2)
+// 					{
+// 						coord3DVotes_V[coordinatesInSlice[i]] += 1;
+// 					}
+// 				}
+// 			}
+
+// 			// Skip for last image in the series
+// 			if (n != (nSize-1))
+// 			{		
+// 				for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
+// 				{
+// 					Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
+// 					float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
+
+// 					if(distance2 < thrVottingDistance2)
+// 					{
+// 						coord3DVotes_V[coordinatesInSlice[i]] += 1;
+// 					}
+// 				}
+// 			}
+// 		}
+// 		}
+
+// }
 
 
 void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
@@ -652,9 +841,10 @@ void ProgImagePeakHighContrast::run()
 	auto t1 = high_resolution_clock::now();
 	
 	Image<double> inputVolume;
+	MultidimArray<double> &inputTomo=inputVolume();
+
 	inputVolume.read(fnVol);
 
-	auto &inputTomo=inputVolume();
 
 	xSize = XSIZE(inputTomo);
 	ySize = YSIZE(inputTomo);
@@ -668,14 +858,53 @@ void ProgImagePeakHighContrast::run()
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 
- 	preprocessVolume(inputTomo);
+	MultidimArray< std::complex<double> > fftV;
+
+	std::cout << "checkcheckcheckcheckcheckcheck" << std::endl;
+
+	FourierTransformer transformer1(FFTW_BACKWARD);
+	transformer1.FourierTransform(inputTomo, fftV, false);
+
+	bandpassFilter(fftV);
+	
+	std::cout << "labdlabdlabdlabdlabdlabdlabdlabdlabdlabd" << std::endl;
+	transformer1.inverseFourierTransform();
+	std::cout << "labdlabdlabdlabdlabdlabd" << std::endl;
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of(".");
+	FileName rawname = fnOut.substr(0, lastindex);
+	FileName outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_filter.mrc";
+
+	std::cout << outputFileNameFilteredVolume << std::endl;
+
+	Image<double> saveImage;
+	saveImage() = inputTomo;
+	saveImage.write(outputFileNameFilteredVolume);
+	#endif
+
+	std::cout << "checka" << std::endl;
+
+	MultidimArray<double> preprocessedTomo;
+	
+	std::cout << "checkb" << std::endl;
+	std::cout << zSize << std::endl;
+	std::cout << ySize << std::endl;
+	std::cout << xSize << std::endl;
+
+	preprocessedTomo.initZeros(1, 500, 1440, 1024);
+	
+	std::cout << "checkc" << std::endl;
+
+ 	preprocessVolume(inputTomo, preprocessedTomo);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(volFiltered) << std::endl;
-	std::cout << "y " << YSIZE(volFiltered) << std::endl;
-	std::cout << "z " << ZSIZE(volFiltered) << std::endl;
-	std::cout << "n " << NSIZE(volFiltered) << std::endl;
+	std::cout << "x " << XSIZE(inputTomo) << std::endl;
+	std::cout << "y " << YSIZE(inputTomo) << std::endl;
+	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
+	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 	
 	getHighContrastCoordinates(inputTomo);
@@ -763,3 +992,20 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 
 	return true;
 }
+
+
+
+// std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSliceIndex(size_t slice)
+// {
+// 	std::vector<size_t> coordinatesInSlice;
+
+// 	for(size_t n = 0; n < coordinates3D.size(); n++)
+// 	{
+// 		if(slice == coordinates3D[n].z)
+// 		{
+// 			coordinatesInSlice.push_back(n);
+// 		}
+// 	}
+
+// 	return coordinatesInSlice;
+// }
