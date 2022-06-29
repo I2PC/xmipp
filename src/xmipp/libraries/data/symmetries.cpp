@@ -2321,7 +2321,9 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
     Vout.initZeros(Vin);
     double izHelical=1.0/zHelical;
     double sinRotHelical, cosRotHelical;
-    sincos(rotHelical,&sinRotHelical,&cosRotHelical);
+    //sincos(rotHelical,&sinRotHelical,&cosRotHelical);
+    sinRotHelical = sin(rotHelical);
+    cosRotHelical = cos(rotHelical);
     int Llength=ceil(ZSIZE(Vin)*izHelical);
 
     Matrix1D<double> sinCn, cosCn;
@@ -2351,7 +2353,9 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
             {
 				double rotp=rot+l*rotHelical;
 				double ip, jp;
-				sincos(rotp,&ip,&jp);
+				//sincos(rotp,&ip,&jp);
+				ip = sin(rotp);
+                jp = cos(rotp);
 				ip*=rho;
 				jp*=rho;
 				finalValue+=interpolatedElement3DHelical(Vin,jp,ip,kp,zHelical,sinRotHelical,cosRotHelical);

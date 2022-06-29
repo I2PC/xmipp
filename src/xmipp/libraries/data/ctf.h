@@ -460,7 +460,9 @@ public:
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 *precomputed.u4;
 		double sine_part;
 		double cosine_part;
-		sincos(argument,&sine_part, &cosine_part); // OK
+		//sincos(argument,&sine_part, &cosine_part);
+		sine_part = sin(argument);
+        cosine_part = cos(argument);// OK
 		double Eespr = exp(-K3 * precomputed.u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
 		double EdeltaF = bessj0(K5 * precomputed.u2); // OK
@@ -548,7 +550,9 @@ public:
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 * precomputed.u4;
 		double sine_part;
 		double cosine_part;
-		sincos(argument,&sine_part,&cosine_part);
+		//sincos(argument,&sine_part,&cosine_part);
+		sine_part = sin(argument);
+        cosine_part = cos(argument);// OK
 
 		if (show)
 		{
@@ -576,7 +580,9 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-		sincos(argument,&sine_part, &cosine_part); // OK
+		//sincos(argument,&sine_part, &cosine_part); // OK
+		sine_part = sin(argument);
+        cosine_part = cos(argument);
 		double Eespr = exp(-K3 * u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
 		double EdeltaF = bessj0(K5 * u2); // OK
@@ -1093,7 +1099,9 @@ public:
         double argument = VPP + K1 * deltaf * u2 + K2 * u4;
         double sine_part;
 		double cosine_part;
-        sincos(argument,&sine_part, &cosine_part); // OK
+        //sincos(argument,&sine_part, &cosine_part); // OK
+        sine_part = sin(argument);
+        cosine_part = cos(argument);
         return -(Ksin*sine_part - Kcos*cosine_part);
     }
 
