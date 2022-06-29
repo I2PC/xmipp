@@ -425,7 +425,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	
 // 	size_t deletedIndexes = 0;
 
-// 	// Erase non-consistent coordinates with a voting systen
+// 	// -- Erase non-consistent coordinates with a voting systen
 // 	while(deletedIndexes != 0)
 // 	{
 // 		// Votting step	
@@ -494,90 +494,105 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 // 				deletedIndexes++;
 // 			}
 // 		}
-		
-// 		// // Generate output labeled and filtered series
-// 		// #ifdef DEBUG_OUTPUT_FILES
-// 		// MultidimArray<int> filteredLabeledTS;
-// 		// filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
-
-// 		// std::vector<Point2D<double>> cis;
-
-// 		// for (size_t n = 0; n < nSize; n++)
-// 		// {
-// 		// 	cis = getCoordinatesInSlice(n);
-
-// 		// 	MultidimArray<int> filteredLabeledTS_Image;
-// 		// 	filteredLabeledTS_Image.initZeros(ySize, xSize);
-
-// 		// 	for(size_t i = 0; i < cis.size(); i++)
-// 		// 	{
-// 		// 		fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
-// 		// 	}
-
-// 		// 	for (size_t i = 0; i < ySize; ++i)
-// 		// 	{
-// 		// 		for (size_t j = 0; j < xSize; ++j)
-// 		// 		{
-// 		// 			DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
-// 		// 		}
-// 		// 	}
-// 		// }
 // 	}
 
 
-// 	// Cluster most voted coordinates
+// 	// -- Cluster most voted coordinates
 // 	std::vector<size_t> coord3DId_V(coordinates3D.size(), 0);
 // 	size_t currentId = 1;
 
+// 	// Initialize ID's in the first slice
+// 	coordinatesInSlice = getCoordinatesInSliceIndex(0);	
 
-// 	///***???$$$ TE HAS QUEDADO AQUI
+// 	for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+// 	{
+// 		coord3DId_V[i] = currentId;
+// 		currentId++;
+// 	}
 
-// 	for (int n = 0; n < nSize-1; n++)
+// 	// Extend ID's for coordinates in the whole volume
+// 	for (int n = 1; n < nSize; n++)
 // 	{
 // 		#ifdef DEBUG_CLUSTER
 // 		std::cout << "clustering image " << n << std::endl;
 // 		#endif
 
 // 		coordinatesInSlice = getCoordinatesInSliceIndex(n);	
-// 		coordinatesInSlice_down = getCoordinatesInSliceIndex(n+1);
+// 		coordinatesInSlice_up = getCoordinatesInSliceIndex(n-1);
 
 // 		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 // 		{
 // 			Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
 
-// 			// Skip for first image in the series
-// 			if (n != 0)
+// 			double match = false;
+// 			for (size_t j = 0; j < coordinatesInSlice_up.size(); j++)
 // 			{
-// 				for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
-// 				{
-// 					Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
-// 					float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+// 				Point3D<double> cu = coordinates3D[coordinatesInSlice_up[j]];
+// 				float distance2 = (c.x-cu.x)*(c.x-cu.x)+(c.y-cu.y)*(c.y-cu.y);
 
-// 					if(distance2 < thrVottingDistance2)
-// 					{
-// 						coord3DVotes_V[coordinatesInSlice[i]] += 1;
-// 					}
+// 				if(distance2 < thrVottingDistance2)
+// 				{
+// 					coord3DId_V[i] = coord3DId_V[j];
+// 					match = true;
+// 					break;
 // 				}
 // 			}
 
-// 			// Skip for last image in the series
-// 			if (n != (nSize-1))
-// 			{		
-// 				for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
-// 				{
-// 					Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
-// 					float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
-
-// 					if(distance2 < thrVottingDistance2)
-// 					{
-// 						coord3DVotes_V[coordinatesInSlice[i]] += 1;
-// 					}
-// 				}
+// 			if (!match)
+// 			{
+// 				coord3DId_V[i] = currentId;
+// 				currentId++;
 // 			}
 // 		}
-// 		}
+// 	}
 
+// 	// Average coordinates with the same ID
+// 	///***???$$$ TE HAS QUEDADO AQUI
+
+// 	std::vector<size_t> coord3DId_V_tmp = coord3DId_V;
+
+// 	for (size_t id = 1; id < currentId; i++)
+// 	{
+// 		// Sum coordinate components with the same ID
+// 		for (int n = 1; n < coord3DId_V_tmp.size(); n++)
+// 		{
+// 			if (coord3DId_V_tmp[i] == id)
+// 			{
+// 				coordinates3D.erase(coordinates3D.begin()+(i-deletedIndexes));
+// 				deletedIndexes++;
+// 			}
+// 		}
+// 	}
+	
+// 	// // Generate output labeled and filtered series
+// 	// #ifdef DEBUG_OUTPUT_FILES
+// 	// MultidimArray<int> filteredLabeledTS;
+// 	// filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
+
+// 	// std::vector<Point2D<double>> cis;
+
+// 	// for (size_t n = 0; n < nSize; n++)
+// 	// {
+// 	// 	cis = getCoordinatesInSlice(n);
+
+// 	// 	MultidimArray<int> filteredLabeledTS_Image;
+// 	// 	filteredLabeledTS_Image.initZeros(ySize, xSize);
+
+// 	// 	for(size_t i = 0; i < cis.size(); i++)
+// 	// 	{
+// 	// 		fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
+// 	// 	}
+
+// 	// 	for (size_t i = 0; i < ySize; ++i)
+// 	// 	{
+// 	// 		for (size_t j = 0; j < xSize; ++j)
+// 	// 		{
+// 	// 			DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
+// 	// 		}
+// 	// 	}
+// 	// }
 // }
+
 
 
 void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
