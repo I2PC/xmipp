@@ -208,9 +208,10 @@ def cleanBinaries():
 def cleanEmptyFolders():
     log = []
     path = "src/xmipp/applications/programs/"
-    runJob("find {} –type d -empty".format(path), log=log)
+    runJob("find {} –type d -empty".format(path), log=log, show_output=False)
     for folder in log:
-        runJob("rm -rf {}".format(folder))
+        if os.path.isdir(folder):
+            runJob("rm -rf {}".format(folder))
 
 def checkout(branch):
     r, currentBranch = getCurrentBranch()
