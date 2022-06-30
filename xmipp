@@ -203,6 +203,15 @@ def cleanBinaries():
     # This seems to be cached at dblite file.
     runJob('find . -iname "*.dblite" -delete')
 
+    cleanEmptyFolders()
+
+def cleanEmptyFolders():
+    log = []
+    path = "src/xmipp/applications/programs/"
+    runJob("find {} –type d -empty".format(path), log=log, show_output=False)
+    for folder in log:
+        if os.path.isdir(folder):
+            runJob("rm -rf {}".format(folder))
 
 def checkout(branch):
     r, currentBranch = getCurrentBranch()
