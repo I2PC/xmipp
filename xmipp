@@ -209,8 +209,6 @@ def cleanEmptyFolders():
     log = []
     path = "src/xmipp/applications/programs/"
     runJob("find {} –type d -empty".format(path), log=log)
-    print(
-        "log: {}".format(log))
     for folder in log:
         runJob("rm -rf {}".format(folder))
 
