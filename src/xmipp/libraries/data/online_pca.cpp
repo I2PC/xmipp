@@ -301,7 +301,7 @@ void SgaNnOnlinePca<T>::EigenVectorUpdater::operator()( Matrix2D<T>& vectors,
         column += aux;
         
         //Make the column length 1
-        //column.selfNormalize();
+        column.selfNormalize();
 
         // Update the column
         vectors.setCol(i, column);

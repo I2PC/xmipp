@@ -456,7 +456,7 @@ void ProgAlignSpectral::SpectralPca::unprojectAndUncenter(  const MultidimArray<
         assert(VEC_XSIZE(bands[i]) <= VEC_XSIZE(rowAlias));
         const auto last = std::copy(
             MATRIX1D_ARRAY(rowAlias),
-            MATRIX1D_ARRAY(rowAlias) + VEC_XSIZE(bands[i]),
+            MATRIX1D_ARRAY(rowAlias) + VEC_XSIZE(bands[i]), //FIXME determine size
             MATRIX1D_ARRAY(bands[i])
         );
         aliasNextRow(rowAlias);
