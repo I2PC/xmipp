@@ -139,21 +139,33 @@ private:
         SpectralPca& operator=(const SpectralPca& other) = default;
         SpectralPca& operator=(SpectralPca&& other) = default;
 
+        size_t getFirstPcaBand() const;
+        size_t getPcaBandCount() const;
         size_t getBandCount() const;
         size_t getBandPrincipalComponentCount() const;
         size_t getTotalPrincipalComponentCount() const;
+
+        void getMean(size_t i, Matrix1D<double>& v) const;
+        void getAxisVariance(size_t i, Matrix1D<double>& v) const;
+        void getBasis(size_t i, Matrix2D<double>& b) const;
 
         void reset();
         void reset(const std::vector<size_t>& sizes, size_t nPc);
         void learn(const std::vector<Matrix1D<double>>& bands);
         void learnConcurrent(const std::vector<Matrix1D<double>>& bands);
+        void finalize();
+
         void centerAndProject(  std::vector<Matrix1D<double>>& bands, 
                                 MultidimArray<double>& projections) const;
         void unprojectAndUncenter(  const MultidimArray<double>& projections,
                                     std::vector<Matrix1D<double>>& bands ) const;
     private:
+        size_t m_first;
+        size_t m_principalComponents;
         std::vector<SgaNnOnlinePca<double>> m_bandPcas;
         std::vector<std::mutex> m_bandMutex;
+
+        static size_t calculateFirst(const std::vector<size_t>& sizes, size_t nPc);
 
     };
 
@@ -227,6 +239,7 @@ private:
     void initializeLearning();
     void learnReferences();
     void learnExperimental();
+    void finalizeLearning();
     void projectReferences();
     void classifyExperimental();
     void generateOutput();

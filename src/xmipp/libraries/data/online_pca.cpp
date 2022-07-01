@@ -27,15 +27,19 @@
 #include "online_pca.h"
 
 #include <cassert>
+#include <algorithm>
 
 template<typename T>
-SgaNnOnlinePca<T>::SgaNnOnlinePca(size_t nComponents, size_t nPrincipalComponents)
+SgaNnOnlinePca<T>::SgaNnOnlinePca(  size_t nComponents,
+                                    size_t nPrincipalComponents,
+                                    size_t initialBatchSize )
     : m_counter(0)
     , m_mean(nComponents)
     , m_centered(nComponents)
     , m_projection(nPrincipalComponents)
     , m_eigenValues(nPrincipalComponents)
     , m_eigenVectors(nComponents, nPrincipalComponents)
+    , m_batch(nComponents, initialBatchSize)
     , m_eigenVectorUpdater(nComponents)
 {
 }
@@ -51,6 +55,33 @@ size_t SgaNnOnlinePca<T>::getPrincipalComponentCount() const {
 }
 
 template<typename T>
+size_t SgaNnOnlinePca<T>::getInitialBatchSize() const {
+    return MAT_XSIZE(m_batch);
+}
+
+template<typename T>
+size_t SgaNnOnlinePca<T>::getSampleSize() const {
+    return m_counter;
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::getMean(Matrix1D<T>& v) const {
+    v = m_mean;
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::getAxisVariance(Matrix1D<T>& v) const {
+    v = m_eigenValues;
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::getBasis(Matrix2D<T>& b) const {
+    b = m_eigenVectors;
+}
+
+
+
+template<typename T>
 void SgaNnOnlinePca<T>::reset() {
     m_counter = 0;
 }
@@ -61,10 +92,10 @@ void SgaNnOnlinePca<T>::learn(const Matrix1D<T>& v, const T& gamma) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
     }
 
-    if (m_counter > 0) {
-        learnOthers(v, gamma);
+    if (m_counter < getInitialBatchSize()) {
+        learnFirstFew(v);
     } else {
-        learnFirst(v);
+        learnOthers(v, gamma);
     }
 }
 
@@ -74,22 +105,14 @@ void SgaNnOnlinePca<T>::learn(const Matrix1D<T>& v) {
 }
 
 template<typename T>
-void SgaNnOnlinePca<T>::learnNoEigenValues(const Matrix1D<T>& v, const T& gamma) {
-    if (VEC_XSIZE(v) != getComponentCount()) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Input vector has incorrect size");
-    }
-
-    if (m_counter > 0) {
-        learnOthersNoEigenValues(v, gamma);
-    } else {
-        learnFirstNoEigenValues(v);
+void SgaNnOnlinePca<T>::finalize() {
+    if(m_counter < getInitialBatchSize()) {
+        // Initial batch has not been completed. 
+        REPORT_ERROR(ERR_NUMERICAL, "Learn was not called sufficient times to fulfil intial batch");
     }
 }
 
-template<typename T>
-void SgaNnOnlinePca<T>::learnNoEigenValues(const Matrix1D<T>& v) {
-    learnNoEigenValues(v, calculateGamma());
-}
+
 
 template<typename T>
 void SgaNnOnlinePca<T>::center(Matrix1D<T>& v) const {
@@ -163,47 +186,33 @@ void SgaNnOnlinePca<T>::unprojectAndUncenter(const Matrix1D<T>& p, Matrix1D<T>& 
 template<typename T>
 T SgaNnOnlinePca<T>::calculateGamma() const {
     constexpr auto c = T(1); //TODO determine 
-    return c / m_counter;
+    return c / std::sqrt(m_counter);
 }
 
 template<typename T>
-void SgaNnOnlinePca<T>::learnFirst(const Matrix1D<T>& v) {
-    learnFirstNoEigenValues(v);
-    m_eigenValues.initZeros(); //TODO IDK if it is ok
-}
+void SgaNnOnlinePca<T>::learnFirstFew(const Matrix1D<T>& v) {
+    // Store the arriving vector
+    m_batch.setCol(m_counter++, v);
 
-template<typename T>
-void SgaNnOnlinePca<T>::learnFirstNoEigenValues(const Matrix1D<T>& v) {
-    // The mean of one element is itself
-    assert(m_mean.sameShape(v));
-    m_mean = v;
+    // Finalize when called for the last time
+    if(m_counter == getInitialBatchSize()) {
+        // Set the mean
+        m_batch.computeColMeans(m_mean);
 
-    // Mean-centered vector of the first iteration is zero, as
-    // the mean is the first vector itself
-    m_centered.initZeros();
+        // Subtract the mean to each column
+        subtractToAllColumns(m_batch, m_mean);
 
-    // The projection of the first iteration is also zero because
-    // it depends on the dot product with the centered vector
-    m_projection.initZeros();
-
-    // Initialize the eigenvectors (basis) with random values. 
-    m_eigenVectors.initGaussian(MAT_YSIZE(m_eigenVectors), MAT_XSIZE(m_eigenVectors), 0, 1);
-
-    // Increment the counter
-    m_counter = 1;
+        // Compute a batch PCA with the vectors
+        batchPca(m_batch, m_eigenVectors, m_eigenValues, getPrincipalComponentCount());
+    }
 }
 
 template<typename T>
 void SgaNnOnlinePca<T>::learnOthers(const Matrix1D<T>& v, const T& gamma) {
-    learnOthersNoEigenValues(v, gamma);
-    updateEigenValues(m_eigenValues, m_projection, gamma);
-}
-
-template<typename T>
-void SgaNnOnlinePca<T>::learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma) {
     updateMean(m_mean, m_counter, v);
     center(v, m_centered);
     projectCentered(m_centered, m_projection);
+    updateEigenValues(m_eigenValues, m_projection, gamma);
     m_eigenVectorUpdater(m_eigenVectors, m_centered, m_projection, gamma);
 
     // Increment the counter
@@ -292,11 +301,55 @@ void SgaNnOnlinePca<T>::EigenVectorUpdater::operator()( Matrix2D<T>& vectors,
         column += aux;
         
         //Make the column length 1
-        column.selfNormalize();
+        //column.selfNormalize();
 
         // Update the column
         vectors.setCol(i, column);
     }
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::batchPca(   const Matrix2D<T>& batch, 
+                                    Matrix2D<T>& vectors, 
+                                    Matrix1D<T>& values, 
+                                    size_t nPrincipalComponents ) 
+{
+    // Determine if thee batch needs to be transposed for 
+    // faster computations.
+    const auto transpose = MAT_XSIZE(batch) < MAT_YSIZE(batch);
+
+    // Compute the covariance matrix of the batch
+    // assuming it has been mean centered.
+    Matrix2D<T> covariance;
+    if(transpose) {
+        matrixOperation_AtA(batch, covariance);
+    } else {
+        matrixOperation_AAt(batch, covariance);
+    }
+    covariance /= MAT_XSIZE(batch) - 1;
+
+    // Due to the transposition, we should have
+    // a the minimal size for the covariance matrix
+    assert(MAT_XSIZE(covariance) == std::min(MAT_XSIZE(batch), MAT_YSIZE(batch)));
+    assert(MAT_YSIZE(covariance) == std::min(MAT_XSIZE(batch), MAT_YSIZE(batch)));
+
+    // Compute the first N eigenvectors with the highest eigenvalues
+    if(transpose) {
+        Matrix2D<T> temp;
+        firstEigs(covariance, nPrincipalComponents, values, temp);
+        assert(MAT_XSIZE(batch) == MAT_YSIZE(temp));
+        matrixOperation_AB(batch, temp, vectors);
+        normalizeColumnLengths(vectors);
+    } else {
+        firstEigs(covariance, nPrincipalComponents, values, vectors);
+    }
+
+    // Ensure the eigenvalues are in descending order
+    assert(std::is_sorted(
+        MATRIX1D_ARRAY(values), 
+        MATRIX1D_ARRAY(values) + VEC_XSIZE(values), 
+        std::greater<double>()
+    ));
 }
 
 // Explicit instantiation

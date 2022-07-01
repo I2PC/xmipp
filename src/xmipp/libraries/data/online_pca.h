@@ -47,7 +47,7 @@
 template<typename T>
 class SgaNnOnlinePca {
 public:
-   SgaNnOnlinePca(size_t nComponents, size_t nPrincipalComponents);
+   SgaNnOnlinePca(size_t nComponents, size_t nPrincipalComponents, size_t initialBatchSize);
    SgaNnOnlinePca(const SgaNnOnlinePca& other) = default;
    ~SgaNnOnlinePca() = default;
 
@@ -55,14 +55,17 @@ public:
 
    size_t getComponentCount() const;
    size_t getPrincipalComponentCount() const;
+   size_t getInitialBatchSize() const;
+   size_t getSampleSize() const;
+
+   void getMean(Matrix1D<T>& v) const;
+   void getAxisVariance(Matrix1D<T>& v) const;
+   void getBasis(Matrix2D<T>& b) const;
 
    void reset();
-
    void learn(const Matrix1D<T>& v, const T& gamma);
    void learn(const Matrix1D<T>& v);
-   void learnNoEigenValues(const Matrix1D<T>& v, const T& gamma);
-   void learnNoEigenValues(const Matrix1D<T>& v);
-   void getBasis(Matrix2D<T>& basis);
+   void finalize();
 
    void center(Matrix1D<T>& v) const;
    void center(const Matrix1D<T>& v, Matrix1D<T>& c) const;
@@ -103,17 +106,18 @@ private:
    Matrix1D<T> m_projection;
    Matrix1D<T> m_eigenValues;
    Matrix2D<T> m_eigenVectors;
+   Matrix2D<T> m_batch;
 
    EigenVectorUpdater m_eigenVectorUpdater;
 
    T calculateGamma() const;
-   void learnFirst(const Matrix1D<T>& v);
-   void learnFirstNoEigenValues(const Matrix1D<T>& v);
+   void learnFirstFew(const Matrix1D<T>& v);
    void learnOthers(const Matrix1D<T>& v, const T& gamma);
    void learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma);
 
    static void updateMean(Matrix1D<T>& mean, size_t count, const Matrix1D<T>& v);
    static void updateEigenValues(Matrix1D<T>& values, const Matrix1D<T>& projection, const T& gamma);
+   static void batchPca(const Matrix2D<T>& batch, Matrix2D<T>& vectors, Matrix1D<T>& values, size_t nPrincipalComponents);
 
 };
 

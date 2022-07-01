@@ -34,6 +34,7 @@
 #include <thread>
 #include <atomic>
 #include <limits>
+#include <algorithm>
 
 
 namespace Alignment {
@@ -107,6 +108,7 @@ void ProgAlignSpectral::run() {
     initializeLearning();
     learnReferences();
     learnExperimental();
+    finalizeLearning();
     projectReferences();
     classifyExperimental();
     generateOutput();
@@ -254,7 +256,7 @@ void ProgAlignSpectral::BandMap::flattenForPca( const MultidimArray<std::complex
         REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
     }
 
-    data.resizeNoCopy(m_sizes[band]*2);
+    data.resizeNoCopy(m_sizes[band]);
     auto* wrPtr = MATRIX1D_ARRAY(data);
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m_bands) {
         if(DIRECT_MULTIDIM_ELEM(m_bands, n) == band) {
@@ -281,7 +283,7 @@ std::vector<size_t> ProgAlignSpectral::BandMap::computeBandSizes(const MultidimA
                 ++count;
             }
         }
-        sizes.emplace_back(count);
+        sizes.emplace_back(count*2); // *2 because complex numbers
     }
     assert(sizes.size() == nBands);
 
@@ -300,16 +302,36 @@ ProgAlignSpectral::SpectralPca::SpectralPca(const std::vector<size_t>& sizes,
 
 
 
-size_t ProgAlignSpectral::SpectralPca::getBandCount() const {
+size_t ProgAlignSpectral::SpectralPca::getFirstPcaBand() const {
+    return m_first;
+}
+
+size_t ProgAlignSpectral::SpectralPca::getPcaBandCount() const {
     return m_bandPcas.size();
 }
 
+size_t ProgAlignSpectral::SpectralPca::getBandCount() const {
+    return getFirstPcaBand() + getPcaBandCount();
+}
+
 size_t ProgAlignSpectral::SpectralPca::getBandPrincipalComponentCount() const {
-    return m_bandPcas.front().getPrincipalComponentCount();
+    return m_principalComponents;
 }
 
 size_t ProgAlignSpectral::SpectralPca::getTotalPrincipalComponentCount() const {
     return getBandCount() * getBandPrincipalComponentCount();
+}
+
+void ProgAlignSpectral::SpectralPca::getMean(size_t i, Matrix1D<double>& v) const {
+    return m_bandPcas.at(i).getMean(v);
+}
+
+void ProgAlignSpectral::SpectralPca::getAxisVariance(size_t i, Matrix1D<double>& v) const {
+    return m_bandPcas.at(i).getAxisVariance(v);
+}
+
+void ProgAlignSpectral::SpectralPca::getBasis(size_t i, Matrix2D<double>& b) const {
+    return m_bandPcas.at(i).getBasis(b);
 }
 
 
@@ -322,14 +344,22 @@ void ProgAlignSpectral::SpectralPca::reset() {
 
 
 void ProgAlignSpectral::SpectralPca::reset(const std::vector<size_t>& sizes, size_t nPc) {
+    m_principalComponents = nPc;
+
+    // All bands with less than nPc elements needn't a PCA.
+    // Compute the first band that requires a PCA computation
+    m_first = calculateFirst(sizes, nPc);
+    const auto nPca = sizes.size() - m_first;
+
+    // Setup PCAs
     m_bandPcas.clear();
-    m_bandPcas.reserve(sizes.size());
-
-    for (const auto& size : sizes) {
-        m_bandPcas.emplace_back(size*2, nPc); //*2 as we are are using complex numbers
+    m_bandPcas.reserve(nPca);
+    for (size_t i = m_first; i < sizes.size(); ++i) {
+        m_bandPcas.emplace_back(sizes[i], nPc, 2*nPc);
     }
-    assert(m_bandPcas.size() == sizes.size());
+    assert(m_bandPcas.size() == nPca);
 
+    // Setup mutexes for PCAs
     m_bandMutex = std::vector<std::mutex>(m_bandPcas.size());
 }
 
@@ -338,8 +368,8 @@ void ProgAlignSpectral::SpectralPca::learn(const std::vector<Matrix1D<double>>& 
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
 
-    for (size_t i = 0; i < getBandCount(); ++i) {
-        m_bandPcas[i].learnNoEigenValues(bands[i]);
+    for (size_t i = 0; i < getPcaBandCount(); ++i) {
+        m_bandPcas[i].learn(bands[i+getFirstPcaBand()]);
     } 
 }
 
@@ -349,11 +379,21 @@ void ProgAlignSpectral::SpectralPca::learnConcurrent(const std::vector<Matrix1D<
     }
 
     // Learn backwawds so that hopefully only once is blocked
-    for (size_t i = getBandCount() - 1; i < getBandCount(); --i) {
+    // HACK the odd condition works because of overflow (condition i >= 0 does
+    // not work because of the same reason)
+    for (size_t i = getPcaBandCount() - 1; i < getPcaBandCount(); --i) {
         std::lock_guard<std::mutex> lock(m_bandMutex[i]);
-        m_bandPcas[i].learnNoEigenValues(bands[i]);
+        m_bandPcas[i].learn(bands[i+getFirstPcaBand()]);
     } 
 }
+
+void ProgAlignSpectral::SpectralPca::finalize() {
+    for (auto& pca : m_bandPcas) {
+        pca.finalize();
+    }
+}
+
+
 
 void ProgAlignSpectral::SpectralPca::centerAndProject(  std::vector<Matrix1D<double>>& bands, 
                                                         MultidimArray<double>& projections) const
@@ -369,8 +409,23 @@ void ProgAlignSpectral::SpectralPca::centerAndProject(  std::vector<Matrix1D<dou
     aliasFirstRow(projections, rowAlias);
 
     // Project row by row
-    for (size_t i = 0; i < getBandCount(); ++i) {
-        m_bandPcas[i].centerAndProject(bands[i], rowAlias);
+    for (size_t i = 0; i < getFirstPcaBand(); ++i) {
+        // Just copy and fill the rest with zeros
+        assert(VEC_XSIZE(bands[i]) <= VEC_XSIZE(rowAlias));
+        const auto last = std::copy(
+            MATRIX1D_ARRAY(bands[i]),
+            MATRIX1D_ARRAY(bands[i]) + VEC_XSIZE(bands[i]),
+            MATRIX1D_ARRAY(rowAlias)
+        );
+        std::fill(
+            last,
+            MATRIX1D_ARRAY(rowAlias) + VEC_XSIZE(rowAlias),
+            0.0
+        );
+        aliasNextRow(rowAlias);
+    }
+    for (size_t i = 0; i < getPcaBandCount(); ++i) {
+        m_bandPcas[i].centerAndProject(bands[i+getFirstPcaBand()], rowAlias);
         aliasNextRow(rowAlias);
     }
     assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
@@ -396,11 +451,27 @@ void ProgAlignSpectral::SpectralPca::unprojectAndUncenter(  const MultidimArray<
     aliasFirstRow(projections, rowAlias);
 
     // Unproject row by row
-    for (size_t i = 0; i < getBandCount(); ++i) {
-        m_bandPcas[i].unprojectAndUncenter(rowAlias, bands[i]);
+    for (size_t i = 0; i < getFirstPcaBand(); ++i) {
+        // Just copy
+        assert(VEC_XSIZE(bands[i]) <= VEC_XSIZE(rowAlias));
+        const auto last = std::copy(
+            MATRIX1D_ARRAY(rowAlias),
+            MATRIX1D_ARRAY(rowAlias) + VEC_XSIZE(bands[i]),
+            MATRIX1D_ARRAY(bands[i])
+        );
+        aliasNextRow(rowAlias);
+    }
+    for (size_t i = 0; i < getPcaBandCount(); ++i) {
+        m_bandPcas[i].unprojectAndUncenter(rowAlias, bands[i+getFirstPcaBand()]);
         aliasNextRow(rowAlias);
     }
     assert(rowAlias.vdata == MULTIDIM_ARRAY(projections) + MULTIDIM_SIZE(projections));
+}
+
+size_t ProgAlignSpectral::SpectralPca::calculateFirst(const std::vector<size_t>& sizes, size_t nPc) {
+    assert(std::is_sorted(sizes.cbegin(), sizes.cend())); // This qualifies the criteria for upper_bound
+    const auto ite = std::upper_bound(sizes.cbegin(), sizes.cend(), nPc);
+    return std::distance(sizes.cbegin(), ite);
 }
 
 
@@ -465,7 +536,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const Mult
             diffrenceBand -= referenceBand;
             
             //Increment the score
-            const auto weight = 1.0; //TODO
+            const auto weight = std::exp(-static_cast<double>(j)); //TODO
             const auto bandDistance = diffrenceBand.sum2();
             score += weight * bandDistance;
             
@@ -561,6 +632,7 @@ void ProgAlignSpectral::initializeLearning() {
         m_bandMap.getBandSizes(), 
         m_parameters.nBandPc
     );
+    std::cout << "Non-PCA bands: " << m_pca.getFirstPcaBand() << " PCA bands: " << m_pca.getPcaBandCount() << std::endl;
 }
 
 void ProgAlignSpectral::learnReferences() {
@@ -614,6 +686,10 @@ void ProgAlignSpectral::learnExperimental() {
 
     std::vector<ThreadData> threadData(m_parameters.nThreads);
     processRowsInParallel(m_mdExperimental, func, threadData, m_parameters.training);
+}
+
+void ProgAlignSpectral::finalizeLearning() {
+    m_pca.finalize();
 }
 
 void ProgAlignSpectral::projectReferences() {
