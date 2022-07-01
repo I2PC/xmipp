@@ -1,11 +1,15 @@
-## Release 3.22.XX - devel
-### Installation and user guide
+  ## Release 3.22.XX - devel
+  ### Installation and user guide
+  -
 
-### Scripts Xmipp
+  ### Scripts Xmipp
+  -
 
-### Protocols scipion-em-xmipp
+  ### Protocols scipion-em-xmipp
+  -
 
-### Others
+  ### Others
+  -
 
 
 ## Release 3.22.07 - 
