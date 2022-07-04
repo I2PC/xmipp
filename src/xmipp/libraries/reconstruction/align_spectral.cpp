@@ -188,7 +188,7 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const Multid
         forEachInPlaneTranslation(
             m_rotated,
             translations,
-            std::forward<F>(func)
+            std::bind(std::forward<F>(func), std::placeholders::_1, rotation, std::placeholders::_2, std::placeholders::_3)
         );
     }
 
@@ -208,11 +208,14 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const Multid
 
     // Compute all translations of it
     for (const auto& translation : translations) {
+        double sx, sy;
+        translation.getTranslation(sx, sy);
+
         // Perform the translation
         translation(m_dft, m_translatedDft);
 
         // Call the provided function
-        std::forward<F>(func)(m_translatedDft);
+        std::forward<F>(func)(m_translatedDft, sx, sy);
     }
 }
 
@@ -653,7 +656,7 @@ void ProgAlignSpectral::learnReferences() {
             data.image(),
             m_parameters.nRotations,
             m_translations,
-            [this, &data] (const auto& x) {
+            [this, &data] (const auto& x, auto, auto, auto) {
                 m_bandMap.flattenForPca(x, data.bandCoefficients);
                 m_pca.learnConcurrent(data.bandCoefficients);
             }
@@ -719,7 +722,7 @@ void ProgAlignSpectral::projectReferences() {
             data.image(),
             m_parameters.nRotations,
             m_translations,
-            [this, &data, i, counter=offset] (const auto& x) mutable {
+            [this, &data, i, counter=offset] (const auto& x, auto r, auto sx, auto sy) mutable {
                 // Obtain the resulting memory area
                 const auto index = counter++;
                 m_references.getPcaProjection(index, data.projection);
@@ -729,7 +732,7 @@ void ProgAlignSpectral::projectReferences() {
                 m_pca.centerAndProject(data.bandCoefficients, data.projection);
 
                 // Write the metadata
-                m_references.setMetadata(index, i, 0.0, 0.0, 0.0); //TODO
+                m_references.setMetadata(index, i, r, sx, sy); //TODO
             }
         );
     };
@@ -775,15 +778,17 @@ void ProgAlignSpectral::classifyExperimental() {
 }
 
 void ProgAlignSpectral::generateOutput() {
+    auto mdOut = m_mdExperimental;
+
     // Modify the experimental data
-    assert(m_mdExperimental.size() == m_classification.size());
-    for(size_t i = 0; i < m_mdExperimental.size(); ++i) {
-        auto row = m_mdExperimental.getRowVec(m_mdExperimental.getRowId(i));
+    assert(mdOut.size() == m_classification.size());
+    for(size_t i = 0; i < mdOut.size(); ++i) {
+        auto row = mdOut.getRowVec(mdOut.getRowId(i));
         updateRow(row, m_classification[i]);
     }
 
     // Write the data
-    m_mdExperimental.write(m_parameters.fnOutput);
+    mdOut.write(m_parameters.fnOutput);
 }
 
 
@@ -795,15 +800,25 @@ void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
     size_t position;
     double rotation, shiftX, shiftY;
     m_references.getMetadata(matchIndex, position, rotation, shiftX, shiftY);
-    const auto referenceRow = m_mdReference.getRowVec(m_mdReference.getRowId(position));
+    const auto refRow = m_mdReference.getRowVec(m_mdReference.getRowId(position));
+    const auto expRow = m_mdExperimental.getRowVec(row.getValue<size_t>(MDL_OBJID));
 
-    // Write the data into the row
-    row.setValue(MDL_IMAGE_REF, referenceRow.getValue<std::string>(MDL_IMAGE));
-    row.setValue(MDL_ANGLE_ROT, referenceRow.getValue<double>(MDL_ANGLE_ROT));
-    row.setValue(MDL_ANGLE_TILT, referenceRow.getValue<double>(MDL_ANGLE_TILT));
+    // Shift the old pose values to the second MD labels
+    if (expRow.containsLabel(MDL_ANGLE_ROT)) row.setValue(MDL_ANGLE_ROT2, expRow.getValue<double>(MDL_ANGLE_ROT));
+    if (expRow.containsLabel(MDL_ANGLE_TILT)) row.setValue(MDL_ANGLE_TILT2, expRow.getValue<double>(MDL_ANGLE_TILT));
+    if (expRow.containsLabel(MDL_ANGLE_PSI)) row.setValue(MDL_ANGLE_PSI2, expRow.getValue<double>(MDL_ANGLE_PSI));
+    if (expRow.containsLabel(MDL_SHIFT_X)) row.setValue(MDL_SHIFT_X2, expRow.getValue<double>(MDL_SHIFT_X));
+    if (expRow.containsLabel(MDL_SHIFT_Y)) row.setValue(MDL_SHIFT_Y2, expRow.getValue<double>(MDL_SHIFT_Y));
+
+    // Write the new pose
+    row.setValue(MDL_ANGLE_ROT, refRow.getValue<double>(MDL_ANGLE_ROT));
+    row.setValue(MDL_ANGLE_TILT, refRow.getValue<double>(MDL_ANGLE_TILT));
     row.setValue(MDL_ANGLE_PSI, rotation);
     row.setValue(MDL_SHIFT_X, shiftX);
     row.setValue(MDL_SHIFT_Y, shiftY);
+
+    // Write the reference image
+    row.setValue(MDL_IMAGE_REF, refRow.getValue<std::string>(MDL_IMAGE));
 }
 
 
