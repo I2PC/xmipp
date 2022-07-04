@@ -172,9 +172,9 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const Multid
                                                                     const std::vector<TranslationFilter>& translations,
                                                                     F&& func )
 {
+    // Perform all but the trivial rotations (0...360)
     const auto step = 360.0 / nRotations;
-
-    for (size_t i = 0; i < nRotations; ++i) {
+    for (size_t i = 1; i < nRotations; ++i) {
         // Rotate the input image into the cached image
         const auto rotation = i*step;
         rotate(
@@ -188,10 +188,16 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const Multid
         forEachInPlaneTranslation(
             m_rotated,
             translations,
-            std::bind(std::forward<F>(func), std::placeholders::_1, rotation, std::placeholders::_2, std::placeholders::_3)
+            std::bind(std::ref(func), std::placeholders::_1, rotation, std::placeholders::_2, std::placeholders::_3)
         );
     }
 
+    // The first one (0 deg) does not need any rotate operation
+    forEachInPlaneTranslation(
+        img,
+        translations,
+        std::bind(std::forward<F>(func), std::placeholders::_1, 0.0, std::placeholders::_2, std::placeholders::_3)
+    );
 }
 
 template<typename F>
@@ -211,11 +217,16 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const Multid
         double sx, sy;
         translation.getTranslation(sx, sy);
 
-        // Perform the translation
-        translation(m_dft, m_translatedDft);
+        if(sx || sy) {
+            // Perform the translation
+            translation(m_dft, m_translatedDft);
 
-        // Call the provided function
-        std::forward<F>(func)(m_translatedDft, sx, sy);
+            // Call the provided function
+            func(m_translatedDft, sx, sy);
+        } else {
+            // Call the provided function with the DFT
+            func(m_dft, 0.0, 0.0);
+        }
     }
 }
 
