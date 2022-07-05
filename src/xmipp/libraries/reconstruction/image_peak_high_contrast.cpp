@@ -269,7 +269,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 
 
 
-void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered)
+void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> &volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
@@ -285,35 +285,25 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	#endif
 
 	// Calculate threshols value for the central slices of the volume
-	std::vector<int> sliceVector;
-
+	double sum = 0;
+	double sum2 = 0;
+	int Nelems = xSize * ySize * numberSampSlices;
+	
 	for(size_t k = minSamplingSlice; k < maxSamplingSlice; ++k)
 	{
 		for(size_t j = 0; j < ySize; ++j)
 		{
 			for(size_t i = 0; i < xSize; ++i)
 			{
-				sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
+				double value = DIRECT_ZYX_ELEM(volFiltered, k, i ,j);
+				sum += value;
+				sum2 += value*value;
 			}
 		}
 	}
-		
-	double sum = 0, sum2 = 0;
-	int Nelems = 0;
-	double average = 0;
-	double standardDeviation = 0;
-	double sliceVectorSize = sliceVector.size();
 
-	for(size_t e = 0; e < sliceVectorSize; e++)
-	{
-		int value = sliceVector[e];
-		sum += value;
-		sum2 += value*value;
-		++Nelems;
-	}
-
-	average = sum / sliceVectorSize;
-	standardDeviation = sqrt(sum2/Nelems - average*average);
+	double average = sum / Nelems;
+	double standardDeviation = sqrt(sum2/Nelems - average*average);
 
 	double threshold = average-sdThreshold*standardDeviation;
 
@@ -323,10 +313,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 
 	MultidimArray<double> binaryCoordinatesMapSlice;
 	MultidimArray<double> labelCoordiantesMapSlice;
-	MultidimArray<double> labelCoordiantesMap;
-
-	labelCoordiantesMap.initZeros(zSize, ySize, xSize);
-
 	
 	for(size_t k = 0; k < zSize; k++)
 	{	
@@ -358,7 +344,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 				if (value != 0)
 				{
-					DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = value;
+					DIRECT_A3D_ELEM(volFiltered, k, i, j) = value;
 				}
 			}
 		}
@@ -403,7 +389,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-
 			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 
 			if(keep)
@@ -412,10 +397,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 				coordinates3D.push_back(point3D);
 			}
 		}
-
-		#ifdef DEBUG_HCC
-		std::cout << "Colour: " << colour << std::endl;
-		#endif
     }
 
 	#ifdef VERBOSE_OUTPUT
@@ -428,9 +409,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	std::string outputFileNameLabeledVolume;
     outputFileNameLabeledVolume = rawname + "_label.mrc";
 
-	Image<double> saveImage;
-	saveImage() = labelCoordiantesMap; 
-	saveImage.write(outputFileNameLabeledVolume);
+	V.write(outputFileNameLabeledVolume);
 	#endif
 }
 
@@ -984,8 +963,6 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 	std::cout << "maxDistace " << maxDistace << std::endl;
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
-
-	std::cout << "occupation " << ocupation << std::endl;
 
 	if(ocupation < 0.5)
 	{

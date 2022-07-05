@@ -43,12 +43,11 @@
 #include <data/point3D.h>
 #include <data/point2D.h>
 
-
+// #define DEBUG_DIM
 #define VERBOSE_OUTPUT
 #define DEBUG_HCC
 #define DEBUG_FILTERPARAMS
 // #define DEBUG_FILTERLABEL
-#define DEBUG_DIM
 // #define DEBUG_DIST
 #define DEBUG_OUTPUT_FILES
 
@@ -112,7 +111,7 @@ public:
      * @return
      *
     */
-    void getHighContrastCoordinates(MultidimArray<double> volFiltered);
+    void getHighContrastCoordinates(MultidimArray<double> &volFiltered);
 
     /**
      * Cluster 3d coordinates into its center of mass.
