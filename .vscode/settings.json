@@ -1,11 +1,13 @@
 {
     "files.associations": {
+        "bitset": "cpp",
+        "chrono": "cpp",
+        "algorithm": "cpp",
         "array": "cpp",
         "atomic": "cpp",
         "bit": "cpp",
         "*.tcc": "cpp",
         "cctype": "cpp",
-        "chrono": "cpp",
         "cmath": "cpp",
         "compare": "cpp",
         "concepts": "cpp",
@@ -21,7 +23,6 @@
         "unordered_map": "cpp",
         "vector": "cpp",
         "exception": "cpp",
-        "algorithm": "cpp",
         "functional": "cpp",
         "iterator": "cpp",
         "memory": "cpp",
