@@ -69,8 +69,11 @@ void ProgImagePeakHighContrast::defineParams()
 // }
 
 
-void ProgImagePeakHighContrast::bandpassFilter(MultidimArray< std::complex<double> > &fftV)
+void ProgImagePeakHighContrast::bandpassFilter(MultidimArray<double> &inputTomo)
 {
+	MultidimArray< std::complex<double> > fftV;
+	transformer.FourierTransform(inputTomo, fftV, false);
+
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Bandpass filter volume..." << std::endl;
 	#endif
@@ -136,12 +139,13 @@ void ProgImagePeakHighContrast::bandpassFilter(MultidimArray< std::complex<doubl
 		}
 	}
 
+	transformer.inverseFourierTransform();
+
 	std::cout << "end of bandpass" << std::endl;
 }
 
 
-void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo, 
-												 MultidimArray<double> &preprocessedTomo)
+void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Preprocessing volume..." << std::endl;
@@ -195,27 +199,44 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 
 	std::cout << "check1" << std::endl;
 
-	preprocessedTomo.initZeros(1, zSize, ySize, xSize);
-
 	std::cout << "check3" << std::endl;
 
 
-	for (int k = 1; k < zSize-2; k++)
+	for (int k = 0; k < zSize-1; k++)
 	{
+		MultidimArray<double> slice;
+		inputTomo.getSlice(k, slice);
+
 		for (int i = 1; i < ySize-2; i++)
 		{
 			for (int j = 1; j < xSize-2; j++)
 			{				
-				DIRECT_A3D_ELEM(preprocessedTomo, k, i, j) = (-1 * DIRECT_A3D_ELEM(inputTomo, k-1, i,   j) +
-													   -1 * DIRECT_A3D_ELEM(inputTomo, k+1, i,   j) +
-													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j-1) +
-													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j+1) +
-													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i-1, j) +
-													   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i+1, j) +
-													    6 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j));
+				DIRECT_A3D_ELEM(inputTomo, k, i, j) = (-1 * DIRECT_A2D_ELEM(slice, i,   j-1) +
+													   -1 * DIRECT_A2D_ELEM(slice, i,   j+1) +
+													   -1 * DIRECT_A2D_ELEM(slice, i-1, j) +
+													   -1 * DIRECT_A2D_ELEM(slice, i+1, j) +
+													    4 * DIRECT_A2D_ELEM(slice, i,   j));
 			}
 		}
 	} 
+
+
+	// for (int k = 1; k < zSize-2; k++)
+	// {
+	// 	for (int i = 1; i < ySize-2; i++)
+	// 	{
+	// 		for (int j = 1; j < xSize-2; j++)
+	// 		{				
+	// 			DIRECT_A3D_ELEM(preprocessedTomo, k, i, j) = (-1 * DIRECT_A3D_ELEM(inputTomo, k-1, i,   j) +
+	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k+1, i,   j) +
+	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j-1) +
+	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j+1) +
+	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i-1, j) +
+	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i+1, j) +
+	// 												    6 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j));
+	// 		}
+	// 	}
+	// } 
 
 	std::cout << "check2" << std::endl;
 
@@ -227,9 +248,9 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 
 	std::cout << outputFileNameFilteredVolume << std::endl;
 
-	Image<double> saveImage;
-	saveImage() = inputTomo;
-	saveImage.write(outputFileNameFilteredVolume);
+	// Image<double> saveImage;
+	// saveImage() = inputTomo;
+	V.write(outputFileNameFilteredVolume);
 	#endif
 	
 	
@@ -855,10 +876,11 @@ void ProgImagePeakHighContrast::run()
 
 	auto t1 = high_resolution_clock::now();
 	
-	Image<double> inputVolume;
-	MultidimArray<double> &inputTomo=inputVolume();
+	V.read(fnVol);
 
-	inputVolume.read(fnVol);
+	MultidimArray<double> &inputTomo=V();
+	// MultidimArray<double> &inputTomo=MULTIDIM_ARRAY(V);
+
 
 
 	xSize = XSIZE(inputTomo);
@@ -873,46 +895,43 @@ void ProgImagePeakHighContrast::run()
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 
-	MultidimArray< std::complex<double> > fftV;
-
-	std::cout << "checkcheckcheckcheckcheckcheck" << std::endl;
-
-	FourierTransformer transformer1(FFTW_BACKWARD);
-	transformer1.FourierTransform(inputTomo, fftV, false);
-
-	bandpassFilter(fftV);
+	bandpassFilter(inputTomo);
 	
-	std::cout << "labdlabdlabdlabdlabdlabdlabdlabdlabdlabd" << std::endl;
-	transformer1.inverseFourierTransform();
-	std::cout << "labdlabdlabdlabdlabdlabd" << std::endl;
-
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
-	FileName rawname = fnOut.substr(0, lastindex);
-	FileName outputFileNameFilteredVolume;
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
 	std::cout << outputFileNameFilteredVolume << std::endl;
 
-	Image<double> saveImage;
-	saveImage() = inputTomo;
-	saveImage.write(outputFileNameFilteredVolume);
+	#ifdef DEBUG_DIM
+	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
+	std::cout << "x " << XSIZE(inputTomo) << std::endl;
+	std::cout << "y " << YSIZE(inputTomo) << std::endl;
+	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
+	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
+
+	// Image<double> saveImage;
+	// saveImage() = inputTomo;
+	V.write(outputFileNameFilteredVolume);
+	#endif
+
+	//***COSS use alias to recycle memory, apuntar por slices al volumen con el alias (esta en multdim array,)
 
 	std::cout << "checka" << std::endl;
 
-	MultidimArray<double> preprocessedTomo;
 	
 	std::cout << "checkb" << std::endl;
 	std::cout << zSize << std::endl;
 	std::cout << ySize << std::endl;
 	std::cout << xSize << std::endl;
 
-	preprocessedTomo.initZeros(1, 500, 1440, 1024);
-	
+
 	std::cout << "checkc" << std::endl;
 
- 	preprocessVolume(inputTomo, preprocessedTomo);
+ 	preprocessVolume(inputTomo);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;

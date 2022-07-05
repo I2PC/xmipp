@@ -69,6 +69,10 @@ public:
     bool centerFeatures;
 
     double fiducialSizePx;
+
+   	FourierTransformer transformer;
+	Image<double> V;
+
     
 private:
     /** Input tomogram dimensions */
@@ -89,7 +93,8 @@ public:
     void readParams();
     void defineParams();
     // void generateSideInfo();
-    void bandpassFilter(MultidimArray< std::complex<double> > &fftV);
+    // void bandpassFilter(MultidimArray< std::complex<double> > &fftV);
+    void bandpassFilter(MultidimArray<double> &inputTomo);
 
 
     /**
@@ -99,8 +104,8 @@ public:
      * @return
      *
     */
-    // void preprocessVolume(MultidimArray<double> &inputTomo);
-    void preprocessVolume(MultidimArray<double> &inputTomo, MultidimArray<double> &preprocessedTomo);
+    void preprocessVolume(MultidimArray<double> &inputTomo);
+    // void preprocessVolume(MultidimArray<double> &inputTomo, MultidimArray<double> &preprocessedTomo);
 
     /**
      * Peaks the high contrast regions in a volume.
