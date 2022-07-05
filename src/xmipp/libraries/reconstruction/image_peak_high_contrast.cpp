@@ -26,6 +26,8 @@
 #include "image_peak_high_contrast.h"
 #include <chrono>
 
+
+
 void ProgImagePeakHighContrast::readParams()
 {
 	fnVol = getParam("--vol");
@@ -40,6 +42,7 @@ void ProgImagePeakHighContrast::readParams()
 	samplingRate = getDoubleParam("--samplingRate");
 	centerFeatures = checkParam("--centerFeatures");
 }
+
 
 
 void ProgImagePeakHighContrast::defineParams()
@@ -59,6 +62,7 @@ void ProgImagePeakHighContrast::defineParams()
 }
 
 
+
 // void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 // {
 // 	#ifdef VERBOSE_OUTPUT
@@ -69,13 +73,59 @@ void ProgImagePeakHighContrast::defineParams()
 // }
 
 
-void ProgImagePeakHighContrast::bandpassFilter(MultidimArray<double> &inputTomo)
+
+void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Preprocessing volume..." << std::endl;
+	#endif
+
+	// Smoothing
+	
+	// int siz_x = xSize*0.5;
+	// int siz_y = ySize*0.5;
+	// int siz_z = zSize*0.5;
+	// int N_smoothing = 10;
+
+	// int ux, uy, uz, uz2, uz2y2;
+
+	// int limit_distance_x = (siz_x-N_smoothing);
+	// int limit_distance_y = (siz_y-N_smoothing);
+	// int limit_distance_z = (siz_z-N_smoothing);
+
+	// long n=0;
+	// for(int k=0; k<zSize; ++k)
+	// {
+	// 	uz = (k - siz_z);
+	// 	for(int i=0; i<ySize; ++i)
+	// 	{
+	// 		uy = (i - siz_y);
+	// 		for(int j=0; j<xSize; ++j)
+	// 		{
+	// 			ux = (j - siz_x);
+
+	// 			if (abs(ux)>=limit_distance_x)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+	// 			}
+	// 			if (abs(uy)>=limit_distance_y)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+	// 			}
+	// 			if (abs(uz)>=limit_distance_z)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+	// 			}
+	// 			++n;
+	// 		}
+	// 	}
+	// }
+
 	MultidimArray< std::complex<double> > fftV;
 	transformer.FourierTransform(inputTomo, fftV, false);
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Bandpass filter volume..." << std::endl;
+	std::cout << "Applying bandpass filter to volume..." << std::endl;
 	#endif
 
 	// Band-pass filtering
@@ -141,66 +191,28 @@ void ProgImagePeakHighContrast::bandpassFilter(MultidimArray<double> &inputTomo)
 
 	transformer.inverseFourierTransform();
 
-	std::cout << "end of bandpass" << std::endl;
-}
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_bandpass.mrc";
 
-
-void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Preprocessing volume..." << std::endl;
+	V.write(outputFileNameFilteredVolume);
 	#endif
 
-	// Smoothing
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Bandpass filter applied to volume succesfully!" << std::endl;
+	#endif
 	
-	// int siz_x = xSize*0.5;
-	// int siz_y = ySize*0.5;
-	// int siz_z = zSize*0.5;
-	// int N_smoothing = 10;
-
-	// int ux, uy, uz, uz2, uz2y2;
-
-	// int limit_distance_x = (siz_x-N_smoothing);
-	// int limit_distance_y = (siz_y-N_smoothing);
-	// int limit_distance_z = (siz_z-N_smoothing);
-
-	// long n=0;
-	// for(int k=0; k<zSize; ++k)
-	// {
-	// 	uz = (k - siz_z);
-	// 	for(int i=0; i<ySize; ++i)
-	// 	{
-	// 		uy = (i - siz_y);
-	// 		for(int j=0; j<xSize; ++j)
-	// 		{
-	// 			ux = (j - siz_x);
-
-	// 			if (abs(ux)>=limit_distance_x)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
-	// 			}
-	// 			if (abs(uy)>=limit_distance_y)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
-	// 			}
-	// 			if (abs(uz)>=limit_distance_z)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
-	// 			}
-	// 			++n;
-	// 		}
-	// 	}
-	// }
 
 	// Apply Laplacian to tomo with kernel:
 	//     0  0 0    0 -1  0    0 0 0
 	// k = 0 -1 0    -1 4 -1    0 -1 0
 	//     0  0 0    0 -1  0    0 0 0
-
-	std::cout << "check1" << std::endl;
-
-	std::cout << "check3" << std::endl;
-
+		
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Applying laplacian filter to volume..." << std::endl;
+	#endif
 
 	for (int k = 0; k < zSize-1; k++)
 	{
@@ -220,7 +232,6 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 		}
 	} 
 
-
 	// for (int k = 1; k < zSize-2; k++)
 	// {
 	// 	for (int i = 1; i < ySize-2; i++)
@@ -238,23 +249,18 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	// 	}
 	// } 
 
-	std::cout << "check2" << std::endl;
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Laplacian filter applied to volume succesfully!" << std::endl;
+	#endif
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of(".");
-	FileName rawname = fnOut.substr(0, lastindex);
-	FileName outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume = rawname + "_filter.mrc";
+	lastindex = fnOut.find_last_of(".");
+	rawname = fnOut.substr(0, lastindex);
+	outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_preprocess.mrc";
 
-	std::cout << outputFileNameFilteredVolume << std::endl;
-
-	// Image<double> saveImage;
-	// saveImage() = inputTomo;
 	V.write(outputFileNameFilteredVolume);
 	#endif
-	
-	
-	std::cout << "check3" << std::endl;
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Volume preprocessed succesfully!" << std::endl;
@@ -772,6 +778,8 @@ void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 	#endif
 }
 
+
+
 void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -843,7 +851,8 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 }
 
 
-	void ProgImagePeakHighContrast::writeOutputCoordinates()
+
+void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
 	MetaDataVec md;
 	size_t id;
@@ -861,8 +870,8 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
-
 }
+
 
 
 // --------------------------- MAIN ----------------------------------
@@ -879,66 +888,28 @@ void ProgImagePeakHighContrast::run()
 	V.read(fnVol);
 
 	MultidimArray<double> &inputTomo=V();
-	// MultidimArray<double> &inputTomo=MULTIDIM_ARRAY(V);
-
-
 
 	xSize = XSIZE(inputTomo);
 	ySize = YSIZE(inputTomo);
 	zSize = ZSIZE(inputTomo);
+	nSize = NSIZE(inputTomo);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
+	std::cout << "x " << xSize << std::endl;
+	std::cout << "y " << ySize << std::endl;
+	std::cout << "z " << zSize << std::endl;
+	std::cout << "n " << nSize << std::endl;
 	#endif
-
-	bandpassFilter(inputTomo);
-	
-	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of(".");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume = rawname + "_filter.mrc";
-
-	std::cout << outputFileNameFilteredVolume << std::endl;
-
-	#ifdef DEBUG_DIM
-	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
-	#endif
-
-	// Image<double> saveImage;
-	// saveImage() = inputTomo;
-	V.write(outputFileNameFilteredVolume);
-	#endif
-
-	//***COSS use alias to recycle memory, apuntar por slices al volumen con el alias (esta en multdim array,)
-
-	std::cout << "checka" << std::endl;
-
-	
-	std::cout << "checkb" << std::endl;
-	std::cout << zSize << std::endl;
-	std::cout << ySize << std::endl;
-	std::cout << xSize << std::endl;
-
-
-	std::cout << "checkc" << std::endl;
 
  	preprocessVolume(inputTomo);
 
 	#ifdef DEBUG_DIM
-	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
+	std::cout << "------------------ Preprocessed tomogram dimensions:" << std::endl;
+	std::cout << "x " << xSize << std::endl;
+	std::cout << "y " << ySize << std::endl;
+	std::cout << "z " << zSize << std::endl;
+	std::cout << "n " << nSize << std::endl;
 	#endif
 	
 	getHighContrastCoordinates(inputTomo);

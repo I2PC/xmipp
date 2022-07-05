@@ -79,6 +79,7 @@ private:
     size_t xSize;
 	size_t ySize;
 	size_t zSize;
+	size_t nSize;
 
     /** Vectors for centers of mass components after coordinates clusterings */
     std::vector<int> centerOfMassX;
@@ -93,9 +94,6 @@ public:
     void readParams();
     void defineParams();
     // void generateSideInfo();
-    // void bandpassFilter(MultidimArray< std::complex<double> > &fftV);
-    void bandpassFilter(MultidimArray<double> &inputTomo);
-
 
     /**
      * Smoothing and filtering the input volume.
