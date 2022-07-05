@@ -71,8 +71,8 @@ void ProgAlignSpectral::readParams() {
     param.maxShift = getDoubleParam("--maxShift") / 100;
 
     param.nBandPc = getIntParam("--pc");
-    param.lowResLimit = getDoubleParam("--lowRes") * M_PI;
-    param.highResLimit = getDoubleParam("--highRes") * M_PI;
+    param.lowResLimit = getDoubleParam("--lowRes") * (2*M_PI);
+    param.highResLimit = getDoubleParam("--highRes") * (2*M_PI);
     
     param.training = getDoubleParam("--training") / 100;
 
@@ -105,10 +105,7 @@ void ProgAlignSpectral::run() {
     readInput();
     calculateTranslationFilters();
     calculateBands();
-    initializeLearning();
-    learnReferences();
-    learnExperimental();
-    finalizeLearning();
+    trainPcas();
     projectReferences();
     classifyExperimental();
     generateOutput();
@@ -228,6 +225,18 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const Multid
             func(m_dft, 0.0, 0.0);
         }
     }
+}
+
+template<typename F>
+void ProgAlignSpectral::ImageTransformer::forFourierTransform(  const MultidimArray<double>& img,
+                                                                F&& func )
+{
+    m_fourier.FourierTransform(
+        const_cast<MultidimArray<double>&>(img), //HACK although it won't be written
+        m_dft, 
+        false
+    );
+    func(m_dft);
 }
 
 
@@ -641,68 +650,68 @@ void ProgAlignSpectral::calculateBands() {
     m_bandMap.reset(bands);
 }
 
-void ProgAlignSpectral::initializeLearning() {
-    m_pca.reset(
-        m_bandMap.getBandSizes(), 
-        m_parameters.nBandPc
-    );
-    std::cout << "Non-PCA bands: " << m_pca.getFirstPcaBand() << " PCA bands: " << m_pca.getPcaBandCount() << std::endl;
-}
-
-void ProgAlignSpectral::learnReferences() {
+void ProgAlignSpectral::trainPcas() {
     struct ThreadData {
         Image<double> image;
         ImageTransformer transformer;
         std::vector<Matrix1D<double>> bandCoefficients;
     };
 
-    // Create a lambda to run in parallel
+    // Create a MD with all the images
+    MetaDataVec mdAll;
+    for(auto& inRow : m_mdReference) {
+        auto outRow = mdAll.getRowVec(mdAll.addObject());
+        outRow.setValue(MDL_IMAGE, inRow.getValue<String>(MDL_IMAGE));
+        outRow.setValue(MDL_REF, 1);
+    }
+    for(auto& inRow : m_mdExperimental) {
+        auto outRow = mdAll.getRowVec(mdAll.addObject());
+        outRow.setValue(MDL_IMAGE, inRow.getValue<String>(MDL_IMAGE));
+        outRow.setValue(MDL_REF, 0);
+    }
+    mdAll.randomize(mdAll);
+
+    // Setup PCAs
+    m_pca.reset(
+        m_bandMap.getBandSizes(), 
+        m_parameters.nBandPc
+    );
+    std::cout << "Non-PCA bands: " << m_pca.getFirstPcaBand() << " PCA bands: " << m_pca.getPcaBandCount() << std::endl;
+
+    // Create a lambda to run in parallel for each image to be learnt
     const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image from disk
-        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
+        const auto& isReference = row.getValue<int>(MDL_REF);
+        const auto& fnImage = row.getValue<String>(MDL_IMAGE);
         readImage(fnImage, data.image);
 
-        // For each in-plane transformation train the PCA
-        data.transformer.forEachInPlaneTransform(
-            data.image(),
-            m_parameters.nRotations,
-            m_translations,
-            [this, &data] (const auto& x, auto, auto, auto) {
-                m_bandMap.flattenForPca(x, data.bandCoefficients);
-                m_pca.learnConcurrent(data.bandCoefficients);
-            }
-        );
+        const auto learnFunc = [this, &data] (const auto& dft) {
+            m_bandMap.flattenForPca(dft, data.bandCoefficients);
+            m_pca.learnConcurrent(data.bandCoefficients);
+        };
+
+        // Depending on if it is a reference, learn all its in-plane
+        // transformations
+        if(isReference) {
+            data.transformer.forEachInPlaneTransform(
+                data.image(),
+                m_parameters.nRotations,
+                m_translations,
+                std::bind(std::ref(learnFunc), std::placeholders::_1)
+            );
+        } else {
+            data.transformer.forFourierTransform(
+                data.image(),
+                learnFunc
+            );
+        }
     };
 
+    // Dispatch training
     std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(m_mdReference, func, threadData, m_parameters.training);
-}
+    processRowsInParallel(mdAll, func, threadData, m_parameters.training);
 
-void ProgAlignSpectral::learnExperimental() {
-    struct ThreadData {
-        Image<double> image;
-        FourierTransformer fourier;
-        MultidimArray<std::complex<double>> spectrum;
-        std::vector<Matrix1D<double>> bandCoefficients;
-    };
-
-    // Create a lambda to run in parallel
-    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
-        // Read an image
-        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, data.image);
-
-        // Use the image to train the pca
-        data.fourier.FourierTransform(data.image(), data.spectrum, false);
-        m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
-        m_pca.learnConcurrent(data.bandCoefficients);
-    };
-
-    std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(m_mdExperimental, func, threadData, m_parameters.training);
-}
-
-void ProgAlignSpectral::finalizeLearning() {
+    // Finalize training
     m_pca.finalize();
 }
 

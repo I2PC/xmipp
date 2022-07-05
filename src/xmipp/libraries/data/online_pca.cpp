@@ -191,13 +191,16 @@ T SgaNnOnlinePca<T>::calculateGamma() const {
 
 template<typename T>
 void SgaNnOnlinePca<T>::learnFirstFew(const Matrix1D<T>& v) {
+    assert(m_counter < getInitialBatchSize());
+
     // Store the arriving vector
     m_batch.setCol(m_counter++, v);
 
     // Finalize when called for the last time
     if(m_counter == getInitialBatchSize()) {
         // Set the mean
-        m_batch.computeColMeans(m_mean);
+        m_batch.computeRowMeans(m_mean);
+        assert(VEC_XSIZE(m_mean) == MAT_YSIZE(m_batch));
 
         // Subtract the mean to each column
         subtractToAllColumns(m_batch, m_mean);

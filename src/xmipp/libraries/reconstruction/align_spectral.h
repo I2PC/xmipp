@@ -91,6 +91,10 @@ private:
         void forEachInPlaneTranslation( const MultidimArray<double>& img,
                                         const std::vector<TranslationFilter>& translations,
                                         F&& func );
+        
+        template<typename F>
+        void forFourierTransform(   const MultidimArray<double>& img,
+                                    F&& func );
     private:
         FourierTransformer m_fourier;
         MultidimArray<double> m_rotated;
@@ -236,10 +240,7 @@ private:
     void readInput();
     void calculateTranslationFilters();
     void calculateBands();
-    void initializeLearning();
-    void learnReferences();
-    void learnExperimental();
-    void finalizeLearning();
+    void trainPcas();
     void projectReferences();
     void classifyExperimental();
     void generateOutput();
