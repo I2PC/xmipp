@@ -43,13 +43,13 @@
 #include <data/point3D.h>
 #include <data/point2D.h>
 
-// #define DEBUG_DIM
 #define VERBOSE_OUTPUT
-#define DEBUG_HCC
-#define DEBUG_FILTERPARAMS
+#define DEBUG_OUTPUT_FILES
+// #define DEBUG_DIM
+// #define DEBUG_PREPROCESS
+// #define DEBUG_HCC
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_DIST
-#define DEBUG_OUTPUT_FILES
 
 class ProgImagePeakHighContrast : public XmippProgram
 {
@@ -92,7 +92,7 @@ public:
 
     void readParams();
     void defineParams();
-    // void generateSideInfo();
+    void generateSideInfo();
 
     /**
      * Smoothing and filtering the input volume.

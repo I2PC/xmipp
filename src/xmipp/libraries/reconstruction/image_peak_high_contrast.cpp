@@ -63,14 +63,18 @@ void ProgImagePeakHighContrast::defineParams()
 
 
 
-// void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
-// {
-// 	#ifdef VERBOSE_OUTPUT
-// 	std::cout << "Generating side info..." << std::endl;
-// 	#endif
+void ProgImagePeakHighContrast::generateSideInfo()
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Generating side info..." << std::endl;
+	#endif
 
-// 	fiducialSizePx = fiducialSize / samplingRate;
-// }
+	fiducialSizePx = fiducialSize / samplingRate;
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Side info generated successfully!" << std::endl;
+	#endif
+}
 
 
 
@@ -141,7 +145,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	double cutoffFreqLow = freqLow - w;
 	double delta = PI / w;
 
-	#ifdef DEBUG_FILTERPARAMS
+	#ifdef DEBUG_PREPROCESS
 	std::cout << "samplingRate " << samplingRate << std::endl;
 	std::cout << "fiducialSize " << fiducialSize << std::endl;
 	std::cout << "freqLow " << freqLow << std::endl;
@@ -863,6 +867,8 @@ void ProgImagePeakHighContrast::run()
     using std::chrono::milliseconds;
 
 	auto t1 = high_resolution_clock::now();
+
+	generateSideInfo();
 	
 	V.read(fnVol);
 
