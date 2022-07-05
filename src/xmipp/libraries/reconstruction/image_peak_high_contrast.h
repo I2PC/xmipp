@@ -49,6 +49,8 @@
 // #define DEBUG_PREPROCESS
 // #define DEBUG_HCC
 // #define DEBUG_FILTERLABEL
+#define DEBUG_CLUSTER
+#define DEBUG_COORDS_IN_SLICE
 // #define DEBUG_DIST
 
 class ProgImagePeakHighContrast : public XmippProgram
@@ -121,6 +123,7 @@ public:
      *
     */
     void clusterHighContrastCoordinates();
+    void clusterHCC();
 
     /**
      * Write obtained coordinates in output file.
@@ -142,7 +145,7 @@ public:
 
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
 
-    // std::vector<Point2D<double>> getCoordinatesInSliceIndex(size_t slice);
+    std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
 
     void run();
 };
