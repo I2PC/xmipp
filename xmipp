@@ -35,7 +35,7 @@ from scripts import *
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
 XMIPP_VERSION = '3.22.04.0'        #
-XMIPP_VERNAME = 'Gaia'           #
+XMIPP_VERNAME = 'devel'           #
 RELEASE_DATE = '21/04/2022'        #
 ####################################
 
@@ -798,17 +798,7 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
-
-    print("\n"
-          "  ********************************************\n"
-          "  *                                          *\n"
-          "  * ", end='')
-    print(green('Xmipp has been successfully installed!'), end='')
-    print("  *\n"
-          "  *                                          *\n"
-          "  ********************************************\n\n")
-
-
+    endMessage(XMIPP_VERNAME)
 
     return True
 
@@ -870,7 +860,6 @@ def usage(msg=''):
           "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
           "                                   <ver> usually X.YY.MM (add debug to package this local script and the local scripts/tar.py) \n"
           )
-
 
 
 if __name__ == '__main__':
