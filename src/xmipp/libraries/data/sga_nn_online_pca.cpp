@@ -24,7 +24,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "online_pca.h"
+#include "sga_nn_online_pca.h"
 
 #include <cassert>
 #include <algorithm>

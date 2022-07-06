@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef ONLINE_PCA_
-#define ONLINE_PCA_
+#ifndef SGA_NN_ONLINE_PCA_
+#define SGA_NN_ONLINE_PCA_
 
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
@@ -40,7 +40,7 @@
  *  @code
  *  SgaNnOnlinePca analyzer;
  *  FOR_ALL_VECTORS ...
- *     analyzer.addVector(v);
+ *     analyzer.learn(v);
  *  @endcode
  *  */
 

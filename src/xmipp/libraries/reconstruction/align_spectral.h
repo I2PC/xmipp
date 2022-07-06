@@ -32,7 +32,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
-#include "../data/online_pca.h"
+#include "../data/sga_nn_online_pca.h"
 
 #include <vector>
 #include <string_view>
@@ -216,6 +216,7 @@ private:
         double maxShift;
 
         size_t nBandPc;
+        size_t nBands;
         double lowResLimit;
         double highResLimit;
 
@@ -264,10 +265,13 @@ private:
                                                                     size_t nTranslations,
                                                                     double maxShift );
 
+    static std::vector<double> computeBandFrecuencies(  double lowResLimit,
+                                                        double highResLimit,
+                                                        size_t nBands );
+
     static MultidimArray<int> computeBands( const size_t nx, 
                                             const size_t ny, 
-                                            const double lowCutoffLimit,
-                                            const double highCutoffLimit );
+                                            const std::vector<double>& frecuencies );
 
 };
 

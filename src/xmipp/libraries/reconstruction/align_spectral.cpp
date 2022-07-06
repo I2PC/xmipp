@@ -51,6 +51,7 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   --maxShift <maxShift>           : Maximum translation in percentage relative to the image size");
     
     addParamsLine("   --pc <pc>                       : Number of principal components to consider in each band");
+    addParamsLine("   --bands <bands>                 : Number of principal components to consider in each band");
     addParamsLine("   --lowRes <low_resolution>       : Lowest resolution to consider [0, 1] in terms of the Nyquist freq.");
     addParamsLine("   --highRes <high_resolution>     : Highest resolution to consider [0, 1] in terms of the Nyquist freq.");
     
@@ -71,6 +72,7 @@ void ProgAlignSpectral::readParams() {
     param.maxShift = getDoubleParam("--maxShift") / 100;
 
     param.nBandPc = getIntParam("--pc");
+    param.nBands = getIntParam("--bands");
     param.lowResLimit = getDoubleParam("--lowRes") * (2*M_PI);
     param.highResLimit = getDoubleParam("--highRes") * (2*M_PI);
     
@@ -92,6 +94,7 @@ void ProgAlignSpectral::show() const {
     std::cout << "Maximum shift               : " << param.maxShift*100 << "%\n";
 
     std::cout << "Number of PC per band       : " << param.nBandPc << "\n";
+    std::cout << "Number of bands             : " << param.nBands << "\n";
     std::cout << "Low resolution limit        : " << param.lowResLimit << "rad\n";
     std::cout << "High resolution limit       : " << param.highResLimit << "rad\n";
 
@@ -642,10 +645,14 @@ void ProgAlignSpectral::calculateBands() {
     size_t nx, ny, nz, nn;
     getImageSize(md, nx, ny, nz, nn);
 
-    const auto bands = computeBands(
-        nx, ny, 
+    const auto frequencies = computeBandFrecuencies(
         m_parameters.lowResLimit, 
-        m_parameters.highResLimit
+        m_parameters.highResLimit,
+        m_parameters.nBands
+    );
+    const auto bands = computeBands(
+        nx, ny,
+        frequencies 
     );
     m_bandMap.reset(bands);
 }
@@ -953,18 +960,29 @@ ProgAlignSpectral::computeTranslationFilters(   const size_t nx,
     return result;
 }
 
-MultidimArray<int> ProgAlignSpectral::computeBands( const size_t nx, 
-                                                    const size_t ny, 
-                                                    const double lowCutoffLimit,
-                                                    const double highCutoffLimit )
+std::vector<double> ProgAlignSpectral::computeBandFrecuencies(  double lowResLimit,
+                                                                double highResLimit,
+                                                                size_t nBands )
 {
-    // Compute the frequency thresholds for the bands
-    std::vector<double> thresholds;
-    thresholds.emplace_back(lowCutoffLimit);
-    while (thresholds.back() < highCutoffLimit) {
-        thresholds.push_back(std::min(thresholds.back()*2, highCutoffLimit));
+    std::vector<double> result;
+    result.reserve(nBands+1);
+
+    const auto delta = highResLimit - lowResLimit;
+    const auto step = delta / nBands;
+    for(size_t i = 0; i <= nBands; ++i) {
+        result.push_back(lowResLimit + i*step);
     }
 
+    assert(result.front() == lowResLimit);
+    assert(result.back() == highResLimit);
+    assert(result.size() == nBands+1);
+    return result;
+}
+
+MultidimArray<int> ProgAlignSpectral::computeBands( const size_t nx, 
+                                                    const size_t ny, 
+                                                    const std::vector<double>& frecuencies )
+{
     // Determine the band in which falls each frequency
     MultidimArray<int> bands(ny, toFourierXSize(nx));
     const auto yStep = (2*M_PI) / ny;
@@ -979,10 +997,10 @@ MultidimArray<int> ProgAlignSpectral::computeBands( const size_t nx,
 
         // Determine the band in which belongs this frequency
         int band = 0;
-        while(band < thresholds.size() && w > thresholds[band]) {
+        while(band < frecuencies.size() && w > frecuencies[band]) {
             ++band;
         }
-        if(band >= thresholds.size()) {
+        if(band >= frecuencies.size()) {
             band = -1; // Larger than the last threshold
         } else {
             --band; // Undo the last increment
