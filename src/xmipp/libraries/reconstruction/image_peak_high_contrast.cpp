@@ -218,7 +218,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	std::cout << "Applying laplacian filter to volume..." << std::endl;
 	#endif
 
-	for (int k = 0; k < zSize-1; k++)
+	for (int k = 0; k < zSize; k++)
 	{
 		MultidimArray<double> slice;
 		inputTomo.getSlice(k, slice);
@@ -273,7 +273,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 
 
 
-void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> &volFiltered)
+void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> &inputTomo)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
@@ -299,7 +299,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		{
 			for(size_t i = 0; i < xSize; ++i)
 			{
-				double value = DIRECT_ZYX_ELEM(volFiltered, k, i ,j);
+				double value = DIRECT_ZYX_ELEM(inputTomo, k, i ,j);
 				sum += value;
 				sum2 += value*value;
 			}
@@ -326,9 +326,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		{
 			for(size_t i = 0; i < ySize; i++)
 			{
-				double value = DIRECT_A3D_ELEM(volFiltered, k, i, j);
+				double value = DIRECT_A3D_ELEM(inputTomo, k, i, j);
 
-				if (value < threshold)
+				if (value < threshold || value>(average+sdThreshold*standardDeviation))
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
@@ -341,17 +341,20 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
+		#ifdef DEBUG_OUTPUT_FILES
 		for (size_t j = 0; j < xSize; j++)
 		{
 			for (size_t i = 0; i < ySize; i++)
 			{
 				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-				if (value != 0)
+
+				if (value > 0)
 				{
-					DIRECT_A3D_ELEM(volFiltered, k, i, j) = value;
+					DIRECT_A3D_ELEM(inputTomo, k, i, j) = value;
 				}
 			}
 		}
+		#endif
 
 		#ifdef DEBUG_HCC
 		std::cout << "Colour: " << colour << std::endl;
@@ -366,7 +369,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			{
 				int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
-				if(value!=0)
+				if(value != 0)
 				{
 					coordinatesPerLabelX[value-1].push_back(j);
 					coordinatesPerLabelY[value-1].push_back(i);
@@ -427,7 +430,7 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
 
-	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx); // *** when working use fsp/2
+	float thrVottingDistance2 = (fiducialSizePx/2)*(fiducialSizePx/2); // *** when working use fsp/2
 
 	#ifdef DEBUG_CLUSTER
 	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
@@ -534,7 +537,7 @@ void ProgImagePeakHighContrast::clusterHCC()
 		}
 		
 	}
-	while(deletedIndexes > 0);
+	while(deletedIndexes != 0);
 
 	#ifdef DEBUG_CLUSTER
 	std::cout << "coord3DVotes_V.size() " << coord3DVotes_V.size() << std::endl;
@@ -618,17 +621,11 @@ void ProgImagePeakHighContrast::clusterHCC()
 		Point3D<double> coord3D_avg(0,0,0);
 		int nCoords = 0;
 
-		std::cout << "--" << coord3D_avg.x << std::endl;
-
 		for (int n = 0; n < coord3DId_V.size(); n++)
 		{
 			if (coord3DId_V[n] == id)
 			{
 				coord3D_avg.x += coordinates3D[n].x;
-		
-				std::cout << "--" << coord3D_avg.x << std::endl;
-				std::cout << "--" << coordinates3D[n].x << std::endl;
-
 				coord3D_avg.y += coordinates3D[n].y;
 				coord3D_avg.z += coordinates3D[n].z;
 				nCoords++;
@@ -642,7 +639,6 @@ void ProgImagePeakHighContrast::clusterHCC()
 		coord3D_avg.x /= nCoords;
 		coord3D_avg.y /= nCoords;
 		coord3D_avg.z /= nCoords;
-		std::cout << "--" << coord3D_avg.x << std::endl;
 
 		coordinates3D_avg.push_back(coord3D_avg);
 	}
