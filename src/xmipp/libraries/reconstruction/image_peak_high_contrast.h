@@ -50,7 +50,7 @@
 // #define DEBUG_HCC
 // #define DEBUG_FILTERLABEL
 #define DEBUG_CLUSTER
-#define DEBUG_COORDS_IN_SLICE
+// #define DEBUG_COORDS_IN_SLICE
 // #define DEBUG_DIST
 
 class ProgImagePeakHighContrast : public XmippProgram

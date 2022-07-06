@@ -427,30 +427,36 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
 
-	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx);
+	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx); // *** when working use fsp/2
 
 	#ifdef DEBUG_CLUSTER
 	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
 	#endif
 	
-	size_t deletedIndexes = 0;
+	size_t deletedIndexes;
+
+	#ifdef DEBUG_CLUSTER
+	size_t iteration = 0;
+	#endif
 
 	// -- Erase non-consistent coordinates with the voting systen
 	do
 	{
+		#ifdef DEBUG_CLUSTER
+		std::cout << "--- ITERATION " << iteration << std::endl;
+		#endif
+
+		size_t deletedIndexes = 0;
+
 		// Votting step	
 		for (int k = 0; k < zSize; k++)
 		{
-			#ifdef DEBUG_CLUSTER
-			std::cout << "votting image " << k << std::endl;
-			#endif
-		
-			if (k == 0)	// Skip up image for first slice
+			if (k == 0)	// Skip up-image for first slice
 			{
 				coordinatesInSlice = getCoordinatesInSliceIndex(k);
 				coordinatesInSlice_down = getCoordinatesInSliceIndex(k+1);
 			}
-			else if (k == (nSize-1)) // Skip down image for last slice
+			else if (k == (nSize-1)) // Skip down-image for last slice
 			{
 				coordinatesInSlice_up = coordinatesInSlice;
 				coordinatesInSlice = coordinatesInSlice_down;
@@ -471,8 +477,8 @@ void ProgImagePeakHighContrast::clusterHCC()
 				{
 					for (size_t j = 0; j < coordinatesInSlice_up.size(); j++)
 					{
-						Point3D<double> cl = coordinates3D[coordinatesInSlice_up[j]];
-						float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+						Point3D<double> cu = coordinates3D[coordinatesInSlice_up[j]];
+						float distance2 = (c.x-cu.x)*(c.x-cu.x)+(c.y-cu.y)*(c.y-cu.y);
 
 						if(distance2 < thrVottingDistance2)
 						{
@@ -486,8 +492,8 @@ void ProgImagePeakHighContrast::clusterHCC()
 				{		
 					for (size_t j = 0; j < coordinatesInSlice_down.size(); j++)
 					{
-						Point3D<double> cr = coordinates3D[coordinatesInSlice_down[j]];
-						float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
+						Point3D<double> cd = coordinates3D[coordinatesInSlice_down[j]];
+						float distance2 = (c.x-cd.x)*(c.x-cd.x)+(c.y-cd.y)*(c.y-cd.y);
 
 						if(distance2 < thrVottingDistance2)
 						{
@@ -503,14 +509,43 @@ void ProgImagePeakHighContrast::clusterHCC()
 		{
 			if (coord3DVotes_V[i] == 0)
 			{
-				coordinates3D.erase(coordinates3D.begin()+(i-deletedIndexes));
+				std::cout << "Deleted coordinate " << i << std::endl;
+				coordinates3D.erase(coordinates3D.begin()+i);
+				coord3DVotes_V.erase(coord3DVotes_V.begin()+i);
 				deletedIndexes++;
 				i--;
 			}
 		}
-	}
-	while(deletedIndexes != 0);
 
+		#ifdef DEBUG_CLUSTER
+		std::cout << "DeletedIndexes: " << deletedIndexes << std::endl; 
+		iteration++;
+		#endif
+
+		if (deletedIndexes > 0)
+		{
+			std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
+			break;
+		}
+		if (deletedIndexes == 0)
+		{
+			std::cout << "BREAKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK" << std::endl;
+			break;
+		}
+		
+	}
+	while(deletedIndexes > 0);
+
+	#ifdef DEBUG_CLUSTER
+	std::cout << "coord3DVotes_V.size() " << coord3DVotes_V.size() << std::endl;
+	std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+
+	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
+	{
+		std::cout << coord3DVotes_V[i] << " ";
+	}
+	std::cout << std::endl;
+	#endif
 
 
 	// -- Cluster non-unvoted coordinates
@@ -522,19 +557,15 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 	{
-		coord3DId_V[i] = currentId;
+		coord3DId_V[coordinatesInSlice[i]] = currentId;
 		currentId++;
 	}
 
 	// Extend ID's for coordinates in the whole volume
-	for (int n = 1; n < nSize; n++)
+	for (int k = 1; k < zSize; k++)
 	{
-		#ifdef DEBUG_CLUSTER
-		std::cout << "clustering image " << n << std::endl;
-		#endif
-
-		coordinatesInSlice = getCoordinatesInSliceIndex(n);	
-		coordinatesInSlice_up = getCoordinatesInSliceIndex(n-1);
+		coordinatesInSlice_up = coordinatesInSlice;
+		coordinatesInSlice = getCoordinatesInSliceIndex(k);	
 
 		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
 		{
@@ -548,51 +579,62 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 				if(distance2 < thrVottingDistance2)
 				{
-					coord3DId_V[i] = coord3DId_V[j];
+					coord3DId_V[coordinatesInSlice[i]] = coord3DId_V[coordinatesInSlice_up[j]];
 					match = true;
 					break;
 				}
 			}
 
-			std::cout << "match: " << match << std::endl;
 			if (!match)
 			{
-				std::cout << "match: " << match << std::endl;
-				std::cout << "-------------------"  << std::endl;
+				coord3DId_V[coordinatesInSlice[i]] = currentId;
 				currentId++;
-				coord3DId_V[i] = currentId;
 			}
 		}
 	}
 
 
+	#ifdef DEBUG_CLUSTER
+	std::cout << "coord3DId_V.size() " << coord3DId_V.size() << std::endl;
+
+	for (size_t i = 0; i < coord3DId_V.size(); i++)
+	{
+		std::cout << coord3DId_V[i] << " ";
+	}
+	std::cout << std::endl;
+	#endif
+
+
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of clusters identified: " << currentId << std::endl;
+	std::cout << "Number of clusters identified: " << (currentId-1) << std::endl;
 	#endif
 
 	// -- Average coordinates with the same ID
     std::vector<Point3D<double>> coordinates3D_avg;
 	
-	deletedIndexes = 0;
-
 	for (size_t id = 1; id < currentId; id++)
 	{
 		// Sum coordinate components with the same ID
 		Point3D<double> coord3D_avg(0,0,0);
-		size_t  nCoords = 0;
+		int nCoords = 0;
 
-		for (int n = 1; n < coord3DId_V.size(); n++)
+		std::cout << "--" << coord3D_avg.x << std::endl;
+
+		for (int n = 0; n < coord3DId_V.size(); n++)
 		{
 			if (coord3DId_V[n] == id)
 			{
 				coord3D_avg.x += coordinates3D[n].x;
+		
+				std::cout << "--" << coord3D_avg.x << std::endl;
+				std::cout << "--" << coordinates3D[n].x << std::endl;
+
 				coord3D_avg.y += coordinates3D[n].y;
 				coord3D_avg.z += coordinates3D[n].z;
 				nCoords++;
 
-				coordinates3D.erase(coordinates3D.begin()+(n-deletedIndexes));
-				coord3DId_V.erase(coord3DId_V.begin()+(n-deletedIndexes));
-				deletedIndexes++;
+				coordinates3D.erase(coordinates3D.begin()+n);
+				coord3DId_V.erase(coord3DId_V.begin()+n);
 				n--;
 			}
 		}
@@ -600,12 +642,11 @@ void ProgImagePeakHighContrast::clusterHCC()
 		coord3D_avg.x /= nCoords;
 		coord3D_avg.y /= nCoords;
 		coord3D_avg.z /= nCoords;
+		std::cout << "--" << coord3D_avg.x << std::endl;
 
 		coordinates3D_avg.push_back(coord3D_avg);
 	}
 
-	// This should be unnecesary. By this point, every coordinate must have and index and be erased.
-	// coordinates3D.empty();
 	coordinates3D = coordinates3D_avg;
 
 
@@ -879,12 +920,12 @@ void ProgImagePeakHighContrast::writeOutputCoordinates()
 	MetaDataVec md;
 	size_t id;
 
-	for(size_t i=0;i<centerOfMassX.size();i++)
+	for(size_t i = 0 ;i < coordinates3D.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, centerOfMassX[i], id);
-		md.setValue(MDL_YCOOR, centerOfMassY[i], id);
-		md.setValue(MDL_ZCOOR, centerOfMassZ[i], id);
+		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
+		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
 	}
 
 	md.write(fnOut);
@@ -1028,14 +1069,13 @@ std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t
 	std::vector<size_t> coordinatesInSlice;
 
 	#ifdef DEBUG_COORDS_IN_SLICE
-	std::cout << "Geeting coordinates from slice " << slice << std::endl;
+	std::cout << "Geting coordinates from slice " << slice << std::endl;
 	#endif
 
 	for(size_t n = 0; n < coordinates3D.size(); n++)
 	{
 		if(slice == coordinates3D[n].z)
 		{
-			std::cout << "match in coordinate and slice!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 			coordinatesInSlice.push_back(n);
 		}
 	}
