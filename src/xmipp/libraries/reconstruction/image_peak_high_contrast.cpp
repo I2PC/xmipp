@@ -223,9 +223,9 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 		MultidimArray<double> slice;
 		inputTomo.getSlice(k, slice);
 
-		for (int i = 1; i < ySize-2; i++)
+		for (int i = 1; i < ySize-1; i++)
 		{
-			for (int j = 1; j < xSize-2; j++)
+			for (int j = 1; j < xSize-1; j++)
 			{				
 				DIRECT_A3D_ELEM(inputTomo, k, i, j) = (-1 * DIRECT_A2D_ELEM(slice, i,   j-1) +
 													   -1 * DIRECT_A2D_ELEM(slice, i,   j+1) +
@@ -322,6 +322,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	{	
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
+		#ifdef DEBUG_HCC
+		int numberOfPointsAddedBinaryMap = 0;
+		#endif
+
 		for(size_t j = 0; j < xSize; j++)
 		{
 			for(size_t i = 0; i < ySize; i++)
@@ -331,9 +335,29 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 				if (value < threshold || value>(average+sdThreshold*standardDeviation))
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+
+					#ifdef DEBUG_HCC
+					numberOfPointsAddedBinaryMap += 1;
+					#endif
 				}
 			}
 		}
+
+		#ifdef DEBUG_HCC
+		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
+		#endif
+
+		#ifdef DEBUG_OUTPUT_FILES
+		size_t lastindex = fnOut.find_last_of(".");
+		std::string rawname = fnOut.substr(0, lastindex);
+		std::string outputFileNameLabeledVolume;
+		outputFileNameLabeledVolume = rawname + "_labelSlice.mrc";
+
+		Image<double> s;
+		s() = binaryCoordinatesMapSlice; 
+		s.write(outputFileNameLabeledVolume);
+		#endif
+
 		#ifdef DEBUG_HCC
 		std::cout << "Labeling slice " << k << std::endl;
 		#endif
@@ -351,6 +375,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 				if (value > 0)
 				{
 					DIRECT_A3D_ELEM(inputTomo, k, i, j) = value;
+				}
+				else
+				{
+					DIRECT_A3D_ELEM(inputTomo, k, i, j) = 0;
 				}
 			}
 		}
