@@ -35,7 +35,7 @@ from scripts import *
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
 XMIPP_VERSION = '3.22.04.0'        #
-XMIPP_VERNAME = 'Gaia'           #
+XMIPP_VERNAME = 'devel'           #
 RELEASE_DATE = '21/04/2022'        #
 ####################################
 
@@ -203,6 +203,15 @@ def cleanBinaries():
     # This seems to be cached at dblite file.
     runJob('find . -iname "*.dblite" -delete')
 
+    cleanEmptyFolders()
+
+def cleanEmptyFolders():
+    log = []
+    path = "src/xmipp/applications/programs/"
+    runJob("find {} –type d -empty".format(path), log=log, show_output=False)
+    for folder in log:
+        if os.path.isdir(folder):
+            runJob("rm -rf {}".format(folder))
 
 def checkout(branch):
     r, currentBranch = getCurrentBranch()
@@ -653,15 +662,14 @@ def linkToScipion(dirname):
     scipionBindings = os.path.join(scipionSoftware, 'bindings')
     scipionSoftwareEM = os.path.join(scipionSoftware, 'em')
     xmippHomeLink = os.path.join(scipionSoftwareEM, 'xmipp')
-    print(yellow(str("xmippHomeLink: " + xmippHomeLink)))
     currentDir = os.getcwd()
-
-
-    if os.path.isdir(scipionLibs) and\
-            os.path.isdir(scipionBindings):
-        runJob("ln -srf %s %s" % (dirname, xmippHomeLink))
+    dirnameAbs = os.path.join(currentDir,dirname)
+    if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
+        print("Linking to Scipion ------------------------------------------")
+        if os.path.isdir(xmippHomeLink):
+            runJob("rm %s" %xmippHomeLink)
+        runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink))
         xmippLink = os.readlink(xmippHomeLink)
-        print(yellow(str("xmippLink: " + xmippLink)))
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
@@ -673,10 +681,13 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
+        print(green(str("xmipp Link for Scipion: " + xmippHomeLink)))
         print(green("Xmipp linked to Scipion3"))
+
     else:
         print(yellow("No scipion3 found. If you intended to use Xmipp in "
-                     "the Scipion framework, check the binding at "
+                     "the Scipion framework:\ncompile Xmipp "
+                     "with Scipion './scipion3 run ./xmipp' or check the binding at "
                      "SCIPION_HOME/software/bindings..."))
 
 
@@ -787,17 +798,7 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
-
-    print("\n"
-          "  ********************************************\n"
-          "  *                                          *\n"
-          "  * ", end='')
-    print(green('Xmipp has been successfully installed!'), end='')
-    print("  *\n"
-          "  *                                          *\n"
-          "  ********************************************\n\n")
-
-
+    endMessage(XMIPP_VERNAME)
 
     return True
 
@@ -859,7 +860,6 @@ def usage(msg=''):
           "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
           "                                   <ver> usually X.YY.MM (add debug to package this local script and the local scripts/tar.py) \n"
           )
-
 
 
 if __name__ == '__main__':
