@@ -155,16 +155,15 @@ void ProgAlignSpectral::TranslationFilter::computeCoefficients()
     size_t ny = YSIZE(coeff);
     size_t nx = fromFourierXSize(XSIZE(coeff));
 
-    // Normalize the displacement and magnitude
+    // Normalize the displacement
     const auto dy = m_dy / ny;
     const auto dx = m_dx / nx;
-    const auto mag = 1.0 / (nx*ny);
 
     // Compute the Fourier Transform of delta[i-y, j-x]
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(coeff) {
         const auto r2 = i*dy + j*dx; // Dot product of (dx, dy) and (j, i)
         const auto theta = (-2 * M_PI) * r2;
-        DIRECT_A2D_ELEM(coeff, i, j) = std::polar(mag, theta); //e^(i*theta)
+        DIRECT_A2D_ELEM(coeff, i, j) = std::polar(1.0, theta); //e^(i*theta)
     }
 }
 
