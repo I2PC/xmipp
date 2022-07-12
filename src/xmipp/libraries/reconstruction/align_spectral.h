@@ -150,8 +150,10 @@ private:
         size_t getTotalPrincipalComponentCount() const;
 
         void getMean(size_t i, Matrix1D<double>& v) const;
+        void getVariance(size_t i, Matrix1D<double>& v) const;
         void getAxisVariance(size_t i, Matrix1D<double>& v) const;
         void getBasis(size_t i, Matrix2D<double>& b) const;
+        double getError(size_t i) const;
 
         void reset();
         void reset(const std::vector<size_t>& sizes, size_t nPc);
@@ -210,6 +212,7 @@ private:
         FileName fnReference;
         FileName fnExperimental;
         FileName fnOutput;
+        FileName fnOroot;
 
         size_t nRotations;
         size_t nTranslations;
@@ -260,14 +263,21 @@ private:
     static void aliasFirstRow(const MultidimArray<double>& md, Matrix1D<double>& v);
     static void aliasNextRow(Matrix1D<double>& v);
 
-    static std::vector<TranslationFilter> computeTranslationFilters(size_t nx, 
-                                                                    size_t ny, 
-                                                                    size_t nTranslations,
-                                                                    double maxShift );
+    static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
+                                                                                size_t ny, 
+                                                                                size_t nTranslations,
+                                                                                double maxShift );
+    static std::vector<TranslationFilter> computeTranslationFiltersSunflower(   size_t nx, 
+                                                                                size_t ny, 
+                                                                                size_t nTranslations,
+                                                                                double maxShift );
 
-    static std::vector<double> computeBandFrecuencies(  double lowResLimit,
-                                                        double highResLimit,
-                                                        size_t nBands );
+    static std::vector<double> computeArithmeticBandFrecuencies(double lowResLimit,
+                                                                double highResLimit,
+                                                                size_t nBands );
+    static std::vector<double> computeGeometricBandFrecuencies( double lowResLimit,
+                                                                double highResLimit,
+                                                                size_t nBands );
 
     static MultidimArray<int> computeBands( const size_t nx, 
                                             const size_t ny, 

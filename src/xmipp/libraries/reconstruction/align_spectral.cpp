@@ -35,6 +35,7 @@
 #include <atomic>
 #include <limits>
 #include <algorithm>
+#include <set>
 
 
 namespace Alignment {
@@ -45,6 +46,7 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   -r <md_file>                    : Metadata file with the reference images");
     addParamsLine("   -i <md_file>                    : Metadata file with the experimental images");
     addParamsLine("   -o <md_file>                    : Resulting metadata file with the aligned images");
+    addParamsLine("   --oroot <directory>             : Root directory for auxiliary output files");
     
     addParamsLine("   --rotations <rotations>         : Number of rotations to consider");
     addParamsLine("   --translations <transtions>     : Number of translations to consider");
@@ -66,6 +68,7 @@ void ProgAlignSpectral::readParams() {
     param.fnReference = getParam("-r");
     param.fnExperimental = getParam("-i");
     param.fnOutput = getParam("-o");
+    param.fnOroot = getParam("--oroot");
 
     param.nRotations = getIntParam("--rotations");
     param.nTranslations = getIntParam("--translations");
@@ -88,6 +91,7 @@ void ProgAlignSpectral::show() const {
     std::cout << "Experimanetal metadata      : " << param.fnExperimental << "\n";
     std::cout << "Reference metadata          : " << param.fnReference << "\n";
     std::cout << "Output metadata             : " << param.fnOutput << "\n";
+    std::cout << "Output root                 : " << param.fnOroot << "\n";
 
     std::cout << "Rotations                   : " << param.nRotations << "\n";
     std::cout << "Translations                : " << param.nTranslations << "\n";
@@ -352,12 +356,20 @@ void ProgAlignSpectral::SpectralPca::getMean(size_t i, Matrix1D<double>& v) cons
     return m_bandPcas.at(i).getMean(v);
 }
 
+void ProgAlignSpectral::SpectralPca::getVariance(size_t i, Matrix1D<double>& v) const {
+    return m_bandPcas.at(i).getVariance(v);
+}
+
 void ProgAlignSpectral::SpectralPca::getAxisVariance(size_t i, Matrix1D<double>& v) const {
     return m_bandPcas.at(i).getAxisVariance(v);
 }
 
 void ProgAlignSpectral::SpectralPca::getBasis(size_t i, Matrix2D<double>& b) const {
     return m_bandPcas.at(i).getBasis(b);
+}
+
+double ProgAlignSpectral::SpectralPca::getError(size_t i) const {
+    return m_bandPcas.at(i).getError();
 }
 
 
@@ -381,7 +393,7 @@ void ProgAlignSpectral::SpectralPca::reset(const std::vector<size_t>& sizes, siz
     m_bandPcas.clear();
     m_bandPcas.reserve(nPca);
     for (size_t i = m_first; i < sizes.size(); ++i) {
-        m_bandPcas.emplace_back(sizes[i], nPc, 2*nPc);
+        m_bandPcas.emplace_back(sizes[i], nPc, 10*nPc);
     }
     assert(m_bandPcas.size() == nPca);
 
@@ -562,7 +574,8 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const Mult
             diffrenceBand -= referenceBand;
             
             //Increment the score
-            const auto weight = std::exp(-static_cast<double>(j)); //TODO
+            //const auto weight = std::exp(-static_cast<double>(j)); //TODO
+            const auto weight = 1.0;
             const auto bandDistance = diffrenceBand.sum2();
             score += weight * bandDistance;
             
@@ -635,7 +648,7 @@ void ProgAlignSpectral::calculateTranslationFilters() {
     getImageSize(md, nx, ny, nz, nn);
 
     // Pre-compute the translation filters in the freq. domain
-    m_translations = computeTranslationFilters(nx, ny, nTranslations, maxShift);
+    m_translations = computeTranslationFiltersRectangle(nx, ny, nTranslations, maxShift);
 }
 
 void ProgAlignSpectral::calculateBands() {
@@ -645,7 +658,7 @@ void ProgAlignSpectral::calculateBands() {
     size_t nx, ny, nz, nn;
     getImageSize(md, nx, ny, nz, nn);
 
-    const auto frequencies = computeBandFrecuencies(
+    const auto frequencies = computeArithmeticBandFrecuencies(
         m_parameters.lowResLimit, 
         m_parameters.highResLimit,
         m_parameters.nBands
@@ -655,6 +668,16 @@ void ProgAlignSpectral::calculateBands() {
         frequencies 
     );
     m_bandMap.reset(bands);
+
+    // Show info
+    const auto& sizes = m_bandMap.getBandSizes();
+    assert(frequencies.size() == sizes.size()+1);
+    std::cout << "Bands frequencies:\n";
+    for(size_t i = 0; i < sizes.size(); ++i) {
+        std::cout << "\t- Band " << i << ": ";
+        std::cout << frequencies[i] << " - " << frequencies[i+1] << "rad ";
+        std::cout << "(" << sizes[i] << " coeffs)\n"; 
+    }
 }
 
 void ProgAlignSpectral::trainPcas() {
@@ -683,10 +706,13 @@ void ProgAlignSpectral::trainPcas() {
         m_bandMap.getBandSizes(), 
         m_parameters.nBandPc
     );
-    std::cout << "Non-PCA bands: " << m_pca.getFirstPcaBand() << " PCA bands: " << m_pca.getPcaBandCount() << std::endl;
+
+    const std::vector<TranslationFilter> NO_TRANSLATION = {
+        m_translations[0]
+    };
 
     // Create a lambda to run in parallel for each image to be learnt
-    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
+    const auto func = [this, &NO_TRANSLATION] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image from disk
         const auto& isReference = row.getValue<int>(MDL_REF);
         const auto& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -703,7 +729,8 @@ void ProgAlignSpectral::trainPcas() {
             data.transformer.forEachInPlaneTransform(
                 data.image(),
                 m_parameters.nRotations,
-                m_translations,
+                NO_TRANSLATION,
+                //m_translations,
                 std::bind(std::ref(learnFunc), std::placeholders::_1)
             );
         } else {
@@ -720,12 +747,36 @@ void ProgAlignSpectral::trainPcas() {
 
     // Finalize training
     m_pca.finalize();
+
+    // Show info
+    std::cout << "PCA error:\n";
+    for(size_t i = 0; i < m_pca.getBandCount(); ++i) {
+        std::cout << "\t- Band " << i << ": ";
+        if(i < m_pca.getFirstPcaBand()) {
+            std::cout << "No PCA";
+        } else {
+            std::cout << m_pca.getError(i-m_pca.getFirstPcaBand());  
+        }
+        std::cout << "\n";
+    }
+
+    // Write the PCA to disk
+    Matrix1D<double> axisVariances;
+    Matrix2D<double> basis;
+    for(size_t i = 0; i < m_pca.getPcaBandCount(); ++i) {
+        m_pca.getAxisVariance(i, axisVariances);
+        m_pca.getBasis(i, basis);
+        const auto band = i + m_pca.getFirstPcaBand();
+        axisVariances.write(m_parameters.fnOroot + "axis_variances_" + std::to_string(band));
+        basis.write(m_parameters.fnOroot + "basis_" + std::to_string(band));
+    }
+    
 }
 
 void ProgAlignSpectral::projectReferences() {
     // Allocate space
     m_references.reset(
-        m_mdReference.size() * m_parameters.nRotations * m_parameters.nTranslations, 
+        m_mdReference.size() * m_parameters.nRotations * m_translations.size(), 
         m_pca.getBandCount(), 
         m_pca.getBandPrincipalComponentCount()
     );
@@ -744,7 +795,7 @@ void ProgAlignSpectral::projectReferences() {
         readImage(fnImage, data.image);
 
         // For each in-plane transformation train the PCA
-        const auto offset = i * m_parameters.nRotations * m_parameters.nTranslations;
+        const auto offset = i * m_parameters.nRotations * m_translations.size();
         data.transformer.forEachInPlaneTransform(
             data.image(),
             m_parameters.nRotations,
@@ -935,34 +986,95 @@ void ProgAlignSpectral::aliasNextRow(Matrix1D<double>& v) {
 
 
 std::vector<ProgAlignSpectral::TranslationFilter> 
-ProgAlignSpectral::computeTranslationFilters(   const size_t nx, 
-                                                const size_t ny,
-                                                const size_t nTranslations,
-                                                const double maxShift )
+ProgAlignSpectral::computeTranslationFiltersRectangle(  const size_t nx, 
+                                                        const size_t ny,
+                                                        const size_t nTranslations,
+                                                        const double maxShift )
 {
     std::vector<ProgAlignSpectral::TranslationFilter> result;
-    result.reserve(nTranslations);
+    result.reserve(nTranslations*nTranslations);
+    
+    if(nTranslations > 1) {
+        const auto n = std::max(nx, ny);
+        const auto maxRadius = n*maxShift;
+        const auto step = 2*maxRadius / (nTranslations - 1);
+        
+        // Create a grid with all the considered shifts. Use
+        // a set in order to avoid duplicates in case the step
+        // is smaller than 1px
+        std::set<std::array<double, 2>> shifts;
+        for (size_t i = 0; i < nTranslations; ++i) {
+            const auto dx = std::round(i*step - maxRadius);
+            for (size_t j = 0; j < nTranslations; ++j) {
+                const auto dy = std::round(j*step - maxRadius);
+                shifts.insert({dx, dy});
+            }
+        }
 
-    // Shorthands
-    const auto n = std::max(nx, ny);
-    const auto maxRadius = n*maxShift;
-    constexpr auto PHI = (std::sqrt(5)+1)/2;
-    constexpr auto PHI2 = PHI*PHI;
-
-    // Compute some evenly spaced points using a spiral
-    for (size_t i = 0; i < nTranslations; ++i) {
-        const auto r = maxRadius * std::sqrt(i+0.5) / std::sqrt(nTranslations-0.5);
-        const auto theta = M_2_PI * i / PHI2;
-        const auto point = std::polar(r, theta);
-        result.emplace_back(std::round(point.real()), std::round(point.imag()), nx, ny);
+        // Transform all the points into an array of translation filters
+        std::transform(
+            shifts.cbegin(), shifts.cend(),
+            std::back_inserter(result),
+            [nx, ny] (const std::array<double, 2>& shift) -> TranslationFilter {
+                return TranslationFilter(shift[0], shift[1], nx, ny);
+            }
+        );
+    } else {
+        // Only one translation, use the identity filter
+        result.emplace_back(0, 0, nx, ny);
     }
 
     return result;
 }
 
-std::vector<double> ProgAlignSpectral::computeBandFrecuencies(  double lowResLimit,
-                                                                double highResLimit,
-                                                                size_t nBands )
+std::vector<ProgAlignSpectral::TranslationFilter> 
+ProgAlignSpectral::computeTranslationFiltersSunflower(  const size_t nx, 
+                                                        const size_t ny,
+                                                        const size_t nTranslations,
+                                                        const double maxShift )
+{
+    std::vector<ProgAlignSpectral::TranslationFilter> result;
+    result.reserve(nTranslations);
+
+    if(nTranslations > 1) {
+        // Shorthands
+        const auto n = std::max(nx, ny);
+        const auto maxRadius = n*maxShift;
+        constexpr auto PHI = (std::sqrt(5)+1)/2;
+        constexpr auto PHI2 = PHI*PHI;
+        
+        // Create a sunflower with all the considered shifts. Use
+        // a set in order to avoid duplicates in case the step
+        // is smaller than 1px
+        std::set<std::array<double, 2>> shifts;
+        for (size_t i = 0; i < nTranslations; ++i) {
+            const auto r = maxRadius * std::sqrt(i+0.5) / std::sqrt(nTranslations-0.5);
+            const auto theta = M_2_PI * i / PHI2;
+            const auto point = std::polar(r, theta);
+            shifts.insert({std::round(point.real()), std::round(point.imag())});
+        }
+
+        // Transform all the points into an array of translation filters
+        std::transform(
+            shifts.cbegin(), shifts.cend(),
+            std::back_inserter(result),
+            [nx, ny] (const std::array<double, 2>& shift) -> TranslationFilter {
+                return TranslationFilter(shift[0], shift[1], nx, ny);
+            }
+        );
+    } else {
+        // Only one translation, use the identity filter
+        result.emplace_back(0, 0, nx, ny);
+    }
+
+    return result;
+}
+
+
+
+std::vector<double> ProgAlignSpectral::computeArithmeticBandFrecuencies(double lowResLimit,
+                                                                        double highResLimit,
+                                                                        size_t nBands )
 {
     std::vector<double> result;
     result.reserve(nBands+1);
@@ -973,9 +1085,23 @@ std::vector<double> ProgAlignSpectral::computeBandFrecuencies(  double lowResLim
         result.push_back(lowResLimit + i*step);
     }
 
-    assert(result.front() == lowResLimit);
-    assert(result.back() == highResLimit);
-    assert(result.size() == nBands+1);
+    return result;
+}
+
+std::vector<double> ProgAlignSpectral::computeGeometricBandFrecuencies( double lowResLimit,
+                                                                        double highResLimit,
+                                                                        size_t nBands )
+{
+    std::vector<double> result;
+    result.reserve(nBands+1);
+
+    const auto ratio = highResLimit / lowResLimit;
+    const auto step = std::pow(ratio, 1.0/nBands);
+    result.push_back(lowResLimit);
+    for(size_t i = 1; i <= nBands; ++i) {
+        result.push_back(result.back()*step);
+    }
+
     return result;
 }
 
