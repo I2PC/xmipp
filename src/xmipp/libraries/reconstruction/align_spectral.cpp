@@ -707,12 +707,8 @@ void ProgAlignSpectral::trainPcas() {
         m_parameters.nBandPc
     );
 
-    const std::vector<TranslationFilter> NO_TRANSLATION = {
-        m_translations[0]
-    };
-
     // Create a lambda to run in parallel for each image to be learnt
-    const auto func = [this, &NO_TRANSLATION] (size_t i, const MDRowVec& row, ThreadData& data) {
+    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
         // Read an image from disk
         const auto& isReference = row.getValue<int>(MDL_REF);
         const auto& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -729,8 +725,7 @@ void ProgAlignSpectral::trainPcas() {
             data.transformer.forEachInPlaneTransform(
                 data.image(),
                 m_parameters.nRotations,
-                NO_TRANSLATION,
-                //m_translations,
+                m_translations,
                 std::bind(std::ref(learnFunc), std::placeholders::_1)
             );
         } else {
