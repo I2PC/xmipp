@@ -36,6 +36,7 @@ SgaNnOnlinePca<T>::SgaNnOnlinePca(  size_t nComponents,
     : m_counter(0)
     , m_mean(nComponents)
     , m_centered(nComponents)
+    , m_variance(nComponents)
     , m_projection(nPrincipalComponents)
     , m_eigenValues(nPrincipalComponents)
     , m_eigenVectors(nComponents, nPrincipalComponents)
@@ -70,6 +71,11 @@ void SgaNnOnlinePca<T>::getMean(Matrix1D<T>& v) const {
 }
 
 template<typename T>
+void SgaNnOnlinePca<T>::getVariance(Matrix1D<T>& v) const {
+    v = m_variance;
+}
+
+template<typename T>
 void SgaNnOnlinePca<T>::getAxisVariance(Matrix1D<T>& v) const {
     v = m_eigenValues;
 }
@@ -77,6 +83,11 @@ void SgaNnOnlinePca<T>::getAxisVariance(Matrix1D<T>& v) const {
 template<typename T>
 void SgaNnOnlinePca<T>::getBasis(Matrix2D<T>& b) const {
     b = m_eigenVectors;
+}
+
+template<typename T>
+T SgaNnOnlinePca<T>::getError() const {
+    return m_eigenValues.sum() / m_variance.sum();
 }
 
 
@@ -205,6 +216,10 @@ void SgaNnOnlinePca<T>::learnFirstFew(const Matrix1D<T>& v) {
         // Subtract the mean to each column
         subtractToAllColumns(m_batch, m_mean);
 
+        // Compute the variance with the centered columns
+        m_batch.rowEnergySum(m_variance);
+        m_variance /= MAT_XSIZE(m_batch);
+
         // Compute a batch PCA with the vectors
         batchPca(m_batch, m_eigenVectors, m_eigenValues, getPrincipalComponentCount());
     }
@@ -214,6 +229,7 @@ template<typename T>
 void SgaNnOnlinePca<T>::learnOthers(const Matrix1D<T>& v, const T& gamma) {
     updateMean(m_mean, m_counter, v);
     center(v, m_centered);
+    updateVariance(m_variance, m_counter, m_centered);
     projectCentered(m_centered, m_projection);
     updateEigenValues(m_eigenValues, m_projection, gamma);
     m_eigenVectorUpdater(m_eigenVectors, m_centered, m_projection, gamma);
@@ -226,12 +242,23 @@ void SgaNnOnlinePca<T>::learnOthers(const Matrix1D<T>& v, const T& gamma) {
 
 template<typename T>
 void SgaNnOnlinePca<T>::updateMean(Matrix1D<T>& mean, size_t count, const Matrix1D<T>& v) {
-    // n/(n + 1) * old + 1/(n + 1) * v
+    // n/(n+1) * old + 1/(n+1) * v
     assert(mean.sameShape(v));
 
     mean *= count;
     mean += v;
     mean /= count + 1;
+}
+
+template<typename T>
+void SgaNnOnlinePca<T>::updateVariance(Matrix1D<T>& variance, size_t count, const Matrix1D<T>& c) {
+    // variance' = n/(n+1) * variance + 1/(n+1) * centered^2
+    assert(variance.sameShape(c));
+    variance *= count;
+    FOR_ALL_ELEMENTS_IN_MATRIX1D(variance) {
+        VEC_ELEM(variance, i) += VEC_ELEM(c, i) * VEC_ELEM(c, i);
+    }
+    variance /= count + 1;
 }
 
 template<typename T>
@@ -329,7 +356,7 @@ void SgaNnOnlinePca<T>::batchPca(   const Matrix2D<T>& batch,
     } else {
         matrixOperation_AAt(batch, covariance);
     }
-    covariance /= MAT_XSIZE(batch) - 1;
+    covariance /= MAT_XSIZE(batch);
 
     // Due to the transposition, we should have
     // a the minimal size for the covariance matrix

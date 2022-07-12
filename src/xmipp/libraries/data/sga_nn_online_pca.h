@@ -59,8 +59,10 @@ public:
    size_t getSampleSize() const;
 
    void getMean(Matrix1D<T>& v) const;
+   void getVariance(Matrix1D<T>& v) const;
    void getAxisVariance(Matrix1D<T>& v) const;
    void getBasis(Matrix2D<T>& b) const;
+   T getError() const;
 
    void reset();
    void learn(const Matrix1D<T>& v, const T& gamma);
@@ -103,6 +105,7 @@ private:
    size_t m_counter;
    Matrix1D<T> m_mean;
    Matrix1D<T> m_centered;
+   Matrix1D<T> m_variance;
    Matrix1D<T> m_projection;
    Matrix1D<T> m_eigenValues;
    Matrix2D<T> m_eigenVectors;
@@ -116,6 +119,7 @@ private:
    void learnOthersNoEigenValues(const Matrix1D<T>& v, const T& gamma);
 
    static void updateMean(Matrix1D<T>& mean, size_t count, const Matrix1D<T>& v);
+   static void updateVariance(Matrix1D<T>& energy, size_t count, const Matrix1D<T>& c);
    static void updateEigenValues(Matrix1D<T>& values, const Matrix1D<T>& projection, const T& gamma);
    static void batchPca(const Matrix2D<T>& batch, Matrix2D<T>& vectors, Matrix1D<T>& values, size_t nPrincipalComponents);
 
