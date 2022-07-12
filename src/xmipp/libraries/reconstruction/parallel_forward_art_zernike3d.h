@@ -45,7 +45,7 @@ public:
      /** Filename of the reference volume */
     FileName fnVolR;
     /** Filename of the reference volume mask */
-    FileName fnMaskR;
+    FileName fnMaskR, fnMaskRecR;
     /** Filename of the refined volume */
     FileName fnVolO;
     /// Output directory
@@ -91,11 +91,11 @@ public:
     // INput image
     Image<double> I;
     // Spherical mask
-    MultidimArray<int> Vmask;
+    MultidimArray<int> Vmask, VRecMask, sphMask;
 	// Theoretical projection
-	Image<double> P;
+	std::vector<Image<double>> P;
     // Weight Image
-    Image<double> W;
+    std::vector<Image<double>> W;
     // Atomic mutex
     std::vector<std::unique_ptr<std::atomic<double*>>> p_busy_elem;
     std::vector<std::unique_ptr<std::atomic<double*>>> w_busy_elem;
@@ -134,16 +134,10 @@ public:
     int current_iter;
     // Volume dimensions
     int initX, endX, initY, endY, initZ, endZ;
-    // Blob
+    // Loop step
     int loop_step;
-    struct blobtype blob;
-    double blob_r;
-    double sigma, sigma4;
-    // Gaussian projection table
-    Matrix1D<double> gaussianProjectionTable;
-
-    // Gaussian projection2 table
-    Matrix1D<double> gaussianProjectionTable2;
+    // Sigma
+    std::vector<double> sigma;
 
     // Filter
     FourierFilter filter, filter2;
@@ -201,7 +195,7 @@ public:
     void recoverVol();
     virtual void finishProcessing();
 
-    double bspline1(double x);
+    // double bspline1(double x);
 
     // void updateCTFImage(double defocusU, double defocusV, double angle);
 
@@ -219,9 +213,9 @@ public:
     // Spaltting at position r
     void splattingAtPos(std::array<double, 2> r, double weight, 
                         MultidimArray<double> &mP, MultidimArray<double> &mW, 
-                        MultidimArray<double> &mV);
+                        MultidimArray<double> &mV, double &sg);
 
-    void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
+    // void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
 
     // virtual void checkPoint();
 

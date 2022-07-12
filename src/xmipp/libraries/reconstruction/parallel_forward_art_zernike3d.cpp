@@ -31,6 +31,8 @@
 #include <data/mask.h>
 #include <numeric>
 #include "data/cpu.h"
+#include <fstream>
+#include <iterator>
 
 // Empty constructor =======================================================
 ProgParallelForwardArtZernike3D::ProgParallelForwardArtZernike3D()
@@ -49,6 +51,7 @@ void ProgParallelForwardArtZernike3D::readParams()
 	XmippMetadataProgram::readParams();
 	fnVolR = getParam("--ref");
 	fnMaskR = getParam("--mask");
+	fnMaskRecR = getParam("--recmask");
 	fnOutDir = getParam("--odir");
 	RmaxDef = getIntParam("--RDef");
 	phaseFlipped = checkParam("--phaseFlipped");
@@ -56,9 +59,7 @@ void ProgParallelForwardArtZernike3D::readParams()
 	Ts = getDoubleParam("--sampling");
 	L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
-	blob_r = getDoubleParam("--blobr");
 	loop_step = getIntParam("--step");
-	sigma = getDoubleParam("--sigma");
 	useZernike = checkParam("--useZernike");
 	lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
@@ -69,6 +70,19 @@ void ProgParallelForwardArtZernike3D::readParams()
 	FileName outPath = getParam("-o");
 	outPath = outPath.afterLastOf("/");
 	fnVolO = fnOutDir + "/" + outPath;
+
+	std::string aux;
+	aux = getParam("--sigma");
+	// Transform string of values separated by white spaces into substrings stored in a vector
+	std::stringstream ss(aux);
+	std::istream_iterator<std::string> begin(ss);
+	std::istream_iterator<std::string> end;
+	std::vector<std::string> vstrings(begin, end);
+	sigma.resize(vstrings.size());
+	std::transform(vstrings.begin(), vstrings.end(), sigma.begin(), [](const std::string& val)
+	{
+    	return std::stod(val);
+	});
 
 	// Parallelization
 	int threads = getIntParam("--thr");
@@ -93,7 +107,6 @@ void ProgParallelForwardArtZernike3D::show()
 		<< "Max. Radius Deform.        " << RmaxDef << std::endl
 		<< "Zernike Degree:            " << L1 << std::endl
 		<< "SH Degree:                 " << L2 << std::endl
-		<< "Blob radius:               " << blob_r << std::endl
 		<< "Step:                      " << loop_step << std::endl
 		<< "Correct CTF:               " << useCTF << std::endl
 		<< "Correct heretogeneity:     " << useZernike << std::endl
@@ -114,6 +127,7 @@ void ProgParallelForwardArtZernike3D::defineParams()
 	XmippMetadataProgram::defineParams();
 	addParamsLine("  [--ref <volume=\"\">]        : Reference volume");
 	addParamsLine("  [--mask <m=\"\">]            : Mask reference volume");
+	addParamsLine("  [--recmask <m=\"\">]         : Mask determining reconstruction area");
 	addParamsLine("  [--odir <outputDir=\".\">]   : Output directory");
 	addParamsLine("  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
 	addParamsLine("  [--RDef <r=-1>]              : Maximum radius of the deformation (px). -1=Half of volume size");
@@ -121,7 +135,7 @@ void ProgParallelForwardArtZernike3D::defineParams()
 	addParamsLine("  [--l2 <l2=2>]                : Harmonical depth of the deformation=1,2,3,...");
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
 	addParamsLine("  [--step <step=1>]            : Voxel index step");
-	addParamsLine("  [--sigma <step=0.25>]        : Gaussian sigma");
+	addParamsLine("  [--sigma <Matrix1D=\"2\">]   : Gaussian sigma");
 	addParamsLine("  [--useZernike]               : Correct heterogeneity with Zernike3D coefficients");
 	addParamsLine("  [--useCTF]                   : Correct CTF during ART reconstruction");
 	addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
@@ -254,6 +268,52 @@ void ProgParallelForwardArtZernike3D::preProcess()
 		Vmask.setXmippOrigin();
 	}
 
+
+	// Mask determining reconstruction area
+	if (fnMaskRecR != "")
+	{
+		Image<double> aux;
+		aux.read(fnMaskRecR);
+		typeCast(aux(), VRecMask);
+		VRecMask.setXmippOrigin();
+		double Rmax2 = RmaxDef * RmaxDef;
+		for (int k = STARTINGZ(VRecMask); k <= FINISHINGZ(VRecMask); k++)
+		{
+			for (int i = STARTINGY(VRecMask); i <= FINISHINGY(VRecMask); i++)
+			{
+				for (int j = STARTINGX(VRecMask); j <= FINISHINGX(VRecMask); j++)
+				{
+					double r2 = k * k + i * i + j * j;
+					if (r2 >= Rmax2)
+						A3D_ELEM(VRecMask, k, i, j) = 0;
+				}
+			}
+		}
+	}
+	else
+	{
+		mask.R1 = RmaxDef;
+		mask.generate_mask(V());
+		VRecMask = mask.get_binary_mask();
+		VRecMask.setXmippOrigin();
+	}
+
+	// Spherical mask
+	mask.R1 = RmaxDef;
+	mask.generate_mask(V());
+	sphMask = mask.get_binary_mask();
+	sphMask.setXmippOrigin();
+
+	// Spherical mask
+	// mask.R1 = RmaxDef;
+	// mask.generate_mask(V());
+	// sphMask = mask.get_binary_mask();
+	// sphMask.setXmippOrigin();
+
+	// Init P and W vector of images
+	P.resize(sigma.size());
+	W.resize(sigma.size());
+
 	// Area Zernike3D in 2D
 	mask.R1 = RmaxDef;
 	mask.generate_mask(XSIZE(V()), XSIZE(V()));
@@ -273,24 +333,12 @@ void ProgParallelForwardArtZernike3D::preProcess()
 	endZ = FINISHINGZ(Vrefined());
 
 	filter.FilterBand=LOWPASS;
-	filter.FilterShape=REALGAUSSIAN;
-    filter.w1=sigma;
+	filter.FilterShape=REALGAUSSIANZ;
+    // filter.w1=sigma;
 	filter2.FilterBand=LOWPASS;
-	filter2.FilterShape=REALGAUSSIAN2;
-    filter2.w1=sigma;
+	filter2.FilterShape=REALGAUSSIANZ2;
+    // filter2.w1=sigma;
 
-	// Blob
-	blob.radius = blob_r; // Blob radius in voxels
-	blob.order = 2;		  // Order of the Bessel function
-	blob.alpha = 3.6;	  // Smoothness parameter
-
-	sigma4 = 2 * sigma;
-	gaussianProjectionTable.resize(CEIL(sigma4 * sqrt(2) * 1000));
-	FOR_ALL_ELEMENTS_IN_MATRIX1D(gaussianProjectionTable)
-	gaussianProjectionTable(i) = gaussian1D(i / 1000.0, sigma);
-	gaussianProjectionTable *= gaussian1D(0, sigma);
-	gaussianProjectionTable2 = gaussianProjectionTable;
-	gaussianProjectionTable2 *= gaussianProjectionTable;
 }
 
 void ProgParallelForwardArtZernike3D::finishProcessing()
@@ -426,7 +474,7 @@ void ProgParallelForwardArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<i
 
 void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<double, 2> r, double weight,
 											 MultidimArray<double> &mP, MultidimArray<double> &mW,
-											 MultidimArray<double> &mV)
+											 MultidimArray<double> &mV, double &sg)
 {
 	int i = round(r[1]);
 	int j = round(r[0]);
@@ -435,51 +483,51 @@ void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<double, 2> r, do
 		int idy = (i)-STARTINGY(mP);
 		int idx = (j)-STARTINGX(mP);
 		int idn = (idy) * (mP).xdim + (idx);
-		double m = 1. / loop_step;
-		double a = m * ABS(i - r[1]);
-		double b = m * ABS(j - r[0]);
-		double gw = 1 - a - b + a * b;
+		// double m = 1. / sg;
+		// double a = m * ABS(i - r[1]);
+		// double b = m * ABS(j - r[0]);
+		// double gw = 1. - a - b + a * b;
 		while ((*p_busy_elem[idn]) == &A2D_ELEM(mP, i, j));
 		(*p_busy_elem[idn]).exchange(&A2D_ELEM(mP, i, j));
 		(*w_busy_elem[idn]).exchange(&A2D_ELEM(mW, i, j));
-		A2D_ELEM(mP, i, j) += weight * gw;
-		A2D_ELEM(mW, i, j) += gw * gw;
+		// A2D_ELEM(mP, i, j) += weight * gw;
+		// A2D_ELEM(mW, i, j) += gw * gw;
+		A2D_ELEM(mP, i, j) += weight;
+		A2D_ELEM(mW, i, j) += 1.0;
 		(*p_busy_elem[idn]).exchange(nullptr);
 		(*w_busy_elem[idn]).exchange(nullptr);
 	}
 }
 
-void ProgParallelForwardArtZernike3D::updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV)
-{
-	// Find the part of the volume that must be updated
-	double x_pos = r[0];
-	double y_pos = r[1];
-	double z_pos = r[2];
-	double hsigma4 = 1.5 * sqrt(2);
-	double hsigma = sigma / 4;
-	int k0 = XMIPP_MAX(FLOOR(z_pos - hsigma4), STARTINGZ(mV));
-	int kF = XMIPP_MIN(CEIL(z_pos + hsigma4), FINISHINGZ(mV));
-	int i0 = XMIPP_MAX(FLOOR(y_pos - hsigma4), STARTINGY(mV));
-	int iF = XMIPP_MIN(CEIL(y_pos + hsigma4), FINISHINGY(mV));
-	int j0 = XMIPP_MAX(FLOOR(x_pos - hsigma4), STARTINGX(mV));
-	int jF = XMIPP_MIN(CEIL(x_pos + hsigma4), FINISHINGX(mV));
-	auto alpha = blob.alpha;
-	auto order = blob.order;
-	// Perform splatting at this position r
-	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
-	for (int k = k0; k <= kF; k++)
-	{
-		for (int i = i0; i <= iF; i++)
-		{
-			for (int j = j0; j <= jF; j++)
-			{
-				A3D_ELEM(mV, k, i, j) += voxel * gaussian1D(k-z_pos,hsigma)*
-                            					 gaussian1D(i-y_pos,hsigma)*
-                            					 gaussian1D(j-x_pos,hsigma);
-			}
-		}
-	}
-}
+// void ProgParallelForwardArtZernike3D::updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV)
+// {
+// 	// Find the part of the volume that must be updated
+// 	double x_pos = r[0];
+// 	double y_pos = r[1];
+// 	double z_pos = r[2];
+// 	double hsigma4 = 1.5 * sqrt(2);
+// 	double hsigma = sigma / 4;
+// 	int k0 = XMIPP_MAX(FLOOR(z_pos - hsigma4), STARTINGZ(mV));
+// 	int kF = XMIPP_MIN(CEIL(z_pos + hsigma4), FINISHINGZ(mV));
+// 	int i0 = XMIPP_MAX(FLOOR(y_pos - hsigma4), STARTINGY(mV));
+// 	int iF = XMIPP_MIN(CEIL(y_pos + hsigma4), FINISHINGY(mV));
+// 	int j0 = XMIPP_MAX(FLOOR(x_pos - hsigma4), STARTINGX(mV));
+// 	int jF = XMIPP_MIN(CEIL(x_pos + hsigma4), FINISHINGX(mV));
+// 	// Perform splatting at this position r
+// 	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
+// 	for (int k = k0; k <= kF; k++)
+// 	{
+// 		for (int i = i0; i <= iF; i++)
+// 		{
+// 			for (int j = j0; j <= jF; j++)
+// 			{
+// 				A3D_ELEM(mV, k, i, j) += voxel * gaussian1D(k-z_pos,hsigma)*
+//                             					 gaussian1D(i-y_pos,hsigma)*
+//                             					 gaussian1D(j-x_pos,hsigma);
+// 			}
+// 		}
+// 	}
+// }
 
 void ProgParallelForwardArtZernike3D::recoverVol()
 {
@@ -741,10 +789,13 @@ void ProgParallelForwardArtZernike3D::artModel()
 	if (DIRECTION == Direction::Forward)
 	{
 		Image<double> I_shifted;
-		P().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
-		P().setXmippOrigin();
-		W().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
-		W().setXmippOrigin();
+		for (int i=0; i<sigma.size(); i++)
+		{
+			P[i]().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+			P[i]().setXmippOrigin();
+			W[i]().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+			W[i]().setXmippOrigin();
+		}
 		Idiff().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
 		Idiff().setXmippOrigin();
 		I_shifted().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
@@ -755,10 +806,16 @@ void ProgParallelForwardArtZernike3D::artModel()
 		else
 			zernikeModel<false, Direction::Forward>();
 
-		filter.generateMask(P());
-		filter.applyMaskSpace(P());
-		filter2.generateMask(W());
-		filter2.applyMaskSpace(W());
+		for (int i=0; i<sigma.size(); i++)
+		{
+			filter.w1=sigma[i];
+			filter2.w1=sigma[i];
+			filter.generateMask(P[i]());
+			filter.applyMaskSpace(P[i]());
+			filter2.generateMask(W[i]());
+			filter2.applyMaskSpace(W[i]());
+		}
+
 		if (hasCTF)
 		{
 			// updateCTFImage(defocusU, defocusV, defocusAngle);
@@ -786,16 +843,26 @@ void ProgParallelForwardArtZernike3D::artModel()
 		// Compute difference image and divide by weights
 		double error = 0.0;
 		double N = 0.0;
-		const auto &mP = P();
-		const auto &mW = W();
 		const auto &mIsh = I_shifted();
 		auto &mId = Idiff();
+		double c = 1.0;
 		FOR_ALL_ELEMENTS_IN_ARRAY2D(I())
 		{
-			if (A2D_ELEM(mW, i, j) > 0)
+			auto diffVal = A2D_ELEM(mIsh, i, j);
+			double sumMw = 0.0;
+			for (int ids = 0; ids < sigma.size(); ids++)
 			{
-				auto diffVal = A2D_ELEM(mIsh, i, j) - A2D_ELEM(mP, i, j);
-				A2D_ELEM(mId, i, j) = lambda * (diffVal) / XMIPP_MAX(A2D_ELEM(mW, i, j), 1.0);
+				const auto &mP = P[ids]();
+				const auto &mW = W[ids]();
+				const auto sg = sigma[ids];
+				if (sigma.size() > 1)
+					c = sg * sg;
+				diffVal -= c * A2D_ELEM(mP, i, j);
+				sumMw += c * c * A2D_ELEM(mW, i, j);
+			}
+			if (sumMw > 0.0)
+			{
+				A2D_ELEM(mId, i, j) = lambda * (diffVal) / XMIPP_MAX(sumMw, 1.0);
 				error += (diffVal) * (diffVal);
 				N++;
 			}
@@ -803,8 +870,11 @@ void ProgParallelForwardArtZernike3D::artModel()
 
 		if (verbose >= 3)
 		{
-			P.write(fnOutDir + "/PPPtheo.xmp");
-			W.write(fnOutDir + "/PPPweight.xmp");
+			for (int ids = 0; ids < sigma.size(); ids++)
+			{
+				P[ids].write(fnOutDir + "/PPPtheo_sigma" + std::to_string(sigma[ids]) + ".xmp");
+				W[ids].write(fnOutDir + "/PPPweight_sigma" + std::to_string(sigma[ids]) + ".xmp");
+			}
 			Idiff.write(fnOutDir + "/PPPcorr.xmp");
 			std::cout << "Press any key" << std::endl;
 			char c;
@@ -888,8 +958,6 @@ void ProgParallelForwardArtZernike3D::zernikeModel()
 void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike) 
 {
 	auto &mV = Vrefined();
-	auto &mP = P();
-	auto &mW = W();
 	const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
 	const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
 	const double RmaxF = usesZernike ? RmaxDef : 0;
@@ -908,14 +976,25 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 	const auto lastY = FINISHINGY(mV);
 	const auto lastX = FINISHINGX(mV);
 	const int step = loop_step;
+	// int step = loop_step;
 	for (int i = STARTINGY(mV); i <= lastY; i += step)
 	{
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			double gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(Vmask, k, i, j) == 1)
+			if (A3D_ELEM(VRecMask, k, i, j) != 0)
 			{
-				if (usesZernike)
+				int img_idx = 0;
+				if (sigma.size() > 1)
+				{
+					double sigma_mask = A3D_ELEM(Vmask, k, i, j);
+					auto it = find(sigma.begin(), sigma.end(), sigma_mask);
+					img_idx = it - sigma.begin();
+				}
+				// step = sigma[img_idx];
+				auto &mP = P[img_idx]();
+				auto &mW = W[img_idx]();
+				if (usesZernike && A3D_ELEM(Vmask, k, i, j) == 1)
 				{
 					auto k2 = k * k;
 					auto kr = k * iRmaxF;
@@ -948,7 +1027,7 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 				pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
 				pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
 				double voxel_mV = A3D_ELEM(mV, k, i, j);
-				splattingAtPos(pos, voxel_mV, mP, mW, mV);
+				splattingAtPos(pos, voxel_mV, mP, mW, mV, sigma[img_idx]);
 			}
 		}
 	}
@@ -981,9 +1060,9 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			double gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(Vmask, k, i, j) == 1)
+			if (A3D_ELEM(sphMask, k, i, j) != 0)
 			{
-				if (usesZernike)
+				if (usesZernike && A3D_ELEM(Vmask, k, i, j) == 1)
 				{
 					auto k2 = k * k;
 					auto kr = k * iRmaxF;
@@ -1021,13 +1100,13 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 	}
 }
 
-double ProgParallelForwardArtZernike3D::bspline1(double x)
-{
-	double m = 1 / sigma;
-	if (0. < x && x < sigma)
-		return m * (sigma - x);
-	else if (-sigma < x && x <= 0.)
-		return m * (sigma + x);
-	else
-		return 0.;
-}
+// double ProgParallelForwardArtZernike3D::bspline1(double x)
+// {
+// 	double m = 1 / sigma;
+// 	if (0. < x && x < sigma)
+// 		return m * (sigma - x);
+// 	else if (-sigma < x && x <= 0.)
+// 		return m * (sigma + x);
+// 	else
+// 		return 0.;
+// }

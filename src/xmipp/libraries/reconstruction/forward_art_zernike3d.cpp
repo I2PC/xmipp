@@ -250,10 +250,10 @@ void ProgForwardArtZernike3D::preProcess()
 	endZ = FINISHINGZ(Vrefined());
 
 	filter.FilterBand=LOWPASS;
-	filter.FilterShape=REALGAUSSIAN;
+	filter.FilterShape=REALGAUSSIANZ;
     filter.w1=sigma;
 	filter2.FilterBand=LOWPASS;
-	filter2.FilterShape=REALGAUSSIAN2;
+	filter2.FilterShape=REALGAUSSIANZ2;
     filter2.w1=sigma;
 
 	// Blob
