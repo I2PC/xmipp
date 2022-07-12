@@ -804,7 +804,7 @@ void ProgAlignSpectral::projectReferences() {
                 m_pca.centerAndProject(data.bandCoefficients, data.projection);
 
                 // Write the metadata
-                m_references.setMetadata(index, i, r, sx, sy); //TODO
+                m_references.setMetadata(index, i, r, -sx, -sy); //The shift is the opposite
             }
         );
     };
