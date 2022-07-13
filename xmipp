@@ -34,9 +34,9 @@ from scripts import *
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.22.04.0'        #
-XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '21/04/2022'        #
+XMIPP_VERSION = '3.22.07.0'        #
+XMIPP_VERNAME = 'Helios'           #
+RELEASE_DATE = '13/07/2022'        #
 ####################################
 
 
