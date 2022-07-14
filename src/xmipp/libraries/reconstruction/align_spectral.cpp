@@ -922,7 +922,7 @@ void ProgAlignSpectral::generateBandSsnr() {
     // Calculate the average SSNR on each band
     Matrix1D<double> totalSsnr;
     m_ssnr.colSum(totalSsnr);
-    m_ssnr /= MAT_YSIZE(m_ssnr);
+    totalSsnr /= MAT_YSIZE(m_ssnr);
 
     // Write it to disk
     totalSsnr.write(m_parameters.fnOroot + "ssnr");
