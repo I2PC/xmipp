@@ -162,8 +162,8 @@ private:
         void finalize();
 
         void centerAndProject(  std::vector<Matrix1D<double>>& bands, 
-                                MultidimArray<double>& projections) const;
-        void unprojectAndUncenter(  const MultidimArray<double>& projections,
+                                Matrix2D<double>& projections) const;
+        void unprojectAndUncenter(  const Matrix2D<double>& projections,
                                     std::vector<Matrix1D<double>>& bands ) const;
     private:
         size_t m_first;
@@ -190,8 +190,9 @@ private:
         size_t getBandCount() const;
         size_t getComponentCount() const;
 
-        void getPcaProjection(size_t i, MultidimArray<double>& referenceBands);
-        size_t matchPcaProjection(const MultidimArray<double>& experimentalBands) const;
+        void getPcaProjection(size_t i, Matrix2D<double>& referenceBands);
+        size_t matchPcaProjection(const Matrix2D<double>& experimentalBands, const Matrix1D<double>& weights) const;
+        size_t matchPcaProjectionBaB(const Matrix2D<double>& experimentalBands, const Matrix1D<double>& weights) const;
 
         void setMetadata(size_t i, size_t pos, double rot, double sx, double sy);
         void getMetadata(size_t i, size_t& pos, double& rot, double& sx, double& sy) const;
@@ -240,6 +241,7 @@ private:
     SpectralPca m_pca;
     ReferencePcaProjections m_references;
     std::vector<size_t> m_classification;
+    Matrix2D<double> m_ssnr;
 
     void readInput();
     void calculateTranslationFilters();
@@ -247,6 +249,7 @@ private:
     void trainPcas();
     void projectReferences();
     void classifyExperimental();
+    void generateBandSsnr();
     void generateOutput();
 
     void updateRow(MDRowVec& row, size_t matchIndex) const;
@@ -259,9 +262,6 @@ private:
 
     static constexpr size_t toFourierXSize(size_t nx) { return nx/2 + 1; }
     static constexpr size_t fromFourierXSize(size_t nx) { return (nx - 1)*2; }
-
-    static void aliasFirstRow(const MultidimArray<double>& md, Matrix1D<double>& v);
-    static void aliasNextRow(Matrix1D<double>& v);
 
     static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
                                                                                 size_t ny, 
@@ -282,6 +282,10 @@ private:
     static MultidimArray<int> computeBands( const size_t nx, 
                                             const size_t ny, 
                                             const std::vector<double>& frecuencies );
+
+    static void calculateBandSsnr(  const Matrix2D<double>& reference, 
+                                    const Matrix2D<double>& experimental, 
+                                    Matrix1D<double>& ssnr );
 
 };
 
