@@ -84,47 +84,66 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	std::cout << "Preprocessing volume..." << std::endl;
 	#endif
 
-	// Smoothing
-	
-	// int siz_x = xSize*0.5;
-	// int siz_y = ySize*0.5;
-	// int siz_z = zSize*0.5;
-	// int N_smoothing = 10;
 
-	// int ux, uy, uz, uz2, uz2y2;
+	// -- Average
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Averaging volume..." << std::endl;
+	#endif
 
-	// int limit_distance_x = (siz_x-N_smoothing);
-	// int limit_distance_y = (siz_y-N_smoothing);
-	// int limit_distance_z = (siz_z-N_smoothing);
+	// Image<double> sliceTomo;
+	MultidimArray<double> slice(ySize, xSize);
+	MultidimArray<double> sliceU(ySize, xSize);
+	MultidimArray<double> sliceD(ySize, xSize);
+	MultidimArray<double> sliceU2(ySize, xSize);
+	MultidimArray<double> sliceD2(ySize, xSize);
 
-	// long n=0;
-	// for(int k=0; k<zSize; ++k)
-	// {
-	// 	uz = (k - siz_z);
-	// 	for(int i=0; i<ySize; ++i)
-	// 	{
-	// 		uy = (i - siz_y);
-	// 		for(int j=0; j<xSize; ++j)
-	// 		{
-	// 			ux = (j - siz_x);
+	for (int k = 2; k < zSize-2; k++)
+	{
+		if(k==2)
+		{
+			inputTomo.getSlice(k-2, sliceU2);
+			inputTomo.getSlice(k-1, sliceU);
+			inputTomo.getSlice(k,   slice);
+			inputTomo.getSlice(k+1, sliceD);
+			inputTomo.getSlice(k+2, sliceD2);
+		}
+		else
+		{
+			sliceU2 = sliceU;
+			sliceU = slice;
+			slice  = sliceD;
+			sliceD  = sliceD2;
+			inputTomo.getSlice(k+2, sliceD2);
+		}
 
-	// 			if (abs(ux)>=limit_distance_x)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
-	// 			}
-	// 			if (abs(uy)>=limit_distance_y)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
-	// 			}
-	// 			if (abs(uz)>=limit_distance_z)
-	// 			{
-	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
-	// 			}
-	// 			++n;
-	// 		}
-	// 	}
-	// }
+		for (int i = 0; i < ySize; i++)
+		{
+			for (int j = 0; j < xSize; j++)
+			{			
+				DIRECT_A3D_ELEM(inputTomo, k, i, j) = DIRECT_A2D_ELEM(sliceD2, i , j) +
+													  DIRECT_A2D_ELEM(sliceD,  i , j) +
+													  DIRECT_A2D_ELEM(slice,   i , j) +
+													  DIRECT_A2D_ELEM(sliceU,  i , j) +
+													  DIRECT_A2D_ELEM(sliceU2, i , j);
+			}
+		}
+	}
 
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_average.mrc";
+
+	V.write(outputFileNameFilteredVolume);
+	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Volume averaging finished succesfully!" << std::endl;
+	#endif
+
+
+	// -- Band-pass filtering
 	MultidimArray< std::complex<double> > fftV;
 	transformer.FourierTransform(inputTomo, fftV, false);
 
@@ -132,7 +151,6 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	std::cout << "Applying bandpass filter to volume..." << std::endl;
 	#endif
 
-	// Band-pass filtering
 	int ux, uy, uz, uz2, uz2y2;
 
 	int n=0;
@@ -140,10 +158,15 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	double freqLow = samplingRate / (fiducialSize*1.1);
 	double freqHigh = samplingRate/(fiducialSize*0.9);
 	
-	double w = 0.02; 
+	double w; // = 0.02 
 	double cutoffFreqHigh = freqHigh + w;
 	double cutoffFreqLow = freqLow - w;
 	double delta = PI / w;
+
+	normDim = (xSize>ySize) ? xSize : ySize;
+
+	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+	w = 43.2 / normDim;
 
 	#ifdef DEBUG_PREPROCESS
 	std::cout << "samplingRate " << samplingRate << std::endl;
@@ -196,9 +219,9 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	transformer.inverseFourierTransform();
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of(".");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameFilteredVolume;
+	lastindex = fnOut.find_last_of(".");
+	rawname = fnOut.substr(0, lastindex);
+	outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_bandpass.mrc";
 
 	V.write(outputFileNameFilteredVolume);
@@ -209,7 +232,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	#endif
 	
 
-	// Apply Laplacian to tomo with kernel:
+	// -- Apply Laplacian to tomo with kernel:
 	//     0  0 0    0 -1  0    0 0 0
 	// k = 0 -1 0    -1 4 -1    0 -1 0
 	//     0  0 0    0 -1  0    0 0 0
@@ -218,44 +241,43 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	std::cout << "Applying laplacian filter to volume..." << std::endl;
 	#endif
 
-	for (int k = 0; k < zSize; k++)
+	for (int k = 1; k < zSize-1; k++)
 	{
-		MultidimArray<double> slice;
+		MultidimArray<double> slice(ySize, xSize);
 		inputTomo.getSlice(k, slice);
 
 		for (int i = 1; i < ySize-1; i++)
 		{
 			for (int j = 1; j < xSize-1; j++)
 			{				
-				DIRECT_A3D_ELEM(inputTomo, k, i, j) = (-1 * DIRECT_A2D_ELEM(slice, i,   j-1) +
-													   -1 * DIRECT_A2D_ELEM(slice, i,   j+1) +
-													   -1 * DIRECT_A2D_ELEM(slice, i-1, j) +
-													   -1 * DIRECT_A2D_ELEM(slice, i+1, j) +
-													    4 * DIRECT_A2D_ELEM(slice, i,   j));
+				DIRECT_A3D_ELEM(inputTomo, k, i, j) = -2 * DIRECT_A2D_ELEM(slice, i,   j-1) +
+													  -2 * DIRECT_A2D_ELEM(slice, i,   j+1) +
+													  -2 * DIRECT_A2D_ELEM(slice, i-1, j) +
+													  -2 * DIRECT_A2D_ELEM(slice, i+1, j) +
+													   8 * DIRECT_A2D_ELEM(slice, i,   j);
 			}
 		}
 	} 
 
-	// for (int k = 1; k < zSize-2; k++)
-	// {
-	// 	for (int i = 1; i < ySize-2; i++)
-	// 	{
-	// 		for (int j = 1; j < xSize-2; j++)
-	// 		{				
-	// 			DIRECT_A3D_ELEM(preprocessedTomo, k, i, j) = (-1 * DIRECT_A3D_ELEM(inputTomo, k-1, i,   j) +
-	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k+1, i,   j) +
-	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j-1) +
-	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j+1) +
-	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i-1, j) +
-	// 												   -1 * DIRECT_A3D_ELEM(inputTomo, k,   i+1, j) +
-	// 												    6 * DIRECT_A3D_ELEM(inputTomo, k,   i,   j));
-	// 		}
-	// 	}
-	// } 
-
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Laplacian filter applied to volume succesfully!" << std::endl;
 	#endif
+
+
+	// -- Set extreme slices to 0 (unafected by average filter)
+	for (int k = 0; k < zSize; k++)
+	{
+		if(k<2 || k > zSize-2)
+		{
+			for (int i = 0; i < ySize; i++)
+			{
+				for (int j = 0; j < xSize; j++)
+				{	
+					DIRECT_A3D_ELEM(inputTomo, k, i, j) = 0.0;
+				}
+			}
+		}
+	}
 
 	#ifdef DEBUG_OUTPUT_FILES
 	lastindex = fnOut.find_last_of(".");
@@ -309,16 +331,18 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	double average = sum / Nelems;
 	double standardDeviation = sqrt(sum2/Nelems - average*average);
 
-	double threshold = average-sdThreshold*standardDeviation;
+	double thresholdL = average-sdThreshold*standardDeviation;
+	double thresholdU = average+sdThreshold*standardDeviation;
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Threshold value = " << threshold << std::endl;
+	std::cout << "ThresholdU value = " << thresholdU << std::endl;
+	std::cout << "ThresholdL value = " << thresholdL << std::endl;
 	#endif
 
 	MultidimArray<double> binaryCoordinatesMapSlice;
 	MultidimArray<double> labelCoordiantesMapSlice;
 	
-	for(size_t k = 0; k < zSize; k++)
+	for(size_t k = 1; k < zSize-1; k++)
 	{	
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
@@ -332,7 +356,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			{
 				double value = DIRECT_A3D_ELEM(inputTomo, k, i, j);
 
-				if (value < threshold || value>(average+sdThreshold*standardDeviation))
+				// if (value < thresholdL || value > thresholdU) 
+				// {
+				if (value < thresholdL) 
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 
@@ -347,23 +373,19 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
 		#endif
 
-		#ifdef DEBUG_OUTPUT_FILES
-		size_t lastindex = fnOut.find_last_of(".");
-		std::string rawname = fnOut.substr(0, lastindex);
-		std::string outputFileNameLabeledVolume;
-		outputFileNameLabeledVolume = rawname + "_labelSlice.mrc";
-
-		Image<double> s;
-		s() = binaryCoordinatesMapSlice; 
-		s.write(outputFileNameLabeledVolume);
-		#endif
-
 		#ifdef DEBUG_HCC
 		std::cout << "Labeling slice " << k << std::endl;
 		#endif
 
+
+		// MultidimArray<double> labelCoordiantesMapSliceClosing(ySize, xSize);
+		// std::cout << "check1" << std::endl;
+		// closing2D(binaryCoordinatesMapSlice, labelCoordiantesMapSliceClosing, 8, 0, 8);  // neigh, count, size
+		// std::cout << "check2" << std::endl;
+
 		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
+
 
 		#ifdef DEBUG_OUTPUT_FILES
 		for (size_t j = 0; j < xSize; j++)
@@ -874,7 +896,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	#endif
 
 	size_t halfBoxSize = boxSize / 2;
-	size_t correlationWedge = boxSize / 3;
+	size_t correlationWedge = boxSize / 3; //*** cambiar el nombre de esta varibale
 	size_t numberOfFeatures = centerOfMassX.size();
 	MultidimArray<double> feature, symmetricFeature, correlationVolumeR;
 
@@ -1025,6 +1047,12 @@ void ProgImagePeakHighContrast::run()
 
 bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
+	#ifdef DEBUG_FILTERLABEL
+	// // Uncomment for phantom
+	// std::cout << "No label filtering, phantom mode!!" << std::endl;
+	// return true;
+	#endif
+
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
 	{
@@ -1075,7 +1103,7 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
-	if(ocupation < 0.5)
+	if(ocupation < 0.75)
 	{
 		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF OCCUPATION"<< std::endl;
@@ -1110,3 +1138,48 @@ std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t
 
 	return coordinatesInSlice;
 }
+
+
+// std::vector<size_t> ProgImagePeakHighContrast::smoothingEdges(size_t slice)
+// {
+	// Smoothing
+	
+	// int siz_x = xSize*0.5;
+	// int siz_y = ySize*0.5;
+	// int siz_z = zSize*0.5;
+	// int N_smoothing = 10;
+
+	// int ux, uy, uz, uz2, uz2y2;
+
+	// int limit_distance_x = (siz_x-N_smoothing);
+	// int limit_distance_y = (siz_y-N_smoothing);
+	// int limit_distance_z = (siz_z-N_smoothing);
+
+	// long n=0;
+	// for(int k=0; k<zSize; ++k)
+	// {
+	// 	uz = (k - siz_z);
+	// 	for(int i=0; i<ySize; ++i)
+	// 	{
+	// 		uy = (i - siz_y);
+	// 		for(int j=0; j<xSize; ++j)
+	// 		{
+	// 			ux = (j - siz_x);
+
+	// 			if (abs(ux)>=limit_distance_x)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+	// 			}
+	// 			if (abs(uy)>=limit_distance_y)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+	// 			}
+	// 			if (abs(uz)>=limit_distance_z)
+	// 			{
+	// 				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+	// 			}
+	// 			++n;
+	// 		}
+	// 	}
+	// }
+// }

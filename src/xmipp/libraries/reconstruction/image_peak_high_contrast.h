@@ -48,7 +48,7 @@
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
 #define DEBUG_HCC
-// #define DEBUG_FILTERLABEL
+#define DEBUG_FILTERLABEL
 // #define DEBUG_CLUSTER
 // #define DEBUG_COORDS_IN_SLICE
 // #define DEBUG_DIST
@@ -81,6 +81,7 @@ private:
 	size_t ySize;
 	size_t zSize;
 	size_t nSize;
+	size_t normDim;
 
     /** Vectors for centers of mass components after coordinates clusterings */
     std::vector<int> centerOfMassX;
