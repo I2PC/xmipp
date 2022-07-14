@@ -47,11 +47,12 @@
 #define DEBUG_OUTPUT_FILES
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
-#define DEBUG_HCC
-#define DEBUG_FILTERLABEL
+// #define DEBUG_HCC
+// #define DEBUG_FILTERLABEL
 // #define DEBUG_CLUSTER
 // #define DEBUG_COORDS_IN_SLICE
 // #define DEBUG_DIST
+#define DEBUG_CENTER_COORDINATES
 
 class ProgImagePeakHighContrast : public XmippProgram
 {

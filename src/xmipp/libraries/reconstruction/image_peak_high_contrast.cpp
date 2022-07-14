@@ -334,7 +334,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	double thresholdL = average-sdThreshold*standardDeviation;
 	double thresholdU = average+sdThreshold*standardDeviation;
 
-	#ifdef VERBOSE_OUTPUT
+	#ifdef DEBUG_HCC
 	std::cout << "ThresholdU value = " << thresholdU << std::endl;
 	std::cout << "ThresholdL value = " << thresholdL << std::endl;
 	#endif
@@ -480,7 +480,7 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
 
-	float thrVottingDistance2 = (fiducialSizePx/2)*(fiducialSizePx/2); // *** when working use fsp/2
+	float thrVottingDistance2 = (fiducialSizePx/2)*(fiducialSizePx/2);
 
 	#ifdef DEBUG_CLUSTER
 	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
@@ -562,7 +562,10 @@ void ProgImagePeakHighContrast::clusterHCC()
 		{
 			if (coord3DVotes_V[i] == 0)
 			{
+				#ifdef DEBUG_CLUSTER
 				std::cout << "Deleted coordinate " << i << std::endl;
+				#endif
+
 				coordinates3D.erase(coordinates3D.begin()+i);
 				coord3DVotes_V.erase(coord3DVotes_V.begin()+i);
 				deletedIndexes++;
@@ -575,6 +578,7 @@ void ProgImagePeakHighContrast::clusterHCC()
 		iteration++;
 		#endif
 
+		// *** fix
 		if (deletedIndexes > 0)
 		{
 			std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
@@ -698,9 +702,11 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of coordinates obtained after clustering: " << coordinates3D.size() << std::endl;
+	std::cout << "Clustering of coordinates finished successfully!!" << std::endl;
 	#endif
 
 	// // Generate output labeled and filtered series
+	// // *** generate labeled and filtered outputs
 	// #ifdef DEBUG_OUTPUT_FILES
 	// MultidimArray<int> filteredLabeledTS;
 	// filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
@@ -896,16 +902,21 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	#endif
 
 	size_t halfBoxSize = boxSize / 2;
-	size_t correlationWedge = boxSize / 3; //*** cambiar el nombre de esta varibale
-	size_t numberOfFeatures = centerOfMassX.size();
-	MultidimArray<double> feature, symmetricFeature, correlationVolumeR;
+	size_t numberOfFeatures = coordinates3D.size();
 
-	// Construct feature and its symmetric
+	MultidimArray<double> feature;
+	MultidimArray<double> mirrorFeature;
+	MultidimArray<double> correlationVolumeR;
 
+	int coordHalfX;
+	int coordHalfY;
+	int coordHalfZ;
+
+	// Construct feature and its mirror symmetric
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
 		feature.initZeros(boxSize, boxSize, boxSize);
-		symmetricFeature.initZeros(boxSize, boxSize, boxSize);
+		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
 		
 		for(int k = 0; k < boxSize; k++) // zDim
 		{	
@@ -913,31 +924,32 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 			{
 				for(int i = 0; i < boxSize; i++) // yDim
 				{
-					int cmXhalf = centerOfMassX[n] - halfBoxSize;
-					int cmYhalf = centerOfMassY[n] - halfBoxSize;
-					int cmZhalf = centerOfMassZ[n] - halfBoxSize;
+					coordHalfX = coordinates3D[n].x - halfBoxSize;
+					coordHalfY = coordinates3D[n].y - halfBoxSize;
+					coordHalfZ = coordinates3D[n].z - halfBoxSize;
 
-					DIRECT_A3D_ELEM(feature, k, i, j) = 
-					DIRECT_A3D_ELEM(volFiltered, 
-									cmZhalf + k, 
-									cmYhalf + i, 
-									cmXhalf + j);
+					DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+																		coordHalfZ + k, 
+																		coordHalfY + i, 
+																		coordHalfX + j);
 
-					DIRECT_A3D_ELEM(symmetricFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+					DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
 					DIRECT_A3D_ELEM(volFiltered, 
-									cmZhalf + k, 
-									cmYhalf + i,
-									cmXhalf + j);
+									coordHalfZ + k, 
+									coordHalfY + i,
+									coordHalfX + j);
 				}
 			}
 		}
 
 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
 		CorrelationAux aux;
-		correlation_matrix(feature, symmetricFeature, correlationVolumeR, aux, true);
+		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
 
 		double maximumCorrelation = MINDOUBLE;
-		double xDisplacement = 0, yDisplacement = 0, zDisplacement = 0;
+		double xDisplacement = 0;
+		double yDisplacement = 0;
+		double zDisplacement = 0;
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(correlationVolumeR)
 		{
@@ -952,11 +964,24 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 			}
 		}
 
+		#ifdef DEBUG_CENTER_COORDINATES
+		std::cout << "--------------------" << std::endl;
+		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize / 2) / 2 << std::endl;
+		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize / 2) / 2 << std::endl;
+		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize / 2) / 2 << std::endl;
+		#endif
+
+
 		// Update coordinate
-		centerOfMassX[n] += ((int) xDisplacement - boxSize / 2) / 2;
-		centerOfMassY[n] += ((int) yDisplacement - boxSize / 2) / 2;
-		centerOfMassZ[n] += ((int) zDisplacement - boxSize / 2) / 2;
+		coordinates3D[n].x += ((int) xDisplacement - boxSize / 2) / 2;
+		coordinates3D[n].y += ((int) yDisplacement - boxSize / 2) / 2;
+		coordinates3D[n].z += ((int) zDisplacement - boxSize / 2) / 2;
 	}
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
+	#endif
 }
 
 
