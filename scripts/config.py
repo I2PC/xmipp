@@ -402,11 +402,11 @@ class Config:
                     fullVersion + '.'))
         if gccVersion < 7.0:
             print(red('Version 7.0 or higher is required.'))
-            print(yellow('Please got to https://github.com/I2PC/xmipp#compiler to solve it.'))
+            print(yellow('Please go to https://github.com/I2PC/xmipp#compiler to solve it.'))
             sys.exit(-8)
         elif gccVersion < 8.0:
             print(yellow('Consider updating your compiler. Xmipp will soon require GCC 8 or newer.'))
-            print(yellow('Please got to https://github.com/I2PC/xmipp#compiler.'))
+            print(yellow('Please go to https://github.com/I2PC/xmipp#compiler.'))
         else:
             print(green(compiler + ' ' + fullVersion + ' detected'))
 
