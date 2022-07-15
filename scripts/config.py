@@ -159,7 +159,8 @@ class Config:
                     self._create_empty()
                 self.configDict = dict(cf.items('BUILD'))
         except:
-            sys.exit("%s\nPlease fix the configuration file %s." %
+            sys.exit("%s\nPlease fix the configuration file %s.\n"
+                     "Visit https://github.com/I2PC/xmipp/wiki/Xmipp-configuration" %
                      (sys.exc_info()[1], fnConfig))
 
     def write(self):
@@ -399,12 +400,10 @@ class Config:
         gccVersion, fullVersion = self._get_GCC_version(compiler)
         print(green('Detected ' + compiler + " in version " +
                     fullVersion + '.'))
-        if gccVersion < 6.0:
+        if gccVersion < 8.0:
             print(red('Version 6.0 or higher is required.'))
+            print(yellow('Please got to https://github.com/I2PC/xmipp#compiler to solve it.'))
             sys.exit(-8)
-        elif gccVersion < 8.0:
-            print(yellow(
-                'Consider updating your compiler. Xmipp will soon require GCC 8 or newer.'))
         else:
             print(green(compiler + ' ' + fullVersion + ' detected'))
 
