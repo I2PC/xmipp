@@ -1,4 +1,58 @@
-## Release 3.22.04 - 
+  ## Release 3.22.XX - devel
+
+  ### Scripts Xmipp
+  -
+  ### Protocols scipion-em-xmipp
+  -
+  ### Installation and user guide
+  -
+  ### Others
+  -
+
+
+## Release 3.22.07 - Helios
+_195 files changed; 431 commits_
+### Scripts Xmipp
+- **xmipp_image_operate**: taked into account non existing files
+- **angular_continuous_assign2**: Bug fixed
+- **volume_consensus**: Bug fixed
+- **ctf.h and angular_continuous_assign_2**: Changes for local defocus estimation #578
+
+### Protocols scipion-em-xmipp
+- **rotate_volume**: New protocol
+- **subtract_projection**: New implementation based on adjustment by regression instead of POCS and improved performance
+- **local_ctf**: Add new sameDefocus option + formatting
+- **compare_reprojections & protocol_align_volume**: Fast Fourier by default
+- **crop_resize**: Allows input pointers
+- **resolution_deepres**: Resize output to original size
+- **denoise_particles**: Added setOfAverages as input option
+- **process**: Change output from stk (spider) to mrcs (mrc)
+- **trigger_data**: Bug fixed
+- **screen_deeplearning**:  Added descriptive help" 
+- **center_particles**: Added summary info
+- **align_volume_and_particles**: Summary error fixed
+- **cl2d**: Summary errors solved 
+
+- **New tests:** test_protocol_reconstruct_fourier, test_protocols_local_defocus, test_protocols_local_defocus, TestXmippAlignVolumeAndParticles,  TestXmippRotateVolume
+- **Improved tests:** test_protocols_deepVolPostprocessing, test_protocols_xmipp_3d, Test ProjSubtracion
+- **Excluded tests:** test_protocols_zernike3d, test_protocols_metaprotocol_heterogeneity
+
+
+### Installation and user guide
+- Version info printed at the end of the installation
+- Removed empty folder with cleanBin command
+- Clarifing linking to Scipion and removed a bug with the build link
+- New flag (OPENCV_VERSION) in xmipp.config
+- Updated Readme (explain OpenCV-CUDA support)
+
+### Others
+- Validation server:  Merged what remains
+- Replaced sincos to sin and cos
+- Handling of pointers in MPI programs
+- "nullptr" used to denote the null pointer not "NULL"
+- Check if nvidiaDriverVer is None
+
+## Release 3.22.04 - Gaia
 
 ### Installation and user guide
 - Updated readme
@@ -20,7 +74,6 @@
 - **protocol_convert_pdb**: remove size if deactivated
 - **protocol_resolution_deepres**: binary masked not stored in Extra folder and avoiding memory problems on GPUs
 - **protocol_add_noise**: fixes
-
 - **protocol_compare_reprojections**: improve computation of residuals + tests + fix + formatting
 - **protocol_screen_deepConsensus**: multiple fixes in batch processing, trainging and streaming mode
 - **protocol_shift_particles**: apply transform is now optional

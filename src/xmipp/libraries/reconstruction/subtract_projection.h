@@ -32,60 +32,64 @@
  #include "data/fourier_filter.h"
  #include "data/fourier_projection.h"
 
-
  class ProgSubtractProjection: public XmippProgram
  {
  private:
-    /** Filename of the reference volume */
-    FileName fnVolR;
-    FileName fnParticles;
-	FileName fnImage;
-    FileName fnOut;
-    FileName fnMask;
-    FileName fnMaskVol;
-    FileName fnPart;
-    FileName fnProj;
+    // Input params
+    FileName fnVolR; // Input reference volume
+    FileName fnParticles; // Input metadata
+	FileName fnImage; // Particle filename
+    FileName fnOut; // Output metadata
+    FileName fnMaskVol; // Input 3D mask of the reference volume
+    FileName fnMask; // Input 3D mask for region to keep
+    FileName fnProj; // JUST FOR SAVING INTERM FILES -> DELETE
+	double sampling; 
+	double padFourier; 
+	double maxResol;
+    int fmaskWidth;
+	int sigma;
+    int limitfreq;
+
+    // Data variables
+ 	Image<double> V; // volume
+ 	Image<double> vM; // mask 3D
+ 	Image<double> M; // mask projected and smooth
+ 	Image<double> I; // particle
+    Image<double> Pctf; // projection with CTF applied
+    Image<double> iM; // inverse mask of the region to keep
+    Image<double> Mfinal; // final dilated mask
+    Image<double> Idiff; // final subtracted image
+ 	Projection P; // projection
+ 	Projection Pmask; // mask projection for region to keep
+    Projection PmaskVol; // reference volume mask projection
+	FourierFilter FilterG; // Gaussian LPF to smooth mask
+    std::unique_ptr<FourierProjector> projector;
+    const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
+	FourierTransformer transformerP; // Fourier transformer for projection
+    FourierTransformer transformerI; // Fourier transformer for particle
+    MultidimArray< std::complex<double> > IFourier; // FT(particle)
+	MultidimArray< std::complex<double> > PFourier; // FT(projection)
+    MultidimArray< std::complex<double> > PFourier0; // FT(projection) estimation of order 0
+	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
+
+    CTFDescription ctf;
+	FourierFilter FilterCTF;
+	Image<double> padp; // padded image when applying CTF
+	Image<double> PmaskI; // inverted projected mask
+	Image<double> ImgiM; // auxiliary image for computing estimation images
+	MultidimArray< std::complex<double> > ImgiMFourier; // FT(ImgiM)
+
+    // Particle metadata
     MetaDataVec mdParticles;
     MDRowVec row;
-    bool subtractAll;
-	double cutFreq;
-	double lambda;
-	int sigma;
-	int iter;
-    struct Angles
+    Matrix1D<double> roffset; // particle shifts
+    struct Angles // particle angles for projection
     {
     	double rot;
     	double tilt;
     	double psi;
     };
-    Matrix1D<double> roffset;
- 	Image<double> V;
- 	Image<double> mask;
- 	Image<double> PmaskInv;
- 	Image<double> PmaskVolI;
- 	Image<double> maskVol;
- 	Image<double> I;
- 	Projection P;
- 	Projection Pmask;
- 	Projection PmaskVol;
-	FourierFilter FilterG;
-	FourierFilter FilterG2;
-	FourierFilter Filter2;
-    struct Radial
-    {
-		MultidimArray<double> meanI;
-		MultidimArray<double> meanP;
-    };
-	MultidimArray<double> radQuotient;
-	FourierTransformer transformer;
-	MultidimArray< std::complex<double> > IFourier;
-	MultidimArray< std::complex<double> > PFourier;
-	MultidimArray<double> IFourierMag;
-	MultidimArray<std::complex<double> > PFourierPhase;
-	double Imin;
-	double Imax;
-	Image<double> Pctf;
-	Image<double> Pmaskctf;
+    struct Angles part_angles; 
 
     /// Read argument from command line
     void readParams() override;
@@ -93,23 +97,23 @@
     void show() const override;
     /// Define parameters
     void defineParams() override;
-    /// Processing methods
-    void POCSmaskProj(const MultidimArray<double> &, MultidimArray<double> &) const;
-    void POCSFourierAmplitudeProj(const MultidimArray<double> &, MultidimArray< std::complex<double> > &, double, const MultidimArray<double> &, int) const;
-    void POCSMinMaxProj(MultidimArray<double> &, double, double) const;
-    void extractPhaseProj(MultidimArray< std::complex<double> > &) const;
-    void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &, MultidimArray< std::complex<double> > &) const;
-    Image<double> createMask(const FileName &, Image<double> &);
+    /// Read and write methods
     void readParticle(const MDRowVec &);
-    void percentileMinMax(const MultidimArray<double> &, double &, double &) const;
-    Image<double> applyCTF(const MDRowVec &, Projection &);
-    void runIteration();
-    Image<double> thresholdMask(Image<double> &);
+    void writeParticle(const int &, Image<double> &, double);
+    /// Processing methods
+    void createMask(const FileName &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
-    void writeParticle(const int &, Image<double> &);
+    Image<double> invertMask(const Image<double> &);
+    Image<double> applyCTF(const MDRowVec &, Projection &);
+    void processParticle(size_t, int, FourierTransformer &, FourierTransformer &);
+    MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
+        const MultidimArray<double> &, FourierTransformer &);
+    double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+    double checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+
     /// Run
     void run() override;
-
  };
  //@}
  #endif

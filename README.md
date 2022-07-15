@@ -53,7 +53,7 @@ Xmipp supports Cuda 8 through 11. CUDA is optional but highly recommended. We re
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
 ### OpenCV
-OpenCV is used for several programs, however, it is not required.
+OpenCV is used for some programs: movie_optical_alignment (with GPU support) and volume_homogenizer, however, it is not required.
 If you installed OpenCV via apt (`sudo apt install libopencv-dev`), it should be automatically picked up by the Xmipp script
 
 ### HDF5
@@ -73,7 +73,7 @@ If you install it using other package management system (such as Conda), it migh
 ### Full list of dependencies
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-8 g++-8`
 
-`pip install scons`
+`pip install scons numpy`
 
 # Installing Xmipp as a Scipion plugin
 This is a recommended way for end users.
@@ -90,7 +90,9 @@ Start by cloning the repository and then navigate to the right directory.
 
 You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest.
 
-Next is to compile xmipp. There are to possibilities. 1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` or alternatively 2) Compile Xmipp via Scipion `scipion3 run xmipp`. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#))
+Next is to compile xmipp. There are to possibilities:
+1) Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will run xmipp out of Scipion.
+2) Compile Xmipp via Scipion `scipion3 run ./xmipp` that way you will can run Xmipp in Scipion (see linking step). To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#))
 
 It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 

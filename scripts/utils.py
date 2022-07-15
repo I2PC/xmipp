@@ -46,6 +46,9 @@ def red(text):
 def blue(text):
     return "\033[34m "+text+"\033[0m"
 
+def bold(text):
+    return "\033[1m "+text+"\033[0m"
+
 
 def find_newest(program, versions, show):
     for v in versions:
@@ -58,6 +61,23 @@ def find_newest(program, versions, show):
     if show:
         print(red(program + ' not found'))
     return ''
+
+
+def endMessage(XMIPP_VERNAME):
+    strXmipp = 'Xmipp {} has been successfully installed!'.format(
+        XMIPP_VERNAME)
+    lenStr = len(strXmipp)
+    border = '*' * (lenStr + 6)
+    spaceStr = ' ' * (lenStr + 3)
+    print('\n')
+    print(border)
+    print('*' + spaceStr + '*')
+    print('* ', end='')
+    print(green(strXmipp), end='')
+    print(' *')
+    print('*' + spaceStr + '*')
+    print(border)
+
 
 
 def find(program, path=[]):

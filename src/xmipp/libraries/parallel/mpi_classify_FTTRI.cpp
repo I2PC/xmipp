@@ -36,17 +36,10 @@
 // Empty constructor =======================================================
 ProgClassifyFTTRI::ProgClassifyFTTRI(int argc, char **argv)
 {
-    node=new MpiNode(argc,argv);
+	node = std::make_unique<MpiNode>(argc, argv);
     if (!node->isMaster())
         verbose=0;
     taskDistributor=nullptr;
-}
-
-// MPI destructor
-ProgClassifyFTTRI::~ProgClassifyFTTRI()
-{
-    delete taskDistributor;
-    delete node;
 }
 
 // Read arguments ==========================================================

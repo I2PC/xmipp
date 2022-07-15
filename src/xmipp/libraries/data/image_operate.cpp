@@ -513,14 +513,23 @@ void ProgOperate::readParams()
     else if (checkParam("--log10"))
         unaryOperator = log10;
     else
+    {
+    	doRun = false;
         REPORT_ERROR(ERR_VALUE_INCORRECT, "No valid operation specified");
+    }
     int dotProduct = false;
     if (binaryOperator != nullptr)
     {
         if (!file_or_value.exists())
         {
             isValue = true;
-            value = textToFloat(file_or_value);
+            try {
+            	value = textToFloat(file_or_value);
+            } catch (XmippError &XE)
+            {
+            	doRun = false;
+            	REPORT_ERROR(ERR_ARG_INCORRECT, (String)"Cannot understand "+file_or_value+". Either it is not a number or it is a non-existing file.");
+            }
             img2().resizeNoCopy(zdimOut, ydimOut, xdimOut);
             img2().initConstant(value);
         }
@@ -533,7 +542,10 @@ void ProgOperate::readParams()
             if (md2.isMetadataFile || md2.size() > 1)
             {
                 if (mdInSize != md2.size())
+                {
+                	doRun = false;
                     REPORT_ERROR(ERR_MD, "Both metadatas operands should be of same size.");
+                }
                 md2IdIterator = memoryUtils::make_unique<MetaDataVec::id_iterator>(md2.ids().begin());
             }
             else
@@ -543,7 +555,10 @@ void ProgOperate::readParams()
             }
         }
         if (!dotProduct && checkParam("--dot_product"))
+        {
+        	doRun = false;
             REPORT_ERROR(ERR_ARG_INCORRECT,"Dot product can only be computed between two files");
+        }
     }
 }
 

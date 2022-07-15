@@ -41,7 +41,7 @@ ProgMPIRecFourier::ProgMPIRecFourier(int argc, char *argv[])
 /* constructor providing an MpiNode
  * this is useful for using this programs from others
  */
-ProgMPIRecFourier::ProgMPIRecFourier(MpiNode * node)
+ProgMPIRecFourier::ProgMPIRecFourier(const std::shared_ptr<MpiNode> &node)
 {
     this->setNode(node);
 }

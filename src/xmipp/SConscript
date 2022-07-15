@@ -270,7 +270,7 @@ def addProg(progName, **kwargs):
     return prog
 
 # Define the list of all programs
-PROGRAMS_WITH_PYTHON = ['volume_align_prog','mpi_classify_CLTomo_prog']
+PROGRAMS_WITH_PYTHON = ['volume_align','mpi_classify_CLTomo_prog']
 PROGRAMS_WITH_OPENCV = ['movie_optical_alignment_cpu','mpi_volume_homogenizer']
 PROGRAMS_WITH_OPENCV_AND_CUDA = ['movie_optical_alignment_gpu']
 for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
