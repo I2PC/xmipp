@@ -254,8 +254,8 @@ private:
 
     void updateRow(MDRowVec& row, size_t matchIndex) const;
 
-    template<typename F, typename T>
-    void processRowsInParallel(const MetaDataVec& md, F&& func, std::vector<T>& threadData, double percentage=1.0);
+    template<typename F>
+    void processRowsInParallel(const MetaDataVec& md, F&& func, size_t nThreads);
 
     static void readMetadata(const FileName& fn, MetaDataVec& result);
     static void readImage(const FileName& fn, Image<double>& result);

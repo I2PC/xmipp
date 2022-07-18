@@ -739,7 +739,7 @@ void ProgAlignSpectral::trainPcas() {
         std::vector<Matrix1D<double>> bandCoefficients;
     };
 
-    // Create a MD with all the images
+    // Create a MD with a subset of all the images (experimental and reference)
     MetaDataVec mdAll;
     for(auto& inRow : m_mdReference) {
         auto outRow = mdAll.getRowVec(mdAll.addObject());
@@ -751,7 +751,9 @@ void ProgAlignSpectral::trainPcas() {
         outRow.setValue(MDL_IMAGE, inRow.getValue<String>(MDL_IMAGE));
         outRow.setValue(MDL_REF, 0);
     }
+    const auto nTraining = static_cast<size_t>(m_parameters.training * mdAll.size());
     mdAll.randomize(mdAll);
+    while(mdAll.size() >= nTraining) mdAll.removeObject(mdAll.lastRowId());
 
     // Setup PCAs
     m_pca.reset(
@@ -760,7 +762,10 @@ void ProgAlignSpectral::trainPcas() {
     );
 
     // Create a lambda to run in parallel for each image to be learnt
-    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
+        auto& data = threadData[threadId];
+
         // Read an image from disk
         const auto& isReference = row.getValue<int>(MDL_REF);
         const auto& fnImage = row.getValue<String>(MDL_IMAGE);
@@ -789,8 +794,7 @@ void ProgAlignSpectral::trainPcas() {
     };
 
     // Dispatch training
-    std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(mdAll, func, threadData, m_parameters.training);
+    processRowsInParallel(mdAll, func, threadData.size());
 
     // Finalize training
     m_pca.finalize();
@@ -808,12 +812,15 @@ void ProgAlignSpectral::trainPcas() {
     }
 
     // Write the PCA to disk
+    Matrix1D<double> variances;
     Matrix1D<double> axisVariances;
     Matrix2D<double> basis;
     for(size_t i = 0; i < m_pca.getPcaBandCount(); ++i) {
+        m_pca.getVariance(i, variances);
         m_pca.getAxisVariance(i, axisVariances);
         m_pca.getBasis(i, basis);
         const auto band = i + m_pca.getFirstPcaBand();
+        variances.write(m_parameters.fnOroot + "variances_" + std::to_string(band));
         axisVariances.write(m_parameters.fnOroot + "axis_variances_" + std::to_string(band));
         basis.write(m_parameters.fnOroot + "basis_" + std::to_string(band));
     }
@@ -836,7 +843,10 @@ void ProgAlignSpectral::projectReferences() {
     };
 
     // Create a lambda to run in parallel
-    const auto func = [this] (size_t i, const MDRowVec& row, ThreadData& data) {
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
+        auto& data = threadData[threadId];
+
         // Read an image from disk
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
         readImage(fnImage, data.image);
@@ -862,8 +872,7 @@ void ProgAlignSpectral::projectReferences() {
         );
     };
 
-    std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(m_mdReference, func, threadData);
+    processRowsInParallel(m_mdReference, func, threadData.size());
 }
 
 void ProgAlignSpectral::classifyExperimental() {
@@ -888,11 +897,15 @@ void ProgAlignSpectral::classifyExperimental() {
 
     Matrix1D<double> weights(m_pca.getBandCount());
     for(size_t i = 0; i < VEC_XSIZE(weights); ++i) {
-        weights[i] = 1.0 / static_cast<double>(i + 1);
+        weights[i] = 1.0;
+        //weights[i] = std::exp(-static_cast<double>(i));
     }
 
     // Create a lambda to run in parallel
-    const auto func = [this, &weights] (size_t i, const MDRowVec& row, ThreadData& data) {
+    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    const auto func = [this, &threadData, &weights] (size_t threadId, size_t i, const MDRowVec& row) {
+        auto& data = threadData[threadId];
+
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
         readImage(fnImage, data.image);
@@ -903,7 +916,7 @@ void ProgAlignSpectral::classifyExperimental() {
         m_pca.centerAndProject(data.bandCoefficients, data.projection);
 
         // Compare the projection to find a match
-        const auto classification = m_references.matchPcaProjectionBaB(data.projection, weights);
+        const auto classification = m_references.matchPcaProjection(data.projection, weights);
         //assert(classification == m_references.matchPcaProjection(data.projection, weights));
         m_classification[i] = classification;
 
@@ -914,8 +927,7 @@ void ProgAlignSpectral::classifyExperimental() {
 
     };
 
-    std::vector<ThreadData> threadData(m_parameters.nThreads);
-    processRowsInParallel(m_mdExperimental, func, threadData);
+    processRowsInParallel(m_mdExperimental, func, threadData.size());
 }
     
 void ProgAlignSpectral::generateBandSsnr() {
@@ -975,13 +987,12 @@ void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
 
 
 
-template<typename F, typename T>
+template<typename F>
 void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md, 
                                                 F&& func, 
-                                                std::vector<T>& threadData,
-                                                double percentage ) 
+                                                size_t nThreads ) 
 {
-    if(threadData.size() < 1) {
+    if(nThreads < 1) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "There needs to be at least one thread");
     }
 
@@ -990,21 +1001,18 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
 
     // Create a worker function which atomically aquires a row and
     // dispatches the provided function
-    const auto workerFunc = [&md, &func, &currRowNum, mdSize, percentage] (T& data, bool first) {
+    const auto workerFunc = [&md, &func, &currRowNum, mdSize] (size_t threadId) {
         auto rowNum = currRowNum++;
 
         while(rowNum < mdSize) {
-            // Randomly determine if it needs to be processed
-            if(static_cast<double>(rand()) / RAND_MAX <= percentage) {
-                // Process a row
-                const auto row = md.getRowVec(md.getRowId(rowNum));
-                func(rowNum, row, data);
+            // Process a row
+            const auto row = md.getRowVec(md.getRowId(rowNum));
+            func(threadId, rowNum, row);
 
-                // Update the progress bar only from the first thread 
-                // due to concurrency issues
-                if (first) {
-                    progress_bar(rowNum+1);
-                }
+            // Update the progress bar only from the first thread 
+            // due to concurrency issues
+            if (threadId == 0) {
+                progress_bar(rowNum+1);
             }
 
             // Aquire the next row
@@ -1017,13 +1025,13 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
 
     // Create some workers
     std::vector<std::thread> threads;
-    threads.reserve(threadData.size() - 1);
-    for(size_t i = 1; i < threadData.size(); ++i) {
-        threads.emplace_back(workerFunc, std::ref(threadData[i]), false);
+    threads.reserve(nThreads - 1);
+    for(size_t i = 1; i < nThreads; ++i) {
+        threads.emplace_back(workerFunc, i);
     }
 
     // Use the local thread
-    workerFunc(threadData[0], true);
+    workerFunc(0);
 
     //Wait for the others to finish
     for (auto& thread : threads) {
