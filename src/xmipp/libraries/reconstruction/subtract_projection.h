@@ -110,7 +110,7 @@
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     double checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, int cmodel) const;
 
     /// Run
     void run() override;
