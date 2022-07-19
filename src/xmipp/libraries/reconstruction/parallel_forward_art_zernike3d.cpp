@@ -987,14 +987,14 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 				int img_idx = 0;
 				if (sigma.size() > 1)
 				{
-					double sigma_mask = A3D_ELEM(Vmask, k, i, j);
+					double sigma_mask = A3D_ELEM(VRecMask, k, i, j);
 					auto it = find(sigma.begin(), sigma.end(), sigma_mask);
 					img_idx = it - sigma.begin();
 				}
 				// step = sigma[img_idx];
 				auto &mP = P[img_idx]();
 				auto &mW = W[img_idx]();
-				if (usesZernike && A3D_ELEM(Vmask, k, i, j) == 1)
+				if (usesZernike)
 				{
 					auto k2 = k * k;
 					auto kr = k * iRmaxF;
@@ -1062,7 +1062,7 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 			double gx = 0.0, gy = 0.0, gz = 0.0;
 			if (A3D_ELEM(sphMask, k, i, j) != 0)
 			{
-				if (usesZernike && A3D_ELEM(Vmask, k, i, j) == 1)
+				if (usesZernike)
 				{
 					auto k2 = k * k;
 					auto kr = k * iRmaxF;
