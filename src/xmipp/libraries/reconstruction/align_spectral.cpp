@@ -751,8 +751,8 @@ void ProgAlignSpectral::trainPcas() {
         outRow.setValue(MDL_IMAGE, inRow.getValue<String>(MDL_IMAGE));
         outRow.setValue(MDL_REF, 0);
     }
-    const auto nTraining = static_cast<size_t>(m_parameters.training * mdAll.size());
     mdAll.randomize(mdAll);
+    const auto nTraining = static_cast<size_t>(m_parameters.training * mdAll.size());
     while(mdAll.size() >= nTraining) mdAll.removeObject(mdAll.lastRowId());
 
     // Setup PCAs
@@ -896,9 +896,11 @@ void ProgAlignSpectral::classifyExperimental() {
     };
 
     Matrix1D<double> weights(m_pca.getBandCount());
+    const auto& bandSizes = m_bandMap.getBandSizes();
     for(size_t i = 0; i < VEC_XSIZE(weights); ++i) {
         weights[i] = 1.0;
         //weights[i] = std::exp(-static_cast<double>(i));
+        //weights[i] = bandSizes[i] * std::exp(-static_cast<double>(i));
     }
 
     // Create a lambda to run in parallel
