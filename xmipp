@@ -479,8 +479,8 @@ def compile_mrc():
     buildDir = os.path.join("src", "mrc", "build")
     createDir(buildDir)
     os.chdir(buildDir)
-    ok = runJob("cmake ..")
-    ok = ok and runJob("cmake --build .")
+    ok = runJob("cmake -DCMAKE_INSTALL_PREFIX=./xmipp ..")
+    ok = ok and runJob("cmake --build . --config Release")
     ok = ok and runJob("cmake --install .")
     os.chdir(currDir)
     return ok
