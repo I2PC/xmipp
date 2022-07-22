@@ -26,6 +26,7 @@ We have tested Xmipp compilation on the following operating systems:
 - [Installation guide for Ubuntu 16.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-16.04)
 - [Installation guide for Ubuntu 18.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-18.04)
 - [Installation guide for Ubuntu 20.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-20.04)
+- [Installation guide for Ubuntu 22.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-22.04)
 - [Installation guide for Centos 7](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-CentOS-7-9.2009)
 
 While compilation and execution might be possible on other systems, it might not be straightforward. If you encounter a problem, please refer to known and fixed [issues](https://github.com/I2PC/xmipp/issues?q=is%3Aissue). Let us know if something is not working!
@@ -49,7 +50,7 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 50
 ```
 
 ### Cuda
-Xmipp supports Cuda 8 through 11. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins.
+Xmipp supports Cuda 8 through 11.6. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins.
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
 ### OpenCV
