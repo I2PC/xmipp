@@ -370,7 +370,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	}
 
 	// Decide which model apply to all
-	int mean_model = 0;
+	int mean_model = 0; // NO SE ESTA GUARDANDO BIEN
 	double mean_beta00 = 1;
 	double mean_beta01 = 1;
 	double mean_beta1 = 1;
