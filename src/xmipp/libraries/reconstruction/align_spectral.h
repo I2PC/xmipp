@@ -235,6 +235,7 @@ private:
 
     MetaDataVec m_mdReference;
     MetaDataVec m_mdExperimental;
+    Matrix1D<double> m_weights;
 
     std::vector<TranslationFilter> m_translations;
     BandMap m_bandMap;

@@ -687,6 +687,15 @@ void ProgAlignSpectral::ReferencePcaProjections::getMetadata(   size_t i,
 void ProgAlignSpectral::readInput() {
     readMetadata(m_parameters.fnReference, m_mdReference);
     readMetadata(m_parameters.fnExperimental, m_mdExperimental);
+
+    // TODO determine correctly
+    m_weights.resizeNoCopy(m_parameters.nBands);
+    const auto& bandSizes = m_bandMap.getBandSizes();
+    FOR_ALL_ELEMENTS_IN_MATRIX1D(m_weights) {
+        VEC_ELEM(m_weights, i) = 1.0;
+        //VEC_ELEM(m_weights, i) = std::exp(-static_cast<double>(i));
+        //VEC_ELEM(m_weights, i) bandSizes[i] * std::exp(-static_cast<double>(i));
+    }
 }
 
 void ProgAlignSpectral::calculateTranslationFilters() {
@@ -895,17 +904,9 @@ void ProgAlignSpectral::classifyExperimental() {
         Matrix1D<double> ssnr;
     };
 
-    Matrix1D<double> weights(m_pca.getBandCount());
-    const auto& bandSizes = m_bandMap.getBandSizes();
-    for(size_t i = 0; i < VEC_XSIZE(weights); ++i) {
-        weights[i] = 1.0;
-        //weights[i] = std::exp(-static_cast<double>(i));
-        //weights[i] = bandSizes[i] * std::exp(-static_cast<double>(i));
-    }
-
     // Create a lambda to run in parallel
     std::vector<ThreadData> threadData(m_parameters.nThreads);
-    const auto func = [this, &threadData, &weights] (size_t threadId, size_t i, const MDRowVec& row) {
+    const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
         auto& data = threadData[threadId];
 
         // Read an image
@@ -918,8 +919,8 @@ void ProgAlignSpectral::classifyExperimental() {
         m_pca.centerAndProject(data.bandCoefficients, data.projection);
 
         // Compare the projection to find a match
-        const auto classification = m_references.matchPcaProjection(data.projection, weights);
-        //assert(classification == m_references.matchPcaProjection(data.projection, weights));
+        const auto classification = m_references.matchPcaProjection(data.projection, m_weights);
+        //assert(classification == m_references.matchPcaProjection(data.projection, m_weights));
         m_classification[i] = classification;
 
         // Compute the SSNR
