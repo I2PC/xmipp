@@ -25,6 +25,8 @@
 
 #include <fstream>
 #include <string>
+#include <iostream>
+#include <filesystem>
 #include "pdb.h"
 #include "core/matrix2d.h"
 #include "core/multidim_array.h"
@@ -34,7 +36,9 @@
 #include "data/integration.h"
 #include "data/mask.h"
 #include "data/numerical_tools.h"
-#include <libcifpp/build/cif++/Cif++Export.hpp>
+#include "libcifpp/build/cif++/Cif++Export.hpp"
+#include "libcifpp/include/cif++/CifUtils.hpp"
+#include "libcifpp/include/cif++/Cif++.hpp"
 
 void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
 {
@@ -399,6 +403,8 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
 /* Read phantom from PDB and CIF files--------------------------------------------------- */
 void PDBPhantom::read(const FileName &fnPDB)
 {
+    namespace fs = std::filesystem;
+
     if (fnPDB.getExtension()=="pdb")
     {
         std::cout<<"pdb"<<std::endl;
@@ -439,6 +445,25 @@ void PDBPhantom::read(const FileName &fnPDB)
     }
     else if (fnPDB.getExtension()=="mmcif" || fnPDB.getExtension()=="cif"){
         std::cout<<"mmCIF"<<std::endl;
+        fs::path in("1cbs.cif.gz");
+
+        cif::File file;
+
+        file.loadDictionary("mmcif_pdbx_v50");
+
+        file.load("1cbs.cif.gz");
+
+        auto& db = file.firstDatablock()["atom_site"];
+        auto n = db.find(cif::Key("label_atom_id") == "OXT").size();
+
+        std::cout << "File contains " << db.size() << " atoms of which " << n << (n == 1 ? " is" : " are") << " OXT" << std::endl
+            << "residues with an OXT are:" << std::endl;
+        
+        for (const auto& [asym, comp, seqnr]: db.find<std::string,std::string,int>(
+                cif::Key("label_atom_id") == "OXT", "label_asym_id", "label_comp_id", "label_seq_id"))
+        {
+            std::cout << asym << ' ' << comp << ' ' << seqnr << std::endl;
+        }
         //load(&fnPDB)
         /**
         // Load the file CIF
