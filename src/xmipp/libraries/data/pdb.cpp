@@ -437,8 +437,9 @@ void PDBPhantom::read(const FileName &fnPDB)
         // Close file PDB
         fh_in.close();
     }
-    else if (fnPDB.getExtension()=="mmcif"){
+    else if (fnPDB.getExtension()=="mmcif" || fnPDB.getExtension()=="cif"){
         std::cout<<"mmCIF"<<std::endl;
+        //load(&fnPDB)
         /**
         // Load the file CIF
         load(const FileName &fnPDB)
