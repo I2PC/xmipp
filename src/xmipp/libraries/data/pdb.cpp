@@ -34,6 +34,7 @@
 #include "data/integration.h"
 #include "data/mask.h"
 #include "data/numerical_tools.h"
+#include <libcifpp/build/cif++/Cif++Export.hpp>
 
 void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
 {
@@ -395,43 +396,62 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
     fh_out.close();
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
+/* Read phantom from PDB and CIF files--------------------------------------------------- */
 void PDBPhantom::read(const FileName &fnPDB)
 {
-    // Open file
-    std::ifstream fh_in;
-    fh_in.open(fnPDB.c_str());
-    if (!fh_in)
-        REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
-
-    // Process all lines of the file
-    std::string line;
-    std::string kind;
-    Atom atom;
-    while (!fh_in.eof())
+    if (fnPDB.getExtension()=="pdb")
     {
-        // Read an ATOM line
-        getline(fh_in, line);
-        if (line == "")
+        std::cout<<"pdb"<<std::endl;
+        // Open file PDB
+        std::ifstream fh_in;
+        fh_in.open(fnPDB.c_str());
+        if (!fh_in)
+            REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
+
+        // Process all lines of the file PDB
+        std::string line;
+        std::string kind;
+        Atom atom;
+        while (!fh_in.eof())
         {
-            continue;
+            // Read an ATOM line
+            getline(fh_in, line);
+            if (line == "")
+            {
+                continue;
+            }
+            kind = line.substr(0,4);
+            if (kind != "ATOM" && kind != "HETA")
+                continue;
+
+            // Extract atom type and position
+            // Typical line:
+            // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
+            atom.atomType = line[13];
+            atom.x = textToFloat(line.substr(30,8));
+            atom.y = textToFloat(line.substr(38,8));
+            atom.z = textToFloat(line.substr(46,8));
+            atomList.push_back(atom);
         }
-        kind = line.substr(0,4);
-        if (kind != "ATOM" && kind != "HETA")
-            continue;
 
-        // Extract atom type and position
-        // Typical line:
-        // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        atom.atomType = line[13];
-        atom.x = textToFloat(line.substr(30,8));
-        atom.y = textToFloat(line.substr(38,8));
-        atom.z = textToFloat(line.substr(46,8));
-        atomList.push_back(atom);
+        // Close file PDB
+        fh_in.close();
     }
+    else if (fnPDB.getExtension()=="mmcif"){
+        std::cout<<"mmCIF"<<std::endl;
+        /**
+        // Load the file CIF
+        load(const FileName &fnPDB)
+        // Check it the format of the file CIF is right
+        std::ifstream fh_in;
+        load(fh_in)
+        // Close file CIF
+        fh_in.close();
+        */
+    }
+    else 
+        REPORT_ERROR(ERR_IO_NOTOPEN, fnPDB);
 
-    // Close files
-    fh_in.close();
 }
 
 /* Shift ------------------------------------------------------------------- */
@@ -446,7 +466,7 @@ void PDBPhantom::shift(double x, double y, double z)
     }
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
+/* Read phantom from PDB and CIF files--------------------------------------------------- */
 void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double threshold)
 {
     // Open file
