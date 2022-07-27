@@ -60,6 +60,7 @@
 	fmaskWidth = getIntParam("--fmask_width");
 	limitfreq = getIntParam("--limit_freq");
 	fnProj = getParam("--save"); 
+	meanParam = checkParam("--mean");
  }
 
  // Show ====================================================================
@@ -95,6 +96,7 @@
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
+	 addParamsLine("[--mean]\t: Use same adjustment for all the particles (mean beta0)"); 
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
@@ -210,29 +212,29 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return R2;
  }
 
-double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
- const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int cmod) const { 
-	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
-	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
-	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
-	double R21 = evaluateFitting(IFourierf, PFourierf1); 
-	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
-	// Decide best fitting
-	double R2;
-	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
-		PFourierf = PFourierf1;
-		R2 = R21adj;
-		std::cout << "Order 1 model" << std::endl; 	
-		cmod += 1;	
-	} 
-	else { // Order 0: T(w) = b00 
-		PFourierf = PFourierf0;
-		R2 = R20adj;
-		std::cout << "Order 0 model" << std::endl; 	
-		cmod += 0;		
-	}
-	return R2;
-}
+// double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
+//  const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int cmod) const { 
+// 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
+// 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
+// 	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
+// 	double R21 = evaluateFitting(IFourierf, PFourierf1); 
+// 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
+// 	//Decide best fitting
+// 	double R2;
+// 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
+// 		PFourierf = PFourierf1;
+// 		R2 = R21adj;
+// 		std::cout << "Order 1 model" << std::endl; 	
+// 		cmod += 1;	
+// 	} 
+// 	else { // Order 0: T(w) = b00 
+// 		PFourierf = PFourierf0;
+// 		R2 = R20adj;
+// 		std::cout << "Order 0 model" << std::endl; 	
+// 		cmod += 0;		
+// 	}
+// 	return R2;
+// }
 
  void ProgSubtractProjection::run() {
 	show();
@@ -326,11 +328,11 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 				DIRECT_MULTIDIM_ELEM(num0,win) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier
 												+ imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
 				DIRECT_MULTIDIM_ELEM(den0,win) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
-				A1(0,0) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
-				A1(0,1) += win*(realPiMFourier + imagPiMFourier);
-				A1(1,1) += 2*win;
-				b1(0) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier + imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
-				b1(1) += win*(real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))+imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)));
+				// A1(0,0) += realPiMFourier*realPiMFourier + imagPiMFourier*imagPiMFourier;
+				// A1(0,1) += win*(realPiMFourier + imagPiMFourier);
+				// A1(1,1) += 2*win;
+				// b1(0) += real(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * realPiMFourier + imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)) * imagPiMFourier;
+				// b1(1) += win*(real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))+imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)));
 			}
 		}
 		A1(1,0) = A1(0,1);
@@ -346,100 +348,118 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
 		PFourier0(0,0) = IiMFourier(0,0); 
 
-		// Compute beta01 and beta1 from order 1 model
-		PseudoInverseHelper h;
-		h.A = A1;
-		h.b = b1;
-		Matrix1D<double> betas1;
-		solveLinearSystem(h,betas1); 
-		double beta01 = betas1(0);
-		double beta1 = betas1(1);
-		std::cout << "beta01: " << beta01 << std::endl; 		
-		std::cout << "beta1: " << beta1 << std::endl; 	
-		cumulative_beta01 += beta01; // is ok to cumulate all or only the ones from particles which has been chosen model 1??		
-		cumulative_beta1 += beta1; // is ok to cumulate all or only the ones from particles which has been chosen model 1??			
+		if (!meanParam)
+		{
+			double R2adjC = evaluateFitting(IFourier, PFourier); 
+			// Recover adjusted projection (P) in real space
+			transformerP.inverseFourierTransform(PFourier, P());
+			// Subtraction
+			MultidimArray<double> &mIdiff=Idiff();
+			mIdiff.initZeros(I());
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 
-		// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
-		PFourier1 = PFourier;
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
-			DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
-		PFourier1(0,0) = IiMFourier(0,0); 
+			// Write particle
+			writeParticle(int(i), Idiff, R2adjC);  
+		}
+
+		// // Compute beta01 and beta1 from order 1 model
+		// PseudoInverseHelper h;
+		// h.A = A1;
+		// h.b = b1;
+		// Matrix1D<double> betas1;
+		// solveLinearSystem(h,betas1); 
+		// double beta01 = betas1(0);
+		// double beta1 = betas1(1);
+		// std::cout << "beta01: " << beta01 << std::endl; 		
+		// std::cout << "beta1: " << beta1 << std::endl; 	
+		// cumulative_beta01 += beta01; // is ok to cumulate all or only the ones from particles which has been chosen model 1??		
+		// cumulative_beta1 += beta1; // is ok to cumulate all or only the ones from particles which has been chosen model 1??			
+
+		// // Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
+		// PFourier1 = PFourier;
+		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
+		// 	DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
+		// PFourier1(0,0) = IiMFourier(0,0); 
 
 		// Check best model
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, cumulative_model); 
+		// double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, cumulative_model); 
 	}
 
-	// Decide which model apply to all
-	int mean_model = 0; // NO SE ESTA GUARDANDO BIEN
-	double mean_beta00 = 1;
-	double mean_beta01 = 1;
-	double mean_beta1 = 1;
-	if (cumulative_model > i/2)
+	if (meanParam)
 	{
-		mean_model = 1;
-		mean_beta01 = cumulative_beta01/i;
-		mean_beta1 = cumulative_beta1/i;
-	}
-	else
-		mean_beta00 = cumulative_beta00/i;
+		// Decide which model apply to all
+		// int mean_model = 0; // NO SE ESTA GUARDANDO BIEN
+		double mean_beta00 = 1;
+		// double mean_beta01 = 1;
+		// double mean_beta1 = 1;
+		// if (cumulative_model > i/2)
+		// {
+		// 	mean_model = 1;
+		// 	mean_beta01 = cumulative_beta01/i;
+		// 	mean_beta1 = cumulative_beta1/i;
+		// }
+		// else
+			mean_beta00 = cumulative_beta00/i;
 
-	std::cout << "cumulative model: " << cumulative_model << std::endl;
-	std::cout << "mean model: " << mean_model << std::endl;
-	std::cout << "cumulative beta00: " << cumulative_beta00 << std::endl;
-	std::cout << "mean beta00: " << mean_beta00 << std::endl;
-	std::cout << "cumulative beta01: " << cumulative_beta01 << std::endl;
-	std::cout << "mean beta01: " << mean_beta01 << std::endl;
-	std::cout << "cumulative beta1: " << cumulative_beta1 << std::endl;
-	std::cout << "mean beta1: " << mean_beta1 << std::endl;
+		// std::cout << "cumulative model: " << cumulative_model << std::endl;
+		// std::cout << "mean model: " << mean_model << std::endl;
+		std::cout << "cumulative beta00: " << cumulative_beta00 << std::endl;
+		std::cout << "mean beta00: " << mean_beta00 << std::endl;
+		// std::cout << "cumulative beta01: " << cumulative_beta01 << std::endl;
+		// std::cout << "mean beta01: " << mean_beta01 << std::endl;
+		// std::cout << "cumulative beta1: " << cumulative_beta1 << std::endl;
+		// std::cout << "mean beta1: " << mean_beta1 << std::endl;
 
-    for (i = 1; i <= mdParticles.size(); ++i) {
-		  
-		processParticle(i, sizeI, transformerP, transformerI); // TODO: save projections with CTF (or even transforms) instead of recalculate them
-		auto N = 2.0*(double)MULTIDIM_SIZE(PFourier);
-		double R2adjC;
-		if (mean_model) // Apply model 1
-		{
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier)
-				DIRECT_MULTIDIM_ELEM(PFourier,n) *= (mean_beta01+mean_beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
-			PFourier(0,0) = IiMFourier(0,0);
-			R2adjC = evaluateFitting(IFourier, PFourier);
-		}
-		else // Apply model 0
-		{
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
-				DIRECT_MULTIDIM_ELEM(PFourier,n) *= mean_beta00; 
-			PFourier(0,0) = IiMFourier(0,0); // correct DC component
-			double R21 = evaluateFitting(IFourier, PFourier); 
-			R2adjC = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
-		}
+		for (i = 1; i <= mdParticles.size(); ++i) {
+			
+			processParticle(i, sizeI, transformerP, transformerI); // TODO: save projections with CTF (or even transforms) instead of recalculate them
+			// auto N = 2.0*(double)MULTIDIM_SIZE(PFourier);
+			// double R2adjC;
+			// if (mean_model) // Apply model 1
+			// {
+			// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier)
+			// 		DIRECT_MULTIDIM_ELEM(PFourier,n) *= (mean_beta01+mean_beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
+			// 	PFourier(0,0) = IiMFourier(0,0);
+			// 	R2adjC = evaluateFitting(IFourier, PFourier);
+			//  R2adjC = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
+			// }
+			// else // Apply model 0
+			// {
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
+					DIRECT_MULTIDIM_ELEM(PFourier,n) *= mean_beta00; 
+				PFourier(0,0) = IiMFourier(0,0); // correct DC component
+				double R2adjC = evaluateFitting(IFourier, PFourier); 
+			// }
 
-		// Recover adjusted projection (P) in real space
-		transformerP.inverseFourierTransform(PFourier, P());
+			// Recover adjusted projection (P) in real space
+			transformerP.inverseFourierTransform(PFourier, P());
 
-		// Compute final mask TODO: save masks computed before or do a function for this?
-		if (fnMask.isEmpty() || fmaskWidth == -1) {
-			Mfinal().initZeros(P());
-			iM = invertMask(Mfinal);
-			Mfinal = iM;		
+			// Compute final mask TODO: save masks computed before or do a function for this?
+			if (fnMask.isEmpty() || fmaskWidth == -1) {
+				Mfinal().initZeros(P());
+				iM = invertMask(Mfinal);
+				Mfinal = iM;		
+				}
+			else {
+				projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+				M = binarizeMask(Pmask);
+				Mfinal().initZeros(M());
+				auto fmaskWidth_px = fmaskWidth/(int)sampling;
+				dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
+				FilterG.applyMaskSpace(M());
 			}
-		else {
-			projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
-			M = binarizeMask(Pmask);
-			Mfinal().initZeros(M());
-			auto fmaskWidth_px = fmaskWidth/(int)sampling;
-			dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
-			FilterG.applyMaskSpace(M());
+
+			// Subtraction
+			MultidimArray<double> &mIdiff=Idiff();
+			mIdiff.initZeros(I());
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+
+			// Write particle
+			writeParticle(int(i), Idiff, R2adjC);  
 		}
-
-		// Subtraction
-		MultidimArray<double> &mIdiff=Idiff();
-		mIdiff.initZeros(I());
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-			DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-
-		// Write particle
-		writeParticle(int(i), Idiff, R2adjC);  
-    }
+	}
 	// Write metadata 
     mdParticles.write(fnParticles);
  }

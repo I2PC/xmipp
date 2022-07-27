@@ -49,6 +49,7 @@
     int fmaskWidth;
 	int sigma;
     int limitfreq;
+    bool meanParam;
 
     // Data variables
  	Image<double> V; // volume
