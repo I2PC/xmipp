@@ -61,6 +61,7 @@
 	limitfreq = getIntParam("--limit_freq");
 	fnProj = getParam("--save"); 
 	meanParam = checkParam("--mean");
+	nonNegative = checkParam("--nonNegative");
  }
 
  // Show ====================================================================
@@ -97,6 +98,7 @@
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
 	 addParamsLine("[--mean]\t: Use same adjustment for all the particles (mean beta0)"); 
+	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
@@ -339,7 +341,12 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 
 		// Compute beta00 from order 0 model
 		double beta00 = num0.sum()/den0.sum();
-		std::cout << "beta00: " << beta00 << std::endl; 
+		std::cout << "beta00: " << beta00 << std::endl;
+		if (nonNegative) 
+		{
+			if (beta00 < 0)
+				continue;
+		}
 		cumulative_beta00 += beta00; // is ok to cumulate all or only the ones from particles which has been chosen model 0??		
 
 		// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
@@ -351,6 +358,11 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		if (!meanParam)
 		{
 			double R2adjC = evaluateFitting(IFourier, PFourier); 
+			if (nonNegative) 
+			{
+				if (R2adjC < 0)
+					continue;
+			}
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
 			// Subtraction
@@ -430,6 +442,11 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 					DIRECT_MULTIDIM_ELEM(PFourier,n) *= mean_beta00; 
 				PFourier(0,0) = IiMFourier(0,0); // correct DC component
 				double R2adjC = evaluateFitting(IFourier, PFourier); 
+				if (nonNegative) 
+				{
+					if (R2adjC < 0)
+						continue;
+				}
 			// }
 
 			// Recover adjusted projection (P) in real space

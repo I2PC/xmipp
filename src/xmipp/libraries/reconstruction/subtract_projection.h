@@ -50,6 +50,7 @@
 	int sigma;
     int limitfreq;
     bool meanParam;
+    bool nonNegative;
 
     // Data variables
  	Image<double> V; // volume
