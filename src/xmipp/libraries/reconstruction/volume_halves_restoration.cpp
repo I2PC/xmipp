@@ -373,8 +373,12 @@ void ProgVolumeHalvesRestoration::filterBank()
 	int imax=ceil(0.5/filterStep);
 	std::cerr << "Calculating filter bank ..." << std::endl;
 	init_progress_bar(imax);
-	for (double w=0; w<0.5; w+=filterStep)
-	{
+
+	// keep this comment to understand the while
+	// for (double w=0; w<0.5; w+=filterStep)
+	double w=0;
+	for(; w<0.5; w+=filterStep)
+	{	
 		filterBand(fV1r,bank1,w);
 		filterBand(fV2r,bank2,w);
 
