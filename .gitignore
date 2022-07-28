@@ -65,3 +65,6 @@ xmippEnv.json
 .devel_version
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
+
+# Ignore visual studio files
+/src/xmipp/.vscode/*
