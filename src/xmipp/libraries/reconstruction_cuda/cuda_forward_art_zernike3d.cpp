@@ -103,11 +103,11 @@ void ForwardArtZernike3D::setupConstantParameters()
         throw new std::runtime_error("ForwardArtZernike3D not associated with the program!");
 
     // kernel arguments
-    this->Rmax2 = program->Rmax * program->Rmax;
-    this->iRmax = 1 / program->Rmax;
-    setupImage(program->VI, &images.VI);
+    //this->Rmax2 = program->Rmax * program->Rmax;
+    //this->iRmax = 1 / program->Rmax;
+    //setupImage(program->VI, &images.VI);
     //setupImage(program->VR, &images.VR);
-    setupImageMetaData(program->VR);
+    //setupImageMetaData(program->VR);
     setupZSHparams();
     setupVolumes();
 
@@ -132,15 +132,15 @@ void ForwardArtZernike3D::setupChangingParameters()
 
     setupClnm();
 
-    steps = program->onesInSteps;
+    //steps = program->onesInSteps;
 
     changingSharedMemSize = 0;
     changingSharedMemSize += sizeof(int4) * steps;
     changingSharedMemSize += sizeof(PrecisionType3) * steps;
 
     // Deformation and transformation booleans
-    this->applyTransformation = program->applyTransformation;
-    this->saveDeformation = program->saveDeformation;
+    //this->applyTransformation = program->applyTransformation;
+    //this->saveDeformation = program->saveDeformation;
 
     if (applyTransformation) {
         setupImage(imageMetaData, &images.VO);
@@ -154,13 +154,13 @@ void ForwardArtZernike3D::setupChangingParameters()
 
 void ForwardArtZernike3D::setupClnm()
 {
-    clnmVec.resize(program->vL1.size());
+    //clnmVec.resize(program->vL1.size());
 
-    for (unsigned i = 0; i < program->vL1.size(); ++i) {
-        clnmVec[i].x = program->clnm[i];
-        clnmVec[i].y = program->clnm[i + program->vL1.size()];
-        clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
-    }
+    //for (unsigned i = 0; i < program->vL1.size(); ++i) {
+    //    clnmVec[i].x = program->clnm[i];
+    //    clnmVec[i].y = program->clnm[i + program->vL1.size()];
+    //    clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
+    // }
 
     if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
         processCudaError();
@@ -215,18 +215,19 @@ void ForwardArtZernike3D::runKernel()
 
 void ForwardArtZernike3D::transferResults()
 {
-    if (applyTransformation) {
-        transferImageData(program->VO, images.VO);
-    }
-    if (saveDeformation) {
-        transferImageData(program->Gx, deformImages.Gx);
-        transferImageData(program->Gy, deformImages.Gy);
-        transferImageData(program->Gz, deformImages.Gz);
-    }
+    // if (applyTransformation) {
+    //     transferImageData(program->VO, images.VO);
+    // }
+    // if (saveDeformation) {
+    //     transferImageData(program->Gx, deformImages.Gx);
+    //     transferImageData(program->Gy, deformImages.Gy);
+    //     transferImageData(program->Gz, deformImages.Gz);
+   //  }
 }
 
 void ForwardArtZernike3D::setupZSHparams()
 {
+    /*
     zshparamsVec.resize(program->vL1.size());
 
     for (unsigned i = 0; i < zshparamsVec.size(); ++i) {
@@ -235,7 +236,7 @@ void ForwardArtZernike3D::setupZSHparams()
         zshparamsVec[i].y = program->vL2[i];
         zshparamsVec[i].z = program->vM[i];
     }
-
+    */
     if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
         processCudaError();
 }
@@ -248,8 +249,8 @@ void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData)
 
 void ForwardArtZernike3D::setupVolumes()
 {
-    volumes.count = program->volumesR.size();
-    volumes.volumeSize = program->VR().getSize();
+    // volumes.count = program->volumesR.size();
+    // volumes.volumeSize = program->VR().getSize();
 
     if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
         processCudaError();
@@ -259,8 +260,8 @@ void ForwardArtZernike3D::setupVolumes()
     for (size_t i = 0; i < volumes.count; i++) {
         PrecisionType* tmpI = volumes.I + i * volumes.volumeSize;
         PrecisionType* tmpR = volumes.R + i * volumes.volumeSize;
-        transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
-        transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
+        //transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
+        //transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
     }
 }
 
