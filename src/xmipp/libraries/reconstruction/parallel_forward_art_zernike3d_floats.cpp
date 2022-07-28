@@ -783,6 +783,17 @@ void ProgParallelForwardArtZernike3DFloats::sortOrthogonal()
 	}
 }
 
+MultidimArray<PrecisionType> ProgParallelForwardArtZernike3DFloats::useFilterPrecision(FourierFilter filter, MultidimArray<PrecisionType> precisionImage)
+{
+	MultidimArray<double> doubleImage;
+	MultidimArray<PrecisionType> outputImage;
+	typeCast(precisionImage, doubleImage);
+	filter.generateMask(doubleImage);
+	filter.applyMaskSpace(doubleImage);
+	typeCast(doubleImage, outputImage);
+	return outputImage;
+}
+
 template <ProgParallelForwardArtZernike3DFloats::Direction DIRECTION>
 void ProgParallelForwardArtZernike3DFloats::artModel()
 {
@@ -810,20 +821,8 @@ void ProgParallelForwardArtZernike3DFloats::artModel()
 		{
 			filter.w1=sigma[i];
 			filter2.w1=sigma[i];
-			MultidimArray<double> dP;
-			MultidimArray<PrecisionType> tempP;
-			MultidimArray<double> dW;
-			MultidimArray<PrecisionType> tempW;
-			typeCast(P[i](), dP);
-			filter.generateMask(dP);
-			filter.applyMaskSpace(dP);
-			typeCast(dP, tempP);
-			P[i] = tempP;
-			typeCast(W[i](), dW);
-			filter2.generateMask(dW);
-			filter2.applyMaskSpace(dW);
-			typeCast(dW, tempW);
-			W[i] = tempW;
+			P[i] = useFilterPrecision(filter, P[i]());
+			W[i] = useFilterPrecision(filter2, W[i]());
 		}
 
 		if (hasCTF)
