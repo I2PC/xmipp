@@ -35,7 +35,7 @@
 #include <iterator>
 
 // Empty constructor =======================================================
-ProgParallelForwardArtZernike3D::ProgParallelForwardArtZernike3D()
+ProgParallelForwardArtZernike3DFloat::ProgParallelForwardArtZernike3DFloat()
 {
 	resume = false;
 	produces_a_metadata = true;
@@ -43,10 +43,10 @@ ProgParallelForwardArtZernike3D::ProgParallelForwardArtZernike3D()
 	showOptimization = false;
 }
 
-ProgParallelForwardArtZernike3D::~ProgParallelForwardArtZernike3D() = default;
+ProgParallelForwardArtZernike3DFloat::~ProgParallelForwardArtZernike3DFloat() = default;
 
 // Read arguments ==========================================================
-void ProgParallelForwardArtZernike3D::readParams()
+void ProgParallelForwardArtZernike3DFloat::readParams()
 {
 	XmippMetadataProgram::readParams();
 	fnVolR = getParam("--ref");
@@ -94,7 +94,7 @@ void ProgParallelForwardArtZernike3D::readParams()
 }
 
 // Show ====================================================================
-void ProgParallelForwardArtZernike3D::show()
+void ProgParallelForwardArtZernike3DFloat::show()
 {
 	if (!verbose)
 		return;
@@ -117,7 +117,7 @@ void ProgParallelForwardArtZernike3D::show()
 }
 
 // usage ===================================================================
-void ProgParallelForwardArtZernike3D::defineParams()
+void ProgParallelForwardArtZernike3DFloat::defineParams()
 {
 	addUsageLine("Template-based canonical volume reconstruction through Zernike3D coefficients");
 	defaultComments["-i"].clear();
@@ -153,7 +153,7 @@ void ProgParallelForwardArtZernike3D::defineParams()
 }
 
 // // Produce side information ================================================
-// void ProgParallelForwardArtZernike3D::createWorkFiles() {
+// void ProgParallelForwardArtZernike3DFloat::createWorkFiles() {
 // 	// w_i = 1 / getInputMd()->size();
 // 	if (resume && fnDone.exists()) {
 // 		MetaDataDb done(fnDone);
@@ -167,7 +167,7 @@ void ProgParallelForwardArtZernike3D::defineParams()
 // 	}
 // }
 
-void ProgParallelForwardArtZernike3D::preProcess()
+void ProgParallelForwardArtZernike3DFloat::preProcess()
 {
 
 	// Check that metadata has all information neede
@@ -205,8 +205,8 @@ void ProgParallelForwardArtZernike3D::preProcess()
         p = std::make_unique<std::atomic<PrecisionType*>>(nullptr);
     }
 	
-	// std::vector<std::atomic<double*>> ProgParallelForwardArtZernike3D::p_busy_elem(Xdim*Xdim, nullptr);
-    // std::vector<std::atomic<double*>> ProgParallelForwardArtZernike3D::w_busy_elem(Xdim*Xdim, nullptr);
+	// std::vector<std::atomic<double*>> ProgParallelForwardArtZernike3DFloat::p_busy_elem(Xdim*Xdim, nullptr);
+    // std::vector<std::atomic<double*>> ProgParallelForwardArtZernike3DFloat::w_busy_elem(Xdim*Xdim, nullptr);
 
 	Vout().initZeros(V());
 	Vout().setXmippOrigin();
@@ -341,7 +341,7 @@ void ProgParallelForwardArtZernike3D::preProcess()
 
 }
 
-void ProgParallelForwardArtZernike3D::finishProcessing()
+void ProgParallelForwardArtZernike3DFloat::finishProcessing()
 {
 	// XmippMetadataProgram::finishProcessing();
 	recoverVol();
@@ -350,7 +350,7 @@ void ProgParallelForwardArtZernike3D::finishProcessing()
 
 // Predict =================================================================
 //#define DEBUG
-void ProgParallelForwardArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
+void ProgParallelForwardArtZernike3DFloat::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
 	flagEnabled = 1;
 
@@ -417,12 +417,12 @@ void ProgParallelForwardArtZernike3D::processImage(const FileName &fnImg, const 
 }
 #undef DEBUG
 
-// void ProgParallelForwardArtZernike3D::checkPoint() {
+// void ProgParallelForwardArtZernike3DFloat::checkPoint() {
 // 	getOutputMd().write(fnDone);
 // 	// Vrefined.write(fnVolO);
 // }
 
-void ProgParallelForwardArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
+void ProgParallelForwardArtZernike3DFloat::numCoefficients(int l1, int l2, int &vecSize)
 {
 	for (int h = 0; h <= l2; h++)
 	{
@@ -440,7 +440,7 @@ void ProgParallelForwardArtZernike3D::numCoefficients(int l1, int l2, int &vecSi
 	}
 }
 
-void ProgParallelForwardArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN,
+void ProgParallelForwardArtZernike3DFloat::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN,
 											  Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
 	int idx = 0;
@@ -466,13 +466,13 @@ void ProgParallelForwardArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<i
 	}
 }
 
-// void ProgParallelForwardArtZernike3D::updateCTFImage(double defocusU, double defocusV, double angle)
+// void ProgParallelForwardArtZernike3DFloat::updateCTFImage(double defocusU, double defocusV, double angle)
 // {
 // 	ctf.K=1; // get pure CTF with no envelope
 // 	ctf.produceSideInfo();
 // }
 
-void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
+void ProgParallelForwardArtZernike3DFloat::splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
 											 MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW,
 											 MultidimArray<PrecisionType> &mV, PrecisionType &sg)
 {
@@ -499,7 +499,7 @@ void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<PrecisionType, 2
 	}
 }
 
-// void ProgParallelForwardArtZernike3D::updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV)
+// void ProgParallelForwardArtZernike3DFloat::updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV)
 // {
 // 	// Find the part of the volume that must be updated
 // 	double x_pos = r[0];
@@ -529,7 +529,7 @@ void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<PrecisionType, 2
 // 	}
 // }
 
-void ProgParallelForwardArtZernike3D::recoverVol()
+void ProgParallelForwardArtZernike3DFloat::recoverVol()
 {
 	// Find the part of the volume that must be updated
 	auto &mVout = Vout();
@@ -562,7 +562,7 @@ void ProgParallelForwardArtZernike3D::recoverVol()
 	mVout = mV;
 }
 
-void ProgParallelForwardArtZernike3D::run()
+void ProgParallelForwardArtZernike3DFloat::run()
 {
 	FileName fnImg, fnImgOut, fullBaseName;
 	getOutputMd().clear(); //this allows multiple runs of the same Program object
@@ -713,7 +713,7 @@ void ProgParallelForwardArtZernike3D::run()
 	init();
 }
 
-void ProgParallelForwardArtZernike3D::sortOrthogonal()
+void ProgParallelForwardArtZernike3DFloat::sortOrthogonal()
 {
 	int i, j;
 	size_t numIMG = getInputMd()->size();
@@ -783,8 +783,8 @@ void ProgParallelForwardArtZernike3D::sortOrthogonal()
 	}
 }
 
-template <ProgParallelForwardArtZernike3D::Direction DIRECTION>
-void ProgParallelForwardArtZernike3D::artModel()
+template <ProgParallelForwardArtZernike3DFloat::Direction DIRECTION>
+void ProgParallelForwardArtZernike3DFloat::artModel()
 {
 	if (DIRECTION == Direction::Forward)
 	{
@@ -905,8 +905,8 @@ void ProgParallelForwardArtZernike3D::artModel()
 	}
 }
 
-template <bool USESZERNIKE, ProgParallelForwardArtZernike3D::Direction DIRECTION>
-void ProgParallelForwardArtZernike3D::zernikeModel()
+template <bool USESZERNIKE, ProgParallelForwardArtZernike3DFloat::Direction DIRECTION>
+void ProgParallelForwardArtZernike3DFloat::zernikeModel()
 {
 	// auto &mId = Idiff();
 	auto &mV = Vrefined();
@@ -965,7 +965,7 @@ void ProgParallelForwardArtZernike3D::zernikeModel()
     }
 }
 
-void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike) 
+void ProgParallelForwardArtZernike3DFloat::forwardModel(int k, bool usesZernike) 
 {
 	auto &mV = Vrefined();
 	const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
@@ -1043,7 +1043,7 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 	}
 }
 
-void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
+void ProgParallelForwardArtZernike3DFloat::backwardModel(int k, bool usesZernike)
 {
 	auto &mId = Idiff();
 	auto &mV = Vrefined();
@@ -1110,7 +1110,7 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 	}
 }
 
-// double ProgParallelForwardArtZernike3D::bspline1(double x)
+// double ProgParallelForwardArtZernike3DFloat::bspline1(double x)
 // {
 // 	double m = 1 / sigma;
 // 	if (0. < x && x < sigma)

@@ -43,7 +43,7 @@ using PrecisionType = float;
 #define SQRT sqrtf
 
 /** Predict Continuous Parameters. */
-class ProgParallelForwardArtZernike3D: public XmippMetadataProgram
+class ProgParallelForwardArtZernike3DFloat: public XmippMetadataProgram
 {
 public:
      /** Filename of the reference volume */
@@ -154,10 +154,10 @@ public:
     enum class Mode { Proj, Vol };
 
     /// Empty constructor
-	ProgParallelForwardArtZernike3D();
+	ProgParallelForwardArtZernike3DFloat();
 
     /// Destructor
-    ~ProgParallelForwardArtZernike3D();
+    ~ProgParallelForwardArtZernike3DFloat();
 
     /// Read argument from command line
     void readParams();
