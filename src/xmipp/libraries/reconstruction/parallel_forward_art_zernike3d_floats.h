@@ -215,9 +215,9 @@ public:
     void zernikeModel();
 
     // Spaltting at position r
-    void splattingAtPos(std::array<double, 2> r, double weight, 
-                        MultidimArray<double> &mP, MultidimArray<double> &mW, 
-                        MultidimArray<double> &mV, double &sg);
+    void splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight, 
+                        MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW, 
+                        MultidimArray<PrecisionType> &mV, PrecisionType &sg);
 
     // void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
 
