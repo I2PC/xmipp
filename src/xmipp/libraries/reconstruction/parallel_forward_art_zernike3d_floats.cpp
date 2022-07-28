@@ -815,13 +815,13 @@ void ProgParallelForwardArtZernike3D::artModel()
 			MultidimArray<double> dW;
 			MultidimArray<PrecisionType> tempW;
 			typeCast(P[i](), dP);
-			filter.generateMask(P[i]());
-			filter.applyMaskSpace(P[i]());
+			filter.generateMask(dP);
+			filter.applyMaskSpace(dP);
 			typeCast(dP, tempP);
 			P[i] = tempP;
 			typeCast(W[i](), dW);
-			filter2.generateMask(W[i]());
-			filter2.applyMaskSpace(W[i]());
+			filter2.generateMask(dW);
+			filter2.applyMaskSpace(dW);
 			typeCast(dW, tempW);
 			W[i] = tempW;
 		}
