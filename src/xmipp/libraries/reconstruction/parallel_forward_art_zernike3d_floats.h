@@ -207,7 +207,7 @@ public:
     enum class Direction { Forward, Backward };
 
     /// Uses Fourier filter with PrecisionType values
-    MultidimArray<PrecisionType> useFilterPrecision(FourierFilter filter, 
+    MultidimArray<PrecisionType> useFilterPrecision(FourierFilter &filter, 
                                                     MultidimArray<PrecisionType> precisionImage);   
 
     // ART algorithm

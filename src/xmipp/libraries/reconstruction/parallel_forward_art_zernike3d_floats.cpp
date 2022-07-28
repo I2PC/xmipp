@@ -783,7 +783,7 @@ void ProgParallelForwardArtZernike3DFloats::sortOrthogonal()
 	}
 }
 
-MultidimArray<PrecisionType> ProgParallelForwardArtZernike3DFloats::useFilterPrecision(FourierFilter filter, MultidimArray<PrecisionType> precisionImage)
+MultidimArray<PrecisionType> ProgParallelForwardArtZernike3DFloats::useFilterPrecision(FourierFilter &filter, MultidimArray<PrecisionType> precisionImage)
 {
 	MultidimArray<double> doubleImage;
 	MultidimArray<PrecisionType> outputImage;
