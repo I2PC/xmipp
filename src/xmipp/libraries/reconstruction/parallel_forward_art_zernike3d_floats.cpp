@@ -810,10 +810,20 @@ void ProgParallelForwardArtZernike3D::artModel()
 		{
 			filter.w1=sigma[i];
 			filter2.w1=sigma[i];
+			MultidimArray<double> dP;
+			MultidimArray<PrecisionType> tempP;
+			MultidimArray<double> dW;
+			MultidimArray<PrecisionType> tempW;
+			typeCast(P[i](), dP);
 			filter.generateMask(P[i]());
 			filter.applyMaskSpace(P[i]());
+			typeCast(dP, tempP);
+			P[i] = tempP;
+			typeCast(W[i](), dW);
 			filter2.generateMask(W[i]());
 			filter2.applyMaskSpace(W[i]());
+			typeCast(dW, tempW);
+			W[i] = tempW;
 		}
 
 		if (hasCTF)
