@@ -35,7 +35,6 @@
 #include <core/xmipp_error.h>
 #include <data/blobs.h>
 #include <CTPL/ctpl_stl.h>
-// #include <atomic>
 
 // Precision type
 using PrecisionType = float;
@@ -103,7 +102,6 @@ public:
     // Atomic mutex
     std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> p_busy_elem;
     std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> w_busy_elem;
-    // std::atomic<double*> v_busy_elem{ nullptr };
     // Difference Image
     Image<PrecisionType> Idiff;
     // Transformation matrix
@@ -199,10 +197,6 @@ public:
     void recoverVol();
     virtual void finishProcessing();
 
-    // double bspline1(double x);
-
-    // void updateCTFImage(double defocusU, double defocusV, double angle);
-
   private:
     enum class Direction { Forward, Backward };
 
@@ -222,10 +216,6 @@ public:
     void splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight, 
                         MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW, 
                         MultidimArray<PrecisionType> &mV, PrecisionType &sg);
-
-    // void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
-
-    // virtual void checkPoint();
 
     virtual void run();
 
