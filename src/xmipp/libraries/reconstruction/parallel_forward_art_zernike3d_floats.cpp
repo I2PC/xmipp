@@ -66,7 +66,6 @@ void ProgParallelForwardArtZernike3DFloats::readParams()
 	niter = getIntParam("--niter");
 	save_iter = getIntParam("--save_iter");
 	sort_last_N = getIntParam("--sort_last");
-	// fnDone = fnOutDir + "/sphDone.xmd";
 	FileName outPath = getParam("-o");
 	outPath = outPath.afterLastOf("/");
 	fnVolO = fnOutDir + "/" + outPath;
@@ -714,7 +713,8 @@ void ProgParallelForwardArtZernike3DFloats::artModel()
 			std::cin >> c;
 		}
 
-		// Creo que Carlos no usa un RMSE si no un MSE
+		/* Creo que Carlos no usa un RMSE si no un MSE
+		 * Translates to: I think Carlos does not use a RMSE but a MSE. */
 		error = std::sqrt(error / N);
 		if (verbose >= 2)
 			std::cout << "Error for image " << num_images << " (" << current_image << ") in iteration " << current_iter + 1 << " : " << error << std::endl;
