@@ -197,12 +197,12 @@ void ProgParallelForwardArtZernike3D::preProcess()
 
 	p_busy_elem.resize(Xdim*Xdim);
     for (auto& p : p_busy_elem) {
-        p = std::make_unique<std::atomic<double*>>(nullptr);
+        p = std::make_unique<std::atomic<PrecisionType*>>(nullptr);
     }
 
 	w_busy_elem.resize(Xdim*Xdim);
     for (auto& p : w_busy_elem) {
-        p = std::make_unique<std::atomic<double*>>(nullptr);
+        p = std::make_unique<std::atomic<PrecisionType*>>(nullptr);
     }
 	
 	// std::vector<std::atomic<double*>> ProgParallelForwardArtZernike3D::p_busy_elem(Xdim*Xdim, nullptr);
@@ -375,11 +375,11 @@ void ProgParallelForwardArtZernike3D::processImage(const FileName &fnImg, const 
 	// shiftX = static_cast<double>(auxShiftX);
 	// shiftY = static_cast<double>(auxShiftY);
 	// std::vector<double> vectortemp;
-	std::vector<double> vectortemp;
+	std::vector<PrecisionType> vectortemp;
 	if (useZernike)
 	{
 		rowIn.getValue(MDL_SPH_COEFFICIENTS, vectortemp);
-		std::vector<double> vec(vectortemp.begin(), vectortemp.end());
+		std::vector<PrecisionType> vec(vectortemp.begin(), vectortemp.end());
 		clnm = vec;
 	}
 	rowIn.getValueOrDefault(MDL_FLIP, flip, false);
