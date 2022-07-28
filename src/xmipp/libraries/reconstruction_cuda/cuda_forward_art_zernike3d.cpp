@@ -90,7 +90,7 @@ ForwardArtZernike3D::~ForwardArtZernike3D()
 }
 
 void ForwardArtZernike3D::associateWith(ProgForwardArtZernike3DGPU* prog)
-For{
+{
     program = prog;
 }
 
