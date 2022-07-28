@@ -37,6 +37,7 @@
 #include <CTPL/ctpl_stl.h>
 // #include <atomic>
 
+using PrecisionType = float;
 
 /** Predict Continuous Parameters. */
 class ProgParallelForwardArtZernike3D: public XmippMetadataProgram
@@ -87,25 +88,25 @@ public:
     // Volume size
     size_t Xdim;
     // Input image
-	Image<double> V, Vrefined, Vout, Ifilteredp;
+	Image<PrecisionType> V, Vrefined, Vout, Ifilteredp;
     // INput image
     Image<double> I;
     // Spherical mask
     MultidimArray<int> Vmask, VRecMask, sphMask;
 	// Theoretical projection
-	std::vector<Image<double>> P;
+	std::vector<Image<PrecisionType>> P;
     // Weight Image
-    std::vector<Image<double>> W;
+    std::vector<Image<PrecisionType>> W;
     // Atomic mutex
-    std::vector<std::unique_ptr<std::atomic<double*>>> p_busy_elem;
-    std::vector<std::unique_ptr<std::atomic<double*>>> w_busy_elem;
+    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> p_busy_elem;
+    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> w_busy_elem;
     // std::atomic<double*> v_busy_elem{ nullptr };
     // Difference Image
-    Image<double> Idiff;
+    Image<PrecisionType> Idiff;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
-    double rot, tilt, psi;
+    PrecisionType rot, tilt, psi;
     // Original shift
 	double shiftX, shiftY;
 	// Original flip
@@ -121,7 +122,7 @@ public:
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
-	std::vector<double> clnm;
+	std::vector<PrecisionType> clnm;
 	// Show optimization
 	bool showOptimization;
     // Row ids ordered in a orthogonal fashion
@@ -137,7 +138,7 @@ public:
     // Loop step
     int loop_step;
     // Sigma
-    std::vector<double> sigma;
+    std::vector<PrecisionType> sigma;
 
     // Filter
     FourierFilter filter, filter2;

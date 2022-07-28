@@ -34,8 +34,6 @@
 #include <fstream>
 #include <iterator>
 
-using PrecisionType = float;
-
 // Empty constructor =======================================================
 ProgParallelForwardArtZernike3D::ProgParallelForwardArtZernike3D()
 {
@@ -475,8 +473,8 @@ void ProgParallelForwardArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<i
 // }
 
 void ProgParallelForwardArtZernike3D::splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
-											 MultidimArray<double> &mP, MultidimArray<double> &mW,
-											 MultidimArray<double> &mV, double &sg)
+											 MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW,
+											 MultidimArray<PrecisionType> &mV, PrecisionType &sg)
 {
 	int i = round(r[1]);
 	int j = round(r[0]);
