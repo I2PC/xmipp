@@ -37,7 +37,10 @@
 #include <CTPL/ctpl_stl.h>
 // #include <atomic>
 
+// Precision type
 using PrecisionType = float;
+// Functions
+#define SQRT sqrtf
 
 /** Predict Continuous Parameters. */
 class ProgParallelForwardArtZernike3D: public XmippMetadataProgram

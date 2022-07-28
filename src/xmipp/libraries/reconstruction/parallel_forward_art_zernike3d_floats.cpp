@@ -1002,7 +1002,7 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 					auto ir = i * iRmaxF;
 					auto r2 = k2i2 + j * j;
 					auto jr = j * iRmaxF;
-					auto rr = sqrt(r2) * iRmaxF;
+					auto rr = SQRT(r2) * iRmaxF;
 					for (size_t idx = 0; idx < idxY0; idx++)
 					{
 						auto l1 = VEC_ELEM(vL1, idx);
@@ -1070,7 +1070,7 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 					auto ir = i * iRmaxF;
 					auto r2 = k2i2 + j * j;
 					auto jr = j * iRmaxF;
-					auto rr = sqrt(r2) * iRmaxF;
+					auto rr = SQRT(r2) * iRmaxF;
 					for (size_t idx = 0; idx < idxY0; idx++)
 					{
 						auto l1 = VEC_ELEM(vL1, idx);
