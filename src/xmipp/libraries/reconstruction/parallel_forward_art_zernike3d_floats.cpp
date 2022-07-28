@@ -1011,7 +1011,7 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 						auto m = VEC_ELEM(vM, idx);
 						if (rr > 0 || l2 == 0)
 						{
-							auto zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+							PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
 							gx += clnm[idx] * (zsph);
 							gy += clnm[idx + idxY0] * (zsph);
 							gz += clnm[idx + idxZ0] * (zsph);
@@ -1079,7 +1079,7 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 						auto m = VEC_ELEM(vM, idx);
 						if (rr > 0 || l2 == 0)
 						{
-							auto zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+							PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
 							gx += clnm[idx] * (zsph);
 							gy += clnm[idx + idxY0] * (zsph);
 							gz += clnm[idx + idxZ0] * (zsph);
