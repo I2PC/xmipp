@@ -36,6 +36,10 @@
 #include <data/blobs.h>
 #include <CTPL/ctpl_stl.h>
 
+// Precision type
+using PrecisionType = float;
+// Functions
+#define SQRT sqrtf
 
 /** Predict Continuous Parameters. */
 class ProgForwardArtZernike3DGPU: public XmippMetadataProgram
@@ -86,25 +90,24 @@ public:
     // Volume size
     size_t Xdim;
     // Input image
-	Image<double> V, Vrefined, Vout, Ifilteredp;
+	Image<PrecisionType> V, Vrefined, Vout, Ifilteredp;
     // INput image
     Image<double> I;
     // Spherical mask
     MultidimArray<int> Vmask, VRecMask, sphMask;
 	// Theoretical projection
-	std::vector<Image<double>> P;
+	std::vector<Image<PrecisionType>> P;
     // Weight Image
-    std::vector<Image<double>> W;
+    std::vector<Image<PrecisionType>> W;
     // Atomic mutex
-    std::vector<std::unique_ptr<std::atomic<double*>>> p_busy_elem;
-    std::vector<std::unique_ptr<std::atomic<double*>>> w_busy_elem;
-    // std::atomic<double*> v_busy_elem{ nullptr };
+    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> p_busy_elem;
+    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> w_busy_elem;
     // Difference Image
-    Image<double> Idiff;
+    Image<PrecisionType> Idiff;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
-    double rot, tilt, psi;
+    PrecisionType rot, tilt, psi;
     // Original shift
 	double shiftX, shiftY;
 	// Original flip
@@ -120,7 +123,7 @@ public:
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
-	std::vector<double> clnm;
+	std::vector<PrecisionType> clnm;
 	// Show optimization
 	bool showOptimization;
     // Row ids ordered in a orthogonal fashion
@@ -136,7 +139,7 @@ public:
     // Loop step
     int loop_step;
     // Sigma
-    std::vector<double> sigma;
+    std::vector<PrecisionType> sigma;
 
     // Filter
     FourierFilter filter, filter2;
@@ -194,12 +197,12 @@ public:
     void recoverVol();
     virtual void finishProcessing();
 
-    // double bspline1(double x);
-
-    // void updateCTFImage(double defocusU, double defocusV, double angle);
-
   private:
     enum class Direction { Forward, Backward };
+
+    /// Uses Fourier filter with PrecisionType values
+    MultidimArray<PrecisionType> useFilterPrecision(FourierFilter &filter,
+                                                    MultidimArray<PrecisionType> precisionImage);
 
     // ART algorithm
     template <Direction DIRECTION>
@@ -210,13 +213,9 @@ public:
     void zernikeModel();
 
     // Spaltting at position r
-    void splattingAtPos(std::array<double, 2> r, double weight,
-                        MultidimArray<double> &mP, MultidimArray<double> &mW,
-                        MultidimArray<double> &mV, double &sg);
-
-    // void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
-
-    // virtual void checkPoint();
+    void splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
+                        MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW,
+                        MultidimArray<PrecisionType> &mV, PrecisionType &sg);
 
     virtual void run();
 
