@@ -793,13 +793,14 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 	}();
 
 	struct MultidimArrayCuda<int> cudaVRecMask = initializeMultidimArray(VRecMask);
+	struct MultidimArrayCuda<PrecisionType> cudaMV = initializeMultidimArray(mV);
 
-	const auto lastY = FINISHINGY(mV);
-	const auto lastX = FINISHINGX(mV);
+	const auto lastY = FINISHINGY(cudaMV);
+	const auto lastX = FINISHINGX(cudaMV);
 	const int step = loop_step;
-	for (int i = STARTINGY(mV); i <= lastY; i += step)
+	for (int i = STARTINGY(cudaMV); i <= lastY; i += step)
 	{
-		for (int j = STARTINGX(mV); j <= lastX; j += step)
+		for (int j = STARTINGX(cudaMV); j <= lastX; j += step)
 		{
 			PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 			if (A3D_ELEM(cudaVRecMask, k, i, j) != 0)
@@ -845,7 +846,7 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 				auto pos = std::array<PrecisionType, 2>{};
 				pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
 				pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-				PrecisionType voxel_mV = A3D_ELEM(mV, k, i, j);
+				PrecisionType voxel_mV = A3D_ELEM(cudaMV, k, i, j);
 				splattingAtPos(pos, voxel_mV, mP, mW);
 			}
 		}
