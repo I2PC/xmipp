@@ -747,20 +747,20 @@ void ProgParallelForwardArtZernike3DFloats::zernikeModel()
     };
 
 	for (int k = STARTINGZ(mV); k <= lastZ; k += step)
-	{	
+	{
 		if (DIRECTION == Direction::Forward)
 			futures.emplace_back(m_threadPool.push(routine_forward, k));
 		else if (DIRECTION == Direction::Backward)
 			futures.emplace_back(m_threadPool.push(routine_backward, k));
 	}
 
-	for (auto &f : futures) 
+	for (auto &f : futures)
 	{
         f.get();
     }
 }
 
-void ProgParallelForwardArtZernike3DFloats::forwardModel(int k, bool usesZernike) 
+void ProgParallelForwardArtZernike3DFloats::forwardModel(int k, bool usesZernike)
 {
 	auto &mV = Vrefined();
 	const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
