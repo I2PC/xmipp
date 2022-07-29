@@ -413,8 +413,7 @@ void ProgForwardArtZernike3DGPU::fillVectorTerms(int l1, int l2, Matrix1D<int> &
 }
 
 void ProgForwardArtZernike3DGPU::splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
-											 MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW,
-											 MultidimArray<PrecisionType> &mV, PrecisionType &sg)
+											 MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW)
 {
 	int i = round(r[1]);
 	int j = round(r[0]);
@@ -831,7 +830,7 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 				pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
 				pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
 				PrecisionType voxel_mV = A3D_ELEM(mV, k, i, j);
-				splattingAtPos(pos, voxel_mV, mP, mW, mV, sigma[img_idx]);
+				splattingAtPos(pos, voxel_mV, mP, mW);
 			}
 		}
 	}

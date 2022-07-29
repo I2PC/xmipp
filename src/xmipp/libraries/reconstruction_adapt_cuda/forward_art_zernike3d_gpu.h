@@ -214,8 +214,7 @@ public:
 
     // Spaltting at position r
     void splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
-                        MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW,
-                        MultidimArray<PrecisionType> &mV, PrecisionType &sg);
+                        MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW);
 
     virtual void run();
 
