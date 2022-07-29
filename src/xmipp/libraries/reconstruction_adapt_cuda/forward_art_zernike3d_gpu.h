@@ -49,7 +49,7 @@ struct MultidimArrayCuda {
     int yinit;
     int zinit;
     T* data;
-}
+};
 
 /** Predict Continuous Parameters. */
 class ProgForwardArtZernike3DGPU: public XmippMetadataProgram
