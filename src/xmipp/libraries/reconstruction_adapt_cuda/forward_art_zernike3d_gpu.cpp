@@ -766,6 +766,7 @@ MultidimArrayCuda<T> ProgForwardArtZernike3DGPU::initializeMultidimArray(Multidi
 	struct MultidimArrayCuda<T> cudaArray = {
 		.xdim = multidimArray.xdim,
 		.ydim = multidimArray.ydim,
+		.yxdim = multidimArray.yxdim,
 		.xinit = multidimArray.xinit,
     	.yinit = multidimArray.yinit,
     	.zinit = multidimArray.zinit,
