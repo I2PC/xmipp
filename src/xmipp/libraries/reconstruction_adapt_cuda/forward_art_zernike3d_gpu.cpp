@@ -766,7 +766,6 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 	const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
 	const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
 	const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
-	const PrecisionType RmaxF2 = usesZernike ? (RmaxF * RmaxF) : 0;
 	const PrecisionType iRmaxF = usesZernike ? (1.0f / RmaxF) : 0;
 	// Rotation Matrix
 	constexpr size_t matrixSize = 3;
@@ -843,7 +842,6 @@ void ProgForwardArtZernike3DGPU::backwardModel(int k, bool usesZernike)
 	const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
 	const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
 	const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
-	const PrecisionType RmaxF2 = usesZernike ? (RmaxF * RmaxF) : 0;
 	const PrecisionType iRmaxF = usesZernike ? (1.0f / RmaxF) : 0;
 	// Rotation Matrix
 	constexpr size_t matrixSize = 3;
