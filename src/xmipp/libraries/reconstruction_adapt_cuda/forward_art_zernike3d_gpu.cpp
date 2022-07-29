@@ -760,6 +760,20 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
     }
 }
 
+template<typename T>
+MultidimArrayCuda<T> ProgForwardArtZernike3DGPU::initializeMultidimArray(MultidimArray<T> multidimArray) 
+{
+	struct MultidimArrayCuda<T> cudaArray = {
+		.xdim = multidimArray.xdim;
+		.ydim = multidimArray.ydim;
+		.xinit = multidimArray.xinit;
+    	.yinit = multidimArray.yinit;
+    	.zinit = multidimArray.zinit;
+    	.data = multidimArray.data;
+	};
+	return cudaArray;
+}
+
 void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 {
 	auto &mV = Vrefined();
@@ -776,6 +790,8 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 		Euler_angles2matrix(rot, tilt, psi, tmp, false);
 		return tmp;
 	}();
+
+	struct MultidimArrayCuda<int> cudaVRecMask = initializeMultidimArray(VRecMask);
 
 	const auto lastY = FINISHINGY(mV);
 	const auto lastX = FINISHINGX(mV);

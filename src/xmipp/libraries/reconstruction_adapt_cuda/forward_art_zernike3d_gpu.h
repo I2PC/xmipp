@@ -231,6 +231,10 @@ public:
     // Sort images in an orthogonal fashion
     void sortOrthogonal();
 
+    /// Move data from MultidimArray to struct usable by CUDA kernel
+    template<typename T>
+    MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> multidimArray);    
+
     void forwardModel(int k, bool usesZernike);
     void backwardModel(int k, bool usesZernike);
 
