@@ -764,12 +764,12 @@ template<typename T>
 MultidimArrayCuda<T> ProgForwardArtZernike3DGPU::initializeMultidimArray(MultidimArray<T> multidimArray) 
 {
 	struct MultidimArrayCuda<T> cudaArray = {
-		.xdim = multidimArray.xdim;
-		.ydim = multidimArray.ydim;
-		.xinit = multidimArray.xinit;
-    	.yinit = multidimArray.yinit;
-    	.zinit = multidimArray.zinit;
-    	.data = multidimArray.data;
+		.xdim = multidimArray.xdim,
+		.ydim = multidimArray.ydim,
+		.xinit = multidimArray.xinit,
+    	.yinit = multidimArray.yinit,
+    	.zinit = multidimArray.zinit,
+    	.data = multidimArray.data
 	};
 	return cudaArray;
 }
