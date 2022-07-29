@@ -34,6 +34,11 @@
 #include <fstream>
 #include <iterator>
 
+// Macros
+#define IS_OUTSIDE2D(ImD,i,j) \
+    ((j) < STARTINGX((ImD)) || (j) > FINISHINGX((ImD)) || \
+     (i) < STARTINGY((ImD)) || (i) > FINISHINGY((ImD)))	 
+
 // Empty constructor =======================================================
 ProgForwardArtZernike3DGPU::ProgForwardArtZernike3DGPU()
 {
@@ -413,11 +418,11 @@ void ProgForwardArtZernike3DGPU::fillVectorTerms(int l1, int l2, Matrix1D<int> &
 }
 
 void ProgForwardArtZernike3DGPU::splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
-											 MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW)
+											 MultidimArrayCuda<PrecisionType> &mP, MultidimArrayCuda<PrecisionType> &mW)
 {
 	int i = round(r[1]);
 	int j = round(r[0]);
-	if (!mP.outside(i, j))
+	if(!IS_OUTSIDE2D(mP, i, j))
 	{
 		int idy = (i)-STARTINGY(mP);
 		int idx = (j)-STARTINGX(mP);
@@ -761,7 +766,7 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 }
 
 template<typename T>
-MultidimArrayCuda<T> ProgForwardArtZernike3DGPU::initializeMultidimArray(MultidimArray<T> multidimArray) 
+MultidimArrayCuda<T> ProgForwardArtZernike3DGPU::initializeMultidimArray(MultidimArray<T> &multidimArray) 
 {
 	struct MultidimArrayCuda<T> cudaArray = {
 		.xdim = multidimArray.xdim,
@@ -792,8 +797,21 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 		return tmp;
 	}();
 
-	struct MultidimArrayCuda<int> cudaVRecMask = initializeMultidimArray(VRecMask);
-	struct MultidimArrayCuda<PrecisionType> cudaMV = initializeMultidimArray(mV);
+	// Setup data for CUDA kernel
+	auto cudaVRecMask = initializeMultidimArray(VRecMask);
+	auto cudaMV = initializeMultidimArray(mV);
+	std::vector<MultidimArrayCuda<PrecisionType>> tempP;
+	std::vector<MultidimArrayCuda<PrecisionType>> tempW;
+	for (int m = 0; m < P.size(); m++) 
+	{
+		tempP.push_back(initializeMultidimArray(P[m]()));	
+	}
+	for (int m = 0; m < W.size(); m++) 
+	{
+		tempW.push_back(initializeMultidimArray(W[m]()));	
+	}
+	auto *cudaP = tempP.data();
+	auto *cudaW = tempW.data();
 
 	const auto lastY = FINISHINGY(cudaMV);
 	const auto lastX = FINISHINGX(cudaMV);
@@ -812,8 +830,8 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 					auto it = find(sigma.begin(), sigma.end(), sigma_mask);
 					img_idx = it - sigma.begin();
 				}
-				auto &mP = P[img_idx]();
-				auto &mW = W[img_idx]();
+				auto &mP = cudaP[img_idx];
+				auto &mW = cudaW[img_idx];
 				if (usesZernike)
 				{
 					auto k2 = k * k;

@@ -43,9 +43,9 @@ using PrecisionType = float;
 
 template<typename T>
 struct MultidimArrayCuda {
-    int xdim;
-    int ydim;
-    int yxdim;
+    size_t xdim;
+    size_t ydim;
+    size_t yxdim;
     int xinit;
     int yinit;
     int zinit;
@@ -225,7 +225,7 @@ public:
 
     // Spaltting at position r
     void splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
-                        MultidimArray<PrecisionType> &mP, MultidimArray<PrecisionType> &mW);
+                        MultidimArrayCuda<PrecisionType> &mP, MultidimArrayCuda<PrecisionType> &mW);
 
     virtual void run();
 
@@ -234,7 +234,7 @@ public:
 
     /// Move data from MultidimArray to struct usable by CUDA kernel
     template<typename T>
-    MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> multidimArray);    
+    MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray);    
 
     void forwardModel(int k, bool usesZernike);
     void backwardModel(int k, bool usesZernike);
