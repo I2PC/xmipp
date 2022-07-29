@@ -45,7 +45,7 @@ template<typename T>
 struct MultidimArrayCuda {
     int xdim;
     int ydim;
-    int xydim;
+    int yxdim;
     int xinit;
     int yinit;
     int zinit;
