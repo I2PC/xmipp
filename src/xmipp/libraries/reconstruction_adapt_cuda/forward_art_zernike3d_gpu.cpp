@@ -801,12 +801,12 @@ void ProgForwardArtZernike3DGPU::forwardModel(int k, bool usesZernike)
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(VRecMask, k, i, j) != 0)
+			if (A3D_ELEM(cudaVRecMask, k, i, j) != 0)
 			{
 				int img_idx = 0;
 				if (sigma.size() > 1)
 				{
-					PrecisionType sigma_mask = A3D_ELEM(VRecMask, k, i, j);
+					PrecisionType sigma_mask = A3D_ELEM(cudaVRecMask, k, i, j);
 					auto it = find(sigma.begin(), sigma.end(), sigma_mask);
 					img_idx = it - sigma.begin();
 				}
