@@ -36,8 +36,8 @@
 #include "data/integration.h"
 #include "data/mask.h"
 #include "data/numerical_tools.h"
-#include "libcifpp/build/cif++/Cif++Export.hpp"
-#include "libcifpp/include/cif++/CifUtils.hpp"
+//#include "libcifpp/build/cif++/Cif++Export.hpp"
+//#include "libcifpp/include/cif++/CifUtils.hpp"
 #include "libcifpp/include/cif++/Cif++.hpp"
 
 void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
