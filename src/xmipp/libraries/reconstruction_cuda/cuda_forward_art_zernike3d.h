@@ -2,91 +2,54 @@
 #define CUDA_FORWARD_ART_ZERNIKE3D_H
 
 // Xmipp includes
-#include "core/xmipp_image.h"
-#include "core/multidim_array.h"
+#include <core/xmipp_image.h>
+#include <core/multidim_array.h>
+#include <core/xmipp_image.h>
+#include <core/matrix1d.h>
+#include <core/multidim_array.h>
 // Standard includes
 #include <vector>
 
-// Forward declarations
-class ProgForwardArtZernike3DGPU;
-struct int4;
 struct float3;
 struct double3;
 
-#ifdef USE_DOUBLE_PRECISION
-using PrecisionType = double;
-using PrecisionType3 = double3;
-#else
-using PrecisionType = float;
-using PrecisionType3 = float3;
-#endif
-
-struct ImageMetaData
+template<typename PrecisionType = float>
+class CUDAForwardArtZernike3D
 {
-    int xShift = 0;
-    int yShift = 0;
-    int zShift = 0;
+    static_assert(std::is_floating_point<PrecisionType>::value, "Floating point type is required.");
 
-    int xDim = 0;
-    int yDim = 0;
-    int zDim = 0;
-};
+    using PrecisionType3 = std::conditional<std::is_same<PrecisionType, float>::value, float3, double3>;
 
-struct Volumes
-{
-    PrecisionType* I = nullptr;
-    PrecisionType* R = nullptr;
-    unsigned count = 0;
-    unsigned volumeSize = 0;
-};
-
-struct IROimages
-{
-    PrecisionType* VI;
-    PrecisionType* VR;
-    PrecisionType* VO;
-};
-
-struct DeformImages
-{
-    PrecisionType* Gx;
-    PrecisionType* Gy;
-    PrecisionType* Gz;
-};
-
-struct KernelOutputs
-{
-    PrecisionType diff2 = 0.0;
-    PrecisionType sumVD = 0.0;
-    PrecisionType modg = 0.0;
-};
-
-class ForwardArtZernike3D
-{
 public:
-    void associateWith(ProgForwardArtZernike3DGPU* prog);
-    void setupConstantParameters();
-    void setupChangingParameters();
+    /// Constant parameters for the computation
+    struct ConstantParameters {
+        Image<PrecisionType> &Vrefined;
+        MultidimArray<int> &VRecMask, &sphMask;
+        Matrix1D<int> &vL1, &vN, &vL2, &vM;
+        std::vector<PrecisionType> &sigma;
+        int RmaxDef;
+        PrecisionType rot, tilt, psi;
+    };
 
-    void pretuneKernel();
-    void runKernel();
-    void transferResults();
+public:
 
-    KernelOutputs getOutputs();
+    template<bool usesZernike>
+    void runForwardKernel(const std::vector<PrecisionType> &clnm,
+                          std::vector<Image<PrecisionType>> &P,
+                          std::vector<Image<PrecisionType>> &W);
 
-    ForwardArtZernike3D();
-    ~ForwardArtZernike3D();
+    template<bool usesZernike>
+    void runBackwardKernel(const std::vector<PrecisionType> &clnm,
+                           const Image<PrecisionType> &Idiff);
+
+    CUDAForwardArtZernike3D(const ConstantParameters parameters);
+    ~CUDAForwardArtZernike3D();
 
 private:
-    ProgForwardArtZernike3DGPU* program = nullptr;
 
     // Kernel stuff
     size_t constantSharedMemSize;
     size_t changingSharedMemSize;
-
-    // Kernel dimensions
-    //dim3 block;
-    //dim3 grid;
 
     size_t totalGridSize;
 
@@ -98,7 +61,7 @@ private:
 
     int steps;
 
-    PrecisionType3* dClnm;
+    PrecisionType3 *dClnm;
     std::vector<PrecisionType3> clnmVec;
 
     bool applyTransformation;
@@ -107,31 +70,23 @@ private:
 
     // Inside pointers point to the GPU memory
 
-    IROimages images;
 
-    DeformImages deformImages;
-
-    int4* dZshParams;
+    int4 *dZshParams;
     std::vector<int4> zshparamsVec;
-
-    ImageMetaData imageMetaData;
-
-    Volumes volumes;
-
-    KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
-    void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
-    void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
-    void setupImageMetaData(const Image<double>& inputImage);
+    void setupImage(Image<double> &inputImage, PrecisionType **outputImageData);
+
+    void setupImageMetaData(const Image<double> &inputImage);
 
     void setupVolumes();
 
     void setupZSHparams();
 
     void setupClnm();
-    void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
+
+    void transferImageData(Image<double> &outputImage, PrecisionType *inputData);
 };
 
 #endif// CUDA_FORWARD_ART_ZERNIKE3D_H

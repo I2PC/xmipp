@@ -172,7 +172,7 @@ public:
     void readParams();
 
     /// Show
-    void show();
+    void show() const override;
 
     /// Define parameters
     void defineParams();
