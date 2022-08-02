@@ -236,8 +236,8 @@ public:
     template<typename T>
     MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray);    
 
-    void forwardModel(int k, bool usesZernike);
-    void backwardModel(int k, bool usesZernike);
+    void forwardModel(bool usesZernike);
+    void backwardModel(bool usesZernike);
 
 };
 //@}
