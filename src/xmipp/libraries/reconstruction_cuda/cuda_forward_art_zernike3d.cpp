@@ -67,18 +67,6 @@ CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D() {
 }
 
 template<typename PrecisionType>
-void CUDAForwardArtZernike3D<PrecisionType>::setupClnm() {
-
-    if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
-        processCudaError();
-}
-
-
-template<typename PrecisionType>
-void CUDAForwardArtZernike3D<PrecisionType>::transferImageData(Image<double> &outputImage, PrecisionType *inputData) {
-}
-
-template<typename PrecisionType>
 template<bool usesZernike>
 void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(
         const std::vector<PrecisionType> &clnm,
@@ -96,22 +84,4 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(const std::vector
     if (usesZernike) {
         return;
     }
-}
-
-template<typename PrecisionType>
-void CUDAForwardArtZernike3D<PrecisionType>::setupZSHparams() {
-    if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
-        processCudaError();
-}
-
-template<typename PrecisionType>
-void CUDAForwardArtZernike3D<PrecisionType>::setupVolumes() {
-}
-
-template<typename PrecisionType>
-void CUDAForwardArtZernike3D<PrecisionType>::setupImageMetaData(const Image<double> &mda) {
-}
-
-template<typename PrecisionType>
-void CUDAForwardArtZernike3D<PrecisionType>::setupImage(Image<double> &inputImage, PrecisionType **outputImageData) {
 }

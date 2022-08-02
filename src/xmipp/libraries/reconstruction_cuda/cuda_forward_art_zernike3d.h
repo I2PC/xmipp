@@ -44,49 +44,6 @@ public:
 
     CUDAForwardArtZernike3D(const ConstantParameters parameters);
     ~CUDAForwardArtZernike3D();
-
-private:
-
-    // Kernel stuff
-    size_t constantSharedMemSize;
-    size_t changingSharedMemSize;
-
-    size_t totalGridSize;
-
-    // Variables transfered to the GPU memory
-
-    PrecisionType Rmax2;
-
-    PrecisionType iRmax;
-
-    int steps;
-
-    PrecisionType3 *dClnm;
-    std::vector<PrecisionType3> clnmVec;
-
-    bool applyTransformation;
-
-    bool saveDeformation;
-
-    // Inside pointers point to the GPU memory
-
-
-    int4 *dZshParams;
-    std::vector<int4> zshparamsVec;
-
-    // helper methods for simplifying and transfering data to gpu
-
-    void setupImage(Image<double> &inputImage, PrecisionType **outputImageData);
-
-    void setupImageMetaData(const Image<double> &inputImage);
-
-    void setupVolumes();
-
-    void setupZSHparams();
-
-    void setupClnm();
-
-    void transferImageData(Image<double> &outputImage, PrecisionType *inputData);
 };
 
 #endif// CUDA_FORWARD_ART_ZERNIKE3D_H
