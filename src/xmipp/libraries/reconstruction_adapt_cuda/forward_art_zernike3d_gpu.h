@@ -155,10 +155,6 @@ public:
     // Filter
     FourierFilter filter, filter2;
 
-    // Parallelization
-    ctpl::thread_pool m_threadPool;
-    int threads;
-
 public:
     enum class Mode { Proj, Vol };
 
