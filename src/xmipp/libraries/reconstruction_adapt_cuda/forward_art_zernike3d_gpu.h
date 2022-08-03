@@ -219,10 +219,6 @@ public:
     template<bool USESZERNIKE, Direction DIRECTION>
     void zernikeModel();
 
-    // Spaltting at position r
-    void splattingAtPos(std::array<PrecisionType, 2> r, PrecisionType weight,
-                        MultidimArrayCuda<PrecisionType> &mP, MultidimArrayCuda<PrecisionType> &mW);
-
     virtual void run();
 
     // Sort images in an orthogonal fashion
@@ -232,7 +228,11 @@ public:
     template<typename T>
     MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray);    
 
-    void forwardModel(bool usesZernike);
+    // Spaltting at position r
+    void splattingAtPos(PrecisionType pos_x, PrecisionType pos_y, PrecisionType weight,
+                        MultidimArrayCuda<PrecisionType> &mP, MultidimArrayCuda<PrecisionType> &mW,
+                        std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
+						std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda);
 
     /** Interpolates the value of the nth 2D matrix M at the point (x,y)
      *
@@ -240,6 +240,10 @@ public:
      */
     PrecisionType interpolatedElement2DCuda(double x, double y, MultidimArrayCuda<PrecisionType> &diffImage) const;
 
+    /// Function inspired by std::find with support for CUDA allowed data types
+    size_t findCuda(PrecisionType *begin, size_t size, PrecisionType value);
+
+    void forwardModel(bool usesZernike);
     void backwardModel(bool usesZernike);
 
 };
