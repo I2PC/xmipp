@@ -63,6 +63,9 @@ public:
     void runBackwardKernel(const std::vector<PrecisionType> &clnm,
                            const Image<PrecisionType> &Idiff);
 
+
+   
+
     explicit CUDAForwardArtZernike3D(const ConstantParameters parameters) noexcept;
     ~CUDAForwardArtZernike3D();
 
@@ -97,6 +100,21 @@ private:
                         std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda) const;
 
     Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
+
+    template<typename T>
+    void setupMultidimArray(MultidimArray<T>& inputArray, T** outputImageData);
+
+    template<typename T>
+    void setupVectorOfMultidimArray(std::vector<MultidimArrayCuda<T>>& inputVector, MultidimArrayCuda<T>** outputVectorData);
+
+    template<typename T>
+    void setupMatrix1D(Matrix1D<T>& inputVector, T** outputVector); 
+
+    template<typename T>
+    void setupStdVector(std::vector<T>& inputVector, T** outputVector);
+
+    template<typename T>
+    void setupMatrix2D(Matrix2D<T>& inputMatrix, T** outputMatrixData);
 };
 
 // Include template implementation
