@@ -35,22 +35,14 @@
 #include <core/xmipp_error.h>
 #include <data/blobs.h>
 #include <CTPL/ctpl_stl.h>
+#include <reconstruction_cuda/cuda_forward_art_zernike3d.h>
+
+#include <memory>
 
 // Precision type
 using PrecisionType = float;
 // Functions
 #define SQRT sqrtf
-
-template<typename T>
-struct MultidimArrayCuda {
-    size_t xdim;
-    size_t ydim;
-    size_t yxdim;
-    int xinit;
-    int yinit;
-    int zinit;
-    T* data;
-};
 
 /** Predict Continuous Parameters. */
 class ProgForwardArtZernike3DGPU: public XmippMetadataProgram
@@ -154,6 +146,9 @@ public:
 
     // Filter
     FourierFilter filter, filter2;
+
+    // GPU interface
+    std::unique_ptr<CUDAForwardArtZernike3D<PrecisionType>> cudaForwardArtZernike3D = nullptr;
 
 public:
     enum class Mode { Proj, Vol };
