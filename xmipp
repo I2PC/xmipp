@@ -477,7 +477,7 @@ def compile_libcifpp():
     if not os.path.exists(libcifBuildDir):
        os.mkdir(libcifBuildDir)
     os.chdir(libcifBuildDir)
-    ok = runJob("cmake -DCMAKE_INSTALL_PREFIX=. -DCMAKE_CXX_FLAGS='-pthread -lboost_system' ..")
+    ok = runJob("cmake -DCMAKE_INSTALL_PREFIX=. -DCMAKE_CXX_FLAGS='-pthread -lboost_system ' -DBoost_USE_STATIC_LIBS=OFF ..")
     ok = ok and runJob("cmake --build . --config Release")
     ok = ok and runJob("cmake --install .")
     ok = ok and runJob("cp lib/libcifpp.a %s/src/xmipp/lib"%xmippDir)
