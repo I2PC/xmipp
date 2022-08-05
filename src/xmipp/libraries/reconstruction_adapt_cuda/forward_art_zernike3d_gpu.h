@@ -230,7 +230,7 @@ public:
      *
      * Bilinear interpolation. (x,y) are in logical coordinates.
      */
-    PrecisionType interpolatedElement2DCuda(double x, double y, MultidimArrayCuda<PrecisionType> &diffImage) const;
+    PrecisionType interpolatedElement2DCuda(PrecisionType x, PrecisionType y, MultidimArrayCuda<PrecisionType> &diffImage) const;
 
     /// Function inspired by std::find with support for CUDA allowed data types
     size_t findCuda(PrecisionType *begin, size_t size, PrecisionType value);

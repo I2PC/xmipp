@@ -745,13 +745,13 @@ MultidimArrayCuda<T> ProgForwardArtZernike3DGPU::initializeMultidimArray(Multidi
 }
 
 
-PrecisionType ProgForwardArtZernike3DGPU::interpolatedElement2DCuda(double x, double y, MultidimArrayCuda<PrecisionType> &diffImage) const
+PrecisionType ProgForwardArtZernike3DGPU::interpolatedElement2DCuda(PrecisionType x, PrecisionType y, MultidimArrayCuda<PrecisionType> &diffImage) const
 {
     int x0 = floor(x);
-    double fx = x - x0;
+    PrecisionType fx = x - x0;
     int x1 = x0 + 1;
     int y0 = floor(y);
-    double fy = y - y0;
+    PrecisionType fy = y - y0;
     int y1 = y0 + 1;
 
     int i0=STARTINGY(diffImage);
@@ -765,15 +765,15 @@ PrecisionType ProgForwardArtZernike3DGPU::interpolatedElement2DCuda(double x, do
         else \
          d=A2D_ELEM(diffImage, i, j);
 
-    double d00, d10, d11, d01;
+    PrecisionType d00, d10, d11, d01;
     ASSIGNVAL2DCUDA(d00,y0,x0);
     ASSIGNVAL2DCUDA(d01,y0,x1);
     ASSIGNVAL2DCUDA(d10,y1,x0);
     ASSIGNVAL2DCUDA(d11,y1,x1);
 
-    double d0 = LIN_INTERP(fx, d00, d01);
-    double d1 = LIN_INTERP(fx, d10, d11);
-    return (PrecisionType) LIN_INTERP(fy, d0, d1);
+    PrecisionType d0 = LIN_INTERP(fx, d00, d01);
+    PrecisionType d1 = LIN_INTERP(fx, d10, d11);
+    return LIN_INTERP(fy, d0, d1);
 }
 
 // End of future CUDA functions
