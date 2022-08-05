@@ -171,15 +171,6 @@ void ProgForwardArtZernike3DGPU::preProcess()
 
 	Xdim = XSIZE(V());
 
-	p_busy_elem.resize(Xdim*Xdim);
-    for (auto& p : p_busy_elem) {
-        p = std::make_unique<std::atomic<PrecisionType*>>(nullptr);
-    }
-
-	w_busy_elem.resize(Xdim*Xdim);
-    for (auto& p : w_busy_elem) {
-        p = std::make_unique<std::atomic<PrecisionType*>>(nullptr);
-    }
 
 	Vout().initZeros(V());
 	Vout().setXmippOrigin();
@@ -313,6 +304,7 @@ void ProgForwardArtZernike3DGPU::preProcess()
             .sigma = sigma,
             .RmaxDef = RmaxDef,
             .loopStep = loop_step,
+            .Xdim = Xdim,
     };
     cudaForwardArtZernike3D = std::make_unique<CUDAForwardArtZernike3D<PrecisionType>>(parameters);
 }
@@ -723,8 +715,15 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
             .psi = psi
     };
 
+    CUDAForwardArtZernike3D<PrecisionType>::DynamicParameters parameters = {
+            .clnm = clnm,
+            .P = P,
+            .W = W,
+            .angles = angles
+    };
+
 	if (DIRECTION == Direction::Forward)
-        cudaForwardArtZernike3D->runForwardKernel<USESZERNIKE>(clnm, P, W, p_busy_elem, w_busy_elem, angles);
+        cudaForwardArtZernike3D->runForwardKernel<USESZERNIKE>(parameters);
 	else if (DIRECTION == Direction::Backward)
 		backwardModel(USESZERNIKE);
 }

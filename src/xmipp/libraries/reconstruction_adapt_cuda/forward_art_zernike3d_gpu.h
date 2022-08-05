@@ -102,9 +102,6 @@ public:
 	std::vector<Image<PrecisionType>> P;
     // Weight Image
     std::vector<Image<PrecisionType>> W;
-    // Atomic mutex
-    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> p_busy_elem;
-    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> w_busy_elem;
     // Difference Image
     Image<PrecisionType> Idiff;
     // Transformation matrix

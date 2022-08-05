@@ -43,28 +43,28 @@ public:
         std::vector<PrecisionType> &sigma;
         int RmaxDef;
         int loopStep;
+        size_t Xdim;
     };
 
     struct AngleParameters {
-       PrecisionType rot, tilt, psi;
+        PrecisionType rot, tilt, psi;
+    };
+
+    struct DynamicParameters {
+        const std::vector<PrecisionType> &clnm;
+        std::vector<Image<PrecisionType>> &P;
+        std::vector<Image<PrecisionType>> &W;
+        struct AngleParameters angles;
     };
 
 public:
 
     template<bool usesZernike>
-    void runForwardKernel(const std::vector<PrecisionType> &clnm,
-                          std::vector<Image<PrecisionType>> &P,
-                          std::vector<Image<PrecisionType>> &W,
-                          std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> &p_busy_elem,
-                          std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> &w_busy_elem,
-                          struct AngleParameters angles);
+    void runForwardKernel(struct DynamicParameters &parameters);
 
     template<bool usesZernike>
     void runBackwardKernel(const std::vector<PrecisionType> &clnm,
                            const Image<PrecisionType> &Idiff);
-
-
-   
 
     explicit CUDAForwardArtZernike3D(const ConstantParameters parameters) noexcept;
     ~CUDAForwardArtZernike3D();
@@ -85,6 +85,10 @@ private:
 
     const std::vector<PrecisionType> sigma;
 
+    // Atomic mutex
+    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> p_busy_elem;
+    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> w_busy_elem;
+
 private:
 
     /// Move data from MultidimArray to struct usable by CUDA kernel
@@ -100,24 +104,6 @@ private:
                         std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda) const;
 
     Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
-
-    template<typename T>
-    void setupMultidimArray(MultidimArray<T>& inputArray, T** outputImageData);
-
-    template<typename T>
-    void setupVectorOfMultidimArray(std::vector<MultidimArrayCuda<T>>& inputVector, MultidimArrayCuda<T>** outputVectorData);
-
-    template<typename T>
-    void setupMatrix1D(Matrix1D<T>& inputVector, T** outputVector); 
-
-    template<typename T>
-    void setupStdVector(std::vector<T>& inputVector, T** outputVector);
-
-    template<typename T>
-    void setupMatrix2D(Matrix2D<T>& inputMatrix, T** outputMatrixData);
 };
-
-// Include template implementation
-#include "cuda_forward_art_zernike3d.tpp"
 
 #endif// CUDA_FORWARD_ART_ZERNIKE3D_H

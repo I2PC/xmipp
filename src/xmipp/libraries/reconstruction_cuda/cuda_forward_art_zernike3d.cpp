@@ -1,6 +1,3 @@
-#ifndef CUDA_FORWARD_ART_ZERNIKE3D_TPP
-#define CUDA_FORWARD_ART_ZERNIKE3D_TPP
-
 // Xmipp includes
 #include "cuda_forward_art_zernike3d.h"
 #include <core/geometry.h>
@@ -26,7 +23,18 @@ CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
       vL1(parameters.vL1),
       vL2(parameters.vL2),
       vN(parameters.vN),
-      vM(parameters.vM) { }
+      vM(parameters.vM) {
+   auto Xdim = parameters.Xdim;
+   p_busy_elem.resize(Xdim*Xdim);
+   for (auto& p : p_busy_elem) {
+       p = std::unique_ptr<std::atomic<PrecisionType*>>(new std::atomic<PrecisionType*>(nullptr));
+   }
+
+   w_busy_elem.resize(Xdim*Xdim);
+   for (auto& p : w_busy_elem) {
+       p = std::unique_ptr<std::atomic<PrecisionType*>>(new std::atomic<PrecisionType*>(nullptr));
+   }
+}
 
 template<typename PrecisionType>
 CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D() {
@@ -35,13 +43,11 @@ CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D() {
 
 template<typename PrecisionType>
 template<bool usesZernike>
-void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(
-        const std::vector<PrecisionType> &clnm,
-        std::vector<Image<PrecisionType>> &P,
-        std::vector<Image<PrecisionType>> &W,
-        std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> &p_busy_elem,
-        std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> &w_busy_elem,
-        struct AngleParameters angles) {
+void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters) {
+    auto clnm = parameters.clnm;
+    auto P = parameters.P;
+    auto W = parameters.W;
+    auto angles = parameters.angles;
     auto &mV = V;
     const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
     const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
@@ -208,7 +214,9 @@ size_t CUDAForwardArtZernike3D<PrecisionType>::findCuda(const PrecisionType *beg
 
 template<typename PrecisionType>
 Matrix2D<PrecisionType> CUDAForwardArtZernike3D<PrecisionType>::createRotationMatrix(struct AngleParameters angles) const {
-    auto [rot, tilt, psi] = angles;
+    auto rot = angles.rot;
+    auto tilt = angles.tilt;
+    auto psi = angles.psi;
     constexpr size_t matrixSize = 3;
     auto tmp = Matrix2D<PrecisionType>();
     tmp.initIdentity(matrixSize);
@@ -216,89 +224,92 @@ Matrix2D<PrecisionType> CUDAForwardArtZernike3D<PrecisionType>::createRotationMa
     return tmp;
 }
 
+// Cuda memory helper function
+namespace {
 
-template<typename T>
-cudaError cudaMallocAndCopy(T **target, const T *source, size_t numberOfElements, size_t memSize = 0) {
-    size_t elemSize = numberOfElements * sizeof(T);
-    memSize = memSize == 0 ? elemSize : memSize * sizeof(T);
+    template<typename T>
+    cudaError cudaMallocAndCopy(T **target, const T *source, size_t numberOfElements, size_t memSize = 0) {
+        size_t elemSize = numberOfElements * sizeof(T);
+        memSize = memSize == 0 ? elemSize : memSize * sizeof(T);
 
-    cudaError err = cudaSuccess;
-    if ((err = cudaMalloc(target, memSize)) != cudaSuccess) {
-        *target = NULL;
+        cudaError err = cudaSuccess;
+        if ((err = cudaMalloc(target, memSize)) != cudaSuccess) {
+            *target = NULL;
+            return err;
+        }
+
+        if ((err = cudaMemcpy(*target, source, elemSize, cudaMemcpyHostToDevice)) != cudaSuccess) {
+            cudaFree(*target);
+            *target = NULL;
+        }
+
+        if (memSize > elemSize) {
+            cudaMemset((*target) + numberOfElements, 0, memSize - elemSize);
+        }
+
         return err;
     }
 
-    if ((err = cudaMemcpy(*target, source, elemSize, cudaMemcpyHostToDevice)) != cudaSuccess) {
-        cudaFree(*target);
-        *target = NULL;
-    }
-
-    if (memSize > elemSize) {
-        cudaMemset((*target) + numberOfElements, 0, memSize - elemSize);
-    }
-
-    return err;
-}
-
-void processCudaError() {
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
-        exit(err);
-    }
-}
-
-// Copies data from CPU to the GPU and at the same time transforms from
-// type 'U' to type 'T'. Works only for numeric types
-template<typename Target, typename Source>
-void transformData(Target **dest, Source *source, size_t n, bool mallocMem = true) {
-    std::vector <Target> tmp(source, source + n);
-
-    if (mallocMem) {
-        if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess) {
-            processCudaError();
+    void processCudaError() {
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+            fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
+            exit(err);
         }
     }
 
-    if (cudaMemcpy(*dest, tmp.data(), sizeof(Target) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
-        processCudaError();
+// Copies data from CPU to the GPU and at the same time transforms from
+// type 'U' to type 'T'. Works only for numeric types
+    template<typename Target, typename Source>
+    void transformData(Target **dest, Source *source, size_t n, bool mallocMem = true) {
+        std::vector <Target> tmp(source, source + n);
+
+        if (mallocMem) {
+            if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess) {
+                processCudaError();
+            }
+        }
+
+        if (cudaMemcpy(*dest, tmp.data(), sizeof(Target) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
+            processCudaError();
+        }
+    }
+    template<typename T>
+    void setupMultidimArray(MultidimArray<T>& inputArray, T** outputArrayData)
+    {
+        transformData(outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
+    }
+
+    template<typename T>
+    void setupVectorOfMultidimArray(std::vector<MultidimArrayCuda<T>>& inputVector, MultidimArrayCuda<T>** outputVectorData)
+    {
+        if (cudaMallocAndCopy(&outputVectorData, inputVector.data(), inputVector.size()) != cudaSuccess)
+            processCudaError();
+    }
+
+    template<typename T>
+    void setupMatrix1D(Matrix1D<T>& inputVector, T** outputVector)
+    {
+        transformData(outputVector, inputVector.vdata, inputVector.vdim);
+    }
+
+    template<typename T>
+    void setupStdVector(std::vector<T>& inputVector, T** outputVector)
+    {
+        transformData(outputVector, inputVector.data(), inputVector.size());
+    }
+
+    template<typename T>
+    void setupMatrix2D(Matrix2D<T>& inputMatrix, T** outputMatrixData)
+    {
+        transformData(outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
     }
 }
 
-template<typename PrecisionType>
-template<typename T>
-void CUDAForwardArtZernike3D<PrecisionType>::setupMultidimArray(MultidimArray<T>& inputArray, T** outputArrayData) 
-{
-    transformData(outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
-}
-
-template<typename PrecisionType>
-template<typename T>
-void CUDAForwardArtZernike3D<PrecisionType>::setupVectorOfMultidimArray(std::vector<MultidimArrayCuda<T>>& inputVector, MultidimArrayCuda<T>** outputVectorData) 
-{
-    if (cudaMallocAndCopy(&outputVectorData, inputVector.data(), inputVector.size()) != cudaSuccess)
-        processCudaError();
-}
-
-template<typename PrecisionType>
-template<typename T>
-void CUDAForwardArtZernike3D<PrecisionType>::setupMatrix1D(Matrix1D<T>& inputVector, T** outputVector) 
-{
-    transformData(outputVector, inputVector.vdata, inputVector.vdim);
-}
-
-template<typename PrecisionType>
-template<typename T>
-void CUDAForwardArtZernike3D<PrecisionType>::setupStdVector(std::vector<T>& inputVector, T** outputVector) 
-{
-    transformData(outputVector, inputVector.data(), inputVector.size());
-}
-
-template<typename PrecisionType>
-template<typename T>
-void CUDAForwardArtZernike3D<PrecisionType>::setupMatrix2D(Matrix2D<T>& inputMatrix, T** outputMatrixData) 
-{
-    transformData(outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
-}
-
-#endif// CUDA_FORWARD_ART_ZERNIKE3D_TPP
+// explicit template instantiation
+template class CUDAForwardArtZernike3D<float>;
+template class CUDAForwardArtZernike3D<double>;
+template void CUDAForwardArtZernike3D<float>::runForwardKernel<true>(struct DynamicParameters&);
+template void CUDAForwardArtZernike3D<float>::runForwardKernel<false>(struct DynamicParameters&);
+template void CUDAForwardArtZernike3D<double>::runForwardKernel<true>(struct DynamicParameters&);
+template void CUDAForwardArtZernike3D<double>::runForwardKernel<false>(struct DynamicParameters&);
