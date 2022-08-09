@@ -2,6 +2,7 @@
 #include "cuda_forward_art_zernike3d.h"
 #include <core/geometry.h>
 #include "data/numerical_tools.h"
+#include <cassert>
 
 // Macros
 #define SQRT sqrtf
@@ -51,7 +52,9 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
     auto W = parameters.W;
     auto angles = parameters.angles;
     auto &mV = V;
-    // For usesZernike == false size() is 0
+    // We can't set idxY0 to 0 because the compiler
+    // would give irrelevant warnings.
+    assert(usesZernike || clnm.size() == 0);
     const size_t idxY0 = clnm.size() / 3;
     const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
     const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
@@ -155,7 +158,9 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
     auto angles = parameters.angles;
     auto &mId = parameters.Idiff();
     auto &mV = V;
-    // For usesZernike == false size() is 0
+    // We can't set idxY0 to 0 because the compiler
+    // would give irrelevant warnings.
+    assert(usesZernike || clnm.size() == 0);
     const size_t idxY0 = clnm.size() / 3;
     const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
     const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
