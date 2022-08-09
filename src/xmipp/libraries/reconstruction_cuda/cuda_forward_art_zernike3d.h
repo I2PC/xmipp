@@ -54,6 +54,7 @@ public:
         const std::vector<PrecisionType> &clnm;
         std::vector<Image<PrecisionType>> &P;
         std::vector<Image<PrecisionType>> &W;
+        const Image<PrecisionType> &Idiff;
         struct AngleParameters angles;
     };
 
@@ -63,8 +64,7 @@ public:
     void runForwardKernel(struct DynamicParameters &parameters);
 
     template<bool usesZernike>
-    void runBackwardKernel(const std::vector<PrecisionType> &clnm,
-                           const Image<PrecisionType> &Idiff);
+    void runBackwardKernel(struct DynamicParameters &parameters);
 
     explicit CUDAForwardArtZernike3D(const ConstantParameters parameters) noexcept;
     ~CUDAForwardArtZernike3D();
@@ -93,7 +93,7 @@ private:
 
     /// Move data from MultidimArray to struct usable by CUDA kernel
     template<typename T>
-    MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray) const;
+    MultidimArrayCuda<T> initializeMultidimArray(const MultidimArray<T> &multidimArray) const;
 
     /// Function inspired by std::find with support for CUDA allowed data types
     size_t findCuda(const PrecisionType *begin, size_t size, PrecisionType value) const;
@@ -104,6 +104,10 @@ private:
                         std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda) const;
 
     Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
+
+    PrecisionType interpolatedElement2DCuda(PrecisionType x,
+                                            PrecisionType y,
+                                            MultidimArrayCuda<PrecisionType> &diffImage) const;
 };
 
 #endif// CUDA_FORWARD_ART_ZERNIKE3D_H
