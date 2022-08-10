@@ -27,14 +27,14 @@
 #ifndef _PROG_FORWARD_ART_ZERNIKE3D_GPU
 #define _PROG_FORWARD_ART_ZERNIKE3D_GPU
 
-#include <core/xmipp_metadata_program.h>
+#include <CTPL/ctpl_stl.h>
 #include <core/matrix1d.h>
+#include <core/xmipp_error.h>
 #include <core/xmipp_image.h>
+#include <core/xmipp_metadata_program.h>
+#include <data/blobs.h>
 #include <data/fourier_filter.h>
 #include <data/fourier_projection.h>
-#include <core/xmipp_error.h>
-#include <data/blobs.h>
-#include <CTPL/ctpl_stl.h>
 #include <reconstruction_cuda/cuda_forward_art_zernike3d.h>
 
 #include <memory>
@@ -45,199 +45,204 @@ using PrecisionType = float;
 #define SQRT sqrtf
 
 /** Predict Continuous Parameters. */
-class ProgForwardArtZernike3DGPU: public XmippMetadataProgram
-{
-public:
-     /** Filename of the reference volume */
-    FileName fnVolR;
-    /** Filename of the reference volume mask */
-    FileName fnMaskR, fnMaskRecR;
-    /** Filename of the refined volume */
-    FileName fnVolO;
-    /// Output directory
-    FileName fnOutDir;
-    // Metadata with already processed images
-    // FileName fnDone;
-    /** Degrees of Zernike polynomials and spherical harmonics */
-    int L1, L2;
-    /** Zernike and SPH coefficients vectors */
-    Matrix1D<int> vL1, vN, vL2, vM;
-    /** Sampling rate */
-    double Ts;
-    /** Maximum radius */
-    int RmaxDef;
-    // Phase Flipped
-    bool phaseFlipped;
-    // Ignore CTF
-    bool ignoreCTF;
-    // Regularization ART
-    double lambda;
-    // Save each # iter
-    int save_iter;
-    // Correct CTF
-    bool useCTF;
-    // Apply Zernike
-    bool useZernike;
-    // Flag for enable/disabled image
-    int flagEnabled;
+class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
+   public:
+	/** Filename of the reference volume */
+	FileName fnVolR;
+	/** Filename of the reference volume mask */
+	FileName fnMaskR, fnMaskRecR;
+	/** Filename of the refined volume */
+	FileName fnVolO;
+	/// Output directory
+	FileName fnOutDir;
+	// Metadata with already processed images
+	// FileName fnDone;
+	/** Degrees of Zernike polynomials and spherical harmonics */
+	int L1, L2;
+	/** Zernike and SPH coefficients vectors */
+	Matrix1D<int> vL1, vN, vL2, vM;
+	/** Sampling rate */
+	double Ts;
+	/** Maximum radius */
+	int RmaxDef;
+	// Phase Flipped
+	bool phaseFlipped;
+	// Ignore CTF
+	bool ignoreCTF;
+	// Regularization ART
+	double lambda;
+	// Save each # iter
+	int save_iter;
+	// Correct CTF
+	bool useCTF;
+	// Apply Zernike
+	bool useZernike;
+	// Flag for enable/disabled image
+	int flagEnabled;
 
-public:
-    /** Resume computations */
-    bool resume;
-    // Number of ART iterations
-    int niter;
-    // Sort last N projections
-    int sort_last_N;
-    // 2D and 3D masks in real space
-    MultidimArray<int> mask2D;
-    // Volume size
-    size_t Xdim;
-    // Input image
+   public:
+	/** Resume computations */
+	bool resume;
+	// Number of ART iterations
+	int niter;
+	// Sort last N projections
+	int sort_last_N;
+	// 2D and 3D masks in real space
+	MultidimArray<int> mask2D;
+	// Volume size
+	size_t Xdim;
+	// Input image
 	Image<PrecisionType> V, Vrefined, Vout, Ifilteredp;
-    // INput image
-    Image<double> I;
-    // Spherical mask
-    MultidimArray<int> Vmask, VRecMask, sphMask;
+	// INput image
+	Image<double> I;
+	// Spherical mask
+	MultidimArray<int> Vmask, VRecMask, sphMask;
 	// Theoretical projection
 	std::vector<Image<PrecisionType>> P;
-    // Weight Image
-    std::vector<Image<PrecisionType>> W;
-    // Difference Image
-    Image<PrecisionType> Idiff;
-    // Transformation matrix
-    Matrix2D<double> A;
-    // Original angles
-    PrecisionType rot, tilt, psi;
-    // Original shift
+	// Weight Image
+	std::vector<Image<PrecisionType>> W;
+	// Difference Image
+	Image<PrecisionType> Idiff;
+	// Transformation matrix
+	Matrix2D<double> A;
+	// Original angles
+	PrecisionType rot, tilt, psi;
+	// Original shift
 	double shiftX, shiftY;
 	// Original flip
 	bool flip;
-    // CTF Check
-    bool hasCTF;
-    // Original defocus
+	// CTF Check
+	bool hasCTF;
+	// Original defocus
 	double defocusU, defocusV, defocusAngle;
 	// CTF
 	CTFDescription ctf;
-    // CTF filter
-    FourierFilter FilterCTF;
+	// CTF filter
+	FourierFilter FilterCTF;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
 	std::vector<PrecisionType> clnm;
 	// Show optimization
 	bool showOptimization;
-    // Row ids ordered in a orthogonal fashion
-    MultidimArray<size_t> ordered_list;
-    // Save iter counter
-    int current_save_iter;
-    // Image counter
-    size_t num_images, current_image;
-    // Current ART iteration
-    int current_iter;
-    // Volume dimensions
-    int initX, endX, initY, endY, initZ, endZ;
-    // Loop step
-    int loop_step;
-    // Sigma
-    std::vector<PrecisionType> sigma;
+	// Row ids ordered in a orthogonal fashion
+	MultidimArray<size_t> ordered_list;
+	// Save iter counter
+	int current_save_iter;
+	// Image counter
+	size_t num_images, current_image;
+	// Current ART iteration
+	int current_iter;
+	// Volume dimensions
+	int initX, endX, initY, endY, initZ, endZ;
+	// Loop step
+	int loop_step;
+	// Sigma
+	std::vector<PrecisionType> sigma;
 
-    // Filter
-    FourierFilter filter, filter2;
+	// Filter
+	FourierFilter filter, filter2;
 
-    // GPU interface
-    std::unique_ptr<CUDAForwardArtZernike3D<PrecisionType>> cudaForwardArtZernike3D = nullptr;
+	// GPU interface
+	std::unique_ptr<CUDAForwardArtZernike3D<PrecisionType>> cudaForwardArtZernike3D = nullptr;
 
-public:
-    enum class Mode { Proj, Vol };
+   public:
+	enum class Mode { Proj, Vol };
 
-    /// Empty constructor
+	/// Empty constructor
 	ProgForwardArtZernike3DGPU();
 
-    /// Destructor
-    ~ProgForwardArtZernike3DGPU();
+	/// Destructor
+	~ProgForwardArtZernike3DGPU();
 
-    /// Read argument from command line
-    void readParams();
+	/// Read argument from command line
+	void readParams();
 
-    /// Show
-    void show() const override;
+	/// Show
+	void show() const override;
 
-    /// Define parameters
-    void defineParams();
+	/// Define parameters
+	void defineParams();
 
-    /** Produce side info.
+	/** Produce side info.
         An exception is thrown if any of the files is not found*/
-    void preProcess();
+	void preProcess();
 
-    /** Create the processing working files.
+	/** Create the processing working files.
      * The working files are:
      * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
      * nmaDone.xmd image already processed (could exists from a previous run)
      */
-    // virtual void createWorkFiles();
+	// virtual void createWorkFiles();
 
-    /** Predict angles and shift.
+	/** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+	void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
-    /// Length of coefficients vector
-    void numCoefficients(int l1, int l2, int &vecSize);
+	/// Length of coefficients vector
+	void numCoefficients(int l1, int l2, int &vecSize);
 
-    /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN,
-                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
+	/// Zernike and SPH coefficients allocation
+	void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
-    ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<double> &mP, MultidimArray<double> &mW,
-                   const MultidimArray<double> &mV,
-                   double rot, double tilt, double psi);
+	///Deform a volumen using Zernike-Spherical harmonic basis
+	void deformVol(MultidimArray<double> &mP,
+				   MultidimArray<double> &mW,
+				   const MultidimArray<double> &mV,
+				   double rot,
+				   double tilt,
+				   double psi);
 
-    void recoverVol();
-    virtual void finishProcessing();
+	void recoverVol();
+	virtual void finishProcessing();
 
-  private:
-    enum class Direction { Forward, Backward };
+   private:
+	enum class Direction { Forward, Backward };
 
-    /// Uses Fourier filter with PrecisionType values
-    MultidimArray<PrecisionType> useFilterPrecision(FourierFilter &filter,
-                                                    MultidimArray<PrecisionType> precisionImage);
+	/// Uses Fourier filter with PrecisionType values
+	MultidimArray<PrecisionType> useFilterPrecision(FourierFilter &filter, MultidimArray<PrecisionType> precisionImage);
 
-    // ART algorithm
-    template <Direction DIRECTION>
-    void artModel();
+	// ART algorithm
+	template<Direction DIRECTION>
+	void artModel();
 
-    // Apply Zernike codeformation
-    template<bool USESZERNIKE, Direction DIRECTION>
-    void zernikeModel();
+	// Apply Zernike codeformation
+	template<bool USESZERNIKE, Direction DIRECTION>
+	void zernikeModel();
 
-    virtual void run();
+	virtual void run();
 
-    // Sort images in an orthogonal fashion
-    void sortOrthogonal();
+	// Sort images in an orthogonal fashion
+	void sortOrthogonal();
 
-    /// Move data from MultidimArray to struct usable by CUDA kernel
-    template<typename T>
-    MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray);    
+	/// Move data from MultidimArray to struct usable by CUDA kernel
+	template<typename T>
+	MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray);
 
-    // Spaltting at position r
-    void splattingAtPos(PrecisionType pos_x, PrecisionType pos_y, PrecisionType weight,
-                        MultidimArrayCuda<PrecisionType> &mP, MultidimArrayCuda<PrecisionType> &mW,
-                        std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
+	// Spaltting at position r
+	void splattingAtPos(PrecisionType pos_x,
+						PrecisionType pos_y,
+						PrecisionType weight,
+						MultidimArrayCuda<PrecisionType> &mP,
+						MultidimArrayCuda<PrecisionType> &mW,
+						std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
 						std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda);
 
-    /** Interpolates the value of the nth 2D matrix M at the point (x,y)
+	/** Interpolates the value of the nth 2D matrix M at the point (x,y)
      *
      * Bilinear interpolation. (x,y) are in logical coordinates.
      */
-    PrecisionType interpolatedElement2DCuda(PrecisionType x, PrecisionType y, MultidimArrayCuda<PrecisionType> &diffImage) const;
+	PrecisionType interpolatedElement2DCuda(PrecisionType x,
+											PrecisionType y,
+											MultidimArrayCuda<PrecisionType> &diffImage) const;
 
-    /// Function inspired by std::find with support for CUDA allowed data types
-    size_t findCuda(PrecisionType *begin, size_t size, PrecisionType value);
+	/// Function inspired by std::find with support for CUDA allowed data types
+	size_t findCuda(PrecisionType *begin, size_t size, PrecisionType value);
 
-    void forwardModel(bool usesZernike);
-    void backwardModel(bool usesZernike);
-
+	void forwardModel(bool usesZernike);
+	void backwardModel(bool usesZernike);
 };
+
 //@}
 #endif

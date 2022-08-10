@@ -2,125 +2,122 @@
 #define CUDA_FORWARD_ART_ZERNIKE3D_H
 
 // Xmipp includes
-#include <core/xmipp_image.h>
-#include <core/multidim_array.h>
-#include <core/xmipp_image.h>
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
 #include <core/multidim_array.h>
+#include <core/xmipp_image.h>
 // Standard includes
-#include <vector>
-#include <memory>
 #include <atomic>
+#include <memory>
+#include <vector>
 
 struct float3;
 struct double3;
 
 template<typename T>
 struct MultidimArrayCuda {
-    size_t xdim;
-    size_t ydim;
-    size_t yxdim;
-    int xinit;
-    int yinit;
-    int zinit;
-    T* data;
+	size_t xdim;
+	size_t ydim;
+	size_t yxdim;
+	int xinit;
+	int yinit;
+	int zinit;
+	T *data;
 };
 
 template<typename PrecisionType = float>
-class CUDAForwardArtZernike3D
-{
-    static_assert(std::is_floating_point<PrecisionType>::value, "Floating point type is required.");
+class CUDAForwardArtZernike3D {
+	static_assert(std::is_floating_point<PrecisionType>::value, "Floating point type is required.");
 
-    using PrecisionType3 = std::conditional<std::is_same<PrecisionType, float>::value, float3, double3>;
+	using PrecisionType3 = std::conditional<std::is_same<PrecisionType, float>::value, float3, double3>;
 
-public:
-    /// Constant parameters for the computation
-    struct ConstantParameters {
-        Image<PrecisionType> &Vrefined;
-        MultidimArray<int> &VRecMask, &sphMask;
-        Matrix1D<int> &vL1, &vN, &vL2, &vM;
-        std::vector<PrecisionType> &sigma;
-        int RmaxDef;
-        int loopStep;
-        size_t Xdim;
-    };
+   public:
+	/// Constant parameters for the computation
+	struct ConstantParameters {
+		Image<PrecisionType> &Vrefined;
+		MultidimArray<int> &VRecMask, &sphMask;
+		Matrix1D<int> &vL1, &vN, &vL2, &vM;
+		std::vector<PrecisionType> &sigma;
+		int RmaxDef;
+		int loopStep;
+		size_t Xdim;
+	};
 
-    struct AngleParameters {
-        PrecisionType rot, tilt, psi;
-    };
+	struct AngleParameters {
+		PrecisionType rot, tilt, psi;
+	};
 
-    struct DynamicParameters {
-        const std::vector<PrecisionType> &clnm;
-        std::vector<Image<PrecisionType>> &P;
-        std::vector<Image<PrecisionType>> &W;
-        const Image<PrecisionType> &Idiff;
-        struct AngleParameters angles;
-    };
+	struct DynamicParameters {
+		const std::vector<PrecisionType> &clnm;
+		std::vector<Image<PrecisionType>> &P;
+		std::vector<Image<PrecisionType>> &W;
+		const Image<PrecisionType> &Idiff;
+		struct AngleParameters angles;
+	};
 
-    struct CommonKernelParameters {
-        size_t idxY0, idxZ0;
-        PrecisionType iRmaxF;
-        PrecisionType *cudaClnm;
-        Matrix2D<PrecisionType> R;
-    };
+	struct CommonKernelParameters {
+		size_t idxY0, idxZ0;
+		PrecisionType iRmaxF;
+		PrecisionType *cudaClnm;
+		Matrix2D<PrecisionType> R;
+	};
 
-public:
+   public:
+	template<bool usesZernike>
+	void runForwardKernel(struct DynamicParameters &parameters);
 
-    template<bool usesZernike>
-    void runForwardKernel(struct DynamicParameters &parameters);
+	template<bool usesZernike>
+	void runBackwardKernel(struct DynamicParameters &parameters);
 
-    template<bool usesZernike>
-    void runBackwardKernel(struct DynamicParameters &parameters);
+	explicit CUDAForwardArtZernike3D(const ConstantParameters parameters) noexcept;
+	~CUDAForwardArtZernike3D();
 
-    explicit CUDAForwardArtZernike3D(const ConstantParameters parameters) noexcept;
-    ~CUDAForwardArtZernike3D();
+   private:
+	const MultidimArrayCuda<PrecisionType> V;
 
-private:
+	const MultidimArrayCuda<int> VRecMask, sphMask;
 
-    const MultidimArrayCuda<PrecisionType> V;
+	const int RmaxDef;
 
-    const MultidimArrayCuda<int> VRecMask, sphMask;
+	const int loopStep;
 
-    const int RmaxDef;
+	const int lastX, lastY, lastZ;
 
-    const int loopStep;
+	const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
 
-    const int lastX, lastY, lastZ;
+	const std::vector<PrecisionType> sigma;
 
-    const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
+	// Atomic mutex
+	std::vector<std::unique_ptr<std::atomic<PrecisionType *>>> p_busy_elem;
+	std::vector<std::unique_ptr<std::atomic<PrecisionType *>>> w_busy_elem;
 
-    const std::vector<PrecisionType> sigma;
+   private:
+	template<bool usesZernike>
+	struct CommonKernelParameters setCommonArgumentsKernel(struct DynamicParameters &parameters);
 
-    // Atomic mutex
-    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> p_busy_elem;
-    std::vector<std::unique_ptr<std::atomic<PrecisionType*>>> w_busy_elem;
+	MultidimArrayCuda<PrecisionType> *setVectorMultidimArrayCuda(std::vector<Image<PrecisionType>> &image,
+																 std::vector<MultidimArrayCuda<PrecisionType>> &output);
 
-private:
+	/// Move data from MultidimArray to struct usable by CUDA kernel
+	template<typename T>
+	MultidimArrayCuda<T> initializeMultidimArray(const MultidimArray<T> &multidimArray) const;
 
-    template<bool usesZernike>
-    struct CommonKernelParameters setCommonArgumentsKernel(struct DynamicParameters &parameters);
+	/// Function inspired by std::find with support for CUDA allowed data types
+	size_t findCuda(const PrecisionType *begin, size_t size, PrecisionType value) const;
 
-    MultidimArrayCuda<PrecisionType> *setVectorMultidimArrayCuda(std::vector<Image<PrecisionType>> &image, 
-                                                                 std::vector<MultidimArrayCuda<PrecisionType>> &output);
+	void splattingAtPos(PrecisionType pos_x,
+						PrecisionType pos_y,
+						PrecisionType weight,
+						MultidimArrayCuda<PrecisionType> &mP,
+						MultidimArrayCuda<PrecisionType> &mW,
+						std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
+						std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda) const;
 
-    /// Move data from MultidimArray to struct usable by CUDA kernel
-    template<typename T>
-    MultidimArrayCuda<T> initializeMultidimArray(const MultidimArray<T> &multidimArray) const;
+	Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
 
-    /// Function inspired by std::find with support for CUDA allowed data types
-    size_t findCuda(const PrecisionType *begin, size_t size, PrecisionType value) const;
-
-    void splattingAtPos(PrecisionType pos_x, PrecisionType pos_y, PrecisionType weight,
-                        MultidimArrayCuda<PrecisionType> &mP, MultidimArrayCuda<PrecisionType> &mW,
-                        std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
-                        std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda) const;
-
-    Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
-
-    PrecisionType interpolatedElement2DCuda(PrecisionType x,
-                                            PrecisionType y,
-                                            MultidimArrayCuda<PrecisionType> &diffImage) const;
+	PrecisionType interpolatedElement2DCuda(PrecisionType x,
+											PrecisionType y,
+											MultidimArrayCuda<PrecisionType> &diffImage) const;
 };
 
-#endif// CUDA_FORWARD_ART_ZERNIKE3D_H
+#endif	// CUDA_FORWARD_ART_ZERNIKE3D_H
