@@ -23,10 +23,10 @@ CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
       lastY(FINISHINGY(parameters.Vrefined())),
       lastX(FINISHINGX(parameters.Vrefined())),
       loopStep(parameters.loopStep),
-      vL1(parameters.vL1),
-      vL2(parameters.vL2),
-      vN(parameters.vN),
-      vM(parameters.vM) {
+      cudaVL1(parameters.vL1.vdata),
+      cudaVL2(parameters.vL2.vdata),
+      cudaVN(parameters.vN.vdata),
+      cudaVM(parameters.vM.vdata) {
    auto Xdim = parameters.Xdim;
    p_busy_elem.resize(Xdim*Xdim);
    for (auto& p : p_busy_elem) {
@@ -46,12 +46,10 @@ CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D() {
 
 template<typename PrecisionType>
 template<bool usesZernike>
-void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters) {
+struct CUDAForwardArtZernike3D<PrecisionType>::CommonKernelParameters CUDAForwardArtZernike3D<PrecisionType>::setCommonArgumentsKernel(struct DynamicParameters &parameters) {
     auto clnm = parameters.clnm;
-    auto P = parameters.P;
-    auto W = parameters.W;
     auto angles = parameters.angles;
-    auto &mV = V;
+
     // We can't set idxY0 to 0 because the compiler
     // would give irrelevant warnings.
     assert(usesZernike || clnm.size() == 0);
@@ -60,53 +58,67 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
     const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
     const PrecisionType iRmaxF = usesZernike ? (1.0f / RmaxF) : 0;
 
-    // Rotation Matrix
+    // Rotation Matrix (has to pass the whole Matrix2D so it is not automatically deallocated)
     const Matrix2D<PrecisionType> R = createRotationMatrix(angles);
 
-    // Setup data for CUDA kernel
-    auto &cudaVRecMask = VRecMask;
-    auto cudaMV = mV;
-    std::vector<MultidimArrayCuda<PrecisionType>> tempP;
-    std::vector<MultidimArrayCuda<PrecisionType>> tempW;
-    for (int m = 0; m < P.size(); m++)
-    {
-        tempP.push_back(initializeMultidimArray(P[m]()));
-    }
-    for (int m = 0; m < W.size(); m++)
-    {
-        tempW.push_back(initializeMultidimArray(W[m]()));
-    }
-    auto cudaP = tempP.data();
-    auto cudaW = tempW.data();
-    auto cudaVL1 = vL1.vdata;
-    auto cudaVN = vN.vdata;
-    auto cudaVL2 = vL2.vdata;
-    auto cudaVM = vM.vdata;
     auto cudaClnm = clnm.data();
-    auto cudaR = R.mdata;
-    auto sigma_size = sigma.size();
-    const auto cudaSigma = sigma.data();
+
+    CommonKernelParameters output = {
+        .idxY0 = idxY0,
+        .idxZ0 = idxZ0,
+        .iRmaxF = iRmaxF,
+        .cudaClnm = cudaClnm,
+        .R = R
+    };
+
+    return output;
+}
+
+template<typename PrecisionType>
+MultidimArrayCuda<PrecisionType> *CUDAForwardArtZernike3D<PrecisionType>::setVectorMultidimArrayCuda(std::vector<Image<PrecisionType>> &image, std::vector<MultidimArrayCuda<PrecisionType>> &output) {
+    for (int m = 0; m < image.size(); m++)
+    {
+        output.push_back(initializeMultidimArray(image[m]()));
+    }   
+    return output.data();
+}
+
+template<typename PrecisionType>
+template<bool usesZernike>
+void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters) {
+    // Unique parameters 
+    std::vector<MultidimArrayCuda<PrecisionType>> outputP;
+    std::vector<MultidimArrayCuda<PrecisionType>> outputW;
+    auto cudaP = setVectorMultidimArrayCuda(parameters.P, outputP);
+    auto cudaW = setVectorMultidimArrayCuda(parameters.W, outputW);
     auto p_busy_elem_cuda = p_busy_elem.data();
     auto w_busy_elem_cuda = w_busy_elem.data();
-
-    const auto lastZ = this->lastZ;
-    const auto lastY = this->lastY;
-    const auto lastX = this->lastX;
+    auto sigma_size = sigma.size();
+    const auto cudaSigma = sigma.data();
     const int step = loopStep;
-    for (int k = STARTINGZ(cudaMV); k <= lastZ; k += step)
+
+    // Common parameters
+    auto commonParameters = setCommonArgumentsKernel<usesZernike>(parameters);
+    auto idxY0 = commonParameters.idxY0;
+    auto idxZ0 = commonParameters.idxZ0;
+    auto iRmaxF = commonParameters.iRmaxF;
+    auto cudaR = commonParameters.R.mdata;
+    auto cudaClnm = commonParameters.cudaClnm;
+
+    for (int k = STARTINGZ(V); k <= lastZ; k += step)
     {
-        for (int i = STARTINGY(cudaMV); i <= lastY; i += step)
+        for (int i = STARTINGY(V); i <= lastY; i += step)
         {
-            for (int j = STARTINGX(cudaMV); j <= lastX; j += step)
+            for (int j = STARTINGX(V); j <= lastX; j += step)
             {
                 // Future CUDA code
                 PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-                if (A3D_ELEM(cudaVRecMask, k, i, j) != 0)
+                if (A3D_ELEM(VRecMask, k, i, j) != 0)
                 {
                     int img_idx = 0;
                     if (sigma_size > 1)
                     {
-                        PrecisionType sigma_mask = A3D_ELEM(cudaVRecMask, k, i, j);
+                        PrecisionType sigma_mask = A3D_ELEM(VRecMask, k, i, j);
                         img_idx = findCuda(cudaSigma, sigma_size, sigma_mask);
                     }
                     auto &mP = cudaP[img_idx];
@@ -142,7 +154,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
 
                     auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
                     auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
-                    PrecisionType voxel_mV = A3D_ELEM(cudaMV, k, i, j);
+                    PrecisionType voxel_mV = A3D_ELEM(V, k, i, j);
                     splattingAtPos(pos_x, pos_y, voxel_mV, mP, mW, p_busy_elem_cuda, w_busy_elem_cuda);
                 }
                 // End of future CUDA code
@@ -154,43 +166,27 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
 template<typename PrecisionType>
 template<bool usesZernike>
 void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicParameters &parameters) {
-    auto clnm = parameters.clnm;
-    auto angles = parameters.angles;
+    // Unique parameters
     auto &mId = parameters.Idiff();
-    auto &mV = V;
-    // We can't set idxY0 to 0 because the compiler
-    // would give irrelevant warnings.
-    assert(usesZernike || clnm.size() == 0);
-    const size_t idxY0 = clnm.size() / 3;
-    const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
-    const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
-    const PrecisionType iRmaxF = usesZernike ? (1.0f / RmaxF) : 0;
-    // Rotation Matrix
-    const Matrix2D<PrecisionType> R = createRotationMatrix(angles);
-
-    // Setup data for CUDA kernel
-    auto &cudaSphMask = sphMask;
-    auto cudaVL1 = vL1.vdata;
-    auto cudaVN = vN.vdata;
-    auto cudaVL2 = vL2.vdata;
-    auto cudaVM = vM.vdata;
-    auto cudaClnm = clnm.data();
-    auto cudaR = R.mdata;
-    auto cudaMV = mV;
     auto cudaMId = initializeMultidimArray(mId);
-
-    const auto lastZ = this->lastZ;
-    const auto lastY = this->lastY;
-    const auto lastX = this->lastX;
     const int step = 1;
-    for (int k = STARTINGZ(mV); k <= lastZ; k += step)
+
+    // Common parameters
+    auto commonParameters = setCommonArgumentsKernel<usesZernike>(parameters);
+    auto idxY0 = commonParameters.idxY0;
+    auto idxZ0 = commonParameters.idxZ0;
+    auto iRmaxF = commonParameters.iRmaxF;
+    auto cudaR = commonParameters.R.mdata;
+    auto cudaClnm = commonParameters.cudaClnm;
+
+    for (int k = STARTINGZ(V); k <= lastZ; k += step)
     {
-        for (int i = STARTINGY(mV); i <= lastY; i += step)
+        for (int i = STARTINGY(V); i <= lastY; i += step)
         {
-            for (int j = STARTINGX(mV); j <= lastX; j += step)
+            for (int j = STARTINGX(V); j <= lastX; j += step)
             {
                 PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-                if (A3D_ELEM(cudaSphMask, k, i, j) != 0)
+                if (A3D_ELEM(sphMask, k, i, j) != 0)
                 {
                     if (usesZernike)
                     {
@@ -224,7 +220,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
                     auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
                     auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
                     PrecisionType voxel = interpolatedElement2DCuda(pos_x, pos_y, cudaMId);
-                    A3D_ELEM(cudaMV, k, i, j) += voxel;
+                    A3D_ELEM(V, k, i, j) += voxel;
                 }
             }
         }
