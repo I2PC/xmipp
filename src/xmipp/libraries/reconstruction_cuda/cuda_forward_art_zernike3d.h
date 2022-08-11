@@ -7,8 +7,6 @@
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
 // Standard includes
-#include <atomic>
-#include <memory>
 #include <vector>
 
 struct float3;
@@ -40,7 +38,6 @@ class CUDAForwardArtZernike3D {
 		std::vector<PrecisionType> &sigma;
 		int RmaxDef;
 		int loopStep;
-		size_t Xdim;
 	};
 
 	struct AngleParameters {
@@ -86,24 +83,9 @@ class CUDAForwardArtZernike3D {
 
 	const std::vector<PrecisionType> sigma;
 
-	// Atomic mutex
-	std::vector<std::unique_ptr<std::atomic<PrecisionType *>>> p_busy_elem;
-	std::vector<std::unique_ptr<std::atomic<PrecisionType *>>> w_busy_elem;
-
    private:
 	template<bool usesZernike>
 	struct CommonKernelParameters setCommonArgumentsKernel(struct DynamicParameters &parameters);
-
-	/// Function inspired by std::find with support for CUDA allowed data types
-	size_t findCuda(const PrecisionType *begin, size_t size, PrecisionType value) const;
-
-	void splattingAtPos(PrecisionType pos_x,
-						PrecisionType pos_y,
-						PrecisionType weight,
-						MultidimArrayCuda<PrecisionType> &mP,
-						MultidimArrayCuda<PrecisionType> &mW,
-						std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
-						std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda) const;
 
 	Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
 

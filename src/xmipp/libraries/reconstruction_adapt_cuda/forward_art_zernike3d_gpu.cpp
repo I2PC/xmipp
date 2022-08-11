@@ -289,7 +289,6 @@ void ProgForwardArtZernike3DGPU::preProcess()
 		.sigma = sigma,
 		.RmaxDef = RmaxDef,
 		.loopStep = loop_step,
-		.Xdim = Xdim,
 	};
 	try {
 		cudaForwardArtZernike3D = std::make_unique<CUDAForwardArtZernike3D<PrecisionType>>(parameters);
