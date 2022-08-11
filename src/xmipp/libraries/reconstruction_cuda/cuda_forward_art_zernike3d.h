@@ -58,8 +58,7 @@ class CUDAForwardArtZernike3D {
 	struct CommonKernelParameters {
 		size_t idxY0, idxZ0;
 		PrecisionType iRmaxF;
-		PrecisionType *cudaClnm;
-		Matrix2D<PrecisionType> R;
+		PrecisionType *cudaClnm, *cudaR;
 	};
 
    public:
@@ -69,7 +68,7 @@ class CUDAForwardArtZernike3D {
 	template<bool usesZernike>
 	void runBackwardKernel(struct DynamicParameters &parameters);
 
-	explicit CUDAForwardArtZernike3D(const ConstantParameters parameters) noexcept;
+	explicit CUDAForwardArtZernike3D(const ConstantParameters parameters);
 	~CUDAForwardArtZernike3D();
 
    private:
@@ -94,13 +93,6 @@ class CUDAForwardArtZernike3D {
    private:
 	template<bool usesZernike>
 	struct CommonKernelParameters setCommonArgumentsKernel(struct DynamicParameters &parameters);
-
-	MultidimArrayCuda<PrecisionType> *setVectorMultidimArrayCuda(std::vector<Image<PrecisionType>> &image,
-																 std::vector<MultidimArrayCuda<PrecisionType>> &output);
-
-	/// Move data from MultidimArray to struct usable by CUDA kernel
-	template<typename T>
-	MultidimArrayCuda<T> initializeMultidimArray(const MultidimArray<T> &multidimArray) const;
 
 	/// Function inspired by std::find with support for CUDA allowed data types
 	size_t findCuda(const PrecisionType *begin, size_t size, PrecisionType value) const;

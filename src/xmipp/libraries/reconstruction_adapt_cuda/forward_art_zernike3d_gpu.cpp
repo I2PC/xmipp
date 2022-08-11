@@ -29,9 +29,11 @@
 #include <core/xmipp_image_generic.h>
 #include <data/mask.h>
 #include <data/projection.h>
+#include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <numeric>
+#include <stdexcept>
 #include "data/cpu.h"
 
 // Empty constructor =======================================================
@@ -289,7 +291,12 @@ void ProgForwardArtZernike3DGPU::preProcess()
 		.loopStep = loop_step,
 		.Xdim = Xdim,
 	};
-	cudaForwardArtZernike3D = std::make_unique<CUDAForwardArtZernike3D<PrecisionType>>(parameters);
+	try {
+		cudaForwardArtZernike3D = std::make_unique<CUDAForwardArtZernike3D<PrecisionType>>(parameters);
+	} catch (const std::runtime_error &e) {
+		std::cerr << e.what() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
 }
 
 void ProgForwardArtZernike3DGPU::finishProcessing()

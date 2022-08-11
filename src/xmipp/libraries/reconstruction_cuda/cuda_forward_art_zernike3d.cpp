@@ -2,6 +2,7 @@
 #include "cuda_forward_art_zernike3d.h"
 #include <core/geometry.h>
 #include <cassert>
+#include <stdexcept>
 #include "data/numerical_tools.h"
 
 // Macros
@@ -10,22 +11,111 @@
 #define IS_OUTSIDE2D(ImD, i, j) \
 	((j) < STARTINGX((ImD)) || (j) > FINISHINGX((ImD)) || (i) < STARTINGY((ImD)) || (i) > FINISHINGY((ImD)))
 
+// Cuda memory helper function
+namespace {
+
+	void processCudaError()
+	{
+		cudaError_t err = cudaGetLastError();
+		if (err != cudaSuccess) {
+			throw std::runtime_error(cudaGetErrorString(err));
+		}
+	}
+
+	// Copies data from CPU to the GPU
+	template<typename T>
+	void transportData(T **dest, const T *source, size_t n)
+	{
+		if (cudaMalloc(dest, sizeof(T) * n) != cudaSuccess) {
+			processCudaError();
+		}
+
+		if (cudaMemcpy(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
+			cudaFree(*dest);
+			processCudaError();
+		}
+	}
+
+	template<typename T>
+	T *tranportMultidimArrayToGpu(const MultidimArray<T> &inputArray)
+	{
+		T *outputArrayData;
+		transportData(&outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
+		return outputArrayData;
+	}
+
+	template<typename T>
+	MultidimArrayCuda<T> *tranportVectorOfMultidimArrayToGpu(const std::vector<MultidimArrayCuda<T>> &inputVector)
+	{
+		MultidimArrayCuda<T> *outputVectorData;
+		transportData(&outputVectorData, inputVector.data(), inputVector.size());
+		return outputVectorData;
+	}
+
+	template<typename T>
+	T *tranportMatrix1DToGpu(const Matrix1D<T> &inputVector)
+	{
+		T *outputVector;
+		transportData(&outputVector, inputVector.vdata, inputVector.vdim);
+		return outputVector;
+	}
+
+	template<typename T>
+	T *tranportStdVectorToGpu(const std::vector<T> &inputVector)
+	{
+		T *outputVector;
+		transportData(&outputVector, inputVector.data(), inputVector.size());
+		return outputVector;
+	}
+
+	template<typename T>
+	T *tranportMatrix2DToGpu(const Matrix2D<T> &inputMatrix)
+	{
+		T *outputMatrixData;
+		transportData(&outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
+		return outputMatrixData;
+	}
+
+	template<typename T>
+	MultidimArrayCuda<T> initializeMultidimArrayCuda(const MultidimArray<T> &multidimArray)
+	{
+		struct MultidimArrayCuda<T> cudaArray = {
+			.xdim = multidimArray.xdim, .ydim = multidimArray.ydim, .yxdim = multidimArray.yxdim,
+			.xinit = multidimArray.xinit, .yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
+			.data = tranportMultidimArrayToGpu(multidimArray)
+		};
+
+		return cudaArray;
+	}
+
+	template<typename T>
+	MultidimArrayCuda<T> *convertToMultidimArrayCuda(std::vector<Image<T>> &image)
+	{
+		std::vector<MultidimArrayCuda<T>> output;
+		for (int m = 0; m < image.size(); m++) {
+			output.push_back(initializeMultidimArrayCuda(image[m]()));
+		}
+		return tranportVectorOfMultidimArrayToGpu(output);
+	}
+
+}  // namespace
+
 template<typename PrecisionType>
 CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
-	const CUDAForwardArtZernike3D<PrecisionType>::ConstantParameters parameters) noexcept
-	: V(initializeMultidimArray(parameters.Vrefined())),
-	  VRecMask(initializeMultidimArray(parameters.VRecMask)),
-	  sphMask(initializeMultidimArray(parameters.sphMask)),
+	const CUDAForwardArtZernike3D<PrecisionType>::ConstantParameters parameters)
+	: V(initializeMultidimArrayCuda(parameters.Vrefined())),
+	  VRecMask(initializeMultidimArrayCuda(parameters.VRecMask)),
+	  sphMask(initializeMultidimArrayCuda(parameters.sphMask)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastZ(FINISHINGZ(parameters.Vrefined())),
 	  lastY(FINISHINGY(parameters.Vrefined())),
 	  lastX(FINISHINGX(parameters.Vrefined())),
 	  loopStep(parameters.loopStep),
-	  cudaVL1(parameters.vL1.vdata),
-	  cudaVL2(parameters.vL2.vdata),
-	  cudaVN(parameters.vN.vdata),
-	  cudaVM(parameters.vM.vdata)
+	  cudaVL1(tranportMatrix1DToGpu(parameters.vL1)),
+	  cudaVL2(tranportMatrix1DToGpu(parameters.vL2)),
+	  cudaVN(tranportMatrix1DToGpu(parameters.vN)),
+	  cudaVM(tranportMatrix1DToGpu(parameters.vM))
 {
 	auto Xdim = parameters.Xdim;
 	p_busy_elem.resize(Xdim * Xdim);
@@ -41,7 +131,16 @@ CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
 
 template<typename PrecisionType>
 CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D()
-{}
+{
+	cudaFree(V.data);
+	cudaFree(VRecMask.data);
+	cudaFree(sphMask.data);
+
+	cudaFree(const_cast<int *>(cudaVL1));
+	cudaFree(const_cast<int *>(cudaVL2));
+	cudaFree(const_cast<int *>(cudaVN));
+	cudaFree(const_cast<int *>(cudaVM));
+}
 
 template<typename PrecisionType>
 template<bool usesZernike>
@@ -61,14 +160,12 @@ CUDAForwardArtZernike3D<PrecisionType>::setCommonArgumentsKernel(struct DynamicP
 	// Rotation Matrix (has to pass the whole Matrix2D so it is not automatically deallocated)
 	const Matrix2D<PrecisionType> R = createRotationMatrix(angles);
 
-	auto cudaClnm = clnm.data();
-
 	CommonKernelParameters output = {
 		.idxY0 = idxY0,
 		.idxZ0 = idxZ0,
 		.iRmaxF = iRmaxF,
-		.cudaClnm = cudaClnm,
-		.R = R,
+		.cudaClnm = tranportStdVectorToGpu(clnm),
+		.cudaR = tranportMatrix2DToGpu(R),
 	};
 
 	return output;
@@ -76,30 +173,17 @@ CUDAForwardArtZernike3D<PrecisionType>::setCommonArgumentsKernel(struct DynamicP
 }
 
 template<typename PrecisionType>
-MultidimArrayCuda<PrecisionType> *CUDAForwardArtZernike3D<PrecisionType>::setVectorMultidimArrayCuda(
-	std::vector<Image<PrecisionType>> &image,
-	std::vector<MultidimArrayCuda<PrecisionType>> &output)
-
-{
-	for (int m = 0; m < image.size(); m++) {
-		output.push_back(initializeMultidimArray(image[m]()));
-	}
-	return output.data();
-}
-
-template<typename PrecisionType>
 template<bool usesZernike>
 void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters)
+
 {
 	// Unique parameters
-	std::vector<MultidimArrayCuda<PrecisionType>> outputP;
-	std::vector<MultidimArrayCuda<PrecisionType>> outputW;
-	auto cudaP = setVectorMultidimArrayCuda(parameters.P, outputP);
-	auto cudaW = setVectorMultidimArrayCuda(parameters.W, outputW);
+	auto cudaP = convertToMultidimArrayCuda(parameters.P);
+	auto cudaW = convertToMultidimArrayCuda(parameters.W);
 	auto p_busy_elem_cuda = p_busy_elem.data();
 	auto w_busy_elem_cuda = w_busy_elem.data();
 	auto sigma_size = sigma.size();
-	const auto cudaSigma = sigma.data();
+	auto cudaSigma = tranportStdVectorToGpu(sigma);
 	const int step = loopStep;
 
 	// Common parameters
@@ -107,7 +191,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
 	auto idxY0 = commonParameters.idxY0;
 	auto idxZ0 = commonParameters.idxZ0;
 	auto iRmaxF = commonParameters.iRmaxF;
-	auto cudaR = commonParameters.R.mdata;
+	auto cudaR = commonParameters.cudaR;
 	auto cudaClnm = commonParameters.cudaClnm;
 
 	for (int k = STARTINGZ(V); k <= lastZ; k += step) {
@@ -166,7 +250,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
 {
 	// Unique parameters
 	auto &mId = parameters.Idiff();
-	auto cudaMId = initializeMultidimArray(mId);
+	auto cudaMId = initializeMultidimArrayCuda(mId);
 	const int step = 1;
 
 	// Common parameters
@@ -174,7 +258,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
 	auto idxY0 = commonParameters.idxY0;
 	auto idxZ0 = commonParameters.idxZ0;
 	auto iRmaxF = commonParameters.iRmaxF;
-	auto cudaR = commonParameters.R.mdata;
+	auto cudaR = commonParameters.cudaR;
 	auto cudaClnm = commonParameters.cudaClnm;
 
 	for (int k = STARTINGZ(V); k <= lastZ; k += step) {
@@ -216,20 +300,6 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
 			}
 		}
 	}
-}
-
-template<typename PrecisionType>
-template<typename T>
-MultidimArrayCuda<T> CUDAForwardArtZernike3D<PrecisionType>::initializeMultidimArray(
-	const MultidimArray<T> &multidimArray) const
-{
-	struct MultidimArrayCuda<T> cudaArray = {
-		.xdim = multidimArray.xdim, .ydim = multidimArray.ydim, .yxdim = multidimArray.yxdim,
-		.xinit = multidimArray.xinit, .yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
-		.data = multidimArray.data,
-	};
-
-	return cudaArray;
 }
 
 template<typename PrecisionType>
@@ -324,93 +394,6 @@ PrecisionType CUDAForwardArtZernike3D<PrecisionType>::interpolatedElement2DCuda(
 	PrecisionType d1 = LIN_INTERP(fx, d10, d11);
 	return LIN_INTERP(fy, d0, d1);
 }
-
-// Cuda memory helper function
-namespace {
-
-	template<typename T>
-	cudaError cudaMallocAndCopy(T **target, const T *source, size_t numberOfElements, size_t memSize = 0)
-	{
-		size_t elemSize = numberOfElements * sizeof(T);
-		memSize = memSize == 0 ? elemSize : memSize * sizeof(T);
-
-		cudaError err = cudaSuccess;
-		if ((err = cudaMalloc(target, memSize)) != cudaSuccess) {
-			*target = NULL;
-			return err;
-		}
-
-		if ((err = cudaMemcpy(*target, source, elemSize, cudaMemcpyHostToDevice)) != cudaSuccess) {
-			cudaFree(*target);
-			*target = NULL;
-		}
-
-		if (memSize > elemSize) {
-			cudaMemset((*target) + numberOfElements, 0, memSize - elemSize);
-		}
-
-		return err;
-	}
-
-	void processCudaError()
-	{
-		cudaError_t err = cudaGetLastError();
-		if (err != cudaSuccess) {
-			fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
-			exit(err);
-		}
-	}
-
-	// Copies data from CPU to the GPU and at the same time transforms from
-	// type 'U' to type 'T'. Works only for numeric types
-	template<typename Target, typename Source>
-	void transformData(Target **dest, Source *source, size_t n, bool mallocMem = true)
-	{
-		std::vector<Target> tmp(source, source + n);
-
-		if (mallocMem) {
-			if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess) {
-				processCudaError();
-			}
-		}
-
-		if (cudaMemcpy(*dest, tmp.data(), sizeof(Target) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
-			processCudaError();
-		}
-	}
-
-	template<typename T>
-	void setupMultidimArray(MultidimArray<T> &inputArray, T **outputArrayData)
-	{
-		transformData(outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
-	}
-
-	template<typename T>
-	void setupVectorOfMultidimArray(std::vector<MultidimArrayCuda<T>> &inputVector,
-									MultidimArrayCuda<T> **outputVectorData)
-	{
-		if (cudaMallocAndCopy(&outputVectorData, inputVector.data(), inputVector.size()) != cudaSuccess)
-			processCudaError();
-	}
-
-	template<typename T>
-	void setupMatrix1D(Matrix1D<T> &inputVector, T **outputVector)
-	{
-		transformData(outputVector, inputVector.vdata, inputVector.vdim);
-	}
-
-	template<typename T>
-	void setupStdVector(std::vector<T> &inputVector, T **outputVector)
-	{
-		transformData(outputVector, inputVector.data(), inputVector.size());
-	}
-
-	template<typename T>
-	void setupMatrix2D(Matrix2D<T> &inputMatrix, T **outputMatrixData)
-	{
-		transformData(outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
-	}
-}  // namespace
 
 // explicit template instantiation
 template class CUDAForwardArtZernike3D<float>;
