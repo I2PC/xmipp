@@ -88,10 +88,6 @@ class CUDAForwardArtZernike3D {
 	struct CommonKernelParameters setCommonArgumentsKernel(struct DynamicParameters &parameters);
 
 	Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
-
-	PrecisionType interpolatedElement2DCuda(PrecisionType x,
-											PrecisionType y,
-											MultidimArrayCuda<PrecisionType> &diffImage) const;
 };
 
 #endif	// CUDA_FORWARD_ART_ZERNIKE3D_H
