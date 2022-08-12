@@ -317,7 +317,9 @@ void FourierProjector::produceSideInfoProjection()
         {
             // Phase shift to move the origin of the image to the corner
             double dotp = (double)(j) * xxshift + phasey;
-            sincos(dotp,&DIRECT_A2D_ELEM(phaseShiftImgB,i,j),&DIRECT_A2D_ELEM(phaseShiftImgA,i,j));
+            //sincos(dotp,&DIRECT_A2D_ELEM(phaseShiftImgB,i,j),&DIRECT_A2D_ELEM(phaseShiftImgA,i,j));
+            DIRECT_A2D_ELEM(phaseShiftImgB,i,j) = sin(dotp);
+			DIRECT_A2D_ELEM(phaseShiftImgA,i,j) = cos(dotp);
         }
     }
 }

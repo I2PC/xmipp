@@ -153,7 +153,7 @@ void ProgAngularDistance::run()
 
     auto iter1(DF1.ids().begin());
     auto iter2(DF2.ids().begin());
-    for (; iter1 != DF1.ids().end(); ++iter1, ++iter2)
+    for (; i < DF1.size() ; ++iter1, ++iter2)
     {
         // Read input data
         double rot1,  tilt1,  psi1;

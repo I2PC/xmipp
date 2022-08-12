@@ -456,7 +456,9 @@ void addGradientTerm(double mu, AdmmKernel &kernel, MultidimArray<double> &L, Fo
 		// -L^2(r)*exp(-i*2*pi*(N/2)/N*(k+i+j)): the last term is a phase shift due to FFT
 		double argument=Kargument*(k+i+j);
 		double s, c;
-		sincos(argument,&s,&c);
+		//sincos(argument,&s,&c);
+		s = sin(argument);
+        c = cos(argument);
 		A3D_ELEM(fourierKernelV,k,i,j)+=-A3D_ELEM(transformer.fFourier,k,i,j)*
 				A3D_ELEM(transformer.fFourier,k,i,j)*std::complex<double>(K*c,K*s);
 	}
