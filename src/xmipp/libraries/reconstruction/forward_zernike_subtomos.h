@@ -88,6 +88,8 @@ public:
     Matrix1D<double> p;
     int flagEnabled;
     bool useCTF;
+    // Tilt angles
+    double t1, t2;
 
 public:
     /** Resume computations */
@@ -107,6 +109,7 @@ public:
     Image<double> P;
 	// Filter
     FourierFilter filter;
+    FourierFilter filterMW;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
@@ -126,11 +129,12 @@ public:
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
-	Matrix1D<double> clnm;
+	Matrix1D<double> clnm, prev_clnm;
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
 	//Total Deformation, sumV, sumVd
-	double totalDeformation, sumV, sumVd;
+	double totalDeformation, prior_deformation;
+    int sumV;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
@@ -147,6 +151,12 @@ public:
 
     // Gaussian projection2 table
     Matrix1D<double> gaussianProjectionTable2;
+
+    // Deformation field and positions
+    MultidimArray<double> vpos, df;
+    std::vector<size_t> idx_z_clnm;
+    std::vector<double> z_clnm_diff;
+    Matrix2D<double> R;
 
 public:
     enum class Direction { ROTATE, UNROTATE };
@@ -213,6 +223,10 @@ public:
     
     void splattingAtPos(std::array<double, 3> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV);
 
+    void rotatePositions(double rot, double tilt, double psi);
+
+    void preComputeDF();
+
 protected:
     void createWorkFiles() { return Rerunable::createWorkFiles(resume, getInputMd()); }
 
@@ -222,6 +236,8 @@ private:
         std::vector<MDLabel> labels = getInputMd()->getActiveLabels();
         labels.push_back(MDL_SPH_DEFORMATION);
         labels.push_back(MDL_SPH_COEFFICIENTS);
+        if (!(std::find(labels.begin(), labels.end(), MDL_ENABLED) != labels.end()))
+            labels.push_back(MDL_ENABLED);
         // labels.push_back(MDL_COST);
         return labels;
     }
