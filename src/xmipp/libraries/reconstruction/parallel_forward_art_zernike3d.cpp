@@ -50,8 +50,8 @@ void ProgParallelForwardArtZernike3D::readParams()
 {
 	XmippMetadataProgram::readParams();
 	fnVolR = getParam("--ref");
-	fnMaskR = getParam("--mask");
-	fnMaskRecR = getParam("--recmask");
+	fnMaskRF = getParam("--maskf");
+	fnMaskRB = getParam("--maskb");
 	fnOutDir = getParam("--odir");
 	RmaxDef = getIntParam("--RDef");
 	phaseFlipped = checkParam("--phaseFlipped");
@@ -102,7 +102,8 @@ void ProgParallelForwardArtZernike3D::show()
 	std::cout
 		<< "Output directory:          " << fnOutDir << std::endl
 		<< "Reference volume:          " << fnVolR << std::endl
-		<< "Reference mask:            " << fnMaskR << std::endl
+		<< "Forward model mask:        " << fnMaskRF << std::endl
+		<< "Backward model mask:       " << fnMaskRB << std::endl
 		<< "Sampling:                  " << Ts << std::endl
 		<< "Max. Radius Deform.        " << RmaxDef << std::endl
 		<< "Zernike Degree:            " << L1 << std::endl
@@ -126,8 +127,8 @@ void ProgParallelForwardArtZernike3D::defineParams()
 	defaultComments["-o"].addComment("Refined volume");
 	XmippMetadataProgram::defineParams();
 	addParamsLine("  [--ref <volume=\"\">]        : Reference volume");
-	addParamsLine("  [--mask <m=\"\">]            : Mask reference volume");
-	addParamsLine("  [--recmask <m=\"\">]         : Mask determining reconstruction area");
+	addParamsLine("  [--maskf <m=\"\">]           : ART forward model reconstruction mask");
+	addParamsLine("  [--maskb <m=\"\">]           : ART backward model reconstruction mask");
 	addParamsLine("  [--odir <outputDir=\".\">]   : Output directory");
 	addParamsLine("  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
 	addParamsLine("  [--RDef <r=-1>]              : Maximum radius of the deformation (px). -1=Half of volume size");
@@ -149,7 +150,7 @@ void ProgParallelForwardArtZernike3D::defineParams()
 	addParamsLine("  [--resume]                   : Resume processing");
 	addParamsLine("  [--thr <N=-1>]                      : Maximal number of the processing CPU threads");
 	addExampleLine("A typical use is:", false);
-	addExampleLine("xmipp_forward_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
+	addExampleLine("xmipp_parallel_forward_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
 }
 
 // // Produce side information ================================================
@@ -240,22 +241,22 @@ void ProgParallelForwardArtZernike3D::preProcess()
 	Mask mask;
 	mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	if (fnMaskR != "")
+	if (fnMaskRF != "")
 	{
 		Image<double> aux;
-		aux.read(fnMaskR);
-		typeCast(aux(), Vmask);
-		Vmask.setXmippOrigin();
+		aux.read(fnMaskRF);
+		typeCast(aux(), VRecMaskF);
+		VRecMaskF.setXmippOrigin();
 		double Rmax2 = RmaxDef * RmaxDef;
-		for (int k = STARTINGZ(Vmask); k <= FINISHINGZ(Vmask); k++)
+		for (int k = STARTINGZ(VRecMaskF); k <= FINISHINGZ(VRecMaskF); k++)
 		{
-			for (int i = STARTINGY(Vmask); i <= FINISHINGY(Vmask); i++)
+			for (int i = STARTINGY(VRecMaskF); i <= FINISHINGY(VRecMaskF); i++)
 			{
-				for (int j = STARTINGX(Vmask); j <= FINISHINGX(Vmask); j++)
+				for (int j = STARTINGX(VRecMaskF); j <= FINISHINGX(VRecMaskF); j++)
 				{
 					double r2 = k * k + i * i + j * j;
 					if (r2 >= Rmax2)
-						A3D_ELEM(Vmask, k, i, j) = 0;
+						A3D_ELEM(VRecMaskF, k, i, j) = 0;
 				}
 			}
 		}
@@ -264,28 +265,28 @@ void ProgParallelForwardArtZernike3D::preProcess()
 	{
 		mask.R1 = RmaxDef;
 		mask.generate_mask(V());
-		Vmask = mask.get_binary_mask();
-		Vmask.setXmippOrigin();
+		VRecMaskF = mask.get_binary_mask();
+		VRecMaskF.setXmippOrigin();
 	}
 
 
 	// Mask determining reconstruction area
-	if (fnMaskRecR != "")
+	if (fnMaskRB != "")
 	{
 		Image<double> aux;
-		aux.read(fnMaskRecR);
-		typeCast(aux(), VRecMask);
-		VRecMask.setXmippOrigin();
+		aux.read(fnMaskRB);
+		typeCast(aux(), VRecMaskB);
+		VRecMaskB.setXmippOrigin();
 		double Rmax2 = RmaxDef * RmaxDef;
-		for (int k = STARTINGZ(VRecMask); k <= FINISHINGZ(VRecMask); k++)
+		for (int k = STARTINGZ(VRecMaskB); k <= FINISHINGZ(VRecMaskB); k++)
 		{
-			for (int i = STARTINGY(VRecMask); i <= FINISHINGY(VRecMask); i++)
+			for (int i = STARTINGY(VRecMaskB); i <= FINISHINGY(VRecMaskB); i++)
 			{
-				for (int j = STARTINGX(VRecMask); j <= FINISHINGX(VRecMask); j++)
+				for (int j = STARTINGX(VRecMaskB); j <= FINISHINGX(VRecMaskB); j++)
 				{
 					double r2 = k * k + i * i + j * j;
 					if (r2 >= Rmax2)
-						A3D_ELEM(VRecMask, k, i, j) = 0;
+						A3D_ELEM(VRecMaskB, k, i, j) = 0;
 				}
 			}
 		}
@@ -294,15 +295,9 @@ void ProgParallelForwardArtZernike3D::preProcess()
 	{
 		mask.R1 = RmaxDef;
 		mask.generate_mask(V());
-		VRecMask = mask.get_binary_mask();
-		VRecMask.setXmippOrigin();
+		VRecMaskB = mask.get_binary_mask();
+		VRecMaskB.setXmippOrigin();
 	}
-
-	// Spherical mask
-	mask.R1 = RmaxDef;
-	mask.generate_mask(V());
-	sphMask = mask.get_binary_mask();
-	sphMask.setXmippOrigin();
 
 	// Spherical mask
 	// mask.R1 = RmaxDef;
@@ -982,12 +977,12 @@ void ProgParallelForwardArtZernike3D::forwardModel(int k, bool usesZernike)
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			double gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(VRecMask, k, i, j) != 0)
+			if (A3D_ELEM(VRecMaskF, k, i, j) != 0)
 			{
 				int img_idx = 0;
 				if (sigma.size() > 1)
 				{
-					double sigma_mask = A3D_ELEM(VRecMask, k, i, j);
+					double sigma_mask = A3D_ELEM(VRecMaskF, k, i, j);
 					auto it = find(sigma.begin(), sigma.end(), sigma_mask);
 					img_idx = it - sigma.begin();
 				}
@@ -1060,7 +1055,7 @@ void ProgParallelForwardArtZernike3D::backwardModel(int k, bool usesZernike)
 		for (int j = STARTINGX(mV); j <= lastX; j += step)
 		{
 			double gx = 0.0, gy = 0.0, gz = 0.0;
-			if (A3D_ELEM(sphMask, k, i, j) != 0)
+			if (A3D_ELEM(VRecMaskB, k, i, j) != 0)
 			{
 				if (usesZernike)
 				{
