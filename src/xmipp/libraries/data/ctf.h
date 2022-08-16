@@ -462,7 +462,7 @@ public:
 		double cosine_part;
 		//sincos(argument,&sine_part, &cosine_part);
 		sine_part = sin(argument);
-        cosine_part = cos(argument);// OK
+                cosine_part = cos(argument);// OK
 		double Eespr = exp(-K3 * precomputed.u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
 		double EdeltaF = bessj0(K5 * precomputed.u2); // OK
@@ -552,7 +552,7 @@ public:
 		double cosine_part;
 		//sincos(argument,&sine_part,&cosine_part);
 		sine_part = sin(argument);
-        cosine_part = cos(argument);// OK
+                cosine_part = cos(argument);// OK
 
 		if (show)
 		{
@@ -569,7 +569,7 @@ public:
 		return -(Ksin*sine_part - Kcos*cosine_part);
 	}
 
-	void getSineAndCosineParts(double sine_part, double cosine_part, double E,	double u2, double deltaf, bool show) const
+	void getSineAndCosineParts(double &sine_part, double &cosine_part, double E, double u2, double deltaf, bool show) const
 	{
 		double u = sqrt(u2);
 		double u4 = u2 * u2;
@@ -582,7 +582,7 @@ public:
 		double argument = VPP + K1 * deltaf * u2 + K2 * u4;
 		//sincos(argument,&sine_part, &cosine_part); // OK
 		sine_part = sin(argument);
-        cosine_part = cos(argument);
+                cosine_part = cos(argument);
 		double Eespr = exp(-K3 * u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
 		double EdeltaF = bessj0(K5 * u2); // OK
@@ -685,11 +685,11 @@ public:
 		return iTs;
 	}
 
-   /// Generate CTF image.
+        /// Generate CTF image.
 	template <class T>
 	void generateCTF(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
 	{
-		double iTs = initCTF(Ydim, Xdim, CTF, Ts=-1);
+		double iTs = initCTF(Ydim, Xdim, CTF, Ts);
 		for (int i=0; i<Ydim; ++i)
 		{
 			double wy;
@@ -1218,8 +1218,7 @@ public:
     template <class T>
     void generateCTF(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-		Ts=-1;
-		double iTs = initCTF(Ydim, Xdim, CTF, Ts);
+	double iTs = initCTF(Ydim, Xdim, CTF, Ts);
         for (int i=0; i<Ydim; ++i)
         {
         	double wy;
@@ -1245,8 +1244,7 @@ public:
     template <class T>
     void generateCTFWithoutDamping(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-		Ts=-1;
-		double iTs = initCTF(Ydim, Xdim, CTF, Ts);
+	double iTs = initCTF(Ydim, Xdim, CTF, Ts);
         for (int i=0; i<Ydim; ++i)
         {
         	double wy;
@@ -1272,7 +1270,7 @@ public:
     template <class T>
     void generateEnvelope(int Ydim, int Xdim, MultidimArray < T > &CTF, double Ts=-1)
     {
-		double iTs = initCTF(Ydim, Xdim, CTF, Ts);
+	double iTs = initCTF(Ydim, Xdim, CTF, Ts);
         for (int i=0; i<Ydim; ++i)
         {
         	double wy;
