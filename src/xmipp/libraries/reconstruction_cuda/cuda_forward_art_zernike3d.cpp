@@ -119,14 +119,10 @@ namespace {
 
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
-	: V(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	: VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
 	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
-	  lastZ(FINISHINGZ(parameters.Vrefined())),
-	  lastY(FINISHINGY(parameters.Vrefined())),
-	  lastX(FINISHINGX(parameters.Vrefined())),
 	  loopStep(parameters.loopStep),
 	  cudaVL1(tranportMatrix1DToGpu(parameters.vL1)),
 	  cudaVL2(tranportMatrix1DToGpu(parameters.vL2)),
@@ -137,7 +133,6 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
-	cudaFree(V.data);
 	cudaFree(VRecMaskF.data);
 	cudaFree(VRecMaskB.data);
 
@@ -169,8 +164,12 @@ struct Program<PrecisionType>::CommonKernelParameters Program<PrecisionType>::se
 		.idxY0 = idxY0,
 		.idxZ0 = idxZ0,
 		.iRmaxF = iRmaxF,
+		.cudaMV = initializeMultidimArrayCuda(parameters.Vrefined()),
 		.cudaClnm = tranportStdVectorToGpu(clnm),
 		.cudaR = tranportMatrix2DToGpu(R),
+		.lastX = FINISHINGX(parameters.Vrefined()),
+		.lastY = FINISHINGY(parameters.Vrefined()),
+		.lastZ = FINISHINGZ(parameters.Vrefined()),
 	};
 
 	return output;
@@ -194,10 +193,14 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	auto idxY0 = commonParameters.idxY0;
 	auto idxZ0 = commonParameters.idxZ0;
 	auto iRmaxF = commonParameters.iRmaxF;
+	auto cudaMV = commonParameters.cudaMV;
 	auto cudaR = commonParameters.cudaR;
 	auto cudaClnm = commonParameters.cudaClnm;
+	auto lastZ = commonParameters.lastZ;
+	auto lastY = commonParameters.lastY;
+	auto lastX = commonParameters.lastX;
 
-	forwardKernel<PrecisionType, usesZernike><<<1, 1>>>(V,
+	forwardKernel<PrecisionType, usesZernike><<<1, 1>>>(cudaMV,
 														VRecMaskF,
 														cudaP,
 														cudaW,
@@ -232,10 +235,14 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	auto idxY0 = commonParameters.idxY0;
 	auto idxZ0 = commonParameters.idxZ0;
 	auto iRmaxF = commonParameters.iRmaxF;
+	auto cudaMV = commonParameters.cudaMV;
 	auto cudaR = commonParameters.cudaR;
 	auto cudaClnm = commonParameters.cudaClnm;
+	auto lastZ = commonParameters.lastZ;
+	auto lastY = commonParameters.lastY;
+	auto lastX = commonParameters.lastX;
 
-	backwardKernel<PrecisionType, usesZernike><<<1, 1>>>(V,
+	backwardKernel<PrecisionType, usesZernike><<<1, 1>>>(cudaMV,
 														 cudaMId,
 														 VRecMaskB,
 														 lastZ,

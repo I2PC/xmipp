@@ -274,7 +274,6 @@ void ProgForwardArtZernike3DGPU::preProcess()
 
 	// Create GPU interface
 	const cuda_forward_art_zernike3D::Program<PrecisionType>::ConstantParameters parameters = {
-		.Vrefined = Vrefined,
 		.VRecMaskF = VRecMaskF,
 		.VRecMaskB = VRecMaskB,
 		.vL1 = vL1,
@@ -684,6 +683,7 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 
 	cuda_forward_art_zernike3D::Program<PrecisionType>::DynamicParameters parameters = {
 		.clnm = clnm,
+		.Vrefined = Vrefined,
 		.P = P,
 		.W = W,
 		.Idiff = Idiff,
