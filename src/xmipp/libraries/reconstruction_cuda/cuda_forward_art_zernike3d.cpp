@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include "data/numerical_tools.h"
 
+namespace cuda_forward_art_zernike3D {
+
 // Cuda memory helper function
 namespace {
 
@@ -98,8 +100,7 @@ namespace {
 }  // namespace
 
 template<typename PrecisionType>
-CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
-	const CUDAForwardArtZernike3D<PrecisionType>::ConstantParameters parameters)
+Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: V(initializeMultidimArrayCuda(parameters.Vrefined())),
 	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
 	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
@@ -116,7 +117,7 @@ CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
 {}
 
 template<typename PrecisionType>
-CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D()
+Program<PrecisionType>::~Program()
 {
 	cudaFree(V.data);
 	cudaFree(VRecMaskF.data);
@@ -130,8 +131,8 @@ CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D()
 
 template<typename PrecisionType>
 template<bool usesZernike>
-struct CUDAForwardArtZernike3D<PrecisionType>::CommonKernelParameters
-CUDAForwardArtZernike3D<PrecisionType>::setCommonArgumentsKernel(struct DynamicParameters &parameters) {
+struct Program<PrecisionType>::CommonKernelParameters Program<PrecisionType>::setCommonArgumentsKernel(
+	struct DynamicParameters &parameters) {
 	auto clnm = parameters.clnm;
 	auto angles = parameters.angles;
 
@@ -160,7 +161,7 @@ CUDAForwardArtZernike3D<PrecisionType>::setCommonArgumentsKernel(struct DynamicP
 
 template<typename PrecisionType>
 template<bool usesZernike>
-void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters)
+void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters)
 
 {
 	// Unique parameters
@@ -201,7 +202,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
 
 template<typename PrecisionType>
 template<bool usesZernike>
-void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicParameters &parameters)
+void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &parameters)
 {
 	// Unique parameters
 	auto &mId = parameters.Idiff();
@@ -235,8 +236,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
 }
 
 template<typename PrecisionType>
-Matrix2D<PrecisionType> CUDAForwardArtZernike3D<PrecisionType>::createRotationMatrix(
-	struct AngleParameters angles) const
+Matrix2D<PrecisionType> Program<PrecisionType>::createRotationMatrix(struct AngleParameters angles) const
 {
 	auto rot = angles.rot;
 	auto tilt = angles.tilt;
@@ -249,13 +249,14 @@ Matrix2D<PrecisionType> CUDAForwardArtZernike3D<PrecisionType>::createRotationMa
 }
 
 // explicit template instantiation
-template class CUDAForwardArtZernike3D<float>;
-template class CUDAForwardArtZernike3D<double>;
-template void CUDAForwardArtZernike3D<float>::runForwardKernel<true>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<float>::runForwardKernel<false>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<double>::runForwardKernel<true>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<double>::runForwardKernel<false>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<float>::runBackwardKernel<true>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<float>::runBackwardKernel<false>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<double>::runBackwardKernel<true>(struct DynamicParameters &);
-template void CUDAForwardArtZernike3D<double>::runBackwardKernel<false>(struct DynamicParameters &);
+template class Program<float>;
+template class Program<double>;
+template void Program<float>::runForwardKernel<true>(struct DynamicParameters &);
+template void Program<float>::runForwardKernel<false>(struct DynamicParameters &);
+template void Program<double>::runForwardKernel<true>(struct DynamicParameters &);
+template void Program<double>::runForwardKernel<false>(struct DynamicParameters &);
+template void Program<float>::runBackwardKernel<true>(struct DynamicParameters &);
+template void Program<float>::runBackwardKernel<false>(struct DynamicParameters &);
+template void Program<double>::runBackwardKernel<true>(struct DynamicParameters &);
+template void Program<double>::runBackwardKernel<false>(struct DynamicParameters &);
+}  // namespace cuda_forward_art_zernike3D

@@ -4,7 +4,7 @@
 #include "cuda_forward_art_zernike3d.h"
 #include "cuda_forward_art_zernike3d_defines.h"
 
-// Compilation settings
+namespace cuda_forward_art_zernike3D {
 
 // Constants
 static constexpr float CUDA_PI = 3.1415926535897f;
@@ -475,4 +475,5 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		}
 	}
 }
+}  // namespace cuda_forward_art_zernike3D
 #endif	//CUDA_FORWARD_ART_ZERNIKE3D_CU

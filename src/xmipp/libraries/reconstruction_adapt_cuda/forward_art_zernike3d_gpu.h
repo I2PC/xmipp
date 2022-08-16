@@ -144,7 +144,7 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	FourierFilter filter, filter2;
 
 	// GPU interface
-	std::unique_ptr<CUDAForwardArtZernike3D<PrecisionType>> cudaForwardArtZernike3D = nullptr;
+	std::unique_ptr<cuda_forward_art_zernike3D::Program<PrecisionType>> cudaProgram = nullptr;
 
    public:
 	enum class Mode { Proj, Vol };
@@ -215,30 +215,6 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 
 	// Sort images in an orthogonal fashion
 	void sortOrthogonal();
-
-	/// Move data from MultidimArray to struct usable by CUDA kernel
-	template<typename T>
-	MultidimArrayCuda<T> initializeMultidimArray(MultidimArray<T> &multidimArray);
-
-	// Spaltting at position r
-	void splattingAtPos(PrecisionType pos_x,
-						PrecisionType pos_y,
-						PrecisionType weight,
-						MultidimArrayCuda<PrecisionType> &mP,
-						MultidimArrayCuda<PrecisionType> &mW,
-						std::unique_ptr<std::atomic<PrecisionType *>> *p_busy_elem_cuda,
-						std::unique_ptr<std::atomic<PrecisionType *>> *w_busy_elem_cuda);
-
-	/** Interpolates the value of the nth 2D matrix M at the point (x,y)
-     *
-     * Bilinear interpolation. (x,y) are in logical coordinates.
-     */
-	PrecisionType interpolatedElement2DCuda(PrecisionType x,
-											PrecisionType y,
-											MultidimArrayCuda<PrecisionType> &diffImage) const;
-
-	/// Function inspired by std::find with support for CUDA allowed data types
-	size_t findCuda(PrecisionType *begin, size_t size, PrecisionType value);
 
 	void forwardModel(bool usesZernike);
 	void backwardModel(bool usesZernike);

@@ -4,9 +4,9 @@
 
 #define NONE 0
 #define MAXWELL 4
-#define PASCAL  5
-#define TURING  6
-#define AMPERE  7
+#define PASCAL 5
+#define TURING 6
+#define AMPERE 7
 
 // Degrees of the basis
 // (Setting exact degrees you use in the run may increase performance,
@@ -47,4 +47,4 @@
 #endif
 // Tuning parameters
 
-#endif// CUDA_FORWARD_ART_ZERNIKE3D_DEFINES_H
+#endif	// CUDA_FORWARD_ART_ZERNIKE3D_DEFINES_H
