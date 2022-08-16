@@ -101,8 +101,8 @@ template<typename PrecisionType>
 CUDAForwardArtZernike3D<PrecisionType>::CUDAForwardArtZernike3D(
 	const CUDAForwardArtZernike3D<PrecisionType>::ConstantParameters parameters)
 	: V(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  VRecMask(initializeMultidimArrayCuda(parameters.VRecMask)),
-	  sphMask(initializeMultidimArrayCuda(parameters.sphMask)),
+	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastZ(FINISHINGZ(parameters.Vrefined())),
@@ -119,8 +119,8 @@ template<typename PrecisionType>
 CUDAForwardArtZernike3D<PrecisionType>::~CUDAForwardArtZernike3D()
 {
 	cudaFree(V.data);
-	cudaFree(VRecMask.data);
-	cudaFree(sphMask.data);
+	cudaFree(VRecMaskF.data);
+	cudaFree(VRecMaskB.data);
 
 	cudaFree(const_cast<int *>(cudaVL1));
 	cudaFree(const_cast<int *>(cudaVL2));
@@ -179,7 +179,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runForwardKernel(struct DynamicPara
 	auto cudaClnm = commonParameters.cudaClnm;
 
 	forwardKernel<PrecisionType, usesZernike><<<1, 1>>>(V,
-														VRecMask,
+														VRecMaskF,
 														cudaP,
 														cudaW,
 														lastZ,
@@ -218,7 +218,7 @@ void CUDAForwardArtZernike3D<PrecisionType>::runBackwardKernel(struct DynamicPar
 
 	backwardKernel<PrecisionType, usesZernike><<<1, 1>>>(V,
 														 cudaMId,
-														 sphMask,
+														 VRecMaskB,
 														 lastZ,
 														 lastY,
 														 lastX,

@@ -33,7 +33,7 @@ class CUDAForwardArtZernike3D {
 	/// Constant parameters for the computation
 	struct ConstantParameters {
 		Image<PrecisionType> &Vrefined;
-		MultidimArray<int> &VRecMask, &sphMask;
+		MultidimArray<int> &VRecMaskF, &VRecMaskB;
 		Matrix1D<int> &vL1, &vN, &vL2, &vM;
 		std::vector<PrecisionType> &sigma;
 		int RmaxDef;
@@ -71,7 +71,7 @@ class CUDAForwardArtZernike3D {
    private:
 	const MultidimArrayCuda<PrecisionType> V;
 
-	const MultidimArrayCuda<int> VRecMask, sphMask;
+	const MultidimArrayCuda<int> VRecMaskF, VRecMaskB;
 
 	const int RmaxDef;
 

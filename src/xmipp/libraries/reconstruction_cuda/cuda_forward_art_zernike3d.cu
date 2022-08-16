@@ -347,7 +347,7 @@ namespace device {
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void forwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
-							  MultidimArrayCuda<int> cudaVRecMask,
+							  MultidimArrayCuda<int> cudaVRecMaskF,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
 							  MultidimArrayCuda<PrecisionType> *cudaW,
 							  const int lastZ,
@@ -370,10 +370,10 @@ __global__ void forwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		for (int i = STARTINGY(cudaMV); i <= lastY; i += step) {
 			for (int j = STARTINGX(cudaMV); j <= lastX; j += step) {
 				PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-				if (A3D_ELEM(cudaVRecMask, k, i, j) != 0) {
+				if (A3D_ELEM(cudaVRecMaskF, k, i, j) != 0) {
 					int img_idx = 0;
 					if (sigma_size > 1) {
-						PrecisionType sigma_mask = A3D_ELEM(cudaVRecMask, k, i, j);
+						PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
 						img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 					}
 					auto &mP = cudaP[img_idx];
@@ -420,7 +420,7 @@ __global__ void forwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   MultidimArrayCuda<PrecisionType> cudaMId,
-							   MultidimArrayCuda<int> sphMask,
+							   MultidimArrayCuda<int> VRecMaskB,
 							   const int lastZ,
 							   const int lastY,
 							   const int lastX,
@@ -439,7 +439,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		for (int i = STARTINGY(cudaMV); i <= lastY; i += step) {
 			for (int j = STARTINGX(cudaMV); j <= lastX; j += step) {
 				PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-				if (A3D_ELEM(sphMask, k, i, j) != 0) {
+				if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
 					if (usesZernike) {
 						auto k2 = k * k;
 						auto kr = k * iRmaxF;

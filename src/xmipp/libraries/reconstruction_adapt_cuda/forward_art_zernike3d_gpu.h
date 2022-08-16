@@ -50,7 +50,7 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	/** Filename of the reference volume */
 	FileName fnVolR;
 	/** Filename of the reference volume mask */
-	FileName fnMaskR, fnMaskRecR;
+	FileName fnMaskRF, fnMaskRB;
 	/** Filename of the refined volume */
 	FileName fnVolO;
 	/// Output directory
@@ -96,7 +96,7 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	// INput image
 	Image<double> I;
 	// Spherical mask
-	MultidimArray<int> Vmask, VRecMask, sphMask;
+	MultidimArray<int> VRecMaskF, VRecMaskB;
 	// Theoretical projection
 	std::vector<Image<PrecisionType>> P;
 	// Weight Image
