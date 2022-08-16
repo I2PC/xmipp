@@ -309,7 +309,7 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ PrecisionType interpolatedElement2DCuda(PrecisionType x,
 													   PrecisionType y,
-													   MultidimArrayCuda<PrecisionType> &diffImage)
+													   const MultidimArrayCuda<PrecisionType> &diffImage)
 	{
 		int x0 = CUDA_FLOOR(x);
 		PrecisionType fx = x - x0;
@@ -346,8 +346,8 @@ namespace device {
  * The first beast
  */
 template<typename PrecisionType, bool usesZernike>
-__global__ void forwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
-							  MultidimArrayCuda<int> cudaVRecMaskF,
+__global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
+							  const MultidimArrayCuda<int> cudaVRecMaskF,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
 							  MultidimArrayCuda<PrecisionType> *cudaW,
 							  const int lastZ,
@@ -419,8 +419,8 @@ __global__ void forwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
-							   MultidimArrayCuda<PrecisionType> cudaMId,
-							   MultidimArrayCuda<int> VRecMaskB,
+							   const MultidimArrayCuda<PrecisionType> cudaMId,
+							   const MultidimArrayCuda<int> VRecMaskB,
 							   const int lastZ,
 							   const int lastY,
 							   const int lastX,
