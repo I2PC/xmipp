@@ -35,6 +35,15 @@ namespace {
 		}
 	}
 
+	// Copies data from GPU to the CPU
+	template<typename T>
+	void transportDataFromGPU(T *dest, const T *source, size_t n)
+	{
+		if (cudaMemcpy(dest, source, sizeof(T) * n, cudaMemcpyDeviceToHost) != cudaSuccess) {
+			processCudaError();
+		}
+	}
+
 	template<typename T>
 	T *tranportMultidimArrayToGpu(const MultidimArray<T> &inputArray)
 	{
@@ -85,6 +94,15 @@ namespace {
 		};
 
 		return cudaArray;
+	}
+
+	template<typename T>
+	void updateMultidimArrayWithGPUData(MultidimArray<T> &multidimArray, const MultidimArrayCuda<T> &multidimArrayCuda)
+	{
+		assert(multidimArray.xdim * multidimArray.ydim * multidimArray.zdim
+			   == multidimArrayCuda.xdim * multidimArrayCuda.ydim * multidimArrayCuda.zdim);
+		transportDataFromGPU(
+			multidimArray.data, multidimArrayCuda.data, multidimArray.xdim * multidimArray.ydim * multidimArray.zdim);
 	}
 
 	template<typename T>
