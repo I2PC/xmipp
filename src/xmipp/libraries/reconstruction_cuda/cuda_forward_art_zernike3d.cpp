@@ -99,10 +99,17 @@ namespace {
 	template<typename T>
 	void updateMultidimArrayWithGPUData(MultidimArray<T> &multidimArray, const MultidimArrayCuda<T> &multidimArrayCuda)
 	{
-		assert(multidimArray.xdim * multidimArray.ydim * multidimArray.zdim
-			   == multidimArrayCuda.xdim * multidimArrayCuda.ydim * multidimArrayCuda.zdim);
 		transportDataFromGPU(
 			multidimArray.data, multidimArrayCuda.data, multidimArray.xdim * multidimArray.ydim * multidimArray.zdim);
+	}
+
+	template<typename T>
+	void updateVectorOfMultidimArrayWithGPUData(std::vector<Image<T>> &image,
+												const MultidimArrayCuda<T> *vectorMultidimArray)
+	{
+		for (int m = 0; m < image.size(); m++) {
+			updateMultidimArrayWithGPUData(image[m](), vectorMultidimArray[m]);
+		}
 	}
 
 	template<typename T>
@@ -231,6 +238,10 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 														cudaVM,
 														commonParameters.cudaClnm,
 														commonParameters.cudaR);
+
+	updateVectorOfMultidimArrayWithGPUData(parameters.P, cudaP);
+	updateVectorOfMultidimArrayWithGPUData(parameters.W, cudaW);
+
 	freeVectorOfMultidimArray(cudaP, parameters.P.size());
 	freeVectorOfMultidimArray(cudaW, parameters.W.size());
 	cudaFree(cudaSigma);
@@ -265,6 +276,9 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 														 cudaVM,
 														 commonParameters.cudaClnm,
 														 commonParameters.cudaR);
+
+	updateMultidimArrayWithGPUData(parameters.Vrefined(), commonParameters.cudaMV);
+
 	cudaFree(cudaMId.data);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
 }
