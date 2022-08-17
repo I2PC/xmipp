@@ -239,6 +239,8 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 														commonParameters.cudaClnm,
 														commonParameters.cudaR);
 
+	cudaDeviceSynchronize();
+
 	updateVectorOfMultidimArrayWithGPUData(parameters.P, cudaP);
 	updateVectorOfMultidimArrayWithGPUData(parameters.W, cudaW);
 
@@ -276,6 +278,8 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 														 cudaVM,
 														 commonParameters.cudaClnm,
 														 commonParameters.cudaR);
+
+	cudaDeviceSynchronize();
 
 	updateMultidimArrayWithGPUData(parameters.Vrefined(), commonParameters.cudaMV);
 
