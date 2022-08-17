@@ -115,6 +115,23 @@ namespace {
 		return tranportVectorOfMultidimArrayToGpu(output);
 	}
 
+	template<typename T>
+	void freeCommonArgumentsKernel(struct Program<T>::CommonKernelParameters &commonParameters)
+	{
+		cudaFree(commonParameters.cudaMV.data);
+		cudaFree(commonParameters.cudaClnm);
+		cudaFree(commonParameters.cudaR);
+	}
+
+	template<typename T>
+	void freeVectorOfMultidimArray(MultidimArrayCuda<T> *vector, size_t length)
+	{
+		for (int m = 0; m < length; m++) {
+			cudaFree(vector[m].data);
+		}
+		cudaFree(vector);
+	}
+
 }  // namespace
 
 template<typename PrecisionType>
@@ -210,6 +227,10 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 														cudaVM,
 														commonParameters.cudaClnm,
 														commonParameters.cudaR);
+	freeVectorOfMultidimArray(cudaP, parameters.P.size());
+	freeVectorOfMultidimArray(cudaW, parameters.W.size());
+	cudaFree(cudaSigma);
+	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
 }
 
 template<typename PrecisionType>
@@ -240,6 +261,8 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 														 cudaVM,
 														 commonParameters.cudaClnm,
 														 commonParameters.cudaR);
+	cudaFree(cudaMId.data);
+	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
 }
 
 template<typename PrecisionType>
