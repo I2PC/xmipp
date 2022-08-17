@@ -190,35 +190,26 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	// Common parameters
 	auto commonParameters = setCommonArgumentsKernel<usesZernike>(parameters);
-	auto idxY0 = commonParameters.idxY0;
-	auto idxZ0 = commonParameters.idxZ0;
-	auto iRmaxF = commonParameters.iRmaxF;
-	auto cudaMV = commonParameters.cudaMV;
-	auto cudaR = commonParameters.cudaR;
-	auto cudaClnm = commonParameters.cudaClnm;
-	auto lastZ = commonParameters.lastZ;
-	auto lastY = commonParameters.lastY;
-	auto lastX = commonParameters.lastX;
 
-	forwardKernel<PrecisionType, usesZernike><<<1, 1>>>(cudaMV,
+	forwardKernel<PrecisionType, usesZernike><<<1, 1>>>(commonParameters.cudaMV,
 														VRecMaskF,
 														cudaP,
 														cudaW,
-														lastZ,
-														lastY,
-														lastX,
+														commonParameters.lastZ,
+														commonParameters.lastY,
+														commonParameters.lastX,
 														step,
 														sigma_size,
 														cudaSigma,
-														iRmaxF,
-														idxY0,
-														idxZ0,
+														commonParameters.iRmaxF,
+														commonParameters.idxY0,
+														commonParameters.idxZ0,
 														cudaVL1,
 														cudaVN,
 														cudaVL2,
 														cudaVM,
-														cudaClnm,
-														cudaR);
+														commonParameters.cudaClnm,
+														commonParameters.cudaR);
 }
 
 template<typename PrecisionType>
@@ -232,32 +223,23 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 
 	// Common parameters
 	auto commonParameters = setCommonArgumentsKernel<usesZernike>(parameters);
-	auto idxY0 = commonParameters.idxY0;
-	auto idxZ0 = commonParameters.idxZ0;
-	auto iRmaxF = commonParameters.iRmaxF;
-	auto cudaMV = commonParameters.cudaMV;
-	auto cudaR = commonParameters.cudaR;
-	auto cudaClnm = commonParameters.cudaClnm;
-	auto lastZ = commonParameters.lastZ;
-	auto lastY = commonParameters.lastY;
-	auto lastX = commonParameters.lastX;
 
-	backwardKernel<PrecisionType, usesZernike><<<1, 1>>>(cudaMV,
+	backwardKernel<PrecisionType, usesZernike><<<1, 1>>>(commonParameters.cudaMV,
 														 cudaMId,
 														 VRecMaskB,
-														 lastZ,
-														 lastY,
-														 lastX,
+														 commonParameters.lastZ,
+														 commonParameters.lastY,
+														 commonParameters.lastX,
 														 step,
-														 iRmaxF,
-														 idxY0,
-														 idxZ0,
+														 commonParameters.iRmaxF,
+														 commonParameters.idxY0,
+														 commonParameters.idxZ0,
 														 cudaVL1,
 														 cudaVN,
 														 cudaVL2,
 														 cudaVM,
-														 cudaClnm,
-														 cudaR);
+														 commonParameters.cudaClnm,
+														 commonParameters.cudaR);
 }
 
 template<typename PrecisionType>
