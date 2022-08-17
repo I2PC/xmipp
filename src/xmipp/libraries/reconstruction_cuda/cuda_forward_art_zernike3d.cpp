@@ -6,6 +6,8 @@
 
 #include <cassert>
 #include <stdexcept>
+#include <tuple>
+#include <utility>
 #include "data/numerical_tools.h"
 
 namespace cuda_forward_art_zernike3D {
@@ -105,21 +107,23 @@ namespace {
 
 	template<typename T>
 	void updateVectorOfMultidimArrayWithGPUData(std::vector<Image<T>> &image,
-												const MultidimArrayCuda<T> *vectorMultidimArray)
+												const std::vector<MultidimArrayCuda<T>> vectorMultidimArray)
 	{
+		assert(image.size() == vectorMultidimArray.size());
 		for (int m = 0; m < image.size(); m++) {
 			updateMultidimArrayWithGPUData(image[m](), vectorMultidimArray[m]);
 		}
 	}
 
 	template<typename T>
-	MultidimArrayCuda<T> *convertToMultidimArrayCuda(std::vector<Image<T>> &image)
+	std::pair<MultidimArrayCuda<T> *, std::vector<MultidimArrayCuda<T>>> convertToMultidimArrayCuda(
+		std::vector<Image<T>> &image)
 	{
 		std::vector<MultidimArrayCuda<T>> output;
 		for (int m = 0; m < image.size(); m++) {
 			output.push_back(initializeMultidimArrayCuda(image[m]()));
 		}
-		return tranportVectorOfMultidimArrayToGpu(output);
+		return std::make_pair(tranportVectorOfMultidimArrayToGpu(output), output);
 	}
 
 	template<typename T>
@@ -131,12 +135,11 @@ namespace {
 	}
 
 	template<typename T>
-	void freeVectorOfMultidimArray(MultidimArrayCuda<T> *vector, size_t length)
+	void freeVectorOfMultidimArray(std::vector<MultidimArrayCuda<T>> vector)
 	{
-		for (int m = 0; m < length; m++) {
+		for (int m = 0; m < vector.size(); m++) {
 			cudaFree(vector[m].data);
 		}
-		cudaFree(vector);
 	}
 
 	template<typename T>
@@ -210,8 +213,10 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 {
 	// Unique parameters
-	auto cudaP = convertToMultidimArrayCuda(parameters.P);
-	auto cudaW = convertToMultidimArrayCuda(parameters.W);
+	MultidimArrayCuda<PrecisionType> *cudaP, *cudaW;
+	std::vector<MultidimArrayCuda<PrecisionType>> pVector, wVector;
+	std::tie(cudaP, pVector) = convertToMultidimArrayCuda(parameters.P);
+	std::tie(cudaW, wVector) = convertToMultidimArrayCuda(parameters.W);
 	auto sigma_size = sigma.size();
 	auto cudaSigma = tranportStdVectorToGpu(sigma);
 	const int step = loopStep;
@@ -241,11 +246,13 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	cudaDeviceSynchronize();
 
-	updateVectorOfMultidimArrayWithGPUData(parameters.P, cudaP);
-	updateVectorOfMultidimArrayWithGPUData(parameters.W, cudaW);
+	updateVectorOfMultidimArrayWithGPUData(parameters.P, pVector);
+	updateVectorOfMultidimArrayWithGPUData(parameters.W, wVector);
 
-	freeVectorOfMultidimArray(cudaP, parameters.P.size());
-	freeVectorOfMultidimArray(cudaW, parameters.W.size());
+	freeVectorOfMultidimArray(pVector);
+	freeVectorOfMultidimArray(wVector);
+	cudaFree(cudaP);
+	cudaFree(cudaW);
 	cudaFree(cudaSigma);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
 }
