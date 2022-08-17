@@ -82,12 +82,6 @@ class Program {
 	const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
 
 	const std::vector<PrecisionType> sigma;
-
-   private:
-	template<bool usesZernike>
-	struct CommonKernelParameters setCommonArgumentsKernel(struct DynamicParameters &parameters);
-
-	Matrix2D<PrecisionType> createRotationMatrix(struct AngleParameters angles) const;
 };
 
 }  // namespace cuda_forward_art_zernike3D

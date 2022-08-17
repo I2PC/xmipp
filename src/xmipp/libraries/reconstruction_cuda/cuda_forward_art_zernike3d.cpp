@@ -132,6 +132,44 @@ namespace {
 		cudaFree(vector);
 	}
 
+	template<typename T>
+	Matrix2D<T> createRotationMatrix(const struct Program<T>::AngleParameters angles)
+	{
+		auto rot = angles.rot;
+		auto tilt = angles.tilt;
+		auto psi = angles.psi;
+		constexpr size_t matrixSize = 3;
+		auto tmp = Matrix2D<T>();
+		tmp.initIdentity(matrixSize);
+		Euler_angles2matrix(rot, tilt, psi, tmp, false);
+		return tmp;
+	}
+
+	template<typename T>
+	struct Program<T>::CommonKernelParameters getCommonArgumentsKernel(
+		const struct Program<T>::DynamicParameters &parameters,
+		const bool usesZernike,
+		const int RmaxDef) {
+		auto clnm = parameters.clnm;
+		auto angles = parameters.angles;
+
+		const size_t idxY0 = usesZernike ? (clnm.size() / 3) : 0;
+		const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
+		const T RmaxF = usesZernike ? RmaxDef : 0;
+		const T iRmaxF = usesZernike ? (1.0f / RmaxF) : 0;
+
+		const Matrix2D<T> R = createRotationMatrix<T>(angles);
+
+		struct Program<T>::CommonKernelParameters output = {
+			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF,
+			.cudaMV = initializeMultidimArrayCuda(parameters.Vrefined()), .cudaClnm = tranportStdVectorToGpu(clnm),
+			.cudaR = tranportMatrix2DToGpu(R), .lastX = FINISHINGX(parameters.Vrefined()),
+			.lastY = FINISHINGY(parameters.Vrefined()), .lastZ = FINISHINGZ(parameters.Vrefined()),
+		};
+
+		return output;
+	}
+
 }  // namespace
 
 template<typename PrecisionType>
@@ -161,40 +199,6 @@ Program<PrecisionType>::~Program()
 
 template<typename PrecisionType>
 template<bool usesZernike>
-struct Program<PrecisionType>::CommonKernelParameters Program<PrecisionType>::setCommonArgumentsKernel(
-	struct DynamicParameters &parameters) {
-	auto clnm = parameters.clnm;
-	auto angles = parameters.angles;
-
-	// We can't set idxY0 to 0 because the compiler
-	// would give irrelevant warnings.
-	assert(usesZernike || clnm.size() == 0);
-	const size_t idxY0 = clnm.size() / 3;
-	const size_t idxZ0 = usesZernike ? (2 * idxY0) : 0;
-	const PrecisionType RmaxF = usesZernike ? RmaxDef : 0;
-	const PrecisionType iRmaxF = usesZernike ? (1.0f / RmaxF) : 0;
-
-	// Rotation Matrix (has to pass the whole Matrix2D so it is not automatically deallocated)
-	const Matrix2D<PrecisionType> R = createRotationMatrix(angles);
-
-	CommonKernelParameters output = {
-		.idxY0 = idxY0,
-		.idxZ0 = idxZ0,
-		.iRmaxF = iRmaxF,
-		.cudaMV = initializeMultidimArrayCuda(parameters.Vrefined()),
-		.cudaClnm = tranportStdVectorToGpu(clnm),
-		.cudaR = tranportMatrix2DToGpu(R),
-		.lastX = FINISHINGX(parameters.Vrefined()),
-		.lastY = FINISHINGY(parameters.Vrefined()),
-		.lastZ = FINISHINGZ(parameters.Vrefined()),
-	};
-
-	return output;
-
-}
-
-template<typename PrecisionType>
-template<bool usesZernike>
 void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters)
 
 {
@@ -206,7 +210,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	const int step = loopStep;
 
 	// Common parameters
-	auto commonParameters = setCommonArgumentsKernel<usesZernike>(parameters);
+	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
 	forwardKernel<PrecisionType, usesZernike><<<1, 1>>>(commonParameters.cudaMV,
 														VRecMaskF,
@@ -243,7 +247,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	const int step = 1;
 
 	// Common parameters
-	auto commonParameters = setCommonArgumentsKernel<usesZernike>(parameters);
+	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
 	backwardKernel<PrecisionType, usesZernike><<<1, 1>>>(commonParameters.cudaMV,
 														 cudaMId,
@@ -263,19 +267,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 														 commonParameters.cudaR);
 	cudaFree(cudaMId.data);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
-}
-
-template<typename PrecisionType>
-Matrix2D<PrecisionType> Program<PrecisionType>::createRotationMatrix(struct AngleParameters angles) const
-{
-	auto rot = angles.rot;
-	auto tilt = angles.tilt;
-	auto psi = angles.psi;
-	constexpr size_t matrixSize = 3;
-	auto tmp = Matrix2D<PrecisionType>();
-	tmp.initIdentity(matrixSize);
-	Euler_angles2matrix(rot, tilt, psi, tmp, false);
-	return tmp;
 }
 
 // explicit template instantiation
