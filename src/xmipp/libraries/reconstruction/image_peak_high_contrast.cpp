@@ -499,7 +499,7 @@ void ProgImagePeakHighContrast::clusterHCC()
 		std::cout << "--- ITERATION " << iteration << std::endl;
 		#endif
 
-		size_t deletedIndexes = 0;
+		deletedIndexes = 0;
 
 		// Votting step	
 		for (int k = 0; k < zSize; k++)
@@ -578,20 +578,8 @@ void ProgImagePeakHighContrast::clusterHCC()
 		iteration++;
 		#endif
 
-		// *** fix
-		if (deletedIndexes > 0)
-		{
-			std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
-			break;
-		}
-		if (deletedIndexes == 0)
-		{
-			std::cout << "BREAKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK" << std::endl;
-			break;
-		}
-		
 	}
-	while(deletedIndexes != 0);
+	while(deletedIndexes > 0);
 
 	#ifdef DEBUG_CLUSTER
 	std::cout << "coord3DVotes_V.size() " << coord3DVotes_V.size() << std::endl;
