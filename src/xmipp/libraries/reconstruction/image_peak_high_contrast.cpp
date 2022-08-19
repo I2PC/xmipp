@@ -983,16 +983,18 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 	double maxDistance = fiducialSizePx * fiducialSizePx;
 	size_t deletedCoordinates;
 
-	std::cout << "maxDistance " << maxDistance  << std::endl;
-
-	//*** DEBUG
+	#ifdef DEBUG_REMOVE_DUPLICATES
 	size_t iteration = 0;
+	std::cout << "maxDistance " << maxDistance  << std::endl;
+	#endif
 
 	do
 	{
+		#ifdef DEBUG_REMOVE_DUPLICATES
 		iteration +=1;
 		std::cout << "STARTING ITERATION " << iteration<< std::endl;
 		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+		#endif
 
 		std::vector<Point3D<double>> newCoordinates3D;
 		size_t numberOfFeatures = coordinates3D.size();
@@ -1008,7 +1010,9 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 
 				if (distance < maxDistance && deleteCoordinatesVector[i] == 0 && deleteCoordinatesVector[j] == 0)
 				{
+					#ifdef DEBUG_REMOVE_DUPLICATES
 					std::cout << "distance match between coordinates " << i << " and " << j  << std::endl;
+					#endif
 
 					Point3D<double> p((coordinates3D[i].x + coordinates3D[j].x)/2, 
 									  (coordinates3D[i].y + coordinates3D[j].y)/2, 
@@ -1018,10 +1022,12 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 					deleteCoordinatesVector[i] = 1;
 					deleteCoordinatesVector[j] = 1;
 				}
-			}	
+			}
 		}
 
+		#ifdef DEBUG_REMOVE_DUPLICATES
 		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+		#endif
 
 		deletedCoordinates = 0;
 		for (size_t i = 0; i < deleteCoordinatesVector.size(); i++)
@@ -1033,21 +1039,22 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 			}	
 		}
 
+		#ifdef DEBUG_REMOVE_DUPLICATES
 		std::cout << "deletedCoordinates " << deletedCoordinates << std::endl;
-
 		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
 		std::cout << "newCoordinates3D.size() " << newCoordinates3D.size() << std::endl;
+		#endif
 
 		for (size_t i = 0; i < newCoordinates3D.size(); i++)
 		{
 			coordinates3D.push_back(newCoordinates3D[i]);
 		}
 
+		#ifdef DEBUG_REMOVE_DUPLICATES
 		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+		#endif
 
 		newCoordinates3D.clear();
-
-		std::cout << "newCoordinates3D.size() " << newCoordinates3D.size() << std::endl;
 	}
 	while (deletedCoordinates>0);	
 

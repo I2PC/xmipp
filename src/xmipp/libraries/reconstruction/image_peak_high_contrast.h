@@ -52,7 +52,8 @@
 // #define DEBUG_CLUSTER
 // #define DEBUG_COORDS_IN_SLICE
 // #define DEBUG_DIST
-#define DEBUG_CENTER_COORDINATES
+// #define DEBUG_CENTER_COORDINATES
+// #define DEBUG_REMOVE_DUPLICATES
 
 class ProgImagePeakHighContrast : public XmippProgram
 {
