@@ -47,7 +47,7 @@ namespace {
 	}
 
 	template<typename T>
-	T *tranportMultidimArrayToGpu(const MultidimArray<T> &inputArray)
+	T *transportMultidimArrayToGpu(const MultidimArray<T> &inputArray)
 	{
 		T *outputArrayData;
 		transportData(&outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
@@ -55,7 +55,7 @@ namespace {
 	}
 
 	template<typename T>
-	MultidimArrayCuda<T> *tranportVectorOfMultidimArrayToGpu(const std::vector<MultidimArrayCuda<T>> &inputVector)
+	MultidimArrayCuda<T> *transportVectorOfMultidimArrayToGpu(const std::vector<MultidimArrayCuda<T>> &inputVector)
 	{
 		MultidimArrayCuda<T> *outputVectorData;
 		transportData(&outputVectorData, inputVector.data(), inputVector.size());
@@ -63,7 +63,7 @@ namespace {
 	}
 
 	template<typename T>
-	T *tranportMatrix1DToGpu(const Matrix1D<T> &inputVector)
+	T *transportMatrix1DToGpu(const Matrix1D<T> &inputVector)
 	{
 		T *outputVector;
 		transportData(&outputVector, inputVector.vdata, inputVector.vdim);
@@ -71,7 +71,7 @@ namespace {
 	}
 
 	template<typename T>
-	T *tranportStdVectorToGpu(const std::vector<T> &inputVector)
+	T *transportStdVectorToGpu(const std::vector<T> &inputVector)
 	{
 		T *outputVector;
 		transportData(&outputVector, inputVector.data(), inputVector.size());
@@ -79,7 +79,7 @@ namespace {
 	}
 
 	template<typename T>
-	T *tranportMatrix2DToGpu(const Matrix2D<T> &inputMatrix)
+	T *transportMatrix2DToGpu(const Matrix2D<T> &inputMatrix)
 	{
 		T *outputMatrixData;
 		transportData(&outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
@@ -92,7 +92,7 @@ namespace {
 		struct MultidimArrayCuda<T> cudaArray = {
 			.xdim = multidimArray.xdim, .ydim = multidimArray.ydim, .yxdim = multidimArray.yxdim,
 			.xinit = multidimArray.xinit, .yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
-			.data = tranportMultidimArrayToGpu(multidimArray)
+			.data = transportMultidimArrayToGpu(multidimArray)
 		};
 
 		return cudaArray;
@@ -123,7 +123,7 @@ namespace {
 		for (int m = 0; m < image.size(); m++) {
 			output.push_back(initializeMultidimArrayCuda(image[m]()));
 		}
-		return std::make_pair(tranportVectorOfMultidimArrayToGpu(output), output);
+		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
 	}
 
 	template<typename T>
@@ -172,8 +172,8 @@ namespace {
 
 		struct Program<T>::CommonKernelParameters output = {
 			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF,
-			.cudaMV = initializeMultidimArrayCuda(parameters.Vrefined()), .cudaClnm = tranportStdVectorToGpu(clnm),
-			.cudaR = tranportMatrix2DToGpu(R), .lastX = FINISHINGX(parameters.Vrefined()),
+			.cudaMV = initializeMultidimArrayCuda(parameters.Vrefined()), .cudaClnm = transportStdVectorToGpu(clnm),
+			.cudaR = transportMatrix2DToGpu(R), .lastX = FINISHINGX(parameters.Vrefined()),
 			.lastY = FINISHINGY(parameters.Vrefined()), .lastZ = FINISHINGZ(parameters.Vrefined()),
 		};
 
@@ -189,10 +189,10 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  loopStep(parameters.loopStep),
-	  cudaVL1(tranportMatrix1DToGpu(parameters.vL1)),
-	  cudaVL2(tranportMatrix1DToGpu(parameters.vL2)),
-	  cudaVN(tranportMatrix1DToGpu(parameters.vN)),
-	  cudaVM(tranportMatrix1DToGpu(parameters.vM))
+	  cudaVL1(transportMatrix1DToGpu(parameters.vL1)),
+	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
+	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
+	  cudaVM(transportMatrix1DToGpu(parameters.vM))
 {}
 
 template<typename PrecisionType>
@@ -218,7 +218,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	std::tie(cudaP, pVector) = convertToMultidimArrayCuda(parameters.P);
 	std::tie(cudaW, wVector) = convertToMultidimArrayCuda(parameters.W);
 	auto sigma_size = sigma.size();
-	auto cudaSigma = tranportStdVectorToGpu(sigma);
+	auto cudaSigma = transportStdVectorToGpu(sigma);
 	const int step = loopStep;
 
 	// Common parameters
