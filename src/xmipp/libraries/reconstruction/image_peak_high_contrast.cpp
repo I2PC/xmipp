@@ -974,6 +974,90 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 
 
+void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Removing duplicated coordinates..." << std::endl;
+	#endif
+
+	double maxDistance = fiducialSizePx * fiducialSizePx;
+	size_t deletedCoordinates;
+
+	std::cout << "maxDistance " << maxDistance  << std::endl;
+
+	//*** DEBUG
+	size_t iteration = 0;
+
+	do
+	{
+		iteration +=1;
+		std::cout << "STARTING ITERATION " << iteration<< std::endl;
+		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+
+		std::vector<Point3D<double>> newCoordinates3D;
+		size_t numberOfFeatures = coordinates3D.size();
+		std::vector<size_t> deleteCoordinatesVector(numberOfFeatures, 0);
+
+		for(size_t i = 0; i < numberOfFeatures; i++)
+		{
+			for(size_t j = i+1; j < numberOfFeatures; j++)
+			{
+				double distance = (coordinates3D[i].x - coordinates3D[j].x) * (coordinates3D[i].x - coordinates3D[j].x) +
+								  (coordinates3D[i].y - coordinates3D[j].y) * (coordinates3D[i].y - coordinates3D[j].y) +
+								  (coordinates3D[i].z - coordinates3D[j].z) * (coordinates3D[i].z - coordinates3D[j].z);
+
+				if (distance < maxDistance && deleteCoordinatesVector[i] == 0 && deleteCoordinatesVector[j] == 0)
+				{
+					std::cout << "distance match between coordinates " << i << " and " << j  << std::endl;
+
+					Point3D<double> p((coordinates3D[i].x + coordinates3D[j].x)/2, 
+									  (coordinates3D[i].y + coordinates3D[j].y)/2, 
+									  (coordinates3D[i].z + coordinates3D[j].z)/2);
+					newCoordinates3D.push_back(p);
+					
+					deleteCoordinatesVector[i] = 1;
+					deleteCoordinatesVector[j] = 1;
+				}
+			}	
+		}
+
+		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+
+		deletedCoordinates = 0;
+		for (size_t i = 0; i < deleteCoordinatesVector.size(); i++)
+		{
+			if (deleteCoordinatesVector[i] == 1)
+			{
+				coordinates3D.erase(coordinates3D.begin()+i-deletedCoordinates);
+				deletedCoordinates++;
+			}	
+		}
+
+		std::cout << "deletedCoordinates " << deletedCoordinates << std::endl;
+
+		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+		std::cout << "newCoordinates3D.size() " << newCoordinates3D.size() << std::endl;
+
+		for (size_t i = 0; i < newCoordinates3D.size(); i++)
+		{
+			coordinates3D.push_back(newCoordinates3D[i]);
+		}
+
+		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
+
+		newCoordinates3D.clear();
+
+		std::cout << "newCoordinates3D.size() " << newCoordinates3D.size() << std::endl;
+	}
+	while (deletedCoordinates>0);	
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Removing duplicated coordinates finished succesfully!!" << std::endl;
+	#endif
+}
+
+
+
 void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
 	MetaDataVec md;
@@ -1045,6 +1129,8 @@ void ProgImagePeakHighContrast::run()
 	{
 		centerCoordinates(inputTomo);
 	}
+
+	removeDuplicatedCoordinates();
 
 	writeOutputCoordinates();
 	

@@ -149,6 +149,8 @@ public:
 
     std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
 
+    void removeDuplicatedCoordinates();
+
     void run();
 };
 
