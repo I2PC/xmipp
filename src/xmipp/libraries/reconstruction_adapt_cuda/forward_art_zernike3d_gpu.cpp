@@ -690,8 +690,13 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 		.angles = angles,
 	};
 
-	if (DIRECTION == Direction::Forward)
-		cudaProgram->runForwardKernel<USESZERNIKE>(parameters);
-	else if (DIRECTION == Direction::Backward)
-		cudaProgram->runBackwardKernel<USESZERNIKE>(parameters);
+	try {
+		if (DIRECTION == Direction::Forward)
+			cudaProgram->runForwardKernel<USESZERNIKE>(parameters);
+		else if (DIRECTION == Direction::Backward)
+			cudaProgram->runBackwardKernel<USESZERNIKE>(parameters);
+	} catch (const std::runtime_error &e) {
+		std::cerr << e.what() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
 }
