@@ -129,7 +129,6 @@ namespace {
 	template<typename T>
 	void freeCommonArgumentsKernel(struct Program<T>::CommonKernelParameters &commonParameters)
 	{
-		cudaFree(commonParameters.cudaMV.data);
 		cudaFree(commonParameters.cudaClnm);
 		cudaFree(commonParameters.cudaR);
 	}
@@ -171,10 +170,8 @@ namespace {
 		const Matrix2D<T> R = createRotationMatrix<T>(angles);
 
 		struct Program<T>::CommonKernelParameters output = {
-			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF,
-			.cudaMV = initializeMultidimArrayCuda(parameters.Vrefined()), .cudaClnm = transportStdVectorToGpu(clnm),
-			.cudaR = transportMatrix2DToGpu(R), .lastX = FINISHINGX(parameters.Vrefined()),
-			.lastY = FINISHINGY(parameters.Vrefined()), .lastZ = FINISHINGZ(parameters.Vrefined()),
+			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transportStdVectorToGpu(clnm),
+			.cudaR = transportMatrix2DToGpu(R),
 		};
 
 		return output;
@@ -184,10 +181,15 @@ namespace {
 
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
-	: VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	: Vrefined(parameters.Vrefined),
+	  cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
+	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
 	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
+	  lastX(FINISHINGX(parameters.Vrefined())),
+	  lastY(FINISHINGY(parameters.Vrefined())),
+	  lastZ(FINISHINGZ(parameters.Vrefined())),
 	  loopStep(parameters.loopStep),
 	  cudaVL1(transportMatrix1DToGpu(parameters.vL1)),
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
@@ -200,6 +202,7 @@ Program<PrecisionType>::~Program()
 {
 	cudaFree(VRecMaskF.data);
 	cudaFree(VRecMaskB.data);
+	cudaFree(cudaMV.data);
 
 	cudaFree(const_cast<int *>(cudaVL1));
 	cudaFree(const_cast<int *>(cudaVL2));
@@ -224,13 +227,13 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	forwardKernel<PrecisionType, usesZernike><<<dim3(1, 16, 128), dim3(128, 8, 1)>>>(commonParameters.cudaMV,
+	forwardKernel<PrecisionType, usesZernike><<<dim3(1, 16, 128), dim3(128, 8, 1)>>>(cudaMV,
 																					 VRecMaskF,
 																					 cudaP,
 																					 cudaW,
-																					 commonParameters.lastZ,
-																					 commonParameters.lastY,
-																					 commonParameters.lastX,
+																					 lastZ,
+																					 lastY,
+																					 lastX,
 																					 step,
 																					 sigma_size,
 																					 cudaSigma,
@@ -269,12 +272,12 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike><<<dim3(1, 16, 128), dim3(128, 8, 1)>>>(commonParameters.cudaMV,
+	backwardKernel<PrecisionType, usesZernike><<<dim3(1, 16, 128), dim3(128, 8, 1)>>>(cudaMV,
 																					  cudaMId,
 																					  VRecMaskB,
-																					  commonParameters.lastZ,
-																					  commonParameters.lastY,
-																					  commonParameters.lastX,
+																					  lastZ,
+																					  lastY,
+																					  lastX,
 																					  step,
 																					  commonParameters.iRmaxF,
 																					  commonParameters.idxY0,
@@ -288,7 +291,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 
 	cudaDeviceSynchronize();
 
-	updateMultidimArrayWithGPUData(parameters.Vrefined(), commonParameters.cudaMV);
+	updateMultidimArrayWithGPUData(Vrefined(), cudaMV);
 
 	cudaFree(cudaMId.data);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
