@@ -41,14 +41,14 @@
 #include <fstream>
 #include <iomanip>
 
-#define TAG_WORKFORWORKER    0
+constexpr int TAG_WORKFORWORKER =    0;
 #define TAG_STOP     1
-#define TAG_TRANSFER   2
-#define TAG_FREEWORKER    3
-#define TAG_COLLECT_FOR_FSC  4
-#define TAG_SETVERBOSE  5
+constexpr int TAG_TRANSFER =   2;
+constexpr int TAG_FREEWORKER =    3;
+constexpr int TAG_COLLECT_FOR_FSC =  4;
+constexpr int TAG_SETVERBOSE =  5;
 
-#define BUFFSIZE 10000000
+constexpr int BUFFSIZE = 10000000;
 
 //TODO (MARIANA) Please give more documentation and in a good structure e.g. @name
 
@@ -76,7 +76,7 @@ public:
     /* constructor providing an MpiNode
      * this is useful for using this programs from others
      */
-    ProgMPIRecFourier(MpiNode * node);
+    ProgMPIRecFourier(const std::shared_ptr<MpiNode> &node);
 
     /* Special way of reading to sync all nodes */
     void read(int argc, char** argv);

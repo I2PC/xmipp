@@ -49,12 +49,15 @@ protected:
      *  2. fit according to a reference map
      *  3. ad-hoc correction with a user-defined B-factor
      */
-#define BFACTOR_AUTO 1
-#define BFACTOR_REF 2
-#define BFACTOR_ADHOC 3
-#define ALLPOINTS_REF 4
 
-    int mode;
+    enum class MODES {
+        BFACTOR_AUTO = 1,
+        BFACTOR_REF = 2,
+        BFACTOR_ADHOC = 3,
+        ALLPOINTS_REF = 4
+    };
+
+    MODES bMode;
 
     /** X-size of the original volume or image */
     int xsize;

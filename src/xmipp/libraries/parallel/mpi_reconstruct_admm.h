@@ -37,13 +37,17 @@
 class MpiProgReconstructADMM: public ProgReconsADMM
 {
 public:
-	MpiNode *node;
+	MpiNode *node=nullptr;
 public:
 	// Empty constructor
-	MpiProgReconstructADMM();
+	MpiProgReconstructADMM() = default;
+	MpiProgReconstructADMM(const MpiProgReconstructADMM &)=delete;
+	MpiProgReconstructADMM(const MpiProgReconstructADMM &&)=delete;
 
 	// Destructor
 	~MpiProgReconstructADMM();
+	MpiProgReconstructADMM & operator=(const MpiProgReconstructADMM &)=delete;
+	MpiProgReconstructADMM & operator=(const MpiProgReconstructADMM &&)=delete;
 
 	// Redefine how to read the command line
 	void read(int argc, char** argv);

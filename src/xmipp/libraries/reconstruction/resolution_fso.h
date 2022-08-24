@@ -132,6 +132,9 @@ private:
     		                    MultidimArray<double> &threeDfsc, MultidimArray<double> &filteredMap,
                             	int m1sizeX, int m1sizeY, int m1sizeZ);
 
+        void directionalFilterHalves(MultidimArray<std::complex<double>> &FThalf1,
+    			MultidimArray<double> &threeDfsc);
+
         /* RESOLUTIONDISTRIBUTION: This function stores in a metadata the resolution distribution on the
         * projection sphere. Thus the metadata contains the resolution of each direction.
         * To do that, a matrix with rows the rot angle and columns the tilt angle is created.

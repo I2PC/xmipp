@@ -37,20 +37,13 @@ std::ostream & operator << (std::ostream &out, const CL2DBlock &block)
 // Empty constructor =======================================================
 ProgClassifyCL2DCore::ProgClassifyCL2DCore(int argc, char **argv)
 {
-    node=new MpiNode(argc,argv);
+    node=std::make_shared<MpiNode>(argc, argv);
     if (!node->isMaster())
         verbose=0;
     taskDistributor=nullptr;
     maxLevel=-1;
     tolerance=0;
     thPCAZscore=3;
-}
-
-// MPI destructor
-ProgClassifyCL2DCore::~ProgClassifyCL2DCore()
-{
-    delete taskDistributor;
-    delete node;
 }
 
 // Read arguments ==========================================================
@@ -138,7 +131,7 @@ void ProgClassifyCL2DCore::produceSideInfo()
 
     // Create a task file distributor for all blocks
     size_t Nblocks=blocks.size();
-    taskDistributor=new MpiTaskDistributor(Nblocks,1,node);
+    taskDistributor=std::make_unique<MpiTaskDistributor>(Nblocks,1,node);
 
     // Get image dimensions
     if (Nblocks>0)
@@ -299,7 +292,7 @@ void ProgClassifyCL2DCore::gatherResults(int firstLevel, const String &suffix)
     node->barrierWait();
     if (node->rank==0)
     {
-        FileName fnBlock, fnClass, fnSummary;
+        FileName fnBlock, fnClass, fnSummary, fnSummaryOriginal;
         Image<double> classAverage;
         // Compute class averages
         MetaDataVec classes, MD, MDoriginal;
@@ -352,11 +345,35 @@ void ProgClassifyCL2DCore::gatherResults(int firstLevel, const String &suffix)
     node->barrierWait();
 }
 
+void ProgClassifyCL2DCore::produceClassInfo()
+{
+    node->barrierWait();
+    if (node->rank==0)
+    {
+        FileName fnSummaryOriginal;
+        MetaDataVec MDoriginal;
+        int Nblocks=blocks.size();
+
+        // Read and write reference to 2D classes blocks
+        for (int idx=0; idx<Nblocks; idx++)
+        {
+             int classNo=textToInteger(blocks[idx].block.substr(6,6));
+             fnSummaryOriginal=formatString("%s@%s/level_%02d/%s_classes.xmd",blocks[idx].block.c_str(),fnODir.c_str(),
+                                            blocks[idx].level,fnRoot.c_str());
+             MDoriginal.read(fnSummaryOriginal);
+             MDoriginal.fillConstant(MDL_REF, integerToString(classNo));
+             MDoriginal.write(fnSummaryOriginal,MD_APPEND);
+        }
+    }
+    node->barrierWait();
+}
+
 // Run ====================================================================
 void ProgClassifyCL2DCore::run()
 {
     show();
     produceSideInfo();
+    produceClassInfo();
     if (action==COMPUTE_CORE)
         computeCores();
     else

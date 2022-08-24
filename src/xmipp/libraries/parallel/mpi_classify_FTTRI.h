@@ -89,7 +89,7 @@ public:
 	int FTTRIXdim;
 	int FTTRIYdim;
     // Mpi node
-    MpiNode *node;
+    std::shared_ptr<MpiNode> node;
     // FileTaskDistributor
     MpiTaskDistributor *taskDistributor;
     // MetaData In
@@ -123,9 +123,6 @@ public:
 public:
     /// Empty constructor
     ProgClassifyFTTRI(int argc, char **argv);
-
-    /// Destructor
-    ~ProgClassifyFTTRI();
 
     /// Read argument from command line
     void readParams();

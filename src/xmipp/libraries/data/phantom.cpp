@@ -939,16 +939,24 @@ const
 {
     double radius2 = radius * radius;
     bool intersects = false;
-    for (double k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
-        for (double i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
-            for (double j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
+    for (int k = FLOOR(ZZ(r) - radius); k <= CEIL(ZZ(r) + radius) && !intersects; k++)
+    {
+    	auto dk=(double) k;
+    	double distk2=(dk - ZZ(r))*(dk - ZZ(r));
+        for (int i = FLOOR(YY(r) - radius); i <= CEIL(YY(r) + radius) && !intersects; i++)
+        {
+        	auto di=(double) i;
+        	double distki2=distk2+(di - YY(r))*(di - YY(r));
+            for (int j = FLOOR(XX(r) - radius); j <= CEIL(XX(r) + radius) && !intersects; j++)
             {
-                if ((k - ZZ(r))*(k - ZZ(r)) + (i - YY(r))*(i - YY(r)) + (j - XX(r))*(j - XX(r)) >
-                    radius2)
+            	auto dj=(double) j;
+                if (distki2+(dj - XX(r))*(dj - XX(r))>radius2)
                     continue;
                 VECTOR_R3(aux3, j, i, k);
                 intersects = voxel_inside(aux3, aux1, aux2);
             }
+        }
+    }
     return intersects;
 }
 
@@ -1285,10 +1293,10 @@ double Cone::intersection(
 void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
                          const Matrix2D<double> &PV) const
 {
-#define SUBSAMPLING 2                  // for every measure 2x2 line
+constexpr float SUBSAMPLING = 2;                  // for every measure 2x2 line
     // integrals will be taken to
     // avoid numerical errors
-#define SUBSTEP 1/(SUBSAMPLING*2.0)
+constexpr float SUBSTEP = 1/(SUBSAMPLING*2.0);
 
     Matrix1D<double> origin(3);
     Matrix1D<double> direction;
@@ -1963,6 +1971,11 @@ Phantom::Phantom()
     fn = "";
     current_scale = 1;
     phantom_scale = 1.;
+}
+
+Phantom::Phantom(const Phantom &other)
+{
+	*this = other;
 }
 
 void Phantom::clear()

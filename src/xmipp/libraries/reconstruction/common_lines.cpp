@@ -489,8 +489,12 @@ void ProgCommonLine::solveForShifts()
 			if (CLmatrix[ii].distanceij > 0) {
 				const CommonLine& cl=CLmatrix[ii];
 				double sini, cosi, sinj, cosj;
-				sincos(DEG2RAD(cl.angi),&sini,&cosi);
-				sincos(DEG2RAD(cl.angj),&sinj,&cosj);
+				//sincos(DEG2RAD(cl.angi),&sini,&cosi);
+				sini = sin(DEG2RAD(cl.angi));
+                cosi = cos(DEG2RAD(cl.angi));
+				//sincos(DEG2RAD(cl.angj),&sinj,&cosj);
+				sinj = sin(DEG2RAD(cl.angj));
+                cosj = cos(DEG2RAD(cl.angj));
 				int idxi=2*i;
 				int idxj=2*j;
 				MAT_ELEM(solver.A,n,idxi)=cosi;
@@ -799,8 +803,12 @@ void anglesRotationMatrix(size_t nRays, int clI, int clJ,
 
     DMatrix U(3, 3);
 
-    sincos(alpha1, &dMij(U, 1, 0), &dMij(U, 0, 0));
-    sincos(alpha2, &dMij(U, 1, 1), &dMij(U, 0, 1));
+    //sincos(alpha1, &dMij(U, 1, 0), &dMij(U, 0, 0));
+    dMij(U, 1, 0) = sin(alpha1);
+    dMij(U, 0, 0) = cos(alpha1);
+    //sincos(alpha2, &dMij(U, 1, 1), &dMij(U, 0, 1));
+    dMij(U, 1, 1) = sin(alpha2);
+    dMij(U, 0, 1) = cos(alpha2);
     dMij(U, 2, 2) = 1.;
 
     if (U.det3x3() < 0)
@@ -817,8 +825,8 @@ void anglesRotationMatrix(size_t nRays, int clI, int clJ,
     R = U * Q.transpose();
 }//function
 
-#define  EPS 1.0e-13 // % Should be 1.0e-13 after fixing XXX below.
-#define  MAX_COND 1000 // % Largest allowed condition number for the system of equations
+constexpr long double  EPS = 1.0e-13; // % Should be 1.0e-13 after fixing XXX below.
+constexpr int  MAX_COND = 1000; // % Largest allowed condition number for the system of equations
 #define cl(i, j) dMij(clMatrix, k##i, k##j)
 
 /** Negative output means error

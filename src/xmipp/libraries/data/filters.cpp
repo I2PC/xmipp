@@ -1446,8 +1446,7 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 			sumMI1I2+=p1a*p2a;
 		}
 	}
-	sumMI1I2*=iN1;
-	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI1I2);
+	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI2I2);
 
 	return corrM1M2;
 }
@@ -1523,8 +1522,7 @@ double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
 			sumWI1I2 +=wp1a*p2a;
 		}
 	}
-	sumWI1I2*=iN;
-	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI1I2);
+	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI2I2);
 
 	return corrW1W2;
 }
@@ -2039,11 +2037,10 @@ void computeAlignmentTransforms(const MultidimArray<double>& I, AlignmentTransfo
     polarFourierTransform<true>(I, ITransforms.polarFourierI, false, XSIZE(I) / 5, XSIZE(I) / 2, aux.plans, 1);
 }
 
-#define SHIFT_THRESHOLD 	0.95		// Shift threshold in pixels.
-#define ROTATE_THRESHOLD 	1.0			// Rotate threshold in degrees.
-
-#define INITIAL_SHIFT_THRESHOLD 	SHIFT_THRESHOLD + 1.0		// Shift threshold in pixels.
-#define INITIAL_ROTATE_THRESHOLD 	ROTATE_THRESHOLD + 1.0		// Rotate threshold in degrees.
+constexpr double SHIFT_THRESHOLD = 0.95;             // Shift threshold in pixels.
+constexpr float  ROTATE_THRESHOLD  =	1.0	;		// Rotate threshold in degrees.
+constexpr double  INITIAL_SHIFT_THRESHOLD =	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr float  INITIAL_ROTATE_THRESHOLD = ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms, MultidimArray<double>& I,
                    Matrix2D<double>&M, bool wrap, AlignmentAux &aux, CorrelationAux &aux2,
@@ -2717,7 +2714,7 @@ double Update_edge_Shah(MultidimArray<double> &img,
 }
 
 /* Smoothing Shah ---------------------------------------------------------- */
-#define SHAH_CONVERGENCE_THRESHOLD  0.0001
+constexpr double SHAH_CONVERGENCE_THRESHOLD = 0.0001;
 void smoothingShah(MultidimArray<double> &img,
                    MultidimArray<double> &surface_strength,
                    MultidimArray<double> &edge_strength, const Matrix1D<double> &W,

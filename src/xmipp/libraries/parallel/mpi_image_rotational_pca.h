@@ -37,14 +37,11 @@ class MpiProgImageRotationalPCA: public ProgImageRotationalPCA
 {
 public:
     // Mpi node
-    MpiNode *node;
+    std::shared_ptr<MpiNode> node;
     // H buffer
 
     /// Empty constructor
     MpiProgImageRotationalPCA(int argc, char **argv);
-
-    /// Destructor
-    ~MpiProgImageRotationalPCA();
 
     /** Read input images */
     virtual void selectPartFromMd(MetaData &MDin);
