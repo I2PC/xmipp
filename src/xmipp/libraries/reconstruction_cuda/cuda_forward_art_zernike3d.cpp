@@ -182,8 +182,7 @@ namespace {
 
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
-	: Vrefined(parameters.Vrefined),
-	  cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
+	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
 	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
 	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
@@ -300,10 +299,14 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 
 	cudaDeviceSynchronize();
 
-	updateMultidimArrayWithGPUData(Vrefined(), cudaMV);
-
 	cudaFree(cudaMId.data);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
+}
+
+template<typename PrecisionType>
+void Program<PrecisionType>::recoverVolumeFromGPU(Image<PrecisionType> &Vrefined)
+{
+	updateMultidimArrayWithGPUData(Vrefined(), cudaMV);
 }
 
 // explicit template instantiation

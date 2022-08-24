@@ -67,13 +67,15 @@ class Program {
 	template<bool usesZernike>
 	void runBackwardKernel(struct DynamicParameters &parameters);
 
+	/// Moves Volume from GPU and writes it to Vrefined
+	/// IMPORTANT: Memory heavy operation.
+	void recoverVolumeFromGPU(Image<PrecisionType> &Vrefined);
+
 	explicit Program(const ConstantParameters parameters);
 	~Program();
 
    private:
 	const MultidimArrayCuda<int> VRecMaskF, VRecMaskB;
-
-	Image<PrecisionType> &Vrefined;
 
 	const MultidimArrayCuda<PrecisionType> cudaMV;
 

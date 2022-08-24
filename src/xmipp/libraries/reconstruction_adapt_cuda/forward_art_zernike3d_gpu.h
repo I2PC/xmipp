@@ -73,6 +73,8 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	double lambda;
 	// Save each # iter
 	int save_iter;
+	// Outputs volume after each ART iteration
+	bool debug_iter;
 	// Correct CTF
 	bool useCTF;
 	// Apply Zernike

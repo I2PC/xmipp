@@ -66,6 +66,7 @@ void ProgForwardArtZernike3DGPU::readParams()
 	lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
 	niter = getIntParam("--niter");
+	debug_iter = checkParam("--debug_iter");
 	save_iter = getIntParam("--save_iter");
 	sort_last_N = getIntParam("--sort_last");
 	FileName outPath = getParam("-o");
@@ -132,6 +133,7 @@ void ProgForwardArtZernike3DGPU::defineParams()
 	addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
 	addParamsLine("  [--regularization <l=0.01>]  : ART regularization weight");
 	addParamsLine("  [--niter <n=1>]              : Number of ART iterations");
+	addParamsLine("  [--debug_iter]               : Save volume after each ART iteration");
 	addParamsLine("  [--save_iter <s=0>]          : Save intermidiate volume after #save_iter iterations");
 	addParamsLine(
 		"  [--sort_last <N=2>]          : The algorithm sorts projections in the most orthogonally possible way. ");
@@ -395,6 +397,7 @@ void ProgForwardArtZernike3DGPU::fillVectorTerms(int l1,
 
 void ProgForwardArtZernike3DGPU::recoverVol()
 {
+	cudaProgram->recoverVolumeFromGPU(Vrefined);
 	// Find the part of the volume that must be updated
 	auto &mVout = Vout();
 	const auto &mV = Vrefined();
@@ -470,8 +473,10 @@ void ProgForwardArtZernike3DGPU::run()
 		current_image = 1;
 		current_save_iter = 1;
 
-		recoverVol();
-		Vout.write(fnVolO.removeAllExtensions() + "_iter" + std::to_string(current_iter + 1) + ".mrc");
+		if (debug_iter) {
+			recoverVol();
+			Vout.write(fnVolO.removeAllExtensions() + "_iter" + std::to_string(current_iter + 1) + ".mrc");
+		}
 	}
 	wait();
 
