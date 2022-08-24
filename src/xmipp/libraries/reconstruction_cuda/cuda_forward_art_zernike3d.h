@@ -86,6 +86,8 @@ class Program {
 	const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
 
 	const std::vector<PrecisionType> sigma;
+
+	const size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 };
 
 }  // namespace cuda_forward_art_zernike3D
