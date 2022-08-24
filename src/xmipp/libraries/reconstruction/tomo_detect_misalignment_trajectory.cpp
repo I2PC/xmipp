@@ -833,7 +833,7 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 	#endif
 
 	// Votting step	
-	for (int n = 0; n < nSize; n++) //*** expand to first and last images
+	for (int n = 0; n < nSize; n++)
 	{
 		#ifdef DEBUG_VOTTING
 		std::cout << "votting image " << n << std::endl;
@@ -3148,7 +3148,7 @@ bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolati
 // 		Point2D<double> p2d_it{0, 0};
 // 		Point2D<double> minX_p2d{MAXDOUBLE, 0};
 
-// 		// Get minimum x component element *** TODO: this can be done more efficientely using std::min_element and defininf a cmp function
+// 		// Get minimum x component element
 // 		for (size_t i = 0; i < p2dVector.size(); i++)
 // 		{
 // 			if (p2dVector[i].x < minX_p2d.x)
