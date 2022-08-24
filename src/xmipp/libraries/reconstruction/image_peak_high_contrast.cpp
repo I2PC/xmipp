@@ -205,7 +205,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 						DIRECT_MULTIDIM_ELEM(fftV, n) *= 0.5*(1+cos((u-freqHigh)*delta));
 					}
 				
-					if (u <= freqLow && u > cutoffFreqLow) //*** this can be an else condition
+					if (u <= freqLow && u > cutoffFreqLow)
 					{
 						DIRECT_MULTIDIM_ELEM(fftV, n) *= 0.5*(1+cos((u-freqLow)*delta));
 					}
