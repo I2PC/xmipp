@@ -896,8 +896,14 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 	{
 		if (coord3DVotes_V[i] == 0)
 		{
-			coordinates3D.erase(coordinates3D.begin()+(i-deletedIndexes));
+			#ifdef DEBUG_VOTTING
+			std::cout << "Deleted coordinate " << i << std::endl;
+			#endif
+
+			coordinates3D.erase(coordinates3D.begin()+i);
+			coord3DVotes_V.erase(coord3DVotes_V.begin()+i);
 			deletedIndexes++;
+			i--;
 		}
 	}
 	
@@ -1035,6 +1041,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 				// Check that the coordinate is not proyected out of the interpolation edges for this tilt-image
 				bool coordInIC = checkProjectedCoordinateInInterpolationEdges(projectedGoldBead, n);
+				
 				if (coordInIC)
 				{
 					#ifdef DEBUG_RESID
