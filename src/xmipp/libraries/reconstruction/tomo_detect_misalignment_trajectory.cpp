@@ -1151,11 +1151,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	MultidimArray<int> resDistribution;
 	resDistribution.initZeros(nSize, inputCoords.size());
 
-	double mod2Thr = 0.5 * fiducialSizePx;
+	double mod2Thr = (fiducialSizePx * fiducialSizePx) / 4;
 
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
-		double mod2 = (vCM[i].residuals.x*vCM[i].residuals.x)*(vCM[i].residuals.y*vCM[i].residuals.y);
+		double mod2 = (vCM[i].residuals.x * vCM[i].residuals.x) + (vCM[i].residuals.y * vCM[i].residuals.y);
 
 		if (mod2 > mod2Thr)
 		{
@@ -1935,7 +1935,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 	MetaDataVec md;
 	size_t id;
 
-	//*** TODO Use double values to save coordinates
 	for(size_t i = 0; i < vCM.size(); i++)
 	{
 		id = md.addObject();
