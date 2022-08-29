@@ -116,6 +116,11 @@
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
 	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); 
+	if (nonNegative) 
+	{
+		if (R2a < 0)
+			mdParticles.setValue(MDL_ENABLED, -1, ix);
+	}
  }
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
@@ -424,7 +429,6 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		// std::cout << "mean beta1: " << mean_beta1 << std::endl;
 
 		for (i = 1; i <= mdParticles.size(); ++i) {
-			
 			processParticle(i, sizeI, transformerP, transformerI); // TODO: save projections with CTF (or even transforms) instead of recalculate them
 			// auto N = 2.0*(double)MULTIDIM_SIZE(PFourier);
 			// double R2adjC;
@@ -442,11 +446,6 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 					DIRECT_MULTIDIM_ELEM(PFourier,n) *= mean_beta00; 
 				PFourier(0,0) = IiMFourier(0,0); // correct DC component
 				double R2adjC = evaluateFitting(IFourier, PFourier); 
-				if (nonNegative) 
-				{
-					if (R2adjC < 0)
-						continue;
-				}
 			// }
 
 			// Recover adjusted projection (P) in real space
@@ -478,5 +477,5 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		}
 	}
 	// Write metadata 
-    mdParticles.write(fnParticles);
+    mdParticles.write(formatString("%s.xmd", fnOut.c_str()));
  }
