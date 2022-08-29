@@ -1159,7 +1159,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 		if (mod2 > mod2Thr)
 		{
-			DIRECT_A2D_ELEM(resDistribution, vCM[i].id, (size_t)vCM[i].detectedCoordinate.z) = 1;
+			DIRECT_A2D_ELEM(resDistribution, (size_t)vCM[i].detectedCoordinate.z, vCM[i].id) = 1;
 		}
 	}
 
