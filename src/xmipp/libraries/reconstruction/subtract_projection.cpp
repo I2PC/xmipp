@@ -363,11 +363,6 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		if (!meanParam)
 		{
 			double R2adjC = evaluateFitting(IFourier, PFourier); 
-			if (nonNegative) 
-			{
-				if (R2adjC < 0)
-					continue;
-			}
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
 			// Subtraction
