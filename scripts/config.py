@@ -543,7 +543,7 @@ class Config:
                 prg = whereis('g++', True)
             else:
                 print(yellow('No valid compiler found for CUDA host code. ' +
-                'nvcc_version : ' + nvcc_version + ' GCC version: ' +
+                'nvcc_version : ' + str(nvcc_version) + ' GCC version: ' +
                              gccVersion + ' ' + self._get_help_msg()))
                 return False
         print(green('g++' + ' found in ' + prg))
