@@ -93,6 +93,8 @@
     };
     struct Angles part_angles; 
 
+    bool disable;
+
     /// Read argument from command line
     void readParams() override;
     /// Show

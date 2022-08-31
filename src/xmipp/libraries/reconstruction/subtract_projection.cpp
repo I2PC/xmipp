@@ -118,7 +118,7 @@
 	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); 
 	if (nonNegative) 
 	{
-		if (R2a < 0)
+		if (disable || R2a < 0)
 			mdParticles.setValue(MDL_ENABLED, -1, ix);
 	}
  }
@@ -296,6 +296,8 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	// For each particle in metadata:
 	size_t i;
     for (i = 1; i <= mdParticles.size(); ++i) {  
+		// // Initialize aux variable
+		disable = false;
      	// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
@@ -350,7 +352,8 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 		if (nonNegative) 
 		{
 			if (beta00 < 0)
-				continue;
+				// continue;
+				disable = true;
 		}
 		cumulative_beta00 += beta00; // is ok to cumulate all or only the ones from particles which has been chosen model 0??		
 
