@@ -1192,8 +1192,17 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		{
 			std::cout << "IMAGE " << i << " IN TILT-SERIES PRESENTS MISALIGNMENT" << std::endl;
 			numberMisaliImages += 1;
+
+			// Fill the local alignment vector
+			localAlignment[i] = false;
 		}
 	}
+
+	if ((numberMisaliCoords/inputCoords.size()) > 0.1)
+	{
+		globalAlignment = false;
+	}
+	
 
 	std::cout << "IN TOTAL " << numberMisaliCoords << " INPUT COORDINATES PRESENTS MIALIGNMENT" << std::endl;
 	std::cout << "IN TOTAL " << numberMisaliImages << " TILT-IMAGES PRESENTS MISALIGNMENT" << std::endl;
@@ -2154,14 +2163,14 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	// DETECT GLOBAL MISALIGNMENT
 	globalAlignment = detectMisalignmentFromResiduals();			
 
-	std::cout << "Global alignment: " << globalAlignment << std::endl;
+	// std::cout << "Global alignment: " << globalAlignment << std::endl;
 
-	// LOCAL MIASALIGNMENT DETECTION
-	detectLandmarkChains();
+	// // LOCAL MIASALIGNMENT DETECTION
+	// detectLandmarkChains();
 
-	if(globalAlignment){
-		detectMisalignedTiltImages();
-	}
+	// if(globalAlignment){
+	// 	detectMisalignedTiltImages();
+	// }
 
 	writeOutputAlignmentReport();
 
