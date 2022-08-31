@@ -714,8 +714,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-			std::cout << "FILTERING LABELED REGIONS IN IMAGE " << k << std::endl;
-
 			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 		
 			// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
@@ -1149,6 +1147,9 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 {
 	// Analyze residuals out of range distribution
 	MultidimArray<int> resDistribution;
+	std::vector<int> resCoordsOutOfRange(inputCoords.size(), 0); // Array with the number of tilt-images out of rage for each coordinate
+	std::vector<int> resImagesOutOfRange(nSize, 0); // Array with the number of coordinates out of rage for each tilt-image
+
 	resDistribution.initZeros(nSize, inputCoords.size());
 
 	double mod2Thr = (fiducialSizePx * fiducialSizePx) / 4;
@@ -1160,8 +1161,43 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		if (mod2 > mod2Thr)
 		{
 			DIRECT_A2D_ELEM(resDistribution, (size_t)vCM[i].detectedCoordinate.z, vCM[i].id) = 1;
+			resCoordsOutOfRange[vCM[i].id] += 1;
+			resImagesOutOfRange[(size_t)vCM[i].detectedCoordinate.z] += 1;
 		}
 	}
+
+
+	// *** potentially move thresholds to .h 
+	double resCoordsOutOfRangeThr = 0.05;
+	double resImagesOutOfRangeThr = 0.05;
+
+	int resCoordsOutOfRangeThrAbs = std::max(1, (int)(nSize*0.05));
+	int resImagesOutOfRangeThrAbs = std::max(1, (int)(inputCoords.size()*0.05));
+
+	size_t numberMisaliCoords = 0;
+	size_t numberMisaliImages = 0;
+
+	for (size_t i = 0; i < resCoordsOutOfRange.size(); i++)
+	{
+		if (resCoordsOutOfRange[i] > resCoordsOutOfRangeThrAbs)
+		{
+			std::cout << "COORDINATE " << i << " PRESENTS MISALIGNMENT THROUGH THE SERIES" << std::endl;
+			numberMisaliCoords += 1;
+		}
+	}
+
+	for (size_t i = 0; i < resImagesOutOfRange.size(); i++)
+	{
+		if (resImagesOutOfRange[i] > resImagesOutOfRangeThrAbs)
+		{
+			std::cout << "IMAGE " << i << " IN TILT-SERIES PRESENTS MISALIGNMENT" << std::endl;
+			numberMisaliImages += 1;
+		}
+	}
+
+	std::cout << "IN TOTAL " << numberMisaliCoords << " INPUT COORDINATES PRESENTS MIALIGNMENT" << std::endl;
+	std::cout << "IN TOTAL " << numberMisaliImages << " TILT-IMAGES PRESENTS MISALIGNMENT" << std::endl;
+
 
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
@@ -2008,13 +2044,13 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
 
-	//#ifdef DEBUG_DIM
+	#ifdef DEBUG_DIM
 	std::cout << "Input tilt-series dimensions:" << std::endl;
 	std::cout << "x " << xSize << std::endl;
 	std::cout << "y " << ySize << std::endl;
 	std::cout << "z " << zSize << std::endl;
 	std::cout << "n " << nSize << std::endl;
-	//#endif
+	#endif
 
 	generateSideInfo();
 
