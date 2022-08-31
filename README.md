@@ -69,7 +69,7 @@ Remove all files related to hdf5 in /usr/lib64/libhdf5*, /usr/include/hdf5* and 
 
 We strongy recommend you to install it via your default package manager:
 `sudo apt-get install libhdf5-dev` 
-If you install it using other package management system (such as Conda), it might lead to compile/link time issues caused by incompatible version being fetched.
+If you install it using other package management system (such as Conda), it might lead to compile/link time issues caused by incompatible version being fetched. Other option is to run"scipion3 installb xmippSrc" to force the xmipp install its own HDF5 into its desired directory.
 
 ### Full list of dependencies
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-8 g++-8`
