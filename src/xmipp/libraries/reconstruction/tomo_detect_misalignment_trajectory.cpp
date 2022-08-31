@@ -1224,11 +1224,11 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	#ifdef DEBUG_RESIDUAL_ANALYSIS
 	// Debug command
 	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug ";
-	// cmd = "python3 /home/fdeisidro/scipion3/xmipp-bundle/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug";
+	// cmd = "python3 /home/fdeisidro/data/scipion3/xmipp-bundle/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug";
 	#else
 	// No debug command
 	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
-	// cmd = "python3 /home/fdeisidro/scipion3/xmipp-bundle/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+	// cmd = "python3 /home/fdeisidro/data/scipion3/xmipp-bundle/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
 	#endif
 	
 	std::cout << cmd << std::endl;
