@@ -176,6 +176,42 @@ namespace {
 		};
 
 		return output;
+
+	}
+
+	struct BlockSizes
+	blockSizeArchitecture()
+
+	{
+		cudaDeviceProp prop;
+		cudaGetDeviceProperties(&prop, 0);
+		struct BlockSizes output;
+		switch (prop.major * 10 + prop.minor) {
+			// 3.0 - 3.7 Kepler
+			case 30 ... 37:
+				output = {16, 4, 2};
+				break;
+
+			// 6.0 - 6.2 Pascal
+			case 60 ... 62:
+				output = {16, 8, 1};
+				break;
+
+			// 7.5 Turing
+			case 75:
+				output = {16, 8, 1};
+				break;
+
+			// 8.0 - 8.7 Ampere
+			case 80 ... 87:
+				output = {32, 1, 4};
+				break;
+
+			default:
+				output = {8, 4, 4};
+				break;
+		}
+		return output;
 	}
 
 }  // namespace
@@ -195,9 +231,9 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
 	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
 	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
-	  blockX(std::__gcd(THREADS_IN_BLOCK, parameters.Vrefined().xdim)),
-	  blockY(std::__gcd(THREADS_IN_BLOCK / blockX, parameters.Vrefined().ydim)),
-	  blockZ(std::__gcd(THREADS_IN_BLOCK / (blockX * blockY), parameters.Vrefined().zdim)),
+	  blockX(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim)),
+	  blockY(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim)),
+	  blockZ(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
 	  gridX(parameters.Vrefined().xdim / blockX),
 	  gridY(parameters.Vrefined().ydim / blockY),
 	  gridZ(parameters.Vrefined().zdim / blockZ)
