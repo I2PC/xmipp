@@ -42,6 +42,12 @@ private:
     /** Output fileroot */
     FileName fn_out;
 
+    /** Center of mass centering */
+    bool center;
+
+    /** Volume box size */
+    double boxSize;    
+
     /** Vector containing the deformation coefficients */
 	std::vector<double> clnm;
 
