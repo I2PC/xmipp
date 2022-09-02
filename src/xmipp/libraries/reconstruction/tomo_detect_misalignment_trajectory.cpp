@@ -1198,13 +1198,13 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		}
 	}
 
-	if ((numberMisaliCoords/inputCoords.size()) > 0.1)
+	if ((numberMisaliCoords/inputCoords.size()) > 0.1 && numberMisaliCoords > 1)
 	{
 		globalAlignment = false;
 	}
 	
 
-	std::cout << "IN TOTAL " << numberMisaliCoords << " INPUT COORDINATES PRESENTS MIALIGNMENT" << std::endl;
+	std::cout << "IN TOTAL " << numberMisaliCoords << " OUT OF " << inputCoords.size() << " INPUT COORDINATES PRESENTS MIALIGNMENT" << std::endl;
 	std::cout << "IN TOTAL " << numberMisaliImages << " TILT-IMAGES PRESENTS MISALIGNMENT" << std::endl;
 
 
