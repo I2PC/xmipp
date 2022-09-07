@@ -124,6 +124,15 @@ void SgaNnOnlinePca<T>::finalize() {
 }
 
 
+template<typename T>
+void SgaNnOnlinePca<T>::shrink(size_t nPc) {
+    if(nPc > getPrincipalComponentCount()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Cannot increase PCA size");
+    }
+
+    m_eigenValues.resize(nPc);
+    m_eigenVectors.resize(getComponentCount(), nPc);
+}
 
 template<typename T>
 void SgaNnOnlinePca<T>::center(Matrix1D<T>& v) const {

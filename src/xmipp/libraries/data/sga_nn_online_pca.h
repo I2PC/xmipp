@@ -68,6 +68,7 @@ public:
    void learn(const Matrix1D<T>& v, const T& gamma);
    void learn(const Matrix1D<T>& v);
    void finalize();
+   void shrink(size_t nPc);
 
    void center(Matrix1D<T>& v) const;
    void center(const Matrix1D<T>& v, Matrix1D<T>& c) const;

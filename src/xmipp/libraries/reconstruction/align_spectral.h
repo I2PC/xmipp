@@ -135,7 +135,7 @@ private:
     class SpectralPca {
     public:
         SpectralPca() = default;
-        SpectralPca(const std::vector<size_t>& sizes, size_t nPc);
+        SpectralPca(const std::vector<size_t>& sizes, double initialCompression, double initialBatch);
         SpectralPca(const SpectralPca& other) = default;
         SpectralPca(SpectralPca&& other) = default;
         ~SpectralPca() = default;
@@ -143,70 +143,94 @@ private:
         SpectralPca& operator=(const SpectralPca& other) = default;
         SpectralPca& operator=(SpectralPca&& other) = default;
 
-        size_t getFirstPcaBand() const;
-        size_t getPcaBandCount() const;
         size_t getBandCount() const;
-        size_t getBandPrincipalComponentCount() const;
-        size_t getTotalPrincipalComponentCount() const;
-
+        
+        size_t getBandSize(size_t i) const;
+        size_t getProjectionSize(size_t i) const;
         void getMean(size_t i, Matrix1D<double>& v) const;
         void getVariance(size_t i, Matrix1D<double>& v) const;
         void getAxisVariance(size_t i, Matrix1D<double>& v) const;
         void getBasis(size_t i, Matrix2D<double>& b) const;
         double getError(size_t i) const;
 
+        void getErrorFunction(size_t i, Matrix1D<double>& errFn);
+
         void reset();
-        void reset(const std::vector<size_t>& sizes, size_t nPc);
+        void reset(const std::vector<size_t>& sizes, double initialCompression, double initialBatch);
         void learn(const std::vector<Matrix1D<double>>& bands);
         void learnConcurrent(const std::vector<Matrix1D<double>>& bands);
         void finalize();
 
+        void equalizeError(double precision);
+        double optimizeError(size_t totalSize);
+
         void centerAndProject(  std::vector<Matrix1D<double>>& bands, 
-                                Matrix2D<double>& projections) const;
-        void unprojectAndUncenter(  const Matrix2D<double>& projections,
+                                std::vector<Matrix1D<double>>& projections) const;
+        void unprojectAndUncenter(  const std::vector<Matrix1D<double>>& projections,
                                     std::vector<Matrix1D<double>>& bands ) const;
     private:
-        size_t m_first;
-        size_t m_principalComponents;
         std::vector<SgaNnOnlinePca<double>> m_bandPcas;
         std::vector<std::mutex> m_bandMutex;
 
-        static size_t calculateFirst(const std::vector<size_t>& sizes, size_t nPc);
+        static void calculateErrorFunction( Matrix1D<double>& lambdas, 
+                                            const Matrix1D<double>& variances );
+
+        static size_t calculateRequiredComponents(  const Matrix1D<double>& errFn,
+                                                    double precision );
 
     };
 
     class ReferencePcaProjections {
     public:
         ReferencePcaProjections() = default;
-        ReferencePcaProjections(size_t nImages, size_t nBands, size_t nComponents);
+        ReferencePcaProjections(size_t nImages, const std::vector<size_t>& bandSizes);
         ReferencePcaProjections(const ReferencePcaProjections& other) = default;
         ~ReferencePcaProjections() = default;
 
         ReferencePcaProjections& operator=(const ReferencePcaProjections& other) = default;
 
-        void reset(size_t nImages, size_t nBands, size_t nComponents);
+        void reset(size_t nImages, const std::vector<size_t>& bandSizes);
 
         size_t getImageCount() const;
         size_t getBandCount() const;
-        size_t getComponentCount() const;
+        size_t getComponentCount(size_t i) const;
 
-        void getPcaProjection(size_t i, Matrix2D<double>& referenceBands);
-        size_t matchPcaProjection(const Matrix2D<double>& experimentalBands, const Matrix1D<double>& weights) const;
-        size_t matchPcaProjectionBaB(const Matrix2D<double>& experimentalBands, const Matrix1D<double>& weights) const;
-
-        void setMetadata(size_t i, size_t pos, double rot, double sx, double sy);
-        void getMetadata(size_t i, size_t& pos, double& rot, double& sx, double& sy) const;
+        void getPcaProjection(size_t i, std::vector<Matrix1D<double>>& referenceBands);
+        size_t matchPcaProjection(const std::vector<Matrix1D<double>>& experimentalBands, const Matrix1D<double>& weights) const;
+        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<double>>& experimentalBands, const Matrix1D<double>& weights) const;
 
     private:
-        struct Metadata {
-            size_t position;
-            double rotation;
-            double shiftX;
-            double shiftY;
-        };
+        std::vector<Matrix2D<double>> m_projections;
 
-        MultidimArray<double> m_projections;
-        std::vector<Metadata> m_metadata;
+    };
+
+    class ReferenceMetadata {
+    public:
+        ReferenceMetadata() = default;
+        ReferenceMetadata(size_t index, double rotation, double shiftx, double shifty);
+        ReferenceMetadata(const ReferenceMetadata& other) = default;
+        ~ReferenceMetadata() = default;
+
+        ReferenceMetadata& operator=(const ReferenceMetadata& other) = default;
+
+        void setIndex(size_t index);
+        size_t getIndex() const;
+
+        void setRotation(double rotation);
+        double getRotation() const;
+
+        void setShiftX(double sx);
+        double getShiftX() const;
+
+        void setShiftY(double sy);
+        double getShiftY() const;
+
+    private:
+        size_t m_index;
+        double m_rotation;
+        double m_shiftX;
+        double m_shiftY;
+
     };
 
     struct RuntimeParameters {
@@ -229,8 +253,6 @@ private:
         size_t nThreads;
     };
 
-
-
     RuntimeParameters m_parameters;
 
     MetaDataVec m_mdReference;
@@ -241,6 +263,7 @@ private:
     BandMap m_bandMap;
     SpectralPca m_pca;
     ReferencePcaProjections m_references;
+    std::vector<ReferenceMetadata> m_referenceData;
     std::vector<size_t> m_classification;
     Matrix2D<double> m_ssnr;
 
@@ -284,8 +307,8 @@ private:
                                             const size_t ny, 
                                             const std::vector<double>& frecuencies );
 
-    static void calculateBandSsnr(  const Matrix2D<double>& reference, 
-                                    const Matrix2D<double>& experimental, 
+    static void calculateBandSsnr(  const std::vector<Matrix1D<double>>& reference, 
+                                    const std::vector<Matrix1D<double>>& experimental, 
                                     Matrix1D<double>& ssnr );
 
 };
