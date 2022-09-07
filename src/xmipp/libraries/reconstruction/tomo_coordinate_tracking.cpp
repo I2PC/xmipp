@@ -151,10 +151,10 @@ void ProgCoordTracking::run()
 		if ((u.x == u_closest.x) && (u.y == u_closest.y))
 		{
 			MDRowVec rowUntilted, rowTilted;
-			rowUntilted.setValue(MDL_XCOOR, u.x);
-			rowUntilted.setValue(MDL_YCOOR, u.y);
-			rowTilted.setValue(MDL_XCOOR, pred_t.x);
-			rowTilted.setValue(MDL_YCOOR, pred_t.y);
+			rowUntilted.setValue(MDL_XCOOR, VEC_ELEM(ux, i));
+			rowUntilted.setValue(MDL_YCOOR, VEC_ELEM(uy, i));
+			rowTilted.setValue(MDL_XCOOR, (int) t_closest.x);
+			rowTilted.setValue(MDL_YCOOR, (int) t_closest.y);
 			
 			md_matchingUntilted.addRow(rowUntilted);
 			md_matchingUntilted.addRow(rowTilted);
