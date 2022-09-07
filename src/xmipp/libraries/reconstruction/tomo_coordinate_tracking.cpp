@@ -129,7 +129,7 @@ void ProgCoordTracking::run()
 		pred_t.y = u.y;
 
 		if (!select_Closest_Point(&delaunay_tilt, &pred_t, &t_closest, &dist))
-		{
+		{ 
 			write_DCEL(delaunay_tilt.dcel, 0, "tiltdata_dcel.txt");
 			//std::cerr << "WARNING IN TRIANGULATION OR CLOSEST NEIGHBOUR" << std::endl;
 			//printf("Maybe the warning involves the tilt coordinates ( %f , %f ) \n", t_dist.x, t_dist.y);
@@ -138,7 +138,7 @@ void ProgCoordTracking::run()
 
 		//Predicted -> pred_u = inv(TM)*t_closest
 		pred_u.x = t_closest.x/c;
-		pred_u.x = t_closest.y;
+		pred_u.y = t_closest.y;
 
 		if (!select_Closest_Point(&delaunay_untilt, &pred_u, &u_closest, &dist))
 		{
@@ -148,7 +148,8 @@ void ProgCoordTracking::run()
 			continue;
 		}
 
-		if ((u.x == u_closest.x) && (u.y == u_closest.y))
+		if ((u.x == u_closest.x))	// && (u.y == u_closest.y))
+		// if (true)
 		{
 			MDRowVec rowUntilted, rowTilted;
 			rowUntilted.setValue(MDL_XCOOR, (int) VEC_ELEM(ux, i));
