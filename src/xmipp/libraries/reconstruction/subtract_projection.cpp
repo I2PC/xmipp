@@ -365,21 +365,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
 		PFourier0(0,0) = IiMFourier(0,0); 
 
-		if (!meanParam)
-		{
-			double R2adjC = evaluateFitting(IFourier, PFourier); 
-			// Recover adjusted projection (P) in real space
-			transformerP.inverseFourierTransform(PFourier, P());
-			// Subtraction
-			MultidimArray<double> &mIdiff=Idiff();
-			mIdiff.initZeros(I());
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-
-			// Write particle
-			writeParticle(int(i), Idiff, R2adjC);  
-		}
-
 		// Compute beta01 and beta1 from order 1 model
 		PseudoInverseHelper h;
 		h.A = A1;
@@ -399,8 +384,24 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 		PFourier1(0,0) = IiMFourier(0,0); 
 
-		Check best model
+		//Check best model
 		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, cumulative_model); 
+
+		if (!meanParam)
+		{
+			// double R2adjC = evaluateFitting(IFourier, PFourier); 
+
+			// Recover adjusted projection (P) in real space
+			transformerP.inverseFourierTransform(PFourier, P());
+
+			// Subtraction
+			MultidimArray<double> &mIdiff=Idiff();
+			mIdiff.initZeros(I());
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			// Write particle
+			writeParticle(int(i), Idiff, R2adj);  
+		}
 	}
 
 	if (meanParam)
@@ -438,7 +439,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (mean_beta01+mean_beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 				PFourier(0,0) = IiMFourier(0,0);
 				R2adjC = evaluateFitting(IFourier, PFourier);
-			 R2adjC = 1.0 - (1.0 - R20) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
+			 R2adjC = 1.0 - (1.0 - R2adjC) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
 			}
 			else // Apply model 0
 			{
