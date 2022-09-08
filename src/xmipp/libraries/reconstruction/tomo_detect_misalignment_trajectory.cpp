@@ -1172,7 +1172,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	double resImagesOutOfRangeThr = 0.05;
 
 	int resCoordsOutOfRangeThrAbs = std::max(1, (int)(nSize*0.05));
-	int resImagesOutOfRangeThrAbs = std::max(1, (int)(inputCoords.size()*0.05));
 
 	size_t numberMisaliCoords = 0;
 	size_t numberMisaliImages = 0;
@@ -1188,7 +1187,13 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	for (size_t i = 0; i < resImagesOutOfRange.size(); i++)
 	{
-		if (resImagesOutOfRange[i] > resImagesOutOfRangeThrAbs)
+		double pValue = binomialTest(resImagesOutOfRange[i], inputCoords.size(), 0.5);
+
+		std::cout << "-----------------------------inputCoords.size()" << inputCoords.size() << std::endl;
+		std::cout << "-----------------------------resImagesOutOfRange[i]" << resImagesOutOfRange[i] << std::endl;
+		std::cout << "-----------------------------pvalue" << pValue << std::endl;
+
+		if (pValue < 0.05 && resImagesOutOfRange[i] > (inputCoords.size()/2))
 		{
 			std::cout << "IMAGE " << i << " IN TILT-SERIES PRESENTS MISALIGNMENT" << std::endl;
 			numberMisaliImages += 1;
