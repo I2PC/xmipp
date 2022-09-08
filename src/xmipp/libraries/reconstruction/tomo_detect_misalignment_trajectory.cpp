@@ -44,6 +44,8 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	thrChainDistanceAng = getDoubleParam("--thrChainDistanceAng");
 
  	fnInputCoord = getParam("--inputCoord");
+
+	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
 }
 
 
@@ -64,6 +66,9 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
   	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]				: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
+
+	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate proyection and the detected fiducial.");
+
 }
 
 
@@ -1152,7 +1157,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	resDistribution.initZeros(nSize, inputCoords.size());
 
-	double mod2Thr = (fiducialSizePx * fiducialSizePx) / 4;
+	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
 
 	for (size_t i = 0; i < vCM.size(); i++)
 	{

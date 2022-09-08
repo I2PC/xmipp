@@ -81,6 +81,7 @@ public:
     int thrNumberCoords;         // Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.
     float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
     float thrChainDistanceAng;   // Maximum distance of a detected landmark to consider it belongs to a chain
+    float thrFiducialDistance;   // Maximum distance of a detected landmark to consider it belongs to a chain
 
 
     // Coordinate model structure
