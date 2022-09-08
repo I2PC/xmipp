@@ -2572,6 +2572,28 @@ bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolati
 
 
 
+double ProgTomoDetectMisalignmentTrajectory::binomialTest(int x, int n, float p)
+{
+	double fact = 1;
+
+	// fact = n! / x!
+	for (size_t i = n; i < x; i--)
+	{
+		fact *= i;
+	}
+
+	// fact = fact / (n-x)!
+	for (size_t i = n-x; i < 0; i--)
+	{
+		fact /= i;
+	}
+
+	// return: fact * p^x * (1-p)^(n-x)
+	return fact * pow(p, x) * pow((1-p), (n-x));
+}
+
+
+
 // --------------------------- UNUSED functions ----------------------------
 
 // std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_t size)

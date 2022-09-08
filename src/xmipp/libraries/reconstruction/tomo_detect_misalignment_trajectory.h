@@ -394,6 +394,9 @@ public:
 
     // void factorial(size_t base, size_t fact);
 
+    double binomialTest(int x, int n, float p);
+
+
 
     // --------------------------- MAIN ----------------------------------
 
