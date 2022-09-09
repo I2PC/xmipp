@@ -47,6 +47,17 @@ public:
 
 private:
 
+    struct PatchContext { // to neni jenom patch, mozna batch?
+        PatchContext(LocalAlignmentResult<T> &r) : result(r) {};
+        LocalAlignmentResult<T> &result;
+        size_t shiftsOffset;
+        int verbose;
+        size_t maxShift;
+        size_t N;
+        std::pair<T, T> scale;
+        core::optional<size_t> refFrame;
+    };
+
     /**
      * Inherited, see parent
      */
@@ -115,6 +126,12 @@ private:
     AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
+            size_t framesInCorrelationBuffer, int verbose, 
+            PatchContext context); // pass by copy, this will be run asynchronously
+
+    AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
+            MultidimArray<T> &filter, core::optional<size_t> &refFrame,
+            size_t maxShift,
             size_t framesInCorrelationBuffer, int verbose);
 
     /**
@@ -136,7 +153,12 @@ private:
     AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
             const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
-            const core::optional<size_t>& refFrame);
+            const core::optional<size_t>& refFrame,
+            PatchContext context); // pass by copy, this will be run asynchronously);
+    AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
+        const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
+        size_t framesInCorrelationBuffer,
+        const core::optional<size_t>& refFrame);
 
     /**
      * Get best FFT settings for correlations of the original data
@@ -279,6 +301,7 @@ private:
     size_t getCenterSize(size_t shift) {
         return std::ceil(shift * 2 + 1);
     }
+
 
 private:
     /** No of frames used for averaging a single patch */
