@@ -388,15 +388,12 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType *cudaClnm,
 							  const PrecisionType *cudaR)
 {
-	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
-	int cubeY = threadIdx.y + blockIdx.y * blockDim.y;
-	int cubeZ = threadIdx.z + blockIdx.z * blockDim.z;
+	int cubeX = (threadIdx.x + blockIdx.x * blockDim.x) * step;
+	int cubeY = (threadIdx.y + blockIdx.y * blockDim.y) * step;
+	int cubeZ = (threadIdx.z + blockIdx.z * blockDim.z) * step;
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	if (cubeX % step != 0 || cubeY % step != 0 || cubeZ % step != 0) {
-		return;
-	}
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (A3D_ELEM(cudaVRecMaskF, k, i, j) != 0) {
 		int img_idx = 0;

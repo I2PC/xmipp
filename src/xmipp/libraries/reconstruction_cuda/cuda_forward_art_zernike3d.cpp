@@ -214,6 +214,15 @@ namespace {
 		return output;
 	}
 
+	std::tuple<size_t, size_t> gridAccountForStep(const size_t gridSize, const size_t blockSize, const int step)
+	{
+		size_t dataSize = gridSize * blockSize;
+		size_t newSize = dataSize / step;
+		size_t newBlockSize = std::__gcd(blockSize, newSize);
+		size_t newGridSize = newSize / newBlockSize;
+		return std::make_tuple(newGridSize, newBlockSize);
+	}
+
 }  // namespace
 
 template<typename PrecisionType>
@@ -269,26 +278,37 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
+	size_t gridXStep;
+	size_t gridYStep;
+	size_t gridZStep;
+	size_t blockXStep;
+	size_t blockYStep;
+	size_t blockZStep;
+
+	std::tie(gridXStep, blockXStep) = gridAccountForStep(gridX, blockX, step);
+	std::tie(gridYStep, blockYStep) = gridAccountForStep(gridY, blockY, step);
+	std::tie(gridZStep, blockZStep) = gridAccountForStep(gridZ, blockZ, step);
+
 	forwardKernel<PrecisionType, usesZernike>
-		<<<dim3(gridX, gridY, gridZ), dim3(blockX, blockY, blockZ)>>>(cudaMV,
-																	  VRecMaskF,
-																	  cudaP,
-																	  cudaW,
-																	  lastZ,
-																	  lastY,
-																	  lastX,
-																	  step,
-																	  sigma_size,
-																	  cudaSigma,
-																	  commonParameters.iRmaxF,
-																	  commonParameters.idxY0,
-																	  commonParameters.idxZ0,
-																	  cudaVL1,
-																	  cudaVN,
-																	  cudaVL2,
-																	  cudaVM,
-																	  commonParameters.cudaClnm,
-																	  commonParameters.cudaR);
+		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(cudaMV,
+																							  VRecMaskF,
+																							  cudaP,
+																							  cudaW,
+																							  lastZ,
+																							  lastY,
+																							  lastX,
+																							  step,
+																							  sigma_size,
+																							  cudaSigma,
+																							  commonParameters.iRmaxF,
+																							  commonParameters.idxY0,
+																							  commonParameters.idxZ0,
+																							  cudaVL1,
+																							  cudaVN,
+																							  cudaVL2,
+																							  cudaVM,
+																							  commonParameters.cudaClnm,
+																							  commonParameters.cudaR);
 
 	cudaDeviceSynchronize();
 
