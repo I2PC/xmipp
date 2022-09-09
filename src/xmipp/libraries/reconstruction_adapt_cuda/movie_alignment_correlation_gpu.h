@@ -29,6 +29,7 @@
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
+#include <CTPL/ctpl_stl.h>
 
 /**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
    @ingroup ReconsCUDALibrary */
@@ -56,6 +57,7 @@ private:
         size_t N;
         std::pair<T, T> scale;
         core::optional<size_t> refFrame;
+        size_t centerSize;
     };
 
     /**
@@ -123,7 +125,7 @@ private:
      * @param verbose level
      * @return global alignment of each frame
      */
-    AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
+    void align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
             size_t framesInCorrelationBuffer, int verbose, 
@@ -150,7 +152,7 @@ private:
      * @param refFrame reference frame, if any
      * @return alignment of the data
      */
-    AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
+    void computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
             const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame,
@@ -304,6 +306,9 @@ private:
 
 
 private:
+
+    ctpl::thread_pool LESPool = ctpl::thread_pool(1);
+
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 

@@ -407,6 +407,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         context.scale = std::make_pair(patchSettings.dim.x() / (T) correlationSettings.dim.x(),
             patchSettings.dim.y() / (T) correlationSettings.dim.y());
         context.refFrame = refFrame;
+        context.centerSize = getCenterSize(this->maxShift);
 
         // prefill some info about patch
         for (size_t i = 0;i < movieSettings.dim.n();++i) {
@@ -436,7 +437,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
             }
             // get alignment
-            auto alignment = align(patchesData2, patchSettings,
+            align(patchesData2, patchSettings,
                     correlationSettings, filter, refFrame,
                     this->maxShift, framesInBuffer, this->verbose, context);
             // process it
@@ -457,6 +458,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     }
     // wait for the last processing thread
     // wait_and_delete(processing_thread);
+    LESPool.stop(true);
 
     delete[] patchesData1;
     delete[] patchesData2;
@@ -637,7 +639,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 }
 
 template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
+void ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         const FFTSettings<T> &in, const FFTSettings<T> &correlation,
         MultidimArray<T> &filter,
         core::optional<size_t> &refFrame,
@@ -654,7 +656,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
     auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
             in.dim.y() / (T) correlation.dim.y());
 
-    return computeShifts(verbose, maxShift, (std::complex<T>*) data, correlation,
+    computeShifts(verbose, maxShift, (std::complex<T>*) data, correlation,
             in.dim.n(),
             scale, framesInCorrelationBuffer, refFrame, context);
 }
@@ -729,7 +731,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
+void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
         size_t maxShift,
         std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
         std::pair<T, T>& scale,
@@ -739,9 +741,9 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // N is number of images, n is number of correlations
     // compute correlations (each frame with following ones)
     T* correlations;
-    size_t centerSize = getCenterSize(maxShift);
+    
     timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
-    computeCorrelations(centerSize, N, data, settings.x_freq,
+    computeCorrelations(context.centerSize, N, data, settings.x_freq,
             settings.dim.x(),
             settings.dim.y(), framesInCorrelationBuffer,
             settings.batch, correlations);
@@ -749,47 +751,50 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
-    // we are done with the input data, so release it
-    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
-    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
+    auto routine = [this](int threadId, PatchContext context, T* correlations) {
+        auto noOfCorrelations = context.N * (context.N - 1) / 2;
+        // we are done with the input data, so release it
+        Matrix2D<T> A(noOfCorrelations, context.N - 1);
+        Matrix1D<T> bX(noOfCorrelations), bY(noOfCorrelations);
 
-    // find the actual shift (max peak) for each pair of frames
-    // and create a set or equations
-    size_t idx = 0;
-    MultidimArray<T> Mcorr(centerSize, centerSize);
-    T* origData = Mcorr.data;
+        // find the actual shift (max peak) for each pair of frames
+        // and create a set or equations
+        size_t idx = 0;
+        MultidimArray<T> Mcorr(context.centerSize, context.centerSize);
+        T* origData = Mcorr.data;
 
-    for (size_t i = 0; i < N - 1; ++i) {
-        for (size_t j = i + 1; j < N; ++j) {
-            size_t offset = idx * centerSize * centerSize;
-            Mcorr.data = correlations + offset;
-            Mcorr.setXmippOrigin();
-            bestShift(Mcorr, bX(idx), bY(idx), NULL,
-                    maxShift / scale.first);
-            bX(idx) *= scale.first; // scale to expected size
-            bY(idx) *= scale.second;
-            if (verbose > 1) {
-                std::cerr << "Frame " << i << " to Frame " << j << " -> ("
-                        << bX(idx) << "," << bY(idx) << ")" << std::endl;
+        for (size_t i = 0; i < context.N - 1; ++i) {
+            for (size_t j = i + 1; j < context.N; ++j) {
+                size_t offset = idx * context.centerSize * context.centerSize;
+                Mcorr.data = correlations + offset;
+                Mcorr.setXmippOrigin();
+                bestShift(Mcorr, bX(idx), bY(idx), NULL,
+                        context.maxShift / context.scale.first);
+                bX(idx) *= context.scale.first; // scale to expected size
+                bY(idx) *= context.scale.second;
+                if (context.verbose > 1) {
+                    std::cerr << "Frame " << i << " to Frame " << j << " -> ("
+                            << bX(idx) << "," << bY(idx) << ")" << std::endl;
+                }
+                for (int ij = i; ij < j; ij++) {
+                    A(idx, ij) = 1;
+                }
+                idx++;
             }
-            for (int ij = i; ij < j; ij++) {
-                A(idx, ij) = 1;
-            }
-            idx++;
         }
-    }
-    Mcorr.data = origData;
-    delete[] correlations;
+        Mcorr.data = origData;
+        delete[] correlations;
 
-    // now get the estimated shift (from the equation system)
-    // from each frame to successing frame
-    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
-    // prefill some info about patch
-    for (size_t i = 0;i < context.N;++i) {
-        // update total shift (i.e. global shift + local shift)
-        context.result.shifts.at(i + context.shiftsOffset).second += result.shifts.at(i);
-    }
-    return result;
+        // now get the estimated shift (from the equation system)
+        // from each frame to successing frame
+        auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
+        // prefill some info about patch
+        for (size_t i = 0;i < context.N;++i) {
+            // update total shift (i.e. global shift + local shift)
+            context.result.shifts.at(i + context.shiftsOffset).second += result.shifts.at(i);
+        }
+    };
+    LESPool.push(routine, context, correlations);
 }
 
 template<typename T>
