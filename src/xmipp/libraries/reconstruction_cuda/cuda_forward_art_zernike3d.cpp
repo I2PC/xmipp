@@ -242,7 +242,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
 	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
-	  gridXStep(parameters.Vrefined().zdim / loopStep / blockZStep)
+	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
 {}
 
 template<typename PrecisionType>
