@@ -214,15 +214,6 @@ namespace {
 		return output;
 	}
 
-	std::tuple<size_t, size_t> gridAccountForStep(const size_t gridSize, const size_t blockSize, const int step)
-	{
-		size_t dataSize = gridSize * blockSize;
-		size_t newSize = dataSize / step;
-		size_t newBlockSize = std::__gcd(blockSize, newSize);
-		size_t newGridSize = newSize / newBlockSize;
-		return std::make_tuple(newGridSize, newBlockSize);
-	}
-
 }  // namespace
 
 template<typename PrecisionType>
@@ -245,7 +236,13 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  blockZ(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
 	  gridX(parameters.Vrefined().xdim / blockX),
 	  gridY(parameters.Vrefined().ydim / blockY),
-	  gridZ(parameters.Vrefined().zdim / blockZ)
+	  gridZ(parameters.Vrefined().zdim / blockZ),
+	  blockXStep(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / loopStep)),
+	  blockYStep(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim / loopStep)),
+	  blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
+	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
+	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
+	  gridXStep(parameters.Vrefined().zdim / loopStep / blockZStep)
 {}
 
 template<typename PrecisionType>
@@ -277,17 +274,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
-
-	size_t gridXStep;
-	size_t gridYStep;
-	size_t gridZStep;
-	size_t blockXStep;
-	size_t blockYStep;
-	size_t blockZStep;
-
-	std::tie(gridXStep, blockXStep) = gridAccountForStep(gridX, blockX, step);
-	std::tie(gridYStep, blockYStep) = gridAccountForStep(gridY, blockY, step);
-	std::tie(gridZStep, blockZStep) = gridAccountForStep(gridZ, blockZ, step);
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(cudaMV,

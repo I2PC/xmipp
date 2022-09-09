@@ -94,6 +94,8 @@ class Program {
 	const std::vector<PrecisionType> sigma;
 
 	const size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
+
+	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
 };
 
 }  // namespace cuda_forward_art_zernike3D
