@@ -203,12 +203,12 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     GpuMultidimArrayAtGpu<T> imgs(imgSizeX, fftSizeY, 1, fftBatchSize);
     mycufftHandle myhandle;
 
-    size_t noOfCorrelations = (noOfImgs * (noOfImgs-1)) / 2;
+    // size_t noOfCorrelations = (noOfImgs * (noOfImgs-1)) / 2;
 
     size_t singleFFTPixels = fftSizeX * fftSizeY;
     size_t singleFFTBytes = singleFFTPixels * sizeof(T) * 2;
 
-    result = new T[noOfCorrelations * centerSize * centerSize]();
+    // result = new T[noOfCorrelations * centerSize * centerSize]();
 
     size_t buffer1Size = std::min(maxFFTsInBuffer, noOfImgs);
     void* d_fftBuffer1;

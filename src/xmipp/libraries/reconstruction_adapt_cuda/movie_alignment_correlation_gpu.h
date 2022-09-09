@@ -59,6 +59,10 @@ private:
         core::optional<size_t> refFrame;
         size_t centerSize;
         size_t framesInCorrelationBuffer;
+        size_t corrElems() const {
+            return (N * (N-1) / 2) * centerSize * centerSize;
+        }
+
         // std::future<void> &task;
     };
 
@@ -150,7 +154,7 @@ private:
     
     auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, 
-            PatchContext context); // pass by copy, this will be run asynchronously
+            PatchContext context, T *corrBuffer); // pass by copy, this will be run asynchronously
 
 
     /**
@@ -174,7 +178,7 @@ private:
         size_t framesInCorrelationBuffer,
         const core::optional<size_t>& refFrame);
 
-    void computeShifts(T* correlations,
+    auto computeShifts(T* correlations,
             PatchContext context); // pass by copy, this will be run asynchronously);
 
     /**
@@ -324,9 +328,10 @@ private:
 
     ctpl::thread_pool LESPool = ctpl::thread_pool(1);
     ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
-    T* corrResBuffer1 = nullptr; // FIXME release
-    T* corrResBuffer2 = nullptr; // FIXME release
-    std::future<void> LESTask();
+
+    std::future<void> LESTask;
+    T *corrBuffer1 = nullptr;
+    T *corrBuffer2 = nullptr;
 
     /** No of frames used for averaging a single patch */
     int patchesAvg;

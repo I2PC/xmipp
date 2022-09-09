@@ -380,6 +380,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto *patchesData1 = new T[patchesElements];
     auto *patchesData2 = new T[patchesElements];
 
+
     std::thread* processing_thread = nullptr;
 
     auto wait_and_delete = [](std::thread*& thread) {
@@ -395,12 +396,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
     for (auto &&p : patchesLocation) {
-        // get data
-        memset(patchesData1, 0, patchesElements * sizeof(T));
-        timeUtils::reportTimeMs("getPatchData", [&]{
-        getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
-                patchesData1);
-        });
         auto context = PatchContext(result);
         context.verbose = this->verbose;
         context.maxShift = this->maxShift;
@@ -411,6 +406,18 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         context.refFrame = refFrame;
         context.centerSize = getCenterSize(this->maxShift);
         context.framesInCorrelationBuffer = framesInBuffer;
+
+        if (nullptr == corrBuffer1) {
+            corrBuffer1 = new T[context.corrElems()];
+        }
+        
+
+        // get data
+        memset(patchesData1, 0, patchesElements * sizeof(T));
+        timeUtils::reportTimeMs("getPatchData", [&]{
+        getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
+                patchesData1);
+        });
 
         // prefill some info about patch
         for (size_t i = 0;i < movieSettings.dim.n();++i) {
@@ -424,6 +431,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         }
 
         // wait_and_delete(processing_thread);
+
+
 
 
         /**
@@ -440,10 +449,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         // don't swap buffers while some thread is accessing its content
         if (gpuTask.valid()) { gpuTask.get(); }
 
+
         // swap buffers
-        auto tmp = patchesData2;
-        patchesData2 = patchesData1;
-        patchesData1 = tmp;
+        std::swap(patchesData1, patchesData2);
+        std::swap(corrBuffer1, corrBuffer2);
         // run processing thread on the background
 
         // processing_thread = new std::thread([&, p]() {
@@ -456,7 +465,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
  
             // get alignment
             gpuTask = align(patchesData2, patchSettings,
-                    correlationSettings, filter, context);
+                    correlationSettings, filter, context, corrBuffer2);
             // process it
             // for (size_t i = 0;i < movieSettings.dim.n();++i) {
             //     FramePatchMeta<T> tmp = p;
@@ -480,6 +489,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     delete[] patchesData1;
     delete[] patchesData2;
+    delete[] corrBuffer1;
+    delete[] corrBuffer2;
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
@@ -660,7 +671,8 @@ template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         const FFTSettings<T> &in, const FFTSettings<T> &correlation,
         MultidimArray<T> &filter,
-        PatchContext context) { // pass by copy, this will be run asynchronously)
+        PatchContext context,
+        T *corrCenters) { // pass by copy, this will be run asynchronously)
     assert(nullptr != data);
 
     auto routine = [data, &in, &correlation, &filter, context, this](int threadId) {
@@ -671,16 +683,18 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
                 correlation.x_freq, correlation.dim.y(), filter);
         });
 
-        T* corrCenters;
-        
+        memset(corrBuffer1, 0, context.corrElems() * sizeof(T));
+
         timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
         computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.x_freq,
                 correlation.dim.x(),
                 correlation.dim.y(), context.framesInCorrelationBuffer,
-                correlation.batch, corrCenters);
+                correlation.batch, corrBuffer1);
         });
 
-        computeShifts(corrCenters, context);
+        if (LESTask.valid()) { LESTask.get(); }
+        std::swap(corrBuffer1, corrBuffer2);
+        LESTask = computeShifts(corrBuffer2, context);
 
     };
     return GPUPool.push(routine);
@@ -770,7 +784,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template <typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
+auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
     T *correlations,
     PatchContext context)
 { // pass by copy, this will be run asynchronously)
@@ -812,7 +826,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
             }
         }
         Mcorr.data = origData;
-        delete[] correlations;
 
         // now get the estimated shift (from the equation system)
         // from each frame to successing frame
@@ -823,7 +836,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
             context.result.shifts.at(i + context.shiftsOffset).second += result.shifts.at(i);
         }
     };
-    LESPool.push(routine, context, correlations);
+    return LESPool.push(routine, context, correlations);
 }
 
 template<typename T>
@@ -835,8 +848,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
         const core::optional<size_t>& refFrame) {
     // N is number of images, n is number of correlations
     // compute correlations (each frame with following ones)
-    T* correlations;
     size_t centerSize = getCenterSize(maxShift);
+    auto *correlations = new T[N*(N-1)/2 * centerSize * centerSize]();
     timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
     computeCorrelations(centerSize, N, data, settings.x_freq,
             settings.dim.x(),
