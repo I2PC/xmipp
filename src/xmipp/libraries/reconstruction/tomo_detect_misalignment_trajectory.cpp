@@ -67,7 +67,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
   	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]				: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
 
-	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate proyection and the detected fiducial.");
+	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 
 }
 
