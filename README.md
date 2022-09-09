@@ -36,7 +36,7 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 
 ## Additional dependencies
 ### Compiler
-Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required. If use GCC-11 and experience issues, [please visit this.](https://servdep.sefd.uam.es/)
+Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required. If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583)
 
 We strongly recommend you to have this compiler linked to `gcc` and `g++`. Otherwise it might not be properly picked up by wrappers, such as MPI's wrapper.
 We have good experince with using `alternatives`:
