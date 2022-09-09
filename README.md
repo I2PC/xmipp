@@ -17,7 +17,7 @@ The recommended way for users (not developers) to install and use Xmipp is via t
 
 Xmipp consists of multiple standalone programs written primarily in C++. For that reason, the Xmipp suite has to be compiled before its use. The compilation process is driven by the xmipp script located in this repository. 
 
-Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)) guide for more info.
+Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
 
 Have a look at the Supported OS and dependencies below, before you install Xmipp as a Scipion package or as a standalone installation. You can also Link your Standalone version to Scipion later.
 
