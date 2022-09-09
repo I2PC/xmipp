@@ -47,9 +47,9 @@ public:
     void defineParams();
 
 private:
-
-    struct PatchContext { // to neni jenom patch, mozna batch?
-        PatchContext(LocalAlignmentResult<T> &r) : result(r) {};
+    struct PatchContext
+    { // to neni jenom patch, mozna batch?
+        PatchContext(LocalAlignmentResult<T> &r) : result(r){};
         LocalAlignmentResult<T> &result;
         size_t shiftsOffset;
         int verbose;
@@ -58,6 +58,23 @@ private:
         std::pair<T, T> scale;
         core::optional<size_t> refFrame;
         size_t centerSize;
+        size_t framesInCorrelationBuffer;
+    };
+
+    class GPUThread final
+    {
+    public:
+        ~GPUThread() {
+            activeTask.get();
+            delete corrBuffer1;
+            delete corrBuffer2;
+        }
+        void run();
+
+    private:
+        T* corrBuffer1 = nullptr;
+        T* corrBuffer2 = nullptr;
+        std::future<void> activeTask;
     };
 
     /**
@@ -125,16 +142,15 @@ private:
      * @param verbose level
      * @return global alignment of each frame
      */
-    void align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
-            MultidimArray<T> &filter, core::optional<size_t> &refFrame,
-            size_t maxShift,
-            size_t framesInCorrelationBuffer, int verbose, 
-            PatchContext context); // pass by copy, this will be run asynchronously
-
     AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
             size_t framesInCorrelationBuffer, int verbose);
+    
+    void align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
+            MultidimArray<T> &filter, 
+            PatchContext context); // pass by copy, this will be run asynchronously
+
 
     /**
      * Method computes shifts of each frame in respect to some reference frame
@@ -152,15 +168,13 @@ private:
      * @param refFrame reference frame, if any
      * @return alignment of the data
      */
-    void computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
-            const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
-            size_t framesInCorrelationBuffer,
-            const core::optional<size_t>& refFrame,
-            PatchContext context); // pass by copy, this will be run asynchronously);
     AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
         const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
         size_t framesInCorrelationBuffer,
         const core::optional<size_t>& refFrame);
+
+    void computeShifts(T* correlations,
+            PatchContext context); // pass by copy, this will be run asynchronously);
 
     /**
      * Get best FFT settings for correlations of the original data
@@ -334,5 +348,6 @@ private:
     std::string optSizeYStr = std::string("optSizeY");
     std::string optBatchSizeStr = std::string("optBatchSize");
 };
+
 //@}
 #endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */
