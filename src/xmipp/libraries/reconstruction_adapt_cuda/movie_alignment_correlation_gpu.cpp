@@ -390,6 +390,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         }
     };
 
+    std::future<void> gpuTask;
+
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
     for (auto &&p : patchesLocation) {
@@ -421,8 +423,22 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY));
         }
 
-        // don't swap buffers while some thread is accessing its content
         // wait_and_delete(processing_thread);
+
+
+        /**
+         * vymaz patchBuffer1
+         * nahrej do neho data
+         * pockej na GPU task
+         * swap patchBuffer
+         * vymaz corrBuffer1
+         * zavolej GPU task
+         * 
+         * 
+         **/
+
+        // don't swap buffers while some thread is accessing its content
+        if (gpuTask.valid()) { gpuTask.get(); }
 
         // swap buffers
         auto tmp = patchesData2;
@@ -432,13 +448,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
         // processing_thread = new std::thread([&, p]() {
             // make sure to set proper GPU
-            this->gpu.value().set();
+            
 
             if (this->verbose > 1) {
                 std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
             }
+ 
             // get alignment
-            align(patchesData2, patchSettings,
+            gpuTask = align(patchesData2, patchSettings,
                     correlationSettings, filter, context);
             // process it
             // for (size_t i = 0;i < movieSettings.dim.n();++i) {
@@ -458,6 +475,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     }
     // wait for the last processing thread
     // wait_and_delete(processing_thread);
+    gpuTask.get();
     LESPool.stop(true);
 
     delete[] patchesData1;
@@ -639,40 +657,47 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
+auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         const FFTSettings<T> &in, const FFTSettings<T> &correlation,
         MultidimArray<T> &filter,
         PatchContext context) { // pass by copy, this will be run asynchronously)
     assert(nullptr != data);
-    size_t N = in.dim.n();
+
+    auto routine = [data, &in, &correlation, &filter, context, this](int threadId) {
+        this->gpu.value().set();
     // scale and transform to FFT on GPU
-    timeUtils::reportTimeMs("align performFFTAndScale", [&]{
-    performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
-            correlation.x_freq, correlation.dim.y(), filter);
-    });
+        timeUtils::reportTimeMs("align performFFTAndScale", [&]{
+        performFFTAndScale<T>(data, in.dim.n(), in.dim.x(), in.dim.y(), in.batch,
+                correlation.x_freq, correlation.dim.y(), filter);
+        });
 
-    T* corrCenters;
-    
-    timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
-    computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.x_freq,
-            correlation.dim.x(),
-            correlation.dim.y(), context.framesInCorrelationBuffer,
-            correlation.batch, corrCenters);
-    });
+        T* corrCenters;
+        
+        timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
+        computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.x_freq,
+                correlation.dim.x(),
+                correlation.dim.y(), context.framesInCorrelationBuffer,
+                correlation.batch, corrCenters);
+        });
 
-    computeShifts(corrCenters, context);
+        computeShifts(corrCenters, context);
+
+    };
+    return GPUPool.push(routine);
+   
 }
 
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::GPUThread::run() 
+std::future<void> ProgMovieAlignmentCorrelationGPU<T>::GPUThread::run() 
  {
             // FFT and scale
             // memset(corrBuffer, 0, ...);
-            activeTask.get();
+            if (activeTask.valid()) { activeTask.get(); }
             std::swap(corrBuffer1, corrBuffer2);
             // compute correlation
             // call LES, update activeTask
+            return std::future<void>();
         }
 
 template<typename T>

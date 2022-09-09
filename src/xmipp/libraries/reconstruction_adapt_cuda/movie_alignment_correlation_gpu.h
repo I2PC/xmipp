@@ -48,7 +48,7 @@ public:
 
 private:
     struct PatchContext
-    { // to neni jenom patch, mozna batch?
+    { // to neni jenom patch, mozna batch? Spis LES
         PatchContext(LocalAlignmentResult<T> &r) : result(r){};
         LocalAlignmentResult<T> &result;
         size_t shiftsOffset;
@@ -59,6 +59,7 @@ private:
         core::optional<size_t> refFrame;
         size_t centerSize;
         size_t framesInCorrelationBuffer;
+        // std::future<void> &task;
     };
 
     class GPUThread final
@@ -69,7 +70,7 @@ private:
             delete corrBuffer1;
             delete corrBuffer2;
         }
-        void run();
+        std::future<void> run();
 
     private:
         T* corrBuffer1 = nullptr;
@@ -147,7 +148,7 @@ private:
             size_t maxShift,
             size_t framesInCorrelationBuffer, int verbose);
     
-    void align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
+    auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, 
             PatchContext context); // pass by copy, this will be run asynchronously
 
@@ -322,6 +323,10 @@ private:
 private:
 
     ctpl::thread_pool LESPool = ctpl::thread_pool(1);
+    ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
+    T* corrResBuffer1 = nullptr; // FIXME release
+    T* corrResBuffer2 = nullptr; // FIXME release
+    std::future<void> LESTask();
 
     /** No of frames used for averaging a single patch */
     int patchesAvg;
