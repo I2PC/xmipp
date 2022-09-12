@@ -916,16 +916,28 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 					coordHalfY = coordinates3D[n].y - halfBoxSize;
 					coordHalfZ = coordinates3D[n].z - halfBoxSize;
 
-					DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
-																		coordHalfZ + k, 
-																		coordHalfY + i, 
-																		coordHalfX + j);
+					// Check coordinate is not out of volume
+					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+					{
+						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
 
-					DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
-					DIRECT_A3D_ELEM(volFiltered, 
-									coordHalfZ + k, 
-									coordHalfY + i,
-									coordHalfX + j);
+						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 0;
+					}
+					else
+					{
+						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+																			coordHalfZ + k, 
+																			coordHalfY + i, 
+																			coordHalfX + j);
+
+						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+						DIRECT_A3D_ELEM(volFiltered, 
+										coordHalfZ + k, 
+										coordHalfY + i,
+										coordHalfX + j);
+					}
 				}
 			}
 		}
