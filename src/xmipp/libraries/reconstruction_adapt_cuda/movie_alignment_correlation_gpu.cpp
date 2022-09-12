@@ -32,6 +32,7 @@
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
 #include "core/utils/time_utils.h"
+// #include "reconstruction_adapt_cuda/basic_mem_manager.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
@@ -414,10 +415,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
         // get data
         memset(patchesData1, 0, patchesElements * sizeof(T));
-        timeUtils::reportTimeMs("getPatchData", [&]{
         getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
                 patchesData1);
-        });
 
         // prefill some info about patch
         for (size_t i = 0;i < movieSettings.dim.n();++i) {
@@ -547,7 +546,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
-    Image<T> reducedFrame, shiftedFrame;
+    Image<T> reducedFrame, shiftedFrame1, shiftedFrame2;
     int frameIndex = -1;
     Ninitial = N = 0;
     GeoTransformer<T> transformer;
@@ -558,6 +557,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
     auto coeffs = std::make_pair(alignment.bsplineRep.value().getCoeffsX(),
         alignment.bsplineRep.value().getCoeffsY());
+
+    ctpl::thread_pool pool = ctpl::thread_pool(1);
+    auto prevTask = std::future<void>();
 
     const T binning = this->getOutputBinning();
     FOR_ALL_OBJECTS_IN_METADATA(movie)
@@ -605,19 +607,29 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             if (this->fnAligned != "" || this->fnAvg != "") {
                 transformer.initLazyForBSpline(croppedFrame.xdim, croppedFrame.ydim, alignment.movieDim.n(),
                         this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame, coeffs, frameOffset);
-
-
-                if (this->fnAligned != "")
-                    shiftedFrame.write(this->fnAligned, frameOffset + 1, true,
-                            WRITE_REPLACE);
-                if (this->fnAvg != "") {
-                    if (frameIndex == this->nfirstSum)
-                        averageMicrograph() = shiftedFrame();
-                    else
-                        averageMicrograph() += shiftedFrame();
-                    N++;
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame1(), croppedFrame, coeffs, frameOffset);
+                
+                if (prevTask.valid()) { 
+                    prevTask.get(); 
+                    std::swap(shiftedFrame1.data.data, shiftedFrame2.data.data); // swap just underlying data, the rest (size etc) should be the same 
+                } else {
+                    // since the other image has not been resized etc, we just copy it to keep it simple
+                    std::swap(shiftedFrame1, shiftedFrame2);
                 }
+
+                auto routine = [this, frameIndex, &N, &shiftedFrame2, frameOffset, &averageMicrograph](int) {
+                    if (this->fnAligned != "")
+                        shiftedFrame2.write(this->fnAligned, frameOffset + 1, true,
+                                WRITE_REPLACE);
+                    if (this->fnAvg != "") {
+                            if (frameIndex == this->nfirstSum)
+                                averageMicrograph() = shiftedFrame2();
+                            else
+                                averageMicrograph() += shiftedFrame2();
+                            N++;
+                    }
+                };
+                prevTask = pool.push(routine);
             }
             if (this->verbose > 1) {
                 std::cout << "Frame " << std::to_string(frameIndex) << " processed." << std::endl;
@@ -679,19 +691,15 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
     auto routine = [data, &in, &correlation, &filter, context, this](int threadId) {
         this->gpu.value().set();
     // scale and transform to FFT on GPU
-        timeUtils::reportTimeMs("align performFFTAndScale", [&]{
         performFFTAndScale<T>(data, in.dim.n(), in.dim.x(), in.dim.y(), in.batch,
                 correlation.x_freq, correlation.dim.y(), filter);
-        });
 
         memset(corrBuffer1, 0, context.corrElems() * sizeof(T));
 
-        timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
         computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.x_freq,
                 correlation.dim.x(),
                 correlation.dim.y(), context.framesInCorrelationBuffer,
                 correlation.batch, corrBuffer1);
-        });
 
         if (LESTask.valid()) { LESTask.get(); }
         std::swap(corrBuffer1, corrBuffer2);
@@ -724,10 +732,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
     assert(nullptr != data);
     size_t N = in.dim.n();
     // scale and transform to FFT on GPU
-    timeUtils::reportTimeMs("align performFFTAndScale", [&]{
     performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
             correlation.x_freq, correlation.dim.y(), filter);
-    });
 
     auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
             in.dim.y() / (T) correlation.dim.y());
@@ -854,12 +860,10 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // compute correlations (each frame with following ones)
     size_t centerSize = getCenterSize(maxShift);
     auto *correlations = new T[N*(N-1)/2 * centerSize * centerSize]();
-    timeUtils::reportTimeMs("computeShifts computeCorrelations", [&]{
     computeCorrelations(centerSize, N, data, settings.x_freq,
             settings.dim.x(),
             settings.dim.y(), framesInCorrelationBuffer,
             settings.batch, correlations);
-    });
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
