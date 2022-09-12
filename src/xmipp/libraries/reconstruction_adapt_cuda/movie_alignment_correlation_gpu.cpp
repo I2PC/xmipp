@@ -485,6 +485,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     // wait for the last processing thread
     // wait_and_delete(processing_thread);
     gpuTask.get();
+    ShiftPool.stop(true);
     LESPool.stop(true);
 
     delete[] patchesData1;
@@ -794,7 +795,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
-    auto routine = [this](int threadId, PatchContext context, T* correlations) {
+    auto routine = [this](int, PatchContext context, T* correlations) {
         auto noOfCorrelations = context.N * (context.N - 1) / 2;
         // we are done with the input data, so release it
         Matrix2D<T> A(noOfCorrelations, context.N - 1);
@@ -827,16 +828,19 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
         }
         Mcorr.data = origData;
 
-        // now get the estimated shift (from the equation system)
-        // from each frame to successing frame
-        auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
-        // prefill some info about patch
-        for (size_t i = 0;i < context.N;++i) {
-            // update total shift (i.e. global shift + local shift)
-            context.result.shifts.at(i + context.shiftsOffset).second += result.shifts.at(i);
-        }
+        auto LES = [bX, bY, context, A, this](int) mutable {
+            // now get the estimated shift (from the equation system)
+            // from each frame to successing frame
+            auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
+            // prefill some info about patch
+            for (size_t i = 0;i < context.N;++i) {
+                // update total shift (i.e. global shift + local shift)
+                context.result.shifts[i + context.shiftsOffset].second += result.shifts[i];
+            }
+        };
+        LESPool.push(LES);
     };
-    return LESPool.push(routine, context, correlations);
+    return ShiftPool.push(routine, context, correlations);
 }
 
 template<typename T>
