@@ -350,7 +350,7 @@ namespace device {
 	if ((j) < j0 || (j) > jF || (i) < i0 || (i) > iF) \
 		d = (PrecisionType)0;                         \
 	else                                              \
-		d = tex1Dfetch(tex, ((i) - (i0)) * (diffImage).xdim + ((j) - (j0)));
+		d = tex1Dfetch(tex, (int)((i) - (i0)) * (diffImage).xdim + ((j) - (j0)));
 		//d = A2D_ELEM(diffImage, i, j);
 
 		PrecisionType d00, d10, d11, d01;
