@@ -323,7 +323,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 		.zinit = mId.zinit
 	};
 
-	texture<PrecisionType, 2, cudaReadModeNormalizedFloat> tex;
+	texture<PrecisionType, 2, cudaReadModeElementType> tex;
 	size_t pitch, tex_ofs;
 	PrecisionType *mIdTexture = 0;
 
