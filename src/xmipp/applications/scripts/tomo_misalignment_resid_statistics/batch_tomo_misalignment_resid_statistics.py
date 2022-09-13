@@ -239,6 +239,13 @@ class ScriptTomoResidualStatistics(XmippScript):
       Augmented Dickey-Fuller test for random walk
     """
 
+    if len(modAcc)<3:
+      adfStatistic = 0
+      pValue = 1
+      criticalValues = None
+
+      return adfStatistic, pValue, criticalValues 
+
     result = adfuller(modAcc)
     adfStatistic = result[0]
     pValue = result[1]
