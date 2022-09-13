@@ -315,31 +315,24 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 {
 	// Unique parameters
 	auto &mId = parameters.Idiff();
+	auto cudaMId = initializeMultidimArrayCuda(mId);
 
-	//auto cudaMId = initializeMultidimArrayCuda(mId);
+	// create texture object
+	cudaResourceDesc resDesc;
+	memset(&resDesc, 0, sizeof(resDesc));
+	resDesc.resType = cudaResourceTypeLinear;
+	resDesc.res.linear.devPtr = cudaMId.data;
+	resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
+	resDesc.res.linear.desc.x = 32;	 // bits per channel
+	resDesc.res.linear.sizeInBytes = mId.yxdim * sizeof(PrecisionType);
 
-	struct MultidimArrayCuda<PrecisionType> cudaMId = {
-		.xdim = mId.xdim, .ydim = mId.ydim, .yxdim = mId.yxdim, .xinit = mId.xinit, .yinit = mId.yinit,
-		.zinit = mId.zinit
-	};
+	cudaTextureDesc texDesc;
+	memset(&texDesc, 0, sizeof(texDesc));
+	texDesc.readMode = cudaReadModeElementType;
 
-	texture<PrecisionType, 2, cudaReadModeElementType> tex;
-	size_t pitch, tex_ofs;
-	PrecisionType *mIdTexture = 0;
-
-	cudaMallocPitch((void **)&mIdTexture, &pitch, mId.xdim * sizeof(*mIdTexture), mId.ydim);
-	cudaMemcpy2D(mIdTexture,
-				 pitch,
-				 mId.data,
-				 mId.xdim * sizeof(PrecisionType),
-				 mId.xdim * sizeof(PrecisionType),
-				 mId.ydim,
-				 cudaMemcpyHostToDevice);
-
-	tex.normalized = false;
-	tex.filterMode = cudaFilterModeLinear;
-
-	cudaBindTexture2D(&tex_ofs, &tex, mIdTexture, &tex.channelDesc, mId.xdim, mId.ydim, pitch);
+	// create texture object: we only have to do this once!
+	cudaTextureObject_t tex = 0;
+	cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
 
 	const int step = 1;
 
