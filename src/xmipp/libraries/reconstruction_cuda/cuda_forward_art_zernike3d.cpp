@@ -325,7 +325,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 
 	texture<PrecisionType, 2, cudaReadModeNormalizedFloat> tex;
 	size_t pitch, tex_ofs;
-	PrecisionType *mIdTexture = (PrecisionType)0;
+	PrecisionType *mIdTexture = 0;
 
 	cudaMallocPitch((void **)&mIdTexture, &pitch, mId.xdim * sizeof(*mIdTexture), mId.ydim);
 	cudaMemcpy2D(mIdTexture,
