@@ -51,10 +51,12 @@
     int limitfreq;
     bool meanParam;
     bool nonNegative;
+    bool noFinalMask;
 
     // Data variables
  	Image<double> V; // volume
  	Image<double> vM; // mask 3D
+    Image<double> ivM; // invert mask 3D
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
     Image<double> Pctf; // projection with CTF applied
@@ -105,7 +107,7 @@
     void readParticle(const MDRowVec &);
     void writeParticle(const int &, Image<double> &, double);
     /// Processing methods
-    void createMask(const FileName &, Image<double> &);
+    void createMask(const FileName &, Image<double> &, Image<double> &);
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);

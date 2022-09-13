@@ -62,6 +62,7 @@
 	fnProj = getParam("--save"); 
 	meanParam = checkParam("--mean");
 	nonNegative = checkParam("--nonNegative");
+	noFinalMask = checkParam("--noFinalMask");
  }
 
  // Show ====================================================================
@@ -99,6 +100,7 @@
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
 	 addParamsLine("[--mean]\t: Use same adjustment for all the particles (mean beta0)"); 
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
+	 addParamsLine("[--noFinalMask]\t: Do not mask final result"); 
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
@@ -123,12 +125,15 @@
 	}
  }
 
- void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
+ void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) {
 	if (fnM.isEmpty()) 
 		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()));
 	else {
 		m.read(fnM);
 		m().setXmippOrigin();
+		im = m;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
+			DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1; 
 	}
  }
 
@@ -249,8 +254,10 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	// Read input volume, mask and particles metadata
 	V.read(fnVolR);
 	V().setXmippOrigin();
-	createMask(fnMask, vM);
-	vM().setXmippOrigin();
+	createMask(fnMask, vM, ivM);
+	vM().setXmippOrigin(); //?? (it is already done inside createMask)
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
 	mdParticles.read(fnParticles);
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
@@ -273,7 +280,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
 			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); 
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); // indexes
 		}
 	}
 	int maxwiIdx;
@@ -397,8 +404,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			// Subtraction
 			MultidimArray<double> &mIdiff=Idiff();
 			mIdiff.initZeros(I());
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			if (noFinalMask)
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n));
+			}
+			else
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			}
 			// Write particle
 			writeParticle(int(i), Idiff, R2adj);  
 		}
@@ -470,8 +485,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			// Subtraction
 			MultidimArray<double> &mIdiff=Idiff();
 			mIdiff.initZeros(I());
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			if (noFinalMask)
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n));
+			}
+			else
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			}
 			// Write particle
 			writeParticle(int(i), Idiff, R2adjC);  
 		}
