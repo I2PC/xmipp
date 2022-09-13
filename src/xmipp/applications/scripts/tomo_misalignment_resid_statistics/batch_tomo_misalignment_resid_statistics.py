@@ -240,8 +240,8 @@ class ScriptTomoResidualStatistics(XmippScript):
     """
 
     if len(modAcc)<3:
-      adfStatistic = 0
-      pValue = 1
+      adfStatistic = 0.0
+      pValue = 1.0
       criticalValues = None
 
       return adfStatistic, pValue, criticalValues 
