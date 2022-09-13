@@ -315,7 +315,32 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 {
 	// Unique parameters
 	auto &mId = parameters.Idiff();
-	auto cudaMId = initializeMultidimArrayCuda(mId);
+
+	//auto cudaMId = initializeMultidimArrayCuda(mId);
+
+	struct MultidimArrayCuda<PrecisionType> cudaMId = {
+		.xdim = mId.xdim, .ydim = mId.ydim, .yxdim = mId.yxdim, .xinit = mId.xinit, .yinit = mId.yinit,
+		.zinit = mId.zinit
+	};
+
+	texture<PrecisionType, 2, cudaReadModeNormalizedFloat> tex;
+	size_t pitch, tex_ofs;
+	PrecisionType *mIdTexture = (PrecisionType)0;
+
+	cudaMallocPitch((void **)&mIdTexture, &pitch, mId.xdim * sizeof(*mIdTexture), mId.ydim);
+	cudaMemcpy2D(mIdTexture,
+				 pitch,
+				 mId.data,
+				 mId.xdim * sizeof(PrecisionType),
+				 mId.xdim * sizeof(PrecisionType),
+				 mId.ydim,
+				 cudaMemcpyHostToDevice);
+
+	tex.normalized = false;
+	tex.filterMode = cudaFilterModeLinear;
+
+	cudaBindTexture2D(&tex_ofs, &tex, mIdTexture, &tex.channelDesc, mId.xdim, mId.ydim, pitch);
+
 	const int step = 1;
 
 	// Common parameters
@@ -337,7 +362,8 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	  cudaVL2,
 																	  cudaVM,
 																	  commonParameters.cudaClnm,
-																	  commonParameters.cudaR);
+																	  commonParameters.cudaR,
+																	  tex);
 
 	cudaDeviceSynchronize();
 
