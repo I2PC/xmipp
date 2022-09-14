@@ -52,6 +52,7 @@
     bool meanParam;
     bool nonNegative;
     bool noFinalMask;
+    bool subtract;
 
     // Data variables
  	Image<double> V; // volume
