@@ -17,7 +17,7 @@ The recommended way for users (not developers) to install and use Xmipp is via t
 
 Xmipp consists of multiple standalone programs written primarily in C++. For that reason, the Xmipp suite has to be compiled before its use. The compilation process is driven by the xmipp script located in this repository. 
 
-Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)) guide for more info.
+Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
 
 Have a look at the Supported OS and dependencies below, before you install Xmipp as a Scipion package or as a standalone installation. You can also Link your Standalone version to Scipion later.
 
@@ -36,7 +36,7 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 
 ## Additional dependencies
 ### Compiler
-Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required.
+Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required. If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583)
 
 We strongly recommend you to have this compiler linked to `gcc` and `g++`. Otherwise it might not be properly picked up by wrappers, such as MPI's wrapper.
 We have good experince with using `alternatives`:
@@ -133,4 +133,6 @@ Xmipp is installed in the build directory located in the same directory where th
 # That's all
 Please let us know if you like Xmipp via contacts on the main page of the repository.
 
-If you find a bug or you miss some feature, please create a ticket and we will have a look at it. 
+If you find a bug or you miss some feature, please create a ticket and we will have a look at it.
+
+For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
