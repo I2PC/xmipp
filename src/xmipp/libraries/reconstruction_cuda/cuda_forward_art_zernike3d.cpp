@@ -372,13 +372,13 @@ void Program<PrecisionType>::recoverVolumeFromGPU(Image<PrecisionType> &Vrefined
 
 // explicit template instantiation
 template class Program<float>;
-template class Program<double>;
+//template class Program<double>;
 template void Program<float>::runForwardKernel<true>(struct DynamicParameters &);
 template void Program<float>::runForwardKernel<false>(struct DynamicParameters &);
-template void Program<double>::runForwardKernel<true>(struct DynamicParameters &);
-template void Program<double>::runForwardKernel<false>(struct DynamicParameters &);
+//template void Program<double>::runForwardKernel<true>(struct DynamicParameters &);
+//template void Program<double>::runForwardKernel<false>(struct DynamicParameters &);
 template void Program<float>::runBackwardKernel<true>(struct DynamicParameters &);
 template void Program<float>::runBackwardKernel<false>(struct DynamicParameters &);
-template void Program<double>::runBackwardKernel<true>(struct DynamicParameters &);
-template void Program<double>::runBackwardKernel<false>(struct DynamicParameters &);
+//template void Program<double>::runBackwardKernel<true>(struct DynamicParameters &);
+//template void Program<double>::runBackwardKernel<false>(struct DynamicParameters &);
 }  // namespace cuda_forward_art_zernike3D
