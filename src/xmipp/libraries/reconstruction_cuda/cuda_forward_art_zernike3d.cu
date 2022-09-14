@@ -396,6 +396,11 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType *cudaClnm,
 							  const PrecisionType *cudaR)
 {
+	__shared__ PrecisionType sharedR[6];
+	int threadIdGeneral = threadIdx.x + threadIdx.y + threadIdx.z;
+	if (threadIdGeneral < 6) {
+		sharedR[threadIdGeneral] = cudaR[threadIdGeneral];
+	}
 	int cubeX = (threadIdx.x + blockIdx.x * blockDim.x) * step;
 	int cubeY = (threadIdx.y + blockIdx.y * blockDim.y) * step;
 	int cubeZ = (threadIdx.z + blockIdx.z * blockDim.z) * step;
@@ -437,8 +442,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		auto r_y = i + gy;
 		auto r_z = k + gz;
 
-		auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
-		auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
+		auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
+		auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
 		//PrecisionType voxel_mV = A3D_ELEM(cudaMV, k, i, j);
 		device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 	}
@@ -466,6 +471,11 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const PrecisionType *cudaR,
 							   cudaTextureObject_t tex)
 {
+	__shared__ PrecisionType sharedR[6];
+	int threadIdGeneral = threadIdx.x + threadIdx.y + threadIdx.z;
+	if (threadIdGeneral < 6) {
+		sharedR[threadIdGeneral] = cudaR[threadIdGeneral];
+	}
 	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
 	int cubeY = threadIdx.y + blockIdx.y * blockDim.y;
 	int cubeZ = threadIdx.z + blockIdx.z * blockDim.z;
@@ -500,8 +510,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		auto r_y = i + gy;
 		auto r_z = k + gz;
 
-		auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
-		auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
+		auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
+		auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
 		PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId, tex);
 		if (voxel != (PrecisionType)0) {
 			A3D_ELEM(cudaMV, k, i, j) += voxel;
