@@ -32,7 +32,7 @@
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
 #include "core/utils/time_utils.h"
-// #include "reconstruction_adapt_cuda/basic_mem_manager.h"
+#include "reconstruction_adapt_cuda/basic_mem_manager.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
@@ -378,8 +378,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     size_t patchesElements = std::max(
         patchSettings.elemsFreq(),
         patchSettings.elemsSpacial());
-    auto *patchesData1 = new T[patchesElements];
-    auto *patchesData2 = new T[patchesElements];
+    auto *patchesData1 = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
+    auto *patchesData2 = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
 
 
     std::thread* processing_thread = nullptr;
@@ -409,7 +409,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         context.framesInCorrelationBuffer = framesInBuffer;
 
         if (nullptr == corrBuffer1) {
-            corrBuffer1 = new T[context.corrElems()];
+            corrBuffer1 = reinterpret_cast<T*>(BasicMemManager::instance().get(context.corrElems() * sizeof(T), MemType::CUDA_HOST));
         }
         
 
@@ -487,10 +487,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     ShiftPool.stop(true);
     LESPool.stop(true);
 
-    delete[] patchesData1;
-    delete[] patchesData2;
-    delete[] corrBuffer1;
-    delete[] corrBuffer2;
+    BasicMemManager::instance().give(patchesData1);
+    BasicMemManager::instance().give(patchesData2);
+    BasicMemManager::instance().give(corrBuffer1);
+    BasicMemManager::instance().give(corrBuffer2);
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
@@ -670,13 +670,15 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
+    auto *data = reinterpret_cast<T*>(BasicMemManager::instance().get(elems * sizeof(T), MemType::CPU_PAGE_ALIGNED));
+    // GPU::pinMemory(data, elems * sizeof(T));
     getCroppedMovie(movieSettings, data);
 
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);
-    free(data);
+    // GPU::unpinMemory(data);
+    BasicMemManager::instance().give(data);
     return result;
 }
 

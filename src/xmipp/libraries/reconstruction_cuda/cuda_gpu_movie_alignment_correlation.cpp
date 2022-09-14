@@ -28,6 +28,7 @@
 #include "cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
+#include "reconstruction_adapt_cuda/basic_mem_manager.h"
 
 template void performFFTAndScale<float>(float* inOutData, int noOfImgs, int inX,
     int inY, int inBatch, int outFFTX, int outY, MultidimArray<float> &filter);
@@ -45,7 +46,8 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     size_t bytesFFTs = outFFTX * outY * inBatch * sizeof(T) * 2; // complex
     T* d_data = NULL;
     T* d_filter = NULL;
-    auto h_tmpStore = new std::complex<T>[outFFTX * outY * inBatch];
+
+    auto h_tmpStore = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(outFFTX * outY * inBatch * sizeof(std::complex<T>), MemType::CUDA_HOST));
     gpuErrchk(cudaMalloc(&d_filter, filter.yxdim * sizeof(T)));
     gpuErrchk(cudaMemcpy(d_filter, filter.data, filter.yxdim * sizeof(T), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMalloc(&d_data, std::max(bytesImgs, bytesFFTs)));
@@ -91,7 +93,7 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
         bytesToCopyFromGPU = tmp;
     }
     handle.clear();
-    delete[] h_tmpStore;
+    BasicMemManager::instance().give(h_tmpStore);
     cudaFree(d_filter);
 }
 
@@ -203,6 +205,10 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     GpuMultidimArrayAtGpu<T> imgs(imgSizeX, fftSizeY, 1, fftBatchSize);
     mycufftHandle myhandle;
 
+    int device = -1;
+    gpuErrchk(cudaGetDevice(&device));
+    
+
     // size_t noOfCorrelations = (noOfImgs * (noOfImgs-1)) / 2;
 
     size_t singleFFTPixels = fftSizeX * fftSizeY;
@@ -211,18 +217,21 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     // result = new T[noOfCorrelations * centerSize * centerSize]();
 
     size_t buffer1Size = std::min(maxFFTsInBuffer, noOfImgs);
-    void* d_fftBuffer1;
-    gpuMalloc((void**) &d_fftBuffer1, buffer1Size * singleFFTBytes);
+    void* d_fftBuffer1 = BasicMemManager::instance().get(buffer1Size * singleFFTBytes, MemType::CUDA_MANAGED);
+    // gpuMalloc((void**) &d_fftBuffer1, buffer1Size * singleFFTBytes);
 
-    void* d_fftBuffer2;
     size_t buffer2Size = std::max((size_t)0,
             std::min(maxFFTsInBuffer, noOfImgs - buffer1Size));
-    gpuMalloc((void**) &d_fftBuffer2, buffer2Size * singleFFTBytes);
+    void* d_fftBuffer2 = BasicMemManager::instance().get(buffer2Size * singleFFTBytes, MemType::CUDA_MANAGED);
+    // gpuMalloc((void**) &d_fftBuffer2, buffer2Size * singleFFTBytes);
+            
 
     size_t buffer1Offset = 0;
     do {
         size_t buffer1ToCopy = std::min(buffer1Size, noOfImgs - buffer1Offset);
         size_t inputOffsetBuffer1 = buffer1Offset * singleFFTPixels;
+        // memcpy(d_fftBuffer1, h_FFTs + inputOffsetBuffer1,
+        //         buffer1ToCopy * singleFFTBytes);
         gpuErrchk(cudaMemcpy(d_fftBuffer1, h_FFTs + inputOffsetBuffer1,
                 buffer1ToCopy * singleFFTBytes, cudaMemcpyHostToDevice));
 
@@ -251,8 +260,11 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
 
     } while (buffer1Offset < noOfImgs);
 
-    cudaFree(d_fftBuffer1);
-    cudaFree(d_fftBuffer2);
+    BasicMemManager::instance().give(d_fftBuffer1);
+    BasicMemManager::instance().give(d_fftBuffer2);
+
+    // cudaFree(d_fftBuffer1);
+    // cudaFree(d_fftBuffer2);
 
     gpuErrchk(cudaPeekAtLastError());
 }
