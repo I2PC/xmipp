@@ -313,7 +313,9 @@ namespace device {
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
 		if (!IS_OUTSIDE2D(mP, i, j)) {
 			PrecisionType weight = A3D_ELEM(cudaMV, x, y, z);
-			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
+			if (weight != (PrecisionType)0) {
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
+			}
 			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 		}
 	}
@@ -501,7 +503,9 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
 		auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
 		PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId, tex);
-		A3D_ELEM(cudaMV, k, i, j) += voxel;
+		if (voxel != (PrecisionType)0) {
+			A3D_ELEM(cudaMV, k, i, j) += voxel;
+		}
 	}
 }
 }  // namespace cuda_forward_art_zernike3D
