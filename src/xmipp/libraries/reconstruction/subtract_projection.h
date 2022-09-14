@@ -51,7 +51,6 @@
     int limitfreq;
     bool meanParam;
     bool nonNegative;
-    bool noFinalMask;
     bool subtract;
 
     // Data variables

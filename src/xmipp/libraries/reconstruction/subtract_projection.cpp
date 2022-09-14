@@ -62,7 +62,6 @@
 	fnProj = getParam("--save"); 
 	meanParam = checkParam("--mean");
 	nonNegative = checkParam("--nonNegative");
-	noFinalMask = checkParam("--noFinalMask");
 	subtract = checkParam("--subtract");
  }
 
@@ -101,7 +100,6 @@
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
 	 addParamsLine("[--mean]\t: Use same adjustment for all the particles (mean beta0)"); 
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
-	 addParamsLine("[--noFinalMask]\t: Do not mask final result"); 
 	 addParamsLine("[--subtract]\t: Perform subtraction"); 
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
@@ -407,16 +405,8 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			{
 				MultidimArray<double> &mIdiff=Idiff();
 				mIdiff.initZeros(I());
-				if (noFinalMask)
-				{
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n));
-				}
-				else
-				{
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-				}
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 				// Write particle
 				writeParticle(int(i), Idiff, R2adj);  
 			}
@@ -490,16 +480,8 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			{
 				MultidimArray<double> &mIdiff=Idiff();
 				mIdiff.initZeros(I());
-				if (noFinalMask)
-				{
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n));
-				}
-				else
-				{
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-				}
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 				// Write particle
 				writeParticle(int(i), Idiff, R2adjC); 
 			} 
