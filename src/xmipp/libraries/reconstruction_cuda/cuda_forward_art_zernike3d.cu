@@ -312,7 +312,7 @@ namespace device {
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
 		if (!IS_OUTSIDE2D(mP, i, j)) {
-			PrecisionType weight = A3D_ELEM(cudaMV, x, y, z);
+			PrecisionType weight = A3D_ELEM(cudaMV, z, y, x);
 			if (weight != (PrecisionType)0) {
 				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
 			}
