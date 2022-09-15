@@ -392,11 +392,11 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         }
     };
 
-    std::future<void> gpuTask;
+    // std::future<void> gpuTask;
 
-    // use additional thread that would load the data at the background
-    // get alignment for all patches and resulting correlations
-    for (auto &&p : patchesLocation) {
+    auto createContext = [&, this](auto &p) {
+        static std::mutex mutex;
+        std::unique_lock<std::mutex> lock(mutex); // we need to lock this part to ensure serial access to result.shifts
         auto context = PatchContext(result);
         context.verbose = this->verbose;
         context.maxShift = this->maxShift;
@@ -407,17 +407,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         context.refFrame = refFrame;
         context.centerSize = getCenterSize(this->maxShift);
         context.framesInCorrelationBuffer = framesInBuffer;
-
-        if (nullptr == corrBuffer1) {
-            corrBuffer1 = reinterpret_cast<T*>(BasicMemManager::instance().get(context.corrElems() * sizeof(T), MemType::CUDA_HOST));
-        }
-        
-
-        // get data
-        memset(patchesData1, 0, patchesElements * sizeof(T));
-        getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
-                patchesData1);
-
         // prefill some info about patch
         for (size_t i = 0;i < movieSettings.dim.n();++i) {
             FramePatchMeta<T> tmp = p;
@@ -428,69 +417,71 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             // total shift (i.e. global shift + local shift) will be computed later on
             result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY));
         }
+        return context;
+    };
 
-        // wait_and_delete(processing_thread);
+    std::vector<T*> corrBuffers(loadPool.size()); // initializes to nullptrs
+    std::vector<T*> patchData(loadPool.size()); // initializes to nullptrs
+    std::vector<std::future<void>> futures;
+    futures.reserve(patchesLocation.size());
 
-
-
-
-        /**
-         * vymaz patchBuffer1
-         * nahrej do neho data
-         * pockej na GPU task
-         * swap patchBuffer
-         * vymaz corrBuffer1
-         * zavolej GPU task
-         * 
-         * 
-         **/
-
-        // don't swap buffers while some thread is accessing its content
-        if (gpuTask.valid()) { gpuTask.get(); }
-
-
-        // swap buffers
-        std::swap(patchesData1, patchesData2);
-        std::swap(corrBuffer1, corrBuffer2);
-        // run processing thread on the background
-
-        // processing_thread = new std::thread([&, p]() {
-            // make sure to set proper GPU
-            
-
+    // use additional thread that would load the data at the background
+    // get alignment for all patches and resulting correlations
+    for (auto &&p : patchesLocation) {
+        auto routine = [&](int thrId) {
             if (this->verbose > 1) {
-                std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
+                std::cout << "\nQueuing patch " << p.id_x << " " << p.id_y << " for processing\n";
             }
- 
-            // get alignment
-            gpuTask = align(patchesData2, patchSettings,
-                    correlationSettings, filter, context, corrBuffer2);
-            // process it
-            // for (size_t i = 0;i < movieSettings.dim.n();++i) {
-            //     FramePatchMeta<T> tmp = p;
-            //     // keep consistent with data loading
-            //     int globShiftX = std::round(globAlignment.shifts.at(i).x);
-            //     int globShiftY = std::round(globAlignment.shifts.at(i).y);
-            //     tmp.id_t = i;
-            //     // total shift is global shift + local shift
-            //     result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
-            //             + alignment.shifts.at(i));
-            // }
-
-
-        // });
-
+            auto context = createContext(p);
+           
+            // alllocate and clear patch data
+            if (nullptr == patchData.at(thrId)) {
+                patchData[thrId] = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
+            }
+            auto *data = patchData.at(thrId);
+            memset(data, 0, patchesElements * sizeof(T));
+           
+            // allocate and clear correlation data
+            if (nullptr == corrBuffers.at(thrId)) {
+                corrBuffers[thrId] = reinterpret_cast<T*>(BasicMemManager::instance().get(context.corrElems() * sizeof(T), MemType::CUDA_HOST));
+            }
+            auto *correlations = corrBuffers.at(thrId);
+            memset(correlations, 0, context.corrElems() * sizeof(T));
+           
+            // get data
+            getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
+                    data);
+            
+            // convert to FFT, downscale them and compute correlations
+            GPUPool.push([&](int){
+                performFFTAndScale<T>(data, patchSettings.dim.n(), patchSettings.dim.x(), patchSettings.dim.y(), patchSettings.batch,
+                        correlationSettings.x_freq, correlationSettings.dim.y(), filter);
+                computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlationSettings.x_freq,
+                        correlationSettings.dim.x(),
+                        correlationSettings.dim.y(), context.framesInCorrelationBuffer,
+                        correlationSettings.batch, correlations);
+            }).get(); // wait till done - i.e. correlations are computed and on CPU
+            
+            // compute resulting shifts
+            printf("gonna compute shift with thread %d x %lu y %lu t %lu\n", thrId, p.id_x, p.id_y, p.id_t); fflush(stdout);
+            computeShifts(correlations, context);
+        };
+        futures.emplace_back(loadPool.push(routine));
     }
     // wait for the last processing thread
-    // wait_and_delete(processing_thread);
-    gpuTask.get();
-    ShiftPool.stop(true);
-    LESPool.stop(true);
+    for (auto &f : futures) { f.get(); }
+    printf("done with futures\n"); fflush(stdout);
+    // ShiftPool.stop(true);
+    // LESPool.stop(true);
 
-    BasicMemManager::instance().give(patchesData1);
-    BasicMemManager::instance().give(patchesData2);
-    BasicMemManager::instance().give(corrBuffer1);
-    BasicMemManager::instance().give(corrBuffer2);
+    for (auto *ptr : corrBuffers) { BasicMemManager::instance().give(ptr); }
+    for (auto *ptr : patchData) { BasicMemManager::instance().give(ptr); }
+
+    printf("done with patches\n"); fflush(stdout);
+    // BasicMemManager::instance().give(patchesData1);
+    // BasicMemManager::instance().give(patchesData2);
+    // BasicMemManager::instance().give(corrBuffer1);
+    // BasicMemManager::instance().give(corrBuffer2);
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
@@ -690,22 +681,22 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         T *corrCenters) { // pass by copy, this will be run asynchronously)
     assert(nullptr != data);
 
-    auto routine = [data, &in, &correlation, &filter, context, this](int threadId) {
+    auto routine = [data, &in, &correlation, &filter, context, this, corrCenters](int threadId) mutable  {
         this->gpu.value().set();
     // scale and transform to FFT on GPU
         performFFTAndScale<T>(data, in.dim.n(), in.dim.x(), in.dim.y(), in.batch,
                 correlation.x_freq, correlation.dim.y(), filter);
 
-        memset(corrBuffer1, 0, context.corrElems() * sizeof(T));
+        memset(corrCenters, 0, context.corrElems() * sizeof(T));
 
         computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.x_freq,
                 correlation.dim.x(),
                 correlation.dim.y(), context.framesInCorrelationBuffer,
-                correlation.batch, corrBuffer1);
+                correlation.batch, corrCenters);
 
         if (LESTask.valid()) { LESTask.get(); }
-        std::swap(corrBuffer1, corrBuffer2);
-        LESTask = computeShifts(corrBuffer2, context);
+        // std::swap(corrBuffer1, corrBuffer2);
+        // LESTask = computeShifts(corrCenters, context);
 
     };
     return GPUPool.push(routine);
@@ -803,7 +794,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
-    auto routine = [this](int, PatchContext context, T* correlations) {
+    // auto routine = [this](int, PatchContext context, T* correlations) {
         auto noOfCorrelations = context.N * (context.N - 1) / 2;
         // we are done with the input data, so release it
         Matrix2D<T> A(noOfCorrelations, context.N - 1);
@@ -812,13 +803,11 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
         // find the actual shift (max peak) for each pair of frames
         // and create a set or equations
         size_t idx = 0;
-        MultidimArray<T> Mcorr(context.centerSize, context.centerSize);
-        T* origData = Mcorr.data;
 
         for (size_t i = 0; i < context.N - 1; ++i) {
             for (size_t j = i + 1; j < context.N; ++j) {
                 size_t offset = idx * context.centerSize * context.centerSize;
-                Mcorr.data = correlations + offset;
+                MultidimArray<T> Mcorr(1, 1, context.centerSize, context.centerSize, correlations + offset);
                 Mcorr.setXmippOrigin();
                 bestShift(Mcorr, bX(idx), bY(idx), NULL,
                         context.maxShift / context.scale.first);
@@ -834,9 +823,8 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
                 idx++;
             }
         }
-        Mcorr.data = origData;
 
-        auto LES = [bX, bY, context, A, this](int) mutable {
+        // auto LES = [bX, bY, context, A, this](int) mutable {
             // now get the estimated shift (from the equation system)
             // from each frame to successing frame
             auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
@@ -845,10 +833,10 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
                 // update total shift (i.e. global shift + local shift)
                 context.result.shifts[i + context.shiftsOffset].second += result.shifts[i];
             }
-        };
-        LESPool.push(LES);
-    };
-    return ShiftPool.push(routine, context, correlations);
+        // };
+        // LESPool.push(LES);
+    // };
+    // return ShiftPool.push(routine, context, correlations);
 }
 
 template<typename T>
