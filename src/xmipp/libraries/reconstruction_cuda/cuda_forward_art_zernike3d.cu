@@ -513,9 +513,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
 		auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
 		PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId, tex);
-		if (voxel != (PrecisionType)0) {
-			A3D_ELEM(cudaMV, k, i, j) += voxel;
-		}
+		A3D_ELEM(cudaMV, k, i, j) += voxel;
 	}
 }
 }  // namespace cuda_forward_art_zernike3D
