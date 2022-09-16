@@ -329,7 +329,7 @@ private:
     ctpl::thread_pool ShiftPool = ctpl::thread_pool(1);
     ctpl::thread_pool LESPool = ctpl::thread_pool(1);
     ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
-    ctpl::thread_pool loadPool = ctpl::thread_pool(1);
+    ctpl::thread_pool loadPool = ctpl::thread_pool(4);
 
     std::future<void> LESTask;
     T *corrBuffer1 = nullptr;

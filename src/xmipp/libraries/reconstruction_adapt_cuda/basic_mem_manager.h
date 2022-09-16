@@ -31,6 +31,7 @@ enum class MemType
     CPU_PAGE_ALIGNED,
     CUDA_MANAGED,
     CUDA_HOST, // pinned memory on CPU
+    CUDA, // pinned memory on CPU
 };
 
 class BasicMemManager

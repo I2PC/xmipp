@@ -129,11 +129,11 @@ void *BasicMemManager::alloc(size_t bytes, MemType type) const
     case MemType::CUDA_HOST:
         cudaHostAlloc(&ptr, bytes, cudaHostAllocDefault);
         break;
+    case MemType::CUDA:
+        cudaMalloc(&ptr, bytes);
+        break;
     default:
         break;
-    }
-    if (nullptr == ptr) {
-        printf("Error: no memory allocated (ptr is null)\n");
     }
     return ptr;
 }
@@ -147,6 +147,7 @@ void BasicMemManager::release(void *ptr, MemType type) const
         break;
     case MemType::CUDA_MANAGED:
     case MemType::CUDA_HOST:
+    case MemType::CUDA:
         cudaFree(ptr);
         break;
     default:

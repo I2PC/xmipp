@@ -45,11 +45,8 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     size_t bytesImgs = inX * inY * inBatch * sizeof(T);
     size_t bytesFFTs = outFFTX * outY * inBatch * sizeof(T) * 2; // complex
     T* d_data = NULL;
-    T* d_filter = NULL;
 
     auto h_tmpStore = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(outFFTX * outY * inBatch * sizeof(std::complex<T>), MemType::CUDA_HOST));
-    gpuErrchk(cudaMalloc(&d_filter, filter.yxdim * sizeof(T)));
-    gpuErrchk(cudaMemcpy(d_filter, filter.data, filter.yxdim * sizeof(T), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMalloc(&d_data, std::max(bytesImgs, bytesFFTs)));
     GpuMultidimArrayAtGpu<T> imagesGPU(inX, inY, 1, inBatch, d_data);
     GpuMultidimArrayAtGpu<std::complex<T> > resultingFFT;
@@ -77,7 +74,7 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
             (std::complex<T>*)resultingFFT.d_data,
             (std::complex<T>*)imagesGPU.d_data,
             inBatch, resultingFFT.Xdim, resultingFFT.Ydim,
-            outFFTX, outY, d_filter, 1.f/imagesGPU.yxdim, false);
+            outFFTX, outY, filter.data, 1.f/imagesGPU.yxdim, false);
         gpuErrchk( cudaPeekAtLastError() );
 
         std::complex<T>* h_imgStore = h_result + counter * outFFTX * outY;
@@ -94,7 +91,6 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     }
     handle.clear();
     BasicMemManager::instance().give(h_tmpStore);
-    cudaFree(d_filter);
 }
 
 template<>
@@ -217,12 +213,12 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     // result = new T[noOfCorrelations * centerSize * centerSize]();
 
     size_t buffer1Size = std::min(maxFFTsInBuffer, noOfImgs);
-    void* d_fftBuffer1 = BasicMemManager::instance().get(buffer1Size * singleFFTBytes, MemType::CUDA_MANAGED);
+    void* d_fftBuffer1 = BasicMemManager::instance().get(buffer1Size * singleFFTBytes, MemType::CUDA);
     // gpuMalloc((void**) &d_fftBuffer1, buffer1Size * singleFFTBytes);
 
     size_t buffer2Size = std::max((size_t)0,
             std::min(maxFFTsInBuffer, noOfImgs - buffer1Size));
-    void* d_fftBuffer2 = BasicMemManager::instance().get(buffer2Size * singleFFTBytes, MemType::CUDA_MANAGED);
+    void* d_fftBuffer2 = BasicMemManager::instance().get(buffer2Size * singleFFTBytes, MemType::CUDA);
     // gpuMalloc((void**) &d_fftBuffer2, buffer2Size * singleFFTBytes);
             
 

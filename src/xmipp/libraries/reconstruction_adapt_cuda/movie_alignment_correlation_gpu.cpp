@@ -358,8 +358,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // prepare filter
     // FIXME DS make sure that the resulting filter is correct, even if we do non-uniform scaling
-    MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.dim);
-
+    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.dim);
+    T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
+    memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
+    auto filter = MultidimArray<T>(1, 1, filterTmp.ydim, filterTmp.xdim, filterData);
 
     // compute max of frames in buffer
     T corrSizeMB = MB<T>((size_t) correlationSettings.x_freq
@@ -380,19 +382,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         patchSettings.elemsSpacial());
     auto *patchesData1 = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
     auto *patchesData2 = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
-
-
-    std::thread* processing_thread = nullptr;
-
-    auto wait_and_delete = [](std::thread*& thread) {
-        if (thread) {
-            thread->join();
-            delete thread;
-            thread = nullptr;
-        }
-    };
-
-    // std::future<void> gpuTask;
 
     auto createContext = [&, this](auto &p) {
         static std::mutex mutex;
@@ -463,21 +452,19 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             }).get(); // wait till done - i.e. correlations are computed and on CPU
             
             // compute resulting shifts
-            printf("gonna compute shift with thread %d x %lu y %lu t %lu\n", thrId, p.id_x, p.id_y, p.id_t); fflush(stdout);
             computeShifts(correlations, context);
         };
         futures.emplace_back(loadPool.push(routine));
     }
     // wait for the last processing thread
     for (auto &f : futures) { f.get(); }
-    printf("done with futures\n"); fflush(stdout);
     // ShiftPool.stop(true);
     // LESPool.stop(true);
 
     for (auto *ptr : corrBuffers) { BasicMemManager::instance().give(ptr); }
     for (auto *ptr : patchData) { BasicMemManager::instance().give(ptr); }
+    BasicMemManager::instance().give(filterData);
 
-    printf("done with patches\n"); fflush(stdout);
     // BasicMemManager::instance().give(patchesData1);
     // BasicMemManager::instance().give(patchesData2);
     // BasicMemManager::instance().give(corrBuffer1);
@@ -637,7 +624,10 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     auto correlationSetting = this->getCorrelationSettings(movieSettings);
     T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
 
-    MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
+    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
+    T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
+    memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
+    auto filter = MultidimArray<T>(1, 1, filterTmp.ydim, filterTmp.xdim, filterData);
     if (this->verbose) {
         std::cout << "Requested scale factor: " << this->getScaleFactor() << std::endl;
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
@@ -670,6 +660,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
             this->maxShift, framesInBuffer, this->verbose);
     // GPU::unpinMemory(data);
     BasicMemManager::instance().give(data);
+    BasicMemManager::instance().give(filterData);
     return result;
 }
 
