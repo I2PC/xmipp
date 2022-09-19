@@ -63,6 +63,7 @@
 	meanParam = checkParam("--mean");
 	nonNegative = checkParam("--nonNegative");
 	subtract = checkParam("--subtract");
+	boost = checkParam("--boost");
  }
 
  // Show ====================================================================
@@ -77,8 +78,7 @@
 	<< "Padding factor:\t" << padFourier << std::endl
     << "Max. Resolution:\t" << maxResol << std::endl
 	<< "Limit freequency:\t" << limitfreq << std::endl
-	<< "Output particles:\t" << fnOut << std::endl
-	<< "Path for saving:\t" << fnProj << std::endl; 
+	<< "Output particles:\t" << fnOut << std::endl;
  }
 
  // usage ===================================================================
@@ -101,6 +101,7 @@
 	 addParamsLine("[--mean]\t: Use same adjustment for all the particles (mean beta0)"); 
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
 	 addParamsLine("[--subtract]\t: Perform subtraction"); 
+	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
@@ -127,14 +128,19 @@
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) {
 	if (fnM.isEmpty()) 
-		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()));
+		{
+			m().initZeros((int)XSIZE(V()),(int)YSIZE(V()),(int)ZSIZE(V()));
+			im = m;
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
+				DIRECT_MULTIDIM_ELEM(im(),n) += 1; 
+		}
 	else {
-		m.read(fnM);
-		m().setXmippOrigin();
-		im = m;
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
-			DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1; 
-	}
+			m.read(fnM);
+			m().setXmippOrigin();
+			im = m;
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
+				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1; 
+		}
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const {
@@ -227,7 +233,7 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
  }
 
 double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
- const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int cmod) const { 
+ const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int cmod, int bmod) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
 	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
@@ -239,26 +245,37 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		PFourierf = PFourierf1;
 		R2 = R21adj;
 		std::cout << "Order 1 model" << std::endl; 	
-		cmod += 1;	
+		cmod += 1;
+		bmod = 1;	
 	} 
 	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
 		R2 = R20adj;
 		std::cout << "Order 0 model" << std::endl; 	
-		cmod += 0;		
+		cmod += 0;
+		bmod = 0;		
 	}
 	return R2;
 }
 
  void ProgSubtractProjection::run() {
 	show();
+	std::cout << "---01---" << std::endl;
 	// Read input volume, mask and particles metadata
 	V.read(fnVolR);
+	std::cout << "---02---" << std::endl;
 	V().setXmippOrigin();
+	std::cout << "---03---" << std::endl;
 	createMask(fnMask, vM, ivM);
+	std::cout << "---04---" << std::endl;
+	V.write("V.mrc");
+	vM.write("vMask.mrc");
+	ivM.write("ivMask.mrc");
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
+	std::cout << "---05---" << std::endl;
 	mdParticles.read(fnParticles);
+	std::cout << "---06---" << std::endl;
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
@@ -303,6 +320,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	
 	// For each particle in metadata:
 	size_t i;
+	std::cout << "---07---" << std::endl;
     for (i = 1; i <= mdParticles.size(); ++i) {  
 		// Initialize aux variable
 		disable = false;
@@ -328,6 +346,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			// Compute inverse of original mask
 			iM = invertMask(M);
 		}
+		std::cout << "---08---" << std::endl;
 		// Compute estimation images: IiM = I*iM and PiM = P*iM	
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
@@ -341,6 +360,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		A1.initZeros(2,2);
 		Matrix1D<double> b1;
 		b1.initZeros(2);
+		std::cout << "---09---" << std::endl;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
 			int win = DIRECT_MULTIDIM_ELEM(wi, n);
 			if (win < maxwiIdx) 
@@ -394,28 +414,58 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 		PFourier1(0,0) = IiMFourier(0,0); 
 
-		//Check best model
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, cumulative_model); 
+		// Check best model
+		int best_model;
+		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, cumulative_model, best_model);
 
-		if (!meanParam)
+		// Create empty new image for output particle
+		MultidimArray<double> &mIdiff=Idiff();
+		mIdiff.initZeros(I());
+		mIdiff.setXmippOrigin();
+
+		std::cout << "---0---" << std::endl;
+
+		// Boosting of original particles
+		if (boost)
+		{
+			std::cout << "---1---" << std::endl;
+			if (best_model == 0)
+			{
+				std::cout << "---2---" << std::endl;
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier) 
+					DIRECT_MULTIDIM_ELEM(IFourier,n) /= beta00; 
+				std::cout << "---3---" << std::endl;
+			} 
+			else if (best_model == 1)
+			{
+				std::cout << "---4---" << std::endl;
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier)
+					DIRECT_MULTIDIM_ELEM(IFourier,n) /= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
+				std::cout << "---5---" << std::endl;
+			}
+			std::cout << "---6---" << std::endl;
+			transformerI.inverseFourierTransform(IFourier, Idiff());
+			std::cout << "---7---" << std::endl;
+		} 
+		
+		// Subtraction
+		else if (subtract && !meanParam)
 		{
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
-
-			if (subtract)// Subtraction
-			{
-				MultidimArray<double> &mIdiff=Idiff();
-				mIdiff.initZeros(I());
-				mIdiff.setXmippOrigin();
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-				// Write particle
-				writeParticle(int(i), Idiff, R2adj);  
-			}
+			MultidimArray<double> &mIdiff=Idiff();
+			mIdiff.initZeros(I());
+			mIdiff.setXmippOrigin();
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 		}
+		// Write particle
+		std::cout << "---8---" << std::endl;
+		writeParticle(int(i), Idiff, R2adj); 
+		std::cout << "---9---" << std::endl; 
 	}
 
-	if (meanParam)
+	if (subtract && meanParam)
 	{
 		// Decide which model apply to all
 		int mean_model = 0; // NO SE ESTA GUARDANDO BIEN

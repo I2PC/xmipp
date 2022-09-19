@@ -52,6 +52,7 @@
     bool meanParam;
     bool nonNegative;
     bool subtract;
+    bool boost;
 
     // Data variables
  	Image<double> V; // volume
@@ -116,7 +117,7 @@
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     double checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, int cmodel) const;
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, int, int) const;
 
     /// Run
     void run() override;
