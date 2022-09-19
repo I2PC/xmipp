@@ -249,6 +249,11 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 			coordinatesB.push_back(i);
 		}
 	}
+	for (size_t i = 0; i < parameters.VRecMaskF.yxdim * parameters.VRecMaskF.zdim; i++) {
+		if (parameters.VRecMaskF[i] != 0) {
+			coordinatesF.push_back(i);
+		}
+	}
 }
 
 template<typename PrecisionType>
