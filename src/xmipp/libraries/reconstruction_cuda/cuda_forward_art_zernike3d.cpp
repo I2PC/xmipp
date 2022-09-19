@@ -219,8 +219,8 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
-	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
+	  //VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	  //VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
@@ -244,6 +244,8 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
 	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
 {
+	std::vector<int> coordinatesB;
+	std::vector<int> coordinatesF;
 	for (size_t i = 0; i < parameters.VRecMaskB.yxdim * parameters.VRecMaskB.zdim; i++) {
 		if (parameters.VRecMaskB[i] != 0) {
 			coordinatesB.push_back(i);
@@ -254,6 +256,8 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 			coordinatesF.push_back(i);
 		}
 	}
+	cudaCoordinatesB = transportStdVectorToGpu(coordinatesB);
+	cudaCoordinatesF = transportStdVectorToGpu(coordinatesF);
 }
 
 template<typename PrecisionType>

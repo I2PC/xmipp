@@ -79,7 +79,7 @@ class Program {
 	~Program();
 
    private:
-	const MultidimArrayCuda<int> VRecMaskF, VRecMaskB;
+	//const MultidimArrayCuda<int> VRecMaskF, VRecMaskB;
 
 	const MultidimArrayCuda<PrecisionType> cudaMV;
 
@@ -97,7 +97,7 @@ class Program {
 
 	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
 
-	std::vector<int> coordinatesB, coordinatesF;
+	int *cudaCoordinatesB, *cudaCoordinatesF;
 };
 
 }  // namespace cuda_forward_art_zernike3D
