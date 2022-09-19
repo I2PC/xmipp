@@ -199,6 +199,7 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
 const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	ImgiM().initZeros(Img);
+	ImgiM().setXmippOrigin();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
 		DIRECT_MULTIDIM_ELEM(ImgiM(),n) = DIRECT_MULTIDIM_ELEM(Img,n) * DIRECT_MULTIDIM_ELEM(InvM,n);
 	transformerImgiM.FourierTransform(ImgiM(),ImgiMFourier,false);
@@ -255,7 +256,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	V.read(fnVolR);
 	V().setXmippOrigin();
 	createMask(fnMask, vM, ivM);
-	vM().setXmippOrigin(); //?? (it is already done inside createMask)
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
 	mdParticles.read(fnParticles);
@@ -304,24 +304,28 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	// For each particle in metadata:
 	size_t i;
     for (i = 1; i <= mdParticles.size(); ++i) {  
-		// // Initialize aux variable
+		// Initialize aux variable
 		disable = false;
      	// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
-		if (fnMask.isEmpty() || fmaskWidth == -1) {
+		if (fnMask.isEmpty() || fmaskWidth == -1) { // If there is no provided mask
 			Mfinal().initZeros(P());
+			// inverse mask (iM) and final mask (Mfinal) are all 1s
 			iM = invertMask(Mfinal);
 			Mfinal = iM;		
 			}
-		else {
+		else { // If a mask has been provided
 			projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
 			M = binarizeMask(Pmask);
+			// Apply shift to the projected mask
 			selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
+			// Create final mask which is a dilated version of the provided mask
 			Mfinal().initZeros(M());
 			auto fmaskWidth_px = fmaskWidth/(int)sampling;
 			dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
 			FilterG.applyMaskSpace(M());
+			// Compute inverse of original mask
 			iM = invertMask(M);
 		}
 		// Compute estimation images: IiM = I*iM and PiM = P*iM	
@@ -361,7 +365,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		if (nonNegative) 
 		{
 			if (beta00 < 0)
-				// continue;
 				disable = true;
 		}
 		cumulative_beta00 += beta00; // is ok to cumulate all or only the ones from particles which has been chosen model 0??		
@@ -396,8 +399,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
 		if (!meanParam)
 		{
-			// double R2adjC = evaluateFitting(IFourier, PFourier); 
-
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
 
@@ -405,6 +406,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			{
 				MultidimArray<double> &mIdiff=Idiff();
 				mIdiff.initZeros(I());
+				mIdiff.setXmippOrigin();
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
 					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 				// Write particle
