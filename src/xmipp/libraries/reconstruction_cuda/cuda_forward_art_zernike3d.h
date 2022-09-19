@@ -96,6 +96,8 @@ class Program {
 	const size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
 	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
+
+	std::vector<int> coordinatesB;
 };
 
 }  // namespace cuda_forward_art_zernike3D

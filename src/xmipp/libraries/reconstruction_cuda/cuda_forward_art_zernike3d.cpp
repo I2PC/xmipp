@@ -243,7 +243,13 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
 	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
-{}
+{
+	for (size_t i = 0; i < parameters.VRecMaskB.xydim * parameters.VRecMaskB.zdim; i++) {
+		if (parameters.VRecMaskB[i] != 0) {
+			coordinatesB.push_back(i);
+		}
+	}
+}
 
 template<typename PrecisionType>
 Program<PrecisionType>::~Program()
