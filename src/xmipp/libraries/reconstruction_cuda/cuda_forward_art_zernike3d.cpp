@@ -215,7 +215,7 @@ namespace {
 	}
 
 	template<typename T>
-	std::tuple(int *, size_t) filterAndTransportMask(MultidimArray<T> mask)
+	std::tuple<int *, size_t> filterAndTransportMask(MultidimArray<T> mask)
 	{
 		std::vector<T> coordinates;
 		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
