@@ -260,22 +260,13 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
  void ProgSubtractProjection::run() {
 	show();
-	std::cout << "---01---" << std::endl;
 	// Read input volume, mask and particles metadata
 	V.read(fnVolR);
-	std::cout << "---02---" << std::endl;
 	V().setXmippOrigin();
-	std::cout << "---03---" << std::endl;
 	createMask(fnMask, vM, ivM);
-	std::cout << "---04---" << std::endl;
-	V.write("V.mrc");
-	vM.write("vMask.mrc");
-	ivM.write("ivMask.mrc");
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
-	std::cout << "---05---" << std::endl;
 	mdParticles.read(fnParticles);
-	std::cout << "---06---" << std::endl;
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
@@ -320,7 +311,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	
 	// For each particle in metadata:
 	size_t i;
-	std::cout << "---07---" << std::endl;
     for (i = 1; i <= mdParticles.size(); ++i) {  
 		// Initialize aux variable
 		disable = false;
@@ -346,7 +336,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			// Compute inverse of original mask
 			iM = invertMask(M);
 		}
-		std::cout << "---08---" << std::endl;
 		// Compute estimation images: IiM = I*iM and PiM = P*iM	
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
@@ -360,7 +349,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		A1.initZeros(2,2);
 		Matrix1D<double> b1;
 		b1.initZeros(2);
-		std::cout << "---09---" << std::endl;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
 			int win = DIRECT_MULTIDIM_ELEM(wi, n);
 			if (win < maxwiIdx) 
@@ -423,29 +411,20 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		mIdiff.initZeros(I());
 		mIdiff.setXmippOrigin();
 
-		std::cout << "---0---" << std::endl;
-
 		// Boosting of original particles
 		if (boost)
 		{
-			std::cout << "---1---" << std::endl;
 			if (best_model == 0)
 			{
-				std::cout << "---2---" << std::endl;
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier) 
 					DIRECT_MULTIDIM_ELEM(IFourier,n) /= beta00; 
-				std::cout << "---3---" << std::endl;
 			} 
 			else if (best_model == 1)
 			{
-				std::cout << "---4---" << std::endl;
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier)
 					DIRECT_MULTIDIM_ELEM(IFourier,n) /= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
-				std::cout << "---5---" << std::endl;
 			}
-			std::cout << "---6---" << std::endl;
 			transformerI.inverseFourierTransform(IFourier, Idiff());
-			std::cout << "---7---" << std::endl;
 		} 
 		
 		// Subtraction
@@ -460,9 +439,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
 		}
 		// Write particle
-		std::cout << "---8---" << std::endl;
 		writeParticle(int(i), Idiff, R2adj); 
-		std::cout << "---9---" << std::endl; 
 	}
 
 	if (subtract && meanParam)
