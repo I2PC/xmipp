@@ -214,6 +214,18 @@ namespace {
 		return output;
 	}
 
+	template<typename T>
+	int *filterAndTransportMask(MultidimArray<T> mask)
+	{
+		std::vector<T> coordinates;
+		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
+			if (mask[i] != 0) {
+				coordinates.push_back(i);
+			}
+		}
+		return transportStdVectorToGpu(coordinates);
+	}
+
 }  // namespace
 
 template<typename PrecisionType>
@@ -244,20 +256,8 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
 	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
 {
-	std::vector<int> coordinatesB;
-	std::vector<int> coordinatesF;
-	for (size_t i = 0; i < parameters.VRecMaskB.yxdim * parameters.VRecMaskB.zdim; i++) {
-		if (parameters.VRecMaskB[i] != 0) {
-			coordinatesB.push_back(i);
-		}
-	}
-	for (size_t i = 0; i < parameters.VRecMaskF.yxdim * parameters.VRecMaskF.zdim; i++) {
-		if (parameters.VRecMaskF[i] != 0) {
-			coordinatesF.push_back(i);
-		}
-	}
-	cudaCoordinatesB = transportStdVectorToGpu(coordinatesB);
-	cudaCoordinatesF = transportStdVectorToGpu(coordinatesF);
+	cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
+	cudaCoordinatesB = filterAndTransportMask(parameters.VRecMaskB);
 }
 
 template<typename PrecisionType>
@@ -292,7 +292,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(cudaMV,
-																							  VRecMaskF,
+																							  cudaCoordinatesF,
 																							  cudaP,
 																							  cudaW,
 																							  lastZ,
@@ -357,7 +357,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	backwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridX, gridY, gridZ), dim3(blockX, blockY, blockZ)>>>(cudaMV,
 																	  cudaMId,
-																	  VRecMaskB,
+																	  cudaCoordinatesB,
 																	  lastZ,
 																	  lastY,
 																	  lastX,
