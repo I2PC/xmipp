@@ -455,7 +455,9 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const MultidimArrayCuda<PrecisionType> cudaMId,
-							   const MultidimArrayCuda<int> VRecMaskB,
+							   const int *VRecMaskB,
+							   const int xdim;
+							   const int ydim;
 							   const int lastZ,
 							   const int lastY,
 							   const int lastX,
@@ -476,45 +478,45 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (threadIdGeneral < 6) {
 		sharedR[threadIdGeneral] = cudaR[threadIdGeneral];
 	}
-	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
-	int cubeY = threadIdx.y + blockIdx.y * blockDim.y;
-	int cubeZ = threadIdx.z + blockIdx.z * blockDim.z;
+	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
+	int threadPosition = VRecMaskB[threadIndex];
+	int cubeX = threadPosition % xdim;
+	int cubeY = threadPosition / xdim % ydim;
+	int cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
-		if (usesZernike) {
-			auto k2 = k * k;
-			auto kr = k * iRmaxF;
-			auto k2i2 = k2 + i * i;
-			auto ir = i * iRmaxF;
-			auto r2 = k2i2 + j * j;
-			auto jr = j * iRmaxF;
-			auto rr = SQRT(r2) * iRmaxF;
-			for (size_t idx = 0; idx < idxY0; idx++) {
-				auto l1 = cudaVL1[idx];
-				auto n = cudaVN[idx];
-				auto l2 = cudaVL2[idx];
-				auto m = cudaVM[idx];
-				if (rr > 0 || l2 == 0) {
-					PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
-					gx += cudaClnm[idx] * (zsph);
-					gy += cudaClnm[idx + idxY0] * (zsph);
-					gz += cudaClnm[idx + idxZ0] * (zsph);
-				}
+	if (usesZernike) {
+		auto k2 = k * k;
+		auto kr = k * iRmaxF;
+		auto k2i2 = k2 + i * i;
+		auto ir = i * iRmaxF;
+		auto r2 = k2i2 + j * j;
+		auto jr = j * iRmaxF;
+		auto rr = SQRT(r2) * iRmaxF;
+		for (size_t idx = 0; idx < idxY0; idx++) {
+			auto l1 = cudaVL1[idx];
+			auto n = cudaVN[idx];
+			auto l2 = cudaVL2[idx];
+			auto m = cudaVM[idx];
+			if (rr > 0 || l2 == 0) {
+				PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+				gx += cudaClnm[idx] * (zsph);
+				gy += cudaClnm[idx + idxY0] * (zsph);
+				gz += cudaClnm[idx + idxZ0] * (zsph);
 			}
 		}
-
-		auto r_x = j + gx;
-		auto r_y = i + gy;
-		auto r_z = k + gz;
-
-		auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
-		auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
-		PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId, tex);
-		A3D_ELEM(cudaMV, k, i, j) += voxel;
 	}
+
+	auto r_x = j + gx;
+	auto r_y = i + gy;
+	auto r_z = k + gz;
+
+	auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
+	auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
+	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId, tex);
+	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
 }  // namespace cuda_forward_art_zernike3D
 #endif	//CUDA_FORWARD_ART_ZERNIKE3D_CU

@@ -93,11 +93,15 @@ class Program {
 
 	const std::vector<PrecisionType> sigma;
 
-	const size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
+	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
 	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
 
+	const MultidimArrayCuda<int> VRecMaskF;
+
 	int *cudaCoordinatesB, *cudaCoordinatesF;
+
+	const int xdimB, ydimB;
 };
 
 }  // namespace cuda_forward_art_zernike3D

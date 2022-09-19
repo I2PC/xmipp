@@ -215,7 +215,7 @@ namespace {
 	}
 
 	template<typename T>
-	int *filterAndTransportMask(MultidimArray<T> mask)
+	std::tuple(int *, size_t) filterAndTransportMask(MultidimArray<T> mask)
 	{
 		std::vector<T> coordinates;
 		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
@@ -223,7 +223,7 @@ namespace {
 				coordinates.push_back(i);
 			}
 		}
-		return transportStdVectorToGpu(coordinates);
+		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
 	}
 
 }  // namespace
@@ -231,7 +231,7 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  //VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
 	  //VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
@@ -243,21 +243,26 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
 	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
 	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
-	  blockX(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim)),
-	  blockY(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim)),
-	  blockZ(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
-	  gridX(parameters.Vrefined().xdim / blockX),
-	  gridY(parameters.Vrefined().ydim / blockY),
-	  gridZ(parameters.Vrefined().zdim / blockZ),
+	  //blockX(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim)),
+	  //blockY(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim)),
+	  //blockZ(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
+	  //gridX(parameters.Vrefined().xdim / blockX),
+	  //gridY(parameters.Vrefined().ydim / blockY),
+	  //gridZ(parameters.Vrefined().zdim / blockZ),
 	  blockXStep(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / loopStep)),
 	  blockYStep(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim / loopStep)),
 	  blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
 	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
-	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
+	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep),
+	  xdimB(parameters.VRecMaskB.xdim),
+	  ydimB(parameters.VRecMaskB.ydim)
 {
-	cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
-	cudaCoordinatesB = filterAndTransportMask(parameters.VRecMaskB);
+	//cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
+	size_t sizeB;
+	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB);
+	blockX = std::__gcd(1024, sizeB);
+	gridX = sizeB / blockX;
 }
 
 template<typename PrecisionType>
@@ -292,7 +297,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(cudaMV,
-																							  cudaCoordinatesF,
+																							  VRecMaskF,
 																							  cudaP,
 																							  cudaW,
 																							  lastZ,
@@ -354,24 +359,25 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike>
-		<<<dim3(gridX, gridY, gridZ), dim3(blockX, blockY, blockZ)>>>(cudaMV,
-																	  cudaMId,
-																	  cudaCoordinatesB,
-																	  lastZ,
-																	  lastY,
-																	  lastX,
-																	  step,
-																	  commonParameters.iRmaxF,
-																	  commonParameters.idxY0,
-																	  commonParameters.idxZ0,
-																	  cudaVL1,
-																	  cudaVN,
-																	  cudaVL2,
-																	  cudaVM,
-																	  commonParameters.cudaClnm,
-																	  commonParameters.cudaR,
-																	  tex);
+	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
+																  cudaMId,
+																  cudaCoordinatesB,
+																  xdimB,
+																  ydimB,
+																  lastZ,
+																  lastY,
+																  lastX,
+																  step,
+																  commonParameters.iRmaxF,
+																  commonParameters.idxY0,
+																  commonParameters.idxZ0,
+																  cudaVL1,
+																  cudaVN,
+																  cudaVL2,
+																  cudaVM,
+																  commonParameters.cudaClnm,
+																  commonParameters.cudaR,
+																  tex);
 
 	cudaDeviceSynchronize();
 
