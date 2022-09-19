@@ -244,7 +244,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
 	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
 {
-	for (size_t i = 0; i < parameters.VRecMaskB.xydim * parameters.VRecMaskB.zdim; i++) {
+	for (size_t i = 0; i < parameters.VRecMaskB.yxdim * parameters.VRecMaskB.zdim; i++) {
 		if (parameters.VRecMaskB[i] != 0) {
 			coordinatesB.push_back(i);
 		}
