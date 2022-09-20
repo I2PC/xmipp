@@ -269,8 +269,9 @@ template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
 	cudaFree(VRecMaskF.data);
-	cudaFree(VRecMaskB.data);
+	//cudaFree(VRecMaskB.data);
 	cudaFree(cudaMV.data);
+	cudaFree(cudaCoordinatesB);
 
 	cudaFree(const_cast<int *>(cudaVL1));
 	cudaFree(const_cast<int *>(cudaVL2));
