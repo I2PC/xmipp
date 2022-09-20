@@ -102,6 +102,8 @@ class Program {
 	int *cudaCoordinatesB, *cudaCoordinatesF;
 
 	const int xdimB, ydimB;
+
+	size_t sizeB;
 };
 
 }  // namespace cuda_forward_art_zernike3D

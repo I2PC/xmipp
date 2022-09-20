@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -259,10 +260,10 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  ydimB(parameters.VRecMaskB.ydim)
 {
 	//cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
-	size_t sizeB;
 	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB);
-	blockX = std::__gcd(1024, static_cast<int>(sizeB));
-	gridX = sizeB / blockX;
+	auto optimalizedSize = ceil(sizeB / parameters.VRecMaskB.xdim) * parameters.VRecMaskB.xdim;
+	blockX = std::__gcd(1024, static_cast<int>(optimalizedSize));
+	gridX = optimalizedSize / blockX;
 }
 
 template<typename PrecisionType>
@@ -365,6 +366,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaCoordinatesB,
 																  xdimB,
 																  ydimB,
+																  static_cast<unsigned>(sizeB),
 																  lastZ,
 																  lastY,
 																  lastX,
