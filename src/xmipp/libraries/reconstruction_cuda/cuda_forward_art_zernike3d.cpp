@@ -261,7 +261,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	//cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
 	size_t sizeB;
 	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB);
-	blockX = std::__gcd(1024, sizeB);
+	blockX = std::__gcd(1024, static_cast<int>(sizeB));
 	gridX = sizeB / blockX;
 }
 
