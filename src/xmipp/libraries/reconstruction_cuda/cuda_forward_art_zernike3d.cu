@@ -418,10 +418,10 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 
 	int img_idx = 0;
-	if (sigma_size > 1) {
+	/*if (sigma_size > 1) {
 		PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
-	}
+	}*/
 	auto &mP = cudaP[img_idx];
 	auto &mW = cudaW[img_idx];
 	if (usesZernike) {
