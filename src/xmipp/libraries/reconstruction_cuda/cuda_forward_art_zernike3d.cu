@@ -456,7 +456,7 @@ template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const MultidimArrayCuda<PrecisionType> cudaMId,
 							   const int *VRecMaskB,
-							   const int xdim,
+							   const int zdim,
 							   const int ydim,
 							   const unsigned sizeB,
 							   const int lastZ,
@@ -484,9 +484,9 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		return;
 	}
 	int threadPosition = VRecMaskB[threadIndex];
-	int cubeX = threadPosition % xdim;
-	int cubeY = threadPosition / xdim % ydim;
-	int cubeZ = threadPosition / (xdim * ydim);
+	int cubeZ = threadPosition % zdim;
+	int cubeY = threadPosition / zdim % ydim;
+	int cubeX = threadPosition / (zdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
