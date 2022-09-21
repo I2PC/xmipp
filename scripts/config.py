@@ -507,7 +507,7 @@ class Config:
         elif 11.1 <= nvcc_version < 11.5:
             # nvcc 11.4.0 --> gcc 10
             # nvcc 11.4.1 --> gcc 11
-            return v[v.index('10'):]
+            return v[v.index('10.3'):]
         elif 11.5 <= nvcc_version <= 11.7:
             return v[v.index('11.3'):]
         return []
