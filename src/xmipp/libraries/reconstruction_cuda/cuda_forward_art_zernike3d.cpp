@@ -256,7 +256,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
 	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep),
-	  zdimB(parameters.VRecMaskB.xdim),
+	  xdimB(parameters.VRecMaskB.xdim),
 	  ydimB(parameters.VRecMaskB.ydim)
 {
 	//cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
@@ -364,7 +364,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
 																  cudaMId,
 																  cudaCoordinatesB,
-																  zdimB,
+																  xdimB,
 																  ydimB,
 																  static_cast<unsigned>(sizeB),
 																  lastZ,
