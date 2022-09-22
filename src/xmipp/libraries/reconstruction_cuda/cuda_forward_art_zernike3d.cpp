@@ -92,8 +92,9 @@ namespace {
 	MultidimArrayCuda<T> initializeMultidimArrayCuda(const MultidimArray<T> &multidimArray)
 	{
 		struct MultidimArrayCuda<T> cudaArray = {
-			.xdim = multidimArray.xdim, .ydim = multidimArray.ydim, .yxdim = multidimArray.yxdim,
-			.xinit = multidimArray.xinit, .yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
+			.xdim = static_cast<unsigned>(multidimArray.xdim), .ydim = static_cast<unsigned>(multidimArray.ydim),
+			.yxdim = static_cast<unsigned>(multidimArray.yxdim), .xinit = multidimArray.xinit,
+			.yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
 			.data = transportMultidimArrayToGpu(multidimArray)
 		};
 
@@ -256,8 +257,8 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
 	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
 	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep),
-	  xdimB(parameters.VRecMaskB.xdim),
-	  ydimB(parameters.VRecMaskB.ydim)
+	  xdimB(static_cast<unsigned>(parameters.VRecMaskB.xdim)),
+	  ydimB(static_cast<unsigned>(parameters.VRecMaskB.ydim))
 {
 	//cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
 	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB);

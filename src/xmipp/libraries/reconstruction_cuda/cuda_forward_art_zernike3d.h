@@ -1,6 +1,17 @@
 #ifndef CUDA_FORWARD_ART_ZERNIKE3D_H
 #define CUDA_FORWARD_ART_ZERNIKE3D_H
 
+#if defined(__CUDACC__)	 // NVCC
+#define MY_ALIGN(n) __align__(n)
+#elif defined(__GNUC__)	 // GCC
+#define MY_ALIGN(n) __attribute__((aligned(n)))
+#elif defined(_MSC_VER)	 // MSVC
+#define MY_ALIGN(n) __declspec(align(n))
+#else
+#error "Please provide a definition for MY_ALIGN macro for your host compiler!"
+#endif
+
+
 // Xmipp includes
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
@@ -15,10 +26,10 @@ struct float3;
 struct double3;
 
 template<typename T>
-struct MultidimArrayCuda {
-	size_t xdim;
-	size_t ydim;
-	size_t yxdim;
+struct MY_ALIGN(16) MultidimArrayCuda {
+	unsigned xdim;
+	unsigned ydim;
+	unsigned yxdim;
 	int xinit;
 	int yinit;
 	int zinit;
@@ -101,7 +112,7 @@ class Program {
 
 	int *cudaCoordinatesB, *cudaCoordinatesF;
 
-	const int xdimB, ydimB;
+	const unsigned xdimB, ydimB;
 
 	size_t sizeB;
 };
