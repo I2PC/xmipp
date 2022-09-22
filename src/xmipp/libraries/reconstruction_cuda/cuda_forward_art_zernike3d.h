@@ -95,19 +95,15 @@ class Program {
 
 	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
-	size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
+	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
 
-	//const MultidimArrayCuda<int> VRecMaskF;
+	const MultidimArrayCuda<int> VRecMaskF;
 
 	int *cudaCoordinatesB, *cudaCoordinatesF;
 
 	const int xdimB, ydimB;
 
 	size_t sizeB;
-
-	const int xdimF, ydimF;
-
-	size_t sizeF;
 };
 
 }  // namespace cuda_forward_art_zernike3D

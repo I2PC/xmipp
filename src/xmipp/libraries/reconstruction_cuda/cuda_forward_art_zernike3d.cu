@@ -377,10 +377,7 @@ namespace device {
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
-							  const int *VRecMaskF,
-							  const int xdim,
-							  const int ydim,
-							  const unsigned sizeF,
+							  const MultidimArrayCuda<int> cudaVRecMaskF,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
 							  MultidimArrayCuda<PrecisionType> *cudaW,
 							  const int lastZ,
@@ -404,56 +401,52 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (threadIdGeneral < 6) {
 		sharedR[threadIdGeneral] = cudaR[threadIdGeneral];
 	}
-	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
-	if (sizeF <= threadIndex) {
-		return;
-	}
-	int threadPosition = VRecMaskF[threadIndex];
-	int cubeX = threadPosition % xdim;
-	int cubeY = threadPosition / xdim % ydim;
-	int cubeZ = threadPosition / (xdim * ydim);
+	int cubeX = (threadIdx.x + blockIdx.x * blockDim.x) * step;
+	int cubeY = (threadIdx.y + blockIdx.y * blockDim.y) * step;
+	int cubeZ = (threadIdx.z + blockIdx.z * blockDim.z) * step;
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-
-	int img_idx = 0;
-	if (sigma_size > 1) {
-		PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
-		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
-	}
-	auto &mP = cudaP[img_idx];
-	auto &mW = cudaW[img_idx];
-	if (usesZernike) {
-		auto k2 = k * k;
-		auto kr = k * iRmaxF;
-		auto k2i2 = k2 + i * i;
-		auto ir = i * iRmaxF;
-		auto r2 = k2i2 + j * j;
-		auto jr = j * iRmaxF;
-		auto rr = SQRT(r2) * iRmaxF;
-		for (size_t idx = 0; idx < idxY0; idx++) {
-			auto l1 = cudaVL1[idx];
-			auto n = cudaVN[idx];
-			auto l2 = cudaVL2[idx];
-			auto m = cudaVM[idx];
-			if (rr > 0 || l2 == 0) {
-				PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
-				gx += cudaClnm[idx] * (zsph);
-				gy += cudaClnm[idx + idxY0] * (zsph);
-				gz += cudaClnm[idx + idxZ0] * (zsph);
+	if (A3D_ELEM(cudaVRecMaskF, k, i, j) != 0) {
+		int img_idx = 0;
+		if (sigma_size > 1) {
+			PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
+			img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
+		}
+		auto &mP = cudaP[img_idx];
+		auto &mW = cudaW[img_idx];
+		if (usesZernike) {
+			auto k2 = k * k;
+			auto kr = k * iRmaxF;
+			auto k2i2 = k2 + i * i;
+			auto ir = i * iRmaxF;
+			auto r2 = k2i2 + j * j;
+			auto jr = j * iRmaxF;
+			auto rr = SQRT(r2) * iRmaxF;
+			for (size_t idx = 0; idx < idxY0; idx++) {
+				auto l1 = cudaVL1[idx];
+				auto n = cudaVN[idx];
+				auto l2 = cudaVL2[idx];
+				auto m = cudaVM[idx];
+				if (rr > 0 || l2 == 0) {
+					PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+					gx += cudaClnm[idx] * (zsph);
+					gy += cudaClnm[idx + idxY0] * (zsph);
+					gz += cudaClnm[idx + idxZ0] * (zsph);
+				}
 			}
 		}
+
+		auto r_x = j + gx;
+		auto r_y = i + gy;
+		auto r_z = k + gz;
+
+		auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
+		auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
+		//PrecisionType voxel_mV = A3D_ELEM(cudaMV, k, i, j);
+		device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 	}
-
-	auto r_x = j + gx;
-	auto r_y = i + gy;
-	auto r_z = k + gz;
-
-	auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
-	auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
-	//PrecisionType voxel_mV = A3D_ELEM(cudaMV, k, i, j);
-	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 }
 
 /*
