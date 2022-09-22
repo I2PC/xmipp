@@ -101,7 +101,7 @@ class Program {
 
 	int *cudaCoordinatesB, *cudaCoordinatesF;
 
-	const int xdimB, ydimB;
+	const int zdimB, ydimB;
 
 	size_t sizeB;
 };
