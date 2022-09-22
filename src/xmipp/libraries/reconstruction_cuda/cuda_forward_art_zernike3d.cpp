@@ -284,7 +284,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
-	//cudaFree(VRecMaskF.data);
+	cudaFree(VRecMaskF.data);
 	//cudaFree(VRecMaskB.data);
 	cudaFree(cudaMV.data);
 	cudaFree(cudaCoordinatesB);
