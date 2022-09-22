@@ -1522,7 +1522,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	decisionTreeStatsFileName = decisionTreeStatsFileName + "/decisionTreeStats.txt";
 
 	std::ofstream myfile;
-	myfile.open (decisionTreeStatsFileName);
+	myfile.open (decisionTreeStatsFileName, std::ios_base::app);
 	myfile << averageFiducialResidualsInImage[0];
 	myfile << ", ";
 	myfile << averageFiducialResidualsInImage[(int)(averageFiducialResidualsInImage.size()/2)];
