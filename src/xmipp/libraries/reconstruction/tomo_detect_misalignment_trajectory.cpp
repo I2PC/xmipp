@@ -508,7 +508,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 			jmax = (int)(ySize-2);
 		}
 		
-		// Apply laplazian in when y belongs to (jmin, jmax)
+		// Apply laplacian in when y belongs to (jmin, jmax)
 		for (int j = jmin; j <= jmax; j++)
 		{
 			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-2 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
@@ -1150,14 +1150,15 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 {
+	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
+	double modThr = sqrt(mod2Thr);
+
 	// Analyze residuals out of range distribution
 	MultidimArray<int> resDistribution;
 	std::vector<int> resCoordsOutOfRange(inputCoords.size(), 0); // Array with the number of tilt-images out of rage for each coordinate
 	std::vector<int> resImagesOutOfRange(nSize, 0); // Array with the number of coordinates out of rage for each tilt-image
 
 	resDistribution.initZeros(nSize, inputCoords.size());
-
-	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
 
 	for (size_t i = 0; i < vCM.size(); i++)
 	{
@@ -1390,6 +1391,184 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	std::cout << "Threshold convex hull area: " << thrAreaCH << std::endl;
 	std::cout << "Threshold convex hull perimeter: " << thrPerimeterCH << std::endl;
 	#endif
+
+
+	// Statisticals for decision tree ***
+	// Images
+	std::vector<double> averageFiducialResidualsInImage;	// Average residual distance per image
+	std::vector<double> stdFiducialResidualsInImage;		// STD residual distance per image
+
+
+	for (size_t i = 0; i < nSize; i++)
+	{
+		std::vector<CM> vCM_image;
+		getCMbyImage(i, vCM_image);
+		std::vector<double> residualDistanceInImage;
+
+		for (size_t j = 0; j < vCM_image.size(); j++)
+		{
+			double distance = sqrt((vCM_image[j].residuals.x*vCM_image[j].residuals.x)+(vCM_image[j].residuals.y*vCM_image[j].residuals.y));
+			residualDistanceInImage.push_back(distance/fiducialSizePx);
+		}
+
+		double sum = 0;
+		double sum2 = 0;
+		double average = 0;
+		double std = 0;
+		size_t residualDistanceInImageSize = residualDistanceInImage.size();
+
+		for(size_t e = 0; e < residualDistanceInImageSize; e++)
+        {
+            double value = residualDistanceInImage[e];
+            sum += value;
+            sum2 += value*value;
+        }
+
+		average = sum/residualDistanceInImageSize;
+		std = sum2/residualDistanceInImageSize - average*average;
+
+        averageFiducialResidualsInImage.push_back(average);
+        stdFiducialResidualsInImage.push_back(std);
+	}
+
+	// Ficudials
+	std::vector<double> averageResidualDistancePerFiducial; 				// Average residual distance per fiducial
+	std::vector<double> stdResidualDistancePerFiducial; 					// STD residual distance per fiducial
+	std::vector<double> ratioOfImagesOutOfRange(inputCoords.size(), 0.0);	// Ratio of images out of range in a single gold bead
+	std::vector<double> longestMisalignedChain;								// Longest chain of images presenting misalignment (in percentage)
+
+
+	for (size_t i = 0; i < inputCoords.size(); i++)
+	{
+		std::vector<CM> vCM_fiducial;
+		getCMbyFiducial(i, vCM_fiducial);
+		std::vector<double> residualDistancePerFiducial;
+
+		for (size_t j = 0; j < vCM_fiducial.size(); j++)
+		{
+			double distance = sqrt((vCM_fiducial[j].residuals.x*vCM_fiducial[j].residuals.x)+(vCM_fiducial[j].residuals.y*vCM_fiducial[j].residuals.y));
+			residualDistancePerFiducial.push_back(distance/fiducialSizePx);
+
+			if (distance > modThr)
+			{
+				ratioOfImagesOutOfRange[i] += 1;
+			}
+		}
+
+		ratioOfImagesOutOfRange[i] /= nSize;
+		
+		double sum = 0;
+		double sum2 = 0;
+		double average = 0;
+		double std = 0;
+		size_t residualDistancePerFiducialSize = residualDistancePerFiducial.size();
+
+		for(size_t e = 0; e < residualDistancePerFiducialSize; e++)
+        {
+            double value = residualDistancePerFiducial[e];
+            sum += value;
+            sum2 += value*value;
+        }
+
+		average = sum/residualDistancePerFiducialSize;
+		std = sum2/residualDistancePerFiducialSize - average*average;
+
+        averageResidualDistancePerFiducial.push_back(average);
+        stdResidualDistancePerFiducial.push_back(std);
+	}
+
+	for (size_t i = 0; i < inputCoords.size(); i++)
+	{
+		int longestChain = 0;
+		int chain = 0;
+
+		for (size_t j = 0; j < nSize; j++)
+		{
+			if (DIRECT_A2D_ELEM(resDistribution, j, i) == 1)
+			{
+				chain += 1;
+			}
+			else
+			{
+				if (chain > longestChain)
+				{
+					longestChain = chain;
+				}
+
+				chain = 0;
+			}
+		}
+
+		if (chain > longestChain)
+		{
+			longestChain = chain;
+		}
+
+		longestMisalignedChain.push_back((1.0*longestChain)/(1.0*nSize));
+	}
+
+	sort(averageFiducialResidualsInImage.begin(), averageFiducialResidualsInImage.end());
+	sort(stdFiducialResidualsInImage.begin(), stdFiducialResidualsInImage.end());
+	sort(averageResidualDistancePerFiducial.begin(), averageResidualDistancePerFiducial.end());
+	sort(stdResidualDistancePerFiducial.begin(), stdResidualDistancePerFiducial.end());
+	sort(ratioOfImagesOutOfRange.begin(), ratioOfImagesOutOfRange.end());
+	sort(longestMisalignedChain.begin(), longestMisalignedChain.end());
+
+	// Write output file for decision tree training
+	size_t li = fnOut.find_last_of("\\/");
+	std::string decisionTreeStatsFileName = fnOut.substr(0, li);
+	li = decisionTreeStatsFileName.find_last_of("\\/");
+	decisionTreeStatsFileName = fnOut.substr(0, li);
+	decisionTreeStatsFileName = decisionTreeStatsFileName + "/decisionTreeStats.txt";
+
+	std::ofstream myfile;
+	myfile.open (decisionTreeStatsFileName);
+	myfile << averageFiducialResidualsInImage[0];
+	myfile << ", ";
+	myfile << averageFiducialResidualsInImage[(int)(averageFiducialResidualsInImage.size()/2)];
+	myfile << ", ";
+	myfile << averageFiducialResidualsInImage[averageFiducialResidualsInImage.size()-1];
+	myfile << ", ";
+
+	myfile << stdFiducialResidualsInImage[0];
+	myfile << ", ";
+	myfile << stdFiducialResidualsInImage[(int)(stdFiducialResidualsInImage.size()/2)];
+	myfile << ", ";
+	myfile << stdFiducialResidualsInImage[stdFiducialResidualsInImage.size()-1];
+	myfile << ", ";
+
+	myfile << averageResidualDistancePerFiducial[0];
+	myfile << ", ";
+	myfile << averageResidualDistancePerFiducial[(int)(averageResidualDistancePerFiducial.size()/2)];
+	myfile << ", ";
+	myfile << averageResidualDistancePerFiducial[averageResidualDistancePerFiducial.size()-1];
+	myfile << ", ";
+
+	myfile << stdResidualDistancePerFiducial[0];
+	myfile << ", ";
+	myfile << stdResidualDistancePerFiducial[(int)(stdResidualDistancePerFiducial.size()/2)];
+	myfile << ", ";
+	myfile << stdResidualDistancePerFiducial[stdResidualDistancePerFiducial.size()-1];
+	myfile << ", ";
+
+	myfile << ratioOfImagesOutOfRange[0];
+	myfile << ", ";
+	myfile << ratioOfImagesOutOfRange[(int)(ratioOfImagesOutOfRange.size()/2)];
+	myfile << ", ";
+	myfile << ratioOfImagesOutOfRange[ratioOfImagesOutOfRange.size()-1];
+	myfile << ", ";
+
+	myfile << longestMisalignedChain[0];
+	myfile << ", ";
+	myfile << longestMisalignedChain[(int)(longestMisalignedChain.size()/2)];
+	myfile << ", ";
+	myfile << longestMisalignedChain[longestMisalignedChain.size()-1];
+	myfile << "\n";
+
+	myfile.close();
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 	if ((rmOutliersAreaCH < thrAreaCH) && (rmOutliersPerimCH < thrPerimeterCH))
 	{
@@ -2600,6 +2779,32 @@ double ProgTomoDetectMisalignmentTrajectory::binomialTest(int x, int n, float p)
 
 	// return: fact * p^x * (1-p)^(n-x)
 	return fact * pow(p, x) * pow((1-p), (n-x));
+}
+
+
+
+void ProgTomoDetectMisalignmentTrajectory::getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial)
+{
+	for (size_t i = 0; i < vCM.size(); i++)
+	{
+		if (vCM[i].id == fiducialNumber)
+		{
+			vCM_fiducial.push_back(vCM[i]);
+		}
+	}
+}
+
+
+
+void ProgTomoDetectMisalignmentTrajectory::getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image)
+{
+	for (size_t i = 0; i < vCM.size(); i++)
+	{
+		if ((size_t)(vCM[i].detectedCoordinate.z) == tiltImageNumber)
+		{
+			vCM_image.push_back(vCM[i]);
+		}
+	}
 }
 
 

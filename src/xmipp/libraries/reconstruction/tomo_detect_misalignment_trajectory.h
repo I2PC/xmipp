@@ -44,6 +44,9 @@
 #include "core/xmipp_image_generic.h"
 #include <data/point3D.h>
 #include <data/point2D.h>
+#include <stdio.h>
+
+#include <fstream>
 
 #define VERBOSE_OUTPUT
 
@@ -397,6 +400,9 @@ public:
 
     double binomialTest(int x, int n, float p);
 
+    void getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial);
+
+    void getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image);
 
 
     // --------------------------- MAIN ----------------------------------
