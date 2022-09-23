@@ -130,6 +130,6 @@ Xmipp is installed in the build directory located in the same directory where th
 
 # That's all
 
-If you find a bug or you miss some feature, please create a ticket and we will have a look at it. For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
+If you find a bug or you miss some feature, [please create an issue]([url](https://github.com/I2PC/xmipp/issues/new)) and we will have a look at it. For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
 
 If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
