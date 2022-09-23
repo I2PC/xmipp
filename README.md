@@ -8,9 +8,7 @@ Xmipp is a suite of image processing programs, primarily aimed at single-particl
 The Xmipp project is divided into four repositories. 
 This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the compilation/installation process.
 
-If you like this project, Watch or Star it!
 
-We are also looking for new collaborators, so contact us if you’re interested!
 
 # Getting started
 The recommended way for users (not developers) to install and use Xmipp is via the [Scipion](http://scipion.i2pc.es/) framework, where you can use Xmipp with other Cryo-EM-related software.
@@ -131,8 +129,7 @@ Xmipp is installed in the build directory located in the same directory where th
 
 
 # That's all
-Please let us know if you like Xmipp via contacts on the main page of the repository.
 
-If you find a bug or you miss some feature, please create a ticket and we will have a look at it.
+If you find a bug or you miss some feature, please create a ticket and we will have a look at it. For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
 
-For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
+If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
