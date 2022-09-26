@@ -25,8 +25,6 @@ static constexpr float CUDA_PI = 3.1415926535897f;
 
 #define LIN_INTERP(a, l, h) ((l) + ((h) - (l)) * (a))
 
-#define MODULO(a, b) ((a) - ((a) / (b) * (b)))
-
 namespace device {
 
 	template<typename PrecisionType>
@@ -484,10 +482,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		return;
 	}
 	int threadPosition = VRecMaskB[threadIndex];
-	int cubeX = MODULO(threadPosition, xdim);
-	//int cubeX = threadPosition - (threadPosition / xdim * xdim);
-	//int cubeY = threadPosition / xdim % ydim;
-	int cubeY = MODULO(threadPosition / xdim, ydim);
+	int cubeX = threadPosition % xdim;
+	int cubeY = threadPosition / xdim % ydim;
 	int cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
