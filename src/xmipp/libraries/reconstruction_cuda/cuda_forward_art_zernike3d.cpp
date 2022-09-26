@@ -226,7 +226,7 @@ namespace {
 				coordinates.push_back(static_cast<unsigned>(i / (mask.xdim * mask.ydim)));
 			}
 		}
-		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
+		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size() / 3);
 	}
 
 }  // namespace
