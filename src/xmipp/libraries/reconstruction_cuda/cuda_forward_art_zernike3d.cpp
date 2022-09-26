@@ -216,13 +216,14 @@ namespace {
 		return output;
 	}
 
-	template<typename T>
-	std::tuple<int *, size_t> filterAndTransportMask(MultidimArray<T> mask)
+	std::tuple<unsigned *, size_t> filterAndTransportMask(MultidimArray<int> mask)
 	{
-		std::vector<T> coordinates;
+		std::vector<unsigned> coordinates;
 		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
 			if (mask[i] != 0) {
-				coordinates.push_back(i);
+				coordinates.push_back(static_cast<unsigned>(i % mask.xdim));
+				coordinates.push_back(static_cast<unsigned>(i / mask.xdim % mask.ydim));
+				coordinates.push_back(static_cast<unsigned>(i / (mask.xdim * mask.ydim)));
 			}
 		}
 		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());

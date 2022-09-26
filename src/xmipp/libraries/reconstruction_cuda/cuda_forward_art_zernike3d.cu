@@ -453,7 +453,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const MultidimArrayCuda<PrecisionType> cudaMId,
-							   const int *VRecMaskB,
+							   const unsigned *VRecMaskB,
 							   const unsigned xdim,
 							   const unsigned ydim,
 							   const unsigned sizeB,
@@ -481,10 +481,9 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
-	int threadPosition = VRecMaskB[threadIndex];
-	int cubeX = threadPosition % xdim;
-	int cubeY = threadPosition / xdim % ydim;
-	int cubeZ = threadPosition / (xdim * ydim);
+	int cubeX = VRecMaskB[threadIndex * 3];
+	int cubeY = VRecMaskB[threadIndex * 3 + 1];
+	int cubeZ = VRecMaskB[threadIndex * 3 + 2];
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
