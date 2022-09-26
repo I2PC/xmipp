@@ -216,10 +216,11 @@ namespace {
 		return output;
 	}
 
-	std::tuple<unsigned *, size_t> filterAndTransportMask(MultidimArray<int> mask)
+	template<typename T>
+	std::tuple<int *, size_t> filterAndTransportMask(MultidimArray<T> mask)
 	{
-		std::vector<unsigned> coordinates;
-		for (unsigned i = 0; i < mask.yxdim * mask.zdim; i++) {
+		std::vector<T> coordinates;
+		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
 			if (mask[i] != 0) {
 				coordinates.push_back(i);
 			}

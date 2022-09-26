@@ -453,7 +453,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const MultidimArrayCuda<PrecisionType> cudaMId,
-							   const unsigned *VRecMaskB,
+							   const int *VRecMaskB,
 							   const unsigned xdim,
 							   const unsigned ydim,
 							   const unsigned sizeB,
