@@ -221,7 +221,7 @@ namespace {
 		std::vector<unsigned> coordinates;
 		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
 			if (mask[i] != 0) {
-				coordinates.push_back(i);
+				coordinates.push_back(static_cast<unsigned>(i));
 			}
 		}
 		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
