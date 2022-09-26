@@ -69,10 +69,10 @@ jobs:
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@v0.2.8
         with: 
-          cuda: 11.7.0
+          cuda: 11.2.2
           method: network
-          sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
-
+          sub-packages: '["nvcc", "cudart-dev", "nvml-dev"]'
+          #sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
       - name: Install OpenCV-4
         uses: Dovyski/setup-opencv-action@v1
         with:
