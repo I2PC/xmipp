@@ -110,7 +110,7 @@ class Program {
 
 	const MultidimArrayCuda<int> VRecMaskF;
 
-	int *cudaCoordinatesB, *cudaCoordinatesF;
+	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
 
 	const unsigned xdimB, ydimB;
 
