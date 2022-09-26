@@ -481,9 +481,10 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
-	int cubeX = VRecMaskB[threadIndex * 3];
-	int cubeY = VRecMaskB[threadIndex * 3 + 1];
-	int cubeZ = VRecMaskB[threadIndex * 3 + 2];
+	int threadPosition = VRecMaskB[threadIndex];
+	int cubeX = threadPosition % xdim;
+	int cubeY = threadPosition / xdim % ydim;
+	int cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;

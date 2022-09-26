@@ -221,12 +221,10 @@ namespace {
 		std::vector<unsigned> coordinates;
 		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
 			if (mask[i] != 0) {
-				coordinates.push_back(static_cast<unsigned>(i % mask.xdim));
-				coordinates.push_back(static_cast<unsigned>(i / mask.xdim % mask.ydim));
-				coordinates.push_back(static_cast<unsigned>(i / (mask.xdim * mask.ydim)));
+				coordinates.push_back(i);
 			}
 		}
-		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size() / 3);
+		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
 	}
 
 }  // namespace
