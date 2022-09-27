@@ -395,7 +395,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType *cudaR)
 {
 	__shared__ PrecisionType sharedR[6];
-	int threadIdGeneral = threadIdx.x + threadIdx.y + threadIdx.z;
+	int threadIdGeneral = threadIdx.x;
 	if (threadIdGeneral < 6) {
 		sharedR[threadIdGeneral] = cudaR[threadIdGeneral];
 	}
