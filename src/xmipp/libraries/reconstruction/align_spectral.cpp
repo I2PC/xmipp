@@ -53,11 +53,11 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   --translations <transtions>     : Number of translations to consider");
     addParamsLine("   --maxShift <maxShift>           : Maximum translation in percentage relative to the image size");
     
-    addParamsLine("   --pc <pc>                       : Number of principal components to consider in each band");
     addParamsLine("   --bands <bands>                 : Number of principal components to consider in each band");
     addParamsLine("   --lowRes <low_resolution>       : Lowest resolution to consider [0, 1] in terms of the Nyquist freq.");
     addParamsLine("   --highRes <high_resolution>     : Highest resolution to consider [0, 1] in terms of the Nyquist freq.");
     
+    addParamsLine("   --pcaEff <percentage>           : Target PCA efficiency");
     addParamsLine("   --training <percentage>         : Percentage of images used when training the PCAs");
 
     addParamsLine("   --thr <threads>                 : Number of threads");
@@ -75,11 +75,11 @@ void ProgAlignSpectral::readParams() {
     param.nTranslations = getIntParam("--translations");
     param.maxShift = getDoubleParam("--maxShift") / 100;
 
-    param.nBandPc = getIntParam("--pc");
     param.nBands = getIntParam("--bands");
     param.lowResLimit = getDoubleParam("--lowRes") * (2*M_PI);
     param.highResLimit = getDoubleParam("--highRes") * (2*M_PI);
     
+    param.pcaEff = getDoubleParam("--pcaEff") / 100;
     param.training = getDoubleParam("--training") / 100;
 
     param.nThreads = getIntParam("--thr");
@@ -98,12 +98,12 @@ void ProgAlignSpectral::show() const {
     std::cout << "Translations                : " << param.nTranslations << "\n";
     std::cout << "Maximum shift               : " << param.maxShift*100 << "%\n";
 
-    std::cout << "Number of PC per band       : " << param.nBandPc << "\n";
     std::cout << "Number of bands             : " << param.nBands << "\n";
     std::cout << "Low resolution limit        : " << param.lowResLimit << "rad\n";
     std::cout << "High resolution limit       : " << param.highResLimit << "rad\n";
 
-    std::cout << "Training percentage         : " << param.training*100 << "%\n";
+    std::cout << "Target PCA efficiency       : " << param.pcaEff*100 << "%\n";
+    std::cout << "PCA Training percentage     : " << param.training*100 << "%\n";
 
     std::cout << "Number of threads           : " << param.nThreads << "\n";
     std::cout.flush();
@@ -114,6 +114,7 @@ void ProgAlignSpectral::run() {
     calculateTranslationFilters();
     calculateBands();
     trainPcas();
+    calculateBandWeights();
     projectReferences();
     classifyExperimental();
     generateBandSsnr();
@@ -371,7 +372,7 @@ void ProgAlignSpectral::SpectralPca::getErrorFunction(size_t i, Matrix1D<double>
     Matrix1D<double> variances;
     getVariance(i, variances);
     getAxisVariance(i, errFn);
-    calculateErrorFunction(errFn, variances);
+    calculateErrorFunction(errFn, variances.sum());
 }
 
 
@@ -393,6 +394,21 @@ void ProgAlignSpectral::SpectralPca::reset( const std::vector<size_t>& sizes,
         const auto nPc = static_cast<size_t>(initialCompression*sizes[i]);
         const auto nInitialBatch = static_cast<size_t>(initialBatch*nPc);
         m_bandPcas.emplace_back(sizes[i], nPc, nInitialBatch);
+    }
+
+    // Setup mutexes for PCAs
+    m_bandMutex = std::vector<std::mutex>(m_bandPcas.size());
+}
+
+void ProgAlignSpectral::SpectralPca::reset( const std::vector<size_t>& sizes, 
+                                            size_t pcaSize, 
+                                            size_t initialBatch ) 
+{
+    // Setup PCAs
+    m_bandPcas.clear();
+    m_bandPcas.reserve(sizes.size());
+    for (size_t i = 0; i < sizes.size(); ++i) {
+        m_bandPcas.emplace_back(sizes[i], pcaSize, initialBatch);
     }
 
     // Setup mutexes for PCAs
@@ -438,55 +454,21 @@ void ProgAlignSpectral::SpectralPca::equalizeError(double precision) {
     }   
 }
 
-double ProgAlignSpectral::SpectralPca::optimizeError(size_t totalSize) {
-    std::vector<size_t> sizeDistribution(getBandCount());
-    std::vector<Matrix1D<double>> errorFunctions(getBandCount());
-    std::vector<Matrix1D<double>> errorFunctionDerivatives(getBandCount());
 
-    // Get the error functions
-    for(size_t i = 0; i < getBandCount(); ++i) {
-        getErrorFunction(i, errorFunctions[i]);
-        errorFunctions[i].numericalDerivative(errorFunctionDerivatives[i]);
+void ProgAlignSpectral::SpectralPca::projectCentered(   const std::vector<Matrix1D<double>>& bands, 
+                                                        std::vector<Matrix1D<double>>& projections) const
+{
+    if (bands.size() != getBandCount()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
     }
 
-    // Calculate the initial precision for ascending
-    std::fill(sizeDistribution.begin(), sizeDistribution.end(), 0UL);
-    size_t sum = getBandCount(); // (0+1)*nBands
-    double precision = 0.0;
-    
-    // Perform a gradient descent
-    while (sum != totalSize) {
-        const auto error = static_cast<double>(totalSize) - static_cast<double>(sum);
-
-        // Compute the gradient for the current iteration
-        double gradient = 0;
-        for(size_t i = 0; i < getBandCount(); ++i) {
-            gradient += VEC_ELEM(errorFunctionDerivatives[i], sizeDistribution[i]);
-        }
-        std::cout << "Precision: " << precision << " Gradient: " << gradient << " Sum: " << sum << std::endl;
-        if(!gradient) {
-            REPORT_ERROR(ERR_NUMERICAL, "Could not optimize PCAs due to a zero gradient");
-        }
-
-        // Update the precision
-        precision += gradient * error;
-
-        // Determine the required component count for the given precision
-        for(size_t i = 0; i < getBandCount(); ++i) {
-            sizeDistribution[i] = calculateRequiredComponents(errorFunctions[i], precision);
-        }
-        sum = std::accumulate(sizeDistribution.cbegin(), sizeDistribution.cend(), 0UL);
+    // Project row by row
+    projections.resize(getBandCount());
+    for (size_t i = 0; i < getBandCount(); ++i) {
+        m_bandPcas[i].projectCentered(bands[i], projections[i]);
     }
 
-    // Shrink
-    for(size_t i = 0; i < sizeDistribution.size(); ++i) {
-        m_bandPcas[i].shrink(sizeDistribution[i]);
-    }
-
-    return precision;
 }
-
-
 
 void ProgAlignSpectral::SpectralPca::centerAndProject(  std::vector<Matrix1D<double>>& bands, 
                                                         std::vector<Matrix1D<double>>& projections) const
@@ -517,7 +499,7 @@ void ProgAlignSpectral::SpectralPca::unprojectAndUncenter(  const std::vector<Ma
 }
 
 void ProgAlignSpectral::SpectralPca::calculateErrorFunction(Matrix1D<double>& lambdas, 
-                                                            const Matrix1D<double>& variances )
+                                                            double totalVariance)
 {
     // Integrate in-place the represented variances
     std::partial_sum(
@@ -527,7 +509,8 @@ void ProgAlignSpectral::SpectralPca::calculateErrorFunction(Matrix1D<double>& la
     );
     
     // Normalize
-    lambdas /= variances.sum();
+    const auto gain = 1.0 / totalVariance;
+    lambdas *= gain;
 }
 
 size_t ProgAlignSpectral::SpectralPca::calculateRequiredComponents( const Matrix1D<double>& errFn,
@@ -693,23 +676,23 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   cons
 
 
 
-ProgAlignSpectral::ReferenceMetadata::ReferenceMetadata(size_t index, 
+ProgAlignSpectral::ReferenceMetadata::ReferenceMetadata(size_t rowId, 
                                                         double rotation, 
                                                         double shiftx, 
                                                         double shifty )
-    : m_index(index)
+    : m_rowId(rowId)
     , m_rotation(rotation)
     , m_shiftX(shiftx)
     , m_shiftY(shifty)
 {
 }
 
-void ProgAlignSpectral::ReferenceMetadata::setIndex(size_t index) {
-    m_index = index;
+void ProgAlignSpectral::ReferenceMetadata::setRowId(size_t rowId) {
+    m_rowId = rowId;
 }
 
-size_t ProgAlignSpectral::ReferenceMetadata::getIndex() const {
-    return m_index;
+size_t ProgAlignSpectral::ReferenceMetadata::getRowId() const {
+    return m_rowId;
 }
 
 void ProgAlignSpectral::ReferenceMetadata::setRotation(double rotation) {
@@ -743,15 +726,6 @@ double ProgAlignSpectral::ReferenceMetadata::getShiftY() const {
 void ProgAlignSpectral::readInput() {
     readMetadata(m_parameters.fnReference, m_mdReference);
     readMetadata(m_parameters.fnExperimental, m_mdExperimental);
-
-    // TODO determine correctly
-    m_weights.resizeNoCopy(m_parameters.nBands);
-    const auto& bandSizes = m_bandMap.getBandSizes();
-    FOR_ALL_ELEMENTS_IN_MATRIX1D(m_weights) {
-        VEC_ELEM(m_weights, i) = 1.0;
-        //VEC_ELEM(m_weights, i) = std::exp(-static_cast<double>(i));
-        //VEC_ELEM(m_weights, i) bandSizes[i] * std::exp(-static_cast<double>(i));
-    }
 }
 
 void ProgAlignSpectral::calculateTranslationFilters() {
@@ -800,30 +774,21 @@ void ProgAlignSpectral::calculateBands() {
 void ProgAlignSpectral::trainPcas() {
     struct ThreadData {
         Image<double> image;
-        ImageTransformer transformer;
+        FourierTransformer fourier;
+        MultidimArray<std::complex<double>> spectrum;
         std::vector<Matrix1D<double>> bandCoefficients;
     };
 
     // Create a MD with a subset of all the images (experimental and reference)
-    MetaDataVec mdAll;
-    for(auto& inRow : m_mdReference) {
-        auto outRow = mdAll.getRowVec(mdAll.addObject());
-        outRow.setValue(MDL_IMAGE, inRow.getValue<String>(MDL_IMAGE));
-        outRow.setValue(MDL_REF, 1);
-    }
-    for(auto& inRow : m_mdExperimental) {
-        auto outRow = mdAll.getRowVec(mdAll.addObject());
-        outRow.setValue(MDL_IMAGE, inRow.getValue<String>(MDL_IMAGE));
-        outRow.setValue(MDL_REF, 0);
-    }
-    mdAll.randomize(mdAll);
-    const auto nTraining = static_cast<size_t>(m_parameters.training * mdAll.size());
-    while(mdAll.size() >= nTraining) mdAll.removeObject(mdAll.lastRowId());
+    MetaDataVec mdSubset = m_mdExperimental;
+    mdSubset.randomize(mdSubset);
+    const auto nTraining = static_cast<size_t>(m_parameters.training * mdSubset.size());
+    while(mdSubset.size() >= nTraining) mdSubset.removeObject(mdSubset.lastRowId());
 
     // Setup PCAs
     m_pca.reset(
         m_bandMap.getBandSizes(), 
-        0.75, 8.0
+        0.9, 4.0
     );
 
     // Create a lambda to run in parallel for each image to be learnt
@@ -832,39 +797,21 @@ void ProgAlignSpectral::trainPcas() {
         auto& data = threadData[threadId];
 
         // Read an image from disk
-        const auto& isReference = row.getValue<int>(MDL_REF);
         const auto& fnImage = row.getValue<String>(MDL_IMAGE);
         readImage(fnImage, data.image);
 
-        const auto learnFunc = [this, &data] (const auto& dft) {
-            m_bandMap.flattenForPca(dft, data.bandCoefficients);
-            m_pca.learnConcurrent(data.bandCoefficients);
-        };
-
-        // Depending on if it is a reference, learn all its in-plane
-        // transformations
-        if(isReference) {
-            data.transformer.forEachInPlaneTransform(
-                data.image(),
-                m_parameters.nRotations,
-                m_translations,
-                std::bind(std::ref(learnFunc), std::placeholders::_1)
-            );
-        } else {
-            data.transformer.forFourierTransform(
-                data.image(),
-                learnFunc
-            );
-        }
+        // Learn the image        
+        data.fourier.FourierTransform(data.image(), data.spectrum, false);
+        m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
+        m_pca.learnConcurrent(data.bandCoefficients);
     };
 
     // Dispatch training
-    processRowsInParallel(mdAll, func, threadData.size());
+    processRowsInParallel(mdSubset, func, threadData.size());
 
     // Finalize training
     m_pca.finalize();
-    //m_pca.equalizeError(0.75);
-    //m_pca.optimizeError(m_parameters.nBandPc);
+    m_pca.equalizeError(m_parameters.pcaEff);
 
     // Show info
     std::cout << "PCA error:\n";
@@ -886,6 +833,19 @@ void ProgAlignSpectral::trainPcas() {
         basis.write(m_parameters.fnOroot + "basis_" + std::to_string(i));
     }
     
+}
+
+void ProgAlignSpectral::calculateBandWeights() {
+    // TODO determine correctly
+    std::cout << "Band weights:\n";
+    m_weights.resizeNoCopy(m_pca.getBandCount());
+    FOR_ALL_ELEMENTS_IN_MATRIX1D(m_weights) {
+        const auto pcaCorrectionFactor = static_cast<double>(m_pca.getBandSize(i)) / m_pca.getProjectionSize(i);
+        VEC_ELEM(m_weights, i) = pcaCorrectionFactor;
+        //VEC_ELEM(m_weights, i) = std::exp(-static_cast<double>(i));
+        //VEC_ELEM(m_weights, i) = std::exp(-static_cast<double>(i)) / m_pca.getProjectionSize(i);
+        std::cout << "\t- Band " << i << ": " << VEC_ELEM(m_weights, i) << "\n";
+    }
 }
 
 void ProgAlignSpectral::projectReferences() {
@@ -911,6 +871,7 @@ void ProgAlignSpectral::projectReferences() {
         auto& data = threadData[threadId];
 
         // Read an image from disk
+        const size_t rowId = row.getValue<size_t>(MDL_OBJID);
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
         readImage(fnImage, data.image);
 
@@ -920,17 +881,22 @@ void ProgAlignSpectral::projectReferences() {
             data.image(),
             m_parameters.nRotations,
             m_translations,
-            [this, &data, i, counter=offset] (const auto& x, auto rot, auto sx, auto sy) mutable {
+            [this, &data, rowId, counter=offset] (const auto& x, auto rot, auto sx, auto sy) mutable {
                 // Obtain the resulting memory area
                 const auto index = counter++;
                 m_references.getPcaProjection(index, data.bandProjections);
 
                 // Project the image
                 m_bandMap.flattenForPca(x, data.bandCoefficients);
-                m_pca.centerAndProject(data.bandCoefficients, data.bandProjections);
+                //m_pca.centerAndProject(data.bandCoefficients, data.bandProjections);
+                m_pca.projectCentered(data.bandCoefficients, data.bandProjections); // HACK as we are only comparing, mu cancells out
 
                 // Write the metadata
-                m_referenceData[index] = ReferenceMetadata(i, -rot, -sx, -sy); //Opposite transform
+                m_referenceData[index] = ReferenceMetadata(
+                    rowId, 
+                    (rot > 180) ? rot - 360 : rot, 
+                    -sx, -sy //Opposite transform
+                );
             }
         );
     };
@@ -970,7 +936,8 @@ void ProgAlignSpectral::classifyExperimental() {
         // Project the image
         data.fourier.FourierTransform(data.image(), data.spectrum, false);
         m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
-        m_pca.centerAndProject(data.bandCoefficients, data.bandProjections);
+        //m_pca.centerAndProject(data.bandCoefficients, data.bandProjections);
+        m_pca.projectCentered(data.bandCoefficients, data.bandProjections); // HACK as we are only comparing, mu cancells out
 
         // Compare the projection to find a match
         const auto classification = m_references.matchPcaProjection(data.bandProjections, m_weights);
@@ -1019,22 +986,48 @@ void ProgAlignSpectral::generateOutput() {
 void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
     // Obtain the metadata
     const auto& data = m_referenceData[matchIndex];
-    const auto refRow = m_mdReference.getRowVec(m_mdReference.getRowId(data.getIndex()));
+    const auto refRow = m_mdReference.getRowVec(data.getRowId());
     const auto expRow = m_mdExperimental.getRowVec(row.getValue<size_t>(MDL_OBJID));
 
-    // Shift the old pose values to the second MD labels
-    if (expRow.containsLabel(MDL_ANGLE_ROT)) row.setValue(MDL_ANGLE_ROT2, expRow.getValue<double>(MDL_ANGLE_ROT));
-    if (expRow.containsLabel(MDL_ANGLE_TILT)) row.setValue(MDL_ANGLE_TILT2, expRow.getValue<double>(MDL_ANGLE_TILT));
-    if (expRow.containsLabel(MDL_ANGLE_PSI)) row.setValue(MDL_ANGLE_PSI2, expRow.getValue<double>(MDL_ANGLE_PSI));
-    if (expRow.containsLabel(MDL_SHIFT_X)) row.setValue(MDL_SHIFT_X2, expRow.getValue<double>(MDL_SHIFT_X));
-    if (expRow.containsLabel(MDL_SHIFT_Y)) row.setValue(MDL_SHIFT_Y2, expRow.getValue<double>(MDL_SHIFT_Y));
+    // Calculate the values to be written
+    const auto rot = refRow.getValue<double>(MDL_ANGLE_ROT);
+    const auto tilt = refRow.getValue<double>(MDL_ANGLE_TILT);
+    const auto psi = data.getRotation();
+    const auto shiftX = data.getShiftX();
+    const auto shiftY = data.getShiftY();
+
+    // Write the old shift and pose values to the second MD labels
+    if (expRow.containsLabel(MDL_ANGLE_ROT)) {
+        const auto oldRot = expRow.getValue<double>(MDL_ANGLE_ROT);
+        row.setValue(MDL_ANGLE_ROT2, oldRot);
+    } 
+    if (expRow.containsLabel(MDL_ANGLE_TILT)) {
+        const auto oldTilt = expRow.getValue<double>(MDL_ANGLE_TILT);
+        row.setValue(MDL_ANGLE_TILT2, oldTilt);
+    } 
+    if (expRow.containsLabel(MDL_ANGLE_PSI)) {
+        const auto oldPsi = expRow.getValue<double>(MDL_ANGLE_PSI);
+        row.setValue(MDL_ANGLE_PSI2, oldPsi);
+    } 
+    if (expRow.containsLabel(MDL_SHIFT_X)) {
+        const auto oldShiftX = expRow.getValue<double>(MDL_SHIFT_X);
+        const auto deltaShiftX = shiftX - oldShiftX;
+        row.setValue(MDL_SHIFT_X2, oldShiftX);
+        row.setValue(MDL_SHIFT_X_DIFF, deltaShiftX);
+    } 
+    if (expRow.containsLabel(MDL_SHIFT_Y)) {
+        const auto oldShiftY = expRow.getValue<double>(MDL_SHIFT_Y);
+        const auto deltaShiftY = shiftY - oldShiftY;
+        row.setValue(MDL_SHIFT_Y2, oldShiftY);
+        row.setValue(MDL_SHIFT_Y_DIFF, deltaShiftY);
+    } 
 
     // Write the new pose
-    row.setValue(MDL_ANGLE_ROT, refRow.getValue<double>(MDL_ANGLE_ROT));
-    row.setValue(MDL_ANGLE_TILT, refRow.getValue<double>(MDL_ANGLE_TILT));
-    row.setValue(MDL_ANGLE_PSI, data.getRotation());
-    row.setValue(MDL_SHIFT_X, data.getShiftX());
-    row.setValue(MDL_SHIFT_Y, data.getShiftY());
+    row.setValue(MDL_ANGLE_ROT, rot);
+    row.setValue(MDL_ANGLE_TILT, tilt);
+    row.setValue(MDL_ANGLE_PSI, psi);
+    row.setValue(MDL_SHIFT_X, shiftX);
+    row.setValue(MDL_SHIFT_Y, shiftY);
 
     // Write the reference image
     row.setValue(MDL_IMAGE_REF, refRow.getValue<std::string>(MDL_IMAGE));

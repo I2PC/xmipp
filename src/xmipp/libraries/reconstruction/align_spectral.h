@@ -157,13 +157,15 @@ private:
 
         void reset();
         void reset(const std::vector<size_t>& sizes, double initialCompression, double initialBatch);
+        void reset(const std::vector<size_t>& sizes, size_t pcaSize, size_t initialBatch);
         void learn(const std::vector<Matrix1D<double>>& bands);
         void learnConcurrent(const std::vector<Matrix1D<double>>& bands);
         void finalize();
 
         void equalizeError(double precision);
-        double optimizeError(size_t totalSize);
 
+        void projectCentered(   const std::vector<Matrix1D<double>>& bands, 
+                                std::vector<Matrix1D<double>>& projections) const;
         void centerAndProject(  std::vector<Matrix1D<double>>& bands, 
                                 std::vector<Matrix1D<double>>& projections) const;
         void unprojectAndUncenter(  const std::vector<Matrix1D<double>>& projections,
@@ -173,7 +175,7 @@ private:
         std::vector<std::mutex> m_bandMutex;
 
         static void calculateErrorFunction( Matrix1D<double>& lambdas, 
-                                            const Matrix1D<double>& variances );
+                                            double totalVariance );
 
         static size_t calculateRequiredComponents(  const Matrix1D<double>& errFn,
                                                     double precision );
@@ -207,14 +209,14 @@ private:
     class ReferenceMetadata {
     public:
         ReferenceMetadata() = default;
-        ReferenceMetadata(size_t index, double rotation, double shiftx, double shifty);
+        ReferenceMetadata(size_t rowId, double rotation, double shiftx, double shifty);
         ReferenceMetadata(const ReferenceMetadata& other) = default;
         ~ReferenceMetadata() = default;
 
         ReferenceMetadata& operator=(const ReferenceMetadata& other) = default;
 
-        void setIndex(size_t index);
-        size_t getIndex() const;
+        void setRowId(size_t id);
+        size_t getRowId() const;
 
         void setRotation(double rotation);
         double getRotation() const;
@@ -226,7 +228,7 @@ private:
         double getShiftY() const;
 
     private:
-        size_t m_index;
+        size_t m_rowId;
         double m_rotation;
         double m_shiftX;
         double m_shiftY;
@@ -243,11 +245,11 @@ private:
         size_t nTranslations;
         double maxShift;
 
-        size_t nBandPc;
         size_t nBands;
         double lowResLimit;
         double highResLimit;
 
+        double pcaEff;
         double training;
 
         size_t nThreads;
@@ -271,6 +273,7 @@ private:
     void calculateTranslationFilters();
     void calculateBands();
     void trainPcas();
+    void calculateBandWeights();
     void projectReferences();
     void classifyExperimental();
     void generateBandSsnr();
