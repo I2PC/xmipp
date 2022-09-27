@@ -473,7 +473,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   cudaTextureObject_t tex)
 {
 	__shared__ PrecisionType sharedR[6];
-	int threadIdGeneral = threadIdx.x + threadIdx.y + threadIdx.z;
+	int threadIdGeneral = threadIdx.x;
 	if (threadIdGeneral < 6) {
 		sharedR[threadIdGeneral] = cudaR[threadIdGeneral];
 	}
