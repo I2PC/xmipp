@@ -673,13 +673,16 @@ void ProgForwardArtZernike3D::sortOrthogonal()
 	int i, j;
 	size_t numIMG = getInputMd()->size();
 	MultidimArray<short> chosen(numIMG);
+	chosen.initZeros(numIMG);
 	MultidimArray<double> product(numIMG);
+	product.initZeros(numIMG);
 	double min_prod = MAXFLOAT;
 	;
 	int min_prod_proj = 0;
 	std::vector<double> rot;
 	std::vector<double> tilt;
 	Matrix2D<double> v(numIMG, 3);
+	v.initZeros(numIMG, 3);
 	Matrix2D<double> euler;
 	getInputMd()->getColumnValues(MDL_ANGLE_ROT, rot);
 	getInputMd()->getColumnValues(MDL_ANGLE_TILT, tilt);
