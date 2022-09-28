@@ -21,9 +21,9 @@
  * 02111-1307  USA
  *
  *  All comments concerning this program package may be sent to the
- *  e-mail address 'xmipp@cnb.uam.es'
+ *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
 #include <reconstruction/image_spectral_pca.h>
 
-RUN_XMIPP_PROGRAM(ProgImageSpectralPCA)
+RUN_XMIPP_PROGRAM(ProgImageSpectralPca)
