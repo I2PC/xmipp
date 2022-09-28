@@ -1,13 +1,11 @@
   ## Release 3.22.XX - devel
-  ### Installation and user guide
-  -
 
   ### Scripts Xmipp
   -
-
   ### Protocols scipion-em-xmipp
   -
-
+  ### Installation and user guide
+  -
   ### Others
   -
 
@@ -15,30 +13,34 @@
 ## Release 3.22.07 - Helios
 
 ### Scripts Xmipp
-- **xmipp_image_operate** taked into account non existing files
-- **angular_continuous_assign2** Bug fixed
-- **volume_consensus** Bug fixed
-- **ctf.h and angular_continuous_assign_2** changes for local defocus estimation #578
+- **xmipp_image_operate**: taked into account non existing files
+- **angular_continuous_assign2**: Bug fixed
+- **volume_consensus**: Bug fixed
+- **ctf.h and angular_continuous_assign_2**: Changes for local defocus estimation #578
 
 ### Protocols scipion-em-xmipp
-- **protocol_rotate_volume.py** New protocol
-- **protocol_subtract_projection**: New implementation based on adjustment by regression instead of POCS and improved performance
-- **protocol_local_ctf** add new sameDefocus option + formatting
-- **protocol_compare_reprojections.py & protocol_align_volume.py** Fast Fourier by default
-- **protocol_crop_resize.py** allows input pointers
-- **protocol_resolution_deepres.py** resize output to original size
-- **protocol_denoise_particles.py** Added setOfAverages as input option
-- **protocol_process.py** change output from stk (spider) to mrcs (mrc)
-- **protocol_trigger_data.py** Bug fixed
-- **protocol_screen_deeplearning**  Added descriptive help" 
-- **protocol_center_particles.py** Added summary info
-- **New tests:** test_protocol_reconstruct_fourier, test_protocols_local_defocus.py, test_protocols_local_defocus**
+- **rotate_volume**: New protocol
+- **subtract_projection**: New implementation based on adjustment by regression instead of POCS and improved performance
+- **local_ctf**: Add new sameDefocus option + formatting
+- **compare_reprojections & protocol_align_volume**: Fast Fourier by default
+- **crop_resize**: Allows input pointers
+- **resolution_deepres**: Resize output to original size
+- **denoise_particles**: Added setOfAverages as input option
+- **process**: Change output from stk (spider) to mrcs (mrc)
+- **trigger_data**: Bug fixed
+- **screen_deeplearning**:  Added descriptive help" 
+- **center_particles**: Added summary info
+- **align_volume_and_particles**: Summary error fixed
+- **cl2d**: Summary errors solved 
+
+- **New tests:** test_protocol_reconstruct_fourier, test_protocols_local_defocus, test_protocols_local_defocus, TestXmippAlignVolumeAndParticles,  TestXmippRotateVolume
 - **Improved tests:** test_protocols_deepVolPostprocessing, test_protocols_xmipp_3d, Test ProjSubtracion
 - **Excluded tests:** test_protocols_zernike3d, test_protocols_metaprotocol_heterogeneity
 
 
 ### Installation and user guide
-- Removed empty folder with cleanBin option
+- Version info printed at the end of the installation
+- Removed empty folder with cleanBin command
 - Clarifing linking to Scipion and removed a bug with the build link
 - New flag (OPENCV_VERSION) in xmipp.config
 - Updated Readme (explain OpenCV-CUDA support)

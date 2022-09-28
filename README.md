@@ -8,16 +8,14 @@ Xmipp is a suite of image processing programs, primarily aimed at single-particl
 The Xmipp project is divided into four repositories. 
 This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the compilation/installation process.
 
-If you like this project, Watch or Star it!
 
-We are also looking for new collaborators, so contact us if you’re interested!
 
 # Getting started
 The recommended way for users (not developers) to install and use Xmipp is via the [Scipion](http://scipion.i2pc.es/) framework, where you can use Xmipp with other Cryo-EM-related software.
 
 Xmipp consists of multiple standalone programs written primarily in C++. For that reason, the Xmipp suite has to be compiled before its use. The compilation process is driven by the xmipp script located in this repository. 
 
-Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)) guide for more info.
+Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
 
 Have a look at the Supported OS and dependencies below, before you install Xmipp as a Scipion package or as a standalone installation. You can also Link your Standalone version to Scipion later.
 
@@ -26,6 +24,7 @@ We have tested Xmipp compilation on the following operating systems:
 - [Installation guide for Ubuntu 16.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-16.04)
 - [Installation guide for Ubuntu 18.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-18.04)
 - [Installation guide for Ubuntu 20.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-20.04)
+- [Installation guide for Ubuntu 22.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-22.04)
 - [Installation guide for Centos 7](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-CentOS-7-9.2009)
 
 While compilation and execution might be possible on other systems, it might not be straightforward. If you encounter a problem, please refer to known and fixed [issues](https://github.com/I2PC/xmipp/issues?q=is%3Aissue). Let us know if something is not working!
@@ -35,7 +34,7 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 
 ## Additional dependencies
 ### Compiler
-Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7.
+Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required. If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583)
 
 We strongly recommend you to have this compiler linked to `gcc` and `g++`. Otherwise it might not be properly picked up by wrappers, such as MPI's wrapper.
 We have good experince with using `alternatives`:
@@ -49,7 +48,7 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 50
 ```
 
 ### Cuda
-Xmipp supports Cuda 8 through 11. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins.
+Xmipp supports Cuda 8 through 11.6. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins.
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
 
 ### OpenCV
@@ -68,7 +67,7 @@ Remove all files related to hdf5 in /usr/lib64/libhdf5*, /usr/include/hdf5* and 
 
 We strongy recommend you to install it via your default package manager:
 `sudo apt-get install libhdf5-dev` 
-If you install it using other package management system (such as Conda), it might lead to compile/link time issues caused by incompatible version being fetched.
+If you install it using other package management system (such as Conda), it might lead to compile/link time issues caused by incompatible version being fetched. Other option is to run"scipion3 installb xmippSrc" to force the xmipp install its own HDF5 into its desired directory.
 
 ### Full list of dependencies
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake gcc-8 g++-8`
@@ -130,6 +129,7 @@ Xmipp is installed in the build directory located in the same directory where th
 
 
 # That's all
-Please let us know if you like Xmipp via contacts on the main page of the repository.
 
-If you find a bug or you miss some feature, please create a ticket and we will have a look at it. 
+If you find a bug or you miss some feature, [please create an issue]([url](https://github.com/I2PC/xmipp/issues/new)) and we will have a look at it. For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
+
+If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
