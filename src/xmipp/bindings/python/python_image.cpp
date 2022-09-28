@@ -149,7 +149,7 @@ PyMethodDef Image_methods[] =
         { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
         { "window2D", (PyCFunction) Image_window2D, METH_VARARGS,
-          "Return a window of the input image" },
+          "Return a window of the input image. imageOut = imageIn.window(x0,y0,xF,yF)" },
 		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
 		  "compute radial average around an axis" },
         { "centerOfMass", (PyCFunction) Image_centerOfMass, METH_VARARGS,
@@ -1902,18 +1902,14 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     if (nullptr == self) return nullptr;
     try {
-        // keep default values consistent with the python
-        int x0 = 0;
-        int y0 = 0;
-        int xF = 384;
-        int yF = 384;
-        int dim = 1;
+        int x0;
+        int y0;
+        int xF;
+        int yF;
         ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
 
         if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
                 && (nullptr != result)) {
-            // prepare dims
-            auto dims = Dimensions(xF-x0+1, yF-y0+1); //quitar esta linea no lo usas
             // prepare input image
             const auto& image = self->image;
             image->convert2Datatype(DT_Double);
@@ -1934,10 +1930,6 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
 }
-
-
-
-
 
 
 /* Compute radial average around an axis, operator * */
