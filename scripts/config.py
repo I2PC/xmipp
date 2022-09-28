@@ -485,7 +485,8 @@ class Config:
 
     def _get_compatible_GCC(self, nvcc_version):
         # https://gist.github.com/ax3l/9489132
-        v = ['11.2', '11.1', '11',
+        v = ['12.2', '12.1',
+             '11.3', '11.2', '11.1', '11',
              '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
              '8.5', '8.4', '8.3', '8.2', '8.1', '8',
@@ -504,11 +505,9 @@ class Config:
         elif 11.0 <= nvcc_version < 11.1:
             return v[v.index('9.3'):]
         elif 11.1 <= nvcc_version < 11.5:
-            # nvcc 11.4.0 --> gcc 10
-            # nvcc 11.4.1 --> gcc 11
-            return v[v.index('10'):]
-        elif 11.5 <= nvcc_version <= 11.6:
-            return v[v.index('11'):]
+            return v[v.index('10.3'):]
+        elif 11.5 <= nvcc_version <= 11.7:
+            return v[v.index('11.3'):]
         return []
 
     def _join_with_prefix(self, collection, prefix):
@@ -543,7 +542,7 @@ class Config:
                 prg = whereis('g++', True)
             else:
                 print(yellow('No valid compiler found for CUDA host code. ' +
-                'nvcc_version : ' + nvcc_version + ' GCC version: ' +
+                'nvcc_version : ' + str(nvcc_version) + ' GCC version: ' +
                              gccVersion + ' ' + self._get_help_msg()))
                 return False
         print(green('g++' + ' found in ' + prg))
