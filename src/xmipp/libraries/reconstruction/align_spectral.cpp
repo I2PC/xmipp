@@ -455,8 +455,8 @@ void ProgAlignSpectral::SpectralPca::equalizeError(double precision) {
 }
 
 
-void ProgAlignSpectral::SpectralPca::projectCentered(   const std::vector<Matrix1D<double>>& bands, 
-                                                        std::vector<Matrix1D<double>>& projections) const
+void ProgAlignSpectral::SpectralPca::project(   const std::vector<Matrix1D<double>>& bands, 
+                                                std::vector<Matrix1D<double>>& projections) const
 {
     if (bands.size() != getBandCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
@@ -470,22 +470,8 @@ void ProgAlignSpectral::SpectralPca::projectCentered(   const std::vector<Matrix
 
 }
 
-void ProgAlignSpectral::SpectralPca::centerAndProject(  std::vector<Matrix1D<double>>& bands, 
-                                                        std::vector<Matrix1D<double>>& projections) const
-{
-    if (bands.size() != getBandCount()) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
-    }
-
-    // Project row by row
-    projections.resize(getBandCount());
-    for (size_t i = 0; i < getBandCount(); ++i) {
-        m_bandPcas[i].centerAndProject(bands[i], projections[i]);
-    }
-}
-
-void ProgAlignSpectral::SpectralPca::unprojectAndUncenter(  const std::vector<Matrix1D<double>>& projections,
-                                                            std::vector<Matrix1D<double>>& bands ) const
+void ProgAlignSpectral::SpectralPca::unproject( const std::vector<Matrix1D<double>>& projections,
+                                                std::vector<Matrix1D<double>>& bands ) const
 {
     if (projections.size() != getBandCount()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Received band count does not match");
@@ -494,7 +480,7 @@ void ProgAlignSpectral::SpectralPca::unprojectAndUncenter(  const std::vector<Ma
     // Unproject row by row
     bands.resize(getBandCount());
     for (size_t i = 0; i < getBandCount(); ++i) {
-        m_bandPcas[i].unprojectAndUncenter(projections[i], bands[i]);
+        m_bandPcas[i].unprojectCentered(projections[i], bands[i]);
     }
 }
 
@@ -814,10 +800,20 @@ void ProgAlignSpectral::trainPcas() {
     m_pca.equalizeError(m_parameters.pcaEff);
 
     // Show info
+    std::cout << "PCA coefficients:\n";
+    size_t totalBandSize = 0, totalProjSize = 0;
+    for(size_t i = 0; i < m_pca.getBandCount(); ++i) {
+        const auto bandSize = m_pca.getBandSize(i); totalBandSize += bandSize;
+        const auto projSize = m_pca.getProjectionSize(i); totalProjSize += projSize;
+        std::cout   << "\t- Band " << i << ": " << projSize
+                    << " (" << 100.0*projSize/bandSize << "%)\n";
+    }
+    std::cout   << "\t- Total: " << totalProjSize
+                << " (" << 100.0*totalProjSize/totalBandSize << "%)\n";
+
     std::cout << "PCA error:\n";
     for(size_t i = 0; i < m_pca.getBandCount(); ++i) {
-        std::cout   << "\t- Band " << i << ": " << m_pca.getError(i)
-                    << " (" << m_pca.getProjectionSize(i) << ")\n";
+        std::cout   << "\t- Band " << i << ": " << m_pca.getError(i) << "\n";
     }
 
     // Write the PCA to disk
@@ -839,13 +835,15 @@ void ProgAlignSpectral::calculateBandWeights() {
     // TODO determine correctly
     std::cout << "Band weights:\n";
     m_weights.resizeNoCopy(m_pca.getBandCount());
+    Matrix1D<double> var;
     FOR_ALL_ELEMENTS_IN_MATRIX1D(m_weights) {
+        //m_pca.getVariance(i, var);
+        //const auto sigma = std::sqrt(var.computeMean());
         const auto pcaCorrectionFactor = static_cast<double>(m_pca.getBandSize(i)) / m_pca.getProjectionSize(i);
         VEC_ELEM(m_weights, i) = pcaCorrectionFactor;
-        //VEC_ELEM(m_weights, i) = std::exp(-static_cast<double>(i));
-        //VEC_ELEM(m_weights, i) = std::exp(-static_cast<double>(i)) / m_pca.getProjectionSize(i);
         std::cout << "\t- Band " << i << ": " << VEC_ELEM(m_weights, i) << "\n";
     }
+    std::cout << std::endl;
 }
 
 void ProgAlignSpectral::projectReferences() {
@@ -888,8 +886,7 @@ void ProgAlignSpectral::projectReferences() {
 
                 // Project the image
                 m_bandMap.flattenForPca(x, data.bandCoefficients);
-                //m_pca.centerAndProject(data.bandCoefficients, data.bandProjections);
-                m_pca.projectCentered(data.bandCoefficients, data.bandProjections); // HACK as we are only comparing, mu cancells out
+                m_pca.project(data.bandCoefficients, data.bandProjections);
 
                 // Write the metadata
                 m_referenceData[index] = ReferenceMetadata(
@@ -936,19 +933,16 @@ void ProgAlignSpectral::classifyExperimental() {
         // Project the image
         data.fourier.FourierTransform(data.image(), data.spectrum, false);
         m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
-        //m_pca.centerAndProject(data.bandCoefficients, data.bandProjections);
-        m_pca.projectCentered(data.bandCoefficients, data.bandProjections); // HACK as we are only comparing, mu cancells out
+        m_pca.project(data.bandCoefficients, data.bandProjections);
 
         // Compare the projection to find a match
         const auto classification = m_references.matchPcaProjection(data.bandProjections, m_weights);
-        //assert(classification == m_references.matchPcaProjection(data.projection, m_weights));
         m_classification[i] = classification;
 
         // Compute the SSNR
         m_references.getPcaProjection(classification, data.referenceBandProjections);
         m_ssnr.getRowAlias(i, data.ssnr);
         calculateBandSsnr(data.referenceBandProjections, data.bandProjections, data.ssnr);
-
     };
 
     processRowsInParallel(m_mdExperimental, func, threadData.size());

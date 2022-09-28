@@ -164,12 +164,10 @@ private:
 
         void equalizeError(double precision);
 
-        void projectCentered(   const std::vector<Matrix1D<double>>& bands, 
-                                std::vector<Matrix1D<double>>& projections) const;
-        void centerAndProject(  std::vector<Matrix1D<double>>& bands, 
-                                std::vector<Matrix1D<double>>& projections) const;
-        void unprojectAndUncenter(  const std::vector<Matrix1D<double>>& projections,
-                                    std::vector<Matrix1D<double>>& bands ) const;
+        void project(   const std::vector<Matrix1D<double>>& bands, 
+                        std::vector<Matrix1D<double>>& projections) const;
+        void unproject( const std::vector<Matrix1D<double>>& projections,
+                        std::vector<Matrix1D<double>>& bands ) const;
     private:
         std::vector<SgaNnOnlinePca<double>> m_bandPcas;
         std::vector<std::mutex> m_bandMutex;
