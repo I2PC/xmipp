@@ -55,7 +55,7 @@ void ProgArtZernike3D::readParams()
     L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
 	useZernike = checkParam("--useZernike");
-    lambda = getDoubleParam("--regularization");
+    lambda = static_cast<float>(getDoubleParam("--regularization"));
 	resume = checkParam("--resume");
 	niter = getIntParam("--niter");
 	save_iter = getIntParam("--save_iter");
@@ -137,13 +137,13 @@ void ProgArtZernike3D::preProcess()
 		Image<float> first_image;
 		getInputMd()->getRow(1)->getValue(MDL_IMAGE,fn_first_image);
 		first_image.read(fn_first_image);
-		size_t Xdim_first = XSIZE(first_image());
+		int Xdim_first = static_cast<int>(XSIZE(first_image()));
 		V().initZeros(Xdim_first, Xdim_first, Xdim_first);
 
 	}
     V().setXmippOrigin();
 
-    Xdim=XSIZE(V());
+    Xdim = static_cast<int>(XSIZE(V()));
 
 	if (resume && fnVolO.exists()) {
 		Vrefined.read(fnVolO);
@@ -174,15 +174,14 @@ void ProgArtZernike3D::preProcess()
 	Vmask.setXmippOrigin();
 
 	// Area Zernike3D in 2D
-	mask.generate_mask(XSIZE(V()), XSIZE(V()));
+	mask.generate_mask(Xdim, Xdim);
 	mask2D = mask.get_binary_mask();
 	mask2D.setXmippOrigin();
 
 	vecSize = 0;
-	numCoefficients(L1,L2,vecSize);
-    fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
+	numCoefficients(L1,L2);
+    fillVectorTerms(L1,L2);
 
-    // createWorkFiles();
 	initX = STARTINGX(Vrefined());
 	endX = FINISHINGX(Vrefined());
 	initY = STARTINGY(Vrefined());
@@ -241,15 +240,13 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 
 	// Forward Model
 	artModel<Direction::Forward>();
-	// forwardModel();
 
 	// ART update
 	artModel<Direction::Backward>();
-	// updateART();
 
 }
 
-void ProgArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
+void ProgArtZernike3D::numCoefficients(int l1, int l2)
 {
     for (int h=0; h<=l2; h++)
     {
@@ -265,8 +262,7 @@ void ProgArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
     }
 }
 
-void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-									          Matrix1D<int> &vL2, Matrix1D<int> &vM)
+void ProgArtZernike3D::fillVectorTerms(int l1, int l2)
 {
     int idx = 0;
 	vL1.initZeros(vecSize);
@@ -275,7 +271,7 @@ void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matri
 	vM.initZeros(vecSize);
     for (int h=0; h<=l2; h++) {
         int totalSPH = 2*h+1;
-        int aux = std::floor(totalSPH/2);
+        int aux = totalSPH/2;
         for (int l=h; l<=l1; l+=2) {
             for (int m=0; m<totalSPH; m++) {
                 VEC_ELEM(vL1,idx) = l;
@@ -291,19 +287,19 @@ void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matri
 template<bool INTERPOLATE>
 float ProgArtZernike3D::weightsInterpolation3D(float x, float y, float z, std::array<float, 8> &w) {
 	int x0 = FLOOR(x);
-	float fx0 = x - x0;
+	float fx0 = x - static_cast<float>(x0);
 	int x1 = x0 + 1;
-	float fx1 = x1 - x;
+	float fx1 = static_cast<float>(x1) - x;
 
 	int y0 = FLOOR(y);
-	float fy0 = y - y0;
+	float fy0 = y - static_cast<float>(y0);
 	int y1 = y0 + 1;
-	float fy1 = y1 - y;
+	float fy1 = static_cast<float>(y1) - y;
 
 	int z0 = FLOOR(z);
-	float fz0 = z - z0;
+	float fz0 = z - static_cast<float>(z0);
 	int z1 = z0 + 1;
-	float fz1 = z1 - z;
+	float fz1 = static_cast<float>(z1) - z;
 
 	w[0] = fx1 * fy1 * fz1;  // w000 (x0,y0,z0)
 	w[1] = fx1 * fy1 * fz0;  // w001 (x0,y0,z1)
@@ -335,7 +331,6 @@ float ProgArtZernike3D::weightsInterpolation3D(float x, float y, float z, std::a
 }
 
 void ProgArtZernike3D::removeOverdeformation() {
-	int pos = 3*vecSize;
 	size_t idxY0=(VEC_XSIZE(clnm))/3;
 	size_t idxZ0=2*idxY0;
 
@@ -495,20 +490,20 @@ void ProgArtZernike3D::run()
 
 void ProgArtZernike3D::sortOrthogonal() {
 	int i, j;
-	size_t numIMG = getInputMd()->size();
+	int numIMG = static_cast<int>(getInputMd()->size());
 	MultidimArray<short> chosen(numIMG);
 	chosen.initZeros(numIMG);
 	MultidimArray<double> product(numIMG);
 	product.initZeros(numIMG);
 	double min_prod = MAXFLOAT;;
     int min_prod_proj = 0;
-	std::vector<double> rot;
-	std::vector<double> tilt;
+	std::vector<double> rot_v;
+	std::vector<double> tilt_v;
 	Matrix2D<double> v(numIMG, 3);
 	v.initZeros(numIMG, 3);
 	Matrix2D<double> euler;
-	getInputMd()->getColumnValues(MDL_ANGLE_ROT, rot);
-	getInputMd()->getColumnValues(MDL_ANGLE_TILT, tilt);
+	getInputMd()->getColumnValues(MDL_ANGLE_ROT, rot_v);
+	getInputMd()->getColumnValues(MDL_ANGLE_TILT, tilt_v);
 
 	// Initialization
     ordered_list.resize(numIMG);
@@ -520,7 +515,7 @@ void ProgArtZernike3D::sortOrthogonal() {
 
         // Compute the Euler matrix for each image and keep only
         // the third row of each one
-        Euler_angles2matrix(rot[i], tilt[i], 0., euler);
+        Euler_angles2matrix(rot_v[i], tilt_v[i], 0., euler);
         euler.getRow(2, z);
         v.setRow(i, z);
     }
@@ -613,8 +608,8 @@ void ProgArtZernike3D::artModel()
 			if (A2D_ELEM(mask2D, i, j) == 1)
 			{
 				auto diffVal = A2D_ELEM(mIsh, i, j) - A2D_ELEM(mP, i, j);
-				A2D_ELEM(mId, i, j) = lambda * (diffVal) / XMIPP_MAX(A2D_ELEM(mW, i, j), 1.0);
-				error += (diffVal) * (diffVal);
+				A2D_ELEM(mId, i, j) = lambda * diffVal / XMIPP_MAX(A2D_ELEM(mW, i, j), 1.0f);
+				error += diffVal * diffVal;
 				N++;
 			}
 		}
@@ -636,9 +631,9 @@ void ProgArtZernike3D::zernikeModel() {
 	const auto &mV = V();
 	const size_t idxY0 = USESZERNIKE ? (VEC_XSIZE(clnm) / 3) : 0;
 	const size_t idxZ0 = USESZERNIKE ? (2 * idxY0) : 0;
-	const float RmaxF = USESZERNIKE ? RmaxDef : 0;
-	const float RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0;
-	const float iRmaxF = USESZERNIKE ? (1.0 / RmaxF) : 0;
+	const float RmaxF = USESZERNIKE ? static_cast<float>(RmaxDef) : 0.f;
+	const float RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0.f;
+	const float iRmaxF = USESZERNIKE ? (1.0f / RmaxF) : 0.f;
     // Rotation Matrix
 	constexpr size_t matrixSize = 3;
     const Matrix2D<float> R = [this](){
@@ -659,9 +654,9 @@ void ProgArtZernike3D::zernikeModel() {
 			{
 				if (A3D_ELEM(Vmask,k,i,j) != 1) { continue; }
 				auto pos = std::array<float, 3>{};
-				pos[0] = R.mdata[0] * j + R.mdata[1] * i + R.mdata[2] * k;
-				pos[1] = R.mdata[3] * j + R.mdata[4] * i + R.mdata[5] * k;
-				pos[2] = R.mdata[6] * j + R.mdata[7] * i + R.mdata[8] * k;
+				pos[0] = R.mdata[0] * static_cast<float>(j) + R.mdata[1] * static_cast<float>(i) + R.mdata[2] * static_cast<float>(k);
+				pos[1] = R.mdata[3] * static_cast<float>(j) + R.mdata[4] * static_cast<float>(i) + R.mdata[5] * static_cast<float>(k);
+				pos[2] = R.mdata[6] * static_cast<float>(j) + R.mdata[7] * static_cast<float>(i) + R.mdata[8] * static_cast<float>(k);
 
 				float gx=0.0f, gy=0.0f, gz=0.0f;
 				if (USESZERNIKE)
@@ -681,10 +676,10 @@ void ProgArtZernike3D::zernikeModel() {
 						auto m = VEC_ELEM(vM, idx);
 						if (rr > 0 || l2 == 0) 
 						{
-							auto zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
-							gx += VEC_ELEM(clnm, idx) * (zsph);
-							gy += VEC_ELEM(clnm, idx + idxY0) * (zsph);
-							gz += VEC_ELEM(clnm, idx + idxZ0) * (zsph);
+							float zsph = static_cast<float>(ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr));
+							gx += VEC_ELEM(clnm, idx) * zsph;
+							gy += VEC_ELEM(clnm, idx + idxY0) * zsph;
+							gz += VEC_ELEM(clnm, idx + idxZ0) * zsph;
 						}
 					}
 				}

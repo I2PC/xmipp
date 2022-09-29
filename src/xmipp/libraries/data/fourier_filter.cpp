@@ -424,11 +424,9 @@ double FourierFilter::maskValue(const Matrix1D<double> &w)
             return exp(-PI*PI*absw*absw*w1*w1);  //? Should it be -2*
             break;
         case REALGAUSSIANZ:
-            // return (1./sqrt(2.*PI*w1*w1))*exp(-2.*PI*PI*absw*absw*w1*w1);
             return exp(-2.*PI*PI*absw*absw*w1*w1);
             break;
         case REALGAUSSIANZ2:
-            // return (1./(4.*PI*w1*w1*w1*sqrt(PI)))*exp(-PI*PI*absw*absw*w1*w1);
             return (1./(4*PI*w1*w1))*exp(-PI*PI*absw*absw*w1*w1);
             break;
         case WEDGE_RC:

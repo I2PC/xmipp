@@ -70,11 +70,9 @@ public:
         if (node->isMaster())
         {
         	ProgForwardZernikeImagesPriors::createWorkFiles();
-            // mdIn.write(fnOutDir + "/sphTodo.xmd");
         }
         node->barrierWait();//Sync all before start working
         ProgForwardZernikeImagesPriors::preProcess();
-        // mdIn.read(fnOutDir + "/sphTodo.xmd");
         mdIn.findObjects(imgsId);//get objects ids
         distributor = new MpiTaskDistributor(mdIn.size(), 1, node);
     }

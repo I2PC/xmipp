@@ -70,11 +70,9 @@ public:
         if (node->isMaster())
         {
         	ProgForwardZernikeSubtomos::createWorkFiles();
-            // mdIn.write(fnOutDir + "/sphTodo.xmd");
         }
         node->barrierWait();//Sync all before start working
         ProgForwardZernikeSubtomos::preProcess();
-        // mdIn.read(fnOutDir + "/sphTodo.xmd");
         mdIn.findObjects(imgsId);//get objects ids
         distributor = new MpiTaskDistributor(mdIn.size(), 1, node);
     }
@@ -89,7 +87,6 @@ public:
     }
     virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
-        //return getTaskToProcess(objId, objIndex);
         size_t first, last;
         bool moreTasks = distributor->getTasks(first, last);
 

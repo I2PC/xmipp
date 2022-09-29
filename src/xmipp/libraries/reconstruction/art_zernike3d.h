@@ -78,7 +78,7 @@ public:
     // 2D and 3D masks in real space
     MultidimArray<int> mask2D;
     // Volume size
-    size_t Xdim;
+    int Xdim;
     // Input image
 	Image<float> V, Vrefined, Ifilteredp;
     // INput image
@@ -149,11 +149,10 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
     /// Length of coefficients vector
-    void numCoefficients(int l1, int l2, int &vecSize);
+    void numCoefficients(int l1, int l2);
 
     /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
+    void fillVectorTerms(int l1, int l2);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
     void deformVol(MultidimArray<float> &mP, MultidimArray<float> &mW,
