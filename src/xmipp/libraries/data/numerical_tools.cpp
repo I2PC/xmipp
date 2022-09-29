@@ -1592,49 +1592,49 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 			Y = sinth*pow(costh2-1.0,4.0)*7.289266601746931E-1;
 			break;
 		case -7:
-			Y = costh*sinth*pow((costh2)*-1.0+1.0,7.0/2.0)*2.915706640698772;
+			Y = costh*sinth*pow(costh2*-1.0+1.0,7.0/2.0)*2.915706640698772;
 			break;
 		case -6:
-			Y = sinth*((costh2)*1.0135125E+6-6.75675E+4)*pow(costh2-1.0,3.0)*-7.878532816224526E-6;
+			Y = sinth*(costh2*1.0135125E+6-6.75675E+4)*pow(costh2-1.0,3.0)*-7.878532816224526E-6;
 			break;
 		case -5:
-			Y = sinth*pow((costh2)*-1.0+1.0,5.0/2.0)*(costh*6.75675E+4-(costh2*costh)*3.378375E+5)*-5.105872826582925E-56;
+			Y = sinth*pow(costh2*-1.0+1.0,5.0/2.0)*(costh*6.75675E+4-(costh2*costh)*3.378375E+5)*-5.105872826582925E-56;
 			break;
 		case -4:
-			Y = sinth*pow(costh2-1.0,2.0)*((costh2)*-3.378375E+4+(costh2*costh2)*8.4459375E+4+1.299375E+3)*3.681897256448963E-4;
+			Y = sinth*pow(costh2-1.0,2.0)*(costh2*-3.378375E+4+(costh2*costh2)*8.4459375E+4+1.299375E+3)*3.681897256448963E-4;
 			break;
 		case -3:
-			Y = sinth*pow((costh2)*-1.0+1.0,3.0/2.0)*(costh*1.299375E+3-(costh*costh2)*1.126125E+4+(costh*costh2*costh2)*1.6891875E+4)*2.851985351334463E-3;
+			Y = sinth*pow(costh2*-1.0+1.0,3.0/2.0)*(costh*1.299375E+3-(costh*costh2)*1.126125E+4+(costh*costh2*costh2)*1.6891875E+4)*2.851985351334463E-3;
 			break;
 		case -2:
-			Y = sinth*(costh2-1.0)*((costh2)*6.496875E+2-(costh2*costh2)*2.8153125E+3+(costh2*costh2*costh2)*2.8153125E+3-1.96875E+1)*-2.316963852365461E-2;
+			Y = sinth*(costh2-1.0)*(costh2*6.496875E+2-(costh2*costh2)*2.8153125E+3+(costh2*costh2*costh2)*2.8153125E+3-1.96875E+1)*-2.316963852365461E-2;
 			break;
 		case -1:
-			Y = sinth*sqrt((costh2)*-1.0+1.0)*(costh*1.96875E+1-(costh*costh2)*2.165625E+2+(costh*costh2*costh2)*5.630625E+2-(costh*costh2*costh2*costh2)*4.021875E+2)*-1.938511038201796E-1;;
+			Y = sinth*sqrt(costh2*-1.0+1.0)*(costh*1.96875E+1-(costh*costh2)*2.165625E+2+(costh*costh2*costh2)*5.630625E+2-(costh*costh2*costh2*costh2)*4.021875E+2)*-1.938511038201796E-1;;
 			break;
 		case 0:
-			Y = (costh2)*-1.144933081936324E+1+(costh2*costh2)*6.297131950652692E+1-(costh2*costh2*costh2)*1.091502871445846E+2+(costh2*costh2*costh2*costh2)*5.847336811327841E+1+3.180369672045344E-1;
+			Y = costh2*-1.144933081936324E+1+(costh2*costh2)*6.297131950652692E+1-(costh2*costh2*costh2)*1.091502871445846E+2+(costh2*costh2*costh2*costh2)*5.847336811327841E+1+3.180369672045344E-1;
 			break;
 		case 1:
-			Y = cosph*sqrt((costh2)*-1.0+1.0)*(costh*1.96875E+1-(costh*costh2)*2.165625E+2+(costh*costh2*costh2)*5.630625E+2-(costh*costh2*costh2*costh2)*4.021875E+2)*-1.938511038201796E-1;;
+			Y = cosph*sqrt(costh2*-1.0+1.0)*(costh*1.96875E+1-(costh*costh2)*2.165625E+2+(costh*costh2*costh2)*5.630625E+2-(costh*costh2*costh2*costh2)*4.021875E+2)*-1.938511038201796E-1;;
 			break;
 		case 2:
-			Y = cosph*(costh2-1.0)*((costh2)*6.496875E+2-(costh2*costh2)*2.8153125E+3+(costh2*costh2*costh2)*2.8153125E+3-1.96875E+1)*-2.316963852365461E-2;
+			Y = cosph*(costh2-1.0)*(costh2*6.496875E+2-(costh2*costh2)*2.8153125E+3+(costh2*costh2*costh2)*2.8153125E+3-1.96875E+1)*-2.316963852365461E-2;
 			break;
         case 3:
-            Y = cosph*pow((costh2)*-1.0+1.0,3.0/2.0)*(costh*1.299375E+3-(costh*costh2)*1.126125E+4+(costh*costh2*costh2)*1.6891875E+4)*2.851985351334463E-3;
+            Y = cosph*pow(costh2*-1.0+1.0,3.0/2.0)*(costh*1.299375E+3-(costh*costh2)*1.126125E+4+(costh*costh2*costh2)*1.6891875E+4)*2.851985351334463E-3;
             break;
         case 4:
-            Y = cosph*pow(costh2-1.0,2.0)*((costh2)*-3.378375E+4+(costh2*costh2)*8.4459375E+4+1.299375E+3)*3.681897256448963E-4;
+            Y = cosph*pow(costh2-1.0,2.0)*(costh2*-3.378375E+4+(costh2*costh2)*8.4459375E+4+1.299375E+3)*3.681897256448963E-4;
             break;
         case 5:
-            Y = cosph*pow((costh2)*-1.0+1.0,5.0/2.0)*(costh*6.75675E+4-(costh*costh2)*3.378375E+5)*-5.105872826582925E-5;
+            Y = cosph*pow(costh2*-1.0+1.0,5.0/2.0)*(costh*6.75675E+4-(costh*costh2)*3.378375E+5)*-5.105872826582925E-5;
             break;
         case 6:
-            Y = cosph*((costh2)*1.0135125E+6-6.75675E+4)*pow(costh2-1.0,3.0)*-7.878532816224526E-6;
+            Y = cosph*(costh2*1.0135125E+6-6.75675E+4)*pow(costh2-1.0,3.0)*-7.878532816224526E-6;
             break;
         case 7:
-            Y = cosph*costh*pow((costh2)*-1.0+1.0,7.0/2.0)*2.915706640698772;
+            Y = cosph*costh*pow(costh2*-1.0+1.0,7.0/2.0)*2.915706640698772;
             break;
         case 8:
             Y = cosph*pow(costh2-1.0,4.0)*7.289266601746931E-1;
@@ -1644,61 +1644,61 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
         switch (m)
 		{
 		case -9:
-			Y = sinth*pow((costh2)*-1.0+1.0,9.0/2.0)*7.489009518540115E-1;
+			Y = sinth*pow(costh2*-1.0+1.0,9.0/2.0)*7.489009518540115E-1;
 			break;
 		case -8:
 			Y = costh*sinth*pow(costh2-1.0,4.0)*3.17731764895143;
 			break;
 		case -7:
-			Y = sinth*pow((costh2)*-1.0+1.0,7.0/2.0)*((costh2)*1.72297125E+7-1.0135125E+6)*5.376406125665728E-7;
+			Y = sinth*pow(costh2*-1.0+1.0,7.0/2.0)*(costh2*1.72297125E+7-1.0135125E+6)*5.376406125665728E-7;
 			break;
 		case -6:
 			Y = sinth*(costh*1.0135125E+6-(costh*costh2)*5.7432375E+6)*pow(costh2-1.0,3.0)*3.724883428715686E-6;
 			break;
 		case -5:
-			Y = sinth*pow((costh2)*-1.0+1.0,5.0/2.0)*((costh2)*-5.0675625E+5+(costh2*costh2)*1.435809375E+6+1.6891875E+4)*2.885282297193648E-5;
+			Y = sinth*pow(costh2*-1.0+1.0,5.0/2.0)*(costh2*-5.0675625E+5+(costh2*costh2)*1.435809375E+6+1.6891875E+4)*2.885282297193648E-5;
 			break;
 		case -4:
 			Y = sinth*pow(costh2-1.0,2.0)*(costh*1.6891875E+4-(costh*costh2)*1.6891875E+5+(costh*costh2*costh2)*2.87161875E+5)*2.414000363328839E-4;
 			break;
 		case -3:
-			Y = sinth*pow((costh2)*-1.0+1.0,3.0/2.0)*((costh2)*8.4459375E+3-(costh2*costh2)*4.22296875E+4+(costh2*costh2*costh2)*4.78603125E+4-2.165625E+2)*2.131987394015766E-3;
+			Y = sinth*pow(costh2*-1.0+1.0,3.0/2.0)*((costh2)*8.4459375E+3-(costh2*costh2)*4.22296875E+4+(costh2*costh2*costh2)*4.78603125E+4-2.165625E+2)*2.131987394015766E-3;
 			break;
 		case -2:
 			Y = sinth*(costh2-1.0)*(costh*2.165625E+2-(costh*costh2)*2.8153125E+3+(costh*costh2*costh2)*8.4459375E+3-(costh*costh2*costh2*costh2)*6.8371875E+3)*1.953998722751749E-2;
 			break;
 		case -1:
-			Y = sinth*sqrt((costh2)*-1.0+1.0)*((costh2)*-1.0828125E+2+(costh2*costh2)*7.03828125E+2-(costh2*costh2*costh2)*1.40765625E+3+(costh2*costh2*costh2*costh2)*8.546484375E+2+2.4609375)*1.833013280775049E-1;
+			Y = sinth*sqrt(costh2*-1.0+1.0)*(costh2*-1.0828125E+2+(costh2*costh2)*7.03828125E+2-(costh2*costh2*costh2)*1.40765625E+3+(costh2*costh2*costh2*costh2)*8.546484375E+2+2.4609375)*1.833013280775049E-1;
 			break;
 		case 0:
 			Y = costh*3.026024588281871-(costh*costh2)*4.438169396144804E+1+(costh*costh2*costh2)*1.730886064497754E+2-(costh*costh2*costh2*costh2)*2.472694377852604E+2+(costh*costh2*costh2*costh2*costh2)*1.167661233986728E+2;
 			break;
 		case 1:
-			Y = cosph*sqrt((costh2)*-1.0+1.0)*((costh2)*-1.0828125E+2+(costh2*costh2)*7.03828125E+2-(costh2*costh2*costh2)*1.40765625E+3+(costh2*costh2*costh2*costh2)*8.546484375E+2+2.4609375)*1.833013280775049E-1;
+			Y = cosph*sqrt(costh2*-1.0+1.0)*(costh2*-1.0828125E+2+(costh2*costh2)*7.03828125E+2-(costh2*costh2*costh2)*1.40765625E+3+(costh2*costh2*costh2*costh2)*8.546484375E+2+2.4609375)*1.833013280775049E-1;
 			break;
         case 2:
             Y = cosph*(costh2-1.0)*(costh*2.165625E+2-(costh*costh2)*2.8153125E+3+(costh*costh2*costh2)*8.4459375E+3-(costh*costh2*costh2*costh2)*6.8371875E+3)*1.953998722751749E-2;
             break;
         case 3:
-            Y = cosph*pow((costh2)*-1.0+1.0,3.0/2.0)*((costh2)*8.4459375E+3-(costh2*costh2)*4.22296875E+4+(costh2*costh2*costh2)*4.78603125E+4-2.165625E+2)*2.131987394015766E-3;
+            Y = cosph*pow(costh2*-1.0+1.0,3.0/2.0)*(costh2*8.4459375E+3-(costh2*costh2)*4.22296875E+4+(costh2*costh2*costh2)*4.78603125E+4-2.165625E+2)*2.131987394015766E-3;
             break;
         case 4:
             Y = cosph*pow(costh2-1.0,2.0)*(costh*1.6891875E+4-(costh*costh2)*1.6891875E+5+(costh*costh2*costh2)*2.87161875E+5)*2.414000363328839E-4;
             break;
         case 5:
-            Y = cosph*pow((costh2)*-1.0+1.0,5.0/2.0)*((costh2)*-5.0675625E+5+(costh2*costh2)*1.435809375E+6+1.6891875E+4)*2.885282297193648E-5;
+            Y = cosph*pow(costh2*-1.0+1.0,5.0/2.0)*(costh2*-5.0675625E+5+(costh2*costh2)*1.435809375E+6+1.6891875E+4)*2.885282297193648E-5;
             break;
         case 6:
             Y = cosph*(costh*1.0135125E+6-(costh*costh2)*5.7432375E+6)*pow(costh2-1.0,3.0)*3.724883428715686E-6;
             break;
         case 7:
-            Y = cosph*pow((costh2)*-1.0+1.0,7.0/2.0)*((costh2)*1.72297125E+7-1.0135125E+6)*5.376406125665728E-7;
+            Y = cosph*pow(costh2*-1.0+1.0,7.0/2.0)*(costh2*1.72297125E+7-1.0135125E+6)*5.376406125665728E-7;
             break;
         case 8:
             Y = cosph*costh*pow(costh2-1.0,4.0)*3.17731764895143;
             break;
         case 9:
-            Y = cosph*pow((costh2)*-1.0+1.0,9.0/2.0)*7.489009518540115E-1;
+            Y = cosph*pow(costh2*-1.0+1.0,9.0/2.0)*7.489009518540115E-1;
             break;
 		}break;
     default: break;
