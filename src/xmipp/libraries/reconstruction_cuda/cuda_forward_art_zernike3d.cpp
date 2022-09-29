@@ -299,25 +299,26 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
 	forwardKernel<PrecisionType, usesZernike>
-		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(cudaMV,
-																							  VRecMaskF,
-																							  cudaP,
-																							  cudaW,
-																							  lastZ,
-																							  lastY,
-																							  lastX,
-																							  step,
-																							  sigma_size,
-																							  cudaSigma,
-																							  commonParameters.iRmaxF,
-																							  commonParameters.idxY0,
-																							  commonParameters.idxZ0,
-																							  cudaVL1,
-																							  cudaVN,
-																							  cudaVL2,
-																							  cudaVM,
-																							  commonParameters.cudaClnm,
-																							  commonParameters.cudaR);
+		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(
+			cudaMV,
+			VRecMaskF,
+			cudaP,
+			cudaW,
+			lastZ,
+			lastY,
+			lastX,
+			step,
+			static_cast<unsigned>(sigma_size),
+			cudaSigma,
+			commonParameters.iRmaxF,
+			static_cast<unsigned>(commonParameters.idxY0),
+			static_cast<unsigned>(commonParameters.idxZ0),
+			cudaVL1,
+			cudaVN,
+			cudaVL2,
+			cudaVM,
+			commonParameters.cudaClnm,
+			commonParameters.cudaR);
 
 	cudaDeviceSynchronize();
 
@@ -373,8 +374,8 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  lastX,
 																  step,
 																  commonParameters.iRmaxF,
-																  commonParameters.idxY0,
-																  commonParameters.idxZ0,
+																  static_cast<unsigned>(commonParameters.idxY0),
+																  static_cast<unsigned>(commonParameters.idxZ0),
 																  cudaVL1,
 																  cudaVN,
 																  cudaVL2,
