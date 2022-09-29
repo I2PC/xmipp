@@ -142,7 +142,6 @@ void ProgForwardZernikeImages::preProcess()
     Xdim=XSIZE(V());
     Vdeformed().initZeros(V());
 	Vdeformed().setXmippOrigin();
-    // sumV=V().sum();
 
 	// Check execution mode (single, pair, or triplet)
 	if (image_mode > 0)
@@ -301,7 +300,6 @@ double ProgForwardZernikeImages::transformImageSph(double *pclnm)
 		{
 			idx_z_clnm.push_back(i);
 			z_clnm_diff.push_back(VEC_ELEM(clnm, i) - VEC_ELEM(prev_clnm, i));
-			// std::cout << i << std::endl;
 		}
 	}
 	// std::cout << std::endl;
@@ -462,12 +460,6 @@ double ProgForwardZernikeImages::transformImageSph(double *pclnm)
    {
 		std::cout << "A1=" << A1 << std::endl;
 		Image<double> save;
-		// save()=P1();
-		// save.write("PPPtheo1.xmp");
-		// save()=I1filteredp();
-		// save.write("PPPfilteredp1.xmp");
-		// save()=I1filtered();
-		// save.write("PPPfiltered1.xmp");
 		save()=P[0]();
 		save.write("PPPtheo1.xmp");
 		save()=Ifilteredp[0]();
@@ -513,14 +505,11 @@ double ProgForwardZernikeImages::transformImageSph(double *pclnm)
 				break;
 		}
 		Vdeformed.write("PPPVdeformed.vol");
-		// std::cout << "Cost=" << cost << " corr1=" << corr1 << " corr2=" << corr2 << std::endl;
-		// std::cout << "Cost=" << cost << " corr1=" << corr1 << std::endl;
 		std::cout << "Deformation=" << totalDeformation << std::endl;
 		std::cout << "Press any key" << std::endl;
 		char c; std::cin >> c;
     }
 
-    // double massDiff=std::abs(sumV-sumVd)/sumV;
 	prev_clnm = clnm;
     double retval=cost+lambda*abs(deformation - prior_deformation);
 	if (showOptimization)
@@ -645,8 +634,6 @@ double continuousZernikeCost(double *x, void *_prm)
 
 	return prm->transformImageSph(x);
 
-	// return prm->transformImageSph(x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
-	// 		prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
 }
 
 // Predict =================================================================
@@ -665,9 +652,6 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 	// Init positions and deformation field
 	vpos.initZeros(sumV, 8);
 	df.initZeros(sumV, 3);
-	// idx_z_clnm = 0;
-	// prev_z_clnm = 0.0;
-	// curr_z_clnm = 0.0;
 
 	flagEnabled=1;
 
@@ -679,7 +663,6 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 	rowIn.getValueOrDefault(MDL_SHIFT_Y,     old_shiftY[0], 0.0);
 	I[0].read(fnImage[0]); 
 	I[0]().setXmippOrigin();
-	// removePixels();
 	Ifiltered[0]() = I[0](); 
 	filter.applyMaskSpace(Ifiltered[0]());
 	rotatePositions(old_rot[0], old_tilt[0], old_psi[0]);
@@ -845,6 +828,9 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 						break;
 					case 3:
 						std::cout << "Z Coefficients=(";
+						break;
+					default:
+						// The code will never reach the default case
 						break;
 					}
 					for (int i=(j-1)*vecSize;i<j*vecSize;i++)
@@ -1068,40 +1054,10 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 
 	def=0.0;
 	size_t idxZ0=2*idxY0;
-	// sumVd=0.0;
 	double RmaxF=RmaxDef;
 	double RmaxF2=RmaxF*RmaxF;
 	double iRmaxF=1.0/RmaxF;
-    // Rotation Matrix
-    // Matrix2D<double> R, R_inv;
-    // R.initIdentity(3);
-    // Euler_angles2matrix(rot, tilt, psi, R, false);
     Matrix2D<double> R_inv = R.inv();
-    // Matrix1D<double> p, pos, c, c_rot, w;
-	// p.initZeros(3);
-    // pos.initZeros(3);
-	// c.initZeros(3);
-	// c_rot.initZeros(3);
-	// w.initZeros(8);
-	// Vdeformed().initZeros(mV);
-
-	// auto stepsMask = std::vector<size_t>();
-	// if (optimizeDeformation)
-	// {
-	// 	for (size_t idx = 0; idx < idxY0; idx++)
-	// 	{
-	// 		if (1 == VEC_ELEM(steps_cp, idx))
-	// 		{
-	// 			stepsMask.emplace_back(idx);
-	// 		}
-	// 	}
-	// }
-	// else {
-	// 	for (size_t idx = 0; idx < idxY0; idx++)
-	// 	{
-	// 		stepsMask.emplace_back(idx);
-	// 	}
-	// }
 
 	auto sz = idx_z_clnm.size();
 	Matrix1D<int> l1, l2, n, m, idx_v;
@@ -1126,197 +1082,6 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 			VEC_ELEM(m,j) = VEC_ELEM(vM, idx);
 		}
 	}
-	// size_t count = 0;
-
-	// // TODO: Poner primero i y j en el loop, acumular suma y guardar al final
-	// const auto lastZ = FINISHINGZ(mV);
-	// const auto lastY = FINISHINGY(mV);
-	// const auto lastX = FINISHINGX(mV);
-	// // double bs = FLOOR(0.5 * loop_step);
-	// for (int k=STARTINGZ(mV); k<=lastZ; k+=loop_step)
-	// {
-	// 	// double k2=k*k;
-	// 	// double kr=k*iRmaxF;
-	// 	for (int i=STARTINGY(mV); i<=lastY; i+=loop_step)
-	// 	{
-	// 		// double k2i2=k2+i*i;
-	// 		// double ir=i*iRmaxF;
-	// 		for (int j=STARTINGX(mV); j<=lastX; j+=loop_step)
-	// 		{
-	// 			if (A3D_ELEM(V_mask,k,i,j) == 1) {
-	// 				// ZZ(p) = k; YY(p) = i; XX(p) = j;
-	// 				// pos = R_inv * pos;
-	// 				// pos = R * pos;
-	// 				// double gx=0.0, gy=0.0, gz=0.0;
-	// 				// double r2=k2i2+j*j;
-	// 				// double jr=j*iRmaxF;
-	// 				// double rr=sqrt(r2)*iRmaxF;
-	// 				// for (auto idx : stepsMask) {
-	// 				// 	auto l1 = VEC_ELEM(vL1,idx);
-	// 				// 	auto n = VEC_ELEM(vN,idx);
-	// 				// 	auto l2 = VEC_ELEM(vL2,idx);
-	// 				// 	auto m = VEC_ELEM(vM,idx);
-	// 				// 	auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-	// 				// 	auto c = std::array<double, 3>{};
-	// 				// 	// XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
-	// 				// 	if (num_images == 1 && optimizeDeformation)
-	// 				// 	{
-	// 				// 		//? Hacer algun check para ahorrarnos cuentas si no usamos priors (en ese 
-	// 				// 		//? caso podemos usar las lineas comentadas)
-	// 				// 		double c_x = VEC_ELEM(clnm,idx);
-	// 				// 		double c_y = VEC_ELEM(clnm,idx+idxY0);
-	// 				// 		// c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y;
-	// 				// 		// c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y;
-	// 				// 		// c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y;
-	// 				// 		double c_z = VEC_ELEM(clnm, idx + idxZ0);
-	// 				// 		c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
-	// 				// 		c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
-	// 				// 		c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
-	// 				// 	}
-	// 				// 	else {
-	// 				// 		c[0] = VEC_ELEM(clnm,idx);
-	// 				// 		c[1] = VEC_ELEM(clnm,idx+idxY0);
-	// 				// 		c[2] = VEC_ELEM(clnm,idx+idxZ0);
-	// 				// 	}
-	// 				// 	if (rr>0 || l2==0) {
-	// 				// 		gx += c[0]  *(zsph);
-	// 				// 		gy += c[1]  *(zsph);
-	// 				// 		gz += c[2]  *(zsph);
-	// 				// 	}
-	// 				// }
-	// 				// XX(p) += gx; YY(p) += gy; ZZ(p) += gz;
-	// 				// XX(pos) = 0.0; YY(pos) = 0.0; ZZ(pos) = 0.0;
-	// 				// for (size_t i = 0; i < R.mdimy; i++)
-	// 				// 	for (size_t j = 0; j < R.mdimx; j++)
-	// 				// 		VEC_ELEM(pos, i) += MAT_ELEM(R, i, j) * VEC_ELEM(p, j);
-
-	// 				// int k0 = XMIPP_MAX(FLOOR(k - bs), STARTINGY(mV));
-	// 				// int kF = XMIPP_MIN(CEIL(k + bs), FINISHINGY(mV));
-	// 				// int i0 = XMIPP_MAX(FLOOR(i - bs), STARTINGY(mV));
-	// 				// int iF = XMIPP_MIN(CEIL(i + bs), FINISHINGY(mV));
-	// 				// int j0 = XMIPP_MAX(FLOOR(j - bs), STARTINGX(mV));
-	// 				// int jF = XMIPP_MIN(CEIL(j + bs), FINISHINGX(mV));
-
-	// 				// auto pos = std::array<double, 3>{};
-	// 				// double voxel_mV = 0.0;
-	// 				// for (int nk = k0; nk <= kF; nk++)
-	// 				// {
-	// 				// 	double r_z = nk + gz;
-	// 				// 	for (int ni = i0; ni <= iF; ni++)
-	// 				// 	{
-	// 				// 		double r_y = ni + gy;
-	// 				// 		for (int nj = j0; nj <= jF; nj++)
-	// 				// 		{
-	// 				// 			double r_x = nj + gx;
-	// 				// 			pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
-	// 				// 			pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-	// 				// 			pos[2] = R.mdata[6] * r_x + R.mdata[7] * r_y + R.mdata[8] * r_z;
-	// 				// 			voxel_mV = A3D_ELEM(mV, nk, ni, nj);
-	// 				// 			splattingAtPos(pos, voxel_mV, mP, mV);
-	// 				// 		}
-	// 				// 	}
-	// 				// }
-					
-	// 				// auto pos = std::array<double, 3>{};
-	// 				// double r_x = j + gx;
-	// 				// double r_y = i + gy;
-	// 				// double r_z = k + gz;
-	// 				// pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
-	// 				// pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-	// 				// pos[2] = R.mdata[6] * r_x + R.mdata[7] * r_y + R.mdata[8] * r_z;
-					
-
-	// 				double &gx = A2D_ELEM(df, count, 0);
-	// 				double &gy = A2D_ELEM(df, count, 1);
-	// 				double x = j;
-	// 				double y = i;
-	// 				double z = k;
-	// 				double r_x = R.mdata[0] * x + R.mdata[1] * y + R.mdata[2] * z;
-	// 				double r_y = R.mdata[3] * x + R.mdata[4] * y + R.mdata[5] * z;
-	// 				double r_z = R.mdata[6] * x + R.mdata[7] * y + R.mdata[8] * z;
-
-	// 				double rr = sqrt(r_x*r_x + r_y*r_y + r_z*r_z) * iRmaxF;
-	// 				double jr=r_x*iRmaxF;
-	// 				double ir=r_y*iRmaxF;
-	// 				double kr=r_z*iRmaxF;
-
-	// 				/* for (auto idx : stepsMask) {
-	// 					auto l1 = VEC_ELEM(vL1,idx);
-	// 					auto n = VEC_ELEM(vN,idx);
-	// 					auto l2 = VEC_ELEM(vL2,idx);
-	// 					auto m = VEC_ELEM(vM,idx);
-	// 					auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-	// 					if (rr>0 || l2==0) {
-	// 						gx += VEC_ELEM(clnm,idx)        *(zsph);
-	// 						gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-	// 					}
-	// 				} */
-
-	// 				auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-	// 				if (rr > 0 || l2 == 0)
-	// 				{
-	// 					if (idx_z_clnm < idxY0)
-	// 						gx += z_clnm_diff * (zsph);
-	// 					else
-	// 						gy += z_clnm_diff * (zsph);
-	// 				}
-
-	// 				auto pos = std::array<double, 3>{};
-	// 				pos[0] = r_x + gx;
-	// 				pos[1] = r_y + gy;
-	// 				pos[2] = r_z;
-
-	// 				double voxel_mV = A3D_ELEM(mV,k,i,j);
-	// 				splattingAtPos(pos, voxel_mV, mP, mV);
-	// 				// int x0 = FLOOR(XX(pos));
-	// 				// int x1 = x0 + 1;
-	// 				// int y0 = FLOOR(YY(pos));
-	// 				// int y1 = y0 + 1;
-	// 				// int z0 = FLOOR(ZZ(pos));
-	// 				// int z1 = z0 + 1;
-	// 				// double voxel_mV = A3D_ELEM(mV,k,i,j);
-	// 				// w = weightsInterpolation3D(XX(pos),YY(pos),ZZ(pos));
-	// 				// if (!mV.outside(z0, y0, x0)) {
-	// 				// 	A2D_ELEM(mP,y0,x0) += VEC_ELEM(w,0) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z0,y0,x0) += VEC_ELEM(w,0) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z1,y0,x0)) {
-	// 				// 	A2D_ELEM(mP,y0,x0) += VEC_ELEM(w,1) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z1,y0,x0) += VEC_ELEM(w,1) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z0,y1,x0)) {
-	// 				// 	A2D_ELEM(mP,y1,x0) += VEC_ELEM(w,2) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z0,y1,x0) += VEC_ELEM(w,2) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z1,y1,x0)) {
-	// 				// 	A2D_ELEM(mP,y1,x0) += VEC_ELEM(w,3) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z1,y1,x0) += VEC_ELEM(w,3) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z0,y0,x1)) {
-	// 				// 	A2D_ELEM(mP,y0,x1) += VEC_ELEM(w,4) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z0,y0,x1) += VEC_ELEM(w,4) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z1,y0,x1)) {
-	// 				// 	A2D_ELEM(mP,y0,x1) += VEC_ELEM(w,5) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z1,y0,x1) += VEC_ELEM(w,5) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z0,y1,x1)) {
-	// 				// 	A2D_ELEM(mP,y1,x1) += VEC_ELEM(w,6) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z0,y1,x1) += VEC_ELEM(w,6) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(z1,y1,x1)) {
-	// 				// 	A2D_ELEM(mP,y1,x1) += VEC_ELEM(w,7) * voxel_mV;
-	// 				// 	A3D_ELEM(Vdeformed(),z1,y1,x1) += VEC_ELEM(w,7) * voxel_mV;
-	// 				// }
-	// 				// if (!mV.outside(pos[2], pos[1], pos[0]))
-	// 				// 	sumVd += voxel_mV;
-	// 				modg += gx*gx+gy*gy;
-	// 				Ncount++;
-	// 				count++;
-	// 			}
-	// 		}
-	// 	}
-	// }
 
 	const auto &mVpos = vpos;
 	const auto lastY = FINISHINGY(mVpos);
@@ -1371,18 +1136,9 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 		Ncount++;
 	}
 
-    // def=sqrt(modg/Ncount);
 	def = sqrt(modg/Ncount);
 	totalDeformation = def;
 }
-
-// void ProgForwardZernikeImages::removePixels() {
-// 	for (int i=1+STARTINGY(I1()); i<=FINISHINGY(I1()); i+=loop_step) {
-// 		for (int j=1+STARTINGX(I1()); j<=FINISHINGX(I1()); j+=loop_step) {
-// 			A2D_ELEM(I1(),i,j) = 0.0;
-// 		}
-// 	}
-// }
 
 Matrix1D<double> ProgForwardZernikeImages::weightsInterpolation3D(double x, double y, double z) {
 	Matrix1D<double> w;
@@ -1416,78 +1172,12 @@ Matrix1D<double> ProgForwardZernikeImages::weightsInterpolation3D(double x, doub
 }
 
 void ProgForwardZernikeImages::splattingAtPos(std::array<double, 3> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV) {
-	// Find the part of the volume that must be updated
-	// double x_pos = r[0];
-	// double y_pos = r[1];
-	// // double z_pos = r[2];
-	// // int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
-	// // int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
-	// int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
-	// int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
-	// int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
-	// int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
-	// // Perform splatting at this position r
-	// // ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
-	// for (int i = i0; i <= iF; i++)
-	// {
-	// 	double y2 = (y_pos - i) * (y_pos - i);
-	// 	for (int j = j0; j <= jF; j++)
-	// 	{
-	// 		double mod = sqrt((x_pos - j) * (x_pos - j) + y2);
-	// 		// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-	// 		A2D_ELEM(mP,i,j) += weight * kaiser_proj(mod, blob.radius, blob.alpha, blob.order);
-	// 	}
-	// }
-
-	// The old version (following commented code) gives slightly different results
-	// Matrix1D<double> rdiff(3);
-	// for (int k = k0; k <= kF; k++)
-	// {
-	// 	double k2 = (z_pos - k) * (z_pos - k);
-	// 	for (int i = i0; i <= iF; i++)
-	// 	{
-	// 		double y2 = (y_pos - i) * (y_pos - i);
-	// 		for (int j = j0; j <= jF; j++)
-	// 		{
-	// 			double mod = sqrt((x_pos - j) * (x_pos - j) + y2 + k2);
-	// 			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-	// 			A2D_ELEM(mP, i, j) += weight * kaiser_value(mod, blob.radius, blob.alpha, blob.order);
-	// 		}
-	// 	}
-	// }
-
-	// for (int i = i0; i <= iF; i++)
-	// {
-	// 	double y_val = bspline1(i - y_pos);
-	// 	for (int j = j0; j <= jF; j++)
-	// 	{
-	// 		A2D_ELEM(mP, i, j) += weight * bspline1(j - x_pos) * y_val;
-	// 	}
-	// }
-
 	double x_pos = r[0];
 	double y_pos = r[1];
 	int i0 = XMIPP_MAX(CEIL(y_pos - loop_step), STARTINGY(mV));
 	int iF = XMIPP_MIN(FLOOR(y_pos + loop_step), FINISHINGY(mV));
 	int j0 = XMIPP_MAX(CEIL(x_pos - loop_step), STARTINGX(mV));
 	int jF = XMIPP_MIN(FLOOR(x_pos + loop_step), FINISHINGX(mV));
-
-	// for (int i = i0; i <= iF; i++)
-	// {
-	// 	for (int j = j0; j <= jF; j++)
-	// 	{
-	// 		A2D_ELEM(mP, i, j) += weight;
-	// 	}
-	// }
-
-	// for (int i = i0; i <= iF; i++)
-	// {
-	// 	double y_val = bspline1(i - y_pos);
-	// 	for (int j = j0; j <= jF; j++)
-	// 	{
-	// 		A2D_ELEM(mP, i, j) += weight * bspline1(j - x_pos) * y_val;
-	// 	}
-	// }
 
 	double m = 1. / loop_step;
 	for (int i = i0; i <= iF; i++)
@@ -1499,11 +1189,6 @@ void ProgForwardZernikeImages::splattingAtPos(std::array<double, 3> r, double we
 			A2D_ELEM(mP, i, j) += weight * x_val * y_val;
 		}
 	}
-
-	// int i = round(r[1]);
-	// int j = round(r[0]);
-	// // A2D_ELEM(mP, i, j) += weight * bspline1(j - r[0]) * bspline1(i - r[1]);
-	// A2D_ELEM(mP, i, j) += weight;
 }
 
 double ProgForwardZernikeImages::bspline1(double x)
@@ -1543,11 +1228,6 @@ void ProgForwardZernikeImages::removePixels()
 	aux.initZeros(mI);
 	aux.setXmippOrigin();
 	const MultidimArray<double> &mV=V();
-	// for (int i=STARTINGY(mI); i<=FINISHINGY(mI); i+=loop_step) {
-	// 	for (int j=STARTINGX(mI); j<=FINISHINGX(mI); j+=loop_step) {
-	// 		A2D_ELEM(aux,i,j) = A2D_ELEM(mI,i,j) / loop_step;
-	// 	}
-	// }
 
 	for (int i = STARTINGY(mI); i <= FINISHINGY(mI); i += loop_step)
 	{
@@ -1571,53 +1251,11 @@ void ProgForwardZernikeImages::removePixels()
 		}
 	}
 
-	// Matrix2D<double> R, R_inv;
-	// R.initIdentity(3);
-	// Euler_angles2matrix(old_rot[0], old_tilt[0], old_psi[0], R, false);
-	// R_inv = R.inv();
-
-	// const auto lastZ = FINISHINGZ(mV);
-	// const auto lastY = FINISHINGY(mV);
-	// const auto lastX = FINISHINGX(mV);
-	// for (int k = STARTINGZ(mV); k <= lastZ; k += loop_step)
-	// {
-	// 	for (int i = STARTINGY(mV); i <= lastY; i += loop_step)
-	// 	{
-	// 		for (int j = STARTINGX(mV); j <= lastX; j += loop_step)
-	// 		{
-
-	// 			double x_pos = R.mdata[0] * j + R.mdata[1] * i + R.mdata[2] * k;
-	// 			double y_pos = R.mdata[3] * j + R.mdata[4] * i + R.mdata[5] * k;
-	// 			double z_pos = R.mdata[6] * j + R.mdata[7] * i + R.mdata[8] * k;
-
-
-	// 			// double z_pos = r[2];
-	// 			// int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
-	// 			// int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
-	// 			int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
-	// 			int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
-	// 			int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
-	// 			int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
-
-	// 			for (int img_i = i0; img_i <= iF; img_i++)
-	// 			{
-	// 				for (int img_j = j0; img_j <= jF; img_j++)
-	// 				{
-	// 					A2D_ELEM(aux, img_i, img_j) = A2D_ELEM(mI, img_i, img_j) / loop_step;
-	// 					// A3D_ELEM(mVO2, k, i, j) += weight * x_val * y_val * z_val;
-	// 					// A3D_ELEM(mVO1,k, i, j) += weight * kaiser_value(mod, blob.radius, blob.alpha, blob.order);
-	// 					// A3D_ELEM(mVO2,k, i, j) += weight * kaiser_value(mod, 2, blob.alpha, blob.order);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
 	mI = aux;
 }
 
 void ProgForwardZernikeImages::rotatePositions(double rot, double tilt, double psi) 
 {
-	// Matrix2D<double> R;
     R.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
 

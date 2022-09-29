@@ -156,22 +156,14 @@ void ProgApplyCoeffZernike3D::run()
 						}
 					}
 
-					// if (fn_mask == "") 
-					// {
-					// 	voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
-					// 	A3D_ELEM(VO(), k, i, j)=voxelI;
-					// }
-					// else 
-					// {
-						auto pos = std::array<double, 3>{};
-						pos[0] = (double)j + gx;
-						pos[1] = (double)i + gy;
-						pos[2] = (double)k + gz;
-						double voxel_mV = A3D_ELEM(mVI,k,i,j);
-						splattingAtPos(pos, voxel_mV, mVO);
-						deformation += gx*gx+gy*gy+gz*gz;
-						Ncount++;
-					// }
+					auto pos = std::array<double, 3>{};
+					pos[0] = (double)j + gx;
+					pos[1] = (double)i + gy;
+					pos[2] = (double)k + gz;
+					double voxel_mV = A3D_ELEM(mVI,k,i,j);
+					splattingAtPos(pos, voxel_mV, mVO);
+					deformation += gx*gx+gy*gy+gz*gz;
+					Ncount++;
 
 				}
 			}

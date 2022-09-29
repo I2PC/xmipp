@@ -120,8 +120,8 @@ void ProgForwardZernikeVol::defineParams() {
 	addParamsLine("   -i <volume>                         : Volume to deform");
 	addParamsLine("   -r <volume>                         : Reference volume");
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
-	addParamsLine("  [--maski <m=\"\">]            		  : Input volume mask");
-	addParamsLine("  [--maskr <m=\"\">]            		  : Reference volume mask");
+	addParamsLine("  [--maski <m=\"\">]                   : Input volume mask");
+	addParamsLine("  [--maskr <m=\"\">]                   : Reference volume mask");
 	addParamsLine("  [--oroot <rootname=\"Volumes\">]     : Root name for output files");
 	addParamsLine("                                       : By default, the input file is rewritten");
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
@@ -450,7 +450,6 @@ double ProgForwardZernikeVol::splatVal(std::array<double, 3> r, double weight, c
 }
 
 // Distance function =======================================================
-// #define DEBUG
 double ProgForwardZernikeVol::distance(double *pclnm)
 {
 	const MultidimArray<double> &mVR=VR();
@@ -487,7 +486,6 @@ double ProgForwardZernikeVol::distance(double *pclnm)
 	// double corr2 = -0.25*correlationIndex(VO(), VR(), &V_mask2);
 	// return corr1+corr2+lambda*(deformation);
 }
-#undef DEBUG
 
 double continuousZernikeCostVol(double *p, void *vprm)
 {
@@ -511,7 +509,7 @@ void ProgForwardZernikeVol::run() {
 	sumVI = 0.0;
 	// Numsph(nh);
 
-		// This filtered version of the input volume is needed to interpolate more accurately VD
+	// This filtered version of the input volume is needed to interpolate more accurately VD
 	// MultidimArray<int> bg_mask;
 	// bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     // bg_mask.setXmippOrigin();
@@ -523,10 +521,10 @@ void ProgForwardZernikeVol::run() {
 
 	// volume2Mask(VR(), 0.01);
 	// volume2Mask(VI(), 0.01);
-	MultidimArray<double> blobV, blobV2;
-	volume2Blobs(blobV, blobV2, VR(), V_maskr);
-	VR() = blobV;
-	VR2() = blobV2;
+	// MultidimArray<double> blobV, blobV2;
+	// volume2Blobs(blobV, blobV2, VR(), V_maskr);
+	// VR() = blobV;
+	// VR2() = blobV2;
 	VR.write("reference_blob.vol");
 	VR2.write("reference_blob2.vol");
 	// volume2Mask(VR(), 0.01);
@@ -597,7 +595,6 @@ void ProgForwardZernikeVol::run() {
         deformFile << deformation;
         deformFile.close();
 
-// #define DEBUG
 #ifdef DEBUG
 	Image<double> save;
 	save() = VI();

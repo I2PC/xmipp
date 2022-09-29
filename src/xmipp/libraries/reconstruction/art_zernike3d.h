@@ -45,8 +45,6 @@ public:
     FileName fnVolO;
     /// Output directory
     FileName fnOutDir;
-    // Metadata with already processed images
-    // FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
     int L1, L2;
     /** Zernike and SPH coefficients vectors */
@@ -145,13 +143,6 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    // virtual void createWorkFiles();
-
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
@@ -168,8 +159,6 @@ public:
     void deformVol(MultidimArray<float> &mP, MultidimArray<float> &mW,
                    const MultidimArray<float> &mV,
                    float rot, float tilt, float psi);
-
-    // void updateCTFImage(float defocusU, float defocusV, float angle);
 
   private:
     enum class Direction { Forward, Backward };
@@ -189,8 +178,6 @@ public:
     // Remove overdeformation from coefficients
     void removeOverdeformation();
 
-    // virtual void checkPoint();
-    
     virtual void finishProcessing();
 
     virtual void run();

@@ -48,8 +48,6 @@ public:
     FileName fnVolO;
     /// Output directory
     FileName fnOutDir;
-    // Metadata with already processed images
-    // FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
     int L1, L2;
     /** Zernike and SPH coefficients vectors */
@@ -164,13 +162,6 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    // virtual void createWorkFiles();
-
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
@@ -193,8 +184,6 @@ public:
 
     double bspline1(double x);
 
-    // void updateCTFImage(double defocusU, double defocusV, double angle);
-
   private:
     enum class Direction { Forward, Backward };
 
@@ -212,8 +201,6 @@ public:
                         MultidimArray<double> &mV);
 
     void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
-
-    // virtual void checkPoint();
 
     virtual void run();
 

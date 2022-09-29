@@ -60,7 +60,6 @@ void ProgArtZernike3D::readParams()
 	niter = getIntParam("--niter");
 	save_iter = getIntParam("--save_iter");
 	sort_last_N = getIntParam("--sort_last");
-	// fnDone = fnOutDir + "/sphDone.xmd";
 	fnVolO = fnOutDir + "/Refined.vol";
 	keep_input_columns = true;
 }
@@ -117,21 +116,6 @@ void ProgArtZernike3D::defineParams()
     addExampleLine("xmipp_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
 }
 
-// // Produce side information ================================================
-// void ProgArtZernike3D::createWorkFiles() {
-// 	// w_i = 1 / getInputMd()->size();
-// 	if (resume && fnDone.exists()) {
-// 		MetaDataDb done(fnDone);
-// 		done.read(fnDone);
-// 		getOutputMd() = done;
-// 		auto *candidates = getInputMd();
-// 		MetaDataDb toDo(*candidates);
-// 		toDo.subtraction(done, MDL_IMAGE);
-// 		toDo.write(fnOutDir + "/sphTodo.xmd");
-// 		*candidates = toDo;
-// 	}
-// }
-
 void ProgArtZernike3D::preProcess()
 {
 
@@ -166,7 +150,6 @@ void ProgArtZernike3D::preProcess()
 	} else {
 		Vrefined() = V();
 	}
-	// Vrefined().initZeros(V());
 	Vrefined().setXmippOrigin();
 
 	if (RmaxDef<0)
@@ -180,7 +163,6 @@ void ProgArtZernike3D::preProcess()
 	FilterCTF.FilterShape = CTFINV;
 	FilterCTF.ctf.enable_CTFnoise = false;
 	FilterCTF.ctf.enable_CTF = true;
-	// FilterCTF.ctf.produceSideInfo();
 
 	// Area where Zernike3D basis is computed (and volume is updated)
 	Mask mask;
@@ -210,41 +192,26 @@ void ProgArtZernike3D::preProcess()
 }
 
 void ProgArtZernike3D::finishProcessing() {
-	// XmippMetadataProgram::finishProcessing();
 	Vrefined.write(fnVolO);
 }
 
 // Predict =================================================================
-//#define DEBUG
 void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
 	rowOut=rowIn; // FIXME have a look if this is needed. I don't think so, or see how to do this automatically in xmipp_metadata_program.cpp
 	flagEnabled=1;
 
-	// double auxRot, auxTilt, auxPsi, auxShiftX, auxShiftY;
 	rowIn.getValue(MDL_ANGLE_ROT,rot);
 	rowIn.getValue(MDL_ANGLE_TILT,tilt);
 	rowIn.getValue(MDL_ANGLE_PSI,psi);
 	rowIn.getValueOrDefault(MDL_SHIFT_X,shiftX,0.0);
 	rowIn.getValueOrDefault(MDL_SHIFT_Y,shiftY,0.0);
-	// rowIn.getValue(MDL_ANGLE_ROT,auxRot);
-	// rowIn.getValue(MDL_ANGLE_TILT,auxTilt);
-	// rowIn.getValue(MDL_ANGLE_PSI,auxPsi);
-	// rowIn.getValueOrDefault(MDL_SHIFT_X,auxShiftX,0.0);
-	// rowIn.getValueOrDefault(MDL_SHIFT_Y,auxShiftY,0.0);
-	// rot = static_cast<float>(auxRot);
-	// tilt = static_cast<float>(auxTilt);
-	// psi = static_cast<float>(auxPsi);
-	// shiftX = static_cast<float>(auxShiftX);
-	// shiftY = static_cast<float>(auxShiftY);
-	// std::vector<double> vectortemp;
 	std::vector<double> vectortemp;
 	if (useZernike) {
 		rowIn.getValue(MDL_SPH_COEFFICIENTS,vectortemp);
 		clnm.initZeros(vectortemp.size()-8);
 		for(int i=0; i < vectortemp.size()-8; i++){
 			VEC_ELEM(clnm,i) = static_cast<float>(vectortemp[i]);
-			// VEC_ELEM(clnm,i) = vectortemp[i];
 		}
 		removeOverdeformation();
 	}
@@ -252,7 +219,6 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 	
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && useCTF)
 	{
-		// std::cout << "Applying CTF" << std::endl;
 		hasCTF=true;
 		FilterCTF.ctf.readFromMdRow(rowIn, false);
 		FilterCTF.ctf.Tm = Ts;
@@ -282,12 +248,6 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 	// updateART();
 
 }
-#undef DEBUG
-
-// void ProgArtZernike3D::checkPoint() {
-// 	getOutputMd().write(fnDone);
-// 	// Vrefined.write(fnVolO);
-// }
 
 void ProgArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
 {
@@ -327,12 +287,6 @@ void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matri
         }
     }
 }
-
-// void ProgArtZernike3D::updateCTFImage(float defocusU, float defocusV, float angle)
-// {
-// 	ctf.K=1; // get pure CTF with no envelope
-// 	ctf.produceSideInfo();
-// }
 
 template<bool INTERPOLATE>
 float ProgArtZernike3D::weightsInterpolation3D(float x, float y, float z, std::array<float, 8> &w) {
@@ -416,7 +370,7 @@ void ProgArtZernike3D::run()
     if (!oroot.empty())
     {
         if (oext.empty())
-        oext           = oroot.getFileFormat();
+        	oext = oroot.getFileFormat();
         oextBaseName   = oext;
         fullBaseName   = oroot.removeFileFormat();
         baseName       = fullBaseName.getBaseName();
@@ -504,7 +458,6 @@ void ProgArtZernike3D::run()
 		num_images = 1;
 		current_save_iter = 1;
 
-		// Vrefined().threshold("below", 0, 0);
 		Mask mask;
 		mask.type = BINARY_CIRCULAR_MASK;
 		mask.mode = INNER_MASK;
@@ -633,8 +586,6 @@ void ProgArtZernike3D::artModel()
 
 		if (hasCTF)
 		{
-			// updateCTFImage(defocusU, defocusV, defocusAngle);
-			// FilterCTF.ctf = ctf;
 			if (phaseFlipped)
 				FilterCTF.correctPhase();
 			FilterCTF.generateMask(I());
@@ -649,11 +600,6 @@ void ProgArtZernike3D::artModel()
 
 		applyGeometry(xmipp_transformation::LINEAR, I_shifted(), I(), A, 
 					  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.f);
-
-		// P.write(fnOutDir + "/PPPtheo.xmp");
-		// I_shifted.write(fnOutDir + "/PPPexp.xmp");
-		// std::cout << "Press any key" << std::endl;
-		// char c; std::cin >> c;
 
 		// Compute difference image and divide by weights
 		float error = 0.0f;
@@ -702,13 +648,6 @@ void ProgArtZernike3D::zernikeModel() {
 		return tmp.inv();
 	}();
 
-    // auto l2Mask = std::vector<size_t>();
-    // for (size_t idx = 0; idx < idxY0; idx++) {
-    //   if (0 == VEC_ELEM(vL2, idx)) {
-    //     l2Mask.emplace_back(idx);
-    //   }
-    
-	// }
 	const auto lastZ = FINISHINGZ(mV);
 	const auto lastY = FINISHINGY(mV);
 	const auto lastX = FINISHINGX(mV);
