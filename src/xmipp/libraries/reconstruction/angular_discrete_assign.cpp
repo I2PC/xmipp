@@ -224,9 +224,7 @@ void ProgAngularDiscreteAssign::produce_library()
     Matrix1D<int> SBidx(SBNo);
     for (int m = 0; m < SBNo; m++)
     {
-        auto *subband = new MultidimArray<double>;
-        subband->resize(number_of_imgs, SBsize(m));
-        library.push_back(subband);
+        library.emplace_back(MultidimArray<double>(number_of_imgs, SBsize(m)));
     }
     library_power.initZeros(number_of_imgs, SBNo);
 
@@ -251,7 +249,7 @@ void ProgAngularDiscreteAssign::produce_library()
             if (m != -1)
             {
                 double coef = I(i, j), coef2 = coef * coef;
-                (*library[m])(n, SBidx(m)++) = coef;
+                library[m](n, SBidx(m)++) = coef;
                 for (int mp = m; mp < SBNo; mp++)
                     library_power(n, mp) += coef2;
             }
@@ -305,7 +303,7 @@ void ProgAngularDiscreteAssign::refine_candidate_list_with_correlation(
 {
     int dimp = SBsize(m);
     int imax = rot.size();
-    const MultidimArray<double> &library_m = *(library[m]);
+    const MultidimArray<double> &library_m = library[m];
     std::vector<double> sortedCorr;
     sortedCorr.reserve(imax);
     for (int i = 0; i < imax; i++)
