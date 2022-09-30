@@ -317,7 +317,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
      	// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
-		if (fnMask.isEmpty() || fmaskWidth == -1) { // If there is no provided mask
+		if (fnMask.isEmpty()) { // If there is no provided mask
 			Mfinal().initZeros(P());
 			// inverse mask (iM) and final mask (Mfinal) are all 1s
 			iM = invertMask(Mfinal);
@@ -435,8 +435,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			MultidimArray<double> &mIdiff=Idiff();
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			if (fmaskWidth == -1)
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+			}
+			else
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			}
 		}
 		// Write particle
 		writeParticle(int(i), Idiff, R2adj); 
@@ -491,7 +499,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			transformerP.inverseFourierTransform(PFourier, P());
 
 			// Compute final mask TODO: save masks computed before or do a function for this?
-			if (fnMask.isEmpty() || fmaskWidth == -1) {
+			if (fnMask.isEmpty()) {
 				Mfinal().initZeros(P());
 				iM = invertMask(Mfinal);
 				Mfinal = iM;		
@@ -509,8 +517,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			{
 				MultidimArray<double> &mIdiff=Idiff();
 				mIdiff.initZeros(I());
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+				if (fmaskWidth == -1)
+				{
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+						DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+				}
+				else
+				{
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+				}
 				// Write particle
 				writeParticle(int(i), Idiff, R2adjC); 
 			} 
