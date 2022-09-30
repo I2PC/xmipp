@@ -224,7 +224,7 @@ void ProgAngularDiscreteAssign::produce_library()
     Matrix1D<int> SBidx(SBNo);
     for (int m = 0; m < SBNo; m++)
     {
-        library.emplace_back(MultidimArray<double>(number_of_imgs, SBsize(m)));
+        library.emplace_back(number_of_imgs, SBsize(m));
     }
     library_power.initZeros(number_of_imgs, SBNo);
 
