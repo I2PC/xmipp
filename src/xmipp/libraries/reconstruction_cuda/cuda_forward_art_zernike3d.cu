@@ -357,7 +357,6 @@ namespace device {
 		d = (PrecisionType)0;                         \
 	else                                              \
 		d = tex1Dfetch<PrecisionType>(tex, (int)(((i) - (i0)) * (diffImage).xdim + ((j) - (j0))));
-		//d = A2D_ELEM(diffImage, i, j);
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
@@ -444,7 +443,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 
 		auto pos_x = sharedR[0] * r_x + sharedR[1] * r_y + sharedR[2] * r_z;
 		auto pos_y = sharedR[3] * r_x + sharedR[4] * r_y + sharedR[5] * r_z;
-		//PrecisionType voxel_mV = A3D_ELEM(cudaMV, k, i, j);
 		device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 	}
 }

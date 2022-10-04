@@ -234,7 +234,6 @@ template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
 	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
-	  //VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
@@ -245,12 +244,6 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
 	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
 	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
-	  //blockX(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim)),
-	  //blockY(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim)),
-	  //blockZ(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
-	  //gridX(parameters.Vrefined().xdim / blockX),
-	  //gridY(parameters.Vrefined().ydim / blockY),
-	  //gridZ(parameters.Vrefined().zdim / blockZ),
 	  blockXStep(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / loopStep)),
 	  blockYStep(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim / loopStep)),
 	  blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
@@ -260,7 +253,6 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  xdimB(static_cast<unsigned>(parameters.VRecMaskB.xdim)),
 	  ydimB(static_cast<unsigned>(parameters.VRecMaskB.ydim))
 {
-	//cudaCoordinatesF = filterAndTransportMask(parameters.VRecMaskF);
 	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB);
 	auto optimalizedSize = ceil(sizeB / 1024) * 1024;
 	blockX = std::__gcd(1024, static_cast<int>(optimalizedSize));
@@ -271,7 +263,6 @@ template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
 	cudaFree(VRecMaskF.data);
-	//cudaFree(VRecMaskB.data);
 	cudaFree(cudaMV.data);
 	cudaFree(cudaCoordinatesB);
 
@@ -291,7 +282,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	std::vector<MultidimArrayCuda<PrecisionType>> pVector, wVector;
 	std::tie(cudaP, pVector) = convertToMultidimArrayCuda(parameters.P);
 	std::tie(cudaW, wVector) = convertToMultidimArrayCuda(parameters.W);
-	auto sigma_size = sigma.size();
+	unsigned sigma_size = static_cast<unsigned>(sigma.size());
 	auto cudaSigma = transportStdVectorToGpu(sigma);
 	const int step = loopStep;
 
@@ -308,7 +299,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 			lastY,
 			lastX,
 			step,
-			static_cast<unsigned>(sigma_size),
+			sigma_size,
 			cudaSigma,
 			commonParameters.iRmaxF,
 			static_cast<unsigned>(commonParameters.idxY0),
@@ -340,25 +331,21 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto cudaMId = initializeMultidimArrayCuda(mId);
+	const int step = 1;
 
-	// create texture object
+	// Texture
 	cudaResourceDesc resDesc;
 	memset(&resDesc, 0, sizeof(resDesc));
 	resDesc.resType = cudaResourceTypeLinear;
 	resDesc.res.linear.devPtr = cudaMId.data;
 	resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
-	resDesc.res.linear.desc.x = 32;	 // bits per channel
+	resDesc.res.linear.desc.x = 32;
 	resDesc.res.linear.sizeInBytes = mId.yxdim * sizeof(PrecisionType);
-
 	cudaTextureDesc texDesc;
 	memset(&texDesc, 0, sizeof(texDesc));
 	texDesc.readMode = cudaReadModeElementType;
-
-	// create texture object: we only have to do this once!
 	cudaTextureObject_t tex = 0;
 	cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
-
-	const int step = 1;
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
@@ -398,13 +385,8 @@ void Program<PrecisionType>::recoverVolumeFromGPU(Image<PrecisionType> &Vrefined
 
 // explicit template instantiation
 template class Program<float>;
-//template class Program<double>;
 template void Program<float>::runForwardKernel<true>(struct DynamicParameters &);
 template void Program<float>::runForwardKernel<false>(struct DynamicParameters &);
-//template void Program<double>::runForwardKernel<true>(struct DynamicParameters &);
-//template void Program<double>::runForwardKernel<false>(struct DynamicParameters &);
 template void Program<float>::runBackwardKernel<true>(struct DynamicParameters &);
 template void Program<float>::runBackwardKernel<false>(struct DynamicParameters &);
-//template void Program<double>::runBackwardKernel<true>(struct DynamicParameters &);
-//template void Program<double>::runBackwardKernel<false>(struct DynamicParameters &);
 }  // namespace cuda_forward_art_zernike3D

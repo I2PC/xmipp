@@ -90,8 +90,6 @@ class Program {
 	~Program();
 
    private:
-	//const MultidimArrayCuda<int> VRecMaskF, VRecMaskB;
-
 	const MultidimArrayCuda<PrecisionType> cudaMV;
 
 	const int lastX, lastY, lastZ;
@@ -110,7 +108,7 @@ class Program {
 
 	const MultidimArrayCuda<int> VRecMaskF;
 
-	int *cudaCoordinatesB, *cudaCoordinatesF;
+	int *cudaCoordinatesB;
 
 	const unsigned xdimB, ydimB;
 
