@@ -1481,18 +1481,26 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		double std = 0;
 		size_t residualDistanceInImageSize = residualDistanceInImage.size();
 
-		for(size_t e = 0; e < residualDistanceInImageSize; e++)
-        {
-            double value = residualDistanceInImage[e];
-            sum += value;
-            sum2 += value*value;
-        }
+		if (residualDistanceInImageSize == 0)
+		{
+			averageFiducialResidualsInImage.push_back(average);
+        	stdFiducialResidualsInImage.push_back(std);	
+		}
+		else
+		{
+			for(size_t e = 0; e < residualDistanceInImageSize; e++)
+			{
+				double value = residualDistanceInImage[e];
+				sum += value;
+				sum2 += value*value;
+			}
 
-		average = sum/residualDistanceInImageSize;
-		std = sum2/residualDistanceInImageSize - average*average;
+			average = sum/residualDistanceInImageSize;
+			std = sum2/residualDistanceInImageSize - average*average;
 
-        averageFiducialResidualsInImage.push_back(average);
-        stdFiducialResidualsInImage.push_back(std);
+			averageFiducialResidualsInImage.push_back(average);
+			stdFiducialResidualsInImage.push_back(std);
+		}
 	}
 
 	// Ficudials
@@ -1527,18 +1535,26 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		double std = 0;
 		size_t residualDistancePerFiducialSize = residualDistancePerFiducial.size();
 
-		for(size_t e = 0; e < residualDistancePerFiducialSize; e++)
-        {
-            double value = residualDistancePerFiducial[e];
-            sum += value;
-            sum2 += value*value;
-        }
+		if (residualDistancePerFiducialSize == 0)
+		{
+			averageResidualDistancePerFiducial.push_back(0);
+			stdResidualDistancePerFiducial.push_back(0);
+		}
+		else
+		{
+			for(size_t e = 0; e < residualDistancePerFiducialSize; e++)
+			{
+				double value = residualDistancePerFiducial[e];
+				sum += value;
+				sum2 += value*value;
+			}
 
-		average = sum/residualDistancePerFiducialSize;
-		std = sum2/residualDistancePerFiducialSize - average*average;
+			average = sum/residualDistancePerFiducialSize;
+			std = sum2/residualDistancePerFiducialSize - average*average;
 
-        averageResidualDistancePerFiducial.push_back(average);
-        stdResidualDistancePerFiducial.push_back(std);
+			averageResidualDistancePerFiducial.push_back(average);
+			stdResidualDistancePerFiducial.push_back(std);
+		}
 	}
 
 	for (size_t i = 0; i < inputCoords.size(); i++)
