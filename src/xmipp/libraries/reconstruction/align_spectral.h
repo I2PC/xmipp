@@ -52,7 +52,61 @@ public:
     virtual void show() const override;
     virtual void run() override;
 
+    FileName fnExperimentalMetadata;
+    FileName fnReferenceMetadata;
+    FileName fnOutputMetadata;
+    FileName fnOroot;
+    FileName fnBands;
+    FileName fnWeights;
+    FileName fnCtf;
+    FileName fnPca;
+    
+    size_t nRotations;
+    size_t nTranslations;
+    double maxShift;
+
+    size_t nThreads;
+    double maxMemory;
+
 private:
+    class BandMap {
+    public:
+        BandMap() = default;
+        explicit BandMap(const MultidimArray<int>& bands);
+        BandMap(const BandMap& other) = default;
+        BandMap(BandMap&& other) = default;
+        ~BandMap() = default;
+
+        BandMap& operator=(const BandMap& other) = default;
+        BandMap& operator=(BandMap&& other) = default;
+
+        void reset(const MultidimArray<int>& bands);
+
+        const MultidimArray<int>& getBands() const;
+        const std::vector<size_t>& getBandSizes() const;
+        void flatten(   const MultidimArray<std::complex<double>>& spectrum,
+                        std::vector<Matrix1D<double>>& data,
+                        size_t image = 0 ) const;
+        void flatten(   const MultidimArray<double>& spectrum,
+                        std::vector<Matrix1D<double>>& data,
+                        size_t image = 0 ) const;
+        void flatten(   const MultidimArray<std::complex<double>>& spectrum,
+                        size_t band,
+                        Matrix1D<double>& data,
+                        size_t image = 0 ) const;
+        void flatten(   const MultidimArray<double>& spectrum,
+                        size_t band,
+                        Matrix1D<double>& data,
+                        size_t image = 0 ) const;
+
+    private:
+        MultidimArray<int> m_bands;
+        std::vector<size_t> m_sizes;
+
+        static std::vector<size_t> computeBandSizes(const MultidimArray<int>& bands);
+
+    };
+
     class TranslationFilter {
     public:
         TranslationFilter(double dx, double dy, size_t nx, size_t ny)
@@ -100,83 +154,6 @@ private:
         MultidimArray<double> m_rotated;
         MultidimArray<std::complex<double>> m_dft;
         MultidimArray<std::complex<double>> m_translatedDft;
-
-    };
-    
-    class BandMap {
-    public:
-        BandMap() = default;
-        explicit BandMap(const MultidimArray<int>& bands);
-        BandMap(const BandMap& other) = default;
-        BandMap(BandMap&& other) = default;
-        ~BandMap() = default;
-
-        BandMap& operator=(const BandMap& other) = default;
-        BandMap& operator=(BandMap&& other) = default;
-
-        void reset(const MultidimArray<int>& bands);
-
-        const MultidimArray<int>& getBands() const;
-        const std::vector<size_t>& getBandSizes() const;
-        void flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
-                            std::vector<Matrix1D<double>>& data ) const;
-        void flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
-                            size_t band,
-                            Matrix1D<double>& data ) const;
-
-    private:
-        MultidimArray<int> m_bands;
-        std::vector<size_t> m_sizes;
-
-        static std::vector<size_t> computeBandSizes(const MultidimArray<int>& bands);
-
-    };
-
-    class SpectralPca {
-    public:
-        SpectralPca() = default;
-        SpectralPca(const std::vector<size_t>& sizes, double initialCompression, double initialBatch);
-        SpectralPca(const SpectralPca& other) = default;
-        SpectralPca(SpectralPca&& other) = default;
-        ~SpectralPca() = default;
-
-        SpectralPca& operator=(const SpectralPca& other) = default;
-        SpectralPca& operator=(SpectralPca&& other) = default;
-
-        size_t getBandCount() const;
-        
-        size_t getBandSize(size_t i) const;
-        size_t getProjectionSize(size_t i) const;
-        void getMean(size_t i, Matrix1D<double>& v) const;
-        void getVariance(size_t i, Matrix1D<double>& v) const;
-        void getAxisVariance(size_t i, Matrix1D<double>& v) const;
-        void getBasis(size_t i, Matrix2D<double>& b) const;
-        double getError(size_t i) const;
-
-        void getErrorFunction(size_t i, Matrix1D<double>& errFn);
-
-        void reset();
-        void reset(const std::vector<size_t>& sizes, double initialCompression, double initialBatch);
-        void reset(const std::vector<size_t>& sizes, size_t pcaSize, size_t initialBatch);
-        void learn(const std::vector<Matrix1D<double>>& bands);
-        void learnConcurrent(const std::vector<Matrix1D<double>>& bands);
-        void finalize();
-
-        void equalizeError(double precision);
-
-        void project(   const std::vector<Matrix1D<double>>& bands, 
-                        std::vector<Matrix1D<double>>& projections) const;
-        void unproject( const std::vector<Matrix1D<double>>& projections,
-                        std::vector<Matrix1D<double>>& bands ) const;
-    private:
-        std::vector<SgaNnOnlinePca<double>> m_bandPcas;
-        std::vector<std::mutex> m_bandMutex;
-
-        static void calculateErrorFunction( Matrix1D<double>& lambdas, 
-                                            double totalVariance );
-
-        static size_t calculateRequiredComponents(  const Matrix1D<double>& errFn,
-                                                    double precision );
 
     };
 
@@ -233,61 +210,26 @@ private:
 
     };
 
-    struct RuntimeParameters {
-        FileName fnReference;
-        FileName fnExperimental;
-        FileName fnTraining;
-        FileName fnOutput;
-        FileName fnOroot;
-
-        size_t nRotations;
-        size_t nTranslations;
-        double maxShift;
-
-        size_t nBands;
-        double lowResLimit;
-        double highResLimit;
-
-        double pcaEff;
-        double training;
-
-        size_t nThreads;
-    };
-
-    RuntimeParameters m_parameters;
-
-    MetaDataVec m_mdReference;
     MetaDataVec m_mdExperimental;
-    Matrix1D<double> m_weights;
-
-    std::vector<TranslationFilter> m_translations;
+    MetaDataVec m_mdReference;
     BandMap m_bandMap;
-    SpectralPca m_pca;
+    std::vector<Matrix2D<double>> m_bases;
+    std::vector<Matrix2D<double>> m_ctfBases;
     ReferencePcaProjections m_references;
-    std::vector<ReferenceMetadata> m_referenceData;
-    std::vector<size_t> m_classification;
-    Matrix2D<double> m_ssnr;
 
-    void readInput();
-    void calculateTranslationFilters();
-    void calculateBands();
-    void trainPcas();
-    void calculateBandWeights();
+    void readInputMetadata();
+    void readBandMap();
+    void readBases();
+    void applyWeightsToBases();
+    void applyCtfToBases();
     void projectReferences();
     void classifyExperimental();
-    void generateBandSsnr();
     void generateOutput();
-
-    void updateRow(MDRowVec& row, size_t matchIndex) const;
 
     template<typename F>
     void processRowsInParallel(const MetaDataVec& md, F&& func, size_t nThreads);
 
-    static void readMetadata(const FileName& fn, MetaDataVec& result);
-    static void readImage(const FileName& fn, Image<double>& result);
-
-    static constexpr size_t toFourierXSize(size_t nx) { return nx/2 + 1; }
-    static constexpr size_t fromFourierXSize(size_t nx) { return (nx - 1)*2; }
+    static size_t getImageProjectionSize(const std::vector<Matrix2D>& bases);
 
     static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
                                                                                 size_t ny, 
@@ -297,17 +239,6 @@ private:
                                                                                 size_t ny, 
                                                                                 size_t nTranslations,
                                                                                 double maxShift );
-
-    static std::vector<double> computeArithmeticBandFrecuencies(double lowResLimit,
-                                                                double highResLimit,
-                                                                size_t nBands );
-    static std::vector<double> computeGeometricBandFrecuencies( double lowResLimit,
-                                                                double highResLimit,
-                                                                size_t nBands );
-
-    static MultidimArray<int> computeBands( const size_t nx, 
-                                            const size_t ny, 
-                                            const std::vector<double>& frecuencies );
 
     static void calculateBandSsnr(  const std::vector<Matrix1D<double>>& reference, 
                                     const std::vector<Matrix1D<double>>& experimental, 
