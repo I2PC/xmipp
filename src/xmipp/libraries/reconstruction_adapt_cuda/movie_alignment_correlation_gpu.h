@@ -30,6 +30,7 @@
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
 #include <CTPL/ctpl_stl.h>
+#include "reconstruction_adapt_cuda/basic_mem_manager.h"
 
 /**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
    @ingroup ReconsCUDALibrary */
@@ -39,6 +40,10 @@ class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T>
 public:
     /// Read argument from command line
     void readParams();
+
+    virtual ~ProgMovieAlignmentCorrelationGPU() {
+        BasicMemManager::instance().release();
+    }
 
     /// Show
     void show();

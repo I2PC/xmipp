@@ -139,11 +139,11 @@ void GPU::setDevice(int device) {
 
 bool GPU::isMemoryPinned(const void *h_mem) {
     cudaPointerAttributes attr;
-    if (cudaPointerGetAttributes(&attr, h_mem) == cudaErrorInvalidValue) {
+    if (cudaPointerGetAttributes(&attr, h_mem) != cudaSuccess) {
         cudaGetLastError(); // clear out the previous API error
         return false;
     }
-    return true;
+    return (attr.type == cudaMemoryTypeHost) || (attr.type == cudaMemoryTypeManaged);
 }
 
 bool GPU::isGpuPointer(const void *p) {

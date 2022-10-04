@@ -26,6 +26,7 @@
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
 #include "core/utils/memory_utils.h"
 #include <algorithm>
+#include <iostream>
 
 void *BasicMemManager::get(size_t bytes, MemType type)
 {
@@ -154,3 +155,35 @@ void BasicMemManager::release(void *ptr, MemType type) const
         break;
     }
 }
+
+std::ostream &operator<<(std::ostream &s, const MemType &t)
+{
+    switch (t)
+    {
+    case MemType::CPU_PAGE_ALIGNED:
+        s << "CPU_PAGE_ALIGNED";
+        break;
+    case MemType::CUDA_MANAGED:
+        s << "CUDA_MANAGED";
+        break;
+    case MemType::CUDA_HOST:
+        s << "CUDA_HOST";
+        break;
+    case MemType::CUDA:
+        s << "CUDA";
+        break;
+    default:
+        s << "UNKNOWN";
+    }
+    return s;
+}
+
+    BasicMemManager::~BasicMemManager()
+    {
+        for (auto &b : memoryBlocks)
+        {
+            std::cerr << "Unreleased memory block of at " << b.ptr << " of " << b.bytes << " bytes and type " << b.type << "\n";
+            give(b.ptr);
+        }
+        release();
+    }

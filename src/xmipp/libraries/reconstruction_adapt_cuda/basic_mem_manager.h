@@ -31,7 +31,7 @@ enum class MemType
     CPU_PAGE_ALIGNED,
     CUDA_MANAGED,
     CUDA_HOST, // pinned memory on CPU
-    CUDA, // pinned memory on CPU
+    CUDA,
 };
 
 class BasicMemManager
@@ -40,7 +40,7 @@ class BasicMemManager
 private:
     struct Record
     {
-        Record(size_t bytes, MemType type) : ptr(nullptr), bytes(bytes), available(false), type(type) {};
+        Record(size_t bytes, MemType type) : ptr(nullptr), bytes(bytes), available(false), type(type){};
         void *ptr;
         size_t bytes;
         bool available;
@@ -52,6 +52,8 @@ public:
     BasicMemManager &operator=(const BasicMemManager &) = delete;
     BasicMemManager(BasicMemManager &&) = delete;
     BasicMemManager &operator=(BasicMemManager &&) = delete;
+
+    ~BasicMemManager();
 
     static auto &instance()
     {
