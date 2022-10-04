@@ -109,8 +109,10 @@ void ProgAlignSpectral::run() {
     readBases();
     applyWeightsToBases();
     applyCtfToBases();
+    generateTranslations();
     projectReferences();
     classifyExperimental();
+    generateBandSsnr();
     generateOutput();
 }
 
@@ -118,8 +120,8 @@ void ProgAlignSpectral::run() {
 
 
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<double>>& spectrum,
-                                            std::vector<Matrix1D<double>>& data,
+void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Real>>& spectrum,
+                                            std::vector<Matrix1D<Real>>& data,
                                             size_t image ) const
 {
     data.resize(m_sizes.size());
@@ -128,8 +130,8 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<dou
     }
 }
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<double>& spectrum,
-                                            std::vector<Matrix1D<double>>& data,
+void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Real>& spectrum,
+                                            std::vector<Matrix1D<Real>>& data,
                                             size_t image ) const
 {
     data.resize(m_sizes.size());
@@ -138,9 +140,9 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<double>& spectru
     }
 }
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<double>>& spectrum,
+void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Real>>& spectrum,
                                             size_t band,
-                                            Matrix1D<double>& data,
+                                            Matrix1D<Real>& data,
                                             size_t image ) const
 {
     if (!spectrum.sameShape(m_bands)) {
@@ -161,9 +163,9 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<dou
     assert(wrPtr == MATRIX1D_ARRAY(data) + VEC_XSIZE(data));
 }
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<double>& spectrum,
+void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Real>& spectrum,
                                             size_t band,
-                                            Matrix1D<double>& data,
+                                            Matrix1D<Real>& data,
                                             size_t image ) const
 {
     if (!spectrum.sameShape(m_bands)) {
@@ -190,8 +192,8 @@ void ProgAlignSpectral::TranslationFilter::getTranslation(double& dx, double& dy
     dy = m_dy;
 }
 
-void ProgAlignSpectral::TranslationFilter::operator()(  const MultidimArray<std::complex<double>>& in, 
-                                                        MultidimArray<std::complex<double>>& out) const
+void ProgAlignSpectral::TranslationFilter::operator()(  const MultidimArray<std::complex<Real>>& in, 
+                                                        MultidimArray<std::complex<Real>>& out) const
 {
     // Shorthands
     auto& coeff = m_coefficients;
@@ -216,7 +218,7 @@ void ProgAlignSpectral::TranslationFilter::computeCoefficients()
     // Shorthands
     auto& coeff = m_coefficients;
     size_t ny = YSIZE(coeff);
-    size_t nx = fromFourierXSize(XSIZE(coeff));
+    size_t nx = (XSIZE(coeff) - 1) * 2;
 
     // Normalize the displacement
     const auto dy = m_dy / ny;
@@ -233,7 +235,7 @@ void ProgAlignSpectral::TranslationFilter::computeCoefficients()
 
 
 template<typename F>
-void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const MultidimArray<double>& img,
+void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const MultidimArray<Real>& img,
                                                                     size_t nRotations,
                                                                     const std::vector<TranslationFilter>& translations,
                                                                     F&& func )
@@ -267,13 +269,13 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const Multid
 }
 
 template<typename F>
-void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const MultidimArray<double>& img,
+void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const MultidimArray<Real>& img,
                                                                     const std::vector<TranslationFilter>& translations,
                                                                     F&& func )
 {
     // Compute the fourier transform of the input image
     m_fourier.FourierTransform(
-        const_cast<MultidimArray<double>&>(img), //HACK although it won't be written
+        const_cast<MultidimArray<Real>&>(img), //HACK although it won't be written
         m_dft, 
         false
     );
@@ -301,7 +303,7 @@ void ProgAlignSpectral::ImageTransformer::forFourierTransform(  const MultidimAr
                                                                 F&& func )
 {
     m_fourier.FourierTransform(
-        const_cast<MultidimArray<double>&>(img), //HACK although it won't be written
+        const_cast<MultidimArray<Real>&>(img), //HACK although it won't be written
         m_dft, 
         false
     );
@@ -386,7 +388,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::getComponentCount(size_t i) c
 }
 
 void ProgAlignSpectral::ReferencePcaProjections::getPcaProjection(  size_t i, 
-                                                                    std::vector<Matrix1D<double>>& r) 
+                                                                    std::vector<Matrix1D<Real>>& r) 
 {
     r.resize(m_projections.size());
     for(size_t j = 0; j < m_projections.size(); ++j) {
@@ -394,14 +396,14 @@ void ProgAlignSpectral::ReferencePcaProjections::getPcaProjection(  size_t i,
     }
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(  const std::vector<Matrix1D<double>>& experimentalBands,
-                                                                        const Matrix1D<double>& weights) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(  const std::vector<Matrix1D<Real>>& experimentalBands,
+                                                                        const Matrix1D<Real>& weights) const 
 {
-    Matrix1D<double> referenceBand;
+    Matrix1D<Real> referenceBand;
 
     // Compare it with all the reference images
     auto best = getImageCount();
-    auto bestScore = std::numeric_limits<double>::infinity();
+    auto bestScore = std::numeric_limits<Real>::infinity();
     for(size_t i = 0; i < getImageCount(); ++i) {
         // Add band by band
         double score = 0.0;
@@ -431,10 +433,10 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(  const st
     return best;
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   const std::vector<Matrix1D<double>>& experimentalBands,
-                                                                            const Matrix1D<double>& weights ) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   const std::vector<Matrix1D<Real>>& experimentalBands,
+                                                                            const Matrix1D<Real>& weights ) const 
 {
-    Matrix1D<double> referenceBand;
+    Matrix1D<Real> referenceBand;
 
     // Compare band-by-band using the branch and bound approach
     auto best = getImageCount();
@@ -446,7 +448,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   cons
         // Evaluate the "complete" score for the best candidate image
         for(size_t j = i; j < getBandCount() && scores[bestCandidate] < bestScore; ++j) {
             const auto& experimentalBand = experimentalBands[j];
-            const_cast<Matrix2D<double>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
+            const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
             scores[bestCandidate] += VEC_ELEM(weights, j) * euclideanDistance2(experimentalBand, referenceBand);
         }
 
@@ -463,7 +465,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   cons
         for(size_t j = 0; j < getImageCount(); ++j) {
             // Only consider this image if it is below the threshold
             if(scores[j] < bestScore) {
-                const_cast<Matrix2D<double>&>(m_projections[i]).getRowAlias(j, referenceBand);
+                const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(j, referenceBand);
                 scores[j] += VEC_ELEM(weights, i) * euclideanDistance2(experimentalBand, referenceBand);
                 if(scores[j] < bestCandidateScore) {
                     bestCandidate = j;
@@ -551,7 +553,7 @@ void ProgAlignSpectral::readBandMap() {
 }
 
 void ProgAlignSpectral::readBases() {
-    Image<std::complex<double>> bases;
+    Image<std::complex<Real>> bases;
     bases.read(fnPca);
 
     // Generate the Basis matrices
@@ -561,18 +563,17 @@ void ProgAlignSpectral::readBases() {
         m_bandMap.getBandSizes().cbegin(),
         m_bandMap.getBandSizes().cend(),
         std::back_inserter(m_bases),
-        [] (size_t size) {
-            return Matrix2D<double>(size, nMaxProjections);
+        [nMaxProjections] (size_t size) {
+            return Matrix2D<Real>(size, nMaxProjections);
         }
     );
 
     // Convert all elements into matrix form
-    std::vector<Matrix1D<double>> columns;
+    std::vector<Matrix1D<Real>> columns;
     for(size_t i = 0; i < NSIZE(bases()); ++i) {
-        slice.aliasImageInStack(bases(), i);
         m_bandMap.flatten(bases(), columns, i);
 
-        for(size_t j = 0; < columns.size(); ++j) {
+        for(size_t j = 0; j < columns.size(); ++j) {
             auto& basis = m_bases[j];
             const auto& column = columns[j];
             if(i < MAT_XSIZE(basis)) {
@@ -591,7 +592,7 @@ void ProgAlignSpectral::readBases() {
 
 void ProgAlignSpectral::applyWeightsToBases() {
     // Read
-    Matrix1D<double> weights(m_bases.size());
+    Matrix1D<Real> weights(m_bases.size());
     std::ifstream file(fnWeights);
     file >> weights;
 
@@ -602,11 +603,11 @@ void ProgAlignSpectral::applyWeightsToBases() {
 }
 
 void ProgAlignSpectral::applyCtfToBases() {
-    Image<double> ctf;
+    Image<Real> ctf;
     ctf.read(fnCtf);
 
-    std::vector<Matrix1D<double>> bands;
-    m_bandMap.flatten(ctf, bands);
+    std::vector<Matrix1D<Real>> bands;
+    m_bandMap.flatten(ctf(), bands);
 
     // Start from the clean bases
     m_ctfBases = m_bases;
@@ -615,38 +616,49 @@ void ProgAlignSpectral::applyCtfToBases() {
     }
 }
 
+void ProgAlignSpectral::generateTranslations() {
+    // TODO determine optimally based on a heat map
+    size_t nx, ny, nz, nn;
+    getImageSize(m_mdExperimental, nx, ny, nz, nn);
+
+    m_translations = computeTranslationFiltersRectangle(
+        nx, ny,
+        nTranslations, maxShift
+    );
+}
+
 void ProgAlignSpectral::projectReferences() {
     // Allocate space
-    std::vector<size_t> projectionSizes(m_pca.getBandCount());
-    for(size_t i = 0; i < m_pca.getBandCount(); ++i) projectionSizes[i] = m_pca.getProjectionSize(i);
+    std::vector<size_t> projectionSizes(m_bases.size());
+    for(size_t i = 0; i < m_bases.size(); ++i) projectionSizes[i] = MAT_XSIZE(m_bases[i]);
     m_references.reset(
-        m_mdReference.size() * m_parameters.nRotations * m_translations.size(),
+        m_mdReference.size() * nRotations * m_translations.size(),
         projectionSizes
     );
     m_referenceData.resize(m_references.getImageCount());
     
     struct ThreadData {
-        Image<double> image;
+        Image<Real> image;
         ImageTransformer transformer;
-        std::vector<Matrix1D<double>> bandCoefficients;
-        std::vector<Matrix1D<double>> bandProjections;
+        std::vector<Matrix1D<Real>> bandCoefficients;
+        std::vector<Matrix1D<Real>> bandProjections;
     };
 
     // Create a lambda to run in parallel
-    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    std::vector<ThreadData> threadData(nThreads);
     const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
         auto& data = threadData[threadId];
 
         // Read an image from disk
         const size_t rowId = row.getValue<size_t>(MDL_OBJID);
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, data.image);
+        data.image.read(fnImage);
 
         // For each in-plane transformation train the PCA
-        const auto offset = i * m_parameters.nRotations * m_translations.size();
+        const auto offset = i * nRotations * m_translations.size();
         data.transformer.forEachInPlaneTransform(
             data.image(),
-            m_parameters.nRotations,
+            nRotations,
             m_translations,
             [this, &data, rowId, counter=offset] (const auto& x, auto rot, auto sx, auto sy) mutable {
                 // Obtain the resulting memory area
@@ -654,8 +666,8 @@ void ProgAlignSpectral::projectReferences() {
                 m_references.getPcaProjection(index, data.bandProjections);
 
                 // Project the image
-                m_bandMap.flattenForPca(x, data.bandCoefficients);
-                m_pca.project(data.bandCoefficients, data.bandProjections);
+                m_bandMap.flatten(x, data.bandCoefficients);
+                //m_pca.project(data.bandCoefficients, data.bandProjections); //TODO replace
 
                 // Write the metadata
                 m_referenceData[index] = ReferenceMetadata(
@@ -673,98 +685,76 @@ void ProgAlignSpectral::projectReferences() {
 void ProgAlignSpectral::classifyExperimental() {
     // Initialize the classification vector with invalid 
     // data and the appropiate size
-    m_classification.clear();
+    // TODO uncomment
+    /*m_classification.clear();
     m_classification.resize(
         m_mdExperimental.size(), // size
         m_references.getImageCount() // invalid value
     );
-    m_ssnr.resizeNoCopy(m_classification.size(), m_pca.getBandCount());
+    m_ssnr.resizeNoCopy(m_classification.size(), m_pca.getBandCount());*/
 
     struct ThreadData {
-        Image<double> image;
+        Image<Real> image;
         FourierTransformer fourier;
-        MultidimArray<std::complex<double>> spectrum;
-        std::vector<Matrix1D<double>> bandCoefficients;
-        std::vector<Matrix1D<double>> bandProjections;
-        std::vector<Matrix1D<double>> referenceBandProjections;
-        Matrix1D<double> ssnr;
+        MultidimArray<std::complex<Real>> spectrum;
+        std::vector<Matrix1D<Real>> bandCoefficients;
+        std::vector<Matrix1D<Real>> bandProjections;
+        std::vector<Matrix1D<Real>> referenceBandProjections;
+        Matrix1D<Real> ssnr;
     };
 
     // Create a lambda to run in parallel
-    std::vector<ThreadData> threadData(m_parameters.nThreads);
+    std::vector<ThreadData> threadData(nThreads);
     const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
         auto& data = threadData[threadId];
 
         // Read an image
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
-        readImage(fnImage, data.image);
+        data.image.read(fnImage);
 
         // Project the image
         data.fourier.FourierTransform(data.image(), data.spectrum, false);
-        m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
-        m_pca.project(data.bandCoefficients, data.bandProjections);
+        m_bandMap.flatten(data.spectrum, data.bandCoefficients);
 
-        // Compare the projection to find a match
-        const auto classification = m_references.matchPcaProjection(data.bandProjections, m_weights);
-        m_classification[i] = classification;
+        //m_pca.project(data.bandCoefficients, data.bandProjections); //TODO replace
 
-        // Compute the SSNR
-        m_references.getPcaProjection(classification, data.referenceBandProjections);
-        m_ssnr.getRowAlias(i, data.ssnr);
-        calculateBandSsnr(data.referenceBandProjections, data.bandProjections, data.ssnr);
+        // Compare the projection to find a match //TODO uncomment
+        //const auto classification = m_references.matchPcaProjection(data.bandProjections, m_weights);
+        //m_classification[i] = classification; //TODO uncomment
+
+        // Compute the SSNR TODO uncomment
+        //m_references.getPcaProjection(classification, data.referenceBandProjections);
+        //m_ssnr.getRowAlias(i, data.ssnr);
+        //calculateBandSsnr(data.referenceBandProjections, data.bandProjections, data.ssnr);
     };
 
     processRowsInParallel(m_mdExperimental, func, threadData.size());
 }
 
 void ProgAlignSpectral::generateBandSsnr() {
-    // Calculate the average SSNR on each band
-    Matrix1D<double> totalSsnr;
+    //TODO uncomment
+    /*// Calculate the average SSNR on each band
+    Matrix1D<Real> totalSsnr;
     m_ssnr.colSum(totalSsnr);
     totalSsnr /= MAT_YSIZE(m_ssnr);
 
     // Write it to disk
     totalSsnr.write(m_parameters.fnOroot + "ssnr");
-    m_ssnr.write(m_parameters.fnOroot + "image_ssnr");
+    m_ssnr.write(m_parameters.fnOroot + "image_ssnr");*/
 }
 
 void ProgAlignSpectral::generateOutput() {
     auto mdOut = m_mdExperimental; //TODO overwrite
 
     // Modify the experimental data
-    assert(mdOut.size() == m_classification.size());
+    //assert(mdOut.size() == m_classification.size()); //TODO uncomment
     for(size_t i = 0; i < mdOut.size(); ++i) {
         auto row = mdOut.getRowVec(mdOut.getRowId(i));
-        updateRow(row, m_classification[i]);
+        //updateRow(row, m_classification[i]); //TODO uncomment
     }
 
     // Write the data
-    mdOut.write(m_parameters.fnOutput);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-void ProgAlignSpectral::calculateTranslationFilters() {
-    // Shorthands
-    const auto& nTranslations = m_parameters.nTranslations;
-    const auto& maxShift = m_parameters.maxShift;
-    const auto& md = m_mdReference;
-    
-    // Determine the image size
-    size_t nx, ny, nz, nn;
-    getImageSize(md, nx, ny, nz, nn);
-
-    // Pre-compute the translation filters in the freq. domain
-    m_translations = computeTranslationFiltersRectangle(nx, ny, nTranslations, maxShift);
+    mdOut.write(fnOutputMetadata);
 }
 
 
@@ -882,12 +872,12 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
 
 
 
-size_t ProgAlignSpectral::getImageProjectionSize(const std::vector<Matrix2D>& bases) {
+size_t ProgAlignSpectral::getImageProjectionSize(const std::vector<Matrix2D<Real>>& bases) {
     size_t coeffs = 0;
     for(const auto& m : bases) {
         coeffs += MAT_XSIZE(m);
     }
-    return coeffs * sizeof(double);
+    return coeffs * sizeof(Real);
 }
 
 std::vector<ProgAlignSpectral::TranslationFilter> 
@@ -975,9 +965,9 @@ ProgAlignSpectral::computeTranslationFiltersSunflower(  const size_t nx,
     return result;
 }
 
-void ProgAlignSpectral::calculateBandSsnr(  const std::vector<Matrix1D<double>>& reference, 
-                                            const std::vector<Matrix1D<double>>& experimental, 
-                                            Matrix1D<double>& ssnr )
+void ProgAlignSpectral::calculateBandSsnr(  const std::vector<Matrix1D<Real>>& reference, 
+                                            const std::vector<Matrix1D<Real>>& experimental, 
+                                            Matrix1D<Real>& ssnr )
 {
 
     assert(experimental.size() == reference.size());

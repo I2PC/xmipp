@@ -47,6 +47,8 @@ namespace Alignment {
 class ProgAlignSpectral : public XmippProgram
 {
 public:
+    using Real = double;
+
     virtual void readParams() override;
     virtual void defineParams() override;
     virtual void show() const override;
@@ -63,10 +65,10 @@ public:
     
     size_t nRotations;
     size_t nTranslations;
-    double maxShift;
+    Real maxShift;
 
     size_t nThreads;
-    double maxMemory;
+    Real maxMemory;
 
 private:
     class BandMap {
@@ -84,19 +86,19 @@ private:
 
         const MultidimArray<int>& getBands() const;
         const std::vector<size_t>& getBandSizes() const;
-        void flatten(   const MultidimArray<std::complex<double>>& spectrum,
-                        std::vector<Matrix1D<double>>& data,
+        void flatten(   const MultidimArray<std::complex<Real>>& spectrum,
+                        std::vector<Matrix1D<Real>>& data,
                         size_t image = 0 ) const;
-        void flatten(   const MultidimArray<double>& spectrum,
-                        std::vector<Matrix1D<double>>& data,
+        void flatten(   const MultidimArray<Real>& spectrum,
+                        std::vector<Matrix1D<Real>>& data,
                         size_t image = 0 ) const;
-        void flatten(   const MultidimArray<std::complex<double>>& spectrum,
+        void flatten(   const MultidimArray<std::complex<Real>>& spectrum,
                         size_t band,
-                        Matrix1D<double>& data,
+                        Matrix1D<Real>& data,
                         size_t image = 0 ) const;
-        void flatten(   const MultidimArray<double>& spectrum,
+        void flatten(   const MultidimArray<Real>& spectrum,
                         size_t band,
-                        Matrix1D<double>& data,
+                        Matrix1D<Real>& data,
                         size_t image = 0 ) const;
 
     private:
@@ -112,7 +114,7 @@ private:
         TranslationFilter(double dx, double dy, size_t nx, size_t ny)
             : m_dy(dy)
             , m_dx(dx)
-            , m_coefficients(ny, toFourierXSize(nx)) //Half FFT as real
+            , m_coefficients(ny, nx/2+1) //Half FFT as real
         {
             computeCoefficients();
         }
@@ -123,12 +125,12 @@ private:
 
         TranslationFilter& operator=(const TranslationFilter& other) = default;
 
-        void operator()(const MultidimArray<std::complex<double>>& in, 
-                        MultidimArray<std::complex<double>>& out) const;
+        void operator()(const MultidimArray<std::complex<Real>>& in, 
+                        MultidimArray<std::complex<Real>>& out) const;
 
     private:
         double m_dy, m_dx;
-        MultidimArray<std::complex<double>> m_coefficients;
+        MultidimArray<std::complex<Real>> m_coefficients;
 
         void computeCoefficients();
     };
@@ -136,24 +138,24 @@ private:
     class ImageTransformer {
     public:
         template<typename F>
-        void forEachInPlaneTransform(   const MultidimArray<double>& img,
+        void forEachInPlaneTransform(   const MultidimArray<Real>& img,
                                         size_t nRotations,
                                         const std::vector<TranslationFilter>& translations,
                                         F&& func );
 
         template<typename F>
-        void forEachInPlaneTranslation( const MultidimArray<double>& img,
+        void forEachInPlaneTranslation( const MultidimArray<Real>& img,
                                         const std::vector<TranslationFilter>& translations,
                                         F&& func );
         
         template<typename F>
-        void forFourierTransform(   const MultidimArray<double>& img,
+        void forFourierTransform(   const MultidimArray<Real>& img,
                                     F&& func );
     private:
         FourierTransformer m_fourier;
-        MultidimArray<double> m_rotated;
-        MultidimArray<std::complex<double>> m_dft;
-        MultidimArray<std::complex<double>> m_translatedDft;
+        MultidimArray<Real> m_rotated;
+        MultidimArray<std::complex<Real>> m_dft;
+        MultidimArray<std::complex<Real>> m_translatedDft;
 
     };
 
@@ -172,12 +174,12 @@ private:
         size_t getBandCount() const;
         size_t getComponentCount(size_t i) const;
 
-        void getPcaProjection(size_t i, std::vector<Matrix1D<double>>& referenceBands);
-        size_t matchPcaProjection(const std::vector<Matrix1D<double>>& experimentalBands, const Matrix1D<double>& weights) const;
-        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<double>>& experimentalBands, const Matrix1D<double>& weights) const;
+        void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
+        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, const Matrix1D<Real>& weights) const;
+        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, const Matrix1D<Real>& weights) const;
 
     private:
-        std::vector<Matrix2D<double>> m_projections;
+        std::vector<Matrix2D<Real>> m_projections;
 
     };
 
@@ -213,23 +215,29 @@ private:
     MetaDataVec m_mdExperimental;
     MetaDataVec m_mdReference;
     BandMap m_bandMap;
-    std::vector<Matrix2D<double>> m_bases;
-    std::vector<Matrix2D<double>> m_ctfBases;
+    std::vector<Matrix2D<Real>> m_bases;
+    std::vector<Matrix2D<Real>> m_ctfBases;
+    std::vector<TranslationFilter> m_translations;
     ReferencePcaProjections m_references;
+    std::vector<ReferenceMetadata> m_referenceData;
 
     void readInputMetadata();
     void readBandMap();
     void readBases();
     void applyWeightsToBases();
     void applyCtfToBases();
+    void generateTranslations();
     void projectReferences();
     void classifyExperimental();
+    void generateBandSsnr();
     void generateOutput();
+
+    void updateRow(MDRowVec& row, size_t matchIndex) const;
 
     template<typename F>
     void processRowsInParallel(const MetaDataVec& md, F&& func, size_t nThreads);
 
-    static size_t getImageProjectionSize(const std::vector<Matrix2D>& bases);
+    static size_t getImageProjectionSize(const std::vector<Matrix2D<Real>>& bases);
 
     static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
                                                                                 size_t ny, 
@@ -240,9 +248,9 @@ private:
                                                                                 size_t nTranslations,
                                                                                 double maxShift );
 
-    static void calculateBandSsnr(  const std::vector<Matrix1D<double>>& reference, 
-                                    const std::vector<Matrix1D<double>>& experimental, 
-                                    Matrix1D<double>& ssnr );
+    static void calculateBandSsnr(  const std::vector<Matrix1D<Real>>& reference, 
+                                    const std::vector<Matrix1D<Real>>& experimental, 
+                                    Matrix1D<Real>& ssnr );
 
 };
 
