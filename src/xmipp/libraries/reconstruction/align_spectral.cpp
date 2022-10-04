@@ -46,6 +46,7 @@ void ProgAlignSpectral::defineParams() {
 
     addParamsLine("   -r <md_file>                    : Metadata file with the reference images");
     addParamsLine("   -i <md_file>                    : Metadata file with the experimental images");
+    addParamsLine("   -t <stack>                      : Training stack");
     addParamsLine("   -o <md_file>                    : Resulting metadata file with the aligned images");
     addParamsLine("   --oroot <directory>             : Root directory for auxiliary output files");
     
@@ -68,6 +69,7 @@ void ProgAlignSpectral::readParams() {
 
     param.fnReference = getParam("-r");
     param.fnExperimental = getParam("-i");
+    param.fnTraining = getParam("-t");
     param.fnOutput = getParam("-o");
     param.fnOroot = getParam("--oroot");
 
@@ -766,10 +768,14 @@ void ProgAlignSpectral::trainPcas() {
     };
 
     // Create a MD with a subset of all the images (experimental and reference)
-    MetaDataVec mdSubset = m_mdExperimental;
-    mdSubset.randomize(mdSubset);
-    const auto nTraining = static_cast<size_t>(m_parameters.training * mdSubset.size());
-    while(mdSubset.size() >= nTraining) mdSubset.removeObject(mdSubset.lastRowId());
+    MetaDataVec mdTraining, mdAux;
+    readMetadata(m_parameters.fnTraining, mdTraining);
+    mdAux.randomize(mdTraining);
+    mdTraining.selectPart(
+        mdAux,
+        0,
+        static_cast<size_t>(m_parameters.training * mdAux.size())
+    );
 
     // Setup PCAs
     m_pca.reset(
@@ -793,7 +799,7 @@ void ProgAlignSpectral::trainPcas() {
     };
 
     // Dispatch training
-    processRowsInParallel(mdSubset, func, threadData.size());
+    processRowsInParallel(mdTraining, func, threadData.size());
 
     // Finalize training
     m_pca.finalize();
@@ -835,15 +841,19 @@ void ProgAlignSpectral::calculateBandWeights() {
     // TODO determine correctly
     std::cout << "Band weights:\n";
     m_weights.resizeNoCopy(m_pca.getBandCount());
-    Matrix1D<double> var;
+    //Matrix1D<double> var;
     FOR_ALL_ELEMENTS_IN_MATRIX1D(m_weights) {
         //m_pca.getVariance(i, var);
-        //const auto sigma = std::sqrt(var.computeMean());
+        //const auto sigma2 = var.computeMean();
+        //const auto weight = 1.0 / (1.0 + i);
+        //const auto weight = noise[i];
+        const auto weight = 1.0;
         const auto pcaCorrectionFactor = static_cast<double>(m_pca.getBandSize(i)) / m_pca.getProjectionSize(i);
-        VEC_ELEM(m_weights, i) = pcaCorrectionFactor;
+        VEC_ELEM(m_weights, i) = pcaCorrectionFactor * weight;
         std::cout << "\t- Band " << i << ": " << VEC_ELEM(m_weights, i) << "\n";
+        //std::cout << 1.0/sigma2 << " ";
     }
-    std::cout << std::endl;
+    //std::cout << std::endl;
 }
 
 void ProgAlignSpectral::projectReferences() {
@@ -1264,8 +1274,9 @@ void ProgAlignSpectral::calculateBandSsnr(  const std::vector<Matrix1D<double>>&
         const auto& referenceBand = reference[i];
         const auto& experimentalBand = experimental[i];
         const auto noiseEnergy = euclideanDistance2(referenceBand, experimentalBand);
-        const auto signalEnergy = referenceBand.sum2();
-        VEC_ELEM(ssnr, i) = signalEnergy / noiseEnergy;
+        //const auto signalEnergy = referenceBand.sum2();
+        //VEC_ELEM(ssnr, i) = signalEnergy / noiseEnergy;
+        VEC_ELEM(ssnr, i) = VEC_XSIZE(experimentalBand) / noiseEnergy;
     }
 }
 

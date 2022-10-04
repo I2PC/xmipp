@@ -27,6 +27,10 @@
 
 #include <core/metadata_extension.h>
 
+#include <atomic>
+#include <thread>
+#include <vector>
+#include <algorithm>
 #include <numeric>
 #include <cassert>
 
@@ -68,7 +72,9 @@ void ProgImageSpectralPca::show() const {
 }
 
 void ProgImageSpectralPca::run() {
-    //TODO
+    readBandMap();
+    trainPca();
+    generateOutput();
 }
 
 
@@ -96,18 +102,18 @@ const std::vector<size_t>& ProgImageSpectralPca::BandMap::getBandSizes() const {
     return m_sizes;
 }
 
-void ProgImageSpectralPca::BandMap::flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
-                                                std::vector<Matrix1D<double>>& data ) const
+void ProgImageSpectralPca::BandMap::flatten(const MultidimArray<std::complex<double>>& spectrum,
+                                            std::vector<Matrix1D<double>>& data ) const
 {
     data.resize(m_sizes.size());
     for(size_t i = 0; i < m_sizes.size(); ++i) {
-        flattenForPca(spectrum, i, data[i]);
+        flatten(spectrum, i, data[i]);
     }
 }
 
-void ProgImageSpectralPca::BandMap::flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
-                                                size_t band,
-                                                Matrix1D<double>& data ) const
+void ProgImageSpectralPca::BandMap::flatten(const MultidimArray<std::complex<double>>& spectrum,
+                                            size_t band,
+                                            Matrix1D<double>& data ) const
 {
     if (!spectrum.sameShape(m_bands)) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
@@ -123,6 +129,41 @@ void ProgImageSpectralPca::BandMap::flattenForPca( const MultidimArray<std::comp
         }
     }
     assert(wrPtr == MATRIX1D_ARRAY(data) + VEC_XSIZE(data));
+}
+
+void ProgImageSpectralPca::BandMap::unflatten(  const std::vector<Matrix1D<double>>& data,
+                                                MultidimArray<std::complex<double>>& spectrum ) const
+{
+    if(m_sizes.size() != data.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Data must have the appropiate size");
+    }
+
+    spectrum.initZeros(m_bands);
+    for(size_t i = 0; i < data.size(); ++i) {
+        unflatten(data[i], i, spectrum);
+    }
+}
+
+void ProgImageSpectralPca::BandMap::unflatten(  const Matrix1D<double>& data,
+                                                size_t band,
+                                                MultidimArray<std::complex<double>>& spectrum ) const
+{
+    if (!spectrum.sameShape(m_bands)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
+    }
+    if(m_sizes[band] != VEC_XSIZE(data)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Data must have the appropiate size");
+    }
+
+    const auto* rdPtr = MATRIX1D_ARRAY(data);
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m_bands) {
+        if(DIRECT_MULTIDIM_ELEM(m_bands, n) == band) {
+            auto& value = DIRECT_MULTIDIM_ELEM(spectrum, n);
+            value.real(*(rdPtr++));
+            value.imag(*(rdPtr++));
+        }
+    }
+    assert(rdPtr == MATRIX1D_ARRAY(data) + VEC_XSIZE(data));
 }
 
 std::vector<size_t> ProgImageSpectralPca::BandMap::computeBandSizes(const MultidimArray<int>& bands) {
@@ -151,9 +192,9 @@ std::vector<size_t> ProgImageSpectralPca::BandMap::computeBandSizes(const Multid
 
 
 
-ProgImageSpectralPca::SpectralPca::SpectralPca(const std::vector<size_t>& sizes,
-                                            double initialCompression,
-                                            double initialBatch )
+ProgImageSpectralPca::SpectralPca::SpectralPca( const std::vector<size_t>& sizes,
+                                                double initialCompression,
+                                                double initialBatch )
 {
     reset(sizes, initialCompression, initialBatch);
 }
@@ -259,8 +300,8 @@ void ProgImageSpectralPca::SpectralPca::equalizeError(double precision) {
 }
 
 
-void ProgImageSpectralPca::SpectralPca::calculateErrorFunction(Matrix1D<double>& lambdas, 
-                                                            double totalVariance)
+void ProgImageSpectralPca::SpectralPca::calculateErrorFunction( Matrix1D<double>& lambdas, 
+                                                                double totalVariance)
 {
     // Integrate in-place the represented variances
     std::partial_sum(
@@ -274,8 +315,8 @@ void ProgImageSpectralPca::SpectralPca::calculateErrorFunction(Matrix1D<double>&
     lambdas *= gain;
 }
 
-size_t ProgImageSpectralPca::SpectralPca::calculateRequiredComponents( const Matrix1D<double>& errFn,
-                                                                    double precision )
+size_t ProgImageSpectralPca::SpectralPca::calculateRequiredComponents(  const Matrix1D<double>& errFn,
+                                                                        double precision )
 {
     const auto ite = std::lower_bound(
         MATRIX1D_ARRAY(errFn),
@@ -317,12 +358,12 @@ void ProgImageSpectralPca::trainPca() {
     MetaDataVec md;
     md.read(fnImages);
     md.removeDisabled();
-    subset(md, static_cast<size_t>(md.size()*pcaTraining/100));
+    selectSubset(md, static_cast<size_t>(md.size()*pcaTraining/100));
 
     // Setup PCAs
     m_pca.reset(
         m_bandMap.getBandSizes(), 
-        0.9, 4.0 //TODO parameters
+        1.0, 4.0 //TODO parameters
     );
 
     // Create a lambda to run in parallel for each image to be learnt
@@ -336,12 +377,12 @@ void ProgImageSpectralPca::trainPca() {
 
         // Learn the image        
         data.fourier.FourierTransform(data.image(), data.spectrum, false);
-        m_bandMap.flattenForPca(data.spectrum, data.bandCoefficients);
+        m_bandMap.flatten(data.spectrum, data.bandCoefficients);
         m_pca.learnConcurrent(data.bandCoefficients);
     };
 
     // Dispatch training
-    //processRowsInParallel(md, func, threadData.size()); //TODO
+    processRowsInParallel(md, func, threadData.size());
 
     // Finalize training
     m_pca.finalize();
@@ -366,19 +407,106 @@ void ProgImageSpectralPca::trainPca() {
 }
 
 void ProgImageSpectralPca::generateOutput() {
+    // Create the output images
+    const auto& bands = m_bandMap.getBands();
+
+    //Determine the projection count
+    size_t maxProjCount = m_pca.getProjectionSize(0);
+    for (size_t i = 1; i < m_pca.getBandCount(); ++i) {
+        maxProjCount = std::max(maxProjCount, m_pca.getProjectionSize(i));
+    }
+
+    // Create the output arrays
+    MultidimArray<std::complex<double>> mean, variance, basis;
+    mean.initZeros(bands);
+    variance.initZeros(bands);
+    basis.initZeros(maxProjCount, ZSIZE(bands), YSIZE(bands), XSIZE(bands));
+
+    // Alias each basis column with an array
+    std::vector<MultidimArray<std::complex<double>>> basisAliases(NSIZE(basis));
+    for(size_t i = 0; i < basisAliases.size(); ++i) {
+        basisAliases[i].aliasImageInStack(basis, i); //TODO implement for volumes
+    }
+
+    // Fill the output array with the computed data
     Matrix1D<double> v;
     Matrix2D<double> m;
-
     for(size_t i = 0; i < m_pca.getBandCount(); ++i) {
-        const auto num = std::to_string(i);
-        m_pca.getBasis(i, m); m.write(fnOroot + "basis_" + num + ".txt");
-        m_pca.getMean(i, v); v.write(fnOroot + "mean_" + num + ".txt");
-        m_pca.getVariance(i, v); v.write(fnOroot + "variance_" + num + ".txt");
-        m_pca.getProjectionVariance(i, v); v.write(fnOroot + "projection_variance_" + num + ".txt");
+        // Write the mean and the variance
+        m_pca.getMean(i, v); m_bandMap.unflatten(v, i, mean);
+        m_pca.getVariance(i, v); m_bandMap.unflatten(v, i, variance);
+
+        // Write the basis
+        m_pca.getBasis(i, m);
+        for(size_t j = 0; j < m_pca.getProjectionSize(i); ++j) {
+            m.getCol(j, v); m_bandMap.unflatten(v, i, basisAliases[j]);
+        }
     }
+
+    // Write to disk
+    using CImage = Image<std::complex<double>>;
+    CImage(mean).write(fnOroot + "mean.stk");
+    CImage(variance).write(fnOroot + "variance.stk");
+    CImage(basis).write(fnOroot + "bases.stk");
 }
 
-void ProgImageSpectralPca::subset(MetaDataVec& md, size_t n) {
+template<typename F>
+void ProgImageSpectralPca::processRowsInParallel(   const MetaDataVec& md, 
+                                                    F&& func, 
+                                                    size_t nThreads ) 
+{
+    if(nThreads < 1) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "There needs to be at least one thread");
+    }
+
+    std::atomic<size_t> currRowNum(0);
+    const auto mdSize = md.size();
+
+    // Create a worker function which atomically aquires a row and
+    // dispatches the provided function
+    const auto workerFunc = [&md, &func, &currRowNum, mdSize] (size_t threadId) {
+        auto rowNum = currRowNum++;
+
+        while(rowNum < mdSize) {
+            // Process a row
+            const auto row = md.getRowVec(md.getRowId(rowNum));
+            func(threadId, rowNum, row);
+
+            // Update the progress bar only from the first thread 
+            // due to concurrency issues
+            if (threadId == 0) {
+                progress_bar(rowNum+1);
+            }
+
+            // Aquire the next row
+            rowNum = currRowNum++;
+        }
+    };
+
+    // Initialzie the progress bar
+    init_progress_bar(mdSize);
+
+    // Create some workers
+    std::vector<std::thread> threads;
+    threads.reserve(nThreads - 1);
+    for(size_t i = 1; i < nThreads; ++i) {
+        threads.emplace_back(workerFunc, i);
+    }
+
+    // Use the local thread
+    workerFunc(0);
+
+    //Wait for the others to finish
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    // Set the progress bar as finished
+    progress_bar(mdSize);
+}
+
+
+void ProgImageSpectralPca::selectSubset(MetaDataVec& md, size_t n) {
     MetaDataVec aux;
     aux.randomize(md);
     md.selectPart(aux, 0, n);

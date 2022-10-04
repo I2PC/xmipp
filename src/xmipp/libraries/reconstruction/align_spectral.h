@@ -236,6 +236,7 @@ private:
     struct RuntimeParameters {
         FileName fnReference;
         FileName fnExperimental;
+        FileName fnTraining;
         FileName fnOutput;
         FileName fnOroot;
 

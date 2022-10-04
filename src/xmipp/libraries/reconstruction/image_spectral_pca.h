@@ -75,12 +75,16 @@ private:
 
         const MultidimArray<int>& getBands() const;
         const std::vector<size_t>& getBandSizes() const;
-        void flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
-                            std::vector<Matrix1D<double>>& data ) const;
-        void flattenForPca( const MultidimArray<std::complex<double>>& spectrum,
-                            size_t band,
-                            Matrix1D<double>& data ) const;
-
+        void flatten(   const MultidimArray<std::complex<double>>& spectrum,
+                        std::vector<Matrix1D<double>>& data ) const;
+        void flatten(   const MultidimArray<std::complex<double>>& spectrum,
+                        size_t band,
+                        Matrix1D<double>& data ) const;
+        void unflatten( const std::vector<Matrix1D<double>>& data,
+                        MultidimArray<std::complex<double>>& spectrum ) const;
+        void unflatten( const Matrix1D<double>& data,
+                        size_t band,
+                        MultidimArray<std::complex<double>>& spectrum ) const;
     private:
         MultidimArray<int> m_bands;
         std::vector<size_t> m_sizes;
@@ -144,7 +148,11 @@ private:
     void trainPca();
     void generateOutput();
 
-    static void subset(MetaDataVec& md, size_t n);
+
+    template<typename F>
+    void processRowsInParallel(const MetaDataVec& md, F&& func, size_t nThreads);
+
+    static void selectSubset(MetaDataVec& md, size_t n);
 };
 
 #endif
