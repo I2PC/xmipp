@@ -403,7 +403,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
-	int threadPosition = cudaVRecMaskF[threadIndex];
+	int threadPosition = cudaCoordinatesF[threadIndex];
 	int cubeX = threadPosition % xdim;
 	int cubeY = threadPosition / xdim % ydim;
 	int cubeZ = threadPosition / (xdim * ydim);
