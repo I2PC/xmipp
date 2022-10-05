@@ -266,12 +266,12 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  ydimF(parameters.VRecMaskF.ydim)
 {
 	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB, 1);
-	auto optimalizedSize = ceil(sizeB / 1024) * 1024;
-	blockX = std::__gcd(1024, static_cast<int>(optimalizedSize));
+	auto optimalizedSize = ceil(sizeB / 128) * 128;
+	blockX = std::__gcd(128, static_cast<int>(optimalizedSize));
 	gridX = optimalizedSize / blockX;
 	std::tie(cudaCoordinatesF, sizeF) = filterAndTransportMask(parameters.VRecMaskF, parameters.loopStep);
-	optimalizedSize = ceil(sizeF / 1024) * 1024;
-	blockXStep = std::__gcd(1024, static_cast<int>(optimalizedSize));
+	optimalizedSize = ceil(sizeF / 128) * 128;
+	blockXStep = std::__gcd(128, static_cast<int>(optimalizedSize));
 	gridXStep = optimalizedSize / blockXStep;
 }
 
