@@ -181,7 +181,7 @@ namespace {
 
 	}
 
-	struct BlockSizes
+	/*struct BlockSizes
 	blockSizeArchitecture()
 
 	{
@@ -214,10 +214,11 @@ namespace {
 				break;
 		}
 		return output;
-	}
+	}*/
 
 	template<typename T>
 	std::tuple<unsigned *, size_t> filterAndTransportMask(MultidimArray<T> mask, int step)
+
 	{
 		std::vector<unsigned> coordinates;
 		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
