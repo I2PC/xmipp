@@ -132,7 +132,8 @@ void ProgImageSpectralPca::BandMap::flatten(const MultidimArray<std::complex<dou
 }
 
 void ProgImageSpectralPca::BandMap::unflatten(  const std::vector<Matrix1D<double>>& data,
-                                                MultidimArray<std::complex<double>>& spectrum ) const
+                                                MultidimArray<std::complex<double>>& spectrum,
+                                                size_t image ) const
 {
     if(m_sizes.size() != data.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Data must have the appropiate size");
@@ -140,15 +141,34 @@ void ProgImageSpectralPca::BandMap::unflatten(  const std::vector<Matrix1D<doubl
 
     spectrum.initZeros(m_bands);
     for(size_t i = 0; i < data.size(); ++i) {
-        unflatten(data[i], i, spectrum);
+        unflatten(data[i], i, spectrum, image);
+    }
+}
+
+void ProgImageSpectralPca::BandMap::unflattenEvenOdd(   const std::vector<Matrix1D<double>>& data,
+                                                        MultidimArray<double>& spectrum,
+                                                        size_t evenOdd,
+                                                        size_t image ) const
+{
+    if(m_sizes.size() != data.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Data must have the appropiate size");
+    }
+
+    spectrum.initZeros(m_bands);
+    for(size_t i = 0; i < data.size(); ++i) {
+        unflattenEvenOdd(data[i], i, spectrum, evenOdd, image);
     }
 }
 
 void ProgImageSpectralPca::BandMap::unflatten(  const Matrix1D<double>& data,
                                                 size_t band,
-                                                MultidimArray<std::complex<double>>& spectrum ) const
+                                                MultidimArray<std::complex<double>>& spectrum,
+                                                size_t image ) const
 {
-    if (!spectrum.sameShape(m_bands)) {
+    if (XSIZE(m_bands) != XSIZE(spectrum) || 
+        YSIZE(m_bands) != YSIZE(spectrum) || 
+        ZSIZE(m_bands) != ZSIZE(spectrum) ) 
+    {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
     }
     if(m_sizes[band] != VEC_XSIZE(data)) {
@@ -156,12 +176,41 @@ void ProgImageSpectralPca::BandMap::unflatten(  const Matrix1D<double>& data,
     }
 
     const auto* rdPtr = MATRIX1D_ARRAY(data);
+    auto* wrPtr = MULTIDIM_ARRAY(spectrum) + image*ZYXSIZE(spectrum);
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m_bands) {
         if(DIRECT_MULTIDIM_ELEM(m_bands, n) == band) {
-            auto& value = DIRECT_MULTIDIM_ELEM(spectrum, n);
-            value.real(*(rdPtr++));
-            value.imag(*(rdPtr++));
+            wrPtr->real(*(rdPtr++));
+            wrPtr->imag(*(rdPtr++));
         }
+        ++wrPtr;
+    }
+    assert(rdPtr == MATRIX1D_ARRAY(data) + VEC_XSIZE(data));
+}
+
+void ProgImageSpectralPca::BandMap::unflattenEvenOdd(   const Matrix1D<double>& data,
+                                                        size_t band,
+                                                        MultidimArray<double>& spectrum,
+                                                        size_t evenOdd,
+                                                        size_t image ) const
+{
+    if (XSIZE(m_bands) != XSIZE(spectrum) || 
+        YSIZE(m_bands) != YSIZE(spectrum) || 
+        ZSIZE(m_bands) != ZSIZE(spectrum) ) 
+    {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
+    }
+    if(m_sizes[band] != VEC_XSIZE(data)) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Data must have the appropiate size");
+    }
+
+    const auto* rdPtr = MATRIX1D_ARRAY(data);
+    auto* wrPtr = MULTIDIM_ARRAY(spectrum) + image*ZYXSIZE(spectrum);
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m_bands) {
+        if(DIRECT_MULTIDIM_ELEM(m_bands, n) == band) {
+            (*wrPtr) = *(rdPtr + evenOdd);
+            rdPtr += 2;
+        }
+        ++wrPtr;
     }
     assert(rdPtr == MATRIX1D_ARRAY(data) + VEC_XSIZE(data));
 }
@@ -416,38 +465,37 @@ void ProgImageSpectralPca::generateOutput() {
         maxProjCount = std::max(maxProjCount, m_pca.getProjectionSize(i));
     }
 
-    // Create the output arrays
-    MultidimArray<std::complex<double>> mean, variance, basis;
-    mean.initZeros(bands);
-    variance.initZeros(bands);
-    basis.initZeros(maxProjCount, ZSIZE(bands), YSIZE(bands), XSIZE(bands));
-
-    // Alias each basis column with an array
-    std::vector<MultidimArray<std::complex<double>>> basisAliases(NSIZE(basis));
-    for(size_t i = 0; i < basisAliases.size(); ++i) {
-        basisAliases[i].aliasImageInStack(basis, i); //TODO implement for volumes
-    }
+    // Create the output arrays.
+    MultidimArray<double> mean, variance, basis;
+    mean.initZeros(2, ZSIZE(bands), YSIZE(bands), XSIZE(bands));
+    variance.initZeros(2, ZSIZE(bands), YSIZE(bands), XSIZE(bands));
+    basis.initZeros(2*maxProjCount, ZSIZE(bands), YSIZE(bands), XSIZE(bands));
 
     // Fill the output array with the computed data
     Matrix1D<double> v;
     Matrix2D<double> m;
     for(size_t i = 0; i < m_pca.getBandCount(); ++i) {
         // Write the mean and the variance
-        m_pca.getMean(i, v); m_bandMap.unflatten(v, i, mean);
-        m_pca.getVariance(i, v); m_bandMap.unflatten(v, i, variance);
+        m_pca.getMean(i, v);
+        m_bandMap.unflattenEvenOdd(v, i, mean, 0, 0);
+        m_bandMap.unflattenEvenOdd(v, i, mean, 1, 1);
+        m_pca.getVariance(i, v);
+        m_bandMap.unflattenEvenOdd(v, i, variance, 0, 0);
+        m_bandMap.unflattenEvenOdd(v, i, variance, 1, 1);
 
         // Write the basis
         m_pca.getBasis(i, m);
         for(size_t j = 0; j < m_pca.getProjectionSize(i); ++j) {
-            m.getCol(j, v); m_bandMap.unflatten(v, i, basisAliases[j]);
+            m.getCol(j, v);
+            m_bandMap.unflattenEvenOdd(v, i, basis, 0, 2*j + 0);
+            m_bandMap.unflattenEvenOdd(v, i, basis, 1, 2*j + 1);
         }
     }
 
     // Write to disk
-    using CImage = Image<std::complex<double>>;
-    CImage(mean).write(fnOroot + "mean.stk");
-    CImage(variance).write(fnOroot + "variance.stk");
-    CImage(basis).write(fnOroot + "bases.stk");
+    Image<double>(mean).write(fnOroot + "mean.stk");
+    Image<double>(variance).write(fnOroot + "variance.stk");
+    Image<double>(basis).write(fnOroot + "bases.stk");
 }
 
 template<typename F>

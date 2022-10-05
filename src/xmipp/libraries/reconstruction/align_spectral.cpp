@@ -69,7 +69,7 @@ void ProgAlignSpectral::readParams() {
     fnOroot = getParam("--oroot");
     
     fnBands = getParam("--bands");
-    fnWeights = getParam("--bands");
+    fnWeights = getParam("--weights");
     fnCtf = getParam("--ctf");
     fnPca = getParam("--pca");
     
@@ -130,13 +130,14 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Rea
     }
 }
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Real>& spectrum,
-                                            std::vector<Matrix1D<Real>>& data,
-                                            size_t image ) const
+void ProgAlignSpectral::BandMap::flattenOddEven(const MultidimArray<Real>& spectrum,
+                                                std::vector<Matrix1D<Real>>& data,
+                                                size_t oddEven,
+                                                size_t image ) const
 {
     data.resize(m_sizes.size());
     for(size_t i = 0; i < m_sizes.size(); ++i) {
-        flatten(spectrum, i, data[i], image);
+        flattenOddEven(spectrum, i, data[i], oddEven, image);
     }
 }
 
@@ -145,7 +146,10 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Rea
                                             Matrix1D<Real>& data,
                                             size_t image ) const
 {
-    if (!spectrum.sameShape(m_bands)) {
+    if (XSIZE(m_bands) != XSIZE(spectrum) || 
+        YSIZE(m_bands) != YSIZE(spectrum) || 
+        ZSIZE(m_bands) != ZSIZE(spectrum) ) 
+    {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
     }
 
@@ -154,21 +158,24 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Rea
     const auto* rdPtr = MULTIDIM_ARRAY(spectrum) + image*spectrum.zyxdim;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m_bands) {
         if(DIRECT_MULTIDIM_ELEM(m_bands, n) == band) {
-            const auto& value = *rdPtr;
-            *(wrPtr++) = value.real();
-            *(wrPtr++) = value.imag();
+            *(wrPtr++) = rdPtr->real();
+            *(wrPtr++) = rdPtr->imag();
         }
         ++rdPtr;
     }
     assert(wrPtr == MATRIX1D_ARRAY(data) + VEC_XSIZE(data));
 }
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Real>& spectrum,
-                                            size_t band,
-                                            Matrix1D<Real>& data,
-                                            size_t image ) const
+void ProgAlignSpectral::BandMap::flattenOddEven(const MultidimArray<Real>& spectrum,
+                                                size_t band,
+                                                Matrix1D<Real>& data,
+                                                size_t oddEven,
+                                                size_t image ) const
 {
-    if (!spectrum.sameShape(m_bands)) {
+    if (XSIZE(m_bands) != XSIZE(spectrum) || 
+        YSIZE(m_bands) != YSIZE(spectrum) || 
+        ZSIZE(m_bands) != ZSIZE(spectrum) ) 
+    {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Spectrum and band map must coincide in shape");
     }
 
@@ -177,8 +184,8 @@ void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Real>& spectrum,
     const auto* rdPtr = MULTIDIM_ARRAY(spectrum) + image*spectrum.zyxdim;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m_bands) {
         if(DIRECT_MULTIDIM_ELEM(m_bands, n) == band) {
-            *(wrPtr++) = *rdPtr;
-            *(wrPtr++) = *rdPtr;
+            *(wrPtr + oddEven) = *rdPtr;
+            wrPtr += 2;
         }
         ++rdPtr;
     }
@@ -553,25 +560,22 @@ void ProgAlignSpectral::readBandMap() {
 }
 
 void ProgAlignSpectral::readBases() {
-    Image<std::complex<Real>> bases;
+    Image<Real> bases;
     bases.read(fnPca);
 
-    // Generate the Basis matrices
-    const auto nMaxProjections = NSIZE(bases());
-    m_bases.clear();
-    std::transform(
-        m_bandMap.getBandSizes().cbegin(),
-        m_bandMap.getBandSizes().cend(),
-        std::back_inserter(m_bases),
-        [nMaxProjections] (size_t size) {
-            return Matrix2D<Real>(size, nMaxProjections);
-        }
-    );
+    // Generate the Basis matrices with the maximum possible size
+    const auto nMaxProjections = NSIZE(bases())/2;
+    const auto& bandSizes = m_bandMap.getBandSizes();
+    m_bases.resize(bandSizes.size());
+    for(size_t i = 0; i < bandSizes.size(); ++i) {
+        m_bases[i].resizeNoCopy(bandSizes[i], nMaxProjections);
+    }
 
     // Convert all elements into matrix form
     std::vector<Matrix1D<Real>> columns;
-    for(size_t i = 0; i < NSIZE(bases()); ++i) {
-        m_bandMap.flatten(bases(), columns, i);
+    for(size_t i = 0; i < nMaxProjections; ++i) {
+        m_bandMap.flattenOddEven(bases(), columns, 0, i*2 + 0);
+        m_bandMap.flattenOddEven(bases(), columns, 1, i*2 + 1);
 
         for(size_t j = 0; j < columns.size(); ++j) {
             auto& basis = m_bases[j];
@@ -592,13 +596,25 @@ void ProgAlignSpectral::readBases() {
 
 void ProgAlignSpectral::applyWeightsToBases() {
     // Read
-    Matrix1D<Real> weights(m_bases.size());
-    std::ifstream file(fnWeights);
-    file >> weights;
+    Image<Real> weights;
+    weights.read(fnWeights);
+
+    // Remove the symmetric part
+    if(XSIZE(weights()) > XSIZE(m_bandMap.getBands())) {
+        weights().resize(
+            NSIZE(weights()), ZSIZE(weights()), YSIZE(weights()), 
+            XSIZE(m_bandMap.getBands())
+        );
+    }
+
+    // Write the same in for real and imaginary values
+    std::vector<Matrix1D<Real>> bandWeights;
+    m_bandMap.flattenOddEven(weights(), bandWeights, 0, 0);
+    m_bandMap.flattenOddEven(weights(), bandWeights, 1, 0);
 
     // Scale the basis accordingly
     for(size_t i = 0; i < m_bases.size(); ++i) {
-        m_bases[i] *= weights[i];
+        multiplyToAllColumns(m_bases[i], bandWeights[i]);
     } 
 }
 
@@ -606,12 +622,21 @@ void ProgAlignSpectral::applyCtfToBases() {
     Image<Real> ctf;
     ctf.read(fnCtf);
 
+    // Remove the symmetric part
+    if(XSIZE(ctf()) > XSIZE(m_bandMap.getBands())) {
+        ctf().resize(
+            NSIZE(ctf()), ZSIZE(ctf()), YSIZE(ctf()), 
+            XSIZE(m_bandMap.getBands())
+        );
+    }
+
     std::vector<Matrix1D<Real>> bands;
-    m_bandMap.flatten(ctf(), bands);
+    m_bandMap.flattenOddEven(ctf(), bands, 0, 0);
+    m_bandMap.flattenOddEven(ctf(), bands, 1, 0);
 
     // Start from the clean bases
     m_ctfBases = m_bases;
-    for(size_t i = 0; m_ctfBases.size(); ++i) {
+    for(size_t i = 0; i < m_ctfBases.size(); ++i) {
         multiplyToAllColumns(m_ctfBases[i], bands[i]);
     }
 }

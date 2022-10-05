@@ -89,17 +89,19 @@ private:
         void flatten(   const MultidimArray<std::complex<Real>>& spectrum,
                         std::vector<Matrix1D<Real>>& data,
                         size_t image = 0 ) const;
-        void flatten(   const MultidimArray<Real>& spectrum,
-                        std::vector<Matrix1D<Real>>& data,
-                        size_t image = 0 ) const;
+        void flattenOddEven(const MultidimArray<Real>& spectrum,
+                            std::vector<Matrix1D<Real>>& data,
+                            size_t oddEven,
+                            size_t image = 0 ) const;
         void flatten(   const MultidimArray<std::complex<Real>>& spectrum,
                         size_t band,
                         Matrix1D<Real>& data,
                         size_t image = 0 ) const;
-        void flatten(   const MultidimArray<Real>& spectrum,
-                        size_t band,
-                        Matrix1D<Real>& data,
-                        size_t image = 0 ) const;
+        void flattenOddEven(const MultidimArray<Real>& spectrum,
+                            size_t band,
+                            Matrix1D<Real>& data,
+                            size_t oddEven,
+                            size_t image = 0 ) const;
 
     private:
         MultidimArray<int> m_bands;

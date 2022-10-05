@@ -81,10 +81,22 @@ private:
                         size_t band,
                         Matrix1D<double>& data ) const;
         void unflatten( const std::vector<Matrix1D<double>>& data,
-                        MultidimArray<std::complex<double>>& spectrum ) const;
+                        MultidimArray<std::complex<double>>& spectrum,
+                        size_t image = 0 ) const;
+        void unflattenEvenOdd(  const std::vector<Matrix1D<double>>& data,
+                                MultidimArray<double>& spectrum,
+                                size_t evenOdd,
+                                size_t image = 0) const;
         void unflatten( const Matrix1D<double>& data,
                         size_t band,
-                        MultidimArray<std::complex<double>>& spectrum ) const;
+                        MultidimArray<std::complex<double>>& spectrum,
+                        size_t image = 0 ) const;
+        void unflattenEvenOdd(  const Matrix1D<double>& data,
+                                size_t band,
+                                MultidimArray<double>& spectrum,
+                                size_t evenOdd,
+                                size_t image = 0 ) const;
+
     private:
         MultidimArray<int> m_bands;
         std::vector<size_t> m_sizes;
