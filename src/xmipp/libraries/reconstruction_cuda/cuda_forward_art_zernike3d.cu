@@ -377,7 +377,7 @@ namespace device {
 template<typename PrecisionType, bool usesZernike>
 __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const MultidimArrayCuda<int> cudaVRecMaskF,
-							  const int *cudaCoordinatesF,
+							  const unsigned *cudaCoordinatesF,
 							  const int xdim,
 							  const int ydim,
 							  const unsigned sizeF,
