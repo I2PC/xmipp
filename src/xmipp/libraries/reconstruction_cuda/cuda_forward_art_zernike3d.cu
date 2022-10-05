@@ -377,6 +377,10 @@ namespace device {
 template<typename PrecisionType, bool usesZernike>
 __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const MultidimArrayCuda<int> cudaVRecMaskF,
+							  const int *cudaCoordinatesF,
+							  const int xdim,
+							  const int ydim,
+							  const unsigned sizeF,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
 							  MultidimArrayCuda<PrecisionType> *cudaW,
 							  const int lastZ,
@@ -395,51 +399,54 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType *cudaClnm,
 							  const PrecisionType *cudaR)
 {
-	int cubeX = (threadIdx.x + blockIdx.x * blockDim.x) * step;
-	int cubeY = (threadIdx.y + blockIdx.y * blockDim.y) * step;
-	int cubeZ = (threadIdx.z + blockIdx.z * blockDim.z) * step;
+	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
+	if (sizeF <= threadIndex) {
+		return;
+	}
+	int threadPosition = cudaVRecMaskF[threadIndex];
+	int cubeX = threadPosition % xdim;
+	int cubeY = threadPosition / xdim % ydim;
+	int cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
-	if (A3D_ELEM(cudaVRecMaskF, k, i, j) != 0) {
-		int img_idx = 0;
-		if (sigma_size > 1) {
-			PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
-			img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
-		}
-		auto &mP = cudaP[img_idx];
-		auto &mW = cudaW[img_idx];
-		if (usesZernike) {
-			auto k2 = k * k;
-			auto kr = k * iRmaxF;
-			auto k2i2 = k2 + i * i;
-			auto ir = i * iRmaxF;
-			auto r2 = k2i2 + j * j;
-			auto jr = j * iRmaxF;
-			auto rr = SQRT(r2) * iRmaxF;
-			for (size_t idx = 0; idx < idxY0; idx++) {
-				auto l1 = cudaVL1[idx];
-				auto n = cudaVN[idx];
-				auto l2 = cudaVL2[idx];
-				auto m = cudaVM[idx];
-				if (rr > 0 || l2 == 0) {
-					PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
-					gx += cudaClnm[idx] * (zsph);
-					gy += cudaClnm[idx + idxY0] * (zsph);
-					gz += cudaClnm[idx + idxZ0] * (zsph);
-				}
+	int img_idx = 0;
+	if (sigma_size > 1) {
+		PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
+		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
+	}
+	auto &mP = cudaP[img_idx];
+	auto &mW = cudaW[img_idx];
+	if (usesZernike) {
+		auto k2 = k * k;
+		auto kr = k * iRmaxF;
+		auto k2i2 = k2 + i * i;
+		auto ir = i * iRmaxF;
+		auto r2 = k2i2 + j * j;
+		auto jr = j * iRmaxF;
+		auto rr = SQRT(r2) * iRmaxF;
+		for (size_t idx = 0; idx < idxY0; idx++) {
+			auto l1 = cudaVL1[idx];
+			auto n = cudaVN[idx];
+			auto l2 = cudaVL2[idx];
+			auto m = cudaVM[idx];
+			if (rr > 0 || l2 == 0) {
+				PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+				gx += cudaClnm[idx] * (zsph);
+				gy += cudaClnm[idx + idxY0] * (zsph);
+				gz += cudaClnm[idx + idxZ0] * (zsph);
 			}
 		}
-
-		auto r_x = j + gx;
-		auto r_y = i + gy;
-		auto r_z = k + gz;
-
-		auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
-		auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
-		device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 	}
+
+	auto r_x = j + gx;
+	auto r_y = i + gy;
+	auto r_z = k + gz;
+
+	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
+	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
+	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 }
 
 /*
@@ -448,7 +455,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const MultidimArrayCuda<PrecisionType> cudaMId,
-							   const unsigned *VRecMaskB,
+							   const unsigned *cudaCoordinatesB,
 							   const unsigned xdim,
 							   const unsigned ydim,
 							   const unsigned sizeB,
@@ -471,7 +478,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
-	int threadPosition = VRecMaskB[threadIndex];
+	int threadPosition = cudaCoordinatesB[threadIndex];
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);

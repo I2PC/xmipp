@@ -104,7 +104,7 @@ class Program {
 
 	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
-	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
+	size_t blockXStep, gridXStep;
 
 	const MultidimArrayCuda<int> VRecMaskF;
 
@@ -113,6 +113,10 @@ class Program {
 	const unsigned xdimB, ydimB;
 
 	size_t sizeB;
+
+	const int xdimF, ydimF;
+
+	size_t sizeF;
 };
 
 }  // namespace cuda_forward_art_zernike3D
