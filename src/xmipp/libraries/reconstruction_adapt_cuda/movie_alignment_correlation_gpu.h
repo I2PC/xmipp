@@ -30,7 +30,6 @@
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
 #include <CTPL/ctpl_stl.h>
-#include "reconstruction_adapt_cuda/basic_mem_manager.h"
 
 /**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
    @ingroup ReconsCUDALibrary */
@@ -41,9 +40,7 @@ public:
     /// Read argument from command line
     void readParams();
 
-    virtual ~ProgMovieAlignmentCorrelationGPU() {
-        BasicMemManager::instance().release();
-    }
+    virtual ~ProgMovieAlignmentCorrelationGPU();
 
     /// Show
     void show();
@@ -67,24 +64,6 @@ private:
         size_t corrElems() const {
             return (N * (N-1) / 2) * centerSize * centerSize;
         }
-
-        // std::future<void> &task;
-    };
-
-    class GPUThread final
-    {
-    public:
-        ~GPUThread() {
-            activeTask.get();
-            delete corrBuffer1;
-            delete corrBuffer2;
-        }
-        std::future<void> run();
-
-    private:
-        T* corrBuffer1 = nullptr;
-        T* corrBuffer2 = nullptr;
-        std::future<void> activeTask;
     };
 
     /**
@@ -328,17 +307,18 @@ private:
         return std::ceil(shift * 2 + 1);
     }
 
+    /**
+     * @returns number of GPU streams that can be used for output generation without running out of memory
+     **/
+    auto getOutputStreamCount();
+
 
 private:
 
-    ctpl::thread_pool ShiftPool = ctpl::thread_pool(1);
-    ctpl::thread_pool LESPool = ctpl::thread_pool(1);
     ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
     ctpl::thread_pool loadPool = ctpl::thread_pool(4);
 
     std::future<void> LESTask;
-    T *corrBuffer1 = nullptr;
-    T *corrBuffer2 = nullptr;
 
     /** No of frames used for averaging a single patch */
     int patchesAvg;
