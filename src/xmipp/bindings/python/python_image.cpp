@@ -148,8 +148,6 @@ PyMethodDef Image_methods[] =
           "Divide image by a constant (does not create another Image instance)" },
         { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
-        { "window2D", (PyCFunction) Image_window2D, METH_VARARGS,
-          "Return a window of the input image. imageOut = imageIn.window(x0,y0,xF,yF)" },
 		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
 		  "compute radial average around an axis" },
         { "centerOfMass", (PyCFunction) Image_centerOfMass, METH_VARARGS,
@@ -1893,42 +1891,6 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     return nullptr;
-}
-
-
-PyObject *
-Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
-{
-    ImageObject *self = (ImageObject*) obj;
-    if (nullptr == self) return nullptr;
-    try {
-        int x0;
-        int y0;
-        int xF;
-        int yF;
-        ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
-
-        if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
-                && (nullptr != result)) {
-            // prepare input image
-            const auto& image = self->image;
-            image->convert2Datatype(DT_Double);
-            MultidimArray<double> *pImage_in;
-            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage_in);
-            // prepare output image
-            result->image = std::make_unique<ImageGeneric>(DT_Double);
-            MultidimArray<double> *pImage_out;
-            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(pImage_out);
-            // call the estimation
-            window2D(*pImage_in, *pImage_out, (size_t)y0, (size_t)x0, (size_t)yF, (size_t)xF);
-
-        } else {
-            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
-        }
-        return (PyObject *)result;
-    } catch (XmippError &xe) {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
-    }
 }
 
 

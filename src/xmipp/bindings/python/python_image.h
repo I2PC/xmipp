@@ -231,9 +231,6 @@ Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-/* Return a window of the image*/
-PyObject *
-Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 
 PyObject *
