@@ -426,7 +426,6 @@ def compileModule(Nproc,module):
                     missingFile = os.path.join(*missingPath.split(os.path.sep))
                     if len(missingFile) > 1:
                         missingFile = missingFile[1:]
-                    print(DEPENDENCIES.keys())
                     if missingDir in DEPENDENCIES.keys():
                         depDir = os.path.join('src', missingDir)
                         hint = ('cd %s ; git checkout -- %s ; cd -' % (depDir, missingFile)
