@@ -106,7 +106,7 @@ class Program {
 
 	size_t blockXStep, gridXStep;
 
-	const int *VRecMaskF;
+	int *VRecMaskF;
 
 	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
 
