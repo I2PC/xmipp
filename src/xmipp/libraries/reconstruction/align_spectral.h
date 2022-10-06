@@ -57,7 +57,6 @@ public:
     FileName fnExperimentalMetadata;
     FileName fnReferenceMetadata;
     FileName fnOutputMetadata;
-    FileName fnOroot;
     FileName fnBands;
     FileName fnWeights;
     FileName fnCtf;
@@ -177,8 +176,8 @@ private:
         size_t getComponentCount(size_t i) const;
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
-        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, const Matrix1D<Real>& weights) const;
-        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, const Matrix1D<Real>& weights) const;
+        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands) const;
+        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;
@@ -222,6 +221,7 @@ private:
     std::vector<TranslationFilter> m_translations;
     ReferencePcaProjections m_references;
     std::vector<ReferenceMetadata> m_referenceData;
+    std::vector<size_t> m_classification;
 
     void readInputMetadata();
     void readBandMap();
@@ -231,8 +231,11 @@ private:
     void generateTranslations();
     void projectReferences();
     void classifyExperimental();
-    void generateBandSsnr();
     void generateOutput();
+
+    void removeFourierSymmetry(MultidimArray<Real>& spectrum) const;
+    void multiplyBases( std::vector<Matrix2D<Real>>& bases,
+                        const MultidimArray<Real>& spectrum ) const;
 
     void updateRow(MDRowVec& row, size_t matchIndex) const;
 
@@ -250,9 +253,9 @@ private:
                                                                                 size_t nTranslations,
                                                                                 double maxShift );
 
-    static void calculateBandSsnr(  const std::vector<Matrix1D<Real>>& reference, 
-                                    const std::vector<Matrix1D<Real>>& experimental, 
-                                    Matrix1D<Real>& ssnr );
+    static void project(const std::vector<Matrix2D<Real>>& bases,
+                        const std::vector<Matrix1D<Real>>& bands,
+                        std::vector<Matrix1D<Real>>& projections );
 
 };
 

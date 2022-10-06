@@ -35,7 +35,7 @@
 #include <cassert>
 
 void ProgImageSpectralPca::defineParams() {
-    addUsageLine("Compute the basis for each band of a set of images");
+    addUsageLine("Compute the PCA basis for each band of a set of images");
 
     addParamsLine("   -i <md_file>                    : Stack with the images");
     addParamsLine("   -b <image>                      : Image with the band map");

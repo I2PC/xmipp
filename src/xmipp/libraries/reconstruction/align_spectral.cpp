@@ -47,7 +47,6 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   -i <md_file>                    : Metadata file with the experimental images. All images should have similar CTFs");
     addParamsLine("   -r <md_file>                    : Metadata file with the reference images");
     addParamsLine("   -o <md_file>                    : Resulting metadata file with the aligned images");
-    addParamsLine("   --oroot <directory>             : Root directory for auxiliary output files");
     
     addParamsLine("   --bands <image_file>            : Image containing a band map");
     addParamsLine("   --weights <text_file>           : Text file containing space separated values used as weights for each band");
@@ -66,7 +65,6 @@ void ProgAlignSpectral::readParams() {
     fnExperimentalMetadata = getParam("-i");
     fnReferenceMetadata = getParam("-r");
     fnOutputMetadata = getParam("-o");
-    fnOroot = getParam("--oroot");
     
     fnBands = getParam("--bands");
     fnWeights = getParam("--weights");
@@ -87,7 +85,6 @@ void ProgAlignSpectral::show() const {
     std::cout << "Experimanetal metadata      : " << fnExperimentalMetadata << "\n";
     std::cout << "Reference metadata          : " << fnReferenceMetadata << "\n";
     std::cout << "Output metadata             : " << fnOutputMetadata << "\n";
-    std::cout << "Output root                 : " << fnOroot << "\n";
 
     std::cout << "Band map                    : " << fnBands << "\n";
     std::cout << "Band weights                : " << fnWeights << "\n";
@@ -112,7 +109,6 @@ void ProgAlignSpectral::run() {
     generateTranslations();
     projectReferences();
     classifyExperimental();
-    generateBandSsnr();
     generateOutput();
 }
 
@@ -403,8 +399,7 @@ void ProgAlignSpectral::ReferencePcaProjections::getPcaProjection(  size_t i,
     }
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(  const std::vector<Matrix1D<Real>>& experimentalBands,
-                                                                        const Matrix1D<Real>& weights) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands) const 
 {
     Matrix1D<Real> referenceBand;
 
@@ -419,7 +414,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(  const st
             const_cast<Matrix2D<double>&>(m_projections[j]).getRowAlias(i, referenceBand);
 
             // Compute the difference between the bands and increment the score
-            score += weights[j] * euclideanDistance2(experimentalBand, referenceBand);
+            score += euclideanDistance2(experimentalBand, referenceBand);
         }
 
         // Update the score if necessary
@@ -440,8 +435,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(  const st
     return best;
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   const std::vector<Matrix1D<Real>>& experimentalBands,
-                                                                            const Matrix1D<Real>& weights ) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands) const 
 {
     Matrix1D<Real> referenceBand;
 
@@ -456,7 +450,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   cons
         for(size_t j = i; j < getBandCount() && scores[bestCandidate] < bestScore; ++j) {
             const auto& experimentalBand = experimentalBands[j];
             const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
-            scores[bestCandidate] += VEC_ELEM(weights, j) * euclideanDistance2(experimentalBand, referenceBand);
+            scores[bestCandidate] += euclideanDistance2(experimentalBand, referenceBand);
         }
 
         // Update the best score
@@ -473,7 +467,7 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(   cons
             // Only consider this image if it is below the threshold
             if(scores[j] < bestScore) {
                 const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(j, referenceBand);
-                scores[j] += VEC_ELEM(weights, i) * euclideanDistance2(experimentalBand, referenceBand);
+                scores[j] += euclideanDistance2(experimentalBand, referenceBand);
                 if(scores[j] < bestCandidateScore) {
                     bestCandidate = j;
                     bestCandidateScore = scores[j];
@@ -595,50 +589,18 @@ void ProgAlignSpectral::readBases() {
 }
 
 void ProgAlignSpectral::applyWeightsToBases() {
-    // Read
     Image<Real> weights;
     weights.read(fnWeights);
-
-    // Remove the symmetric part
-    if(XSIZE(weights()) > XSIZE(m_bandMap.getBands())) {
-        weights().resize(
-            NSIZE(weights()), ZSIZE(weights()), YSIZE(weights()), 
-            XSIZE(m_bandMap.getBands())
-        );
-    }
-
-    // Write the same in for real and imaginary values
-    std::vector<Matrix1D<Real>> bandWeights;
-    m_bandMap.flattenOddEven(weights(), bandWeights, 0, 0);
-    m_bandMap.flattenOddEven(weights(), bandWeights, 1, 0);
-
-    // Scale the basis accordingly
-    for(size_t i = 0; i < m_bases.size(); ++i) {
-        multiplyToAllColumns(m_bases[i], bandWeights[i]);
-    } 
+    removeFourierSymmetry(weights());
+    multiplyBases(m_bases, weights());
 }
 
 void ProgAlignSpectral::applyCtfToBases() {
     Image<Real> ctf;
     ctf.read(fnCtf);
-
-    // Remove the symmetric part
-    if(XSIZE(ctf()) > XSIZE(m_bandMap.getBands())) {
-        ctf().resize(
-            NSIZE(ctf()), ZSIZE(ctf()), YSIZE(ctf()), 
-            XSIZE(m_bandMap.getBands())
-        );
-    }
-
-    std::vector<Matrix1D<Real>> bands;
-    m_bandMap.flattenOddEven(ctf(), bands, 0, 0);
-    m_bandMap.flattenOddEven(ctf(), bands, 1, 0);
-
-    // Start from the clean bases
     m_ctfBases = m_bases;
-    for(size_t i = 0; i < m_ctfBases.size(); ++i) {
-        multiplyToAllColumns(m_ctfBases[i], bands[i]);
-    }
+    removeFourierSymmetry(ctf());
+    multiplyBases(m_ctfBases, ctf());
 }
 
 void ProgAlignSpectral::generateTranslations() {
@@ -648,7 +610,7 @@ void ProgAlignSpectral::generateTranslations() {
 
     m_translations = computeTranslationFiltersRectangle(
         nx, ny,
-        nTranslations, maxShift
+        nTranslations, maxShift/100.0
     );
 }
 
@@ -692,7 +654,7 @@ void ProgAlignSpectral::projectReferences() {
 
                 // Project the image
                 m_bandMap.flatten(x, data.bandCoefficients);
-                //m_pca.project(data.bandCoefficients, data.bandProjections); //TODO replace
+                project(m_ctfBases, data.bandCoefficients, data.bandProjections);
 
                 // Write the metadata
                 m_referenceData[index] = ReferenceMetadata(
@@ -710,13 +672,11 @@ void ProgAlignSpectral::projectReferences() {
 void ProgAlignSpectral::classifyExperimental() {
     // Initialize the classification vector with invalid 
     // data and the appropiate size
-    // TODO uncomment
-    /*m_classification.clear();
+    m_classification.clear();
     m_classification.resize(
         m_mdExperimental.size(), // size
         m_references.getImageCount() // invalid value
     );
-    m_ssnr.resizeNoCopy(m_classification.size(), m_pca.getBandCount());*/
 
     struct ThreadData {
         Image<Real> image;
@@ -741,41 +701,24 @@ void ProgAlignSpectral::classifyExperimental() {
         data.fourier.FourierTransform(data.image(), data.spectrum, false);
         m_bandMap.flatten(data.spectrum, data.bandCoefficients);
 
-        //m_pca.project(data.bandCoefficients, data.bandProjections); //TODO replace
+        project(m_bases, data.bandCoefficients, data.bandProjections);
 
-        // Compare the projection to find a match //TODO uncomment
-        //const auto classification = m_references.matchPcaProjection(data.bandProjections, m_weights);
-        //m_classification[i] = classification; //TODO uncomment
-
-        // Compute the SSNR TODO uncomment
-        //m_references.getPcaProjection(classification, data.referenceBandProjections);
-        //m_ssnr.getRowAlias(i, data.ssnr);
-        //calculateBandSsnr(data.referenceBandProjections, data.bandProjections, data.ssnr);
+        // Compare the projection to find a match
+        const auto classification = m_references.matchPcaProjection(data.bandProjections);
+        m_classification[i] = classification;
     };
 
     processRowsInParallel(m_mdExperimental, func, threadData.size());
 }
 
-void ProgAlignSpectral::generateBandSsnr() {
-    //TODO uncomment
-    /*// Calculate the average SSNR on each band
-    Matrix1D<Real> totalSsnr;
-    m_ssnr.colSum(totalSsnr);
-    totalSsnr /= MAT_YSIZE(m_ssnr);
-
-    // Write it to disk
-    totalSsnr.write(m_parameters.fnOroot + "ssnr");
-    m_ssnr.write(m_parameters.fnOroot + "image_ssnr");*/
-}
-
 void ProgAlignSpectral::generateOutput() {
-    auto mdOut = m_mdExperimental; //TODO overwrite
+    auto& mdOut = m_mdExperimental; // Overwrite the experimental MD as it wont be used anymore
 
     // Modify the experimental data
-    //assert(mdOut.size() == m_classification.size()); //TODO uncomment
+    assert(mdOut.size() == m_classification.size());
     for(size_t i = 0; i < mdOut.size(); ++i) {
         auto row = mdOut.getRowVec(mdOut.getRowId(i));
-        //updateRow(row, m_classification[i]); //TODO uncomment
+        updateRow(row, m_classification[i]);
     }
 
     // Write the data
@@ -785,6 +728,32 @@ void ProgAlignSpectral::generateOutput() {
 
 
 
+
+void ProgAlignSpectral::removeFourierSymmetry(MultidimArray<Real>& spectrum) const {
+    if(XSIZE(spectrum) > XSIZE(m_bandMap.getBands())) {
+        spectrum.resize(
+            NSIZE(spectrum), ZSIZE(spectrum), YSIZE(spectrum), 
+            XSIZE(m_bandMap.getBands())
+        );
+    }
+}
+
+void ProgAlignSpectral::multiplyBases(  std::vector<Matrix2D<Real>>& bases,
+                                        const MultidimArray<Real>& spectrum ) const
+{
+    // Write the same in for real and imaginary values
+    // as multiplying a complex number by a real one is
+    // equivalent to scaling both components by the same
+    // factor
+    std::vector<Matrix1D<Real>> bands;
+    m_bandMap.flattenOddEven(spectrum, bands, 0, 0);
+    m_bandMap.flattenOddEven(spectrum, bands, 1, 0);
+
+    // Scale the basis accordingly
+    for(size_t i = 0; i < bases.size(); ++i) {
+        multiplyToAllColumns(bases[i], bands[i]);
+    } 
+}
 
 void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
     // Obtain the metadata
@@ -990,21 +959,15 @@ ProgAlignSpectral::computeTranslationFiltersSunflower(  const size_t nx,
     return result;
 }
 
-void ProgAlignSpectral::calculateBandSsnr(  const std::vector<Matrix1D<Real>>& reference, 
-                                            const std::vector<Matrix1D<Real>>& experimental, 
-                                            Matrix1D<Real>& ssnr )
+void ProgAlignSpectral::project(const std::vector<Matrix2D<Real>>& bases,
+                                const std::vector<Matrix1D<Real>>& bands,
+                                std::vector<Matrix1D<Real>>& projections )
 {
-
-    assert(experimental.size() == reference.size());
-    assert(VEC_XSIZE(ssnr) == reference.size());
-
-    for(size_t i = 0; i < reference.size(); ++i) {
-        const auto& referenceBand = reference[i];
-        const auto& experimentalBand = experimental[i];
-        const auto noiseEnergy = euclideanDistance2(referenceBand, experimentalBand);
-        //const auto signalEnergy = referenceBand.sum2();
-        //VEC_ELEM(ssnr, i) = signalEnergy / noiseEnergy;
-        VEC_ELEM(ssnr, i) = VEC_XSIZE(experimentalBand) / noiseEnergy;
+    assert(bases.size() == bands.size());
+    projections.resize(bases.size());
+    for(size_t i = 0; i < bands.size(); ++i) {
+        assert(MAT_YSIZE(bases[i]) == VEC_XSIZE(bands[i]));
+        matrixOperation_Atx(bases[i], bands[i], projections[i]);
     }
 }
 
