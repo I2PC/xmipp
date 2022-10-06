@@ -220,16 +220,16 @@ namespace {
 	bool checkStep(MultidimArray<T> &mask, int step, size_t position)
 
 	{
-		if (i % mask.xdim % step != 0) {
+		if (position % mask.xdim % step != 0) {
 			return false;
 		}
-		if (i / mask.xdim % mask.ydim % step != 0) {
+		if (position / mask.xdim % mask.ydim % step != 0) {
 			return false;
 		}
-		if (i / mask.yxdim % step != 0) {
+		if (position / mask.yxdim % step != 0) {
 			return false;
 		}
-		return mask[i] != 0;
+		return mask[position] != 0;
 	}
 
 	template<typename T>
