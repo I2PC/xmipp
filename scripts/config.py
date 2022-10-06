@@ -312,7 +312,7 @@ class Config:
         
         from sysconfig import get_paths
         info = get_paths()
-
+        hdf5Found = 'hdf5 library found at: '
         if self.configDict["LIBDIRFLAGS"] == "":
             # /usr/local/lib or /path/to/virtEnv/lib
             localLib = "%s/lib" % info['data']
@@ -335,6 +335,11 @@ class Config:
                     self.environment.update(LD_LIBRARY_PATH=hdf5Lib)
                 else:
                     installDepConda('hdf5', self.ask)
+
+            if hdf5InLocalLib:
+                print(hdf5Found, hdf5InLocalLib)
+            elif isHdf5CppLinking and isHdf5Linking:
+                print(hdf5Found, hdf5InLocalLib)
 
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
