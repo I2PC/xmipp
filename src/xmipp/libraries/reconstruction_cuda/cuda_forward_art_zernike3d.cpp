@@ -262,7 +262,7 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  VRecMaskF(filterAndTransportMask(parameters.VRecMaskF)),
+	  VRecMaskF(filterAndTransportMask(parameters.VRecMaskF, parameters.loopStep)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
