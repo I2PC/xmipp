@@ -376,7 +376,7 @@ namespace device {
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
-							  const MultidimArrayCuda<int> cudaVRecMaskF,
+							  const int *cudaVRecMaskF,
 							  const unsigned *cudaCoordinatesF,
 							  const int xdim,
 							  const int ydim,
@@ -413,7 +413,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	int img_idx = 0;
 	if (sigma_size > 1) {
-		PrecisionType sigma_mask = A3D_ELEM(cudaVRecMaskF, k, i, j);
+		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
 	auto &mP = cudaP[img_idx];

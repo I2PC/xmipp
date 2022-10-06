@@ -106,7 +106,7 @@ class Program {
 
 	size_t blockXStep, gridXStep;
 
-	const MultidimArrayCuda<int> VRecMaskF;
+	const int *VRecMaskF;
 
 	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
 

@@ -217,25 +217,44 @@ namespace {
 	}*/
 
 	template<typename T>
-	std::tuple<unsigned *, size_t> filterAndTransportMask(MultidimArray<T> mask, int step)
+	bool checkStep(MultidimArray<T> &mask, int step, size_t position)
+
+	{
+		if (i % mask.xdim % step != 0) {
+			return false;
+		}
+		if (i / mask.xdim % mask.ydim % step != 0) {
+			return false;
+		}
+		if (i / mask.yxdim % step != 0) {
+			return false;
+		}
+		return mask[i] != 0;
+	}
+
+	template<typename T>
+	std::tuple<unsigned *, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
 
 	{
 		std::vector<unsigned> coordinates;
 		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			if (i % mask.xdim % step != 0) {
-				continue;
-			}
-			if (i / mask.xdim % mask.ydim % step != 0) {
-				continue;
-			}
-			if (i / mask.yxdim % step != 0) {
-				continue;
-			}
-			if (mask[i] != 0) {
+			if (checkStep(mask, step, static_cast<size_t>(i))) {
 				coordinates.push_back(i);
 			}
 		}
 		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
+	}
+
+	template<typename T>
+	T *filterAndTransportMask(MultidimArray<T> &mask, int step)
+	{
+		std::vector<T> values;
+		for (size_t i = 0; i < mask.yxdim * mask.zdim; i++) {
+			if (checkStep(mask, step, i)) {
+				values.push_back(mask[i]);
+			}
+		}
+		return transportStdVectorToGpu(values);
 	}
 
 }  // namespace
@@ -243,7 +262,7 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	  VRecMaskF(filterAndTransportMask(parameters.VRecMaskF)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
@@ -265,11 +284,11 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  xdimF(parameters.VRecMaskF.xdim),
 	  ydimF(parameters.VRecMaskF.ydim)
 {
-	std::tie(cudaCoordinatesB, sizeB) = filterAndTransportMask(parameters.VRecMaskB, 1);
+	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
 	auto optimalizedSize = ceil(sizeB / 1024) * 1024;
 	blockX = std::__gcd(1024, static_cast<int>(optimalizedSize));
 	gridX = optimalizedSize / blockX;
-	std::tie(cudaCoordinatesF, sizeF) = filterAndTransportMask(parameters.VRecMaskF, parameters.loopStep);
+	std::tie(cudaCoordinatesF, sizeF) = filterMaskTransportCoordinates(parameters.VRecMaskF, parameters.loopStep);
 	optimalizedSize = ceil(sizeF / 1024) * 1024;
 	blockXStep = std::__gcd(1024, static_cast<int>(optimalizedSize));
 	gridXStep = optimalizedSize / blockXStep;
