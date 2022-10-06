@@ -336,9 +336,10 @@ class Config:
                     installDepConda('hdf5', self.ask)
 
             if hdf5InLocalLib != '':
-                print(green(str(hdf5Found  + hdf5InLocalLib)))
+                print(green(str(hdf5Found + hdf5InLocalLib)))
             elif isHdf5CppLinking and isHdf5Linking:
-                print(green(str(hdf5Found + 'system. "ld -lhdf5 --verbose" to get the list of paths where it search')))
+                print(green(str(hdf5Found + 'system. "ld -lhdf5 '
+                    '--verbose" to get the list of paths where it searchs')))
 
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
