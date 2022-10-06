@@ -323,7 +323,7 @@ class Config:
             hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
             isHdf5CppLinking = checkLib(self.get(Config.KEY_CXX), '-lhdf5_cpp')
             isHdf5Linking = checkLib(self.get(Config.KEY_CXX), '-lhdf5')
-            print('localLib: {} \nhdf5InLocalLib: {} \nisHdf5CppLinking: {} \nisHdf5Linking: {} \n', localLib, hdf5InLocalLib, isHdf5CppLinking, isHdf5Linking)
+            print('localLib: {} \nhdf5InLocalLib: {} \nisHdf5CppLinking: {} \nisHdf5Linking: {} \n'.format(localLib, hdf5InLocalLib, isHdf5CppLinking, isHdf5Linking))
             if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
                 print(yellow("\n'libhdf5' not found at '%s'." % localLib))
                 hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
