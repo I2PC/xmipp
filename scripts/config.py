@@ -339,7 +339,7 @@ class Config:
             if hdf5InLocalLib != '':
                 print(hdf5Found, hdf5InLocalLib)
             elif isHdf5CppLinking and isHdf5Linking:
-                print(hdf5Found, hdf5InLocalLib)
+                print(hdf5Found, 'system')
 
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
