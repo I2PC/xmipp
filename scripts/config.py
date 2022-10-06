@@ -323,7 +323,7 @@ class Config:
             hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
             isHdf5CppLinking = checkLib(self.get(Config.KEY_CXX), '-lhdf5_cpp')
             isHdf5Linking = checkLib(self.get(Config.KEY_CXX), '-lhdf5')
-            print('HDF5: \n', hdf5InLocalLib, isHdf5CppLinking, isHdf5Linking)
+            print('HDF5: \n', localLib, hdf5InLocalLib, isHdf5CppLinking, isHdf5Linking)
             if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
                 print(yellow("\n'libhdf5' not found at '%s'." % localLib))
                 hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
@@ -726,7 +726,6 @@ class Config:
             return False
 
         libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
-        print(libhdf5)
         if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
                       "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread"
                       % (self.configDict["MPI_LINKERFORPROGRAMS"], self.configDict["LINKFLAGS"],
