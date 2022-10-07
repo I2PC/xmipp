@@ -241,11 +241,12 @@ namespace {
 		thrust::device_vector<int> deviceMask(mask.data, mask.data + (mask.yxdim * mask.zdim));
 		//thrust::device_ptr<T> deviceMask = thrust::device_pointer_cast(mask.data);
 		//std::vector<unsigned> coordinates;
-		thrust::device_vector<unsigned> output(mask.yxdim * mask.zdim
-											   - thrust::count(deviceMask, deviceMask + (mask.yxdim * mask.zdim), 0));
+		thrust::device_vector<unsigned> output(
+			mask.yxdim * mask.zdim
+			- thrust::count(deviceMask.begin(), deviceMask.begin() + (mask.yxdim * mask.zdim), 0));
 		thrust::copy_if(thrust::make_counting_iterator<unsigned>(0),
 						thrust::make_counting_iterator<unsigned>(mask.yxdim * mask.zdim),
-						deviceMask,
+						deviceMask.begin(),
 						output.begin(),
 						[] __host__ __device__(const T &x) { return 0 != x; });
 		/*for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
