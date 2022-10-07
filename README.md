@@ -63,7 +63,14 @@ sudo apt remove hdf5
 sudo apt remove hdf5-devel
 pip uninstall h5py
 ```
-Remove all files related to hdf5 in /usr/lib64/libhdf5*, /usr/include/hdf5* and .../anaconda3/include/hdf5*. 
+Remove all files related to hdf5 in:
+* `_/usr/lib64/libhdf5*_`
+*  `_/usr/include/hdf5*_ `
+*  `_/usr/lib/x86_64-linux-gnu/hdf5_*`
+*  `_.../anaconda3/include/H5*.h_ `
+*  `_.../anaconda3/include/hdf5*.h_ `
+*  `_.../anaconda3/lib/libhdf5*_ `
+*  `_.../anaconda3/envs/.../libhdf5*_`
 
 We strongy recommend you to install it via your default package manager:
 `sudo apt-get install libhdf5-dev` 
