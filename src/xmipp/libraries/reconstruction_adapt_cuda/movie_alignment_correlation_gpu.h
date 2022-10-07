@@ -83,6 +83,7 @@ private:
 
         void setFullDim(const Dimensions &dim) {
             mFullDim = dim;
+            mFullFrames.reserve(dim.n());
         }
 
         const Dimensions &getFullDim() const {
@@ -97,7 +98,6 @@ private:
         // as we access it only frame by frame (i.e. no need for batches)
         // also there's no padding, as full frames are never converted to FD
         std::vector<MultidimArray<T>> mFullFrames;
-        std::mutex mMutex;
         Dimensions mFullDim = Dimensions(0);
     } movie;
 

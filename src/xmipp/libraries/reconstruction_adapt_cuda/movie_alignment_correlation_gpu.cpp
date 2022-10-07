@@ -755,7 +755,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &
 
 template<typename T>
 MultidimArray<T> &ProgMovieAlignmentCorrelationGPU<T>::Movie::allocate(size_t x, size_t y) {
-    std::unique_lock lock(mMutex);
     auto *ptr = memoryUtils::page_aligned_alloc<T>(x * y, false);
     return mFullFrames.emplace_back(1, 1, y, x, ptr);
 }
@@ -763,8 +762,11 @@ MultidimArray<T> &ProgMovieAlignmentCorrelationGPU<T>::Movie::allocate(size_t x,
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movieMD,
         const Image<T>& dark, const Image<T>& igain) {
-    movie.setFullDim(this->getMovieSize());
+    movie.setFullDim(this->getMovieSize()); // this will also reserve enough space in the movie vector
     auto &movieDim = movie.getFullDim();
+
+    ctpl::thread_pool pool = ctpl::thread_pool(2);
+    auto futures = std::vector<std::future<void>>();
 
     int movieImgIndex = -1;
     for (size_t objId : movieMD.ids())
@@ -776,8 +778,14 @@ void ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movieMD,
 
         // load image
         auto &dest = movie.allocate(movieDim.x(), movieDim.y());
-        Image<T> frame(dest);
-        this->loadFrame(movieMD, dark, igain, objId, frame);
+        auto routine = [&dest, &movieMD, &dark, &igain, objId, this](int) {
+            Image<T> frame(dest);
+            this->loadFrame(movieMD, dark, igain, objId, frame);
+        };
+        futures.emplace_back(pool.push(routine));
+    }
+    for (auto &f : futures) {
+        f.get();
     }
 }
 
