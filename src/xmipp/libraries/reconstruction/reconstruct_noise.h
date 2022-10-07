@@ -32,7 +32,8 @@
 #include <core/xmipp_fftw.h>
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
-#include "../data/fourier_projection.h"
+#include <data/fourier_projection.h>
+#include <data/ctf.h>
 
 #include <vector>
 #include <complex>
@@ -54,6 +55,7 @@ public:
     FileName fnOutputRoot;
     double paddingFactor;
     double maxResolution;
+    CTFDescription m_ctfDesc;
     
     size_t nThreads;
 
@@ -68,6 +70,8 @@ private:
     const MultidimArray<Complex>& projectReference(double rot, double tilt, double psi, const MultidimArray<double>* ctf);
 
     static void shiftSpectra(MultidimArray<Complex>& spectra, double shiftX, double shiftY);
+    static void updatePsd(MultidimArray<Real>& psd, const MultidimArray<Real>& h);
+    static void updatePsd(MultidimArray<Real>& psd, const MultidimArray<Complex>& h);
 };
 
 

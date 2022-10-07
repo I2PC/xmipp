@@ -25,8 +25,6 @@
 
 #include "reconstruct_noise.h"
 
-#include <data/ctf.h>
-
 #include <core/transformations.h>
 #include <core/metadata_extension.h>
 
@@ -42,7 +40,10 @@ void ProgReconstructNoise::defineParams() {
     addParamsLine("   --padding <padding>             : Padding factor");
     addParamsLine("   --max_resolution <resolution>   : Resolution limit");
 
+    m_ctfDesc.defineParams(this);
+
     addParamsLine("   --thr <threads>                 : Number of threads");
+
 }
 
 void ProgReconstructNoise::readParams() {
@@ -53,6 +54,8 @@ void ProgReconstructNoise::readParams() {
     paddingFactor = getDoubleParam("--padding");
     maxResolution = getDoubleParam("--max_resolution");
 
+    m_ctfDesc.readParams(this);
+
     nThreads = getIntParam("--thr");
 }
 
@@ -62,6 +65,8 @@ void ProgReconstructNoise::show() const {
     std::cout << "Experimanetal metadata      : " << fnExperimentalMetadata << "\n";
     std::cout << "Reference volume            : " << fnReferenceVolume << "\n";
     std::cout << "Output root                 : " << fnOutputRoot << "\n";
+
+    std::cout << m_ctfDesc; 
 
     std::cout << "Number of threads           : " << nThreads << "\n";
     std::cout.flush();
@@ -88,7 +93,6 @@ void ProgReconstructNoise::createReferenceProjector() {
     m_referenceProjector = std::make_unique<FourierProjector>(
         m_reference(), paddingFactor, maxResolution, 
         xmipp_transformation::BSPLINE3
-
     );
 }
 
@@ -96,15 +100,13 @@ void ProgReconstructNoise::computeNoise() {
     MetaDataVec mdExperimental;
     mdExperimental.read(fnExperimentalMetadata);
 
-    Image<Real> experimentalImage;
-    CTFDescription ctf;
-    MultidimArray<Real> ctfImage, averageCtfVariance;
     FourierTransformer fourierTransformer;
+    Image<Real> experimentalImage;
+    MultidimArray<Real> ctf, averageCtfPsd, averageNoisePsd;
     MultidimArray<Complex> experimentalImageFourier;
-    MultidimArray<Real> noiseVariance, averageNoiseVariance;
     experimentalImageFourier.initZeros(m_referenceProjector->projectionFourier);
-    averageCtfVariance.initZeros(experimentalImageFourier);
-    averageNoiseVariance.initZeros(experimentalImageFourier);
+    averageNoisePsd.initZeros(experimentalImageFourier);
+    averageCtfPsd.initZeros(experimentalImageFourier);
     for(const auto& row : mdExperimental) {
         // Read the metadata
         const auto rot = row.getValue<double>(MDL_ANGLE_ROT);
@@ -113,11 +115,11 @@ void ProgReconstructNoise::computeNoise() {
         const auto shiftX = row.getValue<double>(MDL_SHIFT_X);
         const auto shiftY = row.getValue<double>(MDL_SHIFT_Y);
         experimentalImage.read(row.getValue<String>(MDL_IMAGE));
-        ctf.readFromMdRow(row); ctf.produceSideInfo();
+        m_ctfDesc.readFromMdRow(row); m_ctfDesc.produceSideInfo();
 
         // Project the volume
-        ctf.generateCTF(experimentalImage(), ctfImage);
-        const auto& proj = projectReference(rot, tilt, psi, &ctfImage);
+        m_ctfDesc.generateCTF(experimentalImage(), ctf);
+        const auto& proj = projectReference(rot, tilt, psi, &ctf);
 
         // Compute the Fourier transform of the image
         fourierTransformer.FourierTransform(
@@ -130,16 +132,16 @@ void ProgReconstructNoise::computeNoise() {
         //Compute the error in place
         assert(proj.sameShape(experimentalImageFourier));
         experimentalImageFourier -= proj;
-        experimentalImageFourier.getAbs2(noiseVariance);
 
         // Accumulate
-        //ctfImage *= ctfImage; //Square to obtain the variance (mean is zero)
-        //averageCtfVariance += ctfImage;
-        averageNoiseVariance += noiseVariance;
+        updatePsd(averageNoisePsd, experimentalImageFourier);
+        updatePsd(averageCtfPsd, ctf);
     }
 
-    Image<Real>(ctfImage).write(fnOutputRoot + "averageCtf.stk");
-    Image<Real>(averageNoiseVariance).write(fnOutputRoot + "averageNoise.stk");
+    averageNoisePsd /= mdExperimental.size();
+    averageCtfPsd /= mdExperimental.size();
+    Image<Real>(averageNoisePsd).write(fnOutputRoot + "averageNoisePsd.stk");
+    Image<Real>(averageCtfPsd).write(fnOutputRoot + "averageCtfPsd.stk");
 }
 
 const MultidimArray<ProgReconstructNoise::Complex>& 
@@ -165,5 +167,29 @@ void ProgReconstructNoise::shiftSpectra(MultidimArray<Complex>& spectra, double 
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(spectra) {
         const auto theta = i*dy + j*dx; // Dot product of (dx, dy) and (j, i)
         DIRECT_A2D_ELEM(spectra, i, j) *= std::polar(1.0, theta); //e^(i*theta)
+    }
+}
+
+void ProgReconstructNoise::updatePsd(   MultidimArray<Real>& psd, 
+                                        const MultidimArray<Real>& h )
+{
+    assert(XSIZE(psd) <= XSIZE(h));
+    assert(YSIZE(psd) <= YSIZE(h));
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(psd) {
+        const auto& x = DIRECT_A2D_ELEM(h, i, j);
+        DIRECT_A2D_ELEM(psd, i, j) += x*x;
+    }
+}
+
+void ProgReconstructNoise::updatePsd(   MultidimArray<Real>& psd, 
+                                        const MultidimArray<Complex>& h )
+{
+    assert(XSIZE(psd) <= XSIZE(h));
+    assert(YSIZE(psd) <= YSIZE(h));
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(psd) {
+        const auto& x = DIRECT_A2D_ELEM(h, i, j);
+        DIRECT_A2D_ELEM(psd, i, j) += x.real()*x.real() + x.imag()*x.imag();
     }
 }
