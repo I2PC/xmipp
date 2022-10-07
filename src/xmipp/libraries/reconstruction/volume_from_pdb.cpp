@@ -463,7 +463,7 @@ void ProgPdbConverter::blobProperties() const
     if (!fh_out)
         REPORT_ERROR(ERR_IO_NOWRITE, fn_out);
     fh_out << "# Freq(1/A) 10*log10(|Blob(f)|^2) Ts=" << highTs << std::endl;
-    
+
     double w=0;
     double wStep = 1.0 / (highTs * 500);
     double wMax = 1.0 / (2*highTs);

@@ -230,7 +230,7 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
 
 	double res = minRes;
 	for(; res<maxRes; res+=step)
-	{	
+	{
                 freq = sampling/res;
 
                 DIGFREQ2FFT_IDX(freq, ZSIZE(myfftV), idx);

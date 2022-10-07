@@ -28,6 +28,7 @@
 #include <core/args.h>
 #include <core/histogram.h>
 #include "core/geometry.h"
+#include <core/metadata_db.h>
 
 // Read arguments ==========================================================
 void ProgAngularDistance::readParams()
@@ -127,7 +128,7 @@ void ProgAngularDistance::run()
     	return;
     }
 
-    MetaDataDb DF_out;
+    MetaDataVec DF_out;
     double angular_distance=0;
     double shift_distance=0;
 
@@ -153,7 +154,7 @@ void ProgAngularDistance::run()
 
     auto iter1(DF1.ids().begin());
     auto iter2(DF2.ids().begin());
-    for (; iter1 != DF1.ids().end(); ++iter1, ++iter2)
+    for (; i < DF1.size() ; ++iter1, ++iter2)
     {
         // Read input data
         double rot1,  tilt1,  psi1;
@@ -206,7 +207,7 @@ void ProgAngularDistance::run()
         // Fill the output result
         if (fillOutput)
         {
-            MDRowSql row;
+            MDRowVec row;
             //output[0]=rot1;
             row.setValue(MDL_ANGLE_ROT, rot1);
             //output[1]=rot2p;
@@ -288,7 +289,7 @@ void ProgAngularDistance::run()
 
 void ProgAngularDistance::computeWeights()
 {
-	MetaDataDb DF1sorted, DF2sorted, DFweights;
+	MetaDataVec DF1sorted, DF2sorted, DFweights;
 	MDLabel label=MDL::str2Label(idLabel);
 	DF1sorted.sort(DF1,label);
 	DF2sorted.sort(DF2,label);
@@ -547,7 +548,7 @@ void ProgAngularDistance::computeWeights()
 		DF2.removeLabel(angleDiffLabel);
 	if (DF2.containsLabel(weightLabel))
 		DF2.removeLabel(weightLabel);
-    DF2weighted.join1(DF2,DFweights,label,INNER);
+    DF2weighted.join1(MetaDataDb(DF2),MetaDataDb(DFweights),label,INNER);
 
     for (size_t objId : DF2weighted.ids())
     {

@@ -210,7 +210,6 @@ protected:
             mode = MD_APPEND;
 		MDSql::activateMathExtensions();
         MDSql::activateRegExtensions();
-
     }
 
     void doSet()
@@ -531,6 +530,8 @@ protected:
 public:
     void run()
     {
+    	if (mdIn.size()==0)
+    		return;
         if (checkParam("--set"))
             doSet();
         else if (checkParam("--operate"))
@@ -547,6 +548,4 @@ public:
         else if (doWrite)
             mdIn.write(fn_out, mode);
     }
-
-}
-;//end of class ProgMetaDataUtilities
+};

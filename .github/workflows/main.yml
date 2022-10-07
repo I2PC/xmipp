@@ -17,7 +17,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
@@ -66,19 +66,27 @@ jobs:
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
                 
-      - name: Install CUDA
-        uses: Jimver/cuda-toolkit@v0.2.6
-        with: 
-          cuda: 10.2.89
-          method: network
-          sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
-      - name: Install OpenCV-4
-        uses: Dovyski/setup-opencv-action@v1
+      - uses: Jimver/cuda-toolkit@v0.2.8
+        id: cuda-toolkit
         with:
-          opencv-version: '4.1.0'
-          opencv-extra-modules: OFF
-          install-deps: OFF
+          cuda: '11.7.0'
+
+      - run: echo "Installed cuda version is:${{steps.cuda-toolkit.outputs.cuda}}"
+      
+        #- name: Install CUDA
+        #uses: Jimver/cuda-toolkit@v0.2.8
+        # with: 
+        #  cuda: 11.2.2
+        #  method: network
+        #  sub-packages: '["nvcc", "cudart-dev", "nvml-dev"]'
+        #  #sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
+      #- name: Install OpenCV-4
+      #  uses: Dovyski/setup-opencv-action@v1
+      #  with:
+      #    opencv-version: '4.1.0'
+      #    opencv-extra-modules: OFF
+      #    install-deps: OFF
 
       - name: Install python dependencies
         run:  |
@@ -86,7 +94,7 @@ jobs:
            pip install scons numpy
 
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
 
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk

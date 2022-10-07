@@ -2320,10 +2320,9 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 
     Vout.initZeros(Vin);
     double izHelical=1.0/zHelical;
-    double sinRotHelical, cosRotHelical;
-    //sincos(rotHelical,&sinRotHelical,&cosRotHelical);
-    sinRotHelical = sin(rotHelical);
-    cosRotHelical = cos(rotHelical);
+	int zHelical2=(int)std::floor(0.5*zHelical);
+    double sinRotHelical = sin(rotHelical);
+    double cosRotHelical = cos(rotHelical);
     int Llength=ceil(ZSIZE(Vin)*izHelical);
 
     Matrix1D<double> sinCn, cosCn;
@@ -2352,31 +2351,32 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
             if (kp>=zFirst && kp<=zLast)
             {
 				double rotp=rot+l*rotHelical;
-				double ip, jp;
-				//sincos(rotp,&ip,&jp);
-				ip = sin(rotp);
-                jp = cos(rotp);
-				ip*=rho;
-				jp*=rho;
-				finalValue+=interpolatedElement3DHelical(Vin,jp,ip,kp,zHelical,sinRotHelical,cosRotHelical);
-				L+=1.0;
+				double ip = rho*sin(rotp);
+                double jp = rho*cos(rotp);
+                double weight = 1.0;
+                if (kp-zFirst<=zHelical2)
+                	weight=(kp-zFirst+1)/(zHelical2+1);
+                else if (zLast-kp<=zHelical2)
+                	weight=(zLast+1-kp)/(zHelical2+1);
+				finalValue+=weight*interpolatedElement3DHelical(Vin,jp,ip,kp,zHelical,sinRotHelical,cosRotHelical);
+				L+=weight;
 				for (int n=1; n<Cn; ++n)
 				{
 					double jpp=VEC_ELEM(cosCn,n)*jp-VEC_ELEM(sinCn,n)*ip;
 					double ipp=VEC_ELEM(sinCn,n)*jp+VEC_ELEM(cosCn,n)*ip;
-					finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,kp,zHelical,sinRotHelical,cosRotHelical);
-					L+=1.0;
+					finalValue+=weight*interpolatedElement3DHelical(Vin,jpp,ipp,kp,zHelical,sinRotHelical,cosRotHelical);
+					L+=weight;
 				}
 				if (dihedral)
 				{
-					finalValue+=interpolatedElement3DHelical(Vin,jp,-ip,-kp,zHelical,sinRotHelical,cosRotHelical);
-					L+=1.0;
+					finalValue+=weight*interpolatedElement3DHelical(Vin,jp,-ip,-kp,zHelical,sinRotHelical,cosRotHelical);
+					L+=weight;
 					for (int n=1; n<Cn; ++n)
 					{
 						double jpp=VEC_ELEM(cosCn,n)*jp-VEC_ELEM(sinCn,n)*(-ip);
 						double ipp=VEC_ELEM(sinCn,n)*jp+VEC_ELEM(cosCn,n)*(-ip);
-						finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,-kp,zHelical,sinRotHelical,cosRotHelical);
-						L+=1.0;
+						finalValue+=weight*interpolatedElement3DHelical(Vin,jpp,ipp,-kp,zHelical,sinRotHelical,cosRotHelical);
+						L+=weight;
 					}
 				}
             }
