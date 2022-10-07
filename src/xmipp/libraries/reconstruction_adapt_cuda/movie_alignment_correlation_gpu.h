@@ -40,8 +40,6 @@ public:
     /// Read argument from command line
     void readParams();
 
-    virtual ~ProgMovieAlignmentCorrelationGPU();
-
     /// Show
     void show();
 
@@ -66,13 +64,47 @@ private:
         }
     };
 
+    class Movie final
+    {
+    public:
+        MultidimArray<T> &getFullFrame(size_t index)
+        {
+            return mFullFrames[index];
+        }
+
+        MultidimArray<T> &allocate(size_t x, size_t y);
+
+        void releaseFullFrames() {
+            for (auto &f : mFullFrames) {
+                free(f.data);
+                f.data = nullptr;
+            }
+        }
+
+        void setFullDim(const Dimensions &dim) {
+            mFullDim = dim;
+        }
+
+        const Dimensions &getFullDim() const {
+            return mFullDim;
+        }
+
+        bool hasFullMovie() const {
+            return ! mFullFrames.empty();
+        }
+    private:
+        // internally, full-frame movie is represented by separate frames
+        // as we access it only frame by frame (i.e. no need for batches)
+        // also there's no padding, as full frames are never converted to FD
+        std::vector<MultidimArray<T>> mFullFrames;
+        std::mutex mMutex;
+        Dimensions mFullDim = Dimensions(0);
+    } movie;
+
     /**
      * Inherited, see parent
      */
-    void releaseAll() {
-        free(movieRawData);
-        movieRawData = nullptr;
-    };
+    void releaseAll();
 
     /**
      * Estimates maximal size of the filter for given frame
@@ -208,7 +240,7 @@ private:
      * @param dark pixel correction
      * @param igain correction
      */
-    T* loadMovie(const MetaData& movie,
+    void loadMovie(const MetaData& movie,
             const Image<T>& dark, const Image<T>& igain);
 
     /**
@@ -254,15 +286,13 @@ private:
     /**
      * Method returns a 'window'/'view' of each and all frames, aligned (to int positions)
      * using global alignment
-     * @param allFrames, consecutive
      * @param patch defining the portion of each frame to load
      * @param globAlignment to compensate
-     * @param movie dimension
      * @param result where data are stored
      */
-    void getPatchData(const T *allFrames, const Rectangle<Point2D<T>> &patch,
+    void getPatchData(const Rectangle<Point2D<T>> &patch,
             const AlignmentResult<T> &globAlignment,
-            const Dimensions &movie, T *result);
+            T *result);
 
     /**
      * Create local alignment from global alignment
@@ -330,12 +360,6 @@ private:
     std::string storage;
 
     core::optional<GPU> gpu;
-
-    /** contains the loaded movie, with consecutive data padded for in-place FFT */
-    T *movieRawData = nullptr;
-
-    /** contains dimensions of the movie stored in movieRawData */
-    Dimensions rawMovieDim = Dimensions(0);
 
     /**
      * Keywords representing optimal settings of the algorithm.

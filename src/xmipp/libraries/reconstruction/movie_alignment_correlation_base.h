@@ -73,6 +73,10 @@ public:
     void run();
 
 protected:
+    /**
+     * @return dimension of the movie frame (taking into account slicing indicated by the user)
+     **/
+    Dimensions getMovieSize();
 
     /**
      * Compute alignment of the each frame from frame-to-frame shifts
@@ -367,10 +371,10 @@ protected:
     std::pair<size_t, size_t> localAlignPatches;
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
-    /** Filename of movie metadata */
-    FileName fnMovie;
 
 private:
+    /** Filename of movie metadata */
+    FileName fnMovie;
     /** Minimal resolution (in A) of the patch for local alignment */
     size_t minLocalRes;
     /** Max resolution in A to preserve during alignment*/

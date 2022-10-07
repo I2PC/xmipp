@@ -392,6 +392,16 @@ void AProgMovieAlignmentCorrelation<T>::readMovie(MetaData& movie) {
 }
 
 template<typename T>
+Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
+    ImageGeneric movieStack;
+    movieStack.read(fnMovie, HEADER);
+    size_t xdim, ydim, zdim, ndim;
+    movieStack.getDimensions(xdim, ydim, zdim, ndim);
+    int noOfImgs = this->nlast - this->nfirst + 1;
+    return Dimensions(xdim, ydim, 1, noOfImgs);
+}
+
+template<typename T>
 void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
         const AlignmentResult<T> &alignment, MetaData &movie) {
     int j = 0;

@@ -36,11 +36,6 @@
 #include "core/xmipp_image_generic.h"
 
 template<typename T>
-ProgMovieAlignmentCorrelationGPU<T>::~ProgMovieAlignmentCorrelationGPU() {
-    BasicMemManager::instance().release();
-}
-
-template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     AProgMovieAlignmentCorrelation<T>::defineParams();
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
@@ -102,12 +97,7 @@ template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
     gpu.value().updateMemoryInfo();
-    ImageGeneric movieStack;
-    movieStack.read(this->fnMovie, HEADER);
-    size_t xdim, ydim, zdim, ndim;
-    movieStack.getDimensions(xdim, ydim, zdim, ndim);
-    int noOfImgs = this->nlast - this->nfirst + 1;
-    Dimensions dim(xdim, ydim, 1, noOfImgs);
+    auto dim = this->getMovieSize();
 
     if (optimize) {
         size_t maxFilterBytes = getMaxFilterBytes(dim);
@@ -187,13 +177,13 @@ std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLo
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
-        const Rectangle<Point2D<T>> &patch, const AlignmentResult<T> &globAlignment,
-        const Dimensions &movie, T *result) {
-    size_t n = movie.n();
+void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const Rectangle<Point2D<T>> &patch, 
+        const AlignmentResult<T> &globAlignment, T *result) {
+    auto &movieDim = movie.getFullDim();
+    size_t n = movieDim.n();
     auto patchSize = patch.getSize();
     auto copyPatchData = [&](size_t srcFrameIdx, size_t t, bool add) {
-        size_t frameOffset = srcFrameIdx * movie.x() * movie.y();
+        auto *fullFrame = this->movie.getFullFrame(srcFrameIdx).data;
         size_t patchOffset = t * patchSize.x * patchSize.y;
         // keep the shift consistent while adding local shift
         int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
@@ -205,7 +195,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
             } else {
                 srcY += yShift;
             }
-            size_t srcIndex = frameOffset + (srcY * movie.x()) + (size_t)patch.tl.x;
+            size_t srcIndex = (srcY * movieDim.x()) + (size_t)patch.tl.x;
             if (xShift < 0) {
                 srcIndex -= (size_t)std::abs(xShift);
             } else {
@@ -214,10 +204,10 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
             size_t destIndex = patchOffset + y * patchSize.x;
             if (add) {
                 for (size_t x = 0; x < patchSize.x; ++x) {
-                    result[destIndex + x] += allFrames[srcIndex + x];
+                    result[destIndex + x] += fullFrame[srcIndex + x];
                 }
             } else {
-                memcpy(result + destIndex, allFrames + srcIndex, patchSize.x * sizeof(T));
+                memcpy(result + destIndex, fullFrame + srcIndex, patchSize.x * sizeof(T));
             }
         }
     };
@@ -329,10 +319,10 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 
 template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
+        const MetaData &movieMD, const Image<T> &dark, const Image<T> &igain,
         const AlignmentResult<T> &globAlignment) {
     using memoryUtils::MB;
-    auto movieSettings = this->getMovieSettings(movie, false);
+    auto movieSettings = this->getMovieSettings(movieMD, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
     this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
     auto correlationSettings = this->getCorrelationSettings(patchSettings);
@@ -358,11 +348,11 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     }
 
     // load movie to memory
-    if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, igain);
+    if ( ! movie.hasFullMovie()) {
+        loadMovie(movieMD, dark, igain);
     }
     // we need to work with full-size movie, with no cropping
-    assert(movieSettings.dim == rawMovieDim);
+    assert(movieSettings.dim == movie.getFullDim());
 
     // prepare filter
     // FIXME DS make sure that the resulting filter is correct, even if we do non-uniform scaling
@@ -446,8 +436,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             memset(correlations, 0, context.corrElems() * sizeof(T));
 
             // get data
-            getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
-                    data);
+            getPatchData(p.rec, globAlignment, data);
 
             // convert to FFT, downscale them and compute correlations
             GPUPool.push([&](int){
@@ -527,7 +516,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getOutputStreamCount()
     {
         auto count = 4;
         // upper estimation is 2 full frames of GPU data per stream
-        while (2 * count * this->rawMovieDim.xy() * sizeof(T) > this->gpu.value().lastFreeBytes())
+        while (2 * count * movie.getFullDim().xy() * sizeof(T) > this->gpu.value().lastFreeBytes())
         {
             count--;
         }
@@ -542,7 +531,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getOutputStreamCount()
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+        const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     Ninitial = N = 0;
@@ -571,13 +560,13 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     auto futures = std::vector<std::future<void>>();
     for (auto i = 0; i < pool.size(); ++i) {
         aux[i].stream = GPU(gpu.value().device(), i + 1);
-        aux[i].hIn = reinterpret_cast<T*>(BasicMemManager::instance().get(rawMovieDim.xy() * sizeof(T), MemType::CUDA_HOST));
+        aux[i].hIn = reinterpret_cast<T*>(BasicMemManager::instance().get(movie.getFullDim().xy() * sizeof(T), MemType::CUDA_HOST));
     }
 
     const T binning = this->getOutputBinning();
     int frameIndex = -1;
     std::mutex mutex;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    FOR_ALL_OBJECTS_IN_METADATA(movieMD)
     {
         frameIndex++;
         if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
@@ -587,8 +576,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             auto routine = [&](int threadId) {
                 auto &a = aux[threadId];
                 a.stream.set();
-                auto *data = movieRawData + (frameOffset * rawMovieDim.xy());
-                auto croppedFrame = MultidimArray(1, 1, rawMovieDim.y(), rawMovieDim.x(), a.hIn);
+                auto *data = movie.getFullFrame(frameIndex).data;
+                auto croppedFrame = MultidimArray(1, 1, movie.getFullDim().y(), movie.getFullDim().x(), a.hIn);
                 memcpy(croppedFrame.data, data, croppedFrame.yxdim * sizeof(T));
 
                 if (binning > 0) {
@@ -656,9 +645,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
+        const MetaData &movieMD, const Image<T> &dark, const Image<T> &igain) {
     using memoryUtils::MB;
-    auto movieSettings = this->getMovieSettings(movie, true);
+    auto movieSettings = this->getMovieSettings(movieMD, true);
     auto correlationSetting = this->getCorrelationSettings(movieSettings);
     T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
 
@@ -683,8 +672,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
 
     // load movie to memory
-    if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, igain);
+    if ( ! movie.hasFullMovie()) {
+        loadMovie(movieMD, dark, igain);
     }
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
@@ -754,24 +743,31 @@ template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
         T *output) {
     for (size_t n = 0; n < settings.dim.n(); ++n) {
-        T *src = movieRawData + (n * rawMovieDim.xy()); // points to first float in the image
+        T *src = movie.getFullFrame(n).data; // points to first float in the image
         T *dest = output + (n * settings.dim.xy()); // points to first float in the image
         for (size_t y = 0; y < settings.dim.y(); ++y) {
             memcpy(dest + (settings.dim.x() * y),
-                    src + (rawMovieDim.x() * y),
+                    src + (movie.getFullDim().x() * y),
                     settings.dim.x() * sizeof(T));
         }
     }
 }
 
 template<typename T>
-T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
+MultidimArray<T> &ProgMovieAlignmentCorrelationGPU<T>::Movie::allocate(size_t x, size_t y) {
+    std::unique_lock lock(mMutex);
+    auto *ptr = memoryUtils::page_aligned_alloc<T>(x * y, false);
+    return mFullFrames.emplace_back(1, 1, y, x, ptr);
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movieMD,
         const Image<T>& dark, const Image<T>& igain) {
-    T* imgs = nullptr;
-    Image<T> frame;
+    movie.setFullDim(this->getMovieSize());
+    auto &movieDim = movie.getFullDim();
 
     int movieImgIndex = -1;
-    for (size_t objId : movie.ids())
+    for (size_t objId : movieMD.ids())
     {
         // update variables
         movieImgIndex++;
@@ -779,22 +775,10 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, igain, objId, frame);
-
-        if (nullptr == imgs) {
-            rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
-                    this->nlast - this->nfirst + 1);
-            auto settings = FFTSettings<T>(rawMovieDim, 1, false);
-            imgs = memoryUtils::page_aligned_alloc<T>(std::max(settings.elemsFreq(), settings.elemsSpacial()), true);
-        }
-
-        // copy all frames to memory, consecutively. There will be a space behind
-        // in case we need to reuse the memory for FT
-        T* dest = imgs
-                + ((movieImgIndex - this->nfirst) * rawMovieDim.xy()); // points to first float in the image
-        memcpy(dest, frame.data.data, rawMovieDim.xy() * sizeof(T));
+        auto &dest = movie.allocate(movieDim.x(), movieDim.y());
+        Image<T> frame(dest);
+        this->loadFrame(movieMD, dark, igain, objId, frame);
     }
-    return imgs;
 }
 
 template <typename T>
@@ -918,6 +902,13 @@ size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
     size_t bytes = maxFFTX * maxY * sizeof(T);
     return bytes;
 }
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::releaseAll()
+{
+    BasicMemManager::instance().release();
+    movie.releaseFullFrames();
+};
 
 // explicit specialization
 template class ProgMovieAlignmentCorrelationGPU<float> ;
