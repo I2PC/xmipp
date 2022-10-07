@@ -204,30 +204,21 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     int device = -1;
     gpuErrchk(cudaGetDevice(&device));
     
-
-    // size_t noOfCorrelations = (noOfImgs * (noOfImgs-1)) / 2;
-
     size_t singleFFTPixels = fftSizeX * fftSizeY;
     size_t singleFFTBytes = singleFFTPixels * sizeof(T) * 2;
 
-    // result = new T[noOfCorrelations * centerSize * centerSize]();
-
     size_t buffer1Size = std::min(maxFFTsInBuffer, noOfImgs);
     void* d_fftBuffer1 = BasicMemManager::instance().get(buffer1Size * singleFFTBytes, MemType::CUDA);
-    // gpuMalloc((void**) &d_fftBuffer1, buffer1Size * singleFFTBytes);
 
     size_t buffer2Size = std::max((size_t)0,
             std::min(maxFFTsInBuffer, noOfImgs - buffer1Size));
     void* d_fftBuffer2 = BasicMemManager::instance().get(buffer2Size * singleFFTBytes, MemType::CUDA);
-    // gpuMalloc((void**) &d_fftBuffer2, buffer2Size * singleFFTBytes);
             
 
     size_t buffer1Offset = 0;
     do {
         size_t buffer1ToCopy = std::min(buffer1Size, noOfImgs - buffer1Offset);
         size_t inputOffsetBuffer1 = buffer1Offset * singleFFTPixels;
-        // memcpy(d_fftBuffer1, h_FFTs + inputOffsetBuffer1,
-        //         buffer1ToCopy * singleFFTBytes);
         gpuErrchk(cudaMemcpy(d_fftBuffer1, h_FFTs + inputOffsetBuffer1,
                 buffer1ToCopy * singleFFTBytes, cudaMemcpyHostToDevice));
 

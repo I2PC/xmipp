@@ -367,6 +367,8 @@ protected:
     std::pair<size_t, size_t> localAlignPatches;
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
+    /** Filename of movie metadata */
+    FileName fnMovie;
 
 private:
     /** Minimal resolution (in A) of the patch for local alignment */
@@ -375,8 +377,6 @@ private:
     T maxResForCorrelation; //
     /** Pixel size of the movie*/
     T Ts;
-    /** Filename of movie metadata */
-    FileName fnMovie;
     /** Correction images */
     FileName fnDark, fnGain;
     /** Binning factor used for output */

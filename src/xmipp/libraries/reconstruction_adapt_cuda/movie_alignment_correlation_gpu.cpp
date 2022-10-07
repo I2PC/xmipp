@@ -33,6 +33,7 @@
 #include "reconstruction_cuda/cuda_fft.h"
 #include "core/utils/time_utils.h"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
+#include "core/xmipp_image_generic.h"
 
 template<typename T>
 ProgMovieAlignmentCorrelationGPU<T>::~ProgMovieAlignmentCorrelationGPU() {
@@ -101,13 +102,15 @@ template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
     gpu.value().updateMemoryInfo();
-    Image<T> frame;
+    ImageGeneric movieStack;
+    movieStack.read(this->fnMovie, HEADER);
+    size_t xdim, ydim, zdim, ndim;
+    movieStack.getDimensions(xdim, ydim, zdim, ndim);
     int noOfImgs = this->nlast - this->nfirst + 1;
-    this->loadFrame(movie, movie.firstRowId(), frame);
-    Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
+    Dimensions dim(xdim, ydim, 1, noOfImgs);
 
     if (optimize) {
-        size_t maxFilterBytes = getMaxFilterBytes(frame);
+        size_t maxFilterBytes = getMaxFilterBytes(dim);
         return getSettingsOrBenchmark(dim, maxFilterBytes, true);
     } else {
         return FFTSettings<T>(dim, 1, false);
@@ -906,11 +909,11 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
 
 template<typename T>
 size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
-        const Image<T> &frame) {
-    size_t maxXPow2 = std::ceil(log(frame.data.xdim) / log(2));
+        const Dimensions &dim) {
+    size_t maxXPow2 = std::ceil(log(dim.x()) / log(2));
     size_t maxX = std::pow(2, maxXPow2);
     size_t maxFFTX = maxX / 2 + 1;
-    size_t maxYPow2 = std::ceil(log(frame.data.ydim) / log(2));
+    size_t maxYPow2 = std::ceil(log(dim.y()) / log(2));
     size_t maxY = std::pow(2, maxYPow2);
     size_t bytes = maxFFTX * maxY * sizeof(T);
     return bytes;

@@ -77,10 +77,10 @@ private:
     /**
      * Estimates maximal size of the filter for given frame
      * Might be use to estimate memory requirements
-     * @frame reference frame
+     * @param dim dimension of the movie frame
      * @return max bytes necessary for filter
      */
-    size_t getMaxFilterBytes(const Image<T> &frame);
+    size_t getMaxFilterBytes(const Dimensions &dim);
 
     /**
      * Returns best settings for FFT on GPU. It is either
