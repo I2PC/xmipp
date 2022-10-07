@@ -244,8 +244,8 @@ namespace {
 											   - thrust::count(mask.data, mask.data + (mask.yxdim * mask.zdim), 0));
 		thrust::copy_if(thrust::make_counting_iterator<unsigned>(0),
 						thrust::make_counting_iterator<unsigned>(mask.yxdim * mask.zdim),
-						deviceMask,
-						output,
+						deviceMask.begin(),
+						output.begin(),
 						[] __host__ __device__(const int &x) { return 0 != x; });
 		/*for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
 			if (checkStep(mask, step, static_cast<size_t>(i))) {
