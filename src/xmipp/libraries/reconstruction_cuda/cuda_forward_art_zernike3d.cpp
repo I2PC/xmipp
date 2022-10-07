@@ -238,13 +238,14 @@ namespace {
 	std::tuple<unsigned *, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
 
 	{
-		thrust::device_vector<int> deviceMask(mask.data, mask.data + (mask.yxdim * mask.zdim));
+		//thrust::device_vector<int> deviceMask(mask.data, mask.data + (mask.yxdim * mask.zdim));
+		thrust::device_ptr<int> deviceMask = thrust::device_pointer_cast(mask.data);
 		//std::vector<unsigned> coordinates;
 		thrust::device_vector<unsigned> output(mask.yxdim * mask.zdim
 											   - thrust::count(mask.data, mask.data + (mask.yxdim * mask.zdim), 0));
 		thrust::copy_if(thrust::make_counting_iterator<unsigned>(0),
 						thrust::make_counting_iterator<unsigned>(mask.yxdim * mask.zdim),
-						deviceMask.begin(),
+						deviceMask,
 						output.begin(),
 						[] __host__ __device__(const int &x) { return 0 != x; });
 		/*for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
