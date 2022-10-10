@@ -34,6 +34,7 @@ namespace {
 		if (cudaMalloc(dest, sizeof(T) * n) != cudaSuccess) {
 			processCudaError();
 		}
+		printf("-10\n");
 
 		if (cudaMemcpyAsync(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice, 0) != cudaSuccess) {
 			cudaFree(*dest);
