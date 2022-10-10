@@ -403,20 +403,15 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
-	printf("1\n");
 	int threadPosition = cudaCoordinatesF[threadIndex];
-	printf("2\n");
 	int cubeX = threadPosition % xdim;
 	int cubeY = threadPosition / xdim % ydim;
 	int cubeZ = threadPosition / (xdim * ydim);
-	printf("3\n");
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	printf("4\n");
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	int img_idx = 0;
-	printf("5\n");
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);

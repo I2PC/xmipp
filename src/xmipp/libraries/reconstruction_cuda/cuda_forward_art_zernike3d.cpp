@@ -12,8 +12,6 @@
 #include <utility>
 #include "data/numerical_tools.h"
 
-#include <cstdio>
-
 namespace cuda_forward_art_zernike3D {
 
 // Cuda memory helper function
@@ -34,13 +32,11 @@ namespace {
 		if (cudaMalloc(dest, sizeof(T) * n) != cudaSuccess) {
 			processCudaError();
 		}
-		printf("-9\n");
 
 		if (cudaMemcpyAsync(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice, 0) != cudaSuccess) {
 			cudaFree(*dest);
 			processCudaError();
 		}
-		printf("-10\n");
 	}
 
 	// Copies data from GPU to the CPU
@@ -108,18 +104,13 @@ namespace {
 	template<typename T>
 	MultidimArrayCuda<T> initializeMultidimArrayCuda(const MultidimArray<T> &multidimArray, T *data)
 	{
-		printf("-6\n");
-
 		struct MultidimArrayCuda<T> cudaArray = {
 			.xdim = static_cast<unsigned>(multidimArray.xdim), .ydim = static_cast<unsigned>(multidimArray.ydim),
 			.yxdim = static_cast<unsigned>(multidimArray.yxdim), .xinit = multidimArray.xinit,
 			.yinit = multidimArray.yinit, .zinit = multidimArray.zinit
 		};
 
-		printf("-7\n");
 		transportData(&cudaArray.data, data, multidimArray.yxdim * multidimArray.zdim);
-
-		printf("-8\n");
 		return cudaArray;
 	}
 
@@ -147,14 +138,10 @@ namespace {
 		std::vector<MultidimArrayCuda<T>> output;
 		for (int m = 0; m < image.size(); m++) {
 			T *pinned;
-			printf("-2\n");
 			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim * sizeof(T), cudaHostAllocMapped);
-			printf("-3\n");
 			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim * sizeof(T));
-			printf("-4\n");
 			output.push_back(initializeMultidimArrayCuda(image[m](), pinned));
 		}
-		printf("-5\n");
 		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
 	}
 
@@ -353,7 +340,6 @@ template<bool usesZernike>
 void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters)
 
 {
-	printf("-1\n");
 	// Unique parameters
 	MultidimArrayCuda<PrecisionType> *cudaP, *cudaW;
 	std::vector<MultidimArrayCuda<PrecisionType>> pVector, wVector;
@@ -366,7 +352,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	printf("0\n");
 	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(cudaMV,
 																		 VRecMaskF,
 																		 cudaCoordinatesF,
