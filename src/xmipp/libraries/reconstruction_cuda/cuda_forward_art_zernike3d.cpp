@@ -141,10 +141,14 @@ namespace {
 		std::vector<MultidimArrayCuda<T>> output;
 		for (int m = 0; m < image.size(); m++) {
 			T *pinned;
+			printf("-2\n");
 			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim, cudaHostAllocMapped);
-			//memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim);
+			printf("-3\n");
+			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim);
+			printf("-4\n");
 			output.push_back(initializeMultidimArrayCuda(image[m](), pinned));
 		}
+		printf("-5\n");
 		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
 	}
 
