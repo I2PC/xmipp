@@ -33,7 +33,7 @@ namespace {
 			processCudaError();
 		}
 
-		if (cudaMemcpy(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
+		if (cudaMemcpyAsync(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice, 0) != cudaSuccess) {
 			cudaFree(*dest);
 			processCudaError();
 		}
