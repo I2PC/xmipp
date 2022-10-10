@@ -87,6 +87,7 @@ void ProgReconstructNoise::run() {
     
 void ProgReconstructNoise::readReference() {
     m_reference.read(fnReferenceVolume);
+    m_reference().setXmippOrigin();
 }
 
 void ProgReconstructNoise::createReferenceProjector() {
@@ -120,7 +121,7 @@ void ProgReconstructNoise::computeNoise() {
         // Project the volume
         m_ctfDesc.generateCTF(experimentalImage(), ctf);
         const auto& proj = projectReference(rot, tilt, psi, &ctf);
-
+        
         // Compute the Fourier transform of the image
         fourierTransformer.FourierTransform(
             experimentalImage(),
