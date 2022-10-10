@@ -196,8 +196,10 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+	P.write("projection.mrc");
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::DONT_WRAP);
 	Pctf = applyCTF(row, P);
+	Pctf.write("projection_ctf.mrc");
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -317,7 +319,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
      	// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
-		if (fnMask.isEmpty() || fmaskWidth == -1) { // If there is no provided mask
+		if (fnMask.isEmpty()) { // If there is no provided mask
 			Mfinal().initZeros(P());
 			// inverse mask (iM) and final mask (Mfinal) are all 1s
 			iM = invertMask(Mfinal);
@@ -336,6 +338,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			// Compute inverse of original mask
 			iM = invertMask(M);
 		}
+		
 		// Compute estimation images: IiM = I*iM and PiM = P*iM	
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
 		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
@@ -435,13 +438,22 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			MultidimArray<double> &mIdiff=Idiff();
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-				DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			if (fmaskWidth == -1)
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+			}
+			else
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+			}
 		}
 		// Write particle
+		//double R2adj = 1;
 		writeParticle(int(i), Idiff, R2adj); 
 	}
-
+	
 	if (subtract && meanParam)
 	{
 		// Decide which model apply to all
@@ -491,7 +503,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			transformerP.inverseFourierTransform(PFourier, P());
 
 			// Compute final mask TODO: save masks computed before or do a function for this?
-			if (fnMask.isEmpty() || fmaskWidth == -1) {
+			if (fnMask.isEmpty()) {
 				Mfinal().initZeros(P());
 				iM = invertMask(Mfinal);
 				Mfinal = iM;		
@@ -509,8 +521,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			{
 				MultidimArray<double> &mIdiff=Idiff();
 				mIdiff.initZeros(I());
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+				if (fmaskWidth == -1)
+				{
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+						DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
+				}
+				else
+				{
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
+				}
 				// Write particle
 				writeParticle(int(i), Idiff, R2adjC); 
 			} 
