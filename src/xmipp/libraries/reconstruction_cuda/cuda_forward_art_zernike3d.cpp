@@ -36,7 +36,7 @@ namespace {
 		}
 		printf("-9\n");
 
-		if (cudaMemcpy(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
+		if (cudaMemcpyAsync(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice, 0) != cudaSuccess) {
 			cudaFree(*dest);
 			processCudaError();
 		}
@@ -148,9 +148,9 @@ namespace {
 		for (int m = 0; m < image.size(); m++) {
 			T *pinned;
 			printf("-2\n");
-			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim, cudaHostAllocMapped);
+			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim * sizeof(T), cudaHostAllocMapped);
 			printf("-3\n");
-			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim);
+			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim * sizeof(T));
 			printf("-4\n");
 			output.push_back(initializeMultidimArrayCuda(image[m](), pinned));
 		}
