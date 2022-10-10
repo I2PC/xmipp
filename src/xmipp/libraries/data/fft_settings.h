@@ -26,56 +26,147 @@
 #ifndef FFTSETTINGS_H_
 #define FFTSETTINGS_H_
 
-#include <iostream>
 #include "dimensions.h"
+#include <cassert>
+#include <complex>
+
 /**@defgroup FFTSettings FFTSettings
    @ingroup DataLibrary */
 //@{
+
+// Forward declare both templates (otherwise you'll get: warning: friend declaration  declares a non-template function)
+template <typename T> class FFTSettings;
+template <typename T> std::ostream& operator<<( std::ostream&, const FFTSettings<T>& );
+
 template<typename T>
-struct FFTSettings {
+class FFTSettings {
+public:
     explicit FFTSettings(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
-            size_t batch = 0, bool isInPlace = false) :
-            dim(x, y, z, n), x_freq(x / 2 + 1), batch(
-                    batch), isInPlace(isInPlace) {
+            size_t batch = 1, // meaning no batch processing
+            bool isInPlace = false,
+            bool isForward = true) :
+            m_spatial(x, y, z, n),
+            m_freq(x / 2 + 1, y, z, n),
+            m_batch(batch),
+            m_isInPlace(isInPlace),
+            m_isForward(isForward) {
+        if (isInPlace) {
+            size_t padding = (m_freq.x() * 2) - x;
+            m_spatial = Dimensions(x, y, z, n, padding);
+        }
+        assert(batch <= n);
+        assert(batch > 0);
+    };
+
+    explicit FFTSettings(const Dimensions &spatial,
+            size_t batch = 1, // meaning no batch processing
+            bool isInPlace = false,
+            bool isForward = true) :
+            m_spatial(spatial),
+            m_freq(spatial.x() / 2 + 1, spatial.y(), spatial.z(), spatial.n()),
+            m_batch(batch),
+            m_isInPlace(isInPlace),
+            m_isForward(isForward) {
+        if (isInPlace) {
+            size_t padding = (m_freq.x() * 2) - spatial.x();
+            m_spatial = Dimensions(spatial.x(), spatial.y(), spatial.z(), spatial.n(), padding);
+        }
+        assert(batch <= spatial.n());
+        assert(batch > 0);
+    };
+
+    inline constexpr Dimensions sDim() const {
+        return m_spatial;
     }
-    ;
 
-    explicit FFTSettings(const Dimensions &d,
-            size_t batch = 0, bool isInPlace = false) :
-            dim(d), x_freq(d.x() / 2 + 1), batch(
-                    batch), isInPlace(isInPlace) {
-    }
-    ;
-    const size_t x_freq;
-    const Dimensions dim;
-    const size_t batch;
-    const bool isInPlace;
-
-    size_t elemsSpacial() const {
-        return dim.size();
+    inline constexpr Dimensions fDim() const {
+        return m_freq;
     }
 
-    size_t bytesSpacial() const {
-        return sizeof(T) * elemsSpacial();
+    inline constexpr size_t batch() const {
+        return m_batch;
     }
 
-    size_t elemsFreq() const {
-        return x_freq * dim.y() * dim.z() * dim.n() * 2; // * 2 for complex numbers
+    inline constexpr size_t fBytesSingle() const {
+        return m_freq.xyzPadded() * sizeof(std::complex<T>);
     }
 
-    size_t bytesFreq() const {
-        return sizeof(std::complex<T>) * elemsFreq();
+    inline constexpr size_t fBytes() const {
+        return m_freq.sizePadded() * sizeof(std::complex<T>);
     }
 
-    friend std::ostream& operator<<(std::ostream &os,
-            const FFTSettings<T> &s) {
-
-        os << s.dim.x() << "(" << s.x_freq << ")" << " * " << s.dim.y() << " * "
-                << s.dim.z() << " * " << s.dim.n() << ", batch: " << s.batch
-                << ", inPlace: " << (s.isInPlace ? "yes" : "no");
-
-        return os;
+    inline constexpr size_t fBytesBatch() const {
+        return m_freq.xyzPadded() * m_batch * sizeof(std::complex<T>);
     }
+
+    inline constexpr size_t fElemsBatch() const {
+        return m_freq.xyzPadded() * m_batch;
+    }
+
+    inline constexpr size_t sBytesSingle() const {
+        return m_spatial.xyzPadded() * sizeof(T);
+    }
+
+    inline constexpr size_t sBytes() const {
+        return m_spatial.sizePadded() * sizeof(T);
+    }
+
+    inline constexpr size_t sBytesBatch() const {
+        return m_spatial.xyzPadded() * m_batch * sizeof(T);
+    }
+
+    inline constexpr size_t sElemsBatch() const {
+        return m_spatial.xyzPadded() * m_batch;
+    }
+
+    inline constexpr bool isForward() const {
+        return m_isForward;
+    }
+
+    inline constexpr bool isInPlace() const {
+        return m_isInPlace;
+    }
+
+    inline constexpr size_t maxBytesBatch() const {
+        return sBytesBatch() + (m_isInPlace ? 0 :fBytesBatch());
+    }
+
+    inline FFTSettings<T> createInverse() const {
+        auto copy = FFTSettings<T>(*this);
+        copy.m_isForward = ! this->m_isForward;
+        return copy;
+    }
+
+    inline FFTSettings<T> createSingle() const {
+        auto copy = FFTSettings<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), 1, 1,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
+    inline FFTSettings<T> createBatch() const {
+        auto copy = FFTSettings<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), m_batch, m_batch,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
+    inline FFTSettings<T> createSubset(size_t n) const {
+        assert(n <= m_spatial.n());
+        auto copy = FFTSettings<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), n, n,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
+    friend std::ostream &operator<< <T>(std::ostream &os,
+                                const FFTSettings<T> &s);
+
+private:
+    Dimensions m_spatial;
+    Dimensions m_freq;
+    size_t m_batch;
+    bool m_isInPlace;
+    bool m_isForward;
 };
+
+
 //@}
 #endif /* FFTSETTINGS_H_ */

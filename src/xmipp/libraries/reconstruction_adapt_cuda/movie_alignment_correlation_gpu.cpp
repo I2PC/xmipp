@@ -120,10 +120,10 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
     };
     const T requestedScale = this->getScaleFactor();
     // hint, possibly bigger then requested, so that it fits max shift window
-    Dimensions hint(getNearestEven(s.dim.x(), requestedScale, this->maxShift),
-            getNearestEven(s.dim.y(), requestedScale, this->maxShift),
-            s.dim.z(),
-            (s.dim.n() * (s.dim.n() - 1)) / 2); // number of correlations);
+    Dimensions hint(getNearestEven(s.sDim().x(), requestedScale, this->maxShift),
+            getNearestEven(s.sDim().y(), requestedScale, this->maxShift),
+            s.sDim().z(),
+            (s.sDim().n() * (s.sDim().n() - 1)) / 2); // number of correlations);
 
     // divide available memory to 3 parts (2 buffers + 1 FFT)
     size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
@@ -137,7 +137,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
     gpu.value().updateMemoryInfo();
     const auto reqSize = this->getRequestedPatchSize();
     Dimensions hint(reqSize.first, reqSize.second,
-            orig.dim.z(), orig.dim.n());
+            orig.sDim().z(), orig.sDim().n());
     // divide available memory to 3 parts (2 buffers + 1 FFT)
     size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
 
@@ -235,11 +235,11 @@ template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
         const FFTSettings<T> &s, bool applyCrop) {
     UserSettings::get(storage).insert(*this,
-            getKey(optSizeXStr, dim, applyCrop), s.dim.x());
+            getKey(optSizeXStr, dim, applyCrop), s.sDim().x());
     UserSettings::get(storage).insert(*this,
-            getKey(optSizeYStr, dim, applyCrop), s.dim.y());
+            getKey(optSizeYStr, dim, applyCrop), s.sDim().y());
     UserSettings::get(storage).insert(*this,
-            getKey(optBatchSizeStr, dim, applyCrop), s.batch);
+            getKey(optBatchSizeStr, dim, applyCrop), s.batch());
     UserSettings::get(storage).insert(*this,
             getKey(minMemoryStr, dim, applyCrop), memoryUtils::MB(gpu.value().lastFreeBytes()));
     UserSettings::get(storage).store(); // write changes immediately
@@ -277,8 +277,8 @@ template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
         size_t extraBytes, bool crop) {
     // FIXME DS remove tmp
-    auto tmp1 = FFTSettingsNew<T>(d, d.n(), false);
-    FFTSettingsNew<T> tmp(0);
+    auto tmp1 = FFTSettings<T>(d, d.n(), false);
+    FFTSettings<T> tmp(0);
     if (skipAutotuning) {
         tmp = CudaFFT<T>::findMaxBatch(tmp1, gpu.value().lastFreeBytes() - extraBytes);
     } else {
@@ -324,12 +324,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movieMD, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
-    this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
+    this->setNoOfPaches(movieSettings.sDim(), patchSettings.sDim());
     auto correlationSettings = this->getCorrelationSettings(patchSettings);
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
-    auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
-            patchSettings.dim);
-    T actualScale = correlationSettings.dim.x() / (T)patchSettings.dim.x(); // assuming we use square patches
+    auto patchesLocation = this->getPatchesLocation(borders, movieSettings.sDim(),
+            patchSettings.sDim());
+    T actualScale = correlationSettings.sDim().x() / (T)patchSettings.sDim().x(); // assuming we use square patches
 
     if (this->verbose) {
         std::cout << "No. of patches: " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
@@ -342,8 +342,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             throw std::logic_error("More control points than patches. Decrease the number of control points.");
     }
 
-    if ((movieSettings.dim.x() < patchSettings.dim.x())
-        || (movieSettings.dim.y() < patchSettings.dim.y())) {
+    if ((movieSettings.sDim().x() < patchSettings.sDim().x())
+        || (movieSettings.sDim().y() < patchSettings.sDim().y())) {
         REPORT_ERROR(ERR_PARAM_INCORRECT, "Movie is too small for local alignment.");
     }
 
@@ -352,34 +352,30 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         loadMovie(movieMD, dark, igain);
     }
     // we need to work with full-size movie, with no cropping
-    assert(movieSettings.dim == movie.getFullDim());
+    assert(movieSettings.sDim() == movie.getFullDim());
 
     // prepare filter
     // FIXME DS make sure that the resulting filter is correct, even if we do non-uniform scaling
-    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.dim);
+    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.sDim());
     T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
     memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
     auto filter = MultidimArray<T>(1, 1, filterTmp.ydim, filterTmp.xdim, filterData);
 
     // compute max of frames in buffer
-    T corrSizeMB = MB<T>((size_t) correlationSettings.x_freq
-            * correlationSettings.dim.y()
-            * sizeof(std::complex<T>));
+    T corrSizeMB = MB<T>((size_t) correlationSettings.fBytes());
     size_t framesInBuffer = std::ceil(MB(gpu.value().lastFreeBytes() / 3) / corrSizeMB);
 
     // prepare result
-    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim};
-    result.shifts.reserve(patchesLocation.size() * movieSettings.dim.n());
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.sDim()};
+    result.shifts.reserve(patchesLocation.size() * movieSettings.sDim().n());
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
     // allocate additional memory for the patches
     // we reuse the data, so we need enough space for the patches data
     // and for the resulting correlations, which cannot be bigger than (padded) input data
-    size_t patchesElements = std::max(
-        patchSettings.elemsFreq(),
-        patchSettings.elemsSpacial());
-    auto *patchesData1 = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
-    auto *patchesData2 = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
+    size_t bytes = std::max(patchSettings.fBytes(), patchSettings.sBytes());
+    auto *patchesData1 = reinterpret_cast<T*>(BasicMemManager::instance().get(bytes, MemType::CUDA_HOST));
+    auto *patchesData2 = reinterpret_cast<T*>(BasicMemManager::instance().get(bytes, MemType::CUDA_HOST));
 
     auto createContext = [&, this](auto &p) {
         static std::mutex mutex;
@@ -388,14 +384,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         context.verbose = this->verbose;
         context.maxShift = this->maxShift;
         context.shiftsOffset = result.shifts.size();
-        context.N = patchSettings.dim.n();
-        context.scale = std::make_pair(patchSettings.dim.x() / (T) correlationSettings.dim.x(),
-            patchSettings.dim.y() / (T) correlationSettings.dim.y());
+        context.N = patchSettings.sDim().n();
+        context.scale = std::make_pair(patchSettings.sDim().x() / (T) correlationSettings.sDim().x(),
+            patchSettings.sDim().y() / (T) correlationSettings.sDim().y());
         context.refFrame = refFrame;
         context.centerSize = getCenterSize(this->maxShift);
         context.framesInCorrelationBuffer = framesInBuffer;
         // prefill some info about patch
-        for (size_t i = 0;i < movieSettings.dim.n();++i) {
+        for (size_t i = 0;i < movieSettings.sDim().n();++i) {
             FramePatchMeta<T> tmp = p;
             // keep consistent with data loading
             int globShiftX = std::round(globAlignment.shifts.at(i).x);
@@ -423,10 +419,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
             // alllocate and clear patch data
             if (nullptr == patchData.at(thrId)) {
-                patchData[thrId] = reinterpret_cast<T*>(BasicMemManager::instance().get(patchesElements * sizeof(T), MemType::CUDA_HOST));
+                patchData[thrId] = reinterpret_cast<T*>(BasicMemManager::instance().get(bytes, MemType::CUDA_HOST));
             }
             auto *data = patchData.at(thrId);
-            memset(data, 0, patchesElements * sizeof(T));
+            memset(data, 0, bytes);
 
             // allocate and clear correlation data
             if (nullptr == corrBuffers.at(thrId)) {
@@ -440,12 +436,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
             // convert to FFT, downscale them and compute correlations
             GPUPool.push([&](int){
-                performFFTAndScale<T>(data, patchSettings.dim.n(), patchSettings.dim.x(), patchSettings.dim.y(), patchSettings.batch,
-                        correlationSettings.x_freq, correlationSettings.dim.y(), filter);
-                computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlationSettings.x_freq,
-                        correlationSettings.dim.x(),
-                        correlationSettings.dim.y(), context.framesInCorrelationBuffer,
-                        correlationSettings.batch, correlations);
+                performFFTAndScale<T>(data, patchSettings.sDim().n(), patchSettings.sDim().x(), patchSettings.sDim().y(), patchSettings.batch(),
+                        correlationSettings.fDim().x(), correlationSettings.sDim().y(), filter);
+                computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlationSettings.fDim().x(),
+                        correlationSettings.sDim().x(),
+                        correlationSettings.fDim().y(), context.framesInCorrelationBuffer,
+                        correlationSettings.batch(), correlations);
             }).get(); // wait till done - i.e. correlations are computed and on CPU
 
             // compute resulting shifts
@@ -460,7 +456,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     for (auto *ptr : patchData) { BasicMemManager::instance().give(ptr); }
     BasicMemManager::instance().give(filterData);
 
-    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.sDim(), result,
             this->localAlignmentControlPoints, this->localAlignPatches,
             this->verbose, this->solverIterations);
     result.bsplineRep = core::optional<BSplineGrid<T>>(
@@ -474,23 +470,23 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
         const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = getMovieSettings(movie, false);
-    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim };
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.sDim() };
     auto patchSettings = this->getPatchSettings(movieSettings);
-    this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
+    this->setNoOfPaches(movieSettings.sDim(), patchSettings.sDim());
     auto borders = getMovieBorders(globAlignment, 0);
-    auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
-            patchSettings.dim);
+    auto patchesLocation = this->getPatchesLocation(borders, movieSettings.sDim(),
+            patchSettings.sDim());
     // get alignment for all patches
     for (auto &&p : patchesLocation) {
         // process it
-        for (size_t i = 0; i < movieSettings.dim.n(); ++i) {
+        for (size_t i = 0; i < movieSettings.sDim().n(); ++i) {
             FramePatchMeta<T> tmp = p;
             tmp.id_t = i;
             result.shifts.emplace_back(tmp, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
         }
     }
 
-    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.sDim(), result,
             this->localAlignmentControlPoints, this->localAlignPatches,
             this->verbose, this->solverIterations);
     result.bsplineRep = core::optional<BSplineGrid<T>>(
@@ -649,9 +645,9 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movieMD, true);
     auto correlationSetting = this->getCorrelationSettings(movieSettings);
-    T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
+    T actualScale = correlationSetting.sDim().x() / (T)movieSettings.sDim().x();
 
-    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
+    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.sDim());
     T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
     memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
     auto filter = MultidimArray<T>(1, 1, filterTmp.ydim, filterTmp.xdim, filterData);
@@ -662,9 +658,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
     }
 
-
-    T corrSizeMB = ((size_t) correlationSetting.x_freq
-            * correlationSetting.dim.y()
+    T corrSizeMB = ((size_t) correlationSetting.fDim().xy()
             * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
     size_t framesInBuffer = std::ceil((MB(gpu.value().lastFreeBytes() / 3)) / corrSizeMB);
 
@@ -677,8 +671,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     }
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
-    size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    auto *data = reinterpret_cast<T*>(BasicMemManager::instance().get(elems * sizeof(T), MemType::CPU_PAGE_ALIGNED));
+    size_t bytes = std::max(movieSettings.sBytes(), movieSettings.fBytes());
+    auto *data = reinterpret_cast<T*>(BasicMemManager::instance().get(bytes, MemType::CPU_PAGE_ALIGNED));
     // GPU::pinMemory(data, elems * sizeof(T));
     getCroppedMovie(movieSettings, data);
 
@@ -702,15 +696,15 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
     auto routine = [data, &in, &correlation, &filter, context, this, corrCenters](int threadId) mutable  {
         this->gpu.value().set();
         // scale and transform to FFT on GPU
-        performFFTAndScale<T>(data, in.dim.n(), in.dim.x(), in.dim.y(), in.batch,
-                correlation.x_freq, correlation.dim.y(), filter);
+        performFFTAndScale<T>(data, in.sDim().n(), in.sDim().x(), in.sDim().y(), in.batch(),
+                correlation.fDim().x(), correlation.fDim().y(), filter);
 
         memset(corrCenters, 0, context.corrElems() * sizeof(T));
 
-        computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.x_freq,
-                correlation.dim.x(),
-                correlation.dim.y(), context.framesInCorrelationBuffer,
-                correlation.batch, corrCenters);
+        computeCorrelations(context.centerSize, context.N, (std::complex<T>*)data, correlation.fDim().x(),
+                correlation.sDim().x(),
+                correlation.fDim().y(), context.framesInCorrelationBuffer,
+                correlation.batch(), corrCenters);
 
         if (LESTask.valid()) { LESTask.get(); }
 
@@ -726,29 +720,29 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         core::optional<size_t> &refFrame,
         size_t maxShift, size_t framesInCorrelationBuffer, int verbose) {
     assert(nullptr != data);
-    size_t N = in.dim.n();
+    size_t N = in.sDim().n();
     // scale and transform to FFT on GPU
-    performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
-            correlation.x_freq, correlation.dim.y(), filter);
+    performFFTAndScale<T>(data, N, in.sDim().x(), in.sDim().y(), in.batch(),
+            correlation.fDim().x(), correlation.fDim().y(), filter);
 
-    auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
-            in.dim.y() / (T) correlation.dim.y());
+    auto scale = std::make_pair(in.sDim().x() / (T) correlation.sDim().x(),
+            in.sDim().y() / (T) correlation.sDim().y());
 
     return computeShifts(verbose, maxShift, (std::complex<T>*) data, correlation,
-            in.dim.n(),
+            in.sDim().n(),
             scale, framesInCorrelationBuffer, refFrame);
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
         T *output) {
-    for (size_t n = 0; n < settings.dim.n(); ++n) {
+    for (size_t n = 0; n < settings.sDim().n(); ++n) {
         T *src = movie.getFullFrame(n).data; // points to first float in the image
-        T *dest = output + (n * settings.dim.xy()); // points to first float in the image
-        for (size_t y = 0; y < settings.dim.y(); ++y) {
-            memcpy(dest + (settings.dim.x() * y),
+        T *dest = output + (n * settings.sDim().xy()); // points to first float in the image
+        for (size_t y = 0; y < settings.sDim().y(); ++y) {
+            memcpy(dest + (settings.sDim().x() * y),
                     src + (movie.getFullDim().x() * y),
-                    settings.dim.x() * sizeof(T));
+                    settings.sDim().x() * sizeof(T));
         }
     }
 }
@@ -854,10 +848,10 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // compute correlations (each frame with following ones)
     size_t centerSize = getCenterSize(maxShift);
     auto *correlations = new T[N*(N-1)/2 * centerSize * centerSize]();
-    computeCorrelations(centerSize, N, data, settings.x_freq,
-            settings.dim.x(),
-            settings.dim.y(), framesInCorrelationBuffer,
-            settings.batch, correlations);
+    computeCorrelations(centerSize, N, data, settings.fDim().x(),
+            settings.sDim().x(),
+            settings.fDim().y(), framesInCorrelationBuffer,
+            settings.batch(), correlations);
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 

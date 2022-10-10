@@ -182,7 +182,7 @@ public:
         mSettings.refDims = dims.createSingle();
         mSettings.type = MeritType::OneToN;
 
-        shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true, true);
+        shiftAligner->init2D(hw, AlignType::OneToN, FFTSettings<T>(dims, batch), maxShift, true, true, true);
         rotationAligner->init(rotSettings, true);
         transformer->init(tSettings, false);
         meritComputer->init(mSettings, true);

@@ -75,7 +75,7 @@ void PSDEstimator<T>::estimatePSD(const MultidimArray<T> &micrograph,
             patchDim,
             overlap);
 
-    auto settings = FFTSettingsNew<T>(patchDim);
+    auto settings = FFTSettings<T>(patchDim);
 
     // prepare data for FT - set proper sizes and allocate aligned dat for faster execution
     // XXX HACK

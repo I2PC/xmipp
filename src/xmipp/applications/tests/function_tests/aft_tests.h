@@ -19,7 +19,7 @@ public:
         delete hw;
     }
 
-    void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
+    void testFFTInpulseShifted(const FFTSettings<T> &s) {
         using std::complex;
 
         // this test needs at least two elements in X dim
@@ -57,7 +57,7 @@ public:
         }
     }
 
-    void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+    void testFFTInpulseOrigin(const FFTSettings<T> &s) {
         using std::complex;
 
         auto in = new T[s.sDim().sizePadded()]();
@@ -90,7 +90,7 @@ public:
         }
     }
 
-    void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+    void testIFFTInpulseOrigin(const FFTSettings<T> &s) {
         using std::complex;
 
         auto in = new complex<T>[s.fDim().sizePadded()]();
@@ -137,7 +137,7 @@ public:
         }
     }
 
-    void testFFTIFFT(const FFTSettingsNew<T> &s) {
+    void testFFTIFFT(const FFTSettings<T> &s) {
         using std::complex;
 
         // allocate data
@@ -207,14 +207,14 @@ public:
         TEST_VALUES
         size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
 
-        auto settingsComparator = [] (const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
+        auto settingsComparator = [] (const FFTSettings<T> &l, const FFTSettings<T> &r) {
           return ((l.sDim().x() < r.sDim().x())
                   || (l.sDim().y() < r.sDim().y())
                   || (l.sDim().z() < r.sDim().z())
                   || (l.sDim().n() < r.sDim().n())
                   || (l.batch() < r.batch()));
         };
-        auto tested = std::set<FFTSettingsNew<T>,decltype(settingsComparator)>(settingsComparator);
+        auto tested = std::set<FFTSettings<T>,decltype(settingsComparator)>(settingsComparator);
 
         int seed = 42;
         std::mt19937 mt(seed);
@@ -229,7 +229,7 @@ public:
             if (b > n) continue; // batch must be smaller than n
             bool inPlace = dist(mt) % 2;
             bool isForward = dist(mt) % 2;
-            auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
+            auto settings = FFTSettings<T>(x, y, z, n, b, inPlace, isForward);
             if (condition(x, y, z, n, b, inPlace, isForward)) {
                 // make sure we have enough memory
                 size_t totalBytes = ft->estimateTotalBytes(settings);

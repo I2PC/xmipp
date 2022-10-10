@@ -53,7 +53,7 @@ public:
     ~CudaFFT() {
         release();
     }
-    void init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reuse=true);
+    void init(const HW &gpu, const FFTSettings<T> &settings, bool reuse=true);
     void release();
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
@@ -62,7 +62,7 @@ public:
     T* ifft(const std::complex<T> *h_in, T *h_out);
 
 
-    size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
+    size_t estimatePlanBytes(const FFTSettings<T> &settings);
     static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);
@@ -70,21 +70,21 @@ public:
     static T* ifft(cufftHandle plan,
             const std::complex<T> *d_in, T *d_out);
     static cufftHandle* createPlan(const GPU &gpu,
-            const FFTSettingsNew<T> &settings);
-    static core::optional<FFTSettingsNew<T>> findOptimal(GPU &gpu,
-            const FFTSettingsNew<T> &settings,
+            const FFTSettings<T> &settings);
+    static core::optional<FFTSettings<T>> findOptimal(GPU &gpu,
+            const FFTSettings<T> &settings,
             size_t reserveBytes, bool squareOnly, int sigPercChange,
             bool crop, bool verbose);
-    static FFTSettingsNew<T> findMaxBatch(const FFTSettingsNew<T> &settings,
+    static FFTSettings<T> findMaxBatch(const FFTSettings<T> &settings,
             size_t maxBytes);
-    static FFTSettingsNew<T> findOptimalSizeOrMaxBatch(GPU &gpu,
-            const FFTSettingsNew<T> &settings,
+    static FFTSettings<T> findOptimalSizeOrMaxBatch(GPU &gpu,
+            const FFTSettings<T> &settings,
             size_t reserveBytes, bool squareOnly, int sigPercChange,
             bool crop, bool verbose);
     static void release(cufftHandle *plan);
 private:
     cufftHandle *m_plan;
-    const FFTSettingsNew<T> *m_settings;
+    const FFTSettings<T> *m_settings;
     T *m_d_SD;
     std::complex<T> *m_d_FD;
 
@@ -94,7 +94,7 @@ private:
 
     void setDefault();
     template<typename F>
-    static void manyHelper(const FFTSettingsNew<T> &settings, F function);
+    static void manyHelper(const FFTSettings<T> &settings, F function);
     void check();
 };
 //@}
