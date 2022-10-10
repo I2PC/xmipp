@@ -106,14 +106,18 @@ namespace {
 	template<typename T>
 	MultidimArrayCuda<T> initializeMultidimArrayCuda(const MultidimArray<T> &multidimArray, T *data)
 	{
+		printf("-6\n");
+
 		struct MultidimArrayCuda<T> cudaArray = {
 			.xdim = static_cast<unsigned>(multidimArray.xdim), .ydim = static_cast<unsigned>(multidimArray.ydim),
 			.yxdim = static_cast<unsigned>(multidimArray.yxdim), .xinit = multidimArray.xinit,
 			.yinit = multidimArray.yinit, .zinit = multidimArray.zinit
 		};
 
+		printf("-7\n");
 		transportData(&cudaArray.data, data, multidimArray.yxdim * multidimArray.zdim);
 
+		printf("-8\n");
 		return cudaArray;
 	}
 
