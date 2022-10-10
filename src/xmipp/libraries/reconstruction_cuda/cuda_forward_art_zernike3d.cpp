@@ -140,7 +140,7 @@ namespace {
 		for (int m = 0; m < image.size(); m++) {
 			T *pinned;
 			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim, cudaHostAllocMapped);
-			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim);
+			//memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim);
 			output.push_back(initializeMultidimArrayCuda(image[m](), pinned));
 		}
 		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
@@ -344,7 +344,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Unique parameters
 	MultidimArrayCuda<PrecisionType> *cudaP, *cudaW;
 	std::vector<MultidimArrayCuda<PrecisionType>> pVector, wVector;
-	MultidimArray<PrecisionType> *pPinned, *wPinned;
 	std::tie(cudaP, pVector) = convertToMultidimArrayCuda(parameters.P);
 	std::tie(cudaW, wVector) = convertToMultidimArrayCuda(parameters.W);
 	unsigned sigma_size = static_cast<unsigned>(sigma.size());
