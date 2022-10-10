@@ -12,8 +12,6 @@
 #include <utility>
 #include "data/numerical_tools.h"
 
-#include <thrust/device_vector.h>
-
 namespace cuda_forward_art_zernike3D {
 
 // Cuda memory helper function
@@ -238,24 +236,13 @@ namespace {
 	std::tuple<unsigned *, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
 
 	{
-		thrust::device_vector<int> deviceMask(mask.data, mask.data + (mask.yxdim * mask.zdim));
-		//thrust::device_ptr<T> deviceMask = thrust::device_pointer_cast(mask.data);
-		//std::vector<unsigned> coordinates;
-		thrust::device_vector<unsigned> output(
-			mask.yxdim * mask.zdim
-			- thrust::count(deviceMask.begin(), deviceMask.begin() + (mask.yxdim * mask.zdim), 0));
-		thrust::copy_if(thrust::make_counting_iterator<unsigned>(0),
-						thrust::make_counting_iterator<unsigned>(mask.yxdim * mask.zdim),
-						deviceMask.begin(),
-						output.begin(),
-						[] __host__ __device__(const T &x) { return 0 != x; });
-		/*for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
+		std::vector<unsigned> coordinates;
+		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
 			if (checkStep(mask, step, static_cast<size_t>(i))) {
 				coordinates.push_back(i);
 			}
-		}*/
-		return std::make_tuple(thrust::raw_pointer_cast(&output[0]), output.size());
-		//return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
+		}
+		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
 	}
 
 	template<typename T>
