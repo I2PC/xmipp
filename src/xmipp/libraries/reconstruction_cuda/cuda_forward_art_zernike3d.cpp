@@ -12,6 +12,8 @@
 #include <utility>
 #include "data/numerical_tools.h"
 
+#include <cstdio>
+
 namespace cuda_forward_art_zernike3D {
 
 // Cuda memory helper function
@@ -341,6 +343,7 @@ template<bool usesZernike>
 void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &parameters)
 
 {
+	printf("-1\n");
 	// Unique parameters
 	MultidimArrayCuda<PrecisionType> *cudaP, *cudaW;
 	std::vector<MultidimArrayCuda<PrecisionType>> pVector, wVector;
