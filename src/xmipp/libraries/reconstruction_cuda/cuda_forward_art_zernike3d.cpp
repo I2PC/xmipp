@@ -353,6 +353,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
+	printf("0\n");
 	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(cudaMV,
 																		 VRecMaskF,
 																		 cudaCoordinatesF,
