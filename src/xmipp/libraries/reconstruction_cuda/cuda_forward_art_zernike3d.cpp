@@ -36,7 +36,7 @@ namespace {
 		}
 		printf("-9\n");
 
-		if (cudaMemcpyAsync(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice, 0) != cudaSuccess) {
+		if (cudaMemcpy(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
 			cudaFree(*dest);
 			processCudaError();
 		}
