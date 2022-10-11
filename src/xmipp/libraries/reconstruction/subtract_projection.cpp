@@ -194,6 +194,7 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	P.write("projection.mrc");
+	//selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::DONT_WRAP);
 	const MultidimArray <double> &mP = P();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mP)
