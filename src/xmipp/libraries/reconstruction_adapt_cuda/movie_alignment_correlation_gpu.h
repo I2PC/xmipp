@@ -321,13 +321,24 @@ private:
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment);
 
+    // /**
+    //  * Method copies raw movie data according to the settings
+    //  * @param settings new sizes of the movie
+    //  * @param output where 'windowed' movie should be copied
+    //  */
+    // void getCroppedMovie(const FFTSettings<T> &settings,
+    //         T *output);
+
     /**
      * Method copies raw movie data according to the settings
      * @param settings new sizes of the movie
      * @param output where 'windowed' movie should be copied
+     * @param firstFrame to copy
+     * @param noOfFrames to copy
      */
-    void getCroppedMovie(const FFTSettings<T> &settings,
-            T *output);
+    void getCroppedFrames(const FFTSettings<T> &settings,
+        T *output, size_t firstFrame, size_t noOfFrames);
+
 
     /**
      * @param shift that we allow

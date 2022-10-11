@@ -156,6 +156,13 @@ public:
         return copy;
     }
 
+    inline FFTSettings<T> copyForBatch(size_t b) const {
+        assert(b <= m_spatial.n());
+        auto copy = FFTSettings<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), m_spatial.n(), b,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
     friend std::ostream &operator<< <T>(std::ostream &os,
                                 const FFTSettings<T> &s);
 

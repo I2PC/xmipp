@@ -34,6 +34,8 @@
 #include <type_traits>
 #include <stdexcept>
 #include <cassert>
+#include "data/fft_settings.h"
+#include "reconstruction_cuda/gpu.h"
 
 /**@defgroup ProgAGPUMovieAlign Cuda GPU movie Alignment Correlation
    @ingroup ReconsLibrary */
@@ -53,6 +55,22 @@
 template<typename T>
 void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
         int inBatch, int outFFTX, int outY, MultidimArray<T> &filter);
+
+/**
+ * This function performs FFT and scale (with filter) of the input images.
+ * Warning: when this funcion returns, some memory transfers still might be pending.
+ * Make sure that you wait for them!
+ * @param h_in input frames on host
+ * @param in settings describing the input data
+ * @param h_out result will be stored here
+ * @param out settings describing the output data
+ * @param filter to apply per each output image (must be size of output)
+ * @param gpu where the operation should be performed
+ */
+template <typename T>
+void performFFTAndScale(T *h_in, const FFTSettings<T> &in, 
+    std::complex<T> *h_out, const FFTSettings<T> &out, 
+    MultidimArray<T> &filter, const GPU &gpu);
 
 /**
  * Perform scale of the Fourier domain. Possibly with filtering, normalization and
