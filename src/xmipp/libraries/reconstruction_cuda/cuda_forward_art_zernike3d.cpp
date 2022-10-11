@@ -12,8 +12,6 @@
 #include <utility>
 #include "data/numerical_tools.h"
 
-//#include <cstdio>
-
 namespace cuda_forward_art_zernike3D {
 
 // Cuda memory helper function
@@ -35,7 +33,7 @@ namespace {
 			processCudaError();
 		}
 
-		if (cudaMemcpyAsync(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice, 0) != cudaSuccess) {
+		if (cudaMemcpy(*dest, source, sizeof(T) * n, cudaMemcpyHostToDevice) != cudaSuccess) {
 			cudaFree(*dest);
 			processCudaError();
 		}
@@ -104,19 +102,6 @@ namespace {
 	}
 
 	template<typename T>
-	MultidimArrayCuda<T> initializeMultidimArrayCuda(const MultidimArray<T> &multidimArray, T *data)
-	{
-		struct MultidimArrayCuda<T> cudaArray = {
-			.xdim = static_cast<unsigned>(multidimArray.xdim), .ydim = static_cast<unsigned>(multidimArray.ydim),
-			.yxdim = static_cast<unsigned>(multidimArray.yxdim), .xinit = multidimArray.xinit,
-			.yinit = multidimArray.yinit, .zinit = multidimArray.zinit
-		};
-
-		transportData(&cudaArray.data, data, multidimArray.yxdim * multidimArray.zdim);
-		return cudaArray;
-	}
-
-	template<typename T>
 	void updateMultidimArrayWithGPUData(MultidimArray<T> &multidimArray, const MultidimArrayCuda<T> &multidimArrayCuda)
 	{
 		transportDataFromGPU(
@@ -139,11 +124,7 @@ namespace {
 	{
 		std::vector<MultidimArrayCuda<T>> output;
 		for (int m = 0; m < image.size(); m++) {
-			T *pinned;
-			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim * sizeof(T), cudaHostAllocMapped);
-			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim * sizeof(T));
-			output.push_back(initializeMultidimArrayCuda(image[m](), pinned));
-			cudaFree(pinned);
+			output.push_back(initializeMultidimArrayCuda(image[m]()));
 		}
 		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
 	}
@@ -320,8 +301,6 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	optimalizedSize = ceil(sizeF / 1024) * 1024;
 	blockXStep = std::__gcd(1024, static_cast<int>(optimalizedSize));
 	gridXStep = optimalizedSize / blockXStep;
-	// set flags for pinned memory
-	cudaSetDeviceFlags(cudaDeviceMapHost);
 }
 
 template<typename PrecisionType>
@@ -381,29 +360,21 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	cudaDeviceSynchronize();
 
-	//printf("1\n");
-
 	updateVectorOfMultidimArrayWithGPUData(parameters.P, pVector);
 	updateVectorOfMultidimArrayWithGPUData(parameters.W, wVector);
 
-	//printf("2\n");
-
 	freeVectorOfMultidimArray(pVector);
 	freeVectorOfMultidimArray(wVector);
-	//printf("3\n");
 	cudaFree(cudaP);
 	cudaFree(cudaW);
 	cudaFree(cudaSigma);
-	//printf("4\n");
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
-	//printf("5\n");
 }
 
 template<typename PrecisionType>
 template<bool usesZernike>
 void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &parameters)
 {
-	//printf("6\n");
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto cudaMId = initializeMultidimArrayCuda(mId);
