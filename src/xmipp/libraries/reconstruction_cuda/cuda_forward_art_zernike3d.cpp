@@ -141,6 +141,7 @@ namespace {
 			cudaHostAlloc(&pinned, image[m]().yxdim * image[m]().zdim * sizeof(T), cudaHostAllocMapped);
 			memcpy(pinned, image[m]().data, image[m]().yxdim * image[m]().zdim * sizeof(T));
 			output.push_back(initializeMultidimArrayCuda(image[m](), pinned));
+			cudaFree(pinned);
 		}
 		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
 	}
