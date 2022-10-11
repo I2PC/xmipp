@@ -12,7 +12,7 @@
 #include <utility>
 #include "data/numerical_tools.h"
 
-#include <cstdio>
+//#include <cstdio>
 
 namespace cuda_forward_art_zernike3D {
 
@@ -381,29 +381,29 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	cudaDeviceSynchronize();
 
-	printf("1\n");
+	//printf("1\n");
 
 	updateVectorOfMultidimArrayWithGPUData(parameters.P, pVector);
 	updateVectorOfMultidimArrayWithGPUData(parameters.W, wVector);
 
-	printf("2\n");
+	//printf("2\n");
 
 	freeVectorOfMultidimArray(pVector);
 	freeVectorOfMultidimArray(wVector);
-	printf("3\n");
+	//printf("3\n");
 	cudaFree(cudaP);
 	cudaFree(cudaW);
 	cudaFree(cudaSigma);
-	printf("4\n");
+	//printf("4\n");
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
-	printf("5\n");
+	//printf("5\n");
 }
 
 template<typename PrecisionType>
 template<bool usesZernike>
 void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &parameters)
 {
-	printf("6\n");
+	//printf("6\n");
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto cudaMId = initializeMultidimArrayCuda(mId);
