@@ -40,6 +40,7 @@ void ProgReconstructNoise::defineParams() {
     addParamsLine("   --padding <padding>             : Padding factor");
     addParamsLine("   --max_resolution <resolution>   : Resolution limit");
 
+    addParamsLine("   [--useCTF]                      : Consider the CTF when comparing images");
     m_ctfDesc.defineParams(this);
 
     addParamsLine("   --thr <threads>                 : Number of threads");
@@ -54,7 +55,8 @@ void ProgReconstructNoise::readParams() {
     paddingFactor = getDoubleParam("--padding");
     maxResolution = getDoubleParam("--max_resolution");
 
-    m_ctfDesc.readParams(this);
+    useCtf = checkParam("--useCTF");
+    if(useCtf) m_ctfDesc.readParams(this);
 
     nThreads = getIntParam("--thr");
 }
@@ -66,7 +68,10 @@ void ProgReconstructNoise::show() const {
     std::cout << "Reference volume            : " << fnReferenceVolume << "\n";
     std::cout << "Output root                 : " << fnOutputRoot << "\n";
 
-    std::cout << m_ctfDesc; 
+    std::cout << "Use CTF                     : " << useCtf << "\n";
+    if(useCtf) {
+        std::cout << m_ctfDesc; 
+    }
 
     std::cout << "Number of threads           : " << nThreads << "\n";
     std::cout.flush();
@@ -103,11 +108,11 @@ void ProgReconstructNoise::computeNoise() {
 
     FourierTransformer fourierTransformer;
     Image<Real> experimentalImage;
-    MultidimArray<Real> ctf, averageCtfPsd, averageNoisePsd;
+    MultidimArray<Real> ctf, averageImagePsd, averageCtfPsd, averageNoisePsd;
     MultidimArray<Complex> experimentalImageFourier;
-    experimentalImageFourier.initZeros(m_referenceProjector->projectionFourier);
-    averageNoisePsd.initZeros(experimentalImageFourier);
-    averageCtfPsd.initZeros(experimentalImageFourier);
+    averageImagePsd.initZeros(m_referenceProjector->projectionFourier);
+    averageNoisePsd.initZeros(m_referenceProjector->projectionFourier);
+    averageCtfPsd.initZeros(m_referenceProjector->projectionFourier);
     for(const auto& row : mdExperimental) {
         // Read the metadata
         const auto rot = row.getValue<double>(MDL_ANGLE_ROT);
@@ -116,31 +121,37 @@ void ProgReconstructNoise::computeNoise() {
         const auto shiftX = row.getValue<double>(MDL_SHIFT_X);
         const auto shiftY = row.getValue<double>(MDL_SHIFT_Y);
         experimentalImage.read(row.getValue<String>(MDL_IMAGE));
-        m_ctfDesc.readFromMdRow(row); m_ctfDesc.produceSideInfo();
+
+        // Generate the CTF image if necessary
+        if(useCtf) {
+            m_ctfDesc.readFromMdRow(row); 
+            m_ctfDesc.produceSideInfo();
+            m_ctfDesc.generateCTF(experimentalImage(), ctf);
+            updatePsd(averageCtfPsd, ctf);
+        }
 
         // Project the volume
-        m_ctfDesc.generateCTF(experimentalImage(), ctf);
-        const auto& proj = projectReference(rot, tilt, psi, &ctf);
-        
+        const auto& proj = projectReference(rot, tilt, psi, useCtf ? &ctf : nullptr);
+
         // Compute the Fourier transform of the image
         fourierTransformer.FourierTransform(
             experimentalImage(),
             experimentalImageFourier,
             false
         );
-        shiftSpectra(experimentalImageFourier, shiftX, shiftY);
+        shiftSpectra(experimentalImageFourier, std::round(shiftX), std::round(shiftY)); //TODO implement fractional shift
+        updatePsd(averageImagePsd, experimentalImageFourier);
 
         //Compute the error in place
         assert(proj.sameShape(experimentalImageFourier));
         experimentalImageFourier -= proj;
-
-        // Accumulate
         updatePsd(averageNoisePsd, experimentalImageFourier);
-        updatePsd(averageCtfPsd, ctf);
     }
 
+    averageImagePsd /= mdExperimental.size();
     averageNoisePsd /= mdExperimental.size();
     averageCtfPsd /= mdExperimental.size();
+    Image<Real>(averageImagePsd).write(fnOutputRoot + "averageImagePsd.stk");
     Image<Real>(averageNoisePsd).write(fnOutputRoot + "averageNoisePsd.stk");
     Image<Real>(averageCtfPsd).write(fnOutputRoot + "averageCtfPsd.stk");
 }
@@ -161,8 +172,8 @@ void ProgReconstructNoise::shiftSpectra(MultidimArray<Complex>& spectra, double 
     size_t nx = (XSIZE(spectra) - 1) * 2;
 
     // Normalize the displacement
-    const auto dy = (-2 * M_PI) * shiftX / ny;
-    const auto dx = (-2 * M_PI) * shiftY / nx;
+    const auto dy = (-2 * M_PI) * shiftY / ny;
+    const auto dx = (-2 * M_PI) * shiftX / nx;
 
     // Compute the Fourier Transform of delta[i-y, j-x]
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(spectra) {

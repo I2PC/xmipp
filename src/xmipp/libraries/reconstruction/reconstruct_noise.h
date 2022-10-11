@@ -50,6 +50,7 @@ public:
     virtual void show() const override;
     virtual void run() override;
 
+    bool useCtf;
     FileName fnExperimentalMetadata;
     FileName fnReferenceVolume;
     FileName fnOutputRoot;
