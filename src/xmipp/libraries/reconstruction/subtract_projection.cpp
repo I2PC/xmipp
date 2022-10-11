@@ -169,14 +169,11 @@
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
 		// Padding before apply CTF
-		int pad;
-		pad = int(XSIZE(V())/2);
-		padp().initZeros(pad*2, pad*2);
 		MultidimArray <double> &mpad = padp();
 		mpad.setXmippOrigin();
 		MultidimArray<double> &mproj = proj();
-	    mproj.setXmippOrigin();
-		mproj.window(mpad,STARTINGY(mproj)-pad, STARTINGX(mproj)-pad, FINISHINGY(mproj)+pad, FINISHINGX(mproj)+pad);
+	        mproj.setXmippOrigin();
+		mproj.window(mpad,STARTINGY(mproj)*padFourier, STARTINGX(mproj)*padFourier, FINISHINGY(mproj)*padFourier, FINISHINGX(mproj)*padFourier);
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
 	    //Crop to restore original size
@@ -198,6 +195,9 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	P.write("projection.mrc");
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::DONT_WRAP);
+	const MultidimArray <double> &mP = P();
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mP)
+		DIRECT_MULTIDIM_ELEM(mP,n) = DIRECT_MULTIDIM_ELEM(mP,n)<0 ? 0:DIRECT_MULTIDIM_ELEM(mP,n);
 	Pctf = applyCTF(row, P);
 	Pctf.write("projection_ctf.mrc");
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
