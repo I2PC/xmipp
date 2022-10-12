@@ -235,16 +235,6 @@ namespace {
 		return tex;
 	}
 
-	enum cudaChannelFormatKind getTextureFormatType(unsigned *array)
-	{
-		return cudaChannelFormatKindUnsigned;
-	}
-
-	enum cudaChannelFormatKind getTextureFormatType(int *array)
-	{
-		return cudaChannelFormatKindSigned;
-	}
-
 	enum cudaChannelFormatKind getTextureFormatType(float *array)
 	{
 		return cudaChannelFormatKindFloat;
