@@ -174,7 +174,7 @@ namespace {
 
 		struct Program<T>::CommonKernelParameters output = {
 			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transportStdVectorToGpu(clnm),
-			.cudaR = transportMatrix2DToGpu(R),
+			.cudaR = transportMatrix2DToGpu(R), .cudaRSize = R.mdim,
 		};
 
 		return output;
@@ -382,30 +382,30 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	forwardKernel<PrecisionType, usesZernike>
-		<<<gridXStep, blockXStep>>>(cudaMV,
-									VRecMaskF,
-									cudaCoordinatesF,
-									xdimF,
-									ydimF,
-									static_cast<unsigned>(sizeF),
-									cudaP,
-									cudaW,
-									lastZ,
-									lastY,
-									lastX,
-									step,
-									sigma_size,
-									cudaSigma,
-									commonParameters.iRmaxF,
-									static_cast<unsigned>(commonParameters.idxY0),
-									static_cast<unsigned>(commonParameters.idxZ0),
-									cudaVL1,
-									cudaVN,
-									cudaVL2,
-									cudaVM,
-									commonParameters.cudaClnm,
-									initTexturePointer<PrecisionType>(commonParameters.cudaR));
+	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(
+		cudaMV,
+		VRecMaskF,
+		cudaCoordinatesF,
+		xdimF,
+		ydimF,
+		static_cast<unsigned>(sizeF),
+		cudaP,
+		cudaW,
+		lastZ,
+		lastY,
+		lastX,
+		step,
+		sigma_size,
+		cudaSigma,
+		commonParameters.iRmaxF,
+		static_cast<unsigned>(commonParameters.idxY0),
+		static_cast<unsigned>(commonParameters.idxZ0),
+		cudaVL1,
+		cudaVN,
+		cudaVL2,
+		cudaVM,
+		commonParameters.cudaClnm,
+		initTexturePointer<PrecisionType>(commonParameters.cudaR, commonParameters.cudaRSize));
 
 	cudaDeviceSynchronize();
 
@@ -452,7 +452,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 							cudaVL2,
 							cudaVM,
 							commonParameters.cudaClnm,
-							initTexturePointer<PrecisionType>(commonParameters.cudaR),
+							initTexturePointer<PrecisionType>(commonParameters.cudaR, commonParameters.cudaRSize),
 							mIdTexture,
 							mId.xinit,
 							mId.yinit,
