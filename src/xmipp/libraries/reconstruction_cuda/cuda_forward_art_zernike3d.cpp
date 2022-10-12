@@ -311,7 +311,7 @@ namespace {
 		}
 		return std::make_tuple(initTexturePointer<unsigned>(transportStdVectorToGpu(coordinates), coordinates.size()),
 							   coordinates.size(),
-							   initTexturePointer<int>(transportStdVectorToGpu(values), values.size));
+							   initTexturePointer<int>(transportStdVectorToGpu(values), values.size()));
 	}
 
 }  // namespace
