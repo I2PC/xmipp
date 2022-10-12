@@ -335,13 +335,13 @@ namespace device {
 	}
 
 	template<typename PrecisionType>
-	__device__ PrecisionType interpolatedElement2DCuda(PrecisionType x,
-													   PrecisionType y,
-													   cudaTextureObject_t tex,
-													   int xinitMId,
-													   int yinitMId,
-													   int xdimMId,
-													   int ydimMId)
+	__device__ PrecisionType interpolatedElement2DCuda(const PrecisionType x,
+													   const PrecisionType y,
+													   const cudaTextureObject_t tex,
+													   const int xinitMId,
+													   const int yinitMId,
+													   const int xdimMId,
+													   const int ydimMId)
 	{
 		int x0 = CUDA_FLOOR(x);
 		PrecisionType fx = x - x0;
@@ -474,11 +474,11 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int *cudaVM,
 							   const PrecisionType *cudaClnm,
 							   const PrecisionType *cudaR,
-							   cudaTextureObject_t tex,
-							   int xinitMId,
-							   int yinitMId,
-							   int xdimMId,
-							   int ydimMId)
+							   const cudaTextureObject_t tex,
+							   const int xinitMId,
+							   const int yinitMId,
+							   const int xdimMId,
+							   const int ydimMId)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeB <= threadIndex) {
