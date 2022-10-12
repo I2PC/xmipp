@@ -8,6 +8,8 @@
 #define TURING 6
 #define AMPERE 7
 
+#define BLOCK_SIZE 1024
+
 // Degrees of the basis
 // (Setting exact degrees you use in the run may increase performance,
 // especially when the degrees are low)
