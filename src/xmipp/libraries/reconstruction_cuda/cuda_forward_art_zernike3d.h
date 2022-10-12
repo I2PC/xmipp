@@ -102,6 +102,8 @@ class Program {
 
 	const std::vector<PrecisionType> sigma;
 
+	const PrecisionType *cudaSigma;
+
 	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
 	size_t blockXStep, gridXStep;

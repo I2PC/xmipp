@@ -272,6 +272,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
 	  //VRecMaskF(filterAndTransportMask(parameters.VRecMaskF, parameters.loopStep)),
 	  sigma(parameters.sigma),
+	  cudaSigma(transportStdVectorToGpu(parameters.sigma)),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
 	  lastY(FINISHINGY(parameters.Vrefined())),
@@ -310,6 +311,7 @@ Program<PrecisionType>::~Program()
 	cudaFree(cudaMV.data);
 	cudaFree(cudaCoordinatesB);
 	cudaFree(cudaCoordinatesF);
+	cudaFree(cudaSigma);
 
 	cudaFree(const_cast<int *>(cudaVL1));
 	cudaFree(const_cast<int *>(cudaVL2));
@@ -328,7 +330,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	std::tie(cudaP, pVector) = convertToMultidimArrayCuda(parameters.P);
 	std::tie(cudaW, wVector) = convertToMultidimArrayCuda(parameters.W);
 	unsigned sigma_size = static_cast<unsigned>(sigma.size());
-	auto cudaSigma = transportStdVectorToGpu(sigma);
 	const int step = loopStep;
 
 	// Common parameters
@@ -367,7 +368,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	freeVectorOfMultidimArray(wVector);
 	cudaFree(cudaP);
 	cudaFree(cudaW);
-	cudaFree(cudaSigma);
 	freeCommonArgumentsKernel<PrecisionType>(commonParameters);
 }
 
