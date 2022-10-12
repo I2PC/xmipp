@@ -108,9 +108,9 @@ class Program {
 
 	size_t blockXStep, gridXStep;
 
-	int *VRecMaskF;
+	cudaTextureObject_t VRecMaskF;
 
-	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
+	cudaTextureObject_t cudaCoordinatesB, cudaCoordinatesF;
 
 	const unsigned xdimB, ydimB;
 

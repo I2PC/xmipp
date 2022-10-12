@@ -233,7 +233,7 @@ namespace {
 	}
 
 	template<typename T>
-	std::tuple<unsigned *, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
+	std::tuple<cudaTextureObject_t, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
 
 	{
 		std::vector<unsigned> coordinates;
@@ -242,13 +242,14 @@ namespace {
 				coordinates.push_back(i);
 			}
 		}
-		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
+		return std::make_tuple(initTexturePointer(transportStdVectorToGpu(coordinates), coordinates.size()),
+							   coordinates.size());
 	}
 
 	template<typename T>
-	std::tuple<unsigned *, size_t, T *> filterMaskTransportCoordinates(MultidimArray<T> &mask,
-																	   int step,
-																	   bool transportValues)
+	std::tuple<cudaTextureObject_t, size_t, cudaTextureObject_t> filterMaskTransportCoordinates(MultidimArray<T> &mask,
+																								int step,
+																								bool transportValues)
 
 	{
 		std::vector<unsigned> coordinates;
@@ -261,14 +262,14 @@ namespace {
 				}
 			}
 		}
-		return std::make_tuple(
-			transportStdVectorToGpu(coordinates), coordinates.size(), transportStdVectorToGpu(values));
+		return std::make_tuple(initTexturePointer(transportStdVectorToGpu(coordinates), coordinates.size()),
+							   coordinates.size(),
+							   initTexturePointer(transportStdVectorToGpu(values), values.size));
 	}
 
 	template<typename T>
-	cudaTextureObject_t initTexture(MultidimArrayCuda<T> array, size_t zdim)
+	cudaTextureObject_t initTextureMultidimArray(MultidimArrayCuda<T> &array, size_t zdim)
 	{
-		// Texture
 		cudaResourceDesc resDesc;
 		memset(&resDesc, 0, sizeof(resDesc));
 		resDesc.resType = cudaResourceTypeLinear;
@@ -276,6 +277,36 @@ namespace {
 		resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
 		resDesc.res.linear.desc.x = 32;
 		resDesc.res.linear.sizeInBytes = zdim * array.yxdim * sizeof(T);
+		cudaTextureDesc texDesc;
+		memset(&texDesc, 0, sizeof(texDesc));
+		texDesc.readMode = cudaReadModeElementType;
+		cudaTextureObject_t tex = 0;
+		cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
+		return tex;
+	}
+
+	template<typename T>
+	enum cudaChannelFormatKind getTextureFormatType(T *array)
+	{
+		return cudaChannelFormatKindUnsigned;
+	}
+
+	template<>
+	enum cudaChannelFormatKind getTextureFormatType(int *array)
+	{
+		return cudaChannelFormatKindSigned;
+	}
+
+	template<typename T>
+	cudaTextureObject_t initTexturePointer(T *array, size_t size)
+	{
+		cudaResourceDesc resDesc;
+		memset(&resDesc, 0, sizeof(resDesc));
+		resDesc.resType = cudaResourceTypeLinear;
+		resDesc.res.linear.devPtr = array;
+		resDesc.res.linear.desc.f = getTextureFormatType(array);
+		resDesc.res.linear.desc.x = 32;
+		resDesc.res.linear.sizeInBytes = size * sizeof(T);
 		cudaTextureDesc texDesc;
 		memset(&texDesc, 0, sizeof(texDesc));
 		texDesc.readMode = cudaReadModeElementType;
@@ -400,7 +431,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	const int step = 1;
 
 	// Texture
-	cudaTextureObject_t tex = initTexture<PrecisionType>(cudaMId, mId.zdim);
+	cudaTextureObject_t mIdTexture = initTexture<PrecisionType>(cudaMId, mId.zdim);
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
@@ -424,7 +455,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaVM,
 																  commonParameters.cudaClnm,
 																  commonParameters.cudaR,
-																  tex);
+																  mIdTexture);
 
 	cudaDeviceSynchronize();
 
