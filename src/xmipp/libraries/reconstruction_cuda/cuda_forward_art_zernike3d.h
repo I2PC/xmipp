@@ -90,7 +90,7 @@ class Program {
 	~Program();
 
    private:
-	const MultidimArrayCuda<unsigned> VRecMaskF, VRecMaskB;
+	const MultidimArrayCuda<int> VRecMaskF, VRecMaskB;
 
 	const MultidimArrayCuda<PrecisionType> cudaMV;
 
