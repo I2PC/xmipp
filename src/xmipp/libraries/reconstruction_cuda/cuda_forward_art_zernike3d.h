@@ -73,7 +73,6 @@ class Program {
 		size_t idxY0, idxZ0;
 		PrecisionType iRmaxF;
 		PrecisionType *cudaClnm, *cudaR;
-		size_t cudaRSize;
 	};
 
    public:

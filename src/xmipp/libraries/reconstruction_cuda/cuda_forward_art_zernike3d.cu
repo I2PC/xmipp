@@ -400,7 +400,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const int *cudaVL2,
 							  const int *cudaVM,
 							  const PrecisionType *cudaClnm,
-							  const cudaTextureObject_t texR)
+							  const PrecisionType *cudaR)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeF <= threadIndex) {
@@ -447,10 +447,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_y = i + gy;
 	auto r_z = k + gz;
 
-	auto pos_x = tex1Dfetch<PrecisionType>(texR, 0) * r_x + tex1Dfetch<PrecisionType>(texR, 1) * r_y
-				 + tex1Dfetch<PrecisionType>(texR, 2) * r_z;
-	auto pos_y = tex1Dfetch<PrecisionType>(texR, 3) * r_x + tex1Dfetch<PrecisionType>(texR, 4) * r_y
-				 + tex1Dfetch<PrecisionType>(texR, 5) * r_z;
+	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
+	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
 	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 }
 
@@ -475,7 +473,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int *cudaVL2,
 							   const int *cudaVM,
 							   const PrecisionType *cudaClnm,
-							   const cudaTextureObject_t texR,
+							   const PrecisionType *cudaR,
 							   const cudaTextureObject_t texMId,
 							   const int xinitMId,
 							   const int yinitMId,
@@ -520,10 +518,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_y = i + gy;
 	auto r_z = k + gz;
 
-	auto pos_x = tex1Dfetch<PrecisionType>(texR, 0) * r_x + tex1Dfetch<PrecisionType>(texR, 1) * r_y
-				 + tex1Dfetch<PrecisionType>(texR, 2) * r_z;
-	auto pos_y = tex1Dfetch<PrecisionType>(texR, 3) * r_x + tex1Dfetch<PrecisionType>(texR, 4) * r_y
-				 + tex1Dfetch<PrecisionType>(texR, 5) * r_z;
+	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
+	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
 	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, texMId, xinitMId, yinitMId, xdimMId, ydimMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }

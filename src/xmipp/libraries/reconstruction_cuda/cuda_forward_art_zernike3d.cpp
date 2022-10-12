@@ -174,7 +174,7 @@ namespace {
 
 		struct Program<T>::CommonKernelParameters output = {
 			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transportStdVectorToGpu(clnm),
-			.cudaR = transportMatrix2DToGpu(R), .cudaRSize = R.mdim,
+			.cudaR = transportMatrix2DToGpu(R),
 		};
 
 		return output;
@@ -227,29 +227,6 @@ namespace {
 		resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
 		resDesc.res.linear.desc.x = 32;
 		resDesc.res.linear.sizeInBytes = zdim * array.yxdim * sizeof(T);
-		cudaTextureDesc texDesc;
-		memset(&texDesc, 0, sizeof(texDesc));
-		texDesc.readMode = cudaReadModeElementType;
-		cudaTextureObject_t tex = 0;
-		cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
-		return tex;
-	}
-
-	enum cudaChannelFormatKind getTextureFormatType(float *array)
-	{
-		return cudaChannelFormatKindFloat;
-	}
-
-	template<typename T>
-	cudaTextureObject_t initTexturePointer(T *array, size_t size)
-	{
-		cudaResourceDesc resDesc;
-		memset(&resDesc, 0, sizeof(resDesc));
-		resDesc.resType = cudaResourceTypeLinear;
-		resDesc.res.linear.devPtr = array;
-		resDesc.res.linear.desc.f = getTextureFormatType(array);
-		resDesc.res.linear.desc.x = 32;
-		resDesc.res.linear.sizeInBytes = size * sizeof(T);
 		cudaTextureDesc texDesc;
 		memset(&texDesc, 0, sizeof(texDesc));
 		texDesc.readMode = cudaReadModeElementType;
@@ -372,30 +349,29 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(
-		cudaMV,
-		VRecMaskF,
-		cudaCoordinatesF,
-		xdimF,
-		ydimF,
-		static_cast<unsigned>(sizeF),
-		cudaP,
-		cudaW,
-		lastZ,
-		lastY,
-		lastX,
-		step,
-		sigma_size,
-		cudaSigma,
-		commonParameters.iRmaxF,
-		static_cast<unsigned>(commonParameters.idxY0),
-		static_cast<unsigned>(commonParameters.idxZ0),
-		cudaVL1,
-		cudaVN,
-		cudaVL2,
-		cudaVM,
-		commonParameters.cudaClnm,
-		initTexturePointer<PrecisionType>(commonParameters.cudaR, commonParameters.cudaRSize));
+	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(cudaMV,
+																		 VRecMaskF,
+																		 cudaCoordinatesF,
+																		 xdimF,
+																		 ydimF,
+																		 static_cast<unsigned>(sizeF),
+																		 cudaP,
+																		 cudaW,
+																		 lastZ,
+																		 lastY,
+																		 lastX,
+																		 step,
+																		 sigma_size,
+																		 cudaSigma,
+																		 commonParameters.iRmaxF,
+																		 static_cast<unsigned>(commonParameters.idxY0),
+																		 static_cast<unsigned>(commonParameters.idxZ0),
+																		 cudaVL1,
+																		 cudaVN,
+																		 cudaVL2,
+																		 cudaVM,
+																		 commonParameters.cudaClnm,
+																		 commonParameters.cudaR);
 
 	cudaDeviceSynchronize();
 
@@ -424,30 +400,29 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike>
-		<<<gridX, blockX>>>(cudaMV,
-							cudaCoordinatesB,
-							xdimB,
-							ydimB,
-							static_cast<unsigned>(sizeB),
-							lastZ,
-							lastY,
-							lastX,
-							step,
-							commonParameters.iRmaxF,
-							static_cast<unsigned>(commonParameters.idxY0),
-							static_cast<unsigned>(commonParameters.idxZ0),
-							cudaVL1,
-							cudaVN,
-							cudaVL2,
-							cudaVM,
-							commonParameters.cudaClnm,
-							initTexturePointer<PrecisionType>(commonParameters.cudaR, commonParameters.cudaRSize),
-							mIdTexture,
-							mId.xinit,
-							mId.yinit,
-							static_cast<int>(mId.xdim),
-							static_cast<int>(mId.ydim));
+	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
+																  cudaCoordinatesB,
+																  xdimB,
+																  ydimB,
+																  static_cast<unsigned>(sizeB),
+																  lastZ,
+																  lastY,
+																  lastX,
+																  step,
+																  commonParameters.iRmaxF,
+																  static_cast<unsigned>(commonParameters.idxY0),
+																  static_cast<unsigned>(commonParameters.idxZ0),
+																  cudaVL1,
+																  cudaVN,
+																  cudaVL2,
+																  cudaVM,
+																  commonParameters.cudaClnm,
+																  commonParameters.cudaR,
+																  mIdTexture,
+																  mId.xinit,
+																  mId.yinit,
+																  static_cast<int>(mId.xdim),
+																  static_cast<int>(mId.ydim));
 
 	cudaDeviceSynchronize();
 
