@@ -337,7 +337,7 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ PrecisionType interpolatedElement2DCuda(const PrecisionType x,
 													   const PrecisionType y,
-													   const cudaTextureObject_t tex,
+													   const cudaTextureObject_t texMId,
 													   const int xinitMId,
 													   const int yinitMId,
 													   const int xdimMId,
@@ -359,7 +359,7 @@ namespace device {
 	if ((j) < j0 || (j) > jF || (i) < i0 || (i) > iF) \
 		d = (PrecisionType)0;                         \
 	else                                              \
-		d = tex1Dfetch<PrecisionType>(tex, (int)(((i) - (i0)) * xdimMId + ((j) - (j0))));
+		d = tex1Dfetch<PrecisionType>(texMId, (int)(((i) - (i0)) * xdimMId + ((j) - (j0))));
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
@@ -400,7 +400,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const int *cudaVL2,
 							  const int *cudaVM,
 							  const PrecisionType *cudaClnm,
-							  const cudaTextureObject_t cudaR)
+							  const cudaTextureObject_t texR)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeF <= threadIndex) {
@@ -447,10 +447,10 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_y = i + gy;
 	auto r_z = k + gz;
 
-	auto pos_x = tex1Dfetch<PrecisionType>(cudaR, 0) * r_x + tex1Dfetch<PrecisionType>(cudaR, 1) * r_y
-				 + tex1Dfetch<PrecisionType>(cudaR, 2) * r_z;
-	auto pos_y = tex1Dfetch<PrecisionType>(cudaR, 3) * r_x + tex1Dfetch<PrecisionType>(cudaR, 4) * r_y
-				 + tex1Dfetch<PrecisionType>(cudaR, 5) * r_z;
+	auto pos_x = tex1Dfetch<PrecisionType>(texR, 0) * r_x + tex1Dfetch<PrecisionType>(texR, 1) * r_y
+				 + tex1Dfetch<PrecisionType>(texR, 2) * r_z;
+	auto pos_y = tex1Dfetch<PrecisionType>(texR, 3) * r_x + tex1Dfetch<PrecisionType>(texR, 4) * r_y
+				 + tex1Dfetch<PrecisionType>(texR, 5) * r_z;
 	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, j, i, k);
 }
 
@@ -475,8 +475,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int *cudaVL2,
 							   const int *cudaVM,
 							   const PrecisionType *cudaClnm,
-							   const cudaTextureObject_t cudaR,
-							   const cudaTextureObject_t tex,
+							   const cudaTextureObject_t texR,
+							   const cudaTextureObject_t texMId,
 							   const int xinitMId,
 							   const int yinitMId,
 							   const int xdimMId,
@@ -520,11 +520,11 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_y = i + gy;
 	auto r_z = k + gz;
 
-	auto pos_x = tex1Dfetch<PrecisionType>(cudaR, 0) * r_x + tex1Dfetch<PrecisionType>(cudaR, 1) * r_y
-				 + tex1Dfetch<PrecisionType>(cudaR, 2) * r_z;
-	auto pos_y = tex1Dfetch<PrecisionType>(cudaR, 3) * r_x + tex1Dfetch<PrecisionType>(cudaR, 4) * r_y
-				 + tex1Dfetch<PrecisionType>(cudaR, 5) * r_z;
-	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, tex, xinitMId, yinitMId, xdimMId, ydimMId);
+	auto pos_x = tex1Dfetch<PrecisionType>(texR, 0) * r_x + tex1Dfetch<PrecisionType>(texR, 1) * r_y
+				 + tex1Dfetch<PrecisionType>(texR, 2) * r_z;
+	auto pos_y = tex1Dfetch<PrecisionType>(texR, 3) * r_x + tex1Dfetch<PrecisionType>(texR, 4) * r_y
+				 + tex1Dfetch<PrecisionType>(texR, 5) * r_z;
+	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, texMId, xinitMId, yinitMId, xdimMId, ydimMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
 }  // namespace cuda_forward_art_zernike3D
