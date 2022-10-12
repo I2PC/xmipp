@@ -379,8 +379,8 @@ namespace device {
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
-							  const cudaTextureObject_t cudaVRecMaskF,
-							  const cudaTextureObject_t cudaCoordinatesF,
+							  const unsigned *cudaVRecMaskF,
+							  const int *cudaCoordinatesF,
 							  const int xdim,
 							  const int ydim,
 							  const unsigned sizeF,
@@ -406,7 +406,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
-	int threadPosition = tex1Dfetch<unsigned>(cudaCoordinatesF, threadIndex);
+	int threadPosition = cudaCoordinatesF[threadIndex];
 	int cubeX = threadPosition % xdim;
 	int cubeY = threadPosition / xdim % ydim;
 	int cubeZ = threadPosition / (xdim * ydim);
@@ -416,7 +416,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	int img_idx = 0;
 	if (sigma_size > 1) {
-		PrecisionType sigma_mask = tex1Dfetch<int>(cudaVRecMaskF, threadIndex);
+		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
 	auto &mP = cudaP[img_idx];
@@ -457,7 +457,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
-							   const cudaTextureObject_t cudaCoordinatesB,
+							   const unsigned *cudaCoordinatesB,
 							   const unsigned xdim,
 							   const unsigned ydim,
 							   const unsigned sizeB,
@@ -484,7 +484,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
-	int threadPosition = tex1Dfetch<unsigned>(cudaCoordinatesB, threadIndex);
+	int threadPosition = cudaCoordinatesB[threadIndex];
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);
