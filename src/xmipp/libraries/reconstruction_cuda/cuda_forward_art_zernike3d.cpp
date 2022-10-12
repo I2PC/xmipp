@@ -311,7 +311,7 @@ Program<PrecisionType>::~Program()
 	cudaFree(cudaMV.data);
 	cudaFree(cudaCoordinatesB);
 	cudaFree(cudaCoordinatesF);
-	cudaFree(cudaSigma);
+	cudaFree(const_cast<PrecisionType *>(cudaSigma));
 
 	cudaFree(const_cast<int *>(cudaVL1));
 	cudaFree(const_cast<int *>(cudaVL2));
