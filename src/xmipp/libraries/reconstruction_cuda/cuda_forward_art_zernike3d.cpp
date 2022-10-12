@@ -310,7 +310,7 @@ namespace {
 			}
 		}
 		unsigned *coordinatesCuda = transportStdVectorToGpu(coordinates);
-		int *valuesCuda = transportStdVectorToGpu(coordinates);
+		int *valuesCuda = transportStdVectorToGpu(values);
 		return std::make_tuple(initTexturePointer<unsigned>(coordinatesCuda, coordinates.size()),
 							   coordinatesCuda,
 							   coordinates.size(),
@@ -434,7 +434,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	const int step = 1;
 
 	// Texture
-	cudaTextureObject_t mIdTexture = initTexture<PrecisionType>(cudaMId, mId.zdim);
+	cudaTextureObject_t mIdTexture = initTextureMultidimArray<PrecisionType>(cudaMId, mId.zdim);
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
