@@ -433,7 +433,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
 	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
-																  cudaMId,
 																  cudaCoordinatesB,
 																  xdimB,
 																  ydimB,
