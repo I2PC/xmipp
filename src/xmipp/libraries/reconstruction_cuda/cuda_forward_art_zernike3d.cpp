@@ -285,13 +285,11 @@ namespace {
 		return tex;
 	}
 
-	template<typename T>
-	enum cudaChannelFormatKind getTextureFormatType(T *array)
+	enum cudaChannelFormatKind getTextureFormatType(unsigned *array)
 	{
 		return cudaChannelFormatKindUnsigned;
 	}
 
-	template<>
 	enum cudaChannelFormatKind getTextureFormatType(int *array)
 	{
 		return cudaChannelFormatKindSigned;
