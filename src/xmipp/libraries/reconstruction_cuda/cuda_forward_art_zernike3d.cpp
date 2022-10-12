@@ -217,58 +217,8 @@ namespace {
 	}*/
 
 	template<typename T>
-	bool checkStep(MultidimArray<T> &mask, int step, size_t position)
-
-	{
-		if (position % mask.xdim % step != 0) {
-			return false;
-		}
-		if (position / mask.xdim % mask.ydim % step != 0) {
-			return false;
-		}
-		if (position / mask.yxdim % step != 0) {
-			return false;
-		}
-		return mask[position] != 0;
-	}
-
-	template<typename T>
-	std::tuple<cudaTextureObject_t, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
-
-	{
-		std::vector<unsigned> coordinates;
-		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			if (checkStep(mask, step, static_cast<size_t>(i))) {
-				coordinates.push_back(i);
-			}
-		}
-		return std::make_tuple(initTexturePointer(transportStdVectorToGpu(coordinates), coordinates.size()),
-							   coordinates.size());
-	}
-
-	template<typename T>
-	std::tuple<cudaTextureObject_t, size_t, cudaTextureObject_t> filterMaskTransportCoordinates(MultidimArray<T> &mask,
-																								int step,
-																								bool transportValues)
-
-	{
-		std::vector<unsigned> coordinates;
-		std::vector<T> values;
-		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			if (checkStep(mask, step, static_cast<size_t>(i))) {
-				coordinates.push_back(i);
-				if (transportValues) {
-					values.push_back(mask[i]);
-				}
-			}
-		}
-		return std::make_tuple(initTexturePointer(transportStdVectorToGpu(coordinates), coordinates.size()),
-							   coordinates.size(),
-							   initTexturePointer(transportStdVectorToGpu(values), values.size));
-	}
-
-	template<typename T>
 	cudaTextureObject_t initTextureMultidimArray(MultidimArrayCuda<T> &array, size_t zdim)
+
 	{
 		cudaResourceDesc resDesc;
 		memset(&resDesc, 0, sizeof(resDesc));
@@ -311,6 +261,57 @@ namespace {
 		cudaTextureObject_t tex = 0;
 		cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
 		return tex;
+	}
+
+	template<typename T>
+	bool checkStep(MultidimArray<T> &mask, int step, size_t position)
+
+	{
+		if (position % mask.xdim % step != 0) {
+			return false;
+		}
+		if (position / mask.xdim % mask.ydim % step != 0) {
+			return false;
+		}
+		if (position / mask.yxdim % step != 0) {
+			return false;
+		}
+		return mask[position] != 0;
+	}
+
+	template<typename T>
+	std::tuple<cudaTextureObject_t, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
+
+	{
+		std::vector<unsigned> coordinates;
+		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
+			if (checkStep(mask, step, static_cast<size_t>(i))) {
+				coordinates.push_back(i);
+			}
+		}
+		return std::make_tuple(initTexturePointer<unsigned>(transportStdVectorToGpu(coordinates), coordinates.size()),
+							   coordinates.size());
+	}
+
+	template<typename T>
+	std::tuple<cudaTextureObject_t, size_t, cudaTextureObject_t> filterMaskTransportCoordinates(MultidimArray<T> &mask,
+																								int step,
+																								bool transportValues)
+
+	{
+		std::vector<unsigned> coordinates;
+		std::vector<T> values;
+		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
+			if (checkStep(mask, step, static_cast<size_t>(i))) {
+				coordinates.push_back(i);
+				if (transportValues) {
+					values.push_back(mask[i]);
+				}
+			}
+		}
+		return std::make_tuple(initTexturePointer<unsigned>(transportStdVectorToGpu(coordinates), coordinates.size()),
+							   coordinates.size(),
+							   initTexturePointer<int>(transportStdVectorToGpu(values), values.size));
 	}
 
 }  // namespace
