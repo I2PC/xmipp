@@ -245,6 +245,11 @@ namespace {
 		return cudaChannelFormatKindSigned;
 	}
 
+	enum cudaChannelFormatKind getTextureFormatType(float *array)
+	{
+		return cudaChannelFormatKindFloat;
+	}
+
 	template<typename T>
 	cudaTextureObject_t initTexturePointer(T *array, size_t size)
 	{
@@ -399,7 +404,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 																		 cudaVL2,
 																		 cudaVM,
 																		 commonParameters.cudaClnm,
-																		 commonParameters.cudaR);
+																		 initTexturePointer(commonParameters.cudaR));
 
 	cudaDeviceSynchronize();
 
@@ -445,7 +450,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaVL2,
 																  cudaVM,
 																  commonParameters.cudaClnm,
-																  commonParameters.cudaR,
+																  initTexturePointer(commonParameters.cudaR),
 																  mIdTexture,
 																  mId.xinit,
 																  mId.yinit,
