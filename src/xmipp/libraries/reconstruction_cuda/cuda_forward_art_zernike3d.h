@@ -90,6 +90,8 @@ class Program {
 	~Program();
 
    private:
+	const MultidimArrayCuda<unsigned> VRecMaskF, VRecMaskB;
+
 	const MultidimArrayCuda<PrecisionType> cudaMV;
 
 	const int lastX, lastY, lastZ;
@@ -102,21 +104,9 @@ class Program {
 
 	const std::vector<PrecisionType> sigma;
 
-	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
+	const size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
-	size_t blockXStep, gridXStep;
-
-	int *VRecMaskF;
-
-	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
-
-	const unsigned xdimB, ydimB;
-
-	size_t sizeB;
-
-	const int xdimF, ydimF;
-
-	size_t sizeF;
+	const size_t blockXStep, blockYStep, blockZStep, gridXStep, gridYStep, gridZStep;
 };
 
 }  // namespace cuda_forward_art_zernike3D

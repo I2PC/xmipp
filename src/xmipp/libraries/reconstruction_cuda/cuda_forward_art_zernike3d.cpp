@@ -181,7 +181,7 @@ namespace {
 
 	}
 
-	/*struct BlockSizes
+	struct BlockSizes
 	blockSizeArchitecture()
 
 	{
@@ -214,55 +214,6 @@ namespace {
 				break;
 		}
 		return output;
-	}*/
-
-	template<typename T>
-	bool checkStep(MultidimArray<T> &mask, int step, size_t position)
-
-	{
-		if (position % mask.xdim % step != 0) {
-			return false;
-		}
-		if (position / mask.xdim % mask.ydim % step != 0) {
-			return false;
-		}
-		if (position / mask.yxdim % step != 0) {
-			return false;
-		}
-		return mask[position] != 0;
-	}
-
-	template<typename T>
-	std::tuple<unsigned *, size_t> filterMaskTransportCoordinates(MultidimArray<T> &mask, int step)
-
-	{
-		std::vector<unsigned> coordinates;
-		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			if (checkStep(mask, step, static_cast<size_t>(i))) {
-				coordinates.push_back(i);
-			}
-		}
-		return std::make_tuple(transportStdVectorToGpu(coordinates), coordinates.size());
-	}
-
-	template<typename T>
-	std::tuple<unsigned *, size_t, T *> filterMaskTransportCoordinates(MultidimArray<T> &mask,
-																	   int step,
-																	   bool transportValues)
-
-	{
-		std::vector<unsigned> coordinates;
-		std::vector<T> values;
-		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			if (checkStep(mask, step, static_cast<size_t>(i))) {
-				coordinates.push_back(i);
-				if (transportValues) {
-					values.push_back(mask[i]);
-				}
-			}
-		}
-		return std::make_tuple(
-			transportStdVectorToGpu(coordinates), coordinates.size(), transportStdVectorToGpu(values));
 	}
 
 }  // namespace
@@ -270,7 +221,8 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  //VRecMaskF(filterAndTransportMask(parameters.VRecMaskF, parameters.loopStep)),
+	  VRecMaskF(initializeMultidimArrayCuda(parameters.VRecMaskF)),
+	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
@@ -281,35 +233,26 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
 	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
 	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
-	  //blockXStep(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / loopStep)),
-	  //blockYStep(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim / loopStep)),
-	  //blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
-	  //gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
-	  //gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
-	  //gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep),
-	  xdimB(static_cast<unsigned>(parameters.VRecMaskB.xdim)),
-	  ydimB(static_cast<unsigned>(parameters.VRecMaskB.ydim)),
-	  xdimF(parameters.VRecMaskF.xdim),
-	  ydimF(parameters.VRecMaskF.ydim)
-{
-	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
-	auto optimalizedSize = ceil(sizeB / 1024) * 1024;
-	blockX = std::__gcd(1024, static_cast<int>(optimalizedSize));
-	gridX = optimalizedSize / blockX;
-	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
-		filterMaskTransportCoordinates(parameters.VRecMaskF, parameters.loopStep, true);
-	optimalizedSize = ceil(sizeF / 1024) * 1024;
-	blockXStep = std::__gcd(1024, static_cast<int>(optimalizedSize));
-	gridXStep = optimalizedSize / blockXStep;
-}
+	  blockX(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / 2)),
+	  blockY(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim)),
+	  blockZ(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim)),
+	  gridX(parameters.Vrefined().xdim / blockX),
+	  gridY(parameters.Vrefined().ydim / blockY),
+	  gridZ(parameters.Vrefined().zdim / blockZ),
+	  blockXStep(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / loopStep / 2)),
+	  blockYStep(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim / loopStep)),
+	  blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
+	  gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
+	  gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
+	  gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep)
+{}
 
 template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
-	cudaFree(const_cast<int *>(VRecMaskF));
+	cudaFree(VRecMaskF.data);
+	cudaFree(VRecMaskB.data);
 	cudaFree(cudaMV.data);
-	cudaFree(cudaCoordinatesB);
-	cudaFree(cudaCoordinatesF);
 
 	cudaFree(const_cast<int *>(cudaVL1));
 	cudaFree(const_cast<int *>(cudaVL2));
@@ -334,29 +277,27 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(cudaMV,
-																		 VRecMaskF,
-																		 cudaCoordinatesF,
-																		 xdimF,
-																		 ydimF,
-																		 static_cast<unsigned>(sizeF),
-																		 cudaP,
-																		 cudaW,
-																		 lastZ,
-																		 lastY,
-																		 lastX,
-																		 step,
-																		 sigma_size,
-																		 cudaSigma,
-																		 commonParameters.iRmaxF,
-																		 static_cast<unsigned>(commonParameters.idxY0),
-																		 static_cast<unsigned>(commonParameters.idxZ0),
-																		 cudaVL1,
-																		 cudaVN,
-																		 cudaVL2,
-																		 cudaVM,
-																		 commonParameters.cudaClnm,
-																		 commonParameters.cudaR);
+	forwardKernel<PrecisionType, usesZernike>
+		<<<dim3(gridXStep, gridYStep, gridZStep), dim3(blockXStep, blockYStep, blockZStep)>>>(
+			cudaMV,
+			VRecMaskF,
+			cudaP,
+			cudaW,
+			lastZ,
+			lastY,
+			lastX,
+			step,
+			sigma_size,
+			cudaSigma,
+			commonParameters.iRmaxF,
+			static_cast<unsigned>(commonParameters.idxY0),
+			static_cast<unsigned>(commonParameters.idxZ0),
+			cudaVL1,
+			cudaVN,
+			cudaVL2,
+			cudaVM,
+			commonParameters.cudaClnm,
+			commonParameters.cudaR);
 
 	cudaDeviceSynchronize();
 
@@ -397,26 +338,24 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
-																  cudaMId,
-																  cudaCoordinatesB,
-																  xdimB,
-																  ydimB,
-																  static_cast<unsigned>(sizeB),
-																  lastZ,
-																  lastY,
-																  lastX,
-																  step,
-																  commonParameters.iRmaxF,
-																  static_cast<unsigned>(commonParameters.idxY0),
-																  static_cast<unsigned>(commonParameters.idxZ0),
-																  cudaVL1,
-																  cudaVN,
-																  cudaVL2,
-																  cudaVM,
-																  commonParameters.cudaClnm,
-																  commonParameters.cudaR,
-																  tex);
+	backwardKernel<PrecisionType, usesZernike>
+		<<<dim3(gridX, gridY, gridZ), dim3(blockX, blockY, blockZ)>>>(cudaMV,
+																	  cudaMId,
+																	  VRecMaskB,
+																	  lastZ,
+																	  lastY,
+																	  lastX,
+																	  step,
+																	  commonParameters.iRmaxF,
+																	  static_cast<unsigned>(commonParameters.idxY0),
+																	  static_cast<unsigned>(commonParameters.idxZ0),
+																	  cudaVL1,
+																	  cudaVN,
+																	  cudaVL2,
+																	  cudaVM,
+																	  commonParameters.cudaClnm,
+																	  commonParameters.cudaR,
+																	  tex);
 
 	cudaDeviceSynchronize();
 
