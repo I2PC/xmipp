@@ -337,8 +337,11 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ PrecisionType interpolatedElement2DCuda(PrecisionType x,
 													   PrecisionType y,
-													   const MultidimArrayCuda<PrecisionType> &diffImage,
-													   cudaTextureObject_t tex)
+													   cudaTextureObject_t tex,
+													   int xinitMId,
+													   int yinitMId,
+													   int xdimMId,
+													   int ydimMId)
 	{
 		int x0 = CUDA_FLOOR(x);
 		PrecisionType fx = x - x0;
@@ -347,16 +350,16 @@ namespace device {
 		PrecisionType fy = y - y0;
 		int y1 = y0 + 1;
 
-		int i0 = STARTINGY(diffImage);
-		int j0 = STARTINGX(diffImage);
-		int iF = FINISHINGY(diffImage);
-		int jF = FINISHINGX(diffImage);
+		int i0 = yinitMId;
+		int j0 = xinitMId;
+		int iF = yinitMId + ydimMId - 1;
+		int jF = xinitMId + xdimMId - 1;
 
 #define ASSIGNVAL2DCUDA(d, i, j)                      \
 	if ((j) < j0 || (j) > jF || (i) < i0 || (i) > iF) \
 		d = (PrecisionType)0;                         \
 	else                                              \
-		d = tex1Dfetch<PrecisionType>(tex, (int)(((i) - (i0)) * (diffImage).xdim + ((j) - (j0))));
+		d = tex1Dfetch<PrecisionType>(tex, (int)(((i) - (i0)) * xdimMId + ((j) - (j0))));
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
@@ -454,7 +457,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
  */
 template<typename PrecisionType, bool usesZernike>
 __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
-							   const MultidimArrayCuda<PrecisionType> cudaMId,
 							   const cudaTextureObject_t cudaCoordinatesB,
 							   const unsigned xdim,
 							   const unsigned ydim,
@@ -472,7 +474,11 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int *cudaVM,
 							   const PrecisionType *cudaClnm,
 							   const PrecisionType *cudaR,
-							   cudaTextureObject_t tex)
+							   cudaTextureObject_t tex,
+							   int xinitMId,
+							   int yinitMId,
+							   int xdimMId,
+							   int ydimMId)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeB <= threadIndex) {
@@ -514,7 +520,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
 	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
-	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId, tex);
+	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, tex, xinitMId, yinitMId, xdimMId, ydimMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
 }  // namespace cuda_forward_art_zernike3D

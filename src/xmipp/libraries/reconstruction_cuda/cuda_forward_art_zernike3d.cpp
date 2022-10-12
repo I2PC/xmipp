@@ -451,7 +451,11 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaVM,
 																  commonParameters.cudaClnm,
 																  commonParameters.cudaR,
-																  mIdTexture);
+																  mIdTexture,
+																  mId.xinit,
+																  mId.yinit,
+																  static_cast<int> mId.xdim,
+																  static_cast<int> mId.ydim);
 
 	cudaDeviceSynchronize();
 
