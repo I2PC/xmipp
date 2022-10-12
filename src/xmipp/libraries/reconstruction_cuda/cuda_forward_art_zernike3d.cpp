@@ -323,7 +323,6 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
-	  //VRecMaskF(filterAndTransportMask(parameters.VRecMaskF, parameters.loopStep)),
 	  sigma(parameters.sigma),
 	  cudaSigma(transportStdVectorToGpu(parameters.sigma)),
 	  RmaxDef(parameters.RmaxDef),
@@ -335,12 +334,6 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
 	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
 	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
-	  //blockXStep(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim / loopStep)),
-	  //blockYStep(std::__gcd(blockSizeArchitecture().y, parameters.Vrefined().ydim / loopStep)),
-	  //blockZStep(std::__gcd(blockSizeArchitecture().z, parameters.Vrefined().zdim / loopStep)),
-	  //gridXStep(parameters.Vrefined().xdim / loopStep / blockXStep),
-	  //gridYStep(parameters.Vrefined().ydim / loopStep / blockYStep),
-	  //gridZStep(parameters.Vrefined().zdim / loopStep / blockZStep),
 	  xdimB(static_cast<unsigned>(parameters.VRecMaskB.xdim)),
 	  ydimB(static_cast<unsigned>(parameters.VRecMaskB.ydim)),
 	  xdimF(parameters.VRecMaskF.xdim),
