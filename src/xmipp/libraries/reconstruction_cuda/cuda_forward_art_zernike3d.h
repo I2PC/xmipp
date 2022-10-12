@@ -108,9 +108,13 @@ class Program {
 
 	size_t blockXStep, gridXStep;
 
-	cudaTextureObject_t VRecMaskF;
+	unsigned long long VRecMaskF;
 
-	cudaTextureObject_t cudaCoordinatesB, cudaCoordinatesF;
+	int *VRecMaskFData;
+
+	unsigned long long cudaCoordinatesB, cudaCoordinatesF;
+
+	unsigned *cudaCoordinatesBData, *cudaCoordinatesFData;
 
 	const unsigned xdimB, ydimB;
 
