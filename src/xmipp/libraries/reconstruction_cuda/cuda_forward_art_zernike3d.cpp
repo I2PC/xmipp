@@ -265,6 +265,25 @@ namespace {
 			transportStdVectorToGpu(coordinates), coordinates.size(), transportStdVectorToGpu(values));
 	}
 
+	template<typename T>
+	cudaTextureObject_t initTexture(MultidimArrayCuda<T> array, size_t zdim)
+	{
+		// Texture
+		cudaResourceDesc resDesc;
+		memset(&resDesc, 0, sizeof(resDesc));
+		resDesc.resType = cudaResourceTypeLinear;
+		resDesc.res.linear.devPtr = array.data;
+		resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
+		resDesc.res.linear.desc.x = 32;
+		resDesc.res.linear.sizeInBytes = zdim * array.yxdim * sizeof(T);
+		cudaTextureDesc texDesc;
+		memset(&texDesc, 0, sizeof(texDesc));
+		texDesc.readMode = cudaReadModeElementType;
+		cudaTextureObject_t tex = 0;
+		cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
+		return tex;
+	}
+
 }  // namespace
 
 template<typename PrecisionType>
@@ -381,18 +400,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	const int step = 1;
 
 	// Texture
-	cudaResourceDesc resDesc;
-	memset(&resDesc, 0, sizeof(resDesc));
-	resDesc.resType = cudaResourceTypeLinear;
-	resDesc.res.linear.devPtr = cudaMId.data;
-	resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
-	resDesc.res.linear.desc.x = 32;
-	resDesc.res.linear.sizeInBytes = mId.yxdim * sizeof(PrecisionType);
-	cudaTextureDesc texDesc;
-	memset(&texDesc, 0, sizeof(texDesc));
-	texDesc.readMode = cudaReadModeElementType;
-	cudaTextureObject_t tex = 0;
-	cudaCreateTextureObject(&tex, &resDesc, &texDesc, NULL);
+	cudaTextureObject_t tex = initTexture<PrecisionType>(cudaMId, mId.zdim);
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
