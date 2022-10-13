@@ -49,6 +49,7 @@
     int fmaskWidth;
 	int sigma;
     int limitfreq;
+    int xsizeV; 
     bool meanParam;
     bool nonNegative;
     bool subtract;
@@ -64,7 +65,7 @@
     Image<double> iM; // inverse mask of the region to keep
     Image<double> Mfinal; // final dilated mask
     Image<double> Idiff; // final subtracted image
-	Image <double> cirmask; // circular mask to avoid edge artifacts	
+	Image<double> cirmask; // circular mask to avoid edge artifacts	
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
     Projection PmaskVol; // reference volume mask projection

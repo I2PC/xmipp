@@ -199,8 +199,9 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	P.write("projection_xmipp_shif.mrc");
 	Pctf = applyCTF(row, P);
 	Pctf.write("projection_xmipp_ctf_wrap.mrc");
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pctf)
-		DIRECT_MULTIDIM_ELEM(Pctf(),n) = DIRECT_MULTIDIM_ELEM(Pctf,n) * DIRECT_MULTIDIM_ELEM(cirmask,n);
+	MultidimArray<double> &mPctf = Pctf();
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
+		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
 	Pctf.write("projection_xmipp_ctf_wrap_circularmask.mrc");
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
@@ -263,23 +264,35 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 }
 
  void ProgSubtractProjection::run() {
-	show();
 	// Read input volume, mask and particles metadata
+	show();
 	V.read(fnVolR);
 	V().setXmippOrigin();
 	createMask(fnMask, vM, ivM);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
 	mdParticles.read(fnParticles);
+	
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
+	
 	// Initialize Fourier projectors
 	double cutFreq = sampling/maxResol;
 	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	std::unique_ptr<FourierProjector> projectorMask;
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+	
+	// Create circular mask to avoid edge artifacts
+	xsizeV = 300;
+	std::cout << "xsizevol " << xsizeV << std::endl;
+	cirmask().initZeros(xsizeV, xsizeV);
+	cirmask().setXmippOrigin();
+	cirmask.write("circular_mask.mrc");
+    	RaisedCosineMask(cirmask(), xsizeV/2 - 6, xsizeV/2 - 2);
+	cirmask.write("circular_mask.mrc");
+	
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
 	processParticle(1, sizeI, transformerP, transformerI);
@@ -312,12 +325,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
     	double cumulative_beta01 = 0;
     	double cumulative_beta1 = 0;
     	int cumulative_model = 0;
-	
-	// Create circular mask to avoid edge artifacts
-	int xsizevol = (int)XSIZE(V())
-	cirmask().initZeros(xsizevol, xsizevol);
-    	RaisedCosineMask(cirmask(), xsizevol/2 - 6, xsizevol/2 - 2);
-	cirmask.write("circular_mask.mrc");
 	
 	// For each particle in metadata:
 	size_t i;
