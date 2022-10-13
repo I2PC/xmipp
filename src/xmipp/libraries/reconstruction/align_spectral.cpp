@@ -27,6 +27,7 @@
 
 #include <core/transformations.h>
 #include <core/metadata_extension.h>
+#include <core/xmipp_fft.h>
 
 #include <iostream>
 #include <cmath>
@@ -218,18 +219,26 @@ void ProgAlignSpectral::TranslationFilter::operator()(  const MultidimArray<std:
 
 void ProgAlignSpectral::TranslationFilter::computeCoefficients()
 {
-    // Shorthands
     auto& coeff = m_coefficients;
-    size_t ny = YSIZE(coeff);
-    size_t nx = (XSIZE(coeff) - 1) * 2;
+    const int ny = YSIZE(coeff);
+    const int ny_2 = ny / 2;
+    const auto ny_inv = 1.0 / ny;
+    const int nx_2 = (XSIZE(coeff) - 1);
+    const int nx = nx_2 * 2;
+    const auto nx_inv = 1.0 / nx;
 
     // Normalize the displacement
-    const auto dy = (-2 * M_PI) * m_dy / ny;
-    const auto dx = (-2 * M_PI) * m_dx / nx;
+    const auto dy = (-2 * M_PI) * m_dy;
+    const auto dx = (-2 * M_PI) * m_dx;
 
     // Compute the Fourier Transform of delta[i-y, j-x]
+    double fy, fx;
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(coeff) {
-        const auto theta = i*dy + j*dx; // Dot product of (dx, dy) and (j, i)
+        // Convert the indices to fourier coefficients
+        FFT_IDX2DIGFREQ_FAST(static_cast<int>(i), ny, ny_2, ny_inv, fy);
+        FFT_IDX2DIGFREQ_FAST(static_cast<int>(j), nx, nx_2, nx_inv, fx);
+
+        const auto theta = fy*dy + fx*dx; // Dot product of (dx, dy) and (j, i)
         DIRECT_A2D_ELEM(coeff, i, j) = std::polar(1.0, theta); //e^(i*theta)
     }
 }
