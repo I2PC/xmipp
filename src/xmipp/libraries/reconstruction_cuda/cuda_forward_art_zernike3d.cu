@@ -364,8 +364,8 @@ namespace device {
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
-		ASSIGNVAL2DCUDA(d10, y1, x0);
 		ASSIGNVAL2DCUDA(d01, y0, x1);
+		ASSIGNVAL2DCUDA(d10, y1, x0);
 		ASSIGNVAL2DCUDA(d11, y1, x1);
 
 		PrecisionType d0 = LIN_INTERP(fx, d00, d01);
