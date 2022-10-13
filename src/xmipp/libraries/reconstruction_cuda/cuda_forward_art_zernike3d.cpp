@@ -395,7 +395,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	const int step = 1;
 
 	// Texture
-	//cudaTextureObject_t mIdTexture = initTextureMultidimArray<PrecisionType>(cudaMId, mId.zdim);
+	cudaTextureObject_t mIdTexture = initTextureMultidimArray<PrecisionType>(cudaMId, mId.zdim);
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
@@ -418,7 +418,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaVM,
 																  commonParameters.cudaClnm,
 																  commonParameters.cudaR,
-																  cudaMId,
+																  mIdTexture,
 																  mId.xinit,
 																  mId.yinit,
 																  static_cast<int>(mId.xdim),
