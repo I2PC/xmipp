@@ -176,7 +176,7 @@
 	        mproj.setXmippOrigin();
 		mproj.window(mpad,STARTINGY(mproj)*padFourier, STARTINGX(mproj)*padFourier, FINISHINGY(mproj)*padFourier, FINISHINGX(mproj)*padFourier);
 		FilterCTF.generateMask(mpad);
-		FilterCTF.applyMaskSpace(mpad); //with pad is ok??
+		FilterCTF.applyMaskSpace(mpad); 
 	    	//Crop to restore original size
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
@@ -199,6 +199,9 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	P.write("projection_xmipp_shif.mrc");
 	Pctf = applyCTF(row, P);
 	Pctf.write("projection_xmipp_ctf_wrap.mrc");
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pctf)
+		DIRECT_MULTIDIM_ELEM(Pctf(),n) = DIRECT_MULTIDIM_ELEM(Pctf,n) * DIRECT_MULTIDIM_ELEM(cirmask,n);
+	Pctf.write("projection_xmipp_ctf_wrap_circularmask.mrc");
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -309,6 +312,12 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
     	double cumulative_beta01 = 0;
     	double cumulative_beta1 = 0;
     	int cumulative_model = 0;
+	
+	// Create circular mask to avoid edge artifacts
+	int xsizevol = (int)XSIZE(V())
+	cirmask().initZeros(xsizevol, xsizevol);
+    	RaisedCosineMask(cirmask(), xsizevol/2 - 6, xsizevol/2 - 2);
+	cirmask.write("circular_mask.mrc");
 	
 	// For each particle in metadata:
 	size_t i;
