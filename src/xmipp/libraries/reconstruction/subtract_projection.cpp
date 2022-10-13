@@ -164,6 +164,7 @@
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		ctf.readFromMdRow(r);
+		ctf.Tm = sampling;
 		ctf.produceSideInfo();
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
@@ -175,8 +176,8 @@
 	        mproj.setXmippOrigin();
 		mproj.window(mpad,STARTINGY(mproj)*padFourier, STARTINGX(mproj)*padFourier, FINISHINGY(mproj)*padFourier, FINISHINGX(mproj)*padFourier);
 		FilterCTF.generateMask(mpad);
-		FilterCTF.applyMaskSpace(mpad);
-	    //Crop to restore original size
+		FilterCTF.applyMaskSpace(mpad); //with pad is ok??
+	    	//Crop to restore original size
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
@@ -193,14 +194,11 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	P.write("projection.mrc");
-	//selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::DONT_WRAP);
-	const MultidimArray <double> &mP = P();
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mP)
-		DIRECT_MULTIDIM_ELEM(mP,n) = DIRECT_MULTIDIM_ELEM(mP,n)<0 ? 0:DIRECT_MULTIDIM_ELEM(mP,n);
+	P.write("projection_xmipp.mrc");
+	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	P.write("projection_xmipp_shif.mrc");
 	Pctf = applyCTF(row, P);
-	Pctf.write("projection_ctf.mrc");
+	Pctf.write("projection_xmipp_ctf_wrap.mrc");
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -308,16 +306,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
 	// Initialize cumulatives values:
 	double cumulative_beta00 = 0;
-    double cumulative_beta01 = 0;
-    double cumulative_beta1 = 0;
-    int cumulative_model = 0;
+    	double cumulative_beta01 = 0;
+    	double cumulative_beta1 = 0;
+    	int cumulative_model = 0;
 	
 	// For each particle in metadata:
 	size_t i;
     for (i = 1; i <= mdParticles.size(); ++i) {  
 		// Initialize aux variable
 		disable = false;
-     	// Project volume and process projections 
+     		// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
 		if (fnMask.isEmpty()) { // If there is no provided mask
