@@ -8,9 +8,7 @@ Xmipp is a suite of image processing programs, primarily aimed at single-particl
 The Xmipp project is divided into four repositories. 
 This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the compilation/installation process.
 
-If you like this project, Watch or Star it!
 
-We are also looking for new collaborators, so contact us if you’re interested!
 
 # Getting started
 The recommended way for users (not developers) to install and use Xmipp is via the [Scipion](http://scipion.i2pc.es/) framework, where you can use Xmipp with other Cryo-EM-related software.
@@ -65,7 +63,14 @@ sudo apt remove hdf5
 sudo apt remove hdf5-devel
 pip uninstall h5py
 ```
-Remove all files related to hdf5 in /usr/lib64/libhdf5*, /usr/include/hdf5* and .../anaconda3/include/hdf5*. 
+Remove all files related to hdf5 in:
+* `_/usr/lib64/libhdf5*_`
+*  `_/usr/include/hdf5*_ `
+*  `_/usr/lib/x86_64-linux-gnu/hdf5_*`
+*  `_.../anaconda3/include/H5*.h_ `
+*  `_.../anaconda3/include/hdf5*.h_ `
+*  `_.../anaconda3/lib/libhdf5*_ `
+*  `_.../anaconda3/envs/.../libhdf5*_`
 
 We strongy recommend you to install it via your default package manager:
 `sudo apt-get install libhdf5-dev` 
@@ -131,8 +136,7 @@ Xmipp is installed in the build directory located in the same directory where th
 
 
 # That's all
-Please let us know if you like Xmipp via contacts on the main page of the repository.
 
-If you find a bug or you miss some feature, please create a ticket and we will have a look at it.
+If you find a bug or you miss some feature, [please create an issue]([url](https://github.com/I2PC/xmipp/issues/new)) and we will have a look at it. For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
 
-For more details and information visit the [wikip page](https://github.com/I2PC/xmipp/wiki)
+If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
