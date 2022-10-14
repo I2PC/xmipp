@@ -1900,35 +1900,39 @@ PyObject *
 Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
-    if (nullptr == self) return nullptr;
-    try {
-        int x0;
-        int y0;
-        int xF;
-        int yF;
-        ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
 
-        if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
-                && (nullptr != result)) {
-            // prepare input image
-            const auto& image = self->image;
-            image->convert2Datatype(DT_Double);
-            MultidimArray<double> *pImage_in;
-            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage_in);
-            // prepare output image
-            result->image = std::make_unique<ImageGeneric>(DT_Double);
-            MultidimArray<double> *pImage_out;
-            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(pImage_out);
-            // call the estimation
-            window2D(*pImage_in, *pImage_out, (size_t)y0, (size_t)x0, (size_t)yF, (size_t)xF);
+    if (self != nullptr)
+    {
+        try {
+            int x0;
+            int y0;
+            int xF;
+            int yF;
+            ImageObject *result = (ImageObject*)PyObject_CallFunction((PyObject*)&ImageType, "");
 
-        } else {
-            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+            if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
+                    && (nullptr != result)) {
+                // prepare input image
+                const auto& image = self->image;
+                image->convert2Datatype(DT_Double);
+                MultidimArray<double> *pImage_in;
+                MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage_in);
+                // prepare output image
+                result->image = std::make_unique<ImageGeneric>(DT_Double);
+                MultidimArray<double> *pImage_out;
+                MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(pImage_out);
+                // call the estimation
+                window2D(*pImage_in, *pImage_out, (size_t)y0, (size_t)x0, (size_t)yF, (size_t)xF);
+
+            } else {
+                PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+            }
+            return (PyObject *)result;
+        } catch (XmippError &xe) {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
-        return (PyObject *)result;
-    } catch (XmippError &xe) {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
+    return nullptr;
 }
 
 
