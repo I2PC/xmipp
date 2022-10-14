@@ -1496,7 +1496,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			}
 
 			average = sum/residualDistanceInImageSize;
-			std = sum2/residualDistanceInImageSize - average*average;
+			std = sqrt(sum2/residualDistanceInImageSize - average*average);
 
 			averageFiducialResidualsInImage.push_back(average);
 			stdFiducialResidualsInImage.push_back(std);
@@ -1550,7 +1550,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			}
 
 			average = sum/residualDistancePerFiducialSize;
-			std = sum2/residualDistancePerFiducialSize - average*average;
+			std = sqrt(sum2/residualDistancePerFiducialSize - average*average);
 
 			averageResidualDistancePerFiducial.push_back(average);
 			stdResidualDistancePerFiducial.push_back(std);
