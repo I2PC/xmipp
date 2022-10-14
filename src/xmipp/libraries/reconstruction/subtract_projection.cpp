@@ -290,7 +290,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	cirmask().initZeros(xsizeV, xsizeV);
 	cirmask().setXmippOrigin();
 	cirmask.write("circular_mask.mrc");
-    	RaisedCosineMask(cirmask(), xsizeV/2 - 6, xsizeV/2 - 2);
+    	RaisedCosineMask(cirmask(), xsizeV*0.8/2, xsizeV*0.9/2);
 	cirmask.write("circular_mask.mrc");
 	
 	// Read first particle
