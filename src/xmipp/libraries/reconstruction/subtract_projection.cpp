@@ -268,6 +268,14 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	show();
 	V.read(fnVolR);
 	V().setXmippOrigin();
+
+	// Create circular mask to avoid edge artifacts
+	cirmask().resizeNoCopy(V());
+	cirmask().initConstant(0.0);
+	cirmask().setXmippOrigin();
+	RaisedCosineMask(cirmask(), (double)XSIZE(V())*0.8/2, (double)XSIZE(V())*0.9/2);
+
+	// Read or create mask keep and compute inverse of mask keep (mask subtract)
 	createMask(fnMask, vM, ivM);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
@@ -283,15 +291,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	std::unique_ptr<FourierProjector> projectorMask;
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	
-	// Create circular mask to avoid edge artifacts
-	xsizeV = 300;
-	std::cout << "xsizevol " << xsizeV << std::endl;
-	cirmask().initZeros(xsizeV, xsizeV);
-	cirmask().setXmippOrigin();
-	cirmask.write("circular_mask.mrc");
-    	RaisedCosineMask(cirmask(), xsizeV*0.8/2, xsizeV*0.9/2);
-	cirmask.write("circular_mask.mrc");
 	
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
