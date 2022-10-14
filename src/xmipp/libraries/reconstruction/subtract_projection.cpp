@@ -60,7 +60,6 @@
 	fmaskWidth = getIntParam("--fmask_width");
 	limitfreq = getIntParam("--limit_freq");
 	fnProj = getParam("--save"); 
-	meanParam = checkParam("--mean");
 	nonNegative = checkParam("--nonNegative");
 	subtract = checkParam("--subtract");
 	boost = checkParam("--boost");
@@ -98,7 +97,6 @@
 	 addParamsLine("[--padding <p=2>]\t: Padding factor for Fourier projector");
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
-	 addParamsLine("[--mean]\t: Use same adjustment for all the particles (mean beta0)"); 
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
 	 addParamsLine("[--subtract]\t: Perform subtraction"); 
 	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
@@ -173,11 +171,11 @@
 		MultidimArray <double> &mpad = padp();
 		mpad.setXmippOrigin();
 		MultidimArray<double> &mproj = proj();
-	        mproj.setXmippOrigin();
+		mproj.setXmippOrigin();
 		mproj.window(mpad,STARTINGY(mproj)*padFourier, STARTINGX(mproj)*padFourier, FINISHINGY(mproj)*padFourier, FINISHINGX(mproj)*padFourier);
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad); 
-	    	//Crop to restore original size
+		//Crop to restore original size
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
@@ -196,7 +194,7 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	P.write("projection_xmipp.mrc");
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	P.write("projection_xmipp_shif.mrc");
+	P.write("projection_xmipp_shift.mrc");
 	Pctf = applyCTF(row, P);
 	Pctf.write("projection_xmipp_ctf_wrap.mrc");
 	MultidimArray<double> &mPctf = Pctf();
@@ -238,7 +236,7 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
  }
 
 double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
- const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int cmod, int bmod) const { 
+ const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int bmod) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
 	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
@@ -250,14 +248,12 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		PFourierf = PFourierf1;
 		R2 = R21adj;
 		std::cout << "Order 1 model" << std::endl; 	
-		cmod += 1;
 		bmod = 1;	
 	} 
 	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
 		R2 = R20adj;
 		std::cout << "Order 0 model" << std::endl; 	
-		cmod += 0;
 		bmod = 0;		
 	}
 	return R2;
@@ -296,6 +292,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	const auto sizeI = (int)XSIZE(I());
 	processParticle(1, sizeI, transformerP, transformerI);
 	const MultidimArray<double> &mPctf = Pctf();
+
 	// Construct frequencies image
 	MultidimArray<int> wi;
 	wi.initZeros(PFourier);
@@ -318,19 +315,13 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	FourierTransformer transformerPiM;
 	MultidimArray< std::complex<double> > IiMFourier;
 	MultidimArray< std::complex<double> > PiMFourier;
-
-	// Initialize cumulatives values:
-	double cumulative_beta00 = 0;
-    	double cumulative_beta01 = 0;
-    	double cumulative_beta1 = 0;
-    	int cumulative_model = 0;
 	
 	// For each particle in metadata:
 	size_t i;
     for (i = 1; i <= mdParticles.size(); ++i) {  
 		// Initialize aux variable
 		disable = false;
-     		// Project volume and process projections 
+		// Project volume and process projections 
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
 		if (fnMask.isEmpty()) { // If there is no provided mask
@@ -392,7 +383,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			if (beta00 < 0)
 				disable = true;
 		}
-		cumulative_beta00 += beta00; // is ok to cumulate all or only the ones from particles which has been chosen model 0??		
 
 		// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 		PFourier0 = PFourier;
@@ -409,9 +399,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		double beta01 = betas1(0);
 		double beta1 = betas1(1);
 		std::cout << "beta01: " << beta01 << std::endl; 		
-		std::cout << "beta1: " << beta1 << std::endl; 	
-		cumulative_beta01 += beta01; // is ok to cumulate all or only the ones from particles which has been chosen model 1??		
-		cumulative_beta1 += beta1; // is ok to cumulate all or only the ones from particles which has been chosen model 1??			
+		std::cout << "beta1: " << beta1 << std::endl; 			
 
 		// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
 		PFourier1 = PFourier;
@@ -421,7 +409,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
 		// Check best model
 		int best_model;
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, cumulative_model, best_model);
+		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, best_model);
 
 		// Create empty new image for output particle
 		MultidimArray<double> &mIdiff=Idiff();
@@ -445,7 +433,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		} 
 		
 		// Subtraction
-		else if (subtract && !meanParam)
+		else if (subtract)
 		{
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
@@ -464,91 +452,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			}
 		}
 		// Write particle
-		//double R2adj = 1;
 		writeParticle(int(i), Idiff, R2adj); 
-	}
-	
-	if (subtract && meanParam)
-	{
-		// Decide which model apply to all
-		int mean_model = 0; // NO SE ESTA GUARDANDO BIEN
-		double mean_beta00 = 1;
-		double mean_beta01 = 1;
-		double mean_beta1 = 1;
-		if (cumulative_model > i/2)
-		{
-			mean_model = 1;
-			mean_beta01 = cumulative_beta01/i;
-			mean_beta1 = cumulative_beta1/i;
-		}
-		else
-			mean_beta00 = cumulative_beta00/i;
-
-		std::cout << "cumulative model: " << cumulative_model << std::endl;
-		std::cout << "mean model: " << mean_model << std::endl;
-		std::cout << "cumulative beta00: " << cumulative_beta00 << std::endl;
-		std::cout << "mean beta00: " << mean_beta00 << std::endl;
-		std::cout << "cumulative beta01: " << cumulative_beta01 << std::endl;
-		std::cout << "mean beta01: " << mean_beta01 << std::endl;
-		std::cout << "cumulative beta1: " << cumulative_beta1 << std::endl;
-		std::cout << "mean beta1: " << mean_beta1 << std::endl;
-
-		for (i = 1; i <= mdParticles.size(); ++i) {
-			processParticle(i, sizeI, transformerP, transformerI); // TODO: save projections with CTF (or even transforms) instead of recalculate them
-			auto N = 2.0*(double)MULTIDIM_SIZE(PFourier);
-			double R2adjC;
-			if (mean_model) // Apply model 1
-			{
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier)
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= (mean_beta01+mean_beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
-				PFourier(0,0) = IiMFourier(0,0);
-				R2adjC = evaluateFitting(IFourier, PFourier);
-			 R2adjC = 1.0 - (1.0 - R2adjC) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
-			}
-			else // Apply model 0
-			{
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier) 
-					DIRECT_MULTIDIM_ELEM(PFourier,n) *= mean_beta00; 
-				PFourier(0,0) = IiMFourier(0,0); // correct DC component
-				double R2adjC = evaluateFitting(IFourier, PFourier); 
-			}
-
-			// Recover adjusted projection (P) in real space
-			transformerP.inverseFourierTransform(PFourier, P());
-
-			// Compute final mask TODO: save masks computed before or do a function for this?
-			if (fnMask.isEmpty()) {
-				Mfinal().initZeros(P());
-				iM = invertMask(Mfinal);
-				Mfinal = iM;		
-				}
-			else {
-				projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
-				M = binarizeMask(Pmask);
-				Mfinal().initZeros(M());
-				auto fmaskWidth_px = fmaskWidth/(int)sampling;
-				dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
-				FilterG.applyMaskSpace(M());
-			}
-
-			if (subtract)// Subtraction
-			{
-				MultidimArray<double> &mIdiff=Idiff();
-				mIdiff.initZeros(I());
-				if (fmaskWidth == -1)
-				{
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-						DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
-				}
-				else
-				{
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-						DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-				}
-				// Write particle
-				writeParticle(int(i), Idiff, R2adjC); 
-			} 
-		}
 	}
 	// Write metadata 
     mdParticles.write(formatString("%s.xmd", fnOut.c_str()));

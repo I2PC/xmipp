@@ -50,7 +50,6 @@
 	int sigma;
     int limitfreq;
     int xsizeV; 
-    bool meanParam;
     bool nonNegative;
     bool subtract;
     bool boost;
@@ -119,7 +118,7 @@
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     double checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, int, int) const;
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, int) const;
 
     /// Run
     void run() override;
