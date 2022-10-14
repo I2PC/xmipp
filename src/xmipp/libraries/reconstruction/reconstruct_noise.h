@@ -26,7 +26,7 @@
 #ifndef _RECONSTRUCTION_ERROR
 #define _RECONSTRUCTION_ERROR
 
-#include <core/xmipp_program.h>
+#include <core/xmipp_metadata_program.h>
 #include <core/xmipp_filename.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_fftw.h>
@@ -39,30 +39,39 @@
 #include <complex>
 #include <memory>
 
-class ProgReconstructNoise : public XmippProgram
+class ProgReconstructNoise : public XmippMetadataProgram
 {
 public:
     using Real = double;
     using Complex = std::complex<Real>;
 
-    virtual void readParams() override;
-    virtual void defineParams() override;
-    virtual void show() const override;
-    virtual void run() override;
-
     bool useCtf;
-    FileName fnExperimentalMetadata;
     FileName fnReferenceVolume;
-    FileName fnOutputRoot;
     double paddingFactor;
     double maxResolution;
     CTFDescription m_ctfDesc;
     
-    size_t nThreads;
+    virtual void readParams() override;
+    virtual void defineParams() override;
+    virtual void show() const override;
+
+    virtual void preProcess() override;
+    virtual void postProcess() override;
+    virtual void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+    virtual void writeOutput() override;
 
 private:
     Image<Real> m_reference;
     std::unique_ptr<FourierProjector> m_referenceProjector;
+
+    FourierTransformer m_fourier;
+    Image<Real> m_experimental;
+    MultidimArray<Complex> m_experimentalFourier;
+    MultidimArray<Real> m_ctf;
+    MultidimArray<Real> m_avgExpImagePsd; 
+    MultidimArray<Real> m_avgRefImagePsd; 
+    MultidimArray<Real> m_avgCtfPsd; 
+    MultidimArray<Real> m_avgNoisePsd;
 
     void readReference();
     void createReferenceProjector();

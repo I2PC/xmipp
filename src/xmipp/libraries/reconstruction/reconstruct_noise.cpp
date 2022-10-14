@@ -34,9 +34,10 @@
 void ProgReconstructNoise::defineParams() {
     addUsageLine("Compute the spectral noise of an image set based on its reconstruction");
 
-    addParamsLine("   -i <md_file>                    : Metadata file with the experimental images");
+    each_image_produces_an_output = true;
+    XmippMetadataProgram::defineParams();
+
     addParamsLine("   -r <md_file>                    : Reference volume");
-    addParamsLine("   --oroot <directory>             : Output directory");
     
     addParamsLine("   --padding <padding>             : Padding factor");
     addParamsLine("   --max_resolution <resolution>   : Resolution limit");
@@ -49,48 +50,97 @@ void ProgReconstructNoise::defineParams() {
 }
 
 void ProgReconstructNoise::readParams() {
-    fnExperimentalMetadata = getParam("-i");
+    XmippMetadataProgram::readParams();
     fnReferenceVolume = getParam("-r");
-    fnOutputRoot = getParam("--oroot");
 
     paddingFactor = getDoubleParam("--padding");
     maxResolution = getDoubleParam("--max_resolution");
 
     useCtf = checkParam("--useCTF");
     if(useCtf) m_ctfDesc.readParams(this);
-
-    nThreads = getIntParam("--thr");
 }
 
 void ProgReconstructNoise::show() const {
     if (verbose < 1) return;
 
-    std::cout << "Experimanetal metadata      : " << fnExperimentalMetadata << "\n";
     std::cout << "Reference volume            : " << fnReferenceVolume << "\n";
-    std::cout << "Output root                 : " << fnOutputRoot << "\n";
 
     std::cout << "Use CTF                     : " << useCtf << "\n";
     if(useCtf) {
         std::cout << m_ctfDesc; 
     }
 
-    std::cout << "Number of threads           : " << nThreads << "\n";
     std::cout.flush();
 }
 
-void ProgReconstructNoise::run() {
+void ProgReconstructNoise::preProcess() {
     readReference();
     createReferenceProjector();
-    computeNoise();
+
+    // Initialize all the averages to zeros with the appropiate size
+    m_avgExpImagePsd.initZeros(m_referenceProjector->projectionFourier);
+    m_avgRefImagePsd.initZeros(m_referenceProjector->projectionFourier);
+    m_avgNoisePsd.initZeros(m_referenceProjector->projectionFourier);
+    m_avgCtfPsd.initZeros(m_referenceProjector->projectionFourier);
 }
+
+void ProgReconstructNoise::postProcess() {
+    m_avgExpImagePsd /= mdInSize;
+    m_avgRefImagePsd /= mdInSize;
+    m_avgNoisePsd /= mdInSize;
+    if(useCtf) m_avgCtfPsd /= mdInSize;
+}
+
+void ProgReconstructNoise::writeOutput() {
+    XmippMetadataProgram::writeOutput();
+    Image<Real>(m_avgExpImagePsd).write(oroot + "avgExperimentalPsd.stk");
+    Image<Real>(m_avgRefImagePsd).write(oroot + "avgReferencePsd.stk");
+    Image<Real>(m_avgNoisePsd).write(oroot + "avgNoisePsd.stk");
+    if(useCtf) Image<Real>(m_avgCtfPsd).write(oroot + "avgCtfPsd.stk");
+}
+
+void ProgReconstructNoise::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
+    // Read the image
+    m_experimental.read(fnImg);
     
-    
-    
-    
-    
-    
-    
-    
+    // Read the metadata
+    const auto rot = rowIn.getValue<double>(MDL_ANGLE_ROT);
+    const auto tilt = rowIn.getValue<double>(MDL_ANGLE_TILT);
+    const auto psi = rowIn.getValue<double>(MDL_ANGLE_PSI);
+    const auto shiftX = rowIn.getValue<double>(MDL_SHIFT_X);
+    const auto shiftY = rowIn.getValue<double>(MDL_SHIFT_Y);
+
+    // Generate the CTF image if necessary
+    if(useCtf) {
+        m_ctfDesc.readFromMdRow(rowIn); 
+        m_ctfDesc.produceSideInfo();
+        m_ctfDesc.generateCTF(m_experimental(), m_ctf);
+        updatePsd(m_avgCtfPsd, m_ctf);
+    }
+
+    // Project the volume
+    const auto& proj = projectReference(rot, tilt, psi, useCtf ? &m_ctf : nullptr);
+    updatePsd(m_avgCtfPsd, proj);
+
+    // Compute the Fourier transform of the image
+    m_fourier.FourierTransform(
+        m_experimental(),
+        m_experimentalFourier,
+        false
+    );
+    shiftSpectra(m_experimentalFourier, shiftX, shiftY);
+    updatePsd(m_avgExpImagePsd, m_experimentalFourier);
+
+    //Compute the noise in place
+    assert(proj.sameShape(m_experimentalFourier));
+    m_experimentalFourier -= proj;
+    updatePsd(m_avgNoisePsd, m_experimentalFourier);
+}
+
+
+
+
+
 void ProgReconstructNoise::readReference() {
     m_reference.read(fnReferenceVolume);
     m_reference().setXmippOrigin();
@@ -101,60 +151,6 @@ void ProgReconstructNoise::createReferenceProjector() {
         m_reference(), paddingFactor, maxResolution, 
         xmipp_transformation::BSPLINE3
     );
-}
-
-void ProgReconstructNoise::computeNoise() {
-    MetaDataVec mdExperimental;
-    mdExperimental.read(fnExperimentalMetadata);
-
-    FourierTransformer fourierTransformer;
-    Image<Real> experimentalImage;
-    MultidimArray<Real> ctf, averageImagePsd, averageCtfPsd, averageNoisePsd;
-    MultidimArray<Complex> experimentalImageFourier;
-    averageImagePsd.initZeros(m_referenceProjector->projectionFourier);
-    averageNoisePsd.initZeros(m_referenceProjector->projectionFourier);
-    averageCtfPsd.initZeros(m_referenceProjector->projectionFourier);
-    for(const auto& row : mdExperimental) {
-        // Read the metadata
-        const auto rot = row.getValue<double>(MDL_ANGLE_ROT);
-        const auto tilt = row.getValue<double>(MDL_ANGLE_TILT);
-        const auto psi = row.getValue<double>(MDL_ANGLE_PSI);
-        const auto shiftX = row.getValue<double>(MDL_SHIFT_X);
-        const auto shiftY = row.getValue<double>(MDL_SHIFT_Y);
-        experimentalImage.read(row.getValue<String>(MDL_IMAGE));
-
-        // Generate the CTF image if necessary
-        if(useCtf) {
-            m_ctfDesc.readFromMdRow(row); 
-            m_ctfDesc.produceSideInfo();
-            m_ctfDesc.generateCTF(experimentalImage(), ctf);
-            updatePsd(averageCtfPsd, ctf);
-        }
-
-        // Project the volume
-        const auto& proj = projectReference(rot, tilt, psi, useCtf ? &ctf : nullptr);
-
-        // Compute the Fourier transform of the image
-        fourierTransformer.FourierTransform(
-            experimentalImage(),
-            experimentalImageFourier,
-            false
-        );
-        shiftSpectra(experimentalImageFourier, shiftX, shiftY);
-        updatePsd(averageImagePsd, experimentalImageFourier);
-
-        //Compute the error in place
-        assert(proj.sameShape(experimentalImageFourier));
-        experimentalImageFourier -= proj;
-        updatePsd(averageNoisePsd, experimentalImageFourier);
-    }
-
-    averageImagePsd /= mdExperimental.size();
-    averageNoisePsd /= mdExperimental.size();
-    averageCtfPsd /= mdExperimental.size();
-    Image<Real>(averageImagePsd).write(fnOutputRoot + "averageImagePsd.stk");
-    Image<Real>(averageNoisePsd).write(fnOutputRoot + "averageNoisePsd.stk");
-    Image<Real>(averageCtfPsd).write(fnOutputRoot + "averageCtfPsd.stk");
 }
 
 const MultidimArray<ProgReconstructNoise::Complex>& 
