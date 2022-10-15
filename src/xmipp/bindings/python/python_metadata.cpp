@@ -1558,6 +1558,7 @@ MetaData_iter(PyObject *obj)
     {
         auto *self = reinterpret_cast<MetaDataObject*>(obj);
         self->iter = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().begin());
+        self->iter_end = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().end());
         Py_INCREF(self);
         return (PyObject *) self;
         //return Py_BuildValue("l", self->metadata->iteratorBegin());
@@ -1574,7 +1575,7 @@ MetaData_iternext(PyObject *obj)
     try
     {
         const auto *self = reinterpret_cast<MetaDataObject*>(obj);
-        if (*(self->iter) == self->metadata->ids().end())
+        if (*(self->iter) == *(self->iter_end))
             return nullptr;
         size_t objId = **(self->iter);
         ++(*self->iter);

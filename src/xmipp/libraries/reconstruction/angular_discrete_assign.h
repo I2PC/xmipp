@@ -92,7 +92,7 @@ public:
     MultidimArray<int> Mask_no;
     // Vector with all the DWT coefficients of the
     // library
-    std::vector<MultidimArray<double> * > library;
+    std::vector<MultidimArray<double>> library;
     // Vector with all the names of the library images
     std::vector<FileName> library_name;
     // Power of the library images at different

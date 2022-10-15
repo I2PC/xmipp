@@ -126,6 +126,7 @@ typedef struct
     PyObject_HEAD
     std::unique_ptr<MetaDataDb> metadata;
     std::unique_ptr<MetaDataDb::id_iterator> iter;
+    std::unique_ptr<MetaDataDb::id_iterator> iter_end;
 }
 MetaDataObject;
 
