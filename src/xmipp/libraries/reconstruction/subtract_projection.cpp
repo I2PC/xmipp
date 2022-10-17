@@ -28,6 +28,7 @@
  #include "core/multidim_array.h"
  #include "core/xmipp_image_extension.h"
  #include "core/xmipp_image_generic.h"
+ #include "core/xmipp_image_base.h"
  #include "core/xmipp_fft.h"
  #include "core/xmipp_fftw.h"
  #include "core/linear_system_helper.h"
@@ -265,11 +266,13 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
-	// Create circular mask to avoid edge artifacts
-	cirmask().resizeNoCopy(V());
-	cirmask().initConstant(0.0);
+	// Create 2D circular mask to avoid edge artifacts after wrapping
+	size_t Xdim, Ydim, Zdim, Ndim;
+    V.getDimensions(Xdim, Ydim, Zdim, Ndim);
+	cirmask().initZeros(Xdim, Ydim);
 	cirmask().setXmippOrigin();
 	RaisedCosineMask(cirmask(), (double)XSIZE(V())*0.8/2, (double)XSIZE(V())*0.9/2);
+	cirmask.write("cirmask.mrc");
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
 	createMask(fnMask, vM, ivM);
