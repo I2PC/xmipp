@@ -38,6 +38,7 @@
 #include <string_view>
 #include <functional>
 #include <mutex>
+#include <limits>
 
 /**@defgroup Alignment Alignment
    @ingroup ReconsLibrary */
@@ -149,9 +150,6 @@ private:
                                         const std::vector<TranslationFilter>& translations,
                                         F&& func );
         
-        template<typename F>
-        void forFourierTransform(   const MultidimArray<Real>& img,
-                                    F&& func );
     private:
         FourierTransformer m_fourier;
         MultidimArray<Real> m_rotated;
@@ -176,8 +174,8 @@ private:
         size_t getComponentCount(size_t i) const;
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
-        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands) const;
-        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands) const;
+        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
+        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;
@@ -186,8 +184,8 @@ private:
 
     class ReferenceMetadata {
     public:
-        ReferenceMetadata() = default;
-        ReferenceMetadata(size_t rowId, double rotation, double shiftx, double shifty);
+        ReferenceMetadata();
+        ReferenceMetadata(size_t rowId, double rotation, double shiftx, double shifty, double distance = std::numeric_limits<double>::infinity());
         ReferenceMetadata(const ReferenceMetadata& other) = default;
         ~ReferenceMetadata() = default;
 
@@ -205,11 +203,15 @@ private:
         void setShiftY(double sy);
         double getShiftY() const;
 
+        void setDistance(double distance);
+        double getDistance() const;
+
     private:
         size_t m_rowId;
         double m_rotation;
         double m_shiftX;
         double m_shiftY;
+        double m_distance;
 
     };
 
@@ -221,7 +223,7 @@ private:
     std::vector<TranslationFilter> m_translations;
     ReferencePcaProjections m_references;
     std::vector<ReferenceMetadata> m_referenceData;
-    std::vector<size_t> m_classification;
+    std::vector<ReferenceMetadata> m_classification;
 
     void readInputMetadata();
     void readBandMap();
@@ -229,18 +231,21 @@ private:
     void applyWeightsToBases();
     void applyCtfToBases();
     void generateTranslations();
-    void projectReferences();
-    void classifyExperimental();
+    void alignImages();
     void generateOutput();
+
+    void projectReferences(size_t start, size_t count);
+    void classifyExperimental();
 
     void removeFourierSymmetry(MultidimArray<Real>& spectrum) const;
     void multiplyBases( std::vector<Matrix2D<Real>>& bases,
                         const MultidimArray<Real>& spectrum ) const;
 
-    void updateRow(MDRowVec& row, size_t matchIndex) const;
+    void updateRow(MDRowVec& row, const ReferenceMetadata& data) const;
 
     template<typename F>
-    void processRowsInParallel(const MetaDataVec& md, F&& func, size_t nThreads);
+    void processRowsInParallel( const MetaDataVec& md, F&& func, size_t nThreads, 
+                                size_t start = 0, size_t count = std::numeric_limits<size_t>::max() );
 
     static size_t getImageProjectionSize(const std::vector<Matrix2D<Real>>& bases);
 

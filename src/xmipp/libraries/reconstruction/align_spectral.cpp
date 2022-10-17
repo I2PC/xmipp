@@ -108,8 +108,7 @@ void ProgAlignSpectral::run() {
     applyWeightsToBases();
     applyCtfToBases();
     generateTranslations();
-    projectReferences();
-    classifyExperimental();
+    alignImages();
     generateOutput();
 }
 
@@ -309,18 +308,6 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const Multid
     }
 }
 
-template<typename F>
-void ProgAlignSpectral::ImageTransformer::forFourierTransform(  const MultidimArray<double>& img,
-                                                                F&& func )
-{
-    m_fourier.FourierTransform(
-        const_cast<MultidimArray<Real>&>(img), //HACK although it won't be written
-        m_dft, 
-        false
-    );
-    func(m_dft);
-}
-
 
 
 
@@ -407,92 +394,77 @@ void ProgAlignSpectral::ReferencePcaProjections::getPcaProjection(  size_t i,
     }
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const 
 {
     Matrix1D<Real> referenceBand;
 
     // Compare it with all the reference images
     auto best = getImageCount();
-    auto bestScore = std::numeric_limits<Real>::infinity();
     for(size_t i = 0; i < getImageCount(); ++i) {
         // Add band by band
-        double score = 0.0;
-        for (size_t j = 0; j < getBandCount() && score < bestScore; ++j) {
+        double distance = 0.0;
+        for (size_t j = 0; j < getBandCount() && distance < bestDistance; ++j) {
             const auto& experimentalBand = experimentalBands[j];
             const_cast<Matrix2D<double>&>(m_projections[j]).getRowAlias(i, referenceBand);
 
-            // Compute the difference between the bands and increment the score
-            score += euclideanDistance2(experimentalBand, referenceBand);
+            // Compute the difference between the bands and increment the distance
+            distance += euclideanDistance2(experimentalBand, referenceBand);
         }
 
-        // Update the score if necessary
-        if (score < bestScore) {
+        // Update the distance if necessary
+        if (distance < bestDistance) {
             best = i;
-            bestScore = score;
+            bestDistance = distance;
         }
     }
 
-    if (best >= getImageCount()) {
-        REPORT_ERROR(ERR_DEBUG_TEST,
-            "Could not find a best match. This is probably due "
-            "to the input being empty or the basis having NaNs"
-        );
-    }
-
-    assert(best < getImageCount());
     return best;
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const 
 {
     Matrix1D<Real> referenceBand;
 
     // Compare band-by-band using the branch and bound approach
     auto best = getImageCount();
-    auto bestScore = std::numeric_limits<double>::infinity();
     auto bestCandidate = 0; // Arbitrary
-    std::vector<double> scores(getImageCount(), 0.0);
+    std::vector<double> distances(getImageCount(), 0.0);
 
     for(size_t i = 0; i < getBandCount() && bestCandidate != best; ++i) {
-        // Evaluate the "complete" score for the best candidate image
-        for(size_t j = i; j < getBandCount() && scores[bestCandidate] < bestScore; ++j) {
+        // Evaluate the "complete" distance for the best candidate image
+        for(size_t j = i; j < getBandCount() && distances[bestCandidate] < bestDistance; ++j) {
             const auto& experimentalBand = experimentalBands[j];
             const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
-            scores[bestCandidate] += euclideanDistance2(experimentalBand, referenceBand);
+            distances[bestCandidate] += euclideanDistance2(experimentalBand, referenceBand);
         }
 
-        // Update the best score
-        if (scores[bestCandidate] < bestScore) {
+        // Update the best distance
+        if (distances[bestCandidate] < bestDistance) {
             best = bestCandidate;
-            bestScore = scores[bestCandidate];
+            bestDistance = distances[bestCandidate];
         }
 
         // Determine the best candidate for the next iteration
         bestCandidate = best;
-        auto bestCandidateScore = bestScore;
+        auto bestCandidateDistance = bestDistance;
         const auto& experimentalBand = experimentalBands[i];
         for(size_t j = 0; j < getImageCount(); ++j) {
             // Only consider this image if it is below the threshold
-            if(scores[j] < bestScore) {
+            if(distances[j] < bestDistance) {
                 const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(j, referenceBand);
-                scores[j] += euclideanDistance2(experimentalBand, referenceBand);
-                if(scores[j] < bestCandidateScore) {
+                distances[j] += euclideanDistance2(experimentalBand, referenceBand);
+                if(distances[j] < bestCandidateDistance) {
                     bestCandidate = j;
-                    bestCandidateScore = scores[j];
+                    bestCandidateDistance = distances[j];
                 }
             }
         }
     }
 
-    // Update the score with the last best candidate
-    best = bestCandidate;
-    bestScore = scores[bestCandidate];
-
-    if (best >= getImageCount()) {
-        REPORT_ERROR(ERR_DEBUG_TEST,
-            "Could not find a best match. This is probably due "
-            "to the input being empty or the basis having NaNs"
-        );
+    // Update the best distance
+    if (distances[bestCandidate] < bestDistance) {
+        best = bestCandidate;
+        bestDistance = distances[bestCandidate];
     }
 
     assert(best < getImageCount());
@@ -503,14 +475,26 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const s
 
 
 
+ProgAlignSpectral::ReferenceMetadata::ReferenceMetadata()
+    : m_rowId(0)
+    , m_rotation(0)
+    , m_shiftX(0)
+    , m_shiftY(0)
+    , m_distance(std::numeric_limits<double>::infinity())
+{
+}
+
+
 ProgAlignSpectral::ReferenceMetadata::ReferenceMetadata(size_t rowId, 
                                                         double rotation, 
                                                         double shiftx, 
-                                                        double shifty )
+                                                        double shifty,
+                                                        double distance )
     : m_rowId(rowId)
     , m_rotation(rotation)
     , m_shiftX(shiftx)
     , m_shiftY(shifty)
+    , m_distance(distance)
 {
 }
 
@@ -544,6 +528,14 @@ void ProgAlignSpectral::ReferenceMetadata::setShiftY(double sy) {
 
 double ProgAlignSpectral::ReferenceMetadata::getShiftY() const {
     return m_shiftY;
+}
+
+void ProgAlignSpectral::ReferenceMetadata::setDistance(double distance) {
+    m_distance = distance;
+}
+
+double ProgAlignSpectral::ReferenceMetadata::getDistance() const {
+    return m_distance;
 }
 
 
@@ -622,12 +614,57 @@ void ProgAlignSpectral::generateTranslations() {
     );
 }
 
-void ProgAlignSpectral::projectReferences() {
+void ProgAlignSpectral::alignImages() {
+    // Compute the batch size
+    constexpr size_t megabytes2bytes = 1024*1024; 
+    const auto projectionSize = getImageProjectionSize(m_bases);
+    const auto imageGallerySize = projectionSize * nRotations * m_translations.size();
+    const auto batchSize = std::max(static_cast<size_t>(megabytes2bytes * maxMemory) / imageGallerySize, 1UL);
+    const auto batchCount = (m_mdReference.size() + batchSize - 1) / batchSize; // Round up
+
+    // Initialize the classification vector with invalid 
+    // data and the appropiate size
+    m_classification.clear();
+    m_classification.resize(m_mdExperimental.size());
+
+    // Process in batches
+    for(size_t i = 0; i < batchCount; ++i) {
+        const auto start = i*batchSize;
+        const auto count = std::min(batchSize, m_mdReference.size() - start);
+        std::cout << "Reference batch " << i+1 << "/" << batchCount << "(" << count << " images)\n";
+        
+        std::cout << "Projecting reference batch\n";
+        projectReferences(start, count);
+        std::cout << std::endl;
+
+        std::cout << "Classifying reference batch\n";
+        classifyExperimental();
+        std::cout << std::endl;
+    }
+}
+
+void ProgAlignSpectral::generateOutput() {
+    auto& mdOut = m_mdExperimental; // Overwrite the experimental MD as it wont be used anymore
+
+    // Modify the experimental data
+    assert(mdOut.size() == m_classification.size());
+    for(size_t i = 0; i < mdOut.size(); ++i) {
+        auto row = mdOut.getRowVec(mdOut.getRowId(i));
+        updateRow(row, m_classification[i]);
+    }
+
+    // Write the data
+    mdOut.write(fnOutputMetadata);
+}
+
+
+
+void ProgAlignSpectral::projectReferences(size_t start, size_t count) {
     // Allocate space
     std::vector<size_t> projectionSizes(m_bases.size());
     for(size_t i = 0; i < m_bases.size(); ++i) projectionSizes[i] = MAT_XSIZE(m_bases[i]);
     m_references.reset(
-        m_mdReference.size() * nRotations * m_translations.size(),
+        count * nRotations * m_translations.size(),
         projectionSizes
     );
     m_referenceData.resize(m_references.getImageCount());
@@ -641,7 +678,7 @@ void ProgAlignSpectral::projectReferences() {
 
     // Create a lambda to run in parallel
     std::vector<ThreadData> threadData(nThreads);
-    const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
+    const auto func = [this, &threadData, start] (size_t threadId, size_t i, const MDRowVec& row) {
         auto& data = threadData[threadId];
 
         // Read an image from disk
@@ -650,7 +687,7 @@ void ProgAlignSpectral::projectReferences() {
         data.image.read(fnImage);
 
         // For each in-plane transformation train the PCA
-        const auto offset = i * nRotations * m_translations.size();
+        const auto offset = (i - start) * nRotations * m_translations.size();
         data.transformer.forEachInPlaneTransform(
             data.image(),
             nRotations,
@@ -674,18 +711,10 @@ void ProgAlignSpectral::projectReferences() {
         );
     };
 
-    processRowsInParallel(m_mdReference, func, threadData.size());
+    processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
 }
 
 void ProgAlignSpectral::classifyExperimental() {
-    // Initialize the classification vector with invalid 
-    // data and the appropiate size
-    m_classification.clear();
-    m_classification.resize(
-        m_mdExperimental.size(), // size
-        m_references.getImageCount() // invalid value
-    );
-
     struct ThreadData {
         Image<Real> image;
         FourierTransformer fourier;
@@ -712,28 +741,17 @@ void ProgAlignSpectral::classifyExperimental() {
         project(m_bases, data.bandCoefficients, data.bandProjections);
 
         // Compare the projection to find a match
-        const auto classification = m_references.matchPcaProjection(data.bandProjections);
-        m_classification[i] = classification;
+        auto& classification = m_classification[i];
+        auto distance = classification.getDistance();
+        const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+        if(match < m_references.getImageCount()) {
+            classification = m_referenceData[match];
+            classification.setDistance(distance);
+        }
     };
 
     processRowsInParallel(m_mdExperimental, func, threadData.size());
 }
-
-void ProgAlignSpectral::generateOutput() {
-    auto& mdOut = m_mdExperimental; // Overwrite the experimental MD as it wont be used anymore
-
-    // Modify the experimental data
-    assert(mdOut.size() == m_classification.size());
-    for(size_t i = 0; i < mdOut.size(); ++i) {
-        auto row = mdOut.getRowVec(mdOut.getRowId(i));
-        updateRow(row, m_classification[i]);
-    }
-
-    // Write the data
-    mdOut.write(fnOutputMetadata);
-}
-
-
 
 
 
@@ -763,9 +781,8 @@ void ProgAlignSpectral::multiplyBases(  std::vector<Matrix2D<Real>>& bases,
     } 
 }
 
-void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
+void ProgAlignSpectral::updateRow(MDRowVec& row, const ReferenceMetadata& data) const {
     // Obtain the metadata
-    const auto& data = m_referenceData[matchIndex];
     const auto refRow = m_mdReference.getRowVec(data.getRowId());
     const auto expRow = m_mdExperimental.getRowVec(row.getValue<size_t>(MDL_OBJID));
 
@@ -775,6 +792,7 @@ void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
     const auto psi = data.getRotation();
     const auto shiftX = data.getShiftX();
     const auto shiftY = data.getShiftY();
+    const auto score = data.getDistance();
 
     // Write the old shift and pose values to the second MD labels
     if (expRow.containsLabel(MDL_ANGLE_ROT)) {
@@ -808,6 +826,7 @@ void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
     row.setValue(MDL_ANGLE_PSI, psi);
     row.setValue(MDL_SHIFT_X, shiftX);
     row.setValue(MDL_SHIFT_Y, shiftY);
+    row.setValue(MDL_SCORE_BY_ALIGNABILITY_NOISE, score);
 
     // Write the reference image
     row.setValue(MDL_IMAGE_REF, refRow.getValue<std::string>(MDL_IMAGE));
@@ -818,21 +837,25 @@ void ProgAlignSpectral::updateRow(MDRowVec& row, size_t matchIndex) const {
 template<typename F>
 void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md, 
                                                 F&& func, 
-                                                size_t nThreads ) 
+                                                size_t nThreads,
+                                                size_t start, size_t count ) 
 {
     if(nThreads < 1) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "There needs to be at least one thread");
     }
 
-    std::atomic<size_t> currRowNum(0);
-    const auto mdSize = md.size();
+    // Set the starting and ending points
+    const auto firstRowNum = start;
+    const auto lastRowNum = firstRowNum + std::min(count, md.size() - start);
+    const auto rowCount = lastRowNum - firstRowNum;
+    std::atomic<size_t> currRowNum(firstRowNum);
 
     // Create a worker function which atomically aquires a row and
     // dispatches the provided function
-    const auto workerFunc = [&md, &func, &currRowNum, mdSize] (size_t threadId) {
+    const auto workerFunc = [&md, &func, &currRowNum, lastRowNum, firstRowNum] (size_t threadId) {
         auto rowNum = currRowNum++;
 
-        while(rowNum < mdSize) {
+        while(rowNum < lastRowNum) {
             // Process a row
             const auto row = md.getRowVec(md.getRowId(rowNum));
             func(threadId, rowNum, row);
@@ -840,7 +863,7 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
             // Update the progress bar only from the first thread 
             // due to concurrency issues
             if (threadId == 0) {
-                progress_bar(rowNum+1);
+                progress_bar(rowNum - firstRowNum + 1);
             }
 
             // Aquire the next row
@@ -849,7 +872,7 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
     };
 
     // Initialzie the progress bar
-    init_progress_bar(mdSize);
+    init_progress_bar(rowCount);
 
     // Create some workers
     std::vector<std::thread> threads;
@@ -867,7 +890,7 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
     }
 
     // Set the progress bar as finished
-    progress_bar(mdSize);
+    progress_bar(rowCount);
 }
 
 
@@ -901,9 +924,9 @@ ProgAlignSpectral::computeTranslationFiltersRectangle(  const size_t nx,
         // is smaller than 1px
         std::set<std::array<double, 2>> shifts;
         for (size_t i = 0; i < nTranslations; ++i) {
-            const auto dx = std::round(i*step - maxRadius);
+            const auto dx = i*step - maxRadius;
             for (size_t j = 0; j < nTranslations; ++j) {
-                const auto dy = std::round(j*step - maxRadius);
+                const auto dy = j*step - maxRadius;
                 shifts.insert({dx, dy});
             }
         }
@@ -948,7 +971,7 @@ ProgAlignSpectral::computeTranslationFiltersSunflower(  const size_t nx,
             const auto r = maxRadius * std::sqrt(i+0.5) / std::sqrt(nTranslations-0.5);
             const auto theta = M_2_PI * i / PHI2;
             const auto point = std::polar(r, theta);
-            shifts.insert({std::round(point.real()), std::round(point.imag())});
+            shifts.insert({point.real(), point.imag()});
         }
 
         // Transform all the points into an array of translation filters
