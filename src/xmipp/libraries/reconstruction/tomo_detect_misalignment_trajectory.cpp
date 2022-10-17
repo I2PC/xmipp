@@ -1489,7 +1489,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		// else
 		// {
 
-			std::cout << "---------------------residualDistanceInImageSize.size()  "  <<  residualDistanceInImageSize.size()<< std::endl;
+			std::cout << "---------------------residualDistanceInImageSize  "  <<  residualDistanceInImageSize<< std::endl;
 			for(size_t e = 0; e < residualDistanceInImageSize; e++)
 			{
 				double value = residualDistanceInImage[e];
@@ -1605,7 +1605,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	decisionTreeStatsFileName = decisionTreeStatsFileName + "/decisionTreeStats.txt";
 
 
-	std::cout << "---------------------residualDistanceInImageSize  "  <<  residualDistanceInImageSize << std::endl;
+	std::cout << "---------------------averageFiducialResidualsInImage  " << std::endl;
 
 	for (size_t i = 0; i < averageFiducialResidualsInImage.size(); i++)
 	{
