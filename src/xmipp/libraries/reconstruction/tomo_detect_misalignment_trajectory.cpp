@@ -1488,12 +1488,15 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		// }
 		// else
 		// {
+
+			std::cout << "---------------------residualDistanceInImageSize.size()  "  <<  residualDistanceInImageSize.size()<< std::endl;
 			for(size_t e = 0; e < residualDistanceInImageSize; e++)
 			{
 				double value = residualDistanceInImage[e];
 				sum += value;
 				sum2 += value*value;
 			}
+			std::cout << "---------------------sum  "  <<  sum<< std::endl;
 
 			average = sum/residualDistanceInImageSize;
 			std = sqrt(sum2/residualDistanceInImageSize - average*average);
@@ -1600,6 +1603,14 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	li = decisionTreeStatsFileName.find_last_of("\\/");
 	decisionTreeStatsFileName = fnOut.substr(0, li);
 	decisionTreeStatsFileName = decisionTreeStatsFileName + "/decisionTreeStats.txt";
+
+
+	std::cout << "---------------------residualDistanceInImageSize  "  <<  residualDistanceInImageSize << std::endl;
+
+	for (size_t i = 0; i < averageFiducialResidualsInImage; i++)
+	{
+		std::cout << averageFiducialResidualsInImage[i] << std::endl;
+	}
 
 	std::ofstream myfile;
 	myfile.open (decisionTreeStatsFileName, std::ios_base::app);
