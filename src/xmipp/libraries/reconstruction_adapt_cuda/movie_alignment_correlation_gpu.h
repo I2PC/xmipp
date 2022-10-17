@@ -107,7 +107,8 @@ private:
         
         FFTSettings<T> movieSettings = FFTSettings<T>(0);
         FFTSettings<T> correlationSettings = FFTSettings<T>(0);
-        size_t noOfThreads = 0;
+        size_t gpuStreams = 1;
+        size_t cpuThreads = 2;
         
         private:
         auto findGoodCropSize(const Dimensions &movie, const GPU &gpu);

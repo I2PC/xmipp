@@ -29,53 +29,52 @@
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
-#include "reconstruction_cuda/cuda_fft.h"
 
+
+template<typename T>
+void GlobAlignmentData<T>::alloc(const FFTSettings<T> &in, const FFTSettings<float> &out, const GPU &gpu) {
+    plan = CudaFFT<T>::createPlan(gpu, in);
+    // here we will first frames to be converted to FD, and then scaled frames in FD
+    d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(std::max(in.sBytesBatch(), out.fBytesBatch()), MemType::CUDA));
+    d_ft = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(in.fBytesBatch(), MemType::CUDA));
+}
+
+template<typename T>
+void GlobAlignmentData<T>::release() {
+    CudaFFT<T>::release(plan);
+    BasicMemManager::instance().give(d_ft);
+    BasicMemManager::instance().give(d_aux);
+}
 
 
 template void performFFTAndScale<float>(float *h_in, const FFTSettings<float> &in, 
     std::complex<float> *h_out, const FFTSettings<float> &out, 
-    MultidimArray<float> &filter, const GPU &gpu);
+    MultidimArray<float> &filter, const GPU &gpu, GlobAlignmentData<float> &aux);
 template <typename T>
 void performFFTAndScale(T *h_in, const FFTSettings<T> &in, 
     std::complex<T> *h_out, const FFTSettings<T> &out, 
-    MultidimArray<T> &filter, const GPU &gpu)
+    MultidimArray<T> &filter, const GPU &gpu, GlobAlignmentData<T> &aux)
 {
-    // get FFT plan and auxiliary storages
-    // this should be slow only the first time
-    static cufftHandle* plans[10];
-    if (nullptr == plans[gpu.streamId()]) {
-        plans[gpu.streamId()] = CudaFFT<T>::createPlan(gpu, in);
-    }
-    auto *plan = plans[gpu.streamId()];
-    // here we will first frames to be converted to FD, and then scaled frames in FD
-    auto *d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(std::max(in.sBytesBatch(), out.fBytesBatch()), MemType::CUDA));
-    auto *d_ft = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(in.fBytesBatch(), MemType::CUDA));
-    
     auto stream = *(cudaStream_t*)gpu.stream();    
 
     // perform FFT of cropped frames
-    gpuErrchk(cudaMemcpyAsync(d_aux, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice, stream));
+    gpuErrchk(cudaMemcpyAsync(aux.d_aux, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice, stream));
     // gpuErrchk(cudaMemcpy(d_aux, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice));
-    CudaFFT<T>::fft(*plan, d_aux, d_ft);
+    CudaFFT<T>::fft(*aux.plan, aux.d_aux, aux.d_ft);
     // scale frames in FD
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGrid(ceil(out.fDim().x()/(float)dimBlock.x), ceil(out.fDim().y()/(float)dimBlock.y));
     scaleFFT2D(&dimGrid, &dimBlock,
-        d_ft, (std::complex<T>*)d_aux,
+        aux.d_ft, (std::complex<T>*)aux.d_aux,
         in.batch(), in.fDim().x(), in.fDim().y(),
         out.fDim().x(), out.fDim().y(),
         filter.data, 1.f/in.sDim().xy(), false, gpu);
     gpuErrchk( cudaPeekAtLastError() );
     // copy data out
-    gpuErrchk(cudaMemcpyAsync(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost, stream));
+    gpuErrchk(cudaMemcpyAsync(h_out, aux.d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost, stream));
     // gpuErrchk(cudaMemcpy(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost));
     
     gpu.synch();
-    // clean
-    // CudaFFT<T>::release(plan);
-    BasicMemManager::instance().give(d_ft);
-    BasicMemManager::instance().give(d_aux);
 }
 
 template void performFFTAndScale<float>(float* inOutData, int noOfImgs, int inX,
@@ -414,3 +413,5 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
         }
     }
 }
+
+template class GlobAlignmentData<float>;

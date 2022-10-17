@@ -36,6 +36,17 @@
 #include <cassert>
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
+#include "reconstruction_cuda/cuda_fft.h"
+
+
+template<typename T>
+struct GlobAlignmentData {
+    void alloc(const FFTSettings<T> &in, const FFTSettings<float> &out, const GPU &gpu);
+    void release();
+    T *d_aux;
+    std::complex<T> *d_ft;
+    cufftHandle *plan;
+};
 
 /**@defgroup ProgAGPUMovieAlign Cuda GPU movie Alignment Correlation
    @ingroup ReconsLibrary */
@@ -66,11 +77,12 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
  * @param out settings describing the output data
  * @param filter to apply per each output image (must be size of output)
  * @param gpu where the operation should be performed
+ * @param aux memory storages
  */
 template <typename T>
 void performFFTAndScale(T *h_in, const FFTSettings<T> &in, 
     std::complex<T> *h_out, const FFTSettings<T> &out, 
-    MultidimArray<T> &filter, const GPU &gpu);
+    MultidimArray<T> &filter, const GPU &gpu, GlobAlignmentData<T> &aux);
 
 /**
  * Perform scale of the Fourier domain. Possibly with filtering, normalization and
