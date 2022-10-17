@@ -631,7 +631,7 @@ void ProgAlignSpectral::alignImages() {
     for(size_t i = 0; i < batchCount; ++i) {
         const auto start = i*batchSize;
         const auto count = std::min(batchSize, m_mdReference.size() - start);
-        std::cout << "Reference batch " << i+1 << "/" << batchCount << "(" << count << " images)\n";
+        std::cout << "Reference batch " << i+1 << "/" << batchCount << " (" << count << " images)\n";
         
         std::cout << "Projecting reference batch\n";
         projectReferences(start, count);
