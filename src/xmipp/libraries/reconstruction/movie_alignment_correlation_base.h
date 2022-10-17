@@ -47,6 +47,7 @@
 #include "eq_system_solver.h"
 #include "bspline_helper.h"
 #include "data/point2D.h"
+#include <optional>
 
 /**@defgroup AProgMovieAlignmentCorrelation Movie Alignment Correlation
    @ingroup ReconsLibrary */
@@ -344,9 +345,9 @@ protected:
     /** y left top corner **/
     int yLTcorner;
     /** x right down corner **/
-    int xDRcorner;
+    int xRDcorner;
     /** y right down corner **/
-    int yDRcorner;
+    int yRDcorner;
     /** Aligned movie */
     FileName fnAligned;
     /** Aligned micrograph */
@@ -387,6 +388,8 @@ private:
     T outputBinning;
     /** Do not calculate and use the input shifts */
     bool useInputShifts;
+    /** Size of the raw movie, only the requested frames */
+    std::optional<Dimensions> movieSize;
 
 };
 //@}

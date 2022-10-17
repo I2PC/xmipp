@@ -43,7 +43,11 @@ void performFFTAndScale(T *h_in, const FFTSettings<T> &in,
 {
     // get FFT plan and auxiliary storages
     // this should be slow only the first time
-    auto *plan = CudaFFT<T>::createPlan(gpu, in);
+    static cufftHandle* plans[10];
+    if (nullptr == plans[gpu.streamId()]) {
+        plans[gpu.streamId()] = CudaFFT<T>::createPlan(gpu, in);
+    }
+    auto *plan = plans[gpu.streamId()];
     // here we will first frames to be converted to FD, and then scaled frames in FD
     auto *d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(std::max(in.sBytesBatch(), out.fBytesBatch()), MemType::CUDA));
     auto *d_ft = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(in.fBytesBatch(), MemType::CUDA));
@@ -51,7 +55,7 @@ void performFFTAndScale(T *h_in, const FFTSettings<T> &in,
     auto stream = *(cudaStream_t*)gpu.stream();    
 
     // perform FFT of cropped frames
-    gpuErrchk(cudaMemcpyAsync(d_ft, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice, stream));
+    gpuErrchk(cudaMemcpyAsync(d_aux, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice, stream));
     // gpuErrchk(cudaMemcpy(d_aux, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice));
     CudaFFT<T>::fft(*plan, d_aux, d_ft);
     // scale frames in FD
@@ -59,16 +63,17 @@ void performFFTAndScale(T *h_in, const FFTSettings<T> &in,
     dim3 dimGrid(ceil(out.fDim().x()/(float)dimBlock.x), ceil(out.fDim().y()/(float)dimBlock.y));
     scaleFFT2D(&dimGrid, &dimBlock,
         d_ft, (std::complex<T>*)d_aux,
-        out.batch(), in.fDim().x(), in.fDim().y(),
+        in.batch(), in.fDim().x(), in.fDim().y(),
         out.fDim().x(), out.fDim().y(),
-        filter.data, 1.f/in.sDim().xy(), false);
+        filter.data, 1.f/in.sDim().xy(), false, gpu);
     gpuErrchk( cudaPeekAtLastError() );
     // copy data out
-    gpuErrchk(cudaMemcpyAsync(h_out, d_aux, out.fBytesBatch(), cudaMemcpyHostToDevice, stream));
-    gpuErrchk(cudaMemcpy(h_out, d_aux, out.fBytesBatch(), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpyAsync(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost, stream));
+    // gpuErrchk(cudaMemcpy(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost));
     
+    gpu.synch();
     // clean
-    CudaFFT<T>::release(plan);
+    // CudaFFT<T>::release(plan);
     BasicMemManager::instance().give(d_ft);
     BasicMemManager::instance().give(d_aux);
 }
@@ -134,6 +139,66 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     }
     handle.clear();
     BasicMemManager::instance().give(h_tmpStore);
+}
+
+template<>
+void scaleFFT2D(void* dimGrid, void* dimBlock, const std::complex<float>* d_inFFT, std::complex<float>* d_outFFT, int noOfFFT, size_t inFFTX, size_t inFFTY, size_t outFFTX, size_t outFFTY,
+    float* d_filter, float normFactor, bool center, const GPU &gpu) {
+    auto stream = *(cudaStream_t*)gpu.stream();
+    if (NULL == d_filter) {
+        if ((float)1 == normFactor) {
+            if (center) {
+                scaleFFT2DKernel<float2, float, false, false, true>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, NULL, 1.f);
+            } else {
+                scaleFFT2DKernel<float2, float, false, false, false>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, NULL, 1.f);
+            }
+        } else { // normalize
+            if (center) {
+                scaleFFT2DKernel<float2, float, false, true, true>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, NULL, normFactor);
+            } else {
+                scaleFFT2DKernel<float2, float, false, true, false>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, NULL, normFactor);
+            }
+        }
+    } else { // apply filter (on output)
+        if ((float)1 == normFactor) {
+            if (center) {
+                scaleFFT2DKernel<float2, float, true, false, true>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, d_filter, 1.f);
+            } else {
+                scaleFFT2DKernel<float2, float, true, false, false>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, d_filter, 1.f);
+            }
+        } else { // normalize
+            if (center) {
+                scaleFFT2DKernel<float2, float, true, true, true>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, d_filter, normFactor);
+            } else {
+                scaleFFT2DKernel<float2, float, true, true, false>
+                    <<<*(dim3*)dimGrid, *(dim3*)dimBlock, 0, stream>>>(
+                        (float2*)d_inFFT, (float2*)d_outFFT,
+                        noOfFFT, inFFTX, inFFTY, outFFTX, outFFTY, d_filter, normFactor);
+            }
+        }
+    }
+    gpuErrchk(cudaPeekAtLastError());
 }
 
 template<>

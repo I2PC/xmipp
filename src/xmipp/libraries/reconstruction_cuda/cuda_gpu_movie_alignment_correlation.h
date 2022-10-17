@@ -95,6 +95,11 @@ void scaleFFT2D(void* dimGrid, void* dimBlock,
         const std::complex<T>* d_inFFT, std::complex<T>* d_outFFT,
         int noOfFFT, size_t inFFTX, size_t inFFTY, size_t outFFTX, size_t outFFTY,
         T* d_filter, T normFactor, bool center);
+template<typename T>
+void scaleFFT2D(void* dimGrid, void* dimBlock,
+        const std::complex<T>* d_inFFT, std::complex<T>* d_outFFT,
+        int noOfFFT, size_t inFFTX, size_t inFFTY, size_t outFFTX, size_t outFFTY,
+        T* d_filter, T normFactor, bool center, const GPU &gpu);
 
 /**
  * Function will copy correlation images from GPU in proper order

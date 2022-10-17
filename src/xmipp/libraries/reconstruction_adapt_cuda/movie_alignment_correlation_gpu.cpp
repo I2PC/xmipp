@@ -94,6 +94,30 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 }
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCropSize(const Dimensions &movie, const GPU &gpu) {
+    const bool crop = true;
+    std::cout << "Benchmarking cuFFT ..." << std::endl;
+    auto hint = FFTSettings<T>(movie.createSingle()); // movie frame is big enought to give us an idea
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, hint, 0, hint.sDim().x() == hint.sDim().y(), 10, crop, true));
+    if (!candidate) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a single frame of the movie.");
+    }
+    return candidate->sDim().copyForN(movie.n());
+}
+
+template<typename T>
+auto  ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu) {
+    const bool crop = false;
+    std::cout << "Benchmarking cuFFT ..." << std::endl;
+    auto settings = FFTSettings<T>(hint.copyForN((std::ceil(sqrt(hint.n() * 2))))); // test just number of frames, to get an idea (it's faster)
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, settings, 0, settings.sDim().x() == settings.sDim().y(), 20, crop, true));
+    if (!candidate) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
+    }
+    return candidate->sDim().copyForN(hint.n());
+}
+
+template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
     gpu.value().updateMemoryInfo();
@@ -106,6 +130,25 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         return FFTSettings<T>(dim, 1, false);
     }
 }
+
+template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
+        const Dimensions &d) {
+    auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
+        size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
+        while ((size / (float)v) < minScale) {
+            size += 2;
+        }
+        return size;
+    };
+    const T requestedScale = this->getScaleFactor();
+    // hint, possibly bigger then requested, so that it fits max shift window
+    Dimensions hint(getNearestEven(d.x(), requestedScale, this->maxShift),
+            getNearestEven(d.y(), requestedScale, this->maxShift),
+            d.z(), (d.n() * (d.n() - 1)) / 2); // number of correlations);
+    return hint;
+}
+
 
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
@@ -638,19 +681,70 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findBatchThreadsForScale(const Dimensions &movie, const Dimensions &correlation, const GPU &gpu) {
+    auto mSize = findGoodCropSize(movie, gpu);
+    std::cout << "Good movie size: " << mSize << "\n";
+    auto cSize = findGoodCorrelationSize(correlation, gpu);
+    std::cout << "Good correlation size: " << cSize << "\n";
+using memoryUtils::MB;
+    const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
+    constexpr size_t maxThreads = 4;
+    constexpr size_t maxBatch = 3;
+    size_t reqBytes[maxBatch + 1] = {}; 
+    for (short batch = 1; batch <= maxBatch; ++batch) { // we probably don't need to process more than 4 frames at once
+        auto in = FFTSettings<T>(mSize.x(), mSize.y(), 1, mSize.n(), batch);
+        auto out = FFTSettings<T>(cSize.x(), cSize.y(), 1, cSize.n(), batch);
+        size_t planSize = CudaFFT<T>().estimatePlanBytes(in);
+        size_t aux = std::max(in.sBytesBatch(), out.fBytesBatch());
+        size_t fd = in.fBytesBatch();
+        reqBytes[batch] = planSize + aux + fd;
+        std::cout << "for batch " << batch << " I need " << MB(reqBytes[batch]) << "MB (out of " << MB(maxBytes) << "\n";
+    }
+    auto batch = maxBatch;
+    size_t threads;
+    for (; batch >= 0; --batch) {
+        if (0 != mSize.n() % batch) {
+            continue; // we want only no. of batches that can process the movie without extra invocations
+        }
+        for (threads = maxThreads; threads > 0; --threads) {
+            if ((threads * batch) <= mSize.n() && (reqBytes[batch] * threads) < maxBytes) {
+                goto answer;
+            }
+        }
+    }
+answer:
+
+    if (0 == batch) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing global alignment.");
+    }
+batch = 1;
+threads = 5;
+    movieSettings = FFTSettings<T>(mSize, batch);
+    correlationSettings = FFTSettings<T>(cSize);
+    noOfThreads = threads;
+    std::cout << "using " << threads << " threads and batch of " << batch << "\n";
+}
+
+
+template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movieMD, const Image<T> &dark, const Image<T> &igain) {
+    
     using memoryUtils::MB;
-    auto movieSettings = this->getMovieSettings(movieMD, true);
-     // decrease batch size to use double buffering
-    movieSettings = movieSettings.copyForBatch(std::min(5lu, movieSettings.batch()));
-    auto correlationSettings = this->getCorrelationSettings(movieSettings);
+    const auto movieSize = this->getMovieSize();
+    GlobalAlignmentHelper helper;
+    helper.findBatchThreadsForScale(movieSize, this->getCorrelationHint(movieSize), gpu.value());
+
+    auto &movieSettings = helper.movieSettings;
+    auto &correlationSettings = helper.correlationSettings;
     T actualScale = correlationSettings.sDim().x() / (T)movieSettings.sDim().x();
 
+    // prepare filter
     MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.sDim());
     T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
     memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
     auto filter = MultidimArray<T>(1, 1, filterTmp.ydim, filterTmp.xdim, filterData);
+    
     if (this->verbose) {
         std::cout << "Requested scale factor: " << this->getScaleFactor() << std::endl;
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
@@ -658,60 +752,102 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
     }
 
+    const bool loadMovie = ~movie.hasFullMovie();
+    if (loadMovie) {
+        movie.setFullDim(movieSize); // this will also reserve enough space in the movie vector
+    }
+    // create a buffer for correlations in FD
+    auto *scaledFrames = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(correlationSettings.fBytes(), MemType::CPU_PAGE_ALIGNED));
+
+    std::vector<std::future<void>> tasks;
+    std::vector<T*> croppedFrames(helper.noOfThreads);
+    ctpl::thread_pool pool = ctpl::thread_pool(helper.noOfThreads);
+    std::vector<GPU> streams(helper.noOfThreads);
+    for (auto i = 0; i < streams.size(); ++i) {
+        streams.at(i) = GPU(gpu.value().device(), i + 1);
+    }
+    for (auto i = 0; i < movieSettings.sDim().n(); i += movieSettings.batch()) {
+        auto routine = [&](int thrId, size_t first, size_t count) {
+            if (loadMovie) {
+                loadFrames(movieMD, dark, igain, first, count);
+            }
+            auto *cFrames = croppedFrames[thrId];
+            if (nullptr == cFrames)
+            {
+                // croppedFrames[thrId] = cFrames = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CUDA_HOST));
+                croppedFrames[thrId] = cFrames = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CPU_PAGE_ALIGNED));
+                GPU::pinMemory(cFrames, movieSettings.sBytesBatch());
+            }
+            getCroppedFrames(movieSettings, cFrames, first, count); 
+            streams[thrId].set();
+            performFFTAndScale(cFrames, movieSettings.createBatch(),
+                                   scaledFrames + first * correlationSettings.fDim().sizeSingle(), correlationSettings,
+                                   filter, streams[thrId]);
+        };
+        tasks.emplace_back(pool.push(routine, i, movieSettings.batch()));
+    }
+    for (auto &t : tasks) {
+        t.get();
+    }
+    for (auto *ptr : croppedFrames) {
+        BasicMemManager::instance().give(ptr);
+    }
+    BasicMemManager::instance().release();
+
+    exit(0);
+
+
     T corrSizeMB = ((size_t) correlationSettings.fDim().xy()
             * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
     size_t framesInBuffer = std::ceil((MB(gpu.value().lastFreeBytes() / 3)) / corrSizeMB);
 
     auto reference = core::optional<size_t>();
+    // // load movie to memory
+    // if ( ! movie.hasFullMovie()) {
+    //     loadMovie(movieMD, dark, igain);
+    // }
 
+    
+    // {
+    //     T *croppedFrames1 = nullptr;
+    //     T *croppedFrames2 = nullptr;
 
-    // load movie to memory
-    if ( ! movie.hasFullMovie()) {
-        loadMovie(movieMD, dark, igain);
-    }
+    //     std::future<void> prevTask;
+    //     ctpl::thread_pool pool = ctpl::thread_pool(1);
 
-    // create a buffer for correlations in FD
-    auto *scaledFrames = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(correlationSettings.fBytes(), MemType::CPU_PAGE_ALIGNED));
-    {
-        T *croppedFrames1 = nullptr;
-        T *croppedFrames2 = nullptr;
+    //     for (auto i = 0; i < movieSettings.sDim().n(); i += movieSettings.batch())
+    //     {
+    //         auto noOfFrames = std::min(movieSettings.batch(), movieSettings.sDim().n() - i);
+    //         if (nullptr == croppedFrames1)
+    //         {
+    //             croppedFrames1 = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CUDA_HOST));
+    //         }
 
-        std::future<void> prevTask;
-        ctpl::thread_pool pool = ctpl::thread_pool(1);
+    //         getCroppedFrames(movieSettings, croppedFrames1, i, noOfFrames);
 
-        for (auto i = 0; i < movieSettings.sDim().n(); i += movieSettings.batch())
-        {
-            auto noOfFrames = std::min(movieSettings.batch(), movieSettings.sDim().n() - i);
-            if (nullptr == croppedFrames1)
-            {
-                croppedFrames1 = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CUDA_HOST));
-            }
-
-            getCroppedFrames(movieSettings, croppedFrames1, i, noOfFrames);
-
-            if (prevTask.valid())
-            {
-                gpu.value().synch();
-                prevTask.get();
-            }
-            std::swap(croppedFrames1, croppedFrames2);
-            auto task = [&](int)
-            {
-                performFFTAndScale(croppedFrames2, movieSettings.createSubset(noOfFrames),
-                                   scaledFrames + i * correlationSettings.fDim().sizeSingle(), correlationSettings.createSubset(noOfFrames),
-                                   filter, gpu.value());
-            };
-            prevTask = pool.push(task);
-        };
-        prevTask.get();
-        BasicMemManager::instance().give(croppedFrames1);
-        BasicMemManager::instance().give(croppedFrames2);
-    }
+    //         if (prevTask.valid())
+    //         {
+    //             gpu.value().synch();
+    //             prevTask.get();
+    //         }
+    //         std::swap(croppedFrames1, croppedFrames2);
+    //         auto task = [&](int)
+    //         {
+    //             performFFTAndScale(croppedFrames2, movieSettings.createSubset(noOfFrames),
+    //                                scaledFrames + i * correlationSettings.fDim().sizeSingle(), correlationSettings.createSubset(noOfFrames),
+    //                                filter, gpu.value());
+    //         };
+    //         prevTask = pool.push(task);
+    //     };
+    //     prevTask.get();
+    //     BasicMemManager::instance().give(croppedFrames1);
+    //     BasicMemManager::instance().give(croppedFrames2);
+    // }
 
     auto scale = std::make_pair(movieSettings.sDim().x() / (T) correlationSettings.sDim().x(),
         movieSettings.sDim().y() / (T) correlationSettings.sDim().y());
 
-    auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings,
+    auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings.copyForBatch(this->getCorrelationSettings(movieSettings).batch()),
         movieSettings.sDim().n(),
         scale, framesInBuffer, reference);
 
@@ -775,7 +911,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
 // }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrames(const FFTSettings<T> &settings,
+void __attribute__((optimize("O3"))) ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrames(const FFTSettings<T> &settings,
         T *output, size_t firstFrame, size_t noOfFrames) {
     for (size_t n = 0; n < noOfFrames; ++n) {
         T *src = movie.getFullFrame(n + firstFrame).data; // points to first float in the image
@@ -792,6 +928,14 @@ template<typename T>
 MultidimArray<T> &ProgMovieAlignmentCorrelationGPU<T>::Movie::allocate(size_t x, size_t y) {
     auto *ptr = memoryUtils::page_aligned_alloc<T>(x * y, false);
     return mFullFrames.emplace_back(1, 1, y, x, ptr);
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::Movie::releaseFullFrames() {
+    for (auto &f : mFullFrames) {
+        BasicMemManager::instance().give(f.data);
+        f.data = nullptr;
+    }
 }
 
 template<typename T>
@@ -821,6 +965,31 @@ void ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movieMD,
     }
     for (auto &f : futures) {
         f.get();
+    }
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::loadFrames(const MetaData& movieMD,
+        const Image<T>& dark, const Image<T>& igain, size_t first, size_t count) {
+    auto &movieDim = movie.getFullDim();
+    int frameIndex = -1;
+    size_t counter = 0;
+    for (size_t objId : movieMD.ids())
+    {
+        // get to correct index
+        frameIndex++;
+        if (frameIndex < this->nfirst) continue;
+        if (frameIndex > this->nlast) break;
+
+        if ((counter >= first) && counter < (first + count)) {
+            // load image
+            auto *ptr = reinterpret_cast<T*>(BasicMemManager::instance().get(movieDim.xy() * sizeof(T), MemType::CPU_PAGE_ALIGNED));
+            auto &dest = movie.getFullFrame(frameIndex);
+            dest.data = ptr;
+            Image<T> frame(dest);
+            this->loadFrame(movieMD, dark, igain, objId, frame);
+        }
+        counter++;
     }
 }
 

@@ -301,13 +301,12 @@ FFTSettings<T> CudaFFT<T>::findMaxBatch(const FFTSettings<T> &settings,
 }
 
 template<typename T>
-core::optional<FFTSettings<T>> CudaFFT<T>::findOptimal(GPU &gpu,
+FFTSettings<T> *CudaFFT<T>::findOptimal(const GPU &gpu,
         const FFTSettings<T> &settings,
         size_t reserveBytes, bool squareOnly, int sigPercChange,
         bool crop, bool verbose) {
     using cuFFTAdvisor::Tristate::TRUE;
     using cuFFTAdvisor::Tristate::FALSE;
-    using core::optional;
     size_t freeBytes = gpu.lastFreeBytes();
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *options =
             cuFFTAdvisor::Advisor::find(10, gpu.device(), // FIXME DS this should be configurable
@@ -321,7 +320,7 @@ core::optional<FFTSettings<T>> CudaFFT<T>::findOptimal(GPU &gpu,
                     false, // allow transposition
                     squareOnly, crop);
 
-    auto result = optional<FFTSettings<T>>();
+    FFTSettings<T> *result = nullptr;
     if (0 != options->size()) {
         auto res = options->at(0);
         auto optSetting = FFTSettings<T>(
@@ -332,10 +331,10 @@ core::optional<FFTSettings<T>> CudaFFT<T>::findOptimal(GPU &gpu,
                 res->transform->N / res->transform->repetitions,
                 settings.isInPlace(),
                 settings.isForward());
-        result = optional<FFTSettings<T>>(optSetting);
+        result = new FFTSettings<T>(optSetting);
     } 
     if (verbose) {
-	   if (result.has_value()) {
+	   if (nullptr != result) {
                 options->at(0)->printHeader(stdout); printf("\n");
                 options->at(0)->print(stdout); printf("\n");
 	   } else {
@@ -352,12 +351,12 @@ FFTSettings<T> CudaFFT<T>::findOptimalSizeOrMaxBatch(GPU &gpu,
         const FFTSettings<T> &settings,
         size_t reserveBytes, bool squareOnly, int sigPercChange,
         bool crop, bool verbose) {
-    auto candidate = findOptimal(gpu, settings, reserveBytes, squareOnly, sigPercChange, crop, verbose);
-    if (candidate.has_value()) {
-        return candidate.value();
+    auto *candidate = findOptimal(gpu, settings, reserveBytes, squareOnly, sigPercChange, crop, verbose);
+    if (nullptr != candidate) {
+        return *candidate;
     }
     if (gpu.lastFreeBytes() > reserveBytes) {
-        REPORT_ERROR(ERR_GPU_MEMORY, "You have less GPU memory then you want to use");
+        REPORT_ERROR(ERR_GPU_MEMORY, "You have less GPU memory than you want to use");
     }
     return findMaxBatch(settings, gpu.lastFreeBytes() - reserveBytes);
 }

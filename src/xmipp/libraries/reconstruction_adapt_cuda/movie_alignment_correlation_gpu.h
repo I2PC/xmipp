@@ -74,16 +74,15 @@ private:
 
         MultidimArray<T> &allocate(size_t x, size_t y);
 
-        void releaseFullFrames() {
-            for (auto &f : mFullFrames) {
-                free(f.data);
-                f.data = nullptr;
-            }
-        }
+        void releaseFullFrames();
 
         void setFullDim(const Dimensions &dim) {
             mFullDim = dim;
             mFullFrames.reserve(dim.n());
+            for (auto n = 0; n < dim.n(); ++n) {
+                // create multidim arrays, but without data 
+                mFullFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
+            }
         }
 
         const Dimensions &getFullDim() const {
@@ -100,6 +99,20 @@ private:
         std::vector<MultidimArray<T>> mFullFrames;
         Dimensions mFullDim = Dimensions(0);
     } movie;
+
+
+    class GlobalAlignmentHelper final {
+        public:
+        auto findBatchThreadsForScale(const Dimensions &movie, const Dimensions &correlation, const GPU &gpu);
+        
+        FFTSettings<T> movieSettings = FFTSettings<T>(0);
+        FFTSettings<T> correlationSettings = FFTSettings<T>(0);
+        size_t noOfThreads = 0;
+        
+        private:
+        auto findGoodCropSize(const Dimensions &movie, const GPU &gpu);
+        auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu);
+    };
 
     /**
      * Inherited, see parent
@@ -205,6 +218,13 @@ private:
     FFTSettings<T> getCorrelationSettings(const FFTSettings<T> &orig);
 
     /**
+     * Get suggested size of the frame for correlation
+     * @param s size for the input data
+     * @return optimal size
+     */
+    auto getCorrelationHint(const Dimensions &orig);
+
+    /**
      * Get FFT settings for each patch used for local alignment
      * @param orig movie setting
      * @return optimal setting for each patch
@@ -242,6 +262,17 @@ private:
      */
     void loadMovie(const MetaData& movie,
             const Image<T>& dark, const Image<T>& igain);
+
+    /**
+     * Loads specific range of frames to the RAM
+     * @param movie to load
+     * @param dark pixel correction
+     * @param igain correction
+     * @param first frame index to load (starting at 0)
+     * @param count of frames to load
+     */
+    void loadFrames(const MetaData& movieMD,
+        const Image<T>& dark, const Image<T>& igain, size_t first, size_t count);
 
     /**
      * Loads setting for given dimensions from permanent storage

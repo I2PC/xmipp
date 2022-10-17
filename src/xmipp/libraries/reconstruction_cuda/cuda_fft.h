@@ -33,7 +33,6 @@
 #include "data/aft.h"
 #include "core/xmipp_error.h"
 #include "core/utils/memory_utils.h"
-#include "core/optional.h"
 #include "gpu.h"
 
 // XXX HACK to avoid including cufft.h in this header
@@ -71,7 +70,7 @@ public:
             const std::complex<T> *d_in, T *d_out);
     static cufftHandle* createPlan(const GPU &gpu,
             const FFTSettings<T> &settings);
-    static core::optional<FFTSettings<T>> findOptimal(GPU &gpu,
+    static FFTSettings<T> *findOptimal(const GPU &gpu,
             const FFTSettings<T> &settings,
             size_t reserveBytes, bool squareOnly, int sigPercChange,
             bool crop, bool verbose);
