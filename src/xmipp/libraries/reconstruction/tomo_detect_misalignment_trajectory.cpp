@@ -1490,7 +1490,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		// {
 
 			std::cout << "---------------------residualDistanceInImageSize.size()  "  <<  residualDistanceInImageSize.size()<< std::endl;
-			for(size_t e = 0; e < residualDistanceInImageSize; e++)
+			for(size_t e = 0; e < residualDistanceInImageSize.size(); e++)
 			{
 				double value = residualDistanceInImage[e];
 				sum += value;
