@@ -1481,13 +1481,13 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		double std = 0;
 		size_t residualDistanceInImageSize = residualDistanceInImage.size();
 
-		if (residualDistanceInImageSize == 0)
-		{
-			averageFiducialResidualsInImage.push_back(average);
-        	stdFiducialResidualsInImage.push_back(std);	
-		}
-		else
-		{
+		// if (residualDistanceInImageSize == 0)
+		// {
+		// 	averageFiducialResidualsInImage.push_back(average);
+        // 	stdFiducialResidualsInImage.push_back(std);	
+		// }
+		// else
+		// {
 			for(size_t e = 0; e < residualDistanceInImageSize; e++)
 			{
 				double value = residualDistanceInImage[e];
@@ -1500,7 +1500,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 			averageFiducialResidualsInImage.push_back(average);
 			stdFiducialResidualsInImage.push_back(std);
-		}
+		// }
 	}
 
 	// Ficudials
@@ -1535,13 +1535,13 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		double std = 0;
 		size_t residualDistancePerFiducialSize = residualDistancePerFiducial.size();
 
-		if (residualDistancePerFiducialSize == 0)
-		{
-			averageResidualDistancePerFiducial.push_back(0);
-			stdResidualDistancePerFiducial.push_back(0);
-		}
-		else
-		{
+		// if (residualDistancePerFiducialSize == 0)
+		// {
+		// 	averageResidualDistancePerFiducial.push_back(0);
+		// 	stdResidualDistancePerFiducial.push_back(0);
+		// }
+		// else
+		// {
 			for(size_t e = 0; e < residualDistancePerFiducialSize; e++)
 			{
 				double value = residualDistancePerFiducial[e];
@@ -1554,7 +1554,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 			averageResidualDistancePerFiducial.push_back(average);
 			stdResidualDistancePerFiducial.push_back(std);
-		}
+		// }
 	}
 
 	for (size_t i = 0; i < inputCoords.size(); i++)
