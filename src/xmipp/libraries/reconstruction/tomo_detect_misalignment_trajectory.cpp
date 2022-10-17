@@ -1490,14 +1490,14 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		// {
 
 			std::cout << "---------------------residualDistanceInImageSize.size()  "  <<  residualDistanceInImageSize.size()<< std::endl;
-			for(size_t e = 0; e < residualDistanceInImageSize.size(); e++)
+			for(size_t e = 0; e < residualDistanceInImageSize; e++)
 			{
 				double value = residualDistanceInImage[e];
 				sum += value;
 				sum2 += value*value;
 			}
 			std::cout << "---------------------sum  "  <<  sum<< std::endl;
-
+	
 			average = sum/residualDistanceInImageSize;
 			std = sqrt(sum2/residualDistanceInImageSize - average*average);
 
@@ -1607,7 +1607,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	std::cout << "---------------------residualDistanceInImageSize  "  <<  residualDistanceInImageSize << std::endl;
 
-	for (size_t i = 0; i < averageFiducialResidualsInImage; i++)
+	for (size_t i = 0; i < averageFiducialResidualsInImage.size(); i++)
 	{
 		std::cout << averageFiducialResidualsInImage[i] << std::endl;
 	}
