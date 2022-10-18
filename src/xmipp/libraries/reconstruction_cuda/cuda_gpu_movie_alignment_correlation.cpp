@@ -32,10 +32,19 @@
 
 
 template<typename T>
-void GlobAlignmentData<T>::alloc(const FFTSettings<T> &in, const FFTSettings<float> &out, const GPU &gpu) {
+size_t GlobAlignmentData<T>::estimateBytes(const FFTSettings<T> &in, const FFTSettings<T> &out) {
+    size_t planSize = CudaFFT<T>().estimatePlanBytes(in);
+    size_t aux = std::max(in.sBytesBatch(), out.fBytesSingle() * in.batch());
+    size_t fd = in.fBytesBatch();
+    return planSize + aux + fd;
+}
+ 
+
+template<typename T>
+void GlobAlignmentData<T>::alloc(const FFTSettings<T> &in, const FFTSettings<T> &out, const GPU &gpu) {
     plan = CudaFFT<T>::createPlan(gpu, in);
     // here we will first frames to be converted to FD, and then scaled frames in FD
-    d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(std::max(in.sBytesBatch(), out.fBytesBatch()), MemType::CUDA));
+    d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(std::max(in.sBytesBatch(), out.fBytesSingle() * in.batch()), MemType::CUDA));
     d_ft = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(in.fBytesBatch(), MemType::CUDA));
 }
 
@@ -75,6 +84,7 @@ void performFFTAndScale(T *h_in, const FFTSettings<T> &in,
     // gpuErrchk(cudaMemcpy(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost));
     
     gpu.synch();
+    gpuErrchk(cudaPeekAtLastError());
 }
 
 template void performFFTAndScale<float>(float* inOutData, int noOfImgs, int inX,
@@ -304,6 +314,7 @@ template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
         int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
         int fftBatchSize, T*& result) {
+
     GpuMultidimArrayAtGpu<std::complex<T> > ffts(fftSizeX, fftSizeY, 1, fftBatchSize);
     GpuMultidimArrayAtGpu<T> imgs(imgSizeX, fftSizeY, 1, fftBatchSize);
     mycufftHandle myhandle;
@@ -320,7 +331,6 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     size_t buffer2Size = std::max((size_t)0,
             std::min(maxFFTsInBuffer, noOfImgs - buffer1Size));
     void* d_fftBuffer2 = BasicMemManager::instance().get(buffer2Size * singleFFTBytes, MemType::CUDA);
-            
 
     size_t buffer1Offset = 0;
     do {
@@ -400,11 +410,9 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
                 cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)imgs.d_data,
                         (T*)ffts.d_data, imgs.Xdim, imgs.Ydim,
                         counter, centerSize, centerSize);
-
                 copyInRightOrder((T*)ffts.d_data, result,
                         centerSize, centerSize,
                         isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs);
-
                 origI = i;
                 origJ = j;
                 counter = 0;

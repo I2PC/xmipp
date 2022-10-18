@@ -688,36 +688,49 @@ auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findBatchThread
     std::cout << "Good correlation size: " << cSize << "\n";
 using memoryUtils::MB;
     const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
-    auto getMemReq = [&mSize, &cSize](size_t batch, size_t streams) {
-        auto in = FFTSettings<T>(mSize.x(), mSize.y(), 1, mSize.n(), batch);
-        auto out = FFTSettings<T>(cSize.x(), cSize.y(), 1, cSize.n(), batch);
-        size_t planSize = CudaFFT<T>().estimatePlanBytes(in);
-        size_t aux = std::max(in.sBytesBatch(), out.fBytesBatch());
-        size_t fd = in.fBytesBatch();
-        return (planSize + aux + fd) * streams;
+    auto getMemReq = [this]() {
+        return GlobAlignmentData<T>::estimateBytes(movieSettings, correlationSettings) * gpuStreams;
     };
-
-    auto cond = [&mSize](size_t batch, size_t threads) {
+    auto cond = [&mSize, this]() {
         // we want only no. of batches that can process the movie without extra invocations
-        return (0 == mSize.n() % batch) && (threads * batch) <= mSize.n();
+        return (0 == movieSettings.sDim().n() % movieSettings.batch()) && (cpuThreads * movieSettings.batch()) <= movieSettings.sDim().n();
     };
-
     auto set = [&mSize, &cSize, this](size_t batch, size_t streams, size_t threads) {
         movieSettings = FFTSettings<T>(mSize, batch);
         correlationSettings = FFTSettings<T>(cSize);
         gpuStreams = streams;
         cpuThreads = threads;
     };
-
-    if ((getMemReq(1, 2) <= maxBytes) && cond(1, 2)){
-        // more streams do not make sense because we're limited by the transfers
-        // bigger batch leads to more time wasted on memory allocation - it gets importand if you have lower number of frames
-        set(1, 2, 4); // two streams to overlap memory transfers and computations, 4 threads to make sure they are fully utilized
-    } else {
+    // two streams to overlap memory transfers and computations, 4 threads to make sure they are fully utilized
+    // more streams do not make sense because we're limited by the transfers
+    // bigger batch leads to more time wasted on memory allocation - it gets importand if you have lower number of frames
+    set(1, 2, 4);
+    if ((getMemReq() >= maxBytes) && cond()) {
         set(1, 1, 2);
     }
-    
-    std::cout << "using " << cpuThreads << " threads, " << gpuStreams << " streams and batch of " << movieSettings.batch() << "\n";
+    if (getMemReq() >= maxBytes) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing global alignment.");
+    }
+
+    auto M = [&mSize, this]() {
+        auto noOfBuffers = (bufferSize == mSize.n()) ? 1 : 2;
+        auto buffers = correlationSettings.fBytesSingle() * bufferSize * noOfBuffers;
+        auto plan = CudaFFT<T>().estimateTotalBytes(correlationSettings);
+        std::cout << "noOfBuffers " << noOfBuffers << " bufferSize " << bufferSize <<" buffers " << MB(buffers) << " plan " << MB(plan) << "\n";  
+        return plan + buffers;
+    };
+    size_t bufferDivider = 1;
+    size_t batchDivider = 0;
+    do {
+        batchDivider++;
+        auto batch = cSize.n() / batchDivider; // number of correlations for FT
+        bufferSize = mSize.n() / bufferDivider; // number of input frames in a single buffer
+        if (bufferSize > batch) {
+            bufferDivider += (bufferDivider == 1) ? 2 : 1; // we use two buffers, so we need the same memory for batch == 1 and == 2
+        }
+        correlationSettings = FFTSettings<T>(cSize, batch);
+    } while (M() >= maxBytes);
+    std::cout << "using " << cpuThreads << " threads, " << gpuStreams << " streams and batch of " << movieSettings.batch() << ", bufferSize " << bufferSize << "\n";
 }
 
 
@@ -727,6 +740,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     
     using memoryUtils::MB;
     const auto movieSize = this->getMovieSize();
+    movie.setFullDim(movieSize); // this will also reserve enough space in the movie vector
     GlobalAlignmentHelper helper;
     helper.findBatchThreadsForScale(movieSize, this->getCorrelationHint(movieSize), gpu.value());
 
@@ -747,10 +761,6 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
     }
 
-    const bool loadMovie = !movie.hasFullMovie();
-    if (loadMovie) {
-        movie.setFullDim(movieSize); // this will also reserve enough space in the movie vector
-    }
     // create a buffer for correlations in FD
     auto *scaledFrames = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(correlationSettings.fBytes(), MemType::CPU_PAGE_ALIGNED));
 
@@ -771,16 +781,10 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     for (auto i = 0; i < movieSettings.sDim().n(); i += movieSettings.batch()) {
         auto routine = [&](int thrId, size_t first, size_t count) {
-            if (loadMovie) {
-                loadFrames(movieMD, dark, igain, first, count);
-            }
+            loadFrames(movieMD, dark, igain, first, count);
             if (nullptr == croppedFrames[thrId])
             {
                 croppedFrames[thrId] = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CUDA_HOST));
-                // reinterpret_cast<T *>(cudaHostAlloc(&cFrames, movieSettings.sBytesBatch(), cudaHostAllocDefault));
-                // croppedFrames[thrId] = cFrames;
-                // croppedFrames[thrId] = cFrames = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CPU_PAGE_ALIGNED));
-                // GPU::pinMemory(cFrames, movieSettings.sBytesBatch());
             }
             auto *cFrames = croppedFrames[thrId];
             getCroppedFrames(movieSettings, cFrames, first, count); 
@@ -799,13 +803,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         d.release();
     }
     BasicMemManager::instance().release();
-
-    exit(0);
-
-
-    T corrSizeMB = ((size_t) correlationSettings.fDim().xy()
-            * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
-    size_t framesInBuffer = std::ceil((MB(gpu.value().lastFreeBytes() / 3)) / corrSizeMB);
+    BasicMemManager::instance().release();
 
     auto reference = core::optional<size_t>();
     // // load movie to memory
@@ -853,9 +851,10 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     auto scale = std::make_pair(movieSettings.sDim().x() / (T) correlationSettings.sDim().x(),
         movieSettings.sDim().y() / (T) correlationSettings.sDim().y());
 
-    auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings.copyForBatch(this->getCorrelationSettings(movieSettings).batch()),
+
+    auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings,
         movieSettings.sDim().n(),
-        scale, framesInBuffer, reference);
+        scale, helper.bufferSize, reference);
 
 
     // in two / multiple threads crop frames and threadsprocess each buffer separately on gpu thread

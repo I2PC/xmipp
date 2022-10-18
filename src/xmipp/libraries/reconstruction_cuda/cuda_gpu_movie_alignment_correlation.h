@@ -41,8 +41,9 @@
 
 template<typename T>
 struct GlobAlignmentData {
-    void alloc(const FFTSettings<T> &in, const FFTSettings<float> &out, const GPU &gpu);
+    void alloc(const FFTSettings<T> &in, const FFTSettings<T> &out, const GPU &gpu);
     void release();
+    static size_t estimateBytes(const FFTSettings<T> &in, const FFTSettings<T> &out);
     T *d_aux;
     std::complex<T> *d_ft;
     cufftHandle *plan;
