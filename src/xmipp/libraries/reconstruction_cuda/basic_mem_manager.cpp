@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
+#include "reconstruction_cuda/cuda_asserts.h"
 #include "core/utils/memory_utils.h"
 #include <algorithm>
 #include <iostream>
@@ -69,10 +70,11 @@ void BasicMemManager::release()
             release(b.ptr, b.type);
         }
     }
-    std::remove_if(memoryBlocks.begin(),
-                   memoryBlocks.end(),
-                   [](auto &b)
-                   { return b.available; });
+    memoryBlocks.erase(std::remove_if(memoryBlocks.begin(),
+                                      memoryBlocks.end(),
+                                      [](auto &b)
+                                      { return b.available; }),
+                       memoryBlocks.end());
 }
 
 void BasicMemManager::release(MemType type)
@@ -85,10 +87,11 @@ void BasicMemManager::release(MemType type)
             release(b.ptr, b.type);
         }
     }
-    std::remove_if(memoryBlocks.begin(),
-                   memoryBlocks.end(),
-                   [type](auto &b)
-                   { return type == b.type; });
+    memoryBlocks.erase(std::remove_if(memoryBlocks.begin(),
+                                      memoryBlocks.end(),
+                                      [type](auto &b)
+                                      { return type == b.type && b.available; }),
+                       memoryBlocks.end());
 }
 
 BasicMemManager::Record *BasicMemManager::find(size_t bytes, MemType type)
@@ -146,10 +149,12 @@ void BasicMemManager::release(void *ptr, MemType type) const
     case MemType::CPU_PAGE_ALIGNED:
         free(ptr);
         break;
-    case MemType::CUDA_MANAGED:
     case MemType::CUDA_HOST:
+        gpuErrchk(cudaFreeHost(ptr));
+        break;
+    case MemType::CUDA_MANAGED:
     case MemType::CUDA:
-        cudaFree(ptr);
+        gpuErrchk(cudaFree(ptr));
         break;
     default:
         break;
@@ -178,12 +183,11 @@ std::ostream &operator<<(std::ostream &s, const MemType &t)
     return s;
 }
 
-    BasicMemManager::~BasicMemManager()
+BasicMemManager::~BasicMemManager()
+{
+    release();
+    for (auto &b : memoryBlocks)
     {
-        for (auto &b : memoryBlocks)
-        {
-            std::cerr << "Unreleased memory block of at " << b.ptr << " of " << b.bytes << " bytes and type " << b.type << "\n";
-            give(b.ptr);
-        }
-        release();
+        std::cerr << "Unreleased memory block of at " << b.ptr << " of " << b.bytes << " bytes and type " << b.type << "\n";
     }
+}
