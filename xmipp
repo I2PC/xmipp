@@ -315,7 +315,7 @@ def getAllBranchesAndTags(repo):
         branchesAndTags = [l.split('/')[-1] for l in log]
         return True, branchesAndTags
     print(red('Cannot list branches for ' + repo + ''.join(log)))
-    return False, None
+    return False, []
 
 
 def getBranch(repo, repo_dir):
