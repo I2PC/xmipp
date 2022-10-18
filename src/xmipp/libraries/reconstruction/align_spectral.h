@@ -215,6 +215,12 @@ private:
 
     };
 
+    enum class CombinationStrategy {
+        storeRefRotShift,
+        storeRefRot,
+        storeRef
+    };
+
     MetaDataVec m_mdExperimental;
     MetaDataVec m_mdReference;
     BandMap m_bandMap;
@@ -248,6 +254,15 @@ private:
                                 size_t start = 0, size_t count = std::numeric_limits<size_t>::max() );
 
     static size_t getImageProjectionSize(const std::vector<Matrix2D<Real>>& bases);
+    static size_t getGalleryProjectionSize( size_t imageSize, 
+                                            size_t nImage, 
+                                            size_t nRot, 
+                                            size_t nShift, 
+                                            CombinationStrategy strategy );
+    static CombinationStrategy getCombinationStrategy(  size_t nExp, 
+                                                        size_t nRef, 
+                                                        size_t nRot, 
+                                                        size_t nShift );
 
     static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
                                                                                 size_t ny, 

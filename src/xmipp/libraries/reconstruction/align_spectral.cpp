@@ -905,6 +905,53 @@ size_t ProgAlignSpectral::getImageProjectionSize(const std::vector<Matrix2D<Real
     return coeffs * sizeof(Real);
 }
 
+size_t ProgAlignSpectral::getGalleryProjectionSize( size_t imageSize, 
+                                                    size_t nImage,
+                                                    size_t nRot, 
+                                                    size_t nShift, 
+                                                    CombinationStrategy strategy )
+{
+    auto result = imageSize * nImage;
+
+    switch (strategy) {
+    case CombinationStrategy::storeRefRotShift:
+        result *= nRot*nShift;
+        break;
+
+    case CombinationStrategy::storeRefRot:
+        result *= nRot;
+        break;
+    
+    default:
+        break;
+    }
+
+    return result;
+}
+
+ProgAlignSpectral::CombinationStrategy 
+ProgAlignSpectral::getCombinationStrategy(  size_t nExp, 
+                                            size_t nRef, 
+                                            size_t nRot, 
+                                            size_t nShift )
+{
+    const std::array<size_t, 3> nProjOperations = {
+        nExp + nRef*nRot*nShift, //storeRefRotShift
+        nExp*nShift + nRef*nRot, //storeRefRot
+        nExp*nShift*nRot + nRef, //storeRef
+    };
+
+    const auto ite = std::min_element(
+        nProjOperations.cbegin(), nProjOperations.cend()
+    );
+
+    const auto index = std::distance(
+        nProjOperations.cbegin(), ite
+    );
+    return static_cast<CombinationStrategy>(index);
+}
+
+
 std::vector<ProgAlignSpectral::TranslationFilter> 
 ProgAlignSpectral::computeTranslationFiltersRectangle(  const size_t nx, 
                                                         const size_t ny,
