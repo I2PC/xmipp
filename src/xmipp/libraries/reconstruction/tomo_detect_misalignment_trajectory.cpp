@@ -693,29 +693,38 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
-		#ifdef DEBUG_HCC
 		int numberOfPointsAddedBinaryMap = 0;
-		#endif
 
-		for(size_t i = 0; i < ySize; i++)
-		{
-            for(size_t j = 0; j < xSize; ++j)
+		bool firstExecution = true;
+
+		do{
+			if (!firstExecution)
 			{
-				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
+				threshold -= 0.1 * threshold;
+			}
+			
 
-				// if ((value-maximum)*(value-maximum) > threshold)
-				// {
-				
-				if (value < threshold)
+			for(size_t i = 0; i < ySize; i++)
+			{
+				for(size_t j = 0; j < xSize; ++j)
 				{
-					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+					double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
+
+					// if ((value-maximum)*(value-maximum) > threshold)
+					// {
 					
-					#ifdef DEBUG_HCC
-					numberOfPointsAddedBinaryMap += 1;
-					#endif
+					if (value < threshold)
+					{
+						DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+						
+						numberOfPointsAddedBinaryMap += 1;
+					}
 				}
 			}
-		}
+
+			firstExecution = false;
+
+		} while(numberOfPointsAddedBinaryMap==0);
 
 		#ifdef DEBUG_HCC
 		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
