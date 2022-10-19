@@ -39,6 +39,7 @@
 #include <functional>
 #include <mutex>
 #include <limits>
+#include <complex>
 
 /**@defgroup Alignment Alignment
    @ingroup ReconsLibrary */
@@ -49,6 +50,7 @@ class ProgAlignSpectral : public XmippProgram
 {
 public:
     using Real = double;
+    using Complex = std::complex<Real>;
 
     virtual void readParams() override;
     virtual void defineParams() override;
@@ -64,11 +66,11 @@ public:
     FileName fnPca;
     
     size_t nRotations;
-    size_t nTranslations;
+    double nTranslations;
     Real maxShift;
 
     size_t nThreads;
-    Real maxMemory;
+    double maxMemory;
 
 private:
     class BandMap {
@@ -86,14 +88,14 @@ private:
 
         const MultidimArray<int>& getBands() const;
         const std::vector<size_t>& getBandSizes() const;
-        void flatten(   const MultidimArray<std::complex<Real>>& spectrum,
+        void flatten(   const MultidimArray<Complex>& spectrum,
                         std::vector<Matrix1D<Real>>& data,
                         size_t image = 0 ) const;
         void flattenOddEven(const MultidimArray<Real>& spectrum,
                             std::vector<Matrix1D<Real>>& data,
                             size_t oddEven,
                             size_t image = 0 ) const;
-        void flatten(   const MultidimArray<std::complex<Real>>& spectrum,
+        void flatten(   const MultidimArray<Complex>& spectrum,
                         size_t band,
                         Matrix1D<Real>& data,
                         size_t image = 0 ) const;
@@ -127,12 +129,12 @@ private:
 
         TranslationFilter& operator=(const TranslationFilter& other) = default;
 
-        void operator()(const MultidimArray<std::complex<Real>>& in, 
-                        MultidimArray<std::complex<Real>>& out) const;
+        void operator()(const MultidimArray<Complex>& in, 
+                        MultidimArray<Complex>& out) const;
 
     private:
         double m_dy, m_dx;
-        MultidimArray<std::complex<Real>> m_coefficients;
+        MultidimArray<Complex> m_coefficients;
 
         void computeCoefficients();
     };
@@ -146,15 +148,24 @@ private:
                                         F&& func );
 
         template<typename F>
+        void forEachInPlaneRotation(const MultidimArray<Real>& img,
+                                    size_t nRotations,
+                                    F&& func );
+
+        template<typename F>
         void forEachInPlaneTranslation( const MultidimArray<Real>& img,
+                                        const std::vector<TranslationFilter>& translations,
+                                        F&& func );
+        template<typename F>
+        void forEachInPlaneTranslation( const MultidimArray<Complex>& img,
                                         const std::vector<TranslationFilter>& translations,
                                         F&& func );
         
     private:
-        FourierTransformer m_fourier;
+        FourierTransformer m_fourierClean;
+        FourierTransformer m_fourierRotated;
         MultidimArray<Real> m_rotated;
-        MultidimArray<std::complex<Real>> m_dft;
-        MultidimArray<std::complex<Real>> m_translatedDft;
+        MultidimArray<Complex> m_translated;
 
     };
 
@@ -215,17 +226,12 @@ private:
 
     };
 
-    enum class CombinationStrategy {
-        storeRefRotShift,
-        storeRefRot,
-        storeRef
-    };
-
     MetaDataVec m_mdExperimental;
     MetaDataVec m_mdReference;
     BandMap m_bandMap;
     std::vector<Matrix2D<Real>> m_bases;
     std::vector<Matrix2D<Real>> m_ctfBases;
+    std::vector<size_t> m_projectionSizes;
     std::vector<TranslationFilter> m_translations;
     ReferencePcaProjections m_references;
     std::vector<ReferenceMetadata> m_referenceData;
@@ -241,7 +247,10 @@ private:
     void generateOutput();
 
     void projectReferences(size_t start, size_t count);
+    void projectReferencesRot(size_t start, size_t count);
+    void projectReferencesRotShift(size_t start, size_t count);
     void classifyExperimental();
+    void classifyExperimentalShift();
 
     void removeFourierSymmetry(MultidimArray<Real>& spectrum) const;
     void multiplyBases( std::vector<Matrix2D<Real>>& bases,
@@ -253,16 +262,8 @@ private:
     void processRowsInParallel( const MetaDataVec& md, F&& func, size_t nThreads, 
                                 size_t start = 0, size_t count = std::numeric_limits<size_t>::max() );
 
-    static size_t getImageProjectionSize(const std::vector<Matrix2D<Real>>& bases);
-    static size_t getGalleryProjectionSize( size_t imageSize, 
-                                            size_t nImage, 
-                                            size_t nRot, 
-                                            size_t nShift, 
-                                            CombinationStrategy strategy );
-    static CombinationStrategy getCombinationStrategy(  size_t nExp, 
-                                                        size_t nRef, 
-                                                        size_t nRot, 
-                                                        size_t nShift );
+    static void getProjectionSizes(const std::vector<Matrix2D<Real>>& bases, std::vector<size_t>& result);
+    static size_t getBatchSize(size_t memorySize, size_t imageProjSize, size_t nTransform);
 
     static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
                                                                                 size_t ny, 
@@ -276,6 +277,8 @@ private:
     static void project(const std::vector<Matrix2D<Real>>& bases,
                         const std::vector<Matrix1D<Real>>& bands,
                         std::vector<Matrix1D<Real>>& projections );
+
+    static double standardizeAngle(double angle);
 
 };
 

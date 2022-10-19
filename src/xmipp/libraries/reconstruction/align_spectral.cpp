@@ -116,7 +116,7 @@ void ProgAlignSpectral::run() {
 
 
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Real>>& spectrum,
+void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Complex>& spectrum,
                                             std::vector<Matrix1D<Real>>& data,
                                             size_t image ) const
 {
@@ -137,7 +137,7 @@ void ProgAlignSpectral::BandMap::flattenOddEven(const MultidimArray<Real>& spect
     }
 }
 
-void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<std::complex<Real>>& spectrum,
+void ProgAlignSpectral::BandMap::flatten(   const MultidimArray<Complex>& spectrum,
                                             size_t band,
                                             Matrix1D<Real>& data,
                                             size_t image ) const
@@ -195,8 +195,8 @@ void ProgAlignSpectral::TranslationFilter::getTranslation(double& dx, double& dy
     dy = m_dy;
 }
 
-void ProgAlignSpectral::TranslationFilter::operator()(  const MultidimArray<std::complex<Real>>& in, 
-                                                        MultidimArray<std::complex<Real>>& out) const
+void ProgAlignSpectral::TranslationFilter::operator()(  const MultidimArray<Complex>& in, 
+                                                        MultidimArray<Complex>& out) const
 {
     // Shorthands
     auto& coeff = m_coefficients;
@@ -250,46 +250,65 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const Multid
                                                                     const std::vector<TranslationFilter>& translations,
                                                                     F&& func )
 {
-    // Perform all but the trivial rotations (0...360)
-    const auto step = 360.0 / nRotations;
-    for (size_t i = 1; i < nRotations; ++i) {
-        // Rotate the input image into the cached image
-        const auto rotation = i*step;
-        rotate(
-            xmipp_transformation::LINEAR, 
-            m_rotated, img,
-            rotation, 'Z',
-            xmipp_transformation::WRAP
-        );
-
-        // Apply all translations to the rotated image
-        forEachInPlaneTranslation(
-            m_rotated,
-            translations,
-            std::bind(std::ref(func), std::placeholders::_1, rotation, std::placeholders::_2, std::placeholders::_3)
-        );
-    }
-
-    // The first one (0 deg) does not need any rotate operation
-    forEachInPlaneTranslation(
-        img,
-        translations,
-        std::bind(std::forward<F>(func), std::placeholders::_1, 0.0, std::placeholders::_2, std::placeholders::_3)
+    forEachInPlaneRotation(
+        img, nRotations,
+        [this, &func, &translations] (const MultidimArray<Complex>& dft, double angle) {
+            forEachInPlaneTranslation(
+                dft, translations,
+                [&func, angle] (const MultidimArray<Complex>& dft, double sx, double sy) {
+                    func(dft, angle, sx, sy);
+                }
+            );
+        }
     );
 }
 
+template<typename F>
+void ProgAlignSpectral::ImageTransformer::forEachInPlaneRotation(   const MultidimArray<Real>& img,
+                                                                    size_t nRotations,
+                                                                    F&& func )
+{
+    // Perform all except the trivial rotations (0...360)
+    const auto step = 360.0 / nRotations;
+    for (size_t i = 1; i < nRotations; ++i) {
+        // Rotate the input image into the cached image
+        const auto angle = i*step;
+        rotate(
+            xmipp_transformation::LINEAR, 
+            m_rotated, img,
+            angle, 'Z',
+            xmipp_transformation::WRAP
+        );
+
+        // Compute the fourier transform
+        m_fourierRotated.setReal(m_rotated);
+        m_fourierRotated.FourierTransform();
+
+        func(m_fourierRotated.fFourier, angle);
+    }
+
+    // Compute the fourier transform of the clean image
+    m_fourierClean.setReal(const_cast<MultidimArray<Real>&>(img)); // HACK although it wont be written
+    m_fourierClean.FourierTransform();
+
+    // The first one (0 deg) does not need any rotate operation
+    func(m_fourierClean.fFourier, 0.0);
+}
 template<typename F>
 void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const MultidimArray<Real>& img,
                                                                     const std::vector<TranslationFilter>& translations,
                                                                     F&& func )
 {
-    // Compute the fourier transform of the input image
-    m_fourier.FourierTransform(
-        const_cast<MultidimArray<Real>&>(img), //HACK although it won't be written
-        m_dft, 
-        false
-    );
+    m_fourierClean.setReal(const_cast<MultidimArray<Real>&>(img)); // HACK although it wont be written
+    m_fourierClean.FourierTransform();
+    forEachInPlaneTranslation(m_fourierClean.fFourier, translations, std::forward<F>(func));
+}
 
+template<typename F>
+void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const MultidimArray<Complex>& img,
+                                                                    const std::vector<TranslationFilter>& translations,
+                                                                    F&& func )
+{
     // Compute all translations of it
     for (const auto& translation : translations) {
         double sx, sy;
@@ -297,19 +316,16 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const Multid
 
         if(sx || sy) {
             // Perform the translation
-            translation(m_dft, m_translatedDft);
+            translation(img, m_translated);
 
             // Call the provided function
-            func(m_translatedDft, sx, sy);
+            func(m_translated, sx, sy);
         } else {
             // Call the provided function with the DFT
-            func(m_dft, 0.0, 0.0);
+            func(img, 0.0, 0.0);
         }
     }
 }
-
-
-
 
 
 ProgAlignSpectral::BandMap::BandMap(const MultidimArray<int>& bands) 
@@ -586,6 +602,9 @@ void ProgAlignSpectral::readBases() {
             }
         }
     }
+
+    // Write the projection sizes
+    getProjectionSizes(m_bases, m_projectionSizes);
 }
 
 void ProgAlignSpectral::applyWeightsToBases() {
@@ -615,17 +634,28 @@ void ProgAlignSpectral::generateTranslations() {
 }
 
 void ProgAlignSpectral::alignImages() {
-    // Compute the batch size
+    // Convert sizes
     constexpr size_t megabytes2bytes = 1024*1024; 
-    const auto projectionSize = getImageProjectionSize(m_bases);
-    const auto imageGallerySize = projectionSize * nRotations * m_translations.size();
-    const auto batchSize = std::max(static_cast<size_t>(megabytes2bytes * maxMemory) / imageGallerySize, 1UL);
+    const auto memorySizeBytes = static_cast<size_t>(megabytes2bytes*maxMemory);
+    const auto imageProjCoeffCount = std::accumulate(m_projectionSizes.cbegin(), m_projectionSizes.cend(), 0UL);
+    const auto imageProjSizeBytes = imageProjCoeffCount * sizeof(Real);
+
+    // Decide if it is convenient to split transformations
+    //constexpr auto splitTransform = false;
+    const auto splitTransform = m_mdExperimental.size() < m_mdReference.size()*nRotations;
+    const auto nRefTransform = splitTransform ? nRotations : nRotations*m_translations.size();
+
+    // Decide the batch sizes
+    const auto batchSize = getBatchSize(memorySizeBytes, imageProjSizeBytes, nRefTransform);
     const auto batchCount = (m_mdReference.size() + batchSize - 1) / batchSize; // Round up
 
     // Initialize the classification vector with invalid 
     // data and the appropiate size
     m_classification.clear();
     m_classification.resize(m_mdExperimental.size());
+
+    std::cout << "Applying rotations to reference images\n";
+    std::cout << "Applying shifts to " << (splitTransform ? "experimental" : "references") << " images\n";
 
     // Process in batches
     for(size_t i = 0; i < batchCount; ++i) {
@@ -634,17 +664,17 @@ void ProgAlignSpectral::alignImages() {
         std::cout << "Reference batch " << i+1 << "/" << batchCount << " (" << count << " images)\n";
         
         std::cout << "Projecting reference batch\n";
-        projectReferences(start, count);
+        if(splitTransform) projectReferencesRot(start, count); else projectReferencesRotShift(start, count);
         std::cout << std::endl;
 
         std::cout << "Classifying reference batch\n";
-        classifyExperimental();
+        if(splitTransform) classifyExperimentalShift(); else classifyExperimental();
         std::cout << std::endl;
     }
 }
 
 void ProgAlignSpectral::generateOutput() {
-    auto& mdOut = m_mdExperimental; // Overwrite the experimental MD as it wont be used anymore
+    auto mdOut = m_mdExperimental;
 
     // Modify the experimental data
     assert(mdOut.size() == m_classification.size());
@@ -659,14 +689,105 @@ void ProgAlignSpectral::generateOutput() {
 
 
 
-void ProgAlignSpectral::projectReferences(size_t start, size_t count) {
+void ProgAlignSpectral::projectReferences(  size_t start, 
+                                            size_t count ) 
+{
     // Allocate space
-    std::vector<size_t> projectionSizes(m_bases.size());
-    for(size_t i = 0; i < m_bases.size(); ++i) projectionSizes[i] = MAT_XSIZE(m_bases[i]);
-    m_references.reset(
-        count * nRotations * m_translations.size(),
-        projectionSizes
-    );
+    const auto nTransform = 1UL;
+    m_references.reset(count * nTransform, m_projectionSizes);
+    m_referenceData.resize(m_references.getImageCount());
+    
+    struct ThreadData {
+        Image<Real> image;
+        FourierTransformer fourier;
+        std::vector<Matrix1D<Real>> bandCoefficients;
+        std::vector<Matrix1D<Real>> bandProjections;
+    };
+
+    // Create a lambda to run in parallel
+    std::vector<ThreadData> threadData(nThreads);
+    const auto func = [this, &threadData, start] (size_t threadId, size_t i, const MDRowVec& row) {
+        auto& data = threadData[threadId];
+        const auto index = i - start;
+
+        // Read an image from disk
+        const size_t rowId = row.getValue<size_t>(MDL_OBJID);
+        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
+        data.image.read(fnImage);
+
+        // Compute the spectrum of the image
+        data.fourier.setReal(data.image());
+        data.fourier.FourierTransform();
+
+        // Obtain the corresponding memory area
+        m_references.getPcaProjection(index, data.bandProjections);
+
+        // Project the image
+        m_bandMap.flatten(data.fourier.fFourier, data.bandCoefficients);
+        project(m_ctfBases, data.bandCoefficients, data.bandProjections);
+
+        // Write the metadata
+        m_referenceData[index] = ReferenceMetadata(rowId, 0.0, 0.0, 0.0); 
+    };
+
+    processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
+}
+
+void ProgAlignSpectral::projectReferencesRot(   size_t start, 
+                                                size_t count ) 
+{
+    // Allocate space
+    const auto nTransform = nRotations;
+    m_references.reset(count * nTransform, m_projectionSizes);
+    m_referenceData.resize(m_references.getImageCount());
+    
+    struct ThreadData {
+        Image<Real> image;
+        ImageTransformer transformer;
+
+        std::vector<Matrix1D<Real>> bandCoefficients;
+        std::vector<Matrix1D<Real>> bandProjections;
+    };
+
+    // Create a lambda to run in parallel
+    std::vector<ThreadData> threadData(nThreads);
+    const auto func = [this, &threadData, start, nTransform] (size_t threadId, size_t i, const MDRowVec& row) {
+        auto& data = threadData[threadId];
+
+        // Read an image from disk
+        const size_t rowId = row.getValue<size_t>(MDL_OBJID);
+        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
+        data.image.read(fnImage);
+
+        // Project all the rotations
+        auto counter = nTransform * (i - start);
+        data.transformer.forEachInPlaneRotation(
+            data.image(), nRotations,
+            [this, rowId, &data, &counter] (const MultidimArray<Complex>& spectrum, double angle) {
+                const auto index = counter++;
+
+                // Obtain the corresponding memory area
+                m_references.getPcaProjection(index, data.bandProjections);
+
+                // Project the image
+                m_bandMap.flatten(spectrum, data.bandCoefficients);
+                project(m_ctfBases, data.bandCoefficients, data.bandProjections);
+
+                // Write the metadata
+                m_referenceData[index] = ReferenceMetadata(rowId, standardizeAngle(angle), 0.0, 0.0); 
+            }
+        );
+    };
+
+    processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
+}
+
+void ProgAlignSpectral::projectReferencesRotShift(  size_t start, 
+                                                    size_t count ) 
+{
+    // Allocate space
+    const auto nTransform = nRotations*m_translations.size();
+    m_references.reset(count * nTransform, m_projectionSizes);
     m_referenceData.resize(m_references.getImageCount());
     
     struct ThreadData {
@@ -678,7 +799,7 @@ void ProgAlignSpectral::projectReferences(size_t start, size_t count) {
 
     // Create a lambda to run in parallel
     std::vector<ThreadData> threadData(nThreads);
-    const auto func = [this, &threadData, start] (size_t threadId, size_t i, const MDRowVec& row) {
+    const auto func = [this, &threadData, start, nTransform] (size_t threadId, size_t i, const MDRowVec& row) {
         auto& data = threadData[threadId];
 
         // Read an image from disk
@@ -686,27 +807,22 @@ void ProgAlignSpectral::projectReferences(size_t start, size_t count) {
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
         data.image.read(fnImage);
 
-        // For each in-plane transformation train the PCA
-        const auto offset = (i - start) * nRotations * m_translations.size();
+        // Project all the rotations
+        auto counter = nTransform * (i - start);
         data.transformer.forEachInPlaneTransform(
-            data.image(),
-            nRotations,
-            m_translations,
-            [this, &data, rowId, counter=offset] (const auto& x, auto rot, auto sx, auto sy) mutable {
-                // Obtain the resulting memory area
+            data.image(), nRotations, m_translations,
+            [this, rowId, &data, &counter] (const MultidimArray<Complex>& spectrum, double angle, double sx, double sy) {
                 const auto index = counter++;
+
+                // Obtain the corresponding memory area
                 m_references.getPcaProjection(index, data.bandProjections);
 
                 // Project the image
-                m_bandMap.flatten(x, data.bandCoefficients);
+                m_bandMap.flatten(spectrum, data.bandCoefficients);
                 project(m_ctfBases, data.bandCoefficients, data.bandProjections);
 
                 // Write the metadata
-                m_referenceData[index] = ReferenceMetadata(
-                    rowId, 
-                    (rot > 180) ? rot - 360 : rot, 
-                    -sx, -sy //Opposite transform
-                );
+                m_referenceData[index] = ReferenceMetadata(rowId, standardizeAngle(angle), -sx, -sy); 
             }
         );
     };
@@ -718,11 +834,8 @@ void ProgAlignSpectral::classifyExperimental() {
     struct ThreadData {
         Image<Real> image;
         FourierTransformer fourier;
-        MultidimArray<std::complex<Real>> spectrum;
         std::vector<Matrix1D<Real>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
-        std::vector<Matrix1D<Real>> referenceBandProjections;
-        Matrix1D<Real> ssnr;
     };
 
     // Create a lambda to run in parallel
@@ -734,10 +847,12 @@ void ProgAlignSpectral::classifyExperimental() {
         const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
         data.image.read(fnImage);
 
-        // Project the image
-        data.fourier.FourierTransform(data.image(), data.spectrum, false);
-        m_bandMap.flatten(data.spectrum, data.bandCoefficients);
+        // Compute the fourier transform
+        data.fourier.setReal(data.image());
+        data.fourier.FourierTransform();
 
+        // Project the image
+        m_bandMap.flatten(data.fourier.fFourier, data.bandCoefficients);
         project(m_bases, data.bandCoefficients, data.bandProjections);
 
         // Compare the projection to find a match
@@ -752,6 +867,49 @@ void ProgAlignSpectral::classifyExperimental() {
 
     processRowsInParallel(m_mdExperimental, func, threadData.size());
 }
+
+void ProgAlignSpectral::classifyExperimentalShift() {
+    struct ThreadData {
+        Image<Real> image;
+        ImageTransformer transformer;
+        std::vector<Matrix1D<Real>> bandCoefficients;
+        std::vector<Matrix1D<Real>> bandProjections;
+    };
+
+    // Create a lambda to run in parallel
+    std::vector<ThreadData> threadData(nThreads);
+    const auto func = [this, &threadData] (size_t threadId, size_t i, const MDRowVec& row) {
+        auto& data = threadData[threadId];
+
+        // Read an image
+        const FileName& fnImage = row.getValue<String>(MDL_IMAGE);
+        data.image.read(fnImage);
+
+        // Compare against all the references for each translation
+        data.transformer.forEachInPlaneTranslation(
+            data.image(), m_translations,
+            [this, &data, i] (const MultidimArray<Complex>& spectrum, double sx, double sy) {
+                // Project the spectrum
+                m_bandMap.flatten(spectrum, data.bandCoefficients);
+                project(m_bases, data.bandCoefficients, data.bandProjections);
+
+                // Compare the projection to find a match
+                auto& classification = m_classification[i];
+                auto distance = classification.getDistance();
+                const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+                if(match < m_references.getImageCount()) {
+                    const auto rowId = m_referenceData[match].getRowId();
+                    const auto angle = m_referenceData[match].getRotation();
+                    classification = ReferenceMetadata(rowId, angle, sx, sy, distance);
+                }
+            }
+        );
+    };
+
+    processRowsInParallel(m_mdExperimental, func, threadData.size());
+}
+
+
 
 
 
@@ -897,60 +1055,23 @@ void ProgAlignSpectral::processRowsInParallel(  const MetaDataVec& md,
 
 
 
-size_t ProgAlignSpectral::getImageProjectionSize(const std::vector<Matrix2D<Real>>& bases) {
-    size_t coeffs = 0;
-    for(const auto& m : bases) {
-        coeffs += MAT_XSIZE(m);
-    }
-    return coeffs * sizeof(Real);
-}
-
-size_t ProgAlignSpectral::getGalleryProjectionSize( size_t imageSize, 
-                                                    size_t nImage,
-                                                    size_t nRot, 
-                                                    size_t nShift, 
-                                                    CombinationStrategy strategy )
+void ProgAlignSpectral::getProjectionSizes( const std::vector<Matrix2D<Real>>& bases, 
+                                            std::vector<size_t>& result ) 
 {
-    auto result = imageSize * nImage;
-
-    switch (strategy) {
-    case CombinationStrategy::storeRefRotShift:
-        result *= nRot*nShift;
-        break;
-
-    case CombinationStrategy::storeRefRot:
-        result *= nRot;
-        break;
-    
-    default:
-        break;
-    }
-
-    return result;
+    result.clear();
+    result.reserve(bases.size());
+    std::transform(
+        bases.cbegin(), bases.cend(),
+        std::back_inserter(result),
+        [] (const Matrix2D<Real>& m) -> size_t {
+            return MAT_XSIZE(m);
+        }
+    );
 }
 
-ProgAlignSpectral::CombinationStrategy 
-ProgAlignSpectral::getCombinationStrategy(  size_t nExp, 
-                                            size_t nRef, 
-                                            size_t nRot, 
-                                            size_t nShift )
-{
-    const std::array<size_t, 3> nProjOperations = {
-        nExp + nRef*nRot*nShift, //storeRefRotShift
-        nExp*nShift + nRef*nRot, //storeRefRot
-        nExp*nShift*nRot + nRef, //storeRef
-    };
-
-    const auto ite = std::min_element(
-        nProjOperations.cbegin(), nProjOperations.cend()
-    );
-
-    const auto index = std::distance(
-        nProjOperations.cbegin(), ite
-    );
-    return static_cast<CombinationStrategy>(index);
+size_t ProgAlignSpectral::getBatchSize(size_t memorySize, size_t imageProjSize, size_t nTransform) {
+    return std::max(memorySize / (imageProjSize * nTransform), 1UL);
 }
-
 
 std::vector<ProgAlignSpectral::TranslationFilter> 
 ProgAlignSpectral::computeTranslationFiltersRectangle(  const size_t nx, 
@@ -1047,6 +1168,10 @@ void ProgAlignSpectral::project(const std::vector<Matrix2D<Real>>& bases,
         assert(MAT_YSIZE(bases[i]) == VEC_XSIZE(bands[i]));
         matrixOperation_Atx(bases[i], bands[i], projections[i]);
     }
+}
+
+double ProgAlignSpectral::standardizeAngle(double angle) {
+    return (angle > 180.0) ? (angle - 360.0) : angle;
 }
 
 }
