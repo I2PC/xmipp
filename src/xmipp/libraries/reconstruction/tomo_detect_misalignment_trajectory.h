@@ -201,7 +201,7 @@ public:
      * @return
      *
     */
-    void bandPassFilter(MultidimArray<double> &inputTiltSeries);
+    void bandPassFilter(MultidimArray<double> &inputTiltSeries, int imageNumber);
 
     void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
 

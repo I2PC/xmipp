@@ -152,7 +152,7 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 
 // --------------------------- HEAD functions ----------------------------
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber)
 {
 	tiltImage.rangeAdjust(0, 1024);
 
@@ -170,6 +170,22 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
 		}
 	}
+
+	if (imageNumber == 35)
+	{
+	
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "/ts_laplace.mrcs";
+
+	Image<double> saveImage;
+	saveImage() = tmpImage;
+	saveImage.write(outputFileNameFilteredVolume);
+	#endif
+	}
+
 
 	int x1 = 0;  			// (x1, 0)
 	int x2 = xSize - 1;  	// (x2, 0)
@@ -517,10 +533,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
 		}	
 	}
-
-	MultidimArray<double> amplitude;
-
-	localAmplitude(tiltImage, amplitude);
 }
 
 
@@ -2306,7 +2318,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
         imgTS.read(fnTSimg);
 
 		// Comment for phantom
-        bandPassFilter(ptrImg);
+        bandPassFilter(ptrImg, counter);
 
         for (size_t i = 0; i < Ydim; ++i)
         {
