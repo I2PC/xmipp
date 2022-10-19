@@ -102,20 +102,27 @@ private:
 
 
     class GlobalAlignmentHelper final {
-        public:
-        auto findBatchThreadsForScale(const Dimensions &movie, const Dimensions &correlation, const GPU &gpu);
+    public:
+        auto findBatchesThreadsStreams(const Dimensions &movie, const Dimensions &correlation, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         
         FFTSettings<T> movieSettings = FFTSettings<T>(0);
         FFTSettings<T> correlationSettings = FFTSettings<T>(0);
         size_t gpuStreams = 1;
         size_t cpuThreads = 2;
+        size_t bufferSize; // for correlation
 
-        size_t bufferSize;
+    friend std::ostream& operator<<(std::ostream &os, const GlobalAlignmentHelper &h) {
+        os << "Settings for the movie: " << h.movieSettings << "\n";
+        os << "GPU streams: " << h.gpuStreams << " CPU threads: " << h.cpuThreads << "\n";
+        os << "Settings for the correlation: " << h.correlationSettings << "\n";
+        os << "Correlation buffer size: " << h.bufferSize;
+        return os;
+    }
         
-        private:
-        auto findGoodCropSize(const Dimensions &movie, const GPU &gpu);
-        auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu);
-    };
+    private:
+        auto findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+    } globalHelper;
 
     /**
      * Inherited, see parent
@@ -152,7 +159,7 @@ private:
     std::string const getKey(const std::string &keyword,
             const Dimensions &dim, bool crop) {
         std::stringstream ss;
-        ss << gpu.value().getUUID() << keyword << dim << crop;
+        ss << version << " " << gpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();
     }
 
@@ -258,6 +265,15 @@ private:
             bool applyCrop);
 
     /**
+     * Store setting for given dimensions to permanent storage
+     * @param dim reference
+     * @param s setting to store
+     * @param applyCrop flag
+     */
+    void storeSizesNew(const Dimensions &orig, const Dimensions &opt,
+            bool applyCrop);
+
+    /**
      * Loads whole movie to the RAM
      * @param movie to load
      * @param dark pixel correction
@@ -284,6 +300,15 @@ private:
      * @return stored setting, if any
      */
     core::optional<FFTSettings<T>> getStoredSizes(const Dimensions &dim,
+            bool applyCrop);
+
+    /**
+     * Loads setting for given dimensions from permanent storage
+     * @param dim reference
+     * @param applyCrop flag
+     * @return stored setting, if any
+     */
+    std::optional<Dimensions> getStoredSizesNew(const Dimensions &dim,
             bool applyCrop);
 
     /**
@@ -413,6 +438,8 @@ private:
     std::string optSizeXStr = std::string("optSizeX");
     std::string optSizeYStr = std::string("optSizeY");
     std::string optBatchSizeStr = std::string("optBatchSize");
+
+    static constexpr auto version = "1.2";
 };
 
 //@}
