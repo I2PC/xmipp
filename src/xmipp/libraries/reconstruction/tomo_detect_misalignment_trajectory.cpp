@@ -727,19 +727,19 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				}
 			}
 
-			//#ifdef DEBUG_HCC
+			#ifdef DEBUG_HCC
 			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
-			//#endif
+			#endif
 
 			firstExecution = false;
 
 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
-			// #ifdef DEBUG_HCC
+			#ifdef DEBUG_HCC
 			std::cout << "Colour: " << colour << std::endl;
-			// #endif
+			#endif
 
-		} while(colour < 1);
+		} while(colour < 5);
 
 
 		for(size_t i = 0; i < ySize; i++)
