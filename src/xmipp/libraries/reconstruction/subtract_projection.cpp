@@ -118,9 +118,8 @@
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
 	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); 
-	if (nonNegative) 
+	if (nonNegative && (disable || R2a < 0)) 
 	{
-		if (disable || R2a < 0)
 			mdParticles.setValue(MDL_ENABLED, -1, ix);
 	}
  }
@@ -173,7 +172,7 @@
 		mpad.setXmippOrigin();
 		MultidimArray<double> &mproj = proj();
 		mproj.setXmippOrigin();
-		mproj.window(mpad,STARTINGY(mproj)*padFourier, STARTINGX(mproj)*padFourier, FINISHINGY(mproj)*padFourier, FINISHINGX(mproj)*padFourier);
+		mproj.window(mpad,STARTINGY(mproj)*(int)padFourier, STARTINGX(mproj)*(int)padFourier, FINISHINGY(mproj)*(int)padFourier, FINISHINGX(mproj)*(int)padFourier);
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad); 
 		//Crop to restore original size
@@ -267,9 +266,12 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	V().setXmippOrigin();
 
 	// Create 2D circular mask to avoid edge artifacts after wrapping
-	size_t Xdim, Ydim, Zdim, Ndim;
+	size_t Xdim;
+	size_t Ydim;
+	size_t Zdim;
+	size_t Ndim;
     V.getDimensions(Xdim, Ydim, Zdim, Ndim);
-	cirmask().initZeros(Xdim, Ydim);
+	cirmask().initZeros((int)Ydim, (int)Xdim);
 	cirmask().setXmippOrigin();
 	RaisedCosineMask(cirmask(), (double)XSIZE(V())*0.8/2, (double)XSIZE(V())*0.9/2);
 	cirmask.write("cirmask.mrc");
@@ -320,8 +322,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	MultidimArray< std::complex<double> > PiMFourier;
 	
 	// For each particle in metadata:
-	size_t i;
-    for (i = 1; i <= mdParticles.size(); ++i) {  
+    for (size_t i = 1; i <= mdParticles.size(); ++i) {  
 		// Initialize aux variable
 		disable = false;
 		// Project volume and process projections 
@@ -381,9 +382,8 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		// Compute beta00 from order 0 model
 		double beta00 = num0.sum()/den0.sum();
 		std::cout << "beta00: " << beta00 << std::endl;
-		if (nonNegative) 
+		if (nonNegative && beta00 < 0) 
 		{
-			if (beta00 < 0)
 				disable = true;
 		}
 
@@ -440,7 +440,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		{
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
-			MultidimArray<double> &mIdiff=Idiff();
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
 			if (fmaskWidth == -1)
