@@ -49,7 +49,6 @@
     int fmaskWidth;
 	int sigma;
     int limitfreq;
-    int xsizeV; 
     bool nonNegative;
     bool subtract;
     bool boost;
