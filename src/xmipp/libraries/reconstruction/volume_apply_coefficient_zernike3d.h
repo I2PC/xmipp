@@ -1,8 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Herreros Calero (dherreros@cnb.csic.es)
- *
- * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ * Authors:    David Herreros Calero             dherreros@cnb.csic.es
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,33 +18,31 @@
  * 02111-1307  USA
  *
  *  All comments concerning this program package may be sent to the
- *  e-mail address 'xmipp@cnb.csic.es'
+ *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
-#ifndef _PROG_PDB_SPH_DEFORM
-#define _PROG_PDB_SPH_DEFORM
 
-#include <data/pdb.h>
+#ifndef _PROG_FORWARD_APPLY_ZERNIKE3D
+#define _PROG_FORWARD_APPLY_ZERNIKE3D
+
 #include <core/xmipp_program.h>
-#include <core/xmipp_metadata_program.h>
-#include <core/matrix1d.h>
+#include <core/xmipp_image.h>
+#include <data/blobs.h>
 
-class ProgPdbSphDeform: public XmippProgram
+
+class ProgApplyCoeffZernike3D: public XmippProgram
 {
 private:
-    /** PDB file */
-    FileName fn_pdb;
+    /** Volume to deform file */
+    FileName fn_vol;
 
     /** Deformation coefficients list */
     FileName fn_sph;
 
+    /** Mask for volume to deform */
+    FileName fn_mask;
+
     /** Output fileroot */
     FileName fn_out;
-
-    /** Center of mass centering */
-    bool center;
-
-    /** Volume box size */
-    double boxSize;    
 
     /** Vector containing the deformation coefficients */
 	std::vector<double> clnm;
@@ -60,7 +56,14 @@ private:
     Matrix1D<int> vL2;
     Matrix1D<int> vM;
 
-public:
+    // Loop step
+    int loop_step;
+
+    // Blob
+    struct blobtype blob;
+    double blob_r;
+
+private:
     /** Params definitions */
     void defineParams() override;
 
@@ -82,8 +85,11 @@ public:
     /** Fill degree and order vectors */
     void fillVectorTerms();
 
-    /** Compute center of mass of the PDB file */
-    void centerOfMass(PDBRichPhantom pdb, Matrix1D<double> &cm);
+    /** Splatting at position r */
+    void splattingAtPos(std::array<double, 3> r, double weight, const MultidimArray<double> &mVO);
+
+    double bspline1(double x);
+
 };
 //@}
 #endif
