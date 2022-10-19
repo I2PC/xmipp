@@ -404,7 +404,7 @@ public:
 
     void getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image);
 
-    void localAmplitude(MultidimArray<double> &tiltImage, MultidimArray<double> &amplitude);
+    // void localAmplitude(MultidimArray<double> &tiltImage, MultidimArray<double> &amplitude);
 
 
 

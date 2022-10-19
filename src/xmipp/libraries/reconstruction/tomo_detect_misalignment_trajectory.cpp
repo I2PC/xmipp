@@ -151,67 +151,6 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::localAmplitude(MultidimArray<double> &tiltImage, MultidimArray<double> &amplitude)
-{
-	amplitude = tiltImage;
-
-	FourierTransformer transformer1(FFTW_BACKWARD);
-	MultidimArray<std::complex<double>> fftrx, fftry;
-	transformer1.FourierTransform(tiltImage, fftrx, true);
-	fftry = fftrx;
-
-    double uy;
-	double ux;
-	double u;
-	double uy2;
-
-	long n=0;
-	std::complex<double> J(0,1);
-
-	for(size_t i=0; i<YSIZE(fftrx); ++i)
-	{
-		FFT_IDX2DIGFREQ(i, ySize, uy);
-		uy2=uy*uy;
-
-		for(size_t j=0; j<XSIZE(fftrx); ++j)
-		{
-			FFT_IDX2DIGFREQ(j, xSize, ux);
-			u=sqrt(uy2+ux*ux)+1e-38;
-
-			DIRECT_MULTIDIM_ELEM(fftrx, n) *= -J*(ux/u);
-
-			DIRECT_MULTIDIM_ELEM(fftry, n) *= -J*(uy/u);
-			++n;
-		}
-	}
-
-	MultidimArray<double> fx, fy;
-
-	fx.resizeNoCopy(tiltImage);
-	fy.resizeNoCopy(tiltImage);
-
-	transformer1.inverseFourierTransform(fftrx, fx);
-	transformer1.inverseFourierTransform(fftry, fy);
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(tiltImage)
-	{
-		double fxx = DIRECT_MULTIDIM_ELEM(fx,n);
-		double fyy = DIRECT_MULTIDIM_ELEM(fy,n);
-		double aa = DIRECT_MULTIDIM_ELEM(amplitude,n);
-		DIRECT_MULTIDIM_ELEM(amplitude,n) += sqrt(aa*aa + fxx*fxx + fyy*fyy);
-	}
-
-	size_t l = fnOut.find_last_of("\\/");
-	std::string rawnameBis = fnOut.substr(0, l);
-	std::string outputFileNameFilteredVolumeBis;
-    outputFileNameFilteredVolumeBis = rawnameBis + "/ts_amplitude.mrcs";
-
-	Image<double> saveImageBis;
-	saveImageBis() = amplitude;
-	saveImageBis.write(outputFileNameFilteredVolumeBis);
-
-}
-
 // --------------------------- HEAD functions ----------------------------
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
 {
@@ -3975,6 +3914,68 @@ void ProgTomoDetectMisalignmentTrajectory::getCMbyImage(size_t tiltImageNumber, 
 	// }
 
 	// tiltImage = tmpImage;
+
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::localAmplitude(MultidimArray<double> &tiltImage, MultidimArray<double> &amplitude)
+// {
+// 	amplitude = tiltImage;
+
+// 	FourierTransformer transformer1(FFTW_BACKWARD);
+// 	MultidimArray<std::complex<double>> fftrx, fftry;
+// 	transformer1.FourierTransform(tiltImage, fftrx, true);
+// 	fftry = fftrx;
+
+//     double uy;
+// 	double ux;
+// 	double u;
+// 	double uy2;
+
+// 	long n=0;
+// 	std::complex<double> J(0,1);
+
+// 	for(size_t i=0; i<YSIZE(fftrx); ++i)
+// 	{
+// 		FFT_IDX2DIGFREQ(i, ySize, uy);
+// 		uy2=uy*uy;
+
+// 		for(size_t j=0; j<XSIZE(fftrx); ++j)
+// 		{
+// 			FFT_IDX2DIGFREQ(j, xSize, ux);
+// 			u=sqrt(uy2+ux*ux)+1e-38;
+
+// 			DIRECT_MULTIDIM_ELEM(fftrx, n) *= -J*(ux/u);
+
+// 			DIRECT_MULTIDIM_ELEM(fftry, n) *= -J*(uy/u);
+// 			++n;
+// 		}
+// 	}
+
+// 	MultidimArray<double> fx, fy;
+
+// 	fx.resizeNoCopy(tiltImage);
+// 	fy.resizeNoCopy(tiltImage);
+
+// 	transformer1.inverseFourierTransform(fftrx, fx);
+// 	transformer1.inverseFourierTransform(fftry, fy);
+
+// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(tiltImage)
+// 	{
+// 		double fxx = DIRECT_MULTIDIM_ELEM(fx,n);
+// 		double fyy = DIRECT_MULTIDIM_ELEM(fy,n);
+// 		double aa = DIRECT_MULTIDIM_ELEM(amplitude,n);
+// 		DIRECT_MULTIDIM_ELEM(amplitude,n) += sqrt(aa*aa + fxx*fxx + fyy*fyy);
+// 	}
+
+// 	size_t l = fnOut.find_last_of("\\/");
+// 	std::string rawnameBis = fnOut.substr(0, l);
+// 	std::string outputFileNameFilteredVolumeBis;
+//     outputFileNameFilteredVolumeBis = rawnameBis + "/ts_amplitude.mrcs";
+
+// 	Image<double> saveImageBis;
+// 	saveImageBis() = amplitude;
+// 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 
 // }
 
