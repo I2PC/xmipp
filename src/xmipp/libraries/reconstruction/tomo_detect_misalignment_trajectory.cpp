@@ -243,7 +243,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	double epsilon = 0.00000000000001;
 
-	for (size_t i = 1; i < xSize; i++)
+	for (size_t i = 1; i < xSize-2; i++)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
 		{
@@ -261,7 +261,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t i = 1; i < xSize; i++)
+	for (size_t i = 1; i < xSize-2; i++)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
 		{
@@ -279,7 +279,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t j = 1; j < ySize; j++)
+	for (size_t j = 1; j < ySize-2; j++)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
 		{
@@ -288,7 +288,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	for (size_t j = 1; j < ySize; j++)
+	for (size_t j = 1; j < ySize-2; j++)
 	{
 		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
 		{
@@ -673,6 +673,9 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		// 	sliceVector[i] = (sliceVector[i]-maximum)*(sliceVector[i]-maximum);
 		// }
 
+		std::cout << "Slice vector size: " << sliceVectorSize << std::endl;
+
+
         for(size_t e = 0; e < sliceVectorSize; e++)
         {
             int value = sliceVector[e];
@@ -696,11 +699,13 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		int numberOfPointsAddedBinaryMap = 0;
 
 		bool firstExecution = true;
+		int colour;
 
 		do{
 			if (!firstExecution)
 			{
 				threshold -= 0.1 * threshold;
+				std::cout << "new threshold " << threshold << std::endl;
 			}
 			
 
@@ -722,15 +727,20 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				}
 			}
 
+			//#ifdef DEBUG_HCC
+			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
+			//#endif
+
 			firstExecution = false;
 
-		} while(numberOfPointsAddedBinaryMap==0);
+			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
-		#ifdef DEBUG_HCC
-		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
-		#endif
+			// #ifdef DEBUG_HCC
+			std::cout << "Colour: " << colour << std::endl;
+			// #endif
 
-		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
+		} while(colour < 1);
+
 
 		for(size_t i = 0; i < ySize; i++)
 		{
@@ -744,10 +754,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				}
 			}
 		}
-
-		#ifdef DEBUG_HCC
-		std::cout << "Colour: " << colour << std::endl;
-		#endif
 
 		std::vector<std::vector<int>> coordinatesPerLabelX (colour);
 		std::vector<std::vector<int>> coordinatesPerLabelY (colour);

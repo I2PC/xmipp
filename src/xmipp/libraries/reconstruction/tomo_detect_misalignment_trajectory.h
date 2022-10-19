@@ -102,7 +102,7 @@ public:
         int x2;  // Top-right corner (x2, 0)
         int x3;  // Bottom-left corner (x3, ySize)
         int x4;  // Bottom-right corner (x4, ySize)
-        int y1;  // Top-left corner (y1, 0)
+        int y1;  // Top-left corner (0, y1)
         int y2;  // Top-right corner (xSize, y2)
         int y3;  // Bottom-left corner (0, y3)
         int y4;  // Bottom-right corner (xSize, y4)
