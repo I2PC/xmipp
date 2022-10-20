@@ -130,12 +130,12 @@ private:
         
         FFTSettings<T> patchSettings = FFTSettings<T>(0);
         FFTSettings<T> correlationSettings = FFTSettings<T>(0);
-        size_t cpuThreads = 2;
+        size_t cpuThreads = 4;
         size_t bufferSize; // for correlation
 
     friend std::ostream& operator<<(std::ostream &os, const LocalAlignmentHelper &h) {
-        os << "Settings for the movie: " << h.movieSettings << "\n";
-        os << "GPU streams: " << h.gpuStreams << " CPU threads: " << h.cpuThreads << "\n";
+        os << "Settings for the patches: " << h.patchSettings << "\n";
+        os << "CPU threads: " << h.cpuThreads << "\n";
         os << "Settings for the correlation: " << h.correlationSettings << "\n";
         os << "Correlation buffer size: " << h.bufferSize;
         return os;
