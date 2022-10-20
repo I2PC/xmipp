@@ -103,7 +103,7 @@ private:
 
     class GlobalAlignmentHelper final {
     public:
-        auto findBatchesThreadsStreams(const Dimensions &movie, const Dimensions &correlation, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        auto findBatchesThreadsStreams(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         
         FFTSettings<T> movieSettings = FFTSettings<T>(0);
         FFTSettings<T> correlationSettings = FFTSettings<T>(0);
@@ -113,7 +113,7 @@ private:
 
     friend std::ostream& operator<<(std::ostream &os, const GlobalAlignmentHelper &h) {
         os << "Settings for the movie: " << h.movieSettings << "\n";
-        os << "GPU streams: " << h.gpuStreams << " CPU threads: " << h.cpuThreads << "\n";
+        os << "GPU streams: " << h.gpuStreams << "; CPU threads: " << h.cpuThreads << "\n";
         os << "Settings for the correlation: " << h.correlationSettings << "\n";
         os << "Correlation buffer size: " << h.bufferSize;
         return os;
@@ -123,6 +123,28 @@ private:
         auto findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
     } globalHelper;
+
+    class LocalAlignmentHelper final {
+    public:
+        auto findBatchesThreadsStreams(const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        
+        FFTSettings<T> patchSettings = FFTSettings<T>(0);
+        FFTSettings<T> correlationSettings = FFTSettings<T>(0);
+        size_t cpuThreads = 2;
+        size_t bufferSize; // for correlation
+
+    friend std::ostream& operator<<(std::ostream &os, const LocalAlignmentHelper &h) {
+        os << "Settings for the movie: " << h.movieSettings << "\n";
+        os << "GPU streams: " << h.gpuStreams << " CPU threads: " << h.cpuThreads << "\n";
+        os << "Settings for the correlation: " << h.correlationSettings << "\n";
+        os << "Correlation buffer size: " << h.bufferSize;
+        return os;
+    }
+        
+    private:
+        auto findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+    } localHelper;
 
     /**
      * Inherited, see parent
