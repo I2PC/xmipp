@@ -396,8 +396,14 @@ Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
     if (this->movieSize) return movieSize.value();
     int noOfImgs = this->nlast - this->nfirst + 1;
     if (-1 == this->yRDcorner) {
+        auto fn = fnMovie;
+        if (fnMovie.isMetaData()) {
+            MetaDataVec md;
+            md.read(fnMovie);
+            md.getValue(MDL_IMAGE, fn, md.firstRowId()); // assuming all frames have the same resolution
+        }
         ImageGeneric movieStack;
-        movieStack.read(fnMovie, HEADER);
+        movieStack.read(fn, HEADER);
         size_t xdim, ydim, zdim, ndim;
         movieStack.getDimensions(xdim, ydim, zdim, ndim);
         this->movieSize = Dimensions(xdim, ydim, 1, noOfImgs);
