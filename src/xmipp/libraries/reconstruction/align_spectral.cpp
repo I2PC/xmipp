@@ -57,7 +57,7 @@ void ProgAlignSpectral::defineParams() {
     addParamsLine("   --rotations <rotations>         : Number of rotations to consider");
     addParamsLine("   --translations <transtions>     : Number of translations to consider");
     addParamsLine("   --maxShift <maxShift>           : Maximum translation in percentage relative to the image size");
-    
+
     addParamsLine("   --thr <threads>                 : Number of threads");
     addParamsLine("   --memory <memory>               : Amount of memory used for storing references");
 }
@@ -268,7 +268,14 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneRotation(   const Multid
                                                                     size_t nRotations,
                                                                     F&& func )
 {
-    // Perform all except the trivial rotations (0...360)
+    // Compute the fourier transform of the clean image
+    m_fourierClean.setReal(const_cast<MultidimArray<Real>&>(img)); // HACK although it wont be written
+    m_fourierClean.FourierTransform();
+
+    // The first one (0 deg) does not need any rotate operation
+    func(m_fourierClean.fFourier, 0.0);
+
+    // Perform the rest of the rotations
     const auto step = 360.0 / nRotations;
     for (size_t i = 1; i < nRotations; ++i) {
         // Rotate the input image into the cached image
@@ -287,12 +294,6 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneRotation(   const Multid
         func(m_fourierRotated.fFourier, angle);
     }
 
-    // Compute the fourier transform of the clean image
-    m_fourierClean.setReal(const_cast<MultidimArray<Real>&>(img)); // HACK although it wont be written
-    m_fourierClean.FourierTransform();
-
-    // The first one (0 deg) does not need any rotate operation
-    func(m_fourierClean.fFourier, 0.0);
 }
 template<typename F>
 void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const MultidimArray<Real>& img,
@@ -491,16 +492,6 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const s
 
 
 
-ProgAlignSpectral::ReferenceMetadata::ReferenceMetadata()
-    : m_rowId(0)
-    , m_rotation(0)
-    , m_shiftX(0)
-    , m_shiftY(0)
-    , m_distance(std::numeric_limits<double>::infinity())
-{
-}
-
-
 ProgAlignSpectral::ReferenceMetadata::ReferenceMetadata(size_t rowId, 
                                                         double rotation, 
                                                         double shiftx, 
@@ -641,7 +632,6 @@ void ProgAlignSpectral::alignImages() {
     const auto imageProjSizeBytes = imageProjCoeffCount * sizeof(Real);
 
     // Decide if it is convenient to split transformations
-    //constexpr auto splitTransform = false;
     const auto splitTransform = m_mdExperimental.size() < m_mdReference.size()*nRotations;
     const auto nRefTransform = splitTransform ? nRotations : nRotations*m_translations.size();
 
@@ -744,7 +734,6 @@ void ProgAlignSpectral::projectReferencesRot(   size_t start,
     struct ThreadData {
         Image<Real> image;
         ImageTransformer transformer;
-
         std::vector<Matrix1D<Real>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
     };
@@ -774,9 +763,10 @@ void ProgAlignSpectral::projectReferencesRot(   size_t start,
                 project(m_ctfBases, data.bandCoefficients, data.bandProjections);
 
                 // Write the metadata
-                m_referenceData[index] = ReferenceMetadata(rowId, standardizeAngle(angle), 0.0, 0.0); 
+                m_referenceData[index] = ReferenceMetadata(rowId, standardizeAngle(angle)); 
             }
         );
+        assert(counter == nTransform * (i - start + 1)); // Ensure all has been written
     };
 
     processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
@@ -825,6 +815,7 @@ void ProgAlignSpectral::projectReferencesRotShift(  size_t start,
                 m_referenceData[index] = ReferenceMetadata(rowId, standardizeAngle(angle), -sx, -sy); 
             }
         );
+        assert(counter == nTransform * (i - start + 1)); // Ensure all has been written
     };
 
     processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
@@ -902,6 +893,7 @@ void ProgAlignSpectral::classifyExperimentalShift() {
                     const auto angle = m_referenceData[match].getRotation();
                     classification = ReferenceMetadata(rowId, angle, sx, sy, distance);
                 }
+                assert(classification.getDistance() == distance);
             }
         );
     };

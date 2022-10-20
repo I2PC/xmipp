@@ -32,7 +32,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
-#include "../data/sga_nn_online_pca.h"
+#include <core/matrix2d.h>
 
 #include <vector>
 #include <string_view>
@@ -195,8 +195,11 @@ private:
 
     class ReferenceMetadata {
     public:
-        ReferenceMetadata();
-        ReferenceMetadata(size_t rowId, double rotation, double shiftx, double shifty, double distance = std::numeric_limits<double>::infinity());
+        ReferenceMetadata(  size_t rowId = std::numeric_limits<size_t>::max(), 
+                            double rotation = 0.0, 
+                            double shiftx = 0.0, 
+                            double shifty = 0.0, 
+                            double distance = std::numeric_limits<double>::infinity() );
         ReferenceMetadata(const ReferenceMetadata& other) = default;
         ~ReferenceMetadata() = default;
 
