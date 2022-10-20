@@ -113,11 +113,14 @@
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, double R2a) {
+ void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img, double R2a, double b0save, double b1save) {
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
 	mdParticles.setValue(MDL_SUBTRACTION_R2, R2a, ix); 
+	mdParticles.setValue(MDL_SUBTRACTION_BETA0, b0save, ix); 
+	mdParticles.setValue(MDL_SUBTRACTION_BETA1, b1save, ix); 
+
 	if (nonNegative && (disable || R2a < 0)) 
 	{
 			mdParticles.setValue(MDL_ENABLED, -1, ix);
@@ -192,15 +195,15 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	P.write("projection_xmipp.mrc");
+	P.write(formatString("%s/projection_xmipp.mrc", fnProj.c_str()));
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	P.write("projection_xmipp_shift.mrc");
+	P.write(formatString("%s/projection_xmipp_shift.mrc", fnProj.c_str()));
 	Pctf = applyCTF(row, P);
-	Pctf.write("projection_xmipp_ctf_wrap.mrc");
+	Pctf.write(formatString("%s/projection_xmipp_ctf_wrap.mrc", fnProj.c_str()));
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
-	Pctf.write("projection_xmipp_ctf_wrap_circularmask.mrc");
+	Pctf.write(formatString("%s/projection_xmipp_ctf_wrap_circularmask.mrc", fnProj.c_str()));
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -274,7 +277,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	cirmask().initZeros((int)Ydim, (int)Xdim);
 	cirmask().setXmippOrigin();
 	RaisedCosineMask(cirmask(), (double)XSIZE(V())*0.8/2, (double)XSIZE(V())*0.9/2);
-	cirmask.write("cirmask.mrc");
+	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
 	createMask(fnMask, vM, ivM);
@@ -413,6 +416,19 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		// Check best model
 		int best_model;
 		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, best_model);
+		std::cout << "best_model: " << best_model << std::endl; 	
+		double beta0save;
+		double beta1save;		
+		if (best_model == 0)
+		{
+			beta0save = beta00;
+			beta1save = 0;
+		}
+		else if (best_model == 1)
+		{
+			beta0save = beta01;
+			beta1save = beta1;
+		}
 
 		// Create empty new image for output particle
 		MultidimArray<double> &mIdiff=Idiff();
@@ -454,7 +470,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			}
 		}
 		// Write particle
-		writeParticle(int(i), Idiff, R2adj); 
+		writeParticle(int(i), Idiff, R2adj, beta0save, beta1save); 
 	}
 	// Write metadata 
     mdParticles.write(formatString("%s.xmd", fnOut.c_str()));
