@@ -458,6 +458,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			transformerP.inverseFourierTransform(PFourier, P());
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
+			P.write(formatString("%s/projection_xmipp_to_subtract.mrc", fnProj.c_str()));
 			if (fmaskWidth == -1)
 			{
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
