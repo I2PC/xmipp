@@ -164,7 +164,7 @@
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
-		ctf.readFromdMdRow(r);
+		ctf.readFromMdRow(r);
 		ctf.Tm = sampling;
 		ctf.produceSideInfo();
 	 	FilterCTF.FilterBand = CTF;
