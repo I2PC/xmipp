@@ -439,7 +439,7 @@ auto __attribute__((optimize("O0"))) ProgMovieAlignmentCorrelationGPU<T>::LocalA
         if (bufferSize > corrBatch) {
             bufferDivider += (bufferDivider == 1) ? 2 : 1; // we use two buffers, so we need the same memory for batch == 1 and == 2
         }
-        correlationSettings = FFTSettings<T>(cSize, corrBatch);
+        correlationSettings = FFTSettings<T>(cSize, corrBatch, false, false);
         for (auto scaleBatch = pSize.n(); scaleBatch > 0; --scaleBatch) {
             patchSettings = FFTSettings<T>(pSize, scaleBatch);
             if (cond() && getMemReq() <= maxBytes) {
@@ -497,11 +497,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     result.shifts.reserve(patchesLocation.size() * movieSize.n());
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
-    // allocate additional memory for the patches
-    // we reuse the data, so we need enough space for the patches data
-    // and for the resulting correlations, which cannot be bigger than (padded) input data
-    size_t bytes = std::max(patchSettings.fBytes(), patchSettings.sBytes());
-
     auto createContext = [&, this](auto &p) {
         static std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex); // we need to lock this part to ensure serial access to result.shifts
@@ -535,6 +530,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     futures.reserve(patchesLocation.size());
     GlobAlignmentData<T> auxData;
     auxData.alloc(patchSettings.createBatch(), correlationSettings, gpu.value());
+    CorrelationData<T> corrAuxData;
+    corrAuxData.alloc(correlationSettings, localHelper.bufferSize, gpu.value());
 
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
@@ -544,11 +541,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
             // alllocate and clear patch data
             if (nullptr == patchData.at(thrId)) {
-                patchData[thrId] = reinterpret_cast<T*>(BasicMemManager::instance().get(bytes, MemType::CUDA_HOST));
+                patchData[thrId] = reinterpret_cast<T*>(BasicMemManager::instance().get(patchSettings.sBytes(), MemType::CUDA_HOST));
                 scalledPatches[thrId] = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(correlationSettings.fBytes(), MemType::CUDA_HOST));
             }
             auto *data = patchData.at(thrId);
-            memset(data, 0, bytes);
 
             // allocate and clear correlation data
             if (nullptr == corrBuffers.at(thrId)) {
@@ -573,7 +569,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 computeCorrelations(context.centerSize, context.N, scalledPatches[thrId], correlationSettings.fDim().x(),
                         correlationSettings.sDim().x(),
                         correlationSettings.fDim().y(), context.framesInCorrelationBuffer,
-                        correlationSettings.batch(), correlations);
+                        correlationSettings.batch(), correlations, corrAuxData);
             }).get(); // wait till done - i.e. correlations are computed and on CPU
 
             // compute resulting shifts
@@ -587,6 +583,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     for (auto *ptr : corrBuffers) { BasicMemManager::instance().give(ptr); }
     for (auto *ptr : patchData) { BasicMemManager::instance().give(ptr); }
     BasicMemManager::instance().give(filterData);
+    corrAuxData.release();
+    auxData.release();
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSize, result,
             this->localAlignmentControlPoints, this->localAlignPatches,

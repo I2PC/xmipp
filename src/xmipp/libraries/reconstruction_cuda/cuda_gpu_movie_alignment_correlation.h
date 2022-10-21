@@ -49,6 +49,17 @@ struct GlobAlignmentData {
     cufftHandle *plan;
 };
 
+template<typename T>
+struct CorrelationData {
+    void alloc(const FFTSettings<T> &settings, size_t bufferSize, const GPU &gpu);
+    void release();
+    T *d_imgs;
+    std::complex<T> *d_ffts;
+    std::complex<T> *d_fftBuffer1;
+    std::complex<T> *d_fftBuffer2;
+    cufftHandle *plan;
+};
+
 /**@defgroup ProgAGPUMovieAlign Cuda GPU movie Alignment Correlation
    @ingroup ReconsLibrary */
 //@{
@@ -153,6 +164,11 @@ void copyInRightOrder(T* d_imgs, T* result, int xDim, int yDim, bool isWithin,
 template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
         int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
+        int fftBatchSize, T*& result, CorrelationData<T> &aux);
+
+template<typename T>
+void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
+        int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
         int fftBatchSize, T*& result);
 
 /**
@@ -180,6 +196,13 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
         int fftBatchSize, size_t in1Offset, size_t in2Offset,
         GpuMultidimArrayAtGpu<std::complex<T> >& ffts,
         GpuMultidimArrayAtGpu<T>& imgs, mycufftHandle& handler,
+        T*& result);
+        template<typename T>
+void computeCorrelationsNew(size_t centerSize, int noOfImgs,
+        void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
+        int fftBatchSize, size_t in1Offset, size_t in2Offset,
+        GpuMultidimArrayAtGpu<std::complex<T> >& ffts,
+        GpuMultidimArrayAtGpu<T>& imgs, cufftHandle &handler,
         T*& result);
 //@}
 
