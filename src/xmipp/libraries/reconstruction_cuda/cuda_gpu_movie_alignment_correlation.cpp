@@ -331,19 +331,13 @@ void copyInRightOrder(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
 }
 
 template void computeCorrelations<float>(size_t centerSize, size_t noOfImgs,
-    std::complex<float>* h_FFTs,
-    int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
-    int fftBatchSize, float*& result, CorrelationData<float> &aux);
+    const FFTSettings<float> &settings, std::complex<float>* h_FFTs,
+     size_t maxFFTsInBuffer, float *result, CorrelationData<float> &aux);
 template<typename T>
-void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
-        int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
-        int fftBatchSize, T*& result, CorrelationData<T> &aux) {
-
-    GpuMultidimArrayAtGpu<std::complex<T> > ffts(fftSizeX, fftSizeY, 1, fftBatchSize, aux.d_ffts);
-    GpuMultidimArrayAtGpu<T> imgs(imgSizeX, fftSizeY, 1, fftBatchSize, aux.d_imgs);
-    
-    size_t singleFFTPixels = fftSizeX * fftSizeY;
-    size_t singleFFTBytes = singleFFTPixels * sizeof(T) * 2;
+void computeCorrelations(size_t centerSize, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
+        size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux) {
+    size_t singleFFTPixels = settings.fDim().xy();
+    size_t singleFFTBytes = settings.fBytesSingle();
 
     size_t buffer1Size = maxFFTsInBuffer;
     size_t buffer2Size = noOfImgs == maxFFTsInBuffer ? 0 : maxFFTsInBuffer;
@@ -357,8 +351,8 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
         // compute inter-buffer correlations
         computeCorrelationsNew(centerSize, noOfImgs, aux.d_fftBuffer1, buffer1ToCopy,
                 aux.d_fftBuffer1, buffer1ToCopy,
-                fftBatchSize, buffer1Offset, buffer1Offset, ffts, imgs,
-                *aux.plan, result);
+                buffer1Offset, buffer1Offset, aux.d_ffts, aux.d_imgs,
+                *aux.plan, result, settings);
         size_t buffer2Offset = buffer1Offset + buffer1ToCopy;
         while (buffer2Offset < noOfImgs) {
             // copy other buffer
@@ -369,8 +363,8 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
 
             computeCorrelationsNew(centerSize, noOfImgs, aux.d_fftBuffer1, buffer1ToCopy,
                     aux.d_fftBuffer2, buffer2ToCopy,
-                    fftBatchSize, buffer1Offset, buffer2Offset, ffts, imgs,
-                    *aux.plan, result);
+                    buffer1Offset, buffer2Offset, aux.d_ffts, aux.d_imgs,
+                    *aux.plan, result, settings);
 
             buffer2Offset += buffer2ToCopy;
         }
@@ -378,24 +372,19 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
         buffer1Offset += buffer1ToCopy;
 
     } while (buffer1Offset < noOfImgs);
-
-    ffts.d_data = nullptr;
-    imgs.d_data = nullptr;
-
     gpuErrchk(cudaPeekAtLastError());
 }
 
 template<typename T>
-void computeCorrelationsNew(size_t centerSize, int noOfImgs,
+void computeCorrelationsNew(size_t centerSize, size_t noOfImgs, 
         void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
-        int fftBatchSize, size_t in1Offset, size_t in2Offset,
-        GpuMultidimArrayAtGpu<std::complex<T> >& ffts,
-            GpuMultidimArrayAtGpu<T>& imgs, cufftHandle &handler,
-            T*& result) {
+        size_t in1Offset, size_t in2Offset,
+        std::complex<T> *d_ffts, T *d_imgs, cufftHandle &handler,
+        T *result, const FFTSettings<T> &settings) {
     bool isWithin = d_in1 == d_in2; // correlation is done within the same buffer
 
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
-    dim3 dimGridCorr(ceil(ffts.Xdim/(float)dimBlock.x), ceil(ffts.Ydim/(float)dimBlock.y));
+    dim3 dimGridCorr(ceil(settings.fDim().x()/(float)dimBlock.x), ceil(settings.fDim().y()/(float)dimBlock.y));
     dim3 dimGridCrop(ceil(centerSize/(float)dimBlock.x), ceil(centerSize/(float)dimBlock.y));
 
     size_t batchCounter = 0;
@@ -406,23 +395,23 @@ void computeCorrelationsNew(size_t centerSize, int noOfImgs,
         for (int j = isWithin ? i + 1 : 0; j < in2Size; j++) {
             counter++;
             bool isLastIIter = isWithin ? (i == in1Size - 2) : (i == in1Size -1);
-            if (counter == fftBatchSize || (isLastIIter && (j == in2Size -1)) ) {
+            if (counter == settings.batch() || (isLastIIter && (j == in2Size -1)) ) {
                 // kernel must perform last iteration
                 // compute correlation from input buffers. Result are FFT images
                 if (std::is_same<T, float>::value) {
                 correlate<<<dimGridCorr, dimBlock>>>((float2*)d_in1, (float2*)d_in2,
-                        (float2*)ffts.d_data, ffts.Xdim, ffts.Ydim,
+                        (float2*)d_ffts, settings.fDim().x(), settings.fDim().y(),
                         isWithin, origI, i, origJ, j, in2Size);
                 } else {
                     throw std::logic_error("unsupported type");
                 }
                 // convert FFTs to space domain
-                CudaFFT<T>::ifft(handler, ffts.d_data, imgs.d_data);
+                CudaFFT<T>::ifft(handler, d_ffts, d_imgs);
                 // crop images in space domain, use memory for FFT to avoid realocation
-                cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)imgs.d_data,
-                        (T*)ffts.d_data, imgs.Xdim, imgs.Ydim,
+                cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)d_imgs,
+                        (T*)d_ffts, settings.sDim().x(), settings.sDim().y(),
                         counter, centerSize, centerSize);
-                copyInRightOrder((T*)ffts.d_data, result,
+                copyInRightOrder((T*)d_ffts, result,
                         centerSize, centerSize,
                         isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs);
                 origI = i;

@@ -438,7 +438,7 @@ private:
 private:
 
     ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
-    ctpl::thread_pool loadPool = ctpl::thread_pool(4);
+    ctpl::thread_pool loadPool = ctpl::thread_pool(5);
 
     std::future<void> LESTask;
 

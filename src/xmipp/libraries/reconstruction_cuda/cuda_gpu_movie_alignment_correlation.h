@@ -162,9 +162,8 @@ void copyInRightOrder(T* d_imgs, T* result, int xDim, int yDim, bool isWithin,
  * @param result cropped centers of the correlations
  */
 template<typename T>
-void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
-        int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
-        int fftBatchSize, T*& result, CorrelationData<T> &aux);
+void computeCorrelations(size_t centerSize, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
+        size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux);
 
 template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
@@ -198,12 +197,11 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
         GpuMultidimArrayAtGpu<T>& imgs, mycufftHandle& handler,
         T*& result);
         template<typename T>
-void computeCorrelationsNew(size_t centerSize, int noOfImgs,
+void computeCorrelationsNew(size_t centerSize, size_t noOfImgs, 
         void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
-        int fftBatchSize, size_t in1Offset, size_t in2Offset,
-        GpuMultidimArrayAtGpu<std::complex<T> >& ffts,
-        GpuMultidimArrayAtGpu<T>& imgs, cufftHandle &handler,
-        T*& result);
+        size_t in1Offset, size_t in2Offset,
+        std::complex<T> *ffts, T *imgs, cufftHandle &handler,
+        T *result, const FFTSettings<T> &settings);
 //@}
 
 #endif

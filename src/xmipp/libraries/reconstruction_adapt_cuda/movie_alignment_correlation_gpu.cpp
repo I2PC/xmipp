@@ -566,10 +566,9 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
                 // performFFTAndScale<T>(data, patchSettings.sDim().n(), patchSettings.sDim().x(), patchSettings.sDim().y(), patchSettings.batch(),
                 //         correlationSettings.fDim().x(), correlationSettings.sDim().y(), filter);
-                computeCorrelations(context.centerSize, context.N, scalledPatches[thrId], correlationSettings.fDim().x(),
-                        correlationSettings.sDim().x(),
-                        correlationSettings.fDim().y(), context.framesInCorrelationBuffer,
-                        correlationSettings.batch(), correlations, corrAuxData);
+                computeCorrelations(context.centerSize, context.N, correlationSettings, scalledPatches[thrId],
+                        context.framesInCorrelationBuffer,
+                        correlations, corrAuxData);
             }).get(); // wait till done - i.e. correlations are computed and on CPU
 
             // compute resulting shifts
