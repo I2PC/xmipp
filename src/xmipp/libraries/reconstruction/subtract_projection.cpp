@@ -164,7 +164,7 @@
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
-		ctf.readFromMdRow(r);
+		ctf.readFromdRow(r);
 		ctf.Tm = sampling;
 		ctf.produceSideInfo();
 	 	FilterCTF.FilterBand = CTF;
@@ -459,6 +459,21 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
 			P.write(formatString("%s/projection_xmipp_to_subtract.mrc", fnProj.c_str()));
+
+			// Estimate beta0 in real space:
+			double meanI = I().computeAvg();
+			MultidimArray<double> Imean;
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imean)
+				DIRECT_MULTIDIM_ELEM(Imean,n) -= meanI;
+
+			double meanP = P().computeAvg();
+			MultidimArray<double> Pmean;
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
+				DIRECT_MULTIDIM_ELEM(Pmean,n) -= meanP;
+
+			double beta0real = Imean.sum()/Pmean.sum();
+			std::cout << "beta0 real: " << beta0real << std::endl;
+
 			if (fmaskWidth == -1)
 			{
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
