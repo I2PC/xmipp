@@ -462,14 +462,19 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 
 			// Estimate beta0 in real space:
 			double meanI = I().computeAvg();
+			std::cout << "meanI: " << meanI << std::endl;
 			MultidimArray<double> Imean;
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imean)
 				DIRECT_MULTIDIM_ELEM(Imean,n) -= meanI;
 
 			double meanP = P().computeAvg();
+			std::cout << "meanP: " << meanP << std::endl;
 			MultidimArray<double> Pmean;
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
 				DIRECT_MULTIDIM_ELEM(Pmean,n) -= meanP;
+
+			std::cout << "Imean.sum(): " << Imean.sum() << std::endl;
+			std::cout << "Pmean.sum(): " << Pmean.sum() << std::endl;
 
 			double beta0real = Imean.sum()/Pmean.sum();
 			std::cout << "beta0 real: " << beta0real << std::endl;
