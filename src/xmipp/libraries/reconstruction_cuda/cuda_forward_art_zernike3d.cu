@@ -424,10 +424,10 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
-		auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
+		/*auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
 		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
-		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;
-		//img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
+		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
+		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
 	if (usesZernike) {
 		auto k2 = k * k;
