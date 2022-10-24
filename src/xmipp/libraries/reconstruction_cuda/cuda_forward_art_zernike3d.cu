@@ -406,13 +406,13 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
+	int threadPosition = cudaCoordinatesF[threadIndex];
 	auto r0 = cudaR[0];
 	auto r1 = cudaR[1];
 	auto r2 = cudaR[2];
 	auto r3 = cudaR[3];
 	auto r4 = cudaR[4];
 	auto r5 = cudaR[5];
-	int threadPosition = cudaCoordinatesF[threadIndex];
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
@@ -494,13 +494,13 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
+	int threadPosition = cudaCoordinatesB[threadIndex];
 	auto r0 = cudaR[0];
 	auto r1 = cudaR[1];
 	auto r2 = cudaR[2];
 	auto r3 = cudaR[3];
 	auto r4 = cudaR[4];
 	auto r5 = cudaR[5];
-	int threadPosition = cudaCoordinatesB[threadIndex];
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);
