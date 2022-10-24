@@ -338,7 +338,7 @@ namespace device {
 				return i;
 			}
 		}
-		return size - 1;
+		return size;
 	}
 
 	template<typename PrecisionType>
@@ -423,7 +423,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	int img_idx = 0;
 	if (sigma_size > 1) {
-		printf("sigma > 1\n");
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
 		auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
 		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
