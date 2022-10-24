@@ -464,14 +464,19 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			double meanI = I().computeAvg();
 			std::cout << "meanI: " << meanI << std::endl;
 			MultidimArray<double> Imean;
+			Imean.initZeros(I());
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imean)
-				DIRECT_MULTIDIM_ELEM(Imean,n) -= meanI;
+				DIRECT_MULTIDIM_ELEM(Imean,n) = DIRECT_MULTIDIM_ELEM(I(),n) - meanI;
 
 			double meanP = P().computeAvg();
 			std::cout << "meanP: " << meanP << std::endl;
 			MultidimArray<double> Pmean;
+			Pmean.initZeros(I());
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
-				DIRECT_MULTIDIM_ELEM(Pmean,n) -= meanP;
+				DIRECT_MULTIDIM_ELEM(Pmean,n) = DIRECT_MULTIDIM_ELEM(P(),n) - meanP;
+
+			std::cout << "Imean: " << Imean << std::endl;
+			std::cout << "Pmean: " << Pmean << std::endl;
 
 			std::cout << "Imean.sum(): " << Imean.sum() << std::endl;
 			std::cout << "Pmean.sum(): " << Pmean.sum() << std::endl;
