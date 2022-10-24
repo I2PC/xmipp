@@ -308,7 +308,6 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ void splattingAtPos(PrecisionType pos_x,
 								   PrecisionType pos_y,
-								   const MultidimArrayCuda<PrecisionType> &cudaMV,
 								   MultidimArrayCuda<PrecisionType> &mP,
 								   MultidimArrayCuda<PrecisionType> &mW,
 								   PrecisionType weight)
@@ -454,7 +453,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
 	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
-	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, weight);
+	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
 }
 
 /*
