@@ -414,7 +414,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		PFourier1(0,0) = IiMFourier(0,0); 
 
 		// Check best model
-		int best_model;
 		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, best_model);
 		std::cout << "best_model: " << best_model << std::endl; 	
 		double beta0save;
@@ -474,9 +473,6 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			Pmean.initZeros(I());
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
 				DIRECT_MULTIDIM_ELEM(Pmean,n) = DIRECT_MULTIDIM_ELEM(P(),n) - meanP;
-
-			std::cout << "Imean: " << Imean << std::endl;
-			std::cout << "Pmean: " << Pmean << std::endl;
 
 			std::cout << "Imean.sum(): " << Imean.sum() << std::endl;
 			std::cout << "Pmean.sum(): " << Pmean.sum() << std::endl;
