@@ -310,17 +310,13 @@ namespace device {
 								   PrecisionType pos_y,
 								   const MultidimArrayCuda<PrecisionType> &cudaMV,
 								   MultidimArrayCuda<PrecisionType> &mP,
-								   MultidimArrayCuda<PrecisionType> *cudaW,
+								   MultidimArrayCuda<PrecisionType> &mW,
 								   int img_idx,
-								   int x,
-								   int y,
-								   int z)
+								   PrecisionType weight)
 	{
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
 		if (!IS_OUTSIDE2D(mP, i, j)) {
-			auto &mW = cudaW[img_idx];
-			PrecisionType weight = A3D_ELEM(cudaMV, z, y, x);
 			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
 			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 		}
@@ -422,12 +418,14 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
 	auto &mP = cudaP[img_idx];
+	auto &mW = cudaW[img_idx];
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
+	PrecisionType weight = A3D_ELEM(cudaMV, z, y, x);
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (usesZernike) {
 		auto k2 = k * k;
@@ -457,7 +455,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
 	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
-	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, cudaW, img_idx, j, i, k);
+	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, mW, img_idx, weight);
 }
 
 /*
