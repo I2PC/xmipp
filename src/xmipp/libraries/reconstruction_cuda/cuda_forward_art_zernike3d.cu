@@ -309,7 +309,7 @@ namespace device {
 	__device__ void splattingAtPos(PrecisionType pos_x,
 								   PrecisionType pos_y,
 								   const MultidimArrayCuda<PrecisionType> &cudaMV,
-								   MultidimArrayCuda<PrecisionType> *cudaP,
+								   MultidimArrayCuda<PrecisionType> &mP,
 								   MultidimArrayCuda<PrecisionType> *cudaW,
 								   int img_idx,
 								   int x,
@@ -318,7 +318,6 @@ namespace device {
 	{
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
-		auto &mP = cudaP[img_idx];
 		if (!IS_OUTSIDE2D(mP, i, j)) {
 			auto &mW = cudaW[img_idx];
 			PrecisionType weight = A3D_ELEM(cudaMV, z, y, x);
@@ -351,10 +350,8 @@ namespace device {
 													   const int ydimMId)
 	{
 		int x0 = CUDA_FLOOR(x);
-		PrecisionType fx = x - x0;
 		int x1 = x0 + 1;
 		int y0 = CUDA_FLOOR(y);
-		PrecisionType fy = y - y0;
 		int y1 = y0 + 1;
 
 		int i0 = yinitMId;
@@ -374,6 +371,8 @@ namespace device {
 		ASSIGNVAL2DCUDA(d10, y1, x0);
 		ASSIGNVAL2DCUDA(d11, y1, x1);
 
+		PrecisionType fx = x - x0;
+		PrecisionType fy = y - y0;
 		PrecisionType d0 = LIN_INTERP(fx, d00, d01);
 		PrecisionType d1 = LIN_INTERP(fx, d10, d11);
 		return LIN_INTERP(fy, d0, d1);
@@ -414,13 +413,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		return;
 	}
 	int threadPosition = cudaCoordinatesF[threadIndex];
-	int cubeX = MODULO(threadPosition, xdim);
-	int cubeY = MODULO(threadPosition / xdim, ydim);
-	int cubeZ = threadPosition / (xdim * ydim);
-	int k = STARTINGZ(cudaMV) + cubeZ;
-	int i = STARTINGY(cudaMV) + cubeY;
-	int j = STARTINGX(cudaMV) + cubeX;
-	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
@@ -429,6 +421,14 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
+	auto &mP = cudaP[img_idx];
+	int cubeX = MODULO(threadPosition, xdim);
+	int cubeY = MODULO(threadPosition / xdim, ydim);
+	int cubeZ = threadPosition / (xdim * ydim);
+	int k = STARTINGZ(cudaMV) + cubeZ;
+	int i = STARTINGY(cudaMV) + cubeY;
+	int j = STARTINGX(cudaMV) + cubeX;
+	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (usesZernike) {
 		auto k2 = k * k;
 		auto kr = k * iRmaxF;
@@ -457,7 +457,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
 	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
-	device::splattingAtPos(pos_x, pos_y, cudaMV, cudaP, cudaW, img_idx, j, i, k);
+	device::splattingAtPos(pos_x, pos_y, cudaMV, mP, cudaW, img_idx, j, i, k);
 }
 
 /*
