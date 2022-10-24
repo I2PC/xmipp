@@ -4,9 +4,9 @@
 #include "cuda_forward_art_zernike3d.h"
 #include "cuda_forward_art_zernike3d_defines.h"
 
-#include <thrust/device_vector.h>
+/*#include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
-#include <thrust/find.h>
+#include <thrust/find.h>*/
 
 namespace cuda_forward_art_zernike3D {
 
