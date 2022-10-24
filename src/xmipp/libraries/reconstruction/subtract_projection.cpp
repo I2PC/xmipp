@@ -250,15 +250,14 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
 		PFourierf = PFourierf1;
 		R2 = R21adj;
-		std::cout << "Order 1 model" << std::endl; 	
-		bmod = 1;	
+		bmod = 1;
 	} 
 	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
 		R2 = R20adj;
-		std::cout << "Order 0 model" << std::endl; 	
 		bmod = 0;		
 	}
+	std::cout << "Order %d model" << bmod << std::endl; 		
 	return R2;
 }
 
