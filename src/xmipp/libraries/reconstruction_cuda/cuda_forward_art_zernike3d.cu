@@ -4,6 +4,10 @@
 #include "cuda_forward_art_zernike3d.h"
 #include "cuda_forward_art_zernike3d_defines.h"
 
+#include <thrust/device_vector.h>
+#include <thrust/execution_policy.h>
+#include <thrust/find.h>
+
 namespace cuda_forward_art_zernike3D {
 
 // Constants
@@ -420,7 +424,10 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
-		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
+		thrust::device_ptr<PrecisionType> cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
+		thrust::device_ptr<PrecisionType> cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
+		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;
+		//img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
 	if (usesZernike) {
 		auto k2 = k * k;
