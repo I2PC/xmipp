@@ -410,8 +410,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		return;
 	}
 	int threadPosition = cudaCoordinatesF[threadIndex];
-	int cubeX = threadPosition % xdim;
-	int cubeY = threadPosition / xdim % ydim;
+	int cubeX = MODULO(threadPosition, xdim);
+	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
