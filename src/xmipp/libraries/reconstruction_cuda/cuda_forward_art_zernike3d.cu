@@ -406,6 +406,12 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
+	auto r0 = cudaR[0];
+	auto r1 = cudaR[1];
+	auto r2 = cudaR[2];
+	auto r3 = cudaR[3];
+	auto r4 = cudaR[4];
+	auto r5 = cudaR[5];
 	int threadPosition = cudaCoordinatesF[threadIndex];
 	int img_idx = 0;
 	if (sigma_size > 1) {
@@ -451,8 +457,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_y = i + gy;
 	auto r_z = k + gz;
 
-	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
-	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
+	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
+	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
 	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
 }
 
@@ -488,6 +494,12 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
+	auto r0 = cudaR[0];
+	auto r1 = cudaR[1];
+	auto r2 = cudaR[2];
+	auto r3 = cudaR[3];
+	auto r4 = cudaR[4];
+	auto r5 = cudaR[5];
 	int threadPosition = cudaCoordinatesB[threadIndex];
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
@@ -522,8 +534,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_y = i + gy;
 	auto r_z = k + gz;
 
-	auto pos_x = cudaR[0] * r_x + cudaR[1] * r_y + cudaR[2] * r_z;
-	auto pos_y = cudaR[3] * r_x + cudaR[4] * r_y + cudaR[5] * r_z;
+	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
+	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
 	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, texMId, xinitMId, yinitMId, xdimMId, ydimMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
