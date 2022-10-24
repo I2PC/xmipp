@@ -118,6 +118,7 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	std::cout << "thrTop10Chain: "<< thrTop10Chain << std::endl;
 	std::cout << "thrLMChain: "<< thrLMChain << std::endl;
 	std::cout << "numberOfElementsInChainThreshold: "<< numberOfElementsInChainThreshold << std::endl;
+	std::cout << "fiducialSizePx: "<< fiducialSizePx << std::endl;
 	#endif
 
 	#ifdef VERBOSE_OUTPUT
@@ -152,7 +153,7 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 
 // --------------------------- HEAD functions ----------------------------
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber)
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber) // *** remove imageNumber only for debugging purposes
 {
 	tiltImage.rangeAdjust(0, 1024);
 
@@ -171,120 +172,32 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	if (imageNumber == 35)
-	{
+	// if (imageNumber == 10)
+	// {
 	
-	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume = rawname + "/ts_laplace.mrcs";
+	// #ifdef DEBUG_OUTPUT_FILES
+	// size_t lastindex = fnOut.find_last_of("\\/");
+	// std::string rawname = fnOut.substr(0, lastindex);
+	// std::string outputFileNameFilteredVolume;
+    // outputFileNameFilteredVolume = rawname + "/ts_laplace.mrcs";
 
-	Image<double> saveImage;
-	saveImage() = tmpImage;
-	saveImage.write(outputFileNameFilteredVolume);
-	#endif
-	}
+	// Image<double> saveImage;
+	// saveImage() = tmpImage;
+	// saveImage.write(outputFileNameFilteredVolume);
+	// #endif
+	// }
 
 
-	int x1 = 0;  			// (x1, 0)
-	int x2 = xSize - 1;  	// (x2, 0)
-	int x3 = 0;  			// (x3, ySize)
-	int x4 = xSize - 1;  	// (x4, ySize)
-	int y1 = 0;  			// (y1, 0)
-	int y2 = ySize - 1;  	// (xSize, y2)
-	int y3 = 0;  			// (0, y3)
-	int y4 = ySize -1;  	// (xSize, y4)
-
-	double epsilon = 0.00000000000001;
-
-	for (size_t i = 1; i < xSize-2; i++)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
-		{
-			x1=i;
-			break;
-		}
-	}
-
-	for (size_t i = xSize-2; i > x1; i--)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
-		{
-			x2=i;
-			break;
-		}
-	}
-
-	for (size_t i = 1; i < xSize-2; i++)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
-		{
-			x3=i;
-			break;
-		}
-	}
-
-	for (size_t i = xSize-2; i > x3; i--)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
-		{
-			x4=i;
-			break;
-		}
-	}
-
-	for (size_t j = 1; j < ySize-2; j++)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
-		{
-			y1=j;
-			break;
-		}
-	}
-
-	for (size_t j = 1; j < ySize-2; j++)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
-		{
-			y2=j;
-			break;
-		}
-	}
-
-	for (size_t j = ySize-2; j > y1; j--)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
-		{
-			y3=j;
-			break;
-		}
-	}
-
-	for (size_t j = ySize-2; j > y2; j--)
-	{
-		if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
-		{
-			y4=j;
-			break;
-		}
-	}
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout<< "x1: " << x1<<std::endl;
-	std::cout<< "x2: " << x2<<std::endl;
-	std::cout<< "x3: " << x3<<std::endl;
-	std::cout<< "x4: " << x4<<std::endl;
-	std::cout<< "y1: " << y1<<std::endl;
-	std::cout<< "y2: " << y2<<std::endl;
-	std::cout<< "y3: " << y3<<std::endl;
-	std::cout<< "y4: " << y4<<std::endl;
-	# endif 
-
-	// Remove interpolation edges
-	int jmin;
-	int jmax;
-
+	// int x1 = 0;  			// (x1, 0)
+	// int x2 = xSize - 1;  	// (x2, 0)
+	// int x3 = 0;  			// (x3, ySize)
+	// int x4 = xSize - 1;  	// (x4, ySize)
+	// int y1 = 0;  			// (y1, 0)
+	// int y2 = ySize - 1;  	// (xSize, y2)
+	// int y3 = 0;  			// (0, y3)
+	// int y4 = ySize -1;  	// (xSize, y4)
+	
+	// Background value as the median of the corners
 	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
 								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
 								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
@@ -292,117 +205,261 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	sort(corners.begin(), corners.end(), std::greater<double>());
 
-	double backgroundValue = (corners[1]+corners[2])/2;  // Background value as the median of the corners
+	double backgroundValue = (corners[1]+corners[2])/2;
 
-	double m1 = (double)(-y1)/(x1);
-	double m2 = (double)(-y2)/(x2-(double)xSize);
-	double m3 = (double)(y3-(double)ySize)/(-x3);
-	double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+	// Margin thickness
+	int marginThickness = (int)(fiducialSizePx * 0.5);
 
-	#ifdef DEBUG_PREPROCESS
-	std::cout<< "m1: " << m1<<std::endl;
-	std::cout<< "m2: " << m2<<std::endl;
-	std::cout<< "m3: " << m3<<std::endl;
-	std::cout<< "m4: " << m4<<std::endl;
-	#endif
+	double epsilon = 0.00000000000001;
 
-	int marginThickness = (int)((fiducialSize/samplingRate) * 3); // *** sin and cos for x and y dimensions
+	std::vector<Point2D<int>> interpolationLimits;
 
-	x1 += marginThickness * cos(abs(atan(m1)));  // (x1, 0)
-	x2 -= marginThickness * cos(abs(atan(m2)));  // (x2, 0)
-	x3 += marginThickness * cos(abs(atan(m3)));  // (x3, ySize)
-	x4 -= marginThickness * cos(abs(atan(m4)));  // (x4, ySize)
-	y1 += marginThickness * sin(abs(atan(m1)));  // (y1, 0)
-	y2 += marginThickness * sin(abs(atan(m2)));  // (xSize, y2)
-	y3 -= marginThickness * sin(abs(atan(m3)));  // (0, y3)
-	y4 -= marginThickness * sin(abs(atan(m4)));  // (xSize, y4)
+	bool firstLimitFound;
 
-	m1 = (double)(-y1)/(x1);
-	m2 = (double)(-y2)/(x2-(double)xSize);
-	m3 = (double)(y3-(double)ySize)/(-x3);
-	m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+	int xMin;
+	int xMax;
+
+	for (size_t j = 1; j < ySize-2; j++)
+	{
+		for (size_t i = 1; i < xSize-1; i++)
+		{
+			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+			{
+				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
+
+				// Fill margin thickness with background value
+				for (size_t a = i; a < i + marginThickness; a++)
+				{
+					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+				}
+				
+				break;
+			}
+		}
 
 
-	#ifdef DEBUG_PREPROCESS
-	std::cout<< "x1: " << x1<<std::endl;
-	std::cout<< "x2: " << x2<<std::endl;
-	std::cout<< "x3: " << x3<<std::endl;
-	std::cout<< "x4: " << x4<<std::endl;
-	std::cout<< "y1: " << y1<<std::endl;
-	std::cout<< "y2: " << y2<<std::endl;
-	std::cout<< "y3: " << y3<<std::endl;
-	std::cout<< "y4: " << y4<<std::endl;
-	# endif 
+		for (size_t i = xSize-1; i > 1; i--)
+		{
+			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+			{
+				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
+
+				// Fill margin thickness with background value
+				for (size_t a = i - marginThickness; a < i; a++)
+				{
+					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+				}
+
+				break;
+			}
+		}
+
+		if (xMin >= xMax)
+		{
+			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
+			xMax = value;
+			xMin = value;
+		}
+		
+		Point2D<int> limit (xMin, xMax);
+		interpolationLimits.push_back(limit);
+	}
+
+	interpolationLimitsVector.push_back(interpolationLimits);
+
+	// for (size_t i = 1; i < xSize-2; i++)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
+	// 	{
+	// 		x1=i;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t i = xSize-2; i > x1; i--)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
+	// 	{
+	// 		x2=i;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t i = 1; i < xSize-2; i++)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
+	// 	{
+	// 		x3=i;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t i = xSize-2; i > x3; i--)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
+	// 	{
+	// 		x4=i;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t j = 1; j < ySize-2; j++)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
+	// 	{
+	// 		y1=j;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t j = 1; j < ySize-2; j++)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
+	// 	{
+	// 		y2=j;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t j = ySize-2; j > y1; j--)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
+	// 	{
+	// 		y3=j;
+	// 		break;
+	// 	}
+	// }
+
+	// for (size_t j = ySize-2; j > y2; j--)
+	// {
+	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
+	// 	{
+	// 		y4=j;
+	// 		break;
+	// 	}
+	// }
+
+	// #ifdef DEBUG_PREPROCESS
+	// std::cout<< "x1: " << x1<<std::endl;
+	// std::cout<< "x2: " << x2<<std::endl;
+	// std::cout<< "x3: " << x3<<std::endl;
+	// std::cout<< "x4: " << x4<<std::endl;
+	// std::cout<< "y1: " << y1<<std::endl;
+	// std::cout<< "y2: " << y2<<std::endl;
+	// std::cout<< "y3: " << y3<<std::endl;
+	// std::cout<< "y4: " << y4<<std::endl;
+	// # endif 
+
+	// // Remove interpolation edges
+	// int jmin;
+	// int jmax;
+
+	// double m1 = (double)(-y1)/(x1);
+	// double m2 = (double)(-y2)/(x2-(double)xSize);
+	// double m3 = (double)(y3-(double)ySize)/(-x3);
+	// double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+	// #ifdef DEBUG_PREPROCESS
+	// std::cout<< "m1: " << m1<<std::endl;
+	// std::cout<< "m2: " << m2<<std::endl;
+	// std::cout<< "m3: " << m3<<std::endl;
+	// std::cout<< "m4: " << m4<<std::endl;
+	// #endif
+
+	// x1 += marginThickness * cos(abs(atan(m1)));  // (x1, 0)
+	// x2 -= marginThickness * cos(abs(atan(m2)));  // (x2, 0)
+	// x3 += marginThickness * cos(abs(atan(m3)));  // (x3, ySize)
+	// x4 -= marginThickness * cos(abs(atan(m4)));  // (x4, ySize)
+	// y1 += marginThickness * sin(abs(atan(m1)));  // (y1, 0)
+	// y2 += marginThickness * sin(abs(atan(m2)));  // (xSize, y2)
+	// y3 -= marginThickness * sin(abs(atan(m3)));  // (0, y3)
+	// y4 -= marginThickness * sin(abs(atan(m4)));  // (xSize, y4)
+
+	// m1 = (double)(-y1)/(x1);
+	// m2 = (double)(-y2)/(x2-(double)xSize);
+	// m3 = (double)(y3-(double)ySize)/(-x3);
+	// m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+	// #ifdef DEBUG_PREPROCESS
+	// std::cout<< "x1: " << x1<<std::endl;
+	// std::cout<< "x2: " << x2<<std::endl;
+	// std::cout<< "x3: " << x3<<std::endl;
+	// std::cout<< "x4: " << x4<<std::endl;
+	// std::cout<< "y1: " << y1<<std::endl;
+	// std::cout<< "y2: " << y2<<std::endl;
+	// std::cout<< "y3: " << y3<<std::endl;
+	// std::cout<< "y4: " << y4<<std::endl;
+	// # endif 
 	
-	#ifdef DEBUG_PREPROCESS
-	std::cout<< "m1: " << m1<<std::endl;
-	std::cout<< "m2: " << m2<<std::endl;
-	std::cout<< "m3: " << m3<<std::endl;
-	std::cout<< "m4: " << m4<<std::endl;
-	#endif
+	// #ifdef DEBUG_PREPROCESS
+	// std::cout<< "m1: " << m1<<std::endl;
+	// std::cout<< "m2: " << m2<<std::endl;
+	// std::cout<< "m3: " << m3<<std::endl;
+	// std::cout<< "m4: " << m4<<std::endl;
+	// #endif
 
 	#ifdef DEBUG_PREPROCESS
 	std::cout  << "backgroundValue " << backgroundValue << std::endl;
 	std::cout  << "marginThickness " << marginThickness << std::endl;
-	std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
-	std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
+	// std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
+	// std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
 	#endif
 
-	IC ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
-	vIC.push_back(ic);
+	// IC ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
+	// vIC.push_back(ic);
 
-	for (int i = 0; i < xSize; i++)
-	{
-		// minimum y index for interation
-		if(i < x1)
-		{
-			jmin = (int)(m1*i+y1);
-		}
-		else if (i > x2)
-		{
-			jmin = (int)(m2*(i-(int)xSize)+y2);
-		}
-		else
-		{
-			jmin = 1;
-		}
+	// for (int i = 0; i < xSize; i++)
+	// {
+	// 	// minimum y index for interation
+	// 	if(i < x1)
+	// 	{
+	// 		jmin = (int)(m1*i+y1);
+	// 	}
+	// 	else if (i > x2)
+	// 	{
+	// 		jmin = (int)(m2*(i-(int)xSize)+y2);
+	// 	}
+	// 	else
+	// 	{
+	// 		jmin = 1;
+	// 	}
 		
-		// maximum y index for interation
-		if(i < x3)
-		{
-			jmax = (int)(m3*(i-x3)+(int)ySize);
-		}
-		else if (i > x4)
-		{
-			jmax = (int)(m4*(i-x4)+(int)ySize);
-		}
-		else
-		{
-			jmax = (int)(ySize-2);
-		}
+	// 	// maximum y index for interation
+	// 	if(i < x3)
+	// 	{
+	// 		jmax = (int)(m3*(i-x3)+(int)ySize);
+	// 	}
+	// 	else if (i > x4)
+	// 	{
+	// 		jmax = (int)(m4*(i-x4)+(int)ySize);
+	// 	}
+	// 	else
+	// 	{
+	// 		jmax = (int)(ySize-2);
+	// 	}
 
-		// check range in image size
-		if(jmin < 1)
-		{
-			jmin = 1;
-		}
+	// 	// check range in image size
+	// 	if(jmin < 1)
+	// 	{
+	// 		jmin = 1;
+	// 	}
 
-		if(jmax > (int)(ySize-2))
-		{
-			jmax = (int)(ySize-2);
-		}
+	// 	if(jmax > (int)(ySize-2))
+	// 	{
+	// 		jmax = (int)(ySize-2);
+	// 	}
 		
-		// Remove edges
-		for (int j = 0; j <= jmin; j++)
-		{
-			DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
-		}
+	// 	// Remove edges
+	// 	for (int j = 0; j <= jmin; j++)
+	// 	{
+	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
+	// 	}
 
-		for (int j = jmax; j < ySize; j++)
-		{
-			DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
-		}
-	}
+	// 	for (int j = jmax; j < ySize; j++)
+	// 	{
+	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
+	// 	}
+	// }
 
 	// Bandpass filter image
 	FourierTransformer transformer1(FFTW_BACKWARD);
@@ -482,57 +539,80 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	tmpImage = tiltImage;
 	tiltImage.initZeros(ySize, xSize);
 
-	for (int i = 1; i < xSize-2; i++)
+
+	std::cout << "laplacian in interpolation limits" << std::endl;
+	std::cout << "interpolationLimits.size() " << interpolationLimits.size() << std::endl;
+
+	for (size_t j = 1; j < ySize-2; j++)
 	{
-		// minimum y index for interation
-		if(i < x1)
-		{
-			jmin = (int)(m1*i+y1);
-		}
-		else if (i > x2)
-		{
-			jmin = (int)(m2*(i-(int)xSize)+y2);
-		}
-		else
-		{
-			jmin = 1;
-		}
-		
-		// maximum y index for interation
-		if(i < x3)
-		{
-			jmax = (int)(m3*(i-x3)+(int)ySize);
-		}
-		else if (i > x4)
-		{
-			jmax = (int)(m4*(i-x4)+(int)ySize);
-		}
-		else
-		{
-			jmax = (int)(ySize-2);
-		}
+		Point2D<int> il = interpolationLimits[j-1];
+		xMin = il.x;
+		xMax = il.y;
 
-		// check range in image size
-		if(jmin < 1)
-		{
-			jmin = 1;
-		}
+		std::cout << "j " << j << ", xMax " << xMax << ", xMin " << xMin << std::endl;
 
-		if(jmax > (int)(ySize-2))
-		{
-			jmax = (int)(ySize-2);
-		}
-		
-		// Apply laplacian in when y belongs to (jmin, jmax)
-		for (int j = jmin; j <= jmax; j++)
+		for (size_t i = xMin; i < xMax; i++)
 		{
 			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-2 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
-											    -2 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+												-2 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
-									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
-		}	
+												8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+		}
 	}
+
+
+// 	for (int i = 1; i < xSize-2; i++)
+// 	{
+// 		// minimum y index for interation
+// 		if(i < x1)
+// 		{
+// 			jmin = (int)(m1*i+y1);
+// 		}
+// 		else if (i > x2)
+// 		{
+// 			jmin = (int)(m2*(i-(int)xSize)+y2);
+// 		}
+// 		else
+// 		{
+// 			jmin = 1;
+// 		}
+		
+// 		// maximum y index for interation
+// 		if(i < x3)
+// 		{
+// 			jmax = (int)(m3*(i-x3)+(int)ySize);
+// 		}
+// 		else if (i > x4)
+// 		{
+// 			jmax = (int)(m4*(i-x4)+(int)ySize);
+// 		}
+// 		else
+// 		{
+// 			jmax = (int)(ySize-2);
+// 		}
+
+// 		// check range in image size
+// 		if(jmin < 1)
+// 		{
+// 			jmin = 1;
+// 		}
+
+// 		if(jmax > (int)(ySize-2))
+// 		{
+// 			jmax = (int)(ySize-2);
+// 		}
+		
+// 		// Apply laplacian in when y belongs to (jmin, jmax)
+// 		for (int j = jmin; j <= jmax; j++)
+// 		{
+// 			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-2 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+// 											    -2 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+// 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+// 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+// 									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+// 		}	
+// 	}
 }
 
 
@@ -556,55 +636,71 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		std::vector<int> sliceVector;
 
 		// Calculate threshold value for each image of the series
-		IC ic = vIC[k];
-		int jmin;
-		int jmax;
+		// IC ic = vIC[k];
+		// int jmin;
+		// int jmax;
 
-        for(size_t i = 0; i < xSize; ++i)
-        {
-			// Search inside the interpolation edges
-			if(i < ic.x1)
-			{
-				jmin = (int)(ic.m1*i+ic.y1);
-			}
-			else if (i > ic.x2)
-			{
-				jmin = (int)(ic.m2*(i-(int)xSize)+ic.y2);
-			}
-			else
-			{
-				jmin = 0;
-			}
+        // for(size_t i = 0; i < xSize; ++i)
+        // {
+		// 	// Search inside the interpolation edges
+		// 	if(i < ic.x1)
+		// 	{
+		// 		jmin = (int)(ic.m1*i+ic.y1);
+		// 	}
+		// 	else if (i > ic.x2)
+		// 	{
+		// 		jmin = (int)(ic.m2*(i-(int)xSize)+ic.y2);
+		// 	}
+		// 	else
+		// 	{
+		// 		jmin = 0;
+		// 	}
 			
-			if(i < ic.x3)
-			{
-				jmax = (int)(ic.m3*(i-ic.x3)+(int)ySize);
-			}
-			else if (i > ic.x4)
-			{
-				jmax = (int)(ic.m4*(i-ic.x4)+(int)ySize);
-			}
-			else
-			{
-				jmax = (int)(ySize-1);
-			}
+		// 	if(i < ic.x3)
+		// 	{
+		// 		jmax = (int)(ic.m3*(i-ic.x3)+(int)ySize);
+		// 	}
+		// 	else if (i > ic.x4)
+		// 	{
+		// 		jmax = (int)(ic.m4*(i-ic.x4)+(int)ySize);
+		// 	}
+		// 	else
+		// 	{
+		// 		jmax = (int)(ySize-1);
+		// 	}
 
-			if(jmin < 0)
-			{
-				jmin = 0;
-			}
+		// 	if(jmin < 0)
+		// 	{
+		// 		jmin = 0;
+		// 	}
 
-			if(jmax > (int)(ySize))
-			{
-				jmax = (int)(ySize);
-			}
+		// 	if(jmax > (int)(ySize))
+		// 	{
+		// 		jmax = (int)(ySize);
+		// 	}
 			
-			for (int j = jmin; j < jmax; j++)
+		// 	for (int j = jmin; j < jmax; j++)
+		// 	{
+		// 			/// *** enhance performance: do not use slice vector, sum directly from image
+		// 			sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+		// 	}	
+        // }
+
+		std::vector<Point2D<int>> interpolationLimits = interpolationLimitsVector[k];
+		int xMin;
+		int xMax;
+
+		for (size_t j = 1; j < ySize-2; j++)
+		{
+			Point2D<int> il = interpolationLimits[j-1];
+			xMin = il.x;
+			xMax = il.y;
+
+			for (size_t i = xMin; i < xMax; i++)
 			{
-					/// *** enhance performance: do not use slice vector, sum directly from image
-					sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
-			}	
-        }
+				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+			}
+		}
 
         double sum = 0, sum2 = 0;
         int Nelems = 0;
@@ -2744,57 +2840,85 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 
 bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice)
 {
-	IC ic = vIC[slice];
+	std::vector<Point2D<int>> interpolationLimits = interpolationLimitsVector[slice];
 
 	int x = (int)(XX(projectedCoordinate));
 	int y = (int)(YY(projectedCoordinate));
-	int jmin;
-	int jmax;
 
-	if(x < ic.x1)
-	{
-		jmin = (int)(ic.m1*x+ic.y1);
-	}
-	else if (x > ic.x2)
-	{
-		jmin = (int)(ic.m2*(x-(int)xSize)+ic.y2);
-	}
-	else
-	{
-		jmin = 0;
-	}
-	
-	if(x < ic.x3)
-	{
-		jmax = (int)(ic.m3*(x-ic.x3)+(int)ySize);
-	}
-	else if (x > ic.x4)
-	{
-		jmax = (int)(ic.m4*(x-ic.x4)+(int)ySize);
-	}
-	else
-	{
-		jmax = (int)(ySize);
-	}
-
-	if(jmin < 0)
-	{
-		jmin = 0;
-	}
-
-	if(jmax > (int)(ySize))
-	{
-		jmax = (int)(ySize);
-	}
-
-	if (y > jmax || y < jmin)
-	{
-		return false;
-	}
-	else
+	if (x >= interpolationLimits[y].x || x <= interpolationLimits[y].y)
 	{
 		return true;
 	}
+	else
+	{
+		return false;
+	}
+	
+
+	// for (size_t j = 1; j < ySize-2; j++)
+	// {
+	// 	Point2D<int> il = interpolationLimits[j-1];
+	// 	xMin = il.x;
+	// 	xMax = il.y;
+
+	// 	for (size_t i = xMin; i < xMax; i++)
+	// 	{
+	// 		sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+	// 	}
+	// }
+
+
+	// IC ic = vIC[slice];
+
+	// int x = (int)(XX(projectedCoordinate));
+	// int y = (int)(YY(projectedCoordinate));
+	// int jmin;
+	// int jmax;
+
+	// if(x < ic.x1)
+	// {
+	// 	jmin = (int)(ic.m1*x+ic.y1);
+	// }
+	// else if (x > ic.x2)
+	// {
+	// 	jmin = (int)(ic.m2*(x-(int)xSize)+ic.y2);
+	// }
+	// else
+	// {
+	// 	jmin = 0;
+	// }
+	
+	// if(x < ic.x3)
+	// {
+	// 	jmax = (int)(ic.m3*(x-ic.x3)+(int)ySize);
+	// }
+	// else if (x > ic.x4)
+	// {
+	// 	jmax = (int)(ic.m4*(x-ic.x4)+(int)ySize);
+	// }
+	// else
+	// {
+	// 	jmax = (int)(ySize);
+	// }
+
+	// if(jmin < 0)
+	// {
+	// 	jmin = 0;
+	// }
+
+	// if(jmax > (int)(ySize))
+	// {
+	// 	jmax = (int)(ySize);
+	// }
+
+	// if (y > jmax || y < jmin)
+	// {
+	// 	return false;
+	// }
+	// else
+	// {
+	// 	return true;
+	// }
 }
 
 

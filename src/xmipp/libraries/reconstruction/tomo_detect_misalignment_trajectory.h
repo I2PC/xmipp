@@ -51,7 +51,7 @@
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
-// #define DEBUG_PREPROCESS
+#define DEBUG_PREPROCESS
 // #define DEBUG_HCC
 // #define DEBUG_VOTTING
 // #define DEBUG_FILTERLABEL
@@ -96,21 +96,29 @@ public:
     };
 
 
+    // Vector of points saving the interpolation limits for each tilt-image
+    std::vector<std::vector<Point2D<int>>> interpolationLimitsVector;
+
+
     // Interpolation corners structure for each tilt-image
-    struct IC {
-        int x1;  // Top-left corner (x1, 0)
-        int x2;  // Top-right corner (x2, 0)
-        int x3;  // Bottom-left corner (x3, ySize)
-        int x4;  // Bottom-right corner (x4, ySize)
-        int y1;  // Top-left corner (0, y1)
-        int y2;  // Top-right corner (xSize, y2)
-        int y3;  // Bottom-left corner (0, y3)
-        int y4;  // Bottom-right corner (xSize, y4)
-        double m1;   // Slope of top-left edge
-	    double m2;   // Slope of top-right edge
-	    double m3;   // Slope of bottom-left edge
-	    double m4;   // Slope of bottom-right edge
-    };
+    // struct IC {
+    //     int x1;  // Top-left corner (x1, 0)
+    //     int x2;  // Top-right corner (x2, 0)
+    //     int x3;  // Bottom-left corner (x3, ySize)
+    //     int x4;  // Bottom-right corner (x4, ySize)
+    //     int y1;  // Top-left corner (0, y1)
+    //     int y2;  // Top-right corner (xSize, y2)
+    //     int y3;  // Bottom-left corner (0, y3)
+    //     int y4;  // Bottom-right corner (xSize, y4)
+    //     double m1;   // Slope of top-left edge
+	//     double m2;   // Slope of top-right edge
+	//     double m3;   // Slope of bottom-left edge
+	//     double m4;   // Slope of bottom-right edge
+    // };
+
+    /** Array of interpolation corner structures */
+    // std::vector<IC> vIC;
+
 
     
     /** Input tilt-series dimensions */
@@ -122,9 +130,6 @@ public:
 
     /** Array of coordinate model structures */
     std::vector<CM> vCM;
-
-    /** Array of interpolation corner structures */
-    std::vector<IC> vIC;
 
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
