@@ -423,7 +423,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	PrecisionType weight = A3D_ELEM(cudaMV, z, y, x);
+	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (usesZernike) {
 		auto k2 = k * k;
