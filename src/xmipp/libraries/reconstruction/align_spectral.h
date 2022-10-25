@@ -125,12 +125,13 @@ private:
         TranslationFilter(const TranslationFilter& other) = default;
         ~TranslationFilter() = default;
 
-        void getTranslation(double& dx, double& dy) const;
 
         TranslationFilter& operator=(const TranslationFilter& other) = default;
 
         void operator()(const MultidimArray<Complex>& in, 
                         MultidimArray<Complex>& out) const;
+
+        void getTranslation(double& dx, double& dy) const;
 
     private:
         double m_dy, m_dx;
@@ -139,17 +140,37 @@ private:
         void computeCoefficients();
     };
 
+    class Rotation {
+    public:
+        Rotation(double angle = 0);
+        Rotation(const Rotation& other) = default;
+        ~Rotation() = default;
+        
+        Rotation& operator=(const Rotation& other) = default;
+
+        void operator()(const MultidimArray<Real>& in, 
+                        MultidimArray<Real>& out) const;
+
+        double getAngle() const;
+    
+    private:
+        double m_angle;
+        Matrix2D<double> m_matrix;
+
+        void computeMatrix();
+    };
+
     class ImageTransformer {
     public:
         template<typename F>
         void forEachInPlaneTransform(   const MultidimArray<Real>& img,
-                                        size_t nRotations,
+                                        const std::vector<Rotation>& rotations,
                                         const std::vector<TranslationFilter>& translations,
                                         F&& func );
 
         template<typename F>
         void forEachInPlaneRotation(const MultidimArray<Real>& img,
-                                    size_t nRotations,
+                                    const std::vector<Rotation>& rotations,
                                     F&& func );
 
         template<typename F>
@@ -236,6 +257,7 @@ private:
     std::vector<Matrix2D<Real>> m_ctfBases;
     std::vector<size_t> m_projectionSizes;
     std::vector<TranslationFilter> m_translations;
+    std::vector<Rotation> m_rotations;
     ReferencePcaProjections m_references;
     std::vector<ReferenceMetadata> m_referenceData;
     std::vector<ReferenceMetadata> m_classification;
@@ -246,6 +268,7 @@ private:
     void applyWeightsToBases();
     void applyCtfToBases();
     void generateTranslations();
+    void generateRotations();
     void alignImages();
     void generateOutput();
 

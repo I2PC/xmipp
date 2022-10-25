@@ -108,6 +108,7 @@ void ProgAlignSpectral::run() {
     applyWeightsToBases();
     applyCtfToBases();
     generateTranslations();
+    generateRotations();
     alignImages();
     generateOutput();
 }
@@ -244,14 +245,45 @@ void ProgAlignSpectral::TranslationFilter::computeCoefficients()
 
 
 
+
+
+ProgAlignSpectral::Rotation::Rotation(double angle)
+    : m_angle(angle)
+{
+    computeMatrix();
+}
+
+void ProgAlignSpectral::Rotation::operator()(   const MultidimArray<Real>& in, 
+                                                MultidimArray<Real>& out ) const
+{
+    applyGeometry(
+        xmipp_transformation::LINEAR, 
+        out, in,
+        m_matrix, xmipp_transformation::IS_NOT_INV, 
+        xmipp_transformation::WRAP, 0.0
+    );
+}
+
+double ProgAlignSpectral::Rotation::getAngle() const {
+    return m_angle;
+}
+
+void ProgAlignSpectral::Rotation::computeMatrix() {
+    rotation2DMatrix(m_angle, m_matrix);
+}
+
+
+
+
+
 template<typename F>
 void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const MultidimArray<Real>& img,
-                                                                    size_t nRotations,
+                                                                    const std::vector<Rotation>& rotations,
                                                                     const std::vector<TranslationFilter>& translations,
                                                                     F&& func )
 {
     forEachInPlaneRotation(
-        img, nRotations,
+        img, rotations,
         [this, &func, &translations] (const MultidimArray<Complex>& dft, double angle) {
             forEachInPlaneTranslation(
                 dft, translations,
@@ -265,35 +297,28 @@ void ProgAlignSpectral::ImageTransformer::forEachInPlaneTransform(  const Multid
 
 template<typename F>
 void ProgAlignSpectral::ImageTransformer::forEachInPlaneRotation(   const MultidimArray<Real>& img,
-                                                                    size_t nRotations,
+                                                                    const std::vector<Rotation>& rotations,
                                                                     F&& func )
 {
-    // Compute the fourier transform of the clean image
-    m_fourierClean.setReal(const_cast<MultidimArray<Real>&>(img)); // HACK although it wont be written
-    m_fourierClean.FourierTransform();
+    for(const auto& rotation : rotations) {
+        const auto angle = rotation.getAngle();
+        if(angle) {
+            // Apply the rotation
+            rotation(img, m_rotated);
 
-    // The first one (0 deg) does not need any rotate operation
-    func(m_fourierClean.fFourier, 0.0);
+            // Compute the fourier transform
+            m_fourierRotated.setReal(m_rotated);
+            m_fourierRotated.FourierTransform();
 
-    // Perform the rest of the rotations
-    const auto step = 360.0 / nRotations;
-    for (size_t i = 1; i < nRotations; ++i) {
-        // Rotate the input image into the cached image
-        const auto angle = i*step;
-        rotate(
-            xmipp_transformation::LINEAR, 
-            m_rotated, img,
-            angle, 'Z',
-            xmipp_transformation::WRAP
-        );
+            func(m_fourierRotated.fFourier, angle);
+        } else {
+            // Compute the fourier transform of the clean image
+            m_fourierClean.setReal(const_cast<MultidimArray<Real>&>(img)); // HACK although it wont be written
+            m_fourierClean.FourierTransform();
 
-        // Compute the fourier transform
-        m_fourierRotated.setReal(m_rotated);
-        m_fourierRotated.FourierTransform();
-
-        func(m_fourierRotated.fFourier, angle);
+            func(m_fourierClean.fFourier, angle);
+        }
     }
-
 }
 template<typename F>
 void ProgAlignSpectral::ImageTransformer::forEachInPlaneTranslation(const MultidimArray<Real>& img,
@@ -624,6 +649,17 @@ void ProgAlignSpectral::generateTranslations() {
     );
 }
 
+void ProgAlignSpectral::generateRotations() {
+    m_rotations.clear();
+    m_rotations.reserve(nRotations);
+
+    const auto step = 360.0 / nRotations;
+    for(size_t i = 0; i < nRotations; ++i) {
+        const auto angle = step * i;
+        m_rotations.emplace_back(angle);
+    }
+}
+
 void ProgAlignSpectral::alignImages() {
     // Convert sizes
     constexpr size_t megabytes2bytes = 1024*1024; 
@@ -632,8 +668,8 @@ void ProgAlignSpectral::alignImages() {
     const auto imageProjSizeBytes = imageProjCoeffCount * sizeof(Real);
 
     // Decide if it is convenient to split transformations
-    const auto splitTransform = m_mdExperimental.size() < m_mdReference.size()*nRotations;
-    const auto nRefTransform = splitTransform ? nRotations : nRotations*m_translations.size();
+    const auto splitTransform = m_mdExperimental.size() < m_mdReference.size()*m_rotations.size();
+    const auto nRefTransform = splitTransform ? m_rotations.size() : m_rotations.size()*m_translations.size();
 
     // Decide the batch sizes
     const auto batchSize = getBatchSize(memorySizeBytes, imageProjSizeBytes, nRefTransform);
@@ -727,7 +763,7 @@ void ProgAlignSpectral::projectReferencesRot(   size_t start,
                                                 size_t count ) 
 {
     // Allocate space
-    const auto nTransform = nRotations;
+    const auto nTransform = m_rotations.size();
     m_references.reset(count * nTransform, m_projectionSizes);
     m_referenceData.resize(m_references.getImageCount());
     
@@ -751,7 +787,7 @@ void ProgAlignSpectral::projectReferencesRot(   size_t start,
         // Project all the rotations
         auto counter = nTransform * (i - start);
         data.transformer.forEachInPlaneRotation(
-            data.image(), nRotations,
+            data.image(), m_rotations,
             [this, rowId, &data, &counter] (const MultidimArray<Complex>& spectrum, double angle) {
                 const auto index = counter++;
 
@@ -776,7 +812,7 @@ void ProgAlignSpectral::projectReferencesRotShift(  size_t start,
                                                     size_t count ) 
 {
     // Allocate space
-    const auto nTransform = nRotations*m_translations.size();
+    const auto nTransform = m_rotations.size()*m_translations.size();
     m_references.reset(count * nTransform, m_projectionSizes);
     m_referenceData.resize(m_references.getImageCount());
     
@@ -800,7 +836,7 @@ void ProgAlignSpectral::projectReferencesRotShift(  size_t start,
         // Project all the rotations
         auto counter = nTransform * (i - start);
         data.transformer.forEachInPlaneTransform(
-            data.image(), nRotations, m_translations,
+            data.image(), m_rotations, m_translations,
             [this, rowId, &data, &counter] (const MultidimArray<Complex>& spectrum, double angle, double sx, double sy) {
                 const auto index = counter++;
 
