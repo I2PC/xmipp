@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <numeric>
 #include <set>
+#include <map>
 
 
 namespace Alignment {
@@ -466,50 +467,50 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const std:
 size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const 
 {
     Matrix1D<Real> referenceBand;
+    std::vector<Real> distances(getImageCount(), 0.0);
+
+    // Consider the provided one as the starting best
+    auto best = getImageCount();
 
     // Compare band-by-band using the branch and bound approach
-    auto best = getImageCount();
-    auto bestCandidate = 0; // Arbitrary
-    std::vector<double> distances(getImageCount(), 0.0);
-
-    for(size_t i = 0; i < getBandCount() && bestCandidate != best; ++i) {
-        // Evaluate the "complete" distance for the best candidate image
-        for(size_t j = i; j < getBandCount() && distances[bestCandidate] < bestDistance; ++j) {
-            const auto& experimentalBand = experimentalBands[j];
-            const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
-            distances[bestCandidate] += euclideanDistance2(experimentalBand, referenceBand);
-        }
-
-        // Update the best distance
-        if (distances[bestCandidate] < bestDistance) {
-            best = bestCandidate;
-            bestDistance = distances[bestCandidate];
-        }
-
-        // Determine the best candidate for the next iteration
-        bestCandidate = best;
+    for(size_t i = 0; i < getBandCount(); ++i) {
+        // Determine the best candidate for the this iteration
+        auto bestCandidate = best;
         auto bestCandidateDistance = bestDistance;
         const auto& experimentalBand = experimentalBands[i];
         for(size_t j = 0; j < getImageCount(); ++j) {
-            // Only consider this image if it is below the threshold
-            if(distances[j] < bestDistance) {
+            // Add a band distance to all references except the best one
+            auto& distance = distances[j];
+            if(distance < bestDistance) {
                 const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(j, referenceBand);
-                distances[j] += euclideanDistance2(experimentalBand, referenceBand);
-                if(distances[j] < bestCandidateDistance) {
+                distance += euclideanDistance2(experimentalBand, referenceBand);
+                
+                if(distance < bestCandidateDistance) {
                     bestCandidate = j;
-                    bestCandidateDistance = distances[j];
+                    bestCandidateDistance = distance;
                 }
             }
         }
+        
+        if (bestCandidate != best) {
+            // Evaluate the "complete" distance for the best candidate image
+            auto& bestCandidateDistance = distances[bestCandidate];
+            for(size_t j = i+1; j < getBandCount() && bestCandidateDistance < bestDistance; ++j) {
+                const auto& experimentalBand = experimentalBands[j];
+                const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
+                bestCandidateDistance += euclideanDistance2(experimentalBand, referenceBand);
+            }
+
+            // Update the best distance if necessary
+            if (bestCandidateDistance < bestDistance) {
+                best = bestCandidate;
+                bestDistance = bestCandidateDistance;
+            }
+        } else {
+            break;
+        }
     }
 
-    // Update the best distance
-    if (distances[bestCandidate] < bestDistance) {
-        best = bestCandidate;
-        bestDistance = distances[bestCandidate];
-    }
-
-    assert(best < getImageCount());
     return best;
 }
 
