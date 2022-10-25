@@ -539,9 +539,10 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	tmpImage = tiltImage;
 	tiltImage.initZeros(ySize, xSize);
 
-
-	std::cout << "laplacian in interpolation limits" << std::endl;
+	#ifdef DEBUG_PREPROCESS
+	std::cout << "Laplacian in interpolation limits" << std::endl;
 	std::cout << "interpolationLimits.size() " << interpolationLimits.size() << std::endl;
+	#endif
 
 	for (size_t j = 1; j < ySize-2; j++)
 	{
@@ -549,7 +550,9 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		xMin = il.x;
 		xMax = il.y;
 
+		#ifdef DEBUG_PREPROCESS
 		std::cout << "j " << j << ", xMax " << xMax << ", xMin " << xMin << std::endl;
+		#endif
 
 		for (size_t i = xMin; i < xMax; i++)
 		{
@@ -560,7 +563,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 												8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
 		}
 	}
-
 
 // 	for (int i = 1; i < xSize-2; i++)
 // 	{
@@ -613,6 +615,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 // 									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
 // 		}	
 // 	}
+
 }
 
 
@@ -746,7 +749,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		int numberOfPointsAddedBinaryMap = 0;
 
 		bool firstExecution = true;
-		int colour;
+
+		int numberOfNewPeakedCoordinates = 0;
 
 		do{
 			if (!firstExecution)
@@ -779,6 +783,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			#endif
 
 			firstExecution = false;
+			int colour;
 
 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
@@ -786,82 +791,74 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			std::cout << "Colour: " << colour << std::endl;
 			#endif
 
-		} while(colour < 5);
-
-
-		for(size_t i = 0; i < ySize; i++)
-		{
-            for(size_t j = 0; j < xSize; ++j)
+			for(size_t i = 0; i < ySize; i++)
 			{
-				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-				
-				if (value > 0)
-				{			
-					DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
-				}
-			}
-		}
-
-		std::vector<std::vector<int>> coordinatesPerLabelX (colour);
-		std::vector<std::vector<int>> coordinatesPerLabelY (colour);
-
-		for(size_t i = 0; i < ySize; i++)
-		{
-            for(size_t j = 0; j < xSize; ++j)
-			{
-				int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-
-				if(value!=0)
+				for(size_t j = 0; j < xSize; ++j)
 				{
-					coordinatesPerLabelX[value-1].push_back(j);
-					coordinatesPerLabelY[value-1].push_back(i);
+					double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+					
+					if (value > 0)
+					{			
+						DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
+					}
 				}
 			}
-		}
 
-		#ifdef DEBUG_HCC
-		int numberOfNewPeakedCoordinates = 0;
-		#endif
+			std::vector<std::vector<int>> coordinatesPerLabelX (colour);
+			std::vector<std::vector<int>> coordinatesPerLabelY (colour);
 
-		size_t numberOfCoordinatesPerValue;
-
-
-		// std::vector<double> occupancyV;
-
-		// Trim coordinates based on the characteristics of the labeled region
-		for(size_t value = 0; value < colour; value++)
-		{
-			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
-
-			int xCoor = 0;
-			int yCoor = 0;
-
-			for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+			for(size_t i = 0; i < ySize; i++)
 			{
-				xCoor += coordinatesPerLabelX[value][coordinate];
-				yCoor += coordinatesPerLabelY[value][coordinate];
+				for(size_t j = 0; j < xSize; ++j)
+				{
+					int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+					if(value!=0)
+					{
+						coordinatesPerLabelX[value-1].push_back(j);
+						coordinatesPerLabelY[value-1].push_back(i);
+					}
+				}
 			}
 
-			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
-			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+			size_t numberOfCoordinatesPerValue;
 
-			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-		
-			// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			// occupancyV.push_back(occupancy);
 
-			if(keep)
+			// std::vector<double> occupancyV;
+
+			// Trim coordinates based on the characteristics of the labeled region
+			for(size_t value = 0; value < colour; value++)
 			{
-				Point3D<double> point3D(xCoorCM, yCoorCM, k);
-				coordinates3D.push_back(point3D);
+				numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
 
-				#ifdef DEBUG_HCC
-				numberOfNewPeakedCoordinates += 1;
-				#endif
+				int xCoor = 0;
+				int yCoor = 0;
+
+				for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+				{
+					xCoor += coordinatesPerLabelX[value][coordinate];
+					yCoor += coordinatesPerLabelY[value][coordinate];
+				}
+
+				double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+				double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+				bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
 			
-			}
-		}
+				// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+				// occupancyV.push_back(occupancy);
 
+				if(keep)
+				{
+					Point3D<double> point3D(xCoorCM, yCoorCM, k);
+					coordinates3D.push_back(point3D);
+
+					numberOfNewPeakedCoordinates += 1;
+				}
+			}
+
+		} while(numberOfNewPeakedCoordinates < 1);
+	
 		// std::cout << "Occupancy vector=";
 		// for (size_t i = 0; i < occupancyV.size(); i++)
 		// {

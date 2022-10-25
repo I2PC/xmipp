@@ -51,7 +51,7 @@
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
-#define DEBUG_PREPROCESS
+// #define DEBUG_PREPROCESS
 // #define DEBUG_HCC
 // #define DEBUG_VOTTING
 // #define DEBUG_FILTERLABEL
