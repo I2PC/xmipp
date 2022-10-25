@@ -46,6 +46,7 @@
 	double sampling; 
 	double padFourier; 
 	double maxResol;
+    double cirmaskrad; // Radius of the circular mask
     int fmaskWidth;
 	int sigma;
     int limitfreq;

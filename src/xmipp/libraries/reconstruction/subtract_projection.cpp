@@ -60,6 +60,7 @@
     maxResol = getDoubleParam("--max_resolution");
 	fmaskWidth = getIntParam("--fmask_width");
 	limitfreq = getIntParam("--limit_freq");
+	cirmaskrad = getDoubleParam("--cirmaskrad");
 	fnProj = getParam("--save"); 
 	nonNegative = checkParam("--nonNegative");
 	subtract = checkParam("--subtract");
@@ -101,6 +102,7 @@
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
 	 addParamsLine("[--subtract]\t: Perform subtraction"); 
 	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
+	 addParamsLine("[--cirmaskrad <c=-1.0>]\t: Radius of the circular mask");
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
@@ -275,7 +277,9 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
     V.getDimensions(Xdim, Ydim, Zdim, Ndim);
 	cirmask().initZeros((int)Ydim, (int)Xdim);
 	cirmask().setXmippOrigin();
-	RaisedCosineMask(cirmask(), (double)XSIZE(V())*0.8/2, (double)XSIZE(V())*0.9/2);
+	if (cirmaskrad == -1.0)
+		cirmaskrad = (double)XSIZE(V());
+	RaisedCosineMask(cirmask(), cirmaskrad*0.8/2, cirmaskrad*0.9/2);
 	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
