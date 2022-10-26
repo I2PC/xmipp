@@ -370,12 +370,12 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 																		 cudaVL2,
 																		 cudaVM,
 																		 commonParameters.cudaClnm,
-																		 commonParameters.R.data[0],
-																		 commonParameters.R.data[1],
-																		 commonParameters.R.data[2],
-																		 commonParameters.R.data[3],
-																		 commonParameters.R.data[4],
-																		 commonParameters.R.data[5]);
+																		 commonParameters.R.mdata[0],
+																		 commonParameters.R.mdata[1],
+																		 commonParameters.R.mdata[2],
+																		 commonParameters.R.mdata[3],
+																		 commonParameters.R.mdata[4],
+																		 commonParameters.R.mdata[5]);
 
 	cudaDeviceSynchronize();
 
@@ -421,12 +421,12 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaVL2,
 																  cudaVM,
 																  commonParameters.cudaClnm,
-																  commonParameters.R.data[0],
-																  commonParameters.R.data[1],
-																  commonParameters.R.data[2],
-																  commonParameters.R.data[3],
-																  commonParameters.R.data[4],
-																  commonParameters.R.data[5],
+																  commonParameters.R.mdata[0],
+																  commonParameters.R.mdata[1],
+																  commonParameters.R.mdata[2],
+																  commonParameters.R.mdata[3],
+																  commonParameters.R.mdata[4],
+																  commonParameters.R.mdata[5],
 																  mIdTexture,
 																  mId.xinit,
 																  mId.yinit,
