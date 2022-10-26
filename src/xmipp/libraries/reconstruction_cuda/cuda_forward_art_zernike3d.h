@@ -72,7 +72,8 @@ class Program {
 	struct CommonKernelParameters {
 		size_t idxY0, idxZ0;
 		PrecisionType iRmaxF;
-		PrecisionType *cudaClnm, *cudaR;
+		PrecisionType *cudaClnm;
+		Matrix2D<PrecisionType> R;
 	};
 
    public:

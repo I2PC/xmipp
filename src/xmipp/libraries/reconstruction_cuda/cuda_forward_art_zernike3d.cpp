@@ -133,7 +133,7 @@ namespace {
 	void freeCommonArgumentsKernel(struct Program<T>::CommonKernelParameters &commonParameters)
 	{
 		cudaFree(commonParameters.cudaClnm);
-		cudaFree(commonParameters.cudaR);
+		//cudaFree(commonParameters.cudaR);
 	}
 
 	template<typename T>
@@ -173,8 +173,7 @@ namespace {
 		const Matrix2D<T> R = createRotationMatrix<T>(angles);
 
 		struct Program<T>::CommonKernelParameters output = {
-			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transportStdVectorToGpu(clnm),
-			.cudaR = transportMatrix2DToGpu(R),
+			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transportStdVectorToGpu(clnm), .R = R,
 		};
 
 		return output;
@@ -371,7 +370,12 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 																		 cudaVL2,
 																		 cudaVM,
 																		 commonParameters.cudaClnm,
-																		 commonParameters.cudaR);
+																		 commonParameters.R.data[0],
+																		 commonParameters.R.data[1],
+																		 commonParameters.R.data[2],
+																		 commonParameters.R.data[3],
+																		 commonParameters.R.data[4],
+																		 commonParameters.R.data[5]);
 
 	cudaDeviceSynchronize();
 
@@ -417,7 +421,12 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																  cudaVL2,
 																  cudaVM,
 																  commonParameters.cudaClnm,
-																  commonParameters.cudaR,
+																  commonParameters.R.data[0],
+																  commonParameters.R.data[1],
+																  commonParameters.R.data[2],
+																  commonParameters.R.data[3],
+																  commonParameters.R.data[4],
+																  commonParameters.R.data[5],
 																  mIdTexture,
 																  mId.xinit,
 																  mId.yinit,
