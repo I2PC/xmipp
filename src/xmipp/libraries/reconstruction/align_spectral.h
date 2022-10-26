@@ -40,6 +40,7 @@
 #include <mutex>
 #include <limits>
 #include <complex>
+#include <list>
 
 /**@defgroup Alignment Alignment
    @ingroup ReconsLibrary */
@@ -192,6 +193,31 @@ private:
 
     class ReferencePcaProjections {
     public:
+        class WorkingSetBnB {
+        public:
+            struct Element {
+                size_t index;
+                Real distance;
+            };
+
+            using ElementList = std::list<Element>;
+
+            ElementList::iterator init(size_t count, Real bestDistance);
+            ElementList::iterator begin();
+            ElementList::const_iterator begin() const;
+            ElementList::const_iterator cbegin() const;
+            ElementList::iterator end();
+            ElementList::const_iterator end() const;
+            ElementList::const_iterator cend() const;
+            ElementList::iterator erase(ElementList::iterator ite);
+            ElementList::const_iterator erase(ElementList::const_iterator ite);
+            size_t size() const;
+
+        private:
+            ElementList m_candidates;
+            ElementList m_deleted;
+        };
+
         ReferencePcaProjections() = default;
         ReferencePcaProjections(size_t nImages, const std::vector<size_t>& bandSizes);
         ReferencePcaProjections(const ReferencePcaProjections& other) = default;
@@ -207,7 +233,7 @@ private:
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
         size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
-        size_t matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
+        size_t matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, WorkingSetBnB& ws) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;

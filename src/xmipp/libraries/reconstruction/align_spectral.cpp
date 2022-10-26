@@ -464,57 +464,133 @@ size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjection(const std:
     return best;
 }
 
-size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBaB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const 
+size_t ProgAlignSpectral::ReferencePcaProjections::matchPcaProjectionBnB(   const std::vector<Matrix1D<Real>>& experimentalBands, 
+                                                                            Real& bestDistance,
+                                                                            WorkingSetBnB& ws ) const 
 {
     Matrix1D<Real> referenceBand;
-    std::vector<Real> distances(getImageCount(), 0.0);
 
-    // Consider the provided one as the starting best
-    auto best = getImageCount();
+    // Start with the provided score as the best one
+    auto best = ws.init(getImageCount(), bestDistance);
 
     // Compare band-by-band using the branch and bound approach
     for(size_t i = 0; i < getBandCount(); ++i) {
         // Determine the best candidate for the this iteration
         auto bestCandidate = best;
-        auto bestCandidateDistance = bestDistance;
         const auto& experimentalBand = experimentalBands[i];
-        for(size_t j = 0; j < getImageCount(); ++j) {
-            // Add a band distance to all references except the best one
-            auto& distance = distances[j];
-            if(distance < bestDistance) {
-                const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(j, referenceBand);
-                distance += euclideanDistance2(experimentalBand, referenceBand);
+        for(auto ite = ws.begin(); ite != ws.end(); /*EMPTY ON PURPOSE*/) {
+            if(ite != best) {
+                // Add the distance of this band to all elements
+                const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(ite->index, referenceBand);
+                ite->distance += euclideanDistance2(experimentalBand, referenceBand);
                 
-                if(distance < bestCandidateDistance) {
-                    bestCandidate = j;
-                    bestCandidateDistance = distance;
+                // Check if it is still eligible
+                if(ite->distance < best->distance) {
+                    if(ite->distance < bestCandidate->distance) {
+                        bestCandidate = ite;
+                    }
+                    ++ite;
+                } else {
+                    // Not a candidate anymore
+                    ite = ws.erase(ite);
                 }
+            } else {
+                ++ite;
             }
         }
         
         if (bestCandidate != best) {
             // Evaluate the "complete" distance for the best candidate image
-            auto& bestCandidateDistance = distances[bestCandidate];
-            for(size_t j = i+1; j < getBandCount() && bestCandidateDistance < bestDistance; ++j) {
+            for(size_t j = i+1; j < getBandCount() && bestCandidate->distance < best->distance; ++j) {
                 const auto& experimentalBand = experimentalBands[j];
-                const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate, referenceBand);
-                bestCandidateDistance += euclideanDistance2(experimentalBand, referenceBand);
+                const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate->index, referenceBand);
+                bestCandidate->distance += euclideanDistance2(experimentalBand, referenceBand);
             }
 
             // Update the best distance if necessary
-            if (bestCandidateDistance < bestDistance) {
+            if (bestCandidate->distance < best->distance) {
+                ws.erase(best);
                 best = bestCandidate;
-                bestDistance = bestCandidateDistance;
+            } else {
+                ws.erase(bestCandidate);
             }
         } else {
+            assert(ws.size() == 1);
             break;
         }
     }
 
-    return best;
+    return best->index;
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::init(size_t count, Real bestDistance) {
+    // Recycle the deleted contents
+    m_candidates.splice(m_candidates.cend(), m_deleted);
+
+    // Fill
+    m_candidates.resize(count + 1);
+    auto ite = std::generate_n(
+        m_candidates.begin(), count,
+        [counter = 0UL] () mutable -> Element {
+            return Element{ counter++, 0.0 };
+        }
+    );
+
+    // Last element is the provided distance with an invalid index
+    (*ite) = Element{count, bestDistance}; 
+    return ite;
 }
 
 
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::begin() {
+    return m_candidates.begin();
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::begin() const {
+    return m_candidates.begin();
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::cbegin() const {
+    return begin();
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::end() {
+    return m_candidates.end();
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::end() const {
+    return m_candidates.end();
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::cend() const {
+    return end();
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::erase(ElementList::iterator ite) {
+    auto old = ite++;
+    m_deleted.splice(m_deleted.cend(), m_candidates, old); // Move it to the deleted set
+    return ite;
+}
+
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
+ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::erase(ElementList::const_iterator ite) {
+    auto old = ite++;
+    m_deleted.splice(m_deleted.cend(), m_candidates, old); // Move it to the deleted set
+    return ite;
+}
+
+size_t ProgAlignSpectral::ReferencePcaProjections::WorkingSetBnB::size() const {
+    return m_candidates.size();
+}
 
 
 
@@ -864,6 +940,7 @@ void ProgAlignSpectral::classifyExperimental() {
         FourierTransformer fourier;
         std::vector<Matrix1D<Real>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
+        //ReferencePcaProjections::WorkingSetBnB ws;
     };
 
     // Create a lambda to run in parallel
