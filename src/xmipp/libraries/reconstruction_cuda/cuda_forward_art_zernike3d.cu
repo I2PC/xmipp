@@ -423,10 +423,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	__builtin_assume(xdim > 0);
 	__builtin_assume(ydim > 0);
 	unsigned cubeX = threadPosition % xdim;
-	unsigned threadPositionDivX = threadPosition / xdim;
-	__builtin_assume(threadPositionDivX >= 0);
-	unsigned cubeY = threadPositionDivX % ydim;
-	__builtin_assume(threadPositionDivX >= 0);
+	unsigned cubeY = threadPosition / xdim % ydim;
 	unsigned cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
