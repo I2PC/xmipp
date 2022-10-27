@@ -348,7 +348,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	std::tie(cudaP, pVector) = convertToMultidimArrayCuda(parameters.P);
 	std::tie(cudaW, wVector) = convertToMultidimArrayCuda(parameters.W);
 	unsigned sigma_size = static_cast<unsigned>(sigma.size());
-	const int step = loopStep;
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
@@ -357,7 +356,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 		<<<gridXStep, blockXStep>>>(posXYArray,
 									cudaMV,
 									cudaCoordinatesF,
-									RmaxDef,
 									xdimF,
 									ydimF,
 									commonParameters.iRmaxF,
@@ -399,7 +397,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto cudaMId = initializeMultidimArrayCuda(mId);
-	const int step = 1;
 
 	// Texture
 	cudaTextureObject_t mIdTexture = initTextureMultidimArray<PrecisionType>(cudaMId, mId.zdim);
@@ -411,7 +408,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 		<<<gridXStep, blockXStep>>>(posXYArray,
 									cudaMV,
 									cudaCoordinatesF,
-									RmaxDef,
 									xdimF,
 									ydimF,
 									commonParameters.iRmaxF,
