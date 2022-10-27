@@ -321,7 +321,7 @@ namespace device {
 	}
 
 	template<typename PrecisionType>
-	__device__ size_t findCuda(const PrecisionType *begin, size_t size, PrecisionType value)
+	__device__ size_t findCuda(const PrecisionType *begin, const size_t size, PrecisionType value)
 	{
 		if (size <= 0) {
 			return 0;
