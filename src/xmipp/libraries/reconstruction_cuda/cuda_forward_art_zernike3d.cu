@@ -374,33 +374,143 @@ namespace device {
 
 }  // namespace device
 
+/*
+ * The first beast
+ */
 template<typename PrecisionType, bool usesZernike>
-__global__ void positionComputeKernel(PrecisionType *posXYArray,
-									  const MultidimArrayCuda<PrecisionType> cudaMV,
-									  const unsigned *cudaCoordinates,
-									  const unsigned sizeX,
-									  const int xdim,
-									  const int ydim,
-									  const PrecisionType iRmaxF,
-									  const unsigned idxY0,
-									  const unsigned idxZ0,
-									  const int *cudaVL1,
-									  const int *cudaVN,
-									  const int *cudaVL2,
-									  const int *cudaVM,
-									  const PrecisionType *cudaClnm,
-									  const PrecisionType r0,
-									  const PrecisionType r1,
-									  const PrecisionType r2,
-									  const PrecisionType r3,
-									  const PrecisionType r4,
-									  const PrecisionType r5)
+__global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
+							  const int *cudaVRecMaskF,
+							  const unsigned *cudaCoordinatesF,
+							  const int xdim,
+							  const int ydim,
+							  const unsigned sizeF,
+							  MultidimArrayCuda<PrecisionType> *cudaP,
+							  MultidimArrayCuda<PrecisionType> *cudaW,
+							  const int lastZ,
+							  const int lastY,
+							  const int lastX,
+							  const int step,
+							  const unsigned sigma_size,
+							  const PrecisionType *cudaSigma,
+							  const PrecisionType iRmaxF,
+							  const unsigned idxY0,
+							  const unsigned idxZ0,
+							  const int *cudaVL1,
+							  const int *cudaVN,
+							  const int *cudaVL2,
+							  const int *cudaVM,
+							  const PrecisionType *cudaClnm,
+							  PrecisionType r0,
+							  PrecisionType r1,
+							  PrecisionType r2,
+							  PrecisionType r3,
+							  PrecisionType r4,
+							  PrecisionType r5)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
-	if (sizeX <= threadIndex) {
+	if (sizeF <= threadIndex) {
 		return;
 	}
-	int threadPosition = cudaCoordinates[threadIndex];
+	int threadPosition = cudaCoordinatesF[threadIndex];
+	/*auto r0 = cudaR[0];
+	auto r1 = cudaR[1];
+	auto r2 = cudaR[2];
+	auto r3 = cudaR[3];
+	auto r4 = cudaR[4];
+	auto r5 = cudaR[5];*/
+	int img_idx = 0;
+	if (sigma_size > 1) {
+		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
+		/*auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
+		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
+		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
+		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
+	}
+	auto &mP = cudaP[img_idx];
+	auto &mW = cudaW[img_idx];
+	int cubeX = MODULO(threadPosition, xdim);
+	int cubeY = MODULO(threadPosition / xdim, ydim);
+	int cubeZ = threadPosition / (xdim * ydim);
+	int k = STARTINGZ(cudaMV) + cubeZ;
+	int i = STARTINGY(cudaMV) + cubeY;
+	int j = STARTINGX(cudaMV) + cubeX;
+	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
+	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
+	if (usesZernike) {
+		auto k2 = k * k;
+		auto kr = k * iRmaxF;
+		auto k2i2 = k2 + i * i;
+		auto ir = i * iRmaxF;
+		auto r2 = k2i2 + j * j;
+		auto jr = j * iRmaxF;
+		auto rr = SQRT(r2) * iRmaxF;
+		for (size_t idx = 0; idx < idxY0; idx++) {
+			auto l1 = cudaVL1[idx];
+			auto n = cudaVN[idx];
+			auto l2 = cudaVL2[idx];
+			auto m = cudaVM[idx];
+			if (rr > 0 || l2 == 0) {
+				PrecisionType zsph = device::ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+				gx += cudaClnm[idx] * (zsph);
+				gy += cudaClnm[idx + idxY0] * (zsph);
+				gz += cudaClnm[idx + idxZ0] * (zsph);
+			}
+		}
+	}
+
+	auto r_x = j + gx;
+	auto r_y = i + gy;
+	auto r_z = k + gz;
+
+	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
+	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
+	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
+}
+
+/*
+ * The second beast
+ */
+template<typename PrecisionType, bool usesZernike>
+__global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
+							   const unsigned *cudaCoordinatesB,
+							   const unsigned xdim,
+							   const unsigned ydim,
+							   const unsigned sizeB,
+							   const int lastZ,
+							   const int lastY,
+							   const int lastX,
+							   const int step,
+							   const PrecisionType iRmaxF,
+							   const unsigned idxY0,
+							   const unsigned idxZ0,
+							   const int *cudaVL1,
+							   const int *cudaVN,
+							   const int *cudaVL2,
+							   const int *cudaVM,
+							   const PrecisionType *cudaClnm,
+							   PrecisionType r0,
+							   PrecisionType r1,
+							   PrecisionType r2,
+							   PrecisionType r3,
+							   PrecisionType r4,
+							   PrecisionType r5,
+							   const cudaTextureObject_t texMId,
+							   const int xinitMId,
+							   const int yinitMId,
+							   const int xdimMId,
+							   const int ydimMId)
+{
+	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
+	if (sizeB <= threadIndex) {
+		return;
+	}
+	int threadPosition = cudaCoordinatesB[threadIndex];
+	/*auto r0 = cudaR[0];
+	auto r1 = cudaR[1];
+	auto r2 = cudaR[2];
+	auto r3 = cudaR[3];
+	auto r4 = cudaR[4];
+	auto r5 = cudaR[5];*/
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);
@@ -436,73 +546,6 @@ __global__ void positionComputeKernel(PrecisionType *posXYArray,
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
-
-	posXYArray[threadIndex * 2] = pos_x;
-	posXYArray[(threadIndex * 2) + 1] = pos_y;
-}
-
-/*
- * The first beast
- */
-template<typename PrecisionType>
-__global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
-							  const unsigned *cudaCoordinatesF,
-							  const int *cudaVRecMaskF,
-							  const unsigned sizeF,
-							  const int xdim,
-							  const int ydim,
-							  MultidimArrayCuda<PrecisionType> *cudaP,
-							  MultidimArrayCuda<PrecisionType> *cudaW,
-							  const unsigned sigma_size,
-							  const PrecisionType *cudaSigma,
-							  const PrecisionType *posXYArray)
-{
-	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
-	if (sizeF <= threadIndex) {
-		return;
-	}
-	int threadPosition = cudaCoordinatesF[threadIndex];
-	int cubeX = MODULO(threadPosition, xdim);
-	int cubeY = MODULO(threadPosition / xdim, ydim);
-	int cubeZ = threadPosition / (xdim * ydim);
-	int k = STARTINGZ(cudaMV) + cubeZ;
-	int i = STARTINGY(cudaMV) + cubeY;
-	int j = STARTINGX(cudaMV) + cubeX;
-	int img_idx = 0;
-	if (sigma_size > 1) {
-		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
-		/*auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
-		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
-		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
-		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
-	}
-	auto &mP = cudaP[img_idx];
-	auto &mW = cudaW[img_idx];
-	auto pos_x = posXYArray[threadIndex * 2];
-	auto pos_y = posXYArray[(threadIndex * 2) + 1];
-	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
-	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
-}
-
-/*
- * The second beast
- */
-template<typename PrecisionType>
-__global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
-							   const unsigned sizeB,
-							   const cudaTextureObject_t texMId,
-							   const int xinitMId,
-							   const int yinitMId,
-							   const int xdimMId,
-							   const int ydimMId,
-							   const PrecisionType *posXYArray)
-{
-	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
-	if (sizeB <= threadIndex) {
-		return;
-	}
-	auto pos_x = posXYArray[threadIndex * 2];
-	auto pos_y = posXYArray[(threadIndex * 2) + 1];
 	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, texMId, xinitMId, yinitMId, xdimMId, ydimMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
