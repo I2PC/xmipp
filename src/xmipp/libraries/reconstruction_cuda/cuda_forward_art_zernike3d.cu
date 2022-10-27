@@ -446,6 +446,7 @@ __global__ void positionComputeKernel(PrecisionType *posXYArray,
  */
 template<typename PrecisionType>
 __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
+							  const unsigned *cudaCoordinatesF,
 							  const int *cudaVRecMaskF,
 							  const unsigned sizeF,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
@@ -458,6 +459,13 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
+	int threadPosition = cudaCoordinatesF[threadIndex];
+	int cubeX = MODULO(threadPosition, xdim);
+	int cubeY = MODULO(threadPosition / xdim, ydim);
+	int cubeZ = threadPosition / (xdim * ydim);
+	int k = STARTINGZ(cudaMV) + cubeZ;
+	int i = STARTINGY(cudaMV) + cubeY;
+	int j = STARTINGX(cudaMV) + cubeX;
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];

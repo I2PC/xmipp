@@ -376,8 +376,15 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 
 	cudaDeviceSynchronize();
 
-	forwardKernel<PrecisionType><<<gridXStep, blockXStep>>>(
-		cudaMV, VRecMaskF, static_cast<unsigned>(sizeF), cudaP, cudaW, sigma_size, cudaSigma, posXYArray);
+	forwardKernel<PrecisionType><<<gridXStep, blockXStep>>>(cudaMV,
+															cudaCoordinatesF,
+															VRecMaskF,
+															static_cast<unsigned>(sizeF),
+															cudaP,
+															cudaW,
+															sigma_size,
+															cudaSigma,
+															posXYArray);
 
 	cudaDeviceSynchronize();
 
