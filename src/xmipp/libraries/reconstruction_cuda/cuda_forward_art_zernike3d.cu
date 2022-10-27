@@ -403,6 +403,9 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType r4,
 							  const PrecisionType r5)
 {
+	__builtin_assume_aligned(cudaMV, 16);
+	__builtin_assume_aligned(cudaP, 16);
+	__builtin_assume_aligned(cudaW, 16);
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeF <= threadIndex) {
 		return;
@@ -492,6 +495,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int xdimMId,
 							   const int ydimMId)
 {
+	__builtin_assume_aligned(cudaMV, 16);
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeB <= threadIndex) {
 		return;
