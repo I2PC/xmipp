@@ -416,8 +416,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
-	MultidimArrayCuda<PrecisionType> *cudaPAligned = __builtin_assume_aligned(cudaP, 16);
-	MultidimArrayCuda<PrecisionType> *cudaWAligned = __builtin_assume_aligned(cudaW, 16);
+	auto cudaPAligned = __builtin_assume_aligned(cudaP, 16);
+	auto cudaWAligned = __builtin_assume_aligned(cudaW, 16);
 	auto &mP = cudaPAligned[img_idx];
 	auto &mW = cudaWAligned[img_idx];
 	__builtin_assume(xdim > 0);
