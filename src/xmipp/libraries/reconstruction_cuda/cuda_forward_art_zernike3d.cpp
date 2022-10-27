@@ -380,6 +380,8 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 															cudaCoordinatesF,
 															VRecMaskF,
 															static_cast<unsigned>(sizeF),
+															xdimF,
+															ydimF,
 															cudaP,
 															cudaW,
 															sigma_size,
