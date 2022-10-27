@@ -50,7 +50,6 @@
     int fmaskWidth;
 	int sigma;
     int limitfreq;
-    int best_model;
     bool nonNegative;
     bool subtract;
     bool boost;
