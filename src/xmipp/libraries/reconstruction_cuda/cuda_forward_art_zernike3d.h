@@ -120,6 +120,8 @@ class Program {
 	const int xdimF, ydimF;
 
 	size_t sizeF;
+
+	PrecisionType *posXYArray;
 };
 
 }  // namespace cuda_forward_art_zernike3D
