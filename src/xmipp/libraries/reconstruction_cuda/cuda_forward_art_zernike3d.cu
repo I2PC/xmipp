@@ -422,7 +422,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto &mW = cudaWAligned[img_idx];
 	__builtin_assume(xdim > 0);
 	__builtin_assume(ydim > 0);
-	__builtin_assume(threadPosition >= 0);
 	unsigned cubeX = threadPosition % xdim;
 	unsigned threadPositionDivX = threadPosition / xdim;
 	__builtin_assume(threadPositionDivX >= 0);
@@ -501,11 +500,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	unsigned threadPosition = cudaCoordinatesB[threadIndex];
 	__builtin_assume(xdim > 0);
 	__builtin_assume(ydim > 0);
-	__builtin_assume(threadPosition >= 0);
 	unsigned cubeX = threadPosition % xdim;
-	unsigned threadPositionDivX = threadPosition / xdim;
-	__builtin_assume(threadPositionDivX >= 0);
-	unsigned cubeY = threadPositionDivX % ydim;
+	unsigned cubeY = threadPosition / xdim % ydim;
 	unsigned cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
