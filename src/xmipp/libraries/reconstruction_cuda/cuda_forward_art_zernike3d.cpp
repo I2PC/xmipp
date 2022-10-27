@@ -353,9 +353,29 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	positionComputeKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(posXYArray, )
+	positionComputeKernel<PrecisionType, usesZernike>
+		<<<gridXStep, blockXStep>>>(posXYArray,
+									cudaMV,
+									cudaCoordinatesF,
+									RmaxDef,
+									xdimF,
+									ydimF,
+									commonParameters.iRmaxF,
+									static_cast<unsigned>(commonParameters.idxY0),
+									static_cast<unsigned>(commonParameters.idxZ0),
+									cudaVL1,
+									cudaVN,
+									cudaVL2,
+									cudaVM,
+									commonParameters.cudaClnm,
+									commonParameters.R.mdata[0],
+									commonParameters.R.mdata[1],
+									commonParameters.R.mdata[2],
+									commonParameters.R.mdata[3],
+									commonParameters.R.mdata[4],
+									commonParameters.R.mdata[5]);
 
-		cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType><<<gridXStep, blockXStep>>>(
 		cudaMV, VRecMaskF, static_cast<unsigned>(sizeF), cudaP, cudaW, sigma_size, cudaSigma, posXYArray);
@@ -387,7 +407,27 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	positionComputeKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>
+	positionComputeKernel<PrecisionType, usesZernike>
+		<<<gridXStep, blockXStep>>>(posXYArray,
+									cudaMV,
+									cudaCoordinatesF,
+									RmaxDef,
+									xdimF,
+									ydimF,
+									commonParameters.iRmaxF,
+									static_cast<unsigned>(commonParameters.idxY0),
+									static_cast<unsigned>(commonParameters.idxZ0),
+									cudaVL1,
+									cudaVN,
+									cudaVL2,
+									cudaVM,
+									commonParameters.cudaClnm,
+									commonParameters.R.mdata[0],
+									commonParameters.R.mdata[1],
+									commonParameters.R.mdata[2],
+									commonParameters.R.mdata[3],
+									commonParameters.R.mdata[4],
+									commonParameters.R.mdata[5]);
 
 	cudaDeviceSynchronize();
 
