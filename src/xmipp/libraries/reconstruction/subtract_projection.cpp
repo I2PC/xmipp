@@ -259,7 +259,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		R2(0) = R20adj;
 		R2(1) = 0;		
 	}
-	std::cout << "Order model(inside): " << R2(1) << std::endl; 		
 	return R2;
 }
 
