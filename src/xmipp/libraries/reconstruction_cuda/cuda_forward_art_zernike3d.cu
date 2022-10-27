@@ -403,9 +403,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType r4,
 							  const PrecisionType r5)
 {
-	__builtin_assume_aligned(cudaMV, 16);
-	__builtin_assume_aligned(cudaP, 16);
-	__builtin_assume_aligned(cudaW, 16);
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeF <= threadIndex) {
 		return;
@@ -419,8 +416,10 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
-	auto &mP = cudaP[img_idx];
-	auto &mW = cudaW[img_idx];
+	MultidimArrayCuda<PrecisionType> *cudaPAligned = __builtin_assume_aligned(cudaP, 16);
+	MultidimArrayCuda<PrecisionType> *cudaWAligned = __builtin_assume_aligned(cudaW, 16);
+	auto &mP = cudaPAligned[img_idx];
+	auto &mW = cudaWAligned[img_idx];
 	__builtin_assume(xdim > 0);
 	__builtin_assume(ydim > 0);
 	__builtin_assume(threadPosition >= 0);
@@ -495,7 +494,6 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const int xdimMId,
 							   const int ydimMId)
 {
-	__builtin_assume_aligned(cudaMV, 16);
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeB <= threadIndex) {
 		return;
