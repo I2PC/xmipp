@@ -118,8 +118,8 @@
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-    double checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, int) const;
+    Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 
     /// Run
     void run() override;

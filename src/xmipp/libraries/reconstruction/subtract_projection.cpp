@@ -240,26 +240,26 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	return R2;
  }
 
-double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
- const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf, int bmod) const { 
+Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
+ const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
 	double R20adj = evaluateFitting(IFourierf, PFourierf0); // adjusted R2 for an order 0 model = R2
 	double R21 = evaluateFitting(IFourierf, PFourierf1); 
 	double R21adj = 1.0 - (1.0 - R21) * (N - 1.0) / (N - 2.0); // adjusted R2 for an order 1 model -> p = 2
 	//Decide best fitting
-	double R2;
+	Matrix1D<double> R2(2);
 	if (R21adj > R20adj) { // Order 1: T(w) = b01 + b1*wi 
 		PFourierf = PFourierf1;
-		R2 = R21adj;
-		bmod = 1;
+		R2(0) = R21adj;
+		R2(1) = 1;
 	} 
 	else { // Order 0: T(w) = b00 
 		PFourierf = PFourierf0;
-		R2 = R20adj;
-		bmod = 0;		
+		R2(0) = R20adj;
+		R2(1) = 0;		
 	}
-	std::cout << "Order %d model" << bmod << std::endl; 		
+	std::cout << "Order model(inside): " << R2(1) << std::endl; 		
 	return R2;
 }
 
@@ -278,8 +278,8 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 	cirmask().initZeros((int)Ydim, (int)Xdim);
 	cirmask().setXmippOrigin();
 	if (cirmaskrad == -1.0)
-		cirmaskrad = (double)XSIZE(V());
-	RaisedCosineMask(cirmask(), cirmaskrad*0.8/2, cirmaskrad*0.9/2);
+		cirmaskrad = (double)XSIZE(V())/2;
+	RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
 	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 
 	// Read or create mask keep and compute inverse of mask keep (mask subtract)
@@ -417,16 +417,16 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		PFourier1(0,0) = IiMFourier(0,0); 
 
 		// Check best model
-		double R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier, best_model);
-		std::cout << "best_model: " << best_model << std::endl; 	
+		Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
+		std::cout << "best_model: " << R2adj(1) << std::endl; 	
 		double beta0save;
 		double beta1save;		
-		if (best_model == 0)
+		if (R2adj(1) == 0)
 		{
 			beta0save = beta00;
 			beta1save = 0;
 		}
-		else if (best_model == 1)
+		else if (R2adj(1) == 1)
 		{
 			beta0save = beta01;
 			beta1save = beta1;
@@ -440,12 +440,12 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 		// Boosting of original particles
 		if (boost)
 		{
-			if (best_model == 0)
+			if (R2adj(1) == 0)
 			{
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier) 
 					DIRECT_MULTIDIM_ELEM(IFourier,n) /= beta00; 
 			} 
-			else if (best_model == 1)
+			else if (R2adj(1) == 1)
 			{
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IFourier)
 					DIRECT_MULTIDIM_ELEM(IFourier,n) /= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
@@ -463,25 +463,20 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			P.write(formatString("%s/projection_xmipp_to_subtract.mrc", fnProj.c_str()));
 
 			// Estimate beta0 in real space:
-			double meanI = I().computeAvg();
-			std::cout << "meanI: " << meanI << std::endl;
-			MultidimArray<double> Imean;
-			Imean.initZeros(I());
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imean)
-				DIRECT_MULTIDIM_ELEM(Imean,n) = DIRECT_MULTIDIM_ELEM(I(),n) - meanI;
+			// double meanI = I().computeAvg();
+			// MultidimArray<double> Imean;
+			// Imean.initZeros(I());
+			// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imean)
+			// 	DIRECT_MULTIDIM_ELEM(Imean,n) = DIRECT_MULTIDIM_ELEM(I(),n) - meanI;
 
-			double meanP = P().computeAvg();
-			std::cout << "meanP: " << meanP << std::endl;
-			MultidimArray<double> Pmean;
-			Pmean.initZeros(I());
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
-				DIRECT_MULTIDIM_ELEM(Pmean,n) = DIRECT_MULTIDIM_ELEM(P(),n) - meanP;
+			// double meanP = P().computeAvg();
+			// MultidimArray<double> Pmean;
+			// Pmean.initZeros(I());
+			// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
+			// 	DIRECT_MULTIDIM_ELEM(Pmean,n) = DIRECT_MULTIDIM_ELEM(P(),n) - meanP;
 
-			std::cout << "Imean.sum(): " << Imean.sum() << std::endl;
-			std::cout << "Pmean.sum(): " << Pmean.sum() << std::endl;
-
-			double beta0real = Imean.sum()/Pmean.sum();
-			std::cout << "beta0 real: " << beta0real << std::endl;
+			// double beta0real = Imean.sum()/Pmean.sum();
+			// std::cout << "beta0 real: " << beta0real << std::endl;
 
 			if (fmaskWidth == -1)
 			{
@@ -495,7 +490,7 @@ double ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double
 			}
 		}
 		// Write particle
-		writeParticle(int(i), Idiff, R2adj, beta0save, beta1save); 
+		writeParticle(int(i), Idiff, R2adj(0), beta0save, beta1save); 
 	}
 	// Write metadata 
     mdParticles.write(formatString("%s.xmd", fnOut.c_str()));
