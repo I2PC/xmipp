@@ -407,7 +407,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeF <= threadIndex) {
 		return;
 	}
-	int threadPosition = cudaCoordinatesF[threadIndex];
+	unsigned threadPosition = cudaCoordinatesF[threadIndex];
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
@@ -418,9 +418,12 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	}
 	auto &mP = cudaP[img_idx];
 	auto &mW = cudaW[img_idx];
-	int cubeX = MODULO(threadPosition, xdim);
-	int cubeY = MODULO(threadPosition / xdim, ydim);
-	int cubeZ = threadPosition / (xdim * ydim);
+	__builtin_assume(threadPosition >= 0);
+	unsigned cubeX = threadPosition % xdim;
+	unsigned threadPositionDivX = threadPosition / xdim;
+	__builtin_assume(threadPositionDivX >= 0);
+	unsigned cubeY = threadPositionDivX % ydim;
+	unsigned cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
@@ -490,10 +493,13 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 	if (sizeB <= threadIndex) {
 		return;
 	}
-	int threadPosition = cudaCoordinatesB[threadIndex];
-	int cubeX = MODULO(threadPosition, xdim);
-	int cubeY = MODULO(threadPosition / xdim, ydim);
-	int cubeZ = threadPosition / (xdim * ydim);
+	unsigned threadPosition = cudaCoordinatesB[threadIndex];
+	__builtin_assume(threadPosition >= 0);
+	unsigned cubeX = threadPosition % xdim;
+	unsigned threadPositionDivX = threadPosition / xdim;
+	__builtin_assume(threadPositionDivX >= 0);
+	unsigned cubeY = threadPositionDivX % ydim;
+	unsigned cubeZ = threadPosition / (xdim * ydim);
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
