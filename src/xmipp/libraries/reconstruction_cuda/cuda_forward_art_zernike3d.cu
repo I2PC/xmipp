@@ -306,11 +306,11 @@ namespace device {
 	}
 
 	template<typename PrecisionType>
-	__device__ void splattingAtPos(PrecisionType pos_x,
-								   PrecisionType pos_y,
+	__device__ void splattingAtPos(const PrecisionType pos_x,
+								   const PrecisionType pos_y,
 								   MultidimArrayCuda<PrecisionType> &mP,
 								   MultidimArrayCuda<PrecisionType> &mW,
-								   PrecisionType weight)
+								   const PrecisionType weight)
 	{
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
