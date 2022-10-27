@@ -386,10 +386,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const unsigned sizeF,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
 							  MultidimArrayCuda<PrecisionType> *cudaW,
-							  const int lastZ,
-							  const int lastY,
-							  const int lastX,
-							  const int step,
 							  const unsigned sigma_size,
 							  const PrecisionType *cudaSigma,
 							  const PrecisionType iRmaxF,
@@ -412,12 +408,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		return;
 	}
 	int threadPosition = cudaCoordinatesF[threadIndex];
-	/*auto r0 = cudaR[0];
-	auto r1 = cudaR[1];
-	auto r2 = cudaR[2];
-	auto r3 = cudaR[3];
-	auto r4 = cudaR[4];
-	auto r5 = cudaR[5];*/
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
@@ -476,10 +466,6 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const unsigned xdim,
 							   const unsigned ydim,
 							   const unsigned sizeB,
-							   const int lastZ,
-							   const int lastY,
-							   const int lastX,
-							   const int step,
 							   const PrecisionType iRmaxF,
 							   const unsigned idxY0,
 							   const unsigned idxZ0,
@@ -505,12 +491,6 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		return;
 	}
 	int threadPosition = cudaCoordinatesB[threadIndex];
-	/*auto r0 = cudaR[0];
-	auto r1 = cudaR[1];
-	auto r2 = cudaR[2];
-	auto r3 = cudaR[3];
-	auto r4 = cudaR[4];
-	auto r5 = cudaR[5];*/
 	int cubeX = MODULO(threadPosition, xdim);
 	int cubeY = MODULO(threadPosition / xdim, ydim);
 	int cubeZ = threadPosition / (xdim * ydim);
