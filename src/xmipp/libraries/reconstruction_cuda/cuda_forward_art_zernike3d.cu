@@ -378,6 +378,7 @@ template<typename PrecisionType, bool usesZernike>
 __global__ void positionComputeKernel(PrecisionType *posXYArray,
 									  const MultidimArrayCuda<PrecisionType> cudaMV,
 									  const unsigned *cudaCoordinates,
+									  const unsigned sizeX,
 									  const int xdim,
 									  const int ydim,
 									  const PrecisionType iRmaxF,
