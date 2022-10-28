@@ -237,8 +237,8 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
 
     auto iterIdS = SF_S.ids().begin();
     auto iterIdN = SF_N.ids().begin();
-
-    for (; iterIdS != SF_S.ids().end(); ++iterIdS, ++iterIdN)
+	const auto totalSize = SF_S.ids().end();
+    for (; iterIdS != totalSize; ++iterIdS, ++iterIdN)
     {
     	double rot, tilt, psi;
     	SF_S.getValue(MDL_ANGLE_ROT,rot, *iterIdS);
