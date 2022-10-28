@@ -376,8 +376,8 @@ void ProgAngularDistance::computeWeights()
     	if (*iter1 > 0)
     	{
 			DF1sorted.getValue(label,id1,*iter1);
-			const auto totalSize = DF1sorted.ids().end();
-			while (id1<currentId && iter1 != totalSize)
+			const auto lastID = DF1sorted.ids().end();
+			while (id1<currentId && iter1 != lastID)
 			{
 				++iter1;
 				if (iter1 != DF1sorted.ids().end())
