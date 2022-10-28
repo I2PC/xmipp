@@ -1759,7 +1759,7 @@ void ProgMicrographAutomaticPicking2::readParams()
         fn_train = getParam("--mode", 1);
     }
     fn_root = getParam("--outputRoot");
-    autoPicking=new AutoParticlePicking2();
+    autoPicking = std::make_unique<AutoParticlePicking2>();
     autoPicking->readParams(this);
 }
 
@@ -1820,6 +1820,6 @@ void ProgMicrographAutomaticPicking2::run()
     MD.read(fn_model.beforeLastOf("/")+"/config.xmd");
     MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstRowId());
 
-    autoPicking = new AutoParticlePicking2(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model, {});
+    autoPicking = std::make_unique<AutoParticlePicking2>(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model, std::vector<MDRowSql>());
     autoPicking->automaticWithouThread(fn_micrograph,proc_prec,fnAutoParticles);
 }
