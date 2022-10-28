@@ -49,7 +49,6 @@
 #include <fstream>
 
 #define VERBOSE_OUTPUT
-
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
 // #define DEBUG_HCC

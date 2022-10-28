@@ -752,7 +752,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		int numberOfNewPeakedCoordinates = 0;
 
-		do{
+		do
+		{
 			if (!firstExecution)
 			{
 				threshold -= 0.1 * threshold;
@@ -1013,6 +1014,13 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 				}
 			}
 		}
+
+		#ifdef VERBOSE_OUTPUT
+		if (coordinatesInSlice.size() == 0)
+		{
+			std::cout << "No matching coordinates for slice " << n << std::endl;
+		}
+		
 	}
 
 	// Trimming step
