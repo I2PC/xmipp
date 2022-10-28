@@ -373,7 +373,7 @@ void ProgAngularDistance::computeWeights()
     	// Advance Iter 1 to catch Iter 2
     	double N=0, cumulatedDistance=0, cumulatedDistanceShift=0;
     	size_t newObjId=0;
-    	if (*iter1 > 0)
+    	if (iter1 != DF1sorted.ids().end() && *iter1 > 0)
     	{
 			DF1sorted.getValue(label,id1,*iter1);
 			while (id1<currentId && iter1 != DF1sorted.ids().end())
