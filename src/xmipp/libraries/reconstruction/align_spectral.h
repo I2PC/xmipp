@@ -47,10 +47,11 @@
 //@{
 namespace Alignment {
 
+template <typename T>
 class ProgAlignSpectral : public XmippProgram
 {
 public:
-    using Real = double;
+    using Real = T;
     using Complex = std::complex<Real>;
 
     virtual void readParams() override;
@@ -89,22 +90,17 @@ private:
 
         const MultidimArray<int>& getBands() const;
         const std::vector<size_t>& getBandSizes() const;
-        void flatten(   const MultidimArray<Complex>& spectrum,
-                        std::vector<Matrix1D<Real>>& data,
+
+        template<typename Q, typename P>
+        void flatten(   const MultidimArray<Q>& spectrum,
+                        std::vector<MultidimArray<P>>& data,
                         size_t image = 0 ) const;
-        void flattenOddEven(const MultidimArray<Real>& spectrum,
-                            std::vector<Matrix1D<Real>>& data,
-                            size_t oddEven,
-                            size_t image = 0 ) const;
-        void flatten(   const MultidimArray<Complex>& spectrum,
+
+        template<typename Q, typename P>
+        void flatten(   const MultidimArray<Q>& spectrum,
                         size_t band,
-                        Matrix1D<Real>& data,
+                        MultidimArray<P>& data,
                         size_t image = 0 ) const;
-        void flattenOddEven(const MultidimArray<Real>& spectrum,
-                            size_t band,
-                            Matrix1D<Real>& data,
-                            size_t oddEven,
-                            size_t image = 0 ) const;
 
     private:
         MultidimArray<int> m_bands;
@@ -113,34 +109,7 @@ private:
         static std::vector<size_t> computeBandSizes(const MultidimArray<int>& bands);
 
     };
-
-    class TranslationFilter {
-    public:
-        TranslationFilter(double dx, double dy, size_t nx, size_t ny)
-            : m_dy(dy)
-            , m_dx(dx)
-            , m_coefficients(ny, nx/2+1) //Half FFT as real
-        {
-            computeCoefficients();
-        }
-        TranslationFilter(const TranslationFilter& other) = default;
-        ~TranslationFilter() = default;
-
-
-        TranslationFilter& operator=(const TranslationFilter& other) = default;
-
-        void operator()(const MultidimArray<Complex>& in, 
-                        MultidimArray<Complex>& out) const;
-
-        void getTranslation(double& dx, double& dy) const;
-
-    private:
-        double m_dy, m_dx;
-        MultidimArray<Complex> m_coefficients;
-
-        void computeCoefficients();
-    };
-
+    
     class Rotation {
     public:
         Rotation(double angle = 0);
@@ -161,36 +130,60 @@ private:
         void computeMatrix();
     };
 
-    class ImageTransformer {
+    class BandShiftFilters {
     public:
-        template<typename F>
-        void forEachInPlaneTransform(   const MultidimArray<Real>& img,
-                                        const std::vector<Rotation>& rotations,
-                                        const std::vector<TranslationFilter>& translations,
-                                        F&& func );
+        using Shift = std::array<double, 2>;
 
+        BandShiftFilters() = default;
+        BandShiftFilters(std::vector<Shift>&& shifts, const BandMap& bands);
+        BandShiftFilters(const BandShiftFilters& other) = default;
+        ~BandShiftFilters() = default;
+
+
+        BandShiftFilters& operator=(const BandShiftFilters& other) = default;
+
+        void operator()(size_t index,
+                        const std::vector<MultidimArray<Complex>>& in, 
+                        std::vector<MultidimArray<Complex>>& out ) const;
+
+        const Shift& getShift(size_t index) const;
+        size_t getShiftCount() const;
+
+    private:
+        std::vector<Shift> m_shifts;
+        std::vector<MultidimArray<Complex>> m_coefficients;
+
+        static void computeCoefficients(const Shift& shift, MultidimArray<Complex>& result);
+        static void computeFlattenedCoefficients(   const std::vector<Shift>& shifts,
+                                                    const BandMap& bands,
+                                                    std::vector<MultidimArray<Complex>>& result );
+    };
+
+    class ImageRotationTransformer {
+    public:
         template<typename F>
         void forEachInPlaneRotation(const MultidimArray<Real>& img,
                                     const std::vector<Rotation>& rotations,
                                     F&& func );
 
-        template<typename F>
-        void forEachInPlaneTranslation( const MultidimArray<Real>& img,
-                                        const std::vector<TranslationFilter>& translations,
-                                        F&& func );
-        template<typename F>
-        void forEachInPlaneTranslation( const MultidimArray<Complex>& img,
-                                        const std::vector<TranslationFilter>& translations,
-                                        F&& func );
-        
     private:
         FourierTransformer m_fourierClean;
         FourierTransformer m_fourierRotated;
         MultidimArray<Real> m_rotated;
-        MultidimArray<Complex> m_translated;
 
     };
-
+    
+    class BandShiftTransformer {
+    public:
+        template<typename F>
+        void forEachInPlaneTranslation( const std::vector<MultidimArray<Complex>>& in,
+                                        const BandShiftFilters& shifts,
+                                        F&& func );
+        
+    private:
+        std::vector<MultidimArray<Complex>> m_shifted;
+    };
+    
     class ReferencePcaProjections {
     public:
         class WorkingSetBnB {
@@ -202,15 +195,15 @@ private:
 
             using ElementList = std::list<Element>;
 
-            ElementList::iterator init(size_t count, Real bestDistance);
-            ElementList::iterator begin();
-            ElementList::const_iterator begin() const;
-            ElementList::const_iterator cbegin() const;
-            ElementList::iterator end();
-            ElementList::const_iterator end() const;
-            ElementList::const_iterator cend() const;
-            ElementList::iterator erase(ElementList::iterator ite);
-            ElementList::const_iterator erase(ElementList::const_iterator ite);
+            typename ElementList::iterator init(size_t count, Real bestDistance);
+            typename ElementList::iterator begin();
+            typename ElementList::const_iterator begin() const;
+            typename ElementList::const_iterator cbegin() const;
+            typename ElementList::iterator end();
+            typename ElementList::const_iterator end() const;
+            typename ElementList::const_iterator cend() const;
+            typename ElementList::iterator erase(typename ElementList::iterator ite);
+            typename ElementList::const_iterator erase(typename ElementList::const_iterator ite);
             size_t size() const;
 
         private:
@@ -282,8 +275,8 @@ private:
     std::vector<Matrix2D<Real>> m_bases;
     std::vector<Matrix2D<Real>> m_ctfBases;
     std::vector<size_t> m_projectionSizes;
-    std::vector<TranslationFilter> m_translations;
     std::vector<Rotation> m_rotations;
+    BandShiftFilters m_translations;
     ReferencePcaProjections m_references;
     std::vector<ReferenceMetadata> m_referenceData;
     std::vector<ReferenceMetadata> m_classification;
@@ -293,12 +286,11 @@ private:
     void readBases();
     void applyWeightsToBases();
     void applyCtfToBases();
-    void generateTranslations();
     void generateRotations();
+    void generateTranslations();
     void alignImages();
     void generateOutput();
 
-    void projectReferences(size_t start, size_t count);
     void projectReferencesRot(size_t start, size_t count);
     void projectReferencesRotShift(size_t start, size_t count);
     void classifyExperimental();
@@ -317,18 +309,24 @@ private:
     static void getProjectionSizes(const std::vector<Matrix2D<Real>>& bases, std::vector<size_t>& result);
     static size_t getBatchSize(size_t memorySize, size_t imageProjSize, size_t nTransform);
 
-    static std::vector<TranslationFilter> computeTranslationFiltersRectangle(   size_t nx, 
-                                                                                size_t ny, 
-                                                                                size_t nTranslations,
-                                                                                double maxShift );
-    static std::vector<TranslationFilter> computeTranslationFiltersSunflower(   size_t nx, 
-                                                                                size_t ny, 
-                                                                                size_t nTranslations,
-                                                                                double maxShift );
+    static std::vector<typename BandShiftFilters::Shift> computeTranslationFiltersRectangle(size_t nx, 
+                                                                                            size_t ny, 
+                                                                                            size_t nTranslations,
+                                                                                            double maxShift );
+    static std::vector<typename BandShiftFilters::Shift> computeTranslationFiltersSunflower(size_t nx, 
+                                                                                            size_t ny, 
+                                                                                            size_t nTranslations,
+                                                                                            double maxShift );
 
     static void project(const std::vector<Matrix2D<Real>>& bases,
-                        const std::vector<Matrix1D<Real>>& bands,
+                        const std::vector<MultidimArray<Complex>>& bands,
                         std::vector<Matrix1D<Real>>& projections );
+
+    static void composeComplex( const MultidimArray<Real>& re, 
+                                const MultidimArray<Real>& im, 
+                                MultidimArray<Complex>& result );
+
+    static void aliasComplexElements(MultidimArray<Complex>& x, Matrix1D<Real>& result);
 
     static double standardizeAngle(double angle);
 

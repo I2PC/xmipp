@@ -29,13 +29,15 @@
 
 namespace Alignment {
 
-void ProgAlignSpectralGPU::defineParams() {
-    ProgAlignSpectral::defineParams();
+template<typename T>
+void ProgAlignSpectralGPU<T>::defineParams() {
+    ProgAlignSpectral<T>::defineParams();
     this->addParamsLine("  [--dev <...>]                    : space-separated list of GPU device(s) to use. Single, 0th GPU used by default");
 }
 
-void ProgAlignSpectralGPU::show() const {
-    ProgAlignSpectral::show();
+template<typename T>
+void ProgAlignSpectralGPU<T>::show() const {
+    ProgAlignSpectral<T>::show();
     std::cout <<  "Device(s)                   :";
     for (auto d : m_devices) {
         std::cout << " " << d;
@@ -43,8 +45,9 @@ void ProgAlignSpectralGPU::show() const {
     std::cout << std::endl;
 }
 
-void ProgAlignSpectralGPU::readParams() {
-    ProgAlignSpectral::readParams();
+template<typename T>
+void ProgAlignSpectralGPU<T>::readParams() {
+    ProgAlignSpectral<T>::readParams();
     // read GPU
     StringVector devs;
     this->getListParam("--dev", devs);
@@ -67,5 +70,8 @@ void ProgAlignSpectralGPU::readParams() {
         m_devices.emplace_back(d);
     }
 }
+
+// explicit instantiation
+template class ProgAlignSpectralGPU<double>;
 
 } // namespace Alignment

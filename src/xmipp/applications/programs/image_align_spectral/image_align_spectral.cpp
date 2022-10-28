@@ -25,12 +25,7 @@
 
 #include <reconstruction/align_spectral.h>
 
-int main(int argc, char **argv)
-{
-    Alignment::ProgAlignSpectral prm;
-    prm.read(argc, argv);
-    prm.tryRun();
-}
+RUN_XMIPP_PROGRAM(Alignment::ProgAlignSpectral<double>)
 
 
 

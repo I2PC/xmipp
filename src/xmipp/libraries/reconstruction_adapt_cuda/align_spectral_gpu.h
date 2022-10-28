@@ -34,7 +34,8 @@
 //@{
 namespace Alignment {
 
-class ProgAlignSpectralGPU : public ProgAlignSpectral {
+template<typename T>
+class ProgAlignSpectralGPU : public ProgAlignSpectral<T> {
 public:
 
     void defineParams() override;
