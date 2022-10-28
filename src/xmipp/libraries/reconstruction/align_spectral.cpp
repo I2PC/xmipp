@@ -263,11 +263,14 @@ void ProgAlignSpectral<T>::BandShiftFilters::operator()(size_t index,
     out.resize(in.size());
 
     MultidimArray<Complex> bandShift;
-    for(size_t i = 0; i < out.size(); ++i) {
+    for(size_t i = 0; i < in.size(); ++i) {
         bandShift.aliasRow(const_cast<MultidimArray<Complex>&>(m_coefficients[i]), index);
         if(!in[i].sameShape(bandShift)) REPORT_ERROR(ERR_MULTIDIM_SIZE, "Band " + std::to_string(i) + " has incorrect size");
-        out[i] = in[i];
-        out[i] *= bandShift;
+
+        out[i].resizeNoCopy(in[i]);
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(out[i]) {
+            DIRECT_MULTIDIM_ELEM(out[i], n) = DIRECT_MULTIDIM_ELEM(in[i], n) * DIRECT_MULTIDIM_ELEM(bandShift, n);
+        }
     }
 }
 
@@ -323,7 +326,7 @@ void ProgAlignSpectral<T>::BandShiftFilters::computeFlattenedCoefficients(  cons
         result.emplace_back(shifts.size(), bandSizes[i]);
     }
     
-    std::vector<MultidimArray<Complex>> bandCoefficients(bandSizes.size());
+    std::vector<MultidimArray<Complex>> bandCoefficients(result.size());
     MultidimArray<Complex> coefficients;
     coefficients.resizeNoCopy(bands.getBands());
     for(size_t i = 0; i < shifts.size(); ++i) {
@@ -331,7 +334,7 @@ void ProgAlignSpectral<T>::BandShiftFilters::computeFlattenedCoefficients(  cons
         computeCoefficients(shifts[i], coefficients);
 
         // Flatten the coefficients to their corresponding bands
-        for(size_t j = 0; j < bandSizes.size(); ++j) {
+        for(size_t j = 0; j < result.size(); ++j) {
             bandCoefficients[j].aliasRow(result[j], i);
         }
         bands.flatten(coefficients, bandCoefficients);
@@ -383,7 +386,7 @@ void ProgAlignSpectral<T>::BandShiftTransformer::forEachInPlaneTranslation( cons
         const auto& shift = shifts.getShift(i);
         const auto sx = shift[0], sy = shift[1];
 
-        if(sx && sy) {
+        if(sx || sy) {
             // Translate and call
             shifts(i, in, m_shifted);
             func(m_shifted, sx, sy);
