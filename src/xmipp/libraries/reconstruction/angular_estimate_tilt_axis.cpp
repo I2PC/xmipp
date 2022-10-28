@@ -71,7 +71,8 @@ void ProgAngularEstimateTiltAxis::run()
 
 	auto idItU = mdU.ids().begin();
 	auto idItT = mdT.ids().begin();
-	for (; idItU != mdU.ids().end(); ++idItU, ++idItT)
+	const auto totalSize = mdU.ids().end();
+	for (; idItU != totalSize; ++idItU, ++idItT)
 	{
 		int xu, yu, xt, yt;
 		mdU.getValue(MDL_XCOOR,xu,*idItU);
