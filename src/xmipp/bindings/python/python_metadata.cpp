@@ -1002,26 +1002,26 @@ MetaData_setValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 }
 
 PyObject *
-MetaData_setRow(PyObject *obj, PyObject *args, PyObject *kwargs)
+MetaData_setRow(PyObject *obj, PyObject *args, PyObject *)
 {
     PyObject *dict;
-    size_t objectId = BAD_OBJID;
-    if (PyArg_ParseTuple(args, "Ok", &dict, &objectId)) {
+    if (size_t objectId = BAD_OBJID; PyArg_ParseTuple(args, "Ok", &dict, &objectId)) {
         try
         {
-            PyObject *key, *value;
+            PyObject *key;
+            PyObject *value;
             Py_ssize_t pos = 0;
             MDRowVec row;
             while (PyDict_Next(dict, &pos, &key, &value)) {
                 auto label = PyLong_AsLong(key);
-                auto object = createMDObject(label, value);
+                auto object = createMDObject(static_cast<int>(label), value);
                 row.setValue(*object);
             }
             const auto *self = reinterpret_cast<MetaDataObject*>(obj);
             self->metadata->setRow(row, objectId);
             Py_RETURN_TRUE;
         }
-        catch (XmippError &xe)
+        catch (const XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
@@ -1111,10 +1111,9 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 }
 
 PyObject *
-MetaData_getRow(PyObject *obj, PyObject *args, PyObject *kwargs)
+MetaData_getRow(PyObject *obj, PyObject *args, PyObject *)
 {
-    size_t objectId = BAD_OBJID;
-    if (PyArg_ParseTuple(args, "k", &objectId))
+    if (size_t objectId = BAD_OBJID; PyArg_ParseTuple(args, "k", &objectId))
     {
         try
         {
@@ -1126,7 +1125,7 @@ MetaData_getRow(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             return d;
         }
-        catch (XmippError &xe)
+        catch (const XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
