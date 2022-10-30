@@ -164,8 +164,14 @@ public:
 class RichAtom
 {
 public:
-    /// Type
-    char atomType;
+    /// Record Type ("ATOM  " or "HETATM")
+    std::string record;
+
+    /// element Type
+    std::string atomType;
+
+    /// atom serial number
+    int serial;
 
     /// Position X
     double x;
@@ -199,6 +205,9 @@ public:
 
     /// Bfactor
     double bfactor;
+
+    /// charge
+    std::string charge;
 };
 
 /** Phantom description using atoms. */

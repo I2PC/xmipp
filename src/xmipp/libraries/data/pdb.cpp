@@ -501,8 +501,10 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			// Extract atom type and position
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-			atom.name=line.substr(12,4);
-			atom.atomType = line[13];
+			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
+			atom.record = line.substr(0,6);
+			atom.serial = textToInteger(line.substr(6,5));
+			atom.name = line.substr(12,4);
 			atom.altloc=line[16];
 			atom.resname=line.substr(17,3);
 			atom.chainid=line[21];
@@ -513,6 +515,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			atom.z = textToFloat(line.substr(46,8));
 			atom.occupancy = textToFloat(line.substr(54,6));
 			atom.bfactor = textToFloat(line.substr(60,6));
+			atom.atomType = line.substr(76,2);
+			atom.charge = line.substr(78,2);
 			if(pseudoatoms != -1)
 				intensities.push_back(atom.bfactor);
 
@@ -542,11 +546,12 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     	const RichAtom &atom=atomList[i];
         char result[5+1];
         const char* errmsg = hy36encode(5, (int)i, result);
-    	fprintf (fh_out,"ATOM  %5s %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-    			result,atom.name.c_str(),
-    			atom.altloc,atom.resname.c_str(),atom.chainid,
-    			atom.resseq,atom.icode,atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
-    			atom.name.c_str());
+    	fprintf (fh_out,"%6s%5d %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %2s%2s\n",
+				result,atom.record.c_str(),atom.serial,atom.name.c_str(),
+				atom.altloc,atom.resname.c_str(),atom.chainid,
+				atom.resseq,atom.icode,
+				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
+				atom.atomType.c_str(),atom.charge.c_str());
     }
     fclose(fh_out);
 }
