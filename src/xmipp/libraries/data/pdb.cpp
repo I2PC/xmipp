@@ -547,7 +547,8 @@ void PDBRichPhantom::write(const FileName &fnPDB)
         char result[5+1];
         const char* errmsg = hy36encode(5, (int)i, result);
     	fprintf (fh_out,"%6s%5d %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %2s%2s\n",
-				result,atom.record.c_str(),atom.serial,atom.name.c_str(),
+				//result,
+                atom.record.c_str(),atom.serial,atom.name.c_str(),
 				atom.altloc,atom.resname.c_str(),atom.chainid,
 				atom.resseq,atom.icode,
 				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
