@@ -503,7 +503,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = line.substr(0,6);
-			atom.serial = textToInteger(line.substr(6,5));
+			const char* errmsg = hy36decode(5, line.substr(6,5), 5, atom.serial);
 			atom.name = line.substr(12,4);
 			atom.altloc=line[16];
 			atom.resname=line.substr(17,3);
