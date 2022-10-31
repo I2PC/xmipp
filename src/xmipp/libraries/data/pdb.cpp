@@ -547,16 +547,16 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     for (size_t i=0; i<imax; ++i)
     {
     	const RichAtom &atom=atomList[i];
-        char serial[5+1];
+        std::string serial;
         const char* errmsg3 = hy36encode(5, atom.serial, serial);
         if (errmsg3) throw std::runtime_error(errmsg3);
-        char resseq[4+1];
+        std::string resseq;
         const char* errmsg4 = hy36encode(4, atom.resseq, resseq);
         if (errmsg4) throw std::runtime_error(errmsg4);
         fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s\n",
-				atom.record.c_str(),serial,atom.name.c_str(),
+				atom.record.c_str(),serial.c_str(),atom.name.c_str(),
 				atom.altloc,atom.resname.c_str(),atom.chainid,
-				resseq,atom.icode,
+				resseq.c_str(),atom.icode,
 				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
 				atom.segment.c_str(),atom.atomType.c_str(),atom.charge.c_str());
     }
