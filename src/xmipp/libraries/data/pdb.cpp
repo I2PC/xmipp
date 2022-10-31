@@ -503,14 +503,18 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = line.substr(0,6);
-			const char* errmsg1 = hy36decode(5, line.substr(6,5).c_str(), 5, &atom.serial);
-            if (errmsg1) throw std::runtime_error(errmsg1);
+			
+            if (const char* errmsg1 = hy36decode(5, line.substr(6,5).c_str(), 5, &atom.serial);errmsg1) {
+                throw std::runtime_error(errmsg1);
+            }
 			atom.name = line.substr(12,4);
 			atom.altloc=line[16];
 			atom.resname=line.substr(17,3);
 			atom.chainid=line[21];
-			const char* errmsg2 = hy36decode(4, line.substr(22,4).c_str(), 4, &atom.resseq);
-            if (errmsg2) throw std::runtime_error(errmsg2);
+			
+            if (const char* errmsg2 = hy36decode(4, line.substr(22,4).c_str(), 4, &atom.resseq);errmsg2) {
+                throw std::runtime_error(errmsg2);
+            }
 			atom.icode = line[26];
 			atom.x = textToFloat(line.substr(30,8));
 			atom.y = textToFloat(line.substr(38,8));
@@ -548,11 +552,13 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     {
     	const RichAtom &atom=atomList[i];
         std::string serial;
-        const char* errmsg3 = hy36encode(5, atom.serial, serial);
-        if (errmsg3) throw std::runtime_error(errmsg3);
+        if (const char* errmsg3 = hy36encode(5, atom.serial, const_cast<char*> (serial.c_str())); errmsg3) {
+            throw std::runtime_error(errmsg3);
+        }
         std::string resseq;
-        const char* errmsg4 = hy36encode(4, atom.resseq, resseq);
-        if (errmsg4) throw std::runtime_error(errmsg4);
+        if (const char* errmsg4 = hy36encode(4, atom.resseq, const_cast<char*> (resseq.c_str())); errmsg4) {
+            throw std::runtime_error(errmsg4);
+        }
         fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s\n",
 				atom.record.c_str(),serial.c_str(),atom.name.c_str(),
 				atom.altloc,atom.resname.c_str(),atom.chainid,
