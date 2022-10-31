@@ -46,6 +46,7 @@ if __name__=="__main__":
             self.dim = dim
             self.readInMemory=readInMemory
             self.on_epoch_end()
+            
 
             # Read all data in memory
             if self.readInMemory:

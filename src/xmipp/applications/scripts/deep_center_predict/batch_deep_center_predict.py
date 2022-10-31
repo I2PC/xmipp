@@ -2,6 +2,7 @@
 
 import math
 import numpy as np
+from numpy.linalg import norm 
 import os
 import sys
 import xmippLib
@@ -106,18 +107,21 @@ if __name__=="__main__":
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
             elif mode == "Psi":
                 psis = Y[ID]
+                psis /= norm(psis)
                 print(psis)
-                psis_degree = (math.atan2(psis[0], psis[1]))*180/math.pi
+                psis_degree = (math.atan2(psis[1], psis[0]))*180/math.pi
                 mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
             elif mode == "Rot":
                 rots = Y[ID]
+                rots /= norm(rots)
                 print(rots)
-                rots_degree = (math.atan2(rots[0], rots[1]))*180/math.pi
+                rots_degree = (math.atan2(rots[1], rots[0]))*180/math.pi
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
             elif mode == "Tilt":
                 tilts = Y[ID]
+                tilts /= norm(tilts)
                 print(tilts)
-                tilts_degree = (math.atan2(tilts[0], tilts[1]))*180/math.pi
+                tilts_degree = (math.atan2(tilts[1], tilts[0]))*180/math.pi
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
                 
             ID+=1      
