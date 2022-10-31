@@ -515,6 +515,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			atom.z = textToFloat(line.substr(46,8));
 			atom.occupancy = textToFloat(line.substr(54,6));
 			atom.bfactor = textToFloat(line.substr(60,6));
+			atom.segment = line.substr(72,4);
 			atom.atomType = line.substr(76,2);
 			atom.charge = line.substr(78,2);
 			if(pseudoatoms != -1)
@@ -546,13 +547,12 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     	const RichAtom &atom=atomList[i];
         char result[5+1];
         const char* errmsg = hy36encode(5, (int)i, result);
-    	fprintf (fh_out,"%6s%5d %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %2s%2s\n",
-				//result,
-                atom.record.c_str(),atom.serial,atom.name.c_str(),
+        fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s\n",
+				atom.record.c_str(),result,atom.name.c_str(),
 				atom.altloc,atom.resname.c_str(),atom.chainid,
 				atom.resseq,atom.icode,
 				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
-				atom.atomType.c_str(),atom.charge.c_str());
+				atom.segment.c_str(),atom.atomType.c_str(),atom.charge.c_str());
     }
     fclose(fh_out);
 }

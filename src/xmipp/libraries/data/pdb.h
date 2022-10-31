@@ -167,9 +167,6 @@ public:
     /// Record Type ("ATOM  " or "HETATM")
     std::string record;
 
-    /// element Type
-    std::string atomType;
-
     /// atom serial number
     int serial;
 
@@ -205,6 +202,12 @@ public:
 
     /// Bfactor
     double bfactor;
+
+    /// segment name
+    std::string segment;
+
+    /// atom element type
+    std::string atomType;
 
     /// charge
     std::string charge;
