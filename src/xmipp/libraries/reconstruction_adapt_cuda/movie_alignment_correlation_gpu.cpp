@@ -528,10 +528,16 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     std::vector<std::complex<T>*> scalledPatches(loadPool.size()); // initializes to nullptrs
     std::vector<std::future<void>> futures;
     futures.reserve(patchesLocation.size());
+    GPU streams[2] = {GPU(gpu.value().device(), 1), GPU(gpu.value().device(), 2)};
+    streams[0].set();
+    streams[1].set();
+
+    std::mutex mutex;
+
     GlobAlignmentData<T> auxData;
-    auxData.alloc(patchSettings.createBatch(), correlationSettings, gpu.value());
+    auxData.alloc(patchSettings.createBatch(), correlationSettings, streams[0]);
     CorrelationData<T> corrAuxData;
-    corrAuxData.alloc(correlationSettings, localHelper.bufferSize, gpu.value());
+    corrAuxData.alloc(correlationSettings, localHelper.bufferSize, streams[1]);
 
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
@@ -557,19 +563,25 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             getPatchData(p.rec, globAlignment, data);
 
             // convert to FFT, downscale them and compute correlations
-            GPUPool.push([&](int){
+            // GPUPool.push([&](int){
                 for (auto i = 0; i < patchSettings.sDim().n(); i += patchSettings.batch()) {
+                    std::unique_lock<std::mutex> lock(mutex);
                     performFFTAndScale(data + i * patchSettings.sElemsBatch(), patchSettings.createBatch(),
                                                 scalledPatches[thrId] + i * correlationSettings.fDim().sizeSingle(), correlationSettings,
-                                                filter, gpu.value(), auxData);
+                                                filter, streams[0], auxData);
                 }
+                streams[0].synch();
 
                 // performFFTAndScale<T>(data, patchSettings.sDim().n(), patchSettings.sDim().x(), patchSettings.sDim().y(), patchSettings.batch(),
                 //         correlationSettings.fDim().x(), correlationSettings.sDim().y(), filter);
+                {
+                    std::unique_lock<std::mutex> lock(mutex);
                 computeCorrelations(context.centerSize, context.N, correlationSettings, scalledPatches[thrId],
                         context.framesInCorrelationBuffer,
-                        correlations, corrAuxData);
-            }).get(); // wait till done - i.e. correlations are computed and on CPU
+                        correlations, corrAuxData, streams[1]);
+                }
+                streams[1].synch();
+            // }).get(); // wait till done - i.e. correlations are computed and on CPU
 
             // compute resulting shifts
             computeShifts(correlations, context);
@@ -892,17 +904,22 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     }
 
     for (auto i = 0; i < movieSettings.sDim().n(); i += movieSettings.batch()) {
-        auto routine = [&](int thrId, size_t first, size_t count) {
+        auto routine = [&](int thrId, size_t first, size_t count)
+        {
             loadFrames(movieMD, dark, igain, first, count);
             if (nullptr == croppedFrames[thrId])
             {
                 croppedFrames[thrId] = reinterpret_cast<T *>(BasicMemManager::instance().get(movieSettings.sBytesBatch(), MemType::CUDA_HOST));
             }
             auto *cFrames = croppedFrames[thrId];
-            getCroppedFrames(movieSettings, cFrames, first, count); 
-            gpuPool.push([&](int stream){performFFTAndScale(croppedFrames[thrId], movieSettings.createBatch(),
-                                                scaledFrames + first * correlationSettings.fDim().sizeSingle(), correlationSettings,
-                                                filter, streams[stream], auxData[stream]);}).get();
+            getCroppedFrames(movieSettings, cFrames, first, count);
+            gpuPool.push([&](int stream)
+                         { 
+                            performFFTAndScale(croppedFrames[thrId], movieSettings.createBatch(),
+                                              scaledFrames + first * correlationSettings.fDim().sizeSingle(), correlationSettings,
+                                              filter, streams[stream], auxData[stream]);
+                                              streams[stream].synch(); })
+                .get();
         };
         cpuPool.push(routine, i, movieSettings.batch());
     }

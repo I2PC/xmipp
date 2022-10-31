@@ -107,7 +107,6 @@ void performFFTAndScale(T *h_in, const FFTSettings<T> &in,
     gpuErrchk(cudaMemcpyAsync(h_out, aux.d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost, stream));
     // gpuErrchk(cudaMemcpy(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost));
     
-    gpu.synch();
     gpuErrchk(cudaPeekAtLastError());
 }
 
@@ -330,41 +329,80 @@ void copyInRightOrder(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
     }
 }
 
+template<typename T>
+void copyInRightOrderNew(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
+        int iStart, int iStop, int jStart, int jStop, size_t jSize,
+        size_t offset1, size_t offset2, size_t maxImgs, const GPU &gpu) {
+    size_t pixelsPerImage =  xDim * yDim;
+    size_t counter = 0;
+    bool ready = false;
+    auto stream = *(cudaStream_t*)gpu.stream();
+    for (int i = iStart; i <= iStop; i++) {
+        for (int j = isWithin ? i + 1 : 0; j < jSize; j++) {
+            if (!ready) {
+                ready = true;
+                j = jStart;
+                continue; // skip first iteration
+            }
+            if (ready) {
+                size_t actualI = offset1 + i;
+                size_t actualJ = offset2 + j;
+                size_t toCopy = jSize - j;
+                // imagine correlation in layers, correlation of 0th img with other is first layer, 1st with other is second etc
+                // compute sum of images in complete layers
+                size_t imgsInPreviousLayers = (((maxImgs - 1) + (maxImgs - actualI)) * (actualI)) / 2;
+                size_t imgsInCurrentLayer = actualJ - actualI - 1;
+                gpuErrchk(cudaMemcpyAsync(h_imgs + (pixelsPerImage * (imgsInPreviousLayers + imgsInCurrentLayer)),
+                    d_imgs + (counter * pixelsPerImage),
+                    toCopy * pixelsPerImage * sizeof(T),
+                    cudaMemcpyDeviceToHost, stream));
+                counter += toCopy;
+                break; // skip to next outer iteration
+            }
+            if ((iStop == i) && (jStop == j)) {
+                return;
+            }
+        }
+    }
+}
+
 template void computeCorrelations<float>(size_t centerSize, size_t noOfImgs,
     const FFTSettings<float> &settings, std::complex<float>* h_FFTs,
-     size_t maxFFTsInBuffer, float *result, CorrelationData<float> &aux);
+     size_t maxFFTsInBuffer, float *result, CorrelationData<float> &aux, const GPU &gpu);
 template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
-        size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux) {
+        size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux, const GPU &gpu) {
     size_t singleFFTPixels = settings.fDim().xy();
     size_t singleFFTBytes = settings.fBytesSingle();
 
     size_t buffer1Size = maxFFTsInBuffer;
     size_t buffer2Size = noOfImgs == maxFFTsInBuffer ? 0 : maxFFTsInBuffer;
     size_t buffer1Offset = 0;
+
+    auto stream = *(cudaStream_t*)gpu.stream();
     do {
         size_t buffer1ToCopy = std::min(buffer1Size, noOfImgs - buffer1Offset);
         size_t inputOffsetBuffer1 = buffer1Offset * singleFFTPixels;
-        gpuErrchk(cudaMemcpy(aux.d_fftBuffer1, h_FFTs + inputOffsetBuffer1,
-                buffer1ToCopy * singleFFTBytes, cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpyAsync(aux.d_fftBuffer1, h_FFTs + inputOffsetBuffer1,
+                buffer1ToCopy * singleFFTBytes, cudaMemcpyHostToDevice, stream));
 
         // compute inter-buffer correlations
         computeCorrelationsNew(centerSize, noOfImgs, aux.d_fftBuffer1, buffer1ToCopy,
                 aux.d_fftBuffer1, buffer1ToCopy,
                 buffer1Offset, buffer1Offset, aux.d_ffts, aux.d_imgs,
-                *aux.plan, result, settings);
+                *aux.plan, result, settings, gpu);
         size_t buffer2Offset = buffer1Offset + buffer1ToCopy;
         while (buffer2Offset < noOfImgs) {
             // copy other buffer
             size_t buffer2ToCopy = std::min(buffer2Size, noOfImgs - buffer2Offset);
             size_t inputOffsetBuffer2 = buffer2Offset * singleFFTPixels;
-            gpuErrchk(cudaMemcpy(aux.d_fftBuffer2, h_FFTs + inputOffsetBuffer2,
-                    buffer2ToCopy * singleFFTBytes, cudaMemcpyHostToDevice));
+            gpuErrchk(cudaMemcpyAsync(aux.d_fftBuffer2, h_FFTs + inputOffsetBuffer2,
+                    buffer2ToCopy * singleFFTBytes, cudaMemcpyHostToDevice, stream));
 
             computeCorrelationsNew(centerSize, noOfImgs, aux.d_fftBuffer1, buffer1ToCopy,
                     aux.d_fftBuffer2, buffer2ToCopy,
                     buffer1Offset, buffer2Offset, aux.d_ffts, aux.d_imgs,
-                    *aux.plan, result, settings);
+                    *aux.plan, result, settings, gpu);
 
             buffer2Offset += buffer2ToCopy;
         }
@@ -380,12 +418,14 @@ void computeCorrelationsNew(size_t centerSize, size_t noOfImgs,
         void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
         size_t in1Offset, size_t in2Offset,
         std::complex<T> *d_ffts, T *d_imgs, cufftHandle &handler,
-        T *result, const FFTSettings<T> &settings) {
+        T *result, const FFTSettings<T> &settings, const GPU &gpu) {
     bool isWithin = d_in1 == d_in2; // correlation is done within the same buffer
 
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGridCorr(ceil(settings.fDim().x()/(float)dimBlock.x), ceil(settings.fDim().y()/(float)dimBlock.y));
     dim3 dimGridCrop(ceil(centerSize/(float)dimBlock.x), ceil(centerSize/(float)dimBlock.y));
+
+    auto stream = *(cudaStream_t*)gpu.stream();
 
     size_t batchCounter = 0;
     size_t counter = 0;
@@ -399,7 +439,7 @@ void computeCorrelationsNew(size_t centerSize, size_t noOfImgs,
                 // kernel must perform last iteration
                 // compute correlation from input buffers. Result are FFT images
                 if (std::is_same<T, float>::value) {
-                correlate<<<dimGridCorr, dimBlock>>>((float2*)d_in1, (float2*)d_in2,
+                correlate<<<dimGridCorr, dimBlock, 0, stream>>>((float2*)d_in1, (float2*)d_in2,
                         (float2*)d_ffts, settings.fDim().x(), settings.fDim().y(),
                         isWithin, origI, i, origJ, j, in2Size);
                 } else {
@@ -408,12 +448,12 @@ void computeCorrelationsNew(size_t centerSize, size_t noOfImgs,
                 // convert FFTs to space domain
                 CudaFFT<T>::ifft(handler, d_ffts, d_imgs);
                 // crop images in space domain, use memory for FFT to avoid realocation
-                cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)d_imgs,
+                cropSquareInCenter<<<dimGridCrop, dimBlock, 0, stream>>>((T*)d_imgs,
                         (T*)d_ffts, settings.sDim().x(), settings.sDim().y(),
                         counter, centerSize, centerSize);
-                copyInRightOrder((T*)d_ffts, result,
+                copyInRightOrderNew((T*)d_ffts, result,
                         centerSize, centerSize,
-                        isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs);
+                        isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs, gpu);
                 origI = i;
                 origJ = j;
                 counter = 0;

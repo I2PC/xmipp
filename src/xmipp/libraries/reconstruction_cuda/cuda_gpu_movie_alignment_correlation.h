@@ -145,6 +145,10 @@ template<typename T>
 void copyInRightOrder(T* d_imgs, T* result, int xDim, int yDim, bool isWithin,
         int iStart, int iStop, int jStart, int jStop, size_t jSize,
         size_t offset1, size_t offset2, size_t maxImgs);
+template<typename T>
+void copyInRightOrderNew(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
+        int iStart, int iStop, int jStart, int jStop, size_t jSize,
+        size_t offset1, size_t offset2, size_t maxImgs, const GPU &gpu);
 
 /**
  * Function performs cross-correlation on input images in fourier space.
@@ -163,7 +167,7 @@ void copyInRightOrder(T* d_imgs, T* result, int xDim, int yDim, bool isWithin,
  */
 template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
-        size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux);
+        size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux, const GPU &gpu);
 
 template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
