@@ -560,9 +560,9 @@ void PDBRichPhantom::write(const FileName &fnPDB)
             throw std::invalid_argument(errmsg4);
         }
         fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s\n",
-				atom.record.c_str(),serial.c_str(),atom.name.c_str(),
+				atom.record.c_str(),serial,atom.name.c_str(),
 				atom.altloc,atom.resname.c_str(),atom.chainid,
-				resseq.c_str(),atom.icode,
+				resseq,atom.icode,
 				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
 				atom.segment.c_str(),atom.atomType.c_str(),atom.charge.c_str());
     }
