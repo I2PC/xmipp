@@ -551,12 +551,12 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     for (size_t i=0; i<imax; ++i)
     {
     	const RichAtom &atom=atomList[i];
-        std::string serial;
-        if (const char* errmsg3 = hy36encode(5, atom.serial, const_cast<char*> (serial.c_str())); errmsg3) {
+        char* serial;
+        if (const char* errmsg3 = hy36encode(5, atom.serial, serial); errmsg3) {
             throw std::invalid_argument(errmsg3);
         }
-        std::string resseq;
-        if (const char* errmsg4 = hy36encode(4, atom.resseq, const_cast<char*> (resseq.c_str())); errmsg4) {
+        char* resseq;
+        if (const char* errmsg4 = hy36encode(4, atom.resseq, resseq); errmsg4) {
             throw std::invalid_argument(errmsg4);
         }
         fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s\n",
