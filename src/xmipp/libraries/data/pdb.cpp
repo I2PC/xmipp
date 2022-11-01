@@ -504,17 +504,17 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = line.substr(0,6);
 			
-            if (const char* errmsg1 = hy36decode(5, line.substr(6,5).c_str(), 5, &atom.serial);errmsg1) {
-                throw std::invalid_argument(errmsg1);
-            }
+			if (const char* errmsg1 = hy36decode(5, line.substr(6,5).c_str(), 5, &atom.serial);errmsg1) {
+				throw std::invalid_argument(errmsg1);
+			}
 			atom.name = line.substr(12,4);
 			atom.altloc=line[16];
 			atom.resname=line.substr(17,3);
 			atom.chainid=line[21];
 			
-            if (const char* errmsg2 = hy36decode(4, line.substr(22,4).c_str(), 4, &atom.resseq);errmsg2) {
-                throw std::invalid_argument(errmsg2);
-            }
+			if (const char* errmsg2 = hy36decode(4, line.substr(22,4).c_str(), 4, &atom.resseq);errmsg2) {
+				throw std::invalid_argument(errmsg2);
+			}
 			atom.icode = line[26];
 			atom.x = textToFloat(line.substr(30,8));
 			atom.y = textToFloat(line.substr(38,8));
