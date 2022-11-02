@@ -447,7 +447,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		auto ir = i * iRmaxF;
 		auto r2 = k2i2 + j * j;
 		auto jr = j * iRmaxF;
-		auto rr = SQRT(r2) * iRmaxF;
+		auto rr = SQRT(CST(r2)) * iRmaxF;
 		for (size_t idx = 0; idx < idxY0; idx++) {
 			auto l1 = cudaVL1[idx];
 			auto n = cudaVN[idx];
@@ -521,7 +521,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		auto ir = i * iRmaxF;
 		auto r2 = k2i2 + j * j;
 		auto jr = j * iRmaxF;
-		auto rr = SQRT(r2) * iRmaxF;
+		auto rr = SQRT(CST(r2)) * iRmaxF;
 		for (size_t idx = 0; idx < idxY0; idx++) {
 			auto l1 = cudaVL1[idx];
 			auto n = cudaVN[idx];
