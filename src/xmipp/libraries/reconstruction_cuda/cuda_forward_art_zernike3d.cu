@@ -21,7 +21,7 @@ static constexpr float CUDA_PI = 3.1415926535897f;
 #define CUDA_ROUND lroundf*/
 
 // Constants
-static constexpr float CUDA_PI = 3.14159265358979323846;
+static constexpr double CUDA_PI = 3.14159265358979323846;
 // Functions
 #define SQRT sqrt
 #define ATAN2 atan2

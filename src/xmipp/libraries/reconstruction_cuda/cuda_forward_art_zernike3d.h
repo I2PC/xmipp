@@ -22,8 +22,8 @@
 
 namespace cuda_forward_art_zernike3D {
 
-struct float3;
-struct double3;
+//struct float3;
+//struct double3;
 
 template<typename T>
 struct MY_ALIGN(16) MultidimArrayCuda {
@@ -44,7 +44,7 @@ template<typename PrecisionType = double>
 class Program {
 	static_assert(std::is_floating_point<PrecisionType>::value, "Floating point type is required.");
 
-	using PrecisionType3 = std::conditional<std::is_same<PrecisionType, float>::value, float3, double3>;
+	//using PrecisionType3 = std::conditional<std::is_same<PrecisionType, float>::value, float3, double3>;
 
    public:
 	/// Constant parameters for the computation
