@@ -527,7 +527,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			}
 			else if (line.length() > 72) {
 				atom.segment = line.substr(72,line.length()-72+1);
-				for(int i=atom.segment.length();i<4;i++) {
+				int lenSegment = atom.segment.length();
+				for(int i=lenSegment; i<4; i++) {
 					atom.segment += " ";
 				}
 			}
