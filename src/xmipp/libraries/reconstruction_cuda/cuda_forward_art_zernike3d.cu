@@ -10,7 +10,7 @@
 
 namespace cuda_forward_art_zernike3D {
 
-// Constants
+/*// Constants
 static constexpr float CUDA_PI = 3.1415926535897f;
 // Functions
 #define SQRT sqrtf
@@ -18,7 +18,18 @@ static constexpr float CUDA_PI = 3.1415926535897f;
 #define COS cosf
 #define SIN sinf
 #define CUDA_FLOOR floorf
-#define CUDA_ROUND lroundf
+#define CUDA_ROUND lroundf*/
+
+// Constants
+static constexpr float CUDA_PI = 3.14159265358979323846;
+// Functions
+#define SQRT sqrt
+#define ATAN2 atan2
+#define COS cos
+#define SIN sin
+#define CUDA_FLOOR floor
+#define CUDA_ROUND lround
+
 
 #define IS_OUTSIDE2D(ImD, i, j) \
 	((j) < STARTINGX((ImD)) || (j) > FINISHINGX((ImD)) || (i) < STARTINGY((ImD)) || (i) > FINISHINGY((ImD)))

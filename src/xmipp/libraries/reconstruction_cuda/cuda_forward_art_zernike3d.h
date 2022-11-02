@@ -40,7 +40,7 @@ struct BlockSizes {
 	size_t x, y, z;
 };
 
-template<typename PrecisionType = float>
+template<typename PrecisionType = double>
 class Program {
 	static_assert(std::is_floating_point<PrecisionType>::value, "Floating point type is required.");
 

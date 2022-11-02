@@ -40,9 +40,10 @@
 #include <memory>
 
 // Precision type
-using PrecisionType = float;
+using PrecisionType = double;
 // Functions
-#define SQRT sqrtf
+//#define SQRT sqrtf
+#define SQRT sqrt
 
 /** Predict Continuous Parameters. */
 class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
