@@ -337,27 +337,23 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ PrecisionType interpolatedElement2DCuda(const PrecisionType x,
 													   const PrecisionType y,
-													   const cudaTextureObject_t texMId,
-													   const int xinitMId,
-													   const int yinitMId,
-													   const int xdimMId,
-													   const int ydimMId)
+													   const MultidimArrayCuda<PrecisionType> cudaMId)
 	{
 		int x0 = CUDA_FLOOR(x);
 		int x1 = x0 + 1;
 		int y0 = CUDA_FLOOR(y);
 		int y1 = y0 + 1;
 
-		int i0 = yinitMId;
-		int j0 = xinitMId;
-		int iF = yinitMId + ydimMId - 1;
-		int jF = xinitMId + xdimMId - 1;
+		int i0 = STARTINGY(cudaMId);
+		int j0 = STARTINGX(cudaMId);
+		int iF = FINISHINGY(cudaMId);
+		int jF = FINISHINGX(cudaMId);
 
 #define ASSIGNVAL2DCUDA(d, i, j)                      \
 	if ((j) < j0 || (j) > jF || (i) < i0 || (i) > iF) \
 		d = (PrecisionType)0;                         \
 	else                                              \
-		d = tex1Dfetch<PrecisionType>(texMId, (int)(((i) - (i0)) * xdimMId + ((j) - (j0))));
+		d = A2D_ELEM(cudaMId, i, j);
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
@@ -491,11 +487,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const PrecisionType r3,
 							   const PrecisionType r4,
 							   const PrecisionType r5,
-							   const cudaTextureObject_t texMId,
-							   const int xinitMId,
-							   const int yinitMId,
-							   const int xdimMId,
-							   const int ydimMId)
+							   const MultidimArrayCuda<PrecisionType> cudaMId)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeB <= threadIndex) {
@@ -539,7 +531,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
-	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, texMId, xinitMId, yinitMId, xdimMId, ydimMId);
+	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
 }  // namespace cuda_forward_art_zernike3D
