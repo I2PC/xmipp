@@ -504,16 +504,16 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = line.substr(0,6);
 			
-			if (const char* errmsg1 = hy36decode(5, line.substr(6,5).c_str(), 5, &atom.serial);errmsg1) {
-				throw std::invalid_argument(errmsg1);
+			if (auto* errmsg1 = hy36decode(5, line.substr(6,5).c_str(), 5, &atom.serial); errmsg1) {
+				REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg1);
 			}
 			atom.name = line.substr(12,4);
 			atom.altloc=line[16];
 			atom.resname=line.substr(17,3);
 			atom.chainid=line[21];
 			
-			if (const char* errmsg2 = hy36decode(4, line.substr(22,4).c_str(), 4, &atom.resseq);errmsg2) {
-				throw std::invalid_argument(errmsg2);
+			if (auto* errmsg2 = hy36decode(4, line.substr(22,4).c_str(), 4, &atom.resseq); errmsg2) {
+				REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg2);
 			}
 			atom.icode = line[26];
 			atom.x = textToFloat(line.substr(30,8));
@@ -552,12 +552,12 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     {
     	const RichAtom &atom=atomList[i];
         char serial[5+1];
-        if (const char* errmsg3 = hy36encode(5, atom.serial, serial); errmsg3) {
-            throw std::invalid_argument(errmsg3);
+        if (auto* errmsg3 = hy36encode(5, atom.serial, serial); errmsg3) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg3);
         }
         char resseq[4+1];
-        if (const char* errmsg4 = hy36encode(4, atom.resseq, resseq); errmsg4) {
-            throw std::invalid_argument(errmsg4);
+        if (auto* errmsg4 = hy36encode(4, atom.resseq, resseq); errmsg4) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg4);
         }
         fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s\n",
 				atom.record.c_str(),serial,atom.name.c_str(),
