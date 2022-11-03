@@ -21,7 +21,7 @@ static constexpr float CUDA_PI = 3.1415926535897f;
 #define CUDA_ROUND lroundf*/
 
 // Constants
-static constexpr double CUDA_PI = 3.14159265358979323846;
+//static constexpr double CUDA_PI = 3.14159265358979323846;
 // Functions
 #define SQRT sqrt
 #define ATAN2 atan2
@@ -56,6 +56,7 @@ namespace device {
 	{
 		// General variables
 		PrecisionType r2 = rr * rr, xr2 = xr * xr, yr2 = yr * yr, zr2 = zr * zr;
+		PrecisionType cuda_pi = CST(3.14159265358979323846);
 
 #if L2 >= 5
 		// Variables needed for l2 >= 5
@@ -136,37 +137,37 @@ namespace device {
 
 		switch (l2) {
 			case 0:
-				Y = (CST(1.0) / CST(2.0)) * SQRT((PrecisionType)CST(1.0) / CUDA_PI);
+				Y = (CST(1.0) / CST(2.0)) * SQRT((PrecisionType)CST(1.0) / cuda_pi);
 				break;
 			case 1:
 				switch (m) {
 					case -1:
-						Y = SQRT(CST(3.0) / (CST(4.0) * CUDA_PI)) * yr;
+						Y = SQRT(CST(3.0) / (CST(4.0) * cuda_pi)) * yr;
 						break;
 					case 0:
-						Y = SQRT(CST(3.0) / (CST(4.0) * CUDA_PI)) * zr;
+						Y = SQRT(CST(3.0) / (CST(4.0) * cuda_pi)) * zr;
 						break;
 					case 1:
-						Y = SQRT(CST(3.0) / (CST(4.0) * CUDA_PI)) * xr;
+						Y = SQRT(CST(3.0) / (CST(4.0) * cuda_pi)) * xr;
 						break;
 				}
 				break;
 			case 2:
 				switch (m) {
 					case -2:
-						Y = SQRT(CST(15.0) / (CST(4.0) * CUDA_PI)) * xr * yr;
+						Y = SQRT(CST(15.0) / (CST(4.0) * cuda_pi)) * xr * yr;
 						break;
 					case -1:
-						Y = SQRT(CST(15.0) / (CST(4.0) * CUDA_PI)) * zr * yr;
+						Y = SQRT(CST(15.0) / (CST(4.0) * cuda_pi)) * zr * yr;
 						break;
 					case 0:
-						Y = SQRT(CST(5.0) / (CST(16.0) * CUDA_PI)) * (-xr2 - yr2 + CST(2.0) * zr2);
+						Y = SQRT(CST(5.0) / (CST(16.0) * cuda_pi)) * (-xr2 - yr2 + CST(2.0) * zr2);
 						break;
 					case 1:
-						Y = SQRT(CST(15.0) / (CST(4.0) * CUDA_PI)) * xr * zr;
+						Y = SQRT(CST(15.0) / (CST(4.0) * cuda_pi)) * xr * zr;
 						break;
 					case 2:
-						Y = SQRT(CST(15.0) / (CST(16.0) * CUDA_PI)) * (xr2 - yr2);
+						Y = SQRT(CST(15.0) / (CST(16.0) * cuda_pi)) * (xr2 - yr2);
 						break;
 				}
 				break;
@@ -174,26 +175,26 @@ namespace device {
 			case 3:
 				switch (m) {
 					case -3:
-						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * (CST(3.0) * xr2 - yr2);
+						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * (CST(3.0) * xr2 - yr2);
 						break;
 					case -2:
-						Y = SQRT(CST(105.0) / (CST(4.0) * CUDA_PI)) * zr * yr * xr;
+						Y = SQRT(CST(105.0) / (CST(4.0) * cuda_pi)) * zr * yr * xr;
 						break;
 					case -1:
-						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * (CST(4.0) * zr2 - xr2 - yr2);
+						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * (CST(4.0) * zr2 - xr2 - yr2);
 						break;
 					case 0:
-						Y = SQRT(CST(7.0) / (CST(16.0) * CUDA_PI)) * zr
+						Y = SQRT(CST(7.0) / (CST(16.0) * cuda_pi)) * zr
 							* (CST(2.0) * zr2 - CST(3.0) * xr2 - CST(3.0) * yr2);
 						break;
 					case 1:
-						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * (CST(4.0) * zr2 - xr2 - yr2);
+						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * (CST(4.0) * zr2 - xr2 - yr2);
 						break;
 					case 2:
-						Y = SQRT(CST(105.0) / (CST(16.0) * CUDA_PI)) * zr * (xr2 - yr2);
+						Y = SQRT(CST(105.0) / (CST(16.0) * cuda_pi)) * zr * (xr2 - yr2);
 						break;
 					case 3:
-						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * (xr2 - CST(3.0) * yr2);
+						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * (xr2 - CST(3.0) * yr2);
 						break;
 				}
 				break;
@@ -202,38 +203,38 @@ namespace device {
 			case 4:
 				switch (m) {
 					case -4:
-						Y = SQRT((CST(35.0) * CST(9.0)) / (CST(16.0) * CUDA_PI)) * yr * xr * (xr2 - yr2);
+						Y = SQRT((CST(35.0) * CST(9.0)) / (CST(16.0) * cuda_pi)) * yr * xr * (xr2 - yr2);
 						break;
 					case -3:
-						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * zr
+						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * zr
 							* (CST(3.0) * xr2 - yr2);
 						break;
 					case -2:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CUDA_PI)) * yr * xr
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * cuda_pi)) * yr * xr
 							* (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
 						break;
 					case -1:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * zr
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * zr
 							* (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
 						break;
 					case 0:
-						Y = SQRT(CST(9.0) / (CST(16.0) * CST(16.0) * CUDA_PI))
+						Y = SQRT(CST(9.0) / (CST(16.0) * CST(16.0) * cuda_pi))
 							* (CST(35.0) * zr2 * zr2 - CST(30.0) * zr2 + CST(3.0));
 						break;
 					case 1:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * zr
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * zr
 							* (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
 						break;
 					case 2:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(8.0) * CST(8.0) * CUDA_PI)) * (xr2 - yr2)
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(8.0) * CST(8.0) * cuda_pi)) * (xr2 - yr2)
 							* (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
 						break;
 					case 3:
-						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * zr
+						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * zr
 							* (xr2 - CST(3.0) * yr2);
 						break;
 					case 4:
-						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(16.0) * CUDA_PI))
+						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(16.0) * cuda_pi))
 							* (xr2 * (xr2 - CST(3.0) * yr2) - yr2 * (CST(3.0) * xr2 - yr2));
 						break;
 				}
@@ -243,47 +244,47 @@ namespace device {
 			case 5:
 				switch (m) {
 					case -5:
-						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2 * sint
+						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2 * sint
 							* SIN(CST(5.0) * phi);
 						break;
 					case -4:
-						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2
+						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2
 							* SIN(CST(4.0) * phi);
 						break;
 					case -3:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint
 							* (CST(9.0) * cost2 - CST(1.0)) * SIN(CST(3.0) * phi);
 						break;
 					case -2:
-						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sint2
+						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * cuda_pi)) * sint2
 							* (CST(3.0) * cost2 * cost - cost) * SIN(CST(2.0) * phi);
 						break;
 					case -1:
-						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sint
+						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * cuda_pi)) * sint
 							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) * SIN(phi);
 						break;
 					case 0:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / CUDA_PI)
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / cuda_pi)
 							* (CST(63.0) * cost2 * cost2 * cost - CST(70.0) * cost2 * cost + CST(15.0) * cost);
 						break;
 					case 1:
-						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sint
+						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * cuda_pi)) * sint
 							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) * COS(phi);
 						break;
 					case 2:
-						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sint2
+						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * cuda_pi)) * sint2
 							* (CST(3.0) * cost2 * cost - cost) * COS(CST(2.0) * phi);
 						break;
 					case 3:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint
 							* (CST(9.0) * cost2 - CST(1.0)) * COS(CST(3.0) * phi);
 						break;
 					case 4:
-						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2
+						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2
 							* COS(CST(4.0) * phi);
 						break;
 					case 5:
-						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2 * sint
+						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2 * sint
 							* COS(CST(5.0) * phi);
 						break;
 				}
