@@ -318,6 +318,10 @@ PyMethodDef MetaData_methods[] =
           "Remove a label if exists. The values are still in the table." },
         { "getValue", (PyCFunction) MetaData_getValue,
           METH_VARARGS, "Get the value for column(label)" },
+        { "getRow", (PyCFunction) MetaData_getRow,
+          METH_VARARGS, "Get a complete row (as dict)" },
+        { "setRow", (PyCFunction) MetaData_setRow,
+          METH_VARARGS, "Set a complete row (dict)" },
         { "getColumnValues", (PyCFunction) MetaData_getColumnValues,
           METH_VARARGS, "Get all values value from column(label)" },
         { "setColumnValues", (PyCFunction) MetaData_setColumnValues,
@@ -997,6 +1001,34 @@ MetaData_setValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
+PyObject *
+MetaData_setRow(PyObject *obj, PyObject *args, PyObject *)
+{
+    PyObject *dict;
+    if (size_t objectId = BAD_OBJID; PyArg_ParseTuple(args, "Ok", &dict, &objectId)) {
+        try
+        {
+            PyObject *key;
+            PyObject *value;
+            Py_ssize_t pos = 0;
+            MDRowVec row;
+            while (PyDict_Next(dict, &pos, &key, &value)) {
+                auto label = PyLong_AsLong(key);
+                auto object = createMDObject(static_cast<int>(label), value);
+                row.setValue(*object);
+            }
+            const auto *self = reinterpret_cast<MetaDataObject*>(obj);
+            self->metadata->setRow(row, objectId);
+            Py_RETURN_TRUE;
+        }
+        catch (const XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
+
 /* setValueCol */
 PyObject *
 MetaData_setValueCol(PyObject *obj, PyObject *args, PyObject *kwargs)
@@ -1078,7 +1110,31 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
-/* getValue */
+PyObject *
+MetaData_getRow(PyObject *obj, PyObject *args, PyObject *)
+{
+    if (size_t objectId = BAD_OBJID; PyArg_ParseTuple(args, "k", &objectId))
+    {
+        try
+        {
+            const auto *self = reinterpret_cast<MetaDataObject*>(obj);
+            const auto row = self->metadata->getRowSql(objectId);
+            PyObject *d = PyODict_New();
+            for (const auto *o : row) {
+                PyODict_SetItem(d, PyLong_FromLong(o->label), getMDObjectValue(o));
+            }
+            return d;
+        }
+        catch (const XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
+
+
+
 PyObject *
 MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
@@ -2322,7 +2378,7 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
 }
 
 PyObject *
-getMDObjectValue(MDObject * obj)
+getMDObjectValue(const MDObject * obj)
 {
     if (obj->label == MDL_UNDEFINED) //if undefine label, store as a literal string
         return nullptr;
