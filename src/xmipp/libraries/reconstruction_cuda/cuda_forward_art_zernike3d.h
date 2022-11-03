@@ -36,11 +36,7 @@ struct MY_ALIGN(16) MultidimArrayCuda {
 	T *data;
 };
 
-struct BlockSizes {
-	size_t x, y, z;
-};
-
-template<typename PrecisionType = double>
+template<typename PrecisionType>
 class Program {
 	static_assert(std::is_floating_point<PrecisionType>::value, "Floating point type is required.");
 
