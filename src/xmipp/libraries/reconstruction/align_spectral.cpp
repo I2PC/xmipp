@@ -476,141 +476,74 @@ size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjection(   cons
 template<typename T>
 size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, 
                                                                             Real& bestDistance,
-                                                                            WorkingSetBnB& ws ) const 
+                                                                            std::list<std::pair<size_t, Real>>& ws ) const 
 {
     Matrix1D<Real> referenceBand;
 
-    // Start with the provided score as the best one
-    auto best = ws.init(getImageCount(), bestDistance);
+    // Initialize the working set. Use the provided distance as the best one
+    ws.resize(getImageCount() + 1);
+    auto best = ws.begin();
+    for(size_t i = 0; i < getImageCount(); ++i) {
+        *(best++) = std::make_pair(i, Real(0));
+    }
+    *best = std::make_pair(getImageCount(), bestDistance);
+    assert(std::next(best) == ws.cend());
 
     // Compare band-by-band using the branch and bound approach
     for(size_t i = 0; i < getBandCount(); ++i) {
         // Determine the best candidate for the this iteration
         auto bestCandidate = best;
         const auto& experimentalBand = experimentalBands[i];
-        for(auto ite = ws.begin(); ite != ws.end(); /*EMPTY ON PURPOSE*/) {
-            if(ite != best) {
-                // Add the distance of this band to all elements
-                const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(ite->index, referenceBand);
-                ite->distance += euclideanDistance2(experimentalBand, referenceBand);
-                
-                // Check if it is still eligible
-                if(ite->distance < best->distance) {
-                    if(ite->distance < bestCandidate->distance) {
-                        bestCandidate = ite;
-                    }
-                    ++ite;
-                } else {
-                    // Not a candidate anymore
-                    ite = ws.erase(ite);
+        for(auto ite = ws.begin(); ite != best; /*EMPTY ON PURPOSE*/) {
+            // Add the distance of this band to all elements
+            const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(ite->first, referenceBand);
+            ite->second += euclideanDistance2(experimentalBand, referenceBand);
+            
+            // Check if it is still eligible
+            if(ite->second < best->second) {
+                if(ite->second < bestCandidate->second) {
+                    bestCandidate = ite;
                 }
-            } else {
                 ++ite;
+            } else {
+                // Not a candidate anymore. Move it to the end to
+                // stop considering it
+                ws.splice(ws.cend(), ws, ite++);
             }
         }
         
         if (bestCandidate != best) {
             // Evaluate the "complete" distance for the best candidate image
-            for(size_t j = i+1; j < getBandCount() && bestCandidate->distance < best->distance; ++j) {
+            for(size_t j = i+1; j < getBandCount() && bestCandidate->second < best->second; ++j) {
                 const auto& experimentalBand = experimentalBands[j];
-                const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate->index, referenceBand);
-                bestCandidate->distance += euclideanDistance2(experimentalBand, referenceBand);
+                const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate->first, referenceBand);
+                bestCandidate->second += euclideanDistance2(experimentalBand, referenceBand);
             }
 
-            // Update the best distance if necessary
-            if (bestCandidate->distance < best->distance) {
-                ws.erase(best);
+            // Update the best distance
+            if (bestCandidate->second < best->second) {
+                // Best candidate is better than the previous best.
+                // Insert it before best so that it is the new best
+                ws.splice(best, ws, bestCandidate);
                 best = bestCandidate;
             } else {
-                ws.erase(bestCandidate);
+                // Best candidate is not a candidate anymore. 
+                // Move it to the end to stop considering it
+                ws.splice(ws.cend(), ws, bestCandidate);
             }
+
         } else {
-            assert(ws.size() == 1);
+            assert(ws.cbegin() == best);
             break;
         }
     }
 
-    return best->index;
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::init(size_t count, Real bestDistance) {
-    // Recycle the deleted contents
-    m_candidates.splice(m_candidates.cend(), m_deleted);
-
-    // Fill
-    m_candidates.resize(count + 1);
-    auto ite = std::generate_n(
-        m_candidates.begin(), count,
-        [counter = 0UL] () mutable -> Element {
-            return Element{ counter++, 0.0 };
-        }
-    );
-
-    // Last element is the provided distance with an invalid index
-    (*ite) = Element{count, bestDistance}; 
-    return ite;
+    assert(ws.size() == (getImageCount() + 1)); //Nothing should have been deleted
+    bestDistance = best->second;
+    return best->first;
 }
 
 
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::begin() {
-    return m_candidates.begin();
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::begin() const {
-    return m_candidates.begin();
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::cbegin() const {
-    return begin();
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::end() {
-    return m_candidates.end();
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::end() const {
-    return m_candidates.end();
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::cend() const {
-    return end();
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::erase(typename ElementList::iterator ite) {
-    auto old = ite++;
-    m_deleted.splice(m_deleted.cend(), m_candidates, old); // Move it to the deleted set
-    return ite;
-}
-
-template<typename T>
-typename ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::ElementList::const_iterator 
-ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::erase(typename ElementList::const_iterator ite) {
-    auto old = ite++;
-    m_deleted.splice(m_deleted.cend(), m_candidates, old); // Move it to the deleted set
-    return ite;
-}
-
-template<typename T>
-size_t ProgAlignSpectral<T>::ReferencePcaProjections::WorkingSetBnB::size() const {
-    return m_candidates.size();
-}
 
 
 
@@ -970,7 +903,7 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         FourierTransformer fourier;
         std::vector<MultidimArray<Complex>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
-        typename ReferencePcaProjections::WorkingSetBnB ws;
+        std::list<std::pair<size_t, Real>> ws;
     };
 
     // Create a lambda to run in parallel
@@ -993,8 +926,9 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         // Compare the projection to find a match
         auto& classification = m_classification[i];
         auto distance = classification.getDistance();
-        //const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
-        const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+        //auto distance2 = distance;
+        const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
+        //assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
         if(match < m_references.getImageCount()) {
             classification = m_referenceData[match];
             classification.setDistance(distance);

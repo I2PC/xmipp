@@ -186,31 +186,6 @@ private:
     
     class ReferencePcaProjections {
     public:
-        class WorkingSetBnB {
-        public:
-            struct Element {
-                size_t index;
-                Real distance;
-            };
-
-            using ElementList = std::list<Element>;
-
-            typename ElementList::iterator init(size_t count, Real bestDistance);
-            typename ElementList::iterator begin();
-            typename ElementList::const_iterator begin() const;
-            typename ElementList::const_iterator cbegin() const;
-            typename ElementList::iterator end();
-            typename ElementList::const_iterator end() const;
-            typename ElementList::const_iterator cend() const;
-            typename ElementList::iterator erase(typename ElementList::iterator ite);
-            typename ElementList::const_iterator erase(typename ElementList::const_iterator ite);
-            size_t size() const;
-
-        private:
-            ElementList m_candidates;
-            ElementList m_deleted;
-        };
-
         ReferencePcaProjections() = default;
         ReferencePcaProjections(size_t nImages, const std::vector<size_t>& bandSizes);
         ReferencePcaProjections(const ReferencePcaProjections& other) = default;
@@ -226,7 +201,7 @@ private:
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
         size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
-        size_t matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, WorkingSetBnB& ws) const;
+        size_t matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, std::list<std::pair<size_t, Real>>& ws) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;
