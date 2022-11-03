@@ -942,7 +942,7 @@ if __name__ == '__main__':
         module = 'Xmipp'
         if ok:
             print("\n"
-                  "  * %s have been successfully compiled * \n"
+                  "  * %s has been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
         else:
