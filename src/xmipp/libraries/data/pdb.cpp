@@ -527,24 +527,20 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			}
 			else if (line.length() > 72) {
 				atom.segment = line.substr(72,line.length()-72+1);
-				int lenSegment = atom.segment.length();
-				for(int i=lenSegment; i<4; i++) {
-					atom.segment += " ";
-				}
 			}
 
 			if (line.length() > 77) {
 				atom.atomType = line.substr(76,2);
 			}
 			else if (line.length() > 76) {
-				atom.atomType = line.substr(76,1) + " ";
+				atom.atomType = line.substr(76,1);
 			}
 
 			if (line.length() > 79) {
 				atom.charge = line.substr(78,2);
 			}
 			else if (line.length() > 78) {
-				atom.charge = line.substr(78,1) + " ";
+				atom.charge = line.substr(78,1);
 			}
 
 			if(pseudoatoms != -1)
