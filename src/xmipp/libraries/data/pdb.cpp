@@ -532,9 +532,6 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 					atom.segment += " ";
 				}
 			}
-			else {
-				atom.segment = "    ";
-			}
 
 			if (line.length() > 77) {
 				atom.atomType = line.substr(76,2);
@@ -542,18 +539,12 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			else if (line.length() > 76) {
 				atom.atomType = line.substr(76,1) + " ";
 			}
-			else {
-				atom.atomType = "  ";
-			}
 
 			if (line.length() > 79) {
 				atom.charge = line.substr(78,2);
 			}
 			else if (line.length() > 78) {
 				atom.charge = line.substr(78,1) + " ";
-			}
-			else {
-				atom.charge = "  ";
 			}
 
 			if(pseudoatoms != -1)
