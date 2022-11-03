@@ -112,7 +112,7 @@ class Config:
             self.configDict['VERIFIED'] = "True"
             self.write()  # store result
         else:
-            print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
+            print(blue("'%s' is already checked. Set VERIFIED=False to have it re-checked"
                        % Config.FILE_NAME))
         return True
 
