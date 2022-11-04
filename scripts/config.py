@@ -112,7 +112,7 @@ class Config:
             self.configDict['VERIFIED'] = "True"
             self.write()  # store result
         else:
-            print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
+            print(blue("'%s' is already checked. Set VERIFIED=False to have it re-checked"
                        % Config.FILE_NAME))
         return True
 
@@ -312,7 +312,7 @@ class Config:
         
         from sysconfig import get_paths
         info = get_paths()
-
+        hdf5Found = 'hdf5 library found at: '
         if self.configDict["LIBDIRFLAGS"] == "":
             # /usr/local/lib or /path/to/virtEnv/lib
             localLib = "%s/lib" % info['data']
@@ -334,6 +334,13 @@ class Config:
                     self.environment.update(LD_LIBRARY_PATH=hdf5Lib)
                 else:
                     installDepConda('hdf5', self.ask)
+
+            if hdf5InLocalLib != '':
+                print(green(str(hdf5Found + hdf5InLocalLib)))
+            elif isHdf5CppLinking and isHdf5Linking:
+                print(green(str(hdf5Found + 'system. "ld -lhdf5 '
+                    '--verbose" to get the list of paths where it searchs')))
+
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
             print(red("'libfftw3' not found in the system"))
@@ -485,7 +492,8 @@ class Config:
 
     def _get_compatible_GCC(self, nvcc_version):
         # https://gist.github.com/ax3l/9489132
-        v = ['11.2', '11.1', '11',
+        v = ['12.2', '12.1',
+             '11.3', '11.2', '11.1', '11',
              '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
              '8.5', '8.4', '8.3', '8.2', '8.1', '8',
@@ -504,11 +512,9 @@ class Config:
         elif 11.0 <= nvcc_version < 11.1:
             return v[v.index('9.3'):]
         elif 11.1 <= nvcc_version < 11.5:
-            # nvcc 11.4.0 --> gcc 10
-            # nvcc 11.4.1 --> gcc 11
-            return v[v.index('10'):]
-        elif 11.5 <= nvcc_version <= 11.6:
-            return v[v.index('11'):]
+            return v[v.index('10.3'):]
+        elif 11.5 <= nvcc_version <= 11.7:
+            return v[v.index('11.3'):]
         return []
 
     def _join_with_prefix(self, collection, prefix):

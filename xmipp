@@ -315,7 +315,7 @@ def getAllBranchesAndTags(repo):
         branchesAndTags = [l.split('/')[-1] for l in log]
         return True, branchesAndTags
     print(red('Cannot list branches for ' + repo + ''.join(log)))
-    return False, None
+    return False, []
 
 
 def getBranch(repo, repo_dir):
@@ -394,6 +394,7 @@ def compileModule(Nproc,module):
         stampVersion()
     log = []
     ok = runJob("/usr/bin/env python3 $(which scons) -j%s" % Nproc, "src/%s" % module, log=log)
+    lastError= ''
     if not ok:
         failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines
@@ -418,15 +419,19 @@ def compileModule(Nproc,module):
             errorRegex = re.match(".*: fatal error: (.*): No such file or directory", l)
             if errorRegex:
                 missingPath = errorRegex.group(1)
-                print(red("\n'%s' file not found." % missingPath))
-                missingDir = missingPath.split(os.path.sep)[0]
-                missingFile = os.path.join(*missingPath.split(os.path.sep)[1:])
-                if missingDir in DEPENDENCIES.keys():
-                    depDir = os.path.join('src', missingDir)
-                    hint = ('cd %s ; git checkout -- %s ; cd -' % (depDir, missingFile)
-                            if os.path.isdir(depDir) else './xmipp get_dependencies')
-                    print(red("This file belongs to %s dependency. Please, "
-                              "try '%s' and re-compile." % (missingDir, hint)))
+                if lastError != missingPath:
+                    lastError = missingPath
+                    print(red("\n'%s' file not found." % missingPath))
+                    missingDir = missingPath.split(os.path.sep)[0]
+                    missingFile = os.path.join(*missingPath.split(os.path.sep))
+                    if len(missingFile) > 1:
+                        missingFile = missingFile[1:]
+                    if missingDir in DEPENDENCIES.keys():
+                        depDir = os.path.join('src', missingDir)
+                        hint = ('cd %s ; git checkout -- %s ; cd -' % (depDir, missingFile)
+                                if os.path.isdir(depDir) else './xmipp get_dependencies')
+                        print(red("This file belongs to %s dependency. Please, "
+                                  "try '%s' and re-compile." % (missingDir, hint)))
         print(red("\nSome error occurred during the compilation of '%s'%s.\n"
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
         sys.exit(1)
@@ -937,7 +942,7 @@ if __name__ == '__main__':
         module = 'Xmipp'
         if ok:
             print("\n"
-                  "  * %s have been successfully compiled * \n"
+                  "  * %s has been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
         else:
