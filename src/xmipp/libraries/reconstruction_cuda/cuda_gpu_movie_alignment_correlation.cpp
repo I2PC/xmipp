@@ -62,9 +62,9 @@ void CorrelationData<T>::alloc(const FFTSettings<T> &settings, size_t bufferSize
     d_imgs = reinterpret_cast<T*>(BasicMemManager::instance().get(settings.sBytesBatch(), MemType::CUDA));
     d_fftBuffer1 = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(settings.fBytesSingle() * bufferSize, MemType::CUDA));
     if (bufferSize != settings.sDim().n()) {
-        d_fftBuffer1 = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(settings.fBytesSingle() * bufferSize, MemType::CUDA));
+        d_fftBuffer2 = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(settings.fBytesSingle() * bufferSize, MemType::CUDA));
     } else {
-        d_fftBuffer1 = nullptr;
+        d_fftBuffer2 = nullptr;
     }
 }
 
