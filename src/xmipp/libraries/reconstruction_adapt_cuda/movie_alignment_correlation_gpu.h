@@ -375,6 +375,27 @@ private:
             const AlignmentResult<T> &globAlignment,
             T *result);
 
+    void getPatchDataV1(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+                void getPatchDataV2(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+                void getPatchDataV3(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+                void getPatchDataV4(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+                void getPatchDataV5(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+                            void getPatchDataV6(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+                            void getPatchDataV7(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
     /**
      * Create local alignment from global alignment
      * @param movie to use
@@ -438,7 +459,7 @@ private:
 private:
 
     ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
-    ctpl::thread_pool loadPool = ctpl::thread_pool(5);
+    ctpl::thread_pool loadPool = ctpl::thread_pool(7);
 
     std::future<void> LESTask;
 
