@@ -28,6 +28,7 @@
 
 enum class MemType
 {
+    CPU,
     CPU_PAGE_ALIGNED,
     CUDA_MANAGED,
     CUDA_HOST, // pinned memory on CPU

@@ -123,6 +123,9 @@ void *BasicMemManager::alloc(size_t bytes, MemType type) const
     void *ptr = nullptr;
     switch (type)
     {
+    case MemType::CPU:
+        ptr = malloc(bytes);
+        break;        
     case MemType::CPU_PAGE_ALIGNED:
         ptr = aligned_alloc(memoryUtils::PAGE_SIZE, bytes);
         madvise(ptr, bytes, MADV_HUGEPAGE);
@@ -146,6 +149,7 @@ void BasicMemManager::release(void *ptr, MemType type) const
 {
     switch (type)
     {
+    case MemType::CPU:
     case MemType::CPU_PAGE_ALIGNED:
         free(ptr);
         break;
@@ -165,6 +169,9 @@ std::ostream &operator<<(std::ostream &s, const MemType &t)
 {
     switch (t)
     {
+    case MemType::CPU:
+        s << "CPU";
+        break;
     case MemType::CPU_PAGE_ALIGNED:
         s << "CPU_PAGE_ALIGNED";
         break;
