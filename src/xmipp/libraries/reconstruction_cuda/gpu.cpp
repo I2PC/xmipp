@@ -153,8 +153,8 @@ bool GPU::isGpuPointer(const void *p) {
         return false;
     }
 #if defined(CUDART_VERSION) && CUDART_VERSION >= 10000
-    return cudaMemoryTypeDevice == attr.type;
+    return (cudaMemoryTypeDevice == attr.type) || (cudaMemoryTypeManaged == attr.type);
 #else
-    return cudaMemoryTypeDevice == attr.memoryType;
+    return (cudaMemoryTypeDevice == attr.memoryType) || (cudaMemoryTypeManaged == attr.memoryType);
 #endif
 }
