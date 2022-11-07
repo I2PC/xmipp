@@ -41,8 +41,8 @@ void ProgPdbReduce::defineParams()
 
 	addParamsLine("   -i <pdb_file>                          : File to process");
 	addParamsLine("  [-o <fn_root>]                          : Root name for output");
-	addParamsLine("  [--number <num=-1.0>]                : Sampling rate (Angstroms/pixel)");
-	addParamsLine("  [--threshold <thresh=0.0>]                : Sampling rate (Angstroms/pixel)");
+	addParamsLine("  [--number <num=-1.0>]                   : Number of pseudoatoms to keep based on intensity");
+	addParamsLine("  [--threshold <thresh=0.0>]              : Intensity threshold for removing pseudoatoms");
 }
 
 void ProgPdbReduce::readParams()
