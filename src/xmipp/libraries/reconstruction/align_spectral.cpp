@@ -533,6 +533,7 @@ size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjectionBnB(cons
             }
 
         } else {
+            // No more candidates left
             assert(ws.cbegin() == best);
             break;
         }
@@ -926,8 +927,8 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         // Compare the projection to find a match
         auto& classification = m_classification[i];
         auto distance = classification.getDistance();
-        //auto distance2 = distance;
-        const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
+        //const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
+        const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
         //assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
         if(match < m_references.getImageCount()) {
             classification = m_referenceData[match];
