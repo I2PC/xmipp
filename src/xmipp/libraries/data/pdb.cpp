@@ -571,9 +571,13 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     {
     	const RichAtom &atom=atomList[i];
         char serial[5+1];
+        int warned=0;
         if (auto* errmsg3 = hy36encode(5, atom.serial, serial); errmsg3) {
             // try using i+1 instead
-            reportWarning("Failed to use atom.serial. Trying i+1 instead.");
+            if (warned == 0) {
+                reportWarning("Failed to use atom.serial. Trying i+1 instead.");
+                warned = 1;
+            }
             if (const char* errmsg = hy36encode(5, (int)i + 1, serial); errmsg) {
                 REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg3);
             }  
