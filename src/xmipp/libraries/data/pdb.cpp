@@ -524,9 +524,9 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			atom.z = textToFloat(line.substr(46,8));
 			atom.occupancy = textToFloat(line.substr(54,6));
 			atom.bfactor = textToFloat(line.substr(60,6));
-            atom.segment = line.substr(72,4);
-            atom.atomType = line.substr(76,2);
-            atom.charge = line.substr(78,2);
+			atom.segment = line.substr(72,4);
+			atom.atomType = line.substr(76,2);
+			atom.charge = line.substr(78,2);
 
 			if(pseudoatoms != -1)
 				intensities.push_back(atom.bfactor);
