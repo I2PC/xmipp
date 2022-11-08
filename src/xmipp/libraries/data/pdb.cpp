@@ -57,10 +57,10 @@ hy36encode(unsigned width, int value, char* result);
 const char*
 hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
 
-const int*
+void
 hy36encodeSafe(unsigned width, int value, char* result);
 
-const int*
+void
 hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result);
 
 #ifdef __cplusplus
@@ -517,12 +517,12 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = line.substr(0,6);
-			const int* zero1 = hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom.serial);
+			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom.serial);
 			atom.name = line.substr(12,4);
-			atom.altloc=line[16];
-			atom.resname=line.substr(17,3);
-			atom.chainid=line[21];
-			const int* zero2 = hy36decodeSafe(4, line.substr(22,4).c_str(), 4, &atom.resseq);
+			atom.altloc = line[16];
+			atom.resname = line.substr(17,3);
+			atom.chainid = line[21];
+			hy36decodeSafe(4, line.substr(22,4).c_str(), 4, &atom.resseq);
 			atom.icode = line[26];
 			atom.x = textToFloat(line.substr(30,8));
 			atom.y = textToFloat(line.substr(38,8));
@@ -571,15 +571,15 @@ void PDBRichPhantom::write(const FileName &fnPDB)
             if (errmsg3) {
                 reportWarning("Failed to use atom.serial. Using i+1 instead.");
                 useSerial=false;
-                const int* zero3 = hy36encodeSafe(5, (int)i + 1, serial);
+                hy36encodeSafe(5, (int)i + 1, serial);
             }
         }
         else {
             // use i+1 instead
-            const int* zero4 = hy36encodeSafe(5, (int)i + 1, serial);
+            hy36encodeSafe(5, (int)i + 1, serial);
         }
         char resseq[4+1];
-        const int* zero5 = hy36encodeSafe(4, atom.resseq, resseq);
+        hy36encodeSafe(4, atom.resseq, resseq);
         fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%-2s\n",
 				atom.record.c_str(),serial,atom.name.c_str(),
 				atom.altloc,atom.resname.c_str(),atom.chainid,
@@ -1676,21 +1676,19 @@ hy36decode(unsigned width, const char* s, unsigned s_size, int* result)
 }
 
 // safe function for hy36decode
-const int*
-hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result)
+void hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result)
 {
-    if (auto* errmsg = hy36decode(width, s, s_size, result); errmsg) {
+    auto* errmsg = hy36decode(width, s, s_size, result); 
+    if (errmsg) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg);
     }
-    return 0;
 }
 
 // safe function for hy36encode
-const int*
-hy36encodeSafe(unsigned width, int value, char* result)
+void hy36encodeSafe(unsigned width, int value, char* result)
 {
-    if (const char* errmsg = hy36encode(width, value, result); errmsg) {
+    const char* errmsg = hy36encode(width, value, result); 
+    if (errmsg) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg);
     }
-    return 0;
 }
