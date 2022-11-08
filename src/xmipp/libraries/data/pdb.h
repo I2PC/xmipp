@@ -209,7 +209,7 @@ public:
     /// atom element type
     std::string atomType;
 
-    /// charge
+    /// 2-char charge with sign 2nd (e.g. 1- or 2+)
     std::string charge;
 };
 
