@@ -237,7 +237,7 @@ public:
     }
 
     /// Read from PDB file
-    void read(const FileName &fnPDB, double pseudoatoms = -1.0, double threshold = 0.0);
+    void read(const FileName &fnPDB, bool pseudoatoms = false, double threshold = 0.0);
 
     /// Write to PDB file
     void write(const FileName &fnPDB);

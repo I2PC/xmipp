@@ -480,10 +480,10 @@ void PDBPhantom::shift(double x, double y, double z)
 }
 
 /* Read phantom from PDB --------------------------------------------------- */
-void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double threshold)
+void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double threshold)
 /* - fnPDB is the filename of the PDB file
-   - pseudoatoms is a number of pseudoatoms to keep for pdb_reduce_pseudoatoms
-     or -1 if we want to keep everything or don't have pseudoatoms (default)
+   - pseudoatoms is a flag for returning intensities (stored in B-factors) instead of atoms.
+     **false** (default) is used when there are no pseudoatoms or when using a threshold 
    - threshold is a B factor threshold for filtering out for pdb_reduce_pseudoatoms
 */
 {
@@ -533,13 +533,11 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			atom.atomType = line.substr(76,2);
 			atom.charge = line.substr(78,2);
 
-			if(pseudoatoms != -1 && i < pseudoatoms){
-                intensities.push_back(atom.bfactor);
-                atomList.push_back(atom);
-            }
-			if(pseudoatoms == -1 && atom.bfactor >= threshold) {
-                atomList.push_back(atom);    
-            }
+			if(pseudoatoms == true)
+				intensities.push_back(atom.bfactor);
+            
+			if(atom.bfactor >= threshold && pseudoatoms == false)
+				atomList.push_back(atom);
 
         } else if (kind == "REMA")
         	remarks.push_back(line);

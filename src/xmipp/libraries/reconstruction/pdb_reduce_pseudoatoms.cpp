@@ -66,15 +66,15 @@ void ProgPdbReduce::reduceNumberPseudoatoms()
 {
 	PDBRichPhantom pdb;
 	if(thresh != 0.0)
-		pdb.read(fn_volume, -1.0, thresh);
+		pdb.read(fn_volume, false, thresh);
 	else
 	{
-		pdb.read(fn_volume, num);
+		pdb.read(fn_volume, true);
 		std::sort(pdb.intensities.rbegin(), pdb.intensities.rend());
 		thresh = pdb.intensities.at(num);
 		pdb.atomList.clear();
 		pdb.remarks.clear();
-		pdb.read(fn_volume, -1.0, thresh);
+		pdb.read(fn_volume, false, thresh);
 	}
 	pdb.write(fn_out);
 }
