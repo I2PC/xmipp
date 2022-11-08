@@ -489,7 +489,6 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    // std::string line;
     static const std::string empty(80, ' ');
     auto line = std::string(80, ' ');
     std::string kind;
@@ -551,12 +550,13 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     size_t imax=remarks.size();
     for (size_t i=0; i<imax; ++i)
     	fprintf(fh_out,"%s\n",remarks[i].c_str());
+    
+    bool useSerial=true;
     imax=atomList.size();
     for (size_t i=0; i<imax; ++i)
     {
     	const RichAtom &atom=atomList[i];
         char serial[5+1];
-        bool useSerial=true;
         if (useSerial) {
             auto* errmsg3 = hy36encode(5, atom.serial, serial);
             if (errmsg3) {
