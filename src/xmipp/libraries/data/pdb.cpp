@@ -481,6 +481,11 @@ void PDBPhantom::shift(double x, double y, double z)
 
 /* Read phantom from PDB --------------------------------------------------- */
 void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double threshold)
+/* - fnPDB is the filename of the PDB file
+   - pseudoatoms is a number of pseudoatoms to keep for pdb_reduce_pseudoatoms
+     or -1 if we want to keep everything or don't have pseudoatoms (default)
+   - threshold is a B factor threshold for filtering out for pdb_reduce_pseudoatoms
+*/
 {
     // Open file
     std::ifstream fh_in;
@@ -494,6 +499,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
     std::string kind;
 
     RichAtom atom;
+    int i=0;
     while (!fh_in.eof())
     {
         // Read an ATOM line
@@ -527,7 +533,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 			atom.atomType = line.substr(76,2);
 			atom.charge = line.substr(78,2);
 
-			if(pseudoatoms != -1)
+			if(pseudoatoms != -1 && i < pseudoatoms)
+				atomList.push_back(atom);
 				intensities.push_back(atom.bfactor);
 
 			if(atom.bfactor >= threshold && pseudoatoms == -1)
@@ -535,6 +542,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 
         } else if (kind == "REMA")
         	remarks.push_back(line);
+
+        i++;
     }
 
     // Close files
