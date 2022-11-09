@@ -240,7 +240,7 @@ public:
     void read(const FileName &fnPDB, bool pseudoatoms = false, double threshold = 0.0);
 
     /// Write to PDB file
-    void write(const FileName &fnPDB);
+    void write(const FileName &fnPDB, bool renumber = false);
 
 };
 

@@ -550,16 +550,19 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
 }
 
 /* Write phantom to PDB --------------------------------------------------- */
-void PDBRichPhantom::write(const FileName &fnPDB)
+void PDBRichPhantom::write(const FileName &fnPDB, bool renumber)
 {
     FILE* fh_out=fopen(fnPDB.c_str(),"w");
     if (!fh_out)
         REPORT_ERROR(ERR_IO_NOWRITE, fnPDB);
     size_t imax=remarks.size();
     for (size_t i=0; i<imax; ++i)
-    	fprintf(fh_out,"%s\n",remarks[i].c_str());
+        fprintf(fh_out,"%s\n",remarks[i].c_str());
     
     bool useSerial=true;
+    if (renumber)
+        useSerial=false;
+
     imax=atomList.size();
     for (size_t i=0; i<imax; ++i)
     {

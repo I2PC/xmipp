@@ -76,7 +76,7 @@ void ProgPdbReduce::reduceNumberPseudoatoms()
 		pdb.remarks.clear();
 		pdb.read(fn_volume, false, thresh);
 	}
-	pdb.write(fn_out);
+	pdb.write(fn_out, true); // keep renumbering
 }
 
 void ProgPdbReduce::run()
