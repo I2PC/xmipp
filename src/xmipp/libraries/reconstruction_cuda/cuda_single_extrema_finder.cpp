@@ -444,8 +444,8 @@ void CudaExtremaFinder<T>::sRefineLocation(
         float * d_positions,
         const T * d_data) {
     assert(dims.n() > 0);
-    dim3 dimBlock(dims.n());
-    dim3 dimGrid(1);
+    dim3 dimBlock(std::min(dims.n(), 1024LU)); // 1024 is max threads per block, see https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#features-and-technical-specifications__technical-specifications-per-compute-capability
+    dim3 dimGrid(dims.n() / 1024 + 1);
     auto stream = *(cudaStream_t*)gpu.stream();
     return refineLocation<T, 3><<< dimGrid, dimBlock, 0, stream>>>(d_indices, d_positions, d_data, dims);
 }

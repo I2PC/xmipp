@@ -805,6 +805,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         context.refFrame = refFrame;
         context.centerSize = getCenterSize(this->maxShift);
         context.framesInCorrelationBuffer = localHelper.bufferSize;
+        context.correlationSettings = correlationSettings;
         // prefill some info about patch
         for (size_t i = 0;i < movieSize.n();++i) {
             FramePatchMeta<T> tmp = p;
@@ -880,7 +881,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 //         correlationSettings.fDim().x(), correlationSettings.sDim().y(), filter);
                 {
                     std::unique_lock<std::mutex> lock(mutex[1]);
-                computeCorrelations(context.centerSize, context.N, correlationSettings, scalledPatches[thrId],
+                computeCorrelations(context.maxShift / context.scale.first, context.N, correlationSettings, scalledPatches[thrId],
                         context.framesInCorrelationBuffer,
                         correlations, corrAuxData, streams[1]);
                 }
@@ -1400,11 +1401,9 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
 
         for (size_t i = 0; i < context.N - 1; ++i) {
             for (size_t j = i + 1; j < context.N; ++j) {
-                size_t offset = idx * context.centerSize * context.centerSize;
-                MultidimArray<T> Mcorr(1, 1, context.centerSize, context.centerSize, correlations + offset);
-                Mcorr.setXmippOrigin();
-                bestShift(Mcorr, bX(idx), bY(idx), NULL,
-                        context.maxShift / context.scale.first);
+                auto index = static_cast<size_t>(correlations[idx]);
+                bX(idx) = correlations[2*idx] - (context.correlationSettings.sDim().x() / 2.0);
+                bY(idx) = correlations[2*idx+1] - (context.correlationSettings.sDim().y() / 2.0);
                 bX(idx) *= context.scale.first; // scale to expected size
                 bY(idx) *= context.scale.second;
                 if (context.verbose > 1) {

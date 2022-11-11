@@ -59,6 +59,7 @@ private:
         core::optional<size_t> refFrame;
         size_t centerSize;
         size_t framesInCorrelationBuffer;
+        FFTSettings<T> correlationSettings = FFTSettings<T>(1);
         size_t corrElems() const {
             return (N * (N-1) / 2) * centerSize * centerSize;
         }

@@ -264,8 +264,8 @@ template<typename T, unsigned WINDOW>
    Dimensions size)
 {
   // map one thread per signal
-  auto n = threadIdx.x;
-  if (n >= size.sizeSingle()) return;
+  auto n = threadIdx.x + blockIdx.x * blockDim.x;
+  if (n >= size.n()) return;
   auto half = (WINDOW - 1) / 2;
   const auto dim = size.getDimAsNumber();
   if ((dim > 0) && (dim <= 3)) {

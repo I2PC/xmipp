@@ -146,7 +146,7 @@ void copyInRightOrder(T* d_imgs, T* result, int xDim, int yDim, bool isWithin,
         int iStart, int iStop, int jStart, int jStop, size_t jSize,
         size_t offset1, size_t offset2, size_t maxImgs);
 template<typename T>
-void copyInRightOrderNew(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
+void copyInRightOrderNew(T* d_pos, T* h_pos, bool isWithin,
         int iStart, int iStop, int jStart, int jStop, size_t jSize,
         size_t offset1, size_t offset2, size_t maxImgs, const GPU &gpu);
 
@@ -155,7 +155,7 @@ void copyInRightOrderNew(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin
  * It does so by loading several images to GPU at the same time and computing
  * correlation on the batch. Result are centers of correlations.
  * Function uses two buffers where the images are loaded.
- * @param centerSize size of the resulting centers
+ * @param maxDist max distance from the center where to look for maxima
  * @param noOfImgs to process
  * @param h_FFTs actual FFTs
  * @param fftSizeX X dim of the input images
@@ -163,10 +163,10 @@ void copyInRightOrderNew(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin
  * @param fftSizeY Y dim of the input images
  * @param maxFFTsInBuffer max number of images to have in one buffer at one moment
  * @param fftBatchSize batch size of the IFFT
- * @param result cropped centers of the correlations
+ * @param result position of the maxima (n X-Y pairs)
  */
 template<typename T>
-void computeCorrelations(size_t centerSize, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
+void computeCorrelations(float maxDist, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
         size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux, const GPU &gpu);
 
 
@@ -218,7 +218,7 @@ void computeCorrelations(float maxDist, int noOfImgs,
         GpuMultidimArrayAtGpu<T>& imgs, mycufftHandle& handler,
         T*& result);
         template<typename T>
-void computeCorrelationsNew(size_t centerSize, size_t noOfImgs, 
+void computeCorrelationsNew(float maxDist, size_t noOfImgs, 
         void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
         size_t in1Offset, size_t in2Offset,
         std::complex<T> *ffts, T *imgs, cufftHandle &handler,
