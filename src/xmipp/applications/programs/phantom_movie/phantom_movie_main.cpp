@@ -26,4 +26,4 @@
 #include <core/xmipp_program.h>
 #include <reconstruction/phantom_movie.h>
 
-RUN_XMIPP_PROGRAM(PhantomMovie<float>)
+RUN_XMIPP_PROGRAM(PhantomMovie<double>)

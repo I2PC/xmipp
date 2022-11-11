@@ -26,14 +26,17 @@
 #ifndef PHANTOM_MOVIE_H_
 #define PHANTOM_MOVIE_H_
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_program.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_filename.h"
+#include "data/dimensions.h"
 
 /**@defgroup PhantomMovie Phantom Movie
    @ingroup ReconsLibrary */
 //@{
-template<typename T>
-class PhantomMovie: public XmippProgram {
+template <typename T>
+class PhantomMovie : public XmippProgram
+{
 public:
     /** Read parameters. */
     void readParams();
@@ -43,41 +46,52 @@ public:
 
     /** Run */
     void run();
+
 private:
-    void generateGrid(Image<T> &movie);
-    void addShiftBarrelDeformation(Image<T> &movie);
-    void addShift(Image<T> &movie);
-    T bilinearInterpolation(Image<T>& src, T x, T y);
-    bool inRangeX(T x) { return (x >= 0) && (x < xdim); };
-    bool inRangeY(T y) { return (y >= 0) && (y < ydim); };
-    bool inRange(T x, T y) { return inRangeX(x) && inRangeY(y); };
-    inline T getValue(Image<T>& src, T x, T y);
-    T shiftX(T t) { return a1*t + a2*t*t + std::cos(t/T(10))/(T)10; };
-    T shiftY(T t) { return b1*t + b2*t*t + (std::sin(t*t))/(T)5; };
-protected:
-    size_t xdim;
-    size_t ydim;
-    size_t ndim;
+    void addGrid(MultidimArray<T> &movie);
+    T bilinearInterpolation(const MultidimArray<T> &src, float x, float y);
+    T shiftX(T t) { return a1 * t + a2 * t * t + std::cos(t / T(10)) / (T)10; };
+    T shiftY(T t) { return b1 * t + b2 * t * t + (std::sin(t * t)) / (T)5; };
 
-    size_t xstep;
-    size_t ystep;
+    void generateIce(MultidimArray<T> &frame);
+    void generateMovie(const MultidimArray<T> &refFrame);
+    void applyLowPass(MultidimArray<T> &frame);
 
+    void displace(float &x, float &y, size_t n);
+    MultidimArray<T> findWorkSize();
+    Dimensions req_size = Dimensions(1);
+    Dimensions work_size = Dimensions(1);
+
+    // displacement params
     T a1, a2, b1, b2;
     T k1_start, k1_end;
     T k2_start, k2_end;
-
+    // grid properties
+    size_t xstep;
+    size_t ystep;
     size_t thickness;
-
+    float gridVal;
+    // other options
     bool skipBarrel;
     bool skipShift;
     bool shiftAfterBarrel;
+    bool skipNoise;
+    // noise properties
+    int seed;
+    float norm_avg;
+    float norm_stddev;
+    float gauss_avg;
+    float gauss_stddev;
+    float poisson_mean;
+    float low_w1;
+    float low_raised_w;
 
     const std::string size_param = std::string("-size");
     const std::string step_param = std::string("-step");
     const std::string shift_param = std::string("--shift");
     const std::string barrel_param = std::string("--barrel");
-    FileName fn_out;};
+    FileName fn_out;
+};
 
 //@}
 #endif /* PHANTOM_MOVIE_H_ */
-
