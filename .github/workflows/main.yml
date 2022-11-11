@@ -93,8 +93,11 @@ jobs:
            python -m pip install --upgrade pip
            pip install scons numpy
 
+      - name: Update 
+        run: sudo apt-get update
+        
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff-dev unzip
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
 
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
