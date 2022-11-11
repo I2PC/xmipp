@@ -42,7 +42,7 @@
     FileName fnOut; // Output metadata
     FileName fnMaskVol; // Input 3D mask of the reference volume
     FileName fnMask; // Input 3D mask for region to keep
-    FileName fnProj; // JUST FOR SAVING INTERM FILES -> DELETE
+    FileName fnProj; // Path to save intermediate files
 	double sampling; 
 	double padFourier; 
 	double maxResol;
@@ -51,7 +51,6 @@
 	int sigma;
     int limitfreq;
     bool nonNegative;
-    bool subtract;
     bool boost;
 
     // Data variables

@@ -63,7 +63,6 @@
 	cirmaskrad = getDoubleParam("--cirmaskrad");
 	fnProj = getParam("--save"); 
 	nonNegative = checkParam("--nonNegative");
-	subtract = checkParam("--subtract");
 	boost = checkParam("--boost");
  }
 
@@ -197,15 +196,11 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	P.write(formatString("%s/projection_xmipp.mrc", fnProj.c_str()));
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	P.write(formatString("%s/projection_xmipp_shift.mrc", fnProj.c_str()));
 	Pctf = applyCTF(row, P);
-	Pctf.write(formatString("%s/projection_xmipp_ctf_wrap.mrc", fnProj.c_str()));
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
-	Pctf.write(formatString("%s/projection_xmipp_ctf_wrap_circularmask.mrc", fnProj.c_str()));
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -386,10 +381,9 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 		// Compute beta00 from order 0 model
 		double beta00 = num0.sum()/den0.sum();
-		std::cout << "beta00: " << beta00 << std::endl;
 		if (nonNegative && beta00 < 0) 
 		{
-				disable = true;
+			disable = true;
 		}
 
 		// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
@@ -406,8 +400,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		solveLinearSystem(h,betas1); 
 		double beta01 = betas1(0);
 		double beta1 = betas1(1);
-		std::cout << "beta01: " << beta01 << std::endl; 		
-		std::cout << "beta1: " << beta1 << std::endl; 			
 
 		// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
 		PFourier1 = PFourier;
@@ -417,7 +409,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 		// Check best model
 		Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
-		std::cout << "best_model: " << R2adj(1) << std::endl; 	
 		double beta0save;
 		double beta1save;		
 		if (R2adj(1) == 0)
@@ -453,30 +444,12 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		} 
 		
 		// Subtraction
-		else if (subtract)
+		else
 		{
 			// Recover adjusted projection (P) in real space
 			transformerP.inverseFourierTransform(PFourier, P());
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
-			P.write(formatString("%s/projection_xmipp_to_subtract.mrc", fnProj.c_str()));
-
-			// Estimate beta0 in real space:
-			// double meanI = I().computeAvg();
-			// MultidimArray<double> Imean;
-			// Imean.initZeros(I());
-			// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imean)
-			// 	DIRECT_MULTIDIM_ELEM(Imean,n) = DIRECT_MULTIDIM_ELEM(I(),n) - meanI;
-
-			// double meanP = P().computeAvg();
-			// MultidimArray<double> Pmean;
-			// Pmean.initZeros(I());
-			// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmean)
-			// 	DIRECT_MULTIDIM_ELEM(Pmean,n) = DIRECT_MULTIDIM_ELEM(P(),n) - meanP;
-
-			// double beta0real = Imean.sum()/Pmean.sum();
-			// std::cout << "beta0 real: " << beta0real << std::endl;
-
 			if (fmaskWidth == -1)
 			{
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
