@@ -499,7 +499,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
     std::string kind;
 
     RichAtom atom;
-    int i=0;
+    int i = -1;
     while (!fh_in.eof())
     {
         // Read an ATOM line
@@ -512,6 +512,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
         kind = line.substr(0,4);
         if (kind == "ATOM" || kind == "HETA")
         {
+			i++;
+
 			// Extract atom type and position
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
@@ -539,10 +541,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
 			if(!pseudoatoms && atom.bfactor >= threshold)
 				atomList.push_back(atom);
 
-        } else if (kind == "REMA")
-        	remarks.push_back(line);
-
-        i++;
+		} else if (kind == "REMA")
+			remarks.push_back(line);
     }
 
     // Close files
