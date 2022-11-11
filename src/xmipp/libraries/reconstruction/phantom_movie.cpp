@@ -63,7 +63,7 @@ void PhantomMovie<T>::defineParams()
     addParamsLine("[--poisson <mean=0.0>]                                :"
                   " Poisson noise properties");
     addParamsLine("[--low <w1=0.05> <raisedW=0.02>]                      :"
-                  " Gauss noise properties");
+                  " Low-pass filter properties");
 
     addUsageLine("Create phantom movie with grid, using shift and barrel / pincushion transform.");
     addUsageLine("Bear in mind that the following function of the shift is applied in 'backward'"
