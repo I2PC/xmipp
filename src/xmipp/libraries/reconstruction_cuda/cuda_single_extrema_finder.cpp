@@ -437,6 +437,20 @@ void CudaExtremaFinder<T>::sFindMax2DAroundCenter(
 }
 
 template<typename T>
+void CudaExtremaFinder<T>::sRefineLocation(
+        const GPU &gpu,
+        const Dimensions &dims,
+        const float * d_indices,
+        float * d_positions,
+        const T * d_data) {
+    assert(dims.n() > 0);
+    dim3 dimBlock(dims.n());
+    dim3 dimGrid(1);
+    auto stream = *(cudaStream_t*)gpu.stream();
+    return refineLocation<T, 3><<< dimGrid, dimBlock, 0, stream>>>(d_indices, d_positions, d_data, dims);
+}
+
+template<typename T>
 void CudaExtremaFinder<T>::sFindLowest2DAroundCenter(
         const GPU &gpu,
         const Dimensions &dims,

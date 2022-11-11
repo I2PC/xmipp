@@ -169,17 +169,34 @@ template<typename T>
 void computeCorrelations(size_t centerSize, size_t noOfImgs, const FFTSettings<T> &settings, std::complex<T> *h_FFTs,
         size_t maxFFTsInBuffer, T *result, CorrelationData<T> &aux, const GPU &gpu);
 
+
+/**
+ * Function performs cross-correlation on input images in fourier space.
+ * It does so by loading several images to GPU at the same time and computing
+ * correlation on the batch. 
+ * Then it looks for the position of the maxima. They are returned in X-Y positions.
+ * Function uses two buffers where the images are loaded.
+ * @param maxDist max distance from the center where to look for maxima
+ * @param noOfImgs to process
+ * @param h_FFTs actual FFTs
+ * @param fftSizeX X dim of the input images
+ * @param imgSizeX X dim of the original images (in space domain)
+ * @param fftSizeY Y dim of the input images
+ * @param maxFFTsInBuffer max number of images to have in one buffer at one moment
+ * @param fftBatchSize batch size of the IFFT
+ * @param result position of the maxima (n X-Y pairs)
+ */
 template<typename T>
-void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
+void computeCorrelations(float maxDist, size_t noOfImgs, std::complex<T>* h_FFTs,
         int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
         int fftBatchSize, T*& result);
 
 /**
  * Function performs cross-correlation of the images (in Fourier domain) stored
  * in the buffers.
- * Result are centers of correlations.
+ * Then it looks for the position of the maxima. They are returned in X-Y positions.
  * Function uses two buffers where the images are loaded.
- * @param centerSize size of the resulting centers
+ * @param maxDist max distance from the center where to look for maxima
  * @param noOfImgs to process
  * @param d_in1 first buffer with FFTs
  * @param in1Size no of images in first buffer
@@ -191,10 +208,10 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
  * @param ffts object used for FFTs
  * @param imgs object where resulting correlations are stored
  * @param handler of the FFT transform
- * @param result cropped centers of the correlations
+ * @param result position of the maxima (n X-Y pairs)
  */
 template<typename T>
-void computeCorrelations(size_t centerSize, int noOfImgs,
+void computeCorrelations(float maxDist, int noOfImgs,
         void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
         int fftBatchSize, size_t in1Offset, size_t in2Offset,
         GpuMultidimArrayAtGpu<std::complex<T> >& ffts,

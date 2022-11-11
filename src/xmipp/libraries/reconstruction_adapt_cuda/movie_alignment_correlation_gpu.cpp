@@ -1431,6 +1431,121 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
     // };
 }
 
+
+template<typename T>
+T myBestShift(MultidimArray<T> &Mcorr,
+               T &shiftX, T &shiftY, const MultidimArray<int> *mask, int maxShift, size_t &index)
+{
+    int imax = INT_MIN;
+    int jmax;
+    int i_actual;
+    int j_actual;
+    double xmax;
+    double ymax;
+    double avecorr;
+    double stdcorr;
+    double dummy;
+    bool neighbourhood = true;
+
+    /*
+     Warning: for masks with a small number of non-zero pixels, this routine is NOT reliable...
+     Anyway, maybe using a mask is not a good idea at al...
+     */
+
+    // Adjust statistics within shiftmask to average 0 and stddev 1
+
+        // Mcorr.statisticsAdjust((T)0, (T)1);
+
+    // Look for maximum shift
+    index = 0;
+    if (maxShift==-1)
+    	Mcorr.maxIndex(imax, jmax);
+    else
+    {
+    	int maxShift2=maxShift*maxShift;
+    	auto bestCorr=std::numeric_limits<T>::lowest();
+    	for (int i=-maxShift; i<=maxShift; i++)
+    		for (int j=-maxShift; j<=maxShift; j++)
+    		{
+                index++;
+    			if (i*i+j*j>maxShift2) // continue if the Euclidean distance is too far
+    				continue;
+    			else if (A2D_ELEM(Mcorr, i, j)>bestCorr)
+    			{
+    				imax=i;
+    				jmax=j;
+    				bestCorr=A2D_ELEM(Mcorr, imax, jmax);
+    			}
+    		}
+    }
+    auto max = A2D_ELEM(Mcorr, imax, jmax);
+    index = (imax - STARTINGY(Mcorr)) * Mcorr.xdim + (jmax - STARTINGX(Mcorr));
+    shiftX = jmax;
+    shiftY = imax;
+    return max;
+
+    
+    // Estimate n_max around the maximum
+    int n_max = -1;
+    while (neighbourhood)
+    {
+        n_max++;
+        for (int i = -n_max; i <= n_max && neighbourhood; i++)
+        {
+            i_actual = i + imax;
+            if (i_actual < STARTINGY(Mcorr) || i_actual > FINISHINGY(Mcorr))
+            {
+                neighbourhood = false;
+                break;
+            }
+            for (int j = -n_max; j <= n_max && neighbourhood; j++)
+            {
+                j_actual = j + jmax;
+                if (j_actual < STARTINGX(Mcorr) || j_actual > FINISHINGX(Mcorr))
+                {
+                    neighbourhood = false;
+                    break;
+                }
+                else if (max / 1.414 > A2D_ELEM(Mcorr, i_actual, j_actual))
+                {
+                    neighbourhood = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    // We have the neighbourhood => looking for the gravity centre
+    xmax = ymax = 0.;
+    double sumcorr = 0.;
+    if (imax-n_max<STARTINGY(Mcorr))
+        n_max=std::min(imax-STARTINGY(Mcorr),n_max);
+    if (imax+n_max>FINISHINGY(Mcorr))
+        n_max=std::min(FINISHINGY(Mcorr)-imax,n_max);
+    if (jmax-n_max<STARTINGY(Mcorr))
+        n_max=std::min(jmax-STARTINGX(Mcorr),n_max);
+    if (jmax+n_max>FINISHINGY(Mcorr))
+        n_max=std::min(FINISHINGX(Mcorr)-jmax,n_max);
+    for (int i = -n_max; i <= n_max; i++)
+    {
+        i_actual = i + imax;
+        for (int j = -n_max; j <= n_max; j++)
+        {
+            j_actual = j + jmax;
+            double val = A2D_ELEM(Mcorr, i_actual, j_actual);
+            ymax += i_actual * val;
+            xmax += j_actual * val;
+            sumcorr += val;
+        }
+    }
+    if (sumcorr != 0)
+    {
+        shiftX = xmax / sumcorr;
+        shiftY = ymax / sumcorr;
+    }
+    return max;
+}
+
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
         size_t maxShift,
@@ -1442,7 +1557,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // compute correlations (each frame with following ones)
     size_t centerSize = getCenterSize(maxShift);
     auto *correlations = new T[N*(N-1)/2 * centerSize * centerSize]();
-    computeCorrelations(centerSize, N, data, settings.fDim().x(),
+    computeCorrelations(maxShift / scale.first, N, data, settings.fDim().x(),
             settings.sDim().x(),
             settings.fDim().y(), framesInCorrelationBuffer,
             settings.batch(), correlations);
@@ -1461,11 +1576,17 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
 
     for (size_t i = 0; i < N - 1; ++i) {
         for (size_t j = i + 1; j < N; ++j) {
-            size_t offset = idx * centerSize * centerSize;
-            Mcorr.data = correlations + offset;
-            Mcorr.setXmippOrigin();
-            bestShift(Mcorr, bX(idx), bY(idx), NULL,
-                    maxShift / scale.first);
+            auto index = static_cast<size_t>(correlations[idx]);
+            auto max = 0.0;
+            bX(idx) = correlations[2*idx] - (settings.sDim().x() / 2.0);//index % settings.sDim().x() - (settings.sDim().x() / 2.0);
+            bY(idx) = correlations[2*idx+1] - (settings.sDim().y() / 2.0);//index / settings.sDim().x() - (settings.sDim().y() / 2.0);
+            // size_t offset = idx * centerSize * centerSize;
+            // Mcorr.data = correlations + offset;
+            // Mcorr.setXmippOrigin();
+            // size_t index;
+            // auto max = myBestShift(Mcorr, bX(idx), bY(idx), NULL,
+            //         maxShift / scale.first, index);
+            // printf("%f [%f, %f] at index %ld (after conversion: [%f, %f]\n",max, bX(idx), bY(idx), index, bX(idx) * scale.first, bY(idx) * scale.second);
             bX(idx) *= scale.first; // scale to expected size
             bY(idx) *= scale.second;
             if (verbose > 1) {

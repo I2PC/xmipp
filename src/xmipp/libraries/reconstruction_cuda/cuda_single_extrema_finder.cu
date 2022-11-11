@@ -26,6 +26,7 @@
 #ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FIND_MAX_CU_
 #define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FIND_MAX_CU_
 
+#include "data/dimensions.h"
 #include <type_traits>
 
 template<typename T, typename T2, typename C>
@@ -243,6 +244,71 @@ void findUniversal2DNearCenter(
                 (double*)outVal,
                 xSize, ySize, maxDist);
     }
+}
+
+
+/**
+ * Find sub-pixel location or value of the extrema.
+ * Data has to contain at least one (1) value.
+ * Returned location is calculated by relative weigting in the given
+ * window using the value contribution. Should the window reach behind the boundaries, those
+ * values will be ignored. Only odd sizes of the window are valid.
+ *
+ * All checks are expected to be done by caller
+ **/
+template<typename T, unsigned WINDOW>
+ __global__ 
+ void refineLocation(const float * __restrict__ locIndexes,
+   float *__restrict__ locs,
+   const T * __restrict__ data,
+   Dimensions size)
+{
+  // map one thread per signal
+  auto n = threadIdx.x;
+  if (n >= size.sizeSingle()) return;
+  auto half = (WINDOW - 1) / 2;
+  const auto dim = size.getDimAsNumber();
+  if ((dim > 0) && (dim <= 3)) {
+      auto locIdx = static_cast<size_t>(locIndexes[n]);
+      auto *ptr = data + n * size.sizeSingle();
+      auto refZ = (size.getDimAsNumber() > 2) ? static_cast<size_t>(locIdx / (size.x() * size.y())) : 0;
+      auto tmp = locIdx % (size.x() * size.y());
+      auto refY = (size.getDimAsNumber() > 1) ? static_cast<size_t>(tmp / size.x()) : 0;
+      auto refX = static_cast<size_t>(tmp % size.x());
+      auto refVal = data[n * size.sizeSingle() + refZ * size.x() * size.y() + refY * size.x() + refX];
+      // careful with unsigned operations
+      auto startX = (half > refX) ? 0 : refX - half;
+      auto endX = min(half + refX, size.x() - 1);
+      auto startY = (half > refY) ? 0 : refY - half;
+      auto endY = min(half + refY, size.y() - 1);
+      auto startZ = (half > refZ) ? 0 : refZ - half;
+      auto endZ = min(half + refZ, size.z() - 1);
+      float sumLocX = 0;
+      float sumLocY = 0;
+      float sumLocZ = 0;
+      float sumWeight = 0;
+      for (auto z = startZ; z <= endZ; ++z) {
+        for (auto y = startY; y <= endY; ++y) {
+          for (auto x = startX; x <= endX; ++x) {
+            auto i = z * size.x() * size.y() + y * size.x() + x;
+            auto relVal = ptr[i] / refVal;
+            sumWeight += relVal;
+            sumLocX += static_cast<float>(x) * relVal;
+            sumLocY += static_cast<float>(y) * relVal;
+            sumLocZ += static_cast<float>(z) * relVal;
+          }
+        }
+      }
+      auto *ptrLoc = locs + n * size.getDimAsNumber();
+      ptrLoc[0] = sumLocX / sumWeight;
+      if (size.getDimAsNumber() > 1) { ptrLoc[1] = sumLocY / sumWeight; }
+      if (size.getDimAsNumber() > 2) { ptrLoc[2] = sumLocZ / sumWeight; }
+    return;
+  }
+  // otherwise we don't know what to do, so 'report' it
+  for (size_t n = 0; n < size.n() * size.getDimAsNumber(); ++n) {
+    locs[n] = nanf("");
+  }
 }
 
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FIND_MAX_CU_ */

@@ -29,6 +29,8 @@
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
+#include "cuda_single_extrema_finder.h"
+
 
 
 template<typename T>
@@ -297,7 +299,8 @@ template<typename T>
 void copyInRightOrder(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
         int iStart, int iStop, int jStart, int jStop, size_t jSize,
         size_t offset1, size_t offset2, size_t maxImgs) {
-    size_t pixelsPerImage =  xDim * yDim;
+    size_t pixelsPerImage =  2;
+    // size_t pixelsPerImage =  xDim * yDim;
     size_t counter = 0;
     bool ready = false;
     for (int i = iStart; i <= iStop; i++) {
@@ -319,6 +322,10 @@ void copyInRightOrder(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
                     d_imgs + (counter * pixelsPerImage),
                     toCopy * pixelsPerImage * sizeof(T),
                     cudaMemcpyDeviceToHost));
+                // gpuErrchk(cudaMemcpy(h_imgs + 1770+(pixelsPerImage * (imgsInPreviousLayers + imgsInCurrentLayer)),
+                //     d_imgs + (counter * pixelsPerImage),
+                //     toCopy * pixelsPerImage * sizeof(T),
+                //     cudaMemcpyDeviceToHost));
                 counter += toCopy;
                 break; // skip to next outer iteration
             }
@@ -464,12 +471,12 @@ void computeCorrelationsNew(size_t centerSize, size_t noOfImgs,
 }
 
 
-template void computeCorrelations<float>(size_t centerSize, size_t noOfImgs,
+template void computeCorrelations<float>(float maxDist, size_t noOfImgs,
     std::complex<float>* h_FFTs,
     int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
     int fftBatchSize, float*& result);
 template<typename T>
-void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_FFTs,
+void computeCorrelations(float maxDist, size_t noOfImgs, std::complex<T>* h_FFTs,
         int fftSizeX, int imgSizeX, int fftSizeY, size_t maxFFTsInBuffer,
         int fftBatchSize, T*& result) {
 
@@ -498,7 +505,7 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
                 buffer1ToCopy * singleFFTBytes, cudaMemcpyHostToDevice));
 
         // compute inter-buffer correlations
-        computeCorrelations(centerSize, noOfImgs, d_fftBuffer1, buffer1ToCopy,
+        computeCorrelations(maxDist, noOfImgs, d_fftBuffer1, buffer1ToCopy,
                 d_fftBuffer1, buffer1ToCopy,
                 fftBatchSize, buffer1Offset, buffer1Offset, ffts, imgs,
                 myhandle, result);
@@ -510,7 +517,7 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
             gpuErrchk(cudaMemcpy(d_fftBuffer2, h_FFTs + inputOffsetBuffer2,
                     buffer2ToCopy * singleFFTBytes, cudaMemcpyHostToDevice));
 
-            computeCorrelations(centerSize, noOfImgs, d_fftBuffer1, buffer1ToCopy,
+            computeCorrelations(maxDist, noOfImgs, d_fftBuffer1, buffer1ToCopy,
                     d_fftBuffer2, buffer2ToCopy,
                     fftBatchSize, buffer1Offset, buffer2Offset, ffts, imgs,
                     myhandle, result);
@@ -532,7 +539,7 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
 }
 
 template<typename T>
-void computeCorrelations(size_t centerSize, int noOfImgs,
+void computeCorrelations(float maxDist, int noOfImgs,
         void* d_in1, size_t in1Size, void* d_in2, size_t in2Size,
         int fftBatchSize, size_t in1Offset, size_t in2Offset,
         GpuMultidimArrayAtGpu<std::complex<T> >& ffts,
@@ -542,7 +549,10 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
 
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGridCorr(ceil(ffts.Xdim/(float)dimBlock.x), ceil(ffts.Ydim/(float)dimBlock.y));
-    dim3 dimGridCrop(ceil(centerSize/(float)dimBlock.x), ceil(centerSize/(float)dimBlock.y));
+
+auto gpu = GPU();
+gpu.set();
+
 
     size_t batchCounter = 0;
     size_t counter = 0;
@@ -564,12 +574,15 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
                 }
                 // convert FFTs to space domain
                 ffts.ifft(imgs, handler);
-                // crop images in space domain, use memory for FFT to avoid realocation
-                cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)imgs.d_data,
-                        (T*)ffts.d_data, imgs.Xdim, imgs.Ydim,
-                        counter, centerSize, centerSize);
-                copyInRightOrder((T*)ffts.d_data, result,
-                        centerSize, centerSize,
+                // look for maxima - results are indices of the max position
+                auto *indices = reinterpret_cast<float*>(ffts.d_data);
+                auto dim = Dimensions(imgs.Xdim, imgs.Ydim, 1, imgs.Ndim);
+                ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(gpu, dim, (T*)imgs.d_data, indices, nullptr, maxDist);
+                // now convert indices to float positions - we reuse the same memory block, but since we had images there, we should have more then enough space for that
+                auto *positions = reinterpret_cast<float*>(ffts.d_data) + (noOfImgs * (noOfImgs - 1) / 2);
+                ExtremaFinder::CudaExtremaFinder<T>::sRefineLocation(gpu, dim, indices, positions, (T*)imgs.d_data);
+                copyInRightOrder(positions, result,
+                        0, 0, // FIXME remove
                         isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs);
                 origI = i;
                 origJ = j;
