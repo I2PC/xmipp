@@ -498,7 +498,6 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
     std::string kind;
 
     RichAtom atom;
-    int i = -1;
     while (!fh_in.eof())
     {
         // Read an ATOM line
@@ -511,7 +510,6 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
         if (kind == "ATOM" || kind == "HETA")
         {
 			line.resize (80,' ');
-			i++;
 
 			// Extract atom type and position
 			// Typical line:
