@@ -494,7 +494,6 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    static const std::string empty(80, ' ');
     auto line = std::string(80, ' ');
     std::string kind;
 
@@ -504,14 +503,14 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
     {
         // Read an ATOM line
         getline(fh_in, line);
-        line.resize (80,' ');
-        if (line == empty)
+        if (line == "")
         {
             continue;
         }
         kind = line.substr(0,4);
         if (kind == "ATOM" || kind == "HETA")
         {
+			line.resize (80,' ');
 			i++;
 
 			// Extract atom type and position
