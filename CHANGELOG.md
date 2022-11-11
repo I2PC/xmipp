@@ -1,13 +1,43 @@
-  ## Release 3.22.XX - devel
+  ## Release 3.22.11 - Iris
 
-  ### Scripts Xmipp
-  -
+  ### Xmipp Programs
+  -  Speeding up iterations in some xmipp programs (xmipp_ctf_group, xmipp_image_histogram, xmipp_mpi_angular_class_average, xmipp_angular_distance, xmipp_angular_estimate_tilt_axis, xmipp_ctf_create_ctfdat, xmipp_resolution_ssnr)
+  -  New Zernike3D programs
+  -  angular_project_library: Report some error if there are no images in the range
+  -  angular_discrete_assign.cpp: removing memory leak and uninitialized values
+  -  angular_distance: fixing condition to avoid iteration behind the end of the MD, in case when input data have different sizes, optimizied performance
+  -  PdbReducePseudoatoms: produced pdb is one-based indexed
+  -  xmipp_micrograph_automatic_picking: fixing memory leak
+  -  Removal of an artifact of symmetrization related to the z pitch
+
   ### Protocols scipion-em-xmipp
-  -
+  - Protocol_cl2d_align: The input can now be a set of averages or a set of classes2D 
+  - Protocol_local_ctf: change default value for maxDefocusChange
+  - Protocol_apply_zernike3d: now accepts either a Volume or SetOfVolumes and applies the coefficients in a loop in the deform step
+  - Protocol_postProcessing_deepPostProcessing: TF_FORCE_GPU_ALLOW_GROWTH
+  - Protocol_resolution_deepres: mandatory mask
+  - Protocol center particles and Gl2d (all options): fix streaming
+  - Protocol_create_3d_mask: allows volume Null=True
+  - Protocol_reconstruct_fourier: Set pixel size
+  - GL2D static: correct bug
+  - Protocol_trigger_data: Fix bug
+  - Protocol_crop_resize: set sampling rate of mrc files when croping resizing volumes or particles
+
+  - **New tests:** deep_hand, pick_noise, screen_deep_learning, ResolutionBfactor
+  - Fixed TestHighres test
+  
   ### Installation and user guide
-  -
+  - Bugs fixed returning errors
+  - More information about hdf5 library
+  - Updating CUDA - GCC compability. Added CUDA 11.7 (no tested)
+  - Update Readme
+  
   ### Others
-  -
+  - Performance optimization (metadata binding)
+  - Python binding: adding methods to directly set / get entire MD row
+  - g++- >= 8 required
+  - In viewers used pwutils 
+  - Using the same identical Deprecated param from pyworkflow.
 
 
 ## Release 3.22.07 - Helios
