@@ -533,10 +533,10 @@ void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double thresh
 			atom.atomType = line.substr(76,2);
 			atom.charge = line.substr(78,2);
 
-			if(pseudoatoms == true)
+			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
             
-			if(atom.bfactor >= threshold && pseudoatoms == false)
+			if(!pseudoatoms && atom.bfactor >= threshold)
 				atomList.push_back(atom);
 
         } else if (kind == "REMA")
