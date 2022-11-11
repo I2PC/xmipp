@@ -558,21 +558,17 @@ void PDBRichPhantom::write(const FileName &fnPDB, bool renumber)
     size_t imax=remarks.size();
     for (size_t i=0; i<imax; ++i)
         fprintf(fh_out,"%s\n",remarks[i].c_str());
-    
-    bool useSerial=true;
-    if (renumber)
-        useSerial=false;
 
     imax=atomList.size();
     for (size_t i=0; i<imax; ++i)
     {
     	const RichAtom &atom=atomList[i];
         char serial[5+1];
-        if (useSerial) {
+        if (!renumber) {
             auto* errmsg3 = hy36encode(5, atom.serial, serial);
             if (errmsg3) {
                 reportWarning("Failed to use atom.serial. Using i+1 instead.");
-                useSerial=false;
+                renumber=true;
                 hy36encodeSafe(5, (int)i + 1, serial);
             }
         }
