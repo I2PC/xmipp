@@ -126,6 +126,7 @@ typedef struct
     PyObject_HEAD
     std::unique_ptr<MetaDataDb> metadata;
     std::unique_ptr<MetaDataDb::id_iterator> iter;
+    std::unique_ptr<MetaDataDb::id_iterator> iter_end;
 }
 MetaDataObject;
 
@@ -261,7 +262,12 @@ MetaData_removeLabel(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-/* getValue */
+PyObject *
+MetaData_getRow(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+MetaData_setRow(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 PyObject *
 MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs);
 
@@ -360,6 +366,6 @@ std::unique_ptr<MDObject> createMDObject(int label, PyObject *pyValue);
 
 void setMDObjectValue(MDObject *obj, PyObject *pyValue);
 
-PyObject * getMDObjectValue(MDObject * obj);
+PyObject * getMDObjectValue(const MDObject * obj);
 
 #endif
