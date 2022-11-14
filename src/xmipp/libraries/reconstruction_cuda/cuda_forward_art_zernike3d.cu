@@ -10,7 +10,7 @@
 
 namespace cuda_forward_art_zernike3D {
 
-/*// Constants
+// Constants
 static constexpr float CUDA_PI = 3.1415926535897f;
 // Functions
 #define SQRT sqrtf
@@ -18,18 +18,7 @@ static constexpr float CUDA_PI = 3.1415926535897f;
 #define COS cosf
 #define SIN sinf
 #define CUDA_FLOOR floorf
-#define CUDA_ROUND lroundf*/
-
-// Constants
-//static constexpr double CUDA_PI = 3.14159265358979323846;
-// Functions
-#define SQRT sqrt
-#define ATAN2 atan2
-#define COS cos
-#define SIN sin
-#define CUDA_FLOOR floor
-#define CUDA_ROUND lround
-
+#define CUDA_ROUND lroundf
 
 #define IS_OUTSIDE2D(ImD, i, j) \
 	((j) < STARTINGX((ImD)) || (j) > FINISHINGX((ImD)) || (i) < STARTINGY((ImD)) || (i) > FINISHINGY((ImD)))
@@ -56,7 +45,6 @@ namespace device {
 	{
 		// General variables
 		PrecisionType r2 = rr * rr, xr2 = xr * xr, yr2 = yr * yr, zr2 = zr * zr;
-		PrecisionType cuda_pi = CST(3.14159265358979323846);
 
 #if L2 >= 5
 		// Variables needed for l2 >= 5
@@ -137,37 +125,37 @@ namespace device {
 
 		switch (l2) {
 			case 0:
-				Y = (CST(1.0) / CST(2.0)) * SQRT((PrecisionType)CST(1.0) / cuda_pi);
+				Y = (CST(1.0) / CST(2.0)) * SQRT((PrecisionType)CST(1.0) / CUDA_PI);
 				break;
 			case 1:
 				switch (m) {
 					case -1:
-						Y = SQRT(CST(3.0) / (CST(4.0) * cuda_pi)) * yr;
+						Y = SQRT(CST(3.0) / (CST(4.0) * CUDA_PI)) * yr;
 						break;
 					case 0:
-						Y = SQRT(CST(3.0) / (CST(4.0) * cuda_pi)) * zr;
+						Y = SQRT(CST(3.0) / (CST(4.0) * CUDA_PI)) * zr;
 						break;
 					case 1:
-						Y = SQRT(CST(3.0) / (CST(4.0) * cuda_pi)) * xr;
+						Y = SQRT(CST(3.0) / (CST(4.0) * CUDA_PI)) * xr;
 						break;
 				}
 				break;
 			case 2:
 				switch (m) {
 					case -2:
-						Y = SQRT(CST(15.0) / (CST(4.0) * cuda_pi)) * xr * yr;
+						Y = SQRT(CST(15.0) / (CST(4.0) * CUDA_PI)) * xr * yr;
 						break;
 					case -1:
-						Y = SQRT(CST(15.0) / (CST(4.0) * cuda_pi)) * zr * yr;
+						Y = SQRT(CST(15.0) / (CST(4.0) * CUDA_PI)) * zr * yr;
 						break;
 					case 0:
-						Y = SQRT(CST(5.0) / (CST(16.0) * cuda_pi)) * (-xr2 - yr2 + CST(2.0) * zr2);
+						Y = SQRT(CST(5.0) / (CST(16.0) * CUDA_PI)) * (-xr2 - yr2 + CST(2.0) * zr2);
 						break;
 					case 1:
-						Y = SQRT(CST(15.0) / (CST(4.0) * cuda_pi)) * xr * zr;
+						Y = SQRT(CST(15.0) / (CST(4.0) * CUDA_PI)) * xr * zr;
 						break;
 					case 2:
-						Y = SQRT(CST(15.0) / (CST(16.0) * cuda_pi)) * (xr2 - yr2);
+						Y = SQRT(CST(15.0) / (CST(16.0) * CUDA_PI)) * (xr2 - yr2);
 						break;
 				}
 				break;
@@ -175,26 +163,26 @@ namespace device {
 			case 3:
 				switch (m) {
 					case -3:
-						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * (CST(3.0) * xr2 - yr2);
+						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * (CST(3.0) * xr2 - yr2);
 						break;
 					case -2:
-						Y = SQRT(CST(105.0) / (CST(4.0) * cuda_pi)) * zr * yr * xr;
+						Y = SQRT(CST(105.0) / (CST(4.0) * CUDA_PI)) * zr * yr * xr;
 						break;
 					case -1:
-						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * (CST(4.0) * zr2 - xr2 - yr2);
+						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * (CST(4.0) * zr2 - xr2 - yr2);
 						break;
 					case 0:
-						Y = SQRT(CST(7.0) / (CST(16.0) * cuda_pi)) * zr
+						Y = SQRT(CST(7.0) / (CST(16.0) * CUDA_PI)) * zr
 							* (CST(2.0) * zr2 - CST(3.0) * xr2 - CST(3.0) * yr2);
 						break;
 					case 1:
-						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * (CST(4.0) * zr2 - xr2 - yr2);
+						Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * (CST(4.0) * zr2 - xr2 - yr2);
 						break;
 					case 2:
-						Y = SQRT(CST(105.0) / (CST(16.0) * cuda_pi)) * zr * (xr2 - yr2);
+						Y = SQRT(CST(105.0) / (CST(16.0) * CUDA_PI)) * zr * (xr2 - yr2);
 						break;
 					case 3:
-						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * (xr2 - CST(3.0) * yr2);
+						Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * (xr2 - CST(3.0) * yr2);
 						break;
 				}
 				break;
@@ -203,38 +191,38 @@ namespace device {
 			case 4:
 				switch (m) {
 					case -4:
-						Y = SQRT((CST(35.0) * CST(9.0)) / (CST(16.0) * cuda_pi)) * yr * xr * (xr2 - yr2);
+						Y = SQRT((CST(35.0) * CST(9.0)) / (CST(16.0) * CUDA_PI)) * yr * xr * (xr2 - yr2);
 						break;
 					case -3:
-						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * zr
+						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * zr
 							* (CST(3.0) * xr2 - yr2);
 						break;
 					case -2:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * cuda_pi)) * yr * xr
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CUDA_PI)) * yr * xr
 							* (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
 						break;
 					case -1:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * yr * zr
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * yr * zr
 							* (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
 						break;
 					case 0:
-						Y = SQRT(CST(9.0) / (CST(16.0) * CST(16.0) * cuda_pi))
+						Y = SQRT(CST(9.0) / (CST(16.0) * CST(16.0) * CUDA_PI))
 							* (CST(35.0) * zr2 * zr2 - CST(30.0) * zr2 + CST(3.0));
 						break;
 					case 1:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * zr
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * zr
 							* (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
 						break;
 					case 2:
-						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(8.0) * CST(8.0) * cuda_pi)) * (xr2 - yr2)
+						Y = SQRT((CST(9.0) * CST(5.0)) / (CST(8.0) * CST(8.0) * CUDA_PI)) * (xr2 - yr2)
 							* (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
 						break;
 					case 3:
-						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * cuda_pi)) * xr * zr
+						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(2.0) * CUDA_PI)) * xr * zr
 							* (xr2 - CST(3.0) * yr2);
 						break;
 					case 4:
-						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(16.0) * cuda_pi))
+						Y = SQRT((CST(9.0) * CST(35.0)) / (CST(16.0) * CST(16.0) * CUDA_PI))
 							* (xr2 * (xr2 - CST(3.0) * yr2) - yr2 * (CST(3.0) * xr2 - yr2));
 						break;
 				}
@@ -244,47 +232,47 @@ namespace device {
 			case 5:
 				switch (m) {
 					case -5:
-						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2 * sint
+						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2 * sint
 							* SIN(CST(5.0) * phi);
 						break;
 					case -4:
-						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2
+						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2
 							* SIN(CST(4.0) * phi);
 						break;
 					case -3:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint
 							* (CST(9.0) * cost2 - CST(1.0)) * SIN(CST(3.0) * phi);
 						break;
 					case -2:
-						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * cuda_pi)) * sint2
+						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sint2
 							* (CST(3.0) * cost2 * cost - cost) * SIN(CST(2.0) * phi);
 						break;
 					case -1:
-						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * cuda_pi)) * sint
+						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sint
 							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) * SIN(phi);
 						break;
 					case 0:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / cuda_pi)
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / CUDA_PI)
 							* (CST(63.0) * cost2 * cost2 * cost - CST(70.0) * cost2 * cost + CST(15.0) * cost);
 						break;
 					case 1:
-						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * cuda_pi)) * sint
+						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sint
 							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) * COS(phi);
 						break;
 					case 2:
-						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * cuda_pi)) * sint2
+						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sint2
 							* (CST(3.0) * cost2 * cost - cost) * COS(CST(2.0) * phi);
 						break;
 					case 3:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint
 							* (CST(9.0) * cost2 - CST(1.0)) * COS(CST(3.0) * phi);
 						break;
 					case 4:
-						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2
+						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2
 							* COS(CST(4.0) * phi);
 						break;
 					case 5:
-						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * cuda_pi)) * sint2 * sint2 * sint
+						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2 * sint
 							* COS(CST(5.0) * phi);
 						break;
 				}
@@ -349,23 +337,27 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ PrecisionType interpolatedElement2DCuda(const PrecisionType x,
 													   const PrecisionType y,
-													   const MultidimArrayCuda<PrecisionType> cudaMId)
+													   const cudaTextureObject_t texMId,
+													   const int xinitMId,
+													   const int yinitMId,
+													   const int xdimMId,
+													   const int ydimMId)
 	{
 		int x0 = CUDA_FLOOR(x);
 		int x1 = x0 + 1;
 		int y0 = CUDA_FLOOR(y);
 		int y1 = y0 + 1;
 
-		int i0 = STARTINGY(cudaMId);
-		int j0 = STARTINGX(cudaMId);
-		int iF = FINISHINGY(cudaMId);
-		int jF = FINISHINGX(cudaMId);
+		int i0 = yinitMId;
+		int j0 = xinitMId;
+		int iF = yinitMId + ydimMId - 1;
+		int jF = xinitMId + xdimMId - 1;
 
 #define ASSIGNVAL2DCUDA(d, i, j)                      \
 	if ((j) < j0 || (j) > jF || (i) < i0 || (i) > iF) \
 		d = (PrecisionType)0;                         \
 	else                                              \
-		d = A2D_ELEM(cudaMId, i, j);
+		d = tex1Dfetch<PrecisionType>(texMId, (int)(((i) - (i0)) * xdimMId + ((j) - (j0))));
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
@@ -448,7 +440,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 		auto ir = i * iRmaxF;
 		auto r2 = k2i2 + j * j;
 		auto jr = j * iRmaxF;
-		auto rr = SQRT(CST(r2)) * iRmaxF;
+		auto rr = SQRT(r2) * iRmaxF;
 		for (size_t idx = 0; idx < idxY0; idx++) {
 			auto l1 = cudaVL1[idx];
 			auto n = cudaVN[idx];
@@ -499,7 +491,11 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 							   const PrecisionType r3,
 							   const PrecisionType r4,
 							   const PrecisionType r5,
-							   const MultidimArrayCuda<PrecisionType> cudaMId)
+							   const cudaTextureObject_t texMId,
+							   const int xinitMId,
+							   const int yinitMId,
+							   const int xdimMId,
+							   const int ydimMId)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeB <= threadIndex) {
@@ -522,7 +518,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 		auto ir = i * iRmaxF;
 		auto r2 = k2i2 + j * j;
 		auto jr = j * iRmaxF;
-		auto rr = SQRT(CST(r2)) * iRmaxF;
+		auto rr = SQRT(r2) * iRmaxF;
 		for (size_t idx = 0; idx < idxY0; idx++) {
 			auto l1 = cudaVL1[idx];
 			auto n = cudaVN[idx];
@@ -543,7 +539,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
-	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, cudaMId);
+	PrecisionType voxel = device::interpolatedElement2DCuda(pos_x, pos_y, texMId, xinitMId, yinitMId, xdimMId, ydimMId);
 	A3D_ELEM(cudaMV, k, i, j) += voxel;
 }
 }  // namespace cuda_forward_art_zernike3D
