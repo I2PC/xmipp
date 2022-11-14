@@ -954,8 +954,8 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         auto& classification = m_classification[i];
         auto distance = classification.getDistance();
         //auto distance2 = distance;
-        const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
-        //const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+        //const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
+        const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
         //assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
         if(match < m_references.getImageCount()) {
             classification = m_referenceData[match];
