@@ -108,7 +108,7 @@ BasicMemManager::Record *BasicMemManager::find(size_t bytes, MemType type)
             }
             else if ((b.bytes >= bytes) && (b.bytes <= maxBytes))
             {
-                if ((nullptr == res->ptr) || (res->bytes > b.bytes))
+                if ((nullptr == res) || (res->bytes > b.bytes))
                 {
                     res = &b;
                 }

@@ -701,7 +701,7 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 }
 
 template<typename T>
-auto __attribute__((optimize("O0"))) ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findBatchesThreadsStreams(const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
+auto ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findBatchesThreadsStreams(const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const auto movie = instance.getMovieSize();
     const auto reqPatchSize = instance.getRequestedPatchSize();
     auto pSize = findGoodPatchSize(Dimensions(reqPatchSize.first, reqPatchSize.second, 1, movie.n()), gpu, instance);
@@ -1023,8 +1023,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
             // user might want to align frames 3..10, but sum only 4..6
             // by deducting the first frame that was aligned, we get proper offset to the stored memory
-            int frameOffset = frameIndex - this->nfirst;
-            auto routine = [&](int threadId) {
+            auto routine = [&, frameIndex](int threadId) { // all by reference, frameIndex by copy
+                int frameOffset = frameIndex - this->nfirst;
                 auto &a = aux[threadId];
                 a.stream.set();
                 auto *data = movie.getFullFrame(frameIndex).data;
@@ -1296,7 +1296,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
 // }
 
 template<typename T>
-void __attribute__((optimize("O3"))) ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrames(const FFTSettings<T> &settings,
+void ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrames(const FFTSettings<T> &settings,
         T *output, size_t firstFrame, size_t noOfFrames) {
     for (size_t n = 0; n < noOfFrames; ++n) {
         T *src = movie.getFullFrame(n + firstFrame).data; // points to first float in the image
@@ -1317,40 +1317,31 @@ MultidimArray<T> &ProgMovieAlignmentCorrelationGPU<T>::Movie::allocate(size_t x,
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::Movie::releaseFullFrames() {
-    for (auto &f : mFullFrames) {
-        BasicMemManager::instance().give(f.data);
-        f.data = nullptr;
+    for (auto f = 0; f < mFullFrames.size(); ++f) {
+        releaseFrame(f);
     }
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::Movie::releaseFrame(size_t index) {
+    auto &f = mFullFrames[index];
+    BasicMemManager::instance().give(f.data);
+    f.data = nullptr;
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movieMD,
         const Image<T>& dark, const Image<T>& igain) {
-    movie.setFullDim(this->getMovieSize()); // this will also reserve enough space in the movie vector
-    auto &movieDim = movie.getFullDim();
+    const auto movieSize = this->getMovieSize();
+    movie.setFullDim(movieSize); // this will also reserve enough space in the movie vector
 
     ctpl::thread_pool pool = ctpl::thread_pool(2);
-    auto futures = std::vector<std::future<void>>();
-
-    int movieImgIndex = -1;
-    for (size_t objId : movieMD.ids())
-    {
-        // update variables
-        movieImgIndex++;
-        if (movieImgIndex < this->nfirst) continue;
-        if (movieImgIndex > this->nlast) break;
-
-        // load image
-        auto &dest = movie.allocate(movieDim.x(), movieDim.y());
-        auto routine = [&dest, &movieMD, &dark, &igain, objId, this](int) {
-            Image<T> frame(dest);
-            this->loadFrame(movieMD, dark, igain, objId, frame);
-        };
-        futures.emplace_back(pool.push(routine));
+    for (auto i = 0; i < movieSize.n(); ++i) {
+        pool.push([&movieMD, &dark, &igain, this](int thrId, size_t first, size_t count){
+            loadFrames(movieMD, dark, igain, first, count);
+        }, i, 1);
     }
-    for (auto &f : futures) {
-        f.get();
-    }
+    pool.stop(true);
 }
 
 template<typename T>

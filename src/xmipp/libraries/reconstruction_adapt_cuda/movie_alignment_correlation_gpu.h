@@ -77,8 +77,12 @@ private:
 
         void releaseFullFrames();
 
+        void releaseFrame(size_t index);
+
         void setFullDim(const Dimensions &dim) {
+            releaseFullFrames(); // in case there was something before
             mFullDim = dim;
+            mFullFrames.clear();
             mFullFrames.reserve(dim.n());
             for (auto n = 0; n < dim.n(); ++n) {
                 // create multidim arrays, but without data 
@@ -91,7 +95,7 @@ private:
         }
 
         bool hasFullMovie() const {
-            return ! mFullFrames.empty();
+            return ! mFullFrames.empty() && (nullptr != mFullFrames[0].data); // because they might be empty
         }
     private:
         // internally, full-frame movie is represented by separate frames
