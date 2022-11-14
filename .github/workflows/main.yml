@@ -40,7 +40,7 @@ jobs:
 
       - uses: actions/setup-python@v3
         with:
-          python-version: '3.*' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          python-version: '3.9.15' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
 
           
@@ -93,6 +93,9 @@ jobs:
            python -m pip install --upgrade pip
            pip install scons numpy
 
+      - name: Update 
+        run: sudo apt-get update
+        
       - name: Install dependencies
         run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
 

@@ -541,7 +541,7 @@ void PDBRichPhantom::write(const FileName &fnPDB)
     {
     	const RichAtom &atom=atomList[i];
         char result[5+1];
-        const char* errmsg = hy36encode(5, (int)i, result);
+        const char* errmsg = hy36encode(5, (int)i + 1, result);
     	fprintf (fh_out,"ATOM  %5s %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
     			result,atom.name.c_str(),
     			atom.altloc,atom.resname.c_str(),atom.chainid,
