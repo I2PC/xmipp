@@ -420,6 +420,16 @@ void ProgAlignSpectral<T>::ReferencePcaProjections::reset(  size_t nImages,
 }
 
 template<typename T>
+void ProgAlignSpectral<T>::ReferencePcaProjections::buildTrees() {
+    m_trees.clear();
+    m_trees.reserve(m_projections.size());
+
+    for(const auto& samples : m_projections) {
+        m_trees.emplace_back(samples);
+    }
+}
+
+template<typename T>
 size_t ProgAlignSpectral<T>::ReferencePcaProjections::getImageCount() const {
     return m_projections.front().Ydim();
 }
@@ -471,6 +481,28 @@ size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjection(   cons
     }
 
     return best;
+}
+
+template<typename T>
+size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjectionKDTree( const std::vector<Matrix1D<Real>>& experimentalBands, 
+                                                                                Real& bestDistance) const 
+{
+    if(experimentalBands.size() != 1) {
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "kd-Tree search is not implemented for multiple bands");
+    }
+    
+    // Perform a lookup in the tree
+    Real distance;
+    size_t index = m_trees.front().nearest(experimentalBands.front(), distance);
+
+    // Evaluate if it is a better mach
+    if(distance < bestDistance) {
+        bestDistance = distance;
+    } else {
+        index = getImageCount();
+    }
+
+    return index;
 }
 
 template<typename T>
@@ -860,6 +892,7 @@ void ProgAlignSpectral<T>::projectReferencesRot(size_t start,
     };
 
     processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
+    m_references.buildTrees();
 }
 
 template<typename T>
@@ -921,6 +954,7 @@ void ProgAlignSpectral<T>::projectReferencesRotShift(   size_t start,
     };
 
     processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
+    m_references.buildTrees();
 }
 
 template<typename T>
@@ -953,10 +987,12 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         // Compare the projection to find a match
         auto& classification = m_classification[i];
         auto distance = classification.getDistance();
-        //auto distance2 = distance;
+        auto distance2 = distance;
         //const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
-        const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
-        //assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
+        //const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+        const auto match = m_references.matchPcaProjectionKDTree(data.bandProjections, distance);
+        assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
+        assert(distance == distance2);
         if(match < m_references.getImageCount()) {
             classification = m_referenceData[match];
             classification.setDistance(distance);

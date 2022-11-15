@@ -33,6 +33,7 @@
 #include <core/multidim_array.h>
 #include <core/metadata_vec.h>
 #include <core/matrix2d.h>
+#include <data/kd_tree.h>
 
 #include <vector>
 #include <string_view>
@@ -194,6 +195,7 @@ private:
         ReferencePcaProjections& operator=(const ReferencePcaProjections& other) = default;
 
         void reset(size_t nImages, const std::vector<size_t>& bandSizes);
+        void buildTrees();
 
         size_t getImageCount() const;
         size_t getBandCount() const;
@@ -201,10 +203,13 @@ private:
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
         size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
+        size_t matchPcaProjectionKDTree(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
         size_t matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, std::list<std::pair<size_t, Real>>& ws) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;
+        std::vector<KDTree<Real>> m_trees;
+
 
     };
 
