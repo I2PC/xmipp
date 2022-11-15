@@ -37,6 +37,7 @@ from scripts import *
 XMIPP_VERSION = '3.22.11.0'        #
 XMIPP_VERNAME = 'Iris'           #
 RELEASE_DATE = '15/11/2022'        #
+
 ####################################
 
 

@@ -2323,6 +2323,7 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 	int zHelical2=(int)std::floor(0.5*zHelical);
     double sinRotHelical = sin(rotHelical);
     double cosRotHelical = cos(rotHelical);
+
     int Llength=ceil(ZSIZE(Vin)*izHelical);
 
     Matrix1D<double> sinCn, cosCn;
@@ -2360,6 +2361,7 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
                 	weight=(zLast+1-kp)/(zHelical2+1);
 				finalValue+=weight*interpolatedElement3DHelical(Vin,jp,ip,kp,zHelical,sinRotHelical,cosRotHelical);
 				L+=weight;
+
 				for (int n=1; n<Cn; ++n)
 				{
 					double jpp=VEC_ELEM(cosCn,n)*jp-VEC_ELEM(sinCn,n)*ip;
