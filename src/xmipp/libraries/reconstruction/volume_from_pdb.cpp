@@ -463,7 +463,9 @@ void ProgPdbConverter::blobProperties() const
     if (!fh_out)
         REPORT_ERROR(ERR_IO_NOWRITE, fn_out);
     fh_out << "# Freq(1/A) 10*log10(|Blob(f)|^2) Ts=" << highTs << std::endl;
-    for (double w = 0; w < 1.0 / (2*highTs); w += 1.0 / (highTs * 500))
+    
+
+    for(double w=0; w < 1.0 / (2*highTs); w += 1.0 / (highTs * 500))
     {
         double H = kaiser_Fourier_value(w * highTs, periodicTable(0, 0) / highTs,
                                         blob.alpha, blob.order);

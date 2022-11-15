@@ -579,7 +579,8 @@ void ProgCtfGroup::writeOutputToDisc()
 
     id1 = *it;
     ++it;
-    while (it != ctfInfo.ids().end())
+    const auto totalSize = ctfInfo.ids().end();
+    while (it != totalSize)
     {
         id2 = *it;
         ctfInfo.getValue(MDL_MIN,minDef,id1);

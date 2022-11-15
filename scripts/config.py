@@ -112,7 +112,7 @@ class Config:
             self.configDict['VERIFIED'] = "True"
             self.write()  # store result
         else:
-            print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
+            print(blue("'%s' is already checked. Set VERIFIED=False to have it re-checked"
                        % Config.FILE_NAME))
         return True
 
@@ -159,7 +159,8 @@ class Config:
                     self._create_empty()
                 self.configDict = dict(cf.items('BUILD'))
         except:
-            sys.exit("%s\nPlease fix the configuration file %s." %
+            sys.exit("%s\nPlease fix the configuration file %s.\n"
+                     "Visit https://github.com/I2PC/xmipp/wiki/Xmipp-configuration" %
                      (sys.exc_info()[1], fnConfig))
 
     def write(self):
@@ -311,7 +312,7 @@ class Config:
         
         from sysconfig import get_paths
         info = get_paths()
-
+        hdf5Found = 'hdf5 library found at: '
         if self.configDict["LIBDIRFLAGS"] == "":
             # /usr/local/lib or /path/to/virtEnv/lib
             localLib = "%s/lib" % info['data']
@@ -333,6 +334,13 @@ class Config:
                     self.environment.update(LD_LIBRARY_PATH=hdf5Lib)
                 else:
                     installDepConda('hdf5', self.ask)
+
+            if hdf5InLocalLib != '':
+                print(green(str(hdf5Found + hdf5InLocalLib)))
+            elif isHdf5CppLinking and isHdf5Linking:
+                print(green(str(hdf5Found + 'system. "ld -lhdf5 '
+                    '--verbose" to get the list of paths where it searchs')))
+
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
             print(red("'libfftw3' not found in the system"))
@@ -399,12 +407,13 @@ class Config:
         gccVersion, fullVersion = self._get_GCC_version(compiler)
         print(green('Detected ' + compiler + " in version " +
                     fullVersion + '.'))
-        if gccVersion < 6.0:
-            print(red('Version 6.0 or higher is required.'))
+        if gccVersion < 7.0:
+            print(red('Version 7.0 or higher is required.'))
+            print(yellow('Please go to https://github.com/I2PC/xmipp#compiler to solve it.'))
             sys.exit(-8)
         elif gccVersion < 8.0:
-            print(yellow(
-                'Consider updating your compiler. Xmipp will soon require GCC 8 or newer.'))
+            print(yellow('Consider updating your compiler. Xmipp will soon require GCC 8 or newer.'))
+            print(yellow('Please go to https://github.com/I2PC/xmipp#compiler.'))
         else:
             print(green(compiler + ' ' + fullVersion + ' detected'))
 
@@ -483,7 +492,8 @@ class Config:
 
     def _get_compatible_GCC(self, nvcc_version):
         # https://gist.github.com/ax3l/9489132
-        v = ['11.2', '11.1', '11',
+        v = ['12.2', '12.1',
+             '11.3', '11.2', '11.1', '11',
              '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
              '8.5', '8.4', '8.3', '8.2', '8.1', '8',
@@ -502,11 +512,9 @@ class Config:
         elif 11.0 <= nvcc_version < 11.1:
             return v[v.index('9.3'):]
         elif 11.1 <= nvcc_version < 11.5:
-            # nvcc 11.4.0 --> gcc 10
-            # nvcc 11.4.1 --> gcc 11
-            return v[v.index('9.4'):]
-        elif 11.5 <= nvcc_version <= 11.6:
-            return v[v.index('11'):]
+            return v[v.index('10.3'):]
+        elif 11.5 <= nvcc_version <= 11.7:
+            return v[v.index('11.3'):]
         return []
 
     def _join_with_prefix(self, collection, prefix):
@@ -536,11 +544,13 @@ class Config:
         candidates = self._get_compatible_GCC(nvcc_version)
         prg = find_newest('g++', candidates,  False)
         if not prg:# searching a g++ for devToolSet on CentOS
-            if str(self._get_GCC_version('g++')[0]) in candidates:
+            gccVersion = str(self._get_GCC_version('g++')[0])
+            if gccVersion in candidates:
                 prg = whereis('g++', True)
             else:
-                print(yellow('No valid compiler found for CUDA host code. '
-                             + self._get_help_msg()))
+                print(yellow('No valid compiler found for CUDA host code. ' +
+                'nvcc_version : ' + str(nvcc_version) + ' GCC version: ' +
+                             gccVersion + ' ' + self._get_help_msg()))
                 return False
         print(green('g++' + ' found in ' + prg))
         self._set(Config.OPT_CXX_CUDA, prg)
