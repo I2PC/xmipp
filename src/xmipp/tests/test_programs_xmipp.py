@@ -835,7 +835,7 @@ class PdbNmaDeform(XmippProgramTest):
                     token12, token13]
 
         ok = True
-        for lineG, line in zip(linesGold,lines):
+        for lineG, line in zip(linesGold[1:],lines[1:]):
             try:
                 tokensG = splitPDBLine(lineG)
                 tokens = splitPDBLine(line)
