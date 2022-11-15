@@ -339,10 +339,12 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 			M = binarizeMask(Pmask);
 			// Apply shift to the projected mask
 			selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
-			// Create final mask which is a dilated version of the provided mask
-			Mfinal().initZeros(M());
-			auto fmaskWidth_px = fmaskWidth/(int)sampling;
-			dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
+			if (fmaskWidth != -1) // Create final mask which is a dilated version of the provided mask
+			{
+				Mfinal().initZeros(M());
+				auto fmaskWidth_px = fmaskWidth/(int)sampling;
+				dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
+			}
 			FilterG.applyMaskSpace(M());
 			// Compute inverse of original mask
 			iM = invertMask(M);
