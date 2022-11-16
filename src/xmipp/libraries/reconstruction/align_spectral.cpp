@@ -420,13 +420,9 @@ void ProgAlignSpectral<T>::ReferencePcaProjections::reset(  size_t nImages,
 }
 
 template<typename T>
-void ProgAlignSpectral<T>::ReferencePcaProjections::buildTrees() {
-    m_trees.clear();
-    m_trees.reserve(m_projections.size());
-
-    for(const auto& samples : m_projections) {
-        m_trees.emplace_back(samples);
-    }
+void ProgAlignSpectral<T>::ReferencePcaProjections::finalize() {
+    computeLengths();
+    //computeTrees();
 }
 
 template<typename T>
@@ -456,28 +452,33 @@ void ProgAlignSpectral<T>::ReferencePcaProjections::getPcaProjection(   size_t i
 
 template<typename T>
 size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjection(   const std::vector<Matrix1D<Real>>& experimentalBands, 
-                                                                            Real& bestDistance) const 
+                                                                            Real& bestDistance,
+                                                                            Matrix1D<Real>& distances ) const 
 {
     Matrix1D<Real> referenceBand;
 
-    // Compare it with all the reference images
-    auto best = getImageCount();
-    for(size_t i = 0; i < getImageCount(); ++i) {
-        // Add band by band
-        Real distance = 0.0;
-        for (size_t j = 0; j < getBandCount() && distance < bestDistance; ++j) {
-            const auto& experimentalBand = experimentalBands[j];
-            const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(i, referenceBand);
+    if(experimentalBands.size() != 1) {
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Exhaustive search is not implemented for multiple bands");
+    }
 
-            // Compute the difference between the bands and increment the distance
-            distance += euclideanDistance2(experimentalBand, referenceBand);
-        }
+    // Compute all the distances using the dot product decomposition
+    // ||x - y||^2 = ||x||^2 + ||y||^2 - 2*<x, y>
+    matrixOperation_Ax(m_projections[0], experimentalBands[0], distances);
+    distances *= -2;
+    distances += m_lengths[0];
+    distances += experimentalBands[0].sum2();
 
-        // Update the distance if necessary
-        if (distance < bestDistance) {
-            best = i;
-            bestDistance = distance;
-        }
+    // Find the minimum
+    const auto minEl = std::min_element(
+        MATRIX1D_ARRAY(distances), 
+        MATRIX1D_ARRAY(distances) + VEC_XSIZE(distances)
+    );
+
+    // Decide the output
+    size_t best = getImageCount();
+    if(*minEl < bestDistance) {
+        best = std::distance(MATRIX1D_ARRAY(distances), minEl);
+        bestDistance = *minEl;
     }
 
     return best;
@@ -590,6 +591,25 @@ size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjectionBnB(cons
     assert(ws.size() == (getImageCount() + 1)); //Nothing should have been deleted
     bestDistance = best->second;
     return best->first;
+}
+
+template<typename T>
+void ProgAlignSpectral<T>::ReferencePcaProjections::computeLengths() {
+    m_lengths.resize(m_projections.size());
+
+    for(size_t i = 0; i < m_projections.size(); ++i) {
+        m_projections[i].rowEnergySum(m_lengths[i]);
+    }
+}
+
+template<typename T>
+void ProgAlignSpectral<T>::ReferencePcaProjections::computeTrees() {
+    m_trees.clear();
+    m_trees.reserve(m_projections.size());
+
+    for(const auto& samples : m_projections) {
+        m_trees.emplace_back(samples);
+    }
 }
 
 
@@ -882,7 +902,7 @@ void ProgAlignSpectral<T>::projectReferencesRot(size_t start,
     };
 
     processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
-    m_references.buildTrees();
+    m_references.finalize();
 }
 
 template<typename T>
@@ -944,7 +964,7 @@ void ProgAlignSpectral<T>::projectReferencesRotShift(   size_t start,
     };
 
     processRowsInParallel(m_mdReference, func, threadData.size(), start, count);
-    m_references.buildTrees();
+    m_references.finalize();
 }
 
 template<typename T>
@@ -955,6 +975,7 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         std::vector<MultidimArray<Complex>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
         std::list<std::pair<size_t, Real>> ws;
+        Matrix1D<Real> distances;
     };
 
     // Create a lambda to run in parallel
@@ -979,8 +1000,8 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         auto distance = classification.getDistance();
         //auto distance2 = distance;
         //const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
-        const auto match = m_references.matchPcaProjectionBallTree(data.bandProjections, distance);
-        //const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+        //const auto match = m_references.matchPcaProjectionBallTree(data.bandProjections, distance);
+        const auto match = m_references.matchPcaProjection(data.bandProjections, distance, data.distances);
         //assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
         //assert(distance == distance2);
         if(match < m_references.getImageCount()) {
@@ -1000,6 +1021,7 @@ void ProgAlignSpectral<T>::classifyExperimentalShift() {
         BandShiftTransformer shifter;
         std::vector<MultidimArray<Complex>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
+        Matrix1D<Real> distances;
     };
 
     // Create a lambda to run in parallel
@@ -1028,7 +1050,7 @@ void ProgAlignSpectral<T>::classifyExperimentalShift() {
                 // Compare the projection to find a match
                 auto& classification = m_classification[i];
                 auto distance = classification.getDistance();
-                const auto match = m_references.matchPcaProjection(data.bandProjections, distance);
+                const auto match = m_references.matchPcaProjection(data.bandProjections, distance, data.distances);
                 if(match < m_references.getImageCount()) {
                     const auto rowId = m_referenceData[match].getRowId();
                     const auto angle = m_referenceData[match].getRotation();

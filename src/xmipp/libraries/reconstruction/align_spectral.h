@@ -195,22 +195,24 @@ private:
         ReferencePcaProjections& operator=(const ReferencePcaProjections& other) = default;
 
         void reset(size_t nImages, const std::vector<size_t>& bandSizes);
-        void buildTrees();
+        void finalize();
 
         size_t getImageCount() const;
         size_t getBandCount() const;
         size_t getComponentCount(size_t i) const;
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
-        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
+        size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, Matrix1D<Real>& distances) const;
         size_t matchPcaProjectionBallTree(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
         size_t matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, std::list<std::pair<size_t, Real>>& ws) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;
+        std::vector<Matrix1D<Real>> m_lengths;
         std::vector<BallTree<Real>> m_trees;
 
-
+        void computeLengths();
+        void computeTrees();
     };
 
     class ReferenceMetadata {

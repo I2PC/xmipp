@@ -30,6 +30,22 @@
 #include <cassert>
 
 template<typename T>
+static T dot(const T* x, const T* y, size_t n) {
+    T result = 0;
+
+    for(size_t i = 0; i < n; ++i) {
+        result += x[i] * y[i];
+    }
+
+    return result;
+}
+
+template<typename T>
+static T distance2(const T* x, const T* y, const T& xlen, const T& ylen, size_t n) {
+    return xlen + ylen - 2*dot(x, y, n);
+}
+
+template<typename T>
 static T distance2(const T* x, const T* y, size_t n) {
     T result = 0;
 
@@ -43,8 +59,29 @@ static T distance2(const T* x, const T* y, size_t n) {
 }
 
 template<typename T>
+static T length2(const T* x, size_t n) {
+    T result = 0;
+
+    for(size_t i = 0; i < n; ++i) {
+        result += x[i] * x[i];
+    }
+
+    return result;
+}
+
+template<typename T>
+static T distance(const T* x, const T* y, const T& xlen, const T& ylen, size_t n) {
+    return std::sqrt(distance2(x, y, xlen, ylen, n));
+}
+
+template<typename T>
 static T distance(const T* x, const T* y, size_t n) {
     return std::sqrt(distance2(x, y, n));
+}
+
+template<typename T>
+static T length(const T* x, size_t n) {
+    return std::sqrt(length2(x, n));
 }
 
 
