@@ -1344,5 +1344,6 @@ double ProgAlignSpectral<T>::standardizeAngle(double angle) {
 
 // explicit instantiation
 template class ProgAlignSpectral<double>;
+//template class ProgAlignSpectral<float>;
 
 }

@@ -243,28 +243,26 @@ void BallTree<T>::nearestSearch(const Node* root,
 {
     if(root) {
         const auto dist = distance(root->getPoint(), point, dim);
-        nearestSearch(root, point, dist, dim, best);
+        nearestSearch(*root, point, dist, dim, best);
     }
 }
 
 template<typename T>
-void BallTree<T>::nearestSearch(const Node* root, 
+void BallTree<T>::nearestSearch(const Node& root, 
                                 const Real* point, 
                                 Real dist,
                                 size_t dim,
                                 std::pair<const Node*, Real>& best )
 {
-    assert(root);
-
     // Check if it is a candidate
-    if((dist - root->getRadius()) < best.second) {
+    if((dist - root.getRadius()) < best.second) {
         // Evaluate if it is the best candidate so far
         if(dist < best.second) {
-            best = std::make_pair(root, dist);
+            best = std::make_pair(&root, dist);
         }
 
-        const auto* left = root->getLeft();
-        const auto* right = root->getRight();
+        const auto* left = root.getLeft();
+        const auto* right = root.getRight();
         if(left && right) {
             const auto leftDist  = distance(left->getPoint(),  point, dim);
             const auto rightDist = distance(right->getPoint(), point, dim);
@@ -272,11 +270,11 @@ void BallTree<T>::nearestSearch(const Node* root,
             // Evaluate first the closest branch so that the furthest one
             // is likely to be pruned
             if(leftDist < rightDist) {
-                nearestSearch(left,  point, leftDist,  dim, best);
-                nearestSearch(right, point, rightDist, dim, best);
+                nearestSearch(*left,  point, leftDist,  dim, best);
+                nearestSearch(*right, point, rightDist, dim, best);
             } else {
-                nearestSearch(right, point, rightDist, dim, best);
-                nearestSearch(left,  point, leftDist,  dim, best);
+                nearestSearch(*right, point, rightDist, dim, best);
+                nearestSearch(*left,  point, leftDist,  dim, best);
             }
             
         } else {
@@ -295,23 +293,10 @@ size_t BallTree<T>::calculateNodeCutAxis(   typename NodeVector::const_iterator 
     std::pair<size_t, Real> best(0, 0);
     const auto count = std::distance(begin, end);
 
+    // Select the axis with the largest variance
     for(size_t i = 0; i < dim; ++i) {
-        // Obtain the min and max elements in the axis
-        const auto [minIte, maxIte] = std::minmax_element(
-            begin, end,
-            NodeAxisCmp(i)
-        );
-
-        // Obtain the span in the axis
-        const auto delta = maxIte->getPoint()[i] - minIte->getPoint()[i];
-        assert(delta >= 0);
-        
-        if(delta > best.second) {
-            best = std::make_pair(i, delta);
-        }
-
         // Obtain the mean
-        /*const auto mean = std::accumulate(
+        const auto mean = std::accumulate(
             begin, end, Real(0),
             [i] (Real sum, const Node& node) -> Real {
                 return sum + node.getPoint()[i];
@@ -330,7 +315,7 @@ size_t BallTree<T>::calculateNodeCutAxis(   typename NodeVector::const_iterator 
         // Update the result if necessary
         if(var > best.second) {
             best = std::make_pair(i, var);
-        }*/
+        }
     }
 
     return best.first;

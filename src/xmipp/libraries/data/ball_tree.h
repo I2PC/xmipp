@@ -98,7 +98,7 @@ private:
                                 const Real* point, 
                                 size_t dim,
                                 std::pair<const Node*, Real>& best );
-    static void nearestSearch(  const Node* root, 
+    static void nearestSearch(  const Node& root, 
                                 const Real* point, 
                                 Real dist,
                                 size_t dim,
@@ -106,10 +106,10 @@ private:
     static size_t calculateNodeCutAxis( typename NodeVector::const_iterator begin, 
                                         typename NodeVector::const_iterator end,
                                         size_t dim );
-    static Real calculateNodeRadius(    typename NodeVector::const_iterator begin, 
-                                        typename NodeVector::const_iterator middle,
-                                        typename NodeVector::const_iterator end,
-                                        size_t dim );
+    static Real calculateNodeRadius(typename NodeVector::const_iterator begin, 
+                                    typename NodeVector::const_iterator middle,
+                                    typename NodeVector::const_iterator end,
+                                    size_t dim );
 
 };
 
