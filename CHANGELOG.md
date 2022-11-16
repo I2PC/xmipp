@@ -46,6 +46,7 @@
 
 ## Release 3.22.07 - Helios
 
+
 ### Scripts Xmipp
 - **xmipp_image_operate**: taked into account non existing files
 - **angular_continuous_assign2**: Bug fixed

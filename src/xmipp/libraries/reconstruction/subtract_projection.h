@@ -53,10 +53,12 @@
     bool nonNegative;
     bool boost;
 
+
     // Data variables
  	Image<double> V; // volume
  	Image<double> vM; // mask 3D
     Image<double> ivM; // invert mask 3D
+
  	Image<double> M; // mask projected and smooth
  	Image<double> I; // particle
     Image<double> Pctf; // projection with CTF applied
@@ -64,6 +66,7 @@
     Image<double> Mfinal; // final dilated mask
     Image<double> Idiff; // final subtracted image
 	Image<double> cirmask; // circular mask to avoid edge artifacts	
+
  	Projection P; // projection
  	Projection Pmask; // mask projection for region to keep
     Projection PmaskVol; // reference volume mask projection
@@ -98,6 +101,7 @@
 
     bool disable;
 
+
     /// Read argument from command line
     void readParams() override;
     /// Show
@@ -109,6 +113,7 @@
     void writeParticle(const int &, Image<double> &, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
+
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);
@@ -117,6 +122,7 @@
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
+
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 
     /// Run
