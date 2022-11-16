@@ -26,7 +26,6 @@
 #include "kd_tree.h"
 
 #include <algorithm>
-#include <limits>
 #include <cassert>
 
 template<typename T>
@@ -87,6 +86,26 @@ const typename KDTree<T>::Node* KDTree<T>::Node::getRight() const {
 
 
 
+template<typename T>
+class KDTree<T>::NodeAxisCmp {
+public:
+    NodeAxisCmp(size_t axis) : m_axis(axis) {}
+    NodeAxisCmp(const NodeAxisCmp& other) = default;
+    ~NodeAxisCmp() = default;
+
+    NodeAxisCmp& operator=(const NodeAxisCmp& other) = default;
+
+    bool operator()(const Node& x, const Node& y) const {
+        return x.getPoint()[m_axis] < y.getPoint()[m_axis];
+    }
+
+private:   
+    size_t m_axis;
+
+};
+
+
+
 
 
 template<typename T>
@@ -113,20 +132,26 @@ size_t KDTree<T>::nearest(const Matrix1D<Real>& point, Real& distance) const {
     }
 
     // Search
-    std::pair<const Node*, Real> best(nullptr, std::numeric_limits<Real>::infinity());
+    std::pair<const Node*, Real> best(nullptr, distance);
     nearestSearch(m_root, MATRIX1D_ARRAY(point), 0, MAT_XSIZE(samples), best);
 
-    // Do pointer tricks to obtain the index
-    const Real* const begin = MATRIX2D_ARRAY(samples);
-    const Real* const match = best.first->getPoint();
-    const auto count = std::distance(begin, match);
-    assert(count >= 0);
-    assert((count % MAT_XSIZE(samples)) == 0);
-    const size_t index = static_cast<size_t>(count) / MAT_XSIZE(samples);
+    // Calculate the output
+    size_t result = MAT_YSIZE(samples);
+    if(best.first) {
+        // Do pointer tricks to obtain the index
+        const Real* const begin = MATRIX2D_ARRAY(samples);
+        const Real* const match = best.first->getPoint();
+        const auto count = std::distance(begin, match);
+        assert(count >= 0);
+        assert((count % MAT_XSIZE(samples)) == 0);
+        const size_t index = static_cast<size_t>(count) / MAT_XSIZE(samples);
 
-    // Elaborate the output
-    distance = best.second;
-    return index;
+        // Elaborate the output
+        distance = best.second;
+        result = index;
+    }
+
+    return result;
 }
 
 
@@ -159,9 +184,7 @@ typename KDTree<T>::Node* KDTree<T>::buildTree( typename NodeVector::iterator be
         // Partially sort the range
         std::nth_element(
             begin, middle, end,
-            [axis] (const Node& x, const Node& y) -> bool {
-                return x.getPoint()[axis] < y.getPoint()[axis];
-            }
+            NodeAxisCmp(axis)
         );
 
         // Recursively call

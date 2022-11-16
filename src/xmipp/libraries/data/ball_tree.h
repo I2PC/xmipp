@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _CORE_KD_TREE_H
-#define _CORE_KD_TREE_H
+#ifndef _CORE_BALL_TREE_H
+#define _CORE_BALL_TREE_H
 
 #include "core/matrix1d.h"
 #include "core/matrix2d.h"
@@ -33,15 +33,15 @@
 #include <functional>
 
 template<typename T>
-class KDTree {
+class BallTree {
 public:
     using Real = T;
 
-    KDTree(const Matrix2D<Real>& samples);
-    KDTree(const KDTree& other) = default;
-    ~KDTree() = default;
+    BallTree(const Matrix2D<Real>& samples);
+    BallTree(const BallTree& other) = default;
+    ~BallTree() = default;
 
-    KDTree& operator=(const KDTree& other) = default;
+    BallTree& operator=(const BallTree& other) = default;
 
     size_t nearest(const Matrix1D<Real>& point, Real& distance) const;
     //void query(const Matrix2D<Real>& points, std::vector<size_t>& ind);
@@ -51,7 +51,9 @@ private:
     public:
         Node(   const Real* data = nullptr, 
                 const Node* left = nullptr, 
-                const Node* right = nullptr );
+                const Node* right = nullptr,
+                size_t cutAxis = 0, 
+                Real radius = 0 );
         Node(const Node& other) = default;
         ~Node() = default;
 
@@ -66,10 +68,18 @@ private:
         void setRight(const Node* node);
         const Node* getRight() const;
 
+        void setCutAxis(size_t cut);
+        size_t getCutAxis() const;
+
+        void setRadius(Real radius);
+        Real getRadius() const;
+
     private:
         const Real* m_point;
         const Node* m_left;
         const Node* m_right;
+        size_t m_cutAxis;
+        Real m_radius;
     };
 
     class NodeAxisCmp;
@@ -83,13 +93,24 @@ private:
     static void fillNodes(const Matrix2D<Real>& points, NodeVector& v);
     static Node* buildTree( typename NodeVector::iterator begin, 
                             typename NodeVector::iterator end, 
-                            size_t axis, size_t dim );
+                            size_t dim );
     static void nearestSearch(  const Node* root, 
                                 const Real* point, 
-                                size_t axis, 
                                 size_t dim,
                                 std::pair<const Node*, Real>& best );
+    static void nearestSearch(  const Node* root, 
+                                const Real* point, 
+                                Real dist,
+                                size_t dim,
+                                std::pair<const Node*, Real>& best );
+    static size_t calculateNodeCutAxis( typename NodeVector::const_iterator begin, 
+                                        typename NodeVector::const_iterator end,
+                                        size_t dim );
+    static Real calculateNodeRadius(    typename NodeVector::const_iterator begin, 
+                                        typename NodeVector::const_iterator middle,
+                                        typename NodeVector::const_iterator end,
+                                        size_t dim );
 
 };
 
-#endif //_CORE_KD_TREE_H
+#endif //_CORE_BALL_TREE_H
