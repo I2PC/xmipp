@@ -367,7 +367,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		
 		// Compute estimation images: IiM = I*iM and PiM = P*iM	
 		IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
-		PiMFourier = computeEstimationImage(P(), iM(), transformerPiM);
+		PiMFourier = computeEstimationImage(Pctf(), iM(), transformerPiM);
 
 		// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
 		MultidimArray<double> num0;
