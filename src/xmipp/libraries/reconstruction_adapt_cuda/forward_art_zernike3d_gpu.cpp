@@ -507,7 +507,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 {
 	int i, j;
 	size_t numIMG = getInputMd()->size();
-	MultidimArray<short> chosen(numIMG);
+	MultidimArray<bool> chosen(numIMG);
 	MultidimArray<double> product(numIMG);
 	double min_prod = MAXFLOAT;
 	;
@@ -524,7 +524,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 	for (i = 0; i < numIMG; i++) {
 		Matrix1D<double> z;
 		// Initially no image is chosen
-		A1D_ELEM(chosen, i) = 0;
+		A1D_ELEM(chosen, i) = false;
 
 		// Compute the Euler matrix for each image and keep only
 		// the third row of each one
@@ -535,7 +535,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 
 	// Pick first projection as the first one to be presented
 	i = 0;
-	A1D_ELEM(chosen, i) = 1;
+	A1D_ELEM(chosen, i) = true;
 	A1D_ELEM(ordered_list, 0) = i;
 
 	// Choose the rest of projections
@@ -545,14 +545,17 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 		// Compute the product of not already chosen vectors with the just
 		// chosen one, and select that which has minimum product
 		min_prod = MAXFLOAT;
-		v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
+		//v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
 		if (sort_last_N != -1 && i > sort_last_N)
 			v.getRow(A1D_ELEM(ordered_list, i - sort_last_N - 1), rowi_N_1);
+		else
+			v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
+		bool cond = sort_last_N != -1 && i > sort_last_N;
 		for (j = 0; j < numIMG; j++) {
-			if (!A1D_ELEM(chosen, j)) {
+			if (!chosen.data[j]) {
 				v.getRow(j, rowj);
 				A1D_ELEM(product, j) += ABS(dotProduct(rowi_1, rowj));
-				if (sort_last_N != -1 && i > sort_last_N)
+				if (cond)
 					A1D_ELEM(product, j) -= ABS(dotProduct(rowi_N_1, rowj));
 				if (A1D_ELEM(product, j) < min_prod) {
 					min_prod = A1D_ELEM(product, j);
@@ -563,7 +566,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 
 		// Store the chosen vector and mark it as chosen
 		A1D_ELEM(ordered_list, i) = min_prod_proj;
-		A1D_ELEM(chosen, min_prod_proj) = 1;
+		A1D_ELEM(chosen, min_prod_proj) = true;
 	}
 }
 
