@@ -329,10 +329,9 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		processParticle(i, sizeI, transformerP, transformerI);
 		// Build projected and final masks
 		if (fnMask.isEmpty()) { // If there is no provided mask
-			Mfinal().initZeros(P());
-			// inverse mask (iM) and final mask (Mfinal) are all 1s
-			iM = invertMask(Mfinal);
-			Mfinal = iM;		
+			M().initZeros(P());
+			// inverse mask (iM) is all 1s
+			iM = invertMask(M);
 		}
 		else { // If a mask has been provided
 			projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
@@ -448,16 +447,8 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 			transformerP.inverseFourierTransform(PFourier, P());
 			mIdiff.initZeros(I());
 			mIdiff.setXmippOrigin();
-			if (fmaskWidth == -1)
-			{
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-					DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
-			}
-			else
-			{
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
-					DIRECT_MULTIDIM_ELEM(mIdiff,n) = (DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n))*DIRECT_MULTIDIM_ELEM(Mfinal(),n);
-			}
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
+				DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
 		}
 		// Write particle
 		writeParticle(int(i), Idiff, R2adj(0), beta0save, beta1save); 
