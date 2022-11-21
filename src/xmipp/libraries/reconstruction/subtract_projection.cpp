@@ -58,13 +58,12 @@
 	sampling = getDoubleParam("--sampling");
 	padFourier = getDoubleParam("--padding");
     maxResol = getDoubleParam("--max_resolution");
-	fmaskWidth = getIntParam("--fmask_width");
 	limitfreq = getIntParam("--limit_freq");
 	cirmaskrad = getDoubleParam("--cirmaskrad");
 	fnProj = getParam("--save"); 
 	nonNegative = checkParam("--nonNegative");
 	boost = checkParam("--boost");
-
+	subtract = checkParam("--subtract");
  }
 
  // Show ====================================================================
@@ -80,7 +79,6 @@
     << "Max. Resolution:\t" << maxResol << std::endl
 	<< "Limit freequency:\t" << limitfreq << std::endl
 	<< "Output particles:\t" << fnOut << std::endl;
-
  }
 
  // usage ===================================================================
@@ -104,8 +102,8 @@
 	 addParamsLine("[--subtract]\t: Perform subtraction"); 
 	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
 	 addParamsLine("[--cirmaskrad <c=-1.0>]\t: Radius of the circular mask");
-
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
+	 addParamsLine("[--subtract]\t: The mask contains the region to SUBTRACT"); 
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask_vol.mrc "
     		 "-o output_particles --sampling 1 --fmask_width 40 --max_resolution 4");
@@ -146,7 +144,6 @@
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
 				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1; 
 		}
-
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const {
@@ -184,7 +181,6 @@
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad); 
 		//Crop to restore original size
-
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
 	}
 	return proj;
@@ -206,7 +202,6 @@ void ProgSubtractProjection::processParticle(size_t iparticle, int sizeImg, Four
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
-
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
 	transformerIf.FourierTransform(I(), IFourier, false);
 }
@@ -215,7 +210,6 @@ MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationI
 const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
 	ImgiM().initZeros(Img);
 	ImgiM().setXmippOrigin();
-
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Img)
 		DIRECT_MULTIDIM_ELEM(ImgiM(),n) = DIRECT_MULTIDIM_ELEM(Img,n) * DIRECT_MULTIDIM_ELEM(InvM,n);
 	transformerImgiM.FourierTransform(ImgiM(),ImgiMFourier,false);
@@ -243,7 +237,6 @@ const MultidimArray<double> &InvM, FourierTransformer &transformerImgiM) {
  }
 
 Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::complex<double> > &PFourierf, const MultidimArray< std::complex<double> > &PFourierf0,
-
  const MultidimArray< std::complex<double> > &PFourierf1, const MultidimArray< std::complex<double> > &IFourierf) const { 
 	// Compute R2 coefficient for order 0 model (R20) and order 1 model (R21)
 	auto N = 2.0*(double)MULTIDIM_SIZE(PFourierf);
@@ -261,7 +254,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		PFourierf = PFourierf0;
 		R2(0) = R20adj;
 		R2(1) = 0;		
-
 	}
 	return R2;
 }
@@ -269,7 +261,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
  void ProgSubtractProjection::run() {
 	// Read input volume, mask and particles metadata
 	show();
-	// Read input volume, mask and particles metadata
 	V.read(fnVolR);
 	V().setXmippOrigin();
 
@@ -292,25 +283,21 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
 	mdParticles.read(fnParticles);
 	
-
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
 	
-
 	// Initialize Fourier projectors
 	double cutFreq = sampling/maxResol;
 	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	std::unique_ptr<FourierProjector> projectorMask;
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	
-
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
 	processParticle(1, sizeI, transformerP, transformerI);
 	const MultidimArray<double> &mPctf = Pctf();
-
 
 	// Construct frequencies image
 	MultidimArray<int> wi;
@@ -321,7 +308,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		for (int j=0; j<XSIZE(wi); j++)  {
 			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w))
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); // indexes
-
 		}
 	}
 	int maxwiIdx;
@@ -348,21 +334,17 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 			// inverse mask (iM) and final mask (Mfinal) are all 1s
 			iM = invertMask(Mfinal);
 			Mfinal = iM;		
-			}
+		}
 		else { // If a mask has been provided
 			projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+			// Apply binarization, shift and gaussian filter to the projected mask
 			M = binarizeMask(Pmask);
-			// Apply shift to the projected mask
 			selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
-			if (fmaskWidth != -1) // Create final mask which is a dilated version of the provided mask
-			{
-				Mfinal().initZeros(M());
-				auto fmaskWidth_px = fmaskWidth/(int)sampling;
-				dilate2D(M(), Mfinal(), 8, 0, fmaskWidth_px); 
-			}
 			FilterG.applyMaskSpace(M());
-			// Compute inverse of original mask
-			iM = invertMask(M);
+			if (subtract) // If the mask contains the part to subtract: inverse the original mask
+				iM = M;
+			else // Compute inverse of original mask
+				iM = invertMask(M);
 		}
 		
 		// Compute estimation images: IiM = I*iM and PiM = P*iM	
@@ -484,4 +466,3 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	// Write metadata 
     mdParticles.write(formatString("%s.xmd", fnOut.c_str()));
  }
-

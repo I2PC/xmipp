@@ -52,7 +52,7 @@
     int limitfreq;
     bool nonNegative;
     bool boost;
-
+    bool subtract;
 
     // Data variables
  	Image<double> V; // volume
