@@ -1648,5 +1648,6 @@ class ProjSubtraction(XmippProgramTest):
         """Test projection subtraction"""
         self.runCase("-i input/projectionSubtraction/images.xmd  --ref input/projectionSubtraction/phantom.vol "
                      "-o %o/output_particles --sampling 1.0 --max_resolution 3.0 "
-                     "--fmask_width 40.0 --padding 2.0 --sigma 3 --limit_freq 0 ",
-                     outputs=["output_particles.mrcs"], errorthreshold=0.01)
+                     "--fmask_width 40.0 --padding 2.0 --sigma 3 --limit_freq 0 --cirmaskrad -1 "
+                     "--save input/projectionSubtraction",
+                     outputs=["output_particles.mrcs"], errorthreshold=1)
