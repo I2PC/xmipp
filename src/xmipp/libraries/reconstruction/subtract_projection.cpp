@@ -99,7 +99,6 @@
 	 addParamsLine("[--sigma <s=2>]\t: Decay of the filter (sigma) to smooth the mask transition");
 	 addParamsLine("[--limit_freq <l=0>]\t: Limit frequency (= 1) or not (= 0) in adjustment process");
 	 addParamsLine("[--nonNegative]\t: Ignore particles with negative beta0 or R2"); 
-	 addParamsLine("[--subtract]\t: Perform subtraction"); 
 	 addParamsLine("[--boost]\t: Perform a boosting of original particles"); 
 	 addParamsLine("[--cirmaskrad <c=-1.0>]\t: Radius of the circular mask");
 	 addParamsLine("[--save <structure=\"\">]\t: Path for saving intermediate files"); 
