@@ -140,8 +140,11 @@
 			m.read(fnM);
 			m().setXmippOrigin();
 			im = m;
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
-				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1; 
+			if (!subtract)
+			{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
+					DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1;
+			} 
 		}
  }
 
