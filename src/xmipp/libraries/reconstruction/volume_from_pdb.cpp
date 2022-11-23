@@ -27,6 +27,7 @@
 #include "volume_from_pdb.h"
 #include "core/transformations.h"
 #include <core/args.h>
+#include "data/pdb.h"
 
 #include <fstream>
 
@@ -352,6 +353,8 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         VECTOR_R3(r, x, y, z);
         if (doCenter)
         {
+			atom_i.record = line.substr(0,6);
+			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom_i.serial);
             r -= centerOfMass;
             atom_i.x = x - XX(centerOfMass);
             atom_i.y = y - YY(centerOfMass);
@@ -536,6 +539,8 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         VECTOR_R3(r, x, y, z);
         if (doCenter)
         {
+			atom_i.record = line.substr(0,6);
+			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom_i.serial);
             r -= centerOfMass;
             atom_i.x = x-XX(centerOfMass);
             atom_i.y = y-YY(centerOfMass);

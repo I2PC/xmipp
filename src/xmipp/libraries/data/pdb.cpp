@@ -51,18 +51,6 @@ extern "C" {
 #define HY36_WIDTH_5_MIN -9999
 #define HY36_WIDTH_5_MAX 87440031 /* 100000 + 2*26*36*36*36*36 - 1 */
 
-const char*
-hy36encode(unsigned width, int value, char* result);
-
-const char*
-hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
-
-void
-hy36encodeSafe(unsigned width, int value, char* result);
-
-void
-hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result);
-
 #ifdef __cplusplus
 }
 #endif
