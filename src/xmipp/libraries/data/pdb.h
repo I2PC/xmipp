@@ -384,3 +384,15 @@ void projectPDB(const PDBPhantom &phantomPDB,
 void distanceHistogramPDB(const PDBPhantom &phantomPDB, size_t Nnearest, double maxDistance, int Nbins, Histogram1D &hist);
 //@}
 #endif
+
+const char*
+hy36encode(unsigned width, int value, char* result);
+
+const char*
+hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
+
+void
+hy36encodeSafe(unsigned width, int value, char* result);
+
+void
+hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result);
