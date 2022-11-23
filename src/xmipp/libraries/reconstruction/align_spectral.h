@@ -203,16 +203,13 @@ private:
 
         void getPcaProjection(size_t i, std::vector<Matrix1D<Real>>& referenceBands);
         size_t matchPcaProjection(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, Matrix1D<Real>& distances) const;
-        size_t matchPcaProjectionBallTree(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance) const;
-        size_t matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, Real& bestDistance, std::list<std::pair<size_t, Real>>& ws) const;
 
     private:
         std::vector<Matrix2D<Real>> m_projections;
         std::vector<Matrix1D<Real>> m_lengths;
-        std::vector<BallTree<Real>> m_trees;
 
         void computeLengths();
-        void computeTrees();
+        void premultiplySamples();
     };
 
     class ReferenceMetadata {

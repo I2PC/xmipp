@@ -422,7 +422,7 @@ void ProgAlignSpectral<T>::ReferencePcaProjections::reset(  size_t nImages,
 template<typename T>
 void ProgAlignSpectral<T>::ReferencePcaProjections::finalize() {
     computeLengths();
-    //computeTrees();
+    premultiplySamples();
 }
 
 template<typename T>
@@ -455,18 +455,14 @@ size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjection(   cons
                                                                             Real& bestDistance,
                                                                             Matrix1D<Real>& distances ) const 
 {
-    Matrix1D<Real> referenceBand;
-
-    if(experimentalBands.size() != 1) {
-        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Exhaustive search is not implemented for multiple bands");
-    }
-
     // Compute all the distances using the dot product decomposition
     // ||x - y||^2 = ||x||^2 + ||y||^2 - 2*<x, y>
-    matrixOperation_Ax(m_projections[0], experimentalBands[0], distances);
-    distances *= -2;
-    distances += m_lengths[0];
-    distances += experimentalBands[0].sum2();
+    distances.initZeros(getImageCount());
+    for(size_t i = 0; i < getBandCount(); ++i) {
+        matrixOperation_add_Ax(m_projections[i], experimentalBands[i], distances); // -2 baked in m_projections[i]
+        distances += m_lengths[i];
+        //distances += experimentalBands[i].sum2(); // Constant
+    }
 
     // Find the minimum
     const auto minEl = std::min_element(
@@ -484,114 +480,9 @@ size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjection(   cons
     return best;
 }
 
-template<typename T>
-size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjectionBallTree(   const std::vector<Matrix1D<Real>>& experimentalBands, 
-                                                                                    Real& bestDistance) const 
-{
-    if(experimentalBands.size() != 1) {
-        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "kd-Tree search is not implemented for multiple bands");
-    }
-    
-    // Perform a lookup in the tree
-    return m_trees.front().nearest(experimentalBands.front(), bestDistance);
-}
-
-template<typename T>
-size_t ProgAlignSpectral<T>::ReferencePcaProjections::matchPcaProjectionBnB(const std::vector<Matrix1D<Real>>& experimentalBands, 
-                                                                            Real& bestDistance,
-                                                                            std::list<std::pair<size_t, Real>>& ws ) const 
-{
-    Matrix1D<Real> referenceBand, experimentalBand;
-
-    // Initialize the working set. Use the provided distance as the best one
-    ws.resize(getImageCount() + 1);
-    auto best = ws.begin();
-    for(size_t i = 0; i < getImageCount(); ++i) {
-        *(best++) = std::make_pair(i, Real(0));
-    }
-    *best = std::make_pair(getImageCount(), bestDistance);
-    assert(std::next(best) == ws.cend());
-
-    // Compare band-by-band using the branch and bound approach
-    constexpr auto BAND_ATOM_SIZE = 128UL;
-    for(size_t i = 0; i < getBandCount(); ++i) {
-        const auto bandSize = MAT_XSIZE(m_projections[i]);
-
-        size_t offset = 0;
-        size_t remaining = bandSize;
-        while(remaining > 0) {
-            // Determine how many items will be processed
-            const auto count = std::min(BAND_ATOM_SIZE, remaining);
-
-            // Determine the best candidate for the this iteration
-            auto bestCandidate = best;
-            experimentalBand.alias(MATRIX1D_ARRAY(experimentalBands[i]) + offset, count);
-            for(auto ite = ws.begin(); ite != best; /*EMPTY ON PURPOSE*/) {
-                // Add the distance of this band atom to all elements
-                const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(ite->first, referenceBand);
-                referenceBand.vdata += offset;
-                referenceBand.vdim = count;
-                ite->second += euclideanDistance2(experimentalBand, referenceBand);
-                
-                // Check if it is still eligible
-                if(ite->second < best->second) {
-                    if(ite->second < bestCandidate->second) {
-                        bestCandidate = ite;
-                    }
-                    ++ite;
-                } else {
-                    // Not a candidate anymore. Move it to the end to
-                    // stop considering it
-                    ws.splice(ws.cend(), ws, ite++);
-                }
-            }
 
 
-            if (bestCandidate != best) {
-                // Advance the counters 
-                offset += count;
-                remaining -= count;
 
-                // Evaluate the "complete" distance for the best candidate image
-                experimentalBand.alias(MATRIX1D_ARRAY(experimentalBands[i]) + offset, remaining);
-                const_cast<Matrix2D<Real>&>(m_projections[i]).getRowAlias(bestCandidate->first, referenceBand);
-                referenceBand.vdata += offset;
-                referenceBand.vdim = remaining;
-                bestCandidate->second += euclideanDistance2(experimentalBand, referenceBand);
-                for(size_t j = i+1; j < getBandCount() && bestCandidate->second < best->second; ++j) {
-                    const auto& experimentalBand = experimentalBands[j];
-                    const_cast<Matrix2D<Real>&>(m_projections[j]).getRowAlias(bestCandidate->first, referenceBand);
-                    bestCandidate->second += euclideanDistance2(experimentalBand, referenceBand);
-                }
-
-                // Update the best distance
-                if (bestCandidate->second < best->second) {
-                    // Best candidate is better than the previous best.
-                    // Insert it before best so that it is the new best
-                    ws.splice(best, ws, bestCandidate);
-                    best = bestCandidate;
-                } else {
-                    // Best candidate is not a candidate anymore. 
-                    // Move it to the end to stop considering it
-                    ws.splice(ws.cend(), ws, bestCandidate);
-                }
-
-            } else {
-                // No more candidates left. Stop
-                assert(ws.cbegin() == best);
-                break;
-            }
-        }
-
-        if(ws.cbegin() == best) {
-            break;
-        }
-    }
-
-    assert(ws.size() == (getImageCount() + 1)); //Nothing should have been deleted
-    bestDistance = best->second;
-    return best->first;
-}
 
 template<typename T>
 void ProgAlignSpectral<T>::ReferencePcaProjections::computeLengths() {
@@ -603,12 +494,9 @@ void ProgAlignSpectral<T>::ReferencePcaProjections::computeLengths() {
 }
 
 template<typename T>
-void ProgAlignSpectral<T>::ReferencePcaProjections::computeTrees() {
-    m_trees.clear();
-    m_trees.reserve(m_projections.size());
-
-    for(const auto& samples : m_projections) {
-        m_trees.emplace_back(samples);
+void ProgAlignSpectral<T>::ReferencePcaProjections::premultiplySamples() {
+    for(size_t i = 0; i < m_projections.size(); ++i) {
+        m_projections[i] *= -2;
     }
 }
 
@@ -974,7 +862,7 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         FourierTransformer fourier;
         std::vector<MultidimArray<Complex>> bandCoefficients;
         std::vector<Matrix1D<Real>> bandProjections;
-        std::list<std::pair<size_t, Real>> ws;
+        //std::list<std::pair<size_t, Real>> ws;
         Matrix1D<Real> distances;
     };
 
@@ -998,12 +886,7 @@ void ProgAlignSpectral<T>::classifyExperimental() {
         // Compare the projection to find a match
         auto& classification = m_classification[i];
         auto distance = classification.getDistance();
-        //auto distance2 = distance;
-        //const auto match = m_references.matchPcaProjectionBnB(data.bandProjections, distance, data.ws);
-        //const auto match = m_references.matchPcaProjectionBallTree(data.bandProjections, distance);
         const auto match = m_references.matchPcaProjection(data.bandProjections, distance, data.distances);
-        //assert(match == m_references.matchPcaProjection(data.bandProjections, distance2));
-        //assert(distance == distance2);
         if(match < m_references.getImageCount()) {
             classification = m_referenceData[match];
             classification.setDistance(distance);
