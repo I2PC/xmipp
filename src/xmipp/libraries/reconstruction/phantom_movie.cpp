@@ -130,30 +130,30 @@ void PhantomMovie<T>::readParams()
 }
 
 template <typename T>
-T PhantomMovie<T>::bilinearInterpolation(const MultidimArray<T> &src, float x, float y)
+T PhantomMovie<T>::bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const
 {
-    float x_center = src.xdim / (T)2;
-    float y_center = src.ydim / (T)2;
+    auto x_center = static_cast<float>(src.xdim) / 2.f;
+    auto y_center = static_cast<float>(src.ydim) / 2.f;
     x += x_center;
     y += y_center;
-    size_t xf = std::floor(x);
-    size_t xc = std::ceil(x);
-    size_t yf = std::floor(y);
-    size_t yc = std::ceil(y);
-    float xw = x - xf;
-    float yw = y - yf;
-    T vff = src.data[src.xdim * yf + xf];
-    T vfc = src.data[src.xdim * yc + xf];
-    T vcf = src.data[src.xdim * yf + xc];
-    T vcc = src.data[src.xdim * yc + xc];
+    auto xf = std::floor(x);
+    auto xc = std::ceil(x);
+    auto yf = std::floor(y);
+    auto yc = std::ceil(y);
+    auto xw = x - xf;
+    auto yw = y - yf;
+    auto vff = src.data[static_cast<size_t>(src.xdim * yf + xf)];
+    auto vfc = src.data[static_cast<size_t>(src.xdim * yc + xf)];
+    auto vcf = src.data[static_cast<size_t>(src.xdim * yf + xc)];
+    auto vcc = src.data[static_cast<size_t>(src.xdim * yc + xc)];
     return vff * (1.f - xw) * (1.f - yw) + vcf * xw * (1.f - yw) + vfc * (1.f - xw) * yw + vcc * xw * yw;
 }
 
 template <typename T>
-void PhantomMovie<T>::displace(float &x, float &y, size_t n)
+void PhantomMovie<T>::displace(float &x, float &y, size_t n) const
 {
-    float x_shift = skipShift ? 0 : shiftX(req_size.n() - n - 1); // 'reverse' the order (see doc)
-    float y_shift = skipShift ? 0 : shiftY(req_size.n() - n - 1); // 'reverse' the order (see doc)
+    auto x_shift = skipShift ? 0 : shiftX(req_size.n() - n - 1); // 'reverse' the order (see doc)
+    auto y_shift = skipShift ? 0 : shiftY(req_size.n() - n - 1); // 'reverse' the order (see doc)
     if (skipBarrel)
     {
         x += x_shift;
@@ -161,16 +161,16 @@ void PhantomMovie<T>::displace(float &x, float &y, size_t n)
     }
     else
     {
-        float x_center = req_size.x() / (T)2;
-        float y_center = req_size.y() / (T)2;
-        float k1 = k1_start + n * (k1_end - k1_start) / (req_size.n() - 1);
-        float k2 = k2_start + n * (k2_end - k2_start) / (req_size.n() - 1);
-        float y_norm = (y - y_center + (shiftAfterBarrel ? 0 : y_shift)) / y_center;
-        float x_norm = (x - x_center + (shiftAfterBarrel ? 0 : x_shift)) / x_center;
-        float r_out = sqrt(x_norm * x_norm + y_norm * y_norm);
-        float r_out_2 = r_out * r_out;
-        float r_out_4 = r_out_2 * r_out_2;
-        float scale = (1 + k1 * r_out_2 + k2 * r_out_4);
+        auto x_center = req_size.x() / 2.f;
+        auto y_center = req_size.y() / 2.f;
+        auto k1 = k1_start + n * (k1_end - k1_start) / (req_size.n() - 1);
+        auto k2 = k2_start + n * (k2_end - k2_start) / (req_size.n() - 1);
+        auto y_norm = (y - y_center + (shiftAfterBarrel ? 0 : y_shift)) / y_center;
+        auto x_norm = (x - x_center + (shiftAfterBarrel ? 0 : x_shift)) / x_center;
+        auto r_out = sqrt(x_norm * x_norm + y_norm * y_norm);
+        auto r_out_2 = r_out * r_out;
+        auto r_out_4 = r_out_2 * r_out_2;
+        auto scale = (1 + k1 * r_out_2 + k2 * r_out_4);
         x = (x_norm * scale * x_center) + x_center + (shiftAfterBarrel ? x_shift : 0);
         y = (y_norm * scale * y_center) + y_center + (shiftAfterBarrel ? y_shift : 0);
     }
@@ -181,34 +181,28 @@ void PhantomMovie<T>::addGrid(MultidimArray<T> &frame)
 {
     std::cout << "Generating grid" << std::endl;
     // add rows
-    for (size_t y = ystep; y < frame.ydim; y += ystep)
+    for (auto y = ystep - (thickness / 2); y < frame.ydim - (thickness / 2) + 1; y += ystep)
     {
-        for (int t = -(thickness / 2); t < std::ceil(thickness / 2.0); ++t)
+        for (auto t = 0; t < thickness; ++t)
         {
-            if ((y >= thickness / 2) && (y + t < frame.ydim))
+            size_t y_offset = (y + t) * frame.xdim;
+            for (size_t x = 0; x < frame.xdim; ++x)
             {
-                size_t y_offset = (y + t) * frame.xdim;
-                for (size_t x = 0; x < frame.xdim; ++x)
-                {
-                    size_t index = y_offset + x;
-                    frame.data[index] += signal_val;
-                }
+                size_t index = y_offset + x;
+                frame.data[index] += signal_val;
             }
         }
     }
     // add columns
-    for (size_t x = xstep; x < frame.xdim; x += xstep)
+    for (auto x = xstep; x < frame.xdim- (thickness / 2) + 1; x += xstep)
     {
-        for (int t = -(thickness / 2); t < std::ceil(thickness / 2.0); ++t)
+        for (int t = 0; t < thickness; ++t)
         {
-            if ((x >= thickness / 2) && (x + t < frame.xdim))
+            size_t x_offset = (x + t);
+            for (size_t y = 0; y < frame.ydim; ++y)
             {
-                size_t x_offset = (x + t);
-                for (size_t y = 0; y < frame.ydim; ++y)
-                {
-                    size_t index = x_offset + y * frame.xdim;
-                    frame.data[index] += signal_val;
-                }
+                size_t index = x_offset + y * frame.xdim;
+                frame.data[index] += signal_val;
             }
         }
     }
@@ -217,32 +211,34 @@ void PhantomMovie<T>::addGrid(MultidimArray<T> &frame)
 template <typename T>
 MultidimArray<T> PhantomMovie<T>::findWorkSize()
 {
-    float x_max_shift = 0;
-    float y_max_shift = 0;
+    auto x_max_shift = 0.f;
+    auto y_max_shift = 0.f;
+    const auto x = static_cast<float>(req_size.x());
+    const auto y = static_cast<float>(req_size.y());
     for (size_t n = 0; n < req_size.n(); ++n)
     {
-        float x_0 = 0;
-        float y_0 = 0;
-        float x_n = req_size.x() - 1;
-        float y_n = req_size.y() - 1;
+        auto x_0 = 0.f;
+        auto y_0 = 0.f;
+        auto x_n = x - 1.f;
+        auto y_n = y - 1.f;
         displace(x_0, y_0, n); // top left corner
         displace(x_n, y_n, n); // bottom right corner
         // barrel deformation moves to center, so we need to read outside of the edge - [0,0] will be negative and [n-1,n-1] will be bigger than that
-        auto x_shift = std::max(std::abs(x_0), x_n - req_size.x() - 1);
-        auto y_shift = std::max(std::abs(y_0), y_n - req_size.y() - 1);
+        auto x_shift = std::max(std::abs(x_0), x_n - x - 1.f);
+        auto y_shift = std::max(std::abs(y_0), y_n - y - 1.f);
         x_max_shift = std::max(x_max_shift, x_shift);
         y_max_shift = std::max(y_max_shift, y_shift);
     }
     // new size must incorporate 'gaps' on both sides, min values should be negative, max values positive
     // the shift might not be uniform, so the safer solution is to have the bigger gap on both sides
-    size_t x_new = req_size.x() + 2 * std::ceil(x_max_shift);
-    size_t y_new = req_size.y() + 2 * std::ceil(y_max_shift);
+    auto x_new = req_size.x() + 2 * static_cast<size_t>(std::ceil(x_max_shift));
+    auto y_new = req_size.y() + 2 * static_cast<size_t>(std::ceil(y_max_shift));
     printf("Due to displacement, working with frames of size [%lu, %lu]\n", x_new, y_new);
     return MultidimArray<T>(1, 1, y_new, x_new);
 }
 
 template <typename T>
-void PhantomMovie<T>::applyLowPass(MultidimArray<T> &frame)
+void PhantomMovie<T>::applyLowPass(MultidimArray<T> &frame) const
 {
     std::cout << "Applying low-pass filter\n";
     auto filter = FourierFilter();
@@ -254,7 +250,7 @@ void PhantomMovie<T>::applyLowPass(MultidimArray<T> &frame)
 }
 
 template <typename T>
-void PhantomMovie<T>::generateIce(MultidimArray<T> &frame)
+void PhantomMovie<T>::generateIce(MultidimArray<T> &frame) const
 {
     std::cout << "Generating ice\n";
     std::mt19937 gen(seed);
@@ -267,16 +263,15 @@ void PhantomMovie<T>::generateIce(MultidimArray<T> &frame)
 
 template <typename T>
 template<bool SKIP_DOSE>
-void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame)
+void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
 {
     MultidimArray<T> frame(1, 1, req_size.y(), req_size.x());
-    float x_center = frame.xdim / (T)2;
-    float y_center = frame.ydim / (T)2;
     fn_out.deleteFile();
     std::mt19937 gen(seed);
 
-    for (size_t n = 0; n < req_size.n(); ++n)
-    {
+    auto genFrame = [&frame, &refFrame, &gen, this](auto n) {
+        float x_center = frame.xdim / (T)2;
+        float y_center = frame.ydim / (T)2;
         std::cout << "Processing frame " << n << std::endl;
         for (size_t y = 0; y < req_size.y(); ++y)
         {
@@ -296,6 +291,11 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame)
         }
         Image<T> tmp(frame);
         tmp.write(fn_out, n + 1, true, WRITE_REPLACE);
+    };
+
+    for (size_t n = 0; n < req_size.n(); ++n)
+    {
+        genFrame(n);
     }
 }
 

@@ -35,7 +35,7 @@
    @ingroup ReconsLibrary */
 //@{
 template <typename T>
-class PhantomMovie : public XmippProgram
+class PhantomMovie final : public XmippProgram
 {
 public:
     /** Read parameters. */
@@ -49,24 +49,24 @@ public:
 
 private:
     void addGrid(MultidimArray<T> &movie);
-    T bilinearInterpolation(const MultidimArray<T> &src, float x, float y);
-    T shiftX(T t) { return a1 * t + a2 * t * t + std::cos(t / T(10)) / (T)10; };
-    T shiftY(T t) { return b1 * t + b2 * t * t + (std::sin(t * t)) / (T)5; };
+    T bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const;
+    auto shiftX(size_t t) const { return a1 * t + a2 * t * t + std::cos(t / 10.f) / 10.f; };
+    auto shiftY(size_t t) const { return b1 * t + b2 * t * t + (std::sin(t * t)) / 5.f; };
 
-    void generateIce(MultidimArray<T> &frame);
+    void generateIce(MultidimArray<T> &frame) const;
     template<bool SKIP_DOSE>
-    void generateMovie(const MultidimArray<T> &refFrame);
-    void applyLowPass(MultidimArray<T> &frame);
+    void generateMovie(const MultidimArray<T> &refFrame) const;
+    void applyLowPass(MultidimArray<T> &frame) const;
 
-    void displace(float &x, float &y, size_t n);
+    void displace(float &x, float &y, size_t n) const;
     MultidimArray<T> findWorkSize();
     Dimensions req_size = Dimensions(1);
     Dimensions work_size = Dimensions(1);
 
     // displacement params
-    T a1, a2, b1, b2;
-    T k1_start, k1_end;
-    T k2_start, k2_end;
+    float a1, a2, b1, b2;
+    float k1_start, k1_end;
+    float k2_start, k2_end;
     // grid properties
     size_t xstep;
     size_t ystep;
