@@ -54,6 +54,7 @@ private:
     T shiftY(T t) { return b1 * t + b2 * t * t + (std::sin(t * t)) / (T)5; };
 
     void generateIce(MultidimArray<T> &frame);
+    template<bool SKIP_DOSE>
     void generateMovie(const MultidimArray<T> &refFrame);
     void applyLowPass(MultidimArray<T> &frame);
 
@@ -70,19 +71,20 @@ private:
     size_t xstep;
     size_t ystep;
     size_t thickness;
-    float gridVal;
+    float signal_val;
     // other options
     bool skipBarrel;
     bool skipShift;
     bool shiftAfterBarrel;
-    bool skipNoise;
-    // noise properties
+    bool skipDose;
+    bool skipIce;
+    // content properties
     int seed;
-    float norm_avg;
-    float norm_stddev;
-    float gauss_avg;
-    float gauss_stddev;
-    float poisson_mean;
+    float ice_avg;
+    float ice_stddev;
+    float ice_min;
+    float ice_max;
+    float dose;
     float low_w1;
     float low_raised_w;
 

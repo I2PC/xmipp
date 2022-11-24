@@ -38,8 +38,8 @@ void PhantomMovie<T>::defineParams()
                                " Distance between the lines/rows of the grid (before the transform is applied)");
     addParamsLine("[--thickness <t=5>]                                   :"
                   " Thickness of the grid lines");
-    addParamsLine("[--gridVal <t=1.0>]                                   :"
-                  " Value of the grid pixels");
+    addParamsLine("[--signal <t=1.0>]                                    :"
+                  " Value of the grid pixels, either noiseless or mean for the Poisson distribution");
     addParamsLine("[" + shift_param + " <a1=-0.039> <a2=0.002> <b1=-0.02> <b2=0.002>]:"
                                       " Parameters of the shift. To see the result, we encourage you to use script attached with source files!");
     addParamsLine("[" + barrel_param + " <k1_start=0.04> <k1_end=0.05> <k2_start=0.02> <k2_end=0.025>]:"
@@ -52,18 +52,18 @@ void PhantomMovie<T>::defineParams()
                   " skip applying shift on each frame");
     addParamsLine("[--shiftAfterBarrel]                                  :"
                   " if set, shift will be applied after barrel deformation (if present)");
-    addParamsLine("[--skipNoise]                                         :"
-                  " generate phantom without noise");
+    addParamsLine("[--skipDose]                                          :"
+                  " generate phantom without Poisson noise");
+    addParamsLine("[--skipIce]                                           :"
+                  " generate phantom without ice (background)");
     addParamsLine("[--seed <s=42>]                                       :"
                   " seed used to generate the noise");
-    addParamsLine("[--norm <avg=0.0> <stddev=1.0>]                       :"
-                  " Normalization values");
-    addParamsLine("[--gauss <avg=0.0> <stddev=1.0>]                      :"
-                  " Gauss noise properties");
-    addParamsLine("[--poisson <mean=0.0>]                                :"
-                  " Poisson noise properties");
+    addParamsLine("[--ice <avg=0.0> <stddev=1.0> <min=0.1> <max=1.0>]    :"
+                  " Ice properties (simulated via Gaussian noise) + range adjustment");
     addParamsLine("[--low <w1=0.05> <raisedW=0.02>]                      :"
-                  " Low-pass filter properties");
+                  " Ice low-pass filter properties");
+    addParamsLine("[--dose <mean=1>]                                     :"
+                  " Mean of the Poisson noise");
 
     addUsageLine("Create phantom movie with grid, using shift and barrel / pincushion transform.");
     addUsageLine("Bear in mind that the following function of the shift is applied in 'backward'"
@@ -75,7 +75,7 @@ void PhantomMovie<T>::defineParams()
     addUsageLine("The barrel/pincushion transform params are linearly interpolated between first and last frame.");
     addUsageLine("For normalized coordinates ([-1..1]) its distance is given by:");
     addUsageLine("r_out = r_in(1 + k1*(r_in)^2 + k2*(r_in)^4");
-    addUsageLine("If noisy movie is generated, we first generate gaussian noise (ice) blurred via low-pass filter.");
+    addUsageLine("If noisy movie is generated, we first generate ice blurred via low-pass filter.");
     addUsageLine("After that, the reference frame is normalized. ");
     addUsageLine("On top of this, we add signal in form of the grid. ");
     addUsageLine("Finally, each frame is generated using poisson distribution.");
@@ -96,7 +96,7 @@ void PhantomMovie<T>::readParams()
     xstep = getIntParam(step_param_ch, 0);
     ystep = getIntParam(step_param_ch, 1);
     thickness = getIntParam("--thickness");
-    gridVal = getDoubleParam("--gridVal");
+    signal_val = getDoubleParam("--signal", 0);
 
     const char *shift_param_ch = shift_param.c_str();
     a1 = getDoubleParam(shift_param_ch, 0);
@@ -113,16 +113,18 @@ void PhantomMovie<T>::readParams()
     skipBarrel = checkParam("--skipBarrel");
     skipShift = checkParam("--skipShift");
     shiftAfterBarrel = checkParam("--shiftAfterBarrel");
-    skipNoise = checkParam("--skipNoise");
+    skipDose = checkParam("--skipDose");
+    skipIce = checkParam("--skipIce");
 
     fn_out = getParam("-o");
 
     seed = getIntParam("--seed");
-    norm_avg = getDoubleParam("--norm", 0);
-    norm_stddev = getDoubleParam("--norm", 1);
-    gauss_avg = getDoubleParam("--gauss", 0);
-    gauss_stddev = getDoubleParam("--gauss", 1);
-    poisson_mean = getDoubleParam("--poisson", 0);
+    ice_avg = getDoubleParam("--ice", 0);
+    ice_stddev = getDoubleParam("--ice", 1);
+    ice_min = getDoubleParam("--ice", 2);
+    ice_max = getDoubleParam("--ice", 3);
+    dose = getDoubleParam("--dose");
+
     low_w1 = getDoubleParam("--low", 0);
     low_raised_w = getDoubleParam("--low", 1);
 }
@@ -189,7 +191,7 @@ void PhantomMovie<T>::addGrid(MultidimArray<T> &frame)
                 for (size_t x = 0; x < frame.xdim; ++x)
                 {
                     size_t index = y_offset + x;
-                    frame.data[index] += gridVal;
+                    frame.data[index] += signal_val;
                 }
             }
         }
@@ -205,7 +207,7 @@ void PhantomMovie<T>::addGrid(MultidimArray<T> &frame)
                 for (size_t y = 0; y < frame.ydim; ++y)
                 {
                     size_t index = x_offset + y * frame.xdim;
-                    frame.data[index] += gridVal;
+                    frame.data[index] += signal_val;
                 }
             }
         }
@@ -256,7 +258,7 @@ void PhantomMovie<T>::generateIce(MultidimArray<T> &frame)
 {
     std::cout << "Generating ice\n";
     std::mt19937 gen(seed);
-    std::normal_distribution<> d(gauss_avg, gauss_stddev);
+    std::normal_distribution<> d(ice_avg, ice_stddev);
     for (size_t i = 0; i < frame.nzyxdim; ++i)
     {
         frame[i] = d(gen);
@@ -264,12 +266,15 @@ void PhantomMovie<T>::generateIce(MultidimArray<T> &frame)
 }
 
 template <typename T>
+template<bool SKIP_DOSE>
 void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame)
 {
     MultidimArray<T> frame(1, 1, req_size.y(), req_size.x());
     float x_center = frame.xdim / (T)2;
     float y_center = frame.ydim / (T)2;
     fn_out.deleteFile();
+    std::mt19937 gen(seed);
+
     for (size_t n = 0; n < req_size.n(); ++n)
     {
         std::cout << "Processing frame " << n << std::endl;
@@ -282,7 +287,11 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame)
                 displace(x_tmp, y_tmp, n);
                 // move coordinate system to center - [0, 0] will be in the center of the frame
                 auto val = bilinearInterpolation(refFrame, x_tmp - x_center, y_tmp - y_center);
-                frame.data[y * frame.xdim + x] = val; // I'm not sure how to use the poisson distribution, as call to dist(gen) expects a generator and returns random non-negative integer values, where we want floating number
+                if (!SKIP_DOSE) {
+                    auto dist = std::poisson_distribution<int>(val * dose);
+                    val = dist(gen);
+                }
+                frame.data[y * frame.xdim + x] = val;
             }
         }
         Image<T> tmp(frame);
@@ -294,14 +303,18 @@ template <typename T>
 void PhantomMovie<T>::run()
 {
     auto refFrame = findWorkSize();
-    if (!skipNoise)
+    if (!skipIce)
     {
         generateIce(refFrame);
         applyLowPass(refFrame);
-        refFrame.statisticsAdjust(norm_avg, norm_stddev);
+        refFrame.rangeAdjust(ice_min, ice_max);
     }
     addGrid(refFrame);
-    generateMovie(refFrame);
+    if (skipDose) {
+        generateMovie<true>(refFrame);
+    } else {
+        generateMovie<false>(refFrame);
+    }
 }
 
 // template class PhantomMovie<float>; // can't be used because the fourier filter doesn't support it
