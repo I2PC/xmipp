@@ -38,22 +38,41 @@
 
 /** Class to organize some useful MPI-functions for ML programs
  * It will also serve as base for those programs*/
+template<typename T>
 class MpiML2DBase
 {
 protected:
     MpiNode *node;
     bool created_node;
     //Reference to the program to be parallelized
-    XmippProgram * program;
-    int seed;
+    T* program;
 
 public:
     /** Read arguments sequentially to avoid concurrency problems */
-    void readMpi(int argc, char **argv);
+    void readMpi(int argc, char **argv) {
+        if (node == nullptr)
+        {
+            node = new MpiNode(argc, argv);
+            created_node = true;
+        }
+        //The following makes the asumption that 'this' also
+        //inherits from an XmippProgram
+        if (!node->isMaster())
+            program->verbose = 0;
+        // Read subsequently to avoid problems in restart procedure
+        for (size_t proc = 0; proc < node->size; ++proc)
+        {
+            if (proc == node->rank)
+                program->read(argc, (const char **)argv);
+            node->barrierWait();
+        }
+        //Send "master" seed to slaves for same randomization
+        MPI_Bcast(&program->seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    }
     /** Default constructor */
-    MpiML2DBase(XmippProgram * prm);
+    MpiML2DBase(T *prm);
     /** Constructor passing the MpiNode */
-    MpiML2DBase(XmippProgram * prm, MpiNode * node);
+    MpiML2DBase(T *prm, MpiNode * node);
 
     MpiML2DBase(const MpiML2DBase &)=delete;
     MpiML2DBase(const MpiML2DBase &&)=delete;
@@ -70,7 +89,7 @@ public:
 ;//end of class MpiML
 
 /** Class to parallelize the ML 2D alignment program */
-class MpiProgML2D: public ProgML2D, public MpiML2DBase
+class MpiProgML2D: public ProgML2D, public MpiML2DBase<MpiProgML2D>
 {
 
 public:
@@ -99,7 +118,7 @@ public:
 ;//end of class MpiProgML2D
 
 /** Class to parallelize the ML 3D refinement program */
-class MpiProgMLRefine3D: public ProgMLRefine3D, public MpiML2DBase
+class MpiProgMLRefine3D: public ProgMLRefine3D, public MpiML2DBase<MpiProgMLRefine3D>
 {
 public:
     /** Constructor */
@@ -125,12 +144,12 @@ public:
     /// Convergency check, only master and broadcast result
     bool checkConvergence() ;
 
-
+    int seed; // unused, but present because this class inherits from MpiML2DBase which expects it
 }
 ;//end of class  MpiProgMLRefine3D
 
 /** Class to parallelize the MLF 2D alignment program */
-class MpiProgMLF2D: public ProgMLF2D, public MpiML2DBase
+class MpiProgMLF2D: public ProgMLF2D, public MpiML2DBase<MpiProgMLF2D>
 {
 public:
     /** Default constructor */

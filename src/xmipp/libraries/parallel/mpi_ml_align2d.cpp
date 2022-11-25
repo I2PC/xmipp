@@ -30,48 +30,30 @@ constexpr int TAG_SEED = 1;
 constexpr int TAG_DOCFILESIZE = 2;
 constexpr int TAG_DOCFILE = 3;
 
-MpiML2DBase::MpiML2DBase(XmippProgram * prm)
+template<typename T>
+MpiML2DBase<T>::MpiML2DBase(T *prm)
 {
     node = nullptr;
     program = prm;
 }
 
-MpiML2DBase::MpiML2DBase(XmippProgram * prm, MpiNode * mpinode)
+template<typename T>
+MpiML2DBase<T>::MpiML2DBase(T *prm, MpiNode * mpinode)
 {
     node = mpinode;
     created_node = false;
     program = prm;
 }
 
-MpiML2DBase::~MpiML2DBase()
+template<typename T>
+MpiML2DBase<T>::~MpiML2DBase()
 {
     if (created_node)
         delete node;
 }
 
-void MpiML2DBase::readMpi(int argc, char** argv)
-{
-    if (node == nullptr)
-    {
-        node = new MpiNode(argc, argv);
-        created_node = true;
-    }
-    //The following makes the asumption that 'this' also
-    //inherits from an XmippProgram
-    if (!node->isMaster())
-        program->verbose = 0;
-    // Read subsequently to avoid problems in restart procedure
-    for (size_t proc = 0; proc < node->size; ++proc)
-    {
-        if (proc == node->rank)
-            program->read(argc, (const char **)argv);
-        node->barrierWait();
-    }
-    //Send "master" seed to slaves for same randomization
-    MPI_Bcast(&this->seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
-}
-
-void MpiML2DBase::sendDocfile(const MultidimArray<double> &docfiledata)
+template<typename T>
+void MpiML2DBase<T>::sendDocfile(const MultidimArray<double> &docfiledata)
 {
 
     // Write intermediate files
