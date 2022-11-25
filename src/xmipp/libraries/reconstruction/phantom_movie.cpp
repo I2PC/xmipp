@@ -134,6 +134,7 @@ T PhantomMovie<T>::bilinearInterpolation(const MultidimArray<T> &src, float x, f
 {
     auto x_center = static_cast<float>(src.xdim) / 2.f;
     auto y_center = static_cast<float>(src.ydim) / 2.f;
+    const auto xdim = static_cast<float>(src.xdim);
     x += x_center;
     y += y_center;
     auto xf = std::floor(x);
@@ -142,10 +143,10 @@ T PhantomMovie<T>::bilinearInterpolation(const MultidimArray<T> &src, float x, f
     auto yc = std::ceil(y);
     auto xw = x - xf;
     auto yw = y - yf;
-    auto vff = src.data[static_cast<size_t>(src.xdim * yf + xf)];
-    auto vfc = src.data[static_cast<size_t>(src.xdim * yc + xf)];
-    auto vcf = src.data[static_cast<size_t>(src.xdim * yf + xc)];
-    auto vcc = src.data[static_cast<size_t>(src.xdim * yc + xc)];
+    auto vff = src.data[static_cast<size_t>(xdim * yf + xf)];
+    auto vfc = src.data[static_cast<size_t>(xdim * yc + xf)];
+    auto vcf = src.data[static_cast<size_t>(xdim * yf + xc)];
+    auto vcc = src.data[static_cast<size_t>(xdim * yc + xc)];
     return vff * (1.f - xw) * (1.f - yw) + vcf * xw * (1.f - yw) + vfc * (1.f - xw) * yw + vcc * xw * yw;
 }
 
@@ -161,10 +162,10 @@ void PhantomMovie<T>::displace(float &x, float &y, size_t n) const
     }
     else
     {
-        auto x_center = req_size.x() / 2.f;
-        auto y_center = req_size.y() / 2.f;
-        auto k1 = k1_start + n * (k1_end - k1_start) / (req_size.n() - 1);
-        auto k2 = k2_start + n * (k2_end - k2_start) / (req_size.n() - 1);
+        auto x_center = static_cast<float>(req_size.x()) / 2.f;
+        auto y_center = static_cast<float>(req_size.y()) / 2.f;
+        auto k1 = k1_start + static_cast<float>(n) * (k1_end - k1_start) / (static_cast<float>(req_size.n()) - 1);
+        auto k2 = k2_start + static_cast<float>(n) * (k2_end - k2_start) / (static_cast<float>(req_size.n()) - 1);
         auto y_norm = (y - y_center + (shiftAfterBarrel ? 0 : y_shift)) / y_center;
         auto x_norm = (x - x_center + (shiftAfterBarrel ? 0 : x_shift)) / x_center;
         auto r_out = sqrt(x_norm * x_norm + y_norm * y_norm);
@@ -234,7 +235,7 @@ MultidimArray<T> PhantomMovie<T>::findWorkSize()
     auto x_new = req_size.x() + 2 * static_cast<size_t>(std::ceil(x_max_shift));
     auto y_new = req_size.y() + 2 * static_cast<size_t>(std::ceil(y_max_shift));
     printf("Due to displacement, working with frames of size [%lu, %lu]\n", x_new, y_new);
-    return MultidimArray<T>(1, 1, y_new, x_new);
+    return MultidimArray<T>(1, 1, static_cast<int>(y_new), static_cast<int>(x_new));
 }
 
 template <typename T>
@@ -265,20 +266,18 @@ template <typename T>
 template<bool SKIP_DOSE>
 void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
 {
-    MultidimArray<T> frame(1, 1, req_size.y(), req_size.x());
+    MultidimArray<T> frame(1, 1, static_cast<int>(req_size.y()), static_cast<int>(req_size.x()));
     fn_out.deleteFile();
     std::mt19937 gen(seed);
 
     auto genFrame = [&frame, &refFrame, &gen, this](auto n) {
-        float x_center = frame.xdim / (T)2;
-        float y_center = frame.ydim / (T)2;
+        float x_center = frame.xdim / 2.f;
+        float y_center = frame.ydim / 2.f;
         std::cout << "Processing frame " << n << std::endl;
-        for (size_t y = 0; y < req_size.y(); ++y)
-        {
-            for (size_t x = 0; x < req_size.x(); ++x)
-            {
-                float x_tmp = x;
-                float y_tmp = y;
+        for (size_t y = 0; y < req_size.y(); ++y) {
+            for (size_t x = 0; x < req_size.x(); ++x) {
+                auto x_tmp = static_cast<float>(x);
+                auto y_tmp = static_cast<float>(y);
                 displace(x_tmp, y_tmp, n);
                 // move coordinate system to center - [0, 0] will be in the center of the frame
                 auto val = bilinearInterpolation(refFrame, x_tmp - x_center, y_tmp - y_center);
@@ -289,13 +288,13 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
                 frame.data[y * frame.xdim + x] = val;
             }
         }
-        Image<T> tmp(frame);
-        tmp.write(fn_out, n + 1, true, WRITE_REPLACE);
     };
 
     for (size_t n = 0; n < req_size.n(); ++n)
     {
         genFrame(n);
+        Image<T> tmp(frame);
+        tmp.write(fn_out, n + 1, true, WRITE_REPLACE);
     }
 }
 

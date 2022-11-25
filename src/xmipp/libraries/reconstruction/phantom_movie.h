@@ -50,8 +50,14 @@ public:
 private:
     void addGrid(MultidimArray<T> &movie);
     T bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const;
-    auto shiftX(size_t t) const { return a1 * t + a2 * t * t + std::cos(t / 10.f) / 10.f; };
-    auto shiftY(size_t t) const { return b1 * t + b2 * t * t + (std::sin(t * t)) / 5.f; };
+    auto shiftX(size_t t) const { 
+        const auto tf = static_cast<float>(t);
+        return a1 * tf + a2 * tf * tf + std::cos(tf / 10.f) / 10.f; 
+    };
+    auto shiftY(size_t t) const { 
+        const auto tf = static_cast<float>(t);
+        return b1 * tf + b2 * tf * tf + (std::sin(tf * tf)) / 5.f; 
+    };
 
     void generateIce(MultidimArray<T> &frame) const;
     template<bool SKIP_DOSE>
