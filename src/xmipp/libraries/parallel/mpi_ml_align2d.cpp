@@ -68,7 +68,7 @@ void MpiML2DBase::readMpi(int argc, char** argv)
         node->barrierWait();
     }
     //Send "master" seed to slaves for same randomization
-    MPI_Bcast(&program->seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&this->seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
 }
 
 void MpiML2DBase::sendDocfile(const MultidimArray<double> &docfiledata)

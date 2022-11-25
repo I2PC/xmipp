@@ -45,6 +45,7 @@ protected:
     bool created_node;
     //Reference to the program to be parallelized
     XmippProgram * program;
+    int seed;
 
 public:
     /** Read arguments sequentially to avoid concurrency problems */
