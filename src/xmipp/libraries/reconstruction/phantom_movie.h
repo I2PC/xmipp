@@ -23,30 +23,21 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef PHANTOM_MOVIE_H_
-#define PHANTOM_MOVIE_H_
+#pragma once
 
-#include "core/xmipp_program.h"
-#include "core/multidim_array.h"
 #include "core/xmipp_filename.h"
 #include "data/dimensions.h"
+
+template <typename T>
+class MultidimArray;
 
 /**@defgroup PhantomMovie Phantom Movie
    @ingroup ReconsLibrary */
 //@{
 template <typename T>
-class PhantomMovie final : public XmippProgram
+class PhantomMovie final
 {
 public:
-    /** Read parameters. */
-    void readParams();
-
-    /** Define parameters */
-    void defineParams();
-
-    /** Run */
-    void run();
-
     struct DisplacementParams
     {
         float a1;
@@ -66,7 +57,7 @@ public:
         static constexpr auto barrel_param = "--barrel";
     };
 
-    struct Options 
+    struct Options
     {
         bool skipBarrel;
         bool skipShift;
@@ -93,35 +84,31 @@ public:
         static constexpr auto step_param = "-step";
     };
 
-private:
-    void addGrid(MultidimArray<T> &movie);
-    T bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const;
-    auto shiftX(size_t t) const { 
-        const auto tf = static_cast<float>(t);
-        return dispParams.a1 * tf + dispParams.a2 * tf * tf + std::cos(tf / 10.f) / 10.f; 
-    };
-    auto shiftY(size_t t) const { 
-        const auto tf = static_cast<float>(t);
-        return dispParams.b1 * tf + dispParams.b2 * tf * tf + (std::sin(tf * tf)) / 5.f; 
+    struct Params
+    {
+        Dimensions req_size = Dimensions(1);
+        Dimensions work_size = Dimensions(1);
+        FileName fn_out;
     };
 
+    PhantomMovie(DisplacementParams dp, Options o, Content c, Params p) : params(p), dispParams(dp), options(o), content(c) {}
+
+    void run() const;
+
+private:
+    void addGrid(MultidimArray<T> &movie) const;
+    T bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const;
+    auto shiftX(size_t t) const;
+    auto shiftY(size_t t) const;
     void generateIce(MultidimArray<T> &frame) const;
-    template<bool SKIP_DOSE>
+    template <bool SKIP_DOSE>
     void generateMovie(const MultidimArray<T> &refFrame) const;
     void applyLowPass(MultidimArray<T> &frame) const;
-
     void displace(float &x, float &y, size_t n) const;
-    MultidimArray<T> findWorkSize();
-    Dimensions req_size = Dimensions(1);
-    Dimensions work_size = Dimensions(1);
+    MultidimArray<T> findWorkSize() const;
 
-    DisplacementParams dispParams;
-    Options options;
-    Content content;
-
-
-    FileName fn_out;
+    const Params params;
+    const DisplacementParams dispParams;
+    const Options options;
+    const Content content;
 };
-
-//@}
-#endif /* PHANTOM_MOVIE_H_ */
