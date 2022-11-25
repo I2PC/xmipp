@@ -45,7 +45,7 @@ private:
                       " Value of the grid pixels, either noiseless or mean for the Poisson distribution");
         addParamsLine(std::string("[") + DisplacementParams::shift_param + " <a1=-0.039> <a2=0.002> <b1=-0.02> <b2=0.002>]:"
                                                                            " Parameters of the shift. To see the result, we encourage you to use script attached with source files!");
-        addParamsLine(std::string("[") + DisplacementParams::barrel_param + " <k1_start=0.03> <k1_end=0.04> <k2_start=0.01> <k2_end=0.012>]:"
+        addParamsLine(std::string("[") + DisplacementParams::barrel_param + " <k1_start=0.01> <k1_end=0.015> <k2_start=0.01> <k2_end=0.015>]:"
                                                                             " Parameters of the barrel / pincushion transformation.");
         addParamsLine("-o <output_file>                                      :"
                       " resulting movie");

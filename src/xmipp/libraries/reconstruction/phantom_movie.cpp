@@ -148,7 +148,7 @@ MultidimArray<T> PhantomMovie<T>::findWorkSize() const
     // the shift might not be uniform, so the safer solution is to have the bigger gap on both sides
     auto x_new = params.req_size.x() + 2 * static_cast<size_t>(std::ceil(x_max_shift));
     auto y_new = params.req_size.y() + 2 * static_cast<size_t>(std::ceil(y_max_shift));
-    printf("Due to displacement, working with frames of size [%lu, %lu]\n", x_new, y_new);
+    std::cout << "Due to displacement, working with frames of size [" << x_new << ", " << y_new << "%]\n";
     return MultidimArray<T>(1, 1, static_cast<int>(y_new), static_cast<int>(x_new));
 }
 
@@ -170,7 +170,8 @@ void PhantomMovie<T>::generateIce(MultidimArray<T> &frame) const
     std::cout << "Generating ice\n";
     std::mt19937 gen(content.seed);
     std::normal_distribution<> d(content.ice_avg, content.ice_stddev);
-    for (size_t i = 0; i < frame.nzyxdim; ++i)
+    const auto nzyxdim = frame.nzyxdim;
+    for (size_t i = 0; i < nzyxdim; ++i)
     {
         frame[i] = d(gen);
     }
@@ -189,17 +190,14 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
         float x_center = static_cast<float>(frame.xdim) / 2.f;
         float y_center = static_cast<float>(frame.ydim) / 2.f;
         std::cout << "Processing frame " << n << std::endl;
-        for (size_t y = 0; y < params.req_size.y(); ++y)
-        {
-            for (size_t x = 0; x < params.req_size.x(); ++x)
-            {
+        for (size_t y = 0; y < params.req_size.y(); ++y) {
+            for (size_t x = 0; x < params.req_size.x(); ++x) {
                 auto x_tmp = static_cast<float>(x);
                 auto y_tmp = static_cast<float>(y);
                 displace(x_tmp, y_tmp, n);
                 // move coordinate system to center - [0, 0] will be in the center of the frame
                 auto val = bilinearInterpolation(refFrame, x_tmp - x_center, y_tmp - y_center);
-                if (!SKIP_DOSE)
-                {
+                if (!SKIP_DOSE) {
                     auto dist = std::poisson_distribution<int>(val * content.dose);
                     val = dist(gen);
                 }
