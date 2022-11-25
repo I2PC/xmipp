@@ -177,13 +177,15 @@ template <typename T>
 void PhantomMovie<T>::addGrid(MultidimArray<T> &frame)
 {
     std::cout << "Generating grid" << std::endl;
+    const auto xdim = frame.xdim;
+    const auto ydim = frame.ydim;
     // add rows
-    for (auto y = content.ystep - (content.thickness / 2); y < frame.ydim - (content.thickness / 2) + 1; y += content.ystep)
+    for (auto y = content.ystep - (content.thickness / 2); y < ydim - (content.thickness / 2) + 1; y += content.ystep)
     {
         for (auto t = 0; t < content.thickness; ++t)
         {
-            size_t y_offset = (y + t) * frame.xdim;
-            for (size_t x = 0; x < frame.xdim; ++x)
+            size_t y_offset = (y + t) * xdim;
+            for (size_t x = 0; x < xdim; ++x)
             {
                 size_t index = y_offset + x;
                 frame.data[index] += content.signal_val;
@@ -191,14 +193,14 @@ void PhantomMovie<T>::addGrid(MultidimArray<T> &frame)
         }
     }
     // add columns
-    for (auto x = content.xstep; x < frame.xdim- (content.thickness / 2) + 1; x += content.xstep)
+    for (auto x = content.xstep; x < xdim- (content.thickness / 2) + 1; x += content.xstep)
     {
         for (int t = 0; t < content.thickness; ++t)
         {
             size_t x_offset = (x + t);
-            for (size_t y = 0; y < frame.ydim; ++y)
+            for (size_t y = 0; y < ydim; ++y)
             {
-                size_t index = x_offset + y * frame.xdim;
+                size_t index = x_offset + y * xdim;
                 frame.data[index] += content.signal_val;
             }
         }
@@ -267,8 +269,8 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
     std::mt19937 gen(seed);
 
     auto genFrame = [&frame, &refFrame, &gen, this](auto n) {
-        float x_center = frame.xdim / 2.f;
-        float y_center = frame.ydim / 2.f;
+        float x_center = static_cast<float>(frame.xdim) / 2.f;
+        float y_center = static_cast<float>(frame.ydim) / 2.f;
         std::cout << "Processing frame " << n << std::endl;
         for (size_t y = 0; y < req_size.y(); ++y) {
             for (size_t x = 0; x < req_size.x(); ++x) {
