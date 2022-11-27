@@ -285,6 +285,92 @@ namespace {
 		return std::make_tuple(coordinatesCuda, coordinates.size(), valuesCuda);
 	}
 
+	template<typename T>
+	std::tuple<unsigned *, size_t> filterMaskTransportCoordinatesSubsquares(MultidimArray<T> &mask,
+																			int step,
+																			int perimeter)
+
+	{
+		unsigned startX = (perimeter % 2) * mask.xdim / 2;
+		unsigned endX = mask.xdim - ((perimeter + 1) % 2) * ceil((float)mask.xdim / 2);
+		unsigned startY = (perimeter / 2 % 2) * mask.ydim / 2;
+		unsigned endY = mask.ydim - ((perimeter + 2) / 2 % 2) * ceil((float)mask.ydim / 2);
+		unsigned startZ = (perimeter / 4 % 2) * mask.zdim / 2;
+		unsigned endZ = mask.zdim - ((perimeter + 4) / 4 % 2) * ceil((float)mask.zdim / 2);
+		std::vector<unsigned> coordinates;
+		for (unsigned x = startX; x < endX; x++) {
+			for (unsigned y = startY; y < endY; y++) {
+				for (unsigned z = startZ; z < endZ; z++) {
+					unsigned xyz = x + y * mask.ydim + z * mask.yxdim;
+					if (checkStep(mask, step, static_cast<size_t>(xyz))) {
+						coordinates.push_back(xyz);
+					}
+				}
+			}
+		}
+		unsigned *coordinatesCuda = transportStdVectorToGpu(coordinates);
+		return std::make_tuple(coordinatesCuda, coordinates.size());
+	}
+
+	template<typename T>
+	std::tuple<unsigned *, size_t, int *> filterMaskTransportCoordinatesSubsquares(MultidimArray<T> &mask,
+																				   int step,
+																				   bool transportValues,
+																				   int perimeter)
+
+	{
+		unsigned startX = (perimeter % 2) * mask.xdim / 2;
+		unsigned endX = mask.xdim - ((perimeter + 1) % 2) * ceil((float)mask.xdim / 2);
+		unsigned startY = (perimeter / 2 % 2) * mask.ydim / 2;
+		unsigned endY = mask.ydim - ((perimeter + 2) / 2 % 2) * ceil((float)mask.ydim / 2);
+		unsigned startZ = (perimeter / 4 % 2) * mask.zdim / 2;
+		unsigned endZ = mask.zdim - ((perimeter + 4) / 4 % 2) * ceil((float)mask.zdim / 2);
+		std::vector<unsigned> coordinates;
+		std::vector<T> values;
+		for (unsigned x = startX; x < endX; x++) {
+			for (unsigned y = startY; y < endY; y++) {
+				for (unsigned z = startZ; z < endZ; z++) {
+					unsigned xyz = x + y * mask.ydim + z * mask.yxdim;
+					if (checkStep(mask, step, static_cast<size_t>(xyz))) {
+						coordinates.push_back(xyz);
+						if (transportValues) {
+							values.push_back(mask[xyz]);
+						}
+					}
+				}
+			}
+		}
+		unsigned *coordinatesCuda = transportStdVectorToGpu(coordinates);
+		int *valuesCuda = transportStdVectorToGpu(values);
+		return std::make_tuple(coordinatesCuda, coordinates.size(), valuesCuda);
+	}
+
+	template<typename T>
+	void fillBlockGridSubsquares(unsigned *cudaCoordinatesBX,
+								 size_t &sizeBX,
+								 MultidimArray<int> &VRecMaskB,
+								 size_t &blockXX,
+								 size_t &gridXX,
+								 unsigned *cudaCoordinatesFX,
+								 size_t &sizeFX,
+								 int *VRecMaskFX,
+								 MultidimArray<int> &VRecMaskF,
+								 int loopStep,
+								 size_t &blockXXStep,
+								 size_t &gridXXStep,
+								 int perimeter)
+	{
+		std::tie(cudaCoordinatesBX, sizeBX) = filterMaskTransportCoordinatesSubsquares(VRecMaskB, 1, perimeter);
+		auto optimalizedSize = ceil(sizeBX / BLOCK_SIZE) * BLOCK_SIZE;
+		blockXX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
+		gridXX = optimalizedSize / blockXX;
+		std::tie(cudaCoordinatesFX, sizeFX, VRecMaskFX) =
+			filterMaskTransportCoordinatesSubsquares(VRecMaskF, loopStep, true, perimeter);
+		optimalizedSize = ceil(sizeFX / BLOCK_SIZE) * BLOCK_SIZE;
+		blockXXStep = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
+		gridXXStep = optimalizedSize / blockXXStep;
+	}
+
 }  // namespace
 
 template<typename PrecisionType>
@@ -306,15 +392,110 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  xdimF(parameters.VRecMaskF.xdim),
 	  ydimF(parameters.VRecMaskF.ydim)
 {
-	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
-	auto optimalizedSize = ceil(sizeB / BLOCK_SIZE) * BLOCK_SIZE;
-	blockX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
-	gridX = optimalizedSize / blockX;
-	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
-		filterMaskTransportCoordinates(parameters.VRecMaskF, parameters.loopStep, true);
-	optimalizedSize = ceil(sizeF / BLOCK_SIZE) * BLOCK_SIZE;
-	blockXStep = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
-	gridXStep = optimalizedSize / blockXStep;
+	fillBlockGridSubsquares(cudaCoordinatesB0,
+							sizeB0,
+							parameters.VRecMaskB,
+							blockX0,
+							gridX0,
+							cudaCoordinatesF0,
+							sizeF0,
+							VRecMaskF0,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep0,
+							gridXStep0,
+							0);
+	fillBlockGridSubsquares(cudaCoordinatesB1,
+							sizeB1,
+							parameters.VRecMaskB,
+							blockX1,
+							gridX1,
+							cudaCoordinatesF1,
+							sizeF1,
+							VRecMaskF1,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep1,
+							gridXStep1,
+							1);
+	fillBlockGridSubsquares(cudaCoordinatesB2,
+							sizeB2,
+							parameters.VRecMaskB,
+							blockX2,
+							gridX2,
+							cudaCoordinatesF2,
+							sizeF2,
+							VRecMaskF2,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep2,
+							gridXStep2,
+							2);
+	fillBlockGridSubsquares(cudaCoordinatesB3,
+							sizeB3,
+							parameters.VRecMaskB,
+							blockX3,
+							gridX3,
+							cudaCoordinatesF3,
+							sizeF3,
+							VRecMaskF3,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep3,
+							gridXStep3,
+							3);
+	fillBlockGridSubsquares(cudaCoordinatesB4,
+							sizeB4,
+							parameters.VRecMaskB,
+							blockX4,
+							gridX4,
+							cudaCoordinatesF4,
+							sizeF4,
+							VRecMaskF4,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep4,
+							gridXStep4,
+							4);
+	fillBlockGridSubsquares(cudaCoordinatesB5,
+							sizeB5,
+							parameters.VRecMaskB,
+							blockX5,
+							gridX5,
+							cudaCoordinatesF5,
+							sizeF5,
+							VRecMaskF5,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep5,
+							gridXStep5,
+							5);
+	fillBlockGridSubsquares(cudaCoordinatesB6,
+							sizeB6,
+							parameters.VRecMaskB,
+							blockX6,
+							gridX6,
+							cudaCoordinatesF6,
+							sizeF6,
+							VRecMaskF6,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep6,
+							gridXStep6,
+							6);
+	fillBlockGridSubsquares(cudaCoordinatesB7,
+							sizeB7,
+							parameters.VRecMaskB,
+							blockX7,
+							gridX7,
+							cudaCoordinatesF7,
+							sizeF7,
+							VRecMaskF7,
+							parameters.VRecMaskF,
+							parameters.loopStep,
+							blockXStep7,
+							gridXStep7,
+							7);
 }
 
 template<typename PrecisionType>
@@ -347,31 +528,220 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	forwardKernel<PrecisionType, usesZernike><<<gridXStep, blockXStep>>>(cudaMV,
-																		 VRecMaskF,
-																		 cudaCoordinatesF,
-																		 xdimF,
-																		 ydimF,
-																		 static_cast<unsigned>(sizeF),
-																		 cudaP,
-																		 cudaW,
-																		 sigma_size,
-																		 cudaSigma,
-																		 commonParameters.iRmaxF,
-																		 static_cast<unsigned>(commonParameters.idxY0),
-																		 static_cast<unsigned>(commonParameters.idxZ0),
-																		 cudaVL1,
-																		 cudaVN,
-																		 cudaVL2,
-																		 cudaVM,
-																		 commonParameters.cudaClnm,
-																		 commonParameters.R.mdata[0],
-																		 commonParameters.R.mdata[1],
-																		 commonParameters.R.mdata[2],
-																		 commonParameters.R.mdata[3],
-																		 commonParameters.R.mdata[4],
-																		 commonParameters.R.mdata[5]);
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep0, blockXStep0>>>(cudaMV,
+									  VRecMaskF0,
+									  cudaCoordinatesF0,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF0),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
 
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep1, blockXStep1>>>(cudaMV,
+									  VRecMaskF1,
+									  cudaCoordinatesF1,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF1),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
+
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep2, blockXStep2>>>(cudaMV,
+									  VRecMaskF2,
+									  cudaCoordinatesF2,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF2),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
+
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep3, blockXStep3>>>(cudaMV,
+									  VRecMaskF3,
+									  cudaCoordinatesF3,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF3),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
+
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep4, blockXStep4>>>(cudaMV,
+									  VRecMaskF4,
+									  cudaCoordinatesF4,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF4),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
+
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep5, blockXStep5>>>(cudaMV,
+									  VRecMaskF5,
+									  cudaCoordinatesF5,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF5),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
+
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep6, blockXStep6>>>(cudaMV,
+									  VRecMaskF6,
+									  cudaCoordinatesF6,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF6),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
+	cudaDeviceSynchronize();
+
+	forwardKernel<PrecisionType, usesZernike>
+		<<<gridXStep7, blockXStep7>>>(cudaMV,
+									  VRecMaskF7,
+									  cudaCoordinatesF7,
+									  xdimF,
+									  ydimF,
+									  static_cast<unsigned>(sizeF7),
+									  cudaP,
+									  cudaW,
+									  sigma_size,
+									  cudaSigma,
+									  commonParameters.iRmaxF,
+									  static_cast<unsigned>(commonParameters.idxY0),
+									  static_cast<unsigned>(commonParameters.idxZ0),
+									  cudaVL1,
+									  cudaVN,
+									  cudaVL2,
+									  cudaVM,
+									  commonParameters.cudaClnm,
+									  commonParameters.R.mdata[0],
+									  commonParameters.R.mdata[1],
+									  commonParameters.R.mdata[2],
+									  commonParameters.R.mdata[3],
+									  commonParameters.R.mdata[4],
+									  commonParameters.R.mdata[5]);
 	cudaDeviceSynchronize();
 
 	updateVectorOfMultidimArrayWithGPUData(parameters.P, pVector);
@@ -398,30 +768,219 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
-																  cudaCoordinatesB,
-																  xdimB,
-																  ydimB,
-																  static_cast<unsigned>(sizeB),
-																  commonParameters.iRmaxF,
-																  static_cast<unsigned>(commonParameters.idxY0),
-																  static_cast<unsigned>(commonParameters.idxZ0),
-																  cudaVL1,
-																  cudaVN,
-																  cudaVL2,
-																  cudaVM,
-																  commonParameters.cudaClnm,
-																  commonParameters.R.mdata[0],
-																  commonParameters.R.mdata[1],
-																  commonParameters.R.mdata[2],
-																  commonParameters.R.mdata[3],
-																  commonParameters.R.mdata[4],
-																  commonParameters.R.mdata[5],
-																  mIdTexture,
-																  mId.xinit,
-																  mId.yinit,
-																  static_cast<int>(mId.xdim),
-																  static_cast<int>(mId.ydim));
+	backwardKernel<PrecisionType, usesZernike><<<gridX0, blockX0>>>(cudaMV,
+																	cudaCoordinatesB0,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB0),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX1, blockX1>>>(cudaMV,
+																	cudaCoordinatesB1,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB1),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX2, blockX2>>>(cudaMV,
+																	cudaCoordinatesB2,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB2),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX3, blockX3>>>(cudaMV,
+																	cudaCoordinatesB3,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB3),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX4, blockX4>>>(cudaMV,
+																	cudaCoordinatesB4,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB4),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX5, blockX5>>>(cudaMV,
+																	cudaCoordinatesB5,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB5),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX6, blockX6>>>(cudaMV,
+																	cudaCoordinatesB6,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB6),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
+
+	cudaDeviceSynchronize();
+
+	backwardKernel<PrecisionType, usesZernike><<<gridX7, blockX7>>>(cudaMV,
+																	cudaCoordinatesB7,
+																	xdimB,
+																	ydimB,
+																	static_cast<unsigned>(sizeB7),
+																	commonParameters.iRmaxF,
+																	static_cast<unsigned>(commonParameters.idxY0),
+																	static_cast<unsigned>(commonParameters.idxZ0),
+																	cudaVL1,
+																	cudaVN,
+																	cudaVL2,
+																	cudaVM,
+																	commonParameters.cudaClnm,
+																	commonParameters.R.mdata[0],
+																	commonParameters.R.mdata[1],
+																	commonParameters.R.mdata[2],
+																	commonParameters.R.mdata[3],
+																	commonParameters.R.mdata[4],
+																	commonParameters.R.mdata[5],
+																	mIdTexture,
+																	mId.xinit,
+																	mId.yinit,
+																	static_cast<int>(mId.xdim),
+																	static_cast<int>(mId.ydim));
 
 	cudaDeviceSynchronize();
 

@@ -105,21 +105,36 @@ class Program {
 
 	const PrecisionType *cudaSigma;
 
-	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
+	size_t blockXX, blockY, blockZ, gridXX, gridY, gridZ;
 
-	size_t blockXStep, gridXStep;
+	size_t blockX0, blockX1, blockX2, blockX3, blockX4, blockX5, blockX6, blockX7;
 
-	int *VRecMaskF;
+	size_t gridX0, gridX1, gridX2, gridX3, gridX4, gridX5, gridX6, gridX7;
+
+	size_t blockXStep0, blockXStep1, blockXStep2, blockXStep3, blockXStep4, blockXStep5, blockXStep6, blockXStep7;
+
+	size_t gridXStep0, gridXStep1, gridXStep2, gridXStep3, gridXStep4, gridXStep5, gridXStep6, gridXStep7;
+
+	size_t blockXXStep, gridXXStep;
+
+	int *VRecMaskF0, *VRecMaskF1, *VRecMaskF2, *VRecMaskF3, *VRecMaskF4, *VRecMaskF5, *VRecMaskF6, *VRecMaskF7,
+		*VRecMaskF8;
 
 	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
 
+	unsigned *cudaCoordinatesB0, *cudaCoordinatesB1, *cudaCoordinatesB2, *cudaCoordinatesB3, *cudaCoordinatesB4,
+		*cudaCoordinatesB5, *cudaCoordinatesB6, *cudaCoordinatesB7;
+
+	unsigned *cudaCoordinatesF0, *cudaCoordinatesF1, *cudaCoordinatesF2, *cudaCoordinatesF3, *cudaCoordinatesF4,
+		*cudaCoordinatesF5, *cudaCoordinatesF6, *cudaCoordinatesF7;
+
 	const unsigned xdimB, ydimB;
 
-	size_t sizeB;
+	size_t sizeB0, sizeB1, sizeB2, sizeB3, sizeB4, sizeB5, sizeB6, sizeB7;
 
 	const int xdimF, ydimF;
 
-	size_t sizeF;
+	size_t sizeF0, sizeF1, sizeF2, sizeF3, sizeF4, sizeF5, sizeF6, sizeF7;
 };
 
 }  // namespace cuda_forward_art_zernike3D
