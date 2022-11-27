@@ -345,29 +345,28 @@ namespace {
 		return std::make_tuple(coordinatesCuda, coordinates.size(), valuesCuda);
 	}
 
-	void fillBlockGridSubsquares(unsigned *cudaCoordinatesBX,
-								 size_t &sizeBX,
-								 MultidimArray<int> &VRecMaskB,
-								 size_t &blockXX,
-								 size_t &gridXX,
-								 unsigned *cudaCoordinatesFX,
-								 size_t &sizeFX,
-								 int *VRecMaskFX,
-								 MultidimArray<int> &VRecMaskF,
-								 const int loopStep,
-								 size_t &blockXXStep,
-								 size_t &gridXXStep,
-								 int perimeter)
+	std::tuple<unsigned *, size_t, size_t, size_t, unsigned *, size_t, int *, size_t, size_t> fillBlockGridSubsquares(
+		MultidimArray<int> &VRecMaskB,
+		MultidimArray<int> &VRecMaskF,
+		const int loopStep,
+		int perimeter)
 	{
+		unsigned *cudaCoordinatesBX;
+		size_t sizeBX;
+		unsigned *cudaCoordinatesFX;
+		size_t sizeFX;
+		int *VRecMaskFX;
 		std::tie(cudaCoordinatesBX, sizeBX) = filterMaskTransportCoordinatesSubsquares(VRecMaskB, 1, perimeter);
 		auto optimalizedSize = ceil(sizeBX / BLOCK_SIZE) * BLOCK_SIZE;
-		blockXX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
-		gridXX = optimalizedSize / blockXX;
+		size_t blockXX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
+		size_t gridXX = optimalizedSize / blockXX;
 		std::tie(cudaCoordinatesFX, sizeFX, VRecMaskFX) =
 			filterMaskTransportCoordinatesSubsquares(VRecMaskF, loopStep, true, perimeter);
 		optimalizedSize = ceil(sizeFX / BLOCK_SIZE) * BLOCK_SIZE;
-		blockXXStep = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
-		gridXXStep = optimalizedSize / blockXXStep;
+		size_t blockXXStep = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
+		size_t gridXXStep = optimalizedSize / blockXXStep;
+		return std::make_tuple(
+			cudaCoordinatesBX, sizeBX, blockXX, gridXX, cudaCoordinatesFX, sizeFX, VRecMaskFX, blockXXStep, gridXXStep);
 	}
 
 }  // namespace
@@ -391,110 +390,30 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  xdimF(parameters.VRecMaskF.xdim),
 	  ydimF(parameters.VRecMaskF.ydim)
 {
-	fillBlockGridSubsquares(cudaCoordinatesB0,
-							sizeB0,
-							parameters.VRecMaskB,
-							blockX0,
-							gridX0,
-							cudaCoordinatesF0,
-							sizeF0,
-							VRecMaskF0,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep0,
-							gridXStep0,
-							0);
-	fillBlockGridSubsquares(cudaCoordinatesB1,
-							sizeB1,
-							parameters.VRecMaskB,
-							blockX1,
-							gridX1,
-							cudaCoordinatesF1,
-							sizeF1,
-							VRecMaskF1,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep1,
-							gridXStep1,
-							1);
-	fillBlockGridSubsquares(cudaCoordinatesB2,
-							sizeB2,
-							parameters.VRecMaskB,
-							blockX2,
-							gridX2,
-							cudaCoordinatesF2,
-							sizeF2,
-							VRecMaskF2,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep2,
-							gridXStep2,
-							2);
-	fillBlockGridSubsquares(cudaCoordinatesB3,
-							sizeB3,
-							parameters.VRecMaskB,
-							blockX3,
-							gridX3,
-							cudaCoordinatesF3,
-							sizeF3,
-							VRecMaskF3,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep3,
-							gridXStep3,
-							3);
-	fillBlockGridSubsquares(cudaCoordinatesB4,
-							sizeB4,
-							parameters.VRecMaskB,
-							blockX4,
-							gridX4,
-							cudaCoordinatesF4,
-							sizeF4,
-							VRecMaskF4,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep4,
-							gridXStep4,
-							4);
-	fillBlockGridSubsquares(cudaCoordinatesB5,
-							sizeB5,
-							parameters.VRecMaskB,
-							blockX5,
-							gridX5,
-							cudaCoordinatesF5,
-							sizeF5,
-							VRecMaskF5,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep5,
-							gridXStep5,
-							5);
-	fillBlockGridSubsquares(cudaCoordinatesB6,
-							sizeB6,
-							parameters.VRecMaskB,
-							blockX6,
-							gridX6,
-							cudaCoordinatesF6,
-							sizeF6,
-							VRecMaskF6,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep6,
-							gridXStep6,
-							6);
-	fillBlockGridSubsquares(cudaCoordinatesB7,
-							sizeB7,
-							parameters.VRecMaskB,
-							blockX7,
-							gridX7,
-							cudaCoordinatesF7,
-							sizeF7,
-							VRecMaskF7,
-							parameters.VRecMaskF,
-							parameters.loopStep,
-							blockXStep7,
-							gridXStep7,
-							7);
+	std::tie(
+		cudaCoordinatesB0, sizeB0, blockX0, gridX0, cudaCoordinatesF0, sizeF0, VRecMaskF0, blockXStep0, gridXStep0) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 0);
+	std::tie(
+		cudaCoordinatesB1, sizeB1, blockX1, gridX1, cudaCoordinatesF1, sizeF1, VRecMaskF1, blockXStep1, gridXStep1) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 1);
+	std::tie(
+		cudaCoordinatesB2, sizeB2, blockX2, gridX2, cudaCoordinatesF2, sizeF2, VRecMaskF2, blockXStep2, gridXStep2) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 2);
+	std::tie(
+		cudaCoordinatesB3, sizeB3, blockX3, gridX3, cudaCoordinatesF3, sizeF3, VRecMaskF3, blockXStep3, gridXStep3) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 3);
+	std::tie(
+		cudaCoordinatesB4, sizeB4, blockX4, gridX4, cudaCoordinatesF4, sizeF4, VRecMaskF4, blockXStep4, gridXStep4) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 4);
+	std::tie(
+		cudaCoordinatesB5, sizeB5, blockX5, gridX5, cudaCoordinatesF5, sizeF5, VRecMaskF5, blockXStep5, gridXStep5) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 5);
+	std::tie(
+		cudaCoordinatesB6, sizeB6, blockX6, gridX6, cudaCoordinatesF6, sizeF6, VRecMaskF6, blockXStep6, gridXStep6) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 6);
+	std::tie(
+		cudaCoordinatesB7, sizeB7, blockX7, gridX7, cudaCoordinatesF7, sizeF7, VRecMaskF7, blockXStep7, gridXStep7) =
+		fillBlockGridSubsquares(parameters.VRecMaskB, parameters.VRecMaskF, parameters.loopStep, 7);
 }
 
 template<typename PrecisionType>
