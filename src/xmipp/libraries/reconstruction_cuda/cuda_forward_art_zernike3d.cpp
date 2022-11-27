@@ -345,7 +345,6 @@ namespace {
 		return std::make_tuple(coordinatesCuda, coordinates.size(), valuesCuda);
 	}
 
-	template<typename T>
 	void fillBlockGridSubsquares(unsigned *cudaCoordinatesBX,
 								 size_t &sizeBX,
 								 MultidimArray<int> &VRecMaskB,
@@ -355,7 +354,7 @@ namespace {
 								 size_t &sizeFX,
 								 int *VRecMaskFX,
 								 MultidimArray<int> &VRecMaskF,
-								 int loopStep,
+								 const int loopStep,
 								 size_t &blockXXStep,
 								 size_t &gridXXStep,
 								 int perimeter)
