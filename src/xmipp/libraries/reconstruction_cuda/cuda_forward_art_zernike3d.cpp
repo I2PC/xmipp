@@ -500,10 +500,31 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
-	cudaFree(VRecMaskF);
+	cudaFree(VRecMaskF0);
+	cudaFree(VRecMaskF1);
+	cudaFree(VRecMaskF2);
+	cudaFree(VRecMaskF3);
+	cudaFree(VRecMaskF4);
+	cudaFree(VRecMaskF5);
+	cudaFree(VRecMaskF6);
+	cudaFree(VRecMaskF7);
 	cudaFree(cudaMV.data);
-	cudaFree(cudaCoordinatesB);
-	cudaFree(cudaCoordinatesF);
+	cudaFree(cudaCoordinatesB0);
+	cudaFree(cudaCoordinatesB1);
+	cudaFree(cudaCoordinatesB2);
+	cudaFree(cudaCoordinatesB3);
+	cudaFree(cudaCoordinatesB4);
+	cudaFree(cudaCoordinatesB5);
+	cudaFree(cudaCoordinatesB6);
+	cudaFree(cudaCoordinatesB7);
+	cudaFree(cudaCoordinatesF0);
+	cudaFree(cudaCoordinatesF1);
+	cudaFree(cudaCoordinatesF2);
+	cudaFree(cudaCoordinatesF3);
+	cudaFree(cudaCoordinatesF4);
+	cudaFree(cudaCoordinatesF5);
+	cudaFree(cudaCoordinatesF6);
+	cudaFree(cudaCoordinatesF7);
 	cudaFree(const_cast<PrecisionType *>(cudaSigma));
 
 	cudaFree(const_cast<int *>(cudaVL1));
