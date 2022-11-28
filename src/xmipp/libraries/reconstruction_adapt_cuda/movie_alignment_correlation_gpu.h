@@ -165,17 +165,6 @@ private:
     size_t getMaxFilterBytes(const Dimensions &dim);
 
     /**
-     * Returns best settings for FFT on GPU. It is either
-     * loaded from permanent storage, or GPU benchmark is ru
-     * @param d dimension of the FFT
-     * @param extraBytes that should be left on GPU
-     * @param crop if true, FFT can be of smaller size
-     * @return best FFT setting
-     */
-    FFTSettings<T> getSettingsOrBenchmark(const Dimensions &d, size_t extraBytes,
-            bool crop);
-
-    /**
      * Utility function for creating a key that can be used
      * for permanent storage
      * @param keyword to use
@@ -189,14 +178,6 @@ private:
         ss << version << " " << gpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();
     }
-
-    /**
-     * Method for obtaining the best FFT setting for given movie
-     * @param movie to 'analyse'
-     * @param optimize the sizes?
-     * @return optimal FFT setting for the movie
-     */
-    FFTSettings<T> getMovieSettings(const MetaData &movie, bool optimize);
 
     /**
      * Method will align data of given size, using cross-correlation of
@@ -248,25 +229,11 @@ private:
             PatchContext context); // pass by copy, this will be run asynchronously);
 
     /**
-     * Get best FFT settings for correlations of the original data
-     * @param s settings for the input data
-     * @return optimal FFT settings
-     */
-    FFTSettings<T> getCorrelationSettings(const FFTSettings<T> &orig);
-
-    /**
      * Get suggested size of the frame for correlation
      * @param s size for the input data
      * @return optimal size
      */
     auto getCorrelationHint(const Dimensions &orig);
-
-    /**
-     * Get FFT settings for each patch used for local alignment
-     * @param orig movie setting
-     * @return optimal setting for each patch
-     */
-    FFTSettings<T> getPatchSettings(const FFTSettings<T> &orig);
 
     /**
      * Inherited, see parent
@@ -337,15 +304,6 @@ private:
      */
     std::optional<Dimensions> getStoredSizesNew(const Dimensions &dim,
             bool applyCrop);
-
-    /**
-     * Run benchmark to get the best FFT setting for given problem size
-     * @param d dimension of the problem
-     * @param extraBytes to leave on GPU
-     * @param crop flag
-     */
-    FFTSettings<T> runBenchmark(const Dimensions &d, size_t extraBytes,
-            bool crop);
 
     /**
      * Returns position of all 'local alignment patches' within a single frame
@@ -470,9 +428,6 @@ private:
 
     /** No of frames used for averaging a single patch */
     int patchesAvg;
-
-    /** Skip autotuning of the cuFFT library */
-    bool skipAutotuning;
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
