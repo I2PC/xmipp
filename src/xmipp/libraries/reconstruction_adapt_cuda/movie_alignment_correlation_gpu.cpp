@@ -973,7 +973,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                     auto shiftedFrame = MultidimArray<T>(1, 1, croppedFrame.ydim, croppedFrame.xdim, a.hOut);
                     a.transformer.initLazyForBSpline(croppedFrame.xdim, croppedFrame.ydim, alignment.movieDim.n(),
                             this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n(), a.stream);
-                    a.transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame, croppedFrame, coeffs, frameOffset);
+                    a.transformer.applyBSplineTransform(3, shiftedFrame, croppedFrame, coeffs, frameOffset);
 
                     a.stream.synch(); // make sure that data is fetched from GPU
                     if (this->fnAligned != "") {

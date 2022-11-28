@@ -48,7 +48,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     nlastSum = getIntParam("--frameRangeSum", 1);
     useInputShifts = checkParam("--useInputShifts");
     outputBinning = getDoubleParam("--bin");
-    BsplineOrder = getIntParam("--Bspline");
     skipLocalAlignment = checkParam("--skipLocalAlignment");
     minLocalRes = getIntParam("--minLocalRes");
 
@@ -101,7 +100,6 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
             << "Use input shifts:      " << useInputShifts << std::endl
             << "Output Binning factor: " << outputBinning << std::endl
-            << "Bspline:               " << BsplineOrder << std::endl
             << "Skip local alignment:  " << (skipLocalAlignment ? "yes" : "no") << std::endl
             << "Control points:        " << this->localAlignmentControlPoints << std::endl;
 }
@@ -147,8 +145,6 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine("  [--gain <fn=\"\">]           : Gain correction image (we will multiply by it)");
     addParamsLine(
             "  [--useInputShifts]           : Do not calculate shifts and use the ones in the input file");
-    addParamsLine(
-            "  [--Bspline <order=3>]        : B-spline order for the final interpolation (1 or 3)");
     addParamsLine(
             "  [--skipLocalAlignment]       : If used, only global alignment will be performed. It's faster, but gives worse results.");
     addParamsLine(

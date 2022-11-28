@@ -330,8 +330,6 @@ protected:
     int nfirstSum, nlastSum;
     /** Aligned micrograph */
     FileName fnInitialAvg;
-    /** Bspline order */
-    int BsplineOrder;
     /** if true, local alignment will be skipped */
     bool skipLocalAlignment;
     /** Solver iterations */

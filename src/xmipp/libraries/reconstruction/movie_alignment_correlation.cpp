@@ -199,7 +199,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     }
 		    std::swap(shiftedFrame().data, croppedFrame().data);
                 } else {
-                        translate(this->BsplineOrder, shiftedFrame(),
+                        translate(3, shiftedFrame(),
                                 croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 croppedFrame().computeAvg());
                 }
