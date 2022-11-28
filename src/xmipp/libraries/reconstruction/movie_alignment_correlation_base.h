@@ -132,15 +132,6 @@ protected:
     MultidimArray<T> createLPF(T Ts, const Dimensions &dims);
 
     /**
-     * Method loads a single frame from the movie
-     * @param movie to load from
-     * @param objId id of the image to load
-     * @param out loaded frame
-     */
-    void loadFrame(const MetaData& movie, size_t objId,
-            Image<T>& out);
-
-    /**
      * Method loads a single frame from the movie and apply gain and dark
      * pixel correction
      * @param movie to load from
@@ -337,17 +328,6 @@ protected:
     int nfirst, nlast;
     /** Max shift */
     T maxShift;
-    /*****************************/
-    /** crop corner **/
-    /*****************************/
-    /** x left top corner **/
-    int xLTcorner;
-    /** y left top corner **/
-    int yLTcorner;
-    /** x right down corner **/
-    int xRDcorner;
-    /** y right down corner **/
-    int yRDcorner;
     /** Aligned movie */
     FileName fnAligned;
     /** Aligned micrograph */

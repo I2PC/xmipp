@@ -46,10 +46,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     nlast = getIntParam("--frameRange", 1);
     nfirstSum = getIntParam("--frameRangeSum", 0);
     nlastSum = getIntParam("--frameRangeSum", 1);
-    xLTcorner = getIntParam("--cropULCorner", 0);
-    yLTcorner = getIntParam("--cropULCorner", 1);
-    xRDcorner = getIntParam("--cropDRCorner", 0);
-    yRDcorner = getIntParam("--cropDRCorner", 1);
     useInputShifts = checkParam("--useInputShifts");
     outputBinning = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
@@ -112,9 +108,6 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Unaligned micrograph: " << fnInitialAvg << std::endl
             << "Frame range alignment: " << nfirst << " " << nlast << std::endl
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
-            << "Crop corners  " << "(" << xLTcorner << ", "
-            << yLTcorner << ") " << "(" << xRDcorner << ", " << yRDcorner
-            << ") " << std::endl
             << "Use input shifts:    " << useInputShifts << std::endl
             << "Output Binning factor: " << outputBinning << std::endl
             << "Bspline:             " << BsplineOrder << std::endl
@@ -159,10 +152,6 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--frameRange <n0=-1> <nF=-1>]  : First and last frame to align, frame numbers start at 0");
     addParamsLine(
             "  [--frameRangeSum <n0=-1> <nF=-1>]  : First and last frame to sum, frame numbers start at 0");
-    addParamsLine(
-            "  [--cropULCorner <x=0> <y=0>]    : crop up left corner (unit=px, index starts at 0)");
-    addParamsLine(
-            "  [--cropDRCorner <x=-1> <y=-1>]    : crop down right corner (unit=px, index starts at 0), -1 -> no crop");
     addParamsLine("  [--dark <fn=\"\">]           : Dark correction image");
     addParamsLine("  [--gain <fn=\"\">]           : Gain correction image (we will multiply by it)");
     addParamsLine(
@@ -189,25 +178,12 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData& movie,
-        size_t objId, Image<T>& out) {
-    FileName fnFrame;
-    movie.getValue(MDL_IMAGE, fnFrame, objId);
-    if (-1 != this->yRDcorner) {
-        Image<T> tmp;
-        tmp.read(fnFrame);
-        tmp().window(out(), this->yLTcorner, this->xLTcorner, this->yRDcorner,
-                this->xRDcorner);
-    } else {
-        out.read(fnFrame);
-    }
-}
-
-template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
         const Image<T> &dark, const Image<T> &igain, size_t objId,
             Image<T> &out) {
-    loadFrame(movie, objId, out);
+    FileName fnFrame;
+    movie.getValue(MDL_IMAGE, fnFrame, objId);
+    out.read(fnFrame);
     if (XSIZE(dark()) > 0) {
         if ((XSIZE(dark()) != XSIZE(out()))
                 || (YSIZE(dark()) != YSIZE(out()))) {
@@ -321,8 +297,6 @@ void AProgMovieAlignmentCorrelation<T>::loadDarkCorrection(Image<T>& dark) {
     if (fnDark.isEmpty())
         return;
     dark.read(fnDark);
-    if (yRDcorner != -1)
-        dark().selfWindow(yLTcorner, xLTcorner, yRDcorner, xRDcorner);
 }
 
 template<typename T>
@@ -330,8 +304,6 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
     if (fnGain.isEmpty())
         return;
     igain.read(fnGain);
-    if (yRDcorner != -1)
-        igain().selfWindow(yLTcorner, xLTcorner, yRDcorner, xRDcorner);
     T avg = igain().computeAvg();
     if (std::isinf(avg) || std::isnan(avg))
         REPORT_ERROR(ERR_ARG_INCORRECT,
@@ -395,23 +367,17 @@ template<typename T>
 Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
     if (this->movieSize) return movieSize.value();
     int noOfImgs = this->nlast - this->nfirst + 1;
-    if (-1 == this->yRDcorner) {
-        auto fn = fnMovie;
-        if (fnMovie.isMetaData()) {
-            MetaDataVec md;
-            md.read(fnMovie);
-            md.getValue(MDL_IMAGE, fn, md.firstRowId()); // assuming all frames have the same resolution
-        }
-        ImageGeneric movieStack;
-        movieStack.read(fn, HEADER);
-        size_t xdim, ydim, zdim, ndim;
-        movieStack.getDimensions(xdim, ydim, zdim, ndim);
-        this->movieSize = Dimensions(xdim, ydim, 1, noOfImgs);
-    } else {
-        size_t xdim = this->xRDcorner - this->xLTcorner + 1;
-        size_t ydim = this->yRDcorner - this->yLTcorner + 1;
-        this->movieSize = Dimensions(xdim, ydim, 1, noOfImgs);
+    auto fn = fnMovie;
+    if (fnMovie.isMetaData()) {
+        MetaDataVec md;
+        md.read(fnMovie);
+        md.getValue(MDL_IMAGE, fn, md.firstRowId()); // assuming all frames have the same resolution
     }
+    ImageGeneric movieStack;
+    movieStack.read(fn, HEADER);
+    size_t xdim, ydim, zdim, ndim;
+    movieStack.getDimensions(xdim, ydim, zdim, ndim);
+    this->movieSize = Dimensions(xdim, ydim, 1, noOfImgs);
     return movieSize.value();
 }
 
