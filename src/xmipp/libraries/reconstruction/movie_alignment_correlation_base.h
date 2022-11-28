@@ -333,7 +333,7 @@ protected:
     /** if true, local alignment will be skipped */
     bool skipLocalAlignment;
     /** Solver iterations */
-    int solverIterations;
+    static constexpr int solverIterations = 2;
     /** Metadata with shifts */
     FileName fnOut;
     /** Number of patches used for local alignment */

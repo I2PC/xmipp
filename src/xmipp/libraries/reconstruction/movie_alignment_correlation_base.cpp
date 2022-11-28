@@ -39,7 +39,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     maxShift = getDoubleParam("--max_shift");
     Ts = getDoubleParam("--sampling");
     maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
-    solverIterations = getIntParam("--solverIterations");
     fnAligned = getParam("--oaligned");
     fnAvg = getParam("--oavg");
     nfirst = getIntParam("--frameRange", 0);
@@ -91,7 +90,6 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Max. Shift:            " << maxShift << std::endl
             << "Max resolution (A):    " << maxResForCorrelation << std::endl
             << "Sampling:              " << Ts << std::endl
-            << "Solver iterations:     " << solverIterations << std::endl
             << "Aligned movie:         " << fnAligned << std::endl
             << "Aligned micrograph:    " << fnAvg << std::endl
             << "Unaligned micrograph:  " << fnInitialAvg << std::endl
@@ -127,8 +125,6 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
     addParamsLine(
             "  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
-    addParamsLine(
-            "  [--solverIterations <N=2>]   : Number of robust least squares iterations");
     addParamsLine(
             "  [--oaligned <fn=\"\">]       : Aligned movie consists of aligned frames used for micrograph generation");
     addParamsLine(
