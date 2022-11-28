@@ -78,7 +78,10 @@ public:
     MpiML2DBase(const MpiML2DBase &&)=delete;
 
     /** Destructor */
-    ~MpiML2DBase();
+    ~MpiML2DBase() {
+        if (created_node)
+            delete node;
+    }
 
     MpiML2DBase & operator =(const MpiML2DBase &)=delete;
     MpiML2DBase & operator =(const MpiML2DBase &&)=delete;

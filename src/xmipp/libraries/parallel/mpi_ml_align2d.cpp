@@ -46,13 +46,6 @@ MpiML2DBase<T>::MpiML2DBase(T *prm, MpiNode * mpinode)
 }
 
 template<typename T>
-MpiML2DBase<T>::~MpiML2DBase()
-{
-    if (created_node)
-        delete node;
-}
-
-template<typename T>
 void MpiML2DBase<T>::sendDocfile(const MultidimArray<double> &docfiledata)
 {
 
