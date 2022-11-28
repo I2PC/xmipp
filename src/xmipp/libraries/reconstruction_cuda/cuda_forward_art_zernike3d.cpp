@@ -492,7 +492,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep1, blockXStep1>>>(cudaMV,
@@ -519,7 +518,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep2, blockXStep2>>>(cudaMV,
@@ -546,7 +544,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep3, blockXStep3>>>(cudaMV,
@@ -573,7 +570,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep4, blockXStep4>>>(cudaMV,
@@ -600,7 +596,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep5, blockXStep5>>>(cudaMV,
@@ -627,7 +622,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep6, blockXStep6>>>(cudaMV,
@@ -654,7 +648,6 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 									  commonParameters.R.mdata[3],
 									  commonParameters.R.mdata[4],
 									  commonParameters.R.mdata[5]);
-	cudaDeviceSynchronize();
 
 	forwardKernel<PrecisionType, usesZernike>
 		<<<gridXStep7, blockXStep7>>>(cudaMV,
@@ -732,7 +725,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
 
-	cudaDeviceSynchronize();
 
 	backwardKernel<PrecisionType, usesZernike><<<gridX1, blockX1>>>(cudaMV,
 																	cudaCoordinatesB1,
@@ -759,8 +751,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
 
-	cudaDeviceSynchronize();
-
 	backwardKernel<PrecisionType, usesZernike><<<gridX2, blockX2>>>(cudaMV,
 																	cudaCoordinatesB2,
 																	xdimB,
@@ -785,8 +775,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	mId.yinit,
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
-
-	cudaDeviceSynchronize();
 
 	backwardKernel<PrecisionType, usesZernike><<<gridX3, blockX3>>>(cudaMV,
 																	cudaCoordinatesB3,
@@ -813,8 +801,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
 
-	cudaDeviceSynchronize();
-
 	backwardKernel<PrecisionType, usesZernike><<<gridX4, blockX4>>>(cudaMV,
 																	cudaCoordinatesB4,
 																	xdimB,
@@ -839,8 +825,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	mId.yinit,
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
-
-	cudaDeviceSynchronize();
 
 	backwardKernel<PrecisionType, usesZernike><<<gridX5, blockX5>>>(cudaMV,
 																	cudaCoordinatesB5,
@@ -867,8 +851,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
 
-	cudaDeviceSynchronize();
-
 	backwardKernel<PrecisionType, usesZernike><<<gridX6, blockX6>>>(cudaMV,
 																	cudaCoordinatesB6,
 																	xdimB,
@@ -893,8 +875,6 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																	mId.yinit,
 																	static_cast<int>(mId.xdim),
 																	static_cast<int>(mId.ydim));
-
-	cudaDeviceSynchronize();
 
 	backwardKernel<PrecisionType, usesZernike><<<gridX7, blockX7>>>(cudaMV,
 																	cudaCoordinatesB7,
