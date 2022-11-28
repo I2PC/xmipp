@@ -199,14 +199,6 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     }
 		    std::swap(shiftedFrame().data, croppedFrame().data);
                 } else {
-                    if (this->outsideMode == OUTSIDE_WRAP)
-                        translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, xmipp_transformation::WRAP);
-                    else if (this->outsideMode == OUTSIDE_VALUE)
-                        translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
-                                this->outsideValue);
-                    else
                         translate(this->BsplineOrder, shiftedFrame(),
                                 croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 croppedFrame().computeAvg());

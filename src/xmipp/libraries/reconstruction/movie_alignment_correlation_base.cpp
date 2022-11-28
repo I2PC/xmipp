@@ -52,15 +52,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     processLocalShifts = checkParam("--processLocalShifts");
     minLocalRes = getIntParam("--minLocalRes");
 
-    String outside = getParam("--outside");
-    if (outside == "wrap")
-        outsideMode = OUTSIDE_WRAP;
-    else if (outside == "avg")
-        outsideMode = OUTSIDE_AVG;
-    else if (outside == "value") {
-        outsideMode = OUTSIDE_VALUE;
-        outsideValue = getDoubleParam("--outside", 1);
-    }
     // read control points
     Dimensions cPoints(
             this->getIntParam("--controlPoints", 0),
@@ -158,15 +149,6 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--useInputShifts]           : Do not calculate shifts and use the ones in the input file");
     addParamsLine(
             "  [--Bspline <order=3>]        : B-spline order for the final interpolation (1 or 3)");
-    addParamsLine(
-            "  [--outside <mode=wrap> <v=0>]: How to deal with borders (wrap, substitute by avg, or substitute by value)");
-    addParamsLine("      where <mode>");
-    addParamsLine(
-            "             wrap              : Wrap the image to deal with borders");
-    addParamsLine(
-            "             avg               : Fill borders with the average of the frame");
-    addParamsLine(
-            "             value             : Fill borders with a specific value v");
     addParamsLine(
             "  [--processLocalShifts]       : Calculate and correct local shifts");
     addParamsLine(

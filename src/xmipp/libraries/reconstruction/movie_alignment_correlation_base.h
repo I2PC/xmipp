@@ -54,12 +54,6 @@
 //@{
 template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
-
-    /** wrapping strategy constants */
-#define OUTSIDE_WRAP 0
-#define OUTSIDE_AVG 1
-#define OUTSIDE_VALUE 2
-
 public:
     /// Read argument from command line
     virtual void readParams();
@@ -338,10 +332,6 @@ protected:
     FileName fnInitialAvg;
     /** Bspline order */
     int BsplineOrder;
-    /** Outside mode */
-    int outsideMode;
-    /** Outside value */
-    T outsideValue;
     /** if true, local alignment should be performed */
     bool processLocalShifts;
     /** Solver iterations */
