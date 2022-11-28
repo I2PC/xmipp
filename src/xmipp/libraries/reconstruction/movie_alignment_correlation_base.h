@@ -354,8 +354,6 @@ private:
     FileName fnDark, fnGain;
     /** Binning factor used for output */
     T outputBinning;
-    /** Do not calculate and use the input shifts */
-    bool useInputShifts;
     /** Size of the raw movie, only the requested frames */
     std::optional<Dimensions> movieSize;
 

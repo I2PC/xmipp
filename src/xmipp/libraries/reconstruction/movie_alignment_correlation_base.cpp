@@ -46,7 +46,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     nlast = getIntParam("--frameRange", 1);
     nfirstSum = getIntParam("--frameRangeSum", 0);
     nlastSum = getIntParam("--frameRangeSum", 1);
-    useInputShifts = checkParam("--useInputShifts");
     outputBinning = getDoubleParam("--bin");
     skipLocalAlignment = checkParam("--skipLocalAlignment");
     minLocalRes = getIntParam("--minLocalRes");
@@ -98,7 +97,6 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Unaligned micrograph:  " << fnInitialAvg << std::endl
             << "Frame range alignment: " << nfirst << " " << nlast << std::endl
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
-            << "Use input shifts:      " << useInputShifts << std::endl
             << "Output Binning factor: " << outputBinning << std::endl
             << "Skip local alignment:  " << (skipLocalAlignment ? "yes" : "no") << std::endl
             << "Control points:        " << this->localAlignmentControlPoints << std::endl;
@@ -143,8 +141,6 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--frameRangeSum <n0=-1> <nF=-1>]  : First and last frame to sum, frame numbers start at 0");
     addParamsLine("  [--dark <fn=\"\">]           : Dark correction image");
     addParamsLine("  [--gain <fn=\"\">]           : Gain correction image (we will multiply by it)");
-    addParamsLine(
-            "  [--useInputShifts]           : Do not calculate shifts and use the ones in the input file");
     addParamsLine(
             "  [--skipLocalAlignment]       : If used, only global alignment will be performed. It's faster, but gives worse results.");
     addParamsLine(
@@ -471,8 +467,7 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
         const AlignmentResult<T> &globAlignment) {
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
-    std::cout << (useInputShifts ? "Loaded" : "Estimated")
-            << " global shifts (from the reference frame):\n";
+    std::cout << "Estimated global shifts (from the reference frame):\n";
     for (auto &&s : globAlignment.shifts) {
         printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
     }
@@ -558,15 +553,8 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     loadGainCorrection(igain);
 
     auto globalAlignment = AlignmentResult<T>();
-    if (useInputShifts) {
-        if (!movie.containsLabel(MDL_SHIFT_X)) {
-            setZeroShift(movie);
-        }
-        globalAlignment = loadGlobalShifts(movie);
-    } else {
-        std::cout << "Computing global alignment ...\n";
-        globalAlignment = computeGlobalAlignment(movie, dark, igain);
-    }
+    std::cout << "Computing global alignment ...\n";
+    globalAlignment = computeGlobalAlignment(movie, dark, igain);
 
     if ( ! fnOut.isEmpty()) {
         storeGlobalShifts(globalAlignment, movie);
