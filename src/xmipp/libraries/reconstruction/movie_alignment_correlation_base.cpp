@@ -49,7 +49,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     useInputShifts = checkParam("--useInputShifts");
     outputBinning = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
-    processLocalShifts = checkParam("--processLocalShifts");
+    skipLocalAlignment = checkParam("--skipLocalAlignment");
     minLocalRes = getIntParam("--minLocalRes");
 
     // read control points
@@ -86,24 +86,24 @@ void AProgMovieAlignmentCorrelation<T>::show() {
     if (!verbose)
         return;
     std::cout
-            << "Input movie:         " << fnMovie << std::endl
-            << "Output metadata:     " << fnOut << std::endl
-            << "Dark image:          " << fnDark << std::endl
-            << "Gain image:          " << fnGain << std::endl
-            << "Max. Shift:          " << maxShift << std::endl
-            << "Max resolution (A):  " << maxResForCorrelation << std::endl
-            << "Sampling:            " << Ts << std::endl
-            << "Solver iterations:   " << solverIterations << std::endl
-            << "Aligned movie:       " << fnAligned << std::endl
-            << "Aligned micrograph:  " << fnAvg << std::endl
-            << "Unaligned micrograph: " << fnInitialAvg << std::endl
+            << "Input movie:           " << fnMovie << std::endl
+            << "Output metadata:       " << fnOut << std::endl
+            << "Dark image:            " << fnDark << std::endl
+            << "Gain image:            " << fnGain << std::endl
+            << "Max. Shift:            " << maxShift << std::endl
+            << "Max resolution (A):    " << maxResForCorrelation << std::endl
+            << "Sampling:              " << Ts << std::endl
+            << "Solver iterations:     " << solverIterations << std::endl
+            << "Aligned movie:         " << fnAligned << std::endl
+            << "Aligned micrograph:    " << fnAvg << std::endl
+            << "Unaligned micrograph:  " << fnInitialAvg << std::endl
             << "Frame range alignment: " << nfirst << " " << nlast << std::endl
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
-            << "Use input shifts:    " << useInputShifts << std::endl
+            << "Use input shifts:      " << useInputShifts << std::endl
             << "Output Binning factor: " << outputBinning << std::endl
-            << "Bspline:             " << BsplineOrder << std::endl
-            << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
-            << "Control points:      " << this->localAlignmentControlPoints << std::endl;
+            << "Bspline:               " << BsplineOrder << std::endl
+            << "Skip local alignment:  " << (skipLocalAlignment ? "yes" : "no") << std::endl
+            << "Control points:        " << this->localAlignmentControlPoints << std::endl;
 }
 
 template<typename T>
@@ -150,7 +150,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--Bspline <order=3>]        : B-spline order for the final interpolation (1 or 3)");
     addParamsLine(
-            "  [--processLocalShifts]       : Calculate and correct local shifts");
+            "  [--skipLocalAlignment]       : If used, only global alignment will be performed. It's faster, but gives worse results.");
     addParamsLine(
             "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     addParamsLine(
@@ -581,15 +581,15 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     size_t N, Ninitial;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
-    if (processLocalShifts) {
+    if (skipLocalAlignment) {
+        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
+                    averageMicrograph, N, globalAlignment);
+    } else {
         std::cout << "Computing local alignment ...\n";
         auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
         storeResults(localAlignment);
-    } else {
-        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
-                    averageMicrograph, N, globalAlignment);
     }
 
     storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);

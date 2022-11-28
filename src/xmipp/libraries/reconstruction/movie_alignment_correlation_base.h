@@ -332,8 +332,8 @@ protected:
     FileName fnInitialAvg;
     /** Bspline order */
     int BsplineOrder;
-    /** if true, local alignment should be performed */
-    bool processLocalShifts;
+    /** if true, local alignment will be skipped */
+    bool skipLocalAlignment;
     /** Solver iterations */
     int solverIterations;
     /** Metadata with shifts */
