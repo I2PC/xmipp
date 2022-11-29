@@ -33,14 +33,19 @@ void ProgPdbSphDeform::defineParams()
 	addParamsLine("--pdb <file>            : PDB to deform");
 	addParamsLine("--clnm <metadata_file>  : List of deformation coefficients");
 	addParamsLine("-o <file>               : Deformed PDB");
+	addParamsLine("[--center_mass]         : Center the PDB according with its center of mass");
+	addParamsLine("[--boxsize <b=0> ]      : Box size of the volume where the PDB was fitted");
+	addParamsLine("[--sr <s=1> ]           : Sampling rate of the volume where the PDB was fitted");
 	addExampleLine("xmipp_pdb_sph_deform --pdb 2tbv.pdb -o 2tbv_deformed.pdb --clnm coefficients.txt");
 }
 
 void ProgPdbSphDeform::readParams()
 {
-	fn_pdb=getParam("--pdb");
-	fn_sph=getParam("--clnm");
-	fn_out=getParam("-o");
+	fn_pdb = getParam("--pdb");
+	fn_sph = getParam("--clnm");
+	fn_out = getParam("-o");
+	center = checkParam("--center_mass");
+	boxSize= 0.5 * getDoubleParam("--boxsize") * getDoubleParam("--sr");
 }
 
 void ProgPdbSphDeform::show() const
@@ -66,15 +71,30 @@ void ProgPdbSphDeform::run()
 	fillVectorTerms();
 	size_t idxY0=clnm.size()/3;
 	size_t idxZ0=2*idxY0;
+	Matrix1D<double> cm;
+	cm.initZeros(3);
+	centerOfMass(pdb, cm);
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
 	{
 		double gx=0.0; 
 		double gy=0.0; 
 		double gz=0.0;
 		RichAtom& atom_i=pdb.atomList[a];
-		auto k = (int)(atom_i.z);
-		auto i = (int)(atom_i.y);
-		auto j = (int)(atom_i.x);
+		auto k = atom_i.z;
+		auto i = atom_i.y;
+		auto j = atom_i.x;
+		if (center)
+		{
+			k -= VEC_ELEM(cm, 2);
+			i -= VEC_ELEM(cm, 1);
+			j -= VEC_ELEM(cm, 0);
+		}
+		else
+		{
+			k -= boxSize;
+			i -= boxSize;
+			j -= boxSize;
+		}
 		for (size_t idx=0; idx<idxY0; idx++)
 		{
 			double Rmax=basisParams[2];
@@ -157,4 +177,23 @@ void ProgPdbSphDeform::fillVectorTerms()
             }
         }
     }
+}
+
+void ProgPdbSphDeform::centerOfMass(PDBRichPhantom pdb, Matrix1D<double> &cm) 
+{
+	size_t numAtoms = pdb.getNumberOfAtoms();
+	for (size_t a=0; a<numAtoms; a++)
+	{
+		RichAtom& atom_i=pdb.atomList[a];
+		auto z = atom_i.z;
+		auto y = atom_i.y;
+		auto x = atom_i.x;
+		VEC_ELEM(cm, 0) += x;
+		VEC_ELEM(cm, 1) += y;
+		VEC_ELEM(cm, 2) += z;
+
+	}
+	VEC_ELEM(cm, 0) /= numAtoms;
+	VEC_ELEM(cm, 1) /= numAtoms;
+	VEC_ELEM(cm, 2) /= numAtoms;
 }

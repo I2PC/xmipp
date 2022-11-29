@@ -1,16 +1,51 @@
-  ## Release 3.22.XX - devel
+   ## Release 3.22.11 - Iris
 
-  ### Scripts Xmipp
-  -
+  ### Xmipp Programs
+  -  Speeding up iterations in some xmipp programs (xmipp_ctf_group, xmipp_image_histogram, xmipp_mpi_angular_class_average, xmipp_angular_distance, xmipp_angular_estimate_tilt_axis, xmipp_ctf_create_ctfdat, xmipp_resolution_ssnr)
+  -  New Zernike3D programs
+  -  angular_project_library: Reported some error if there are no images in the range
+  -  angular_discrete_assign.cpp: Removed memory leak and uninitialized values
+  -  angular_distance: Fixing condition to avoid iteration behind the end of the MD in cases when input data have different sizes. Optimized performance
+  -  Pdb_reduce_pseudoatoms: Produced pdb is one-based indexed
+  -  xmipp_micrograph_automatic_picking: Fixing memory leak
+  -  subtract_projection: Fixed several bugs (improved results), added circular mask to avoid edge artifacts, added option to boost particles instead of subtract
+
+
   ### Protocols scipion-em-xmipp
-  -
+  - Protocol_cl2d_align: The input can now be a set of averages or a set of 2D classes 
+  - Protocol_local_ctf: Default value are now changed for maxDefocusChange
+  - Protocol_apply_zernike3d: Now accepts either a Volume or SetOfVolumes and applies the coefficients in a loop in the deform step
+  - Protocol_postProcessing_deepPostProcessing: Managed GPU memory to avoid errors
+  - Protocol_resolution_deepres: Mandatory mask
+  - Protocol center particles and Gl2d (all options): Fix streaming
+  - Protocol_create_3d_mask: Allows volume Null=True
+  - Protocol_reconstruct_fourier: Set pixel size
+  - GL2D static: Bug fixing
+  - Protocol_trigger_data: Bug fixing
+  - Protocol_crop_resize: Set sampling rate of mrc files when cropping resizing volumes or particles
+  - subtract_projection: New protocol for boosting particles. Add protocol to wizard XmippParticleMaskRadiusWizard as now the protocol uses it
+
+  - **New tests:** deep_hand, pick_noise, screen_deep_learning, resolution_B_factor
+  - Fixed TestHighres test
+  
   ### Installation and user guide
-  -
+  - Various bug fixing
+  - More information about hdf5 library
+  - Updating CUDA - GCC compatibility. Added CUDA 11.7 (not tested)
+  - Updating Readme
+  
   ### Others
-  -
+  - Performance optimization (metadata binding)
+  - Python binding: adding methods to directly set / get entire MD row
+  - g++ >= 8 required
+  - In viewers used pwutils 
+  - The pdb data library now has all the right fields and should write the record type ("ATOM " or "HETATM") correctly at the beginning of the line and the atomType (element) and charge (if applicable) correctly at the end of the line.
+  - Removal of an artifact of symmetrization related to the z pitch (symmetries.cpp)
+  - Using the same identical Deprecated param from pyworkflow.
 
 
 ## Release 3.22.07 - Helios
+
 
 ### Scripts Xmipp
 - **xmipp_image_operate**: taked into account non existing files
