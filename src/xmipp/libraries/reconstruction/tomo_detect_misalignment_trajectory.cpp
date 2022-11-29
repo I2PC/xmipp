@@ -1020,6 +1020,7 @@ bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
 		{
 			std::cout << "No matching coordinates for slice " << n << std::endl;
 		}
+		#endif
 		
 	}
 
@@ -1383,7 +1384,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	#endif
 	
 	std::cout << cmd << std::endl;
-	system(cmd.c_str());
+	int systemOut = system(cmd.c_str());
 
 	// Read results from analysis
 
