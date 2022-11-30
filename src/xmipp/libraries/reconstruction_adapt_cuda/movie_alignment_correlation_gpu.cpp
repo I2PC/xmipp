@@ -671,10 +671,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << localHelper << std::endl;
     }
-    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x()
-        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
-            throw std::logic_error("More control points than patches. Decrease the number of control points.");
-    }
+
 
     if ((movieSize.x() < patchSettings.sDim().x())
         || (movieSize.y() < patchSettings.sDim().y())) {
