@@ -613,7 +613,6 @@ auto ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findBatchesThrea
     const auto movie = instance.getMovieSize();
     const auto reqPatchSize = instance.getRequestedPatchSize();
     auto pSize = findGoodPatchSize(Dimensions(reqPatchSize.first, reqPatchSize.second, 1, movie.n()), gpu, instance);
-    instance.setNoOfPaches(movie, pSize);
     auto correlation = instance.getCorrelationHint(pSize);
     auto cSize = findGoodCorrelationSize(correlation, gpu, instance);
     const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
@@ -669,7 +668,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     T actualScale = correlationSettings.sDim().x() / (T)patchSettings.sDim().x(); // assuming we use square patches
 
     if (this->verbose) {
-        std::cout << "No. of patches: " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << localHelper << std::endl;
     }

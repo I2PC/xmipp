@@ -219,16 +219,14 @@ protected:
         return {minLocalRes / Ts, minLocalRes / Ts};
     }
 
-    /** Sets number of patches, based on size of the movie and patch */
-    void setNoOfPaches(const Dimensions &movieDim,
-            const Dimensions &patchDim);
 
     /** Get binning factor for resulting micrograph / alignend movie */
     T getOutputBinning() {
         return outputBinning;
     }
 private:
-
+    void setNoOfPatches();
+       
     /**
      * Method will create a 1D Low Pass Filter
      * @param Ts pixel resolution of the resulting filter

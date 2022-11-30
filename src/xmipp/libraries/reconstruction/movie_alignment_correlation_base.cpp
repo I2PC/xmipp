@@ -60,7 +60,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
             "All control points has to be bigger than 2");
     localAlignmentControlPoints = cPoints;
 
-    addParamsLine("  [--minLocalRes <R=500>]            : Minimal resolution (in A) of patches during local alignment");
 }
 
 template<typename T>
@@ -75,6 +74,10 @@ void AProgMovieAlignmentCorrelation<T>::checkSettings() {
                 "Check that the sampling rate (--sampling) and maximal resolution to align "
                 "(--maxResForCorrelation) are correctly set. For current sampling, you can "
                 "use maximal resolution of " + std::to_string(this->Ts * 8 * getC()) + " or higher.");
+    }
+    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x()
+        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "More control points than patches. Decrease the number of control points.");
     }
 }
 
@@ -97,7 +100,8 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
             << "Output Binning factor: " << outputBinning << std::endl
             << "Skip local alignment:  " << (skipLocalAlignment ? "yes" : "no") << std::endl
-            << "Control points:        " << this->localAlignmentControlPoints << std::endl;
+            << "Control points:        " << this->localAlignmentControlPoints << std::endl
+            << "No of patches:         " << this->localAlignPatches.first << " * " << localAlignPatches.second << std::endl;
 }
 
 template<typename T>
@@ -141,6 +145,8 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--skipLocalAlignment]       : If used, only global alignment will be performed. It's faster, but gives worse results.");
     addParamsLine(
             "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
+    addParamsLine(
+            "  [--patches <x=7> <y=7>]: Number of patches used for local alignment");
     addParamsLine(
             "  [--minLocalRes <R=500>]      : Minimal resolution (in A) of patches during local alignment");
     addExampleLine("A typical example", false);
@@ -525,24 +531,29 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::setNoOfPaches(const Dimensions &movieDim,
-        const Dimensions &patchDim) {
-    localAlignPatches = {
-            std::ceil(movieDim.x() / (float)patchDim.x()),
-            std::ceil(movieDim.y() / (float)patchDim.y())};
-    if (verbose) {
-        std::cout << "Using " << localAlignPatches.first << " x " << localAlignPatches.second << " patches\n";
+void AProgMovieAlignmentCorrelation<T>::setNoOfPatches() {
+        // set number of patches
+    if (checkParam("--patches")) {
+        localAlignPatches = {getIntParam("--patches", 0), getIntParam("--patches", 1)};
+    } else {
+        const auto &movieDim = getMovieSize();
+        auto patchDim = getRequestedPatchSize();
+        localAlignPatches = {
+                std::ceil(movieDim.x() / (float)patchDim.first),
+                std::ceil(movieDim.y() / (float)patchDim.second)};
     }
 }
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::run() {
-    show();
-    checkSettings();
     // preprocess input data
     MetaDataVec movie;
     readMovie(movie);
     correctLoopIndices(movie);
+
+    setNoOfPatches();
+    show();
+    checkSettings();
 
     Image<T> dark, igain;
     loadDarkCorrection(dark);
