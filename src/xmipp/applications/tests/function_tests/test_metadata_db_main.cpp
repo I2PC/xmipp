@@ -1895,21 +1895,15 @@ TEST_F( MetadataTest, updateRow)
     ASSERT_FALSE(auxMetadata==mDsource);
 
     MDRowSql row;
-    row.setValue(MDL_X, 1.);
-    row.setValue(MDL_Y, 2.);
-    auxMetadata.setRow( row, id1);
-    row.setValue(MDL_X, 3.);
-    row.setValue(MDL_Y, 4.);
-    auxMetadata.setRow( row, id2);
-    ASSERT_EQ(auxMetadata,mDsource);
-
-    row.setValue(MDL_X, 1.);
-    row.setValue(MDL_Y, 2.);
-    auxMetadata.setRow2( row, id1);
-    row.setValue(MDL_X, 3.);
-    row.setValue(MDL_Y, 4.);
-    auxMetadata.setRow2( row, id2);
-    ASSERT_EQ(auxMetadata,mDsource);
+    row.setValue(MDL_X, 11.);
+    row.setValue(MDL_Y, 22.);
+    ASSERT_TRUE(auxMetadata.setRow( row, id1));
+    row.setValue(MDL_X, 33.);
+    row.setValue(MDL_Y, 44.);
+    ASSERT_TRUE(auxMetadata.setRow( row, id2));
+    ASSERT_EQ(auxMetadata,mDanotherSource);
+    ASSERT_TRUE(auxMetadata.setRow( row, 25)); // non-existent ID does not update the DB and does not fail
+    ASSERT_EQ(auxMetadata,mDanotherSource);
 
     //Test form double with a given precission.
 /*    auxMetadata.clear();

@@ -26,7 +26,7 @@
 #define _PROG_ANGULAR_DISTANCE
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata_db.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_program.h>
 #include <core/symmetries.h>
 
@@ -61,9 +61,9 @@ public:
     int set;
 public:
     // DocFile 1
-    MetaDataDb DF1;
+    MetaDataVec DF1;
     // DocFile 2
-    MetaDataDb DF2;
+    MetaDataVec DF2;
     // Symmetry List
     SymList SL;
 public:

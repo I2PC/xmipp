@@ -27,6 +27,7 @@
 #include "volume_from_pdb.h"
 #include "core/transformations.h"
 #include <core/args.h>
+#include "data/pdb.h"
 
 #include <fstream>
 
@@ -192,6 +193,7 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [--orig <orig_x=0> <orig_y=0> <orig_z=0>]: Define origin of the output volume");
     addParamsLine("  				                     : If just one dimension is introduced dim_x = dim_y = dim_z");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
+    addParamsLine("  [--oPDB]                            : Save centered PDB");
     addParamsLine("  [--noHet]                           : Heteroatoms are not converted");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
     addParamsLine("  [--poor_Gaussian]                   : Use a simple Gaussian adapted to each atom");
@@ -220,6 +222,7 @@ void ProgPdbConverter::readParams()
     if (useFixedGaussian)
         sigmaGaussian = getDoubleParam("--fixed_Gaussian");
     doCenter = checkParam("--centerPDB");
+    fn_outPDB = checkParam("--oPDB") ? (fn_out + "_centered.pdb") : FileName();
     noHet = checkParam("--noHet");
     intensityColumn = getParam("--intensityColumn");
 }
@@ -352,6 +355,8 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         VECTOR_R3(r, x, y, z);
         if (doCenter)
         {
+            atom_i.record = line.substr(0,6);
+            hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom_i.serial);
             r -= centerOfMass;
             atom_i.x = x - XX(centerOfMass);
             atom_i.y = y - YY(centerOfMass);
@@ -423,9 +428,9 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
     fh_pdb.close();
 
     // Save centered PDB
-    if (doCenter && fn_out!="")
+    if (doCenter && !fn_outPDB.empty())
     {
-        centered_pdb.write(fn_out + ".pdb");
+        centered_pdb.write(fn_outPDB);
     }
 }
 
@@ -536,6 +541,8 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         VECTOR_R3(r, x, y, z);
         if (doCenter)
         {
+            atom_i.record = line.substr(0,6);
+            hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom_i.serial);
             r -= centerOfMass;
             atom_i.x = x-XX(centerOfMass);
             atom_i.y = y-YY(centerOfMass);
@@ -602,9 +609,9 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     fh_pdb.close();
 
     // Save centered PDB
-    if (doCenter  && fn_out!="")
+    if (doCenter && !fn_outPDB.empty())
     {
-        centered_pdb.write(fn_out + ".pdb");
+        centered_pdb.write(fn_outPDB);
     }
 }
 
