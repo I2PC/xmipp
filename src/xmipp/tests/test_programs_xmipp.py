@@ -316,17 +316,6 @@ class CtfPhaseFlip(XmippProgramTest):
                 outputs=["micrographFlipped.mrc"])
 
 
-class CtfShow(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ctf_show'
-
-    def test_case1(self):
-        self.runCase("-i input/Protocol_Projection_Matching/CTFs/20.ctfparam -o %o/ctf.mrc --dim 256",
-                outputs=["ctf.mrc"])
-
-
 class CtfSortPsds(XmippProgramTest):
     _owner = COSS
     @classmethod
