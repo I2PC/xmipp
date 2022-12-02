@@ -222,20 +222,6 @@ class CtfCorrectWiener3d(XmippProgramTest):
                               "wiener_ctffiltered_group000001.vol"])
 
 
-class CtfCreateCtfdat(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ctf_create_ctfdat'
-
-    def test_case1(self):
-        self.runCase("-i input/micrographs.xmd --ctfs input/ctfs.xmd --oroot %o/output",
-                outputs=["output.ctfdat"])
-    def test_case2(self):
-        self.runCase("-i input/micrographs.xmd --defocus input/defocus.xmd input/input.ctfparam --oroot %o/output",
-                outputs=["output.ctfdat","output000001.ctfparam","output000002.ctfparam"])
-
-
 class CtfEnhancePsd(XmippProgramTest):
     _owner = COSS
     @classmethod

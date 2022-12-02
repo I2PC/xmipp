@@ -122,7 +122,7 @@ void ProgCtfGroup::defineParams()
     addUsageLine("+absolute CTF differences smaller than 0.5 up to 15 Angstroms resolution).");
     addUsageLine("+A complementary manual mode allows to combine different groups or to split)");
     addUsageLine("+groups up even further.");
-    addSeeAlsoLine("ctf_create_ctfdat");
+    addSeeAlsoLine("");
     addExampleLine("Example of use: Sample using automated mode (resolution = 15 Ang.)",false);
     addExampleLine("   xmipp_ctf_group --ctfdat all_images_new.ctfdat -o CtfGroupsNew/ctfAuto   --wiener --wc -1 --pad 2 --phase_flipped --error 0.5 --resol 15 ");
     addExampleLine("Example of use: Sample using manual mode (after manual editing of ctf_group_split.doc)",false);
