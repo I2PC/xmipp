@@ -380,21 +380,11 @@ class ImageHeader(XmippProgramTest):
         self.runCase("-i input/smallStack.stk --extract -o %o/header.xmd",
                 outputs=["header.xmd"])
     def test_case2(self):
-        self.runCase("-i %o/newHeaderStack.xmd --assign",
-                preruns=["cp input/smallStack.stk %o" ," xmipp_metadata_selfile_create -p %o/smallStack.stk -o %o/smallStack.xmd -s" ," xmipp_metadata_utilities -i %o/smallStack.xmd -o %o/newHeaderStack.xmd --fill shiftY constant 2" ],
-                postruns=["xmipp_image_header -i %o/smallStack.xmd --extract -o %o/outputHeader.xmd" ],
-                outputs=["outputHeader.xmd"])
-    def test_case3(self):
         self.runCase("-i %o/newHeader.xmd --assign",
                 preruns=[" xmipp_image_convert input/smallStack.stk --oroot %o/smallImages:spi -o %o/images.xmd" ," xmipp_metadata_utilities -i %o/images.xmd -o %o/newHeader.xmd --fill shiftY constant 2" ],
                 postruns=["xmipp_image_header %o/images.xmd --extract -o %o/outputHeader.xmd" ],
                 outputs=["outputHeader.xmd"])
-    def test_case4(self):
-        self.runCase("-i %o/smallStack.xmd --reset",
-                preruns=["cp input/smallStack.stk %o" ," xmipp_metadata_selfile_create -p %o/smallStack.stk -o %o/smallStack.xmd -s" ," xmipp_metadata_utilities -i %o/smallStack.xmd -o %o/newHeaderStack.xmd --fill shiftY constant 2" ," xmipp_image_header -i %o/newHeaderStack.xmd --assign" ,"xmipp_image_header -i %o/smallStack.xmd --extract -o %o/preOutputHeader.xmd" ],
-                postruns=["xmipp_image_header -i %o/smallStack.xmd --extract -o %o/outputHeader.xmd" ],
-                outputs=["outputHeader.xmd"])
-    def test_case5(self):
+    def test_case3(self):
         self.runCase("-i %o/images.xmd --reset",
                 preruns=[" xmipp_image_convert input/smallStack.stk --oroot %o/smallImages:spi -o %o/images.xmd" ,"xmipp_metadata_utilities -i %o/images.xmd -o %o/newHeader.xmd --fill shiftY constant 2" ,"xmipp_image_header -i %o/newHeader.xmd --assign" ,"xmipp_image_header %o/images.xmd --extract -o %o/preOutputHeader.xmd" ],
                 postruns=["xmipp_image_header %o/images.xmd --extract -o %o/outputHeader.xmd" ],
