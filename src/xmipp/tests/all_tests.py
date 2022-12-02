@@ -27,4 +27,4 @@
 # **************************************************************************
 
 from test_binding import *
-from test_programs_xmipp import *
+from test_programs import *
