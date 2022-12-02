@@ -73,20 +73,6 @@ class AngularDistance(XmippProgramTest):
                 outputs=["angleComparison.xmd"])
 
 
-class AngularDistributionShow(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_angular_distribution_show'
-
-    def test_case1(self):
-        self.runCase("-i input/randomAngularDistribution.sel -o %o/distribution.xmd histogram",
-                outputs=["distribution.xmd"])
-    def test_case2(self):
-        self.runCase("-i input/randomAngularDistribution.sel -o %o/distribution.bild chimera",
-                outputs=["distribution.bild"])
-
-
 class AngularNeighbourhood(XmippProgramTest):
     _owner = RM
     @classmethod
