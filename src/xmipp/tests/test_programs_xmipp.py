@@ -673,11 +673,6 @@ class ClassifyCL2DCoreAnalysisMpi(XmippProgramTest):
                 outputs=['input/CL2DBacteriorhodopsin/level_00/class_classes_core.xmd'])
 
 
-class CtfCorrectIdrMpi(CtfCorrectIdr):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_ctf_correct_idr'
 
 
 class ImageSortMpi(XmippProgramTest):
