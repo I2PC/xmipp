@@ -222,17 +222,6 @@ class CtfCorrectWiener3d(XmippProgramTest):
                               "wiener_ctffiltered_group000001.vol"])
 
 
-class CtfCorrectIdr(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ctf_correct_idr'
-
-    def test_case1(self):
-        self.runCase("-i input/projectionsBacteriorhodopsinWithCTF.sel --vol input/phantomBacteriorhodopsin.vol -o %o/idr2.stk",
-                outputs=["idr2.stk"])
-
-
 class CtfCreateCtfdat(XmippProgramTest):
     _owner = COSS
     @classmethod
