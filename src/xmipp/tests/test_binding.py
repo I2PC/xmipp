@@ -68,8 +68,9 @@ class PythonBindingTest(unittest.TestCase):
         b = Euler_angles2matrix(rot, tilt, psi)
         self.assertAlmostEqual(a.all(), b.all(), 2)
 
+
     def test_xmipp_Euler_matrix2angles(self):
-        from numpy  import array
+        from numpy import array, arange
 
         a = array([[ 0.70710678, 0.70710678, -0.        ],
                    [-0.70710678, 0.70710678, 0.        ],
@@ -84,6 +85,30 @@ class PythonBindingTest(unittest.TestCase):
         self.assertAlmostEqual(rot, rot1, 4)
         self.assertAlmostEqual(tilt, tilt1, 4)
         self.assertAlmostEqual(psi, psi1, 4)
+
+        # test that slicing the array won't affect the result
+        rot = tilt = psi = 0.0
+        A = arange(16.0).reshape(4, -1)
+        B = A[:3,:3]
+        rot1,tilt1,psi1 = Euler_matrix2angles(B)
+        self.assertAlmostEqual(48.36646, rot1, 4)
+        self.assertAlmostEqual(32.31153, tilt1, 4)
+        self.assertAlmostEqual(108.43494, psi1, 4)
+
+        # test that integer values won't affect it
+        rot = tilt = psi = 0.0
+        D = [[0,1,2],[4,5,6],[8,9,10]]
+        rot1,tilt1,psi1 = Euler_matrix2angles(D)
+        self.assertAlmostEqual(48.36646, rot1, 4)
+        self.assertAlmostEqual(32.31153, tilt1, 4)
+        self.assertAlmostEqual(108.43494, psi1, 4)
+
+        # test that other types fail
+        self.assertRaises(TypeError, Euler_matrix2angles, B.astype(complex))
+
+        # test that bad dimension fails
+        self.assertRaises(IndexError, Euler_matrix2angles, A)
+        self.assertRaises(IndexError, Euler_matrix2angles, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
     def test_xmipp_activateMathExtensions(self):
         md1 = MetaData()
