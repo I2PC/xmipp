@@ -795,8 +795,8 @@ xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    import_array();
-    PyObject * input;
+    import_array()
+    PyObject *input;
     if (PyArg_ParseTuple(args, "O", &input))
     {
         // parse python object into numpy array (Numpy/C API)
@@ -805,9 +805,9 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
         if (nullptr == arr) {
             return nullptr;
         }
-        auto *dims = PyArray_DIMS(arr);
-        if (2 != PyArray_NDIM(arr) || (3 != dims[0]) || (3 != dims[1])) {
+        if (const auto *dims = PyArray_DIMS(arr); 2 != PyArray_NDIM(arr) || (3 != dims[0]) || (3 != dims[1])) {
             PyErr_SetString(PyExc_IndexError, "2D array of size <3,3> expected");
+            return nullptr;
         }
         Matrix2D<double> euler(3,3);
         // let's assume that the stride == 1
@@ -819,6 +819,7 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         } else {
             PyErr_SetString(PyExc_TypeError, "Array of type 'double' or 'int' expected");
+            return nullptr;
         }
         double rot;
         double tilt;
