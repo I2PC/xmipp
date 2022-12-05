@@ -897,18 +897,6 @@ class ResolutionFsc(XmippProgramTest):
                 outputs=["phantomBacteriorhodopsin.frc"])
 
 
-class ResolutionSsnr(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_resolution_ssnr'
-
-    def test_case1(self):
-        self.runCase("-S input/Bacteriorhodopsin_rec_art.vol -N input/rec_art_noise.vol -selS input/rec_art_signal_proj.sel -selN input/rec_art_noise_proj.sel  -o %o/Bacteriorhodopsin_SSNR.txt --gen_VSSNR  --VSSNR %o/Bacteriorhodopsin_VSSNR.vol",
-                postruns=["xmipp_image_statistics -i %o/Bacteriorhodopsin_VSSNR.vol -o %o/statistics.xmd" ,'xmipp_metadata_utilities -i %o/statistics.xmd --operate drop_column "min max avg" ','xmipp_metadata_utilities -i %o/statistics.xmd --operate  modify_values "stddev = round(stddev*10.0)" '],
-                outputs=["statistics.xmd"])
-
-
 class TomoDetectMissingWedge(XmippProgramTest):
     _owner = COSS
     @classmethod
