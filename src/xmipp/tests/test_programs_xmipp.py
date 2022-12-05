@@ -875,17 +875,6 @@ class ReconstructArtMpi(XmippProgramTest):
                 outputs=["average.xmd"])
 
 
-class ReconstructArtPseudo(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_reconstruct_art_pseudo'
-
-    def test_case1(self):
-        self.runCase("-i input/projectionsBacteriorhodopsin.xmd --pseudo input/pseudoBacteriorhodopsin.pdb  -l 1 -n 5 -o  %o/rec_art_pseudo",
-                outputs=["rec_art_pseudo.vol"])
-
-
 class ReconstructFourier(XmippProgramTest):
     _owner = VAHID
     @classmethod
