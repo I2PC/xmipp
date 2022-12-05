@@ -1055,17 +1055,6 @@ class TransformNormalize(XmippProgramTest):
                 outputs=["smallStackNormalized.stk"])
 
 
-class TransformRangeAdjust(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_transform_range_adjust'
-
-    def test_case1(self):
-        self.runCase("-i input/singleImage.spi -o %o/image.xmp --range -100 100 --mask circular -16",
-                outputs=["image.xmp"])
-
-
 class TransformSymmetrize(XmippProgramTest):
     _owner = RM
     @classmethod
