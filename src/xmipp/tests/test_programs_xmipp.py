@@ -1465,63 +1465,6 @@ class MlfAlign2dMpi(MlfAlign2d):
         self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/refs.xmd --iter 2 --oroot %o/mlf2d_",random=True,
                 outputs=["mlf2d_images.xmd","mlf2d_classes.stk","mlf2d_classes.xmd"])
 
-
-class MlRefine3d(XmippProgramTest):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ml_refine3d'
-
-    def test_case1(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-    def test_case2(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-
-
-class MlfRefine3d(XmippProgramTest):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mlf_refine3d'
-
-    def test_case1(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-    def test_case2(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-
-
-class MlRefine3dMpi(MlRefine3d):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_ml_refine3d'
-
-    def test_case3(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-    def test_case4(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-
-
-class MlfRefine3dMpi(MlfRefine3d):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_mlf_refine3d'
-
-    def test_case3(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-    def test_case4(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-
-
 class MlTomoMpi(XmippProgramTest):
     _owner = RM
     @classmethod
