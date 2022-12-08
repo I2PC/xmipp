@@ -34,25 +34,48 @@
 
 
 template<typename T>
-size_t GlobAlignmentData<T>::estimateBytes(const FFTSettings<T> &in, const FFTSettings<T> &out) {
+size_t GlobAlignmentData<T>::estimateBytes(const FFTSettings<T> &in, const std::optional<FFTSettings<T>> &bin, const FFTSettings<T> &out) {
     size_t planSize = CudaFFT<T>().estimatePlanBytes(in);
     size_t aux = std::max(in.sBytesBatch(), out.fBytesSingle() * in.batch());
     size_t fd = in.fBytesBatch();
+    if (bin) {
+        planSize += CudaFFT<T>().estimatePlanBytes(bin.value());
+        aux = std::max(aux, bin.value().fBytesBatch());
+        fd = std::max(std::max(fd, bin.value().sBytesBatch()), out.fBytesSingle() * in.batch());
+    }
     return planSize + aux + fd;
 }
  
 
 template<typename T>
-void GlobAlignmentData<T>::alloc(const FFTSettings<T> &in, const FFTSettings<T> &out, const GPU &gpu) {
-    plan = CudaFFT<T>::createPlan(gpu, in);
-    // here we will first frames to be converted to FD, and then scaled frames in FD
-    d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(std::max(in.sBytesBatch(), out.fBytesSingle() * in.batch()), MemType::CUDA));
-    d_ft = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(in.fBytesBatch(), MemType::CUDA));
+void GlobAlignmentData<T>::alloc(const FFTSettings<T> &in, const std::optional<FFTSettings<T>> &bin, const FFTSettings<T> &out, const GPU &gpu) {
+    {
+        plan = CudaFFT<T>::createPlan(gpu, in);
+        if (bin) {
+            plan_bin = CudaFFT<T>::createPlan(gpu, bin.value());
+        }
+    }
+    {// here we will first frames to be converted to FD, and then scaled frames in FD
+        auto bytes = std::max(in.sBytesBatch(), out.fBytesSingle() * in.batch());
+        if (bin) {
+            plan_bin = CudaFFT<T>::createPlan(gpu, bin.value());
+            bytes = std::max(bytes, bin.value().fBytesBatch());
+        }
+        d_aux = reinterpret_cast<T*>(BasicMemManager::instance().get(bytes, MemType::CUDA));
+    } 
+    {
+        auto bytes = in.fBytesBatch();
+        if (bin) {
+            bytes = std::max(std::max(bytes, bin.value().sBytesBatch()), out.fBytesSingle() * in.batch());
+        }
+        d_ft = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(bytes, MemType::CUDA));
+    }
 }
 
 template<typename T>
 void GlobAlignmentData<T>::release() {
     CudaFFT<T>::release(plan);
+    CudaFFT<T>::release(plan_bin);
     BasicMemManager::instance().give(d_ft);
     BasicMemManager::instance().give(d_aux);
 }
@@ -110,6 +133,65 @@ void performFFTAndScale(T *h_in, const FFTSettings<T> &in,
     // gpuErrchk(cudaMemcpy(h_out, d_aux, out.fBytesSingle() * in.batch(), cudaMemcpyDeviceToHost));
     
     gpuErrchk(cudaPeekAtLastError());
+}
+
+template void runFFTBinScale<float>(float *h_in, const FFTSettings<float> &in, 
+    float *h_outBin, const FFTSettings<float> &bin, 
+    std::complex<float> *h_out, const FFTSettings<float> &out, 
+    MultidimArray<float> &filter, const GPU &gpu, GlobAlignmentData<float> &aux);
+template <typename T>
+void runFFTBinScale(T *h_in, const FFTSettings<T> &in, 
+    T *h_outBin,
+    const FFTSettings<T> &bin, 
+    std::complex<T> *h_out, const FFTSettings<T> &out, 
+    MultidimArray<T> &filter, const GPU &gpu, GlobAlignmentData<T> &aux)
+{
+    auto stream = *(cudaStream_t*)gpu.stream();    
+    dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
+    {
+        // perform FFT
+        auto *d_in = aux.d_aux;
+        auto *d_out = aux.d_ft;
+        gpuErrchk(cudaMemcpyAsync(d_in, h_in, in.sBytesBatch(), cudaMemcpyHostToDevice, stream));
+        CudaFFT<T>::fft(*aux.plan, d_in, d_out);
+    }
+    {
+        auto *d_in = aux.d_ft;
+        auto *d_out = reinterpret_cast<std::complex<T>*>(aux.d_aux);
+        // scale frames in FD to perform binning
+        dim3 dimGrid(ceil(bin.fDim().x()/(float)dimBlock.x), ceil(bin.fDim().y()/(float)dimBlock.y));
+        auto hack = 0.f; // no idea why I can't just pass nullptr
+        scaleFFT2D(&dimGrid, &dimBlock,
+            d_in, d_out,
+            in.batch(), in.fDim().x(), in.fDim().y(),
+            bin.fDim().x(), bin.fDim().y(),
+            &hack, 1.f/in.sDim().xy(), false, gpu);
+        // scaleFFT2D(&dimGrid, &dimBlock,
+            // d_in, aux.d_ft,
+            // bin.batch(), bin.fDim().x(), bin.fDim().y(),
+            // out.fDim().x(), out.fDim().y(),
+            // filter.data, 1.f/bin.sDim().xy(), false, gpu);
+        gpuErrchk( cudaPeekAtLastError() );
+    }
+    {
+        auto *d_in = reinterpret_cast<std::complex<T>*>(aux.d_aux);
+        // perform IFT and send data back
+        auto *d_out = reinterpret_cast<T*>(aux.d_ft);
+        CudaFFT<T>::ifft(*aux.plan_bin, d_in, d_out);
+        gpuErrchk(cudaMemcpyAsync(h_outBin, d_out, bin.sBytesBatch(), cudaMemcpyDeviceToHost, stream));
+
+        // perform another crop to scale frames
+        dim3 dimGrid(ceil(out.fDim().x()/(float)dimBlock.x), ceil(out.fDim().y()/(float)dimBlock.y));
+        scaleFFT2D(&dimGrid, &dimBlock,
+            d_in, aux.d_ft,
+            bin.batch(), bin.fDim().x(), bin.fDim().y(),
+            out.fDim().x(), out.fDim().y(),
+            filter.data, 1.f/bin.sDim().xy(), false, gpu);
+        gpuErrchk( cudaPeekAtLastError() );
+
+        // copy data out
+        gpuErrchk(cudaMemcpyAsync(h_out, d_out, out.fBytesSingle() * bin.batch(), cudaMemcpyDeviceToHost, stream));
+    }
 }
 
 template void performFFTAndScale<float>(float* inOutData, int noOfImgs, int inX,

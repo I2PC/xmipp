@@ -69,7 +69,12 @@ public:
 
 protected:
     /**
-     * @return dimension of the movie frame (taking into account slicing indicated by the user)
+     * @return dimension of the raw movie frames and their count (taking into account slicing indicated by the user)
+     **/
+    Dimensions getMovieSizeFull();
+
+    /**
+     * @return dimension of the movie frames and their count after binning, if applied
      **/
     Dimensions getMovieSize();
 
@@ -221,8 +226,12 @@ protected:
 
 
     /** Get binning factor for resulting micrograph / alignend movie */
-    T getOutputBinning() {
-        return outputBinning;
+    auto getBinning() {
+        return binning;
+    }
+
+    bool applyBinning() {
+        return binning != 1.0;
     }
 private:
     void setNoOfPatches();
@@ -347,14 +356,15 @@ private:
     /** Max resolution in A to preserve during alignment*/
     T maxResForCorrelation; //
     /** Pixel size of the movie*/
-    T Ts;
+    double Ts;
     /** Correction images */
     FileName fnDark, fnGain;
-    /** Binning factor used for output */
-    T outputBinning;
+    /** Binning factor, >= 1 */
+    double binning;
     /** Size of the raw movie, only the requested frames */
+    std::optional<Dimensions> movieSizeFull;
+    /** Size of the movie as it should be processed */
     std::optional<Dimensions> movieSize;
-
 };
 //@}
 #endif

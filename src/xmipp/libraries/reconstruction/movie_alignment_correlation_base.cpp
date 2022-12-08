@@ -36,7 +36,10 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnInitialAvg = getParam("--oavgInitial");
     fnDark = getParam("--dark");
     fnGain = getParam("--gain");
-    Ts = getDoubleParam("--sampling");
+    binning = getDoubleParam("--bin");
+    if (binning < 1.0)
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Binning must be >= 1");
+    Ts = getDoubleParam("--sampling") * binning;
     maxShift = getDoubleParam("--maxShift") / Ts;
     maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
     fnAligned = getParam("--oaligned");
@@ -45,7 +48,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     nlast = getIntParam("--frameRange", 1);
     nfirstSum = getIntParam("--frameRangeSum", 0);
     nlastSum = getIntParam("--frameRangeSum", 1);
-    outputBinning = getDoubleParam("--bin");
+    binning = getDoubleParam("--bin");
     skipLocalAlignment = checkParam("--skipLocalAlignment");
     minLocalRes = getIntParam("--minLocalRes");
 
@@ -98,7 +101,7 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Unaligned micrograph:  " << fnInitialAvg << std::endl
             << "Frame range alignment: " << nfirst << " " << nlast << std::endl
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
-            << "Output Binning factor: " << outputBinning << std::endl
+            << "Binning factor:        " << binning << std::endl
             << "Skip local alignment:  " << (skipLocalAlignment ? "yes" : "no") << std::endl
             << "Control points:        " << this->localAlignmentControlPoints << std::endl
             << "No of patches:         " << this->localAlignPatches.first << " * " << localAlignPatches.second << std::endl;
@@ -114,17 +117,11 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "                               : If no filename is given, the input is rewritten");
     addParamsLine(
-            "  [--bin <s=-1>]               : Binning factor, it may be any floating number");
+            "  [--bin <s=1>]                : Binning factor, it may be any floating number > 1.");
     addParamsLine(
-            "                               :+Binning in Fourier is the first operation, so that");
+            "                               : Binning is applied during the data loading, i.e. the program will processed and store binned data.");
     addParamsLine(
-            "                               :+crop parameters are referred to the binned images");
-    addParamsLine(
-            "                               :+By default, -1, the binning is automatically calculated ");
-    addParamsLine(
-            "                               :+as a function of max_freq.");
-    addParamsLine(
-            "  [--maxShift <s=50>]         : Maximum shift allowed in A");
+            "  [--maxShift <s=50>]          : Maximum shift allowed in A");
     addParamsLine(
             "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
     addParamsLine(
@@ -340,8 +337,8 @@ void AProgMovieAlignmentCorrelation<T>::readMovie(MetaData& movie) {
 }
 
 template<typename T>
-Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
-    if (this->movieSize) return movieSize.value();
+Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSizeFull() {
+    if (this->movieSizeFull) return movieSizeFull.value();
     int noOfImgs = this->nlast - this->nfirst + 1;
     auto fn = fnMovie;
     if (fnMovie.isMetaData()) {
@@ -353,7 +350,22 @@ Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
     movieStack.read(fn, HEADER);
     size_t xdim, ydim, zdim, ndim;
     movieStack.getDimensions(xdim, ydim, zdim, ndim);
-    this->movieSize = Dimensions(xdim, ydim, 1, noOfImgs);
+    this->movieSizeFull = Dimensions(xdim, ydim, 1, noOfImgs);
+    return movieSizeFull.value();
+}
+
+template<typename T>
+Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
+    if (movieSize) return movieSize.value();
+    auto full = getMovieSizeFull();
+    if (applyBinning()) {
+        // to make FFT fast, we want the size to be a multiple of 2
+        auto x = ((static_cast<float>(full.x()) / binning) / 2.f) * 2.f;
+        auto y = ((static_cast<float>(full.y()) / binning) / 2.f) * 2.f;
+        movieSize = Dimensions(x, y, 1, full.n());
+    } else {
+        movieSize = full;
+    }
     return movieSize.value();
 }
 

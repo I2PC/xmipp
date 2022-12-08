@@ -30,6 +30,9 @@
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::defineParams() {
     AProgMovieAlignmentCorrelation<T>::defineParams();
+    if (this->getBinning() != 1.0)
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Binning is not supported. Please contact developers if you really need it.");
+
     this->addExampleLine(
                 "xmipp_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc");
     this->addSeeAlsoLine("xmipp_cuda_movie_alignment_correlation");
@@ -159,7 +162,6 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     FileName fnFrame;
     int frameIndex = -1;
     Ninitial = N = 0;
-    const T binning = this->getOutputBinning();
 
     for (size_t objId : movie.ids())
     {
@@ -176,12 +178,6 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
 
             // load frame
             this->loadFrame(movie, dark, igain, objId, croppedFrame);
-            if (binning > 0) {
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
-                        floor(XSIZE(croppedFrame()) / binning),
-                        croppedFrame(), reducedFrame());
-                croppedFrame() = reducedFrame();
-            }
 
             if ( ! this->fnInitialAvg.isEmpty()) {
                 if (frameIndex == this->nfirstSum)

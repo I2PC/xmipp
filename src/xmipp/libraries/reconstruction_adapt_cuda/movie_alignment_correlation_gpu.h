@@ -79,6 +79,10 @@ private:
 
         void releaseFrame(size_t index);
 
+        auto getBinnedFrame(size_t index) {
+            return MultidimArray<T>(1, 1, mBinDim.y(), mBinDim.x(), mFullFrames[index].data);
+        }
+
         void setFullDim(const Dimensions &dim) {
             releaseFullFrames(); // in case there was something before
             mFullDim = dim;
@@ -88,6 +92,10 @@ private:
                 // create multidim arrays, but without data 
                 mFullFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
             }
+        }
+
+        void setBinDim(const Dimensions &dim) {
+            mBinDim = dim;
         }
 
         const Dimensions &getFullDim() const {
@@ -103,6 +111,7 @@ private:
         // also there's no padding, as full frames are never converted to FD
         std::vector<MultidimArray<T>> mFullFrames;
         Dimensions mFullDim = Dimensions(0);
+        Dimensions mBinDim = Dimensions(0);
     } movie;
 
 
@@ -112,6 +121,7 @@ private:
         
         FFTSettings<T> movieSettings = FFTSettings<T>(0);
         FFTSettings<T> correlationSettings = FFTSettings<T>(0);
+        std::optional<FFTSettings<T>> binSettings = std::nullopt;
         size_t gpuStreams = 1;
         size_t cpuThreads = 2;
         size_t bufferSize; // for correlation

@@ -26,6 +26,7 @@
 #ifndef CUDA_GPU_MOVIE_ALIGNMENT_CORRELATION
 #define CUDA_GPU_MOVIE_ALIGNMENT_CORRELATION
 
+#include <optional>
 #include "reconstruction/movie_alignment_gpu_defines.h"
 #include "cuFFTAdvisor/utils.h"
 #include <vector>
@@ -39,14 +40,16 @@
 #include "reconstruction_cuda/cuda_fft.h"
 
 
+
 template<typename T>
 struct GlobAlignmentData {
-    void alloc(const FFTSettings<T> &in, const FFTSettings<T> &out, const GPU &gpu);
+    void alloc(const FFTSettings<T> &in, const std::optional<FFTSettings<T>> &bin, const FFTSettings<T> &out, const GPU &gpu);
     void release();
-    static size_t estimateBytes(const FFTSettings<T> &in, const FFTSettings<T> &out);
+    static size_t estimateBytes(const FFTSettings<T> &in, const std::optional<FFTSettings<T>> &bin, const FFTSettings<T> &out);
     T *d_aux;
     std::complex<T> *d_ft;
     cufftHandle *plan;
+    cufftHandle *plan_bin;
 };
 
 template<typename T>
@@ -78,6 +81,12 @@ struct CorrelationData {
 template<typename T>
 void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
         int inBatch, int outFFTX, int outY, MultidimArray<T> &filter);
+
+template<typename T>
+void runFFTBinScale(T *h_in, const FFTSettings<T> &in, 
+    T *h_outBin, const FFTSettings<T> &bin, 
+    std::complex<T> *h_out, const FFTSettings<T> &out, 
+    MultidimArray<T> &filter, const GPU &gpu, GlobAlignmentData<T> &aux);
 
 /**
  * This function performs FFT and scale (with filter) of the input images.
