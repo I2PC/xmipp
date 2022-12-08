@@ -36,8 +36,8 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnInitialAvg = getParam("--oavgInitial");
     fnDark = getParam("--dark");
     fnGain = getParam("--gain");
-    maxShift = getDoubleParam("--max_shift");
     Ts = getDoubleParam("--sampling");
+    maxShift = getDoubleParam("--maxShift") / Ts;
     maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
     fnAligned = getParam("--oaligned");
     fnAvg = getParam("--oavg");
@@ -90,7 +90,7 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Output metadata:       " << fnOut << std::endl
             << "Dark image:            " << fnDark << std::endl
             << "Gain image:            " << fnGain << std::endl
-            << "Max. Shift:            " << maxShift << std::endl
+            << "Max. Shift (A / px):   " << (maxShift * Ts) << " / " << maxShift << std::endl
             << "Max resolution (A):    " << maxResForCorrelation << std::endl
             << "Sampling:              " << Ts << std::endl
             << "Aligned movie:         " << fnAligned << std::endl
@@ -124,7 +124,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "                               :+as a function of max_freq.");
     addParamsLine(
-            "  [--max_shift <s=40>]         : Maximum shift allowed in pixels"); // FIXME DS this should be called maxShift, and be in A, rather than in pixels
+            "  [--maxShift <s=50>]         : Maximum shift allowed in A");
     addParamsLine(
             "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
     addParamsLine(

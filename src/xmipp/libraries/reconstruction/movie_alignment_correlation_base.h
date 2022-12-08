@@ -318,8 +318,8 @@ private:
 protected:
     /** First and last frame (inclusive)*/
     int nfirst, nlast;
-    /** Max shift */
-    T maxShift;
+    /** Max shift in pixels*/
+    float maxShift;
     /** Aligned movie */
     FileName fnAligned;
     /** Aligned micrograph */
