@@ -502,16 +502,6 @@ class ImageRotationalPcaMpi(XmippProgramTest):
                 outputs=["reference.xmd"])
 
 
-class ImageSeparateObjects(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_image_separate_objects'
-
-    def test_case1(self):
-        self.runCase("-i input/maskBacteriorhodopsin.vol --oroot %o/mask",
-                outputs=["mask000001.vol","mask000002.vol"])
-
 
 class ImageSortByStatistics(XmippProgramTest):
     _owner = COSS
