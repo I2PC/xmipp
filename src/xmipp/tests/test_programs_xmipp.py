@@ -1153,16 +1153,6 @@ class VolumeFromPdb(XmippProgramTest):
                 outputs=["1o7d.vol"])
 
 
-class VolumeReslice(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_volume_reslice'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomCandida.vol -o %o/resliced.vol --face top",
-                outputs=["resliced.vol"])
-
 
 class VolumeSegment(XmippProgramTest):
     _owner = RM
