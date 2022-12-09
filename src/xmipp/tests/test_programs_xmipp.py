@@ -1129,15 +1129,6 @@ class VolumeCorrectBfactor(XmippProgramTest):
                 outputs=["corrected.vol"])
 
 
-class VolumeEnhanceContrast(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_volume_enhance_contrast'
-
-    def test_case1(self):
-        self.runCase("-i input/1FFKfull_reconstructed.vol -o %o/enhanced.vol",
-                outputs=["enhanced.vol"])
 
 
 class VolumeFindSymmetry(XmippProgramTest):
