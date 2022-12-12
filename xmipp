@@ -34,9 +34,10 @@ from scripts import *
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.22.07.0'        #
+XMIPP_VERSION = '3.22.11.0'        #
 XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '13/07/2022'        #
+RELEASE_DATE = '15/11/2022'        #
+
 ####################################
 
 
@@ -942,7 +943,7 @@ if __name__ == '__main__':
         module = 'Xmipp'
         if ok:
             print("\n"
-                  "  * %s have been successfully compiled * \n"
+                  "  * %s has been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
         else:

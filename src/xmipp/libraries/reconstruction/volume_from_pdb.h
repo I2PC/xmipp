@@ -46,6 +46,9 @@ public:
     /** Output fileroot */
     FileName fn_out;
 
+    /** Output file for centered PDB*/
+    FileName fn_outPDB;
+
     /** Blob */
     struct blobtype blob;
 
