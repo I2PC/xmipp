@@ -1202,16 +1202,6 @@ class VolumeToWeb(XmippProgramTest):
 
 
 
-class XrayPsfCreate(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_xray_psf_create'
-
-    def test_case1(self):
-        self.runCase("-i input/xray_psf.xmd -o %o/psf.vol",
-                outputs=["psf.vol"])
-
 #xmipp no longer handle emx, import/export using scipion
 #class ExportEmx(XmippProgramTest):
 #class ImportEmx(XmippProgramTest):

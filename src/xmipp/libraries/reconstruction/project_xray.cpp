@@ -28,7 +28,7 @@
 void ProgXrayProject::defineParams()
 {
     addUsageLine("Generate projections as in a X-ray microscope from a 3D Xmipp volume.");
-    addSeeAlsoLine("xray_psf_create, phantom_create");
+    addSeeAlsoLine("phantom_create");
     //Params
     projParam.defineParams(this); // Projection parameters
     addParamsLine("== Xray options == ");
