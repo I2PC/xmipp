@@ -32,7 +32,7 @@
 void ProgIDRXrayTomo::defineParams()
 {
     addUsageLine("Iterative Data Refinement applied to the reconstruction of X-ray tomography projections.");
-    addSeeAlsoLine("xray_psf_create, xray_import, xray_project");
+    addSeeAlsoLine("xray_psf_create, xray_project");
     //Params
     //    projParam.defineParams(this); // Projection parameters
     addParamsLine("-i <md_file>  : Metadata file with input projections");
