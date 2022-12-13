@@ -1201,19 +1201,6 @@ class VolumeToWeb(XmippProgramTest):
 #                 outputs=["stack_darkfield.xmp","stack_flatfield_avg.xmp","stack_Flatfields_darkfield.xmp"])
 
 
-class XrayProject(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_xray_project'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomCandida.vol -o %o/image.xmp --angles 0 90 90 -s 10 --psf input/xray_psf_with_volume.xmd",
-                outputs=["image.xmp"])
-    def test_case2(self):
-        self.runCase("-i input/phantomCandida.vol --oroot %o/projections --params input/tomoProjection.param -s 10 --psf input/xray_psf_with_volume.xmd",
-                outputs=["projections.xmd","projections.stk"])
-
 
 class XrayPsfCreate(XmippProgramTest):
     _owner = RM
