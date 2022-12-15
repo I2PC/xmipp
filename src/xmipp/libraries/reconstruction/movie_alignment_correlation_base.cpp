@@ -337,8 +337,8 @@ void AProgMovieAlignmentCorrelation<T>::readMovie(MetaData& movie) {
 }
 
 template<typename T>
-Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSizeFull() {
-    if (this->movieSizeFull) return movieSizeFull.value();
+Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSizeRaw() {
+    if (this->movieSizeRaw) return movieSizeRaw.value();
     int noOfImgs = this->nlast - this->nfirst + 1;
     auto fn = fnMovie;
     if (fnMovie.isMetaData()) {
@@ -350,14 +350,14 @@ Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSizeFull() {
     movieStack.read(fn, HEADER);
     size_t xdim, ydim, zdim, ndim;
     movieStack.getDimensions(xdim, ydim, zdim, ndim);
-    this->movieSizeFull = Dimensions(xdim, ydim, 1, noOfImgs);
-    return movieSizeFull.value();
+    this->movieSizeRaw = Dimensions(xdim, ydim, 1, noOfImgs);
+    return movieSizeRaw.value();
 }
 
 template<typename T>
 Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
     if (movieSize) return movieSize.value();
-    auto full = getMovieSizeFull();
+    auto full = getMovieSizeRaw();
     if (applyBinning()) {
         // to make FFT fast, we want the size to be a multiple of 2
         auto x = ((static_cast<float>(full.x()) / binning) / 2.f) * 2.f;
@@ -481,8 +481,10 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
         const AlignmentResult<T> &globAlignment) {
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
-    std::cout << "Estimated global shifts (from the reference frame):\n";
-    for (auto &&s : globAlignment.shifts) {
+    std::cout << "Estimated global shifts (in px, from the reference frame";
+    std::cout << (applyBinning() ? ", after binning" : "");
+    std::cout << "):\n";
+    for (auto &s : globAlignment.shifts) {
         printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
     }
     std::cout << std::endl;

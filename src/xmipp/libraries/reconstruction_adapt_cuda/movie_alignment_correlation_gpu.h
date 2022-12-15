@@ -68,60 +68,74 @@ private:
     class Movie final
     {
     public:
-        MultidimArray<T> &getFullFrame(size_t index)
+        MultidimArray<T> &getRawFrame(size_t index)
         {
-            return mFullFrames[index];
+            return mRawFrames[index];
+        }
+
+        MultidimArray<T> &getBinnedFrame(size_t index)
+        {
+            return mBinnedFrames[index];
         }
 
         MultidimArray<T> &allocate(size_t x, size_t y);
 
-        void releaseFullFrames();
+        void releaseRawFrames();
 
-        void releaseFrame(size_t index);
+        void releaseRawFrame(size_t index);
 
-        auto getBinnedFrame(size_t index) {
-            return MultidimArray<T>(1, 1, mBinDim.y(), mBinDim.x(), mFullFrames[index].data);
-        }
-
-        void setFullDim(const Dimensions &dim) {
-            releaseFullFrames(); // in case there was something before
-            mFullDim = dim;
-            mFullFrames.clear();
-            mFullFrames.reserve(dim.n());
+        void setRawDim(const Dimensions &dim) {
+            releaseRawFrames(); // in case there was something before
+            mRawDim = dim;
+            mRawFrames.clear();
+            mRawFrames.reserve(dim.n());
             for (auto n = 0; n < dim.n(); ++n) {
                 // create multidim arrays, but without data 
-                mFullFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
+                mRawFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
             }
         }
 
-        void setBinDim(const Dimensions &dim) {
-            mBinDim = dim;
+        void setBinnedDim(const Dimensions &dim) {
+            mBinnedDim = dim;
+            mBinnedFrames.clear();
+            mBinnedFrames.reserve(dim.n());
+            for (auto n = 0; n < dim.n(); ++n) {
+                mBinnedFrames.emplace_back(1, 1, dim.y(), dim.x());
+            }
         }
 
-        const Dimensions &getFullDim() const {
-            return mFullDim;
+        const Dimensions &getRawDim() const {
+            return mRawDim;
         }
 
-        bool hasFullMovie() const {
-            return ! mFullFrames.empty() && (nullptr != mFullFrames[0].data); // because they might be empty
+        const Dimensions &getBinnedDim() const {
+            return mBinnedDim;
+        }
+
+        bool hasRawMovie() const {
+            return ! mRawFrames.empty() && (nullptr != mRawFrames[0].data); // because they might be empty
+        }
+
+        bool hasBinnedMovie() const {
+            return ! mBinnedFrames.empty();
         }
     private:
-        // internally, full-frame movie is represented by separate frames
+        // internally, Raw-frame movie is represented by separate frames
         // as we access it only frame by frame (i.e. no need for batches)
-        // also there's no padding, as full frames are never converted to FD
-        std::vector<MultidimArray<T>> mFullFrames;
-        Dimensions mFullDim = Dimensions(0);
-        Dimensions mBinDim = Dimensions(0);
+        // also there's no padding, as raw frames are never converted to FD
+        std::vector<MultidimArray<T>> mRawFrames;
+        std::vector<MultidimArray<T>> mBinnedFrames;
+        Dimensions mRawDim = Dimensions(0);
+        Dimensions mBinnedDim = Dimensions(0);
     } movie;
 
 
     class GlobalAlignmentHelper final {
     public:
-        auto findBatchesThreadsStreams(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        auto findBatchesThreadsStreams(const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         
         FFTSettings<T> movieSettings = FFTSettings<T>(0);
         FFTSettings<T> correlationSettings = FFTSettings<T>(0);
-        std::optional<FFTSettings<T>> binSettings = std::nullopt;
         size_t gpuStreams = 1;
         size_t cpuThreads = 2;
         size_t bufferSize; // for correlation

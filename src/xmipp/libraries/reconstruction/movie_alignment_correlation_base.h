@@ -71,7 +71,7 @@ protected:
     /**
      * @return dimension of the raw movie frames and their count (taking into account slicing indicated by the user)
      **/
-    Dimensions getMovieSizeFull();
+    Dimensions getMovieSizeRaw();
 
     /**
      * @return dimension of the movie frames and their count after binning, if applied
@@ -362,7 +362,7 @@ private:
     /** Binning factor, >= 1 */
     double binning;
     /** Size of the raw movie, only the requested frames */
-    std::optional<Dimensions> movieSizeFull;
+    std::optional<Dimensions> movieSizeRaw;
     /** Size of the movie as it should be processed */
     std::optional<Dimensions> movieSize;
 };
