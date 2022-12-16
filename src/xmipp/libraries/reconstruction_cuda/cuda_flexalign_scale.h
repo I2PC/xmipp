@@ -10,12 +10,12 @@ class CUDAFlexAlignScale final
 public:
     struct Params
     {
+        bool doBinning = false;
         Dimensions raw = Dimensions(0);   // raw movie, that needs to be binned
         Dimensions movie = Dimensions(0); // cropped / binned size
+        size_t movieBatch = 1;
         Dimensions out = Dimensions(0);   // size used for output / scaled frames
         size_t outBatch = 1;
-        bool doBinning = false;
-        const size_t movieBatch = 1; // always 1
     };
 
     CUDAFlexAlignScale(const Params &p, const GPU &gpu) : mParams(p), mGpu(gpu) {}

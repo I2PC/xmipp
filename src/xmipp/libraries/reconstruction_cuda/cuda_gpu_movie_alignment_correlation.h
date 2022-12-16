@@ -40,16 +40,6 @@
 
 
 template<typename T>
-struct GlobAlignmentData {
-    void alloc(const FFTSettings<T> &in, const FFTSettings<T> &out, const GPU &gpu);
-    void release();
-    static size_t estimateBytes(const FFTSettings<T> &in, const FFTSettings<T> &out);
-    T *d_aux;
-    std::complex<T> *d_ft;
-    cufftHandle *plan;
-};
-
-template<typename T>
 struct CorrelationData {
     void alloc(const FFTSettings<T> &settings, size_t bufferSize, const GPU &gpu);
     void release();
@@ -59,71 +49,6 @@ struct CorrelationData {
     std::complex<T> *d_fftBuffer2;
     cufftHandle *plan;
 };
-
-/**@defgroup ProgAGPUMovieAlign Cuda GPU movie Alignment Correlation
-   @ingroup ReconsLibrary */
-//@{
-/**
- * This function performs FFT and scale (with filter) of the input images
- * @param inOutData input images. Scaled images will be stored here. Must be
- * big enough to store all output images in FT
- * @param noOfImgs no of the input images
- * @param inX X dim of the input image, space domain
- * @param inY Y dim of the input image, space domain
- * @param inBatch no of the images to process in batch (FFT)
- * @param outFFTX X dim of the output image, freq. domain
- * @param outY Y dim of the output image, freq. domain
- * @param filter to apply per each output image (must be size of output)
- */
-template<typename T>
-void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
-        int inBatch, int outFFTX, int outY, MultidimArray<T> &filter);
-
-/**
- * This function performs FFT and scale (with filter) of the input images.
- * Warning: when this funcion returns, some memory transfers still might be pending.
- * Make sure that you wait for them!
- * @param h_in input frames on host
- * @param in settings describing the input data
- * @param h_out result will be stored here
- * @param out settings describing the output data
- * @param filter to apply per each output image (must be size of output)
- * @param gpu where the operation should be performed
- * @param aux memory storages
- */
-template <typename T>
-void performFFTAndScale(T *h_in, const FFTSettings<T> &in, 
-    std::complex<T> *h_out, const FFTSettings<T> &out, 
-    MultidimArray<T> &filter, const GPU &gpu, GlobAlignmentData<T> &aux);
-
-/**
- * Perform scale of the Fourier domain. Possibly with filtering, normalization and
- * centering
- * @param dimGrid kernel grid (must be of type dim3)
- * @param dimBlock kernel block (must be of type dim3)
- * @param d_inFFT input Fourier data (GPU)
- * @param d_outFFT output Fourier data (GPU)
- * @param noOfFFT no of input images
- * @param inFFTX X dim of the input Fourier
- * @param inFFTY Y dim of the input Fourier
- * @param outFFTX X dim of the output Fourier
- * @param outFFTY Y dim of the output Fourier
- * @param d_filter to be used, must be of the input size. Can be NULL
- * @param normFactor normalization factor to be used (typically 1/X*Y).
- * Use 1 to avoid normalization
- * @param center the image (after IFFT) using multiplication. Works only for
- * inputs of even size.
- */
-template<typename T>
-void scaleFFT2D(void* dimGrid, void* dimBlock,
-        const std::complex<T>* d_inFFT, std::complex<T>* d_outFFT,
-        int noOfFFT, size_t inFFTX, size_t inFFTY, size_t outFFTX, size_t outFFTY,
-        T* d_filter, T normFactor, bool center);
-template<typename T>
-void scaleFFT2D(void* dimGrid, void* dimBlock,
-        const std::complex<T>* d_inFFT, std::complex<T>* d_outFFT,
-        int noOfFFT, size_t inFFTX, size_t inFFTY, size_t outFFTX, size_t outFFTY,
-        T* d_filter, T normFactor, bool center, const GPU &gpu);
 
 /**
  * Function will copy position of the max shift from GPU in proper order

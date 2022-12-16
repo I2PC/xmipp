@@ -248,9 +248,17 @@ auto ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findBatchesThrea
     auto correlation = instance.getCorrelationHint(pSize);
     auto cSize = instance.findGoodCorrelationSize(correlation, gpu);
     const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
-    auto getMemReq = [&pSize, this]() {
-        // for scale
-        auto scale = GlobAlignmentData<T>::estimateBytes(patchSettings, correlationSettings);
+    auto getMemReq = [&pSize, &gpu, this]() {
+        // for scale 
+        typename CUDAFlexAlignScale<T>::Params p {
+        .doBinning = false,
+        .raw = Dimensions(0),
+        .movie = patchSettings.sDim(),
+        .movieBatch = patchSettings.batch(),
+        .out = correlationSettings.sDim(),
+        .outBatch = correlationSettings.batch(),
+        };
+        auto scale = CUDAFlexAlignScale<T>(p, gpu).estimateBytes();
         // for correlation
         auto noOfBuffers = (bufferSize == pSize.n()) ? 1 : 2;
         auto buffers = correlationSettings.fBytesSingle() * bufferSize * noOfBuffers;
@@ -315,7 +323,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.sDim());
     T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
     memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
-    auto filter = MultidimArray<T>(1, 1, filterTmp.ydim, filterTmp.xdim, filterData);
 
     // prepare result
     LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSize};
@@ -361,8 +368,16 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     std::mutex mutex[3];
 
-    GlobAlignmentData<T> auxData;
-    auxData.alloc(patchSettings.createBatch(), correlationSettings, streams[0]);
+    typename CUDAFlexAlignScale<T>::Params p {
+        .doBinning = false,
+        .raw = Dimensions(0),
+        .movie = patchSettings.sDim(),
+        .movieBatch = patchSettings.batch(),
+        .out = correlationSettings.sDim(),
+        .outBatch = correlationSettings.batch(),
+    };
+    auto auxData = CUDAFlexAlignScale<T>(p, streams[0]);
+    auxData.init();
     CorrelationData<T> corrAuxData;
     corrAuxData.alloc(correlationSettings, localHelper.bufferSize, streams[1]);
 
@@ -401,9 +416,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             // convert to FFT, downscale them and compute correlations
                 for (auto i = 0; i < patchSettings.sDim().n(); i += patchSettings.batch()) {
                     std::unique_lock<std::mutex> lock(mutex[0]);
-                    performFFTAndScale(data + i * patchSettings.sElemsBatch(), patchSettings.createBatch(),
-                                                scalledPatches[thrId] + i * correlationSettings.fDim().sizeSingle(), correlationSettings,
-                                                filter, streams[0], auxData);
+                    auxData.run(nullptr, data + i * patchSettings.sElemsBatch(), scalledPatches[thrId] + i * correlationSettings.fDim().sizeSingle(), filterData);
                 }
                 streams[0].synch();
 
@@ -439,7 +452,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     }
     BasicMemManager::instance().give(filterData);
     corrAuxData.release();
-    auxData.release();
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSize, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
@@ -647,13 +659,15 @@ auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findBatchesThre
     auto cSize = instance.findGoodCorrelationSize(correlation, gpu);
     const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
     auto getMemReq = [this, &gpu, &rSize, doBinning]() {
-        typename CUDAFlexAlignScale<T>::Params p;
-        p.raw = rSize;
-        p.movie = movieSettings.sDim();
-        p.out = correlationSettings.sDim();
-        p.doBinning = doBinning;
+        typename CUDAFlexAlignScale<T>::Params p {
+        .doBinning = doBinning,
+        .raw = rSize,
+        .movie = movieSettings.sDim(),
+        .movieBatch = 1,
+        .out = correlationSettings.sDim(),
+        .outBatch = 1,
+        };
         return CUDAFlexAlignScale<T>(p, gpu).estimateBytes();
-        // return GlobAlignmentData<T>::estimateBytes(movieSettings, correlationSettings) * gpuStreams;
     };
     auto cond = [&mSize, this]() {
         // we want only no. of batches that can process the movie without extra invocations
