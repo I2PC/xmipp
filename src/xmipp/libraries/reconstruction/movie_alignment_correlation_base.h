@@ -206,7 +206,7 @@ protected:
      * Returns pixel resolution of the scaled movie
      * @param scaleFactor (<= 1) used to change size of the movie
      */
-    float getPixelResolution(T scaleFactor) const;
+    float getPixelResolution(float scaleFactor) const;
 
     /**
      * Returns scale factor as requested by user

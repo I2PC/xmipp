@@ -97,9 +97,9 @@ auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCropSiz
 }
 
 template<typename T>
-auto  ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
+auto  ProgMovieAlignmentCorrelationGPU<T>::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu) {
     const bool crop = false;
-    auto optDim = instance.getStoredSizes(hint, crop);
+    auto optDim = this->getStoredSizes(hint, crop);
     if (optDim) {
         return optDim.value().copyForN(hint.n());
     }
@@ -109,27 +109,9 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCorrel
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
     }
-    instance.storeSizes(hint, candidate->sDim(), crop);
+    this->storeSizes(hint, candidate->sDim(), crop);
     return candidate->sDim().copyForN(hint.n());
 }
-
-template<typename T>
-auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
-    const bool crop = false;
-    auto optDim = instance.getStoredSizes(hint, crop);
-    if (optDim) {
-        return optDim.value().copyForN(hint.n());
-    }
-    std::cout << "Benchmarking cuFFT ..." << std::endl;
-    auto settings = FFTSettings<T>(hint.copyForN((std::ceil(sqrt(hint.n() * 2))))); // test just number of frames, to get an idea (it's faster)
-    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, settings, 0, settings.sDim().x() == settings.sDim().y(), 20, crop, true));
-    if (!candidate) {
-        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
-    }
-    instance.storeSizes(hint, candidate->sDim(), crop);
-    return candidate->sDim().copyForN(hint.n());
-}
-
 
 template<typename T>
 auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
@@ -265,7 +247,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findBatchesThrea
     const auto reqPatchSize = instance.getRequestedPatchSize();
     auto pSize = findGoodPatchSize(Dimensions(reqPatchSize.first, reqPatchSize.second, 1, movie.n()), gpu, instance);
     auto correlation = instance.getCorrelationHint(pSize);
-    auto cSize = findGoodCorrelationSize(correlation, gpu, instance);
+    auto cSize = instance.findGoodCorrelationSize(correlation, gpu);
     const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
     auto getMemReq = [&pSize, this]() {
         // for scale
@@ -663,7 +645,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findBatchesThre
     const auto mSize = doBinning ? instance.getMovieSize() : findGoodCropSize(rSize, gpu, instance); // FIXME rename to findGoodMovieSize
     const auto refSize = doBinning ? mSize : rSize;
     auto correlation = instance.getCorrelationHint(refSize); 
-    auto cSize = findGoodCorrelationSize(correlation, gpu, instance);
+    auto cSize = instance.findGoodCorrelationSize(correlation, gpu);
     const auto maxBytes = gpu.lastFreeBytes() * 0.9f; // leave some buffer in case of memory fragmentation
     auto getMemReq = [this, &gpu, &rSize, doBinning]() {
         typename CUDAFlexAlignScale<T>::Params p;

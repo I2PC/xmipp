@@ -150,7 +150,6 @@ private:
         
     private:
         auto findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-        auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
     };
     GlobalAlignmentHelper globalHelper;
 
@@ -173,9 +172,12 @@ private:
         
     private:
         auto findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-        auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        
     };
     LocalAlignmentHelper localHelper;
+
+
+    auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu);
 
     /**
      * Inherited, see parent
