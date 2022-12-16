@@ -67,65 +67,38 @@ private:
     class Movie final
     {
     public:
-        MultidimArray<T> &getRawFrame(size_t index)
-        {
-            return mRawFrames[index];
-        }
-
-        MultidimArray<T> &getBinnedFrame(size_t index)
-        {
-            return mBinnedFrames[index];
-        }
-
-        MultidimArray<T> &allocate(size_t x, size_t y);
-
-        void releaseRawFrames();
-
-        void releaseRawFrame(size_t index);
-
-        void setRawDim(const Dimensions &dim) {
-            releaseRawFrames(); // in case there was something before
-            mRawDim = dim;
-            mRawFrames.clear();
-            mRawFrames.reserve(dim.n());
+        ~Movie();
+        auto set(const Dimensions &dim, bool doBinning) {
+            // dimension is either of the raw movie, or after the binning
+            mDim = dim;
+            mDoBinning = doBinning;
+            mFrames.reserve(dim.n());
             for (auto n = 0; n < dim.n(); ++n) {
                 // create multidim arrays, but without data 
-                mRawFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
+                mFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
             }
         }
 
-        void setBinnedDim(const Dimensions &dim) {
-            mBinnedDim = dim;
-            mBinnedFrames.clear();
-            mBinnedFrames.reserve(dim.n());
-            for (auto n = 0; n < dim.n(); ++n) {
-                mBinnedFrames.emplace_back(1, 1, dim.y(), dim.x());
-            }
+        auto &getDim() const {
+            return mDim;
         }
 
-        const Dimensions &getRawDim() const {
-            return mRawDim;
+        auto &getFrame(size_t i) const {
+            return mFrames[i];
         }
 
-        const Dimensions &getBinnedDim() const {
-            return mBinnedDim;
+        auto setFrameData(size_t i, T *ptr) {
+            mFrames[i].data = ptr;
         }
 
-        bool hasRawMovie() const {
-            return ! mRawFrames.empty() && (nullptr != mRawFrames[0].data); // because they might be empty
-        }
-
-        bool hasBinnedMovie() const {
-            return ! mBinnedFrames.empty();
-        }
     private:
-        // internally, Raw-frame movie is represented by separate frames
-        // as we access it only frame by frame (i.e. no need for batches)
-        // also there's no padding, as raw frames are never converted to FD
-        std::vector<MultidimArray<T>> mRawFrames;
-        std::vector<MultidimArray<T>> mBinnedFrames;
-        Dimensions mRawDim = Dimensions(0);
-        Dimensions mBinnedDim = Dimensions(0);
+        // internally, frames are stored separately
+        // as we access them only one by one (i.e. no need for batches)
+        // also there's no padding or cropping.
+        // We store either raw, full size frames or binned frames
+        std::vector<MultidimArray<T>> mFrames;
+        Dimensions mDim = Dimensions(0);
+        bool mDoBinning = false;
     };
     Movie movie;
 
@@ -182,7 +155,7 @@ private:
     /**
      * Inherited, see parent
      */
-    void releaseAll();
+    void releaseAll() override { /* nothing to do */  };
 
     /**
      * Estimates maximal size of the filter for given frame
@@ -291,11 +264,10 @@ private:
      * @param movie to load
      * @param dark pixel correction
      * @param igain correction
-     * @param first frame index to load (starting at 0)
-     * @param count of frames to load
+     * @param index index to load (starting at 0)
      */
-    void loadFrames(const MetaData& movieMD,
-        const Image<T>& dark, const Image<T>& igain, size_t first, size_t count);
+    T* loadFrame(const MetaData& movieMD,
+        const Image<T>& dark, const Image<T>& igain, size_t index);
 
     /**
      * Loads setting for given dimensions from permanent storage
@@ -372,8 +344,8 @@ private:
      * @param firstFrame to copy
      * @param noOfFrames to copy
      */
-    void getCroppedFrames(const FFTSettings<T> &settings,
-        T *output, size_t firstFrame, size_t noOfFrames);
+    void getCroppedFrame(const FFTSettings<T> &settings,
+        T *output, T *src);
 
 
     /**
