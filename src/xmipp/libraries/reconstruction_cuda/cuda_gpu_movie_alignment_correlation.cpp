@@ -294,50 +294,8 @@ void scaleFFT2D(void* dimGrid, void* dimBlock, const std::complex<float>* d_inFF
     gpuErrchk(cudaPeekAtLastError());
 }
 
-
 template<typename T>
-void copyInRightOrder(T* d_imgs, T* h_imgs, int xDim, int yDim, bool isWithin,
-        int iStart, int iStop, int jStart, int jStop, size_t jSize,
-        size_t offset1, size_t offset2, size_t maxImgs) {
-    size_t pixelsPerImage =  2;
-    // size_t pixelsPerImage =  xDim * yDim;
-    size_t counter = 0;
-    bool ready = false;
-    for (int i = iStart; i <= iStop; i++) {
-        for (int j = isWithin ? i + 1 : 0; j < jSize; j++) {
-            if (!ready) {
-                ready = true;
-                j = jStart;
-                continue; // skip first iteration
-            }
-            if (ready) {
-                size_t actualI = offset1 + i;
-                size_t actualJ = offset2 + j;
-                size_t toCopy = jSize - j;
-                // imagine correlation in layers, correlation of 0th img with other is first layer, 1st with other is second etc
-                // compute sum of images in complete layers
-                size_t imgsInPreviousLayers = (((maxImgs - 1) + (maxImgs - actualI)) * (actualI)) / 2;
-                size_t imgsInCurrentLayer = actualJ - actualI - 1;
-                gpuErrchk(cudaMemcpy(h_imgs + (pixelsPerImage * (imgsInPreviousLayers + imgsInCurrentLayer)),
-                    d_imgs + (counter * pixelsPerImage),
-                    toCopy * pixelsPerImage * sizeof(T),
-                    cudaMemcpyDeviceToHost));
-                // gpuErrchk(cudaMemcpy(h_imgs + 1770+(pixelsPerImage * (imgsInPreviousLayers + imgsInCurrentLayer)),
-                //     d_imgs + (counter * pixelsPerImage),
-                //     toCopy * pixelsPerImage * sizeof(T),
-                //     cudaMemcpyDeviceToHost));
-                counter += toCopy;
-                break; // skip to next outer iteration
-            }
-            if ((iStop == i) && (jStop == j)) {
-                return;
-            }
-        }
-    }
-}
-
-template<typename T>
-void copyInRightOrderNew(T* d_pos, T* h_pos, bool isWithin,
+void copyInRightOrder(T* d_pos, T* h_pos, bool isWithin,
         int iStart, int iStop, int jStart, int jStop, size_t jSize,
         size_t offset1, size_t offset2, size_t maxImgs, const GPU &gpu) {
     size_t coordinates = 2;
@@ -460,7 +418,7 @@ void computeCorrelationsNew(float maxDist, size_t noOfImgs,
                 // now convert indices to float positions - we reuse the same memory block, but since we had images there, we should have more then enough space for that
                 auto *positions = reinterpret_cast<float*>(d_ffts) + (noOfImgs * (noOfImgs - 1) / 2);
                 ExtremaFinder::CudaExtremaFinder<T>::sRefineLocation(gpu, settings.sDim(), indices, positions, d_imgs);
-                copyInRightOrderNew(positions, result,
+                copyInRightOrder(positions, result,
                         isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs, gpu);
                 origI = i;
                 origJ = j;
@@ -583,8 +541,7 @@ gpu.set();
                 auto *positions = reinterpret_cast<float*>(ffts.d_data) + (noOfImgs * (noOfImgs - 1) / 2);
                 ExtremaFinder::CudaExtremaFinder<T>::sRefineLocation(gpu, dim, indices, positions, (T*)imgs.d_data);
                 copyInRightOrder(positions, result,
-                        0, 0, // FIXME remove
-                        isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs);
+                        isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs, gpu);
                 origI = i;
                 origJ = j;
                 counter = 0;

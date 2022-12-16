@@ -275,30 +275,12 @@ private:
 
     /**
      * Store setting for given dimensions to permanent storage
-     * @param dim reference
-     * @param s setting to store
+     * @param orig size
+     * @param opt optimized size
      * @param applyCrop flag
      */
-    void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
+    void storeSizes(const Dimensions &orig, const Dimensions &opt,
             bool applyCrop);
-
-    /**
-     * Store setting for given dimensions to permanent storage
-     * @param dim reference
-     * @param s setting to store
-     * @param applyCrop flag
-     */
-    void storeSizesNew(const Dimensions &orig, const Dimensions &opt,
-            bool applyCrop);
-
-    /**
-     * Loads whole movie to the RAM
-     * @param movie to load
-     * @param dark pixel correction
-     * @param igain correction
-     */
-    void loadMovie(const MetaData& movie,
-            const Image<T>& dark, const Image<T>& igain);
 
     /**
      * Loads specific range of frames to the RAM
@@ -313,20 +295,11 @@ private:
 
     /**
      * Loads setting for given dimensions from permanent storage
-     * @param dim reference
+     * @param dim to look for
      * @param applyCrop flag
-     * @return stored setting, if any
+     * @return stored size, if any
      */
-    core::optional<FFTSettings<T>> getStoredSizes(const Dimensions &dim,
-            bool applyCrop);
-
-    /**
-     * Loads setting for given dimensions from permanent storage
-     * @param dim reference
-     * @param applyCrop flag
-     * @return stored setting, if any
-     */
-    std::optional<Dimensions> getStoredSizesNew(const Dimensions &dim,
+    std::optional<Dimensions> getStoredSizes(const Dimensions &dim,
             bool applyCrop);
 
     /**
@@ -359,28 +332,6 @@ private:
      * @param result where data are stored
      */
     void getPatchData(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-
-    void getPatchDataV1(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-                void getPatchDataV2(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-                void getPatchDataV3(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-                void getPatchDataV4(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-                void getPatchDataV5(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-                            void getPatchDataV6(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
-                            void getPatchDataV7(const Rectangle<Point2D<T>> &patch,
             const AlignmentResult<T> &globAlignment,
             T *result);
     /**

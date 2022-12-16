@@ -82,7 +82,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const bool crop = true;
-    auto optDim = instance.getStoredSizesNew(movie, crop);
+    auto optDim = instance.getStoredSizes(movie, crop);
     if (optDim) {
         return optDim.value().copyForN(movie.n());
     }
@@ -92,14 +92,14 @@ auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCropSiz
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a single frame of the movie.");
     }
-    instance.storeSizesNew(movie, candidate->sDim(), crop);
+    instance.storeSizes(movie, candidate->sDim(), crop);
     return candidate->sDim().copyForN(movie.n());
 }
 
 template<typename T>
 auto  ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const bool crop = false;
-    auto optDim = instance.getStoredSizesNew(hint, crop);
+    auto optDim = instance.getStoredSizes(hint, crop);
     if (optDim) {
         return optDim.value().copyForN(hint.n());
     }
@@ -109,14 +109,14 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCorrel
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
     }
-    instance.storeSizesNew(hint, candidate->sDim(), crop);
+    instance.storeSizes(hint, candidate->sDim(), crop);
     return candidate->sDim().copyForN(hint.n());
 }
 
 template<typename T>
 auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const bool crop = false;
-    auto optDim = instance.getStoredSizesNew(hint, crop);
+    auto optDim = instance.getStoredSizes(hint, crop);
     if (optDim) {
         return optDim.value().copyForN(hint.n());
     }
@@ -126,7 +126,7 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodCorrela
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
     }
-    instance.storeSizesNew(hint, candidate->sDim(), crop);
+    instance.storeSizes(hint, candidate->sDim(), crop);
     return candidate->sDim().copyForN(hint.n());
 }
 
@@ -134,7 +134,7 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodCorrela
 template<typename T>
 auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const bool crop = false;
-    auto optDim = instance.getStoredSizesNew(hint, crop);
+    auto optDim = instance.getStoredSizes(hint, crop);
     if (optDim) {
         return optDim.value().copyForN(hint.n());
     }
@@ -144,7 +144,7 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodPatchSi
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
     }
-    instance.storeSizesNew(hint, candidate->sDim(), crop);
+    instance.storeSizes(hint, candidate->sDim(), crop);
     return candidate->sDim();
 }
 
@@ -202,316 +202,6 @@ std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLo
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const Rectangle<Point2D<T>> &patch, 
         const AlignmentResult<T> &globAlignment, T *result) {
-    auto &movieDim = movie.getRawDim();
-    size_t n = movieDim.n();
-    auto patchSize = patch.getSize();
-    auto copyPatchData = [&](size_t srcFrameIdx, size_t t, bool add) {
-        auto *rawFrame = this->movie.getRawFrame(srcFrameIdx).data;
-        size_t patchOffset = t * patchSize.x * patchSize.y;
-        // keep the shift consistent while adding local shift
-        int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
-        int yShift = std::round(globAlignment.shifts.at(srcFrameIdx).y);
-        for (size_t y = 0; y < patchSize.y; ++y) {
-            size_t srcY = patch.tl.y + y;
-            if (yShift < 0) {
-                srcY -= (size_t)std::abs(yShift); // assuming shift is smaller than offset
-            } else {
-                srcY += yShift;
-            }
-            size_t srcIndex = (srcY * movieDim.x()) + (size_t)patch.tl.x;
-            if (xShift < 0) {
-                srcIndex -= (size_t)std::abs(xShift);
-            } else {
-                srcIndex += xShift;
-            }
-            size_t destIndex = patchOffset + y * patchSize.x;
-            if (add) {
-                for (size_t x = 0; x < patchSize.x; ++x) {
-                    result[destIndex + x] += rawFrame[srcIndex + x];
-                }
-            } else {
-                memcpy(result + destIndex, rawFrame + srcIndex, patchSize.x * sizeof(T));
-            }
-        }
-    };
-    for (int t = 0; t < n; ++t) {
-        // copy the data from specific frame
-        copyPatchData(t, t, false);
-        // add data from frames with lower indices
-        // while averaging odd num of frames, use copy equally from previous and following frames
-        // otherwise prefer following frames
-        for (int b = 1; b <= ((patchesAvg - 1) / 2); ++b) {
-            if (t >= b) {
-                copyPatchData(t - b, t, true);
-            }
-        }
-        // add data from frames with higher indices
-        for (int f = 1; f <= (patchesAvg / 2); ++f) {
-            if ((t + f) < n) {
-                copyPatchData(t + f, t, true);
-            }
-        }
-    }
-}
-
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV1(const Rectangle<Point2D<T>> &patch, 
-        const AlignmentResult<T> &globAlignment, T *result) {
-    const auto &movieDim = movie.getRawDim();
-    const int n = movieDim.n();
-    const auto patchSize = patch.getSize();
-    const auto bufferBytes = patchSize.x * sizeof(T);
-    auto *buffer = reinterpret_cast<T*>(BasicMemManager::instance().get(bufferBytes, MemType::CPU));
-    for (int t = 0; t < n; ++t) {// for each patch
-        for (size_t y = 0; y < patchSize.y; ++y) { // for each row
-            memset(buffer, 0, bufferBytes); // must be set to 0, because we might 'read' outside of the frames due to shift
-            // while averaging odd num of frames, use copy equally from previous and following frames
-            // otherwise prefer following frames
-            for (int f = std::max(0, t - ((patchesAvg - 1) / 2)); f <= std::min(n - 1, t + (patchesAvg / 2)); ++f) {
-                const auto *rawFrame = this->movie.getRawFrame(f).data;
-                const int xShift = std::round(globAlignment.shifts[f].x);
-                const int yShift = std::round(globAlignment.shifts[f].y);
-                const int srcY = patch.tl.y + y + yShift;
-                // if (srcY < 0 || srcY >= static_cast<int>(movieDim.y())) {
-                //     continue;
-                // }
-                for (int x = 0; x < patchSize.x; ++x) {
-                    const int srcX = patch.tl.x + x + xShift;
-                    // if (srcX >= 0 && srcX < static_cast<int>(movieDim.x())) {
-                        buffer[x] += rawFrame[static_cast<size_t>(srcY) * movieDim.x() + static_cast<size_t>(srcX)];
-                    // }
-                }
-                
-            }
-            const size_t patchOffset = t * patchSize.x * patchSize.y;
-            const size_t destIndex = patchOffset + y * patchSize.x;
-            memcpy(result + destIndex, buffer, bufferBytes); // write result
-        }
-        // 136ms (115ms bez kontroly v X cyklu)
-    }
-    BasicMemManager::instance().give(buffer);
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV2(const Rectangle<Point2D<T>> &patch, 
-        const AlignmentResult<T> &globAlignment, T *result) {
-    const auto &movieDim = movie.getRawDim();
-    const int n = movieDim.n();
-    const auto patchSize = patch.getSize();
-    const auto bufferBytes = patchSize.x * sizeof(T);
-    auto *buffer = reinterpret_cast<T*>(BasicMemManager::instance().get(bufferBytes, MemType::CPU));
-    for (int t = 0; t < n; ++t) {// for each patch
-        // while averaging odd num of frames, use copy equally from previous and following frames
-        // otherwise prefer following frames
-        for (int f = std::max(0, t - ((patchesAvg - 1) / 2)); f <= std::min(n - 1, t + (patchesAvg / 2)); ++f) {
-            const auto *rawFrame = this->movie.getRawFrame(f).data;
-            const int xShift = std::round(globAlignment.shifts.at(f).x);
-            const int yShift = std::round(globAlignment.shifts.at(f).y);
-            for (size_t y = 0; y < patchSize.y; ++y) { // for each row
-                memset(buffer, 0, bufferBytes); // must be set to 0, because we might 'read' outside of the frames due to shift
-                const int srcY = patch.tl.y + y + yShift;
-                if (srcY < 0 || srcY >= static_cast<int>(movieDim.y())) {
-                    continue;
-                }
-                for (int x = 0; x < patchSize.x; ++x) {
-                    const int srcX = patch.tl.x + x + xShift;
-                    if (srcX >= 0 && srcX < static_cast<int>(movieDim.x())) {
-                        buffer[x] += rawFrame[static_cast<size_t>(srcY) * movieDim.x() + static_cast<size_t>(srcX)];
-                    }
-                }
-                
-                const size_t patchOffset = t * patchSize.x * patchSize.y;
-                const size_t destIndex = patchOffset + y * patchSize.x;
-                memcpy(result + destIndex, buffer, bufferBytes); // write result
-            }
-        }
-    }
-    BasicMemManager::instance().give(buffer);
-    // 140 ms
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV3(const Rectangle<Point2D<T>> &patch, 
-        const AlignmentResult<T> &globAlignment, T *result) {
-    const auto &movieDim = movie.getRawDim();
-    const int n = movieDim.n();
-    const auto patchSize = patch.getSize();
-    const auto bufferBytes = patchSize.x * sizeof(T);
-    // auto *buffer = reinterpret_cast<T*>(BasicMemManager::instance().get(bufferBytes, MemType::CPU));
-    for (int f = 0; f < n; ++f) {// for each frame
-        const auto *rawFrame = this->movie.getRawFrame(f).data;
-        const int xShift = std::round(globAlignment.shifts.at(f).x);
-        const int yShift = std::round(globAlignment.shifts.at(f).y);
-        for (size_t y = 0; y < patchSize.y; ++y) { // for each row
-            const int srcY = patch.tl.y + y + yShift;
-            if (srcY < 0 || srcY >= static_cast<int>(movieDim.y())) {
-                continue;
-            }
-            for (int x = 0; x < patchSize.x; ++x) {
-                const int srcX = patch.tl.x + x + xShift;
-                if (srcX >= 0 && srcX < static_cast<int>(movieDim.x())) {
-                    for (int t = std::max(0, f - ((patchesAvg - 1) / 2)); t <= std::min(n - 1, f + (patchesAvg / 2)); ++t) {
-                        const size_t patchOffset = t * patchSize.x * patchSize.y;
-                        const size_t destIndex = patchOffset + y * patchSize.x;
-                        result[destIndex + x] += rawFrame[static_cast<size_t>(srcY) * movieDim.x() + static_cast<size_t>(srcX)];
-                    }
-                }
-            }
-        // while averaging odd num of frames, use copy equally from previous and following frames
-        // otherwise prefer following frames
-                // memset(buffer, 0, bufferBytes); // must be set to 0, because we might 'read' outside of the frames due to shift
-                // }
-                
-                // memcpy(result + destIndex, buffer, bufferBytes); // write result
-            // }
-        }
-    }
-    // BasicMemManager::instance().give(buffer);
-    // 238 ms
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV4(const Rectangle<Point2D<T>> &patch, 
-        const AlignmentResult<T> &globAlignment, T *result) {
-    const auto &movieDim = movie.getRawDim();
-    const int n = movieDim.n();
-    const auto patchSize = patch.getSize();
-    const auto bufferBytes = patchSize.x * sizeof(T);
-    static ctpl::thread_pool pool = ctpl::thread_pool(2);
-    std::vector<T*> buffers;
-    for (int i = 0; i < pool.size(); ++i) { buffers.push_back(new T[static_cast<int>(patchSize.x)]); }
-    for (int t = 0; t < n; ++t) {// for each patch
-        auto routine = [&](int thrId, int firstY, int lastY) {
-
-            for (int y = firstY; y < lastY; ++y) { // for each row
-                const int patchOffset = t * patchSize.x * patchSize.y;
-                const int destIndex = patchOffset + y * patchSize.x;
-            // auto *buffer = buffers[thrId];
-            auto *buffer = result + destIndex;
-                // memset(buffer, 0, bufferBytes); // must be set to 0, because we might 'read' outside of the frames due to shift
-                // while averaging odd num of frames, use copy equally from previous and following frames
-                // otherwise prefer following frames
-                bool copy = true;
-                for (int f = std::max(0, t - ((patchesAvg - 1) / 2)); f <= std::min(n - 1, t + (patchesAvg / 2)); ++f) {
-                    const auto *rawFrame = this->movie.getRawFrame(f).data;
-                    const int xShift = std::round(globAlignment.shifts[f].x);
-                    const int yShift = std::round(globAlignment.shifts[f].y);
-                    const int srcY = patch.tl.y + y + yShift;
-                    // if (srcY < 0 || srcY >= static_cast<int>(movieDim.y())) {
-                    //     continue;
-                    // }
-                    const int srcX = patch.tl.x + xShift;
-                    auto *src = rawFrame + srcY * movieDim.x() + srcX;
-                    if (copy) {
-                        memcpy(buffer, src, bufferBytes);
-                    } else {
-                    for (int x = 0; x < patchSize.x; ++x) {
-                        // if (srcX >= 0 && srcX < static_cast<int>(movieDim.x())) {
-                            buffer[x] += src[x];
-                        // }
-                    }
-                    }
-                    copy = false;
-                    
-                }
-                // memcpy(result + destIndex, buffer, bufferBytes); // write result
-            }
-        };
-        // routine(0, 0, patchSize.y / 2);
-        // routine(0, patchSize.y / 2, patchSize.y);
-        auto f1 = pool.push(routine, 0, patchSize.y / 2);
-        auto f2 = pool.push(routine, patchSize.y / 2, patchSize.y);
-        f1.get(); f2.get();
-        // 58ms
-    }
-    // pool.stop(true);
-    for (auto &b : buffers) {delete[] b;};
-    // BasicMemManager::instance().give(buffer);
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV5(const Rectangle<Point2D<T>> &patch, 
-        const AlignmentResult<T> &globAlignment, T *result) {
-    const auto &movieDim = movie.getRawDim();
-    const int n = movieDim.n();
-    const auto patchSize = patch.getSize();
-    const auto bufferBytes = patchSize.x * sizeof(T);
-    auto *buffer = reinterpret_cast<T*>(BasicMemManager::instance().get(bufferBytes, MemType::CPU));
-    for (int t = 0; t < n; ++t) {// for each patch
-        // while averaging odd num of frames, use copy equally from previous and following frames
-        // otherwise prefer following frames
-        for (int f = std::max(0, t - ((patchesAvg - 1) / 2)); f <= std::min(n - 1, t + (patchesAvg / 2)); ++f) {
-            const auto *rawFrame = this->movie.getRawFrame(f).data;
-            const int xShift = std::round(globAlignment.shifts.at(f).x);
-            const int yShift = std::round(globAlignment.shifts.at(f).y);
-            const int srcX = patch.tl.x + xShift;
-            for (size_t y = 0; y < patchSize.y; ++y) { // for each row
-                memset(buffer, 0, bufferBytes); // must be set to 0, because we might 'read' outside of the frames due to shift
-                const int srcY = patch.tl.y + y + yShift;
-                // // if (srcY < 0 || srcY >= static_cast<int>(movieDim.y())) {
-                //     continue;
-                // }
-                for (int x = 0; x < patchSize.x; ++x) {
-                    // if (srcX >= 0 && srcX < static_cast<int>(movieDim.x())) {
-                        buffer[x] += rawFrame[srcY * movieDim.x() + srcX + x];
-                    // }
-                }
-                
-                const size_t patchOffset = t * patchSize.x * patchSize.y;
-                const size_t destIndex = patchOffset + y * patchSize.x;
-                memcpy(result + destIndex, buffer, bufferBytes); // write result
-            }
-        }
-    }
-    BasicMemManager::instance().give(buffer);
-    // 97 ms
-}
-
-// template<typename T>
-// void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV6(const Rectangle<Point2D<T>> &patch, 
-//         const AlignmentResult<T> &globAlignment, T *result) {
-//     const auto &movieDim = movie.getFullDim();
-//     const int n = movieDim.n();
-//     const auto patchSize = patch.getSize();
-//     const auto bufferBytes = patchSize.x * sizeof(T);
-//     std::vector<T[]> buffers(patchesAvg);
-//     for (auto &b : buffers) { b = new T[static_cast<int>(patchSize.x);]}
-//     // auto *buffer = reinterpret_cast<T*>(BasicMemManager::instance().get(bufferBytes, MemType::CPU));
-//     for (int f = 0; f < n; ++f) {// for each frame
-//         const auto *fullFrame = this->movie.getFullFrame(f).data;
-//         const int xShift = std::round(globAlignment.shifts[f].x);
-//         const int yShift = std::round(globAlignment.shifts[f].y);
-//         const int srcX = patch.tl.x + xShift;
-//             // if (srcY < 0 || srcY >= static_cast<int>(movieDim.y())) {
-//             //     continue;
-//             // }
-//         for (size_t y = 0; y < patchSize.y; ++y) { // for each row
-            
-//             for (int t = std::max(0, f - ((patchesAvg - 1) / 2)); t <= std::min(n - 1, f + (patchesAvg / 2)); ++t) {
-//                 const int srcY = patch.tl.y + y + yShift;
-//                 for (int x = 0; x < patchSize.x; ++x) {
-//                     const size_t patchOffset = t * patchSize.x * patchSize.y;
-//                     const size_t destIndex = patchOffset + y * patchSize.x;
-//                     result[destIndex + x] += fullFrame[srcY * movieDim.x() + srcX + x];
-//                 }
-//             }
-//         // while averaging odd num of frames, use copy equally from previous and following frames
-//         // otherwise prefer following frames
-//                 // memset(buffer, 0, bufferBytes); // must be set to 0, because we might 'read' outside of the frames due to shift
-//                 // }
-                
-//                 // memcpy(result + destIndex, buffer, bufferBytes); // write result
-//             // }
-//         }
-//     }
-//     // BasicMemManager::instance().give(buffer);
-//     // 77 ms
-// }
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV7(const Rectangle<Point2D<T>> &patch, 
-        const AlignmentResult<T> &globAlignment, T *result) {
     const auto &movieDim = (this->applyBinning() ? movie.getBinnedDim() : movie.getRawDim());
     const int n = movieDim.n();
     const auto patchSize = patch.getSize();
@@ -546,48 +236,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchDataV7(const Rectangle<Point2D
             }
     }
     delete[] buffer;
-}
-
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
-        const FFTSettings<T> &s, bool applyCrop) {
-    UserSettings::get(storage).insert(*this,
-            getKey(optSizeXStr, dim, applyCrop), s.sDim().x());
-    UserSettings::get(storage).insert(*this,
-            getKey(optSizeYStr, dim, applyCrop), s.sDim().y());
-    UserSettings::get(storage).insert(*this,
-            getKey(optBatchSizeStr, dim, applyCrop), s.batch());
-    UserSettings::get(storage).insert(*this,
-            getKey(minMemoryStr, dim, applyCrop), memoryUtils::MB(gpu.value().lastFreeBytes()));
-    UserSettings::get(storage).store(); // write changes immediately
-}
-
-template<typename T>
-core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
-        const Dimensions &dim, bool applyCrop) {
-    size_t x, y, batch, neededMB;
-    bool res = true;
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(optSizeXStr, dim, applyCrop), x);
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(optSizeYStr, dim, applyCrop), y);
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(optBatchSizeStr, dim, applyCrop), batch);
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(minMemoryStr, dim, applyCrop), neededMB);
-    // check available memory
-    res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
-    if (res) {
-        return core::optional<FFTSettings<T>>(
-                FFTSettings<T>(x, y, 1, dim.n(), batch, false));
-    } else {
-        return core::optional<FFTSettings<T>>();
-    }
 }
 
 template<typename T>
@@ -681,11 +329,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         REPORT_ERROR(ERR_PARAM_INCORRECT, "Movie is too small for local alignment.");
     }
 
-    // load movie to memory
-    if ( ! movie.hasRawMovie()) { // FIXME this cannot happen now (we always do global alignment)
-        loadMovie(movieMD, dark, igain);
-    }
-
     // prepare filter
     // FIXME DS make sure that the resulting filter is correct, even if we do non-uniform scaling
     MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.sDim());
@@ -771,7 +414,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             // get data
                 // std::unique_lock<std::mutex> lock(mutex[2]);
             // memset(data, 0, patchSettings.sBytes()); // for version 6
-            getPatchDataV7(p.rec, globAlignment, data);
+            getPatchData(p.rec, globAlignment, data);
 
             // convert to FFT, downscale them and compute correlations
             // GPUPool.push([&](int){
@@ -985,7 +628,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeSizesNew(const Dimensions &orig,
+void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &orig,
         const Dimensions &opt, bool applyCrop) {
     auto single = orig.copyForN(1);
     UserSettings::get(storage).insert(*this,
@@ -996,7 +639,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizesNew(const Dimensions &orig,
 }
 
 template<typename T>
-std::optional<Dimensions> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizesNew(
+std::optional<Dimensions> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
         const Dimensions &dim, bool applyCrop) {
     size_t x, y, batch;
     auto single = dim.copyForN(1);
@@ -1121,12 +764,6 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         };
         gpuPool.push(routine);
     }
-
-    // loadFrames(movieMD, dark, igain, 0, 1);
-    // auxData[0].run(movie.getRawFrame(0).data, movie.getBinnedFrame(0).data, scaledFrames, filter.data);
-    // streams[0].synch(); 
-    // auto img = Image<float>(movie.getBinnedFrame(0));
-    // img.write("frame.mrc");
 
     for (auto i = 0; i < movieSettings.sDim().n(); i += movieSettings.batch()) {
         auto routine = [&](int thrId, size_t first, size_t count)
@@ -1254,21 +891,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::Movie::releaseRawFrame(size_t index) {
     auto &f = mRawFrames[index];
     BasicMemManager::instance().give(f.data);
     f.data = nullptr;
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movieMD,
-        const Image<T>& dark, const Image<T>& igain) {
-    const auto movieSize = this->getMovieSizeRaw();
-    movie.setRawDim(movieSize); // this will also reserve enough space in the movie vector
-
-    ctpl::thread_pool pool = ctpl::thread_pool(2);
-    for (auto i = 0; i < movieSize.n(); ++i) {
-        pool.push([&movieMD, &dark, &igain, this](int thrId, size_t first, size_t count){
-            loadFrames(movieMD, dark, igain, first, count);
-        }, i, 1);
-    }
-    pool.stop(true);
 }
 
 template<typename T>

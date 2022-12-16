@@ -126,11 +126,9 @@ void scaleFFT2D(void* dimGrid, void* dimBlock,
         T* d_filter, T normFactor, bool center, const GPU &gpu);
 
 /**
- * Function will copy correlation images from GPU in proper order
- * @param d_imgs input images (GPU)
- * @param h_imgs output images (CPU)
- * @param xDim X size of the image
- * @param yDim Y size of the image
+ * Function will copy position of the max shift from GPU in proper order
+ * @param d_pos 2D coordinate of the max shift
+ * @param h_pos output memory block
  * @param isWithin correlation was done within single buffer
  * @param iStart first index in the first batch to start with
  * @param iStop last index in the first batch to process (included)
@@ -140,13 +138,10 @@ void scaleFFT2D(void* dimGrid, void* dimBlock,
  * @param offset1 of the beginning of the first batch
  * @param offset2 of the beginning of the second bath
  * @param maxImgs no of images that are processed all together (e.g. images in movie)
+ * @param gpu to use
  */
 template<typename T>
-void copyInRightOrder(T* d_imgs, T* result, int xDim, int yDim, bool isWithin,
-        int iStart, int iStop, int jStart, int jStop, size_t jSize,
-        size_t offset1, size_t offset2, size_t maxImgs);
-template<typename T>
-void copyInRightOrderNew(T* d_pos, T* h_pos, bool isWithin,
+void copyInRightOrder(T* d_pos, T* h_pos, bool isWithin,
         int iStart, int iStop, int jStart, int jStop, size_t jSize,
         size_t offset1, size_t offset2, size_t maxImgs, const GPU &gpu);
 
