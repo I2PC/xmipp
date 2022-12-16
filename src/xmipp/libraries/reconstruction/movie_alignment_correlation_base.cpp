@@ -398,37 +398,6 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
 }
 
 template<typename T>
-AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
-    auto alignment = AlignmentResult<T>();
-    int n = 0;
-    T shiftX;
-    T shiftY;
-    for (size_t objId : movie.ids())
-    {
-        if (n >= nfirst && n <= nlast) {
-            movie.getValue(MDL_SHIFT_X, shiftX, objId);
-            movie.getValue(MDL_SHIFT_Y, shiftY, objId);
-
-            // loaded values are shift that should be applied
-            // so we have to negate it
-            alignment.shifts.emplace_back(-shiftX, -shiftY);
-        }
-        n++;
-    }
-//    FIXME load reference frame
-    return alignment;
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::setZeroShift(MetaData& movie) {
-    // assuming movie does not contain MDL_SHIFT_X label
-    movie.addLabel(MDL_SHIFT_X);
-    movie.addLabel(MDL_SHIFT_Y);
-    movie.fillConstant(MDL_SHIFT_X, "0.0");
-    movie.fillConstant(MDL_SHIFT_Y, "0.0");
-}
-
-template<typename T>
 AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
         Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
         const core::optional<size_t> &refFrame, size_t N, int verbose) {

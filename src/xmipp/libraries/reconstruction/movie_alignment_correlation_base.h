@@ -93,12 +93,6 @@ protected:
             const core::optional<size_t> &refFrame, size_t N, int verbose);
 
     /**
-     * Method does a sanity check on the settings of the program,
-     * reporting found issues and exiting program.
-     */
-    void checkSettings();
-
-    /**
      * Method finds a reference image, i.e. an image which has smallest relative
      * shift to all other images.
      * @param N no of images
@@ -233,8 +227,15 @@ protected:
     bool applyBinning() const {
         return binning != 1.0;
     }
+
 private:
     void setNoOfPatches();
+
+    /**
+     * Method does a sanity check on the settings of the program,
+     * reporting found issues and exiting program.
+     */
+    void checkSettings();
        
     /**
      * Method will create a 1D Low Pass Filter
@@ -253,8 +254,6 @@ private:
      */
     void scaleLPF(const MultidimArray<T>& lpf, const Dimensions &dims, MultidimArray<T>& result);
 
-
-
     /**
      * Method to store global (frame) shifts computed for the movie
      * @param alignment result to store
@@ -262,13 +261,6 @@ private:
      */
     void storeGlobalShifts(const AlignmentResult<T> &alignment,
             MetaData &movie);
-
-    /**
-     * Method loads global shift from the given movie
-     * @param movie where shifts are stored
-     * @return global alignment as stored in the movie
-     */
-    AlignmentResult<T> loadGlobalShifts(MetaData &movie);
 
     /**
      * Method loads dark correction image
@@ -287,12 +279,6 @@ private:
      * @param movie where the input should be stored
      */
     void readMovie(MetaData& movie);
-
-    /**
-     * Sets all shifts in the movie to zero (0)
-     * @param movie to update
-     */
-    void setZeroShift(MetaData& movie);
 
     /**
      * Method to store all computed results to hard drive
@@ -321,6 +307,7 @@ private:
 
     /** Returns pixel size of the movie after downsampling to 4 sigma */
     T getTsPrime() const;
+
     /** Returns constant used for filter sigma computation */
     T getC() const;
 
@@ -337,18 +324,18 @@ protected:
     int nfirstSum, nlastSum;
     /** Aligned micrograph */
     FileName fnInitialAvg;
-    /** if true, local alignment will be skipped */
-    bool skipLocalAlignment;
-    /** Solver iterations */
-    static constexpr int solverIterations = 2;
-    /** Metadata with shifts */
-    FileName fnOut;
     /** Number of patches used for local alignment */
     std::pair<size_t, size_t> localAlignPatches;
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
+    /** Solver iterations */
+    static constexpr int solverIterations = 2;
 
 private:
+    /** if true, local alignment will be skipped */
+    bool skipLocalAlignment;
+    /** Metadata with shifts */
+    FileName fnOut;
     /** Filename of movie metadata */
     FileName fnMovie;
     /** Minimal resolution (in A) of the patch for local alignment */

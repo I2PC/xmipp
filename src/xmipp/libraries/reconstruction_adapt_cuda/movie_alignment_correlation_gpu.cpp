@@ -34,7 +34,7 @@
 #include "core/utils/time_utils.h"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
 #include "core/xmipp_image_generic.h"
-
+#include <CTPL/ctpl_stl.h>
 
 #include "reconstruction_cuda/cuda_flexalign_scale.h"
 
@@ -368,6 +368,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         return context;
     };
 
+    auto loadPool = ctpl::thread_pool(localHelper.cpuThreads);
     std::vector<T*> corrBuffers(loadPool.size()); // initializes to nullptrs
     std::vector<T*> patchData(loadPool.size()); // initializes to nullptrs
     std::vector<std::complex<T>*> scalledPatches(loadPool.size()); // initializes to nullptrs
@@ -417,7 +418,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             getPatchData(p.rec, globAlignment, data);
 
             // convert to FFT, downscale them and compute correlations
-            // GPUPool.push([&](int){
                 for (auto i = 0; i < patchSettings.sDim().n(); i += patchSettings.batch()) {
                     std::unique_lock<std::mutex> lock(mutex[0]);
                     performFFTAndScale(data + i * patchSettings.sElemsBatch(), patchSettings.createBatch(),

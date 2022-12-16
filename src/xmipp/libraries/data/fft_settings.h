@@ -75,59 +75,59 @@ public:
         assert(batch > 0);
     };
 
-    inline constexpr Dimensions sDim() const {
+    constexpr Dimensions sDim() const {
         return m_spatial;
     }
 
-    inline constexpr Dimensions fDim() const {
+    constexpr Dimensions fDim() const {
         return m_freq;
     }
 
-    inline constexpr size_t batch() const {
+    constexpr size_t batch() const {
         return m_batch;
     }
 
-    inline constexpr size_t fBytesSingle() const {
+    constexpr size_t fBytesSingle() const {
         return m_freq.xyzPadded() * sizeof(std::complex<T>);
     }
 
-    inline constexpr size_t fBytes() const {
+    constexpr size_t fBytes() const {
         return m_freq.sizePadded() * sizeof(std::complex<T>);
     }
 
-    inline constexpr size_t fBytesBatch() const {
+    constexpr size_t fBytesBatch() const {
         return m_freq.xyzPadded() * m_batch * sizeof(std::complex<T>);
     }
 
-    inline constexpr size_t fElemsBatch() const {
+    constexpr size_t fElemsBatch() const {
         return m_freq.xyzPadded() * m_batch;
     }
 
-    inline constexpr size_t sBytesSingle() const {
+    constexpr size_t sBytesSingle() const {
         return m_spatial.xyzPadded() * sizeof(T);
     }
 
-    inline constexpr size_t sBytes() const {
+    constexpr size_t sBytes() const {
         return m_spatial.sizePadded() * sizeof(T);
     }
 
-    inline constexpr size_t sBytesBatch() const {
+    constexpr size_t sBytesBatch() const {
         return m_spatial.xyzPadded() * m_batch * sizeof(T);
     }
 
-    inline constexpr size_t sElemsBatch() const {
+    constexpr size_t sElemsBatch() const {
         return m_spatial.xyzPadded() * m_batch;
     }
 
-    inline constexpr bool isForward() const {
+    constexpr bool isForward() const {
         return m_isForward;
     }
 
-    inline constexpr bool isInPlace() const {
+    constexpr bool isInPlace() const {
         return m_isInPlace;
     }
 
-    inline constexpr size_t maxBytesBatch() const {
+    constexpr size_t maxBytesBatch() const {
         return sBytesBatch() + (m_isInPlace ? 0 :fBytesBatch());
     }
 

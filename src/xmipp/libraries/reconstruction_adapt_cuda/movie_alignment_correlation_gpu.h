@@ -29,7 +29,6 @@
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
-#include <CTPL/ctpl_stl.h>
 
 /**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
    @ingroup ReconsCUDALibrary */
@@ -49,7 +48,7 @@ public:
 private:
     struct PatchContext
     { // to neni jenom patch, mozna batch? Spis LES
-        PatchContext(LocalAlignmentResult<T> &r) : result(r){};
+        explicit PatchContext(LocalAlignmentResult<T> &r) : result(r){};
         LocalAlignmentResult<T> &result;
         size_t shiftsOffset;
         int verbose;
@@ -127,7 +126,8 @@ private:
         std::vector<MultidimArray<T>> mBinnedFrames;
         Dimensions mRawDim = Dimensions(0);
         Dimensions mBinnedDim = Dimensions(0);
-    } movie;
+    };
+    Movie movie;
 
 
     class GlobalAlignmentHelper final {
@@ -151,7 +151,8 @@ private:
     private:
         auto findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-    } globalHelper;
+    };
+    GlobalAlignmentHelper globalHelper;
 
     class LocalAlignmentHelper final {
     public:
@@ -173,7 +174,8 @@ private:
     private:
         auto findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-    } localHelper;
+    };
+    LocalAlignmentHelper localHelper;
 
     /**
      * Inherited, see parent
@@ -361,14 +363,6 @@ private:
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment);
 
-    // /**
-    //  * Method copies raw movie data according to the settings
-    //  * @param settings new sizes of the movie
-    //  * @param output where 'windowed' movie should be copied
-    //  */
-    // void getCroppedMovie(const FFTSettings<T> &settings,
-    //         T *output);
-
     /**
      * Method copies raw movie data according to the settings
      * @param settings new sizes of the movie
@@ -395,12 +389,6 @@ private:
 
 
 private:
-
-    ctpl::thread_pool GPUPool = ctpl::thread_pool(1);
-    ctpl::thread_pool loadPool = ctpl::thread_pool(7);
-
-    std::future<void> LESTask;
-
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 

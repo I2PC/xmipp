@@ -18,7 +18,7 @@ public:
         const size_t movieBatch = 1; // always 1
     };
 
-    CUDAFlexAlignScale(const Params &p, const GPU &gpu) : mParams(p), mGpu(gpu), mFT(nullptr), mIT(nullptr), mAux1(nullptr), mAux2(nullptr) {}
+    CUDAFlexAlignScale(const Params &p, const GPU &gpu) : mParams(p), mGpu(gpu) {}
 
     ~CUDAFlexAlignScale();
 
@@ -81,8 +81,8 @@ private:
 
     static constexpr unsigned BLOCK_DIM = 32;
 
-    void *mFT;
-    void *mIT;
-    void *mAux1;
-    void *mAux2;
+    void *mFT = nullptr;
+    void *mIT = nullptr;
+    void *mAux1 = nullptr;
+    void *mAux2 = nullptr;
 };
