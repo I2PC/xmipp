@@ -212,25 +212,25 @@ protected:
      * Returns pixel resolution of the scaled movie
      * @param scaleFactor (<= 1) used to change size of the movie
      */
-    T getPixelResolution(T scaleFactor);
+    T getPixelResolution(T scaleFactor) const;
 
     /**
      * Returns scale factor as requested by user
      */
-    T getScaleFactor();
+    T getScaleFactor() const;
 
     /** Returns size of the patch as requested by user */
-    std::pair<size_t, size_t> getRequestedPatchSize() {
+    std::pair<size_t, size_t> getRequestedPatchSize() const {
         return {minLocalRes / Ts, minLocalRes / Ts};
     }
 
 
     /** Get binning factor for resulting micrograph / alignend movie */
-    auto getBinning() {
+    auto getBinning() const {
         return binning;
     }
 
-    bool applyBinning() {
+    bool applyBinning() const {
         return binning != 1.0;
     }
 private:
@@ -320,9 +320,9 @@ private:
     void printGlobalShift(const AlignmentResult<T> &globAlignment);
 
     /** Returns pixel size of the movie after downsampling to 4 sigma */
-    T getTsPrime();
+    T getTsPrime() const;
     /** Returns constant used for filter sigma computation */
-    T getC();
+    T getC() const;
 
 protected:
     /** First and last frame (inclusive)*/

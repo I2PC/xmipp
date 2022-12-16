@@ -53,7 +53,7 @@ public:
         release();
     }
     void init(const HW &gpu, const FFTSettings<T> &settings, bool reuse=true);
-    void release();
+    void release() final;
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
 
@@ -91,7 +91,7 @@ private:
 
     bool m_isInit;
 
-    void setDefault();
+    void setDefault() final;
     template<typename F>
     static void manyHelper(const FFTSettings<T> &settings, F function);
     void check();

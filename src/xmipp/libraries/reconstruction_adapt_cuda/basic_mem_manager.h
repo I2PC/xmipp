@@ -41,10 +41,10 @@ class BasicMemManager
 private:
     struct Record
     {
-        Record(size_t bytes, MemType type) : ptr(nullptr), bytes(bytes), available(false), type(type){};
-        void *ptr;
+        Record(size_t bytes, MemType type) : bytes(bytes), type(type){};
+        void *ptr = nullptr;
         size_t bytes;
-        bool available;
+        bool available = false;
         MemType type;
     };
 

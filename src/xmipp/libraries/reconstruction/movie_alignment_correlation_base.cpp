@@ -176,7 +176,7 @@ void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getPixelResolution(T scaleFactor) {
+T AProgMovieAlignmentCorrelation<T>::getPixelResolution(T scaleFactor) const {
     return this->Ts / scaleFactor;
 }
 
@@ -284,7 +284,7 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getC() {
+T AProgMovieAlignmentCorrelation<T>::getC() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
@@ -293,7 +293,7 @@ T AProgMovieAlignmentCorrelation<T>::getC() {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getTsPrime() {
+T AProgMovieAlignmentCorrelation<T>::getTsPrime() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
@@ -308,7 +308,7 @@ T AProgMovieAlignmentCorrelation<T>::getTsPrime() {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getScaleFactor() {
+T AProgMovieAlignmentCorrelation<T>::getScaleFactor() const {
     // scale is ration between original pixel size and new pixel size
     T scale = Ts / getTsPrime();
     return scale;
