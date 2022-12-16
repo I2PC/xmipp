@@ -770,10 +770,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     BasicMemManager::instance().release();
 
-
-    auto refSize = this->applyBinning() ? movieSettings.sDim() : this->getMovieSizeRaw(); 
-    auto scale = std::make_pair(refSize.x() / (T) correlationSettings.sDim().x(),
-        refSize.y() / (T) correlationSettings.sDim().y());
+    auto scale = std::make_pair(movie.getDim().x() / (T) correlationSettings.sDim().x(),
+        movie.getDim().y() / (T) correlationSettings.sDim().y());
 
     auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings,
         movieSettings.sDim().n(),
@@ -784,40 +782,6 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     BasicMemManager::instance().release(MemType::CUDA);
     return result;
 }
-
-template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
-        const FFTSettings<T> &in, const FFTSettings<T> &correlation,
-        MultidimArray<T> &filter,
-        core::optional<size_t> &refFrame,
-        size_t maxShift, size_t framesInCorrelationBuffer, int verbose) {
-    assert(nullptr != data);
-    size_t N = in.sDim().n();
-    // scale and transform to FFT on GPU
-    performFFTAndScale<T>(data, N, in.sDim().x(), in.sDim().y(), in.batch(),
-            correlation.fDim().x(), correlation.fDim().y(), filter);
-
-    auto scale = std::make_pair(in.sDim().x() / (T) correlation.sDim().x(),
-            in.sDim().y() / (T) correlation.sDim().y());
-
-    return computeShifts(verbose, maxShift, (std::complex<T>*) data, correlation,
-            in.sDim().n(),
-            scale, framesInCorrelationBuffer, refFrame);
-}
-
-// template<typename T>
-// void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
-//         T *output) {
-//     for (size_t n = 0; n < settings.sDim().n(); ++n) {
-//         T *src = movie.getFullFrame(n).data; // points to first float in the image
-//         T *dest = output + (n * settings.sDim().xy()); // points to first float in the image
-//         for (size_t y = 0; y < settings.sDim().y(); ++y) {
-//             memcpy(dest + (settings.sDim().x() * y),
-//                     src + (movie.getFullDim().x() * y),
-//                     settings.sDim().x() * sizeof(T));
-//         }
-//     }
-// }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrame(const FFTSettings<T> &settings,
@@ -901,133 +865,12 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
                 idx++;
             }
         }
-
-        // auto LES = [bX, bY, context, A, this](int) mutable {
-            // now get the estimated shift (from the equation system)
-            // from each frame to successing frame
-            auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
-            // prefill some info about patch
-            for (size_t i = 0;i < context.N;++i) {
-                // update total shift (i.e. global shift + local shift)
-                context.result.shifts[i + context.shiftsOffset].second += result.shifts[i];
-            }
-        // };
-    // };
-}
-
-
-template<typename T>
-T myBestShift(MultidimArray<T> &Mcorr,
-               T &shiftX, T &shiftY, const MultidimArray<int> *mask, int maxShift, size_t &index)
-{
-    int imax = INT_MIN;
-    int jmax;
-    int i_actual;
-    int j_actual;
-    double xmax;
-    double ymax;
-    double avecorr;
-    double stdcorr;
-    double dummy;
-    bool neighbourhood = true;
-
-    /*
-     Warning: for masks with a small number of non-zero pixels, this routine is NOT reliable...
-     Anyway, maybe using a mask is not a good idea at al...
-     */
-
-    // Adjust statistics within shiftmask to average 0 and stddev 1
-
-        // Mcorr.statisticsAdjust((T)0, (T)1);
-
-    // Look for maximum shift
-    index = 0;
-    if (maxShift==-1)
-    	Mcorr.maxIndex(imax, jmax);
-    else
-    {
-    	int maxShift2=maxShift*maxShift;
-    	auto bestCorr=std::numeric_limits<T>::lowest();
-    	for (int i=-maxShift; i<=maxShift; i++)
-    		for (int j=-maxShift; j<=maxShift; j++)
-    		{
-                index++;
-    			if (i*i+j*j>maxShift2) // continue if the Euclidean distance is too far
-    				continue;
-    			else if (A2D_ELEM(Mcorr, i, j)>bestCorr)
-    			{
-    				imax=i;
-    				jmax=j;
-    				bestCorr=A2D_ELEM(Mcorr, imax, jmax);
-    			}
-    		}
-    }
-    auto max = A2D_ELEM(Mcorr, imax, jmax);
-    index = (imax - STARTINGY(Mcorr)) * Mcorr.xdim + (jmax - STARTINGX(Mcorr));
-    shiftX = jmax;
-    shiftY = imax;
-    return max;
-
-    
-    // Estimate n_max around the maximum
-    int n_max = -1;
-    while (neighbourhood)
-    {
-        n_max++;
-        for (int i = -n_max; i <= n_max && neighbourhood; i++)
-        {
-            i_actual = i + imax;
-            if (i_actual < STARTINGY(Mcorr) || i_actual > FINISHINGY(Mcorr))
-            {
-                neighbourhood = false;
-                break;
-            }
-            for (int j = -n_max; j <= n_max && neighbourhood; j++)
-            {
-                j_actual = j + jmax;
-                if (j_actual < STARTINGX(Mcorr) || j_actual > FINISHINGX(Mcorr))
-                {
-                    neighbourhood = false;
-                    break;
-                }
-                else if (max / 1.414 > A2D_ELEM(Mcorr, i_actual, j_actual))
-                {
-                    neighbourhood = false;
-                    break;
-                }
-            }
-        }
+    auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
+    for (size_t i = 0;i < context.N;++i) {
+        // update total shift (i.e. global shift + local shift)
+        context.result.shifts[i + context.shiftsOffset].second += result.shifts[i];
     }
 
-    // We have the neighbourhood => looking for the gravity centre
-    xmax = ymax = 0.;
-    double sumcorr = 0.;
-    if (imax-n_max<STARTINGY(Mcorr))
-        n_max=std::min(imax-STARTINGY(Mcorr),n_max);
-    if (imax+n_max>FINISHINGY(Mcorr))
-        n_max=std::min(FINISHINGY(Mcorr)-imax,n_max);
-    if (jmax-n_max<STARTINGY(Mcorr))
-        n_max=std::min(jmax-STARTINGX(Mcorr),n_max);
-    if (jmax+n_max>FINISHINGY(Mcorr))
-        n_max=std::min(FINISHINGX(Mcorr)-jmax,n_max);
-    for (int i = -n_max; i <= n_max; i++)
-    {
-        i_actual = i + imax;
-        for (int j = -n_max; j <= n_max; j++)
-        {
-            j_actual = j + jmax;
-            double val = A2D_ELEM(Mcorr, i_actual, j_actual);
-            ymax += i_actual * val;
-            xmax += j_actual * val;
-            sumcorr += val;
-        }
-    }
-    if (sumcorr != 0)
-    {
-        shiftX = xmax / sumcorr;
-        shiftY = ymax / sumcorr;
-    }
-    return max;
 }
 
 template<typename T>
@@ -1090,18 +933,6 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // from each frame to successing frame
     AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
     return result;
-}
-
-template<typename T>
-size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
-        const Dimensions &dim) {
-    size_t maxXPow2 = std::ceil(log(dim.x()) / log(2));
-    size_t maxX = std::pow(2, maxXPow2);
-    size_t maxFFTX = maxX / 2 + 1;
-    size_t maxYPow2 = std::ceil(log(dim.y()) / log(2));
-    size_t maxY = std::pow(2, maxYPow2);
-    size_t bytes = maxFFTX * maxY * sizeof(T);
-    return bytes;
 }
 
 // explicit specialization

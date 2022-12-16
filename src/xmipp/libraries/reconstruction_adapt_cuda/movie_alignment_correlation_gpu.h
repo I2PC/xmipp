@@ -158,14 +158,6 @@ private:
     void releaseAll() override { /* nothing to do */  };
 
     /**
-     * Estimates maximal size of the filter for given frame
-     * Might be use to estimate memory requirements
-     * @param dim dimension of the movie frame
-     * @return max bytes necessary for filter
-     */
-    size_t getMaxFilterBytes(const Dimensions &dim);
-
-    /**
      * Utility function for creating a key that can be used
      * for permanent storage
      * @param keyword to use
@@ -179,31 +171,6 @@ private:
         ss << version << " " << gpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();
     }
-
-    /**
-     * Method will align data of given size, using cross-correlation of
-     * data obtained after application of the filter.
-     * @param data where data (in spacial domain) are stored
-     * consecutively. This memory will be reused!
-     * @param in FFT setting of the input data.
-     * @param correlation FFT setting
-     * @param filter to be applied to each image
-     * @param refFrame reference frame, if any
-     * @param maxShift where the maximum correlation should be searched
-     * @param framesInCorrrelationBuffer max number of frames that can be stored
-     * in a single buffer on the GPU
-     * @param verbose level
-     * @return global alignment of each frame
-     */
-    AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
-            MultidimArray<T> &filter, core::optional<size_t> &refFrame,
-            size_t maxShift,
-            size_t framesInCorrelationBuffer, int verbose);
-    
-    auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
-            MultidimArray<T> &filter, 
-            PatchContext context, T *corrBuffer); // pass by copy, this will be run asynchronously
-
 
     /**
      * Method computes shifts of each frame in respect to some reference frame
