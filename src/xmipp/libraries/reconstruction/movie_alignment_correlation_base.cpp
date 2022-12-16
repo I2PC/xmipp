@@ -36,19 +36,18 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnInitialAvg = getParam("--oavgInitial");
     fnDark = getParam("--dark");
     fnGain = getParam("--gain");
-    binning = getDoubleParam("--bin");
+    binning = getFloatParam("--bin");
     if (binning < 1.0)
         REPORT_ERROR(ERR_ARG_INCORRECT, "Binning must be >= 1");
-    Ts = getDoubleParam("--sampling") * binning;
-    maxShift = getDoubleParam("--maxShift") / Ts;
-    maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
+    Ts = getFloatParam("--sampling") * binning;
+    maxShift = getFloatParam("--maxShift") / Ts;
+    maxResForCorrelation = getFloatParam("--maxResForCorrelation");
     fnAligned = getParam("--oaligned");
     fnAvg = getParam("--oavg");
     nfirst = getIntParam("--frameRange", 0);
     nlast = getIntParam("--frameRange", 1);
     nfirstSum = getIntParam("--frameRangeSum", 0);
     nlastSum = getIntParam("--frameRangeSum", 1);
-    binning = getDoubleParam("--bin");
     skipLocalAlignment = checkParam("--skipLocalAlignment");
     minLocalRes = getIntParam("--minLocalRes");
 
@@ -153,7 +152,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
         const Image<T> &dark, const Image<T> &igain, size_t objId,
-            Image<T> &out) {
+            Image<T> &out) const {
     FileName fnFrame;
     movie.getValue(MDL_IMAGE, fnFrame, objId);
     out.read(fnFrame);
@@ -176,7 +175,7 @@ void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getPixelResolution(T scaleFactor) const {
+float AProgMovieAlignmentCorrelation<T>::getPixelResolution(T scaleFactor) const {
     return this->Ts / scaleFactor;
 }
 
@@ -284,7 +283,7 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getC() const {
+float AProgMovieAlignmentCorrelation<T>::getC() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
@@ -293,7 +292,7 @@ T AProgMovieAlignmentCorrelation<T>::getC() const {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getTsPrime() const {
+float AProgMovieAlignmentCorrelation<T>::getTsPrime() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
@@ -308,7 +307,7 @@ T AProgMovieAlignmentCorrelation<T>::getTsPrime() const {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getScaleFactor() const {
+float AProgMovieAlignmentCorrelation<T>::getScaleFactor() const {
     // scale is ration between original pixel size and new pixel size
     T scale = Ts / getTsPrime();
     return scale;
@@ -362,7 +361,7 @@ Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
         // to make FFT fast, we want the size to be a multiple of 2
         auto x = ((static_cast<float>(full.x()) / binning) / 2.f) * 2.f;
         auto y = ((static_cast<float>(full.y()) / binning) / 2.f) * 2.f;
-        movieSize = Dimensions(x, y, 1, full.n());
+        movieSize = Dimensions(static_cast<size_t>(x), static_cast<size_t>(y), 1L, full.n());
     } else {
         movieSize = full;
     }
@@ -522,8 +521,8 @@ void AProgMovieAlignmentCorrelation<T>::setNoOfPatches() {
         const auto &movieDim = getMovieSize();
         auto patchDim = getRequestedPatchSize();
         localAlignPatches = {
-                std::ceil(movieDim.x() / (float)patchDim.first),
-                std::ceil(movieDim.y() / (float)patchDim.second)};
+                std::ceil(static_cast<float>(movieDim.x()) / static_cast<float>(patchDim.first)),
+                std::ceil(static_cast<float>(movieDim.y()) / static_cast<float>(patchDim.second))};
     }
 }
 

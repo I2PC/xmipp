@@ -135,7 +135,7 @@ protected:
      */
     void loadFrame(const MetaData &movie, const Image<T> &dark,
             const Image<T> &igain, size_t objId,
-            Image<T> &out);
+            Image<T> &out) const;
 
     /**
      * This method applies global shifts and can also produce 'average'
@@ -206,12 +206,12 @@ protected:
      * Returns pixel resolution of the scaled movie
      * @param scaleFactor (<= 1) used to change size of the movie
      */
-    T getPixelResolution(T scaleFactor) const;
+    float getPixelResolution(T scaleFactor) const;
 
     /**
      * Returns scale factor as requested by user
      */
-    T getScaleFactor() const;
+    float getScaleFactor() const;
 
     /** Returns size of the patch as requested by user */
     std::pair<size_t, size_t> getRequestedPatchSize() const {
@@ -306,10 +306,10 @@ private:
     void printGlobalShift(const AlignmentResult<T> &globAlignment);
 
     /** Returns pixel size of the movie after downsampling to 4 sigma */
-    T getTsPrime() const;
+    float getTsPrime() const;
 
     /** Returns constant used for filter sigma computation */
-    T getC() const;
+    float getC() const;
 
 protected:
     /** First and last frame (inclusive)*/
@@ -341,13 +341,13 @@ private:
     /** Minimal resolution (in A) of the patch for local alignment */
     size_t minLocalRes;
     /** Max resolution in A to preserve during alignment*/
-    T maxResForCorrelation; //
+    float maxResForCorrelation; //
     /** Pixel size of the movie*/
-    double Ts;
+    float Ts;
     /** Correction images */
     FileName fnDark, fnGain;
     /** Binning factor, >= 1 */
-    double binning;
+    float binning;
     /** Size of the raw movie, only the requested frames */
     std::optional<Dimensions> movieSizeRaw;
     /** Size of the movie as it should be processed */
