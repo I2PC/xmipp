@@ -541,20 +541,6 @@ class ImageVectorize(XmippProgramTest):
 #use scipion
 #class MetadataConvertToSpider(XmippProgramTest):
 
-class MetadataSelfileCreate(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_metadata_selfile_create'
-
-    def test_case1(self):
-        self.runCase("-p input/smallStack.stk -o %o/metadata.xmd -s",
-                outputs=["metadata.xmd"])
-    def test_case2(self):
-        self.runCase("-p 'input/Protocol_Preprocess_Micrographs/Micrographs/*mrc' -o %o/metadata.xmd ",
-                outputs=["metadata.xmd"])
-
-
 class MetadataSplit(XmippProgramTest):
     _owner = RM
     @classmethod
@@ -1336,17 +1322,6 @@ class MlfAlign2dMpi(MlfAlign2d):
     def test_case2(self):
         self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/refs.xmd --iter 2 --oroot %o/mlf2d_",random=True,
                 outputs=["mlf2d_images.xmd","mlf2d_classes.stk","mlf2d_classes.xmd"])
-
-class MlTomoMpi(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_ml_tomo'
-
-    def test_case1(self):
-        self.runCase("-i input/Ml_tomo/short.xmd --oroot %o/test1/iter22 --ref input/Ml_tomo/vir_norm.spi --missing input/Ml_tomo/wedgenew.doc --ang 5 --sym i3 --maxres .45 --dim 16 --iter 1 --maxCC",random=True,
-                preruns=["mkdir %o/test1" ],
-                outputs=["test1/iter22_img.xmd","test1/iter22_it000001_ref.xmd","test1/iter22_ref.xmd"])
 
 
 class VolSubtraction(XmippProgramTest):
