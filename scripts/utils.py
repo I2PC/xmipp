@@ -67,7 +67,7 @@ def endMessage(XMIPP_VERNAME):
     strXmipp = 'Xmipp {} has been successfully installed!'.format(
         XMIPP_VERNAME)
     lenStr = len(strXmipp)
-    border = '*' * (lenStr + 6)
+    border = '*' * (lenStr + 5)
     spaceStr = ' ' * (lenStr + 3)
     print('\n')
     print(border)
