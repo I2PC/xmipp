@@ -329,31 +329,16 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     result.shifts.reserve(patchesLocation.size() * movieSize.n());
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
-    auto createContext = [&, this](auto &p) {
-        static std::mutex mutex;
-        std::unique_lock<std::mutex> lock(mutex); // we need to lock this part to ensure serial access to result.shifts
-        auto context = PatchContext(result);
-        context.verbose = this->verbose;
-        context.maxShift = this->maxShift;
-        context.shiftsOffset = result.shifts.size();
-        context.N = patchSettings.sDim().n();
-        context.scale = std::make_pair(patchSettings.sDim().x() / (T) correlationSettings.sDim().x(),
-            patchSettings.sDim().y() / (T) correlationSettings.sDim().y());
-        context.refFrame = refFrame;
-        context.centerSize = getCenterSize(this->maxShift);
-        context.framesInCorrelationBuffer = localHelper.bufferSize;
-        context.correlationSettings = correlationSettings;
-        // prefill some info about patch
-        for (size_t i = 0;i < movieSize.n();++i) {
-            FramePatchMeta<T> tmp = p;
-            // keep consistent with data loading
-            int globShiftX = std::round(globAlignment.shifts.at(i).x);
-            int globShiftY = std::round(globAlignment.shifts.at(i).y);
-            tmp.id_t = i;
-            // total shift (i.e. global shift + local shift) will be computed later on
-            result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY));
-        }
-        return context;
+    const PatchContext context {
+        .verbose = this->verbose,
+        .maxShift = this->maxShift,
+        .N = patchSettings.sDim().n(),
+        .scale = std::make_pair(patchSettings.sDim().x() / (T) correlationSettings.sDim().x(),
+            patchSettings.sDim().y() / (T) correlationSettings.sDim().y()),
+        .refFrame = refFrame,
+        .centerSize = getCenterSize(this->maxShift),
+        .framesInCorrelationBuffer = localHelper.bufferSize,
+        .correlationSettings = correlationSettings,
     };
 
     auto loadPool = ctpl::thread_pool(localHelper.cpuThreads);
@@ -384,9 +369,19 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
     for (auto &&p : patchesLocation) {
-        auto routine = [&](int thrId) {
-            auto context = createContext(p);
+        const auto shiftsOffset = result.shifts.size();
+        // prefill some info about patch
+        for (size_t i = 0;i < movieSize.n();++i) {
+            FramePatchMeta<T> tmp = p;
+            // keep consistent with data loading
+            int globShiftX = std::round(globAlignment.shifts.at(i).x);
+            int globShiftY = std::round(globAlignment.shifts.at(i).y);
+            tmp.id_t = i;
+            // total shift (i.e. global shift + local shift) will be computed later on
+            result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY));
+        }
 
+        auto routine = [&, p, shiftsOffset](int thrId) { // p and shiftsOffset by copy
             auto alloc = [&](size_t bytes) {
                  // it's faster to allocate CPU memory and then pin it, because registering can run in parallel
                 auto *ptr = BasicMemManager::instance().get(bytes, MemType::CPU_PAGE_ALIGNED);
@@ -432,7 +427,11 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             // }).get(); // wait till done - i.e. correlations are computed and on CPU
 
             // compute resulting shifts
-            computeShifts(correlations, context);
+            auto res = computeShifts(correlations, context);
+            for (size_t i = 0;i < context.N;++i) {
+                // update total shift (i.e. global shift + local shift)
+                result.shifts[i + shiftsOffset].second += res.shifts[i];
+            }
         };
         futures.emplace_back(loadPool.push(routine));
     }
@@ -705,7 +704,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findBatchesThre
         if (bufferSize > batch) {
             bufferDivider += (bufferDivider == 1) ? 2 : 1; // we use two buffers, so we need the same memory for batch == 1 and == 2
         }
-        correlationSettings = FFTSettings<T>(cSize, batch);
+        correlationSettings = FFTSettings<T>(cSize, batch, false, false);
     } while (M() >= maxBytes);
 }
 
@@ -784,13 +783,38 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     BasicMemManager::instance().release();
 
-    auto scale = std::make_pair(movie.getDim().x() / (T) correlationSettings.sDim().x(),
-        movie.getDim().y() / (T) correlationSettings.sDim().y());
 
-    auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings,
-        movieSettings.sDim().n(),
-        scale, globalHelper.bufferSize, {});
+    // auto result = computeShifts(this->verbose, this->maxShift, scaledFrames, correlationSettings,
+    //     movieSettings.sDim().n(),
+    //     scale, globalHelper.bufferSize, {});
 
+    const PatchContext context {
+        .verbose = this->verbose,
+        .maxShift = static_cast<float>(this->maxShift),
+        .N = movieSettings.sDim().n(),
+        .scale = std::make_pair(movie.getDim().x() / (T) correlationSettings.sDim().x(),
+            movie.getDim().y() / (T) correlationSettings.sDim().y()),
+        .refFrame = std::nullopt,
+        .centerSize = getCenterSize(this->maxShift),
+        .framesInCorrelationBuffer = globalHelper.bufferSize,
+        .correlationSettings = correlationSettings,
+    };
+
+    auto *correlations = reinterpret_cast<T*>(BasicMemManager::instance().get(context.corrElems() * sizeof(T), MemType::CUDA_HOST));
+    
+CorrelationData<T> corrAuxData;
+    corrAuxData.alloc(correlationSettings, globalHelper.bufferSize, streams[1]);
+
+    // new T[context.N*(context.N-1)/2 * context.centerSize * context.centerSize]();
+    computeCorrelations(context.maxShift / context.scale.first, context.N, context.correlationSettings, scaledFrames,
+             context.framesInCorrelationBuffer,
+            correlations, corrAuxData, streams[1]);
+    // result is a centered correlation function with (hopefully) a cross
+    // indicating the requested shift
+streams[1].synch();
+corrAuxData.release();
+    auto result = computeShifts(correlations, context);
+    BasicMemManager::instance().give(correlations);
     BasicMemManager::instance().give(filterData);
     BasicMemManager::instance().give(scaledFrames);
     BasicMemManager::instance().release(MemType::CUDA);
@@ -879,12 +903,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
                 idx++;
             }
         }
-    auto result = this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
-    for (size_t i = 0;i < context.N;++i) {
-        // update total shift (i.e. global shift + local shift)
-        context.result.shifts[i + context.shiftsOffset].second += result.shifts[i];
-    }
-
+    return this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
 }
 
 template<typename T>
@@ -905,47 +924,19 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
-    // we are done with the input data, so release it
-    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
-    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
+    const PatchContext context {
+        .verbose = verbose,
+        .maxShift = maxShift,
+        .N = N,
+        .scale = scale,
+        .refFrame = refFrame,
+        .centerSize = centerSize,
+        .framesInCorrelationBuffer = framesInCorrelationBuffer,
+        .correlationSettings = settings,
+    };
 
-    // find the actual shift (max peak) for each pair of frames
-    // and create a set or equations
-    size_t idx = 0;
-    MultidimArray<T> Mcorr(centerSize, centerSize);
-    T* origData = Mcorr.data;
-
-    for (size_t i = 0; i < N - 1; ++i) {
-        for (size_t j = i + 1; j < N; ++j) {
-            auto index = static_cast<size_t>(correlations[idx]);
-            auto max = 0.0;
-            bX(idx) = correlations[2*idx] - (settings.sDim().x() / 2.0);//index % settings.sDim().x() - (settings.sDim().x() / 2.0);
-            bY(idx) = correlations[2*idx+1] - (settings.sDim().y() / 2.0);//index / settings.sDim().x() - (settings.sDim().y() / 2.0);
-            // size_t offset = idx * centerSize * centerSize;
-            // Mcorr.data = correlations + offset;
-            // Mcorr.setXmippOrigin();
-            // size_t index;
-            // auto max = myBestShift(Mcorr, bX(idx), bY(idx), NULL,
-            //         maxShift / scale.first, index);
-            // printf("%f [%f, %f] at index %ld (after conversion: [%f, %f]\n",max, bX(idx), bY(idx), index, bX(idx) * scale.first, bY(idx) * scale.second);
-            bX(idx) *= scale.first; // scale to expected size
-            bY(idx) *= scale.second;
-            if (verbose > 1) {
-                std::cerr << "Frame " << i << " to Frame " << j << " -> ("
-                        << bX(idx) << "," << bY(idx) << ")" << std::endl;
-            }
-            for (int ij = i; ij < j; ij++) {
-                A(idx, ij) = 1;
-            }
-            idx++;
-        }
-    }
-    Mcorr.data = origData;
+    auto result = computeShifts(correlations, context);
     delete[] correlations;
-
-    // now get the estimated shift (from the equation system)
-    // from each frame to successing frame
-    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
     return result;
 }
 

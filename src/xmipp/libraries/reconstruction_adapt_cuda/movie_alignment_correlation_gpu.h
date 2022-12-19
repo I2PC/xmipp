@@ -48,11 +48,9 @@ public:
 private:
     struct PatchContext
     { // to neni jenom patch, mozna batch? Spis LES
-        explicit PatchContext(LocalAlignmentResult<T> &r) : result(r){};
-        LocalAlignmentResult<T> &result;
-        size_t shiftsOffset;
+        // explicit PatchContext(LocalAlignmentResult<T> &r) : result(r){};
         int verbose;
-        size_t maxShift;
+        float maxShift;
         size_t N;
         std::pair<T, T> scale;
         core::optional<size_t> refFrame;

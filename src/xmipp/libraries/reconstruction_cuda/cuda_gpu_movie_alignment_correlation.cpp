@@ -74,7 +74,7 @@ void copyInRightOrder(T* d_pos, T* h_pos, bool isWithin,
             if (ready) {
                 size_t actualI = offset1 + i;
                 size_t actualJ = offset2 + j;
-                size_t toCopy = jSize - j;
+                size_t toCopy = (i == iStop) ? jStop - j + 1 : jSize - j;
                 // imagine correlation in layers, correlation of 0th img with other is first layer, 1st with other is second etc
                 // compute sum of images in complete layers
                 size_t imgsInPreviousLayers = (((maxImgs - 1) + (maxImgs - actualI)) * (actualI)) / 2;
@@ -176,10 +176,10 @@ void computeCorrelationsNew(float maxDist, size_t noOfImgs,
                 CudaFFT<T>::ifft(handler, d_ffts, d_imgs);
                 // look for maxima - results are indices of the max position
                 auto *indices = reinterpret_cast<float*>(d_ffts);
-                ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(gpu, settings.sDim(), d_imgs, indices, nullptr, maxDist);
+                ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(gpu, settings.createBatch().sDim(), d_imgs, indices, nullptr, maxDist);
                 // now convert indices to float positions - we reuse the same memory block, but since we had images there, we should have more then enough space for that
                 auto *positions = reinterpret_cast<float*>(d_ffts) + (noOfImgs * (noOfImgs - 1) / 2);
-                ExtremaFinder::CudaExtremaFinder<T>::sRefineLocation(gpu, settings.sDim(), indices, positions, d_imgs);
+                ExtremaFinder::CudaExtremaFinder<T>::sRefineLocation(gpu, settings.createBatch().sDim(), indices, positions, d_imgs);
                 copyInRightOrder(positions, result,
                         isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs, gpu);
                 origI = i;
