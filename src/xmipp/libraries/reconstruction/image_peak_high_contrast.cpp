@@ -900,9 +900,9 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	int coordHalfY;
 	int coordHalfZ;
 
-	// Construct feature and its mirror symmetric
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
+		// Construct feature and its mirror symmetric
 		feature.initZeros(boxSize, boxSize, boxSize);
 		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
 		
@@ -1077,6 +1077,98 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 
 
 
+void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<double> volFiltered)
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Filter coordinates by correlation..." << std::endl;
+	#endif
+
+	size_t halfBoxSize = boxSize / 2;
+	size_t numberOfFeatures = coordinates3D.size();
+
+	MultidimArray<double> feature;
+	MultidimArray<double> mirrorFeature;
+	double dotProduct = 0;
+	double dotProductMirror = 0;
+
+	int coordHalfX;
+	int coordHalfY;
+	int coordHalfZ;
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		// Construct feature and its mirror symmetric
+		feature.initZeros(boxSize, boxSize, boxSize);
+		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
+		
+		for(int k = 0; k < boxSize; k++) // zDim
+		{	
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					coordHalfX = coordinates3D[n].x - halfBoxSize;
+					coordHalfY = coordinates3D[n].y - halfBoxSize;
+					coordHalfZ = coordinates3D[n].z - halfBoxSize;
+
+					// Check coordinate is not out of volume
+					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+					{
+						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
+
+						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 0;
+					}
+					else
+					{
+						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+																			coordHalfZ + k, 
+																			coordHalfY + i, 
+																			coordHalfX + j);
+
+						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+						DIRECT_A3D_ELEM(volFiltered, 
+										coordHalfZ + k, 
+										coordHalfY + i,
+										coordHalfX + j);
+					}
+				}
+			}
+		}
+
+		feature.rangeAdjust(-1, 1);
+		mirrorFeature.rangeAdjust(-1, 1);
+
+		// Calculate scalar product
+		for(int k = 0; k < boxSize; k++) // zDim
+		{	
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					dotProduct += DIRECT_A3D_ELEM(feature, k, i, j) * DIRECT_A3D_ELEM(feature, k, i, j);
+					dotProductMirror += DIRECT_A3D_ELEM(feature, k, i, j) * DIRECT_A3D_ELEM(mirrorFeature, k, i, j);
+				}
+			}
+		}
+
+		dotProduct /= boxSize *  boxSize * boxSize;
+		dotProductMirror /= boxSize *  boxSize * boxSize;
+
+		#ifdef DEBUG_FILTER_COORDINATES
+		std::cout << "dot product: " << dotProduct << std::endl;
+		std::cout << "dot product mirror: " << dotProductMirror << std::endl;
+		std::cout << "quotient: " << dotProduct/dotProductMirror << std::endl;
+		#endif
+	}
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Filtering coordinates by correlation finished succesfully!!" << std::endl;
+	#endif
+}
+
+
 void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
 	MetaDataVec md;
@@ -1150,6 +1242,8 @@ void ProgImagePeakHighContrast::run()
 	}
 
 	removeDuplicatedCoordinates();
+
+	filterCoordinatesByCorrelation(inputTomo);
 
 	writeOutputCoordinates();
 	
