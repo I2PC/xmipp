@@ -973,10 +973,26 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		#endif
 
 
-		// Update coordinate
-		coordinates3D[n].x += ((int) xDisplacement - boxSize / 2) / 2;
-		coordinates3D[n].y += ((int) yDisplacement - boxSize / 2) / 2;
-		coordinates3D[n].z += ((int) zDisplacement - boxSize / 2) / 2;
+		// Update coordinate and remove if it is moved out of the volume
+		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - boxSize / 2) / 2;
+		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - boxSize / 2) / 2;
+		double updatedCoordinateZ = coordinates3D[n].z + ((int) zDisplacement - boxSize / 2) / 2;
+
+		int deletedCoordinates = 0;
+	
+		if (updatedCoordinateZ < 0 || updatedCoordinateZ > zSize ||
+			updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
+			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
+		{
+			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
+			deletedCoordinates++;
+		}
+		else
+		{
+			coordinates3D[n].x = updatedCoordinateX;
+			coordinates3D[n].y = updatedCoordinateY;
+			coordinates3D[n].z = updatedCoordinateZ;
+		}
 	}
 
 	#ifdef VERBOSE_OUTPUT
