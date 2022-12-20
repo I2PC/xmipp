@@ -384,6 +384,21 @@ def getDependencies():
         print(red("Cannot get dependencies"))
     return result
 
+def printVersion():
+    buildDir = 'build'
+    shortFlag = ''
+    for arg in sys.argv[2:]:
+        if arg == '--short':
+            shortFlag = '--short'
+        elif arg.startswith('dir='):
+            buildDir = arg[4:]
+    versionBin = "%s/bin/xmipp_version" % buildDir
+    envSetting = "%s/xmipp.bashrc" % buildDir
+    if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
+        print("Build not found...")
+    else:
+        runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
+               show_command=False)
 
 def getScipionHome():
     """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
@@ -805,7 +820,7 @@ def install(dirname):
     fhFish.close()
 
     endMessage(XMIPP_VERNAME)
-
+    printVersion()
     return True
 
 
@@ -914,20 +929,7 @@ if __name__ == '__main__':
     elif mode == "cleanBin":
         cleanBinaries()
     elif mode == "version":
-        buildDir = 'build'
-        shortFlag = ''
-        for arg in sys.argv[2:]:
-            if arg == '--short':
-                shortFlag = '--short'
-            elif arg.startswith('dir='):
-                buildDir = arg[4:]
-        versionBin = "%s/bin/xmipp_version" % buildDir
-        envSetting = "%s/xmipp.bashrc" % buildDir
-        if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
-            print("Build not found...")
-        else:
-            runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
-                   show_command=False)
+        printVersion()
     elif mode == "get_devel_sources":
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
