@@ -1157,6 +1157,7 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 		dotProductMirror /= boxSize *  boxSize * boxSize;
 
 		#ifdef DEBUG_FILTER_COORDINATES
+		std::cout << "-------------------- coordinate " << n << std::endl;
 		std::cout << "dot product: " << dotProduct << std::endl;
 		std::cout << "dot product mirror: " << dotProductMirror << std::endl;
 		std::cout << "quotient: " << dotProduct/dotProductMirror << std::endl;
