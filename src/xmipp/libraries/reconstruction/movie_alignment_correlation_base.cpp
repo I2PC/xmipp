@@ -287,7 +287,7 @@ float AProgMovieAlignmentCorrelation<T>::getC() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
-    constexpr float c = sqrt(-1.f / (2.f * log(0.5f)));
+    constexpr float c = std::sqrt(-1.f / (2.f * std::log(0.5f)));
     return c;
 }
 

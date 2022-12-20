@@ -24,17 +24,11 @@
  ***************************************************************************/
 
 #include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
-// #include "core/utils/memory_utils.h"
-// #include <thread>
 #include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
-// #include "data/filters.h"
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
-// #include "core/utils/time_utils.h"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
-// #include "core/xmipp_image_generic.h"
 #include <CTPL/ctpl_stl.h>
-
 #include "reconstruction_cuda/cuda_flexalign_scale.h"
 #include "reconstruction_cuda/cuda_flexalign_correlate.h"
 
@@ -52,7 +46,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
-    std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().getUUID() << ")" << "\n";
+    std::cout << "Device:              " << mGpu.value().device() << " (" << mGpu.value().getUUID() << ")" << "\n";
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << "\n";
     std::cout << "Patches avg:         " << patchesAvg << "\n";
 }
@@ -63,77 +57,69 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
     // read GPU
     int device = this->getIntParam("--device");
-    if (device < 0)
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "Invalid GPU device");
-    gpu = core::optional<GPU>(device);
-    gpu.value().set();
+    if (device < 0) REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device");
+    mGpu = core::optional<GPU>(device);
+    mGpu.value().set();
 
     // read permanent storage
     storage = this->getParam("--storage");
 
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
-    if (patchesAvg < 1)
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "Patch averaging has to be at least one.");
+    if (patchesAvg < 1) REPORT_ERROR(ERR_ARG_INCORRECT, "Patch averaging has to be at least 1 (one).");
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
+auto ProgMovieAlignmentCorrelationGPU<T>::GlobalAlignmentHelper::findGoodCropSize(const Dimensions &ref, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const bool crop = true;
-    auto optDim = instance.getStoredSizes(movie, crop);
-    if (optDim) {
-        return optDim.value().copyForN(movie.n());
+    if (auto optDim = instance.getStoredSizes(ref, crop); optDim) {
+        return optDim.value().copyForN(ref.n());
     }
     std::cout << "Benchmarking cuFFT ..." << std::endl;
-    auto hint = FFTSettings<T>(movie.createSingle()); // movie frame is big enought to give us an idea
+    auto hint = FFTSettings<T>(ref.createSingle()); // movie frame is big enought to give us an idea
     auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, hint, 0, hint.sDim().x() == hint.sDim().y(), 10, crop, true));
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a single frame of the movie.");
     }
-    instance.storeSizes(movie, candidate->sDim(), crop);
-    return candidate->sDim().copyForN(movie.n());
+    instance.storeSizes(ref, candidate->sDim(), crop);
+    return candidate->sDim().copyForN(ref.n());
 }
 
 template<typename T>
-auto  ProgMovieAlignmentCorrelationGPU<T>::findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu) {
+auto ProgMovieAlignmentCorrelationGPU<T>::findGoodCorrelationSize(const Dimensions &ref, const GPU &gpu) {
     const bool crop = false;
-    auto optDim = this->getStoredSizes(hint, crop);
-    if (optDim) {
-        return optDim.value().copyForN(hint.n());
+    if (auto optDim = this->getStoredSizes(ref, crop); optDim) {
+        return optDim.value().copyForN(ref.n());
     }
     std::cout << "Benchmarking cuFFT ..." << std::endl;
-    auto settings = FFTSettings<T>(hint.copyForN((std::ceil(sqrt(hint.n() * 2))))); // test just number of frames, to get an idea (it's faster)
-    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, settings, 0, settings.sDim().x() == settings.sDim().y(), 20, crop, true));
+    auto n = std::ceil(std::sqrt(static_cast<float>(ref.n() * 2)));
+    auto hint = FFTSettings<T>(ref.copyForN(static_cast<size_t>(n))); // test just number of frames, to get an idea (it's faster)
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, hint, 0, hint.sDim().x() == hint.sDim().y(), 20, crop, true));
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
     }
-    this->storeSizes(hint, candidate->sDim(), crop);
-    return candidate->sDim().copyForN(hint.n());
+    this->storeSizes(ref, candidate->sDim(), crop);
+    return candidate->sDim().copyForN(ref.n());
 }
 
 template<typename T>
-auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
+auto  ProgMovieAlignmentCorrelationGPU<T>::LocalAlignmentHelper::findGoodPatchSize(const Dimensions &ref, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance) {
     const bool crop = false;
-    auto optDim = instance.getStoredSizes(hint, crop);
-    if (optDim) {
-        return optDim.value().copyForN(hint.n());
+    if (auto optDim = instance.getStoredSizes(ref, crop); optDim) {
+        return optDim.value().copyForN(ref.n());
     }
     std::cout << "Benchmarking cuFFT ..." << std::endl;
-    auto settings = FFTSettings<T>(hint);
-    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, settings, 0, settings.sDim().x() == settings.sDim().y(), 20, crop, true));
+    auto hint = FFTSettings<T>(ref);
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(gpu, hint, 0, hint.sDim().x() == hint.sDim().y(), 20, crop, true));
     if (!candidate) {
         REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
     }
-    instance.storeSizes(hint, candidate->sDim(), crop);
+    instance.storeSizes(ref, candidate->sDim(), crop);
     return candidate->sDim();
 }
 
-
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
-        const Dimensions &d) {
+auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(const Dimensions &d) {
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
         size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
         while ((size / (float)v) < minScale) {
@@ -143,24 +129,21 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
     };
     const T requestedScale = this->getScaleFactor();
     // hint, possibly bigger then requested, so that it fits max shift window
-    Dimensions hint(getNearestEven(d.x(), requestedScale, this->maxShift),
-            getNearestEven(d.y(), requestedScale, this->maxShift),
+    Dimensions hint(getNearestEven(d.x(), requestedScale, static_cast<size_t>(this->maxShift)),
+            getNearestEven(d.y(), requestedScale, static_cast<size_t>(this->maxShift)),
             d.z(), (d.n() * (d.n() - 1)) / 2); // number of correlations);
     return hint;
 }
 
 template<typename T>
 std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
-        const std::pair<T, T> &borders,
-        const Dimensions &movie, const Dimensions &patch) {
+        const std::pair<T, T> &borders, const Dimensions &patch) {
     size_t patchesX = this->localAlignPatches.first;
     size_t patchesY = this->localAlignPatches.second;
-    T windowXSize = movie.x() - 2 * borders.first;
-    T windowYSize = movie.y() - 2 * borders.second;
-    T corrX = std::ceil(
-            ((patchesX * patch.x()) - windowXSize) / (T) (patchesX - 1));
-    T corrY = std::ceil(
-            ((patchesY * patch.y()) - windowYSize) / (T) (patchesY - 1));
+    T windowXSize = this->getMovieSize().x() - 2 * borders.first;
+    T windowYSize = this->getMovieSize().y() - 2 * borders.second;
+    T corrX = std::ceil(((patchesX * patch.x()) - windowXSize) / (T) (patchesX - 1));
+    T corrY = std::ceil(((patchesY * patch.y()) - windowYSize) / (T) (patchesY - 1));
     T stepX = (T)patch.x() - corrX;
     T stepY = (T)patch.y() - corrY;
     std::vector<FramePatchMeta<T>> result;
@@ -173,9 +156,7 @@ std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLo
             Point2D<T> tl(tlx, tly);
             Point2D<T> br(brx, bry);
             Rectangle<Point2D<T>> r(tl, br);
-            result.emplace_back(
-                    FramePatchMeta<T> { .rec = r, .id_x = x, .id_y =
-                    y });
+            result.emplace_back(FramePatchMeta<T> { .rec = r, .id_x = x, .id_y = y });
         }
     }
     return result;
@@ -298,13 +279,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         const AlignmentResult<T> &globAlignment) {
     using memoryUtils::MB;
 
-    localHelper.findBatchesThreadsStreams(gpu.value(), *this);
+    localHelper.findBatchesThreadsStreams(mGpu.value(), *this);
     auto movieSize = this->getMovieSize();
     auto &patchSettings = localHelper.patchSettings;
     auto &correlationSettings = localHelper.correlationSettings;
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
-    auto patchesLocation = this->getPatchesLocation(borders, movieSize,
-            patchSettings.sDim());
+    auto patchesLocation = this->getPatchesLocation(borders, patchSettings.sDim());
     T actualScale = correlationSettings.sDim().x() / (T)patchSettings.sDim().x(); // assuming we use square patches
 
     if (this->verbose) {
@@ -347,7 +327,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     std::vector<std::complex<T>*> scalledPatches(loadPool.size()); // initializes to nullptrs
     std::vector<std::future<void>> futures;
     futures.reserve(patchesLocation.size());
-    GPU streams[2] = {GPU(gpu.value().device(), 1), GPU(gpu.value().device(), 2)};
+    GPU streams[2] = {GPU(mGpu.value().device(), 1), GPU(mGpu.value().device(), 2)};
     streams[0].set();
     streams[1].set();
 
@@ -394,7 +374,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             auto alloc = [&](size_t bytes) {
                  // it's faster to allocate CPU memory and then pin it, because registering can run in parallel
                 auto *ptr = BasicMemManager::instance().get(bytes, MemType::CPU_PAGE_ALIGNED);
-                gpu.value().pinMemory(ptr, bytes);
+                mGpu.value().pinMemory(ptr, bytes);
                 return ptr;
             };
 
@@ -446,14 +426,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     for (auto &f : futures) { f.get(); }
 
     for (auto *ptr : corrBuffers) { 
-        gpu.value().unpinMemory(ptr);
+        mGpu.value().unpinMemory(ptr);
         BasicMemManager::instance().give(ptr); }
     for (auto *ptr : patchData) { 
-        gpu.value().unpinMemory(ptr);
+        mGpu.value().unpinMemory(ptr);
         BasicMemManager::instance().give(ptr);
     }
     for (auto *ptr : scalledPatches) { 
-        gpu.value().unpinMemory(ptr);
+        mGpu.value().unpinMemory(ptr);
         BasicMemManager::instance().give(ptr);
     }
     BasicMemManager::instance().give(filterData);
@@ -473,13 +453,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
         const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
     // FIXME this is copy from the computeLocalAlignment. Consider refactoring it
-    localHelper.findBatchesThreadsStreams(gpu.value(), *this);
+    localHelper.findBatchesThreadsStreams(mGpu.value(), *this);
     auto movieSize = this->getMovieSize();
     auto &patchSettings = localHelper.patchSettings;
     auto &correlationSettings = localHelper.correlationSettings;
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
-    auto patchesLocation = this->getPatchesLocation(borders, movieSize,
-            patchSettings.sDim());
+    auto patchesLocation = this->getPatchesLocation(borders, patchSettings.sDim());
     LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSize };
     // get alignment for all patches
     for (auto &&p : patchesLocation) {
@@ -512,12 +491,12 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 template <typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getOutputStreamCount()
 {
-    gpu.value().updateMemoryInfo();
+    mGpu.value().updateMemoryInfo();
     auto maxStreams = [this]()
     {
         auto count = 4;
         // upper estimation is 2 full frames of GPU data per stream
-        while (2 * count * movie.getDim().xy() * sizeof(T) > this->gpu.value().lastFreeBytes())
+        while (2 * count * movie.getDim().xy() * sizeof(T) > this->mGpu.value().lastFreeBytes())
         {
             count--;
         }
@@ -560,7 +539,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     auto aux = std::vector<AuxData>(pool.size());
     auto futures = std::vector<std::future<void>>();
     for (auto i = 0; i < pool.size(); ++i) {
-        aux[i].stream = GPU(gpu.value().device(), i + 1);
+        aux[i].stream = GPU(mGpu.value().device(), i + 1);
         aux[i].hIn = reinterpret_cast<T*>(BasicMemManager::instance().get(movie.getDim().xy() * sizeof(T), MemType::CUDA_HOST));
     }
 
@@ -723,7 +702,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     movie.set(this->getMovieSize(), this->applyBinning());
 
 
-    globalHelper.findBatchesThreadsStreams(gpu.value(), *this);
+    globalHelper.findBatchesThreadsStreams(mGpu.value(), *this);
 
     auto &movieSettings = globalHelper.movieSettings;
     auto &correlationSettings = globalHelper.correlationSettings;
@@ -750,7 +729,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     std::vector<GPU> streams(gpuPool.size());
     for (auto i = 0; i < streams.size(); ++i) {
-        streams.at(i) = GPU(gpu.value().device(), i + 1);
+        streams.at(i) = GPU(mGpu.value().device(), i + 1);
         typename CUDAFlexAlignScale<T>::Params p;
         p.movie = movieSettings.sDim();
         p.out = correlationSettings.sDim();

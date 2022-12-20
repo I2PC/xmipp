@@ -35,17 +35,42 @@
 //@{
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
-public:
-    /// Read argument from command line
+protected:
+    void defineParams();
+    void show();
     void readParams();
 
-    /// Show
-    void show();
-
-    /// Define parameters
-    void defineParams();
-
 private:
+
+    /**
+     * Find good size for correlation of the frames
+     * @param ref size of the frames
+     * @param gpu to use
+     * @return size of the frames such that FT is relatively fast
+     */
+    auto findGoodCorrelationSize(const Dimensions &ref, const GPU &gpu);
+
+    /**
+     * Get optimized size of the dimension for correlation
+     * @param d full size of the signal
+     * @return optimal size
+     */
+    auto getCorrelationHint(const Dimensions &d);
+
+    /**
+     * Returns position of all local alignment patches within a single frame
+     * @param borders that should be left intact
+     * @param patch size
+     */
+    std::vector<FramePatchMeta<T>> getPatchesLocation(const std::pair<T, T> &borders,
+            const Dimensions &patch);
+
+
+
+
+
+
+
     struct PatchContext
     { // to neni jenom patch, mozna batch? Spis LES
         // explicit PatchContext(LocalAlignmentResult<T> &r) : result(r){};
@@ -120,7 +145,14 @@ private:
     }
         
     private:
-        auto findGoodCropSize(const Dimensions &movie, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        /**
+         * Find good size for cropping the movie frame
+         * @param ref size of the movie
+         * @param gpu to use
+         * @param instance of the class to use
+         * @return size of the movie such that FT is relatively fast
+         */
+        auto findGoodCropSize(const Dimensions &ref, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
     };
     GlobalAlignmentHelper globalHelper;
 
@@ -142,13 +174,20 @@ private:
     }
         
     private:
-        auto findGoodPatchSize(const Dimensions &hint, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+        /**
+         * Find good size for patches of the movie
+         * @param ref size of the patch
+         * @param gpu to use
+         * @param instance of the class to use
+         * @return size of the patch such that FT is relatively fast
+         */
+        auto findGoodPatchSize(const Dimensions &ref, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
         
     };
     LocalAlignmentHelper localHelper;
 
 
-    auto findGoodCorrelationSize(const Dimensions &hint, const GPU &gpu);
+
 
     /**
      * Inherited, see parent
@@ -166,19 +205,14 @@ private:
     std::string const getKey(const std::string &keyword,
             const Dimensions &dim, bool crop) {
         std::stringstream ss;
-        ss << version << " " << gpu.value().getUUID() << keyword << dim << " " << crop;
+        ss << version << " " << mGpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();
     }
 
     auto computeShifts(T* correlations,
             PatchContext context); // pass by copy, this will be run asynchronously);
 
-    /**
-     * Get suggested size of the frame for correlation
-     * @param s size for the input data
-     * @return optimal size
-     */
-    auto getCorrelationHint(const Dimensions &orig);
+
 
     /**
      * Inherited, see parent
@@ -222,15 +256,6 @@ private:
     std::optional<Dimensions> getStoredSizes(const Dimensions &dim,
             bool applyCrop);
 
-    /**
-     * Returns position of all 'local alignment patches' within a single frame
-     * @param borders that should be left intact
-     * @param movie size
-     * @param patch size
-     */
-    std::vector<FramePatchMeta<T>> getPatchesLocation(const std::pair<T, T> &borders,
-            const Dimensions &movie,
-            const Dimensions &patch);
 
     /**
      * Imagine you align frames of the movie using global alignment
@@ -313,7 +338,7 @@ private:
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
 
-    core::optional<GPU> gpu;
+    core::optional<GPU> mGpu;
 
     /**
      * Keywords representing optimal settings of the algorithm.
