@@ -170,27 +170,6 @@ private:
         return ss.str();
     }
 
-    /**
-     * Method computes shifts of each frame in respect to some reference frame
-     * using cross-correlation on GPU
-     * @param verbose level
-     * @param maxShift where the maximum correlation should be searched
-     * @param data where data (in frequency domain) are stored
-     * consecutively. This memory will be reused!
-     * @param settings for the correlations.
-     * @param N original number of frames (notice that there are many more
-     * correlations than original frames)!
-     * @param scale between original frame size and correlation size
-     * @param framesInCorrrelationBuffer max number of frames that can be stored
-     * in a single buffer on the GPU
-     * @param refFrame reference frame, if any
-     * @return alignment of the data
-     */
-    AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
-        const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
-        size_t framesInCorrelationBuffer,
-        const core::optional<size_t>& refFrame);
-
     auto computeShifts(T* correlations,
             PatchContext context); // pass by copy, this will be run asynchronously);
 

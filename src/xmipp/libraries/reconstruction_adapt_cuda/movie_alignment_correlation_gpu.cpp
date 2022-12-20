@@ -24,16 +24,15 @@
  ***************************************************************************/
 
 #include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
-#include "core/utils/memory_utils.h"
-#include <thread>
-#include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
+// #include "core/utils/memory_utils.h"
+// #include <thread>
 #include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
-#include "data/filters.h"
+// #include "data/filters.h"
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
-#include "core/utils/time_utils.h"
+// #include "core/utils/time_utils.h"
 #include "reconstruction_adapt_cuda/basic_mem_manager.h"
-#include "core/xmipp_image_generic.h"
+// #include "core/xmipp_image_generic.h"
 #include <CTPL/ctpl_stl.h>
 
 #include "reconstruction_cuda/cuda_flexalign_scale.h"
@@ -916,40 +915,6 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
             }
         }
     return this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
-}
-
-template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
-        size_t maxShift,
-        std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
-        std::pair<T, T>& scale,
-        size_t framesInCorrelationBuffer,
-        const core::optional<size_t>& refFrame) {
-    // N is number of images, n is number of correlations
-    // compute correlations (each frame with following ones)
-    size_t centerSize = getCenterSize(maxShift);
-    auto *correlations = new T[N*(N-1)/2 * centerSize * centerSize]();
-    computeCorrelations(maxShift / scale.first, N, data, settings.fDim().x(),
-            settings.sDim().x(),
-            settings.fDim().y(), framesInCorrelationBuffer,
-            settings.batch(), correlations);
-    // result is a centered correlation function with (hopefully) a cross
-    // indicating the requested shift
-
-    const PatchContext context {
-        .verbose = verbose,
-        .maxShift = maxShift,
-        .N = N,
-        .scale = scale,
-        .refFrame = refFrame,
-        .centerSize = centerSize,
-        .framesInCorrelationBuffer = framesInCorrelationBuffer,
-        .correlationSettings = settings,
-    };
-
-    auto result = computeShifts(correlations, context);
-    delete[] correlations;
-    return result;
 }
 
 // explicit specialization
