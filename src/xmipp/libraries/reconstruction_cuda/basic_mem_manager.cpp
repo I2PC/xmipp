@@ -31,6 +31,7 @@
 
 void *BasicMemManager::get(size_t bytes, MemType type)
 {
+    if (0 == bytes) return nullptr;
     std::unique_lock<std::mutex> lock(mutex);
     auto *b = find(bytes, type);
     if (nullptr == b)
@@ -49,6 +50,7 @@ void *BasicMemManager::get(size_t bytes, MemType type)
 
 void BasicMemManager::give(void *ptr)
 {
+    if (nullptr == ptr) return;
     std::unique_lock<std::mutex> lock(mutex);
     for (auto &b : memoryBlocks)
     {

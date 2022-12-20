@@ -37,6 +37,7 @@
 #include <CTPL/ctpl_stl.h>
 
 #include "reconstruction_cuda/cuda_flexalign_scale.h"
+#include "reconstruction_cuda/cuda_flexalign_correlate.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
@@ -363,8 +364,17 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     };
     auto auxData = CUDAFlexAlignScale<T>(p, streams[0]);
     auxData.init();
-    CorrelationData<T> corrAuxData;
-    corrAuxData.alloc(correlationSettings, localHelper.bufferSize, streams[1]);
+    // CorrelationData<T> corrAuxData;
+    // corrAuxData.alloc(correlationSettings, localHelper.bufferSize, streams[1]);
+    typename CUDAFlexAlignCorrelate<T>::Params p1 {
+        .dim = correlationSettings.sDim().copyForN(context.N),
+        .bufferSize = localHelper.bufferSize,
+        .batch = correlationSettings.batch(),
+    };
+    auto tmp = CUDAFlexAlignCorrelate<T>(p1, streams[1]);
+    tmp.init();
+    // new T[context.N*(context.N-1)/2 * context.centerSize * context.centerSize]();
+
 
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
@@ -419,9 +429,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 //         correlationSettings.fDim().x(), correlationSettings.sDim().y(), filter);
                 {
                     std::unique_lock<std::mutex> lock(mutex[1]);
-                computeCorrelations(context.maxShift / context.scale.first, context.N, correlationSettings, scalledPatches[thrId],
-                        context.framesInCorrelationBuffer,
-                        correlations, corrAuxData, streams[1]);
+                tmp.run(scalledPatches[thrId], correlations, context.maxShift / context.scale.first);
                 }
                 streams[1].synch();
             // }).get(); // wait till done - i.e. correlations are computed and on CPU
@@ -450,7 +458,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         BasicMemManager::instance().give(ptr);
     }
     BasicMemManager::instance().give(filterData);
-    corrAuxData.release();
+    // corrAuxData.release();
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSize, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
@@ -802,17 +810,21 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     auto *correlations = reinterpret_cast<T*>(BasicMemManager::instance().get(context.corrElems() * sizeof(T), MemType::CUDA_HOST));
     
-CorrelationData<T> corrAuxData;
-    corrAuxData.alloc(correlationSettings, globalHelper.bufferSize, streams[1]);
-
+// CorrelationData<T> corrAuxData;
+    // corrAuxData.alloc(correlationSettings, globalHelper.bufferSize, streams[1]);
+    typename CUDAFlexAlignCorrelate<T>::Params p {
+        .dim = correlationSettings.sDim().copyForN(context.N),
+        .bufferSize = globalHelper.bufferSize,
+        .batch = correlationSettings.batch(),
+    };
+    auto tmp = CUDAFlexAlignCorrelate<T>(p, streams[1]);
+    tmp.init();
     // new T[context.N*(context.N-1)/2 * context.centerSize * context.centerSize]();
-    computeCorrelations(context.maxShift / context.scale.first, context.N, context.correlationSettings, scaledFrames,
-             context.framesInCorrelationBuffer,
-            correlations, corrAuxData, streams[1]);
+    tmp.run(scaledFrames, correlations, context.maxShift / context.scale.first);
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 streams[1].synch();
-corrAuxData.release();
+// corrAuxData.release();
     auto result = computeShifts(correlations, context);
     BasicMemManager::instance().give(correlations);
     BasicMemManager::instance().give(filterData);
