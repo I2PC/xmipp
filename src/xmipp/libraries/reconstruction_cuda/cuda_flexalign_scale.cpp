@@ -42,7 +42,7 @@ size_t CUDAFlexAlignScale<T>::estimateBytesAlloc(bool alloc)
         const auto sMov = getMovieSettings();
         const auto bPlan = CudaFFT<T>().estimatePlanBytes(sMov);
         const auto sOut = getOutputSettings();
-        const auto bAux1 = std::max(sMov.sBytesBatch(), sOut.fBytesSingle() * sMov.batch());
+        const auto bAux1 = std::max(sMov.sBytesBatch(), sOut.fBytesBatch());
         const auto bAux2 = sMov.fBytesBatch();
         if (alloc)
         {

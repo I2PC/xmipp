@@ -23,12 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef MOVIE_ALIGNMENT_CORRELATION_GPU
-#define MOVIE_ALIGNMENT_CORRELATION_GPU
+#pragma once
 
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
+#include "reconstruction_cuda/cuda_flexalign_scale.h"
+#include "reconstruction_cuda/cuda_flexalign_correlate.h"
 
 /**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
    @ingroup ReconsCUDALibrary */
@@ -51,6 +52,12 @@ private:
     auto findGoodCorrelationSize(const Dimensions &ref, const GPU &gpu);
 
     /**
+     * Find good size for patches of the movie
+     * @return size of the patch such that FT is relatively fast
+     */
+    auto findGoodPatchSize();
+        
+    /**
      * Get optimized size of the dimension for correlation
      * @param d full size of the signal
      * @return optimal size
@@ -65,8 +72,30 @@ private:
     std::vector<FramePatchMeta<T>> getPatchesLocation(const std::pair<T, T> &borders,
             const Dimensions &patch);
 
+    /**
+     * Returns a 'window' of all frames at specific position, taking into account the 
+     * global shift and summing of frames
+     * @param patch defining the portion of each frame to cut out
+     * @param globAlignment to compensate
+     * @param result where data are stored
+     */
+    void getPatchData(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
 
+    /**
+     * Returns the X and Y offset such that if you read from any frame after applying its global
+     * shift, you will always read valid data
+     * @param globAlignment to use
+     * @param verbose level
+     * @return no of pixels in X (Y) dimension where there might NOT be data from each frame
+     */
+    std::pair<T,T> getMovieBorders(const AlignmentResult<T> &globAlignment, int verbose);
 
+    /**
+     * This method optimizes and sets sizes and additional parameters for the local alignment
+    */
+    void LAOptimize();
 
 
 
@@ -80,8 +109,7 @@ private:
         std::pair<T, T> scale;
         core::optional<size_t> refFrame;
         size_t centerSize;
-        size_t framesInCorrelationBuffer;
-        FFTSettings<T> correlationSettings = FFTSettings<T>(1);
+        Dimensions out = Dimensions(0);
         size_t corrElems() const {
             return (N * (N-1) / 2) * centerSize * centerSize;
         }
@@ -156,38 +184,14 @@ private:
     };
     GlobalAlignmentHelper globalHelper;
 
-    class LocalAlignmentHelper final {
-    public:
-        auto findBatchesThreadsStreams(const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-        
-        FFTSettings<T> patchSettings = FFTSettings<T>(0);
-        FFTSettings<T> correlationSettings = FFTSettings<T>(0);
-        size_t cpuThreads = 4;
-        size_t bufferSize; // for correlation
 
-    friend std::ostream& operator<<(std::ostream &os, const LocalAlignmentHelper &h) {
-        os << "Settings for the patches: " << h.patchSettings << "\n";
-        os << "CPU threads: " << h.cpuThreads << "\n";
-        os << "Settings for the correlation: " << h.correlationSettings << "\n";
-        os << "Correlation buffer size: " << h.bufferSize;
-        return os;
-    }
-        
-    private:
-        /**
-         * Find good size for patches of the movie
-         * @param ref size of the patch
-         * @param gpu to use
-         * @param instance of the class to use
-         * @return size of the patch such that FT is relatively fast
-         */
-        auto findGoodPatchSize(const Dimensions &ref, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-        
+
+    typename CUDAFlexAlignScale<T>::Params LASP {
+        .doBinning = false,
+        .raw = Dimensions(0),
     };
-    LocalAlignmentHelper localHelper;
 
-
-
+    typename CUDAFlexAlignCorrelate<T>::Params LACP; 
 
     /**
      * Inherited, see parent
@@ -257,28 +261,9 @@ private:
             bool applyCrop);
 
 
-    /**
-     * Imagine you align frames of the movie using global alignment
-     * Some frames edges will overlap, i.e. there will be an are shared
-     * by all frames, and edge area where at least one frame does not contribute.
-     * This method computes the size of that area.
-     * @param globAlignment to use
-     * @param verbose level
-     * @return no of pixels in X (Y) dimension where there might NOT be data from each frame
-     */
-    std::pair<T,T> getMovieBorders(const AlignmentResult<T> &globAlignment,
-            int verbose);
 
-    /**
-     * Method returns a 'window'/'view' of each and all frames, aligned (to int positions)
-     * using global alignment
-     * @param patch defining the portion of each frame to load
-     * @param globAlignment to compensate
-     * @param result where data are stored
-     */
-    void getPatchData(const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            T *result);
+
+
     /**
      * Create local alignment from global alignment
      * @param movie to use
@@ -352,4 +337,3 @@ private:
 };
 
 //@}
-#endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */

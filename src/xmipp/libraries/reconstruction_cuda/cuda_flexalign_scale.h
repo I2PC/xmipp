@@ -38,9 +38,8 @@ public:
         bool doBinning = false;
         Dimensions raw = Dimensions(0);   // raw movie, that needs to be binned
         Dimensions movie = Dimensions(0); // cropped / binned size
-        size_t movieBatch = 1;
         Dimensions out = Dimensions(0);   // size used for output / scaled frames
-        size_t outBatch = 1;
+        size_t batch = 1;
     };
 
     CUDAFlexAlignScale(const Params &p, const GPU &gpu) : mParams(p), mGpu(gpu) {}
@@ -77,18 +76,18 @@ private:
 
     auto getRawSettings() const
     {
-        return FFTSettings<T>(mParams.raw, mParams.movieBatch);
+        return FFTSettings<T>(mParams.raw, mParams.batch);
     }
 
     auto getMovieSettings() const
     {
         auto dir = mParams.doBinning ? false : true; // when we do binning, we need to perform IFT, otherwise we do FFT
-        return FFTSettings<T>(mParams.movie, mParams.movieBatch, false, dir);
+        return FFTSettings<T>(mParams.movie, mParams.batch, false, dir);
     }
 
     auto getOutputSettings() const
     {
-        return FFTSettings<T>(mParams.out, mParams.outBatch, false, false);
+        return FFTSettings<T>(mParams.out, mParams.batch, false, false);
     }
 
     constexpr std::complex<T> *asCT(void *ptr)
