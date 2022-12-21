@@ -46,16 +46,22 @@ private:
     /**
      * Find good size for correlation of the frames
      * @param ref size of the frames
-     * @param gpu to use
      * @return size of the frames such that FT is relatively fast
      */
-    auto findGoodCorrelationSize(const Dimensions &ref, const GPU &gpu);
+    auto findGoodCorrelationSize(const Dimensions &ref);
 
     /**
      * Find good size for patches of the movie
      * @return size of the patch such that FT is relatively fast
      */
     auto findGoodPatchSize();
+
+    /**
+     * Find good size for cropping the movie frame
+     * @param ref size of the movie
+     * @return size of the movie such that FT is relatively fast
+     */
+    auto findGoodCropSize(const Dimensions &ref);
         
     /**
      * Get optimized size of the dimension for correlation
@@ -156,6 +162,29 @@ private:
      */
     std::optional<Dimensions> getStoredSizes(const Dimensions &dim, bool applyCrop);
 
+    /**
+     * This method optimizes and sets sizes and additional parameters for the global alignment
+    */
+    void GAOptimize();
+
+    /**
+     * Report used settings
+     * @param scale of the correlation
+     * @param SP 
+     * @param CP
+     * @param streams
+     * @param threads
+    */
+    void report(float scale, 
+        typename CUDAFlexAlignScale<T>::Params &SP, 
+        typename CUDAFlexAlignCorrelate<T>::Params &CP, 
+        int streams, int threads);
+
+
+
+
+
+
 
     class Movie final
     {
@@ -196,42 +225,22 @@ private:
     Movie movie;
 
 
-    class GlobalAlignmentHelper final {
-    public:
-        auto findBatchesThreadsStreams(const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
-        
-        FFTSettings<T> movieSettings = FFTSettings<T>(0);
-        FFTSettings<T> correlationSettings = FFTSettings<T>(0);
-        size_t gpuStreams = 1;
-        size_t cpuThreads = 2;
-        size_t bufferSize; // for correlation
 
-    friend std::ostream& operator<<(std::ostream &os, const GlobalAlignmentHelper &h) {
-        os << "Settings for the movie: " << h.movieSettings << "\n";
-        os << "GPU streams: " << h.gpuStreams << "; CPU threads: " << h.cpuThreads << "\n";
-        os << "Settings for the correlation: " << h.correlationSettings << "\n";
-        os << "Correlation buffer size: " << h.bufferSize;
-        return os;
-    }
-        
-    private:
-        /**
-         * Find good size for cropping the movie frame
-         * @param ref size of the movie
-         * @param gpu to use
-         * @param instance of the class to use
-         * @return size of the movie such that FT is relatively fast
-         */
-        auto findGoodCropSize(const Dimensions &ref, const GPU &gpu, ProgMovieAlignmentCorrelationGPU &instance);
+
+    int GAStreams = 1;
+    typename CUDAFlexAlignScale<T>::Params GASP {
+        .batch = 1, // always 1
     };
-    GlobalAlignmentHelper globalHelper;
 
+    typename CUDAFlexAlignCorrelate<T>::Params GACP; 
 
 
     typename CUDAFlexAlignScale<T>::Params LASP {
         .doBinning = false,
         .raw = Dimensions(0),
     };
+
+
 
     typename CUDAFlexAlignCorrelate<T>::Params LACP; 
 
@@ -309,7 +318,7 @@ private:
      * @param firstFrame to copy
      * @param noOfFrames to copy
      */
-    void getCroppedFrame(const FFTSettings<T> &settings,
+    void getCroppedFrame(const Dimensions &settings,
         T *output, T *src);
 
 
