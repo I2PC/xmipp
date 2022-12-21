@@ -122,7 +122,40 @@ private:
         }
     };
 
+    /**
+     * Create local alignment from global alignment (each patch is shifted by respective global alignment)
+     * @param globAlignment to use
+     * @return local alignment equivalent to global alignment
+     */
+    LocalAlignmentResult<T> localFromGlobal(const AlignmentResult<T> &globAlignment);
+
+    void applyShiftsComputeAverage(
+            const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain,
+            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+            size_t& N, const AlignmentResult<T> &globAlignment) override;
+
     
+    /**
+     * @returns number of GPU streams that can be used for output generation without running out of memory
+     **/
+    auto getOutputStreamCount();
+
+    /**
+     * Store setting for given dimensions to permanent storage
+     * @param orig size
+     * @param opt optimized size
+     * @param applyCrop flag
+     */
+    void storeSizes(const Dimensions &orig, const Dimensions &opt, bool applyCrop);
+
+    /**
+     * Loads setting for given dimensions from permanent storage
+     * @param dim to look for
+     * @param applyCrop flag
+     * @return stored size, if any
+     */
+    std::optional<Dimensions> getStoredSizes(const Dimensions &dim, bool applyCrop);
+
 
     class Movie final
     {
@@ -238,14 +271,7 @@ private:
             const Image<T> &dark, const Image<T> &igain,
             const AlignmentResult<T> &globAlignment);
 
-    /**
-     * Store setting for given dimensions to permanent storage
-     * @param orig size
-     * @param opt optimized size
-     * @param applyCrop flag
-     */
-    void storeSizes(const Dimensions &orig, const Dimensions &opt,
-            bool applyCrop);
+  
 
     /**
      * Loads specific range of frames to the RAM
@@ -257,35 +283,14 @@ private:
     T* loadFrame(const MetaData& movieMD,
         const Image<T>& dark, const Image<T>& igain, size_t index);
 
-    /**
-     * Loads setting for given dimensions from permanent storage
-     * @param dim to look for
-     * @param applyCrop flag
-     * @return stored size, if any
-     */
-    std::optional<Dimensions> getStoredSizes(const Dimensions &dim,
-            bool applyCrop);
 
 
 
 
 
-    /**
-     * Create local alignment from global alignment
-     * @param movie to use
-     * @param globAlignment to use
-     */
-    LocalAlignmentResult<T> localFromGlobal(
-            const MetaData& movie,
-            const AlignmentResult<T> &globAlignment);
 
-    /**
-     * Inherited, see parent
-     */
-    void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
-            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
-            size_t& N, const AlignmentResult<T> &globAlignment);
+
+
 
     /**
      * Inherited, see parent
@@ -316,10 +321,6 @@ private:
         return std::ceil(shift * 2 + 1);
     }
 
-    /**
-     * @returns number of GPU streams that can be used for output generation without running out of memory
-     **/
-    auto getOutputStreamCount();
 
 
 private:

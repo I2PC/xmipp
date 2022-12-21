@@ -284,8 +284,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto patchesLocation = this->getPatchesLocation(borders, LASP.movie);
     auto actualScale = static_cast<float>(LASP.out.x()) / static_cast<float>(LASP.movie.x()); // assuming we use square patches
 
-    GPU streams[] = {GPU(mGpu.value().device(), 1), GPU(mGpu.value().device(), 2)};
-    auto loadPool = ctpl::thread_pool(std::min(this->localAlignPatches.first, this->localAlignPatches.second));
+    auto streams = std::array<GPU, 2>{GPU(mGpu.value().device(), 1), GPU(mGpu.value().device(), 2)};
+    auto loadPool = ctpl::thread_pool(static_cast<int>(std::min(this->localAlignPatches.first, this->localAlignPatches.second)));
 
     if (this->verbose) {
         std::cout << "Actual scale factor (X): " << actualScale << "\n";
@@ -311,7 +311,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         .refFrame = globAlignment.refFrame,
         .out = LASP.out,
     };
-    std::mutex mutex[2]; // one for each step, as they need to happen 'atomically'
+    auto mutexes = std::array<std::mutex, 2>(); // one for each step, as they need to happen 'atomically'
     streams[0].set(); streams[1].set();
     auto scaler = CUDAFlexAlignScale<T>(LASP, streams[0]);
     scaler.init();
@@ -338,8 +338,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         const auto shiftsOffset = result.shifts.size();
         for (size_t i = 0;i < movieSize.n();++i) {
             // keep this consistent with data loading
-            int globShiftX = std::round(globAlignment.shifts.at(i).x);
-            int globShiftY = std::round(globAlignment.shifts.at(i).y);
+            float globShiftX = std::round(globAlignment.shifts.at(i).x);
+            float globShiftY = std::round(globAlignment.shifts.at(i).y);
             p.id_t = i;
             // total shift (i.e. global shift + local shift) will be computed later on
             result.shifts.emplace_back(p, Point2D<T>(globShiftX, globShiftY));
@@ -366,7 +366,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
             // downscale patches, result is in FD
             for (auto i = 0; i < LASP.movie.n(); i += LASP.batch) {
-                std::unique_lock<std::mutex> lock(mutex[0]);
+                std::unique_lock lock(mutexes[0]);
                 scaler.run(nullptr, 
                     data + i * scaler.getMovieSettings().sDim().sizeSingle(), 
                     scalledPatches[thrId] + i * scaler.getOutputSettings().fDim().sizeSingle(), 
@@ -376,7 +376,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
             // compute correlations
             {
-                std::unique_lock<std::mutex> lock(mutex[1]);
+                std::unique_lock lock(mutexes[1]);
                 correlater.run(scalledPatches[thrId], correlations, context.maxShift);
                 correlater.synch();
             }
@@ -396,14 +396,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // clean the memory
     for (auto *ptr : corrPositions) { 
-        mGpu.value().unpinMemory(ptr);
+        GPU::unpinMemory(ptr);
         BasicMemManager::instance().give(ptr); }
     for (auto *ptr : patches) { 
-        mGpu.value().unpinMemory(ptr);
+        GPU::unpinMemory(ptr);
         BasicMemManager::instance().give(ptr);
     }
     for (auto *ptr : scalledPatches) { 
-        mGpu.value().unpinMemory(ptr);
+        GPU::unpinMemory(ptr);
         BasicMemManager::instance().give(ptr);
     }
     BasicMemManager::instance().give(filter);
@@ -420,21 +420,19 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
 template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
-        const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
-    // FIXME this is copy from the computeLocalAlignment. Consider refactoring it
+    // this is basically the computeLocalAlignment method without actuall computing
+    // we use the value of global shift for all patches instead
     LAOptimize();
-    auto movieSize = this->getMovieSize();
-    auto borders = getMovieBorders(globAlignment, this->verbose > 1);
+    const auto movieSize = this->getMovieSize();
+    const auto borders = getMovieBorders(globAlignment, this->verbose > 1);
     auto patchesLocation = this->getPatchesLocation(borders, LASP.movie);
     LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSize };
     // get alignment for all patches
-    for (auto &&p : patchesLocation) {
-        // process it
+    for (auto &p : patchesLocation) {
         for (size_t i = 0; i < movieSize.n(); ++i) {
-            FramePatchMeta<T> tmp = p;
-            tmp.id_t = i;
-            result.shifts.emplace_back(tmp, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
+            p.id_t = i;
+            result.shifts.emplace_back(p, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
         }
     }
 
@@ -449,32 +447,23 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+        const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const AlignmentResult<T> &globAlignment) {
-    applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial, averageMicrograph,
-            N, localFromGlobal(movie, globAlignment));
+    applyShiftsComputeAverage(movieMD, dark, igain, initialMic, Ninitial, averageMicrograph,
+            N, localFromGlobal(globAlignment));
 }
 
 template <typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getOutputStreamCount()
 {
     mGpu.value().updateMemoryInfo();
-    auto maxStreams = [this]()
-    {
-        auto count = 4;
-        // upper estimation is 2 full frames of GPU data per stream
-        while (2 * count * movie.getDim().xy() * sizeof(T) > this->mGpu.value().lastFreeBytes())
-        {
-            count--;
-        }
-        return std::max(count, 1);
-    }();
+    const auto freeBytes = mGpu.value().lastFreeBytes();
+    const auto frameBytes = movie.getDim().xy() * sizeof(T);
+    auto streams = std::min(4UL, freeBytes / (frameBytes * 2)); // // upper estimation is 2 full frames of GPU data per stream
     if (this->verbose > 1)
-    {
-        std::cout << "GPU streams used for output generation: " << maxStreams << "\n";
-    }
-    return maxStreams;
+        std::cout << "GPU streams used for output generation: " << streams << "\n";
+    return streams;
 }
 
 template<typename T>
@@ -490,12 +479,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
     struct AuxData {
         MultidimArray<T> shiftedFrame;
-        MultidimArray<T> reducedFrame;
         GeoTransformer<T> transformer;
-        MultidimArray<double> croppedFrameD;
-        MultidimArray<double> reducedFrameD;
         GPU stream;
-        T *hIn;
         T *hOut;
     };
 
@@ -503,16 +488,15 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         alignment.bsplineRep.value().getCoeffsY());
 
     // prepare data for each thread
-    ctpl::thread_pool pool = ctpl::thread_pool(getOutputStreamCount());
+    auto pool = ctpl::thread_pool(getOutputStreamCount());
     auto aux = std::vector<AuxData>(pool.size());
     auto futures = std::vector<std::future<void>>();
     for (auto i = 0; i < pool.size(); ++i) {
         aux[i].stream = GPU(mGpu.value().device(), i + 1);
-        aux[i].hIn = reinterpret_cast<T*>(BasicMemManager::instance().get(movie.getDim().xy() * sizeof(T), MemType::CUDA_HOST));
     }
 
     int frameIndex = -1;
-    std::mutex mutex;
+    auto mutexes = std::array<std::mutex, 3>(); // protecting access to unique resourcese
     FOR_ALL_OBJECTS_IN_METADATA(movieMD)
     {
         frameIndex++;
@@ -526,7 +510,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 auto &frame = movie.getFrame(frameIndex);
 
                 if ( ! this->fnInitialAvg.isEmpty()) {
-                    std::unique_lock<std::mutex> lock(mutex);
+                    std::unique_lock lock(mutexes[0]);
                     if (0 == initialMic().yxdim)
                         initialMic() = frame;
                     else
@@ -545,13 +529,13 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
                     a.stream.synch(); // make sure that data is fetched from GPU
                     if (this->fnAligned != "") {
+                        std::unique_lock lock(mutexes[1]);
                         Image<T> tmp(shiftedFrame);
-                        std::unique_lock<std::mutex> lock(mutex);
                         tmp.write(this->fnAligned, frameOffset + 1, true,
                                 WRITE_REPLACE);
                     }
                     if (this->fnAvg != "") {
-                        std::unique_lock<std::mutex> lock(mutex);
+                        std::unique_lock lock(mutexes[2]);
                         if (0 == averageMicrograph().yxdim)
                             averageMicrograph() = shiftedFrame;
                         else
@@ -567,7 +551,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         t.get();
     }
     for (auto i = 0; i < pool.size(); ++i) {
-        BasicMemManager::instance().give(aux[i].hIn);
         BasicMemManager::instance().give(aux[i].hOut);
     }
 }
@@ -577,10 +560,8 @@ template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &orig,
         const Dimensions &opt, bool applyCrop) {
     auto single = orig.copyForN(1);
-    UserSettings::get(storage).insert(*this,
-            getKey(optSizeXStr, single, applyCrop), opt.x());
-    UserSettings::get(storage).insert(*this,
-            getKey(optSizeYStr, single, applyCrop), opt.y());
+    UserSettings::get(storage).insert(*this, getKey(optSizeXStr, single, applyCrop), opt.x());
+    UserSettings::get(storage).insert(*this, getKey(optSizeYStr, single, applyCrop), opt.y());
     UserSettings::get(storage).store(); // write changes immediately
 }
 
@@ -590,10 +571,8 @@ std::optional<Dimensions> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
     size_t x, y, batch;
     auto single = dim.copyForN(1);
     bool res = true;
-    res = res && UserSettings::get(storage).find(*this,
-                    getKey(optSizeXStr, single, applyCrop), x);
-    res = res && UserSettings::get(storage).find(*this,
-                    getKey(optSizeYStr, single, applyCrop), y);
+    res = res && UserSettings::get(storage).find(*this, getKey(optSizeXStr, single, applyCrop), x);
+    res = res && UserSettings::get(storage).find(*this, getKey(optSizeYStr, single, applyCrop), y);
     if (res) {
         return std::optional(Dimensions(x, y, 1, dim.n()));
     } else {
