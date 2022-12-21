@@ -56,6 +56,10 @@ public:
 
     void run(std::complex<T> *h_FTs, float *h_pos, float maxDist);
 
+    void synch() const {
+        mGpu.synch();
+    }
+
 private:
     size_t estimateBytesAlloc(bool alloc);
 

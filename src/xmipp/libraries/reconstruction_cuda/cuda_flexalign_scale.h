@@ -67,6 +67,21 @@ public:
         }
     };
 
+    auto getOutputSettings() const
+    {
+        return FFTSettings<T>(mParams.out, mParams.batch, false, false);
+    }
+
+    auto getMovieSettings() const
+    {
+        auto dir = mParams.doBinning ? false : true; // when we do binning, we need to perform IFT, otherwise we do FFT
+        return FFTSettings<T>(mParams.movie, mParams.batch, false, dir);
+    }
+
+    void synch() const {
+        mGpu.synch();
+    }
+
 private:
     size_t estimateBytesAlloc(bool alloc);
 
@@ -77,17 +92,6 @@ private:
     auto getRawSettings() const
     {
         return FFTSettings<T>(mParams.raw, mParams.batch);
-    }
-
-    auto getMovieSettings() const
-    {
-        auto dir = mParams.doBinning ? false : true; // when we do binning, we need to perform IFT, otherwise we do FFT
-        return FFTSettings<T>(mParams.movie, mParams.batch, false, dir);
-    }
-
-    auto getOutputSettings() const
-    {
-        return FFTSettings<T>(mParams.out, mParams.batch, false, false);
     }
 
     constexpr std::complex<T> *asCT(void *ptr)

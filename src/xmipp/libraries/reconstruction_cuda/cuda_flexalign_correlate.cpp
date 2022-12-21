@@ -33,6 +33,7 @@
 template<typename T>
 CUDAFlexAlignCorrelate<T>::~CUDAFlexAlignCorrelate() {
     CudaFFT<T>::release(reinterpret_cast<cufftHandle *>(mIT));
+    BasicMemManager::instance().give(d_imgs);
     BasicMemManager::instance().give(d_ffts);
     BasicMemManager::instance().give(d_fftBuffer1);
     BasicMemManager::instance().give(d_fftBuffer2);

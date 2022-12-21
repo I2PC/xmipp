@@ -97,23 +97,32 @@ private:
     */
     void LAOptimize();
 
+    AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
+            const Image<T> &dark,
+            const Image<T> &igain) override;
 
 
+    /**
+     * Prepare filter for given scale and dimension. 
+     * Filter is stored in CUDA managed memory
+    */
+    T* setFilter(float scale, const Dimensions &dims);
 
-    struct PatchContext
-    { // to neni jenom patch, mozna batch? Spis LES
-        // explicit PatchContext(LocalAlignmentResult<T> &r) : result(r){};
+    /** Helper structure to avoid passing a lot of parameters */
+    struct AlignmentContext
+    { 
         int verbose;
         float maxShift;
-        size_t N;
+        size_t N; // number of frames 
         std::pair<T, T> scale;
         core::optional<size_t> refFrame;
-        size_t centerSize;
         Dimensions out = Dimensions(0);
-        size_t corrElems() const {
-            return (N * (N-1) / 2) * centerSize * centerSize;
+        size_t alignmentBytes() const {
+            return (N * (N-1) / 2) * 2 * sizeof(float); // 2D position for each correlation
         }
     };
+
+    
 
     class Movie final
     {
@@ -213,17 +222,14 @@ private:
         return ss.str();
     }
 
-    auto computeShifts(T* correlations,
-            PatchContext context); // pass by copy, this will be run asynchronously);
+    auto computeShifts(T* correlations, const AlignmentContext &context);
 
 
 
     /**
      * Inherited, see parent
      */
-    AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
-            const Image<T> &dark,
-            const Image<T> &igain);
+
 
     /**
      * Inherited, see parent
