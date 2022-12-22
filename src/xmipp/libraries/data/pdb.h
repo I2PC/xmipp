@@ -164,8 +164,11 @@ public:
 class RichAtom
 {
 public:
-    /// Type
-    char atomType;
+    /// Record Type ("ATOM  " or "HETATM")
+    std::string record;
+
+    /// atom serial number
+    int serial;
 
     /// Position X
     double x;
@@ -199,6 +202,15 @@ public:
 
     /// Bfactor
     double bfactor;
+
+    /// segment name
+    std::string segment;
+
+    /// atom element type
+    std::string atomType;
+
+    /// 2-char charge with sign 2nd (e.g. 1- or 2+)
+    std::string charge;
 };
 
 /** Phantom description using atoms. */
@@ -225,10 +237,10 @@ public:
     }
 
     /// Read from PDB file
-    void read(const FileName &fnPDB, double pseudoatoms = -1.0, double threshold = 0.0);
+    void read(const FileName &fnPDB, bool pseudoatoms = false, double threshold = 0.0);
 
     /// Write to PDB file
-    void write(const FileName &fnPDB);
+    void write(const FileName &fnPDB, bool renumber = false);
 
 };
 
@@ -372,3 +384,15 @@ void projectPDB(const PDBPhantom &phantomPDB,
 void distanceHistogramPDB(const PDBPhantom &phantomPDB, size_t Nnearest, double maxDistance, int Nbins, Histogram1D &hist);
 //@}
 #endif
+
+const char*
+hy36encode(unsigned width, int value, char* result);
+
+const char*
+hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
+
+void
+hy36encodeSafe(unsigned width, int value, char* result);
+
+void
+hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result);

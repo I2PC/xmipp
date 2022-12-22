@@ -42,6 +42,7 @@
 #include "python_metadata.h"
 #include "python_symmetry.h"
 #include "reconstruction/ctf_estimate_from_micrograph.h"
+#include "numpy/arrayobject.h"
 
 PyObject * PyXmippError;
 
@@ -794,16 +795,32 @@ xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject * input;
+    import_array()
+    PyObject *input;
     if (PyArg_ParseTuple(args, "O", &input))
     {
-        auto * arr = (PyArrayObject*) input;
-        //this is 3*4 matrix so he need to delete last column
-        //try first 3x3
-        //IS DE DATA DOUBLE? CREATE NUMPY DOUBLE
-        void * data = PyArray_DATA(arr);
+        // parse python object into numpy array (Numpy/C API)
+        auto dType = PyArray_ObjectType(input, NPY_FLOAT);
+        auto *arr = reinterpret_cast<PyArrayObject*>(PyArray_FROM_OTF(input, dType, NPY_ARRAY_IN_ARRAY));
+        if (nullptr == arr) {
+            return nullptr;
+        }
+        if (const auto *dims = PyArray_DIMS(arr); 2 != PyArray_NDIM(arr) || (3 != dims[0]) || (3 != dims[1])) {
+            PyErr_SetString(PyExc_IndexError, "2D array of size <3,3> expected");
+            return nullptr;
+        }
         Matrix2D<double> euler(3,3);
-        memcpy((euler.mdata),data, 9 * sizeof(double));
+        // let's assume that the stride == 1
+        if (PyTypeNum_ISFLOAT(dType)) {
+            memcpy(euler.mdata, PyArray_DATA(arr), 9 * sizeof(double));
+        } else if (PyTypeNum_ISINTEGER(dType)) {
+            for (auto i = 0; i < 9; ++i) {
+                euler.mdata[i] = static_cast<double>(*reinterpret_cast<int*>(PyArray_GETPTR1(arr, i)));
+            }
+        } else {
+            PyErr_SetString(PyExc_TypeError, "Array of type 'double' or 'int' expected");
+            return nullptr;
+        }
         double rot;
         double tilt;
         double psi;
