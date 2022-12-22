@@ -17,15 +17,16 @@ CUDAFlexAlignScale<T>::~CUDAFlexAlignScale()
 template <typename T>
 size_t CUDAFlexAlignScale<T>::estimateBytesAlloc(bool alloc)
 {
+    const auto sMov = getMovieSettings();
+    const auto sOut = getOutputSettings();
+    const auto bFilter = sOut.fBytesSingle(); // we don't allocate it, but we need it
     if (mParams.doBinning)
     {
-        auto sRaw = getRawSettings();
-        auto bFT = CudaFFT<T>().estimatePlanBytes(sRaw);
-        auto sMov = getMovieSettings();
-        auto bIT = CudaFFT<T>().estimatePlanBytes(sMov);
-        auto sOut = getOutputSettings();
-        auto bAux1 = std::max(std::max(sRaw.sBytesBatch(), sMov.fBytesBatch()), sOut.fBytesBatch());
-        auto bAux2 = std::max(sRaw.fBytesBatch(), sMov.sBytesBatch());
+        const auto sRaw = getRawSettings();
+        const auto bFT = CudaFFT<T>().estimatePlanBytes(sRaw);
+        const auto bIT = CudaFFT<T>().estimatePlanBytes(sMov);
+        const auto bAux1 = std::max(std::max(sRaw.sBytesBatch(), sMov.fBytesBatch()), sOut.fBytesBatch());
+        const auto bAux2 = std::max(sRaw.fBytesBatch(), sMov.sBytesBatch());
 
         if (alloc)
         {
@@ -35,22 +36,21 @@ size_t CUDAFlexAlignScale<T>::estimateBytesAlloc(bool alloc)
             mAux2 = BasicMemManager::instance().get(bAux2, MemType::CUDA);
         }
 
-        return bIT + bFT + bAux1 + bAux2;
+        return bIT + bFT + bAux1 + bAux2 + bFilter;
     }
     else
     {
-        const auto sMov = getMovieSettings();
         const auto bPlan = CudaFFT<T>().estimatePlanBytes(sMov);
-        const auto sOut = getOutputSettings();
         const auto bAux1 = std::max(sMov.sBytesBatch(), sOut.fBytesBatch());
         const auto bAux2 = sMov.fBytesBatch();
+        
         if (alloc)
         {
             mFT = CudaFFT<T>::createPlan(mGpu, sMov);
             mAux1 = BasicMemManager::instance().get(bAux1, MemType::CUDA);
             mAux2 = BasicMemManager::instance().get(bAux2, MemType::CUDA);
         }
-        return bPlan + bAux1 + bAux2;
+        return bPlan + bAux1 + bAux2 + bFilter;
     }
 }
 

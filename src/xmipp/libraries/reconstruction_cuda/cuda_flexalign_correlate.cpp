@@ -104,6 +104,8 @@ void CUDAFlexAlignCorrelate<T>::copyInRightOrder(T* h_pos, bool isWithin,
 
 template<typename T>
 void CUDAFlexAlignCorrelate<T>::run(std::complex<T> *h_FTs, float *h_pos, float maxDist) {
+    mGpu.set();
+    
     const auto settings = getSettings();
     const auto singleFTPixels = settings.fDim().xy();
     const auto singleFTBytes = settings.fBytesSingle();
@@ -150,7 +152,7 @@ void CUDAFlexAlignCorrelate<T>::computeCorrelations(
     const auto settings = getSettings();
     auto stream = *(cudaStream_t*)mGpu.stream();
     dim3 dimBlock(BLOCK_DIM, BLOCK_DIM);
-        dim3 dimGridCorr(ceil(settings.fDim().x()/(float)dimBlock.x), ceil(settings.fDim().y()/(float)dimBlock.y));
+    dim3 dimGridCorr(ceil(settings.fDim().x()/(float)dimBlock.x), ceil(settings.fDim().y()/(float)dimBlock.y));
 
     auto counter = 0L;
     int origI = 0;

@@ -107,10 +107,11 @@ private:
             const Image<T> &dark,
             const Image<T> &igain) override;
 
-
     /**
      * Prepare filter for given scale and dimension. 
      * Filter is stored in CUDA managed memory
+     * @param scale of the filter
+     * @param dims of the filter
     */
     T* setFilter(float scale, const Dimensions &dims);
 
@@ -180,20 +181,28 @@ private:
         typename CUDAFlexAlignCorrelate<T>::Params &CP, 
         int streams, int threads);
 
+    /**
+     * Crops raw movie frame according to the settings
+     * @param settings new sizes of the frame
+     * @param output where 'windowed' movie should be copied
+     * @param src data
+     */
+    void getCroppedFrame(const Dimensions &settings, T *output, T *src);
 
-
-
-
-
-
+    /**
+     * Helper class holding movie data
+    */
     class Movie final
     {
     public:
-        ~Movie();
-        auto set(const Dimensions &dim, bool doBinning) {
-            // dimension is either of the raw movie, or after the binning
+        /** 
+         * Set dimension of the movie that will be stored during the runtime,
+         * This will not allocate data for the movie
+         * @see setFrameData()
+         * @param dim of the raw movie, or after the binning
+        */
+        auto set(const Dimensions &dim) {
             mDim = dim;
-            mDoBinning = doBinning;
             mFrames.reserve(dim.n());
             for (auto n = 0; n < dim.n(); ++n) {
                 // create multidim arrays, but without data 
@@ -201,138 +210,95 @@ private:
             }
         }
 
+        /**
+         * @return dimension of the movie
+        */
         auto &getDim() const {
             return mDim;
         }
 
-        auto &getFrame(size_t i) const {
-            return mFrames[i];
+        /**
+         * @param index 0-based
+         * @return frame data in SP
+        */
+        auto &getFrame(size_t index) const {
+            return mFrames[index];
         }
 
-        auto setFrameData(size_t i, T *ptr) {
-            mFrames[i].data = ptr;
+        /**
+         * Set storage for the frame data
+         * @param index 0-based
+         * @param ptr where frame is to be stored. Expected to be allocated by memory manager
+        */
+        auto setFrameData(size_t index, T *ptr) {
+            mFrames[index].data = ptr;
         }
 
     private:
-        // internally, frames are stored separately
-        // as we access them only one by one (i.e. no need for batches)
-        // also there's no padding or cropping.
-        // We store either raw, full size frames or binned frames
         std::vector<MultidimArray<T>> mFrames;
         Dimensions mDim = Dimensions(0);
-        bool mDoBinning = false;
     };
-    Movie movie;
-
-
-
-
-    int GAStreams = 1;
-    typename CUDAFlexAlignScale<T>::Params GASP {
-        .batch = 1, // always 1
-    };
-
-    typename CUDAFlexAlignCorrelate<T>::Params GACP; 
-
-
-    typename CUDAFlexAlignScale<T>::Params LASP {
-        .doBinning = false,
-        .raw = Dimensions(0),
-    };
-
-
-
-    typename CUDAFlexAlignCorrelate<T>::Params LACP; 
 
     /**
-     * Inherited, see parent
+     * Loads specific frame to main memory
+     * @param movieMD to use
+     * @param dark pixel correction
+     * @param igain correction
+     * @param index index to load (starting at 0)
+     * @return newly allocated memory (using memory manager) holding the frame
      */
-    void releaseAll() override { /* nothing to do */  };
+    T* loadFrame(const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain, size_t index);
 
     /**
-     * Utility function for creating a key that can be used
-     * for permanent storage
+     * Compute alignment from measured relative shifts
+     * @param positions of the maxima. Should be [X,Y] pairs around center
+     * @param context for of the alignment
+     * @return computed alignment
+    */
+    auto computeAlignment(float *positions, const AlignmentContext &context);
+
+    void releaseAll() override;
+
+    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
+        const Image<T> &dark, const Image<T> &igain,
+        const AlignmentResult<T> &globAlignment) override;
+
+    /**
+     * Utility function for creating a key that can be used for permanent storage
      * @param keyword to use
      * @param dim of the 'FFT problem'
      * @param crop the FFT?
      * @return a unique key
      */
-    std::string const getKey(const std::string &keyword,
-            const Dimensions &dim, bool crop) {
+    std::string const getKey(const std::string &keyword, const Dimensions &dim, bool crop) {
         std::stringstream ss;
         ss << version << " " << mGpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();
-    }
+    }        
 
-    auto computeShifts(T* correlations, const AlignmentContext &context);
-
-
-
-    /**
-     * Inherited, see parent
-     */
-
-
-    /**
-     * Inherited, see parent
-     */
-    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &igain,
-            const AlignmentResult<T> &globAlignment);
-
-  
-
-    /**
-     * Loads specific range of frames to the RAM
-     * @param movie to load
-     * @param dark pixel correction
-     * @param igain correction
-     * @param index index to load (starting at 0)
-     */
-    T* loadFrame(const MetaData& movieMD,
-        const Image<T>& dark, const Image<T>& igain, size_t index);
-
-
-
-
-
-
-
-
-
-
-    /**
-     * Inherited, see parent
-     * WARNING !!!
-     * As a side effect, raw movie data might get corrupted. See the implementation.
-     */
     void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
-            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
-            size_t& N, const LocalAlignmentResult<T> &alignment);
+        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+        Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+        size_t& N, const LocalAlignmentResult<T> &alignment) override;
 
-    /**
-     * Method copies raw movie data according to the settings
-     * @param settings new sizes of the movie
-     * @param output where 'windowed' movie should be copied
-     * @param firstFrame to copy
-     * @param noOfFrames to copy
-     */
-    void getCroppedFrame(const Dimensions &settings,
-        T *output, T *src);
+    // holding the loaded movie
+    Movie movie;
+    // number of GPU streams for global alignment
+    int GAStreams = 1;
+    // parameters for global alignment scaling
+    typename CUDAFlexAlignScale<T>::Params GASP {
+        .batch = 1, // always 1
+    };
+    // parameters for global alignment correlation
+    typename CUDAFlexAlignCorrelate<T>::Params GACP; 
+    // parameters for local alignment scaling
+    typename CUDAFlexAlignScale<T>::Params LASP {
+        .doBinning = false,
+        .raw = Dimensions(0),
+    };
+    // parameters for local alignment correlation
+    typename CUDAFlexAlignCorrelate<T>::Params LACP; 
 
-
-    /**
-     * @param shift that we allow
-     * @returns size of the (square) window where we can search for shift
-     */
-    size_t getCenterSize(size_t shift) {
-        return std::ceil(shift * 2 + 1);
-    }
-
-
-
-private:
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 
@@ -349,7 +315,7 @@ private:
     std::string optSizeYStr = std::string("optSizeY");
     std::string optBatchSizeStr = std::string("optBatchSize");
 
-    static constexpr auto version = "1.2";
+    static constexpr auto version = "2.0";
 };
 
 //@}

@@ -122,7 +122,7 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::findGoodPatchSize() {
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(const Dimensions &d) {
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
-        size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
+        size_t size = std::ceil((shift * 2 + 1) / 2.f) * 2; // to get even size
         while ((size / (float)v) < minScale) {
             size += 2;
         }
@@ -262,7 +262,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::LAOptimize() {
 
 template<typename T>
 T* ProgMovieAlignmentCorrelationGPU<T>::setFilter(float scale, const Dimensions &dims) {
-    MultidimArray<T> tmp = this->createLPF(this->getPixelResolution(scale), LASP.out);
+    MultidimArray<T> tmp = this->createLPF(this->getPixelResolution(scale), dims);
     auto *filter = reinterpret_cast<T*>(BasicMemManager::instance().get(tmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
     memcpy(filter, tmp.data, tmp.nzyxdim *sizeof(T));
     return filter;
@@ -305,7 +305,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // prepare memory
     auto *filter = setFilter(actualScale, LASP.out);
-    std::vector<T*> corrPositions(loadPool.size()); // initializes to nullptrs
+    std::vector<float*> corrPositions(loadPool.size()); // initializes to nullptrs
     std::vector<T*> patches(loadPool.size()); // initializes to nullptrs
     std::vector<std::complex<T>*> scalledPatches(loadPool.size()); // initializes to nullptrs
     
@@ -360,14 +360,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             }
             auto *data = patches.at(thrId);
 
-            // allocate memory for positions of the correlation maxima
-            if (nullptr == corrPositions.at(thrId)) {
-                auto bytes = context.alignmentBytes();
-                corrPositions[thrId] = reinterpret_cast<T*>(alloc(bytes));
-                memset(corrPositions[thrId], 0, bytes); // otherwise valgrind complains
-            }
-            auto &correlations = corrPositions.at(thrId);
-
             // get data
             getPatchData(p.rec, globAlignment, data);
 
@@ -381,6 +373,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             }
             scaler.synch(); 
 
+            // allocate memory for positions of the correlation maxima
+            if (nullptr == corrPositions.at(thrId)) {
+                auto bytes = context.alignmentBytes();
+                corrPositions[thrId] = reinterpret_cast<T*>(alloc(bytes));
+                memset(corrPositions[thrId], 0, bytes); // otherwise valgrind complains
+            }
+            auto &correlations = corrPositions.at(thrId);
+            
             // compute correlations
             {
                 std::unique_lock lock(mutexes[1]);
@@ -389,7 +389,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             }
 
             // compute resulting shifts
-            auto res = computeShifts(correlations, context);
+            auto res = computeAlignment(correlations, context);
             for (size_t i = 0;i < context.N;++i) {
                 // update total shift (i.e. global shift + local shift)
                 result.shifts[i + shiftsOffset].second += res.shifts[i];
@@ -515,7 +515,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 auto &a = aux[threadId];
                 a.stream.set();
                 auto &frame = movie.getFrame(frameIndex);
-
+                
                 if ( ! this->fnInitialAvg.isEmpty()) {
                     std::unique_lock lock(mutexes[0]);
                     if (0 == initialMic().yxdim)
@@ -533,8 +533,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                     a.transformer.initLazyForBSpline(frame.xdim, frame.ydim, alignment.movieDim.n(),
                             this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n(), a.stream);
                     a.transformer.applyBSplineTransform(3, shiftedFrame, frame, coeffs, frameOffset);
-
                     a.stream.synch(); // make sure that data is fetched from GPU
+
                     if (this->fnAligned != "") {
                         std::unique_lock lock(mutexes[1]);
                         Image<T> tmp(shiftedFrame);
@@ -550,6 +550,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                         N++;
                     }
                 }
+                
             };
             futures.emplace_back(pool.push(routine));
         }
@@ -628,89 +629,91 @@ template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movieMD, const Image<T> &dark, const Image<T> &igain) {
     // prepare storage for the movie
-    movie.set(this->getMovieSize(), this->applyBinning());
+    movie.set(this->getMovieSize());
     // find optimal settings
     GAOptimize();
     const auto noOfThreads = 2 * GAStreams; // to keep them saturated
 
+    const auto actualScale = static_cast<float>(GASP.out.x()) / static_cast<float>(this->getMovieSize().x());
     report(actualScale, GASP, GACP, GAStreams, noOfThreads);
-    T actualScale = GACP.dim.x() / (T)this->getMovieSize().x();
-
-    // prepare filter
-    MultidimArray<T> filterTmp = this->createLPF(this->getPixelResolution(actualScale), GACP.dim);
-    T* filterData = reinterpret_cast<T*>(BasicMemManager::instance().get(filterTmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
-    memcpy(filterData, filterTmp.data, filterTmp.nzyxdim *sizeof(T));
-    
 
 
-    auto cpuPool = ctpl::thread_pool(GAStreams * 2);
+    // prepare control structures
+    auto cpuPool = ctpl::thread_pool(noOfThreads);
     auto gpuPool = ctpl::thread_pool(GAStreams);
-    auto auxData = std::vector<CUDAFlexAlignScale<T>>();
-    auxData.reserve(gpuPool.size());
-
-    std::vector<GPU> streams(gpuPool.size());
-    for (auto i = 0; i < streams.size(); ++i) {
-        streams.at(i) = GPU(mGpu.value().device(), i + 1);
-        auxData.emplace_back(GASP, streams[i]);
-        auto routine = [&auxData, &streams, i](int stream) {
+    auto scalers = std::vector<CUDAFlexAlignScale<T>>();
+    auto streams = std::vector<GPU>();
+    streams.reserve(gpuPool.size());
+    scalers.reserve(gpuPool.size());
+    for (auto i = 0; i < GAStreams; ++i) { // fill vectors in serial fashion
+        streams.emplace_back(mGpu.value().device(), i + 1);
+        scalers.emplace_back(GASP, streams[i]);
+        gpuPool.push([&streams, &scalers, i](int) {
+            // allocate memory in parallel
             streams[i].set();
-            auxData[i].init();
-        };
-        gpuPool.push(routine);
+            scalers[i].init();
+        });
     }
 
-    // create a buffer for correlations in FD
-    auto *scaledFrames = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(auxData[0].getOutputSettings().fBytes(), MemType::CPU_PAGE_ALIGNED));
+    // prepare memory
+    auto *filter = setFilter(actualScale, GASP.out);
+    auto *scaledFrames = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(scalers[0].getOutputSettings().fBytes(), MemType::CPU_PAGE_ALIGNED));
+    const auto frameBytes = scalers[0].getMovieSettings().sBytesSingle(); // either it's the binned size, or cropped size
 
-    auto frameBytes = auxData[0].getMovieSettings().sBytesSingle();
-
+    // load movie, perform binning, FT, and downscale
     for (auto i = 0; i < GASP.movie.n(); i += GASP.batch) {
-        auto routine = [&, &frameBytes](int thrId, size_t first)
+        auto routine = [&, index=i](int) // all by reference, i by copy
         {
-            auto *rawFrame = loadFrame(movieMD, dark, igain, first);
+            auto *rawFrame = loadFrame(movieMD, dark, igain, index);
             auto *frame = reinterpret_cast<T *>(BasicMemManager::instance().get(frameBytes, MemType::CUDA_HOST));
             if (this->applyBinning()) {
-                movie.setFrameData(first, frame); // we want to store the binned frame
+                movie.setFrameData(index, frame); // we want to store the binned frame
             } else {
-                movie.setFrameData(first, rawFrame); // we want to store the raw frame
+                movie.setFrameData(index, rawFrame); // we want to store the raw frame
                 getCroppedFrame(GASP.movie, frame, rawFrame);
             }
             gpuPool.push([&](int stream) { 
-                auxData[stream].run(rawFrame, frame, scaledFrames + first * auxData[stream].getOutputSettings().fDim().sizeSingle(), filterData);
-                streams[stream].synch(); 
+                auto &scaler = scalers[stream];
+                scaler.run(rawFrame, frame, scaledFrames + index * scaler.getOutputSettings().fDim().sizeSingle(), filter);
+                scaler.synch(); 
+
             }).get();
+            // if we bin, get rid of the raw frame. If we crop, get rid of the cropped frame 
             BasicMemManager::instance().give(this->applyBinning() ? rawFrame : frame);
         };
-        cpuPool.push(routine, i);
+        cpuPool.push(routine);
     }
+    // wait till done
     cpuPool.stop(true);
     gpuPool.stop(true);
-
-    auxData.clear(); // to release unnecessary data
-
+    
+    // release unused memory
+    scalers.clear();
     BasicMemManager::instance().release();
 
+    // prepare structures / memory for correlation
     const AlignmentContext context {
         .verbose = this->verbose,
-        .maxShift = static_cast<float>(this->maxShift),
+        .maxShift = this->maxShift * actualScale,
         .N = GASP.movie.n(),
-        .scale = std::make_pair(movie.getDim().x() / (T) GACP.dim.x(),
-            movie.getDim().y() / (T) GACP.dim.y()),
+        .scale = std::make_pair(movie.getDim().x() / (T) GACP.dim.x(), movie.getDim().y() / (T) GACP.dim.y()),
         .refFrame = std::nullopt,
-        .out = GACP.dim,
+        .out = GASP.out,
     };
-
-    auto *correlations = reinterpret_cast<T*>(BasicMemManager::instance().get(context.alignmentBytes(), MemType::CUDA_HOST));
+    auto *correlations = reinterpret_cast<float*>(BasicMemManager::instance().get(context.alignmentBytes(), MemType::CUDA_HOST));
     
-    auto tmp = CUDAFlexAlignCorrelate<T>(GACP, streams[1]);
-    tmp.init();
-    tmp.run(scaledFrames, correlations, context.maxShift / context.scale.first);
+    // correlate
+    auto correlator = CUDAFlexAlignCorrelate<T>(GACP, mGpu.value());
+    correlator.init();
+    correlator.run(scaledFrames, correlations, context.maxShift);
+    mGpu.value().synch();
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
-streams[1].synch();
-    auto result = computeShifts(correlations, context);
+    auto result = computeAlignment(correlations, context);
+    
+    // release memory
     BasicMemManager::instance().give(correlations);
-    BasicMemManager::instance().give(filterData);
+    BasicMemManager::instance().give(filter);
     BasicMemManager::instance().give(scaledFrames);
     BasicMemManager::instance().release(MemType::CUDA);
     return result;
@@ -727,11 +730,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrame(const Dimensions &dim,
 }
 
 template<typename T>
-ProgMovieAlignmentCorrelationGPU<T>::Movie::~Movie() {
-    for (auto &f : mFrames) {
-        BasicMemManager::instance().give(f.data);
+void ProgMovieAlignmentCorrelationGPU<T>::releaseAll() {
+    const auto dim = movie.getDim();
+    for (auto i = 0; i < dim.n(); ++i) {
+        BasicMemManager::instance().give(movie.getFrame(i).data);
     }
-    mFrames.clear();
 }
 
 template<typename T>
@@ -761,43 +764,34 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadFrame(const MetaData& movieMD,
 }
 
 template <typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
-    T *correlations, const AlignmentContext &context)
-{ // pass by copy, this will be run asynchronously)
-    // N is number of images, n is number of correlations
-    // compute correlations (each frame with following ones)
+auto ProgMovieAlignmentCorrelationGPU<T>::computeAlignment(
+    float *positions, const AlignmentContext &context)
+{         
+    auto noOfCorrelations = static_cast<int>(context.N * (context.N - 1) / 2);
+    // matrices describing observations
+    Matrix2D<float> A(noOfCorrelations, static_cast<int>(context.N) - 1);
+    Matrix1D<float> bX(noOfCorrelations), bY(noOfCorrelations);
 
-    // result is a centered correlation function with (hopefully) a cross
-    // indicating the requested shift
-
-        auto noOfCorrelations = context.N * (context.N - 1) / 2;
-        // we are done with the input data, so release it
-        Matrix2D<T> A(noOfCorrelations, context.N - 1);
-        Matrix1D<T> bX(noOfCorrelations), bY(noOfCorrelations);
-
-        // find the actual shift (max peak) for each pair of frames
-        // and create a set or equations
-        size_t idx = 0;
-
-        for (size_t i = 0; i < context.N - 1; ++i) {
-            for (size_t j = i + 1; j < context.N; ++j) {
-                auto index = static_cast<size_t>(correlations[idx]);
-                bX(idx) = correlations[2*idx] - (context.out.x() / 2.0);
-                bY(idx) = correlations[2*idx+1] - (context.out.y() / 2.0);
-                bX(idx) *= context.scale.first; // scale to expected size
-                bY(idx) *= context.scale.second;
-                if (context.verbose > 1) {
-                    std::cerr << "Frame " << i << " to Frame " << j << " -> ("
-                            << bX(idx) << "," << bY(idx) << ")" << std::endl;
-                }
-                for (int ij = i; ij < j; ij++) {
-                    A(idx, ij) = 1;
-                }
-                idx++;
+    auto idx = 0;
+    for (size_t i = 0; i < context.N - 1; ++i) {
+        for (size_t j = i + 1; j < context.N; ++j) {
+            // X and Y positions of the maxima. To find the shift, we need to deduct the center of the frame
+            bX(idx) = positions[2*idx] - (static_cast<float>(context.out.x()) / 2.f);
+            bY(idx) = positions[2*idx+1] - (static_cast<float>(context.out.y()) / 2.f);
+            bX(idx) *= context.scale.first; // scale to expected size
+            bY(idx) *= context.scale.second;
+            if (context.verbose > 1) {
+                std::cerr << "Frame " << i << " to Frame " << j << " -> ("
+                        << bX(idx) << "," << bY(idx) << ")" << std::endl;
             }
+            for (int ij = i; ij < j; ij++) {
+                A(idx, ij) = 1.f; // mark which pairs of frames we measured
+            }
+            idx++;
         }
-    return this->computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
+    }
+    return AProgMovieAlignmentCorrelation<T>::computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
 }
 
-// explicit specialization
-template class ProgMovieAlignmentCorrelationGPU<float> ;
+// explicit instantiation
+template class ProgMovieAlignmentCorrelationGPU<float>;

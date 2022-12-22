@@ -40,7 +40,7 @@ public:
         size_t batch = 1; // must be a divider of dim.n
     };
 
-    CUDAFlexAlignCorrelate(const Params &p, const GPU &gpu) : mParams(p), mGpu(gpu) {}
+    CUDAFlexAlignCorrelate(const Params &p, GPU &gpu) : mParams(p), mGpu(gpu) {}
 
     ~CUDAFlexAlignCorrelate();
 
@@ -82,7 +82,7 @@ private:
         size_t offset1, size_t offset2);
 
     const Params mParams;
-    const GPU &mGpu;
+    GPU &mGpu;
 
     T *d_imgs = nullptr;
     std::complex<T> *d_ffts = nullptr;

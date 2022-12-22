@@ -42,7 +42,7 @@ public:
         size_t batch = 1;
     };
 
-    CUDAFlexAlignScale(const Params &p, const GPU &gpu) : mParams(p), mGpu(gpu) {}
+    CUDAFlexAlignScale(const Params &p, GPU &gpu) : mParams(p), mGpu(gpu) {}
 
     ~CUDAFlexAlignScale();
 
@@ -58,6 +58,7 @@ public:
 
     void run(T *h_raw, T *h_movie, std::complex<T> *h_out, T *d_filter)
     {
+        mGpu.set();
         if (mParams.doBinning)
         {
             runFFTScale(h_raw, getRawSettings(), h_out, d_filter);
@@ -105,7 +106,7 @@ private:
     };
 
     const Params mParams;
-    const GPU &mGpu;
+    GPU &mGpu;
 
     static constexpr unsigned BLOCK_DIM = 32;
 
