@@ -36,8 +36,8 @@ public:
     struct Params
     {
         Dimensions dim = Dimensions(0);   // size and number of signals to process
-        size_t bufferSize = 1; // how many signals can we process at once
-        size_t batch = 1; // must be a divider of dim.n
+        size_t bufferSize = 1; // how many signals can we upload to GPU at once (up to 2 buffers are used)
+        size_t batch = 1; // for correlation
     };
 
     CUDAFlexAlignCorrelate(const Params &p, GPU &gpu) : mParams(p), mGpu(gpu) {}
@@ -51,6 +51,7 @@ public:
 
     void init()
     {
+        mReady = true;
         estimateBytesAlloc(true);
     }
 
@@ -91,6 +92,7 @@ private:
     float *d_indices = nullptr;
     float *d_positions = nullptr;
     void *mIT = nullptr;
+    bool mReady = false;
 
     static constexpr unsigned BLOCK_DIM = 32;
 };

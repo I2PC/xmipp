@@ -147,10 +147,10 @@ void findUniversal2DNearCenter(
     unsigned xHalf = xSize / 2;
     unsigned yHalf = ySize / 2;
     unsigned maxDistSq = maxDist * maxDist;
-    unsigned yMin = yHalf - maxDist;
-    unsigned yMax = yHalf + maxDist + 1;
-    unsigned xMin = xHalf - maxDist + tid;
-    unsigned xMax = xHalf + maxDist + 1;
+    unsigned yMin = maxDist > yHalf ? 0 : yHalf - maxDist;
+    unsigned yMax = min(ySize, yHalf + maxDist + 1);
+    unsigned xMin = (maxDist > xHalf ? 0 : xHalf- maxDist) + tid;
+    unsigned xMax = min(xSize, xHalf + maxDist + 1);
 
     T2 ldata;
     ldata.x = startVal;
@@ -275,7 +275,8 @@ template<typename T, unsigned WINDOW>
       auto tmp = locIdx % (size.x() * size.y());
       auto refY = (size.getDimAsNumber() > 1) ? static_cast<size_t>(tmp / size.x()) : 0;
       auto refX = static_cast<size_t>(tmp % size.x());
-      auto refVal = data[n * size.sizeSingle() + refZ * size.x() * size.y() + refY * size.x() + refX];
+      auto refVal = static_cast<float>(data[n * size.sizeSingle() + refZ * size.x() * size.y() + refY * size.x() + refX]);
+      refVal = (0.f == refVal) ? 0.f : 1.f / refVal; // if the signal is only 0, we should avoid NaN
       // careful with unsigned operations
       auto startX = (half > refX) ? 0 : refX - half;
       auto endX = min(half + refX, size.x() - 1);
@@ -291,7 +292,7 @@ template<typename T, unsigned WINDOW>
         for (auto y = startY; y <= endY; ++y) {
           for (auto x = startX; x <= endX; ++x) {
             auto i = z * size.x() * size.y() + y * size.x() + x;
-            auto relVal = ptr[i] / refVal;
+            auto relVal = ptr[i] * refVal;
             sumWeight += relVal;
             sumLocX += static_cast<float>(x) * relVal;
             sumLocY += static_cast<float>(y) * relVal;
@@ -300,9 +301,10 @@ template<typename T, unsigned WINDOW>
         }
       }
       auto *ptrLoc = locs + n * size.getDimAsNumber();
-      ptrLoc[0] = sumLocX / sumWeight;
-      if (size.getDimAsNumber() > 1) { ptrLoc[1] = sumLocY / sumWeight; }
-      if (size.getDimAsNumber() > 2) { ptrLoc[2] = sumLocZ / sumWeight; }
+      sumWeight = (0.f == sumWeight) ? 0.f : 1.f / sumWeight; // avoid NaN
+      ptrLoc[0] = sumLocX * sumWeight;
+      if (size.getDimAsNumber() > 1) { ptrLoc[1] = sumLocY * sumWeight; }
+      if (size.getDimAsNumber() > 2) { ptrLoc[2] = sumLocZ * sumWeight; }
     return;
   }
   // otherwise we don't know what to do, so 'report' it

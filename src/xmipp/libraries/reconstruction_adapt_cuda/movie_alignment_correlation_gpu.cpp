@@ -121,8 +121,8 @@ auto  ProgMovieAlignmentCorrelationGPU<T>::findGoodPatchSize() {
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(const Dimensions &d) {
-    auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
-        size_t size = std::ceil((shift * 2 + 1) / 2.f) * 2; // to get even size
+    auto getNearestEven = [] (size_t v, T minScale, size_t shift) { // scale is less than 1
+        size_t size = 2; // to get even sizes
         while ((size / (float)v) < minScale) {
             size += 2;
         }
@@ -355,7 +355,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         auto routine = [&, p, shiftsOffset](int thrId) { // p and shiftsOffset by copy to avoid race condition
             // alllocate memory for patch data
             if (nullptr == patches.at(thrId)) {
-                patches[thrId] = reinterpret_cast<T*>(alloc(scaler.getMovieSettings().sBytesBatch()));
+                patches[thrId] = reinterpret_cast<T*>(alloc(scaler.getMovieSettings().sBytes()));
                 scalledPatches[thrId] = reinterpret_cast<std::complex<T>*>(alloc(scaler.getOutputSettings().fBytes()));
             }
             auto *data = patches.at(thrId);
@@ -470,7 +470,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getOutputStreamCount()
     auto streams = std::min(4UL, freeBytes / (frameBytes * 2)); // // upper estimation is 2 full frames of GPU data per stream
     if (this->verbose > 1)
         std::cout << "GPU streams used for output generation: " << streams << "\n";
-    return streams;
+    return static_cast<int>(streams);
 }
 
 template<typename T>

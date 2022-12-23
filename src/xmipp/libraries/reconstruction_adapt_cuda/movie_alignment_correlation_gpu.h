@@ -270,7 +270,7 @@ private:
      * @param crop the FFT?
      * @return a unique key
      */
-    std::string const getKey(const std::string &keyword, const Dimensions &dim, bool crop) {
+    std::string getKey(const std::string &keyword, const Dimensions &dim, bool crop) const {
         std::stringstream ss;
         ss << version << " " << mGpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();

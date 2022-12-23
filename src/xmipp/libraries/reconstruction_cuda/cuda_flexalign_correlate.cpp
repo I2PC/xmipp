@@ -103,7 +103,13 @@ void CUDAFlexAlignCorrelate<T>::copyInRightOrder(T* h_pos, bool isWithin,
 }
 
 template<typename T>
-void CUDAFlexAlignCorrelate<T>::run(std::complex<T> *h_FTs, float *h_pos, float maxDist) {
+void CUDAFlexAlignCorrelate<T>::run(std::complex<T> *h_FTs, float *h_pos, float radius) {
+    if (!mReady)
+        REPORT_ERROR(ERR_VALUE_NOTSET, "Instance has not been initialized");
+    const auto maxRad = std::sqrt(static_cast<float>(mParams.dim.x() * mParams.dim.x() + mParams.dim.y() * mParams.dim.y()));
+    if (radius > maxRad)
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Search radius too big");
+
     mGpu.set();
     
     const auto settings = getSettings();
@@ -124,7 +130,7 @@ void CUDAFlexAlignCorrelate<T>::run(std::complex<T> *h_FTs, float *h_pos, float 
         // compute inter-buffer correlations
         computeCorrelations(d_fftBuffer1, buffer1ToCopy, buffer1Offset,
                 d_fftBuffer1, buffer1ToCopy, buffer1Offset,
-                h_pos, maxDist);
+                h_pos, radius);
         size_t buffer2Offset = buffer1Offset + buffer1ToCopy;
         while (buffer2Offset < signals) {
             // copy other buffer
@@ -135,7 +141,7 @@ void CUDAFlexAlignCorrelate<T>::run(std::complex<T> *h_FTs, float *h_pos, float 
 
             computeCorrelations(d_fftBuffer1, buffer1ToCopy, buffer1Offset,
                     d_fftBuffer2, buffer2ToCopy, buffer2Offset,
-                    h_pos, maxDist);
+                    h_pos, radius);
             buffer2Offset += buffer2ToCopy;
         }
         buffer1Offset += buffer1ToCopy;
