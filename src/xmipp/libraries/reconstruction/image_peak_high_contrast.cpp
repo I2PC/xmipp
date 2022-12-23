@@ -883,13 +883,131 @@ void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 
 
 
+// void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Centering coordinates..." << std::endl;
+// 	#endif
+
+// 	size_t halfBoxSize = boxSize / 2;
+// 	size_t numberOfFeatures = coordinates3D.size();
+
+// 	MultidimArray<double> feature;
+// 	MultidimArray<double> mirrorFeature;
+// 	MultidimArray<double> correlationVolumeR;
+
+// 	int coordHalfX;
+// 	int coordHalfY;
+// 	int coordHalfZ;
+
+// 	for(size_t n = 0; n < numberOfFeatures; n++)
+// 	{
+// 		// Construct feature and its mirror symmetric
+// 		feature.initZeros(boxSize, boxSize, boxSize);
+// 		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
+		
+// 		for(int k = 0; k < boxSize; k++) // zDim
+// 		{	
+// 			for(int j = 0; j < boxSize; j++) // xDim
+// 			{
+// 				for(int i = 0; i < boxSize; i++) // yDim
+// 				{
+// 					coordHalfX = coordinates3D[n].x - halfBoxSize;
+// 					coordHalfY = coordinates3D[n].y - halfBoxSize;
+// 					coordHalfZ = coordinates3D[n].z - halfBoxSize;
+
+// 					// Check coordinate is not out of volume
+// 					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+// 					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+// 						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+// 					{
+// 						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
+
+// 						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 0;
+// 					}
+// 					else
+// 					{
+// 						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+// 																			coordHalfZ + k, 
+// 																			coordHalfY + i, 
+// 																			coordHalfX + j);
+
+// 						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+// 						DIRECT_A3D_ELEM(volFiltered, 
+// 										coordHalfZ + k, 
+// 										coordHalfY + i,
+// 										coordHalfX + j);
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+// 		CorrelationAux aux;
+// 		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
+
+// 		double maximumCorrelation = MINDOUBLE;
+// 		double xDisplacement = 0;
+// 		double yDisplacement = 0;
+// 		double zDisplacement = 0;
+
+// 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(correlationVolumeR)
+// 		{
+// 			double value = DIRECT_A3D_ELEM(correlationVolumeR, k, j, i);
+			
+// 			if (value > maximumCorrelation)
+// 			{
+// 				maximumCorrelation = value;
+// 				xDisplacement = j;
+// 				yDisplacement = i;
+// 				zDisplacement = k;
+// 			}
+// 		}
+
+// 		#ifdef DEBUG_CENTER_COORDINATES
+// 		std::cout << "--------------------" << std::endl;
+// 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+// 		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize / 2) / 2 << std::endl;
+// 		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize / 2) / 2 << std::endl;
+// 		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize / 2) / 2 << std::endl;
+// 		#endif
+
+
+// 		// Update coordinate and remove if it is moved out of the volume
+// 		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - boxSize / 2) / 2;
+// 		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - boxSize / 2) / 2;
+// 		double updatedCoordinateZ = coordinates3D[n].z + ((int) zDisplacement - boxSize / 2) / 2;
+
+// 		int deletedCoordinates = 0;
+	
+// 		if (updatedCoordinateZ < 0 || updatedCoordinateZ > zSize ||
+// 			updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
+// 			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
+// 		{
+// 			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
+// 			deletedCoordinates++;
+// 		}
+// 		else
+// 		{
+// 			coordinates3D[n].x = updatedCoordinateX;
+// 			coordinates3D[n].y = updatedCoordinateY;
+// 			coordinates3D[n].z = updatedCoordinateZ;
+// 		}
+// 	}
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
+// 	#endif
+// }
+
+
+
 void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Centering coordinates..." << std::endl;
 	#endif
 
-	size_t halfBoxSize = boxSize / 2;
 	size_t numberOfFeatures = coordinates3D.size();
 
 	MultidimArray<double> feature;
@@ -900,21 +1018,23 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	int coordHalfY;
 	int coordHalfZ;
 
+	int doubleBoxSize = boxSize * 2;
+
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
 		// Construct feature and its mirror symmetric
-		feature.initZeros(boxSize, boxSize, boxSize);
-		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
+		feature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
+		mirrorFeature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
 		
-		for(int k = 0; k < boxSize; k++) // zDim
+		for(int k = 0; k < doubleBoxSize; k++) // zDim
 		{	
-			for(int j = 0; j < boxSize; j++) // xDim
+			for(int j = 0; j < doubleBoxSize; j++) // xDim
 			{
-				for(int i = 0; i < boxSize; i++) // yDim
+				for(int i = 0; i < doubleBoxSize; i++) // yDim
 				{
-					coordHalfX = coordinates3D[n].x - halfBoxSize;
-					coordHalfY = coordinates3D[n].y - halfBoxSize;
-					coordHalfZ = coordinates3D[n].z - halfBoxSize;
+					coordHalfX = coordinates3D[n].x - boxSize;
+					coordHalfY = coordinates3D[n].y - boxSize;
+					coordHalfZ = coordinates3D[n].z - boxSize;
 
 					// Check coordinate is not out of volume
 					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
@@ -923,7 +1043,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 					{
 						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
 
-						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 0;
+						DIRECT_A3D_ELEM(mirrorFeature, doubleBoxSize -1 - k, doubleBoxSize -1 - i, doubleBoxSize -1 - j) = 0;
 					}
 					else
 					{
@@ -932,7 +1052,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 																			coordHalfY + i, 
 																			coordHalfX + j);
 
-						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+						DIRECT_A3D_ELEM(mirrorFeature, doubleBoxSize -1 - k, doubleBoxSize -1 - i, doubleBoxSize -1 - j) = 
 						DIRECT_A3D_ELEM(volFiltered, 
 										coordHalfZ + k, 
 										coordHalfY + i,
