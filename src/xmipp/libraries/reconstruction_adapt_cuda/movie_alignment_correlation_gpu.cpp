@@ -414,6 +414,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         BasicMemManager::instance().give(ptr);
     }
     BasicMemManager::instance().give(filter);
+    BasicMemManager::instance().release(MemType::CUDA);
 
     // compute coefficients for BSpline
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSize, result,
