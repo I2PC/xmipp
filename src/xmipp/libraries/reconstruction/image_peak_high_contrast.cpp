@@ -1276,8 +1276,8 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 		// feature.rangeAdjust(-1, 1);
 		// mirrorFeature.rangeAdjust(-1, 1);
 
-		feature.statisticsAdjust();
-		mirrorFeature.statisticsAdjust();
+		feature.statisticsAdjust(0, 1);
+		mirrorFeature.statisticsAdjust(0, 1);
 
 		// Calculate scalar product
 		for(int k = 0; k < boxSize; k++) // zDim
