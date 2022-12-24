@@ -1094,9 +1094,9 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 
 		// Update coordinate and remove if it is moved out of the volume
-		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - boxSize / 2) / 2;
-		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - boxSize / 2) / 2;
-		double updatedCoordinateZ = coordinates3D[n].z + ((int) zDisplacement - boxSize / 2) / 2;
+		double updatedCoordinateX = coordinates3D[n].x - ((int) xDisplacement - boxSize / 2) / 2;
+		double updatedCoordinateY = coordinates3D[n].y - ((int) yDisplacement - boxSize / 2) / 2;
+		double updatedCoordinateZ = coordinates3D[n].z - ((int) zDisplacement - boxSize / 2) / 2;
 
 		int deletedCoordinates = 0;
 	
@@ -1273,8 +1273,11 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 			}
 		}
 
-		feature.rangeAdjust(-1, 1);
-		mirrorFeature.rangeAdjust(-1, 1);
+		// feature.rangeAdjust(-1, 1);
+		// mirrorFeature.rangeAdjust(-1, 1);
+
+		feature.statisticsAdjust();
+		mirrorFeature.statisticsAdjust();
 
 		// Calculate scalar product
 		for(int k = 0; k < boxSize; k++) // zDim
