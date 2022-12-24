@@ -1087,16 +1087,16 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		#ifdef DEBUG_CENTER_COORDINATES
 		std::cout << "--------------------" << std::endl;
 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize / 2) / 2 << std::endl;
-		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize / 2) / 2 << std::endl;
-		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize / 2) / 2 << std::endl;
+		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize) / 2 << std::endl;
+		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize) / 2 << std::endl;
+		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize) / 2 << std::endl;
 		#endif
 
 
 		// Update coordinate and remove if it is moved out of the volume
-		double updatedCoordinateX = coordinates3D[n].x - ((int) xDisplacement - boxSize / 2) / 2;
-		double updatedCoordinateY = coordinates3D[n].y - ((int) yDisplacement - boxSize / 2) / 2;
-		double updatedCoordinateZ = coordinates3D[n].z - ((int) zDisplacement - boxSize / 2) / 2;
+		double updatedCoordinateX = coordinates3D[n].x - ((int) xDisplacement - boxSize) / 2;
+		double updatedCoordinateY = coordinates3D[n].y - ((int) yDisplacement - boxSize) / 2;
+		double updatedCoordinateZ = coordinates3D[n].z - ((int) zDisplacement - boxSize) / 2;
 
 		int deletedCoordinates = 0;
 	
