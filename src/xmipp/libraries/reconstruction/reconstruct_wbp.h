@@ -55,12 +55,10 @@ public:
     double threshold;
     /** Counter for how many times the threshold was not reached */
     int count_thr;
-    /** Diameter for reconstruction */
-    int diameter;
     /** verbosity flag */
     //int verb;
     /** dimensions of the images */
-    size_t dim;
+    size_t xdim, ydim, zdim;
     /** Number of elements in matrix array */
     int no_mats;
     /** columns of matrices*/

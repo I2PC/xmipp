@@ -39,52 +39,12 @@ void ProgRecWbp::readParams()
 {
     fn_sel = getParam("-i");
     fn_out = getParam("-o");
-    fn_sym = getParam("--sym");
     threshold = getDoubleParam("--threshold");
-    diameter = 2 * getIntParam("--radius");
-
     sampling = getDoubleParam("--filsam");
     do_all_matrices = checkParam("--use_each_image");
     do_weights = checkParam("--weight");
 }
 
-// Show ====================================================================
-void ProgRecWbp::show()
-{
-    if (verbose > 0)
-    {
-        // To screen
-        std::cerr
-        << " ================================================================="
-        << std::endl;
-        std::cerr << " Weighted-back projection (arbitrary geometry) "
-        << std::endl;
-        std::cerr
-        << " ================================================================="
-        << std::endl;
-        std::cerr << " Input selfile             : " << fn_sel << std::endl;
-        std::cerr << " Output volume             : " << fn_out << std::endl;
-        if (diameter > 0)
-            std::cerr << " Reconstruction radius     : " << diameter / 2
-            << std::endl;
-        std::cerr << " Relative filter threshold : " << threshold << std::endl;
-        if (fn_sym != "")
-            std::cerr << " Symmetry file:            : " << fn_sym << std::endl;
-        if (do_all_matrices)
-            std::cerr
-            << " --> Use all projection directions in arbitrary geometry filter"
-            << std::endl;
-        else
-            std::cerr << " --> Use sampled directions for filter, sampling = "
-            << sampling << std::endl;
-        if (do_weights)
-            std::cerr << " --> Use weights stored in the image headers"
-            << std::endl;
-        std::cerr
-        << " -----------------------------------------------------------------"
-        << std::endl;
-    }
-}
 
 // Usage ====================================================================
 void ProgRecWbp::defineParams()
@@ -107,23 +67,6 @@ void ProgRecWbp::defineParams()
         " [ -o <name=\"wbp.vol\"> ]     : filename for output volume ");
     addParamsLine(
         " [ --doc <docfile=\"\"> ]      : Ignore headers and get angles from this docfile ");
-    addParamsLine(
-        " [ --radius <int=-1> ]         : Reconstruction radius. int=-1 means radius=dim/2 ");
-    addParamsLine(
-        "                               : The volume will be zero outside this radius");
-    addParamsLine(" [ --sym <sym=\"\"> ]          : Enforce symmetry ");
-    addParamsLine(
-        "                               :+A symmetry file or point-group description.");
-    addParamsLine(
-        "                               :+Valid point-group descriptions are: C1, Ci, Cs, Cn ");
-    addParamsLine(
-        "                               :+(from here on n must be an integer number with no ");
-    addParamsLine(
-        "                               :+more than 2 digits) Cnv, Cnh, Sn, Dn, Dnv, Dnh, T, ");
-    addParamsLine(
-        "                               :+Td, Th, O, Oh I, I1, I2, I3, I4, I5, Ih. For a full ");
-    addParamsLine(
-        "                               :+description of symmetries look at http://xmipp.cnb.csic.es/twiki/bin/view/Xmipp/Symmetry");
     addParamsLine(
         " [ --threshold+ <float=0.005> ] : Lower (relative) threshold for filter values ");
     addParamsLine(
@@ -167,22 +110,40 @@ void ProgRecWbp::run()
     finishProcessing();
 }
 
-void ProgRecWbp::finishProcessing()
+// Show ====================================================================
+void ProgRecWbp::show()
 {
-    free(mat_g);
-    free(mat_f);
     if (verbose > 0)
-        std::cerr << "Fourier pixels for which the threshold was not reached: "
-        << (float) (count_thr * 100.) / (SF.size() * dim * dim) << " %"
+    {
+        // To screen
+        std::cerr
+        << " ================================================================="
         << std::endl;
-    reconstructedVolume.write(fn_out);
+        std::cerr << " Weighted-back projection (arbitrary geometry) "
+        << std::endl;
+        std::cerr
+        << " ================================================================="
+        << std::endl;
+        std::cerr << " Input selfile             : " << fn_sel << std::endl;
+        std::cerr << " Output volume             : " << fn_out << std::endl;
+        std::cerr << " Relative filter threshold : " << threshold << std::endl;
+        if (do_all_matrices)
+            std::cerr
+            << " --> Use all projection directions in arbitrary geometry filter"
+            << std::endl;
+        else
+            std::cerr << " --> Use sampled directions for filter, sampling = "
+            << sampling << std::endl;
+        if (do_weights)
+            std::cerr << " --> Use weights stored in the image headers"
+            << std::endl;
+        std::cerr
+        << " -----------------------------------------------------------------"
+        << std::endl;
+    }
 }
 
-void ProgRecWbp::setIO(const FileName &fnIn, const FileName &fnOut)
-{
-    fn_sel = fnIn;
-    fn_out = fnOut;
-}
+
 
 void ProgRecWbp::produceSideInfo()
 {
@@ -196,12 +157,8 @@ void ProgRecWbp::produceSideInfo()
                          "there is no input file with weight!=0");
     }
 
-    size_t zdim, ndim;
-    getImageSize(SF, dim, dim, zdim, ndim);
-    if (fn_sym != "")
-        SL.readSymmetryFile(fn_sym);
-    if (diameter <= 0)
-        diameter = dim;
+    size_t zdim, xdim, ydim, ndim;
+    getImageSize(SF, xdim, ydim, zdim, ndim);
 
     // Fill arrays of transformation matrices
     if (do_all_matrices)
@@ -212,6 +169,19 @@ void ProgRecWbp::produceSideInfo()
     time_bar_size = SF.size();
     time_bar_step = CEIL((double)time_bar_size / 60.0);
     time_bar_done = 0;
+}
+
+void ProgRecWbp::finishProcessing()
+{
+    free(mat_g);
+    free(mat_f);
+    reconstructedVolume.write(fn_out);
+}
+
+void ProgRecWbp::setIO(const FileName &fnIn, const FileName &fnOut)
+{
+    fn_sel = fnIn;
+    fn_out = fnOut;
 }
 
 void ProgRecWbp::getAnglesForImage(size_t id, double &rot, double &tilt,
@@ -367,15 +337,14 @@ void ProgRecWbp::simpleBackprojection(Projection &img,
     Matrix2D<double> A(3, 3);
     double dim2, x, y, z, xp, yp;
     double value1, value2, scalex, scaley, value;
-    double radius2, x2, y2, z2, z2_plus_y2;
+    double x2, y2, z2, z2_plus_y2;
 
     // Use minus-tilt, because code copied from OldXmipp
     Euler_angles2matrix(img.rot(), -img.tilt(), img.psi(), A);
     A = A.inv();
 
-    radius2 = diameter / 2.;
-    radius2 = radius2 * radius2;
     dim2 = dim / 2;
+    zdim2 = zdim / 2;
     double a00 = MAT_ELEM(A,0,0);
     double a01 = MAT_ELEM(A,0,1);
     double a10 = MAT_ELEM(A,1,0);
@@ -387,22 +356,18 @@ void ProgRecWbp::simpleBackprojection(Projection &img,
     const MultidimArray<double> mImg = img();
     int idim;
     idim = dim;//cast to int from size_t
-    for (i = 0; i < idim; i++)
+    for (i = 0; i < ydim; i++)
     {
-        z = -i + dim2; /*** Z points upwards ***/
+        z = -i + zdim2; /*** Z points upwards ***/
         z2 = z * z;
-        if (z2 > radius2)
-            continue;
-        double xpz = z * a20 + dim2;
-        double ypz = z * a21 + dim2;
-        for (j = 0; j < idim; j++)
+        double xpz = z * a20 + xdim2;
+        double ypz = z * a21 + xdim2;
+        for (j = 0; j < xdim; j++)
         {
-            y = j - dim2;
+            y = j - ydim2;
             y2 = y * y;
             z2_plus_y2 = z2 + y2;
-            if (z2_plus_y2 > radius2)
-                continue;
-            x = 0 - dim2; /***** X for k == 0 *****/
+            x = 0 - xdim2; /***** X for k == 0 *****/
             xp = x * a00 + y * a10 + xpz;
             yp = x * a01 + y * a11 + ypz;
             if (yp >= dim1 || yp < 0.0)
@@ -410,11 +375,9 @@ void ProgRecWbp::simpleBackprojection(Projection &img,
             l = (int) yp;
             scaley = yp - l;
             double scale1y = 1. - scaley;
-            for (k = 0; k < idim; k++, xp += a00, yp += a01, x++)
+            for (k = 0; k < zdim; k++, xp += a00, yp += a01, x++)
             {
                 x2 = x * x;
-                if (x2 + z2_plus_y2 > radius2)
-                    continue;
                 if (xp >= dim1 || xp < 0.0)
                     continue;
 
@@ -562,20 +525,5 @@ void ProgRecWbp::apply2DFilterArbitraryGeometry()
     }
     if (verbose > 0)
         progress_bar(time_bar_size);
-
-    // Symmetrize if necessary
-    if (fn_sym != "")
-    {
-        MultidimArray<double> Vaux;
-        Vaux.resize(mReconstructedVolume);
-        symmetrizeVolume(SL, mReconstructedVolume, Vaux);
-        mReconstructedVolume = Vaux;
-        Mask mask_prm;
-        mask_prm.mode = INNER_MASK;
-        mask_prm.R1 = diameter / 2.;
-        mask_prm.type = BINARY_CIRCULAR_MASK;
-        mask_prm.generate_mask(mReconstructedVolume);
-        mask_prm.apply_mask(mReconstructedVolume, mReconstructedVolume, 0.);
-    }
 }
 
