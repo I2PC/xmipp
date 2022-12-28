@@ -48,12 +48,12 @@ protected:
 
 
 /* Effectively project ===================================================== */
-int PROJECT_mpi_XR_Effectively_project(
-    ParametersProjectionTomography &prm,
-    XrayProjPhantom &side,
-    Projection &proj,
-    XRayPSF &psf,
-    MetaData &SF) ;
+//int PROJECT_mpi_XR_Effectively_project(
+//    ParametersProjectionTomography &prm,
+//    XrayProjPhantom &side,
+//    Projection &proj,
+//    XRayPSF &psf,
+//    MetaData &SF) ;
 
 /** @} */
 #endif /* MPI_PROJECT_XR_H_ */
