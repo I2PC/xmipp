@@ -56,7 +56,7 @@ public:
 
     ~BasicMemManager();
 
-    static auto &instance()
+    static BasicMemManager &instance()
     {
         static BasicMemManager instance;
         return instance;

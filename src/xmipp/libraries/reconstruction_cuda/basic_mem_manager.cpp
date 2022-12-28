@@ -74,8 +74,8 @@ void BasicMemManager::release()
     }
     memoryBlocks.erase(std::remove_if(memoryBlocks.begin(),
                                       memoryBlocks.end(),
-                                      [](auto &b)
-                                      { return b.available; }),
+                                      [](Record &r)
+                                      { return r.available; }),
                        memoryBlocks.end());
 }
 
@@ -91,8 +91,8 @@ void BasicMemManager::release(MemType type)
     }
     memoryBlocks.erase(std::remove_if(memoryBlocks.begin(),
                                       memoryBlocks.end(),
-                                      [type](auto &b)
-                                      { return type == b.type && b.available; }),
+                                      [type](Record &r)
+                                      { return type == r.type && r.available; }),
                        memoryBlocks.end());
 }
 

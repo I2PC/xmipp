@@ -169,7 +169,7 @@ public:
     }
 
     CUDA_HD
-    constexpr auto getDimAsNumber() const {
+    inline int getDimAsNumber() const {
         if (is3D()) return 3;
         if (is2D()) return 2;
         return 1;

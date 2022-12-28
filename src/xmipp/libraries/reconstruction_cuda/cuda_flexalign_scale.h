@@ -68,12 +68,12 @@ public:
         }
     };
 
-    auto getOutputSettings() const
+    FFTSettings<T> getOutputSettings() const
     {
         return FFTSettings<T>(mParams.out, mParams.batch, false, false);
     }
 
-    auto getMovieSettings() const
+    FFTSettings<T> getMovieSettings() const
     {
         auto dir = mParams.doBinning ? false : true; // when we do binning, we need to perform IFT, otherwise we do FFT
         return FFTSettings<T>(mParams.movie, mParams.batch, false, dir);
@@ -90,7 +90,7 @@ private:
 
     void runScaleIFT(T *h_outBin);
 
-    auto getRawSettings() const
+    FFTSettings<T> getRawSettings() const
     {
         return FFTSettings<T>(mParams.raw, mParams.batch);
     }

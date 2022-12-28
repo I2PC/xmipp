@@ -64,7 +64,7 @@ public:
 private:
     size_t estimateBytesAlloc(bool alloc);
 
-    auto getSettings() const
+    FFTSettings<T> getSettings() const
     {
         return FFTSettings<T>(mParams.dim.copyForN(noOfCorrelations()), mParams.batch, false, false);
     }
