@@ -1026,16 +1026,16 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		feature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
 		mirrorFeature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
 		
+		coordHalfX = coordinates3D[n].x - boxSize;
+		coordHalfY = coordinates3D[n].y - boxSize;
+		coordHalfZ = coordinates3D[n].z - boxSize;
+
 		for(int k = 0; k < doubleBoxSize; k++) // zDim
 		{	
 			for(int j = 0; j < doubleBoxSize; j++) // xDim
 			{
 				for(int i = 0; i < doubleBoxSize; i++) // yDim
 				{
-					coordHalfX = coordinates3D[n].x - boxSize;
-					coordHalfY = coordinates3D[n].y - boxSize;
-					coordHalfZ = coordinates3D[n].z - boxSize;
-
 					// Check coordinate is not out of volume
 					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
 					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
@@ -1062,6 +1062,21 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 			}
 		}
 
+		#ifdef DEBUG_CENTER_COORDINATES
+		Image<double> subtomo;
+
+		subtomo() = feature;
+		size_t lastindex = fnOut.find_last_of(".");
+		std::string rawname = fnOut.substr(0, lastindex);
+		std::string outputFileNameSubtomo;
+		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_feature.mrc";
+		subtomo.write(outputFileNameSubtomo);
+
+		subtomo() = mirrorFeature;
+		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_mirrorFeature.mrc";
+		subtomo.write(outputFileNameSubtomo);
+		#endif
+
 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
 		CorrelationAux aux;
 		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
@@ -1073,7 +1088,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(correlationVolumeR)
 		{
-			double value = DIRECT_A3D_ELEM(correlationVolumeR, k, j, i);
+			double value = DIRECT_A3D_ELEM(correlationVolumeR, k, i, j);
 			
 			if (value > maximumCorrelation)
 			{
@@ -1085,7 +1100,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		}
 
 		#ifdef DEBUG_CENTER_COORDINATES
-		std::cout << "--------------------" << std::endl;
+		std::cout << "-------------------- coordinate " << n << std::endl;
 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
 		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize) / 2 << std::endl;
 		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize) / 2 << std::endl;
@@ -1113,6 +1128,76 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 			coordinates3D[n].y = updatedCoordinateY;
 			coordinates3D[n].z = updatedCoordinateZ;
 		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		// Construct and save the centered feature
+		MultidimArray<double> centerFeature;
+		
+		// centerFeature.initZeros(boxSize, boxSize, boxSize);
+		// int halfBoxSize = boxSize / 2;
+
+		// coordHalfX = coordinates3D[n].x - halfBoxSize;
+		// coordHalfY = coordinates3D[n].y - halfBoxSize;
+		// coordHalfZ = coordinates3D[n].z - halfBoxSize;
+
+		// for(int k = 0; k < boxSize; k++) // zDim
+		// {	
+		// 	for(int j = 0; j < boxSize; j++) // xDim
+		// 	{
+		// 		for(int i = 0; i < boxSize; i++) // yDim
+		// 		{
+		// 			// Check coordinate is not out of volume
+		// 			if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+		// 			    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+		// 				(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+		// 			{
+		// 				DIRECT_A3D_ELEM(centerFeature, k, i, j) = 0;
+		// 			}
+		// 			else
+		// 			{
+		// 				DIRECT_A3D_ELEM(centerFeature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+		// 																		  coordHalfZ + k, 
+		// 																		  coordHalfY + i, 
+		// 																		  coordHalfX + j);
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+		centerFeature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
+
+		coordHalfX = coordinates3D[n].x - boxSize;
+		coordHalfY = coordinates3D[n].y - boxSize;
+		coordHalfZ = coordinates3D[n].z - boxSize;
+
+		for(int k = 0; k < doubleBoxSize; k++) // zDim
+		{	
+			for(int j = 0; j < doubleBoxSize; j++) // xDim
+			{
+				for(int i = 0; i < doubleBoxSize; i++) // yDim
+				{
+					// Check coordinate is not out of volume
+					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+					{
+						DIRECT_A3D_ELEM(centerFeature, k, i, j) = 0;
+					}
+					else
+					{
+						DIRECT_A3D_ELEM(centerFeature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+																			      coordHalfZ + k, 
+																			      coordHalfY + i, 
+																			      coordHalfX + j);
+					}
+				}
+			}
+		}
+
+		subtomo() = centerFeature;
+		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_centerFeature.mrc";
+		subtomo.write(outputFileNameSubtomo);
+		#endif
 	}
 
 	#ifdef VERBOSE_OUTPUT
@@ -1378,6 +1463,9 @@ void ProgImagePeakHighContrast::run()
 
 	if(centerFeatures==true)
 	{
+		V.read(fnVol);
+		MultidimArray<double> &inputTomo=V();
+
 		centerCoordinates(inputTomo);
 	}
 
