@@ -1074,7 +1074,8 @@ class TransformWindow(XmippProgramTest):
     def test_case4(self):
         self.runCase("-i input/singleImage.spi -o %o/image.xmp --crop -10",
                 outputs=["image.xmp"])
-
+    def test_case5(self):
+        self.runCase("-i input/xray_import/Images/img48949.spe -o %o/image.xmp --size 512",outputs=["image.xmp"])
 
 class VolumeAlign(XmippProgramTest):
     _owner = COSS
