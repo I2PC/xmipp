@@ -29,6 +29,7 @@
 #include "core/histogram.h"
 #include "core/geometry.h"
 #include "core/xmipp_image.h"
+#include "core/xmipp_funcs.h"
 
 constexpr int FORWARD =   1;
 constexpr int BACKWARD = -1;
