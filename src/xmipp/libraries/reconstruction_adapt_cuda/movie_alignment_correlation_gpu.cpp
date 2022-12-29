@@ -224,6 +224,8 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::LAOptimize() {
     const auto pSize = findGoodPatchSize();
+    LASP.doBinning = false;
+    LASP.raw = Dimensions(0);
     LASP.movie = pSize;
     const auto cSize = this->findGoodCorrelationSize(this->getCorrelationHint(pSize));
     LASP.out = LACP.dim = cSize;
@@ -593,6 +595,7 @@ std::optional<Dimensions> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::GAOptimize() {
     const auto rSize = this->getMovieSizeRaw();
+    GASP.batch = 1; // always 1
     GASP.raw = rSize;
     GASP.doBinning = this->applyBinning();
     const auto mSize = GASP.doBinning ? movie.getDim() : findGoodCropSize(rSize);

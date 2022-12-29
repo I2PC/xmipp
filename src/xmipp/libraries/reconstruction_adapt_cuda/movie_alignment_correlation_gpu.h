@@ -286,16 +286,11 @@ private:
     // number of GPU streams for global alignment
     int GAStreams = 1;
     // parameters for global alignment scaling
-    typename CUDAFlexAlignScale<T>::Params GASP {
-        .batch = 1, // always 1
-    };
+    typename CUDAFlexAlignScale<T>::Params GASP;
     // parameters for global alignment correlation
     typename CUDAFlexAlignCorrelate<T>::Params GACP; 
     // parameters for local alignment scaling
-    typename CUDAFlexAlignScale<T>::Params LASP {
-        .doBinning = false,
-        .raw = Dimensions(0),
-    };
+    typename CUDAFlexAlignScale<T>::Params LASP;
     // parameters for local alignment correlation
     typename CUDAFlexAlignCorrelate<T>::Params LACP; 
 
