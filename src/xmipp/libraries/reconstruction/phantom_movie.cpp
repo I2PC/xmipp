@@ -24,209 +24,216 @@
  ***************************************************************************/
 
 #include "phantom_movie.h"
+#include <random>
+#include "data/fourier_filter.h"
 
-template<typename T>
-void PhantomMovie<T>::defineParams()
+template <typename T>
+auto PhantomMovie<T>::shiftX(size_t t) const
 {
-	addParamsLine(size_param + " <x=4096> <y=4096> <n=40>                :"
-			" Movie size");
-	addParamsLine(step_param + " <x=50> <y=50>                           :"
-			" Distance between the lines/rows of the grid (before the transform is applied)");
-	addParamsLine("[--thickness <t=5>]                                   :"
-			" Thickness of the grid lines" );
-	addParamsLine("[" + shift_param + " <a1=-0.039> <a2=0.002> <b1=-0.02> <b2=0.002>]:"
-			" Parameters of the shift. To see the result, we encourage you to use script attached with source files!");
-	addParamsLine("[" + barrel_param + " <k1_start=0.04> <k1_end=0.05> <k2_start=0.02> <k2_end=0.025>]:"
-			" Parameters of the barrel / pincushion transformation.");
-	addParamsLine("-o <output_file>                                      :"
-			" resulting movie");
-	addParamsLine("[--skipBarrel]                                        :"
-				" skip applying the barrel deformation");
-	addParamsLine("[--skipShift]                                         :"
-				" skip applying shift on each frame");
-	addParamsLine("[--shiftAfterBarrel]                                  :"
-					" if set, shift will be applied after barrel deformation (if present)");
+    const auto tf = static_cast<float>(t);
+    return dispParams.a1 * tf + dispParams.a2 * tf * tf + std::cos(tf / 10.f) / 10.f;
+};
 
-	addUsageLine("Create phantom movie with grid, using shift and barrel / pincushion transform.");
-	addUsageLine("Bear in mind that the following function of the shift is applied in 'backward'"
-			" fashion,");
-	addUsageLine(" as it's original form produces biggest shift towards the end"
-			" as opposed to real movies (which has biggest shift in first frames).");
-	addUsageLine("x(t) = a1*t + a2*t*t + cos(t)/10");
-	addUsageLine("y(t) = b1*t + b2*t*t + sin(t*t)/5");
-	addUsageLine("The barrel/pincushion transform params are linearly interpolated between first and last frame.");
-	addUsageLine("For normalized coordinates ([-1..1]) its distance is given by:");
-	addUsageLine("r_out = r_in(1 + k1*(r_in)^2 + k2*(r_in)^4" );
+template <typename T>
+auto PhantomMovie<T>::shiftY(size_t t) const
+{
+    const auto tf = static_cast<float>(t);
+    return dispParams.b1 * tf + dispParams.b2 * tf * tf + (std::sin(tf * tf)) / 5.f;
+};
 
-	addExampleLine("xmipp_phantom_movie -size 4096 4096 60 -step 50 50 --skipBarrel -o phantom_movie.stk");
+template <typename T>
+T PhantomMovie<T>::bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const
+{
+    auto x_center = static_cast<float>(src.xdim) / 2.f;
+    auto y_center = static_cast<float>(src.ydim) / 2.f;
+    const auto xdim = static_cast<float>(src.xdim);
+    x += x_center;
+    y += y_center;
+    auto xf = std::floor(x);
+    auto xc = std::ceil(x);
+    auto yf = std::floor(y);
+    auto yc = std::ceil(y);
+    auto xw = x - xf;
+    auto yw = y - yf;
+    auto vff = src.data[static_cast<size_t>(xdim * yf + xf)];
+    auto vfc = src.data[static_cast<size_t>(xdim * yc + xf)];
+    auto vcf = src.data[static_cast<size_t>(xdim * yf + xc)];
+    auto vcc = src.data[static_cast<size_t>(xdim * yc + xc)];
+    return vff * (1.f - xw) * (1.f - yw) + vcf * xw * (1.f - yw) + vfc * (1.f - xw) * yw + vcc * xw * yw;
 }
 
-template<typename T>
-void PhantomMovie<T>::readParams()
+template <typename T>
+void PhantomMovie<T>::displace(float &x, float &y, size_t n) const
 {
-	const char* size_param_ch = size_param.c_str();
-	xdim = getIntParam(size_param_ch, 0);
-	ydim = getIntParam(size_param_ch, 1);
-	ndim = getIntParam(size_param_ch, 2);
-
-	const char* step_param_ch = step_param.c_str();
-	xstep = getIntParam(step_param_ch, 0);
-	ystep = getIntParam(step_param_ch, 1);
-
-	const char* shift_param_ch = shift_param.c_str();
-	a1 = getDoubleParam(shift_param_ch, 0);
-	a2 = getDoubleParam(shift_param_ch, 1);
-	b1 = getDoubleParam(shift_param_ch, 2);
-	b2 = getDoubleParam(shift_param_ch, 3);
-
-	const char* barrel_param_ch = barrel_param.c_str();
-	k1_start = getDoubleParam(barrel_param_ch, 0);
-	k1_end = getDoubleParam(barrel_param_ch, 1);
-	k2_start = getDoubleParam(barrel_param_ch, 2);
-	k2_end = getDoubleParam(barrel_param_ch, 3);
-
-	skipBarrel = checkParam("--skipBarrel");
-	skipShift = checkParam("--skipShift");
-	shiftAfterBarrel = checkParam("--shiftAfterBarrel");
-
-	thickness = getIntParam("--thickness");
-	fn_out = getParam("-o");
+    auto x_shift = options.skipShift ? 0 : shiftX(params.req_size.n() - n - 1); // 'reverse' the order (see doc)
+    auto y_shift = options.skipShift ? 0 : shiftY(params.req_size.n() - n - 1); // 'reverse' the order (see doc)
+    if (options.skipBarrel)
+    {
+        x += x_shift;
+        y += y_shift;
+    }
+    else
+    {
+        auto x_center = static_cast<float>(params.req_size.x()) / 2.f;
+        auto y_center = static_cast<float>(params.req_size.y()) / 2.f;
+        auto k1 = dispParams.k1_start + static_cast<float>(n) * (dispParams.k1_end - dispParams.k1_start) / (static_cast<float>(params.req_size.n()) - 1);
+        auto k2 = dispParams.k2_start + static_cast<float>(n) * (dispParams.k2_end - dispParams.k2_start) / (static_cast<float>(params.req_size.n()) - 1);
+        auto y_norm = (y - y_center + (options.shiftAfterBarrel ? 0 : y_shift)) / y_center;
+        auto x_norm = (x - x_center + (options.shiftAfterBarrel ? 0 : x_shift)) / x_center;
+        auto r_out = sqrt(x_norm * x_norm + y_norm * y_norm);
+        auto r_out_2 = r_out * r_out;
+        auto r_out_4 = r_out_2 * r_out_2;
+        auto scale = (1 + k1 * r_out_2 + k2 * r_out_4);
+        x = (x_norm * scale * x_center) + x_center + (options.shiftAfterBarrel ? x_shift : 0);
+        y = (y_norm * scale * y_center) + y_center + (options.shiftAfterBarrel ? y_shift : 0);
+    }
 }
 
-template<typename T>
-T PhantomMovie<T>::getValue(Image<T>& src, T x, T y)
+template <typename T>
+void PhantomMovie<T>::addGrid(MultidimArray<T> &frame) const
 {
-	if (inRange(x, y)) {
-		size_t index = (size_t)y * xdim + (size_t)x;
-		return src.data[index];
-	}
-	return (T)0;
+    std::cout << "Generating grid" << std::endl;
+    const auto xdim = frame.xdim;
+    const auto ydim = frame.ydim;
+    // add rows
+    for (auto y = content.ystep - (content.thickness / 2); y < ydim - (content.thickness / 2) + 1; y += content.ystep)
+    {
+        for (auto t = 0; t < content.thickness; ++t)
+        {
+            size_t y_offset = (y + t) * xdim;
+            for (size_t x = 0; x < xdim; ++x)
+            {
+                size_t index = y_offset + x;
+                frame.data[index] += content.signal_val;
+            }
+        }
+    }
+    // add columns
+    for (auto x = content.xstep; x < xdim - (content.thickness / 2) + 1; x += content.xstep)
+    {
+        for (int t = 0; t < content.thickness; ++t)
+        {
+            size_t x_offset = (x + t);
+            for (size_t y = 0; y < ydim; ++y)
+            {
+                size_t index = x_offset + y * xdim;
+                frame.data[index] += content.signal_val;
+            }
+        }
+    }
 }
 
-template<typename T>
-T PhantomMovie<T>::bilinearInterpolation(Image<T>& src, T x, T y)
+template <typename T>
+MultidimArray<T> PhantomMovie<T>::findWorkSize() const
 {
-	T xf = std::floor(x);
-	T xc = std::ceil(x);
-	T yf = std::floor(y);
-	T yc = std::ceil(y);
-	T xw = x - xf;
-	T yw = y - yf;
-	T vff = getValue(src, xf, yf);
-	T vfc = getValue(src, xf, yc);
-	T vcf = getValue(src, xc, yf);
-	T vcc = getValue(src, xc, yc);
-	return vff * ((T)1 - xw) * ((T)1 - yw)
-			+ vcf * xw * ((T)1 - yw)
-			+ vfc * ((T)1 - xw) * yw
-			+ vcc * xw * yw;
+    auto x_max_shift = 0.f;
+    auto y_max_shift = 0.f;
+    const auto x = static_cast<float>(params.req_size.x());
+    const auto y = static_cast<float>(params.req_size.y());
+    for (size_t n = 0; n < params.req_size.n(); ++n)
+    {
+        auto x_0 = 0.f;
+        auto y_0 = 0.f;
+        auto x_n = x - 1.f;
+        auto y_n = y - 1.f;
+        displace(x_0, y_0, n); // top left corner
+        displace(x_n, y_n, n); // bottom right corner
+        // barrel deformation moves to center, so we need to read outside of the edge - [0,0] will be negative and [n-1,n-1] will be bigger than that
+        auto x_shift = std::max(std::abs(x_0), x_n - x - 1.f);
+        auto y_shift = std::max(std::abs(y_0), y_n - y - 1.f);
+        x_max_shift = std::max(x_max_shift, x_shift);
+        y_max_shift = std::max(y_max_shift, y_shift);
+    }
+    // new size must incorporate 'gaps' on both sides, min values should be negative, max values positive
+    // the shift might not be uniform, so the safer solution is to have the bigger gap on both sides
+    auto x_new = params.req_size.x() + 2 * static_cast<size_t>(std::ceil(x_max_shift));
+    auto y_new = params.req_size.y() + 2 * static_cast<size_t>(std::ceil(y_max_shift));
+    std::cout << "Due to displacement, working with frames of size [" << x_new << ", " << y_new << "%]\n";
+    return MultidimArray<T>(1, 1, static_cast<int>(y_new), static_cast<int>(x_new));
 }
 
-template<typename T>
-void PhantomMovie<T>::addShiftBarrelDeformation(Image<T> &movie)
+template <typename T>
+void PhantomMovie<T>::applyLowPass(MultidimArray<T> &frame) const
 {
-	// Temporal frame with original data
-	Image<T> tmp = Image<T>(xdim, ydim);
-	T x_center = xdim / (T)2;
-	T y_center = ydim / (T)2;
-	for (size_t n = 0; n < ndim; ++n) {
-		size_t framePixels = xdim * ydim;
-		size_t frameBytes = framePixels * sizeof(T);
-		memcpy(tmp.data.data, &(movie.data[n * framePixels]), frameBytes);
-		T k1 = k1_start + n * (k1_end - k1_start) / (ndim-1);
-		T k2 = k2_start + n * (k2_end - k2_start) / (ndim-1);
-		std::cout << "k1 = " << k1 << " k2 = " << k2 << std::endl;
-		T x_shift = skipShift ? 0 : shiftX(ndim - n - 1); // 'reverse' the order (see doc)
-		T y_shift = skipShift ? 0 : shiftY(ndim - n - 1); // 'reverse' the order (see doc)
-		if (!skipShift) std::cout << "shiftX = " << x_shift << " shiftY = " << y_shift << std::endl;
-		for (size_t y = 0; y < ydim; ++y) {
-			T y_norm = ((T)y - y_center + (shiftAfterBarrel ? 0 : y_shift)) / y_center;
-			for (size_t x = 0; x < xdim; ++x) {
-				T x_norm = ((T)x - x_center + (shiftAfterBarrel ? 0 : x_shift)) / x_center;
-				T r_out = sqrt(x_norm*x_norm + y_norm*y_norm);
-				T r_out_2 = r_out * r_out;
-				T r_out_4 = r_out_2 * r_out_2;
-				T scale = (1 + k1 * r_out_2 + k2 * r_out_4);
-				T x_new = (x_norm * scale * x_center) + x_center
-						+ (shiftAfterBarrel ? x_shift : 0);
-				T y_new = (y_norm * scale * y_center) + y_center
-						+ (shiftAfterBarrel ? y_shift : 0);
-				size_t index = n * ydim * xdim + y * xdim + x;
-				movie.data[index] = bilinearInterpolation(tmp, x_new, y_new);
-			}
-		}
-	}
+    std::cout << "Applying low-pass filter\n";
+    auto filter = FourierFilter();
+    filter.w1 = content.low_w1;
+    filter.raised_w = content.low_raised_w;
+    filter.FilterBand = LOWPASS;
+    filter.FilterShape = RAISED_COSINE;
+    filter.apply(frame);
 }
 
-template<typename T>
-void PhantomMovie<T>::addShift(Image<T> &movie)
+template <typename T>
+void PhantomMovie<T>::generateIce(MultidimArray<T> &frame) const
 {
-	// Temporal frame with original data
-	Image<T> tmp = Image<T>(xdim, ydim);
-	for (size_t n = 0; n < ndim; ++n) {
-		std::cout << "Applying shift " << n << std::endl;
-		size_t framePixels = xdim * ydim;
-		size_t frameBytes = framePixels * sizeof(T);
-		memcpy(tmp.data.data, &(movie.data[n * framePixels]), frameBytes);
-		for (size_t y = 0; y < ydim; ++y) {
-			for (size_t x = 0; x < xdim; ++x) {
-				T x_new = x + shiftX(ndim - n - 1); // 'reverse' the order (see doc)
-				T y_new = y + shiftY(ndim - n - 1); // 'reverse' the order (see doc)
-				size_t index = n * ydim * xdim + y * xdim + x;
-				movie.data[index] = bilinearInterpolation(tmp, x_new, y_new);
-			}
-		}
-	}
+    std::cout << "Generating ice\n";
+    std::mt19937 gen(content.seed);
+    std::normal_distribution<> d(content.ice_avg, content.ice_stddev);
+    const auto nzyxdim = frame.nzyxdim;
+    for (size_t i = 0; i < nzyxdim; ++i)
+    {
+        frame[i] = d(gen);
+    }
 }
 
-template<typename T>
-void PhantomMovie<T>::generateGrid(Image<T> &movie)
+template <typename T>
+template <bool SKIP_DOSE>
+void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
 {
-	for (size_t n = 0; n < ndim; ++n) {
-		std::cout << "Generating grid " << n << std::endl;
-		size_t n_offset = n * xdim * ydim;
-		// add rows
-		for (size_t y = ystep; y < ydim; y+=ystep) {
-			for (int t = -(thickness / 2); t < std::ceil(thickness/2.0); ++t) {
-				if ((y >= thickness/2) && (y + t < ydim)) {
-					size_t y_offset = (y + t) * xdim;
-					for (size_t x = 0; x < xdim; ++x) {
-						size_t index = n_offset + y_offset + x;
-						movie.data[index] = 1;
-					}
-				}
-			}
-		}
-		// add columns
-		for (size_t x = xstep; x < xdim; x+=xstep) {
-			for (int t = -(thickness / 2); t < std::ceil(thickness/2.0); ++t) {
-				if ((x >= thickness/2) && (x + t < xdim)) {
-					size_t x_offset = (x + t);
-					for (size_t y = 0; y < ydim; ++y) {
-						size_t index = n_offset + x_offset + y * xdim;
-						movie.data[index] = 1;
-					}
-				}
-			}
-		}
-	}
+    MultidimArray<T> frame(1, 1, static_cast<int>(params.req_size.y()), static_cast<int>(params.req_size.x()));
+    params.fn_out.deleteFile();
+    std::mt19937 gen(content.seed);
+
+    auto genFrame = [&frame, &refFrame, &gen, this](auto n)
+    {
+        float x_center = static_cast<float>(frame.xdim) / 2.f;
+        float y_center = static_cast<float>(frame.ydim) / 2.f;
+        std::cout << "Processing frame " << n << std::endl;
+        for (size_t y = 0; y < params.req_size.y(); ++y) {
+            for (size_t x = 0; x < params.req_size.x(); ++x) {
+                auto x_tmp = static_cast<float>(x);
+                auto y_tmp = static_cast<float>(y);
+                displace(x_tmp, y_tmp, n);
+                // move coordinate system to center - [0, 0] will be in the center of the frame
+                auto val = bilinearInterpolation(refFrame, x_tmp - x_center, y_tmp - y_center);
+                if (!SKIP_DOSE) {
+                    auto dist = std::poisson_distribution<int>(val * content.dose);
+                    val = dist(gen);
+                }
+                frame.data[y * frame.xdim + x] = val;
+            }
+        }
+    };
+
+    for (size_t n = 0; n < params.req_size.n(); ++n)
+    {
+        genFrame(n);
+        Image<T> tmp(frame);
+        tmp.write(params.fn_out, n + 1, true, WRITE_REPLACE);
+    }
 }
 
-template<typename T>
-void PhantomMovie<T>::run()
+template <typename T>
+void PhantomMovie<T>::run() const
 {
-	std::cout << xdim  << " " << ydim << " " << ndim << " | "
-			<< xstep << " " << ystep << " | "
-			<< thickness << " " << fn_out << std::endl;
-	Image<T> movie(xdim, ydim, 1, ndim);
-	generateGrid(movie);
-	if (!skipShift && skipBarrel) {
-		addShift(movie);
-	}
-	if (!skipBarrel) {
-		addShiftBarrelDeformation(movie);
-	}
-	movie.write(fn_out);
+    auto refFrame = findWorkSize();
+    if (!options.skipIce)
+    {
+        generateIce(refFrame);
+        applyLowPass(refFrame);
+        refFrame.rangeAdjust(content.ice_min, content.ice_max);
+    }
+    addGrid(refFrame);
+    if (options.skipDose)
+    {
+        generateMovie<true>(refFrame);
+    }
+    else
+    {
+        generateMovie<false>(refFrame);
+    }
 }
 
-template class PhantomMovie<float>;
+// template class PhantomMovie<float>; // can't be used because the fourier filter doesn't support it
+template class PhantomMovie<double>;

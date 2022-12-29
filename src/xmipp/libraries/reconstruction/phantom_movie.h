@@ -23,61 +23,92 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef PHANTOM_MOVIE_H_
-#define PHANTOM_MOVIE_H_
+#pragma once
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_filename.h"
+#include "data/dimensions.h"
+
+template <typename T>
+class MultidimArray;
 
 /**@defgroup PhantomMovie Phantom Movie
    @ingroup ReconsLibrary */
 //@{
-template<typename T>
-class PhantomMovie: public XmippProgram {
+template <typename T>
+class PhantomMovie final
+{
 public:
-    /** Read parameters. */
-    void readParams();
+    struct DisplacementParams
+    {
+        float a1;
+        float a2;
+        float b1;
+        float b2;
+        float k1_start;
+        float k1_end;
+        float k2_start;
+        float k2_end;
+        static constexpr auto doc = "x(t) = a1*t + a2*t*t + cos(t)/10\n"
+                                    "y(t) = b1*t + b2*t*t + sin(t*t)/5\n"
+                                    "The barrel/pincushion transform params are linearly interpolated between first and last frame.\n"
+                                    "For normalized coordinates ([-1..1]) its distance is given by:\n"
+                                    "r_out = r_in(1 + k1*(r_in)^2 + k2*(r_in)^4";
+        static constexpr auto shift_param = "--shift";
+        static constexpr auto barrel_param = "--barrel";
+    };
 
-    /** Define parameters */
-    void defineParams();
+    struct Options
+    {
+        bool skipBarrel;
+        bool skipShift;
+        bool shiftAfterBarrel;
+        bool skipDose;
+        bool skipIce;
+    };
 
-    /** Run */
-    void run();
+    struct Content
+    {
+        size_t xstep;
+        size_t ystep;
+        size_t thickness;
+        float signal_val;
+        int seed;
+        float ice_avg;
+        float ice_stddev;
+        float ice_min;
+        float ice_max;
+        float dose;
+        float low_w1;
+        float low_raised_w;
+        static constexpr auto size_param = "-size";
+        static constexpr auto step_param = "-step";
+    };
+
+    struct Params
+    {
+        Dimensions req_size = Dimensions(1);
+        Dimensions work_size = Dimensions(1);
+        FileName fn_out;
+    };
+
+    PhantomMovie(DisplacementParams dp, Options o, Content c, Params p) : params(p), dispParams(dp), options(o), content(c) {}
+
+    void run() const;
+
 private:
-    void generateGrid(Image<T> &movie);
-    void addShiftBarrelDeformation(Image<T> &movie);
-    void addShift(Image<T> &movie);
-    T bilinearInterpolation(Image<T>& src, T x, T y);
-    bool inRangeX(T x) { return (x >= 0) && (x < xdim); };
-    bool inRangeY(T y) { return (y >= 0) && (y < ydim); };
-    bool inRange(T x, T y) { return inRangeX(x) && inRangeY(y); };
-    inline T getValue(Image<T>& src, T x, T y);
-    T shiftX(T t) { return a1*t + a2*t*t + std::cos(t/T(10))/(T)10; };
-    T shiftY(T t) { return b1*t + b2*t*t + (std::sin(t*t))/(T)5; };
-protected:
-    size_t xdim;
-    size_t ydim;
-    size_t ndim;
+    void addGrid(MultidimArray<T> &movie) const;
+    T bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const;
+    auto shiftX(size_t t) const;
+    auto shiftY(size_t t) const;
+    void generateIce(MultidimArray<T> &frame) const;
+    template <bool SKIP_DOSE>
+    void generateMovie(const MultidimArray<T> &refFrame) const;
+    void applyLowPass(MultidimArray<T> &frame) const;
+    void displace(float &x, float &y, size_t n) const;
+    MultidimArray<T> findWorkSize() const;
 
-    size_t xstep;
-    size_t ystep;
-
-    T a1, a2, b1, b2;
-    T k1_start, k1_end;
-    T k2_start, k2_end;
-
-    size_t thickness;
-
-    bool skipBarrel;
-    bool skipShift;
-    bool shiftAfterBarrel;
-
-    const std::string size_param = std::string("-size");
-    const std::string step_param = std::string("-step");
-    const std::string shift_param = std::string("--shift");
-    const std::string barrel_param = std::string("--barrel");
-    FileName fn_out;};
-
-//@}
-#endif /* PHANTOM_MOVIE_H_ */
-
+    const Params params;
+    const DisplacementParams dispParams;
+    const Options options;
+    const Content content;
+};
