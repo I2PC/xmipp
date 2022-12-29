@@ -193,6 +193,7 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [--orig <orig_x=0> <orig_y=0> <orig_z=0>]: Define origin of the output volume");
     addParamsLine("  				                     : If just one dimension is introduced dim_x = dim_y = dim_z");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
+    addParamsLine("  [--oPDB]                            : Save centered PDB");
     addParamsLine("  [--noHet]                           : Heteroatoms are not converted");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
     addParamsLine("  [--poor_Gaussian]                   : Use a simple Gaussian adapted to each atom");
@@ -221,6 +222,7 @@ void ProgPdbConverter::readParams()
     if (useFixedGaussian)
         sigmaGaussian = getDoubleParam("--fixed_Gaussian");
     doCenter = checkParam("--centerPDB");
+    fn_outPDB = checkParam("--oPDB") ? (fn_out + "_centered.pdb") : FileName();
     noHet = checkParam("--noHet");
     intensityColumn = getParam("--intensityColumn");
 }
@@ -426,9 +428,9 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
     fh_pdb.close();
 
     // Save centered PDB
-    if (doCenter && fn_out!="")
+    if (doCenter && !fn_outPDB.empty())
     {
-        centered_pdb.write(fn_out + ".pdb");
+        centered_pdb.write(fn_outPDB);
     }
 }
 
@@ -607,9 +609,9 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     fh_pdb.close();
 
     // Save centered PDB
-    if (doCenter  && fn_out!="")
+    if (doCenter && !fn_outPDB.empty())
     {
-        centered_pdb.write(fn_out + ".pdb");
+        centered_pdb.write(fn_outPDB);
     }
 }
 
