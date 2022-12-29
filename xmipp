@@ -750,6 +750,9 @@ def install(dirname):
     createDir(dirname+"/lib")
     ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
 
+
+    if os.path.exists(dirname):
+        shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
