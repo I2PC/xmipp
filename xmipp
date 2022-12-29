@@ -215,14 +215,21 @@ def cleanDeprecated():
            show_command=False, show_output=False)
     listFilesXmipp = [os.path.basename(x) for x in listFilesXmipp]
     listFilesBuild = [os.path.basename(x) for x in listFilesBuild]
-    list2RemoveXmipp = [x for x in listFilesXmipp if x in listDeprecatedFiles()]
-    list2RemoveBuild = [x for x in listFilesBuild if x in listDeprecatedFiles()]
+
+    listCurrentPrograms = [os.path.basename(x[0]) for x in os.walk('src/xmipp/applications/programs')]
+    print(listCurrentPrograms)
+
+
+    list2RemoveXmipp = [x for x in listFilesXmipp if x in listCurrentPrograms]
+    list2RemoveBuild = [x for x in listFilesBuild if x in listCurrentPrograms]
+
     for x in list2RemoveXmipp:
         runJob('rm src/xmipp/bin/{}'.format(x))
     for x in list2RemoveBuild:
         runJob('rm build/bin/{}'.format(x))
+
     if len(list2RemoveXmipp) > 0 or len(list2RemoveBuild) > 0:
-        print('Removed deprecated programs')
+         print('Removed deprecated programs')
 
 def cleanEmptyFolders():
     log = []
@@ -877,7 +884,7 @@ def usage(msg=''):
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
-          "   cleanDeprecate:             Clean all the deprecated programs from build/bin and src/xmipp/bin)\n"
+          "   cleanDeprecate:             Clean all the deprecated programs from build/bin and src/xmipp/bin). Those without a program\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
