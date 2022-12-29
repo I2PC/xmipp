@@ -206,6 +206,24 @@ def cleanBinaries():
 
     cleanEmptyFolders()
 
+def cleanDeprecated():
+    listFilesXmipp = []
+    listFilesBuild = []
+    runJob('find build/bin/*', log=listFilesBuild,
+           show_command=False, show_output=False)
+    runJob('find src/xmipp/bin/*', log=listFilesXmipp,
+           show_command=False, show_output=False)
+    listFilesXmipp = [os.path.basename(x) for x in listFilesXmipp]
+    listFilesBuild = [os.path.basename(x) for x in listFilesBuild]
+    list2RemoveXmipp = [x for x in listFilesXmipp if x in listDeprecatedFiles()]
+    list2RemoveBuild = [x for x in listFilesBuild if x in listDeprecatedFiles()]
+    for x in list2RemoveXmipp:
+        runJob('rm src/xmipp/bin/{}'.format(x))
+    for x in list2RemoveBuild:
+        runJob('rm build/bin/{}'.format(x))
+    if len(list2RemoveXmipp) > 0 or len(list2RemoveBuild) > 0:
+        print('Removed deprecated programs')
+
 def cleanEmptyFolders():
     log = []
     path = "src/xmipp/applications/programs/"
@@ -859,6 +877,7 @@ def usage(msg=''):
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
+          "   cleanDeprecate:             Clean all the deprecated programs from build/bin and src/xmipp/bin)\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
@@ -928,6 +947,8 @@ if __name__ == '__main__':
         getDependencies()
     elif mode == "cleanBin":
         cleanBinaries()
+    elif mode == 'cleanDeprecate':
+        cleanDeprecated()
     elif mode == "version":
         printVersion()
     elif mode == "get_devel_sources":
@@ -970,6 +991,7 @@ if __name__ == '__main__':
             dir = sys.argv[2]
         else:
             dir = "build"
+        cleanDeprecated()
         install(dir)
     elif mode == "get_models":
         modelsDir = 'build' if n==2 else sys.argv[2]
@@ -1049,6 +1071,7 @@ if __name__ == '__main__':
             if arg.lower() == 'debug':
                 debugFlag = 'debug'
         runJob("scripts/tar.py %s %s %s %s" % (mode, ver, br, debugFlag))
+
 
     else:
         usage(" -> option not found <- \n")
