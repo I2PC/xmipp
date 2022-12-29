@@ -209,13 +209,9 @@ def cleanBinaries():
 def cleanDeprecated():
     listCurrentPrograms = []
     listFilesXmipp = []
-    listFilesBuild = []
-    runJob('find build/bin/*', log=listFilesBuild,
-           show_command=False, show_output=False)
     runJob('find src/xmipp/bin/*', log=listFilesXmipp,
            show_command=False, show_output=False)
     listFilesXmipp = [os.path.basename(x).replace('xmipp_', '') for x in listFilesXmipp]
-    listFilesBuild = [os.path.basename(x).replace('xmipp_', '') for x in listFilesBuild]
 
     listCurrentFolders = [x[0] for x in os.walk('src/xmipp/applications/programs/')]
     for folder in listCurrentFolders[1:]:
@@ -225,12 +221,9 @@ def cleanDeprecated():
     listCurrentScripts = [os.path.basename(x[0]) for x in os.walk('src/xmipp/applications/scripts/')]
     listCurrentPrograms = listCurrentPrograms + listCurrentScripts[1:]
     list2RemoveXmipp = [x for x in listFilesXmipp if x not in listCurrentPrograms]
-    list2RemoveBuild = [x for x in listFilesBuild if x not in listCurrentPrograms]
     for x in list2RemoveXmipp:
         runJob('rm src/xmipp/bin/xmipp_{}'.format(x))
-    for x in list2RemoveBuild:
-        runJob('rm build/bin/xmipp_{}'.format(x))
-    if len(list2RemoveXmipp) > 0 or len(list2RemoveBuild) > 0:
+    if len(list2RemoveXmipp) > 0:
          print('Removed deprecated programs')
 
 def cleanEmptyFolders():
