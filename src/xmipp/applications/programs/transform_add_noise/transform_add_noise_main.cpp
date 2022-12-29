@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include <reconstruction/transform_add_noise.cpp>
+#include "core/xmipp_funcs.h"
 
 int main(int argc, char *argv[])
 {

@@ -25,6 +25,7 @@
 
 #include "image_eliminate_byEnergy.h"
 #include "core/xmipp_image.h"
+#include "core/xmipp_funcs.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgEliminateByEnergy::readParams()

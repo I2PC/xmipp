@@ -25,6 +25,7 @@
 
 #include <core/xmipp_program.h>
 #include <data/mask.h>
+#include "core/xmipp_funcs.h"
 
 class ProgTransRangeAdjust: public XmippMetadataProgram
 {
