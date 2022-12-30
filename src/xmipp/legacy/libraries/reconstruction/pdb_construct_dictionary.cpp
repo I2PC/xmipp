@@ -30,6 +30,7 @@
 #include "core/xmipp_image_extension.h"
 #include "core/xmipp_image_generic.h"
 #include "data/numerical_tools.h"
+#include "core/xmipp_funcs.h"
 
 void ProgPDBDictionary::defineParams()
 {

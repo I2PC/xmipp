@@ -32,6 +32,7 @@
 #include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
+#include "core/metadata_sql_operations.h"
 
 // Old code -----------------------------------------------------------------
 //constexpr int  NATURAL =      1;               natural, 1 byte/pixel format
