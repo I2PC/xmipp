@@ -50,12 +50,12 @@ void AShiftCorrEstimator<T>::release() {
 
 template<typename T>
 void AShiftCorrEstimator<T>::init2D(AlignType type,
-        const FFTSettingsNew<T> &dims, size_t maxShift,
+        const FFTSettings<T> &dims, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT,
         bool allowDataOverwrite) {
     AShiftEstimator<T>::init2D(type, dims.sDim(), dims.batch(), maxShift);
 
-    m_settingsInv = new FFTSettingsNew<T>(dims.isForward() ? dims.createInverse() : dims);
+    m_settingsInv = new FFTSettings<T>(dims.isForward() ? dims.createInverse() : dims);
     m_includingBatchFT = includingBatchFT;
     m_includingSingleFT = includingSingleFT;
     m_centerSize = 2 * maxShift + 1;

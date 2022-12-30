@@ -31,7 +31,7 @@
 #include "data/rectangle.h"
 #include "reconstruction/ctf_estimate_from_micrograph.h"
 #include "fftwT.h"
-#include "data/fft_settings_new.h"
+#include "data/fft_settings.h"
 
 /**@defgroup PSDEstimator PSD Estimator
    @ingroup ReconsLibrary */
@@ -52,7 +52,7 @@ public:
     template<typename F>
     static void half2whole(const T *in,
             T __restrict__ *out,
-            const FFTSettingsNew<T> &settings, F func) {
+            const FFTSettings<T> &settings, F func) {
         for (size_t y = 0; y < settings.sDim().y(); ++y) {
             for (size_t x = 0; x < settings.sDim().x(); ++x) {
                 bool mirror = x >= settings.fDim().x();

@@ -23,7 +23,7 @@ public:
         using std::complex;
         using Alignment::AlignType;
 
-        FFTSettingsNew<T> dims(30, 14, 1, n, batch, false, false); // only even sizes are supported
+        FFTSettings<T> dims(30, 14, 1, n, batch, false, false); // only even sizes are supported
 
         // allocate and prepare data
         auto inOut = new complex<T>[dims.fDim().size()];

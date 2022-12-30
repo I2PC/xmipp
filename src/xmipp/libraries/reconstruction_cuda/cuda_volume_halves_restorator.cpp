@@ -112,7 +112,7 @@ void VolumeHalvesRestorator<T>::initializeFilter() {
 template< typename T >
 void VolumeHalvesRestorator<T>::createFFTPlans() {
     gpu.set();
-    auto forward_settings = FFTSettingsNew<T>{ xdim, ydim, zdim, 1, 1, false, true };
+    auto forward_settings = FFTSettings<T>{ xdim, ydim, zdim, 1, 1, false, true };
     planForward = CudaFFT<T>::createPlan(gpu, forward_settings);
     planBackward = CudaFFT<T>::createPlan(gpu, forward_settings.createInverse());
 }
