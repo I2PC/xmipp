@@ -73,20 +73,6 @@ class AngularDistance(XmippProgramTest):
                 outputs=["angleComparison.xmd"])
 
 
-class AngularDistributionShow(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_angular_distribution_show'
-
-    def test_case1(self):
-        self.runCase("-i input/randomAngularDistribution.sel -o %o/distribution.xmd histogram",
-                outputs=["distribution.xmd"])
-    def test_case2(self):
-        self.runCase("-i input/randomAngularDistribution.sel -o %o/distribution.bild chimera",
-                outputs=["distribution.bild"])
-
-
 class AngularNeighbourhood(XmippProgramTest):
     _owner = RM
     @classmethod
@@ -236,31 +222,6 @@ class CtfCorrectWiener3d(XmippProgramTest):
                               "wiener_ctffiltered_group000001.vol"])
 
 
-class CtfCorrectIdr(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ctf_correct_idr'
-
-    def test_case1(self):
-        self.runCase("-i input/projectionsBacteriorhodopsinWithCTF.sel --vol input/phantomBacteriorhodopsin.vol -o %o/idr2.stk",
-                outputs=["idr2.stk"])
-
-
-class CtfCreateCtfdat(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ctf_create_ctfdat'
-
-    def test_case1(self):
-        self.runCase("-i input/micrographs.xmd --ctfs input/ctfs.xmd --oroot %o/output",
-                outputs=["output.ctfdat"])
-    def test_case2(self):
-        self.runCase("-i input/micrographs.xmd --defocus input/defocus.xmd input/input.ctfparam --oroot %o/output",
-                outputs=["output.ctfdat","output000001.ctfparam","output000002.ctfparam"])
-
-
 class CtfEnhancePsd(XmippProgramTest):
     _owner = COSS
     @classmethod
@@ -355,17 +316,6 @@ class CtfPhaseFlip(XmippProgramTest):
                 outputs=["micrographFlipped.mrc"])
 
 
-class CtfShow(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ctf_show'
-
-    def test_case1(self):
-        self.runCase("-i input/Protocol_Projection_Matching/CTFs/20.ctfparam -o %o/ctf.mrc --dim 256",
-                outputs=["ctf.mrc"])
-
-
 class CtfSortPsds(XmippProgramTest):
     _owner = COSS
     @classmethod
@@ -429,21 +379,13 @@ class ImageHeader(XmippProgramTest):
     def test_case1(self):
         self.runCase("-i input/smallStack.stk --extract -o %o/header.xmd",
                 outputs=["header.xmd"])
-    def test_case2(self):
-        self.runCase("-i %o/newHeaderStack.xmd --assign",
-                preruns=["cp input/smallStack.stk %o" ," xmipp_metadata_selfile_create -p %o/smallStack.stk -o %o/smallStack.xmd -s" ," xmipp_metadata_utilities -i %o/smallStack.xmd -o %o/newHeaderStack.xmd --fill shiftY constant 2" ],
-                postruns=["xmipp_image_header -i %o/smallStack.xmd --extract -o %o/outputHeader.xmd" ],
-                outputs=["outputHeader.xmd"])
+
     def test_case3(self):
         self.runCase("-i %o/newHeader.xmd --assign",
                 preruns=[" xmipp_image_convert input/smallStack.stk --oroot %o/smallImages:spi -o %o/images.xmd" ," xmipp_metadata_utilities -i %o/images.xmd -o %o/newHeader.xmd --fill shiftY constant 2" ],
                 postruns=["xmipp_image_header %o/images.xmd --extract -o %o/outputHeader.xmd" ],
                 outputs=["outputHeader.xmd"])
-    def test_case4(self):
-        self.runCase("-i %o/smallStack.xmd --reset",
-                preruns=["cp input/smallStack.stk %o" ," xmipp_metadata_selfile_create -p %o/smallStack.stk -o %o/smallStack.xmd -s" ," xmipp_metadata_utilities -i %o/smallStack.xmd -o %o/newHeaderStack.xmd --fill shiftY constant 2" ," xmipp_image_header -i %o/newHeaderStack.xmd --assign" ,"xmipp_image_header -i %o/smallStack.xmd --extract -o %o/preOutputHeader.xmd" ],
-                postruns=["xmipp_image_header -i %o/smallStack.xmd --extract -o %o/outputHeader.xmd" ],
-                outputs=["outputHeader.xmd"])
+
     def test_case5(self):
         self.runCase("-i %o/images.xmd --reset",
                 preruns=[" xmipp_image_convert input/smallStack.stk --oroot %o/smallImages:spi -o %o/images.xmd" ,"xmipp_metadata_utilities -i %o/images.xmd -o %o/newHeader.xmd --fill shiftY constant 2" ,"xmipp_image_header -i %o/newHeader.xmd --assign" ,"xmipp_image_header %o/images.xmd --extract -o %o/preOutputHeader.xmd" ],
@@ -560,16 +502,6 @@ class ImageRotationalPcaMpi(XmippProgramTest):
                 outputs=["reference.xmd"])
 
 
-class ImageSeparateObjects(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_image_separate_objects'
-
-    def test_case1(self):
-        self.runCase("-i input/maskBacteriorhodopsin.vol --oroot %o/mask",
-                outputs=["mask000001.vol","mask000002.vol"])
-
 
 class ImageSortByStatistics(XmippProgramTest):
     _owner = COSS
@@ -608,20 +540,6 @@ class ImageVectorize(XmippProgramTest):
 
 #use scipion
 #class MetadataConvertToSpider(XmippProgramTest):
-
-class MetadataSelfileCreate(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_metadata_selfile_create'
-
-    def test_case1(self):
-        self.runCase("-p input/smallStack.stk -o %o/metadata.xmd -s",
-                outputs=["metadata.xmd"])
-    def test_case2(self):
-        self.runCase("-p 'input/Protocol_Preprocess_Micrographs/Micrographs/*mrc' -o %o/metadata.xmd ",
-                outputs=["metadata.xmd"])
-
 
 class MetadataSplit(XmippProgramTest):
     _owner = RM
@@ -723,11 +641,6 @@ class ClassifyCL2DCoreAnalysisMpi(XmippProgramTest):
                 outputs=['input/CL2DBacteriorhodopsin/level_00/class_classes_core.xmd'])
 
 
-class CtfCorrectIdrMpi(CtfCorrectIdr):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_ctf_correct_idr'
 
 
 class ImageSortMpi(XmippProgramTest):
@@ -938,17 +851,6 @@ class ReconstructArtMpi(XmippProgramTest):
                 outputs=["average.xmd"])
 
 
-class ReconstructArtPseudo(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_reconstruct_art_pseudo'
-
-    def test_case1(self):
-        self.runCase("-i input/projectionsBacteriorhodopsin.xmd --pseudo input/pseudoBacteriorhodopsin.pdb  -l 1 -n 5 -o  %o/rec_art_pseudo",
-                outputs=["rec_art_pseudo.vol"])
-
-
 class ReconstructFourier(XmippProgramTest):
     _owner = VAHID
     @classmethod
@@ -969,18 +871,6 @@ class ResolutionFsc(XmippProgramTest):
     def test_case1(self):
         self.runCase("--ref input/phantomBacteriorhodopsin.vol -i input/phantomCandida.vol -s 5.6 --do_dpr --oroot %o/phantomBacteriorhodopsin ",
                 outputs=["phantomBacteriorhodopsin.frc"])
-
-
-class ResolutionSsnr(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_resolution_ssnr'
-
-    def test_case1(self):
-        self.runCase("-S input/Bacteriorhodopsin_rec_art.vol -N input/rec_art_noise.vol -selS input/rec_art_signal_proj.sel -selN input/rec_art_noise_proj.sel  -o %o/Bacteriorhodopsin_SSNR.txt --gen_VSSNR  --VSSNR %o/Bacteriorhodopsin_VSSNR.vol",
-                postruns=["xmipp_image_statistics -i %o/Bacteriorhodopsin_VSSNR.vol -o %o/statistics.xmd" ,'xmipp_metadata_utilities -i %o/statistics.xmd --operate drop_column "min max avg" ','xmipp_metadata_utilities -i %o/statistics.xmd --operate  modify_values "stddev = round(stddev*10.0)" '],
-                outputs=["statistics.xmd"])
 
 
 class TomoDetectMissingWedge(XmippProgramTest):
@@ -1006,45 +896,6 @@ class TomoDetectMissingWedge(XmippProgramTest):
                 plane2 = list(map(float, line.split()[1:]))
         self.assertAlmostEqual(abs(plane1[1]), 67.0539, delta=1)
         self.assertAlmostEqual(abs(plane2[1]), 56.7034, delta=1)
-
-
-class TomoExtractSubvolume(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_tomo_extract_subvolume'
-
-    def test_case1(self):
-        cause = 'it is testing a deprecated program'
-        print(yellow('test TomoExtractSubvolume is skipped as ' + cause))
-        self.skipTest(cause)
-        self.runCase("-i input/ico.vol --oroot %o/vertices --center 0 0 50 --size 30 --sym i3",
-                outputs=["vertices.stk","vertices.xmd"])
-
-
-class TomoProject(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_tomo_project'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomBacteriorhodopsin.vol -o %o/image.xmp --angles 0 90 90",
-                outputs=["image.xmp"])
-    def test_case2(self):
-        self.runCase("-i input/phantomBacteriorhodopsin.vol --oroot %o/projections --params input/tomoProjection.param",
-                outputs=["projections.stk","projections.sel"])
-
-
-class TomoRemoveFluctuations(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_tomo_remove_fluctuations'
-
-    def test_case1(self):
-        self.runCase("-i input/xraySeries.stk -o %o/processed.stk",
-                outputs=["processed.stk"])
 
 
 class TransformAddNoise(XmippProgramTest):
@@ -1180,17 +1031,6 @@ class TransformNormalize(XmippProgramTest):
                 outputs=["smallStackNormalized.stk"])
 
 
-class TransformRangeAdjust(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_transform_range_adjust'
-
-    def test_case1(self):
-        self.runCase("-i input/singleImage.spi -o %o/image.xmp --range -100 100 --mask circular -16",
-                outputs=["image.xmp"])
-
-
 class TransformSymmetrize(XmippProgramTest):
     _owner = RM
     @classmethod
@@ -1235,9 +1075,7 @@ class TransformWindow(XmippProgramTest):
         self.runCase("-i input/singleImage.spi -o %o/image.xmp --crop -10",
                 outputs=["image.xmp"])
     def test_case5(self):
-        self.runCase("-i input/xray_import/Images/img48949.spe -o %o/image.xmp --size 512",
-                outputs=["image.xmp"])
-
+        self.runCase("-i input/xray_import/Images/img48949.spe -o %o/image.xmp --size 512",outputs=["image.xmp"])
 
 class VolumeAlign(XmippProgramTest):
     _owner = COSS
@@ -1275,15 +1113,6 @@ class VolumeCorrectBfactor(XmippProgramTest):
                 outputs=["corrected.vol"])
 
 
-class VolumeEnhanceContrast(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_volume_enhance_contrast'
-
-    def test_case1(self):
-        self.runCase("-i input/1FFKfull_reconstructed.vol -o %o/enhanced.vol",
-                outputs=["enhanced.vol"])
 
 
 class VolumeFindSymmetry(XmippProgramTest):
@@ -1307,16 +1136,6 @@ class VolumeFromPdb(XmippProgramTest):
         self.runCase("-i input/1o7d.pdb -o %o/1o7d --centerPDB",
                 outputs=["1o7d.vol"])
 
-
-class VolumeReslice(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_volume_reslice'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomCandida.vol -o %o/resliced.vol --face top",
-                outputs=["resliced.vol"])
 
 
 class VolumeSegment(XmippProgramTest):
@@ -1357,41 +1176,6 @@ class VolumeToWeb(XmippProgramTest):
         self.runCase("-i input/phantomBacteriorhodopsin.vol --central_slices %o/imgOut.jpg",
                 outputs=["imgOut.jpg"])
 
-
-# class XrayImport(XmippProgramTest):
-#     _owner = JOTON
-#     @classmethod
-#     def getProgram(cls):
-#         return 'xmipp_xray_import'
-# 
-#     def test_case1(self):
-#         self.runCase("--input input/xray_import/Images --flat input/xray_import/Flatfields --oroot %o/stack --crop 30",
-#                 outputs=["stack_darkfield.xmp","stack_flatfield_avg.xmp","stack_Flatfields_darkfield.xmp"])
-
-
-class XrayProject(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_xray_project'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomCandida.vol -o %o/image.xmp --angles 0 90 90 -s 10 --psf input/xray_psf_with_volume.xmd",
-                outputs=["image.xmp"])
-    def test_case2(self):
-        self.runCase("-i input/phantomCandida.vol --oroot %o/projections --params input/tomoProjection.param -s 10 --psf input/xray_psf_with_volume.xmd",
-                outputs=["projections.xmd","projections.stk"])
-
-
-class XrayPsfCreate(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_xray_psf_create'
-
-    def test_case1(self):
-        self.runCase("-i input/xray_psf.xmd -o %o/psf.vol",
-                outputs=["psf.vol"])
 
 #xmipp no longer handle emx, import/export using scipion
 #class ExportEmx(XmippProgramTest):
@@ -1527,74 +1311,6 @@ class MlfAlign2dMpi(MlfAlign2d):
     def test_case2(self):
         self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/refs.xmd --iter 2 --oroot %o/mlf2d_",random=True,
                 outputs=["mlf2d_images.xmd","mlf2d_classes.stk","mlf2d_classes.xmd"])
-
-
-class MlRefine3d(XmippProgramTest):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_ml_refine3d'
-
-    def test_case1(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-    def test_case2(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-
-
-class MlfRefine3d(XmippProgramTest):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mlf_refine3d'
-
-    def test_case1(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-    def test_case2(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-
-
-class MlRefine3dMpi(MlRefine3d):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_ml_refine3d'
-
-    def test_case3(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-    def test_case4(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/ml3d_", random=True,
-                outputs=["ml3d_ml2dimages.xmd","ml3d_ml2dclasses.stk","ml3d_ml2dclasses.xmd"])
-
-
-class MlfRefine3dMpi(MlfRefine3d):
-    _owner = DISCONTINUED
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_mlf_refine3d'
-
-    def test_case3(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons fourier --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-    def test_case4(self):
-        self.runCase("-i input/mlData/phantom_images.xmd --ref input/mlData/icoFiltered.vol  --recons wlsART --ang 15 --iter 2 --oroot %o/mlf3d_", random=True,
-                outputs=["mlf3d_mlf2dimages.xmd","mlf3d_mlf2dclasses.stk","mlf3d_mlf2dclasses.xmd"])
-
-
-class MlTomoMpi(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_mpi_ml_tomo'
-
-    def test_case1(self):
-        self.runCase("-i input/Ml_tomo/short.xmd --oroot %o/test1/iter22 --ref input/Ml_tomo/vir_norm.spi --missing input/Ml_tomo/wedgenew.doc --ang 5 --sym i3 --maxres .45 --dim 16 --iter 1 --maxCC",random=True,
-                preruns=["mkdir %o/test1" ],
-                outputs=["test1/iter22_img.xmd","test1/iter22_it000001_ref.xmd","test1/iter22_ref.xmd"])
 
 
 class VolSubtraction(XmippProgramTest):

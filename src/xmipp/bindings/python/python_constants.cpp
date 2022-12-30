@@ -31,6 +31,7 @@
 #include "core/xmipp_image_base.h"
 #include "core/axis_view.h"
 #include "core/xmipp_random_mode.h"
+#include "core/xmipp_macros.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */

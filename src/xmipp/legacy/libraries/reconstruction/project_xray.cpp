@@ -28,7 +28,7 @@
 void ProgXrayProject::defineParams()
 {
     addUsageLine("Generate projections as in a X-ray microscope from a 3D Xmipp volume.");
-    addSeeAlsoLine("xray_psf_create, xray_import, phantom_create");
+    addSeeAlsoLine("phantom_create");
     //Params
     projParam.defineParams(this); // Projection parameters
     addParamsLine("== Xray options == ");
@@ -42,12 +42,6 @@ void ProgXrayProject::defineParams()
     addParamsLine("[--std_proj]                  : Save also standard projections, adding _std suffix to filenames");
     addParamsLine("[--thr <threads=1>]           : Number of concurrent threads");
     //Examples
-    addExampleLine("Generating a set of projections using a projection parameter file and two threads:", false);
-    addExampleLine("xmipp_xray_project -i volume.vol --oroot images --params projParams.xmd -s 10 --psf psf_560.xmd --thr 2");
-    addExampleLine("Generating a single projection at 45 degrees around X axis:", false);
-    addExampleLine("xmipp_xray_project -i volume.vol -o image.spi --angles 45 0 90 -s 10 --psf psf_560.xmd");
-    addExampleLine("Generating a single projection at 45 degrees around Y axis with default PSF:", false);
-    addExampleLine("xmipp_xray_project -i volume.vol -o image.spi --angles 45 90 90 -s 10");
     //Example projection file
     addExampleLine("In the following link you can find an example of projection parameter file:",false);
     addExampleLine(" ",false);

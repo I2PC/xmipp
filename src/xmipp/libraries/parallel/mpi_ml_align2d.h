@@ -29,8 +29,7 @@
 #include "parallel/xmipp_mpi.h"
 #include "reconstruction/ml_align2d.h"
 #include "reconstruction/mlf_align2d.h"
-#include "reconstruction/ml_refine3d.h"
-#include "reconstruction/ml_tomo.h"
+
 
 /**@defgroup MPI_ML MPI_ML
    @ingroup Programs */
@@ -120,36 +119,6 @@ public:
 }
 ;//end of class MpiProgML2D
 
-/** Class to parallelize the ML 3D refinement program */
-class MpiProgMLRefine3D: public ProgMLRefine3D, public MpiML2DBase<MpiProgMLRefine3D>
-{
-public:
-    /** Constructor */
-    MpiProgMLRefine3D(int argc, char ** argv, bool fourier = false);
-    /** Destructor */
-    virtual ~MpiProgMLRefine3D();
-    /** Only master copy reference volumes before start processing */
-    void copyVolumes();
-    /** Reconstruct volumes, parellelization is done in code,
-     * but nodes need to be syncronized before go next step
-     */
-    void reconstructVolumes();
-    /** Only master postprocess volumes */
-    void postProcessVolumes();
-    /** Only master create empty files */
-    virtual void createEmptyFiles(int type);
-    /** Project volumes, sync after projection */
-    void projectVolumes(MetaData &mdProj);
-    /** Make noise images, only master */
-    void makeNoiseImages();
-    /// Calculate 3D SSNR, only master and broadcast result
-    void calculate3DSSNR(MultidimArray<double> &spectral_signal);
-    /// Convergency check, only master and broadcast result
-    bool checkConvergence() ;
-
-    int seed; // unused, but present because this class inherits from MpiML2DBase which expects it
-}
-;//end of class  MpiProgMLRefine3D
 
 /** Class to parallelize the MLF 2D alignment program */
 class MpiProgMLF2D: public ProgMLF2D, public MpiML2DBase<MpiProgMLF2D>
@@ -173,47 +142,5 @@ public:
 }
 ;//end of class MpiProgMLF2D
 
-/** Class to parallelize ML_TOMO */
-class MpiProgMLTomo: public ProgMLTomo
-{
-private:
-    MpiNode *node=nullptr;
-public:
-    /** Constructor */
-    MpiProgMLTomo() = default;
-
-    MpiProgMLTomo(const MpiProgMLTomo &)=delete;
-    MpiProgMLTomo(const MpiProgMLTomo &&)=delete;
-
-    /** Destructor */
-    ~MpiProgMLTomo();
-    MpiProgMLTomo & operator=(const MpiProgMLTomo &)=delete;
-    MpiProgMLTomo & operator=(const MpiProgMLTomo &&)=delete;
-
-    /** Redefine the basic Program read to do it sequentially */
-    void read(int argc, char ** argv, bool reportErrors = true);
-    /** Only take a part of images for process */
-    void setNumberOfLocalImages();
-    /// Only master will generate initial references
-    void generateInitialReferences();
-
-    /// Integrate over all experimental images, join result from all nodes
-    void expectation(MetaDataVec &MDimg, std::vector< Image<double> > &Iref, int iter,
-                     double &LL, double &sumfracweight,
-                     std::vector<MultidimArray<double> > &wsumimgs,
-                     std::vector<MultidimArray<double> > &wsumweds,
-                     double &wsum_sigma_noise, double &wsum_sigma_offset,
-                     MultidimArray<double> &sumw);
-
-    ///Add info of some processed images to later write to files
-    void addPartialDocfileData(const MultidimArray<double> &data, size_t first, size_t last);
-
-    /// Only master write output files
-    void writeOutputFiles(const int iter,
-                          std::vector<MultidimArray<double> > &wsumweds,
-                          double &sumw_allrefs, double &LL, double &avefracweight,
-                          std::vector<double> &conv, std::vector<MultidimArray<double> > &fsc);
-
-};
 /** @} */
 #endif /* MPI_ML_ALIGN2D_H_ */
