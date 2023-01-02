@@ -1,6 +1,7 @@
 /***************************************************************************
- * Authors:     Joaquin Oton (joton@cnb.csic.es)
  *
+ * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
+ * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,37 +24,38 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef MPI_PROJECT_XR_H_
-#define MPI_PROJECT_XR_H_
+#ifndef _PROG_TOMO_EXTRACT_SUBTOMOS
+#define _PROG_TOMO_EXTRACT_SUBTOMOS
 
-#include "parallel/xmipp_mpi.h"
-#include "reconstruction/project_xray.h"
+#include <iostream>
+#include <core/xmipp_program.h>
+#include <core/xmipp_image.h>
+#include <limits>
+#include <complex>
+#include <string>
 
-/**@defgroup ProgMPIXrayProject ProgMPIXrayProject
-   @ingroup Programs */
-//@{
-/* Projection XR Program -------------------------------- */
-/** Program class for the project program */
-class ProgMPIXrayProject: public ProgXrayProject
+
+class ProgTomoExtractSubtomograms : public XmippProgram
 {
-    std::shared_ptr<MpiNode> node;
 public:
-    void read(int argc, char** argv);
+	 /** Filenames */
+	FileName fnOut, fnTom, fnCoor;
 
-    void run();
+    size_t Xdim, Ydim, Zdim;
 
-protected:
+    bool invertContrast;
+
+    double scaleFactor;
+
+	/** Is the volume previously masked?*/
+	int  boxsize, nthrs;
+
+public:
+
     void defineParams();
+    void readParams();
+    void readAndPrepareData();
+    void run();
 };
-
-
-/* Effectively project ===================================================== */
-int PROJECT_mpi_XR_Effectively_project(
-    ParametersProjectionTomography &prm,
-    XrayProjPhantom &side,
-    Projection &proj,
-    XRayPSF &psf,
-    MetaData &SF) ;
-
-/** @} */
-#endif /* MPI_PROJECT_XR_H_ */
+//@}
+#endif

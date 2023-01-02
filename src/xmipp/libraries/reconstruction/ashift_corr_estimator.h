@@ -27,7 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_CORR_ESTIMATOR_H_
 
 #include "ashift_estimator.h"
-#include "data/fft_settings_new.h"
+#include "data/fft_settings.h"
 #include "core/utils/memory_utils.h"
 #include <complex>
 #include <limits>
@@ -55,7 +55,7 @@ public:
     AShiftCorrEstimator & operator =(const AShiftCorrEstimator &&)=delete;
 
     virtual void init2D(const std::vector<HW*> &hw, AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift,
+            const FFTSettings<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT,
             bool allowDataOverwrite) = 0;
 
@@ -76,7 +76,7 @@ public:
     void release() override;
 
 protected:
-    FFTSettingsNew<T> *m_settingsInv;
+    FFTSettings<T> *m_settingsInv;
     size_t m_centerSize;
 
     // flags
@@ -87,7 +87,7 @@ protected:
 
     void setDefault() override;
     virtual void init2D(AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift,
+            const FFTSettings<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT,
             bool allowDataOverwrite);
 

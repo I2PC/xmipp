@@ -26,6 +26,7 @@
 #include "classify_first_split.h"
 #include <core/symmetries.h>
 #include <data/filters.h>
+#include "core/metadata_db.h"
 
 // Read arguments ==========================================================
 void ProgClassifyFirstSplit::readParams()

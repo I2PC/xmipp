@@ -31,6 +31,7 @@
 #include "core/xmipp_image_base.h"
 #include "core/axis_view.h"
 #include "core/xmipp_random_mode.h"
+#include "core/xmipp_macros.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */
@@ -233,6 +234,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_DM3_TAGNAME);
     ADD_CONST(MDL_DM3_SIZE);
     ADD_CONST(MDL_DM3_VALUE);
+    ADD_CONST(MDL_DOSE);
 
     ADD_CONST(MDL_ENABLED);
 
@@ -455,6 +457,8 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_WEIGHT_JUMPER0);
     ADD_CONST(MDL_WEIGHT_JUMPER);
     ADD_CONST(MDL_WEIGHT_JUMPER2);
+    ADD_CONST(MDL_WEIGHT_REALCORR);
+    ADD_CONST(MDL_WEIGHT_PHASECORR);
     ADD_CONST(MDL_WEIGHT_PRECISION_ALIGNABILITY);
     ADD_CONST(MDL_WEIGHT_ACCURACY_ALIGNABILITY);
     ADD_CONST(MDL_WEIGHT_ALIGNABILITY);

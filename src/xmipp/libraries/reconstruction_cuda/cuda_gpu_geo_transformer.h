@@ -46,6 +46,7 @@
 #include "core/bilib/iirconvolve.h" // for tests only
 #include "reconstruction/gpu_geo_transformer_defines.h"
 #include "cuda_xmipp_utils.h"
+#include "reconstruction_cuda/gpu.h"
 
 /**@defgroup GeoTransformer Cuda GPU GeoTransformer
    @ingroup ReconsLibrary */
@@ -87,7 +88,7 @@ public:
      * @param number of BSpline control points, including end points
      */
     void initForBSpline(size_t inX, size_t inY, size_t inN,
-            size_t splineX, size_t splineY, size_t splineN);
+            size_t splineX, size_t splineY, size_t splineN, const GPU &gpu);
 
     /**
      * Similar as the other init() function, except this method has no effect should the instance
@@ -96,7 +97,7 @@ public:
      * resources and following calls will be ignored
      */
     void initLazyForBSpline(size_t inX, size_t inY, size_t inN,
-            size_t splineX, size_t splineY, size_t splineN);
+            size_t splineX, size_t splineY, size_t splineN, const GPU &gpu);
 
     /**
      * Release all resources hold by this instance
@@ -252,6 +253,8 @@ private:
 
     T *d_coeffsX; // coefficients of the BSpline transformation, X direction
     T *d_coeffsY; // coefficients of the BSpline transformation, Y direction
+
+    const GPU *gpu;
 
     // dimensions of the input/output data
     size_t inX;
