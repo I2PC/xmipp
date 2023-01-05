@@ -30,12 +30,16 @@
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::defineParams() {
     AProgMovieAlignmentCorrelation<T>::defineParams();
-    if (this->getBinning() != 1.0)
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Binning is not supported. Please contact developers if you really need it.");
-
     this->addExampleLine(
                 "xmipp_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc");
     this->addSeeAlsoLine("xmipp_cuda_movie_alignment_correlation");
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelation<T>::readParams() {
+    AProgMovieAlignmentCorrelation<T>::readParams();
+    if (this->getBinning() != 1.0)
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Binning is not supported. Please contact developers if you really need it.");
 }
 
 template<typename T>
