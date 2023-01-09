@@ -26,8 +26,9 @@
 // Translated from MATLAB code by Yoel Shkolnisky
 
 #include "image_rotational_pca.h"
-#include <core/metadata_extension.h>
+#include "core/metadata_extension.h"
 #include "core/transformations.h"
+#include "core/xmipp_funcs.h"
 
 // Empty constructor =======================================================
 ProgImageRotationalPCA::ProgImageRotationalPCA()

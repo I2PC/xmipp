@@ -29,7 +29,7 @@
 #include "cuFFTAdvisor/advisor.h"
 
 template<typename T>
-void CudaFFT<T>::init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reuse) {
+void CudaFFT<T>::init(const HW &gpu, const FFTSettings<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
             && (m_settings->sBytesBatch() >= settings.sBytesBatch())
@@ -43,7 +43,7 @@ void CudaFFT<T>::init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reu
     release(m_plan);
     delete m_settings;
 
-    m_settings = new FFTSettingsNew<T>(settings);
+    m_settings = new FFTSettings<T>(settings);
     try {
         m_gpu = &dynamic_cast<const GPU&>(gpu);
     } catch (std::bad_cast&) {
@@ -200,7 +200,7 @@ T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
 }
 
 template<typename T>
-size_t CudaFFT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
+size_t CudaFFT<T>::estimatePlanBytes(const FFTSettings<T> &settings) {
     size_t size = 0;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
@@ -241,7 +241,7 @@ T* CudaFFT<T>::ifft(cufftHandle plan, const std::complex<T> *d_in,
 
 template<typename T>
 template<typename F>
-void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
+void CudaFFT<T>::manyHelper(const FFTSettings<T> &settings, F function) {
     auto n = std::array<int, 3>{(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
     int idist;
     int odist;
@@ -265,7 +265,7 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
 }
 
 template<typename T>
-cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
+cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettings<T> &settings) {
     if (settings.sElemsBatch() > std::numeric_limits<int>::max()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Too many elements for Fourier Transformation. "
                 "It would cause int overflow in the cuda kernel. Try to decrease batch size");
@@ -284,13 +284,13 @@ cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &set
 }
 
 template<typename T>
-FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
+FFTSettings<T> CudaFFT<T>::findMaxBatch(const FFTSettings<T> &settings,
         size_t maxBytes) {
     size_t singleBytes = settings.sBytesSingle() + (settings.isInPlace() ? 0 : settings.fBytesSingle());
     size_t batch = min((maxBytes / singleBytes), settings.batch()) + 1; // + 1 will be deducted in the while loop
     while (batch > 1) {
         batch--;
-        auto tmp = FFTSettingsNew<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
+        auto tmp = FFTSettings<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
         size_t totalBytes = CudaFFT<T>().estimateTotalBytes(tmp);
         if (totalBytes <= maxBytes) {
             return tmp;
@@ -301,13 +301,12 @@ FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
 }
 
 template<typename T>
-core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
-        const FFTSettingsNew<T> &settings,
+FFTSettings<T> *CudaFFT<T>::findOptimal(const GPU &gpu,
+        const FFTSettings<T> &settings,
         size_t reserveBytes, bool squareOnly, int sigPercChange,
         bool crop, bool verbose) {
     using cuFFTAdvisor::Tristate::TRUE;
     using cuFFTAdvisor::Tristate::FALSE;
-    using core::optional;
     size_t freeBytes = gpu.lastFreeBytes();
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *options =
             cuFFTAdvisor::Advisor::find(10, gpu.device(), // FIXME DS this should be configurable
@@ -321,10 +320,10 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
                     false, // allow transposition
                     squareOnly, crop);
 
-    auto result = optional<FFTSettingsNew<T>>();
+    FFTSettings<T> *result = nullptr;
     if (0 != options->size()) {
         auto res = options->at(0);
-        auto optSetting = FFTSettingsNew<T>(
+        auto optSetting = FFTSettings<T>(
                 res->transform->X,
                 res->transform->Y,
                 res->transform->Z,
@@ -332,10 +331,10 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
                 res->transform->N / res->transform->repetitions,
                 settings.isInPlace(),
                 settings.isForward());
-        result = optional<FFTSettingsNew<T>>(optSetting);
+        result = new FFTSettings<T>(optSetting);
     } 
     if (verbose) {
-	   if (result.has_value()) {
+	   if (nullptr != result) {
                 options->at(0)->printHeader(stdout); printf("\n");
                 options->at(0)->print(stdout); printf("\n");
 	   } else {
@@ -348,16 +347,16 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
 }
 
 template<typename T>
-FFTSettingsNew<T> CudaFFT<T>::findOptimalSizeOrMaxBatch(GPU &gpu,
-        const FFTSettingsNew<T> &settings,
+FFTSettings<T> CudaFFT<T>::findOptimalSizeOrMaxBatch(GPU &gpu,
+        const FFTSettings<T> &settings,
         size_t reserveBytes, bool squareOnly, int sigPercChange,
         bool crop, bool verbose) {
-    auto candidate = findOptimal(gpu, settings, reserveBytes, squareOnly, sigPercChange, crop, verbose);
-    if (candidate.has_value()) {
-        return candidate.value();
+    auto *candidate = findOptimal(gpu, settings, reserveBytes, squareOnly, sigPercChange, crop, verbose);
+    if (nullptr != candidate) {
+        return *candidate;
     }
     if (gpu.lastFreeBytes() > reserveBytes) {
-        REPORT_ERROR(ERR_GPU_MEMORY, "You have less GPU memory then you want to use");
+        REPORT_ERROR(ERR_GPU_MEMORY, "You have less GPU memory than you want to use");
     }
     return findMaxBatch(settings, gpu.lastFreeBytes() - reserveBytes);
 }

@@ -24,13 +24,13 @@
  ***************************************************************************/
 
 #include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
-#include "core/utils/memory_utils.h"
-#include <thread>
-#include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
-#include "data/filters.h"
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
+#include "reconstruction_adapt_cuda/basic_mem_manager.h"
+#include <CTPL/ctpl_stl.h>
+
+
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
@@ -38,7 +38,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
-    this->addParamsLine("  [--skipAutotuning]                 : Skip autotuning of the cuFFT library");
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
     this->addSeeAlsoLine("xmipp_movie_alignment_correlation");
@@ -47,10 +46,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
-    std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().getUUID() << ")" << "\n";
+    std::cout << "Device:              " << mGpu.value().device() << " (" << mGpu.value().getUUID() << ")" << "\n";
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << "\n";
     std::cout << "Patches avg:         " << patchesAvg << "\n";
-    std::cout << "Autotuning:          " << (skipAutotuning ? "off" : "on") << std::endl;
 }
 
 template<typename T>
@@ -59,60 +57,72 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
     // read GPU
     int device = this->getIntParam("--device");
-    if (device < 0)
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "Invalid GPU device");
-    gpu = core::optional<GPU>(device);
-    gpu.value().set();
+    if (device < 0) REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device");
+    mGpu = core::optional<GPU>(device);
+    mGpu.value().set();
 
     // read permanent storage
     storage = this->getParam("--storage");
 
-    skipAutotuning = this->checkParam("--skipAutotuning");
-
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
-    if (patchesAvg < 1)
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "Patch averaging has to be at least one.");
+    if (patchesAvg < 1) REPORT_ERROR(ERR_ARG_INCORRECT, "Patch averaging has to be at least 1 (one).");
 }
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
-        const Dimensions &d, size_t extraBytes, bool crop) {
-    auto optSetting = getStoredSizes(d, crop);
-    FFTSettings<T> result =
-            optSetting ?
-                    optSetting.value() : runBenchmark(d, extraBytes, crop);
-    if (!optSetting) {
-        storeSizes(d, result, crop);
+auto ProgMovieAlignmentCorrelationGPU<T>::findGoodCropSize(const Dimensions &ref) {
+    const bool crop = true;
+    if (auto optDim = getStoredSizes(ref, crop); optDim) {
+        return optDim.value().copyForN(ref.n());
     }
-    return result;
-}
-
-template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
-        const MetaData &movie, bool optimize) {
-    gpu.value().updateMemoryInfo();
-    Image<T> frame;
-    int noOfImgs = this->nlast - this->nfirst + 1;
-    this->loadFrame(movie, movie.firstRowId(), frame);
-    Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
-
-    if (optimize) {
-        size_t maxFilterBytes = getMaxFilterBytes(frame);
-        return getSettingsOrBenchmark(dim, maxFilterBytes, true);
-    } else {
-        return FFTSettings<T>(dim, 1, false);
+    std::cout << "Benchmarking cuFFT ..." << std::endl;
+    auto hint = FFTSettings<T>(ref.createSingle()); // movie frame is big enought to give us an idea
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(mGpu.value(), hint, 0, hint.sDim().x() == hint.sDim().y(), 10, crop, true));
+    if (!candidate) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a single frame of the movie.");
     }
+    storeSizes(ref, candidate->sDim(), crop);
+    return candidate->sDim().copyForN(ref.n());
 }
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
-        const FFTSettings<T> &s) {
-    gpu.value().updateMemoryInfo();
-    auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
-        size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
+auto ProgMovieAlignmentCorrelationGPU<T>::findGoodCorrelationSize(const Dimensions &ref) {
+    const bool crop = false;
+    if (auto optDim = this->getStoredSizes(ref, crop); optDim) {
+        return optDim.value().copyForN(ref.n());
+    }
+    std::cout << "Benchmarking cuFFT ..." << std::endl;
+    auto hint = FFTSettings<T>(ref, 1, false, false);
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(mGpu.value(), hint, 0, hint.sDim().x() == hint.sDim().y(), 20, crop, true));
+    if (!candidate) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
+    }
+    this->storeSizes(ref, candidate->sDim(), crop);
+    return candidate->sDim().copyForN(ref.n());
+}
+
+template<typename T>
+auto  ProgMovieAlignmentCorrelationGPU<T>::findGoodPatchSize() {
+    const bool crop = false;
+    const auto reqPatchSize = this->getRequestedPatchSize();
+    auto ref = Dimensions(reqPatchSize.first, reqPatchSize.second, 1, this->getMovieSize().n());
+    if (auto optDim = this->getStoredSizes(ref, crop); optDim) {
+        return optDim.value().copyForN(ref.n());
+    }
+    std::cout << "Benchmarking cuFFT ..." << std::endl;
+    auto hint = FFTSettings<T>(ref);
+    auto candidate = std::unique_ptr<FFTSettings<T>>(CudaFFT<T>::findOptimal(mGpu.value(), hint, 0, hint.sDim().x() == hint.sDim().y(), 20, crop, true));
+    if (!candidate) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing a correlations of the movie.");
+    }
+    this->storeSizes(ref, candidate->sDim(), crop);
+    return candidate->sDim();
+}
+
+template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(const Dimensions &d) {
+    auto getNearestEven = [] (size_t v, T minScale, size_t shift) { // scale is less than 1
+        size_t size = 2; // to get even sizes
         while ((size / (float)v) < minScale) {
             size += 2;
         }
@@ -120,42 +130,21 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
     };
     const T requestedScale = this->getScaleFactor();
     // hint, possibly bigger then requested, so that it fits max shift window
-    Dimensions hint(getNearestEven(s.dim.x(), requestedScale, this->maxShift),
-            getNearestEven(s.dim.y(), requestedScale, this->maxShift),
-            s.dim.z(),
-            (s.dim.n() * (s.dim.n() - 1)) / 2); // number of correlations);
-
-    // divide available memory to 3 parts (2 buffers + 1 FFT)
-    size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
-
-    return getSettingsOrBenchmark(hint, 2 * correlationBufferBytes, false);
-}
-
-template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
-        const FFTSettings<T> &orig) {
-    gpu.value().updateMemoryInfo();
-    const auto reqSize = this->getRequestedPatchSize();
-    Dimensions hint(reqSize.first, reqSize.second,
-            orig.dim.z(), orig.dim.n());
-    // divide available memory to 3 parts (2 buffers + 1 FFT)
-    size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
-
-    return getSettingsOrBenchmark(hint, 2 * correlationBufferBytes, false);
+    Dimensions hint(getNearestEven(d.x(), requestedScale, static_cast<size_t>(this->maxShift)),
+            getNearestEven(d.y(), requestedScale, static_cast<size_t>(this->maxShift)),
+            d.z(), d.n());
+    return hint;
 }
 
 template<typename T>
 std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
-        const std::pair<T, T> &borders,
-        const Dimensions &movie, const Dimensions &patch) {
+        const std::pair<T, T> &borders, const Dimensions &patch) {
     size_t patchesX = this->localAlignPatches.first;
     size_t patchesY = this->localAlignPatches.second;
-    T windowXSize = movie.x() - 2 * borders.first;
-    T windowYSize = movie.y() - 2 * borders.second;
-    T corrX = std::ceil(
-            ((patchesX * patch.x()) - windowXSize) / (T) (patchesX - 1));
-    T corrY = std::ceil(
-            ((patchesY * patch.y()) - windowYSize) / (T) (patchesY - 1));
+    T windowXSize = this->getMovieSize().x() - 2 * borders.first;
+    T windowYSize = this->getMovieSize().y() - 2 * borders.second;
+    T corrX = std::ceil(((patchesX * patch.x()) - windowXSize) / (T) (patchesX - 1));
+    T corrY = std::ceil(((patchesY * patch.y()) - windowYSize) / (T) (patchesY - 1));
     T stepX = (T)patch.x() - corrX;
     T stepY = (T)patch.y() - corrY;
     std::vector<FramePatchMeta<T>> result;
@@ -168,128 +157,48 @@ std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLo
             Point2D<T> tl(tlx, tly);
             Point2D<T> br(brx, bry);
             Rectangle<Point2D<T>> r(tl, br);
-            result.emplace_back(
-                    FramePatchMeta<T> { .rec = r, .id_x = x, .id_y =
-                    y });
+            result.emplace_back(FramePatchMeta<T> { .rec = r, .id_x = x, .id_y = y });
         }
     }
     return result;
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
-        const Rectangle<Point2D<T>> &patch, const AlignmentResult<T> &globAlignment,
-        const Dimensions &movie, T *result) {
-    size_t n = movie.n();
-    auto patchSize = patch.getSize();
-    auto copyPatchData = [&](size_t srcFrameIdx, size_t t, bool add) {
-        size_t frameOffset = srcFrameIdx * movie.x() * movie.y();
-        size_t patchOffset = t * patchSize.x * patchSize.y;
-        // keep the shift consistent while adding local shift
-        int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
-        int yShift = std::round(globAlignment.shifts.at(srcFrameIdx).y);
-        for (size_t y = 0; y < patchSize.y; ++y) {
-            size_t srcY = patch.tl.y + y;
-            if (yShift < 0) {
-                srcY -= (size_t)std::abs(yShift); // assuming shift is smaller than offset
-            } else {
-                srcY += yShift;
-            }
-            size_t srcIndex = frameOffset + (srcY * movie.x()) + (size_t)patch.tl.x;
-            if (xShift < 0) {
-                srcIndex -= (size_t)std::abs(xShift);
-            } else {
-                srcIndex += xShift;
-            }
-            size_t destIndex = patchOffset + y * patchSize.x;
-            if (add) {
-                for (size_t x = 0; x < patchSize.x; ++x) {
-                    result[destIndex + x] += allFrames[srcIndex + x];
+void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const Rectangle<Point2D<T>> &patch, 
+        const AlignmentResult<T> &globAlignment, T *result) {
+    const auto &movieDim = movie.getDim();
+    const int n = static_cast<int>(movieDim.n());
+    const auto patchSize = patch.getSize();
+    const auto bufferBytes = patchSize.x * sizeof(T);
+    auto buffer = std::make_unique<T[]>(patchSize.x); // faster than memory manager
+    for (int t = 0; t < n; ++t) {// for each patch
+        for (int y = 0; y < patchSize.y; ++y) { // for each row
+            bool copy = true;
+            // while averaging odd num of frames, use copy equally from previous and following frames
+            // otherwise prefer following frames
+            for (int f = std::max(0, t - ((patchesAvg - 1) / 2)); f <= std::min(n - 1, t + (patchesAvg / 2)); ++f) {
+                const auto *frame = movie.getFrame(f).data;
+                const auto xShift = static_cast<int>(std::round(globAlignment.shifts[f].x));
+                const auto yShift = static_cast<int>(std::round(globAlignment.shifts[f].y));
+                // notice we don't test any boundaries - it should always be within the range of the frame
+                // see implementation of patch position generation and frame border computation
+                const int srcY = patch.tl.y + y + yShift;
+                const int srcX = patch.tl.x + xShift;
+                auto *src = frame + srcY * movieDim.x() + srcX;
+                if (copy) {
+                    memcpy(buffer.get(), src, bufferBytes);
+                } else {
+                    for (int x = 0; x < patchSize.x; ++x) {
+                        buffer[x] += src[x];
+                    }
                 }
-            } else {
-                memcpy(result + destIndex, allFrames + srcIndex, patchSize.x * sizeof(T));
+                copy = false;
             }
-        }
-    };
-    for (int t = 0; t < n; ++t) {
-        // copy the data from specific frame
-        copyPatchData(t, t, false);
-        // add data from frames with lower indices
-        // while averaging odd num of frames, use copy equally from previous and following frames
-        // otherwise prefer following frames
-        for (int b = 1; b <= ((patchesAvg - 1) / 2); ++b) {
-            if (t >= b) {
-                copyPatchData(t - b, t, true);
-            }
-        }
-        // add data from frames with higher indices
-        for (int f = 1; f <= (patchesAvg / 2); ++f) {
-            if ((t + f) < n) {
-                copyPatchData(t + f, t, true);
-            }
+            const int patchOffset = t * patchSize.x * patchSize.y;
+            const int destIndex = patchOffset + y * patchSize.x;
+            memcpy(result + destIndex, buffer.get(), bufferBytes); // write result
         }
     }
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
-        const FFTSettings<T> &s, bool applyCrop) {
-    UserSettings::get(storage).insert(*this,
-            getKey(optSizeXStr, dim, applyCrop), s.dim.x());
-    UserSettings::get(storage).insert(*this,
-            getKey(optSizeYStr, dim, applyCrop), s.dim.y());
-    UserSettings::get(storage).insert(*this,
-            getKey(optBatchSizeStr, dim, applyCrop), s.batch);
-    UserSettings::get(storage).insert(*this,
-            getKey(minMemoryStr, dim, applyCrop), memoryUtils::MB(gpu.value().lastFreeBytes()));
-    UserSettings::get(storage).store(); // write changes immediately
-}
-
-template<typename T>
-core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
-        const Dimensions &dim, bool applyCrop) {
-    size_t x, y, batch, neededMB;
-    bool res = true;
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(optSizeXStr, dim, applyCrop), x);
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(optSizeYStr, dim, applyCrop), y);
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(optBatchSizeStr, dim, applyCrop), batch);
-    res = res
-            && UserSettings::get(storage).find(*this,
-                    getKey(minMemoryStr, dim, applyCrop), neededMB);
-    // check available memory
-    res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
-    if (res) {
-        return core::optional<FFTSettings<T>>(
-                FFTSettings<T>(x, y, 1, dim.n(), batch, false));
-    } else {
-        return core::optional<FFTSettings<T>>();
-    }
-}
-
-
-template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
-        size_t extraBytes, bool crop) {
-    // FIXME DS remove tmp
-    auto tmp1 = FFTSettingsNew<T>(d, d.n(), false);
-    FFTSettingsNew<T> tmp(0);
-    if (skipAutotuning) {
-        tmp = CudaFFT<T>::findMaxBatch(tmp1, gpu.value().lastFreeBytes() - extraBytes);
-    } else {
-        if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
-        // take additional memory requirement into account
-        // FIXME DS make sure that result is smaller than available data
-        tmp =  CudaFFT<T>::findOptimalSizeOrMaxBatch(gpu.value(), tmp1,
-                extraBytes, d.x() == d.y(), crop ? 10 : 20, // allow max 10% change for cropping, 20 for 'padding'
-                crop, this->verbose);
-    }
-    return FFTSettings<T>(tmp.sDim().x(), tmp.sDim().y(), tmp.sDim().z(), tmp.sDim().n(), tmp.batch(), false);
 }
 
 template<typename T>
@@ -307,132 +216,210 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
     }
     auto res = std::make_pair(std::abs(maxX - minX), std::abs(maxY - minY));
     if (verbose > 1) {
-        std::cout << "Movie borders: x=" << res.first << " y=" << res.second
-                << std::endl;
+        std::cout << "Movie borders: x=" << res.first << " y=" << res.second << std::endl;
     }
     return res;
 }
 
 template<typename T>
-LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
-        const AlignmentResult<T> &globAlignment) {
-    using memoryUtils::MB;
-    auto movieSettings = this->getMovieSettings(movie, false);
-    auto patchSettings = this->getPatchSettings(movieSettings);
-    this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
-    auto correlationSettings = this->getCorrelationSettings(patchSettings);
-    auto borders = getMovieBorders(globAlignment, this->verbose > 1);
-    auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
-            patchSettings.dim);
-    T actualScale = correlationSettings.dim.x() / (T)patchSettings.dim.x(); // assuming we use square patches
+void ProgMovieAlignmentCorrelationGPU<T>::LAOptimize() {
+    const auto pSize = findGoodPatchSize();
+    LASP.doBinning = false;
+    LASP.raw = Dimensions(0);
+    LASP.movie = pSize;
+    const auto cSize = this->findGoodCorrelationSize(this->getCorrelationHint(pSize));
+    LASP.out = LACP.dim = cSize;
+    const auto maxBytes = static_cast<size_t>(static_cast<float>(mGpu.value().lastFreeBytes()) * 0.9f); // leave some buffer in case of memory fragmentation
+    auto getMemReq = [&LASP=LASP, &LACP=LACP, &gpu=mGpu.value()]() {
+        auto scale = CUDAFlexAlignScale<T>(LASP, gpu).estimateBytes();
+        auto correlate = CUDAFlexAlignCorrelate<T>(LACP, gpu).estimateBytes();
+        return scale + correlate;
+    };
+    auto cond = [&LASP=LASP]() {
+        // we want only no. of batches that can process the patches without extra invocations
+        return 0 == LASP.movie.n() % LASP.batch;
+    };
 
+    // we're gonna run both scaling and correlation in two streams to overlap memory transfers and computations
+    // more streams do not make sense because we're limited by the transfers
+    size_t bufferDivider = 1;
+    size_t corrBatchDivider = 0;
+    const size_t correlations = cSize.n() * (cSize.n() - 1) / 2;
+    do {
+        corrBatchDivider++;
+        auto corrBatch = correlations / corrBatchDivider;
+        LACP.batch = corrBatch;
+        if ((pSize.n() / bufferDivider) > corrBatch) {
+            bufferDivider += (bufferDivider == 1) ? 2 : 1; // we use two buffers, so we need the same memory for batch == 1 and == 2
+        }
+        LACP.bufferSize = pSize.n() / bufferDivider;
+        for (auto scaleBatch = pSize.n(); scaleBatch > 0; --scaleBatch) {
+            LASP.batch = scaleBatch;
+            if (cond() && getMemReq() <= maxBytes) {
+                return;
+            }
+        }
+    } while (true);
+}
+
+template<typename T>
+T* ProgMovieAlignmentCorrelationGPU<T>::setFilter(float scale, const Dimensions &dims) {
+    MultidimArray<T> tmp = this->createLPF(this->getPixelResolution(scale), dims);
+    auto *filter = reinterpret_cast<T*>(BasicMemManager::instance().get(tmp.nzyxdim *sizeof(T), MemType::CUDA_MANAGED));
+    memcpy(filter, tmp.data, tmp.nzyxdim *sizeof(T));
+    return filter;
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::report(float scale, 
+        typename CUDAFlexAlignScale<T>::Params &SP, 
+        typename CUDAFlexAlignCorrelate<T>::Params &CP, int streams, int threads) {
     if (this->verbose) {
-        std::cout << "No. of patches: " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
-        std::cout << "Actual scale factor (X): " << actualScale << std::endl;
-        std::cout << "Settings for the patches: " << patchSettings << std::endl;
-        std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
+        std::cout << "Actual scale factor (X): " << scale << "\n";
+        std::cout << "Size of the patch      : " << SP.movie << "\n";
+        std::cout << "Size of the correlation: " << SP.out << "\n";
+        std::cout << "Correlation batch      : " << CP.batch << "\n";
+        std::cout << "GPU streams            : " << streams << "\n";
+        std::cout << "CPU threads            : " << threads << "\n";
     }
-    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x() 
-        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
-            throw std::logic_error("More control points than patches. Decrease the number of control points.");
-    }
+}
 
-    if ((movieSettings.dim.x() < patchSettings.dim.x())
-        || (movieSettings.dim.y() < patchSettings.dim.y())) {
+
+template<typename T>
+LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
+        const MetaData &movieMD, const Image<T> &dark, const Image<T> &igain,
+        const AlignmentResult<T> &globAlignment) {
+    LAOptimize();
+    const auto movieSize = this->getMovieSize();
+    if ((movieSize.x() < LASP.movie.x())
+        || (movieSize.y() < LASP.movie.y())) {
         REPORT_ERROR(ERR_PARAM_INCORRECT, "Movie is too small for local alignment.");
     }
 
-    // load movie to memory
-    if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, igain);
-    }
-    // we need to work with full-size movie, with no cropping
-    assert(movieSettings.dim == rawMovieDim);
+    auto borders = getMovieBorders(globAlignment, this->verbose > 1);
+    auto patchesLocation = this->getPatchesLocation(borders, LASP.movie);
+    const auto actualScale = static_cast<float>(LASP.out.x()) / static_cast<float>(LASP.movie.x()); // assuming we use square patches
 
-    // prepare filter
-    // FIXME DS make sure that the resulting filter is correct, even if we do non-uniform scaling
-    MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.dim);
+    auto streams = std::array<GPU, 2>{GPU(mGpu.value().device(), 1), GPU(mGpu.value().device(), 2)};
+    auto loadPool = ctpl::thread_pool(static_cast<int>(std::min(this->localAlignPatches.first, this->localAlignPatches.second)));
 
+    report(actualScale, LASP, LACP, sizeof(streams) / sizeof(streams[0]), loadPool.size());
 
-    // compute max of frames in buffer
-    T corrSizeMB = MB<T>((size_t) correlationSettings.x_freq
-            * correlationSettings.dim.y()
-            * sizeof(std::complex<T>));
-    size_t framesInBuffer = std::ceil(MB(gpu.value().lastFreeBytes() / 3) / corrSizeMB);
+    // prepare memory
+    auto *filter = setFilter(actualScale, LASP.out);
+    std::vector<float*> corrPositions(loadPool.size()); // initializes to nullptrs
+    std::vector<T*> patches(loadPool.size()); // initializes to nullptrs
+    std::vector<std::complex<T>*> scalledPatches(loadPool.size()); // initializes to nullptrs
+    
+    // prepare control structures
+    const AlignmentContext context {
+        .verbose = this->verbose,
+        .maxShift = this->maxShift * actualScale,
+        .N = LASP.movie.n(),
+        .scale = std::make_pair(LASP.movie.x() / (T) LASP.out.x(), LASP.movie.y() / (T) LASP.out.y()),
+        .refFrame = globAlignment.refFrame,
+        .out = LASP.out,
+    };
+    auto mutexes = std::array<std::mutex, 2>(); // one for each step, as they need to happen 'atomically'
+    streams[0].set(); streams[1].set();
+    auto scaler = CUDAFlexAlignScale<T>(LASP, streams[0]);
+    scaler.init();
+    auto correlater = CUDAFlexAlignCorrelate<T>(LACP, streams[1]);
+    correlater.init();
 
     // prepare result
-    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim};
-    result.shifts.reserve(patchesLocation.size() * movieSettings.dim.n());
-    auto refFrame = core::optional<size_t>(globAlignment.refFrame);
-
-    // allocate additional memory for the patches
-    // we reuse the data, so we need enough space for the patches data
-    // and for the resulting correlations, which cannot be bigger than (padded) input data
-    size_t patchesElements = std::max(
-        patchSettings.elemsFreq(),
-        patchSettings.elemsSpacial());
-    auto *patchesData1 = new T[patchesElements];
-    auto *patchesData2 = new T[patchesElements];
-
-    std::thread* processing_thread = nullptr;
-
-    auto wait_and_delete = [](std::thread*& thread) {
-        if (thread) {
-            thread->join();
-            delete thread;
-            thread = nullptr;
-        }
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSize};
+    result.shifts.reserve(patchesLocation.size() * movieSize.n());
+    std::vector<std::future<void>> futures;
+    futures.reserve(patchesLocation.size());
+    
+    // helper lambdas
+    auto alloc = [](size_t bytes) {
+        // it's faster to allocate CPU memory and then pin it, because registering can run in parallel
+        auto *ptr = BasicMemManager::instance().get(bytes, MemType::CPU_PAGE_ALIGNED);
+        GPU::pinMemory(ptr, bytes);
+        return ptr;
     };
-
-    // use additional thread that would load the data at the background
-    // get alignment for all patches and resulting correlations
-    for (auto &&p : patchesLocation) {
-        // get data
-        memset(patchesData1, 0, patchesElements * sizeof(T));
-        getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
-                patchesData1);
-        // don't swap buffers while some thread is accessing its content
-        wait_and_delete(processing_thread);
-
-        // swap buffers
-        auto tmp = patchesData2;
-        patchesData2 = patchesData1;
-        patchesData1 = tmp;
-        // run processing thread on the background
-
-        processing_thread = new std::thread([&, p]() {
-            // make sure to set proper GPU
-            this->gpu.value().set();
-
-            if (this->verbose > 1) {
-                std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
+    
+    // process each patch
+    for (auto &p : patchesLocation) {
+        // prefill some info about patch
+        const auto shiftsOffset = result.shifts.size();
+        for (size_t i = 0;i < movieSize.n();++i) {
+            // keep this consistent with data loading
+            float globShiftX = std::round(globAlignment.shifts.at(i).x);
+            float globShiftY = std::round(globAlignment.shifts.at(i).y);
+            p.id_t = i;
+            // total shift (i.e. global shift + local shift) will be computed later on
+            result.shifts.emplace_back(p, Point2D<T>(globShiftX, globShiftY));
+        }
+        // parallel routine
+        auto routine = [&, p, shiftsOffset](int thrId) { // p and shiftsOffset by copy to avoid race condition
+            // alllocate memory for patch data
+            if (nullptr == patches.at(thrId)) {
+                patches[thrId] = reinterpret_cast<T*>(alloc(scaler.getMovieSettings().sBytes()));
+                scalledPatches[thrId] = reinterpret_cast<std::complex<T>*>(alloc(scaler.getOutputSettings().fBytes()));
             }
-            // get alignment
-            auto alignment = align(patchesData2, patchSettings,
-                    correlationSettings, filter, refFrame,
-                    this->maxShift, framesInBuffer, this->verbose);
-            // process it
-            for (size_t i = 0;i < movieSettings.dim.n();++i) {
-                FramePatchMeta<T> tmp = p;
-                // keep consistent with data loading
-                int globShiftX = std::round(globAlignment.shifts.at(i).x);
-                int globShiftY = std::round(globAlignment.shifts.at(i).y);
-                tmp.id_t = i;
-                // total shift is global shift + local shift
-                result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
-                        + alignment.shifts.at(i));
-            }
-        });
+            auto *data = patches.at(thrId);
 
+            // get data
+            getPatchData(p.rec, globAlignment, data);
+
+            // downscale patches, result is in FD
+            for (auto i = 0; i < LASP.movie.n(); i += LASP.batch) {
+                std::unique_lock lock(mutexes[0]);
+                scaler.run(nullptr, 
+                    data + i * scaler.getMovieSettings().sDim().sizeSingle(), 
+                    scalledPatches[thrId] + i * scaler.getOutputSettings().fDim().sizeSingle(), 
+                    filter);
+            }
+            scaler.synch(); 
+
+            // allocate memory for positions of the correlation maxima
+            if (nullptr == corrPositions.at(thrId)) {
+                auto bytes = context.alignmentBytes();
+                corrPositions[thrId] = reinterpret_cast<T*>(alloc(bytes));
+                memset(corrPositions[thrId], 0, bytes); // otherwise valgrind complains
+            }
+            auto &correlations = corrPositions.at(thrId);
+            
+            // compute correlations
+            {
+                std::unique_lock lock(mutexes[1]);
+                correlater.run(scalledPatches[thrId], correlations, context.maxShift);
+                correlater.synch();
+            }
+
+            // compute resulting shifts
+            auto res = computeAlignment(correlations, context);
+            for (size_t i = 0;i < context.N;++i) {
+                // update total shift (i.e. global shift + local shift)
+                result.shifts[i + shiftsOffset].second += res.shifts[i];
+            }
+        };
+        futures.emplace_back(loadPool.push(routine));
     }
-    // wait for the last processing thread
-    wait_and_delete(processing_thread);
 
-    delete[] patchesData1;
-    delete[] patchesData2;
+    // wait till everything is done
+    for (auto &f : futures) { f.get(); }
 
-    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+    // clean the memory
+    for (auto *ptr : corrPositions) { 
+        GPU::unpinMemory(ptr);
+        BasicMemManager::instance().give(ptr); }
+    for (auto *ptr : patches) { 
+        GPU::unpinMemory(ptr);
+        BasicMemManager::instance().give(ptr);
+    }
+    for (auto *ptr : scalledPatches) { 
+        GPU::unpinMemory(ptr);
+        BasicMemManager::instance().give(ptr);
+    }
+    BasicMemManager::instance().give(filter);
+    BasicMemManager::instance().release(MemType::CUDA);
+
+    // compute coefficients for BSpline
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSize, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
             this->verbose, this->solverIterations);
     result.bsplineRep = core::optional<BSplineGrid<T>>(
@@ -443,26 +430,23 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
 template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
-        const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
-    auto movieSettings = getMovieSettings(movie, false);
-    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim };
-    auto patchSettings = this->getPatchSettings(movieSettings);
-    this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
-    auto borders = getMovieBorders(globAlignment, 0);
-    auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
-            patchSettings.dim);
+    // this is basically the computeLocalAlignment method without actuall computing
+    // we use the value of global shift for all patches instead
+    LAOptimize();
+    const auto movieSize = this->getMovieSize();
+    const auto borders = getMovieBorders(globAlignment, this->verbose > 1);
+    auto patchesLocation = this->getPatchesLocation(borders, LASP.movie);
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSize };
     // get alignment for all patches
-    for (auto &&p : patchesLocation) {
-        // process it
-        for (size_t i = 0; i < movieSettings.dim.n(); ++i) {
-            FramePatchMeta<T> tmp = p;
-            tmp.id_t = i;
-            result.shifts.emplace_back(tmp, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
+    for (auto &p : patchesLocation) {
+        for (size_t i = 0; i < movieSize.n(); ++i) {
+            p.id_t = i;
+            result.shifts.emplace_back(p, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
         }
     }
 
-    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSize, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
             this->verbose, this->solverIterations);
     result.bsplineRep = core::optional<BSplineGrid<T>>(
@@ -473,274 +457,345 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+        const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const AlignmentResult<T> &globAlignment) {
-    applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial, averageMicrograph,
-            N, localFromGlobal(movie, globAlignment));
+    applyShiftsComputeAverage(movieMD, dark, igain, initialMic, Ninitial, averageMicrograph,
+            N, localFromGlobal(globAlignment));
+}
+
+template <typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getOutputStreamCount()
+{
+    mGpu.value().updateMemoryInfo();
+    const auto freeBytes = mGpu.value().lastFreeBytes();
+    const auto frameBytes = movie.getDim().xy() * sizeof(T);
+    auto streams = std::min(4UL, freeBytes / (frameBytes * 2)); // // upper estimation is 2 full frames of GPU data per stream
+    if (this->verbose > 1)
+        std::cout << "GPU streams used for output generation: " << streams << "\n";
+    return static_cast<int>(streams);
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+        const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
-    // Apply shifts and compute average
-    Image<T> reducedFrame, shiftedFrame;
-    int frameIndex = -1;
     Ninitial = N = 0;
-    GeoTransformer<T> transformer;
     if ( ! alignment.bsplineRep) {
         REPORT_ERROR(ERR_VALUE_INCORRECT,
             "Missing BSpline representation. This should not happen. Please contact developers.");
     }
 
+    struct AuxData {
+        MultidimArray<T> shiftedFrame;
+        GeoTransformer<T> transformer;
+        GPU stream;
+        T *hOut;
+    };
+
     auto coeffs = std::make_pair(alignment.bsplineRep.value().getCoeffsX(),
         alignment.bsplineRep.value().getCoeffsY());
 
-    const T binning = this->getOutputBinning();
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    // prepare data for each thread
+    auto pool = ctpl::thread_pool(getOutputStreamCount());
+    auto aux = std::vector<AuxData>(pool.size());
+    auto futures = std::vector<std::future<void>>();
+    for (auto i = 0; i < pool.size(); ++i) {
+        aux[i].stream = GPU(mGpu.value().device(), i + 1);
+    }
+
+    int frameIndex = -1;
+    auto mutexes = std::array<std::mutex, 3>(); // protecting access to unique resourcese
+    FOR_ALL_OBJECTS_IN_METADATA(movieMD)
     {
         frameIndex++;
         if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
             // user might want to align frames 3..10, but sum only 4..6
             // by deducting the first frame that was aligned, we get proper offset to the stored memory
-            int frameOffset = frameIndex - this->nfirst;
-            // load frame
-            // we can point to proper part of the already loaded 
-            auto *data = movieRawData + (frameOffset * rawMovieDim.xy());
-            auto croppedFrame = MultidimArray(1, 1, rawMovieDim.y(), rawMovieDim.x(), data);
-
-            if (binning > 0) {
-                // FIXME add templates to respective functions/classes to avoid type casting
-                /**
-                 * WARNING
-                 * As a side effect, raw movie data will get corrupted
-                 */
-                Image<double> croppedFrameDouble;
-                Image<double> reducedFrameDouble;
-                typeCast(croppedFrame, croppedFrameDouble());
-                auto scale = [binning](auto dim) {
-                  return static_cast<int>(
-                      std::floor(static_cast<T>(dim) / binning));
-                };
-                scaleToSizeFourier(1, scale(croppedFrame.ydim),
-                                   scale(croppedFrame.xdim),
-                                   croppedFrameDouble(), reducedFrameDouble());
-
-                typeCast(reducedFrameDouble(), reducedFrame());
-                croppedFrame.clear(); // forget whatever it pointed to before
-                croppedFrame = reducedFrame(); // assign new content
-            }
-
-            if ( ! this->fnInitialAvg.isEmpty()) {
-                if (frameIndex == this->nfirstSum)
-                    initialMic() = croppedFrame;
-                else
-                    initialMic() += croppedFrame;
-                Ninitial++;
-            }
-
-            if (this->fnAligned != "" || this->fnAvg != "") {
-                transformer.initLazyForBSpline(croppedFrame.xdim, croppedFrame.ydim, alignment.movieDim.n(),
-                        this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame, coeffs, frameOffset);
-
-
-                if (this->fnAligned != "")
-                    shiftedFrame.write(this->fnAligned, frameOffset + 1, true,
-                            WRITE_REPLACE);
-                if (this->fnAvg != "") {
-                    if (frameIndex == this->nfirstSum)
-                        averageMicrograph() = shiftedFrame();
+            auto routine = [&, frameIndex](int threadId) { // all by reference, frameIndex by copy
+                int frameOffset = frameIndex - this->nfirst;
+                auto &a = aux[threadId];
+                a.stream.set();
+                auto &frame = movie.getFrame(frameIndex);
+                
+                if ( ! this->fnInitialAvg.isEmpty()) {
+                    std::unique_lock lock(mutexes[0]);
+                    if (0 == initialMic().yxdim)
+                        initialMic() = frame;
                     else
-                        averageMicrograph() += shiftedFrame();
-                    N++;
+                        initialMic() += frame;
+                    Ninitial++;
                 }
-            }
-            if (this->verbose > 1) {
-                std::cout << "Frame " << std::to_string(frameIndex) << " processed." << std::endl;
-            }
+
+                if ( ! this->fnAligned.isEmpty() || ! this->fnAvg.isEmpty()) {
+                    if (nullptr == a.hOut) {
+                        a.hOut = reinterpret_cast<T*>(BasicMemManager::instance().get(frame.yxdim * sizeof(T), MemType::CUDA_HOST));
+                    }
+                    auto shiftedFrame = MultidimArray<T>(1, 1, frame.ydim, frame.xdim, a.hOut);
+                    a.transformer.initLazyForBSpline(frame.xdim, frame.ydim, alignment.movieDim.n(),
+                            this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n(), a.stream);
+                    a.transformer.applyBSplineTransform(3, shiftedFrame, frame, coeffs, frameOffset);
+                    a.stream.synch(); // make sure that data is fetched from GPU
+
+                    if (this->fnAligned != "") {
+                        std::unique_lock lock(mutexes[1]);
+                        Image<T> tmp(shiftedFrame);
+                        tmp.write(this->fnAligned, frameOffset + 1, true,
+                                WRITE_REPLACE);
+                    }
+                    if (this->fnAvg != "") {
+                        std::unique_lock lock(mutexes[2]);
+                        if (0 == averageMicrograph().yxdim)
+                            averageMicrograph() = shiftedFrame;
+                        else
+                            averageMicrograph() += shiftedFrame;
+                        N++;
+                    }
+                }
+                
+            };
+            futures.emplace_back(pool.push(routine));
         }
+    }
+    for (auto &t : futures) {
+        t.get();
+    }
+    for (auto i = 0; i < pool.size(); ++i) {
+        BasicMemManager::instance().give(aux[i].hOut);
     }
 }
 
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &orig,
+        const Dimensions &opt, bool applyCrop) {
+    auto single = orig.copyForN(1);
+    UserSettings::get(storage).insert(*this, getKey(optSizeXStr, single, applyCrop), opt.x());
+    UserSettings::get(storage).insert(*this, getKey(optSizeYStr, single, applyCrop), opt.y());
+    UserSettings::get(storage).store(); // write changes immediately
+}
+
+template<typename T>
+std::optional<Dimensions> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
+        const Dimensions &dim, bool applyCrop) {
+    size_t x, y, batch;
+    auto single = dim.copyForN(1);
+    bool res = true;
+    res = res && UserSettings::get(storage).find(*this, getKey(optSizeXStr, single, applyCrop), x);
+    res = res && UserSettings::get(storage).find(*this, getKey(optSizeYStr, single, applyCrop), y);
+    if (res) {
+        return std::optional(Dimensions(x, y, 1, dim.n()));
+    } else {
+        return {};
+    }
+}
+
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::GAOptimize() {
+    const auto rSize = this->getMovieSizeRaw();
+    GASP.batch = 1; // always 1
+    GASP.raw = rSize;
+    GASP.doBinning = this->applyBinning();
+    const auto mSize = GASP.doBinning ? movie.getDim() : findGoodCropSize(rSize);
+    GASP.movie = mSize;
+    const auto cSize = findGoodCorrelationSize(getCorrelationHint(movie.getDim()));
+    GASP.out = GACP.dim = cSize;
+    const auto maxBytes = static_cast<size_t>(static_cast<float>(mGpu.value().lastFreeBytes()) * 0.9f); // leave some buffer in case of memory fragmentation
+    // first, we prepare all frames for correlation - we crop / binned them, convert to FD and then crop again
+    // ideally we want two streams to overlap memory transfers and computations
+    // more streams do not make sense because we're limited by the transfers
+    GAStreams = 2;
+    if (GAStreams * CUDAFlexAlignScale<T>(GASP, mGpu.value()).estimateBytes() >= maxBytes) {
+        GAStreams = 1;
+    }
+    if (CUDAFlexAlignScale<T>(GASP, mGpu.value()).estimateBytes() >= maxBytes) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "Insufficient GPU memory for processing global alignment.");
+    }
+    // once that is done, we compute correlation of all frames
+    size_t bufferDivider = 1;
+    size_t batchDivider = 0;
+    const size_t correlations = cSize.n() * (cSize.n() - 1) / 2;
+    do {
+        batchDivider++;
+        auto batch = correlations / batchDivider;
+        GACP.batch = batch;
+        if ((mSize.n() / bufferDivider) > batch) {
+            bufferDivider += (bufferDivider == 1) ? 2 : 1; // we use two buffers, so we need the same memory for batch == 1 and == 2
+        }
+        GACP.bufferSize = mSize.n() / bufferDivider;
+    } while (CUDAFlexAlignCorrelate<T>(GACP, mGpu.value()).estimateBytes() >= maxBytes);
+}
+
+
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
-    using memoryUtils::MB;
-    auto movieSettings = this->getMovieSettings(movie, true);
-    auto correlationSetting = this->getCorrelationSettings(movieSettings);
-    T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
+        const MetaData &movieMD, const Image<T> &dark, const Image<T> &igain) {
+    // prepare storage for the movie
+    movie.set(this->getMovieSize());
+    // find optimal settings
+    GAOptimize();
+    const auto noOfThreads = 2 * GAStreams; // to keep them saturated
 
-    MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
-    if (this->verbose) {
-        std::cout << "Requested scale factor: " << this->getScaleFactor() << std::endl;
-        std::cout << "Actual scale factor (X): " << actualScale << std::endl;
-        std::cout << "Settings for the movie: " << movieSettings << std::endl;
-        std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
+    const auto actualScale = static_cast<float>(GASP.out.x()) / static_cast<float>(this->getMovieSize().x());
+    report(actualScale, GASP, GACP, GAStreams, noOfThreads);
+
+
+    // prepare control structures
+    auto cpuPool = ctpl::thread_pool(noOfThreads);
+    auto gpuPool = ctpl::thread_pool(GAStreams);
+    auto scalers = std::vector<CUDAFlexAlignScale<T>>();
+    auto streams = std::vector<GPU>();
+    streams.reserve(gpuPool.size());
+    scalers.reserve(gpuPool.size());
+    for (auto i = 0; i < GAStreams; ++i) { // fill vectors in serial fashion
+        streams.emplace_back(mGpu.value().device(), i + 1);
+        scalers.emplace_back(GASP, streams[i]);
+        gpuPool.push([&streams, &scalers, i](int) {
+            // allocate memory in parallel
+            streams[i].set();
+            scalers[i].init();
+        });
     }
 
+    // prepare memory
+    auto *filter = setFilter(actualScale, GASP.out);
+    auto *scaledFrames = reinterpret_cast<std::complex<T>*>(BasicMemManager::instance().get(scalers[0].getOutputSettings().fBytes(), MemType::CPU_PAGE_ALIGNED));
+    const auto frameBytes = scalers[0].getMovieSettings().sBytesSingle(); // either it's the binned size, or cropped size
 
-    T corrSizeMB = ((size_t) correlationSetting.x_freq
-            * correlationSetting.dim.y()
-            * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
-    size_t framesInBuffer = std::ceil((MB(gpu.value().lastFreeBytes() / 3)) / corrSizeMB);
+    // load movie, perform binning, FT, and downscale
+    for (auto i = 0; i < GASP.movie.n(); i += GASP.batch) {
+        auto routine = [&, index=i](int) // all by reference, i by copy
+        {
+            auto *rawFrame = loadFrame(movieMD, dark, igain, index);
+            auto *frame = reinterpret_cast<T *>(BasicMemManager::instance().get(frameBytes, MemType::CUDA_HOST));
+            if (this->applyBinning()) {
+                movie.setFrameData(index, frame); // we want to store the binned frame
+            } else {
+                movie.setFrameData(index, rawFrame); // we want to store the raw frame
+                getCroppedFrame(GASP.movie, frame, rawFrame);
+            }
+            gpuPool.push([&](int stream) { 
+                auto &scaler = scalers[stream];
+                scaler.run(rawFrame, frame, scaledFrames + index * scaler.getOutputSettings().fDim().sizeSingle(), filter);
+                scaler.synch(); 
 
-    auto reference = core::optional<size_t>();
-
-
-    // load movie to memory
-    if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, igain);
+            }).get();
+            // if we bin, get rid of the raw frame. If we crop, get rid of the cropped frame 
+            BasicMemManager::instance().give(this->applyBinning() ? rawFrame : frame);
+        };
+        cpuPool.push(routine);
     }
-    // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
-    // also, when autotuning is off, we don't need to create the copy at all
-    size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
-    getCroppedMovie(movieSettings, data);
+    // wait till done
+    cpuPool.stop(true);
+    gpuPool.stop(true);
+    
+    // release unused memory
+    scalers.clear();
+    BasicMemManager::instance().release();
 
-    auto result = align(data, movieSettings, correlationSetting,
-                    filter, reference,
-            this->maxShift, framesInBuffer, this->verbose);
-    free(data);
+    // prepare structures / memory for correlation
+    const AlignmentContext context {
+        .verbose = this->verbose,
+        .maxShift = this->maxShift * actualScale,
+        .N = GASP.movie.n(),
+        .scale = std::make_pair(movie.getDim().x() / (T) GACP.dim.x(), movie.getDim().y() / (T) GACP.dim.y()),
+        .refFrame = std::nullopt,
+        .out = GASP.out,
+    };
+    auto *correlations = reinterpret_cast<float*>(BasicMemManager::instance().get(context.alignmentBytes(), MemType::CUDA_HOST));
+    
+    // correlate
+    auto correlator = CUDAFlexAlignCorrelate<T>(GACP, mGpu.value());
+    correlator.init();
+    correlator.run(scaledFrames, correlations, context.maxShift);
+    mGpu.value().synch();
+    // result is a centered correlation function with (hopefully) a cross
+    // indicating the requested shift
+    auto result = computeAlignment(correlations, context);
+    
+    // release memory
+    BasicMemManager::instance().give(correlations);
+    BasicMemManager::instance().give(filter);
+    BasicMemManager::instance().give(scaledFrames);
+    BasicMemManager::instance().release(MemType::CUDA);
     return result;
 }
 
 template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
-        const FFTSettings<T> &in, const FFTSettings<T> &correlation,
-        MultidimArray<T> &filter,
-        core::optional<size_t> &refFrame,
-        size_t maxShift, size_t framesInCorrelationBuffer, int verbose) {
-    assert(nullptr != data);
-    size_t N = in.dim.n();
-    // scale and transform to FFT on GPU
-    performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
-            correlation.x_freq, correlation.dim.y(), filter);
-
-    auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
-            in.dim.y() / (T) correlation.dim.y());
-
-    return computeShifts(verbose, maxShift, (std::complex<T>*) data, correlation,
-            in.dim.n(),
-            scale, framesInCorrelationBuffer, refFrame);
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
-        T *output) {
-    for (size_t n = 0; n < settings.dim.n(); ++n) {
-        T *src = movieRawData + (n * rawMovieDim.xy()); // points to first float in the image
-        T *dest = output + (n * settings.dim.xy()); // points to first float in the image
-        for (size_t y = 0; y < settings.dim.y(); ++y) {
-            memcpy(dest + (settings.dim.x() * y),
-                    src + (rawMovieDim.x() * y),
-                    settings.dim.x() * sizeof(T));
-        }
+void ProgMovieAlignmentCorrelationGPU<T>::getCroppedFrame(const Dimensions &dim,
+        T *dest, T *src) {
+    for (size_t y = 0; y < dim.y(); ++y) {
+        memcpy(dest + (dim.x() * y),
+                src + (movie.getDim().x() * y),
+                dim.x() * sizeof(T));
     }
 }
 
 template<typename T>
-T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
-        const Image<T>& dark, const Image<T>& igain) {
-    T* imgs = nullptr;
-    Image<T> frame;
+void ProgMovieAlignmentCorrelationGPU<T>::releaseAll() {
+    const auto dim = movie.getDim();
+    for (auto i = 0; i < dim.n(); ++i) {
+        BasicMemManager::instance().give(movie.getFrame(i).data);
+    }
+}
 
-    int movieImgIndex = -1;
-    for (size_t objId : movie.ids())
+template<typename T>
+T* ProgMovieAlignmentCorrelationGPU<T>::loadFrame(const MetaData& movieMD,
+        const Image<T>& dark, const Image<T>& igain, size_t index) {
+    const auto &movieDim = this->getMovieSizeRaw();
+    int frameIndex = -1;
+    size_t counter = 0;
+    for (size_t objId : movieMD.ids())
     {
-        // update variables
-        movieImgIndex++;
-        if (movieImgIndex < this->nfirst) continue;
-        if (movieImgIndex > this->nlast) break;
+        // get to correct index
+        frameIndex++;
+        if (frameIndex < this->nfirst) continue;
+        if (frameIndex > this->nlast) break;
 
-        // load image
-        this->loadFrame(movie, dark, igain, objId, frame);
-
-        if (nullptr == imgs) {
-            rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
-                    this->nlast - this->nfirst + 1);
-            auto settings = FFTSettings<T>(rawMovieDim, 1, false);
-            imgs = memoryUtils::page_aligned_alloc<T>(std::max(settings.elemsFreq(), settings.elemsSpacial()), true);
+        if (counter == index) {
+            // load frame
+            auto *ptr = reinterpret_cast<T*>(BasicMemManager::instance().get(movieDim.xy() * sizeof(T), MemType::CPU_PAGE_ALIGNED));
+            auto mda = MultidimArray<T>(1, 1, movieDim.y(), movieDim.x(), ptr);
+            Image<T> frame(mda);
+            AProgMovieAlignmentCorrelation<T>::loadFrame(movieMD, dark, igain, objId, frame);
+            return ptr;
         }
-
-        // copy all frames to memory, consecutively. There will be a space behind
-        // in case we need to reuse the memory for FT
-        T* dest = imgs
-                + ((movieImgIndex - this->nfirst) * rawMovieDim.xy()); // points to first float in the image
-        memcpy(dest, frame.data.data, rawMovieDim.xy() * sizeof(T));
+        counter++;
     }
-    return imgs;
+    return nullptr;
 }
 
-template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
-        size_t maxShift,
-        std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
-        std::pair<T, T>& scale,
-        size_t framesInCorrelationBuffer,
-        const core::optional<size_t>& refFrame) {
-    // N is number of images, n is number of correlations
-    // compute correlations (each frame with following ones)
-    T* correlations;
-    size_t centerSize = getCenterSize(maxShift);
-    computeCorrelations(centerSize, N, data, settings.x_freq,
-            settings.dim.x(),
-            settings.dim.y(), framesInCorrelationBuffer,
-            settings.batch, correlations);
-    // result is a centered correlation function with (hopefully) a cross
-    // indicating the requested shift
+template <typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::computeAlignment(
+    float *positions, const AlignmentContext &context)
+{         
+    auto noOfCorrelations = static_cast<int>(context.N * (context.N - 1) / 2);
+    // matrices describing observations
+    Matrix2D<float> A(noOfCorrelations, static_cast<int>(context.N) - 1);
+    Matrix1D<float> bX(noOfCorrelations), bY(noOfCorrelations);
 
-    // we are done with the input data, so release it
-    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
-    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
-
-    // find the actual shift (max peak) for each pair of frames
-    // and create a set or equations
-    size_t idx = 0;
-    MultidimArray<T> Mcorr(centerSize, centerSize);
-    T* origData = Mcorr.data;
-
-    for (size_t i = 0; i < N - 1; ++i) {
-        for (size_t j = i + 1; j < N; ++j) {
-            size_t offset = idx * centerSize * centerSize;
-            Mcorr.data = correlations + offset;
-            Mcorr.setXmippOrigin();
-            bestShift(Mcorr, bX(idx), bY(idx), NULL,
-                    maxShift / scale.first);
-            bX(idx) *= scale.first; // scale to expected size
-            bY(idx) *= scale.second;
-            if (verbose > 1) {
+    auto idx = 0;
+    for (size_t i = 0; i < context.N - 1; ++i) {
+        for (size_t j = i + 1; j < context.N; ++j) {
+            // X and Y positions of the maxima. To find the shift, we need to deduct the center of the frame
+            bX(idx) = positions[2*idx] - (static_cast<float>(context.out.x()) / 2.f);
+            bY(idx) = positions[2*idx+1] - (static_cast<float>(context.out.y()) / 2.f);
+            bX(idx) *= context.scale.first; // scale to expected size
+            bY(idx) *= context.scale.second;
+            if (context.verbose > 1) {
                 std::cerr << "Frame " << i << " to Frame " << j << " -> ("
                         << bX(idx) << "," << bY(idx) << ")" << std::endl;
             }
             for (int ij = i; ij < j; ij++) {
-                A(idx, ij) = 1;
+                A(idx, ij) = 1.f; // mark which pairs of frames we measured
             }
             idx++;
         }
     }
-    Mcorr.data = origData;
-    delete[] correlations;
-
-    // now get the estimated shift (from the equation system)
-    // from each frame to successing frame
-    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
-    return result;
+    return AProgMovieAlignmentCorrelation<T>::computeAlignment(bX, bY, A, context.refFrame, context.N, context.verbose);
 }
 
-template<typename T>
-size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
-        const Image<T> &frame) {
-    size_t maxXPow2 = std::ceil(log(frame.data.xdim) / log(2));
-    size_t maxX = std::pow(2, maxXPow2);
-    size_t maxFFTX = maxX / 2 + 1;
-    size_t maxYPow2 = std::ceil(log(frame.data.ydim) / log(2));
-    size_t maxY = std::pow(2, maxYPow2);
-    size_t bytes = maxFFTX * maxY * sizeof(T);
-    return bytes;
-}
-
-// explicit specialization
-template class ProgMovieAlignmentCorrelationGPU<float> ;
+// explicit instantiation
+template class ProgMovieAlignmentCorrelationGPU<float>;

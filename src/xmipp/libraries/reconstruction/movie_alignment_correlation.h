@@ -113,7 +113,7 @@ private:
     int newYdim;
 
     /** Scale factor of the correlation and original frame size */
-    T sizeFactor;
+    float sizeFactor;
 };
 //@}
 #endif

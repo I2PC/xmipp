@@ -34,13 +34,13 @@ FFTwT_Startup fftwt_startup;
 static inline auto fftwtMutex = std::mutex();
 
 template<typename T>
-bool FFTwT<T>::needsAuxArray(const FFTSettingsNew<T> &settings) {
+bool FFTwT<T>::needsAuxArray(const FFTSettings<T> &settings) {
     return (settings.isInPlace() && (0 != settings.sDim().n() % settings.batch()))
             || !settings.isForward(); // for inverse transforms to preserve input;
 }
 
 template<typename T>
-void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse) {
+void FFTwT<T>::init(const HW &cpu, const FFTSettings<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
             // we can reuse if the helper arrays are bigger, or non-existent
@@ -55,7 +55,7 @@ void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse
     release(m_plan);
     delete m_settings;
 
-    m_settings = new FFTSettingsNew<T>(settings);
+    m_settings = new FFTSettings<T>(settings);
     try {
         m_cpu = &dynamic_cast<const CPU&>(cpu);
     } catch (std::bad_cast&) {
@@ -73,7 +73,7 @@ void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse
 }
 
 template<typename T>
-size_t FFTwT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
+size_t FFTwT<T>::estimatePlanBytes(const FFTSettings<T> &settings) {
     // FIXME DS measure if this is true
     // assuming that the plan will need 'batch' size
     return settings.maxBytesBatch();
@@ -291,7 +291,7 @@ T* FFTwT<T>::ifft(const std::complex<T> *in,
 
 template<>
 const fftwf_plan FFTwT<float>::createPlan(const CPU &cpu,
-        const FFTSettingsNew<float> &settings,
+        const FFTSettings<float> &settings,
         bool isDataAligned) {
     auto f = [&] (int rank, const int *n, int howmany,
             void *in, const int *inembed,
@@ -320,7 +320,7 @@ const fftwf_plan FFTwT<float>::createPlan(const CPU &cpu,
 
 template<>
 const fftw_plan FFTwT<double>::createPlan(const CPU &cpu,
-        const FFTSettingsNew<double> &settings,
+        const FFTSettings<double> &settings,
         bool isDataAligned) {
     auto f = [&] (int rank, const int *n, int howmany,
             void *in, const int *inembed,
@@ -350,7 +350,7 @@ const fftw_plan FFTwT<double>::createPlan(const CPU &cpu,
 
 template<typename T>
 template<typename U, typename F>
-U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function,
+U FFTwT<T>::planHelper(const FFTSettings<T> &settings, F function,
         int threads,
         bool isDataAligned) {
     auto n = std::array<int, 3>{(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};

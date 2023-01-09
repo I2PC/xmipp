@@ -50,7 +50,7 @@ public:
 
     void release() override;
 
-    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettings<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT,
             bool allowDataOverwrite) override;
 
@@ -65,7 +65,7 @@ public:
         std::complex<T> *othersF,
         T *othersS,
         std::complex<T> *ref,
-        const FFTSettingsNew<T> &settings,
+        const FFTSettings<T> &settings,
         void *plan,
         size_t maxShift);
 

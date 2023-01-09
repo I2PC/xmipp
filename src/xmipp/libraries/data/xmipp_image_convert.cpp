@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "xmipp_image_convert.h"
+#include "core/xmipp_funcs.h"
 
 ProgConvImg::ProgConvImg()
 {

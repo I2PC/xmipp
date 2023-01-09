@@ -36,35 +36,21 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnInitialAvg = getParam("--oavgInitial");
     fnDark = getParam("--dark");
     fnGain = getParam("--gain");
-    maxShift = getDoubleParam("--max_shift");
-    Ts = getDoubleParam("--sampling");
-    maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
-    solverIterations = getIntParam("--solverIterations");
+    binning = getFloatParam("--bin");
+    if (binning < 1.0)
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Binning must be >= 1");
+    Ts = getFloatParam("--sampling") * binning;
+    maxShift = getFloatParam("--maxShift") / Ts;
+    maxResForCorrelation = getFloatParam("--maxResForCorrelation");
     fnAligned = getParam("--oaligned");
     fnAvg = getParam("--oavg");
     nfirst = getIntParam("--frameRange", 0);
     nlast = getIntParam("--frameRange", 1);
     nfirstSum = getIntParam("--frameRangeSum", 0);
     nlastSum = getIntParam("--frameRangeSum", 1);
-    xLTcorner = getIntParam("--cropULCorner", 0);
-    yLTcorner = getIntParam("--cropULCorner", 1);
-    xDRcorner = getIntParam("--cropDRCorner", 0);
-    yDRcorner = getIntParam("--cropDRCorner", 1);
-    useInputShifts = checkParam("--useInputShifts");
-    outputBinning = getDoubleParam("--bin");
-    BsplineOrder = getIntParam("--Bspline");
-    processLocalShifts = checkParam("--processLocalShifts");
+    skipLocalAlignment = checkParam("--skipLocalAlignment");
     minLocalRes = getIntParam("--minLocalRes");
 
-    String outside = getParam("--outside");
-    if (outside == "wrap")
-        outsideMode = OUTSIDE_WRAP;
-    else if (outside == "avg")
-        outsideMode = OUTSIDE_AVG;
-    else if (outside == "value") {
-        outsideMode = OUTSIDE_VALUE;
-        outsideValue = getDoubleParam("--outside", 1);
-    }
     // read control points
     Dimensions cPoints(
             this->getIntParam("--controlPoints", 0),
@@ -76,7 +62,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
             "All control points has to be bigger than 2");
     localAlignmentControlPoints = cPoints;
 
-    addParamsLine("  [--minLocalRes <R=500>]            : Minimal resolution (in A) of patches during local alignment");
 }
 
 template<typename T>
@@ -92,6 +77,10 @@ void AProgMovieAlignmentCorrelation<T>::checkSettings() {
                 "(--maxResForCorrelation) are correctly set. For current sampling, you can "
                 "use maximal resolution of " + std::to_string(this->Ts * 8 * getC()) + " or higher.");
     }
+    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x()
+        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "More control points than patches. Decrease the number of control points.");
+    }
 }
 
 template<typename T>
@@ -99,27 +88,22 @@ void AProgMovieAlignmentCorrelation<T>::show() {
     if (!verbose)
         return;
     std::cout
-            << "Input movie:         " << fnMovie << std::endl
-            << "Output metadata:     " << fnOut << std::endl
-            << "Dark image:          " << fnDark << std::endl
-            << "Gain image:          " << fnGain << std::endl
-            << "Max. Shift:          " << maxShift << std::endl
-            << "Max resolution (A):  " << maxResForCorrelation << std::endl
-            << "Sampling:            " << Ts << std::endl
-            << "Solver iterations:   " << solverIterations << std::endl
-            << "Aligned movie:       " << fnAligned << std::endl
-            << "Aligned micrograph:  " << fnAvg << std::endl
-            << "Unaligned micrograph: " << fnInitialAvg << std::endl
+            << "Input movie:           " << fnMovie << std::endl
+            << "Output metadata:       " << fnOut << std::endl
+            << "Dark image:            " << fnDark << std::endl
+            << "Gain image:            " << fnGain << std::endl
+            << "Max. Shift (A / px):   " << (maxShift * Ts) << " / " << maxShift << std::endl
+            << "Max resolution (A):    " << maxResForCorrelation << std::endl
+            << "Sampling:              " << Ts << std::endl
+            << "Aligned movie:         " << fnAligned << std::endl
+            << "Aligned micrograph:    " << fnAvg << std::endl
+            << "Unaligned micrograph:  " << fnInitialAvg << std::endl
             << "Frame range alignment: " << nfirst << " " << nlast << std::endl
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
-            << "Crop corners  " << "(" << xLTcorner << ", "
-            << yLTcorner << ") " << "(" << xDRcorner << ", " << yDRcorner
-            << ") " << std::endl
-            << "Use input shifts:    " << useInputShifts << std::endl
-            << "Output Binning factor: " << outputBinning << std::endl
-            << "Bspline:             " << BsplineOrder << std::endl
-            << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
-            << "Control points:      " << this->localAlignmentControlPoints << std::endl;
+            << "Binning factor:        " << binning << std::endl
+            << "Skip local alignment:  " << (skipLocalAlignment ? "yes" : "no") << std::endl
+            << "Control points:        " << this->localAlignmentControlPoints << std::endl
+            << "No of patches:         " << this->localAlignPatches.first << " * " << localAlignPatches.second << std::endl;
 }
 
 template<typename T>
@@ -132,23 +116,15 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "                               : If no filename is given, the input is rewritten");
     addParamsLine(
-            "  [--bin <s=-1>]               : Binning factor, it may be any floating number");
+            "  [--bin <s=1>]                : Binning factor, it may be any floating number > 1.");
     addParamsLine(
-            "                               :+Binning in Fourier is the first operation, so that");
+            "                               : Binning is applied during the data loading, i.e. the program will processed and store binned data.");
     addParamsLine(
-            "                               :+crop parameters are referred to the binned images");
-    addParamsLine(
-            "                               :+By default, -1, the binning is automatically calculated ");
-    addParamsLine(
-            "                               :+as a function of max_freq.");
-    addParamsLine(
-            "  [--max_shift <s=40>]         : Maximum shift allowed in pixels"); // FIXME DS this should be called maxShift, and be in A, rather than in pixels
+            "  [--maxShift <s=50>]          : Maximum shift allowed in A");
     addParamsLine(
             "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
     addParamsLine(
             "  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
-    addParamsLine(
-            "  [--solverIterations <N=2>]   : Number of robust least squares iterations");
     addParamsLine(
             "  [--oaligned <fn=\"\">]       : Aligned movie consists of aligned frames used for micrograph generation");
     addParamsLine(
@@ -159,29 +135,14 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--frameRange <n0=-1> <nF=-1>]  : First and last frame to align, frame numbers start at 0");
     addParamsLine(
             "  [--frameRangeSum <n0=-1> <nF=-1>]  : First and last frame to sum, frame numbers start at 0");
-    addParamsLine(
-            "  [--cropULCorner <x=0> <y=0>]    : crop up left corner (unit=px, index starts at 0)");
-    addParamsLine(
-            "  [--cropDRCorner <x=-1> <y=-1>]    : crop down right corner (unit=px, index starts at 0), -1 -> no crop");
     addParamsLine("  [--dark <fn=\"\">]           : Dark correction image");
     addParamsLine("  [--gain <fn=\"\">]           : Gain correction image (we will multiply by it)");
     addParamsLine(
-            "  [--useInputShifts]           : Do not calculate shifts and use the ones in the input file");
-    addParamsLine(
-            "  [--Bspline <order=3>]        : B-spline order for the final interpolation (1 or 3)");
-    addParamsLine(
-            "  [--outside <mode=wrap> <v=0>]: How to deal with borders (wrap, substitute by avg, or substitute by value)");
-    addParamsLine("      where <mode>");
-    addParamsLine(
-            "             wrap              : Wrap the image to deal with borders");
-    addParamsLine(
-            "             avg               : Fill borders with the average of the frame");
-    addParamsLine(
-            "             value             : Fill borders with a specific value v");
-    addParamsLine(
-            "  [--processLocalShifts]       : Calculate and correct local shifts");
+            "  [--skipLocalAlignment]       : If used, only global alignment will be performed. It's faster, but gives worse results.");
     addParamsLine(
             "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
+    addParamsLine(
+            "  [--patches <x=7> <y=7>]: Number of patches used for local alignment");
     addParamsLine(
             "  [--minLocalRes <R=500>]      : Minimal resolution (in A) of patches during local alignment");
     addExampleLine("A typical example", false);
@@ -189,25 +150,12 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData& movie,
-        size_t objId, Image<T>& out) {
-    FileName fnFrame;
-    movie.getValue(MDL_IMAGE, fnFrame, objId);
-    if (-1 != this->yDRcorner) {
-        Image<T> tmp;
-        tmp.read(fnFrame);
-        tmp().window(out(), this->yLTcorner, this->xLTcorner, this->yDRcorner,
-                this->xDRcorner);
-    } else {
-        out.read(fnFrame);
-    }
-}
-
-template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
         const Image<T> &dark, const Image<T> &igain, size_t objId,
-            Image<T> &out) {
-    loadFrame(movie, objId, out);
+            Image<T> &out) const {
+    FileName fnFrame;
+    movie.getValue(MDL_IMAGE, fnFrame, objId);
+    out.read(fnFrame);
     if (XSIZE(dark()) > 0) {
         if ((XSIZE(dark()) != XSIZE(out()))
                 || (YSIZE(dark()) != YSIZE(out()))) {
@@ -227,7 +175,7 @@ void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getPixelResolution(T scaleFactor) {
+float AProgMovieAlignmentCorrelation<T>::getPixelResolution(float scaleFactor) const {
     return this->Ts / scaleFactor;
 }
 
@@ -321,8 +269,6 @@ void AProgMovieAlignmentCorrelation<T>::loadDarkCorrection(Image<T>& dark) {
     if (fnDark.isEmpty())
         return;
     dark.read(fnDark);
-    if (yDRcorner != -1)
-        dark().selfWindow(yLTcorner, xLTcorner, yDRcorner, xDRcorner);
 }
 
 template<typename T>
@@ -330,8 +276,6 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
     if (fnGain.isEmpty())
         return;
     igain.read(fnGain);
-    if (yDRcorner != -1)
-        igain().selfWindow(yLTcorner, xLTcorner, yDRcorner, xDRcorner);
     T avg = igain().computeAvg();
     if (std::isinf(avg) || std::isnan(avg))
         REPORT_ERROR(ERR_ARG_INCORRECT,
@@ -339,16 +283,16 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getC() {
+float AProgMovieAlignmentCorrelation<T>::getC() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
-    constexpr T c = sqrt(-(T)1 / (2 * log((T)0.5)));
+    constexpr float c = std::sqrt(-1.f / (2.f * std::log(0.5f)));
     return c;
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getTsPrime() {
+float AProgMovieAlignmentCorrelation<T>::getTsPrime() const {
     // from formula
     // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
     // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
@@ -358,15 +302,13 @@ T AProgMovieAlignmentCorrelation<T>::getTsPrime() {
     // omega4 = 4 * sigma -> Ts/R4 = 4 Ts / max_resolution * c
     // R4 = max_resolution / (4 * c)
     // new pixel size Ts' = R4 / 2 (to preserve Nyquist frequency)
-    T TsPrime = maxResForCorrelation / (8 * getC());
-    return TsPrime;
+    return maxResForCorrelation / (8.f * getC());
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getScaleFactor() {
+float AProgMovieAlignmentCorrelation<T>::getScaleFactor() const {
     // scale is ration between original pixel size and new pixel size
-    T scale = Ts / getTsPrime();
-    return scale;
+    return Ts / getTsPrime();
 }
 
 template<typename T>
@@ -389,6 +331,39 @@ void AProgMovieAlignmentCorrelation<T>::readMovie(MetaData& movie) {
             movie.setValue(MDL_IMAGE, fn, id);
         }
     }
+}
+
+template<typename T>
+Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSizeRaw() {
+    if (this->movieSizeRaw) return movieSizeRaw.value();
+    int noOfImgs = this->nlast - this->nfirst + 1;
+    auto fn = fnMovie;
+    if (fnMovie.isMetaData()) {
+        MetaDataVec md;
+        md.read(fnMovie);
+        md.getValue(MDL_IMAGE, fn, md.firstRowId()); // assuming all frames have the same resolution
+    }
+    ImageGeneric movieStack;
+    movieStack.read(fn, HEADER);
+    size_t xdim, ydim, zdim, ndim;
+    movieStack.getDimensions(xdim, ydim, zdim, ndim);
+    this->movieSizeRaw = Dimensions(xdim, ydim, 1, noOfImgs);
+    return movieSizeRaw.value();
+}
+
+template<typename T>
+Dimensions AProgMovieAlignmentCorrelation<T>::getMovieSize() {
+    if (movieSize) return movieSize.value();
+    auto full = getMovieSizeRaw();
+    if (applyBinning()) {
+        // to make FFT fast, we want the size to be a multiple of 2
+        auto x = ((static_cast<float>(full.x()) / binning) / 2.f) * 2.f;
+        auto y = ((static_cast<float>(full.y()) / binning) / 2.f) * 2.f;
+        movieSize = Dimensions(static_cast<size_t>(x), static_cast<size_t>(y), 1L, full.n());
+    } else {
+        movieSize = full;
+    }
+    return movieSize.value();
 }
 
 template<typename T>
@@ -417,37 +392,6 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
     MetaDataVec mdIref;
     mdIref.setValue(MDL_REF, (int)(nfirst + alignment.refFrame), mdIref.addObject());
     mdIref.write((FileName) "referenceFrame@" + fnOut, MD_APPEND);
-}
-
-template<typename T>
-AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
-    auto alignment = AlignmentResult<T>();
-    int n = 0;
-    T shiftX;
-    T shiftY;
-    for (size_t objId : movie.ids())
-    {
-        if (n >= nfirst && n <= nlast) {
-            movie.getValue(MDL_SHIFT_X, shiftX, objId);
-            movie.getValue(MDL_SHIFT_Y, shiftY, objId);
-
-            // loaded values are shift that should be applied
-            // so we have to negate it
-            alignment.shifts.emplace_back(-shiftX, -shiftY);
-        }
-        n++;
-    }
-//    FIXME load reference frame
-    return alignment;
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::setZeroShift(MetaData& movie) {
-    // assuming movie does not contain MDL_SHIFT_X label
-    movie.addLabel(MDL_SHIFT_X);
-    movie.addLabel(MDL_SHIFT_Y);
-    movie.fillConstant(MDL_SHIFT_X, "0.0");
-    movie.fillConstant(MDL_SHIFT_Y, "0.0");
 }
 
 template<typename T>
@@ -503,9 +447,10 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
         const AlignmentResult<T> &globAlignment) {
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
-    std::cout << (useInputShifts ? "Loaded" : "Estimated")
-            << " global shifts (from the reference frame):\n";
-    for (auto &&s : globAlignment.shifts) {
+    std::cout << "Estimated global shifts (in px, from the reference frame";
+    std::cout << (applyBinning() ? ", after binning" : "");
+    std::cout << "):\n";
+    for (auto &s : globAlignment.shifts) {
         printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
     }
     std::cout << std::endl;
@@ -566,39 +511,37 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::setNoOfPaches(const Dimensions &movieDim,
-        const Dimensions &patchDim) {
-    localAlignPatches = {
-            std::ceil(movieDim.x() / (float)patchDim.x()),
-            std::ceil(movieDim.y() / (float)patchDim.y())};
-    if (verbose) {
-        std::cout << "Using " << localAlignPatches.first << " x " << localAlignPatches.second << " patches\n";
+void AProgMovieAlignmentCorrelation<T>::setNoOfPatches() {
+        // set number of patches
+    if (checkParam("--patches")) {
+        localAlignPatches = {getIntParam("--patches", 0), getIntParam("--patches", 1)};
+    } else {
+        const auto &movieDim = getMovieSize();
+        auto patchDim = getRequestedPatchSize();
+        localAlignPatches = {
+                std::ceil(static_cast<float>(movieDim.x()) / static_cast<float>(patchDim.first)),
+                std::ceil(static_cast<float>(movieDim.y()) / static_cast<float>(patchDim.second))};
     }
 }
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::run() {
-    show();
-    checkSettings();
     // preprocess input data
     MetaDataVec movie;
     readMovie(movie);
     correctLoopIndices(movie);
+
+    setNoOfPatches();
+    show();
+    checkSettings();
 
     Image<T> dark, igain;
     loadDarkCorrection(dark);
     loadGainCorrection(igain);
 
     auto globalAlignment = AlignmentResult<T>();
-    if (useInputShifts) {
-        if (!movie.containsLabel(MDL_SHIFT_X)) {
-            setZeroShift(movie);
-        }
-        globalAlignment = loadGlobalShifts(movie);
-    } else {
-        std::cout << "Computing global alignment ...\n";
-        globalAlignment = computeGlobalAlignment(movie, dark, igain);
-    }
+    std::cout << "Computing global alignment ...\n";
+    globalAlignment = computeGlobalAlignment(movie, dark, igain);
 
     if ( ! fnOut.isEmpty()) {
         storeGlobalShifts(globalAlignment, movie);
@@ -609,15 +552,15 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     size_t N, Ninitial;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
-    if (processLocalShifts) {
+    if (skipLocalAlignment) {
+        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
+                    averageMicrograph, N, globalAlignment);
+    } else {
         std::cout << "Computing local alignment ...\n";
         auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
         storeResults(localAlignment);
-    } else {
-        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
-                    averageMicrograph, N, globalAlignment);
     }
 
     storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);

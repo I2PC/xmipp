@@ -32,7 +32,7 @@ namespace Alignment {
 
 template<typename T>
 void CudaShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
-        const FFTSettingsNew<T> &settings, size_t maxShift,
+        const FFTSettings<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT,
         bool allowDataOvewrite) {
     // FIXME DS consider tunning the size of the input (e.g. 436x436x50)
@@ -356,7 +356,7 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         std::complex<T> *d_othersF,
         T *d_othersS,
         std::complex<T> *d_ref,
-        const FFTSettingsNew<T> &settings,
+        const FFTSettings<T> &settings,
         cufftHandle plan,
         T *h_centers,
         size_t maxShift) {
