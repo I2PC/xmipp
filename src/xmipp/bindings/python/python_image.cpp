@@ -1255,7 +1255,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
             MultidimArray<double> *out;
             MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
             // call the estimation
-            PSDEstimator<double>::estimatePSD(*in, overlap, dims, *out, threads);
+            PSDEstimator<double>::estimatePSD(*in, overlap, dims, *out, threads, false);
         } else {
             PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
         }
