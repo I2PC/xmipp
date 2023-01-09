@@ -1022,9 +1022,14 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
-		// Construct feature and its mirror symmetric
-		feature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
-		mirrorFeature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
+		#ifdef DEBUG_CENTER_COORDINATES
+		std::cout << "-------------------- coordinate " << n << std::endl;
+		#endif
+
+		// Construct feature and its mirror symmetric. We quadruple the size to include a feature two times
+		// the box size plus padding to avoid incoherences in the shift sign
+		feature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize, 2 * doubleBoxSize);
+		mirrorFeature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize, 2 * doubleBoxSize);
 		
 		coordHalfX = coordinates3D[n].x - boxSize;
 		coordHalfY = coordinates3D[n].y - boxSize;
@@ -1041,18 +1046,18 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
 						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
 					{
-						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
+						DIRECT_A3D_ELEM(feature, k + boxSize, i + boxSize, j + boxSize) = 0;
 
-						DIRECT_A3D_ELEM(mirrorFeature, doubleBoxSize -1 - k, doubleBoxSize -1 - i, doubleBoxSize -1 - j) = 0;
+						DIRECT_A3D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - k, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 0;
 					}
 					else
 					{
-						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+						DIRECT_A3D_ELEM(feature, k + boxSize, i + boxSize, j + boxSize) = DIRECT_A3D_ELEM(volFiltered, 
 																			coordHalfZ + k, 
 																			coordHalfY + i, 
 																			coordHalfX + j);
 
-						DIRECT_A3D_ELEM(mirrorFeature, doubleBoxSize -1 - k, doubleBoxSize -1 - i, doubleBoxSize -1 - j) = 
+						DIRECT_A3D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - k, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 
 						DIRECT_A3D_ELEM(volFiltered, 
 										coordHalfZ + k, 
 										coordHalfY + i,
@@ -1065,6 +1070,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		#ifdef DEBUG_CENTER_COORDINATES
 		Image<double> subtomo;
 
+		std::cout << "Feature dimensions (" << XSIZE(feature) << ", " << YSIZE(feature) << ", " << ZSIZE(feature) << ")" << std::endl;
 		subtomo() = feature;
 		size_t lastindex = fnOut.find_last_of(".");
 		std::string rawname = fnOut.substr(0, lastindex);
@@ -1072,6 +1078,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_feature.mrc";
 		subtomo.write(outputFileNameSubtomo);
 
+		std::cout << "Mirror feature dimensions (" << XSIZE(mirrorFeature) << ", " << YSIZE(mirrorFeature) << ", " << ZSIZE(mirrorFeature) << ")" << std::endl;
 		subtomo() = mirrorFeature;
 		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_mirrorFeature.mrc";
 		subtomo.write(outputFileNameSubtomo);
@@ -1100,18 +1107,19 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		}
 
 		#ifdef DEBUG_CENTER_COORDINATES
-		std::cout << "-------------------- coordinate " << n << std::endl;
 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize) / 2 << std::endl;
-		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize) / 2 << std::endl;
-		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize) / 2 << std::endl;
+		std::cout << "xDisplacement " << ((int) xDisplacement - doubleBoxSize) / 2 << std::endl;
+		std::cout << "yDisplacement " << ((int) yDisplacement - doubleBoxSize) / 2 << std::endl;
+		std::cout << "zDisplacement " << ((int) zDisplacement - doubleBoxSize) / 2 << std::endl;
+
+		std::cout << "Correlation volume dimensions (" << XSIZE(correlationVolumeR) << ", " << YSIZE(correlationVolumeR) << ", " << ZSIZE(correlationVolumeR) << ")" << std::endl;
 		#endif
 
 
 		// Update coordinate and remove if it is moved out of the volume
-		double updatedCoordinateX = coordinates3D[n].x - ((int) xDisplacement - boxSize) / 2;
-		double updatedCoordinateY = coordinates3D[n].y - ((int) yDisplacement - boxSize) / 2;
-		double updatedCoordinateZ = coordinates3D[n].z - ((int) zDisplacement - boxSize) / 2;
+		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - doubleBoxSize) / 2;
+		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - doubleBoxSize) / 2;
+		double updatedCoordinateZ = coordinates3D[n].z + ((int) zDisplacement - doubleBoxSize) / 2;
 
 		int deletedCoordinates = 0;
 	
@@ -1193,6 +1201,8 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 				}
 			}
 		}
+
+		std::cout << "Centered feature dimensions (" << XSIZE(centerFeature) << ", " << YSIZE(centerFeature) << ", " << ZSIZE(centerFeature) << ")" << std::endl;
 
 		subtomo() = centerFeature;
 		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_centerFeature.mrc";
