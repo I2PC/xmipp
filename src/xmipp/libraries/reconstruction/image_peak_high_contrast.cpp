@@ -1380,7 +1380,7 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 	#endif
 
 	#ifdef DEBUG_REMOVE_DUPLICATES
-	std::cout << "3D coordinates after clustering: " << std::endl;
+	std::cout << "3D coordinates after removing duplicates: " << std::endl;
 	
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
@@ -1403,18 +1403,18 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	#endif
 
 	size_t halfBoxSize = boxSize / 2;
-	size_t numberOfFeatures = coordinates3D.size();
 
 	MultidimArray<double> feature;
 	MultidimArray<double> mirrorFeature;
-	double dotProduct = 0;
 	double dotProductMirror = 0;
 
 	int coordHalfX;
 	int coordHalfY;
 	int coordHalfZ;
 
-	for(size_t n = 0; n < numberOfFeatures; n++)
+	std::vector<Point3D<double>> newCoordinates3D;
+
+	for(size_t n = 0; n < coordinates3D.size(); n++)
 	{
 		// Construct feature and its mirror symmetric
 		feature.initZeros(boxSize, boxSize, boxSize);
@@ -1483,23 +1483,46 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 			{
 				for(int i = 0; i < boxSize; i++) // yDim
 				{
-					dotProduct += DIRECT_A3D_ELEM(feature, k, i, j) * DIRECT_A3D_ELEM(feature, k, i, j);
 					dotProductMirror += DIRECT_A3D_ELEM(feature, k, i, j) * DIRECT_A3D_ELEM(mirrorFeature, k, i, j);
 				}
 			}
 		}
 
-		dotProduct /= boxSize *  boxSize * boxSize;
 		dotProductMirror /= boxSize *  boxSize * boxSize;
 
 		#ifdef DEBUG_FILTER_COORDINATES
-		std::cout << "-------------------- coordinate " << n << std::endl;
-		std::cout << "dot product: " << dotProduct << std::endl;
+		std::cout << "-------------------- coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
 		std::cout << "dot product mirror: " << dotProductMirror << std::endl;
-		std::cout << "quotient: " << dotProduct/dotProductMirror << std::endl;
 		#endif
+	
+		if (dotProductMirror > mirrorCorrelationThr)
+		{
+			newCoordinates3D.push_back(coordinates3D[n]);
+		}
+		else
+		{
+			#ifdef DEBUG_FILTER_COORDINATES
+			std::cout << "Coordinate " << n << " removed. Mirror correlation: " << dotProductMirror << std::endl;
+			#endif
+		}
 	}
 
+	#ifdef DEBUG_FILTER_COORDINATES
+	std::cout << "Number of corrdinates filtered by mirror correlation: " << (coordinates3D.size() - newCoordinates3D.size()) << std::endl;
+	#endif
+
+	coordinates3D.clear();
+	coordinates3D = newCoordinates3D;
+
+	#ifdef DEBUG_FILTER_COORDINATES
+	std::cout << "3D coordinates after filterign by mirror correlation: " << std::endl;
+	
+	for(size_t n = 0; n < coordinates3D.size(); n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+	}
+	#endif
+	
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Filtering coordinates by correlation finished succesfully!!" << std::endl;
 	#endif
@@ -1508,6 +1531,10 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 
 void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Saving output coordinates... " << std::endl;
+	#endif
+
 	MetaDataVec md;
 	size_t id;
 

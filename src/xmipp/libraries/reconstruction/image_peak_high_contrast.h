@@ -54,7 +54,7 @@
 // #define DEBUG_DIST
 // #define DEBUG_CENTER_COORDINATES
 // #define DEBUG_REMOVE_DUPLICATES
-#define DEBUG_FILTER_COORDINATES
+// #define DEBUG_FILTER_COORDINATES
 
 class ProgImagePeakHighContrast : public XmippProgram
 {
@@ -91,8 +91,11 @@ private:
     std::vector<int> centerOfMassY;
     std::vector<int> centerOfMassZ;
 
-
+    /** Vector for saving 3D coordinates */
     std::vector<Point3D<double>> coordinates3D;
+
+    /** Thresholds */
+    double mirrorCorrelationThr = 0.1; // Minimum correlation between a gold bead and its mirror
 
 public:
 
