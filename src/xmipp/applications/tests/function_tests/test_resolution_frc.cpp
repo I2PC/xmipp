@@ -10,18 +10,7 @@
 // This test is named "Size", and belongs to the "MetadataTest"
 // test case.
 class ResolutionFSCTest : public ::testing::Test
-{
-protected:
-    //init metadatas
-    virtual void SetUp()
-    {
-        XMIPP_TRY
-        ;
-        XMIPP_CATCH
-    }
-
-
-};
+{};
 
 
 TEST_F( ResolutionFSCTest, copy)

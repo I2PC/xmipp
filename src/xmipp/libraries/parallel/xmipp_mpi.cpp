@@ -268,7 +268,7 @@ int XmippMpiProgram::tryRun()
     }
     catch (XmippError &xe)
     {
-        std::cerr << xe;
+        std::cerr << xe.what();
         errorCode = xe.__errno;
         MPI_Abort(MPI_COMM_WORLD, xe.__errno);
     }

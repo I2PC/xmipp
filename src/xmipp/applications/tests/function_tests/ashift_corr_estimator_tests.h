@@ -80,10 +80,8 @@ std::vector<HW*> AShiftCorrEstimator_Test<T>::hw;
 
 TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToOne)
  {
-    XMIPP_TRY
      // test one reference vs one image
     AShiftCorrEstimator_Test<TypeParam>::correlate2DNoCenter(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToMany)

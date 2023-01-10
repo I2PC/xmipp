@@ -251,7 +251,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                 }
                 catch (XmippError &xe)
                 {
-                    PyErr_SetString(PyXmippError, xe.msg.c_str());
+                    PyErr_SetString(PyXmippError, xe.what());
                     return nullptr;
                 }
             }
@@ -302,7 +302,7 @@ Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -312,7 +312,6 @@ Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
 PyObject *
 Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    XMIPP_TRY
     const auto *self = reinterpret_cast<ImageObject*>(obj);
     if (self != nullptr)
     {
@@ -329,11 +328,10 @@ Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    XMIPP_CATCH
     return nullptr;
 }//function Image_equal
 
@@ -378,7 +376,7 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -425,7 +423,7 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -473,7 +471,7 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
         else
@@ -511,7 +509,7 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -629,7 +627,7 @@ Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -667,7 +665,7 @@ Image_setData(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -697,7 +695,7 @@ Image_getPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -727,7 +725,7 @@ Image_setPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -749,7 +747,7 @@ Image_initConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -767,7 +765,7 @@ Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }//function Image_initConstant
@@ -794,7 +792,7 @@ Image_initRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -819,7 +817,7 @@ Image_resize(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -849,7 +847,7 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -871,7 +869,7 @@ Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -920,7 +918,7 @@ Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -946,7 +944,7 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -968,7 +966,7 @@ Image_getDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -990,7 +988,7 @@ Image_setDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1013,7 +1011,7 @@ Image_convert2DataType(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1037,7 +1035,7 @@ Image_getDimensions(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1057,7 +1055,7 @@ Image_resetOrigin(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1081,7 +1079,7 @@ Image_getEulerAngles(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1112,7 +1110,7 @@ Image_getMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1141,7 +1139,7 @@ Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1171,7 +1169,7 @@ Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1199,7 +1197,7 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1223,7 +1221,7 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1261,7 +1259,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         return (PyObject *)result;
     } catch (XmippError &xe) {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return Py_BuildValue("");
 }
@@ -1288,7 +1286,7 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return (PyObject *)result;
@@ -1323,7 +1321,7 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1363,7 +1361,7 @@ Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1384,7 +1382,7 @@ Image_add(PyObject *obj1, PyObject *obj2)
         catch (XmippError &xe)
         {
         	result=nullptr;
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return (PyObject *)result;
@@ -1405,7 +1403,7 @@ Image_iadd(PyObject *obj1, PyObject *obj2)
     catch (XmippError &xe)
     {
     	result=nullptr;
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return (PyObject *)result;
 }//operator +=
@@ -1438,7 +1436,7 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }// similar to -=
@@ -1459,7 +1457,7 @@ Image_subtract(PyObject *obj1, PyObject *obj2)
         catch (XmippError &xe)
         {
             result = nullptr;
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return (PyObject *)result;
@@ -1479,7 +1477,7 @@ Image_isubtract(PyObject *obj1, PyObject *obj2)
     catch (XmippError &xe)
     {
         result = nullptr;
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return (PyObject *)result;
 }//operator -=
@@ -1505,7 +1503,7 @@ Image_inplaceSubtract(PyObject *self, PyObject *args, PyObject *kwargs)
   }
   catch (XmippError &xe)
   {
-      PyErr_SetString(PyXmippError, xe.msg.c_str());
+      PyErr_SetString(PyXmippError, xe.what());
   }
   return nullptr;
 }
@@ -1526,7 +1524,7 @@ Image_multiply(PyObject *obj1, PyObject *obj2)
         catch (XmippError &xe)
         {
             result = nullptr;
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return (PyObject *)result;
@@ -1547,7 +1545,7 @@ Image_imultiply(PyObject *obj1, PyObject *obj2)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }//operator *=
@@ -1579,7 +1577,7 @@ Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs)
   }
   catch (XmippError &xe)
   {
-      PyErr_SetString(PyXmippError, xe.msg.c_str());
+      PyErr_SetString(PyXmippError, xe.what());
   }
   return nullptr;
 }// similar to *=
@@ -1601,7 +1599,7 @@ Image_true_divide(PyObject *obj1, PyObject *obj2)
         catch (XmippError &xe)
         {
             result = nullptr;
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return (PyObject *)result;
@@ -1627,7 +1625,7 @@ Image_idivide(PyObject *obj1, PyObject *obj2)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }//operator /=
@@ -1659,7 +1657,7 @@ Image_inplaceDivide(PyObject *self, PyObject *args, PyObject *kwargs)
   }
   catch (XmippError &xe)
   {
-      PyErr_SetString(PyXmippError, xe.msg.c_str());
+      PyErr_SetString(PyXmippError, xe.what());
   }
   return nullptr;
 
@@ -1728,7 +1726,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }//operator +=
@@ -1772,7 +1770,7 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -1848,7 +1846,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -1888,7 +1886,7 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -1929,7 +1927,7 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             return (PyObject *)result;
         } catch (XmippError &xe) {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1963,7 +1961,7 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	        }
 	        return (PyObject *)result;
 	    } catch (XmippError &xe) {
-	        PyErr_SetString(PyXmippError, xe.msg.c_str());
+	        PyErr_SetString(PyXmippError, xe.what());
 	    }
     return Py_BuildValue("");
 }
@@ -1986,7 +1984,7 @@ Image_centerOfMass(PyObject *obj)
         }
         catch (const XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
