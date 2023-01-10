@@ -830,7 +830,7 @@ void ProgForwardZernikeImagesPriors::processImage(const FileName &fnImg, const F
 	}
 	catch (XmippError &XE)
 	{
-		std::cerr << XE << std::endl;
+		std::cerr << XE.what() << std::endl;
 		std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
 		flagEnabled = -1;
 	}

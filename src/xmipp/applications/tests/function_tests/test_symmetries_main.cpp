@@ -30,7 +30,6 @@ protected:
 
 TEST_F(SamplingTest, isSymmetryGroup)
 {
-    XMIPP_TRY
     int symmetry, sym_order;
     FileName fn_sym("i3h");
     SL.isSymmetryGroup(fn_sym, symmetry, sym_order);
@@ -40,24 +39,19 @@ TEST_F(SamplingTest, isSymmetryGroup)
     SL.isSymmetryGroup(fn_sym, symmetry, sym_order);
     EXPECT_EQ(symmetry, pg_CN);
     EXPECT_EQ(sym_order, 5);
-
-    XMIPP_CATCH
 }
 
 TEST_F(SamplingTest, readSymmetryFile)
 {
-    XMIPP_TRY
     int trueSymsNo;
     FileName fn_sym("i3h");
     SL.readSymmetryFile(fn_sym);
     trueSymsNo = SL.trueSymsNo();//true_symNo;
     EXPECT_EQ(trueSymsNo, 119);
-    XMIPP_CATCH
 }
 
 TEST_F(SamplingTest, computeDistance)
 {
-    XMIPP_TRY
     FileName fn_sym("i3h");
     SL.readSymmetryFile(fn_sym);
     double rot2=6.;
@@ -66,12 +60,10 @@ TEST_F(SamplingTest, computeDistance)
     double total;
     total = SL.computeDistance(1., 2., 3., rot2, tilt2, psi2,false,false,false);
     EXPECT_NEAR (total, 5.23652,0.00001);
-    XMIPP_CATCH
 }
 
 TEST_F(SamplingTest, BreakSymmetry)
 {
-    XMIPP_TRY
     FileName fn_sym("i3");
     SL.readSymmetryFile(fn_sym);
     double rot2=0.;
@@ -92,13 +84,11 @@ TEST_F(SamplingTest, BreakSymmetry)
     double total = SL.computeDistance(0., 5., 0., rot2, tilt2, psi2,false,false,false);
     EXPECT_NEAR (0, total,0.001);
     }
-    XMIPP_CATCH
 }
 
 
 TEST_F(SamplingTest, computeDistanceMetadata)
 {
-    XMIPP_TRY
     FileName fn_sym("i3h");
     SL.readSymmetryFile(fn_sym);
     MetaDataVec md,mdOut;
@@ -123,5 +113,4 @@ TEST_F(SamplingTest, computeDistanceMetadata)
     size_t id = md.firstRowId();
     md.getValue(MDL_ANGLE_DIFF,total,id);
     EXPECT_NEAR (total, 5.23652,0.00001);
-    XMIPP_CATCH
 }

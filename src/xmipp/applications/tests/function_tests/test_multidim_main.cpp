@@ -249,7 +249,6 @@ TEST( MultidimTest, modulo)
 // check the reslicing is right
 TEST( MultidimTest, getImage)
 {
-    XMIPP_TRY
     MultidimArray<float> imgTgt, imgRef;
 
     imgRef.resize(3,1,3,3);
@@ -278,14 +277,11 @@ TEST( MultidimTest, getImage)
         EXPECT_EQ(DIRECT_NZYX_ELEM(imgRef,1,k,i,j), DIRECT_NZYX_ELEM(imgTgt,3,k,i,j));
         EXPECT_EQ(DIRECT_NZYX_ELEM(imgRef,2,k,i,j), DIRECT_NZYX_ELEM(imgTgt,1,k,i,j));
     }
-
-    XMIPP_CATCH
 }
 
 // check the reslicing is right
 TEST( MultidimTest, reslice)
 {
-    XMIPP_TRY
     MultidimArray<float> imgSliced, imgRef;
 
     imgRef.resize(3,3,3);
@@ -309,14 +305,12 @@ TEST( MultidimTest, reslice)
     {
         EXPECT_EQ(DIRECT_ZYX_ELEM(imgRef,k,i,j), DIRECT_ZYX_ELEM(imgSliced,ZSIZE(imgSliced)-1-j,i,k));
     }
-    XMIPP_CATCH
 }
 
 
 
 TEST( MultidimTest, mapFile)
 {
-    XMIPP_TRY
     MultidimArray<double> mda, mdaMap;
 
     mda.resize(32,32,32);
@@ -328,13 +322,11 @@ TEST( MultidimTest, mapFile)
     mdaMap = mda;
 
     ASSERT_EQ(mda, mdaMap);
-    XMIPP_CATCH
 }
 
 // check the window2D is right
 TEST( MultidimTest, window2D)
 {
-    XMIPP_TRY
     MultidimArray<double> imgLarge, imgSmall, imgWindow;
 
     imgLarge.resize(4,4);
@@ -350,6 +342,4 @@ TEST( MultidimTest, window2D)
     imgWindow-=imgSmall;
     imgWindow.selfABS();
     EXPECT_EQ(imgWindow.sum(),0);
-
-    XMIPP_CATCH
 }

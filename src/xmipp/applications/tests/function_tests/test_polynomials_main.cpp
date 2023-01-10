@@ -20,15 +20,7 @@ protected:
         path+="/xmipp/resources/test";
         if (chdir(path.c_str()) != 0 ) FAIL() << "Could not change path to: " << path;
         imageName =  "polynomials/down1_42_Periodogramavg.psd";
-        try
-        {
-            im.read(imageName);
-        }
-        catch (XmippError &xe)
-        {
-            std::cerr << xe;
-            exit(-1);
-        }
+        im.read(imageName);
     }
     //Image to be fitted:
     Image<double> im;

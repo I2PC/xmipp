@@ -15,33 +15,19 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-
-        try
-        {
-            //get example images/staks
-            if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-                REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
-            // testBaseName = xmippPath + "/resources/test";
-            imageName = "image/singleImage.spi";
-
-        }
-        catch (XmippError &xe)
-        {
-            std::cerr << xe;
-            exit(-1);
-        }
+        //get example images/staks
+        if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+        // testBaseName = xmippPath + "/resources/test";
+        imageName = "image/singleImage.spi";
     }
-
     // virtual void TearDown() {}//Destructor
     Image<double> myImageFloat;
     FileName imageName;
-
-
 };
 
 TEST_F( CtfTest, generateImageWithTwoCTFs)
 {
-    XMIPP_TRY
     MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 1., objectId);
@@ -57,12 +43,10 @@ TEST_F( CtfTest, generateImageWithTwoCTFs)
     img().alias(in);
     //img.write("/tmp/kk.mrc");
     EXPECT_TRUE(true);
-    XMIPP_CATCH
 }
 
 TEST_F( CtfTest, errorBetween2CTFs)
 {
-    XMIPP_TRY
     MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 2.1, objectId);
@@ -88,12 +72,10 @@ TEST_F( CtfTest, errorBetween2CTFs)
                              256,
                              0.05,0.25);
     EXPECT_FLOAT_EQ(error,7121.4971);
-    XMIPP_CATCH
 }
 
 TEST_F( CtfTest, errorMaxFreqCTFs)
 {
-    XMIPP_TRY
     MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 2., objectId);
@@ -111,12 +93,10 @@ TEST_F( CtfTest, errorMaxFreqCTFs)
 //    }
     resolution = errorMaxFreqCTFs(metadata1,HALFPI);
     EXPECT_FLOAT_EQ(resolution,7.6852355);
-    XMIPP_CATCH
 }
 
 TEST_F( CtfTest, errorMaxFreqCTFs2D)
 {
-    XMIPP_TRY
     MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 2., objectId);
@@ -140,12 +120,10 @@ TEST_F( CtfTest, errorMaxFreqCTFs2D)
     double resolution = errorMaxFreqCTFs2D(metadata1,
                              metadata2,256,HALFPI);
     EXPECT_NEAR(resolution,13.921659080780355,0.00001);
-    XMIPP_CATCH
 }
 
 TEST_F( CtfTest, phaseFlip)
 {
-    XMIPP_TRY
     MetaDataVec metadata1;
     long objectId = metadata1.addObject();
     metadata1.setValue(MDL_CTF_SAMPLING_RATE, 1., objectId);
@@ -169,6 +147,4 @@ TEST_F( CtfTest, phaseFlip)
     delta().computeStats(avgval, devval, minval, maxval);
     EXPECT_NEAR(devval,0.003906,0.0001);
     EXPECT_NEAR(maxval,0.017565,0.0001);
-
-    XMIPP_CATCH
 }
