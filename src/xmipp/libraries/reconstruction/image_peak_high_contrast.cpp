@@ -876,6 +876,16 @@ void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 		}
 	}
 
+	#ifdef DEBUG_DIST
+	std::cout << "3D coordinates after clustering: " << std::endl;
+	
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
+	}
+	#endif
+
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
 	#endif
@@ -1023,7 +1033,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
 		#ifdef DEBUG_CENTER_COORDINATES
-		std::cout << "-------------------- coordinate " << n << std::endl;
+		std::cout << "-------------------- coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
 		#endif
 
 		// Construct feature and its mirror symmetric. We quadruple the size to include a feature two times
@@ -1210,6 +1220,16 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		#endif
 	}
 
+	#ifdef DEBUG_CENTER_COORDINATES
+	std::cout << "3D coordinates after centering: " << std::endl;
+	
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
+	}
+	#endif
+
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
 	#endif
@@ -1253,14 +1273,17 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 
 				if (distance < maxDistance && deleteCoordinatesVector[i] == 0 && deleteCoordinatesVector[j] == 0)
 				{
-					#ifdef DEBUG_REMOVE_DUPLICATES
-					std::cout << "distance match between coordinates " << i << " and " << j  << std::endl;
-					#endif
-
 					Point3D<double> p((coordinates3D[i].x + coordinates3D[j].x)/2, 
 									  (coordinates3D[i].y + coordinates3D[j].y)/2, 
 									  (coordinates3D[i].z + coordinates3D[j].z)/2);
 					newCoordinates3D.push_back(p);
+
+					#ifdef DEBUG_REMOVE_DUPLICATES
+					std::cout << "distance match between coordinates " << i << " and " << j << ": " << sqrt(distance) << std::endl;
+					std::cout << "Coordinate " << i << ": (" << coordinates3D[i].x << ", " << coordinates3D[i].y << ", " << coordinates3D[i].z << ")"  << std::endl;
+					std::cout << "Coordinate " << j << ": (" << coordinates3D[j].x << ", " << coordinates3D[j].y << ", " << coordinates3D[j].z << ")"  << std::endl;
+					std::cout << "Average coordinate: " << p.x << ", " << p.y << ", " << p.z << ")"  << std::endl;
+					#endif
 					
 					deleteCoordinatesVector[i] = 1;
 					deleteCoordinatesVector[j] = 1;
@@ -1353,6 +1376,16 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 		std::string rawname = fnOut.substr(0, lastindex);
 		outputFileNameSubtomo = rawname + "_RD_" + std::to_string(n) + "_feature.mrc";
 		subtomo.write(outputFileNameSubtomo);
+	}
+	#endif
+
+	#ifdef DEBUG_REMOVE_DUPLICATES
+	std::cout << "3D coordinates after clustering: " << std::endl;
+	
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
 	}
 	#endif
 
@@ -1550,7 +1583,7 @@ void ProgImagePeakHighContrast::run()
 
 	removeDuplicatedCoordinates(inputTomo);
 
-	// filterCoordinatesByCorrelation(inputTomo);
+	filterCoordinatesByCorrelation(inputTomo);
 
 	writeOutputCoordinates();
 	
