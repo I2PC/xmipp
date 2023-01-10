@@ -11,6 +11,7 @@ from time import time
 maxSize = 400
 
 if __name__=="__main__":
+    print("----in deep_center_predict----", flush = True)
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -31,6 +32,7 @@ if __name__=="__main__":
         'Generates data for fnImgs'
         def __init__(self, fnImgs, mode, maxSize, dim, readInMemory):
             'Initialization'
+            print("----------Initialization---------", flush = True)
             self.fnImgs = fnImgs
             self.mode = mode
             self.maxSize = maxSize
@@ -116,6 +118,7 @@ if __name__=="__main__":
                 rots /= norm(rots)
                 print(rots)
                 rots_degree = (math.atan2(rots[1], rots[0]))*180/math.pi
+                print(rots_degree)
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
             elif mode == "Tilt":
                 tilts = Y[ID]
@@ -123,7 +126,6 @@ if __name__=="__main__":
                 print(tilts)
                 tilts_degree = (math.atan2(tilts[1], tilts[0]))*180/math.pi
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
-                
             ID+=1      
         mdExp.write("test_prueba.xmd")     
                 
@@ -134,13 +136,17 @@ if __name__=="__main__":
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
 
     start_time = time()
+    print("----Loading model----", flush=True)
+    print(fnModel, flush = True)
 
     model = load_model(fnModel)
+    print("----model loaded!----", flush=True)
     manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
     
     produce_output(mdExp, mode, len(fnImgs), Y)
-    
+
+    print(mdExp)
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)

@@ -8,17 +8,20 @@ import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
 
+print("------------------------------------------------", flush=True)
 if __name__=="__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
+
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
+    print("------------------", flush = True)
+    print(fnModel, flush = True)
     mode = sys.argv[3]
     sigma = float(sys.argv[4])
     numEpochs = int(sys.argv[5])
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
-
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
@@ -38,16 +41,27 @@ if __name__=="__main__":
         'Generates data for fnImgs'
         def __init__(self, fnImgs, labels, mode, sigma, batch_size, dim, readInMemory):
             'Initialization'
+            print("----------Initialization---------")
             self.fnImgs = fnImgs
+            print("number of fnImgs:", len(fnImgs))
             self.labels = labels
+            print("number of labels", len(labels))
             self.mode = mode
+            print("mode:", mode)
             self.sigma = sigma
+            print("sigma:", sigma)
             self.batch_size = batch_size
+            if self.batch_size>len(self.fnImgs):
+                self.batch_size=len(self.fnImgs)
+            print("batch_size:", batch_size)
             self.dim = dim
-            self.readInMemory=readInMemory
+            print("dim:", dim)
+            self.readInMemory = readInMemory
+            print("readInMemory:", readInMemory)
             self.on_epoch_end()
-            
+            print("on_epoch_end:", self.on_epoch_end())
 
+            print("-----------Reading data in memory-----------")
             # Read all data in memory
             if self.readInMemory:
                 self.Xexp = np.zeros((len(self.labels),self.dim,self.dim,1),dtype=np.float64)
@@ -57,18 +71,17 @@ if __name__=="__main__":
 
         def __len__(self):
             'Denotes the number of batches per epoch'
-            return int(np.floor((len(self.labels)) / self.batch_size))
+            num_batches = int(np.floor((len(self.labels)) / self.batch_size))
+            return num_batches
 
         def __getitem__(self, index):
             'Generate one batch of data'
             # Generate indexes of the batch
             indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-
             # Find list of IDs
             list_IDs_temp = []
             for i in range(int(self.batch_size)):
                 list_IDs_temp.append(indexes[i])
-
             # Generate data
             Xexp, y = self.__data_generation(list_IDs_temp)
 
@@ -76,12 +89,14 @@ if __name__=="__main__":
 
         def on_epoch_end(self):
             'Updates indexes after each epoch'
+            print("on_epoch_end", flush=True)
             self.indexes = [i for i in range(len(self.labels))]
             np.random.shuffle(self.indexes)
 
         def __data_generation(self, list_IDs_temp):
             'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
             # Initialization
+            print("__data_generation", flush=True)
             Xexp = np.zeros((self.batch_size,self.dim,self.dim,1),dtype=np.float64)
             y = np.empty((self.batch_size,2), dtype=np.int64)
 
@@ -108,11 +123,11 @@ if __name__=="__main__":
                         Xexp[i,] = rotate(Iexp, rAngle, order=1, mode='reflect', reshape=False)
                     angle = (self.labels[ID]+rAngle)*math.pi/180
                     y[i,] = np.array((math.cos(angle), math.sin(angle)))
-
             return Xexp, y
 
 
     def constructModel(Xdim):
+        print("constructModel", flush=True)
         inputLayer = Input(shape=(Xdim,Xdim,1), name="input")
 
         #Network model
@@ -128,16 +143,16 @@ if __name__=="__main__":
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
         # L = Dropout(0.2)(L)
-        L = Flatten() (L)
+        L = Flatten()(L)
+        L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
         L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
         L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
         L = Dense(2, name="output", activation="linear") (L)
         return Model(inputLayer, L)
-
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
-
     mdExp = xmippLib.MetaData(fnXmdExp)
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
     shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
@@ -155,7 +170,6 @@ if __name__=="__main__":
         labels = rots
     elif mode == "Tilt":
         labels = tilts
-
     # Generator
     training_generator = DataGenerator(fnImgs, labels, mode, sigma, batch_size, Xdim, readInMemory=False)
 
