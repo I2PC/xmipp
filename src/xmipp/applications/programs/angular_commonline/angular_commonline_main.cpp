@@ -29,22 +29,9 @@
 int main(int argc, char **argv)
 {
     Prog_Angular_CommonLine prm;
-    try {
-        prm.read(argc,(const char **)argv);
-    } catch (XmippError &xe)
-    {
-        std::cout << xe << std::endl;
-        prm.usage();
-        return 1;
-    }
-    try {
-        prm.show();
-        prm.produceSideInfo();
-        prm.run();
-    } catch (XmippError &xe)
-    {
-        std::cout << xe << std::endl;
-        return 2;
-    }
+    prm.read(argc,(const char **)argv);
+    prm.show();
+    prm.produceSideInfo();
+    prm.run();
     return 0;
 }

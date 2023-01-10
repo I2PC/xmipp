@@ -334,15 +334,7 @@ void ProgAngularProjectLibrary::run()
     mysampling.createAsymUnitFile(output_file_root);
     //all nodes
     //If there is no reference available exit
-    try
-    {
-        inputVol.read(input_volume);
-    }
-    catch (XmippError XE)
-    {
-        std::cout << XE;
-        exit(0);
-    }
+    inputVol.read(input_volume);
     inputVol().setXmippOrigin();
     Xdim = XSIZE(inputVol());
     Ydim = YSIZE(inputVol());
