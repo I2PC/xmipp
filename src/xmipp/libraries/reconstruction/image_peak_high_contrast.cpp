@@ -1179,7 +1179,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		coordHalfZ = coordinates3D[n].z - boxSize;
 
 		for(int k = 0; k < doubleBoxSize; k++) // zDim
-		{	
+		{
 			for(int j = 0; j < doubleBoxSize; j++) // xDim
 			{
 				for(int i = 0; i < doubleBoxSize; i++) // yDim
@@ -1193,9 +1193,9 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 					}
 					else
 					{
-						DIRECT_A3D_ELEM(centerFeature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
-																			      coordHalfZ + k, 
-																			      coordHalfY + i, 
+						DIRECT_A3D_ELEM(centerFeature, k, i, j) = DIRECT_A3D_ELEM(volFiltered,
+																			      coordHalfZ + k,
+																			      coordHalfY + i,
 																			      coordHalfX + j);
 					}
 				}
