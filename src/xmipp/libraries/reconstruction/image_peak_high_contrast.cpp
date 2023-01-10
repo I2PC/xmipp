@@ -1217,7 +1217,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 
 
-void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
+void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Removing duplicated coordinates..." << std::endl;
@@ -1235,7 +1235,7 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 	{
 		#ifdef DEBUG_REMOVE_DUPLICATES
 		iteration +=1;
-		std::cout << "STARTING ITERATION " << iteration<< std::endl;
+		std::cout << "------------------------STARTING ITERATION " << iteration<< std::endl;
 		std::cout << "coordinates3D.size() " << coordinates3D.size() << std::endl;
 		#endif
 
@@ -1299,7 +1299,62 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 
 		newCoordinates3D.clear();
 	}
-	while (deletedCoordinates>0);	
+	while (deletedCoordinates>0);
+
+
+	#ifdef DEBUG_REMOVE_DUPLICATES
+	// Construct and save the every coordinate after removing duplicates
+	size_t numberOfFeatures = coordinates3D.size();
+
+	int coordHalfX;
+	int coordHalfY;
+	int coordHalfZ;
+
+	int halfBoxSize = boxSize / 2;
+
+	MultidimArray<double> feature;
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		feature.initZeros(boxSize, boxSize, boxSize);
+
+		coordHalfX = coordinates3D[n].x - halfBoxSize;
+		coordHalfY = coordinates3D[n].y - halfBoxSize;
+		coordHalfZ = coordinates3D[n].z - halfBoxSize;
+
+		for(int k = 0; k < boxSize; k++) // zDim
+		{	
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					// Check coordinate is not out of volume
+					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+						(coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+					{
+						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
+					}
+					else
+					{
+						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+																					coordHalfZ + k, 
+																					coordHalfY + i, 
+																					coordHalfX + j);
+					}
+				}
+			}
+		}
+
+		Image<double> subtomo;
+		subtomo() = feature;
+		std::string outputFileNameSubtomo;
+		size_t lastindex = fnOut.find_last_of(".");
+		std::string rawname = fnOut.substr(0, lastindex);
+		outputFileNameSubtomo = rawname + "_RD_" + std::to_string(n) + "_feature.mrc";
+		subtomo.write(outputFileNameSubtomo);
+	}
+	#endif
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Removing duplicated coordinates finished succesfully!!" << std::endl;
@@ -1368,11 +1423,25 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 			}
 		}
 
-		// feature.rangeAdjust(-1, 1);
-		// mirrorFeature.rangeAdjust(-1, 1);
-
 		feature.statisticsAdjust(0.0, 1.0);
 		mirrorFeature.statisticsAdjust(0.0, 1.0);
+
+		#ifdef DEBUG_FILTER_COORDINATES
+		Image<double> subtomo;
+
+		std::cout << "Feature dimensions (" << XSIZE(feature) << ", " << YSIZE(feature) << ", " << ZSIZE(feature) << ")" << std::endl;
+		subtomo() = feature;
+		size_t lastindex = fnOut.find_last_of(".");
+		std::string rawname = fnOut.substr(0, lastindex);
+		std::string outputFileNameSubtomo;
+		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_FC_feature.mrc";
+		subtomo.write(outputFileNameSubtomo);
+
+		std::cout << "Mirror feature dimensions (" << XSIZE(mirrorFeature) << ", " << YSIZE(mirrorFeature) << ", " << ZSIZE(mirrorFeature) << ")" << std::endl;
+		subtomo() = mirrorFeature;
+		outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_FC_mirrorFeature.mrc";
+		subtomo.write(outputFileNameSubtomo);
+		#endif
 
 		// Calculate scalar product
 		for(int k = 0; k < boxSize; k++) // zDim
@@ -1479,9 +1548,9 @@ void ProgImagePeakHighContrast::run()
 		centerCoordinates(inputTomo);
 	}
 
-	removeDuplicatedCoordinates();
+	removeDuplicatedCoordinates(inputTomo);
 
-	filterCoordinatesByCorrelation(inputTomo);
+	// filterCoordinatesByCorrelation(inputTomo);
 
 	writeOutputCoordinates();
 	
