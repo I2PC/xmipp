@@ -64,17 +64,22 @@ public:
     FileName fnVol;
     FileName fnOut;
 
-    /** Threshold */
+    /** Fiducial size in angstroms */
     double fiducialSize;
-    double samplingRate;
-    double sdThreshold;
 
-    /** Number of slices and original centers of mass */
+    /** Sampling rate */
+    double samplingRate;
+
+    /** Box size */
     int boxSize;
+
+    /** Number of samplig slices to calculate mean and SD of the tomogram*/
     int numberSampSlices;
-    int numberCenterOfMass;
-    int distanceThr;
-    int numberOfCoordinatesThr;
+
+    /** Thresholds */
+    double sdThr;             // Number of SD over the mean to consider a coordinate value as an outlier
+    int numberOfCoordinatesThr;     // Minimum number of coordinates to keep a label
+    double mirrorCorrelationThr;    // Minimum correlation between a fiducial and its mirror
 
     /** Fiducial size in pixels */
      double fiducialSizePx;
@@ -103,9 +108,6 @@ private:
 
     /** Vector saving 3D coordinates */
     std::vector<Point3D<double>> coordinates3D;
-
-    /** Thresholds */
-    double mirrorCorrelationThr = 0.1;  // Minimum correlation between a fiducial and its mirror
 
 public:
 
