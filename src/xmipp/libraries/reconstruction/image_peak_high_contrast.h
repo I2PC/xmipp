@@ -44,7 +44,7 @@
 #include <data/point2D.h>
 
 #define VERBOSE_OUTPUT
-#define DEBUG_OUTPUT_FILES
+// #define DEBUG_OUTPUT_FILES
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
 // #define DEBUG_HCC
@@ -61,20 +61,31 @@ class ProgImagePeakHighContrast : public XmippProgram
 
 public:
     /** Filenames */
-    FileName fnVol, fnOut;
+    FileName fnVol;
+    FileName fnOut;
 
     /** Threshold */
-    double fiducialSize, samplingRate, sdThreshold;
+    double fiducialSize;
+    double samplingRate;
+    double sdThreshold;
 
     /** Number of slices and original centers of mass */
-    int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
+    int boxSize;
+    int numberSampSlices;
+    int numberCenterOfMass;
+    int distanceThr;
+    int numberOfCoordinatesThr;
 
     /** Center features **/
     bool centerFeatures;
 
-    double fiducialSizePx;
+    /** Fiducial size in pixels */
+     double fiducialSizePx;
 
+    /** Centralized Fourier transformer */
    	FourierTransformer transformer;
+
+    /** Centralized Image for handlign tomogram */
 	Image<double> V;
 
     
@@ -84,80 +95,118 @@ private:
 	size_t ySize;
 	size_t zSize;
 	size_t nSize;
+
+    /** Biggest tomogram size used for normalization */
 	size_t normDim;
 
-    /** Vectors for centers of mass components after coordinates clusterings */
+    /** Vectors saving centers of mass components after coordinates clusterings */
     std::vector<int> centerOfMassX;
     std::vector<int> centerOfMassY;
     std::vector<int> centerOfMassZ;
 
-    /** Vector for saving 3D coordinates */
+    /** Vector saving 3D coordinates */
     std::vector<Point3D<double>> coordinates3D;
 
     /** Thresholds */
-    double mirrorCorrelationThr = 0.1; // Minimum correlation between a gold bead and its mirror
+    double mirrorCorrelationThr = 0.1;  // Minimum correlation between a fiducial and its mirror
 
 public:
 
-    void readParams();
-    void defineParams();
-    void generateSideInfo();
+    // --------------------- IN/OUT FUNCTIONS -----------------------------
 
     /**
-     * Smoothing and filtering the input volume.
-     *
-     * @param
-     * @return
-     *
+     * Read input program parameters.
+    */
+    void readParams();
+
+    /**
+     * Define input program parameters.
+    */
+    void defineParams();
+
+    /**
+     * Write output coordinates metadata.
+    */
+    void writeOutputCoordinates();
+
+
+    // ---------------------- MAIN FUNCTIONS -----------------------------
+
+    /**
+     * Proprocessing of the input volume. Slice averaging (5 slices), bandpass filtering at 
+     * the gold bead size, and apply laplacian. 
     */
     void preprocessVolume(MultidimArray<double> &inputTomo);
-    // void preprocessVolume(MultidimArray<double> &inputTomo, MultidimArray<double> &preprocessedTomo);
 
     /**
-     * Peaks the high contrast regions in a volume.
-     *
-     * @param
-     * @return
-     *
+     * Peak high contrast coordinates in a volume. Detect coordinates with an outlier value, 
+     * generate a binary map to posterior label it, and filter the labeled regions depending on
+     * size and shape. Keep
     */
     void getHighContrastCoordinates(MultidimArray<double> &volFiltered);
 
     /**
-     * Cluster 3d coordinates into its center of mass.
-     *
-     * @param
-     * @return
-     *
+     * Smoothing and filtering the input volume. Use a votting system remove those coodinates
+     * that are not cosistent through different slices, cluster those coordinates that survived
+     * the votting, and averga those coordinates belonging to the same cluster.
     */
-    void clusterHighContrastCoordinates();
     void clusterHCC();
 
     /**
-     * Write obtained coordinates in output file.
-     *
-     * @param
-     * @return
-     *
+     * Center the obtained coordinates from clustering. Shift coordinates to keep the fiducial
+     * centered by calculating the maximum correlation between the peaked feature and its mirror.
     */
     void centerCoordinates(MultidimArray<double> volFiltered);
 
     /**
-     * Center the picked features into the box.
-     *
-     * @param
-     * @return
-     *
+     * Remove duplicated coordinates. Iteratively, merge those coordinates referred to the same 
+     * high contrast feature based on a minimum distance threshold (the fiducial size).
     */
-    void writeOutputCoordinates();
-
-    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
-
-    std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
-
     void removeDuplicatedCoordinates(MultidimArray<double> volFiltered);
+
+    /**
+     * Filter coordinates by the correlation. Calculate the dot product between each feature and 
+     * its mirror, and compare to a correlation threshold.
+    */
     void filterCoordinatesByCorrelation(MultidimArray<double> volFiltered);
 
+
+    // --------------------------- UTILS functions ----------------------------
+
+    /**
+     * Calculate global parameters used through the program.
+    */
+    void generateSideInfo();
+
+    /**
+     * Filter labeled regions. Util method to remove those labeles regions based on their size 
+     * (minimum number of points that should contain) and shape (present a globular structure,
+     * as expected from a gold bead).
+    */
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+
+    /**
+     * Get index coordinates from slice. Return the index in the 3D coordinates vector of those 
+     * coordinates belonging to the specified slice.
+    */
+    std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
+
+
+    // --------------------------- MAIN ----------------------------------
+
+    /**
+     * Run main program.
+    */
     void run();
+
+
+
+
+
+    // /**
+    //  * Cluster 3D coordinates into centers of mass. 
+    // */
+    // void clusterHighContrastCoordinates();
 };
 
 #endif

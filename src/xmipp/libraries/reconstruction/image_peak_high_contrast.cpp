@@ -28,6 +28,8 @@
 
 
 
+// --------------------- IN/OUT FUNCTIONS -----------------------------
+
 void ProgImagePeakHighContrast::readParams()
 {
 	fnVol = getParam("--vol");
@@ -42,7 +44,6 @@ void ProgImagePeakHighContrast::readParams()
 	samplingRate = getDoubleParam("--samplingRate");
 	centerFeatures = checkParam("--centerFeatures");
 }
-
 
 
 void ProgImagePeakHighContrast::defineParams()
@@ -62,21 +63,33 @@ void ProgImagePeakHighContrast::defineParams()
 }
 
 
-
-void ProgImagePeakHighContrast::generateSideInfo()
+void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Generating side info..." << std::endl;
+	std::cout << "Saving output coordinates... " << std::endl;
 	#endif
 
-	fiducialSizePx = fiducialSize / samplingRate;
+	MetaDataVec md;
+	size_t id;
 
+	for(size_t i = 0 ;i < coordinates3D.size(); i++)
+	{
+		id = md.addObject();
+		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
+		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
+	}
+
+	md.write(fnOut);
+	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Side info generated successfully!" << std::endl;
+	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
 }
 
 
+
+// ---------------------- MAIN FUNCTIONS -----------------------------
 
 void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
 {
@@ -294,7 +307,6 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 }
 
 
-
 void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> &inputTomo)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -469,7 +481,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	V.write(outputFileNameLabeledVolume);
 	#endif
 }
-
 
 
 void ProgImagePeakHighContrast::clusterHCC()
@@ -724,294 +735,6 @@ void ProgImagePeakHighContrast::clusterHCC()
 }
 
 
-
-void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Clustering coordinates..." << std::endl;
-	#endif
-
-	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
-	std::vector<std::vector<int>> centerOfMassXAcc;
-	std::vector<std::vector<int>> centerOfMassYAcc;
-	std::vector<std::vector<int>> centerOfMassZAcc;
-
-	for(int i=0;i<numberCenterOfMass;i++)
-	{
-		int randomIndex = rand() % coordinates3D.size();
-
-		int cx = coordinates3D[randomIndex].x;
-		int cy = coordinates3D[randomIndex].y;
-		int cz = coordinates3D[randomIndex].z;
-		centerOfMassX.push_back(cx);
-		centerOfMassY.push_back(cy);
-		centerOfMassZ.push_back(cz);
-
-		std::vector<int> newCenterOfMassX;
-		std::vector<int> newCenterOfMassY;
-		std::vector<int> newCenterOfMassZ;
-
-		newCenterOfMassX.push_back(cx);
-		newCenterOfMassY.push_back(cy);
-		newCenterOfMassZ.push_back(cz);
-
-		centerOfMassXAcc.push_back(newCenterOfMassX);
-		centerOfMassYAcc.push_back(newCenterOfMassY);
-		centerOfMassZAcc.push_back(newCenterOfMassZ);
-	}
-
-	int squareDistanceThr = distanceThr*distanceThr;
-	bool attractedToMassCenter = false;
-
-	for(size_t i = 0; i < coordinates3D.size(); i++)
-	{
-		// Check if the coordinate is attracted to any centre of mass
-		attractedToMassCenter = false; 
-
-		int xCoor = coordinates3D[i].x;
-		int yCoor = coordinates3D[i].y;
-		int zCoor = coordinates3D[i].y;
-
-		for(size_t j = 0; j < centerOfMassX.size(); j++)
-		{
-			int xCM = centerOfMassX[j];
-			int yCM = centerOfMassY[j];
-			int zCM = centerOfMassZ[j];
-
-			int squareDistance = (xCoor-xCM)*(xCoor-xCM)+(yCoor-yCM)*(yCoor-yCM)+(zCoor-zCM)*(zCoor-zCM);
-			
-			#ifdef DEBUG_DIST
-			std::cout << "-----------------------------------------------------------------------" << std::endl;
-			std::cout << "distance: " << squareDistance<< std::endl;
-			std::cout << "threshold: " << squareDistanceThr<< std::endl;
-			#endif
-
-			if(squareDistance < squareDistanceThr)
-			{
-				// Update center of mass with new coordinate
-				centerOfMassX[j]=xCM+(xCoor-xCM)/2;
-				centerOfMassY[j]=yCM+(yCoor-yCM)/2;
-				centerOfMassZ[j]=zCM+(zCoor-zCM)/2;
-
-				// Add all the coordinate vectors to each center of mass
-				centerOfMassXAcc[j].push_back(xCoor);
-				centerOfMassYAcc[j].push_back(yCoor);
-				centerOfMassZAcc[j].push_back(zCoor);
-
-				attractedToMassCenter = true;
-				break;
-			}
-		}
-
-		if (attractedToMassCenter == false)
-		{
-			centerOfMassX.push_back(xCoor);
-			centerOfMassY.push_back(yCoor);
-			centerOfMassZ.push_back(zCoor);
-
-			std::vector<int> newCenterOfMassX;
-			std::vector<int> newCenterOfMassY;
-			std::vector<int> newCenterOfMassZ;
-
-			newCenterOfMassX.push_back(xCoor);
-			newCenterOfMassY.push_back(yCoor);
-			newCenterOfMassZ.push_back(zCoor);
-
-			centerOfMassXAcc.push_back(newCenterOfMassX);
-			centerOfMassYAcc.push_back(newCenterOfMassY);
-			centerOfMassZAcc.push_back(newCenterOfMassZ);
-		}
-	}
-
-	// Update the center of mass coordinates as the average of the accumulated vectors
-	for(size_t i = 0; i < centerOfMassX.size(); i++)
-	{
-		int sumX = 0;
-		int sumY = 0;
-		int sumZ = 0;
-		size_t centerOfMassAccSize = centerOfMassXAcc[i].size();
-
-		for( size_t j = 0; j < centerOfMassAccSize; j++)
-		{
-			sumX += centerOfMassXAcc[i][j];
-			sumY += centerOfMassYAcc[i][j];
-			sumZ += centerOfMassZAcc[i][j];
-		}
-
-		centerOfMassX[i] = sumX / centerOfMassAccSize;
-		centerOfMassY[i] = sumY / centerOfMassAccSize;
-		centerOfMassZ[i] = sumZ / centerOfMassAccSize;
-	}
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Prunning coordinates..." << std::endl;
-	#endif
-
-	for(size_t i=0;i<centerOfMassX.size();i++)
-	{
-		// Check that coordinates at the border of the volume are not outside when considering the box size
-		if(centerOfMassX[i]<boxSize/2 or xSize-centerOfMassX[i]<boxSize/2 or
-		   centerOfMassY[i]<boxSize/2 or ySize-centerOfMassY[i]<boxSize/2 or
-		   centerOfMassZ[i]<boxSize/2 or zSize-centerOfMassZ[i]<boxSize/2)
-		{
-			centerOfMassX.erase(centerOfMassX.begin()+i);
-			centerOfMassY.erase(centerOfMassY.begin()+i);
-			centerOfMassZ.erase(centerOfMassZ.begin()+i);
-			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
-			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
-			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
-			i--;
-		}
-
-		// Check that number of coordinates per center of mass is higher than numberOfCoordinatesThr threshold
-		if(centerOfMassXAcc[i].size() < numberOfCoordinatesThr)
-		{
-			centerOfMassX.erase(centerOfMassX.begin()+i);
-			centerOfMassY.erase(centerOfMassY.begin()+i);
-			centerOfMassZ.erase(centerOfMassZ.begin()+i);
-			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
-			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
-			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
-			i--;
-		}
-	}
-
-	#ifdef DEBUG_DIST
-	std::cout << "3D coordinates after clustering: " << std::endl;
-	
-	for(size_t n = 0; n < numberOfFeatures; n++)
-	{
-		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
-
-	}
-	#endif
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
-	#endif
-}
-
-
-
-// void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
-// {
-// 	#ifdef VERBOSE_OUTPUT
-// 	std::cout << "Centering coordinates..." << std::endl;
-// 	#endif
-
-// 	size_t halfBoxSize = boxSize / 2;
-// 	size_t numberOfFeatures = coordinates3D.size();
-
-// 	MultidimArray<double> feature;
-// 	MultidimArray<double> mirrorFeature;
-// 	MultidimArray<double> correlationVolumeR;
-
-// 	int coordHalfX;
-// 	int coordHalfY;
-// 	int coordHalfZ;
-
-// 	for(size_t n = 0; n < numberOfFeatures; n++)
-// 	{
-// 		// Construct feature and its mirror symmetric
-// 		feature.initZeros(boxSize, boxSize, boxSize);
-// 		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
-		
-// 		for(int k = 0; k < boxSize; k++) // zDim
-// 		{	
-// 			for(int j = 0; j < boxSize; j++) // xDim
-// 			{
-// 				for(int i = 0; i < boxSize; i++) // yDim
-// 				{
-// 					coordHalfX = coordinates3D[n].x - halfBoxSize;
-// 					coordHalfY = coordinates3D[n].y - halfBoxSize;
-// 					coordHalfZ = coordinates3D[n].z - halfBoxSize;
-
-// 					// Check coordinate is not out of volume
-// 					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
-// 					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
-// 						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
-// 					{
-// 						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
-
-// 						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 0;
-// 					}
-// 					else
-// 					{
-// 						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
-// 																			coordHalfZ + k, 
-// 																			coordHalfY + i, 
-// 																			coordHalfX + j);
-
-// 						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
-// 						DIRECT_A3D_ELEM(volFiltered, 
-// 										coordHalfZ + k, 
-// 										coordHalfY + i,
-// 										coordHalfX + j);
-// 					}
-// 				}
-// 			}
-// 		}
-
-// 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
-// 		CorrelationAux aux;
-// 		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
-
-// 		double maximumCorrelation = MINDOUBLE;
-// 		double xDisplacement = 0;
-// 		double yDisplacement = 0;
-// 		double zDisplacement = 0;
-
-// 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(correlationVolumeR)
-// 		{
-// 			double value = DIRECT_A3D_ELEM(correlationVolumeR, k, j, i);
-			
-// 			if (value > maximumCorrelation)
-// 			{
-// 				maximumCorrelation = value;
-// 				xDisplacement = j;
-// 				yDisplacement = i;
-// 				zDisplacement = k;
-// 			}
-// 		}
-
-// 		#ifdef DEBUG_CENTER_COORDINATES
-// 		std::cout << "--------------------" << std::endl;
-// 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-// 		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize / 2) / 2 << std::endl;
-// 		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize / 2) / 2 << std::endl;
-// 		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize / 2) / 2 << std::endl;
-// 		#endif
-
-
-// 		// Update coordinate and remove if it is moved out of the volume
-// 		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - boxSize / 2) / 2;
-// 		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - boxSize / 2) / 2;
-// 		double updatedCoordinateZ = coordinates3D[n].z + ((int) zDisplacement - boxSize / 2) / 2;
-
-// 		int deletedCoordinates = 0;
-	
-// 		if (updatedCoordinateZ < 0 || updatedCoordinateZ > zSize ||
-// 			updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
-// 			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
-// 		{
-// 			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
-// 			deletedCoordinates++;
-// 		}
-// 		else
-// 		{
-// 			coordinates3D[n].x = updatedCoordinateX;
-// 			coordinates3D[n].y = updatedCoordinateY;
-// 			coordinates3D[n].z = updatedCoordinateZ;
-// 		}
-// 	}
-
-// 	#ifdef VERBOSE_OUTPUT
-// 	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
-// 	#endif
-// }
-
-
-
 void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -1236,7 +959,6 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 }
 
 
-
 void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -1395,7 +1117,6 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 }
 
 
-
 void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -1529,31 +1250,6 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 }
 
 
-void ProgImagePeakHighContrast::writeOutputCoordinates()
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Saving output coordinates... " << std::endl;
-	#endif
-
-	MetaDataVec md;
-	size_t id;
-
-	for(size_t i = 0 ;i < coordinates3D.size(); i++)
-	{
-		id = md.addObject();
-		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
-		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
-		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
-	}
-
-	md.write(fnOut);
-	
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
-	#endif
-}
-
-
 
 // --------------------------- MAIN ----------------------------------
 
@@ -1623,6 +1319,20 @@ void ProgImagePeakHighContrast::run()
 
 
 // --------------------------- UTILS functions ----------------------------
+
+void ProgImagePeakHighContrast::generateSideInfo()
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Generating side info..." << std::endl;
+	#endif
+
+	fiducialSizePx = fiducialSize / samplingRate;
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Side info generated successfully!" << std::endl;
+	#endif
+}
+
 
 bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
@@ -1694,7 +1404,6 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 }
 
 
-
 std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t slice)
 {
 	std::vector<size_t> coordinatesInSlice;
@@ -1717,3 +1426,301 @@ std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t
 
 	return coordinatesInSlice;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Clustering coordinates..." << std::endl;
+// 	#endif
+
+// 	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
+// 	std::vector<std::vector<int>> centerOfMassXAcc;
+// 	std::vector<std::vector<int>> centerOfMassYAcc;
+// 	std::vector<std::vector<int>> centerOfMassZAcc;
+
+// 	for(int i=0;i<numberCenterOfMass;i++)
+// 	{
+// 		int randomIndex = rand() % coordinates3D.size();
+
+// 		int cx = coordinates3D[randomIndex].x;
+// 		int cy = coordinates3D[randomIndex].y;
+// 		int cz = coordinates3D[randomIndex].z;
+// 		centerOfMassX.push_back(cx);
+// 		centerOfMassY.push_back(cy);
+// 		centerOfMassZ.push_back(cz);
+
+// 		std::vector<int> newCenterOfMassX;
+// 		std::vector<int> newCenterOfMassY;
+// 		std::vector<int> newCenterOfMassZ;
+
+// 		newCenterOfMassX.push_back(cx);
+// 		newCenterOfMassY.push_back(cy);
+// 		newCenterOfMassZ.push_back(cz);
+
+// 		centerOfMassXAcc.push_back(newCenterOfMassX);
+// 		centerOfMassYAcc.push_back(newCenterOfMassY);
+// 		centerOfMassZAcc.push_back(newCenterOfMassZ);
+// 	}
+
+// 	int squareDistanceThr = distanceThr*distanceThr;
+// 	bool attractedToMassCenter = false;
+
+// 	for(size_t i = 0; i < coordinates3D.size(); i++)
+// 	{
+// 		// Check if the coordinate is attracted to any centre of mass
+// 		attractedToMassCenter = false; 
+
+// 		int xCoor = coordinates3D[i].x;
+// 		int yCoor = coordinates3D[i].y;
+// 		int zCoor = coordinates3D[i].y;
+
+// 		for(size_t j = 0; j < centerOfMassX.size(); j++)
+// 		{
+// 			int xCM = centerOfMassX[j];
+// 			int yCM = centerOfMassY[j];
+// 			int zCM = centerOfMassZ[j];
+
+// 			int squareDistance = (xCoor-xCM)*(xCoor-xCM)+(yCoor-yCM)*(yCoor-yCM)+(zCoor-zCM)*(zCoor-zCM);
+			
+// 			#ifdef DEBUG_DIST
+// 			std::cout << "-----------------------------------------------------------------------" << std::endl;
+// 			std::cout << "distance: " << squareDistance<< std::endl;
+// 			std::cout << "threshold: " << squareDistanceThr<< std::endl;
+// 			#endif
+
+// 			if(squareDistance < squareDistanceThr)
+// 			{
+// 				// Update center of mass with new coordinate
+// 				centerOfMassX[j]=xCM+(xCoor-xCM)/2;
+// 				centerOfMassY[j]=yCM+(yCoor-yCM)/2;
+// 				centerOfMassZ[j]=zCM+(zCoor-zCM)/2;
+
+// 				// Add all the coordinate vectors to each center of mass
+// 				centerOfMassXAcc[j].push_back(xCoor);
+// 				centerOfMassYAcc[j].push_back(yCoor);
+// 				centerOfMassZAcc[j].push_back(zCoor);
+
+// 				attractedToMassCenter = true;
+// 				break;
+// 			}
+// 		}
+
+// 		if (attractedToMassCenter == false)
+// 		{
+// 			centerOfMassX.push_back(xCoor);
+// 			centerOfMassY.push_back(yCoor);
+// 			centerOfMassZ.push_back(zCoor);
+
+// 			std::vector<int> newCenterOfMassX;
+// 			std::vector<int> newCenterOfMassY;
+// 			std::vector<int> newCenterOfMassZ;
+
+// 			newCenterOfMassX.push_back(xCoor);
+// 			newCenterOfMassY.push_back(yCoor);
+// 			newCenterOfMassZ.push_back(zCoor);
+
+// 			centerOfMassXAcc.push_back(newCenterOfMassX);
+// 			centerOfMassYAcc.push_back(newCenterOfMassY);
+// 			centerOfMassZAcc.push_back(newCenterOfMassZ);
+// 		}
+// 	}
+
+// 	// Update the center of mass coordinates as the average of the accumulated vectors
+// 	for(size_t i = 0; i < centerOfMassX.size(); i++)
+// 	{
+// 		int sumX = 0;
+// 		int sumY = 0;
+// 		int sumZ = 0;
+// 		size_t centerOfMassAccSize = centerOfMassXAcc[i].size();
+
+// 		for( size_t j = 0; j < centerOfMassAccSize; j++)
+// 		{
+// 			sumX += centerOfMassXAcc[i][j];
+// 			sumY += centerOfMassYAcc[i][j];
+// 			sumZ += centerOfMassZAcc[i][j];
+// 		}
+
+// 		centerOfMassX[i] = sumX / centerOfMassAccSize;
+// 		centerOfMassY[i] = sumY / centerOfMassAccSize;
+// 		centerOfMassZ[i] = sumZ / centerOfMassAccSize;
+// 	}
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Prunning coordinates..." << std::endl;
+// 	#endif
+
+// 	for(size_t i=0;i<centerOfMassX.size();i++)
+// 	{
+// 		// Check that coordinates at the border of the volume are not outside when considering the box size
+// 		if(centerOfMassX[i]<boxSize/2 or xSize-centerOfMassX[i]<boxSize/2 or
+// 		   centerOfMassY[i]<boxSize/2 or ySize-centerOfMassY[i]<boxSize/2 or
+// 		   centerOfMassZ[i]<boxSize/2 or zSize-centerOfMassZ[i]<boxSize/2)
+// 		{
+// 			centerOfMassX.erase(centerOfMassX.begin()+i);
+// 			centerOfMassY.erase(centerOfMassY.begin()+i);
+// 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
+// 			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
+// 			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
+// 			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
+// 			i--;
+// 		}
+
+// 		// Check that number of coordinates per center of mass is higher than numberOfCoordinatesThr threshold
+// 		if(centerOfMassXAcc[i].size() < numberOfCoordinatesThr)
+// 		{
+// 			centerOfMassX.erase(centerOfMassX.begin()+i);
+// 			centerOfMassY.erase(centerOfMassY.begin()+i);
+// 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
+// 			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
+// 			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
+// 			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
+// 			i--;
+// 		}
+// 	}
+
+// 	#ifdef DEBUG_DIST
+// 	std::cout << "3D coordinates after clustering: " << std::endl;
+	
+// 	for(size_t n = 0; n < numberOfFeatures; n++)
+// 	{
+// 		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
+// 	}
+// 	#endif
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
+// 	#endif
+// }
+
+
+
+// void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Centering coordinates..." << std::endl;
+// 	#endif
+
+// 	size_t halfBoxSize = boxSize / 2;
+// 	size_t numberOfFeatures = coordinates3D.size();
+
+// 	MultidimArray<double> feature;
+// 	MultidimArray<double> mirrorFeature;
+// 	MultidimArray<double> correlationVolumeR;
+
+// 	int coordHalfX;
+// 	int coordHalfY;
+// 	int coordHalfZ;
+
+// 	for(size_t n = 0; n < numberOfFeatures; n++)
+// 	{
+// 		// Construct feature and its mirror symmetric
+// 		feature.initZeros(boxSize, boxSize, boxSize);
+// 		mirrorFeature.initZeros(boxSize, boxSize, boxSize);
+		
+// 		for(int k = 0; k < boxSize; k++) // zDim
+// 		{	
+// 			for(int j = 0; j < boxSize; j++) // xDim
+// 			{
+// 				for(int i = 0; i < boxSize; i++) // yDim
+// 				{
+// 					coordHalfX = coordinates3D[n].x - halfBoxSize;
+// 					coordHalfY = coordinates3D[n].y - halfBoxSize;
+// 					coordHalfZ = coordinates3D[n].z - halfBoxSize;
+
+// 					// Check coordinate is not out of volume
+// 					if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+// 					    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+// 						(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+// 					{
+// 						DIRECT_A3D_ELEM(feature, k, i, j) = 0;
+
+// 						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 0;
+// 					}
+// 					else
+// 					{
+// 						DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+// 																			coordHalfZ + k, 
+// 																			coordHalfY + i, 
+// 																			coordHalfX + j);
+
+// 						DIRECT_A3D_ELEM(mirrorFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+// 						DIRECT_A3D_ELEM(volFiltered, 
+// 										coordHalfZ + k, 
+// 										coordHalfY + i,
+// 										coordHalfX + j);
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+// 		CorrelationAux aux;
+// 		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
+
+// 		double maximumCorrelation = MINDOUBLE;
+// 		double xDisplacement = 0;
+// 		double yDisplacement = 0;
+// 		double zDisplacement = 0;
+
+// 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(correlationVolumeR)
+// 		{
+// 			double value = DIRECT_A3D_ELEM(correlationVolumeR, k, j, i);
+			
+// 			if (value > maximumCorrelation)
+// 			{
+// 				maximumCorrelation = value;
+// 				xDisplacement = j;
+// 				yDisplacement = i;
+// 				zDisplacement = k;
+// 			}
+// 		}
+
+// 		#ifdef DEBUG_CENTER_COORDINATES
+// 		std::cout << "--------------------" << std::endl;
+// 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+// 		std::cout << "xDisplacement " << ((int) xDisplacement - boxSize / 2) / 2 << std::endl;
+// 		std::cout << "yDisplacement " << ((int) yDisplacement - boxSize / 2) / 2 << std::endl;
+// 		std::cout << "zDisplacement " << ((int) zDisplacement - boxSize / 2) / 2 << std::endl;
+// 		#endif
+
+
+// 		// Update coordinate and remove if it is moved out of the volume
+// 		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - boxSize / 2) / 2;
+// 		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - boxSize / 2) / 2;
+// 		double updatedCoordinateZ = coordinates3D[n].z + ((int) zDisplacement - boxSize / 2) / 2;
+
+// 		int deletedCoordinates = 0;
+	
+// 		if (updatedCoordinateZ < 0 || updatedCoordinateZ > zSize ||
+// 			updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
+// 			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
+// 		{
+// 			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
+// 			deletedCoordinates++;
+// 		}
+// 		else
+// 		{
+// 			coordinates3D[n].x = updatedCoordinateX;
+// 			coordinates3D[n].y = updatedCoordinateY;
+// 			coordinates3D[n].z = updatedCoordinateZ;
+// 		}
+// 	}
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
+// 	#endif
+// }
