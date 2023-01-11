@@ -38,8 +38,8 @@ void ProgImagePeakHighContrast::readParams()
 	fiducialSize = getDoubleParam("--fiducialSize");
 	boxSize = getIntParam("--boxSize");
     numberSampSlices = getIntParam("--numberSampSlices");
-	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	sdThr = getDoubleParam("--sdThr");
+	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	mirrorCorrelationThr = getDoubleParam("--mirrorCorrelationThr");
 }
 
@@ -49,13 +49,13 @@ void ProgImagePeakHighContrast::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume.");
 	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
-  	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
-	addParamsLine("  [--sdThr <sdThr=5>]      								: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
-	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation between a feature and its mirror to consider it a fiducial.");
-  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
-  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
-  	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
+   	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
+ 	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
+  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
+ 	addParamsLine("  [--sdThr <sdThr=5>]      								: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
+ 	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
+	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation between a feature and its mirror to consider it a fiducial.");
 }
 
 
