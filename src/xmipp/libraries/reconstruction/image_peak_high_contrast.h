@@ -76,9 +76,6 @@ public:
     int distanceThr;
     int numberOfCoordinatesThr;
 
-    /** Center features **/
-    bool centerFeatures;
-
     /** Fiducial size in pixels */
      double fiducialSizePx;
 

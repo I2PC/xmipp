@@ -42,7 +42,6 @@ void ProgImagePeakHighContrast::readParams()
 	distanceThr = getIntParam("--distanceThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	samplingRate = getDoubleParam("--samplingRate");
-	centerFeatures = checkParam("--centerFeatures");
 }
 
 
@@ -59,7 +58,6 @@ void ProgImagePeakHighContrast::defineParams()
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
   	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
-	addParamsLine("  [--centerFeatures]										: Center peaked features in box.");
 }
 
 
@@ -701,7 +699,7 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of coordinates obtained after clustering: " << coordinates3D.size() << std::endl;
-	std::cout << "Clustering of coordinates finished successfully!!" << std::endl;
+	std::cout << "Clustering of coordinates finished successfully!" << std::endl;
 	#endif
 
 	// // Generate output labeled and filtered series
@@ -954,7 +952,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	#endif
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
+	std::cout << "Centering of coordinates finished successfully!" << std::endl;
 	#endif
 }
 
@@ -1112,7 +1110,7 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 	#endif
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Removing duplicated coordinates finished succesfully!!" << std::endl;
+	std::cout << "Removing duplicated coordinates finished succesfully!" << std::endl;
 	#endif
 }
 
@@ -1245,7 +1243,7 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	#endif
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Filtering coordinates by correlation finished succesfully!!" << std::endl;
+	std::cout << "Filtering coordinates by correlation finished succesfully!" << std::endl;
 	#endif
 }
 
@@ -1293,16 +1291,13 @@ void ProgImagePeakHighContrast::run()
 	
 	getHighContrastCoordinates(inputTomo);
 
-	// clusterHighContrastCoordinates();
 	clusterHCC();
 
-	if(centerFeatures==true)
-	{
-		V.read(fnVol);
-		MultidimArray<double> &inputTomo=V();
+	// Read again volume (original tomogram is needed, at this point it is labeled)
+	V.read(fnVol);
+	inputTomo=V();
 
-		centerCoordinates(inputTomo);
-	}
+	centerCoordinates(inputTomo);
 
 	removeDuplicatedCoordinates(inputTomo);
 
@@ -1311,9 +1306,10 @@ void ProgImagePeakHighContrast::run()
 	writeOutputCoordinates();
 	
 	auto t2 = high_resolution_clock::now();
-	/* Getting number of milliseconds as an integer. */
-    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+    auto ms_int = duration_cast<milliseconds>(t2 - t1);	// Getting number of milliseconds as an integer
+
  	std::cout << "Execution time: " << ms_int.count() << "ms\n";
+	std::cout << "Program executed succesfully!" << "ms\n";
 }
 
 
@@ -1338,7 +1334,7 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 {
 	#ifdef DEBUG_FILTERLABEL
 	// // Uncomment for phantom
-	// std::cout << "No label filtering, phantom mode!!" << std::endl;
+	// std::cout << "No label filtering, phantom mode!" << std::endl;
 	// return true;
 	#endif
 
@@ -1721,6 +1717,6 @@ std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t
 // 	}
 
 // 	#ifdef VERBOSE_OUTPUT
-// 	std::cout << "Centering of coordinates finished successfully!!" << std::endl;
+// 	std::cout << "Centering of coordinates finished successfully!" << std::endl;
 // 	#endif
 // }
