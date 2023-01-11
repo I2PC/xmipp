@@ -195,15 +195,6 @@ public:
      * Run main program.
     */
     void run();
-
-
-
-
-
-    // /**
-    //  * Cluster 3D coordinates into centers of mass. 
-    // */
-    // void clusterHighContrastCoordinates();
 };
 
 #endif
