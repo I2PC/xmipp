@@ -415,8 +415,6 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 }
 
 void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
-	XMIPP_TRY // in case some method throws a xmipp exception
-
     auto* threadParams = (RecFourierWorkThread *) threadArgs;
     ProgRecFourierGPU* parent = threadParams->parent;
     std::vector<size_t> objId;
@@ -471,8 +469,6 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     threadParams->buffer = NULL;
     threadParams->selFile = NULL;
     barrier_wait( &parent->barrier );// notify that thread finished
-
-	XMIPP_CATCH // catch possible exception
 	return NULL;
 }
 

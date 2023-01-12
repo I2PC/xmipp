@@ -67,9 +67,10 @@ void GeoTransformer<T>::initLazyForMatrix(size_t x, size_t y, size_t z) {
     }
 }
 
-template<typename T>
+template <typename T>
 void GeoTransformer<T>::initForBSpline(size_t inX, size_t inY, size_t inN,
-        size_t splineX, size_t splineY, size_t splineN) {
+                                       size_t splineX, size_t splineY, size_t splineN, const GPU &gpu)
+{
     release();
 
     this->inX = inX;
@@ -93,14 +94,18 @@ void GeoTransformer<T>::initForBSpline(size_t inX, size_t inY, size_t inN,
     gpuErrchk(cudaMalloc((void** ) &d_in, inOutSize_padded * sizeof(T)));
     gpuErrchk(cudaMalloc((void** ) &d_out, inOutSize * sizeof(T)));
 
+    this->gpu = &gpu;
+
     isReadyForBspline = true;
 }
 
-template<typename T>
+template <typename T>
 void GeoTransformer<T>::initLazyForBSpline(size_t inX, size_t inY, size_t inZ,
-        size_t splineX, size_t splineY, size_t splineN) {
-    if (!isReadyForBspline) {
-        initForBSpline(inX, inY, inZ, splineX, splineY, splineN);
+                                           size_t splineX, size_t splineY, size_t splineN, const GPU &gpu)
+{
+    if (!isReadyForBspline)
+    {
+        initForBSpline(inX, inY, inZ, splineX, splineY, splineN, gpu);
     }
 }
 
@@ -184,12 +189,15 @@ void GeoTransformer<T>::applyBSplineTransform(
         MultidimArray<T> &output, const MultidimArray<T> &input,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
     checkRestrictions(3, output, input, coeffs, imageIdx);
+    auto stream = *(cudaStream_t*)gpu->stream();
 
     setOutputSize(output);
     if ( splineDegree > 1 ) {
         produceAndLoadCoeffs(input);
-    } else {
-        gpuErrchk( cudaMemcpy(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice) );
+    }
+    else
+    {
+        gpuErrchk(cudaMemcpyAsync(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice, stream));
     }
 
     loadCoefficients(coeffs.first, coeffs.second);
@@ -205,26 +213,26 @@ void GeoTransformer<T>::applyBSplineTransform(
 
     switch (splineDegree) {
     case 1:
-        applyLocalShiftGeometryKernelMorePixels<T, 1, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
-                d_out, (int)inX, (int)inY, (int)inN,
-                d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
-                hX, hY, tPos);
-            gpuErrchk(cudaPeekAtLastError());
+        applyLocalShiftGeometryKernelMorePixels<T, 1, pixelsPerThread><<<dimGrid, dimBlock, 0, stream>>>(d_coeffsX, d_coeffsY,
+                                                                                              d_out, (int)inX, (int)inY, (int)inN,
+                                                                                              d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
+                                                                                              hX, hY, tPos);
+        gpuErrchk(cudaPeekAtLastError());
         break;
     case 3:
-        applyLocalShiftGeometryKernelMorePixels<T, 3, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
-                d_out, (int)inX, (int)inY, (int)inN,
-                d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
-                hX, hY, tPos);
-            gpuErrchk(cudaPeekAtLastError());
+        applyLocalShiftGeometryKernelMorePixels<T, 3, pixelsPerThread><<<dimGrid, dimBlock, 0, stream>>>(d_coeffsX, d_coeffsY,
+                                                                                              d_out, (int)inX, (int)inY, (int)inN,
+                                                                                              d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
+                                                                                              hX, hY, tPos);
+        gpuErrchk(cudaPeekAtLastError());
         break;
     default:
         REPORT_ERROR(ERR_NOT_IMPLEMENTED, formatString("applyBSplineTransform not implemented for spline degree %d.", splineDegree));
     }
 
     gpuErrchk(
-            cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
-                    cudaMemcpyDeviceToHost));
+        cudaMemcpyAsync(output.data, d_out, output.zyxdim * sizeof(T),
+                   cudaMemcpyDeviceToHost, stream));
 }
 
 template<typename T>
@@ -279,24 +287,26 @@ void GeoTransformer<T>::loadTransform(const Matrix2D<T_MAT> &transform,
                     cudaMemcpyHostToDevice));
 }
 
-template<typename T>
+template <typename T>
 void GeoTransformer<T>::loadCoefficients(const Matrix1D<T> &X,
-        const Matrix1D<T> &Y) {
-     gpuErrchk(
-                 cudaMemcpy(d_coeffsX, X.vdata, X.vdim * sizeof(T),
-                         cudaMemcpyHostToDevice));
-     gpuErrchk(
-                 cudaMemcpy(d_coeffsY, Y.vdata, Y.vdim * sizeof(T),
-                         cudaMemcpyHostToDevice));
+                                         const Matrix1D<T> &Y)
+{
+    gpuErrchk(
+        cudaMemcpyAsync(d_coeffsX, X.vdata, X.vdim * sizeof(T),
+                   cudaMemcpyHostToDevice, *(cudaStream_t*)gpu->stream()));
+    gpuErrchk(
+        cudaMemcpyAsync(d_coeffsY, Y.vdata, Y.vdim * sizeof(T),
+                   cudaMemcpyHostToDevice, *(cudaStream_t*)gpu->stream()));
 }
 
-template<typename T>
+template <typename T>
 void GeoTransformer<T>::produceAndLoadCoeffs(
-    const MultidimArray<T> &input) {
+    const MultidimArray<T> &input)
+{
     gpuErrchk(
-        cudaMemcpy(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice));
+        cudaMemcpyAsync(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice, *(cudaStream_t*)gpu->stream()));
 
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input.xdim, input.ydim);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input.xdim, input.ydim, *(cudaStream_t*)gpu->stream());
 }
 
 

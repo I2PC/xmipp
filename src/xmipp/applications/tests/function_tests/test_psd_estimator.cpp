@@ -7,7 +7,7 @@ class PSD_Estimator_Test : public ::testing::Test {
 public:
     void testHalf2Whole(size_t x, size_t y) {
         // allocate data
-        auto settings = FFTSettingsNew<T>(x, y);
+        auto settings = FFTSettings<T>(x, y);
         auto in = new T[settings.fElemsBatch()];
         auto out = new T[settings.sElemsBatch()];
 

@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <reconstruction/phantom_movie.h>
+#include "core/xmipp_program.h"
+#include "reconstruction/phantom_movie.h"
 
 class PhantomMovieProgram final : public XmippProgram
 {

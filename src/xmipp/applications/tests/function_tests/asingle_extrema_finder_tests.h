@@ -494,7 +494,6 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findLowest3DMany)
 
 TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DAroundCenter)
 {
-    XMIPP_TRY
     auto mt = std::mt19937(42);
     auto nBatch = std::vector<std::pair<size_t, size_t>>(); // n, batch
     nBatch.emplace_back(1, 1);
@@ -513,7 +512,6 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DAroundCenter)
             SingleExtremaFinder_Test<TypeParam>::test(settings);
         }
     }
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DAroundCenterMany)
@@ -534,7 +532,6 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DAroundCenterMany)
 
 TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DAroundCenter)
 {
-    XMIPP_TRY
     auto mt = std::mt19937(42);
     auto nBatch = std::vector<std::pair<size_t, size_t>>(); // n, batch
     nBatch.emplace_back(1, 1);
@@ -553,7 +550,6 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DAroundCenter)
             SingleExtremaFinder_Test<TypeParam>::test(settings);
         }
     }
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DAroundCenterMany)
@@ -574,7 +570,6 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DAroundCenterMany)
 
 //TYPED_TEST_P( SingleExtremaFinder_Test, debug)
 //{
-//    XMIPP_TRY
 //    auto mt = std::mt19937(42);
 //    std::uniform_int_distribution<> dist(1, 500);
 //    for (int i = 0; i < 5; ++i) {
@@ -587,7 +582,6 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DAroundCenterMany)
 //        settings.maxDistFromCenter = 0;
 //        SingleExtremaFinder_Test<TypeParam>::test(settings);
 //    }
-//    XMIPP_CATCH;
 //}
 
 REGISTER_TYPED_TEST_SUITE_P(SingleExtremaFinder_Test,
