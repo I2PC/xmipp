@@ -77,9 +77,12 @@ public:
     int numberSampSlices;
 
     /** Thresholds */
-    double sdThr;             // Number of SD over the mean to consider a coordinate value as an outlier
+    double sdThr;                   // Number of SD over the mean to consider a coordinate value as an outlier
     int numberOfCoordinatesThr;     // Minimum number of coordinates to keep a label
     double mirrorCorrelationThr;    // Minimum correlation between a fiducial and its mirror
+
+    /** Toggle to use relaxed mode*/
+    bool relaxedMode;               // Relaxed mode keeps coordinates when none of them pass the mirror correlation filter
 
     /** Fiducial size in pixels */
      double fiducialSizePx;

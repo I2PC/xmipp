@@ -41,6 +41,7 @@ void ProgImagePeakHighContrast::readParams()
 	sdThr = getDoubleParam("--sdThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	mirrorCorrelationThr = getDoubleParam("--mirrorCorrelationThr");
+	relaxedMode = checkParam("--relaxedMode");
 }
 
 
@@ -56,6 +57,7 @@ void ProgImagePeakHighContrast::defineParams()
  	addParamsLine("  [--sdThr <sdThr=5>]      								: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
 	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation between a feature and its mirror to consider it a fiducial.");
+	addParamsLine("  [--relaxedMode]    									: Relaxed mode keeps coordinates when none of them pass the mirror correlation filter.");
 }
 
 
@@ -1228,8 +1230,19 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	std::cout << "Number of corrdinates filtered by mirror correlation: " << (coordinates3D.size() - newCoordinates3D.size()) << std::endl;
 	#endif
 
-	coordinates3D.clear();
-	coordinates3D = newCoordinates3D;
+	if (newCoordinates3D.size()==0)
+	{
+		if (relaxedMode==false)
+		{
+			coordinates3D.clear();
+			coordinates3D = newCoordinates3D;
+		}
+	}
+	else
+	{
+		coordinates3D.clear();
+		coordinates3D = newCoordinates3D;
+	}
 
 	#ifdef DEBUG_FILTER_COORDINATES
 	std::cout << "3D coordinates after filterign by mirror correlation: " << std::endl;
@@ -1306,8 +1319,8 @@ void ProgImagePeakHighContrast::run()
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1);	// Getting number of milliseconds as an integer
 
- 	std::cout << "Execution time: " << ms_int.count() << "ms\n";
-	std::cout << "Program executed succesfully!" << "ms\n";
+ 	std::cout << "Execution time: " << ms_int.count() << std::endl;
+	std::cout << "Program executed succesfully!" << "ms" << std::endl;
 }
 
 
