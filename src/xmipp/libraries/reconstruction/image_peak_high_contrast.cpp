@@ -387,14 +387,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 		std::cout << "Labeling slice " << k << std::endl;
 		#endif
 
-
-		// MultidimArray<double> labelCoordiantesMapSliceClosing(ySize, xSize);
-		// std::cout << "check1" << std::endl;
-		// closing2D(binaryCoordinatesMapSlice, labelCoordiantesMapSliceClosing, 8, 0, 8);  // neigh, count, size
-		// std::cout << "check2" << std::endl;
-
-		// The value 8 is the neighbourhood
-		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
+		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);	// Value 8 is the neighbourhood
 
 
 		#ifdef DEBUG_OUTPUT_FILES
@@ -696,40 +689,10 @@ void ProgImagePeakHighContrast::clusterHCC()
 
 	coordinates3D = coordinates3D_avg;
 
-
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of coordinates obtained after clustering: " << coordinates3D.size() << std::endl;
 	std::cout << "Clustering of coordinates finished successfully!" << std::endl;
 	#endif
-
-	// // Generate output labeled and filtered series
-	// // *** generate labeled and filtered outputs
-	// #ifdef DEBUG_OUTPUT_FILES
-	// MultidimArray<int> filteredLabeledTS;
-	// filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
-
-	// std::vector<Point2D<double>> cis;
-
-	// for (size_t n = 0; n < nSize; n++)
-	// {
-	// 	cis = getCoordinatesInSlice(n);
-
-	// 	MultidimArray<int> filteredLabeledTS_Image;
-	// 	filteredLabeledTS_Image.initZeros(ySize, xSize);
-
-	// 	for(size_t i = 0; i < cis.size(); i++)
-	// 	{
-	// 		fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
-	// 	}
-
-	// 	for (size_t i = 0; i < ySize; ++i)
-	// 	{
-	// 		for (size_t j = 0; j < xSize; ++j)
-	// 		{
-	// 			DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
-	// 		}
-	// 	}
-	// }
 }
 
 
@@ -871,37 +834,6 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		#ifdef DEBUG_CENTER_COORDINATES
 		// Construct and save the centered feature
 		MultidimArray<double> centerFeature;
-		
-		// centerFeature.initZeros(boxSize, boxSize, boxSize);
-		// int halfBoxSize = boxSize / 2;
-
-		// coordHalfX = coordinates3D[n].x - halfBoxSize;
-		// coordHalfY = coordinates3D[n].y - halfBoxSize;
-		// coordHalfZ = coordinates3D[n].z - halfBoxSize;
-
-		// for(int k = 0; k < boxSize; k++) // zDim
-		// {	
-		// 	for(int j = 0; j < boxSize; j++) // xDim
-		// 	{
-		// 		for(int i = 0; i < boxSize; i++) // yDim
-		// 		{
-		// 			// Check coordinate is not out of volume
-		// 			if ((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
-		// 			    (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
-		// 				(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
-		// 			{
-		// 				DIRECT_A3D_ELEM(centerFeature, k, i, j) = 0;
-		// 			}
-		// 			else
-		// 			{
-		// 				DIRECT_A3D_ELEM(centerFeature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
-		// 																		  coordHalfZ + k, 
-		// 																		  coordHalfY + i, 
-		// 																		  coordHalfX + j);
-		// 			}
-		// 		}
-		// 	}
-		// }
 
 		centerFeature.initZeros(doubleBoxSize, doubleBoxSize, doubleBoxSize);
 
