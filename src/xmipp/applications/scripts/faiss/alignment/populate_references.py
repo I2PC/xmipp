@@ -1,0 +1,112 @@
+from typing import Optional, Sequence
+import torch
+import pandas as pd
+import faiss
+import faiss.contrib.torch_utils
+
+import operators
+import utils
+import image
+import metadata as md
+from .columns import REFERENCE_INDEX
+from .normalize import normalize
+
+def _create_metadata(reference_indices: Sequence[int],
+                     psi_angles: Sequence[float],
+                     x_shifts: Sequence[float],
+                     y_shifts: Sequence[float] ) -> pd.DataFrame:
+        
+    # Create the output md
+    COLUMNS = [
+        REFERENCE_INDEX,
+        md.ANGLE_PSI,
+        md.SHIFT_X,
+        md.SHIFT_Y
+    ]
+    assert(len(reference_indices) == len(psi_angles))
+    assert(len(reference_indices) == len(x_shifts))
+    assert(len(reference_indices) == len(y_shifts))
+    result = pd.DataFrame(
+        data=zip(reference_indices, psi_angles, x_shifts, y_shifts),
+        columns=COLUMNS
+    )
+    
+    return result
+    
+
+def populate_db(db: faiss.Index, 
+                dataset: image.torch_utils.Dataset,
+                rotations: operators.ImageRotator,
+                shifts: operators.FourierShiftFilter,
+                fourier: operators.FourierTransformer2D,
+                flattener: operators.FourierLowPassFlattener,
+                weighter: operators.Weighter,
+                device: Optional[torch.device] = None,
+                batch_size: int = 1024 ) -> pd.DataFrame:
+    
+    n_transform = rotations.get_count() * shifts.get_count()
+
+    # Create the data loader
+    loader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=batch_size,
+        collate_fn=lambda x : torch.utils.data.default_collate(x).to(device, non_blocking=True)
+    )
+
+    # Create arrays for appending MD
+    reference_indices = []
+    psi_angles = []
+    x_shifts = []
+    y_shifts = []
+    
+    # Process in batches
+    start = 0
+    rotated_images = None
+    ft_rotated_images = None
+    flat_ft_rotated_images = None
+    shifted_ft = None
+    utils.progress_bar(0, len(dataset)*n_transform)
+    for images in loader:
+        n_images = images.shape[0]
+        end = start + n_images
+
+        # Add the references as many times as their transformations
+        reference_indices += list(range(start, end)) * n_transform
+        for rot_index in range(rotations.get_count()):
+
+            # Rotate the input image
+            rotated_images = rotations(images, rot_index, out=rotated_images)
+
+            # Compute the fourier transform of the images and flatten and weighten it
+            ft_rotated_images = fourier(rotated_images, out=ft_rotated_images)
+            flat_ft_rotated_images = flattener(ft_rotated_images, out=flat_ft_rotated_images)
+            flat_ft_rotated_images = weighter(flat_ft_rotated_images, out=flat_ft_rotated_images)
+
+            # Add the rotation angle as many times as shifts and images
+            psi = rotations.get_angle(rot_index)
+            psi_angles += [psi] * (n_images * shifts.get_count())
+            for shift_index in range(shifts.get_count()):
+                shifted_ft = shifts(flat_ft_rotated_images, shift_index, out=shifted_ft)
+                
+                # Elaborate the reference vectors
+                reference_vectors = torch.view_as_real(shifted_ft)
+                reference_vectors = torch.flatten(reference_vectors, -2, -1)
+                normalize(reference_vectors, dim=1)
+                
+                # Populate the database
+                db.add(reference_vectors)
+                
+                # Add the current shift for all images
+                sx, sy = shifts.get_shift(shift_index)
+                x_shifts += [-float(sx)] * n_images
+                y_shifts += [-float(sy)] * n_images
+                
+        # Advance indices
+        start = end
+        utils.progress_bar(end*n_transform, len(dataset)*n_transform)
+        
+    projection_md = _create_metadata(reference_indices, psi_angles, x_shifts, y_shifts)
+    assert(len(projection_md) == db.ntotal)
+    return projection_md
+    
+    
