@@ -37,12 +37,12 @@ XMIPP_CONDA_ENVS = {
   },
   "xmipp_faiss": {
     "pythonVersion": "3.10",
-    "dependencies": ["pytorch", "torchvision", "faiss%(gpuTag)s"],
+    "dependencies": ["pytorch", "torchvision",
+                     "pandas", "faiss%(gpuTag)s"],
     "channels": ["anaconda", "conda-forge"],
-    "pipPackages": [],
+    "pipPackages": ["mrcfile", "starfile"],
     "defaultInstallOptions": {"gpuTag": "-cpu"},
     "xmippEnviron": True
 }
-
 
 }
