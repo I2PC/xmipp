@@ -58,14 +58,8 @@ class FourierShiftFilter:
                     flattener: SpectraFlattener,
                     device: Optional[torch.device] = None) -> torch.Tensor:
         
-        freq_x = torch.fft.rfftfreq(dim, d=0.5/np.pi, device=device)
-        freq_y = torch.fft.fftfreq(dim, d=0.5/np.pi, device=device)
+        d = 0.5 / (dim*torch.pi)
+        freq_x = torch.fft.rfftfreq(dim, d=d, device=device)
+        freq_y = torch.fft.fftfreq(dim, d=d, device=device)
         grid = torch.stack(torch.meshgrid(freq_x, freq_y, indexing='xy'))
         return flattener(grid)
-
-"""
-if __name__ == '__main__':
-    flattener = LowPassFlattener(8, 0.25, device='cuda')
-    shifts = torch.tensor([[0, 0], [2, 0], [1, 1], [0, 1]], dtype=torch.float32, device='cuda') 
-    shifter = ShiftFilter(8, shifts, flattener, device='cuda')
-"""

@@ -18,7 +18,8 @@ def run(experimental_md_path: str,
         max_shift : float,
         cutoff: float,
         batch: int,
-        method: str ):
+        method: str,
+        drop_na: bool ):
     
     # Variables
     # TODO make them parameters of deduce from data
@@ -32,34 +33,36 @@ def run(experimental_md_path: str,
     weights = torch.tensor(image.read_data(weight_image_path))
     image_size, _ = md.get_image_size(experimental_md)
     
+    
+    print('Uploading')
+    db = search.read_database(index_path)
+    db = search.upload_database_to_device(db, db_device)
+    norm = db.metric_type == faiss.METRIC_INNER_PRODUCT
+
     # Create the transformer and flattener
     # according to the transform method
+    dim = db.d
     if method == 'fourier':
         transformer = operators.FourierTransformer2D()
-        flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
+        flattener = operators.FourierLowPassFlattener(image_size, cutoff, padded_length=dim//2, device=transform_device)
     elif method == 'dct':
         transformer = operators.DctTransformer2D(image_size, device=transform_device)
-        flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
+        flattener = operators.DctLowPassFlattener(image_size, cutoff, padded_length=dim, device=transform_device)
+        
+    print(flattener.get_length())
         
     # Create the weighter
     weighter = operators.Weighter(weights, flattener, device=transform_device)
     
     # Create the in-plane transforms
     angles = torch.linspace(-180, 180, n_rotations+1)[:-1]
-    max_shift_px = image_size*max_shift
-    axis_shifts = torch.linspace(-max_shift_px, max_shift_px, n_shifts)
+    axis_shifts = torch.linspace(-max_shift, max_shift, n_shifts)
     shifts = torch.cartesian_prod(axis_shifts, axis_shifts)
     if method == 'fourier':
         rotation_transformer = operators.ImageRotator(angles, device=transform_device)
         shift_transformer = operators.FourierShiftFilter(image_size, shifts, flattener, device=transform_device)
     else:
         affine_transformer = operators.ImageAffineTransformer(angles=angles, shifts=shifts, device=transform_device)
-    
-    
-    print('Uploading')
-    db = search.read_database(index_path)
-    db = search.upload_database_to_device(db, db_device)
-    norm = db.metric_type == faiss.METRIC_INNER_PRODUCT
     
     print('Projecting')
     reference_dataset = image.torch_utils.Dataset(reference_md[md.IMAGE])
@@ -117,6 +120,13 @@ def run(experimental_md_path: str,
         match_indices=match_indices,
         match_distances=match_distances
     )
+    
+    if drop_na:
+        result_md.dropna(inplace=True)
+    
+    # Denormalize shift
+    result_md[[md.SHIFT_X, md.SHIFT_Y]] *= image_size
+    
     md.write(result_md, output_md_path)
 
 
@@ -140,6 +150,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_frequency', type=float, required=True)
     parser.add_argument('--batch', type=int, default=16384)
     parser.add_argument('--method', type=str, default='fourier')
+    parser.add_argument('--dropna', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -156,5 +167,6 @@ if __name__ == '__main__':
         max_shift = args.max_shift,
         cutoff = args.max_frequency,
         batch = args.batch,
-        method = args.method
+        method = args.method,
+        drop_na=args.dropna
     )

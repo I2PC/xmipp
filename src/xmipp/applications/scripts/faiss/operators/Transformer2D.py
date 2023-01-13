@@ -28,3 +28,6 @@ class Transformer2D:
                  input: torch.Tensor,
                  out: Optional[torch.Tensor] = None):
         pass
+    
+    def has_complex_output(self) -> bool:
+        pass

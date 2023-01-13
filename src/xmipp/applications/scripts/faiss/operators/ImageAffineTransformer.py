@@ -44,8 +44,6 @@ class ImageAffineTransformer:
                     affine_matrix: Optional[torch.Tensor] = None,
                     out: Optional[torch.Tensor] = None) -> torch.Tensor:
         
-        """
-        TODO uncomment this when apply_affine is implemented
         # Ensemble the transform matrix
         rotation_matrix = self._rotation_matrices[angle_index]
         shift_vector = self._shift_vectors[shift_index]
@@ -53,16 +51,6 @@ class ImageAffineTransformer:
         
         # Perform the transform
         out=apply_affine(input, affine_matrix, out=out)
-        """
-        
-        out = torchvision.transforms.functional.affine(
-            input,
-            angle=self.get_angle(angle_index),
-            translate=self.get_shift(shift_index),
-            scale=1.0,
-            shear=0.0,
-            interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
-        )
         
         return out
         

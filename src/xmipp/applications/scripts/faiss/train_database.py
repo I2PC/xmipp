@@ -43,18 +43,22 @@ def run(reference_md_path: str,
     if method == 'fourier':
         transformer = operators.FourierTransformer2D()
         flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
-        dim = 2*flattener.get_length() # Account for complex
     elif method == 'dct':
         transformer = operators.DctTransformer2D(image_size, device=transform_device)
         flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
-        dim = flattener.get_length()
         
     # Create the weighter
     weighter = operators.Weighter(weights, flattener, device=transform_device)
     
+    # Consider complex numbers
+    dim = flattener.get_length()
+    if transformer.has_complex_output():
+        dim *= 2
+    
     # Create the DB to store the data
     recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     metric_type = _get_faiss_metric(metric)
+    print(f'Data dimensions: {dim}')
     print(f'Database: {recipe}')
     db = search.create_database(dim, recipe, metric_type=metric_type)
     db = search.upload_database_to_device(db, db_device)

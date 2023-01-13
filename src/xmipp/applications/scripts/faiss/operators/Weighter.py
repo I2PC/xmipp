@@ -31,7 +31,7 @@ class Weighter:
                  flattener: SpectraFlattener,
                  device: Optional[torch.device] = None):
         
-        self._weights = flattener(weights[:,:flattener._mask.shape[1]].to(device))
+        self._weights = flattener(weights[:,:flattener.get_mask().shape[-1]].to(device))
     
     def __call__(   self,
                     input: torch.Tensor,

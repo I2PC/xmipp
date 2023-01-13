@@ -42,3 +42,6 @@ class DctTransformer2D(Transformer2D):
             out.resize_(0)
             
         return project_nd(input, dims=self.DIMS, bases=self._bases, out=out)
+    
+    def has_complex_output(self) -> bool:
+        return False

@@ -26,20 +26,27 @@ import torch
 class SpectraFlattener:
     def __init__(   self, 
                     mask: torch.Tensor,
-                    device: Optional[torch.device]):
+                    padded_length: Optional[int] = None,
+                    device: Optional[torch.device] = None):
         self._mask = mask.to(device)
-        self._length = int(torch.count_nonzero(mask))
+        self._mask_length = int(torch.count_nonzero(mask))
+        self._length = padded_length if padded_length is not None else self._mask_length
     
     def __call__(   self,
                     input: torch.Tensor,
                     out: Optional[torch.Tensor] = None) -> torch.Tensor:
         
-        # To avoid warnings
-        if out is not None:
-            out.resize_(0)
+        # Allocate out if necessary
+        batch_shape = input.shape[:-2]
+        output_shape = batch_shape + (self.get_length(), )
+        if out is None:
+            out = torch.empty(output_shape, device=input.device, dtype=input.dtype)
+        else:
+            out.resize_(output_shape)
         
-        out = torch.masked_select(input, self.get_mask(), out=out)
-        out = out.view(input.shape[:-2] + (self.get_length(), ))
+        # Write the output
+        out[...,:self.get_mask_length()] = input[...,self.get_mask()]
+        out[...,self.get_mask_length():] = 0
         
         return out
     
@@ -48,3 +55,6 @@ class SpectraFlattener:
     
     def get_length(self) -> int:
         return self._length
+
+    def get_mask_length(self) -> int:
+        return self._mask_length

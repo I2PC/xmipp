@@ -29,19 +29,24 @@ def apply_affine(images: torch.Tensor,
                  matrix: torch.Tensor,
                  out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    #TODO implement this correctly
-    raise NotImplementedError('This function has to be completed')
+    raise NotImplementedError()
+    
     batch_shape = images.shape[:-2]
     image_shape = images.shape[-2:]
     n_batch = math.prod(batch_shape)
- 
+    
+    # Create the grid
+    grid = F.affine_grid(matrix[None,...], (1, 1) + image_shape, align_corners=False)
+    grid_shape = (n_batch, ) + grid.shape[1:]
+    grid = grid.expand(grid_shape)
+    
+    # Flatten the images
     flattened_shape = (n_batch, 1) + image_shape
     flattened_images = images.view(flattened_shape)
     
-    matrix = matrix.expand((n_batch, ) + matrix.shape)
-    grid = F.affine_grid(matrix, flattened_images, align_corners=False)
-    
+    # Transform the batch
     out = F.grid_sample(flattened_images, grid, align_corners=False)
     out = out.view(images.shape)
+    
     
     return out

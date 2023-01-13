@@ -49,6 +49,8 @@ def augment_data(db: faiss.Index,
     n_transforms = math.ceil(count / n_references) # transforms for the rest
     count = n_references * n_transforms
     
+    is_complex = transformer.has_complex_output()
+
     # Read all the images to be used as training data
     loader = torch.utils.data.DataLoader(
         dataset,
@@ -82,7 +84,7 @@ def augment_data(db: faiss.Index,
             
             # Elaborate the train vectors
             train_vectors = flat_t_affine_images
-            if torch.is_complex(train_vectors):
+            if is_complex:
                 train_vectors = utils.flat_view_as_real(train_vectors)
                 
             # Normalize if performing pearson's correlation

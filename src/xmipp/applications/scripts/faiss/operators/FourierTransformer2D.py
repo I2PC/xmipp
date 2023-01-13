@@ -35,3 +35,6 @@ class FourierTransformer2D(Transformer2D):
             out.resize_(0)
             
         return torch.fft.rfft2(input, out=out)
+
+    def has_complex_output(self) -> bool:
+        return True

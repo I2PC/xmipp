@@ -45,6 +45,8 @@ def populate_references(db: faiss.Index,
     
     n_transform = affine.get_angle_count() * affine.get_shift_count()
 
+    is_complex = transformer.has_complex_output()
+
     # Create the data loader
     loader = torch.utils.data.DataLoader(
         dataset,
@@ -86,7 +88,7 @@ def populate_references(db: faiss.Index,
 
                 # Elaborate the reference vectors
                 reference_vectors = flat_t_transformed_images
-                if torch.is_complex(reference_vectors):
+                if is_complex:
                     reference_vectors = utils.flat_view_as_real(reference_vectors)
                 
                 # Normalize if performing pearson's correlation

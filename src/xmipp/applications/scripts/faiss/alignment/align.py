@@ -40,6 +40,8 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
                         norm: bool,
                         device: torch.device ):
 
+    is_complex = transformer.has_complex_output()
+
     t_images = None
     flat_t_images = None
     search_vectors = None
@@ -53,7 +55,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
         
         # Elaborate the reference vectors
         search_vectors = flat_t_images
-        if torch.is_complex(search_vectors):
+        if is_complex:
             search_vectors = utils.flat_view_as_real(search_vectors)
         
         # Normalize if performing pearson's correlation

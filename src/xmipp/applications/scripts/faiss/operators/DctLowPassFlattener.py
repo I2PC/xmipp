@@ -29,10 +29,12 @@ class DctLowPassFlattener(SpectraFlattener):
     def __init__(   self, 
                     dim: int, 
                     cutoff: float, 
+                    padded_length: Optional[int] = None,
                     device: Optional[torch.device] = None ):
         SpectraFlattener.__init__(
             self, 
             self._compute_mask(dim, cutoff), 
+            padded_length=padded_length,
             device=device
         )
     
