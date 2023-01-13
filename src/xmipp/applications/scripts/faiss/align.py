@@ -49,8 +49,6 @@ def run(experimental_md_path: str,
         transformer = operators.DctTransformer2D(image_size, device=transform_device)
         flattener = operators.DctLowPassFlattener(image_size, cutoff, padded_length=dim, device=transform_device)
         
-    print(flattener.get_length())
-        
     # Create the weighter
     weighter = operators.Weighter(weights, flattener, device=transform_device)
     

@@ -29,8 +29,6 @@ def apply_affine(images: torch.Tensor,
                  matrix: torch.Tensor,
                  out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    raise NotImplementedError()
-    
     batch_shape = images.shape[:-2]
     image_shape = images.shape[-2:]
     n_batch = math.prod(batch_shape)
