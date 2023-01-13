@@ -9,13 +9,25 @@ import metadata as md
 
 import faiss
 
+def _get_faiss_metric(metric: str):
+    result = None
+    
+    if metric == 'euclidean':
+        result = faiss.METRIC_L2
+    elif metric == 'pearson':
+        result = faiss.METRIC_INNER_PRODUCT
+        
+    return result
+
 def run(reference_md_path: str, 
         weight_image_path: str,
         output_path: str,
         max_shift : float,
         n_training: int,
         n_samples: int,
-        cutoff: float ):
+        cutoff: float,
+        method: str,
+        metric: str):
     
     # Devices
     transform_device = torch.device('cuda', 0)
@@ -26,16 +38,25 @@ def run(reference_md_path: str,
     weights = torch.tensor(image.read_data(weight_image_path))
     image_size = md.get_image_size(reference_md)[0]
     
-    # Create the Fourier Transformer and flattener
-    fourier = operators.FourierTransformer2D()
-    flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
+    # Create the transformer and flattener
+    # according to the transform method
+    if method == 'fourier':
+        transformer = operators.FourierTransformer2D()
+        flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
+        dim = 2*flattener.get_length() # Account for complex
+    elif method == 'dct':
+        transformer = operators.DctTransformer2D(image_size)
+        flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
+        dim = flattener.get_length()
+        
+    # Create the weighter
     weighter = operators.Weighter(weights, flattener, device=transform_device)
     
     # Create the DB to store the data
-    dim = 2*flattener.get_length()
     recipe = search.opq_ifv_pq_recipe(dim, n_samples)
-    print(recipe)
-    db = search.create_database(dim, recipe, metric_type=faiss.METRIC_L2)
+    metric_type = _get_faiss_metric(metric)
+    print(f'Database: {recipe}')
+    db = search.create_database(dim, recipe, metric_type=metric_type)
     db = search.upload_database_to_device(db, db_device)
     
     # Do some work
@@ -44,7 +65,7 @@ def run(reference_md_path: str,
     training_set = alignment.augment_data(
         db,
         dataset=dataset,
-        fourier=fourier,
+        transformer=transformer,
         flattener=flattener,
         weighter=weighter,
         count=n_training,
@@ -52,7 +73,7 @@ def run(reference_md_path: str,
         max_shift=max_shift,
         batch_size=8192,
         transform_device=transform_device,
-        store_device=torch.device('cpu')
+        store_device=torch.device('cpu') # Augmented dataset is very large
     )
     
     print('Training')
@@ -78,23 +99,21 @@ if __name__ == '__main__':
     parser.add_argument('--training', type=int, default=int(4e6))
     parser.add_argument('--size', type=int, default=int(2e6))
     parser.add_argument('--max_frequency', type=float, required=True)
+    parser.add_argument('--method', type=str, default='fourier')
+    parser.add_argument('--metric', type=str, default='euclidean')
 
     # Parse
     args = parser.parse_args()
 
-    reference_md_path = args.i
-    output_path = args.o
-    weight_image_path = args.weights
-    max_shift = args.max_shift
-    n_training = args.training
-    n_samples = args.size
-    cutoff = args.max_frequency
-
     # Run the program
     run(
-        reference_md_path, weight_image_path,
-        output_path,
-        max_shift,
-        n_training, n_samples,
-        cutoff
+        reference_md_path = args.i,
+        output_path = args.o,
+        weight_image_path = args.weights,
+        max_shift = args.max_shift,
+        n_training = args.training,
+        n_samples = args.size,
+        cutoff = args.max_frequency,
+        method = args.method,
+        metric = args.metric
     )
