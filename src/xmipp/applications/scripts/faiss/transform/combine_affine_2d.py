@@ -28,7 +28,7 @@ def combine_affine_2d(rotation_matrices_2d: torch.Tensor,
                       out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
     # Create the output if not existent
-    MATRIX_SHAPE = (3, 3)
+    MATRIX_SHAPE = (2, 3)
     shape = torch.broadcast_shapes(
         rotation_matrices_2d.shape[:-2], 
         shifts.shape[:-1]
@@ -47,9 +47,6 @@ def combine_affine_2d(rotation_matrices_2d: torch.Tensor,
     # Write the shift
     out[...,0:2,2] = shifts
     
-    # Write the last row
-    out[...,2,:] = [0, 0, 1]
-        
     return out
     
     

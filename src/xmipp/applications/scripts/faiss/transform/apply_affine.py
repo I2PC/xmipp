@@ -20,6 +20,15 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from apply_affine import apply_affine
-from combine_affine_2d import combine_affine_2d
-from rotation_matrix_2d import rotation_matrix_2d
+from typing import Optional
+import torch
+import torch.nn.functional as F
+
+def apply_affine(images: torch.Tensor,
+                 matrix: torch.Tensor,
+                 out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    grid = F.affine_grid(matrix, images.shape)
+    out = F.grid_sample(images, grid)
+    
+    return out

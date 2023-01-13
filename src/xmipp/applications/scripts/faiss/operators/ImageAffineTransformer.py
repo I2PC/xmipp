@@ -24,6 +24,8 @@ from typing import Optional
 import torch
 import torchvision
 
+from transform import rotation_matrix_2d, combine_affine_2d, apply_affine
+
 class ImageAffineTransformer:
     def __init__(   self,
                     angles: torch.Tensor,
@@ -32,21 +34,26 @@ class ImageAffineTransformer:
         self._angles = angles
         self._shifts = shifts
         
+        self._rotation_matrices = rotation_matrix_2d(angles.to(device))
+        self._shift_vectors = shifts.to(device)
+        
     def __call__(   self, 
                     input: torch.Tensor,
                     angle_index: int,
                     shift_index: int,
+                    affine_matrix: Optional[torch.Tensor],
                     out: Optional[torch.Tensor] ) -> torch.Tensor:
         
-        out = torchvision.transforms.functional.affine(
-            input,
-            self.get_angle(angle_index),
-            self.get_shift(shift_index),
-            1.0,
-            0.0,
-            torchvision.transforms.InterpolationMode.BILINEAR
-        )
+        # Ensemble the transform matrix
+        rotation_matrix = self._rotation_matrices[angle_index]
+        shift_vector = self._shift_vectors[shift_index]
+        affine_matrix = combine_affine_2d(rotation_matrix, shift_vector, out=affine_matrix)
+        
+        # Perform the transform
+        out=apply_affine(input, affine_matrix, out=out)
+        
         return out
+        
 
     def get_count(self) -> int:
         return len(self._angles)
