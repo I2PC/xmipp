@@ -20,4 +20,5 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from .flat_view_as_real import flat_view_as_real
 from .progress_bar import progress_bar

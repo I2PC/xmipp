@@ -78,10 +78,19 @@ def augment_data(db: faiss.Index,
             t_affine_images = transformer(transformed_images, out=t_affine_images)
             flat_t_affine_images = flattener(t_affine_images, out=flat_t_affine_images)
             flat_t_affine_images = weighter(flat_t_affine_images, out=flat_t_affine_images)
-            train_vectors = torch.view_as_real(flat_t_affine_images)
-            train_vectors = torch.flatten(train_vectors, -2, -1)
+            
+            # Elaborate the train vectors
+            train_vectors = flat_t_affine_images
+            if torch.is_complex(train_vectors):
+                train_vectors = utils.flat_view_as_real(train_vectors)
+                
+            # Normalize if performing pearson's correlation
+            if db.metric_type == faiss.METRIC_INNER_PRODUCT:
+                normalize(train_vectors, dim=1)
+            
+            # Write it to the destination array
             training_set[start:end,:] = train_vectors.to(training_set.device, non_blocking=True)
-            normalize(training_set[start:end,:], dim=1)
+            
             
             # Update the index
             start = end

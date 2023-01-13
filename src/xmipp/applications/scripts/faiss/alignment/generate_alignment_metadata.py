@@ -25,7 +25,6 @@ import pandas as pd
 import torch
 
 import metadata as md
-from .columns import REFERENCE_INDEX
 
 def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,
@@ -40,10 +39,10 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
     result = result.join(projection_md, on=match_indices)
     
     # Left-join the reference metadata to the result
-    result = result.join(reference_md[REFERENCE_COLUMNS], on=REFERENCE_INDEX)
+    result = result.join(reference_md[REFERENCE_COLUMNS], on=md.REF)
     
     # Drop the indexing columns
-    result.drop(REFERENCE_INDEX, axis=1, inplace=True)
+    result.drop(md.REF, axis=1, inplace=True)
 
     return result
 

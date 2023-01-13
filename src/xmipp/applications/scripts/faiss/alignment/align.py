@@ -37,6 +37,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
+                        norm: bool,
                         device: torch.device ):
 
     t_images = None
@@ -50,10 +51,14 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
         flat_t_images = flattener(t_images, out=flat_t_images)
         flat_t_images = weighter(flat_t_images, out=flat_t_images)
         
-        # Elaborate the search vectors
-        search_vectors = torch.view_as_real(flat_t_images)
-        search_vectors = torch.flatten(search_vectors, -2, -1)
-        normalize(search_vectors, dim=1)
+        # Elaborate the reference vectors
+        search_vectors = flat_t_images
+        if torch.is_complex(search_vectors):
+            search_vectors = utils.flat_view_as_real(search_vectors)
+        
+        # Normalize if performing pearson's correlation
+        if norm:
+            normalize(search_vectors, dim=1)
         
         # Feed the queue
         q_out.put(search_vectors.to(device=device, non_blocking=True))

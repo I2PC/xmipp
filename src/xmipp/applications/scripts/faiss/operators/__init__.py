@@ -27,5 +27,6 @@ from .SpectraFlattener import SpectraFlattener
 from .FourierLowPassFlattener import FourierLowPassFlattener
 from .DctLowPassFlattener import DctLowPassFlattener
 from .ImageRotator import ImageRotator
+from .ImageAffineTransformer import ImageAffineTransformer
 from .FourierShiftFilter import FourierShiftFilter
 from .Weighter import Weighter

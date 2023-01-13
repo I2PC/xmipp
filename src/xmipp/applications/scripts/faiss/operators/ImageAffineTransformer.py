@@ -55,12 +55,15 @@ class ImageAffineTransformer:
         return out
         
 
-    def get_count(self) -> int:
-        return len(self._angles)
+    def get_angle_count(self) -> int:
+        return self._angles.shape[0]
     
     def get_angle(self, index: int) -> float:
         return float(self._angles[index])
     
+    def get_shift_count(self) -> int:
+        return self._shifts.shape[0]
+
     def get_shift(self, index: int) -> torch.Tensor:
         return self._shifts[index]
         
