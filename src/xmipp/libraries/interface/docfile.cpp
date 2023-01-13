@@ -28,7 +28,8 @@
 #include <cstdio>
 #include "core/transformations.h"
 #include "docfile.h"
-#include <core/args.h>
+#include "core/args.h"
+#include "core/xmipp_funcs.h"
 
 double& DocLine::operator[](size_t i)
 {

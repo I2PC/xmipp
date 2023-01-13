@@ -30,55 +30,6 @@
 #include "reconstruction_cuda/cuda_basic_math.h"
 
 /**
- * Kernel performing scaling of the 2D FFT images, with possible normalization,
- * filtering and centering
- * @param in input data
- * @param out output data
- * @param noOfImages images to process
- * @param inX input X dim
- * @param inY input Y dim
- * @param outX output X dim (must be less or equal to input)
- * @param outY output Y dim (must be less or equal to input)
- * @param filter to apply. Only if 'applyFilter' is true
- * @param normFactor normalization factor to use (x *= normFactor).
- * Only if 'normalize' is true
- */
-template<typename T, typename U, bool applyFilter, bool normalize, bool center>
-__global__
-void scaleFFT2DKernel(const T* __restrict__ in, T* __restrict__ out,
-        int noOfImages, size_t inX, size_t inY, size_t outX, size_t outY,
-    const U* __restrict__ filter, U normFactor) {
-    // assign pixel to thread
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    int idy = blockIdx.y*blockDim.y + threadIdx.y;
-
-    if (idx >= outX || idy >= outY ) return;
-    size_t fIndex = idy*outX + idx; // index within single image
-    U filterCoef = filter[fIndex];
-    U centerCoef = 1-2*((idx+idy)&1); // center FT, input must be even
-    int yhalf = outY/2;
-
-    size_t origY = (idy <= yhalf) ? idy : (inY - (outY-idy)); // take top N/2+1 and bottom N/2 lines
-    for (int n = 0; n < noOfImages; n++) {
-        size_t iIndex = n*inX*inY + origY*inX + idx; // index within consecutive images
-        size_t oIndex = n*outX*outY + fIndex; // index within consecutive images
-        out[oIndex] = in[iIndex];
-        if (applyFilter) {
-            out[oIndex] *= filterCoef;
-        }
-        if (0 == idx || 0 == idy) {
-            out[oIndex] = {0, 0}; // ignore low frequency, this should increase precision a bit
-        }
-        if (normalize) {
-            out[oIndex] *= normFactor;
-        }
-        if (center) {
-            out[oIndex] *= centerCoef;
-        }
-    }
-}
-
-/**
  * Function computes correlation of one signal and many others.
  * If 'center', the signal has to be even
  * @param ref first signal in FT
@@ -225,45 +176,6 @@ void correlate(const T* __restrict__ in1, const T* __restrict__ in2,
                 return;
             }
         }
-    }
-}
-
-/**
- * Function to crop (square) center part of an image
- * @param in input images
- * @param out output images
- * @param xDim input X dim
- * @param yDim input Y dim
- * @param noOfImgs no if images to process
- * @param outDimX output dimension(s)
- * @param outDimY output dimension(s)
- */
-template<typename T>
-__global__
-void cropSquareInCenter(const T* __restrict__ in, T* __restrict__ out,
-        int xDim, int yDim, int noOfImgs,
-        int outDimX, int outDimY) {
-    // assign pixel to thread
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int idy = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (idx >= outDimX || idy >= outDimY) return;
-
-    int inputImgSize = xDim * yDim;
-    int outputImgSize = outDimX * outDimY;
-
-    int inCenterX = (int)((T) (xDim) / (T)2);
-    int inCenterY = (int)((T) (yDim) / (T)2);
-
-    int outCenterX = (int)((T) (outDimX) / (T)2);
-    int outCenterY = (int)((T) (outDimY) / (T)2);
-
-    for (int n = 0; n < noOfImgs; n++) {
-        int iX = idx - outCenterX + inCenterX;
-        int iY = idy - outCenterY + inCenterY;
-        int inputPixelIdx = (n * inputImgSize) + (iY * xDim) + iX;
-        int outputPixelIdx = (n * outputImgSize) + (idy * outDimX) + idx;
-        out[outputPixelIdx] = in[inputPixelIdx];
     }
 }
 

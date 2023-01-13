@@ -320,8 +320,6 @@ TEST_F(MetadataTest, MDInfo)
     FileName fnSTAR;
     fnSTAR = fn + ".xmd";
 
-    XMIPP_TRY
-
     mDsource.write(fnSTAR);
 
     MetaDataVec md;
@@ -336,8 +334,6 @@ TEST_F(MetadataTest, MDInfo)
     for (size_t i = 0; i < labels.size(); ++i)
         EXPECT_TRUE(mdOnlyOne.containsLabel(labels[i]));
 
-    XMIPP_CATCH
-
     unlink(fn.c_str());
     unlink(fnSTAR.c_str());
 }
@@ -350,9 +346,7 @@ TEST_F(MetadataTest, multiWrite)
 
     FileName fnSTARref = (String)"metadata/mDsource.xmd";
 
-    XMIPP_TRY
     mDsource.write((String)"myblock@"+fnSTAR);
-    XMIPP_CATCH
 
     EXPECT_TRUE(compareTwoFiles(fnSTAR, fnSTARref));
 
@@ -493,7 +487,6 @@ TEST_F(MetadataTest, CheckRegularExpression2)
 
 TEST_F(MetadataTest, compareTwoMetadataFiles)
 {
-    XMIPP_TRY
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
@@ -545,7 +538,6 @@ TEST_F(MetadataTest, compareTwoMetadataFiles)
     unlink(sfn);
     unlink(sfn2);
     unlink(sfn3);
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, ImportObject)
@@ -601,35 +593,26 @@ TEST_F(MetadataTest, MultiQuery)
 
 TEST_F(MetadataTest, MDValueEQ)
 {
-    try
-    {
-        MetaDataVec md;
-        md.setValue(MDL_IMAGE, (String)"a", md.addObject());
-        md.setValue(MDL_IMAGE, (String)"b", md.addObject());
-        md.setValue(MDL_IMAGE, (String)"c", md.addObject());
-        md.setValue(MDL_IMAGE, (String)"a", md.addObject());
+    MetaDataVec md;
+    md.setValue(MDL_IMAGE, (String)"a", md.addObject());
+    md.setValue(MDL_IMAGE, (String)"b", md.addObject());
+    md.setValue(MDL_IMAGE, (String)"c", md.addObject());
+    md.setValue(MDL_IMAGE, (String)"a", md.addObject());
 
-        MetaDataVec md2;
-        md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
-        md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
+    MetaDataVec md2;
+    md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
+    md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
 
-        MDValueEQ eq(MDL_IMAGE,(String)"a");
+    MDValueEQ eq(MDL_IMAGE,(String)"a");
 
-        MetaDataVec md3;
-        md3.importObjects(md, eq);
+    MetaDataVec md3;
+    md3.importObjects(md, eq);
 
-        EXPECT_EQ(md2, md3);
-    }
-    catch (XmippError &xe)
-    {
-        std::cerr << "DEBUG_JM: xe: " << xe << std::endl;
-    }
+    EXPECT_EQ(md2, md3);
 }
 
 TEST_F(MetadataTest, RegularExp)
 {
-    XMIPP_TRY
-
     //create temporal file with three metadas
     //char sfnStar[64] = "";
     //char sfnSqlite[64] = "";
@@ -688,8 +671,6 @@ TEST_F(MetadataTest, RegularExp)
     unlink(fn.c_str());
     unlink(sfnStar.c_str());
     //unlink(sfnSqlite);
-
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, Query)
@@ -919,7 +900,6 @@ TEST_F(MetadataTest, WriteIntermediateBlock)
 
 TEST_F(MetadataTest, ReadWriteAppendBlock)
 {
-    XMIPP_TRY
     //temp file name
     char sfn[32] = "";
     strncpy(sfn, "/tmp/testWrite_XXXXXX", sizeof sfn);
@@ -932,7 +912,6 @@ TEST_F(MetadataTest, ReadWriteAppendBlock)
     FileName sfn2 = "metadata/ReadWriteAppendBlock.xmd";
     EXPECT_TRUE(compareTwoFiles(sfn,sfn2,0));
     unlink(sfn);
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, RemoveDuplicates)
@@ -1049,7 +1028,6 @@ TEST_F(MetadataTest, setGetValue)
 }
 TEST_F(MetadataTest, Comment)
 {
-    XMIPP_TRY
     char sfn[64] = "";
     MetaDataVec md1(mDsource);
     strncpy(sfn, "/tmp/testComment_XXXXXX", sizeof sfn);
@@ -1066,13 +1044,10 @@ TEST_F(MetadataTest, Comment)
     s2=md2.getComment();
     EXPECT_EQ(s1, s2);
     unlink(sfn);
-
-    XMIPP_CATCH
 }
 //read file with vector
 TEST_F(MetadataTest, getValue)
 {
-    XMIPP_TRY
     std::vector<double> v1(3);
     std::vector<double> v2(3);
     MetaDataVec auxMD1;
@@ -1087,12 +1062,10 @@ TEST_F(MetadataTest, getValue)
     EXPECT_EQ(v1[0],v2[0]);
     EXPECT_EQ(v1[1],v2[1]);
     EXPECT_EQ(v1[2],v2[2]);
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, getValueDefault)
 {
-    XMIPP_TRY
     MetaDataVec auxMD1;
     MetaDataVec auxMD2;
     double rot=1., tilt=2., psi=3.;
@@ -1119,13 +1092,10 @@ TEST_F(MetadataTest, getValueDefault)
     auxMD1.getRow(rowIn, id);
     rowIn.getValueOrDefault(MDL_ANGLE_PSI,psi2,3.);
     EXPECT_EQ(psi,psi2);
-
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, getValueAbort)
 {
-    XMIPP_TRY
     size_t id;
     MetaDataVec auxMD1;
     double rot=1.;
@@ -1140,13 +1110,10 @@ TEST_F(MetadataTest, getValueAbort)
     auxMD1.getRow(rowIn, id);
     std::cerr << "TEST COMMENT: You should get the error  Cannot find label: anglePsi" << std::endl;
     EXPECT_THROW(rowGetValueOrAbort(rowIn, MDL_ANGLE_PSI, rot), XmippError);
-
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, CopyColumn)
 {
-    XMIPP_TRY
     MetaDataVec md1(mDsource), md2(mDsource);
     double value;
 
@@ -1159,13 +1126,11 @@ TEST_F(MetadataTest, CopyColumn)
     md2.copyColumn(MDL_Z, MDL_Y);
 
     EXPECT_EQ(md1, md2);
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, RenameColumn)
 {
     size_t id;
-    XMIPP_TRY
     MetaDataVec md1(mDsource);
     MetaDataVec md2;
     md1.renameColumn(MDL_Y,MDL_Z);
@@ -1178,13 +1143,11 @@ TEST_F(MetadataTest, RenameColumn)
 
 
     EXPECT_EQ(md1, md2);
-    XMIPP_CATCH
 }
 
 //Copy images on metadata using ImageConvert logic
 TEST_F(MetadataTest, copyImages)
 {
-    XMIPP_TRY
     FileName fn = "metadata/smallStack.stk";
     FileName out;
     FileName oroot;
@@ -1246,7 +1209,6 @@ TEST_F(MetadataTest, copyImages)
         EXPECT_TRUE(imgStk == imgVol);
     }
     out.deleteFile();
-    XMIPP_CATCH
 }
 
 TEST_F(MetadataTest, updateRow)

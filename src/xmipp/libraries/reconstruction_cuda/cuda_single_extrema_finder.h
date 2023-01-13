@@ -121,6 +121,12 @@ public:
         T * d_values, // can be nullptr
         size_t maxDist);
 
+    static void sRefineLocation(const GPU &gpu,
+        const Dimensions &dims, // of the data
+        const float * d_indices, // array holding indices to position of the extrema
+        float * d_positions, // ND array of refined position (in X-Y-Z order)
+        const T * d_data); // where the extrema is located
+
     static size_t ceilPow2(size_t x); // FIXME DS move this to somewhere else
 
 private:
