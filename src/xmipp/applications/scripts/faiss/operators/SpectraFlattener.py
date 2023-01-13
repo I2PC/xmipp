@@ -27,7 +27,7 @@ class SpectraFlattener:
     def __init__(   self, 
                     mask: torch.Tensor,
                     device: Optional[torch.device]):
-        self._mask = mask
+        self._mask = mask.to(device)
         self._length = int(torch.count_nonzero(mask))
     
     def __call__(   self,
@@ -39,7 +39,8 @@ class SpectraFlattener:
             out.resize_(0)
         
         out = torch.masked_select(input, self.get_mask(), out=out)
-        out = torch.flatten(out, start_dim=-2, end_dim=-1)
+        out = out.view(input.shape[:-2] + (self.get_length(), ))
+        
         return out
     
     def get_mask(self) -> torch.BoolTensor:

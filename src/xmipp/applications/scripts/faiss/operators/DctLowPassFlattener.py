@@ -23,7 +23,7 @@
 from typing import Optional, Sequence
 import torch
 
-from SpectraFlattener import SpectraFlattener
+from .SpectraFlattener import SpectraFlattener
 
 class DctLowPassFlattener(SpectraFlattener):
     def __init__(   self, 

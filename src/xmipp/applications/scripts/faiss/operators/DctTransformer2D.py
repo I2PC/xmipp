@@ -20,17 +20,18 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Sequence
+from typing import Optional
 import torch
 
 from dct import dct_ii_basis, project_nd
-from Transformer2D import Transformer2D
+
+from .Transformer2D import Transformer2D
 
 class DctTransformer2D(Transformer2D):
     DIMS = (-1, -2) # Last two dimensions
     
-    def __init__(self, dim: int) -> None:
-        self._bases = (dct_ii_basis(dim), )*len(self.DIMS)
+    def __init__(self, dim: int, device: Optional[torch.device] = None) -> None:
+        self._bases = (dct_ii_basis(dim).to(device), )*len(self.DIMS)
     
     def __call__(   self, 
                     input: torch.Tensor,

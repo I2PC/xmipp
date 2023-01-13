@@ -39,6 +39,7 @@ def populate_references(db: faiss.Index,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
+                        norm: bool,
                         device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
     
@@ -81,7 +82,7 @@ def populate_references(db: faiss.Index,
                 # Compute the transform of the images and flatten and weighten it
                 t_transformed_images = transformer(transformed_images, out=t_transformed_images)
                 flat_t_transformed_images = flattener(t_transformed_images, out=flat_t_transformed_images)
-                flat_t_transformed_images = weighter(t_transformed_images, out=flat_t_transformed_images)
+                flat_t_transformed_images = weighter(flat_t_transformed_images, out=flat_t_transformed_images)
 
                 # Elaborate the reference vectors
                 reference_vectors = flat_t_transformed_images
@@ -89,7 +90,7 @@ def populate_references(db: faiss.Index,
                     reference_vectors = utils.flat_view_as_real(reference_vectors)
                 
                 # Normalize if performing pearson's correlation
-                if db.metric_type == faiss.METRIC_INNER_PRODUCT:
+                if norm:
                     normalize(reference_vectors, dim=1)
 
                 # Populate the database

@@ -24,7 +24,7 @@ from typing import Optional
 import torch
 import numpy as np
 
-from SpectraFlattener import SpectraFlattener
+from .SpectraFlattener import SpectraFlattener
 
 class FourierShiftFilter:
     def __init__(self,

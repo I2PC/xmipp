@@ -23,8 +23,8 @@
 from typing import Optional, Sequence, Iterable, Callable
 import torch
 
-from basis import dct_ii_basis, dct_iii_basis
-from project import project_nd
+from .basis import dct_ii_basis, dct_iii_basis
+from .project import project_nd
 
 def bases_generator(shape: Sequence[int], 
                     dims: Iterable[int],

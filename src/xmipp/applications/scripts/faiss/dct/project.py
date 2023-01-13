@@ -54,7 +54,7 @@ def project_nd(x: torch.Tensor,
                out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
     temp = None
-    for i, (dim, basis) in enumerate(zip(dims, bases, strict=True)):
+    for i, (dim, basis) in enumerate(zip(dims, bases)):
         if i == 0:
             # First iteration
             out = project(x, dim, basis, out=out)

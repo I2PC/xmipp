@@ -45,7 +45,7 @@ def run(reference_md_path: str,
         flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
         dim = 2*flattener.get_length() # Account for complex
     elif method == 'dct':
-        transformer = operators.DctTransformer2D(image_size)
+        transformer = operators.DctTransformer2D(image_size, device=transform_device)
         flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
         dim = flattener.get_length()
         
@@ -58,6 +58,7 @@ def run(reference_md_path: str,
     print(f'Database: {recipe}')
     db = search.create_database(dim, recipe, metric_type=metric_type)
     db = search.upload_database_to_device(db, db_device)
+    norm = db.metric_type == faiss.METRIC_INNER_PRODUCT
     
     # Do some work
     print('Augmenting data')
@@ -68,6 +69,7 @@ def run(reference_md_path: str,
         transformer=transformer,
         flattener=flattener,
         weighter=weighter,
+        norm=norm,
         count=n_training,
         max_rotation=180,
         max_shift=max_shift,

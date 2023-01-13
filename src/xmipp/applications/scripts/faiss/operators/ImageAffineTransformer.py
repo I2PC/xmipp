@@ -20,7 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Tuple
 import torch
 import torchvision
 
@@ -41,9 +41,11 @@ class ImageAffineTransformer:
                     input: torch.Tensor,
                     angle_index: int,
                     shift_index: int,
-                    affine_matrix: Optional[torch.Tensor],
-                    out: Optional[torch.Tensor] ) -> torch.Tensor:
+                    affine_matrix: Optional[torch.Tensor] = None,
+                    out: Optional[torch.Tensor] = None) -> torch.Tensor:
         
+        """
+        TODO uncomment this when apply_affine is implemented
         # Ensemble the transform matrix
         rotation_matrix = self._rotation_matrices[angle_index]
         shift_vector = self._shift_vectors[shift_index]
@@ -51,6 +53,16 @@ class ImageAffineTransformer:
         
         # Perform the transform
         out=apply_affine(input, affine_matrix, out=out)
+        """
+        
+        out = torchvision.transforms.functional.affine(
+            input,
+            angle=self.get_angle(angle_index),
+            translate=self.get_shift(shift_index),
+            scale=1.0,
+            shear=0.0,
+            interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+        )
         
         return out
         
@@ -64,6 +76,6 @@ class ImageAffineTransformer:
     def get_shift_count(self) -> int:
         return self._shifts.shape[0]
 
-    def get_shift(self, index: int) -> torch.Tensor:
-        return self._shifts[index]
+    def get_shift(self, index: int) -> Tuple[int, int]:
+        return tuple(self._shifts[index])
         

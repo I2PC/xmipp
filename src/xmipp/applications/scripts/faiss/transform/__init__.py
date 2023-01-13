@@ -20,6 +20,6 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from apply_affine import apply_affine
-from combine_affine_2d import combine_affine_2d
-from rotation_matrix_2d import rotation_matrix_2d
+from .apply_affine import apply_affine
+from .combine_affine_2d import combine_affine_2d
+from .rotation_matrix_2d import rotation_matrix_2d

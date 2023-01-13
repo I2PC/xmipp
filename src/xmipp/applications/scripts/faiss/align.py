@@ -38,7 +38,7 @@ def run(experimental_md_path: str,
         transformer = operators.FourierTransformer2D()
         flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
     elif method == 'dct':
-        transformer = operators.DctTransformer2D(image_size)
+        transformer = operators.DctTransformer2D(image_size, device=transform_device)
         flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
         
     # Create the weighter
@@ -59,7 +59,7 @@ def run(experimental_md_path: str,
     print('Uploading')
     db = search.read_database(index_path)
     db = search.upload_database_to_device(db, db_device)
-    
+    norm = db.metric_type == faiss.METRIC_INNER_PRODUCT
     
     print('Projecting')
     reference_dataset = image.torch_utils.Dataset(reference_md[md.IMAGE])
@@ -72,6 +72,7 @@ def run(experimental_md_path: str,
             fourier=transformer,
             flattener=flattener,
             weighter=weighter,
+            norm=norm,
             device=transform_device,
             batch_size=batch
         )
@@ -83,6 +84,7 @@ def run(experimental_md_path: str,
             transformer=transformer,
             flattener=flattener,
             weighter=weighter,
+            norm=norm,
             device=transform_device,
             batch_size=batch
         )
@@ -98,6 +100,7 @@ def run(experimental_md_path: str,
         transformer=transformer,
         flattener=flattener, 
         weighter=weighter,
+        norm=norm,
         k=1,
         device=transform_device,
         batch_size=batch

@@ -23,7 +23,7 @@
 from typing import Optional
 import torch
 
-from SpectraFlattener import SpectraFlattener
+from .SpectraFlattener import SpectraFlattener
 
 class Weighter:
     def __init__(self,

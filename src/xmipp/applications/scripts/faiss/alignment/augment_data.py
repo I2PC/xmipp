@@ -36,6 +36,7 @@ def augment_data(db: faiss.Index,
                  transformer: operators.Transformer2D,
                  flattener: operators.SpectraFlattener,
                  weighter: operators.Weighter,
+                 norm: bool,
                  count: int,
                  max_rotation: float = 180,
                  max_shift: float = 0.1,
@@ -85,7 +86,7 @@ def augment_data(db: faiss.Index,
                 train_vectors = utils.flat_view_as_real(train_vectors)
                 
             # Normalize if performing pearson's correlation
-            if db.metric_type == faiss.METRIC_INNER_PRODUCT:
+            if norm:
                 normalize(train_vectors, dim=1)
             
             # Write it to the destination array

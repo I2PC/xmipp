@@ -23,7 +23,7 @@
 from typing import Optional
 import torch
 
-from Transformer2D import Transformer2D
+from .Transformer2D import Transformer2D
 
 class FourierTransformer2D(Transformer2D):
     def __call__(   self, 
