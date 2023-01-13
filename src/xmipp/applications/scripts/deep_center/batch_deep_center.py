@@ -15,8 +15,8 @@ if __name__=="__main__":
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
-    print("------------------", flush = True)
-    print(fnModel, flush = True)
+    print("------------------", flush=True)
+    print(fnModel, flush=True)
     mode = sys.argv[3]
     sigma = float(sys.argv[4])
     numEpochs = int(sys.argv[5])
@@ -119,10 +119,15 @@ if __name__=="__main__":
                     y[i,] = np.array((rX,rY))+self.labels[ID]
                 else:
                     rAngle = self.sigma * np.random.normal()
-                    if rAngle!=0:
+                    if rAngle != 0:
                         Xexp[i,] = rotate(Iexp, rAngle, order=1, mode='reflect', reshape=False)
-                    angle = (self.labels[ID]+rAngle)*math.pi/180
+                    if mode == "Psi":
+                        angle = (self.labels[ID] + rAngle) * math.pi / 180
+                    else:
+                        angle = (self.labels[ID]) * math.pi / 180
+
                     y[i,] = np.array((math.cos(angle), math.sin(angle)))
+
             return Xexp, y
 
 
@@ -134,15 +139,21 @@ if __name__=="__main__":
         L = Conv2D(8, (int(Xdim/10), int(Xdim/10)), activation="relu") (inputLayer) #33 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
-        # L = Dropout(0.2)(L)
+        L = Dropout(0.2)(L)
         L = Conv2D(4, (int(Xdim/20), int(Xdim/20)), activation="relu") (L) #11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
-        # L = Dropout(0.2)(L)
+        L = Dropout(0.2)(L)
         L = Conv2D(4, (int(Xdim/20), int(Xdim/20)), activation="relu") (L) #11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
+
+        # L = Conv2D(4, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        # L = BatchNormalization()(L)
+        # L = MaxPooling2D()(L)
         # L = Dropout(0.2)(L)
+
         L = Flatten()(L)
         L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
@@ -150,6 +161,12 @@ if __name__=="__main__":
         L = BatchNormalization()(L)
         L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
+
+        # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        # L = BatchNormalization()(L)
+        # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        # L = BatchNormalization()(L)
+#
         L = Dense(2, name="output", activation="linear") (L)
         return Model(inputLayer, L)
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
@@ -160,6 +177,7 @@ if __name__=="__main__":
     rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
     tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
     psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
+
     if mode == "Shift":
         labels = []
         for x, y in zip(shiftX, shiftY):
