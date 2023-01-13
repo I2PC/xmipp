@@ -1,0 +1,1137 @@
+/***************************************************************************
+ *
+ * Authors:     Jose Luis Vilas (joseluis.vilas-prieto@yale.edu)
+ *                             or (jlvilas@cnb.csic.es)
+ *
+ * Yale University, New Haven, Connecticut, United States of America
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
+#include "tomo_sta_deblurring.h"
+#include <core/metadata_extension.h>
+#include <data/monogenic_signal.h>
+#include <data/fourier_filter.h>
+#include <random>
+#include <limits>
+#include "fftwT.h"
+#include <CTPL/ctpl_stl.h>
+#include <type_traits>
+#include <chrono>
+
+void ProgSTADeblurring::defineParams()
+{
+	addUsageLine("Calculate Fourier Shell Occupancy - FSO curve - via directional FSC measurements.");
+	addUsageLine("Following outputs are generated:");
+	addUsageLine("  1) FSO curve");
+	addUsageLine("  2) Global resolution from FSO and FSC");
+	addUsageLine("Reference: J.L. Vilas, H.D. Tagare, XXXXX (2021)");
+	addUsageLine("+* Fourier Shell Occupancy (FSO)", true);
+	addUsageLine("+ The Fourier Shell Occupancy Curve can be obtained from a set of directional FSC (see below).");
+	addUsageLine("+ In contrast, when the OFSC shows a slope the map will be anisotropic. The lesser slope the higher resolution isotropy.");
+	addUsageLine("+ ");
+	addUsageLine("+* Directional Fourier Shell Correlation (dFSC)", true);
+	addUsageLine("+ This program estimates the directional FSC between two half maps along all posible directions on the projection sphere.");
+	addUsageLine(" ");
+	addUsageLine("+* Resolution Distribution and 3DFSC", true);
+	addUsageLine("+ The directional-FSC, dFSC is estimated along 321 directions on the projection sphere. For each direction the corresponding");
+	addUsageLine(" ");
+	addUsageLine(" ");
+	addSeeAlsoLine("resolution_fsc");
+
+	addParamsLine("   --subtomos <input_file>                  : Metadata with the list of subtomograms");
+	addParamsLine("   [--reference <input_file=\"\">]               : Reference, this map use to be the STA result that will be refined by mean s of the smart STA of this method. If a map is not provided, then the algorithm will average all provided subtomos.");
+	addParamsLine("   [--mask <input_file=\"\">]               : Mask for the reference. It must be smooth.");
+
+	addParamsLine("   [-o <output_folder=\"\">]          : Folder where the results will be stored.");
+
+	addParamsLine("   [--sampling <Ts=1>]                : (Optional) Pixel size (Angstrom). If it is not provided by default will be 1 A/px.");
+	addParamsLine("   [--fscResolution <Ts=3>]           : (Optional) Resolution of the map in A.");
+	addParamsLine("   [--spectral ] 	             : (Optional) Spectral approach.");
+	addParamsLine("   [--threads <Nthreads=1>]           : (Optional) Number of threads to be used");
+
+	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px", false);
+	addExampleLine("xmipp_reconstruction_sta_deblurring --half1 half1.mrc --half2 half2.mrc --sampling_rate 2 ");
+	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px and a mask mask.mrc", false);
+	addExampleLine("xmipp_reconstruction_sta_deblurring --half1 half1.mrc --half2 half2.mrc --mask mask.mrc --sampling_rate 2 ");
+}
+
+void ProgSTADeblurring::readParams()
+{
+	fnSubtomos = getParam("--subtomos");
+	fnRef = getParam("--reference");
+	fnMask = getParam("--mask");
+	fnOut = getParam("-o");
+	spl = checkParam("--spectral");
+	sampling = getDoubleParam("--sampling");
+	fscRes = getDoubleParam("--fscResolution");
+	
+	Nthreads = getIntParam("--threads");
+}
+
+
+void ProgSTADeblurring::freqMapestimate(const MultidimArray< std::complex<double> > &mapfftV,
+		const MultidimArray<double> &inputVol)
+{
+	// Initializing the frequency vectors
+	freq_fourier_z.initZeros(ZSIZE(mapfftV));
+	freq_fourier_x.initZeros(XSIZE(mapfftV));
+	freq_fourier_y.initZeros(YSIZE(mapfftV));
+
+	// u is the frequency
+	double u;
+
+	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
+	VEC_ELEM(freq_fourier_z,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<ZSIZE(mapfftV); ++k){
+		FFT_IDX2DIGFREQ(k,ZSIZE(inputVol), u);
+		VEC_ELEM(freq_fourier_z, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<YSIZE(mapfftV); ++k){
+		FFT_IDX2DIGFREQ(k,YSIZE(inputVol), u);
+		VEC_ELEM(freq_fourier_y, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<XSIZE(mapfftV); ++k){
+		FFT_IDX2DIGFREQ(k,XSIZE(inputVol), u);
+		VEC_ELEM(freq_fourier_x, k) = u;
+	}
+
+	//Initializing map with frequencies
+	freqMap.resizeNoCopy(mapfftV);
+	freqMap.initConstant(1);  //Nyquist is 2, we take 1.9 greater than Nyquist
+
+	xvoldim = XSIZE(inputVol);
+	yvoldim = YSIZE(inputVol);
+	zvoldim = ZSIZE(inputVol);
+
+	// Directional frequencies along each direction
+	double uz, uy, ux, uz2, uz2y2;
+	long n=0;
+	shelElems=0;
+
+	// TODO: Instead of saving the frequency save the Fourier index
+	for(size_t k=0; k<ZSIZE(mapfftV); ++k)
+	{
+		uz = VEC_ELEM(freq_fourier_z, k);
+		uz2 = uz*uz;
+		for(size_t i=0; i<YSIZE(mapfftV); ++i)
+		{
+			uy = VEC_ELEM(freq_fourier_y, i);
+			uz2y2 = uz2 + uy*uy;
+
+			for(size_t j=0; j<XSIZE(mapfftV); ++j)
+			{
+				ux = VEC_ELEM(freq_fourier_x, j);
+				ux = sqrt(uz2y2 + ux*ux);
+
+				if	(ux<=0.5)
+				{
+					DIRECT_MULTIDIM_ELEM(freqMap,n) = ux;		
+					
+					if ((j == 0) && (uy<0))
+					{
+						DIRECT_MULTIDIM_ELEM(freqMap,n) = 1;
+					}
+						
+					if ((i == 0) && (j == 0) && (uz<0))
+					{
+						DIRECT_MULTIDIM_ELEM(freqMap,n) = 1;
+					}
+					if ((int) round(ux * xvoldim))
+					{
+						++shelElems;
+					}
+
+				}				
+				++n;
+			}
+		}
+	}
+	// Image<double> freqMapImg;
+	// freqMapImg() = freqMap;
+	// freqMapImg.write("myfreqMap.mrc");
+}
+
+
+
+
+void ProgSTADeblurring::estimate_SNR(MultidimArray<double> &SNR, double &globalSNR, MultidimArray<double> &refSpectrum, MultidimArray<double> &tomoSpectrum)
+{
+	// Number of fourier elements
+	size_t Nelems;
+	Nelems = xvoldim/2+1;
+
+	num.initZeros(Nelems);
+	den1.initZeros(Nelems);
+	den2.initZeros(Nelems);
+	SNR.initZeros(Nelems);
+
+
+	
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTref)
+	{
+		// Only reachable frequencies
+		double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+		if (f <= 0.5)	
+		{
+			// Fourier coefficients of both halves
+			std::complex<double> &z1 = DIRECT_MULTIDIM_ELEM(FTref, n);
+			std::complex<double> &z2 = DIRECT_MULTIDIM_ELEM(FTsubtomo, n);
+
+			double absz1 = abs(z1);
+			double absz2 = abs(z2);
+			auto idx = (int) round(f * xvoldim);
+
+			// computing the numerator and denominator
+			dAi(num, idx) += real(conj(z1) * z2);
+			dAi(den1,idx) += absz1*absz1;
+			dAi(den2,idx) += absz2*absz2;
+		}
+	}
+
+	double globnum = 0;
+	double globden1 = 0;
+	double globden2 = 0;
+	// The fsc is stored in a metadata and saved
+	//bool flagRes = true;
+	//thrs = 0.143;
+	//TODO: ensure the curve crosses the threshold.
+	FOR_ALL_ELEMENTS_IN_ARRAY1D(SNR)
+	{
+		double ff = (double) i / (xvoldim * sampling);
+		
+		// if ((1/ff)>8 && (1/ff<50))
+		// {
+			double auxVariable;
+
+			auxVariable = dAi(refSpectrum, 2)/dAi(tomoSpectrum, i);
+			globnum += dAi(num,i)*auxVariable;
+			globden1 += dAi(den1,i);
+			globden2 += dAi(den2,i)*auxVariable*auxVariable;
+		// }
+		
+		double auxfsc = abs(dAi(num,i)/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38));
+
+		double fscval = std::min(auxfsc, 1.0);
+		double fscval2 = fscval*fscval;
+		fscval2 = fscval2/(1-fscval2+1e-38);
+
+		if (std::isinf(fscval2))
+		{
+			std::cout << "isnan at idx = " << i << std::endl;
+			dAi(SNR,i) = 0.99*0.99/(1-0.99*0.99);
+		}
+		else
+		{
+			dAi(SNR, i) = fscval2;
+		}
+	}
+
+	double fscGlobal = globnum/(sqrt(globden1*globden2)+1e-38);
+	if (fscGlobal>1)
+		std::cout << "global FSC greater than 1 = " << fscGlobal << std::endl;
+
+	globalSNR = fscGlobal*fscGlobal/(1-fscGlobal*fscGlobal + 1e-38);
+
+	MultidimArray<double> SNR_new;
+	SNR_new.initZeros(SNR);
+	fineSNR(globalSNR, SNR_new, refSpectrum, tomoSpectrum);
+	SNR = SNR_new;
+
+
+}
+
+void ProgSTADeblurring::fineSNR(double &globalSNR, MultidimArray<double> &SNR_new, MultidimArray<double> &refSpectrum, MultidimArray<double> &tomoSpectrum)
+{
+	MultidimArray<double> SNR_left, SNR_right;
+	SNR_left.initZeros(SNR_new);
+	SNR_right = SNR_left;
+
+	double globnum_left = 0;
+	double globden1_left = 0;
+	double globden2_left= 0;
+
+	double globnum_right = 0;
+	double globden1_right = 0;
+	double globden2_right= 0;
+
+	//FOR_ALL_ELEMENTS_IN_ARRAY1D(SNR)
+	for (size_t i = 0; i<SNR_new.xdim; i++)
+	{
+		double auxVariable;
+		for (size_t j = i+1; j<SNR_new.xdim; j++)
+		{
+			auxVariable = dAi(refSpectrum, 2)/dAi(tomoSpectrum, j);
+			globnum_right += dAi(num,j)*auxVariable;
+			globden1_right += dAi(den1,j);
+			globden2_right += dAi(den2,j)*auxVariable*auxVariable;
+		}
+
+		auxVariable = 1;//dAi(refSpectrum, 2)/dAi(tomoSpectrum, i);
+		globnum_left += dAi(num,i)*auxVariable;
+		globden1_left += dAi(den1,i);
+		globden2_left += dAi(den2,i)*auxVariable*auxVariable;
+
+		double aux_fsc_left  = abs(globnum_left/(sqrt(globden1_left  *globden2_left )+1e-38));
+		double aux_fsc_right = abs(globnum_right/(sqrt(globden1_right*globden2_right)+1e-38));
+
+		double fsc_left  = std::min(aux_fsc_left,  1.0);
+		double fsc_right = std::min(aux_fsc_right, 1.0);
+
+		fsc_left *= fsc_left;
+		fsc_right *= fsc_right;
+
+		double snri_left  =  fsc_left/(1-fsc_left +1e-38);
+		double snri_right = fsc_right/(1-fsc_right+1e-38);
+
+
+		if (std::isinf(snri_left))
+		{
+			std::cout << "isnan at idx = " << i << std::endl;
+			dAi(SNR_left,i) = 0.99*0.99/(1-0.99*0.99);
+		}
+		else
+		{
+			dAi(SNR_left, i) = snri_left;
+		}
+
+		if (std::isinf(snri_right))
+		{
+			std::cout << "isnan at idx = " << i << std::endl;
+			dAi(SNR_right,i) = 0.99*0.99/(1-0.99*0.99);
+		}
+		else
+		{
+			dAi(SNR_right, i) = snri_right;
+		}
+	}
+
+	dAi(SNR_new, 0) = dAi(SNR_left,0);
+	for (size_t i = 1; i<(SNR.xdim-1); i++)
+	{
+		double  iSNR_tot = 1/globalSNR;
+		double ileft = 1/dAi(SNR_left,i-1);		
+		double  iright = 1/dAi(SNR_right,i+1);	
+
+		dAi(SNR_new, i) = 1/abs((iSNR_tot - ileft - iright));
+	}
+
+	dAi(SNR_new, SNR.xdim-1) = dAi(SNR_right, SNR.xdim-1);
+
+}
+
+void ProgSTADeblurring::estimate_FSCresolution(double &resolution)
+{
+	// Number of fourier elements
+	size_t Nelems;
+	Nelems = xvoldim/2+1;
+
+	num.initZeros(Nelems);
+	den1.initZeros(Nelems);
+	den2.initZeros(Nelems);
+	
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTref)
+	{
+		// Only reachable frequencies
+		double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+		if (f <= 0.5)	
+		{
+			// Fourier coefficients of both halves
+			std::complex<double> &z1 = DIRECT_MULTIDIM_ELEM(FTref, n);
+			std::complex<double> &z2 = DIRECT_MULTIDIM_ELEM(FTsubtomo, n);
+
+			double absz1 = abs(z1);
+			double absz2 = abs(z2);
+			auto idx = (int) round(f * xvoldim);
+
+			// computing the numerator and denominator
+			dAi(num, idx) += real(conj(z1) * z2);
+			dAi(den1,idx) += absz1*absz1;
+			dAi(den2,idx) += absz2*absz2;
+		}
+	}
+
+
+	fsc.resizeNoCopy(num);
+	fsc.initConstant(1.0);
+	
+	// The fsc is stored in a metadata and saved
+	bool flagRes = true;
+	thrs = 0.143;
+	//TODO: ensure the curve crosses the threshold.
+	FOR_ALL_ELEMENTS_IN_ARRAY1D(num)
+	{
+		double auxfsc = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
+		dAi(fsc,i) = std::max(0.0, auxfsc);
+
+		if (flagRes && (i>2) && (dAi(fsc,i)<=thrs))
+		{
+			flagRes = false;
+			double ff = (double) i / (xvoldim * sampling) + +1e-38; // frequency
+			resolution = 1./ff;
+		}
+	}
+}
+
+
+void ProgSTADeblurring::globalWeights(MultidimArray<double> &ptrSTA, MultidimArray<double> &ptrvolImg, MultidimArray<double> &ptrRef, double &sumglobalweight)
+{
+		double PowerNoiseInside = 0;
+		double PowerNoiseInside2 = 0;
+
+		double NmaskIn = 0;
+		double NmaskOut = 0;
+
+		double sumNoise = 0;
+		double sumNoise2 = 0;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ptrvolImg)
+		{
+			if (DIRECT_MULTIDIM_ELEM(mask, n)> 0.5)
+			{
+				double aux = DIRECT_MULTIDIM_ELEM(ptrvolImg, n) - DIRECT_MULTIDIM_ELEM(ptrRef, n);
+				PowerNoiseInside += aux;
+				PowerNoiseInside2 += aux*aux;
+				NmaskIn = NmaskIn + 1;
+			}
+			else
+			{
+				double aux = DIRECT_MULTIDIM_ELEM(ptrvolImg, n);
+				sumNoise += aux;
+				sumNoise2 += aux*aux;
+				NmaskOut = NmaskOut + 1;
+
+			}
+		}
+
+		double sigmaNoise = sumNoise2/NmaskOut - (sumNoise/NmaskOut)*(sumNoise/NmaskOut);
+		double varInside = PowerNoiseInside2/NmaskIn - (PowerNoiseInside/NmaskIn)*(PowerNoiseInside/NmaskIn);
+
+		//noisePower = noisePower2/Nmask - (noisePower/Nmask)*(noisePower/Nmask);
+		//noisePower = noisePower/Nmask;
+
+		double weightValue = 1/(varInside + sigmaNoise);
+		sumglobalweight += weightValue;
+
+		std::cout << "sigma2 = " << sigmaNoise << "  noisePowerInside = " <<  varInside << "  weightValue = " << weightValue << std::endl;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ptrvolImg)
+		{
+				DIRECT_MULTIDIM_ELEM(ptrSTA, n) += weightValue*DIRECT_MULTIDIM_ELEM(ptrvolImg, n);
+		}
+}
+
+
+template<typename T>
+void ProgSTADeblurring::createReference(MultidimArray<T> &refMap)
+{
+	// Read subtomos
+	MetaDataVec md;
+	md.read(fnSubtomos);
+
+	FileName fnVol;
+	Image<T> subtomo;
+	MultidimArray<T> &ptrsubtomo = subtomo();
+
+	//MultidimArray<T> *ptrsubtomo = subtomo();
+
+	/*
+	std::vector<MultidimArray<float>> subtomoVec(Nthreads);
+
+	for (auto & subtom : subtomoVec) {
+		subtom.initZeros(refMap);
+	}
+
+	*/
+
+
+	
+	size_t nsubtomos = 0;
+
+	/*
+	ctpl::thread_pool threadPool;
+	threadPool.resize(Nthreads);
+	auto futures = std::vector<std::future<void>>();
+    futures.reserve(angles.mdimx);
+	*/
+
+	// for (size_t  k=0; k<md.size(); k++)
+	for (const auto& row : md)
+    {
+		// futures.emplace_back(threadPool.push(
+		// 		[k, this, &subtomoVec, &isotropyMatrices](int thrId){
+		
+		
+		// ))};
+
+		row.getValue(MDL_IMAGE, fnVol);
+
+
+		// TODO: it should possible to avoid reading again and again by reserving memory for the map and loading the data in that memory direction?
+		subtomo.read(fnVol);
+
+		if (refMap.getDim() < 1)
+		{
+			refMap.initZeros(ptrsubtomo);
+		}
+		std::cout << "count = " << nsubtomos << std::endl;
+
+		refMap += ptrsubtomo;
+
+		// // auto *ptrsub = MULTIDIM_ARRAY(ptrsubtomo);
+
+		// // // T* ptrrefMap=NULL;
+		// // // T* ptrsub=NULL;
+		// // size_t nmax = refMap.nzyxdim;
+		// // std::cout << "asa" << std::endl;
+		// // //for (size_t n = 0; n<nmax; n++)// ptrrefMap=refMap.data, ptrsub=ptrsubtomo.data; n<refMap.nzyxdim; n++)
+		// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(refMap)
+		// {
+		// 	std::cout << n << std::endl;
+		// 	*ptrefMap++ += *ptrsubtomo++;
+		// }
+		
+
+		
+		nsubtomos++;
+		// if (nsubtomos>100)
+		// 	break;
+	}
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(refMap)
+	{
+		DIRECT_MULTIDIM_ELEM(refMap,n) /= nsubtomos;
+	}
+
+
+	Image<T> svImg;
+	svImg() = refMap;
+	FileName fn;
+	svImg.write(fnOut+"/sta.mrc");
+}
+
+void  ProgSTADeblurring::resolutionDistribution(MultidimArray< std::complex< double > > &FT_sta, double &mu, double &sigma2)
+{
+	std::cout << "estimating the resolution distribution" << std::endl;
+
+	MetaDataVec mdSubtomos;
+	mdSubtomos.read(fnSubtomos);
+
+	double K = 0.0025;
+	
+	FourierTransformer transformerSubtomo(FFTW_BACKWARD);
+	transformerSubtomo.setThreadsNumber(Nthreads);
+
+	FT_sta.resizeNoCopy(FTref);
+	FT_sta.initZeros();
+	FTsubtomo.resizeNoCopy(FTref);
+	
+
+	FileName fnVol;
+	Image<double> volImg;
+	auto &ptrvolImg  = volImg();
+
+	// Choosing a random subset
+	int sampleSize = mdSubtomos.size();
+	if (sampleSize > 1000)
+	{
+		sampleSize = 1000;
+	}
+
+	std::srand ( unsigned ( std::time(0) ) );
+	std::vector<int> myRandomVector;
+
+	// set some values:
+	for (int i=0; i<mdSubtomos.size(); ++i) myRandomVector.push_back(i); // 1 2 3 4 5 6 7 8 9
+
+	std::random_shuffle(myRandomVector.begin(), myRandomVector.end());
+	
+	std::vector<double> resDist;
+	double sumR = 0, sumR2 = 0;
+	long NR=0;
+
+
+	// TODO: Fixme this is not efficient at all
+	for (size_t k=0; k<sampleSize; k++)
+	{
+		size_t subtomo = 0;
+		size_t tomIdx = myRandomVector[k];
+		std::cout << "k= " << k << std::endl;
+		for (const auto& row : mdSubtomos)
+		{
+			if (subtomo == tomIdx)
+			{
+				std::cout << "s = " << subtomo << " indice = " << tomIdx << std::endl;
+				row.getValue(MDL_IMAGE, fnVol);
+				
+				volImg.read(fnVol);
+
+				//Computing the FFT
+				transformerSubtomo.FourierTransform(ptrvolImg, FTsubtomo, false);
+
+				double resolution=0;
+				estimate_FSCresolution(resolution);
+
+				std::cout << "  resolution = " << resolution << std::endl;
+
+				sumR  += resolution;
+				sumR2 += resolution*resolution;
+				++NR;
+				resDist.push_back(resolution);
+			}
+			subtomo++;
+		}
+	}
+
+	double meanR=sumR/NR;
+	sigma2=sumR2/NR-meanR*meanR;
+
+	std::sort(resDist.begin(),resDist.end());
+	mu = resDist[size_t(resDist.size()*0.5)];
+	std::cout << "mean Resolution = " << mu <<  std::endl;
+}
+
+
+template<typename T>
+void ProgSTADeblurring::SNRexponentialDecay(T &a, T &b, T &c)
+{
+	size_t nelems = SNR.nzyxdim;
+
+	size_t idx_init = floor(0.75*nelems);
+
+	T sumSNR = 0;
+
+	for (size_t i = idx_init; i<nelems; i ++)
+	{
+		sumSNR += DIRECT_MULTIDIM_ELEM(SNR, i);
+	}
+
+	c =  sumSNR/(nelems-idx_init);
+
+	
+
+	T sum_yi = 0;
+	T sum_xi2yi = 0;
+	T sum_yilyi = 0;
+	T sum_xiyi = 0;
+	T sum_xiyilyi = 0;
+
+	// We tae the first 15% of the data to carry out the fitting. It means the decay at very lowe frequency. 
+	// The reason is to speed up the computation. Least squares is biased by the tail of the exponentical decay. So we take the first points
+	// avoiding low values. Moreover the fitting is carried out by minimizing the target funciton SUM( (yi *(ln(yi) -ln(a) + bxi) )^2). 
+    // This is because this objective function is less biased by low values
+	for (size_t i=1; i<round(0.12*nelems); i++)
+	{
+		T yi = DIRECT_MULTIDIM_ELEM(SNR, i);
+		T lyi = log(yi+1e-38);
+		sum_xi2yi += i*i*yi;
+		sum_yilyi += yi*lyi;
+		sum_xiyi += i*yi;
+		sum_xiyilyi += i*yi*lyi;
+		sum_yi += yi;
+	}
+	T aux_a;
+	T aux_a_den;
+	aux_a_den = (sum_yi*sum_xi2yi - sum_xiyi*sum_xiyi);
+	aux_a = (sum_xi2yi*sum_yilyi - sum_xiyi*sum_xiyilyi)/(sum_yi*sum_xi2yi - sum_xiyi*sum_xiyi);
+	a = exp(aux_a);
+	b = (sum_yi*sum_xiyilyi - sum_xiyi*sum_yilyi)/(sum_yi*sum_xi2yi - sum_xiyi*sum_xiyi);
+
+	std::cout << "a = " << a << " b = " << b << "  c = " << c << std::endl;
+}
+
+template<typename T>
+void ProgSTADeblurring::evalSNR(T &a, T &b, T &idx, T &snrvalue)
+{
+	snrvalue = a*exp(b*idx);
+}
+
+
+void ProgSTADeblurring::smartSTA4(MultidimArray< std::complex< double > > &FT_sta)
+{
+	std::cout << "starting smart STA" << std::endl;
+
+	MetaDataVec mdSubtomos;
+	mdSubtomos.read(fnSubtomos);
+
+	FourierTransformer transformerSubtomo(FFTW_BACKWARD);
+	transformerSubtomo.setThreadsNumber(Nthreads);
+
+	FT_sta.resizeNoCopy(FTref);
+	FT_sta.initZeros();
+	FTsubtomo.resizeNoCopy(FTref);
+	
+	FileName fnVol;
+
+	Image<double> volImg;
+	auto &ptrvolImg  = volImg();
+	size_t s = 0;
+
+	MultidimArray<double> weight;
+	weight.initZeros(freqMap);
+
+	MultidimArray<double> refSpectrum;
+	estimate_Spectrum_old(FTref, refSpectrum);
+
+
+	tomosReal.initZeros(shelElems, 1000);
+	tomosImag = tomosReal;
+
+	MultidimArray<double> cumSNR;
+	cumSNR.initZeros(xvoldim/2+1);
+
+	for (const auto& row : mdSubtomos)
+    {
+		row.getValue(MDL_IMAGE, fnVol);
+		
+		volImg.read(fnVol);
+
+		//Computing the FFT
+        transformerSubtomo.FourierTransform(ptrvolImg, FTsubtomo, false);
+
+		MultidimArray<double> tomoSpectrum;
+		std::cout << "antes de estimateSpectrum" <<std::endl;
+		estimate_Spectrum(FTsubtomo, tomoSpectrum, s);
+		std::cout << "despues de estimateSpectrum" <<std::endl;
+		double globalSNR = 0;
+		estimate_SNR(SNR, globalSNR, refSpectrum, tomoSpectrum);
+
+		double a, b, c;
+		SNRexponentialDecay(a, b, c);
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FT_sta)
+		{
+			//double weight_subtomo = globalSNR;
+			double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+			auto idx = (int) round(f * xvoldim);
+			if (idx < SNR.nzyxdim)
+			{
+				///double weight_subtomo = a*exp(b*idx) + c; //dAi(SNR, idx);
+				double weight_subtomo = dAi(SNR, idx);
+				//DIRECT_MULTIDIM_ELEM(FT_sta, n) += DIRECT_MULTIDIM_ELEM(FTsubtomo, n);
+				//double weight_subtomo = globalSNR;
+				DIRECT_MULTIDIM_ELEM(FT_sta, n) += weight_subtomo*DIRECT_MULTIDIM_ELEM(FTsubtomo, n);
+				DIRECT_MULTIDIM_ELEM(weight, n) += weight_subtomo;
+			}
+		}
+		std::cout << s << "---------------" << std::endl;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(SNR)
+		{
+			std::cout << ( a*exp(b*n) +c ) << " " << dAi(SNR, n) << ";"<< std::endl;
+			dAi(cumSNR,n) += a*exp(b*n) +c;
+		}
+		std::cout << "globalSNR = " << globalSNR << std::endl;
+		std::cout << "---------------" << std::endl;
+		//std::cout << " s = " << s << " globalSNR = " << std::endl; // << SNR << " a = " << a << "    b = " << b << std::endl;//<< "  SNR2 = " << SNR
+		// std::cout << " s = " << s << std::endl;
+		s++;
+
+		// if (s>100)
+			// break;
+
+	}
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(cumSNR)
+	{
+		std::cout <<  " cumSNR = " << dAi(cumSNR,n) << ";"<< std::endl;
+		
+	}
+
+	Image<double> aux_matlab;
+	aux_matlab() = tomosReal;
+	aux_matlab.write(fnOut+"/real.mrc");
+	aux_matlab() = tomosImag;
+	aux_matlab.write(fnOut+"/imag.mrc");
+
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(weight)
+	// {
+	// 	DIRECT_MULTIDIM_ELEM(weight, n) = log(DIRECT_MULTIDIM_ELEM(weight, n));
+	// }
+
+	Image<double> aux;
+	aux() = weight;
+	aux.write(fnOut+"/weight.mrc");
+
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(checkSNR2)
+	// {
+	// 	double nsub = s;
+	// 	double aa;
+	// 	double mean2 = DIRECT_MULTIDIM_ELEM(checkSNR, n)*DIRECT_MULTIDIM_ELEM(checkSNR, n);
+	// 	aa = DIRECT_MULTIDIM_ELEM(checkSNR2, n)/nsub - (mean2/(nsub*nsub));
+	// 	//std::cout << aa << std::endl;
+	// }
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FT_sta)
+	{
+		if (DIRECT_MULTIDIM_ELEM(freqMap, n)<=0.5)
+		{
+			DIRECT_MULTIDIM_ELEM(FT_sta, n) /= DIRECT_MULTIDIM_ELEM(weight, n);
+		}
+	}
+}
+
+void ProgSTADeblurring::weightedSTAstep(MultidimArray<double> &ptrRef, MultidimArray<double> &ptrSTA, bool &spectral)
+{
+	std::cout << "Starting the estimation of weights ..." << std::endl;
+
+	defineMask(ptrRef);
+  
+	if (fnMask != "")
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ptrRef)
+		{
+			DIRECT_MULTIDIM_ELEM(ptrRef, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
+		}
+	}
+
+	wSTAstep(ptrSTA, ptrRef, mask, spectral);
+}
+
+
+void ProgSTADeblurring::spectralWeights(MultidimArray<std::complex<double>> &FT_sta, MultidimArray<std::complex<double>> &FTsubtomo, MultidimArray<std::complex<double>> &FTref, 
+										MultidimArray<double> &cumSpectralNoise)
+{
+	double noisePower = 0;
+	MultidimArray<double> spectralNoise;
+	spectralNoise.initZeros(cumSpectralNoise);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTsubtomo)
+	{
+		double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+
+		if (f>0.5)
+			continue;
+		
+		// Index of each frequency
+		auto idx = (int) round(f * xvoldim);
+
+		double aux = abs(DIRECT_MULTIDIM_ELEM(FTsubtomo, n) - DIRECT_MULTIDIM_ELEM(FTref, n));		
+		double aux2 = aux*aux;
+		dAi(spectralNoise, idx) += aux2;
+	}
+
+	
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTsubtomo)
+	{
+		double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+
+		if (f>0.5)
+			continue;
+
+		auto idx = (int) round(f * xvoldim);
+
+		double weightValue = 1/dAi(spectralNoise, idx);
+
+		dAi(cumSpectralNoise, idx) += weightValue;
+
+		DIRECT_MULTIDIM_ELEM(FT_sta, n) += weightValue*DIRECT_MULTIDIM_ELEM(FTsubtomo, n);
+	}
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(spectralNoise)
+		std::cout << "  " << 1/DIRECT_MULTIDIM_ELEM(spectralNoise, n); 
+}
+
+
+void ProgSTADeblurring::wSTAstep(MultidimArray<double> &ptrSTA, MultidimArray<double> &ptrRef, MultidimArray<double> &ptrMask, bool &spectral)
+{
+	FileName fnVol;
+
+	Image<double> volImg;
+	auto &ptrvolImg  = volImg();
+	
+	size_t s = 0;
+
+	MetaDataVec mdSubtomos;
+	mdSubtomos.read(fnSubtomos);
+
+	MultidimArray< std::complex< double > > FT_sta;
+	FourierTransformer transformerSubtomo(FFTW_BACKWARD);
+	FourierTransformer transformerRef(FFTW_BACKWARD);
+
+	if (spectral)
+	{
+		std::cout << "using spectral approach " << std::endl;
+		transformerRef.setThreadsNumber(Nthreads);
+		transformerRef.FourierTransform(ptrRef, FTref, false);
+
+		FourierTransformer transformerSubtomo(FFTW_BACKWARD);
+		transformerSubtomo.setThreadsNumber(Nthreads);
+
+		freqMapestimate(FTref, ptrRef);
+		FT_sta.initZeros(FTref);
+	}
+
+	
+	double sumglobalweight = 0;
+	MultidimArray<double> cumSpectralNoise;
+	cumSpectralNoise.resizeNoCopy(FTref);
+	cumSpectralNoise.initZeros();
+
+	for (const auto& row : mdSubtomos)
+	{
+		row.getValue(MDL_IMAGE, fnVol);
+		volImg.read(fnVol);
+
+		
+		if (spectral)
+		{
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ptrvolImg)
+				DIRECT_MULTIDIM_ELEM(ptrvolImg, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
+
+			transformerSubtomo.FourierTransform(ptrvolImg, FTsubtomo, false);
+			spectralWeights(FT_sta, FTsubtomo, FTref, cumSpectralNoise);
+		}
+		else
+		{
+			globalWeights(ptrSTA, ptrvolImg, ptrRef, sumglobalweight);
+		}
+		
+		s++;
+		std::cout << "s = " << s << std::endl;
+	}
+
+	std::cout << "after loop"  << std::endl;
+
+	if (spectral)
+	{
+		std::cout << "Normalizing the weights ...  " << s << std::endl;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FT_sta)
+		{
+			double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+
+			if (f>0.5)
+				continue;
+
+			auto idx = (int) round(f * xvoldim);
+
+			DIRECT_MULTIDIM_ELEM(FT_sta, n) /= dAi(cumSpectralNoise, idx);
+		}
+
+		std::cout << "Final spectral weights = " << cumSpectralNoise << std::endl;
+
+		transformerRef.inverseFourierTransform();
+		ptrSTA = ptrRef;
+	}
+	else
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(ptrSTA)
+			DIRECT_MULTIDIM_ELEM(ptrSTA, n) /= sumglobalweight;
+
+		std::cout << "Final global weights = " << sumglobalweight << std::endl;
+	}
+}
+
+
+void ProgSTADeblurring::estimate_Spectrum(MultidimArray< std::complex< double > > &FTref, MultidimArray<double> &refSpectrum, size_t tomNumber)
+{
+	refSpectrum.initZeros(xvoldim/2+1);
+	std::cout << "xvoldim = " << xvoldim/2+1 << std::endl;
+
+	MultidimArray<double> count;
+	count.initZeros(refSpectrum);
+	long i = 0;
+	std::cout << "i = " << i << std::endl;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTref)
+	{
+		double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+		if (f <= 0.5)
+		{
+			auto idx = (int) round(f * xvoldim);
+			std::complex<double> &z1 = DIRECT_MULTIDIM_ELEM(FTref, n);
+			//std::cout << "z1 = " << z1 <<std::endl;
+			double absz1 = abs(z1);
+			
+			// computing the numerator and denominator
+			dAi(refSpectrum, idx) += absz1*absz1;
+			dAi(count, idx) += 1;
+			if (idx == 62)
+			{
+				DIRECT_A2D_ELEM(tomosReal, i, tomNumber) = real(z1);
+				DIRECT_A2D_ELEM(tomosImag, i, tomNumber) = imag(z1);
+				i++;
+				std::cout << "i = " << i << std::endl;
+			}
+		}
+	}
+
+	std::cout << "termino" << std::endl;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(refSpectrum)
+	{
+		dAi(refSpectrum, n) /= dAi(count, n);
+		dAi(refSpectrum, n) = sqrt(dAi(refSpectrum, n));
+	}
+	// std::cout << refSpectrum << std::endl;
+}
+
+void ProgSTADeblurring::estimate_Spectrum_old(MultidimArray< std::complex< double > > &FTref, MultidimArray<double> &refSpectrum)
+{
+	refSpectrum.initZeros(xvoldim/2+1);
+	std::cout << "xvoldim = " << xvoldim/2+1 << std::endl;
+
+	MultidimArray<double> count;
+	count.initZeros(refSpectrum);
+	long i = 0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTref)
+	{
+		double f = DIRECT_MULTIDIM_ELEM(freqMap, n);
+		if (f <= 0.5)
+		{
+			auto idx = (int) round(f * xvoldim);
+			std::complex<double> &z1 = DIRECT_MULTIDIM_ELEM(FTref, n);
+			//std::cout << "z1 = " << z1 <<std::endl;
+			double absz1 = abs(z1);
+			
+			// computing the numerator and denominator
+			dAi(refSpectrum, idx) += absz1*absz1;
+			dAi(count, idx) += 1;
+		}
+	}
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(refSpectrum)
+	{
+		dAi(refSpectrum, n) /= dAi(count, n);
+		dAi(refSpectrum, n) = sqrt(dAi(refSpectrum, n));
+	}
+	// std::cout << refSpectrum << std::endl;
+}
+
+
+void ProgSTADeblurring::defineReference(MultidimArray<double> &ptrRef)
+{
+
+	// Reading the reference or creating one
+	if (fnRef != "")
+	{
+		Image<double> refImg;
+		auto &ptrRef = refImg();
+		refImg.read(fnRef);
+	}
+	else
+	{
+		std::cout << " Creating a reference map ... " << std::endl;
+		using std::chrono::high_resolution_clock;
+		using std::chrono::duration_cast;
+		using std::chrono::duration;
+		using std::chrono::milliseconds;
+
+		auto t1 = high_resolution_clock::now();
+
+		createReference(ptrRef);
+
+		auto t2 = high_resolution_clock::now();
+		/* Getting number of milliseconds as an integer. */
+    	auto ms_int = duration_cast<milliseconds>(t2 - t1);
+
+    	/* Getting number of milliseconds as a double. */
+    	duration<double, std::milli> ms_double = t2 - t1;
+
+    	std::cout << ms_int.count() << "ms\n";
+    	std::cout << ms_double.count() << "ms\n";
+	}
+}
+
+
+void ProgSTADeblurring::defineMask(MultidimArray<double> &ptrRef)
+{
+	std::cout << "defineMask " << std::endl;
+    if (fnMask != "")
+	{
+		Image<double> maskImg;	
+		maskImg.read(fnMask);
+		mask = maskImg();
+	}
+	else
+	{
+		int smoothtail = 5;
+		double sphereRadius = ZSIZE(ptrRef)*0.5;
+		
+		mask.initZeros(ptrRef);
+		
+		double transitionRadius = (sphereRadius-smoothtail);
+		
+		long n=0;
+		int ux, uy, uz;
+		
+		std::cout << "defineMask " <<  ZSIZE(ptrRef) <<  std::endl;
+
+		for(int k=0; k<ZSIZE(ptrRef); ++k)
+		{
+			uz = (k - sphereRadius);
+			uz *= uz;
+			for(int i=0; i<YSIZE(ptrRef); ++i)
+			{
+				uy = (i - sphereRadius);
+				uy *= uy;
+				for(int j=0; j<XSIZE(ptrRef); ++j)
+				{
+					ux = (j - sphereRadius);
+					ux *= ux;
+					double radius = sqrt(ux + uy + uz);
+					if (radius<sphereRadius)
+					{
+						if (radius<transitionRadius)
+						{
+							DIRECT_MULTIDIM_ELEM(mask, n) = 1;
+						}
+						else
+						{
+							DIRECT_MULTIDIM_ELEM(mask, n) = 0.5*(1+cos(PI*(transitionRadius - radius)/smoothtail));
+						}
+					}
+					++n;
+				}
+			}
+		}
+	}
+
+	// Image<double> maskImg;	
+	// maskImg() = mask;
+	// maskImg.write("mymask.mrc");
+
+
+}
+
+
+void ProgSTADeblurring::run()
+{
+	std::cout << "Starting ... " << std::endl << std::endl;
+
+	MultidimArray<double> ptrRef;
+
+	defineReference(ptrRef);
+
+	MultidimArray<double> ptrSTA;
+	ptrSTA.resizeNoCopy(ptrRef);
+
+	weightedSTAstep(ptrRef, ptrSTA, spl);
+
+	std::cout << "Finished!" << std::endl;	
+
+	Image<double> STA_smart;
+	STA_smart() = ptrSTA;
+	STA_smart.write(fnOut+"/STA_smart.mrc");
+}
+
+
