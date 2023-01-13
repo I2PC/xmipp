@@ -38,8 +38,8 @@
 template<typename T>
 class ProgMovieAlignmentCorrelation: public AProgMovieAlignmentCorrelation<T> {
 public:
-    /// Define parameters
-    void defineParams();
+    void defineParams() override;
+    void readParams() override;
 private:
     /**
      * After running this method, all relevant images from the movie are
