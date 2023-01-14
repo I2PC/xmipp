@@ -22,7 +22,8 @@
 
 from typing import Optional, Tuple
 import torch
-import torchvision
+import torchvision.transforms as T
+import operator
 
 from transform import rotation_matrix_2d, combine_affine_2d, apply_affine
 
@@ -44,6 +45,7 @@ class ImageAffineTransformer:
                     affine_matrix: Optional[torch.Tensor] = None,
                     out: Optional[torch.Tensor] = None) -> torch.Tensor:
         
+        """
         # Ensemble the transform matrix
         rotation_matrix = self._rotation_matrices[angle_index]
         shift_vector = self._shift_vectors[shift_index]
@@ -51,6 +53,19 @@ class ImageAffineTransformer:
         
         # Perform the transform
         out=apply_affine(input, affine_matrix, out=out)
+        """
+        
+        # TODO use the matrix
+        angle = self.get_angle(angle_index)
+        translate = tuple(map(operator.mul, self.get_shift(shift_index), input.shape[-2:]))
+        out = T.functional.affine(
+            input,
+            angle=angle,
+            translate=translate,
+            scale=1.0,
+            shear=0.0,
+            interpolation=T.InterpolationMode.BILINEAR,
+        )
         
         return out
         

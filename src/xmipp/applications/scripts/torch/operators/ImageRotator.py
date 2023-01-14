@@ -22,7 +22,7 @@
 
 from typing import Optional
 import torch
-import torchvision
+import torchvision.transforms as T
 
 class ImageRotator:
     def __init__(   self,
@@ -36,10 +36,10 @@ class ImageRotator:
                     out: Optional[torch.Tensor] ) -> torch.Tensor:
         
         # TODO use the matrix
-        out = torchvision.transforms.functional.rotate(
+        out = T.functional.rotate(
             input,
             self.get_angle(index),
-            torchvision.transforms.InterpolationMode.BILINEAR,
+            T.InterpolationMode.BILINEAR,
         )
         return out
 
