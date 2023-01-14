@@ -20,7 +20,6 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence
 import pandas as pd
 import torch
 
@@ -46,31 +45,6 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
 
     return result
 
-def _do_pose_consensus(alignments: Sequence[pd.DataFrame]) -> pd.DataFrame:
-    POSE_COLUMNS = [md.ANGLE_PSI, md.ANGLE_ROT, md.ANGLE_TILT]
-    
-    # Obtain the shifts from the alignments
-    euler_angles = torch.stack(list(map(lambda x : torch.tensor(x[POSE_COLUMNS].values), alignments)))
-
-    return alignments[0][POSE_COLUMNS]
-
-def _do_shift_consensus(alignments: Sequence[pd.DataFrame]) -> pd.DataFrame:
-    SHIFT_COLUMNS = [md.SHIFT_X, md.SHIFT_Y]
-
-    # Obtain the shifts from the alignments
-    shifts = torch.stack(list(map(lambda x : torch.tensor(x[SHIFT_COLUMNS].values), alignments)))
-    distances = torch.stack(list(map(lambda x : torch.tensor(x['distance'].values), alignments)))
-    
-    # Compute the weights
-    weights = torch.exp(-distances)
-    #weights /= torch.sum(weights, dim=1)
-    #print(weights)
-    
-    #weighted_shifts = torch.mul(shifts, weights)
-
-    return alignments[0][SHIFT_COLUMNS]
-    
-
 def generate_alignment_metadata(experimental_md: pd.DataFrame,
                                 reference_md: pd.DataFrame,
                                 projection_md: pd.DataFrame,
@@ -93,15 +67,12 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
     reference_md = reference_md.rename(columns={
         md.IMAGE: md.REFERENCE_IMAGE,
     })
-    #reference_md.loc[-1, [md.ANGLE_ROT, md.ANGLE_TILT, md.REFERENCE_IMAGE]] = [0.0, 0.0, 'null']
     
-    alignment_mds = []
-    for i in range(match_indices.shape[-1]):
-        alignment_mds.append(_ensemble_alignment_md(reference_md, projection_md, match_indices[:,i], match_distances[:,i]))
+    # Use the first match
+    alignment_md = _ensemble_alignment_md(reference_md, projection_md, match_indices[:,0], match_distances[:,0]))
     
     # Add the alignment consensus to the output
-    output_md = output_md.join(_do_pose_consensus(alignment_mds))
-    output_md = output_md.join(_do_shift_consensus(alignment_mds))
+    output_md.join(alignment_md)
     
     # Reorder columns for more convenient reading
     output_md = output_md.reindex(
