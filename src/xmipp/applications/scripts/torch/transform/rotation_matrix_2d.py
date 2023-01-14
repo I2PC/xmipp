@@ -24,7 +24,12 @@ from typing import Optional
 import torch
 
 def rotation_matrix_2d(angles: torch.Tensor,
+                       deg: bool = True,
                        out: Optional[torch.Tensor] = None):
+    
+    # Convert to radians
+    if deg:
+        angles = torch.deg2rad(angles)
     
     # Create the output if not existent
     MATRIX_SHAPE = (2, 2)
@@ -43,7 +48,7 @@ def rotation_matrix_2d(angles: torch.Tensor,
     # Fill
     out[...,0,0] = c
     out[...,0,1] = -s
-    out[...,1,0] = c
-    out[...,1,1] = s
+    out[...,1,0] = s
+    out[...,1,1] = c
     
     return out

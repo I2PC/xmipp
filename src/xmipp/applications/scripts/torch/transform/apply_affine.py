@@ -46,5 +46,4 @@ def apply_affine(images: torch.Tensor,
     out = F.grid_sample(flattened_images, grid, align_corners=False)
     out = out.view(images.shape)
     
-    
     return out
