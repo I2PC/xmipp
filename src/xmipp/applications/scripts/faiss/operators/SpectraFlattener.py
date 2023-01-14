@@ -28,15 +28,48 @@ class SpectraFlattener:
                     mask: torch.Tensor,
                     padded_length: Optional[int] = None,
                     device: Optional[torch.device] = None):
-        self._mask = mask.to(device)
-        self._mask_length = int(torch.count_nonzero(mask))
-        self._length = padded_length if padded_length is not None else self._mask_length
+        self._mask = mask
+        self._indices = self._calculate_indices(mask, device=device)
+        self._length = padded_length or len(self._indices)
     
     def __call__(   self,
                     input: torch.Tensor,
                     out: Optional[torch.Tensor] = None) -> torch.Tensor:
         
-        # Allocate out if necessary
+        # Ensure output is defined
+        out = self._alloc_output(input, out=out)
+        
+        # Flatten in the same dims as the mask
+        flat_input = torch.flatten(input, start_dim=-len(self.get_mask().shape))
+
+        # Write to the output
+        indices = self.get_indices()
+        k = len(indices)
+        out[...,:k] = flat_input[...,indices]
+        out[...,k:] = 0
+        
+        return out
+    
+    def get_mask(self) -> torch.BoolTensor:
+        return self._mask
+    
+    def get_indices(self) -> torch.IntTensor:
+        return self._indices
+    
+    def get_length(self) -> int:
+        return self._length
+
+    def _calculate_indices(self,
+                           mask: torch.BoolTensor, 
+                           device: Optional[torch.device] = None ) -> torch.IntTensor:
+        flat_mask = torch.flatten(mask)
+        indices = torch.argwhere(flat_mask)[:,0]
+        return indices.to(device)
+    
+    def _alloc_output(self,
+                      input: torch.Tensor,
+                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+        
         batch_shape = input.shape[:-2]
         output_shape = batch_shape + (self.get_length(), )
         if out is None:
@@ -44,17 +77,3 @@ class SpectraFlattener:
         else:
             out.resize_(output_shape)
         
-        # Write the output
-        out[...,:self.get_mask_length()] = input[...,self.get_mask()]
-        out[...,self.get_mask_length():] = 0
-        
-        return out
-    
-    def get_mask(self) -> torch.BoolTensor:
-        return self._mask
-    
-    def get_length(self) -> int:
-        return self._length
-
-    def get_mask_length(self) -> int:
-        return self._mask_length
