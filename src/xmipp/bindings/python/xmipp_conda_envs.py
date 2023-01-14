@@ -35,7 +35,7 @@ XMIPP_CONDA_ENVS = {
     "defaultInstallOptions": {},
     "xmippEnviron": True
   },
-  "xmipp_faiss": {
+  "xmipp_torch": {
     "pythonVersion": "3.10",
     "dependencies": ["pytorch", "torchvision",
                      "pandas", "faiss%(gpuTag)s"],
