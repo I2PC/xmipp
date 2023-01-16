@@ -60,7 +60,7 @@ class ImageAffineTransformer:
         translate = tuple(map(operator.mul, self.get_shift(shift_index), input.shape[-2:]))
         out = T.functional.affine(
             input,
-            angle=angle,
+            angle=-angle, # Unlike rotate, this is cw
             translate=translate,
             scale=1.0,
             shear=0.0,
