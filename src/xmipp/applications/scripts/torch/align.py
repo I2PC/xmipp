@@ -53,13 +53,14 @@ def run(experimental_md_path: str,
     
     # Create the in-plane transforms
     angles = torch.linspace(-180, 180, n_rotations+1)[:-1]
+    rotation_transformer = operators.ImageRotator(angles, device=transform_device)
+
     axis_shifts = torch.linspace(-max_shift, max_shift, n_shifts)
     shifts = torch.cartesian_prod(axis_shifts, axis_shifts)
     if method == 'fourier':
-        rotation_transformer = operators.ImageRotator(angles, device=transform_device)
         shift_transformer = operators.FourierShiftFilter(image_size, shifts, flattener, device=transform_device)
     else:
-        affine_transformer = operators.ImageAffineTransformer(angles=angles, shifts=shifts, device=transform_device)
+        shift_transformer = operators.ImageShifter(shifts, dim=image_size, device=transform_device)
     
     print('Projecting')
     reference_dataset = image.torch_utils.Dataset(reference_md[md.IMAGE])
@@ -79,7 +80,8 @@ def run(experimental_md_path: str,
         projection_md = alignment.populate_references(
             db=db, 
             dataset=reference_dataset,
-            affine=affine_transformer,
+            rotations=rotation_transformer,
+            shifts=shift_transformer,
             transformer=transformer,
             flattener=flattener,
             weighter=weighter,

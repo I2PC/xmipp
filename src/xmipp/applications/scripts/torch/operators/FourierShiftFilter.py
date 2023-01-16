@@ -22,7 +22,6 @@
 
 from typing import Optional
 import torch
-import numpy as np
 
 from .SpectraFlattener import SpectraFlattener
 

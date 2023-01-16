@@ -35,14 +35,15 @@ from .create_reference_metadata import create_reference_metadata
 
 def populate_references(db: faiss.Index, 
                         dataset: image.torch_utils.Dataset,
-                        affine: operators.ImageAffineTransformer,
+                        rotations: operators.ImageRotator,
+                        shifts: operators.ImageShifter,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
                         device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
     
-    n_transform = affine.get_angle_count() * affine.get_shift_count()
+    n_transform = shifts.get_count() * rotations.get_count()
 
     is_complex = transformer.has_complex_output()
 
@@ -61,6 +62,7 @@ def populate_references(db: faiss.Index,
     
     # Process in batches
     start = 0
+    rotated_images = None
     transformed_images = None
     t_transformed_images = None
     flat_t_transformed_images = None
@@ -70,15 +72,13 @@ def populate_references(db: faiss.Index,
         end = start + n_images
 
         # Add the references as many times as their transformations
-        for angle_index in range(affine.get_angle_count()):
-            for shift_index in range(affine.get_shift_count()):
-                # Transform the image
-                transformed_images = affine(
-                    images, 
-                    angle_index=angle_index, 
-                    shift_index=shift_index,
-                    out=transformed_images
-                )
+        for angle_index in range(rotations.get_count()):
+            # Rotate the images
+            rotated_images = rotations(images, angle_index, out=rotated_images)
+            
+            for shift_index in range(shifts.get_count()):
+                # Shift the images
+                transformed_images = shifts(rotated_images, shift_index, out=transformed_images)
 
                 # Compute the transform of the images and flatten and weighten it
                 t_transformed_images = transformer(transformed_images, out=t_transformed_images)
@@ -94,12 +94,12 @@ def populate_references(db: faiss.Index,
                 db.add(reference_vectors)
                 
                 # Add the current transform
-                sx, sy = affine.get_shift(shift_index)
+                sx, sy = shifts.get_shift(shift_index)
                 x_shifts += [-float(sx)] * n_images
                 y_shifts += [-float(sy)] * n_images
                 
-            psi = affine.get_angle(angle_index)
-            psi_angles += [psi] * (n_images * affine.get_shift_count())
+            psi = rotations.get_angle(angle_index)
+            psi_angles += [psi] * (n_images * shifts.get_count())
                 
         reference_indices += list(range(start, end)) * n_transform
                 

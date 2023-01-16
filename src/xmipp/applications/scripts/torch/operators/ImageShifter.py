@@ -20,14 +20,34 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .Transformer2D import Transformer2D
-from .FourierTransformer2D import FourierTransformer2D
-from .DctTransformer2D import DctTransformer2D
-from .SpectraFlattener import SpectraFlattener
-from .FourierLowPassFlattener import FourierLowPassFlattener
-from .DctLowPassFlattener import DctLowPassFlattener
-from .ImageRotator import ImageRotator
-from .ImageShifter import ImageShifter
-from .ImageAffineTransformer import ImageAffineTransformer
-from .FourierShiftFilter import FourierShiftFilter
-from .Weighter import Weighter
+from typing import Optional
+import torch
+
+class ImageShifter:
+    def __init__(self,
+                 shifts: torch.Tensor,
+                 dim: int,
+                 device: Optional[torch.device] = None):
+        
+        self._shifts = shifts
+        self._shifts_in_px = (shifts*dim).to(dtype=int)
+    
+    def __call__(   self,
+                    input: torch.Tensor,
+                    index: int,
+                    out: Optional[torch.Tensor] = None ):
+        
+        out = torch.roll(
+            input,
+            shifts=self._shifts_in_px[index].tolist(),
+            dims=(-1, -2)
+        )
+        
+        return out
+    
+    def get_count(self) -> int:
+        return self._shifts.shape[0]
+    
+    def get_shift(self, index: int) -> torch.Tensor:
+        return self._shifts[index]
+    
