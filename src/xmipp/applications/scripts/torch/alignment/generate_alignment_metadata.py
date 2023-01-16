@@ -72,7 +72,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
     alignment_md = _ensemble_alignment_md(reference_md, projection_md, match_indices[:,0], match_distances[:,0])
     
     # Add the alignment consensus to the output
-    output_md.join(alignment_md)
+    output_md = output_md.join(alignment_md)
     
     # Reorder columns for more convenient reading
     output_md = output_md.reindex(
