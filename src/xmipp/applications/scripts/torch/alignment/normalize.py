@@ -20,12 +20,14 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from typing import Union, Sequence
 import torch
 
-def normalize(data: torch.Tensor, dim: int = 1):
-    if dim != 1:
-        raise NotImplementedError('This function is not implemented form dim != 1')
-
-    std, mean = torch.std_mean(data, dim=dim)
-    data -= mean[...,None] # TODO for dim != 1
-    data /= std[...,None]
+def normalize(data: torch.Tensor, 
+              dims: Union[None, int, Sequence[int]] ) -> torch.Tensor:
+    
+    std, mean = torch.std_mean(data, dim=dims, keepdim=True)
+    data -= mean
+    data /= std
+    
+    return data
