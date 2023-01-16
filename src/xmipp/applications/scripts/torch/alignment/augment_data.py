@@ -35,7 +35,6 @@ def augment_data(db: faiss.Index,
                  transformer: operators.Transformer2D,
                  flattener: operators.SpectraFlattener,
                  weighter: operators.Weighter,
-                 norm: bool,
                  count: int,
                  max_rotation: float = 180,
                  max_shift: float = 0.1,
@@ -86,13 +85,8 @@ def augment_data(db: faiss.Index,
             if is_complex:
                 train_vectors = utils.flat_view_as_real(train_vectors)
                 
-            # Normalize if performing pearson's correlation
-            if norm:
-                utils.normalize(train_vectors, dim=1)
-            
             # Write it to the destination array
             training_set[start:end,:] = train_vectors.to(training_set.device, non_blocking=True)
-            
             
             # Update the index
             start = end

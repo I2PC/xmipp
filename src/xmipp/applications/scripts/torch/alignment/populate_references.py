@@ -39,7 +39,6 @@ def populate_references(db: faiss.Index,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
-                        norm: bool,
                         device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
     
@@ -91,10 +90,6 @@ def populate_references(db: faiss.Index,
                 if is_complex:
                     reference_vectors = utils.flat_view_as_real(reference_vectors)
                 
-                # Normalize if performing pearson's correlation
-                if norm:
-                    utils.normalize(reference_vectors, dim=-1)
-
                 # Populate the database
                 db.add(reference_vectors)
                 

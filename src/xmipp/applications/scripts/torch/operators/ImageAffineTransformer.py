@@ -20,7 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Tuple
+from typing import Optional, Sequence
 import torch
 import torchvision.transforms as T
 import operator
@@ -79,6 +79,6 @@ class ImageAffineTransformer:
     def get_shift_count(self) -> int:
         return self._shifts.shape[0]
 
-    def get_shift(self, index: int) -> Tuple[int, int]:
-        return tuple(self._shifts[index])
+    def get_shift(self, index: int) -> Sequence[int]:
+        return self._shifts[index].tolist()
         

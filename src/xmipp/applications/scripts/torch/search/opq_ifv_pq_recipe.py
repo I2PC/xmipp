@@ -22,7 +22,7 @@
 
 import math
 
-def opq_ifv_pq_recipe(dim: int, size: int = int(3e6), c: float = 16):
+def opq_ifv_pq_recipe(dim: int, size: int = int(3e6), c: float = 16, norm=False):
     """ 
     Values selected using:
     https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index
@@ -40,6 +40,10 @@ def opq_ifv_pq_recipe(dim: int, size: int = int(3e6), c: float = 16):
     opq = f'OPQ{m}_{d}' # Only supported on CPU
     ifv = f'IVF{k}' # In order to support GPU do not use HNSW32
     pq = f'PQ{m}'
-    recipe = ','.join((opq, ifv, pq))
+    recipe = (opq, ifv, pq)
     
-    return recipe
+    if norm:
+        l2norm = 'L2norm'
+        recipe = (l2norm, ) + recipe
+    
+    return ','.join(recipe)

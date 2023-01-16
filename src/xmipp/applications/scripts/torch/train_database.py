@@ -14,7 +14,7 @@ def _get_faiss_metric(metric: str):
     
     if metric == 'euclidean':
         result = faiss.METRIC_L2
-    elif metric == 'pearson':
+    elif metric == 'cosine':
         result = faiss.METRIC_INNER_PRODUCT
         
     return result
@@ -56,13 +56,13 @@ def run(reference_md_path: str,
         dim *= 2
     
     # Create the DB to store the data
-    recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     metric_type = _get_faiss_metric(metric)
+    norm = (metric_type == faiss.METRIC_INNER_PRODUCT)
+    recipe = search.opq_ifv_pq_recipe(dim, n_samples, norm=norm)
     print(f'Data dimensions: {dim}')
     print(f'Database: {recipe}')
     db = search.create_database(dim, recipe, metric_type=metric_type)
     db = search.upload_database_to_device(db, db_device)
-    norm = db.metric_type == faiss.METRIC_INNER_PRODUCT
     
     # Do some work
     print('Augmenting data')
@@ -73,7 +73,6 @@ def run(reference_md_path: str,
         transformer=transformer,
         flattener=flattener,
         weighter=weighter,
-        norm=norm,
         count=n_training,
         max_rotation=180,
         max_shift=max_shift,
