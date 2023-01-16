@@ -76,4 +76,6 @@ class SpectraFlattener:
             out = torch.empty(output_shape, device=input.device, dtype=input.dtype)
         else:
             out.resize_(output_shape)
+            
+        return out
         
