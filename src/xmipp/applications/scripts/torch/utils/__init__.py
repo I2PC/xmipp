@@ -21,4 +21,5 @@
 # ***************************************************************************/
 
 from .flat_view_as_real import flat_view_as_real
+from .normalize import normalize
 from .progress_bar import progress_bar

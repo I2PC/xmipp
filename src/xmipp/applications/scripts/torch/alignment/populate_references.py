@@ -29,7 +29,7 @@ import faiss.contrib.torch_utils
 import operators
 import utils
 import image
-from .normalize import normalize
+
 from .create_reference_metadata import create_reference_metadata
 
 
@@ -93,7 +93,7 @@ def populate_references(db: faiss.Index,
                 
                 # Normalize if performing pearson's correlation
                 if norm:
-                    normalize(reference_vectors, dim=1)
+                    utils.normalize(reference_vectors, dim=-1)
 
                 # Populate the database
                 db.add(reference_vectors)

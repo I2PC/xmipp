@@ -30,7 +30,6 @@ import faiss.contrib.torch_utils
 import operators
 import utils
 import image
-from .normalize import normalize
 
 def _image_transformer( loader: torch.utils.data.DataLoader,
                         q_out: mp.JoinableQueue,
@@ -60,7 +59,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
         
         # Normalize if performing pearson's correlation
         if norm:
-            normalize(search_vectors, dim=1)
+            utils.normalize(search_vectors, dim=-1)
         
         # Feed the queue
         q_out.put(search_vectors.to(device=device, non_blocking=True))

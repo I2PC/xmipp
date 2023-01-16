@@ -24,9 +24,9 @@ from typing import Union, Sequence
 import torch
 
 def normalize(data: torch.Tensor, 
-              dims: Union[None, int, Sequence[int]] ) -> torch.Tensor:
+              dim: Union[None, int, Sequence[int]] ) -> torch.Tensor:
     
-    std, mean = torch.std_mean(data, dim=dims, keepdim=True)
+    std, mean = torch.std_mean(data, dim=dim, keepdim=True)
     data -= mean
     data /= std
     

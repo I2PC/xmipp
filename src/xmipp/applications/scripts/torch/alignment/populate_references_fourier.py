@@ -20,7 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Sequence
+from typing import Optional
 import torch
 import pandas as pd
 import faiss
@@ -29,8 +29,9 @@ import faiss.contrib.torch_utils
 import operators
 import utils
 import image
-from .normalize import normalize
+
 from .create_reference_metadata import create_reference_metadata
+
 
 
 def populate_references_fourier(db: faiss.Index, 
@@ -92,7 +93,7 @@ def populate_references_fourier(db: faiss.Index,
                 reference_vectors = utils.flat_view_as_real(shifted_ft)
                 
                 if norm:
-                    normalize(reference_vectors)
+                    utils.normalize(reference_vectors, dim=-1)
                 
                 # Populate the database
                 db.add(reference_vectors)

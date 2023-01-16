@@ -29,7 +29,6 @@ import math
 
 import operators
 import utils
-from .normalize import normalize
 
 def augment_data(db: faiss.Index, 
                  dataset: torch.utils.data.Dataset,
@@ -89,7 +88,7 @@ def augment_data(db: faiss.Index,
                 
             # Normalize if performing pearson's correlation
             if norm:
-                normalize(train_vectors, dim=1)
+                utils.normalize(train_vectors, dim=1)
             
             # Write it to the destination array
             training_set[start:end,:] = train_vectors.to(training_set.device, non_blocking=True)
