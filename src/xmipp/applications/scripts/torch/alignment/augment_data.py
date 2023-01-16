@@ -35,6 +35,7 @@ def augment_data(db: faiss.Index,
                  transformer: operators.Transformer2D,
                  flattener: operators.SpectraFlattener,
                  weighter: operators.Weighter,
+                 norm: bool,
                  count: int,
                  max_rotation: float = 180,
                  max_shift: float = 0.1,
@@ -73,6 +74,10 @@ def augment_data(db: faiss.Index,
     for images in loader:
         for i in range(n_transforms):
             end = start + images.shape[0]
+            
+            # Normalize image if requested
+            if norm:
+                utils.normalize(images, dim=(-2, -1))
             
             # Transform the images
             transformed_images = random_affine(images)

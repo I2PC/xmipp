@@ -58,7 +58,7 @@ def run(reference_md_path: str,
     # Create the DB to store the data
     metric_type = _get_faiss_metric(metric)
     norm = (metric_type == faiss.METRIC_INNER_PRODUCT)
-    recipe = search.opq_ifv_pq_recipe(dim, n_samples, norm=norm)
+    recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     print(f'Data dimensions: {dim}')
     print(f'Database: {recipe}')
     db = search.create_database(dim, recipe, metric_type=metric_type)
@@ -73,6 +73,7 @@ def run(reference_md_path: str,
         transformer=transformer,
         flattener=flattener,
         weighter=weighter,
+        norm=norm,
         count=n_training,
         max_rotation=180,
         max_shift=max_shift,

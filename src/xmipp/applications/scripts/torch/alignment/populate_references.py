@@ -40,6 +40,7 @@ def populate_references(db: faiss.Index,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
+                        norm: bool,
                         device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
     
@@ -70,6 +71,10 @@ def populate_references(db: faiss.Index,
     for images in loader:
         n_images = images.shape[0]
         end = start + n_images
+
+        # Normalize image if requested
+        if norm:
+            utils.normalize(images, dim=(-2, -1))
 
         # Add the references as many times as their transformations
         for angle_index in range(rotations.get_count()):

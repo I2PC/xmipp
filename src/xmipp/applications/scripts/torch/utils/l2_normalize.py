@@ -20,7 +20,11 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .flat_view_as_real import flat_view_as_real
-from .normalize import normalize
-from .l2_normalize import l2_normalize
-from .progress_bar import progress_bar
+from typing import Union, Sequence
+import torch
+
+def l2_normalize(data: torch.Tensor, 
+                 dim: Union[None, int, Sequence[int]] ) -> torch.Tensor:
+    
+    data /= torch.norm(data, dim=dim, keepdim=True)
+    return data

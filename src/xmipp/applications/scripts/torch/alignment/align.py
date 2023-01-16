@@ -36,6 +36,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
+                        norm: bool,
                         device: torch.device ):
 
     is_complex = transformer.has_complex_output()
@@ -44,6 +45,10 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
     flat_t_images = None
     search_vectors = None
     for images in loader:
+        # Normalize image if requested
+        if norm:
+            utils.normalize(images, dim=(-2, -1))
+
         # Compute the fourier transform of the images
         t_images = transformer(images, out=t_images)
 
@@ -97,6 +102,7 @@ def align(db: faiss.Index,
           transformer: operators.Transformer2D,
           flattener: operators.SpectraFlattener,
           weighter: operators.Weighter,
+          norm: bool,
           k: int,
           device: Optional[torch.device] = None,
           batch_size: int = 1024,
@@ -120,6 +126,7 @@ def align(db: faiss.Index,
             'transformer': transformer, 
             'flattener': flattener, 
             'weighter': weighter,
+            'norm': norm,
             'device': device
         },
         name='transformer'

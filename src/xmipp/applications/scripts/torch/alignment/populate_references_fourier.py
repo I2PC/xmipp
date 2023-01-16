@@ -41,6 +41,7 @@ def populate_references_fourier(db: faiss.Index,
                                 fourier: operators.FourierTransformer2D,
                                 flattener: operators.FourierLowPassFlattener,
                                 weighter: operators.Weighter,
+                                norm: bool,
                                 device: Optional[torch.device] = None,
                                 batch_size: int = 1024 ) -> pd.DataFrame:
     
@@ -69,6 +70,10 @@ def populate_references_fourier(db: faiss.Index,
     for images in loader:
         n_images = images.shape[0]
         end = start + n_images
+
+        # Normalize image if requested
+        if norm:
+            utils.normalize(images, dim=(-2, -1))
 
         # Add the references as many times as their transformations
         reference_indices += list(range(start, end)) * n_transform
