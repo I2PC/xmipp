@@ -35,7 +35,7 @@ def augment_data(db: faiss.Index,
                  transformer: operators.Transformer2D,
                  flattener: operators.SpectraFlattener,
                  weighter: operators.Weighter,
-                 norm: bool,
+                 norm: Optional[str],
                  count: int,
                  max_rotation: float = 180,
                  max_shift: float = 0.1,
@@ -76,7 +76,7 @@ def augment_data(db: faiss.Index,
             end = start + images.shape[0]
             
             # Normalize image if requested
-            if norm:
+            if norm == 'image':
                 utils.normalize(images, dim=(-2, -1))
             
             # Transform the images
@@ -90,6 +90,10 @@ def augment_data(db: faiss.Index,
             if is_complex:
                 train_vectors = utils.flat_view_as_real(train_vectors)
                 
+            # Normalize train vectors if requested
+            if norm == 'vector':
+                utils.l2_normalize(train_vectors, dim=-1)
+
             # Write it to the destination array
             training_set[start:end,:] = train_vectors.to(training_set.device, non_blocking=True)
             

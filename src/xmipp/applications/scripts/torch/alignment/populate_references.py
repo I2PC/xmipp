@@ -40,7 +40,7 @@ def populate_references(db: faiss.Index,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
-                        norm: bool,
+                        norm: Optional[str],
                         device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
     
@@ -73,7 +73,7 @@ def populate_references(db: faiss.Index,
         end = start + n_images
 
         # Normalize image if requested
-        if norm:
+        if norm == 'image':
             utils.normalize(images, dim=(-2, -1))
 
         # Add the references as many times as their transformations
@@ -95,6 +95,10 @@ def populate_references(db: faiss.Index,
                 if is_complex:
                     reference_vectors = utils.flat_view_as_real(reference_vectors)
                 
+                # Normalize reference vectors if requested
+                if norm == 'vector':
+                    utils.l2_normalize(reference_vectors, dim=-1)
+
                 # Populate the database
                 db.add(reference_vectors)
                 

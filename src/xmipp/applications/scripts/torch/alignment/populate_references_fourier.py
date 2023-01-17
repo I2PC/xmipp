@@ -41,7 +41,7 @@ def populate_references_fourier(db: faiss.Index,
                                 fourier: operators.FourierTransformer2D,
                                 flattener: operators.FourierLowPassFlattener,
                                 weighter: operators.Weighter,
-                                norm: bool,
+                                norm: Optional[str],
                                 device: Optional[torch.device] = None,
                                 batch_size: int = 1024 ) -> pd.DataFrame:
     
@@ -96,6 +96,10 @@ def populate_references_fourier(db: faiss.Index,
                 # Elaborate the reference vectors
                 reference_vectors = utils.flat_view_as_real(shifted_ft)
                 
+                # Normalize reference vectors if requested
+                if norm == 'vector':
+                    utils.l2_normalize(reference_vectors, dim=-1)
+
                 # Populate the database
                 db.add(reference_vectors)
                 

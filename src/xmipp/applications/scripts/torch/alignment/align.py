@@ -36,7 +36,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
                         weighter: operators.Weighter,
-                        norm: bool,
+                        norm: Optional[str],
                         device: torch.device ):
 
     is_complex = transformer.has_complex_output()
@@ -46,7 +46,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
     search_vectors = None
     for images in loader:
         # Normalize image if requested
-        if norm:
+        if norm == 'image':
             utils.normalize(images, dim=(-2, -1))
 
         # Compute the fourier transform of the images
@@ -60,6 +60,10 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
         search_vectors = flat_t_images
         if is_complex:
             search_vectors = utils.flat_view_as_real(search_vectors)
+        
+        # Normalize search vectors if requested
+        if norm == 'vector':
+            utils.l2_normalize(search_vectors, dim=-1)
         
         # Feed the queue
         q_out.put(search_vectors.to(device=device, non_blocking=True))

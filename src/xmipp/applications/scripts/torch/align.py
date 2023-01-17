@@ -40,7 +40,7 @@ def run(experimental_md_path: str,
     print('Uploading')
     db = search.read_database(index_path)
     db = search.upload_database_to_device(db, db_device)
-    norm = (db.metric_type == faiss.METRIC_INNER_PRODUCT)
+    norm = 'vector' if (db.metric_type == faiss.METRIC_INNER_PRODUCT) else None
 
     # Create the transformer and flattener
     # according to the transform method
