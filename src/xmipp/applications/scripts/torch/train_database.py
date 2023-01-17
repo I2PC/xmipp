@@ -63,7 +63,7 @@ def run(reference_md_path: str,
     
     # Create the DB to store the data
     metric_type = _get_faiss_metric(metric)
-    norm = 'vector' if (db.metric_type == faiss.METRIC_INNER_PRODUCT) else None
+    norm = 'vector' if (metric_type == faiss.METRIC_INNER_PRODUCT) else None
     recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     print(f'Data dimensions: {dim}')
     print(f'Database: {recipe}')
