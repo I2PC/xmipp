@@ -19,13 +19,16 @@ def run(experimental_md_path: str,
         cutoff: float,
         batch: int,
         method: str,
-        drop_na: bool ):
+        drop_na: bool,
+        gpu: list ):
     
-    # Variables
-    # TODO make them parameters of deduce from data
+    # Devices
+    if gpu:
+        device = torch.device('cuda', int(gpu[0]))
+    else:
+        device = torch.device('cpu')
     transform_device = torch.device('cpu')
-    db_device = torch.device('cuda', 0)
-    #db_device = torch.device('cpu')
+    db_device = device
     
     # Read input files
     experimental_md = md.read(experimental_md_path)
@@ -151,6 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch', type=int, default=16384)
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--dropna', action='store_true')
+    parser.add_argument('--gpu', nargs='*')
 
     # Parse
     args = parser.parse_args()
@@ -168,5 +172,6 @@ if __name__ == '__main__':
         cutoff = args.max_frequency,
         batch = args.batch,
         method = args.method,
-        drop_na=args.dropna
+        drop_na = args.dropna,
+        gpu = args.gpu
     )

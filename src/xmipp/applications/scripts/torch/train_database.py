@@ -27,11 +27,17 @@ def run(reference_md_path: str,
         n_samples: int,
         cutoff: float,
         method: str,
-        metric: str):
+        metric: str,
+        gpu: list ):
     
     # Devices
-    transform_device = torch.device('cuda', 0)
-    db_device = torch.device('cuda', 0)
+    if gpu:
+        device = torch.device('cuda', int(gpu[0]))
+    else:
+        device = torch.device('cpu')
+
+    transform_device = device
+    db_device = device
     
     # Read input files
     reference_md = md.read(reference_md_path)
@@ -107,6 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_frequency', type=float, required=True)
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--metric', type=str, default='euclidean')
+    parser.add_argument('--gpu', nargs='*')
 
     # Parse
     args = parser.parse_args()
@@ -121,5 +128,6 @@ if __name__ == '__main__':
         n_samples = args.size,
         cutoff = args.max_frequency,
         method = args.method,
-        metric = args.metric
+        metric = args.metric,
+        gpu = args.gpu
     )
