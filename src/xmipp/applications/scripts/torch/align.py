@@ -8,6 +8,7 @@ import search
 import alignment
 import metadata as md
 
+
 def run(experimental_md_path: str, 
         reference_md_path: str, 
         index_path: str,
@@ -19,6 +20,7 @@ def run(experimental_md_path: str,
         cutoff: float,
         batch: int,
         method: str,
+        norm: str,
         drop_na: bool,
         gpu: list ):
     
@@ -40,7 +42,6 @@ def run(experimental_md_path: str,
     print('Uploading')
     db = search.read_database(index_path)
     db = search.upload_database_to_device(db, db_device)
-    norm = 'vector' if (db.metric_type == faiss.METRIC_INNER_PRODUCT) else None
 
     # Create the transformer and flattener
     # according to the transform method
@@ -153,6 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_frequency', type=float, required=True)
     parser.add_argument('--batch', type=int, default=16384)
     parser.add_argument('--method', type=str, default='fourier')
+    parser.add_argument('--norm', type=str)
     parser.add_argument('--dropna', action='store_true')
     parser.add_argument('--gpu', nargs='*')
 
@@ -172,6 +174,7 @@ if __name__ == '__main__':
         cutoff = args.max_frequency,
         batch = args.batch,
         method = args.method,
+        norm = args.norm,
         drop_na = args.dropna,
         gpu = args.gpu
     )

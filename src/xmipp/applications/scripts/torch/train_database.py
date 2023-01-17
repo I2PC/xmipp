@@ -9,15 +9,6 @@ import metadata as md
 
 import faiss
 
-def _get_faiss_metric(metric: str):
-    result = None
-    
-    if metric == 'euclidean':
-        result = faiss.METRIC_L2
-    elif metric == 'cosine':
-        result = faiss.METRIC_INNER_PRODUCT
-        
-    return result
 
 def run(reference_md_path: str, 
         weight_image_path: str,
@@ -27,7 +18,7 @@ def run(reference_md_path: str,
         n_samples: int,
         cutoff: float,
         method: str,
-        metric: str,
+        norm: str,
         gpu: list ):
     
     # Devices
@@ -62,12 +53,10 @@ def run(reference_md_path: str,
         dim *= 2
     
     # Create the DB to store the data
-    metric_type = _get_faiss_metric(metric)
-    norm = 'vector' if (metric_type == faiss.METRIC_INNER_PRODUCT) else None
     recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     print(f'Data dimensions: {dim}')
     print(f'Database: {recipe}')
-    db = search.create_database(dim, recipe, metric_type=metric_type)
+    db = search.create_database(dim, recipe)
     db = search.upload_database_to_device(db, db_device)
     
     # Do some work
@@ -112,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--size', type=int, default=int(2e6))
     parser.add_argument('--max_frequency', type=float, required=True)
     parser.add_argument('--method', type=str, default='fourier')
-    parser.add_argument('--metric', type=str, default='euclidean')
+    parser.add_argument('--norm', type=str)
     parser.add_argument('--gpu', nargs='*')
 
     # Parse
@@ -128,6 +117,6 @@ if __name__ == '__main__':
         n_samples = args.size,
         cutoff = args.max_frequency,
         method = args.method,
-        metric = args.metric,
+        norm = args.norm,
         gpu = args.gpu
     )
