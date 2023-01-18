@@ -93,6 +93,9 @@ def populate_references(db: faiss.Index,
                 # Elaborate the reference vectors
                 reference_vectors = flat_t_transformed_images
                 if is_complex:
+                    if norm == 'complex':
+                        utils.complex_normalize(reference_vectors)
+
                     reference_vectors = utils.flat_view_as_real(reference_vectors)
                 
                 # Normalize reference vectors if requested

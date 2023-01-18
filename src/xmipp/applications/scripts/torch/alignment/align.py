@@ -59,6 +59,9 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
         # Elaborate the reference vectors
         search_vectors = flat_t_images
         if is_complex:
+            if norm == 'complex':
+                utils.complex_normalize(search_vectors)
+            
             search_vectors = utils.flat_view_as_real(search_vectors)
         
         # Normalize search vectors if requested

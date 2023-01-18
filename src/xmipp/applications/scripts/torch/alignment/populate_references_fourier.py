@@ -93,6 +93,10 @@ def populate_references_fourier(db: faiss.Index,
             for shift_index in range(shifts.get_count()):
                 shifted_ft = shifts(flat_ft_rotated_images, shift_index, out=shifted_ft)
                 
+                # Normalize complex numbers if requested
+                if norm == 'complex':
+                    utils.complex_normalize(shifted_ft)
+
                 # Elaborate the reference vectors
                 reference_vectors = utils.flat_view_as_real(shifted_ft)
                 

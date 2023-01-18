@@ -20,8 +20,9 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .flat_view_as_real import flat_view_as_real
-from .normalize import normalize
-from .complex_normalize import complex_normalize
-from .l2_normalize import l2_normalize
-from .progress_bar import progress_bar
+from typing import Union, Sequence
+import torch
+
+def complex_normalize(data: torch.Tensor) -> torch.Tensor:
+    data /= data.abs()
+    return data

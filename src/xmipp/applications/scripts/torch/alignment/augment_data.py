@@ -88,6 +88,9 @@ def augment_data(db: faiss.Index,
             # Elaborate the train vectors
             train_vectors = flat_t_affine_images
             if is_complex:
+                if norm == 'complex':
+                    utils.complex_normalize(train_vectors)
+
                 train_vectors = utils.flat_view_as_real(train_vectors)
                 
             # Normalize train vectors if requested
