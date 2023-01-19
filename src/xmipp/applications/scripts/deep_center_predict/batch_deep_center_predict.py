@@ -53,6 +53,7 @@ if __name__ == "__main__":
 
         def __len__(self):
             'Denotes the number of batches per predictions'
+            print("maxSize", flush=True)
             return maxSize
 
         def __getitem__(self, index):
@@ -83,7 +84,6 @@ if __name__ == "__main__":
             'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
             # Initialization
             Xexp = np.zeros((len(list_IDs_temp), self.dim, self.dim, 1), dtype=np.float64)
-
             # Generate data
             for i, ID in enumerate(list_IDs_temp):
                 # print(ID)
@@ -114,7 +114,8 @@ if __name__ == "__main__":
                 psis /= norm(psis)
                 psis_degree = (math.atan2(psis[1], psis[0])) * 180 / math.pi
                 # print(psis_degree)
-                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
+                if objId == 1:
+                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
             elif mode == "Rot":
                 rots = Y[ID]
                 rots /= norm(rots)
@@ -147,6 +148,7 @@ if __name__ == "__main__":
     manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
 
+    print("prediction", Y, flush=True)
     produce_output(mdExp, mode, len(fnImgs), Y)
 
 
@@ -154,7 +156,6 @@ if __name__ == "__main__":
     print("-----------Test values------------")
     if mode == "Shift":
         mdExp.write("shift_results.xmd")
-        print(len(mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)))
     elif mode == "Psi":
         mdExp.write("psi_results.xmd")
     elif mode == "Rot":

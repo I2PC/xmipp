@@ -83,6 +83,7 @@ if __name__=="__main__":
             for i in range(int(self.batch_size)):
                 list_IDs_temp.append(indexes[i])
             # Generate data
+
             Xexp, y = self.__data_generation(list_IDs_temp)
 
             return Xexp, y
@@ -96,7 +97,6 @@ if __name__=="__main__":
         def __data_generation(self, list_IDs_temp):
             'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
             # Initialization
-            print("__data_generation", flush=True)
             Xexp = np.zeros((self.batch_size,self.dim,self.dim,1),dtype=np.float64)
             y = np.empty((self.batch_size,2), dtype=np.int64)
 
@@ -116,58 +116,70 @@ if __name__=="__main__":
                     rX = self.sigma * np.random.normal()
                     rY = self.sigma * np.random.normal()
                     Xexp[i,] = shift(Iexp, (rX, rY, 0), order=1, mode='reflect')
-                    y[i,] = np.array((rX,rY))+self.labels[ID]
+                    y[i,] = np.array((rX, rY))+self.labels[ID]
                 else:
                     rAngle = self.sigma * np.random.normal()
                     if rAngle != 0:
                         Xexp[i,] = rotate(Iexp, rAngle, order=1, mode='reflect', reshape=False)
+                    else:
+                        Xexp[i,] = Iexp
                     if mode == "Psi":
                         angle = (self.labels[ID] + rAngle) * math.pi / 180
                     else:
                         angle = (self.labels[ID]) * math.pi / 180
 
                     y[i,] = np.array((math.cos(angle), math.sin(angle)))
-
+            # print("Xexp", Xexp, flush=True)
             return Xexp, y
 
 
     def constructModel(Xdim):
         print("constructModel", flush=True)
-        inputLayer = Input(shape=(Xdim,Xdim,1), name="input")
+        inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         #Network model
-        L = Conv2D(8, (int(Xdim/10), int(Xdim/10)), activation="relu") (inputLayer) #33 filter size before
+        L = Conv2D(64, (3, 3), activation="relu")(inputLayer) #33 filter size before
+        L = BatchNormalization()(L)
+        L = Conv2D(64, (3, 3), activation="relu")(inputLayer)  # 33 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
-        L = Conv2D(4, (int(Xdim/20), int(Xdim/20)), activation="relu") (L) #11 filter size before
+        # L = Dropout(0.2)(L)
+        L = Conv2D(32, (3, 3), activation="relu")(L)  # 11 filter size before
+        L = BatchNormalization()(L)
+        # L = Dropout(0.2)(L)
+        L = Conv2D(16, (int(Xdim/20), int(Xdim/20)), activation="relu")(L) #11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
-        L = Conv2D(4, (int(Xdim/20), int(Xdim/20)), activation="relu") (L) #11 filter size before
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
-
-        # L = Conv2D(4, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        # L = Dropout(0.2)(L)
+        ##L = Conv2D(32, (3, 3), activation="relu")(L)  # 11 filter size before
+        ##L = BatchNormalization()(L)
+        ##L = MaxPooling2D()(L)
+        ### L = Conv2D(4, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
         # L = BatchNormalization()(L)
         # L = MaxPooling2D()(L)
         # L = Dropout(0.2)(L)
-
+        # L = Conv2D(4, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        # L = BatchNormalization()(L)
+        # L = MaxPooling2D()(L)
+#
         L = Flatten()(L)
-        L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
+        L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
 
+        # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        # L = BatchNormalization()(L)
         # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         # L = BatchNormalization()(L)
         # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         # L = BatchNormalization()(L)
 #
-        L = Dense(2, name="output", activation="linear") (L)
+        L = Dense(2, name="output", activation="tanh")(L)
         return Model(inputLayer, L)
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
     mdExp = xmippLib.MetaData(fnXmdExp)
@@ -181,15 +193,17 @@ if __name__=="__main__":
     if mode == "Shift":
         labels = []
         for x, y in zip(shiftX, shiftY):
-            labels.append(np.array((x,y)))
+            labels.append(np.array((x, y)))
     elif mode == "Psi":
         labels = psis
     elif mode == "Rot":
         labels = rots
+        print("rots", rots, flush = True)
     elif mode == "Tilt":
         labels = tilts
     # Generator
     training_generator = DataGenerator(fnImgs, labels, mode, sigma, batch_size, Xdim, readInMemory=False)
+
 
     start_time = time()
     model = constructModel(Xdim)
@@ -198,8 +212,10 @@ if __name__=="__main__":
     adam_opt = Adam(lr=0.001)
     model.compile(loss='mean_absolute_error', optimizer=adam_opt, metrics=['accuracy'])
 
+
     steps = round(len(fnImgs)/batch_size)
-    history = model.fit_generator(generator = training_generator, steps_per_epoch = steps, epochs=numEpochs)
+    history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs)
     model.save(fnModel)
+    print(fnModel)
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
