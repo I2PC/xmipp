@@ -20,19 +20,45 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Iterable
+from typing import Sequence, Tuple
 import numpy as np
 import torch
+import collections
 
-from ..read import read_data
+from ..read import read
+from ..Path import Path
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, paths: Iterable[str]):
+    def __init__(self, paths: Sequence[Path], max_open=64):
         self._paths = paths
+        self._max_open = max_open
+        self._cache = collections.OrderedDict()
         
     def __len__(self) -> int:
         return len(self._paths)
     
     def __getitem__(self, index) -> torch.Tensor:
-        path = self._paths[index]
-        return torch.tensor(read_data(path))
+        path: Path = self._paths[index]
+        
+        # Check if path's filename is in cache
+        data = self._cache.get(path.filename, None)
+        
+        # Update cache
+        if data is None:
+            # Not present, add it
+            data = read(path.filename, mmap=True)
+            
+            self._cache[path.filename] = data
+            if(len(self._cache) >= self._max_open):
+                self._cache.popitem(last=False)
+                
+        else:
+            # Put it on top
+            self._cache.move_to_end(path.filename, last=True)
+        assert(data is not None)
+        
+        # Get referenced data
+        if path.position_in_stack is not None:
+            data = data[path.position_in_stack]
+            
+        return torch.tensor(data)

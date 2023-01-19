@@ -20,7 +20,8 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .read import read_data, read_header, read_data_batch
-from .utils import get_size, decompose_path
+from .read import read
 from .write import write
+from .utils import parse_path
+from .Path import Path
 from . import torch_utils

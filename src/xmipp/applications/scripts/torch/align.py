@@ -35,7 +35,7 @@ def run(experimental_md_path: str,
     # Read input files
     experimental_md = md.read(experimental_md_path)
     reference_md = md.read(reference_md_path)
-    weights = torch.tensor(image.read_data(weight_image_path))
+    weights = torch.tensor(image.read(weight_image_path))
     image_size, _ = md.get_image_size(experimental_md)
     
     
@@ -68,7 +68,8 @@ def run(experimental_md_path: str,
         shift_transformer = operators.ImageShifter(shifts, dim=image_size, device=transform_device)
     
     print('Projecting')
-    reference_dataset = image.torch_utils.Dataset(reference_md[md.IMAGE])
+    reference_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
+    reference_dataset = image.torch_utils.Dataset(reference_paths)
     if method == 'fourier':
         projection_md = alignment.populate_references_fourier(
             db=db, 
@@ -100,7 +101,8 @@ def run(experimental_md_path: str,
     
     
     print('Aligning')
-    experimental_dataset = image.torch_utils.Dataset(experimental_md[md.IMAGE])
+    experimental_paths = list(map(image.parse_path, experimental_md[md.IMAGE]))
+    experimental_dataset = image.torch_utils.Dataset(experimental_paths)
     match_indices, match_distances = alignment.align(
         db=db, 
         dataset=experimental_dataset,

@@ -32,8 +32,8 @@ def run(reference_md_path: str,
     
     # Read input files
     reference_md = md.read(reference_md_path)
-    weights = torch.tensor(image.read_data(weight_image_path))
-    image_size = md.get_image_size(reference_md)[0]
+    weights = torch.tensor(image.read(weight_image_path))
+    image_size, _ = md.get_image_size(reference_md)
     
     # Create the transformer and flattener
     # according to the transform method
@@ -61,7 +61,8 @@ def run(reference_md_path: str,
     
     # Do some work
     print('Augmenting data')
-    dataset = image.torch_utils.Dataset(reference_md[md.IMAGE])
+    image_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
+    dataset = image.torch_utils.Dataset(image_paths)
     training_set = alignment.augment_data(
         db,
         dataset=dataset,

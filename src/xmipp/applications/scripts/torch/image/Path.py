@@ -1,3 +1,4 @@
+
 # ***************************************************************************
 # * Authors:     Oier Lauzirika Zarrabeitia (oierlauzi@bizkaia.eu)
 # *
@@ -20,14 +21,8 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .Path import Path
+from typing import NamedTuple, Optional
 
-def parse_path(f: str) -> Path:
-    STACK_INDEXER = '@'
-    parts = f.split(STACK_INDEXER, maxsplit=1)
-    
-    if len(parts) == 2:
-        return Path(filename=parts[1], position_in_stack=int(parts[0]))
-    else:
-        assert(len(parts) == 1)
-        return Path(filename=parts[0])
+class Path(NamedTuple):
+    filename: str
+    position_in_stack: Optional[int] = None
