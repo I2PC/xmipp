@@ -22,4 +22,5 @@
 
 from .read import read_data, read_header, read_data_batch
 from .utils import get_size, decompose_path
+from .write import write
 from . import torch_utils

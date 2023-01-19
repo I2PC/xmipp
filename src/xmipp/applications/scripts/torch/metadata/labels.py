@@ -25,6 +25,9 @@ REFERENCE_IMAGE = 'imageRef'
 
 REF = 'ref'
 
+RESOLUTION_FREQ = 'resolutionFreq'
+SIGMANOISE = 'sigmaNoise'
+
 ANGLE_PSI = 'anglePsi'
 ANGLE_PSI2 = 'anglePsi2'
 ANGLE_ROT = 'angleRot'

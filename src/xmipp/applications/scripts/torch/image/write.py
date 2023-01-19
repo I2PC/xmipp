@@ -20,38 +20,11 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Sequence
-import torch
+import mrcfile
+import numpy as np
 
-from .SpectraFlattener import SpectraFlattener
-from utils import nfft_freq2
 
-class FourierLowPassFlattener(SpectraFlattener):
-    def __init__(   self, 
-                    dim: int, 
-                    cutoff: float, 
-                    exclude_dc: bool = True,
-                    padded_length: Optional[int] = None,
-                    device: Optional[torch.device] = None ):
-        SpectraFlattener.__init__(
-            self, 
-            self._compute_mask(dim, cutoff, exclude_dc), 
-            padded_length=padded_length,
-            device=device
-        )
+def write(data: np.ndarray, path: str):
+    with mrcfile.new(path) as mrc:
+        mrc.set_data(data)
     
-    def _compute_mask(  self, 
-                        dim: int, 
-                        cutoff: float,
-                        exclude_dc: bool ) -> torch.Tensor:
-        
-        # Compute the frequency grid
-        freq2 = nfft_freq2((dim, )*2)
-        
-        # Compute the mask
-        cutoff2 = cutoff ** 2
-        mask = freq2.less_equal(cutoff2)
-        if exclude_dc:
-            mask[0, 0] = False
-        
-        return mask

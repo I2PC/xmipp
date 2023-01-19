@@ -20,38 +20,18 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Sequence
+from typing import Sequence
 import torch
 
-from .SpectraFlattener import SpectraFlattener
-from utils import nfft_freq2
+def nfft_freq2(shape: Sequence[int]) -> torch.Tensor:
+    if len(shape) != 2:
+        raise NotImplementedError('nfft_freq is only implemented for N=2')
 
-class FourierLowPassFlattener(SpectraFlattener):
-    def __init__(   self, 
-                    dim: int, 
-                    cutoff: float, 
-                    exclude_dc: bool = True,
-                    padded_length: Optional[int] = None,
-                    device: Optional[torch.device] = None ):
-        SpectraFlattener.__init__(
-            self, 
-            self._compute_mask(dim, cutoff, exclude_dc), 
-            padded_length=padded_length,
-            device=device
-        )
     
-    def _compute_mask(  self, 
-                        dim: int, 
-                        cutoff: float,
-                        exclude_dc: bool ) -> torch.Tensor:
-        
-        # Compute the frequency grid
-        freq2 = nfft_freq2((dim, )*2)
-        
-        # Compute the mask
-        cutoff2 = cutoff ** 2
-        mask = freq2.less_equal(cutoff2)
-        if exclude_dc:
-            mask[0, 0] = False
-        
-        return mask
+    freq_x = torch.fft.rfftfreq(shape[-1])
+    freq_y = torch.fft.fftfreq(shape[-2])[...,None]
+    return freq_x**2 + freq_y**2
+    
+def nfft_freq(shape: Sequence[int]) -> torch.Tensor:
+    out = nfft_freq2(shape)
+    return torch.sqrt(out, out=out)
