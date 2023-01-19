@@ -105,27 +105,27 @@ if __name__ == "__main__":
         ID = 0
         for objId in mdExp:
             if mode == "Shift":
-                shiftX, shiftY = Y[ID]
+                shiftX = Y[ID]
+                shiftY = Y[ID]
                 # print(shiftX, shiftY)
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
             elif mode == "Psi":
-                psis = Y[ID]
-                psis /= norm(psis)
-                psis_degree = (math.atan2(psis[1], psis[0])) * 180 / math.pi
+                psis_degree = Y[ID] * 180 / math.pi
+                # psis /= norm(psis)
+                # psis_degree = (math.atan2(psis[1], psis[0])) * 180 / math.pi
                 # print(psis_degree)
-                if objId == 1:
-                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
             elif mode == "Rot":
-                rots = Y[ID]
-                rots /= norm(rots)
-                rots_degree = (math.atan2(rots[1], rots[0])) * 180 / math.pi
+                rots_degree = Y[ID] * 180 / math.pi
+                # rots /= norm(rots)
+                # rots_degree = (math.atan2(rots[1], rots[0])) * 180 / math.pi
                 # print(rots_degree)
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
             elif mode == "Tilt":
-                tilts = Y[ID]
-                tilts /= norm(tilts)
-                tilts_degree = (math.atan2(tilts[1], tilts[0])) * 180 / math.pi
+                tilts_degree = Y[ID] * 180 / math.pi
+                # tilts /= norm(tilts)
+                # tilts_degree = (math.atan2(tilts[1], tilts[0])) * 180 / math.pi
                 # print(tilts_degree)
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
             ID += 1
@@ -139,11 +139,16 @@ if __name__ == "__main__":
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
 
 
+    def custom_loss_function(y_true, y_pred):
+        squared_difference = tf.square(tf.cos(y_true) - tf.cos(y_pred))+tf.square(tf.sin(y_true) - tf.sin(y_pred))
+        return tf.reduce_mean(squared_difference, axis=-1)
+
     start_time = time()
     print("----Loading model----", flush=True)
     print(fnModel, flush=True)
 
-    model = load_model(fnModel)
+    model = load_model(fnModel, compile=False)
+    model.compile(loss=custom_loss_function, optimizer='adam')
     print("----model loaded!----", flush=True)
     manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())

@@ -116,7 +116,8 @@ if __name__=="__main__":
                     rX = self.sigma * np.random.normal()
                     rY = self.sigma * np.random.normal()
                     Xexp[i,] = shift(Iexp, (rX, rY, 0), order=1, mode='reflect')
-                    y[i,] = np.array((rX, rY))+self.labels[ID]
+                    #y[i,] = np.array((rX, rY))+self.labels[ID]
+                    y[i] = np.array(0)
                 else:
                     rAngle = self.sigma * np.random.normal()
                     if rAngle != 0:
@@ -128,19 +129,19 @@ if __name__=="__main__":
                     else:
                         angle = (self.labels[ID]) * math.pi / 180
 
-                    y[i,] = np.array((math.cos(angle), math.sin(angle)))
+                    y[i] = np.array(angle)
             # print("Xexp", Xexp, flush=True)
             return Xexp, y
 
 
-    def constructModel(Xdim):
+    def constructModelAdrian(Xdim):
         print("constructModel", flush=True)
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         #Network model
-        L = Conv2D(64, (3, 3), activation="relu")(inputLayer) #33 filter size before
+        L = Conv2D(32, (3, 3), activation="relu")(inputLayer) #33 filter size before
         L = BatchNormalization()(L)
-        L = Conv2D(64, (3, 3), activation="relu")(inputLayer)  # 33 filter size before
+        L = Conv2D(32, (3, 3), activation="relu")(inputLayer)  # 33 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
         # L = Dropout(0.2)(L)
@@ -163,11 +164,11 @@ if __name__=="__main__":
         # L = MaxPooling2D()(L)
 #
         L = Flatten()(L)
+        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
         L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
-        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
         L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
@@ -179,8 +180,41 @@ if __name__=="__main__":
         # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         # L = BatchNormalization()(L)
 #
-        L = Dense(2, name="output", activation="tanh")(L)
+        L = Dense(1, name="output", activation="tanh")(L)
         return Model(inputLayer, L)
+
+    def constructModel(Xdim):
+        print("constructModel", flush=True)
+        inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+
+        # Network model
+        L = Conv2D(16, (int(Xdim / 10), int(Xdim / 10)), activation="sigmoid")(inputLayer)  # 11 filter size before
+        L = BatchNormalization()(L)
+        L = MaxPooling2D()(L)
+
+        L = Conv2D(16, (int(Xdim / 20), int(Xdim / 20)), activation="sigmoid")(L)  # 11 filter size before
+        L = BatchNormalization()(L)
+        L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
+        ##L = Conv2D(32, (3, 3), activation="relu")(L)  # 11 filter size before
+        ##L = BatchNormalization()(L)
+        ##L = MaxPooling2D()(L)
+        ### L = Conv2D(4, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        # L = BatchNormalization()(L)
+        # L = MaxPooling2D()(L)
+        # L = Dropout(0.2)(L)
+        # L = Conv2D(4, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        # L = BatchNormalization()(L)
+        # L = MaxPooling2D()(L)
+        #
+        L = Flatten()(L)
+        L = Dense(64, activation='sigmoid', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
+
+        L = Dense(1, name="output", activation="linear")(L)
+        return Model(inputLayer, L)
+
+
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
     mdExp = xmippLib.MetaData(fnXmdExp)
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
@@ -193,7 +227,9 @@ if __name__=="__main__":
     if mode == "Shift":
         labels = []
         for x, y in zip(shiftX, shiftY):
-            labels.append(np.array((x, y)))
+            # labels.append(np.array((x, y)))
+            labels.append(np.array(0))
+        print("shifts", labels, flush=True)
     elif mode == "Psi":
         labels = psis
     elif mode == "Rot":
@@ -210,7 +246,16 @@ if __name__=="__main__":
 
     model.summary()
     adam_opt = Adam(lr=0.001)
-    model.compile(loss='mean_absolute_error', optimizer=adam_opt, metrics=['accuracy'])
+
+
+    def custom_loss_function(y_true, y_pred):
+        squared_difference = tf.square(tf.cos(y_true) - tf.cos(y_pred))+tf.square(tf.sin(y_true) - tf.sin(y_pred))
+        return tf.reduce_mean(squared_difference, axis=-1)
+
+
+
+#    model.compile(loss=custom_loss_function, optimizer=adam_opt, metrics=['accuracy'])
+    model.compile(loss=custom_loss_function, optimizer='adam')
 
 
     steps = round(len(fnImgs)/batch_size)
