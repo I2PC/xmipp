@@ -22,7 +22,8 @@
 
 from typing import Sequence
 import pandas as pd
-import metadata as md
+
+from .. import metadata as md
 
 def create_reference_metadata(  reference_indices: Sequence[int],
                                 psi_angles: Sequence[float],

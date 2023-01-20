@@ -24,7 +24,7 @@ from typing import Optional, Sequence
 import torch
 
 from .SpectraFlattener import SpectraFlattener
-from utils import nfft_freq2
+from ..utils import nfft_freq2
 
 class FourierLowPassFlattener(SpectraFlattener):
     def __init__(   self, 

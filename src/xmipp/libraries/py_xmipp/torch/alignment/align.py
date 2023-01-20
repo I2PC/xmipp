@@ -27,9 +27,9 @@ import pandas as pd
 import faiss
 import faiss.contrib.torch_utils
 
-import operators
-import utils
-import image
+from .. import operators
+from .. import utils
+from .. import image
 
 def _image_transformer( loader: torch.utils.data.DataLoader,
                         q_out: mp.JoinableQueue,

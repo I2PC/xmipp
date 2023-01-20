@@ -24,7 +24,7 @@ from typing import Tuple
 import pandas as pd
 
 from . import labels
-import image
+from .. import image
 
 def get_image_size(data: pd.DataFrame) -> Tuple:
     path = image.parse_path(data.loc[0, labels.IMAGE])

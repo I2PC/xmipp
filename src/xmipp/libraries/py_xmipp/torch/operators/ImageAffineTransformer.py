@@ -25,7 +25,7 @@ import torch
 import torchvision.transforms as T
 import operator
 
-from transform import rotation_matrix_2d, combine_affine_2d, apply_affine
+from ..transform import rotation_matrix_2d, combine_affine_2d, apply_affine
 
 class ImageAffineTransformer:
     def __init__(   self,

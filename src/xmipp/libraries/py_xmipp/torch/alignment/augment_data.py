@@ -27,8 +27,8 @@ import faiss
 import faiss.contrib.torch_utils
 import math
 
-import operators
-import utils
+from .. import operators
+from .. import utils
 
 def augment_data(db: faiss.Index, 
                  dataset: torch.utils.data.Dataset,

@@ -23,7 +23,7 @@
 import pandas as pd
 import torch
 
-import metadata as md
+from .. import metadata as md
 
 def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,

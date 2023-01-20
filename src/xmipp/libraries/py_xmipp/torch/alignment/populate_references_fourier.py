@@ -26,27 +26,26 @@ import pandas as pd
 import faiss
 import faiss.contrib.torch_utils
 
-import operators
-import utils
-import image
+from .. import operators
+from .. import utils
+from .. import image
 
 from .create_reference_metadata import create_reference_metadata
 
 
-def populate_references(db: faiss.Index, 
-                        dataset: image.torch_utils.Dataset,
-                        rotations: operators.ImageRotator,
-                        shifts: operators.ImageShifter,
-                        transformer: operators.Transformer2D,
-                        flattener: operators.SpectraFlattener,
-                        weighter: operators.Weighter,
-                        norm: Optional[str],
-                        device: Optional[torch.device] = None,
-                        batch_size: int = 1024 ) -> pd.DataFrame:
-    
-    n_transform = shifts.get_count() * rotations.get_count()
 
-    is_complex = transformer.has_complex_output()
+def populate_references_fourier(db: faiss.Index, 
+                                dataset: image.torch_utils.Dataset,
+                                rotations: operators.ImageRotator,
+                                shifts: operators.FourierShiftFilter,
+                                fourier: operators.FourierTransformer2D,
+                                flattener: operators.FourierLowPassFlattener,
+                                weighter: operators.Weighter,
+                                norm: Optional[str],
+                                device: Optional[torch.device] = None,
+                                batch_size: int = 1024 ) -> pd.DataFrame:
+    
+    n_transform = rotations.get_count() * shifts.get_count()
 
     # Create the data loader
     loader = torch.utils.data.DataLoader(
@@ -64,39 +63,42 @@ def populate_references(db: faiss.Index,
     # Process in batches
     start = 0
     rotated_images = None
-    transformed_images = None
-    t_transformed_images = None
-    flat_t_transformed_images = None
+    ft_rotated_images = None
+    flat_ft_rotated_images = None
+    shifted_ft = None
     utils.progress_bar(0, len(dataset)*n_transform)
     for images in loader:
         n_images = images.shape[0]
         end = start + n_images
 
         # Normalize image if requested
-        if norm == 'image':
+        if norm:
             utils.normalize(images, dim=(-2, -1))
 
         # Add the references as many times as their transformations
-        for angle_index in range(rotations.get_count()):
-            # Rotate the images
-            rotated_images = rotations(images, angle_index, out=rotated_images)
-            
-            for shift_index in range(shifts.get_count()):
-                # Shift the images
-                transformed_images = shifts(rotated_images, shift_index, out=transformed_images)
+        reference_indices += list(range(start, end)) * n_transform
+        for rot_index in range(rotations.get_count()):
 
-                # Compute the transform of the images and flatten and weighten it
-                t_transformed_images = transformer(transformed_images, out=t_transformed_images)
-                flat_t_transformed_images = flattener(t_transformed_images, out=flat_t_transformed_images)
-                flat_t_transformed_images = weighter(flat_t_transformed_images, out=flat_t_transformed_images)
+            # Rotate the input image
+            rotated_images = rotations(images, rot_index, out=rotated_images)
+
+            # Compute the fourier transform of the images and flatten and weighten it
+            ft_rotated_images = fourier(rotated_images, out=ft_rotated_images)
+            flat_ft_rotated_images = flattener(ft_rotated_images, out=flat_ft_rotated_images)
+            flat_ft_rotated_images = weighter(flat_ft_rotated_images, out=flat_ft_rotated_images)
+
+            # Add the rotation angle as many times as shifts and images
+            psi = rotations.get_angle(rot_index)
+            psi_angles += [psi] * (n_images * shifts.get_count())
+            for shift_index in range(shifts.get_count()):
+                shifted_ft = shifts(flat_ft_rotated_images, shift_index, out=shifted_ft)
+                
+                # Normalize complex numbers if requested
+                if norm == 'complex':
+                    utils.complex_normalize(shifted_ft)
 
                 # Elaborate the reference vectors
-                reference_vectors = flat_t_transformed_images
-                if is_complex:
-                    if norm == 'complex':
-                        utils.complex_normalize(reference_vectors)
-
-                    reference_vectors = utils.flat_view_as_real(reference_vectors)
+                reference_vectors = utils.flat_view_as_real(shifted_ft)
                 
                 # Normalize reference vectors if requested
                 if norm == 'vector':
@@ -105,15 +107,10 @@ def populate_references(db: faiss.Index,
                 # Populate the database
                 db.add(reference_vectors)
                 
-                # Add the current transform
+                # Add the current shift for all images
                 sx, sy = shifts.get_shift(shift_index)
                 x_shifts += [-float(sx)] * n_images
                 y_shifts += [-float(sy)] * n_images
-                
-            psi = rotations.get_angle(angle_index)
-            psi_angles += [psi] * (n_images * shifts.get_count())
-                
-        reference_indices += list(range(start, end)) * n_transform
                 
         # Advance indices
         start = end

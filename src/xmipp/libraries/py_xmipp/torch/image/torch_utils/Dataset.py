@@ -20,28 +20,32 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Sequence
+import numpy as np
 import torch
 
-from dct import dct_ii_basis, project_nd
+from ..read import read
+from ..Path import Path
+from ...utils import LruCache
 
-from .Transformer2D import Transformer2D
+def _read(filename: str) -> np.ndarray:
+    return read(filename, mmap=True)
 
-class DctTransformer2D(Transformer2D):
-    DIMS = (-1, -2) # Last two dimensions
-    
-    def __init__(self, dim: int, device: Optional[torch.device] = None) -> None:
-        self._bases = (dct_ii_basis(dim).to(device), )*len(self.DIMS)
-    
-    def __call__(   self, 
-                    input: torch.Tensor,
-                    out: Optional[torch.Tensor] = None) -> torch.Tensor:
+class Dataset(torch.utils.data.Dataset):
+    def __init__(self, paths: Sequence[Path], max_open=64):
         
-        # To avoid warnings
-        if out is not None:
-            out.resize_(0)
-            
-        return project_nd(input, dims=self.DIMS, bases=self._bases, out=out)
+        self._paths = paths
+        self._cache = LruCache(_read, capacity=max_open)
+        
+    def __len__(self) -> int:
+        return len(self._paths)
     
-    def has_complex_output(self) -> bool:
-        return False
+    def __getitem__(self, index) -> torch.Tensor:
+        path: Path = self._paths[index]
+        
+        # Get referenced data
+        data: np.ndarray = self._cache(path.filename)
+        if path.position_in_stack is not None:
+            data = data[path.position_in_stack-1]
+            
+        return torch.tensor(data)
