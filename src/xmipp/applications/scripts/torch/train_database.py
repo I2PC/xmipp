@@ -12,7 +12,7 @@ import faiss
 
 def run(reference_md_path: str, 
         weight_image_path: str,
-        output_path: str,
+        index_path: str,
         max_shift : float,
         n_training: int,
         n_samples: int,
@@ -83,7 +83,7 @@ def run(reference_md_path: str,
     
     # Write to disk
     db = search.download_database_from_device(db)  # TODO remove
-    search.write_database(db, output_path + 'index')
+    search.write_database(db, index_path)
 
 
 if __name__ == '__main__':
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # Run the program
     run(
         reference_md_path = args.i,
-        output_path = args.o,
+        index_path = args.o,
         weight_image_path = args.weights,
         max_shift = args.max_shift,
         n_training = args.training,
