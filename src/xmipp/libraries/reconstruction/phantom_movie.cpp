@@ -31,6 +31,8 @@ template <typename T>
 auto PhantomMovie<T>::shiftX(size_t t) const
 {
     const auto tf = static_cast<float>(t);
+    if (dispParams.simple)
+        return dispParams.a1 * tf;
     return dispParams.a1 * tf + dispParams.a2 * tf * tf + std::cos(tf / 10.f) / 10.f;
 };
 
@@ -38,6 +40,8 @@ template <typename T>
 auto PhantomMovie<T>::shiftY(size_t t) const
 {
     const auto tf = static_cast<float>(t);
+    if (dispParams.simple)
+        return dispParams.b1 * tf;
     return dispParams.b1 * tf + dispParams.b2 * tf * tf + (std::sin(tf * tf)) / 5.f;
 };
 
@@ -146,9 +150,10 @@ MultidimArray<T> PhantomMovie<T>::findWorkSize() const
     }
     // new size must incorporate 'gaps' on both sides, min values should be negative, max values positive
     // the shift might not be uniform, so the safer solution is to have the bigger gap on both sides
-    auto x_new = params.req_size.x() + 2 * static_cast<size_t>(std::ceil(x_max_shift));
-    auto y_new = params.req_size.y() + 2 * static_cast<size_t>(std::ceil(y_max_shift));
-    std::cout << "Due to displacement, working with frames of size [" << x_new << ", " << y_new << "%]\n";
+    // + 10 is in case we made a rounding mistake on multiple places :/
+    auto x_new = params.req_size.x() + 2 * static_cast<size_t>(std::ceil(x_max_shift)) + 10;
+    auto y_new = params.req_size.y() + 2 * static_cast<size_t>(std::ceil(y_max_shift)) + 10;
+    std::cout << "Due to displacement, working with frames of size [" << x_new << ", " << y_new << "]\n";
     return MultidimArray<T>(1, 1, static_cast<int>(y_new), static_cast<int>(x_new));
 }
 
@@ -232,6 +237,18 @@ void PhantomMovie<T>::run() const
     else
     {
         generateMovie<false>(refFrame);
+    }
+    if (!params.fn_gain.empty())
+    {
+        Image<T> gain(static_cast<int>(params.req_size.x()), static_cast<int>(params.req_size.y()));
+        gain().initConstant(1);
+        gain.write(params.fn_gain);
+    }
+    if (!params.fn_dark.empty())
+    {
+        Image<T> dark(static_cast<int>(params.req_size.x()), static_cast<int>(params.req_size.y()));
+        dark().initConstant(0);
+        dark.write(params.fn_dark);
     }
 }
 
