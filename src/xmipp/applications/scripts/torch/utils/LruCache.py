@@ -20,32 +20,32 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence
-import numpy as np
-import torch
+from typing import Callable
+from collections import OrderedDict
 
-from ..read import read
-from ..Path import Path
-from utils import LruCache
+class LruCache:
+    def __init__(self,
+                 func: Callable,
+                 capacity: int = 64 ) -> None:
+        self._func = func
+        self._capacity = capacity
+        self._data = OrderedDict()
+        
+    def __call__(self, *args):        
+        # Check if path's filename is in cache
+        it = self._data.get(args, None)
+        
+        # Update cache
+        if it is None:
+            # Not present, invoke the function
+            it = self._func(*args)
+            self._data[args] = it # Appends it in the back
+            if(len(self._data) >= self._capacity):
+                self._data.popitem(last=False)
+                
+        else:
+            # Put it on top
+            self._data.move_to_end(args, last=True)
+        assert(it is not None)
 
-def _read(filename: str) -> np.ndarray:
-    return read(filename, mmap=True)
-
-class Dataset(torch.utils.data.Dataset):
-    def __init__(self, paths: Sequence[Path], max_open=64):
-        
-        self._paths = paths
-        self._cache = LruCache(_read, capacity=max_open)
-        
-    def __len__(self) -> int:
-        return len(self._paths)
-    
-    def __getitem__(self, index) -> torch.Tensor:
-        path: Path = self._paths[index]
-        
-        # Get referenced data
-        data: np.ndarray = self._cache(path.filename)
-        if path.position_in_stack is not None:
-            data = data[path.position_in_stack-1]
-            
-        return torch.tensor(data)
+        return it
