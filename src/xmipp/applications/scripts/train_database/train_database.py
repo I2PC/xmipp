@@ -22,6 +22,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from typing import Optional
 import torch
 import faiss
 import argparse
@@ -35,14 +36,14 @@ import xmippPyModules.torch.metadata as md
 
 
 def run(reference_md_path: str, 
-        weight_image_path: str,
+        weight_image_path: Optional[str],
         index_path: str,
         max_shift : float,
         n_training: int,
         n_samples: int,
         cutoff: float,
         method: str,
-        norm: str,
+        norm: Optional[str],
         gpu: list ):
     
     # Devices
@@ -56,7 +57,6 @@ def run(reference_md_path: str,
     
     # Read input files
     reference_md = md.read(reference_md_path)
-    weights = torch.tensor(image.read(weight_image_path))
     image_size, _ = md.get_image_size(reference_md)
     
     # Create the transformer and flattener
@@ -69,7 +69,10 @@ def run(reference_md_path: str,
         flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
         
     # Create the weighter
-    weighter = operators.Weighter(weights, flattener, device=transform_device)
+    weighter = None
+    if weight_image_path:
+        weights = torch.tensor(image.read(weight_image_path)) if weight_image_path else None
+        weighter = operators.Weighter(weights, flattener, device=transform_device) 
     
     # Consider complex numbers
     dim = flattener.get_length()

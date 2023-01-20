@@ -22,6 +22,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from typing import Optional
 import faiss
 import torch
 import argparse
@@ -36,7 +37,7 @@ import xmippPyModules.torch.metadata as md
 def run(experimental_md_path: str, 
         reference_md_path: str, 
         index_path: str,
-        weight_image_path: str,
+        weight_image_path: Optional[str],
         output_md_path: str,
         n_rotations : int,
         n_shifts : int,
@@ -44,7 +45,7 @@ def run(experimental_md_path: str,
         cutoff: float,
         batch: int,
         method: str,
-        norm: str,
+        norm: Optional[str],
         drop_na: bool,
         gpu: list ):
     
@@ -59,7 +60,6 @@ def run(experimental_md_path: str,
     # Read input files
     experimental_md = md.read(experimental_md_path)
     reference_md = md.read(reference_md_path)
-    weights = torch.tensor(image.read(weight_image_path))
     image_size, _ = md.get_image_size(experimental_md)
     
     
@@ -78,7 +78,10 @@ def run(experimental_md_path: str,
         flattener = operators.DctLowPassFlattener(image_size, cutoff, padded_length=dim, device=transform_device)
         
     # Create the weighter
-    weighter = operators.Weighter(weights, flattener, device=transform_device)
+    weighter = None
+    if weight_image_path:
+        weights = torch.tensor(image.read(weight_image_path)) if weight_image_path else None
+        weighter = operators.Weighter(weights, flattener, device=transform_device) 
     
     # Create the in-plane transforms
     angles = torch.linspace(-180, 180, n_rotations+1)[:-1]

@@ -35,7 +35,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
                         q_out: mp.JoinableQueue,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
-                        weighter: operators.Weighter,
+                        weighter: Optional[operators.Weighter],
                         norm: Optional[str],
                         device: torch.device ):
 
@@ -54,7 +54,8 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
 
         # Flatten
         flat_t_images = flattener(t_images, out=flat_t_images)
-        flat_t_images = weighter(flat_t_images, out=flat_t_images)
+        if weighter:
+            flat_t_images = weighter(flat_t_images, out=flat_t_images)
         
         # Elaborate the reference vectors
         search_vectors = flat_t_images

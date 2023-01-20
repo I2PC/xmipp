@@ -34,7 +34,7 @@ def augment_data(db: faiss.Index,
                  dataset: torch.utils.data.Dataset,
                  transformer: operators.Transformer2D,
                  flattener: operators.SpectraFlattener,
-                 weighter: operators.Weighter,
+                 weighter: Optional[operators.Weighter],
                  norm: Optional[str],
                  count: int,
                  max_rotation: float = 180,
@@ -83,7 +83,8 @@ def augment_data(db: faiss.Index,
             transformed_images = random_affine(images)
             t_affine_images = transformer(transformed_images, out=t_affine_images)
             flat_t_affine_images = flattener(t_affine_images, out=flat_t_affine_images)
-            flat_t_affine_images = weighter(flat_t_affine_images, out=flat_t_affine_images)
+            if weighter:
+                flat_t_affine_images = weighter(flat_t_affine_images, out=flat_t_affine_images)
             
             # Elaborate the train vectors
             train_vectors = flat_t_affine_images

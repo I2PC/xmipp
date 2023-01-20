@@ -39,7 +39,7 @@ def populate_references(db: faiss.Index,
                         shifts: operators.ImageShifter,
                         transformer: operators.Transformer2D,
                         flattener: operators.SpectraFlattener,
-                        weighter: operators.Weighter,
+                        weighter: Optional[operators.Weighter],
                         norm: Optional[str],
                         device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
@@ -88,7 +88,8 @@ def populate_references(db: faiss.Index,
                 # Compute the transform of the images and flatten and weighten it
                 t_transformed_images = transformer(transformed_images, out=t_transformed_images)
                 flat_t_transformed_images = flattener(t_transformed_images, out=flat_t_transformed_images)
-                flat_t_transformed_images = weighter(flat_t_transformed_images, out=flat_t_transformed_images)
+                if weighter:
+                    flat_t_transformed_images = weighter(flat_t_transformed_images, out=flat_t_transformed_images)
 
                 # Elaborate the reference vectors
                 reference_vectors = flat_t_transformed_images

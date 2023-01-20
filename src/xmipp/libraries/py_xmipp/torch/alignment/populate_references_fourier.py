@@ -40,7 +40,7 @@ def populate_references_fourier(db: faiss.Index,
                                 shifts: operators.FourierShiftFilter,
                                 fourier: operators.FourierTransformer2D,
                                 flattener: operators.FourierLowPassFlattener,
-                                weighter: operators.Weighter,
+                                weighter: Optional[operators.Weighter],
                                 norm: Optional[str],
                                 device: Optional[torch.device] = None,
                                 batch_size: int = 1024 ) -> pd.DataFrame:
@@ -85,7 +85,8 @@ def populate_references_fourier(db: faiss.Index,
             # Compute the fourier transform of the images and flatten and weighten it
             ft_rotated_images = fourier(rotated_images, out=ft_rotated_images)
             flat_ft_rotated_images = flattener(ft_rotated_images, out=flat_ft_rotated_images)
-            flat_ft_rotated_images = weighter(flat_ft_rotated_images, out=flat_ft_rotated_images)
+            if weighter:
+                flat_ft_rotated_images = weighter(flat_ft_rotated_images, out=flat_ft_rotated_images)
 
             # Add the rotation angle as many times as shifts and images
             psi = rotations.get_angle(rot_index)
