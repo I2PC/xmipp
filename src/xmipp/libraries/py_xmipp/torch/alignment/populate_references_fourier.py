@@ -42,16 +42,18 @@ def populate_references_fourier(db: faiss.Index,
                                 flattener: operators.FourierLowPassFlattener,
                                 weighter: Optional[operators.Weighter],
                                 norm: Optional[str],
-                                device: Optional[torch.device] = None,
+                                transform_device: Optional[torch.device] = None,
+                                database_device: Optional[torch.device] = None,
                                 batch_size: int = 1024 ) -> pd.DataFrame:
     
     n_transform = rotations.get_count() * shifts.get_count()
 
     # Create the data loader
+    pin_memory = transform_device.type=='cuda'
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
-        collate_fn=lambda x : torch.utils.data.default_collate(x).to(device, non_blocking=True)
+        pin_memory=pin_memory
     )
 
     # Create arrays for appending MD
@@ -70,6 +72,7 @@ def populate_references_fourier(db: faiss.Index,
     for images in loader:
         n_images = images.shape[0]
         end = start + n_images
+        images: torch.Tensor = images.to(transform_device)
 
         # Normalize image if requested
         if norm:
@@ -106,7 +109,7 @@ def populate_references_fourier(db: faiss.Index,
                     utils.l2_normalize(reference_vectors, dim=-1)
 
                 # Populate the database
-                db.add(reference_vectors)
+                db.add(reference_vectors.to(database_device))
                 
                 # Add the current shift for all images
                 sx, sy = shifts.get_shift(shift_index)

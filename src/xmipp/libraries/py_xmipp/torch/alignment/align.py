@@ -37,7 +37,8 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
                         flattener: operators.SpectraFlattener,
                         weighter: Optional[operators.Weighter],
                         norm: Optional[str],
-                        device: torch.device ):
+                        transform_device: torch.device,
+                        database_device: torch.device ):
 
     is_complex = transformer.has_complex_output()
 
@@ -45,6 +46,8 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
     flat_t_images = None
     search_vectors = None
     for images in loader:
+        images: torch.Tensor = images.to(transform_device)
+        
         # Normalize image if requested
         if norm == 'image':
             utils.normalize(images, dim=(-2, -1))
@@ -70,7 +73,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
             utils.l2_normalize(search_vectors, dim=-1)
         
         # Feed the queue
-        q_out.put(search_vectors.to(device=device, non_blocking=True))
+        q_out.put(search_vectors.to(device=database_device, non_blocking=True))
     
     # Finish processing
     q_out.put(None)
@@ -78,8 +81,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
     
 def _projection_searcher(q_in: mp.JoinableQueue,
                          db: faiss.Index, 
-                         k: int,
-                         device: torch.device ) -> Tuple[torch.Tensor, torch.Tensor]:
+                         k: int ) -> Tuple[torch.Tensor, torch.Tensor]:
 
     index_vectors = []
     distance_vectors = []
@@ -87,6 +89,9 @@ def _projection_searcher(q_in: mp.JoinableQueue,
     search_vectors: torch.Tensor = q_in.get()
     while search_vectors is not None:
         # Search them
+        if search_vectors.device.type == 'cuda':
+            raise NotImplementedError('We should sync before passing it to faiss sync')
+        
         distances, indices = db.search(search_vectors, k=k)
         del search_vectors
         q_in.task_done()
@@ -112,7 +117,8 @@ def align(db: faiss.Index,
           weighter: operators.Weighter,
           norm: bool,
           k: int,
-          device: Optional[torch.device] = None,
+          transform_device: Optional[torch.device] = None,
+          database_device: Optional[torch.device] = None,
           batch_size: int = 1024,
           queue_len: int = 16 ) -> pd.DataFrame:
 
@@ -120,9 +126,11 @@ def align(db: faiss.Index,
     coefficient_queue = mp.JoinableQueue(maxsize=queue_len)
     
     # Read all the images to be used as training data
+    pin_memory = transform_device.type=='cuda'
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
+        pin_memory=pin_memory
     )
     
     # Define the transformer process
@@ -135,14 +143,15 @@ def align(db: faiss.Index,
             'flattener': flattener, 
             'weighter': weighter,
             'norm': norm,
-            'device': device
+            'transform_device': transform_device,
+            'database_device': database_device
         },
         name='transformer'
     )
     
     # Run all the processes
     transformer_process.start()
-    match_indices, match_distances = _projection_searcher(coefficient_queue, db, k, device)
+    match_indices, match_distances = _projection_searcher(coefficient_queue, db, k)
     transformer_process.join()
     
     return match_indices, match_distances

@@ -51,10 +51,11 @@ def augment_data(db: faiss.Index,
     is_complex = transformer.has_complex_output()
 
     # Read all the images to be used as training data
+    pin_memory = transform_device.type=='cuda'
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
-        collate_fn=lambda x : torch.utils.data.default_collate(x).to(transform_device)
+        pin_memory=pin_memory
     )
 
     # Create the training set

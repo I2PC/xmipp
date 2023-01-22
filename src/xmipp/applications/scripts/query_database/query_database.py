@@ -107,7 +107,8 @@ def run(experimental_md_path: str,
             flattener=flattener,
             weighter=weighter,
             norm=norm,
-            device=transform_device,
+            transform_device=transform_device,
+            database_device=torch.device('cpu'), # As the input for the DB is in cpu
             batch_size=batch
         )
     else:
@@ -120,7 +121,8 @@ def run(experimental_md_path: str,
             flattener=flattener,
             weighter=weighter,
             norm=norm,
-            device=transform_device,
+            transform_device=transform_device,
+            database_device=torch.device('cpu'), # As the input for the DB is in cpu
             batch_size=batch
         )
         
@@ -138,7 +140,8 @@ def run(experimental_md_path: str,
         weighter=weighter,
         norm=norm,
         k=1,
-        device=transform_device,
+        transform_device=transform_device,
+        database_device=torch.device('cpu'), # As the input for the DB is in cpu
         batch_size=batch
     )
     assert(match_distances.shape[0] == len(experimental_md))
