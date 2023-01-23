@@ -976,7 +976,6 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 	}
 	while (deletedCoordinates>0);
 
-
 	#ifdef DEBUG_REMOVE_DUPLICATES
 	// Construct and save the every coordinate after removing duplicates
 	size_t numberOfFeatures = coordinates3D.size();
@@ -1037,7 +1036,6 @@ void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
 		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
-
 	}
 	#endif
 
@@ -1184,6 +1182,30 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
 	}
 	#endif
+
+
+	// Remove coordinates out of volume (any pixel from the box)
+	int numberOfCoordinates = coordinates3D.size();
+
+	for (size_t i = 0; i < numberOfCoordinates; i++)
+	{
+		Point3D<double> p = coordinates3D[i];
+
+		std::cout << "Analyzing coordinate " << i << std::endl;
+	
+		if ((p.z < halfBoxSize) || (p.z + halfBoxSize) > zSize ||
+			(p.y < halfBoxSize) || (p.y + halfBoxSize) > ySize ||
+			(p.x < halfBoxSize) || (p.x + halfBoxSize) > xSize)
+		{
+			#ifdef DEBUG_FILTER_COORDINATES
+			std::cout << "Deleted border coordinate " << i << " at: (" << p.x << ", " << p.y << ", " << p.z << ")" << std::endl;
+			#endif
+
+			coordinates3D.erase(coordinates3D.begin()+i);
+			numberOfCoordinates--;
+			i--;
+		}
+	}
 	
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Filtering coordinates by correlation finished succesfully!" << std::endl;
