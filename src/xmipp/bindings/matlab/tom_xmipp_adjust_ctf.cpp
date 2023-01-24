@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
     }
     catch (XmippError &Xe)
     {
-        mexErrMsgTxt(Xe.msg.c_str());
+        mexErrMsgTxt(Xe.what());
     }
     
     const char *field_names[] = {"DeltafU","DeltafV","AzimuthalAngle",
