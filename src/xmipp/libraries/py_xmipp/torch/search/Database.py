@@ -20,7 +20,40 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-import faiss
+from typing import NamedTuple
+import torch
 
-def download_database_from_device(index: faiss.Index):
-    return faiss.index_gpu_to_cpu(index)
+class SearchResult(NamedTuple):
+    indices: torch.IntTensor
+    distances: torch.Tensor
+
+class Database:
+    def __init__(self) -> None:
+        pass
+    
+    def train(self, vectors: torch.Tensor) -> None:
+        pass
+    
+    def add(self, vectors: torch.Tensor) -> None:
+        pass
+    
+    def reset(self):
+        pass
+    
+    def search(self, vectors: torch.Tensor, k: int) -> SearchResult:
+        pass
+    
+    def read(self, path: str):
+        pass
+    
+    def write(self, path: str):
+        pass
+    
+    def is_trained(self) -> bool:
+        pass
+    
+    def is_populated(self) -> bool:
+        return self.get_item_count() > 0
+
+    def get_item_count(self) -> int:
+        pass

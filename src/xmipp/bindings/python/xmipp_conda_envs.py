@@ -36,11 +36,11 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": True
   },
   "xmipp_torch": {
-    "pythonVersion": "3.9",
+    "pythonVersion": "3.8",
     "dependencies": ["pytorch", "pytorch-cuda=11.6", "torchvision", # FIXME pytorch-cuda only when gpu is enabled
-                     "pandas", "faiss%(gpuTag)s", "numpy" ],
+                     "faiss%(gpuTag)s" ],
     "channels": ["pytorch", "nvidia", "anaconda", "conda-forge"], # FIXME nvidia only when GPU is enabled
-    "pipPackages": [],#["mrcfile", "starfile"],
+    "pipPackages": ["mrcfile", "starfile"],
     "defaultInstallOptions": {"gpuTag": "-cpu"},
     "xmippEnviron": True
 }
