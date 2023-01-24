@@ -98,11 +98,12 @@ if __name__=="__main__":
             'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
             # Initialization
             Xexp = np.zeros((self.batch_size,self.dim,self.dim,1),dtype=np.float64)
-            y = np.empty((self.batch_size,2), dtype=np.int64)
+            y = np.empty((self.batch_size, 2), dtype=np.float64)
 
             # Generate data
             for i, ID in enumerate(list_IDs_temp):
                 # Read image
+
                 if self.readInMemory:
                     Iexp = self.Xexp[ID]
                 else:
@@ -116,8 +117,7 @@ if __name__=="__main__":
                     rX = self.sigma * np.random.normal()
                     rY = self.sigma * np.random.normal()
                     Xexp[i,] = shift(Iexp, (rX, rY, 0), order=1, mode='reflect')
-                    #y[i,] = np.array((rX, rY))+self.labels[ID]
-                    y[i] = np.array(0)
+                    y[i,] = np.array((rX, rY))+self.labels[ID]
                 else:
                     rAngle = self.sigma * np.random.normal()
                     if rAngle != 0:
@@ -129,7 +129,7 @@ if __name__=="__main__":
                     else:
                         angle = (self.labels[ID]) * math.pi / 180
 
-                    y[i] = np.array(angle)
+                    y[i,] = np.array((math.sin(angle), math.cos(angle)))
             # print("Xexp", Xexp, flush=True)
             return Xexp, y
 
@@ -170,8 +170,8 @@ if __name__=="__main__":
         L = BatchNormalization()(L)
         L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
+        # L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        # L = BatchNormalization()(L)
 
         # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         # L = BatchNormalization()(L)
@@ -180,7 +180,7 @@ if __name__=="__main__":
         # L = Dense(16, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         # L = BatchNormalization()(L)
 #
-        L = Dense(1, name="output", activation="tanh")(L)
+        L = Dense(1, name="output", activation="lineal")(L)
         return Model(inputLayer, L)
 
     def constructModel(Xdim):
@@ -188,11 +188,11 @@ if __name__=="__main__":
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         # Network model
-        L = Conv2D(16, (int(Xdim / 10), int(Xdim / 10)), activation="sigmoid")(inputLayer)  # 11 filter size before
+        L = Conv2D(16, (int(Xdim / 10), int(Xdim / 10)), activation="relu")(inputLayer)  # 11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
 
-        L = Conv2D(16, (int(Xdim / 20), int(Xdim / 20)), activation="sigmoid")(L)  # 11 filter size before
+        L = Conv2D(16, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
         L = Dropout(0.2)(L)
@@ -208,11 +208,16 @@ if __name__=="__main__":
         # L = MaxPooling2D()(L)
         #
         L = Flatten()(L)
-        L = Dense(64, activation='sigmoid', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
 
-        L = Dense(1, name="output", activation="linear")(L)
+        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
+
+        L = Dense(2, name="output", activation="tanh")(L)
         return Model(inputLayer, L)
+
+
 
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
@@ -227,14 +232,11 @@ if __name__=="__main__":
     if mode == "Shift":
         labels = []
         for x, y in zip(shiftX, shiftY):
-            # labels.append(np.array((x, y)))
-            labels.append(np.array(0))
-        print("shifts", labels, flush=True)
+            labels.append(np.array((x, y)))
     elif mode == "Psi":
         labels = psis
     elif mode == "Rot":
         labels = rots
-        print("rots", rots, flush = True)
     elif mode == "Tilt":
         labels = tilts
     # Generator
@@ -249,8 +251,8 @@ if __name__=="__main__":
 
 
     def custom_loss_function(y_true, y_pred):
-        squared_difference = tf.square(tf.cos(y_true) - tf.cos(y_pred))+tf.square(tf.sin(y_true) - tf.sin(y_pred))
-        return tf.reduce_mean(squared_difference, axis=-1)
+        d = tf.square(y_true - y_pred)
+        return tf.reduce_mean(d, axis=-1)
 
 
 

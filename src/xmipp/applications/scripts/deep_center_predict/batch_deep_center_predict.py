@@ -105,30 +105,30 @@ if __name__ == "__main__":
         ID = 0
         for objId in mdExp:
             if mode == "Shift":
-                shiftX = Y[ID]
-                shiftY = Y[ID]
+                shiftX, shiftY = Y[ID]
                 # print(shiftX, shiftY)
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
             elif mode == "Psi":
-                psis_degree = Y[ID] * 180 / math.pi
-                # psis /= norm(psis)
-                # psis_degree = (math.atan2(psis[1], psis[0])) * 180 / math.pi
+                psis = Y[ID]
+                psis /= norm(psis)
+                psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
                 # print(psis_degree)
                 mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
             elif mode == "Rot":
-                rots_degree = Y[ID] * 180 / math.pi
-                # rots /= norm(rots)
-                # rots_degree = (math.atan2(rots[1], rots[0])) * 180 / math.pi
+                rots = Y[ID]
+                rots /= norm(rots)
+                rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
                 # print(rots_degree)
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
             elif mode == "Tilt":
-                tilts_degree = Y[ID] * 180 / math.pi
-                # tilts /= norm(tilts)
-                # tilts_degree = (math.atan2(tilts[1], tilts[0])) * 180 / math.pi
+                tilts = Y[ID]
+                tilts /= norm(tilts)
+                tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
                 # print(tilts_degree)
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
             ID += 1
+
 
 
 
@@ -138,10 +138,30 @@ if __name__ == "__main__":
     mdExp = xmippLib.MetaData(fnXmdExp)
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
 
+    Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
+    mdExp = xmippLib.MetaData(fnXmdExp)
+    fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
+    shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
+    shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
+    rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
+    tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
+    psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
+    if mode == "Shift":
+        labels = []
+        for x, y in zip(shiftX, shiftY):
+            labels.append(np.array((x, y)))
+    elif mode == "Psi":
+        labels = psis
+    elif mode == "Rot":
+        labels = rots
+    elif mode == "Tilt":
+        labels = tilts
     def custom_loss_function(y_true, y_pred):
-        squared_difference = tf.square(tf.cos(y_true) - tf.cos(y_pred))+tf.square(tf.sin(y_true) - tf.sin(y_pred))
-        return tf.reduce_mean(squared_difference, axis=-1)
+        d = tf.square(y_true - y_pred)
+        d = tf.Print(d, [d], "Inside loss function")
+        return tf.reduce_mean(d, axis=-1)
+
 
     start_time = time()
     print("----Loading model----", flush=True)
@@ -167,6 +187,30 @@ if __name__ == "__main__":
         mdExp.write("rot_results.xmd")
     elif mode == "Tilt":
         mdExp.write("tilt_results.xmd")
+
+    if mode == "Shift":
+        print("Shift")
+    else:
+        pred = Y
+        pred_norm = norm(pred, axis = -1)
+        pred_degree = np.zeros(len(pred_norm))
+        error = np.zeros(len(pred_norm))
+        for i in range(len(pred_norm)):
+            pred[i,] = pred[i,]/pred_norm[i]
+            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
+            error[i] = np.min(np.array([np.abs(pred_degree[i]-labels[i]), np.abs(np.abs(pred_degree[i]-labels[i])-360)]))
+            if error[i] > 90:
+                print("Error", error[i])
+                print("Prediction", pred_degree[i])
+                print("Label", labels[i], flush = True)
+
+        maxAbsError = np.max(error)
+        meanAbsError = np.mean(error)
+        medianAbsError = np.median(error)
+
+    print("Max Absolute Test Error", maxAbsError)
+    print("Mean Absolute Test Error", meanAbsError)
+    print("Median Absolute Test Error", medianAbsError)
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
