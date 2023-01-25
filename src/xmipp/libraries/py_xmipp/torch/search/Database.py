@@ -48,6 +48,9 @@ class Database:
     
     def write(self, path: str):
         pass
+
+    def to_device(self, device: torch.device):
+        pass
     
     def is_trained(self) -> bool:
         pass
@@ -55,5 +58,15 @@ class Database:
     def is_populated(self) -> bool:
         return self.get_item_count() > 0
 
+    def get_dim(self) -> int:
+        pass
+
     def get_item_count(self) -> int:
         pass
+    
+    def _check_input(self, x: torch.Tensor):
+        if len(x.shape) != 2:
+            raise RuntimeError('Input should have 2 dimensions (batch and vector)')
+        
+        if x.shape[-1] != self.get_dim():
+            raise RuntimeError('Input vectors have incorrect size')

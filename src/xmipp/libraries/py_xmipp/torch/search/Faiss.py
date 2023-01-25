@@ -54,39 +54,58 @@ def opq_ifv_pq_recipe(dim: int, size: int = int(3e6), c: float = 16, norm=False)
     return ','.join(recipe)
 
 class FaissDatabase(Database):
-    def __init__(self, index: Optional[faiss.Index] = None) -> None:
-        self._index = index
+    def __init__(self, dim: int, recipe: str) -> None:
+        self._index: faiss.Index = faiss.index_factory(dim, recipe)
     
     def train(self, vectors: torch.Tensor) -> None:
+        self._check_input(vectors)
         self._index.train(vectors)
     
     def add(self, vectors: torch.Tensor) -> None:
+        self._check_input(vectors)
         self._index.add(vectors)
     
     def reset(self):
         self._index.reset()
     
     def search(self, vectors: torch.Tensor, k: int) -> SearchResult:
-        distances, indices = self._index.search(vectors)
+        self._check_input(vectors)
+        distances, indices = self._index.search(vectors, k)
         return SearchResult(indices=indices, distances=distances)
     
     def read(self, path: str):
         self._index = faiss.read_index(path)
     
-    def is_trained(self) -> bool:
-        if self._index is None:
-            return False
-        
-        return self._index.is_trained()
-    
-    def get_item_count(self) -> int:
-        if self._index is None:
-            return 0
-        
-        return self._index.ntotal
-    
     def write(self, path: str):
         faiss.write_index(self._index, path)
+    
+    def to_device(self, device: torch.device, use_f16: bool = False):
+        if device.type == 'cuda':
+            resources = faiss.StandardGpuResources()
+            co = faiss.GpuClonerOptions()
+            co.useFloat16 = use_f16
+            
+            self._index = faiss.index_cpu_to_gpu(
+                resources,
+                device.index,
+                self._index,
+                co
+            )
+        
+        elif device.type == 'cpu':
+            self._index = faiss.index_gpu_to_cpu(self._index)
+        
+        else:
+            raise ValueError('Input device must be CPU or CUDA')
+    
+    def is_trained(self) -> bool:
+        return self._index.is_trained
+    
+    def get_dim(self) -> int:
+        return self._index.d
+
+    def get_item_count(self) -> int:
+        return self._index.ntotal
     
     def set_metric_type(self, metric_type: int):
         self._index.metric_type = metric_type
@@ -94,23 +113,3 @@ class FaissDatabase(Database):
     def get_metric_type(self) -> int:
         return self._index.metric_type
     
-    def to_gpu(self, device: torch.device, use_f16: bool = False) -> FaissDatabase:
-        if device.type == 'cuda':
-            resources = faiss.StandardGpuResources()
-            co = faiss.GpuClonerOptions()
-            co.useFloat16 = use_f16
-            
-            index = faiss.index_cpu_to_gpu(
-                resources,
-                device.index,
-                self._index,
-                co
-            )
-            
-        else:
-            raise ValueError('Input device must be CUDA')
-
-        return FaissDatabase(index)
-        
-    def from_gpu(self) -> FaissDatabase:
-        return FaissDatabase(faiss.index_gpu_to_cpu(self._index))

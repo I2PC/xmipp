@@ -24,23 +24,32 @@ from typing import Optional, List
 import math
 import torch
 
-from .Database import Database, SearchResult
+from Database import Database, SearchResult
 
 class MedianHashDatabase(Database):
-    def __init__(self) -> None:
+    def __init__(self, 
+                 dim: int ) -> None:
+        self._dim = dim
         self._median: Optional[torch.Tensor] = None
         self._hashes: List[torch.Tensor] = []
     
     def train(self, vectors: torch.Tensor) -> None:
-        self._median = torch.median(vectors, dim=-1, out=self._median)
+        self._check_input(vectors)
+        self._median = torch.median(vectors, dim=0).values
     
     def add(self, vectors: torch.Tensor) -> None:
+        self._check_input(vectors)
         self._hashes.append(self.__compute_hash(vectors))
     
     def reset(self):
         self._hashes.clear()
 
     def search(self, vectors: torch.Tensor, k: int) -> SearchResult:
+        if k != 1:
+            raise NotImplementedError('KNN has been only implemented for k=1')
+        
+        self._check_input(vectors)
+
         # Compute the signature of the search vectors
         search_hashes = self.__compute_hash(vectors)
 
@@ -48,9 +57,9 @@ class MedianHashDatabase(Database):
 
         xors = None
         counts = None
-        best_indices = None
-        best_distances = None
+        best_candidate = None
         mask = None
+        base_index = 0
         for reference_hashes in self._hashes:
             # Perform a XOR for all possible pairs
             xors = torch.logical_xor(
@@ -60,20 +69,31 @@ class MedianHashDatabase(Database):
             )
             
             # Do pop-count
-            counts = torch.count_nonzero(xors, dim=-1, out=counts)
+            counts = torch.count_nonzero(xors, dim=-1) # TODO add out=count
             
             # Find the best candidates
-            best_distances, best_indices = torch.min(counts, dim=-1, out=(best_distances, best_indices))
+            best_candidate = torch.min(counts, dim=-1, out=best_candidate)
+            best_candidate.indices
             
             # Evaluate new candidates
             if result is None:
-                result = SearchResult(indices=best_indices, distances=best_distances)
+                result = SearchResult(
+                    indices=best_candidate.indices.clone(), 
+                    distances=best_candidate.values.clone()
+                )
             else:
-                mask = torch.less(best_distances, result.distances, out=mask)
-                result.indices[mask] = best_indices[mask]
-                result.distances[mask] = best_distances[mask]
-                
-        return result
+                mask = torch.less(best_candidate.values, result.distances, out=mask)
+                result.indices[mask] = best_candidate.indices[mask] + base_index
+                result.distances[mask] = best_candidate.values[mask]
+        
+            # Update base index for next batch
+            base_index += len(reference_hashes)
+        
+        # Add a dimension in the beginning
+        return SearchResult(
+            indices=result.indices[None,...],
+            distances=result.distances[None,...]
+        )
     
     def read(self, path: str):
         obj = {
@@ -87,20 +107,23 @@ class MedianHashDatabase(Database):
         self._median = obj['median']
         self._hashes = obj['hashes']
 
+    def to_device(self, device: torch.device):
+        def func(x: torch.Tensor) -> torch.Tensor:
+            return x.to(device=device)
+        
+        self._median = func(self._median)
+        self._hashes = list(map(func, self._hashes))
+    
     def is_trained(self) -> bool:
         return self._median is not None
     
+    def get_dim(self) -> int:
+        return self._dim
+
     def get_item_count(self) -> int:
         return math.prod(map(len, self._hashes))
     
-    def to_gpu(self, device: torch.device) -> MedianHashDatabase:
-        pass
-    
-    def from_gpu(self) -> MedianHashDatabase:
-        pass
-    
     def __compute_hash(self, 
                        vectors: torch.Tensor,
-                       out: Optional[torch.BoolTensor] ) -> torch.BoolTensor:
+                       out: Optional[torch.BoolTensor] = None ) -> torch.BoolTensor:
         return torch.greater(self._median, vectors, out=out)
-        

@@ -22,3 +22,4 @@
 
 from .Database import Database, SearchResult
 from .Faiss import FaissDatabase, opq_ifv_pq_recipe
+from .MedianHash import MedianHashDatabase
