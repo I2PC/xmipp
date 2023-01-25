@@ -64,6 +64,9 @@ class Database:
     def get_item_count(self) -> int:
         pass
     
+    def get_input_device(self) -> torch.device:
+        pass
+    
     def _check_input(self, x: torch.Tensor):
         if len(x.shape) != 2:
             raise RuntimeError('Input should have 2 dimensions (batch and vector)')

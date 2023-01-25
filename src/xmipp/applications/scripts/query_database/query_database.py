@@ -54,7 +54,7 @@ def run(experimental_md_path: str,
         device = torch.device('cuda', int(gpu[0]))
     else:
         device = torch.device('cpu')
-    transform_device = torch.device('cpu')
+    transform_device = device
     db_device = device
     
     # Read input files
@@ -65,6 +65,7 @@ def run(experimental_md_path: str,
     
     print('Uploading')
     db = search.FaissDatabase()
+    #db = search.MedianHashDatabase()
     db.read(index_path)
     db.to_device(db_device)
 
@@ -109,7 +110,6 @@ def run(experimental_md_path: str,
             weighter=weighter,
             norm=norm,
             transform_device=transform_device,
-            database_device=torch.device('cpu'), # As the input for the DB is in cpu
             batch_size=batch
         )
     else:
@@ -123,7 +123,6 @@ def run(experimental_md_path: str,
             weighter=weighter,
             norm=norm,
             transform_device=transform_device,
-            database_device=torch.device('cpu'), # As the input for the DB is in cpu
             batch_size=batch
         )
         
@@ -142,7 +141,6 @@ def run(experimental_md_path: str,
         norm=norm,
         k=1,
         transform_device=transform_device,
-        database_device=torch.device('cpu'), # As the input for the DB is in cpu
         batch_size=batch
     )
     assert(len(matches.distances) == len(experimental_md))

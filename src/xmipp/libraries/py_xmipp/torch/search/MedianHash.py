@@ -21,7 +21,6 @@
 # ***************************************************************************/
 
 from typing import Optional, List
-import math
 import torch
 
 from .Database import Database, SearchResult
@@ -90,10 +89,10 @@ class MedianHashDatabase(Database):
             # Update base index for next batch
             base_index += len(reference_hashes)
         
-        # Add a dimension in the beginning
+        # Add a dimension in the end
         return SearchResult(
-            indices=result.indices[None,...],
-            distances=result.distances[None,...]
+            indices=result.indices[...,None],
+            distances=result.distances[...,None]
         )
     
     def read(self, path: str):
@@ -127,7 +126,10 @@ class MedianHashDatabase(Database):
         return self._dim
 
     def get_item_count(self) -> int:
-        return math.prod(map(len, self._hashes))
+        return sum(map(len, self._hashes))
+
+    def get_input_device(self) -> torch.device:
+        return self._median.device
     
     def __compute_hash(self, 
                        vectors: torch.Tensor,

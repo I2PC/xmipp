@@ -41,10 +41,10 @@ def populate_references(db: search.Database,
                         weighter: Optional[operators.Weighter],
                         norm: Optional[str],
                         transform_device: Optional[torch.device] = None,
-                        database_device: Optional[torch.device] = None,
                         batch_size: int = 1024 ) -> pd.DataFrame:
     
     n_transform = shifts.get_count() * rotations.get_count()
+    database_device = db.get_input_device()
 
     is_complex = transformer.has_complex_output()
 

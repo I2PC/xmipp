@@ -42,10 +42,10 @@ def populate_references_fourier(db: search.Database,
                                 weighter: Optional[operators.Weighter],
                                 norm: Optional[str],
                                 transform_device: Optional[torch.device] = None,
-                                database_device: Optional[torch.device] = None,
                                 batch_size: int = 1024 ) -> pd.DataFrame:
     
     n_transform = rotations.get_count() * shifts.get_count()
+    database_device = db.get_input_device()
 
     # Create the data loader
     pin_memory = transform_device.type=='cuda'

@@ -113,8 +113,4 @@ def augment_data(db: search.Database,
     assert(end == count)
     utils.progress_bar(count, count)
     
-    # Wait for all downloads
-    if transform_device != store_device:
-        torch.cuda.synchronize(transform_device)
-    
     return training_set

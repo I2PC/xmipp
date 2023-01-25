@@ -66,11 +66,13 @@ class FaissDatabase(Database):
         self._index = index
     
     def train(self, vectors: torch.Tensor) -> None:
-        self._check_input(vectors)
+        self._check_input(vectors)        
+        self._sync(vectors)
         self._index.train(vectors)
     
     def add(self, vectors: torch.Tensor) -> None:
         self._check_input(vectors)
+        self._sync(vectors)
         self._index.add(vectors)
     
     def reset(self):
@@ -78,6 +80,7 @@ class FaissDatabase(Database):
     
     def search(self, vectors: torch.Tensor, k: int) -> SearchResult:
         self._check_input(vectors)
+        self._sync(vectors)
         distances, indices = self._index.search(vectors, k)
         return SearchResult(indices=indices, distances=distances)
     
@@ -115,9 +118,15 @@ class FaissDatabase(Database):
     def get_item_count(self) -> int:
         return self._index.ntotal
     
+    def get_input_device(self) -> torch.device:
+        return torch.device('cpu') # TODO determine
+    
     def set_metric_type(self, metric_type: int):
         self._index.metric_type = metric_type
     
     def get_metric_type(self) -> int:
         return self._index.metric_type
     
+    def _sync(self, vectors: torch.Tensor):
+        if vectors.device.type == 'cuda':
+            raise NotImplementedError('We should sync here')

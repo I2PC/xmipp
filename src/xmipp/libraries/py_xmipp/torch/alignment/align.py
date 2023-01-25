@@ -72,7 +72,7 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
             utils.l2_normalize(search_vectors, dim=-1)
         
         # Feed the queue
-        q_out.put(search_vectors.to(device=database_device, non_blocking=True))
+        q_out.put(search_vectors.to(device=database_device, non_blocking=True, copy=True))
     
     # Finish processing
     q_out.put(None)
@@ -88,9 +88,6 @@ def _projection_searcher(q_in: mp.JoinableQueue,
     search_vectors: torch.Tensor = q_in.get()
     while search_vectors is not None:
         # Search them
-        if search_vectors.device.type == 'cuda':
-            raise NotImplementedError('We should sync before passing it to faiss sync')
-        
         s = db.search(search_vectors, k=k)
         del search_vectors
         q_in.task_done()
@@ -120,7 +117,6 @@ def align(db: search.Database,
           norm: bool,
           k: int,
           transform_device: Optional[torch.device] = None,
-          database_device: Optional[torch.device] = None,
           batch_size: int = 1024,
           queue_len: int = 16 ) -> search.SearchResult:
 
@@ -146,7 +142,7 @@ def align(db: search.Database,
             'weighter': weighter,
             'norm': norm,
             'transform_device': transform_device,
-            'database_device': database_device
+            'database_device': db.get_input_device()
         },
         name='transformer'
     )
