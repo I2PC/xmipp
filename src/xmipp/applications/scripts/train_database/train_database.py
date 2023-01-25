@@ -83,8 +83,9 @@ def run(reference_md_path: str,
     recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     print(f'Data dimensions: {dim}')
     print(f'Database: {recipe}')
-    db = search.create_database(dim, recipe)
-    db = search.upload_database_to_device(db, db_device)
+    db = search.FaissDatabase(dim, recipe)
+    #db = search.MedianHashDatabase(dim)
+    db.to_device(db_device)
     
     # Do some work
     print('Augmenting data')
@@ -109,8 +110,8 @@ def run(reference_md_path: str,
     db.train(training_set)
     
     # Write to disk
-    db = search.download_database_from_device(db)  # TODO remove
-    search.write_database(db, index_path)
+    db.to_device(torch.device('cpu'))
+    db.write(index_path)
 
 
 if __name__ == '__main__':

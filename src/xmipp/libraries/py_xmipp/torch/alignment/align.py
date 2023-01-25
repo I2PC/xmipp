@@ -24,12 +24,11 @@ from typing import Optional, Tuple
 import torch
 import torch.multiprocessing as mp
 import pandas as pd
-import faiss
-import faiss.contrib.torch_utils
 
 from .. import operators
 from .. import utils
 from .. import image
+from .. import search
 
 def _image_transformer( loader: torch.utils.data.DataLoader,
                         q_out: mp.JoinableQueue,
@@ -80,8 +79,8 @@ def _image_transformer( loader: torch.utils.data.DataLoader,
     q_out.join()
     
 def _projection_searcher(q_in: mp.JoinableQueue,
-                         db: faiss.Index, 
-                         k: int ) -> Tuple[torch.Tensor, torch.Tensor]:
+                         db: search.Database, 
+                         k: int ) -> search.SearchResult:
 
     index_vectors = []
     distance_vectors = []
@@ -92,13 +91,13 @@ def _projection_searcher(q_in: mp.JoinableQueue,
         if search_vectors.device.type == 'cuda':
             raise NotImplementedError('We should sync before passing it to faiss sync')
         
-        distances, indices = db.search(search_vectors, k=k)
+        s = db.search(search_vectors, k=k)
         del search_vectors
         q_in.task_done()
         
         # Add them to the result
-        index_vectors.append(indices)
-        distance_vectors.append(distances)
+        index_vectors.append(s.indices)
+        distance_vectors.append(s.distances)
         
         # Prepare fot the next batch
         search_vectors = q_in.get()
@@ -107,10 +106,13 @@ def _projection_searcher(q_in: mp.JoinableQueue,
         q_in.task_done()
     
     # Concatenate all result vectors
-    return torch.cat(index_vectors, axis=0), torch.cat(distance_vectors, axis=0)
+    return search.SearchResult(
+        indices=torch.cat(index_vectors, axis=0), 
+        distances=torch.cat(distance_vectors, axis=0)
+    )
         
 
-def align(db: faiss.Index, 
+def align(db: search.Database, 
           dataset: image.torch_utils.Dataset,
           transformer: operators.Transformer2D,
           flattener: operators.SpectraFlattener,
@@ -120,7 +122,7 @@ def align(db: faiss.Index,
           transform_device: Optional[torch.device] = None,
           database_device: Optional[torch.device] = None,
           batch_size: int = 1024,
-          queue_len: int = 16 ) -> pd.DataFrame:
+          queue_len: int = 16 ) -> search.SearchResult:
 
     # Create the exchange queue
     coefficient_queue = mp.JoinableQueue(maxsize=queue_len)
@@ -151,7 +153,7 @@ def align(db: faiss.Index,
     
     # Run all the processes
     transformer_process.start()
-    match_indices, match_distances = _projection_searcher(coefficient_queue, db, k)
+    result = _projection_searcher(coefficient_queue, db, k)
     transformer_process.join()
     
-    return match_indices, match_distances
+    return result

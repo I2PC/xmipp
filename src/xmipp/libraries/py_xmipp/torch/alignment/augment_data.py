@@ -23,14 +23,13 @@
 from typing import Optional
 import torch
 import torchvision
-import faiss
-import faiss.contrib.torch_utils
 import math
 
 from .. import operators
 from .. import utils
+from .. import search
 
-def augment_data(db: faiss.Index, 
+def augment_data(db: search.Database, 
                  dataset: torch.utils.data.Dataset,
                  transformer: operators.Transformer2D,
                  flattener: operators.SpectraFlattener,
@@ -59,7 +58,7 @@ def augment_data(db: faiss.Index,
     )
 
     # Create the training set
-    training_set = torch.empty(count, db.d, device=store_device)
+    training_set = torch.empty(count, db.get_dim(), device=store_device)
 
     # Create the transform randomizer
     random_affine = torchvision.transforms.RandomAffine(
@@ -75,6 +74,9 @@ def augment_data(db: faiss.Index,
     for images in loader:
         for i in range(n_transforms):
             end = start + images.shape[0]
+            
+            # Upload to the device
+            images: torch.Tensor = images.to(transform_device)
             
             # Normalize image if requested
             if norm == 'image':

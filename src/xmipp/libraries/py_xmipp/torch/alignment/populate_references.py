@@ -23,17 +23,16 @@
 from typing import Optional
 import torch
 import pandas as pd
-import faiss
-import faiss.contrib.torch_utils
 
 from .. import operators
 from .. import utils
 from .. import image
+from .. import search
 
 from .create_reference_metadata import create_reference_metadata
 
 
-def populate_references(db: faiss.Index, 
+def populate_references(db: search.Database, 
                         dataset: image.torch_utils.Dataset,
                         rotations: operators.ImageRotator,
                         shifts: operators.ImageShifter,
@@ -124,7 +123,7 @@ def populate_references(db: faiss.Index,
         utils.progress_bar(end*n_transform, len(dataset)*n_transform)
         
     projection_md = create_reference_metadata(reference_indices, psi_angles, x_shifts, y_shifts)
-    assert(len(projection_md) == db.ntotal)
+    assert(len(projection_md) == db.get_item_count())
     return projection_md
     
     

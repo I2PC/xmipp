@@ -64,12 +64,13 @@ def run(experimental_md_path: str,
     
     
     print('Uploading')
-    db = search.read_database(index_path)
-    db = search.upload_database_to_device(db, db_device)
+    db = search.FaissDatabase()
+    db.read(index_path)
+    db.to_device(db_device)
 
     # Create the transformer and flattener
     # according to the transform method
-    dim = db.d
+    dim = db.get_dim()
     if method == 'fourier':
         transformer = operators.FourierTransformer2D()
         flattener = operators.FourierLowPassFlattener(image_size, cutoff, padded_length=dim//2, device=transform_device)
@@ -126,13 +127,13 @@ def run(experimental_md_path: str,
             batch_size=batch
         )
         
-    print(f'Database contains {db.ntotal} entries')
+    print(f'Database contains {db.get_item_count()} entries')
     
     
     print('Aligning')
     experimental_paths = list(map(image.parse_path, experimental_md[md.IMAGE]))
     experimental_dataset = image.torch_utils.Dataset(experimental_paths)
-    match_indices, match_distances = alignment.align(
+    matches = alignment.align(
         db=db, 
         dataset=experimental_dataset,
         transformer=transformer,
@@ -144,17 +145,15 @@ def run(experimental_md_path: str,
         database_device=torch.device('cpu'), # As the input for the DB is in cpu
         batch_size=batch
     )
-    assert(match_distances.shape[0] == len(experimental_md))
-    assert(match_indices.shape[0] == len(experimental_md))
-    
+    assert(len(matches.distances) == len(experimental_md))
+    assert(len(matches.indices) == len(experimental_md))
     
     print('Generating output')
     result_md = alignment.generate_alignment_metadata(
         experimental_md=experimental_md,
         reference_md=reference_md,
         projection_md=projection_md,
-        match_indices=match_indices,
-        match_distances=match_distances
+        matches=matches
     )
     
     if drop_na:

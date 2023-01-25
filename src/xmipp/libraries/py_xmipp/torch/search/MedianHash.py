@@ -24,11 +24,12 @@ from typing import Optional, List
 import math
 import torch
 
-from Database import Database, SearchResult
+from .Database import Database, SearchResult
 
 class MedianHashDatabase(Database):
     def __init__(self, 
-                 dim: int ) -> None:
+                 dim: int = 0) -> None:
+
         self._dim = dim
         self._median: Optional[torch.Tensor] = None
         self._hashes: List[torch.Tensor] = []
@@ -96,20 +97,25 @@ class MedianHashDatabase(Database):
         )
     
     def read(self, path: str):
+        obj = torch.load(path)
+        self._dim = obj['dim']
+        self._median = obj['median']
+        self._hashes = obj['hashes']
+    
+    def write(self, path: str):
         obj = {
+            'dim': self._dim,
             'median': self._median,
             'hashes': self._hashes
         }
         torch.save(obj, path)
-    
-    def write(self, path: str):
-        obj = torch.load(path)
-        self._median = obj['median']
-        self._hashes = obj['hashes']
 
     def to_device(self, device: torch.device):
-        def func(x: torch.Tensor) -> torch.Tensor:
-            return x.to(device=device)
+        def func(x: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
+            if x is None:
+                return None
+            else:
+                return x.to(device=device)
         
         self._median = func(self._median)
         self._hashes = list(map(func, self._hashes))

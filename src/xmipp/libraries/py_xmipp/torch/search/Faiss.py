@@ -24,6 +24,7 @@ from typing import Optional
 import math
 import torch
 import faiss
+import faiss.contrib.torch_utils
 
 from .Database import Database, SearchResult
 
@@ -54,8 +55,15 @@ def opq_ifv_pq_recipe(dim: int, size: int = int(3e6), c: float = 16, norm=False)
     return ','.join(recipe)
 
 class FaissDatabase(Database):
-    def __init__(self, dim: int, recipe: str) -> None:
-        self._index: faiss.Index = faiss.index_factory(dim, recipe)
+    def __init__(self,
+                 dim: int = 0, 
+                 recipe: Optional[str] = None ) -> None:
+
+        index: Optional[faiss.Index] = None
+        if recipe and dim:
+            index = faiss.index_factory(dim, recipe)
+        
+        self._index = index
     
     def train(self, vectors: torch.Tensor) -> None:
         self._check_input(vectors)

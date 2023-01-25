@@ -24,11 +24,12 @@ import pandas as pd
 import torch
 
 from .. import metadata as md
+from .. import search
 
 def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,
-                           match_indices: torch.Tensor,
-                           match_distances: torch.Tensor ) -> pd.DataFrame:
+                           match_distances: torch.Tensor,
+                           match_indices: torch.IntTensor ) -> pd.DataFrame:
 
     REFERENCE_COLUMNS = [md.ANGLE_ROT, md.ANGLE_TILT, md.REFERENCE_IMAGE]
 
@@ -48,8 +49,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
 def generate_alignment_metadata(experimental_md: pd.DataFrame,
                                 reference_md: pd.DataFrame,
                                 projection_md: pd.DataFrame,
-                                match_indices: torch.Tensor,
-                                match_distances: torch.Tensor ) -> pd.DataFrame:
+                                matches: search.SearchResult ) -> pd.DataFrame:
     
     
     # Create the resulting array shifting old alignment values
@@ -69,7 +69,12 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
     })
     
     # Use the first match
-    alignment_md = _ensemble_alignment_md(reference_md, projection_md, match_indices[:,0], match_distances[:,0])
+    alignment_md = _ensemble_alignment_md(
+        reference_md=reference_md, 
+        projection_md=projection_md, 
+        match_distances=matches.distances[:,0], 
+        match_indices=matches.indices[:,0]
+    )
     
     # Add the alignment consensus to the output
     output_md = output_md.join(alignment_md)
