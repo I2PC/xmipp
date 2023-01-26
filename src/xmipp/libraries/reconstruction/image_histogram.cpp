@@ -123,7 +123,8 @@ public:
         else
           compute_hist(image(), histb, m, M, StepsNo);
 
-        while (++iterId != mdIn.ids().end())
+	    const auto totalSize = mdIn.ids().end();
+        while (++iterId != totalSize)
         {
             image.readApplyGeo(mdIn, *iterId);
             image().setXmippOrigin();

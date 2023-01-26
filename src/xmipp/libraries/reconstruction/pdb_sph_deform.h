@@ -42,6 +42,12 @@ private:
     /** Output fileroot */
     FileName fn_out;
 
+    /** Center of mass centering */
+    bool center;
+
+    /** Volume box size */
+    double boxSize;    
+
     /** Vector containing the deformation coefficients */
 	std::vector<double> clnm;
 
@@ -75,6 +81,9 @@ public:
 
     /** Fill degree and order vectors */
     void fillVectorTerms();
+
+    /** Compute center of mass of the PDB file */
+    void centerOfMass(PDBRichPhantom pdb, Matrix1D<double> &cm);
 };
 //@}
 #endif

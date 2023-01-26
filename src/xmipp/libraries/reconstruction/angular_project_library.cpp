@@ -401,7 +401,10 @@ void ProgAngularProjectLibrary::run()
         }
     }
     mySFout.setComment("x,y,z refer to the coordinates of the unitary vector at direction given by the euler angles");
-    mySFout.write(output_file_root+".doc");
+    if (mySFout.size()>0)
+	    mySFout.write(output_file_root+".doc");
+    else
+    	std::cout << "There are no projections within the specified angular range and sampling" << std::endl;
     unlink((output_file_root+"_angles.doc").c_str());
 
     if (fn_groups!="")

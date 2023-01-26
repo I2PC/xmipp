@@ -366,7 +366,7 @@ public:
     /// Number of threads
     /// Output rootname
     FileName fn_root;
-    AutoParticlePicking2 *autoPicking;
+    std::unique_ptr<AutoParticlePicking2> autoPicking;
 public:
     /// Read parameters
     void readParams();

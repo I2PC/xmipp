@@ -25,19 +25,9 @@
 
 #include "mpi_validation_nontilt.h"
 
-MpiProgValidationNonTilt::MpiProgValidationNonTilt()
-{
-	node=nullptr;
-}
-
-MpiProgValidationNonTilt::~MpiProgValidationNonTilt()
-{
-	delete node;
-}
-
 void MpiProgValidationNonTilt::read(int argc, char** argv)
 {
-    node = new MpiNode(argc, argv);
+    node = std::make_unique<MpiNode>(argc, argv);
    	rank = node->rank;
    	Nprocessors = node->size;
    	ProgValidationNonTilt::read(argc, (const char **)argv);

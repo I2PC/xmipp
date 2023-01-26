@@ -132,7 +132,8 @@ public:
 
         auto itIdIn = mdIn.ids().begin();
         auto itIdCtf = mdCtf.ids().begin();
-        for (; itIdIn != mdIn.ids().end(); ++itIdIn, ++itIdCtf)
+        const auto totalSize = mdIn.ids().end();
+        for (; itIdIn != totalSize; ++itIdIn, ++itIdCtf)
         {
             mdIn.getValue(MDL_SELFILE,fnsel, *itIdIn);
             mdCtf.getValue(MDL_CTF_MODEL,fnctf, *itIdCtf);
