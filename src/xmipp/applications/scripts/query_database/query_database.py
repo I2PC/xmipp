@@ -125,7 +125,8 @@ def run(experimental_md_path: str,
             transform_device=transform_device,
             batch_size=batch
         )
-        
+    
+    db.finalize()
     print(f'Database contains {db.get_item_count()} entries')
     
     

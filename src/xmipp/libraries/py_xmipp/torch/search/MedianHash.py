@@ -56,7 +56,7 @@ class MedianHashDatabase(Database):
         result = None
 
         xors = None
-        counts = None
+        pop_counts = None
         best_candidate = None
         mask = None
         base_index = 0
@@ -69,11 +69,10 @@ class MedianHashDatabase(Database):
             )
             
             # Do pop-count
-            counts = torch.count_nonzero(xors, dim=-1) # TODO add out=count
+            pop_counts = torch.count_nonzero(xors, dim=-1) # TODO add out=count
             
             # Find the best candidates
-            best_candidate = torch.min(counts, dim=-1, out=best_candidate)
-            best_candidate.indices
+            best_candidate = torch.min(pop_counts, dim=-1, out=best_candidate)
             
             # Evaluate new candidates
             if result is None:
@@ -121,6 +120,9 @@ class MedianHashDatabase(Database):
     
     def is_trained(self) -> bool:
         return self._median is not None
+
+    def is_finalized(self) -> bool:
+        return True
     
     def get_dim(self) -> int:
         return self._dim

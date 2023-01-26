@@ -37,6 +37,9 @@ class Database:
     def add(self, vectors: torch.Tensor) -> None:
         pass
     
+    def finalize(self):
+        pass
+    
     def reset(self):
         pass
     
@@ -57,6 +60,9 @@ class Database:
     
     def is_populated(self) -> bool:
         return self.get_item_count() > 0
+
+    def is_finalized(self) -> bool:
+        pass
 
     def get_dim(self) -> int:
         pass

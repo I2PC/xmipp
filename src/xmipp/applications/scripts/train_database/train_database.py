@@ -45,7 +45,7 @@ def run(reference_md_path: str,
         method: str,
         norm: Optional[str],
         gpu: list ):
-    
+   
     # Devices
     if gpu:
         device = torch.device('cuda', int(gpu[0]))

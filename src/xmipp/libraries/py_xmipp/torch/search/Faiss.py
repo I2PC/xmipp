@@ -112,6 +112,9 @@ class FaissDatabase(Database):
     def is_trained(self) -> bool:
         return self._index.is_trained
     
+    def is_finalized(self) -> bool:
+        return True
+    
     def get_dim(self) -> int:
         return self._index.d
 
