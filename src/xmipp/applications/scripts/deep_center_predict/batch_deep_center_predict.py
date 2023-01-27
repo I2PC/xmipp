@@ -93,7 +93,6 @@ if __name__ == "__main__":
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
                     Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-
                 # Iexp = Iexp*0;
                 # Iexp[48:80,48:80] = 1
             return Xexp
@@ -109,30 +108,22 @@ if __name__ == "__main__":
                 # print(shiftX, shiftY)
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
-            elif mode == "Psi":
-                psis = Y[ID]
+            elif mode == "Angular":
+                rots = Y[ID][0:2]
+                tilts = Y[ID][2:4]
+                psis = Y[ID][4:]
                 psis /= norm(psis)
                 psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
-                # print(psis_degree)
-                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
-            elif mode == "Rot":
-                rots = Y[ID]
                 rots /= norm(rots)
                 rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
-                # print(rots_degree)
-                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
-            elif mode == "Tilt":
-                tilts = Y[ID]
                 tilts /= norm(tilts)
                 tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
-                # print(tilts_degree)
+                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
             ID += 1
 
-
-
-
-
+    print("----------------------------------------ahkbrvfeiwbfc", flush=True)
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
 
     mdExp = xmippLib.MetaData(fnXmdExp)
@@ -151,14 +142,13 @@ if __name__ == "__main__":
         labels = []
         for x, y in zip(shiftX, shiftY):
             labels.append(np.array((x, y)))
-    elif mode == "Psi":
-        labels = psis
-    elif mode == "Rot":
-        labels = rots
-    elif mode == "Tilt":
-        labels = tilts
+    elif mode == "Angular":
+        labels = []
+        for r, t, p in zip(rots, tilts, psis):
+            labels.append(np.array((r, t, p)))
+
     def custom_loss_function(y_true, y_pred):
-        d = tf.square(y_true - y_pred)
+        d = tf.abs(y_true - y_pred)
         d = tf.Print(d, [d], "Inside loss function")
         return tf.reduce_mean(d, axis=-1)
 
@@ -173,7 +163,7 @@ if __name__ == "__main__":
     manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
 
-    print("prediction", Y, flush=True)
+
     produce_output(mdExp, mode, len(fnImgs), Y)
 
 
@@ -181,36 +171,70 @@ if __name__ == "__main__":
     print("-----------Test values------------")
     if mode == "Shift":
         mdExp.write("shift_results.xmd")
-    elif mode == "Psi":
-        mdExp.write("psi_results.xmd")
-    elif mode == "Rot":
-        mdExp.write("rot_results.xmd")
-    elif mode == "Tilt":
-        mdExp.write("tilt_results.xmd")
+    elif mode == "Angular":
+        mdExp.write("ang_results.xmd")
 
     if mode == "Shift":
         print("Shift")
     else:
-        pred = Y
+        print("Rot:", flush=True)
+        pred = Y[: , 0:2]
+        test = [i[0] for i in labels]
         pred_norm = norm(pred, axis = -1)
         pred_degree = np.zeros(len(pred_norm))
         error = np.zeros(len(pred_norm))
         for i in range(len(pred_norm)):
             pred[i,] = pred[i,]/pred_norm[i]
             pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
-            error[i] = np.min(np.array([np.abs(pred_degree[i]-labels[i]), np.abs(np.abs(pred_degree[i]-labels[i])-360)]))
-            if error[i] > 90:
-                print("Error", error[i])
-                print("Prediction", pred_degree[i])
-                print("Label", labels[i], flush = True)
-
+            error[i] = np.min(np.array([np.abs(pred_degree[i]-test[i]), np.abs(np.abs(pred_degree[i]-test[i])-360)]))
         maxAbsError = np.max(error)
         meanAbsError = np.mean(error)
         medianAbsError = np.median(error)
+        print("Max Absolute Test Error", maxAbsError)
+        print("Mean Absolute Test Error", meanAbsError)
+        print("Median Absolute Test Error", medianAbsError)
 
-    print("Max Absolute Test Error", maxAbsError)
-    print("Mean Absolute Test Error", meanAbsError)
-    print("Median Absolute Test Error", medianAbsError)
+    if mode == "Shift":
+        print("Shift")
+    else:
+        print("Tilt:", flush=True)
+        pred = Y[: , 2:4]
+        test = [i[1] for i in labels]
+        pred_norm = norm(pred, axis=-1)
+        pred_degree = np.zeros(len(pred_norm))
+        error = np.zeros(len(pred_norm))
+        for i in range(len(pred_norm)):
+            pred[i,] = pred[i,] / pred_norm[i]
+            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
+            error[i] = np.min(
+                np.array([np.abs(pred_degree[i] - test[i]), np.abs(np.abs(pred_degree[i] - test[i]) - 360)]))
+        maxAbsError = np.max(error)
+        meanAbsError = np.mean(error)
+        medianAbsError = np.median(error)
+        print("Max Absolute Test Error", maxAbsError)
+        print("Mean Absolute Test Error", meanAbsError)
+        print("Median Absolute Test Error", medianAbsError)
+
+    if mode == "Shift":
+        print("Shift")
+    else:
+        print("Psi:", flush=True)
+        pred = Y[: , 4:6]
+        test = [i[2] for i in labels]
+        pred_norm = norm(pred, axis=-1)
+        pred_degree = np.zeros(len(pred_norm))
+        error = np.zeros(len(pred_norm))
+        for i in range(len(pred_norm)):
+            pred[i,] = pred[i,] / pred_norm[i]
+            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
+            error[i] = np.min(
+                np.array([np.abs(pred_degree[i] - test[i]), np.abs(np.abs(pred_degree[i] - test[i]) - 360)]))
+        maxAbsError = np.max(error)
+        meanAbsError = np.mean(error)
+        medianAbsError = np.median(error)
+        print("Max Absolute Test Error", maxAbsError)
+        print("Mean Absolute Test Error", meanAbsError)
+        print("Median Absolute Test Error", medianAbsError)
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
