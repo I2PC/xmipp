@@ -115,9 +115,6 @@ def run(reference_md_path: str,
 
 
 if __name__ == '__main__':
-    # To avoid problems
-    torch.multiprocessing.set_start_method('spawn')
-
     # Define the input
     parser = argparse.ArgumentParser(
                         prog = 'Align Nearest Neighbor Training',
