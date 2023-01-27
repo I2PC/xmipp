@@ -513,7 +513,7 @@ class Config:
             return v[v.index('9.3'):]
         elif 11.1 <= nvcc_version < 11.5:
             return v[v.index('10.3'):]
-        elif 11.5 <= nvcc_version <= 11.7:
+        elif 11.5 <= nvcc_version <= 11.8:
             return v[v.index('11.3'):]
         return []
 
@@ -542,6 +542,11 @@ class Config:
         if not self.is_empty(Config.OPT_CXX_CUDA):
             return True
         candidates = self._get_compatible_GCC(nvcc_version)
+        if candidates == []:
+            print(yellow('No valid compiler found for CUDA host code. ' +
+                         'nvcc_version : ' + str(
+                nvcc_version) + ' ' + self._get_help_msg()))
+            return False
         prg = find_newest('g++', candidates,  False)
         if not prg:# searching a g++ for devToolSet on CentOS
             gccVersion = str(self._get_GCC_version('g++')[0])
