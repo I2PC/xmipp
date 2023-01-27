@@ -89,8 +89,8 @@ def align(db: search.Database,
         s = db.search(search_vectors.to(database_device), k=k)
         
         # Add them to the result
-        index_vectors.append(s.indices)
-        distance_vectors.append(s.distances)
+        index_vectors.append(s.indices.cpu())
+        distance_vectors.append(s.distances.cpu())
         
     # Concatenate all result vectors
     return search.SearchResult(
