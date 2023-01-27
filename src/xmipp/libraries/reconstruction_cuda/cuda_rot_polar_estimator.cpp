@@ -377,11 +377,14 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
-    if ( ! GPU::isMemoryPinned(others)) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
-    }
-    if (s.allowDataOverwrite && ( ! m_mainStream->isGpuPointer(others))) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+    const auto isGpuPtr = m_mainStream->isGpuPointer(others);
+    if(!isGpuPtr) {
+        if ( ! GPU::isMemoryPinned(others)) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
+        }
+        if (s.allowDataOverwrite) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+        }
     }
 
     m_mainStream->set();
