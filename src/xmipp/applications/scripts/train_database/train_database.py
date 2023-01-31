@@ -24,8 +24,8 @@
 
 from typing import Optional
 import torch
-import faiss
 import argparse
+import math
 
 import xmippPyModules.torch.image as image
 import xmippPyModules.torch.search as search
@@ -38,13 +38,14 @@ import xmippPyModules.torch.metadata as md
 def run(reference_md_path: str, 
         weight_image_path: Optional[str],
         index_path: str,
+        recipe: str,
         max_shift : float,
         n_training: int,
-        n_samples: int,
         cutoff: float,
         method: str,
         norm: Optional[str],
-        gpu: list ):
+        gpu: list,
+        scratch_path: Optional[str]):
    
     # Devices
     if gpu:
@@ -80,12 +81,21 @@ def run(reference_md_path: str,
         dim *= 2
     
     # Create the DB to store the data
-    recipe = search.opq_ifv_pq_recipe(dim, n_samples)
     print(f'Data dimensions: {dim}')
-    print(f'Database: {recipe}')
     db = search.FaissDatabase(dim, recipe)
     #db = search.MedianHashDatabase(dim)
     db.to_device(db_device)
+    
+    # Create the storage for the training set.
+    # This will be LARGE. Therefore provide a MMAP path
+    training_set_shape = (n_training, dim)
+    if scratch_path:
+        nbytes = 4*math.prod(training_set_shape)
+        storage = torch.UntypedStorage.from_file(scratch_path, shared=True, nbytes=nbytes)
+        training_set = torch.FloatTensor(storage=storage)
+        training_set = training_set.view(training_set_shape)
+    else:
+        training_set = torch.empty(training_set_shape, device=torch.device('cpu'))
     
     # Do some work
     print('Augmenting data')
@@ -103,7 +113,7 @@ def run(reference_md_path: str,
         max_shift=max_shift,
         batch_size=8192,
         transform_device=transform_device,
-        store_device=torch.device('cpu') # Augmented dataset is very large
+        out=training_set
     )
     
     print('Training')
@@ -119,9 +129,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
                         prog = 'Align Nearest Neighbor Training',
                         description = 'Align Cryo-EM images using a fast Nearest Neighbor approach')
-    parser.add_argument('-i', required=True)
-    parser.add_argument('-o', required=True)
-    parser.add_argument('--weights')
+    parser.add_argument('-i', type=str, required=True)
+    parser.add_argument('-o', type=str, required=True)
+    parser.add_argument('--recipe', type=str, required=True)
+    parser.add_argument('--weights', type=str)
     parser.add_argument('--max_shift', type=float, required=True)
     parser.add_argument('--training', type=int, default=int(4e6))
     parser.add_argument('--size', type=int, default=int(2e6))
@@ -129,6 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
     parser.add_argument('--gpu', nargs='*')
+    parser.add_argument('--scratch_path', type=str)
 
     # Parse
     args = parser.parse_args()
@@ -137,12 +149,13 @@ if __name__ == '__main__':
     run(
         reference_md_path = args.i,
         index_path = args.o,
+        recipe = args.recipe,
         weight_image_path = args.weights,
         max_shift = args.max_shift,
         n_training = args.training,
-        n_samples = args.size,
         cutoff = args.max_frequency,
         method = args.method,
         norm = args.norm,
-        gpu = args.gpu
+        gpu = args.gpu,
+        scratch_path=args.scratch_path
     )

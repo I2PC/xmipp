@@ -40,11 +40,11 @@ def augment_data(db: search.Database,
                  max_shift: float = 0.1,
                  batch_size: int = 8192,
                  transform_device: Optional[torch.device] = None,
-                 store_device: Optional[torch.device] = None ):
+                 out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
     # Decide the number of transformations
     n_references = len(dataset) # For the moment select all
-    n_transforms = math.ceil(count / n_references) # transforms for the rest
+    n_transforms = math.floor(count / n_references) # transforms for the rest
     count = n_references * n_transforms
     
     is_complex = transformer.has_complex_output()
@@ -58,8 +58,10 @@ def augment_data(db: search.Database,
     )
 
     # Create the training set
-    training_set = torch.empty(count, db.get_dim(), device=store_device)
-
+    output_shape = (count, db.get_dim())
+    if out is None:
+        out = torch.empty(output_shape)
+        
     # Create the transform randomizer
     random_affine = torchvision.transforms.RandomAffine(
         degrees=max_rotation,
@@ -102,7 +104,7 @@ def augment_data(db: search.Database,
                 utils.l2_normalize(train_vectors, dim=-1)
 
             # Write it to the destination array
-            training_set[start:end,:] = train_vectors.to(training_set.device, non_blocking=True)
+            out[start:end,:] = train_vectors.to(out.device, non_blocking=True)
             
             # Update the index
             start = end
@@ -113,4 +115,4 @@ def augment_data(db: search.Database,
     assert(end == count)
     utils.progress_bar(count, count)
     
-    return training_set
+    return out[:count,:]
