@@ -33,7 +33,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
 
     REFERENCE_COLUMNS = [md.ANGLE_ROT, md.ANGLE_TILT, md.REFERENCE_IMAGE]
 
-    result = pd.DataFrame(match_distances, columns=['distance'])
+    result = pd.DataFrame(match_distances, columns=[md.COST])
     
     # Left-join the projection metadata to the result
     result = result.join(projection_md, on=match_indices)

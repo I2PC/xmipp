@@ -28,6 +28,8 @@ REF = 'ref'
 RESOLUTION_FREQ = 'resolutionFreq'
 SIGMANOISE = 'sigmaNoise'
 
+COST = 'cost'
+
 ANGLE_PSI = 'anglePsi'
 ANGLE_PSI2 = 'anglePsi2'
 ANGLE_ROT = 'angleRot'
