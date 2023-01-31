@@ -624,8 +624,10 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			rowOut.setValue(MDL_ENABLED,-1);
 		}
 	}
-    rowOut.setValue(MDL_IMAGE_ORIGINAL, fnImg);
-    rowOut.setValue(MDL_IMAGE, fnImgOut);
+	if(!doNotWriteStack) {
+    	rowOut.setValue(MDL_IMAGE_ORIGINAL, fnImg);
+    	rowOut.setValue(MDL_IMAGE, fnImgOut);
+	}
     rowOut.setValue(MDL_ANGLE_ROT,  old_rot+p(7));
     rowOut.setValue(MDL_ANGLE_TILT, old_tilt+p(8));
     rowOut.setValue(MDL_ANGLE_PSI,  old_psi+p(9));
