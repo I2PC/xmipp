@@ -71,7 +71,7 @@ void FourierFilter::defineParams(XmippProgram *program)
     program->addParamsLine("                                             : The CTF phase will be corrected before applying");
     program->addParamsLine("            ctfinv <ctfile> <minCTF=0.05>    : Apply the inverse of the CTF. Below the minCTF, the image is not corrected");
     program->addParamsLine("            ctfposinv <ctfile> <minCTF=0.05> : Apply the inverse of the abs(CTF). Below the minCTF, the image is not corrected");
-    program->addParamsLine("            ctfdef <kV> <Cs> <Q0> <defocus> : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A)");
+    program->addParamsLine("            ctfdef <kV> <Cs> <Q0> <defocus>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A)");
     program->addParamsLine("            ctfdefastig <kV> <Cs> <Q0> <defocusU> <defocusV> <defocusAngle>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A), and defocusAngle (degrees)");
     program->addParamsLine("                                             : The phase flip is not corrected");
     program->addParamsLine("            bfactor <B>                      : Exponential filter (positive values for decay) ");
