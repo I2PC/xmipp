@@ -2,6 +2,7 @@
 
 import math
 import numpy as np
+from operator import itemgetter
 import os
 import sys
 import xmippLib
@@ -9,7 +10,7 @@ from time import time
 from scipy.ndimage import shift, rotate
 
 print("------------------------------------------------", flush=True)
-if __name__=="__main__":
+if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
     checkIf_tf_keras_installed()
@@ -23,12 +24,13 @@ if __name__=="__main__":
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
     if not gpuId.startswith('-1'):
-        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
 
     from keras.callbacks import TensorBoard, ModelCheckpoint
     from keras.models import Model
-    from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, Subtract, SeparableConv2D, GlobalAveragePooling2D
+    from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
+        Subtract, SeparableConv2D, GlobalAveragePooling2D
     from keras.optimizers import *
     import keras
     from keras import callbacks
@@ -37,8 +39,10 @@ if __name__=="__main__":
     from keras.models import load_model
     import tensorflow as tf
 
+
     class DataGenerator(keras.utils.Sequence):
         'Generates data for fnImgs'
+
         def __init__(self, fnImgs, labels, mode, sigma, batch_size, dim, readInMemory):
             'Initialization'
             print("----------Initialization---------")
@@ -51,8 +55,8 @@ if __name__=="__main__":
             self.sigma = sigma
             print("sigma:", sigma)
             self.batch_size = batch_size
-            if self.batch_size>len(self.fnImgs):
-                self.batch_size=len(self.fnImgs)
+            if self.batch_size > len(self.fnImgs):
+                self.batch_size = len(self.fnImgs)
             print("batch_size:", batch_size)
             self.dim = dim
             print("dim:", dim)
@@ -64,10 +68,10 @@ if __name__=="__main__":
             print("-----------Reading data in memory-----------")
             # Read all data in memory
             if self.readInMemory:
-                self.Xexp = np.zeros((len(self.labels),self.dim,self.dim,1),dtype=np.float64)
+                self.Xexp = np.zeros((len(self.labels), self.dim, self.dim, 1), dtype=np.float64)
                 for i in range(len(self.labels)):
-                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(),(self.dim,self.dim,1))
-                    self.Xexp[i,] = (Iexp-np.mean(Iexp))/np.std(Iexp)
+                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(), (self.dim, self.dim, 1))
+                    self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
 
         def __len__(self):
             'Denotes the number of batches per epoch'
@@ -77,7 +81,7 @@ if __name__=="__main__":
         def __getitem__(self, index):
             'Generate one batch of data'
             # Generate indexes of the batch
-            indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+            indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
             # Find list of IDs
             list_IDs_temp = []
             for i in range(int(self.batch_size)):
@@ -95,45 +99,88 @@ if __name__=="__main__":
             np.random.shuffle(self.indexes)
 
         def __data_generation(self, list_IDs_temp):
-            'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
+            'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
             # Initialization
-            Xexp = np.zeros((self.batch_size,self.dim,self.dim,1),dtype=np.float64)
-            y = np.empty((self.batch_size, 6), dtype=np.float64)
+            # Xexp = np.zeros((self.batch_size, self.dim, self.dim, 1), dtype=np.float64)
+            yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
 
-            # Generate data
-            for i, ID in enumerate(list_IDs_temp):
-                # Read image
+            # if mode == 'Shift':
+            #     y = np.empty((self.batch_size, 2), dtype=np.float64)
+            # else:
+            #     y = np.empty((self.batch_size, 6), dtype=np.float64)
 
-                if self.readInMemory:
-                    Iexp = self.Xexp[ID]
+            ################################################
+            def get_image(fnImage):
+                return np.reshape(xmippLib.Image(fnImage).getData(), (self.dim, self.dim, 1))
+
+            def rotate_image(img, angle):
+                return rotate(img, angle, order=1, mode='reflect', reshape=False)
+
+            def shift_image(img, shiftx, shifty):
+                return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
+
+            def get_angles_radians(angles, rAngle):
+                return np.array((math.sin(angles[0]), math.cos(angles[0]), math.sin(angles[1]),
+                                 math.cos(angles[1]), math.sin(angles[2] + rAngle),
+                                 math.cos(angles[2] + rAngle)))
+
+            if self.readInMemory:
+                Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
+            else:
+                fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
+                Iexp = map(get_image, fnIexp)
+
+            if self.sigma > 0:
+                if mode == 'Shift':
+                    rX = self.sigma * np.random.normal(size=self.batch_size)
+                    rY = self.sigma * np.random.normal(size=self.batch_size)
+                    Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
+                    y = yvalues + np.vstack((rX, rY)).T
                 else:
-                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(),(self.dim,self.dim,1))
-                    Iexp = (Iexp-np.mean(Iexp))/np.std(Iexp)
-
-                # Iexp = Iexp*0;
-                # Iexp[48:80,48:80] = 1
-
-                if mode == "Shift":
-                    rX = self.sigma * np.random.normal()
-                    rY = self.sigma * np.random.normal()
-                    Xexp[i,] = shift(Iexp, (rX, rY, 0), order=1, mode='reflect')
-                    y[i,] = np.array((rX, rY))+self.labels[ID]
+                    rAngle = self.sigma * np.random.normal(size=self.batch_size)
+                    Xexp = np.array(list(map(rotate_image, Iexp, rAngle)))
+                    yvalues = yvalues * np.pi / 180
+                    rAngle = rAngle * np.pi / 180
+                    y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
+            else:
+                Xexp = np.array(list(Iexp))
+                if mode == 'Shift':
+                    y = yvalues
                 else:
-                    rAngle = self.sigma * np.random.normal()
-                    if rAngle != 0:
-                        Xexp[i,] = rotate(Iexp, rAngle, order=1, mode='reflect', reshape=False)
-                    else:
-                        Xexp[i,] = Iexp
-                    anglePsi = (self.labels[ID][2] + rAngle) * math.pi / 180
-                    angleRot = (self.labels[ID][0]) * math.pi / 180
-                    angleTilt = (self.labels[ID][1]) * math.pi / 180
-
-                    y[i,] = np.array((math.sin(angleRot), math.cos(angleRot), math.sin(angleTilt), math.cos(angleTilt),
-                                      math.sin(anglePsi), math.cos(anglePsi)))
+                    y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
+            # Generate data
+            # for i, ID in enumerate(list_IDs_temp):  # Read image
 
-    def constructModel(Xdim):
+
+    #
+    #     if self.readInMemory:
+    #         Iexp = self.Xexp[ID]
+    #     else:
+    #         Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
+    #         Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+    #
+    #     if mode == "Shift":
+    #         rX = self.sigma * np.random.normal()
+    #         rY = self.sigma * np.random.normal()
+    #         Xexp[i,] = shift(Iexp, (rX, rY, 0), order=1, mode='reflect')
+    #         y[i,] = np.array((rX, rY)) + self.labels[ID]
+    #     else:
+    #         rAngle = self.sigma * np.random.normal()
+    #         if rAngle != 0:
+    #             Xexp[i,] = rotate(Iexp, rAngle, order=1, mode='reflect', reshape=False)
+    #         else:
+    #             Xexp[i,] = Iexp
+    #         anglePsi = (self.labels[ID][2] + rAngle) * math.pi / 180
+    #         angleRot = (self.labels[ID][0]) * math.pi / 180
+    #         angleTilt = (self.labels[ID][1]) * math.pi / 180
+    #
+    #         y[i,] = np.array((math.sin(angleRot), math.cos(angleRot), math.sin(angleTilt), math.cos(angleTilt),
+    #                           math.sin(anglePsi), math.cos(anglePsi)))
+    # return Xexp, y
+
+    def constructModel(Xdim, mode):
         print("constructModel", flush=True)
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
@@ -154,10 +201,11 @@ if __name__=="__main__":
         L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
 
-        L = Dense(6, name="output", activation="linear")(L)
+        if mode == 'Shift':
+            L = Dense(2, name="output", activation="linear")(L)
+        else:
+            L = Dense(6, name="output", activation="linear")(L)
         return Model(inputLayer, L)
-
-
 
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
@@ -178,13 +226,10 @@ if __name__=="__main__":
         for r, t, p in zip(rots, tilts, psis):
             labels.append(np.array((r, t, p)))
 
-
-    # Generator
     training_generator = DataGenerator(fnImgs, labels, mode, sigma, batch_size, Xdim, readInMemory=False)
 
-
     start_time = time()
-    model = constructModel(Xdim)
+    model = constructModel(Xdim, mode)
 
     model.summary()
     adam_opt = Adam(lr=0.001)
@@ -194,11 +239,10 @@ if __name__=="__main__":
         d = tf.abs(y_true - y_pred)
         return tf.reduce_mean(d, axis=-1)
 
-#    model.compile(loss=custom_loss_function, optimizer=adam_opt, metrics=['accuracy'])
+
     model.compile(loss=custom_loss_function, optimizer='adam')
 
-
-    steps = round(len(fnImgs)/batch_size)
+    steps = round(len(fnImgs) / batch_size)
     history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs)
     model.save(fnModel)
     print(fnModel)

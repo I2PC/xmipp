@@ -20,7 +20,6 @@ if __name__ == "__main__":
     mode = sys.argv[3]
     gpuId = sys.argv[4]
 
-
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
@@ -86,15 +85,12 @@ if __name__ == "__main__":
             Xexp = np.zeros((len(list_IDs_temp), self.dim, self.dim, 1), dtype=np.float64)
             # Generate data
             for i, ID in enumerate(list_IDs_temp):
-                # print(ID)
                 # Read image
                 if self.readInMemory:
                     Xexp[i,] = self.Xexp[ID]
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
                     Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                # Iexp = Iexp*0;
-                # Iexp[48:80,48:80] = 1
             return Xexp
 
 
@@ -105,7 +101,6 @@ if __name__ == "__main__":
         for objId in mdExp:
             if mode == "Shift":
                 shiftX, shiftY = Y[ID]
-                # print(shiftX, shiftY)
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
             elif mode == "Angular":
@@ -176,11 +171,25 @@ if __name__ == "__main__":
 
     if mode == "Shift":
         print("Shift")
+        pred = Y
+        test = labels
+
+        pred_norm = norm(pred, axis=-1)
+        pred_degree = np.zeros(len(pred_norm))
+        error = np.zeros(len(pred_norm))
+        for i in range(len(pred)):
+            error[i] = np.sum(np.square(pred[i]-test[i]))
+        maxAbsError = np.max(error)
+        meanAbsError = np.mean(error)
+        medianAbsError = np.median(error)
+        print("Max Absolute Test Error", maxAbsError)
+        print("Mean Absolute Test Error", meanAbsError)
+        print("Median Absolute Test Error", medianAbsError)
     else:
         print("Rot:", flush=True)
         pred = Y[: , 0:2]
         test = [i[0] for i in labels]
-        pred_norm = norm(pred, axis = -1)
+        pred_norm = norm(pred, axis=-1)
         pred_degree = np.zeros(len(pred_norm))
         error = np.zeros(len(pred_norm))
         for i in range(len(pred_norm)):
