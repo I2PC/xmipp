@@ -71,7 +71,8 @@ void FourierFilter::defineParams(XmippProgram *program)
     program->addParamsLine("                                             : The CTF phase will be corrected before applying");
     program->addParamsLine("            ctfinv <ctfile> <minCTF=0.05>    : Apply the inverse of the CTF. Below the minCTF, the image is not corrected");
     program->addParamsLine("            ctfposinv <ctfile> <minCTF=0.05> : Apply the inverse of the abs(CTF). Below the minCTF, the image is not corrected");
-    program->addParamsLine("            ctfdef <kV> <Cs> <Q0> <defocus>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), and defocus (A)");
+    program->addParamsLine("            ctfdef <kV> <Cs> <Q0> <defocus> : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A)");
+    program->addParamsLine("            ctfdefastig <kV> <Cs> <Q0> <defocusU> <defocusV> <defocusAngle>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A), and defocusAngle (degrees)");
     program->addParamsLine("                                             : The phase flip is not corrected");
     program->addParamsLine("            bfactor <B>                      : Exponential filter (positive values for decay) ");
     program->addParamsLine("               requires --sampling;                                                         ");
@@ -226,6 +227,19 @@ void FourierFilter::readParams(XmippProgram *program)
     	ctf.Q0 = program->getDoubleParam("--fourier", "ctfdef", 2);
     	ctf.DeltafU = program->getDoubleParam("--fourier", "ctfdef", 3);
     	ctf.DeltafV = ctf.DeltafU;
+    	ctf.Tm = sampling_rate;
+    	ctf.produceSideInfo();
+    }
+    else if (filter_type == "ctfdefastig")
+    {
+		FilterShape = FilterBand = CTFDEF;
+    	ctf.clear();
+    	ctf.kV = program->getDoubleParam("--fourier", "ctfdefastig");
+    	ctf.Cs = program->getDoubleParam("--fourier", "ctfdefastig", 1);
+    	ctf.Q0 = program->getDoubleParam("--fourier", "ctfdefastig", 2);
+    	ctf.DeltafU = program->getDoubleParam("--fourier", "ctfdefastig", 3);
+        ctf.DeltafV = program->getDoubleParam("--fourier", "ctfdefastig", 4);
+        ctf.azimuthal_angle = program->getDoubleParam("--fourier", "ctfdefastig", 5);   	
     	ctf.Tm = sampling_rate;
     	ctf.produceSideInfo();
     }
