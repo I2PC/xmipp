@@ -27,11 +27,11 @@
 #define LIBRARIES_RECONSTRUCTION_PSD_ESTIMATOR_H_
 
 #include "core/multidim_array.h"
-#include "data/dimensions.h"
-#include "data/rectangle.h"
-#include "reconstruction/ctf_estimate_from_micrograph.h"
-#include "fftwT.h"
 #include "data/fft_settings.h"
+#include "data/rectangle.h"
+
+class Dimensions;
+
 
 /**@defgroup PSDEstimator PSD Estimator
    @ingroup ReconsLibrary */
@@ -47,7 +47,7 @@ public:
 
     static void estimatePSD(const MultidimArray<T> &micrograph,
             float overlap, const Dimensions &tileDim, MultidimArray<T> &psd,
-            unsigned fftThreads);
+            unsigned fftThreads, bool normalize);
 
     template<typename F>
     static void half2whole(const T *in,

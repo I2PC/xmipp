@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <reconstruction/phantom_movie.h>
+#include "core/xmipp_program.h"
+#include "reconstruction/phantom_movie.h"
 
 class PhantomMovieProgram final : public XmippProgram
 {
@@ -47,6 +47,8 @@ private:
                                                                            " Parameters of the shift. To see the result, we encourage you to use script attached with source files!");
         addParamsLine(std::string("[") + DisplacementParams::barrel_param + " <k1_start=0.01> <k1_end=0.015> <k2_start=0.01> <k2_end=0.015>]:"
                                                                             " Parameters of the barrel / pincushion transformation.");
+        addParamsLine(std::string("[") + DisplacementParams::simple_param + "]:"
+                      " use simple shift (only a1 and b1 coefficients will be considered");
         addParamsLine("-o <output_file>                                      :"
                       " resulting movie");
         addParamsLine("[--skipBarrel]                                        :"
@@ -59,6 +61,10 @@ private:
                       " generate phantom without Poisson noise");
         addParamsLine("[--skipIce]                                           :"
                       " generate phantom without ice (background)");
+        addParamsLine("[--gain <output_file>]                                              :"
+                      " generate gain image (set to 1)");
+        addParamsLine("[--dark <output_file>]                                              :"
+                      " generate dark image (set to 0)");
         addParamsLine("[--seed <s=42>]                                       :"
                       " seed used to generate the noise");
         addParamsLine("[--ice <avg=1.0> <stddev=1.0> <min=0.0> <max=2.0>]    :"
@@ -104,6 +110,8 @@ private:
         dispParams.k2_start = getDoubleParam(DisplacementParams::barrel_param, 2);
         dispParams.k2_end = getDoubleParam(DisplacementParams::barrel_param, 3);
 
+        dispParams.simple = checkParam(DisplacementParams::simple_param);
+
         options.skipBarrel = checkParam("--skipBarrel");
         options.skipShift = checkParam("--skipShift");
         options.shiftAfterBarrel = checkParam("--shiftAfterBarrel");
@@ -111,6 +119,8 @@ private:
         options.skipIce = checkParam("--skipIce");
 
         params.fn_out = getParam("-o");
+        params.fn_gain = checkParam("--gain") ? getParam("--gain") : "";
+        params.fn_dark = checkParam("--dark") ? getParam("--dark") : "";
 
         content.seed = getIntParam("--seed");
         content.ice_avg = getDoubleParam("--ice", 0);
