@@ -24,6 +24,7 @@ IMAGE = 'image'
 REFERENCE_IMAGE = 'imageRef'
 
 REF = 'ref'
+REF3D = 'ref3d'
 
 RESOLUTION_FREQ = 'resolutionFreq'
 SIGMANOISE = 'sigmaNoise'

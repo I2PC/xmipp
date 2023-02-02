@@ -31,7 +31,13 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            match_distances: torch.Tensor,
                            match_indices: torch.IntTensor ) -> pd.DataFrame:
 
-    REFERENCE_COLUMNS = [md.ANGLE_ROT, md.ANGLE_TILT, md.REFERENCE_IMAGE]
+    REFERENCE_COLUMNS = [
+        md.ANGLE_ROT, 
+        md.ANGLE_TILT, 
+        md.REFERENCE_IMAGE, 
+    ]
+    if md.REF3D in reference_md.columns:
+        REFERENCE_COLUMNS.append(md.REF3D) # Used for 3D classification
 
     result = pd.DataFrame(match_distances, columns=[md.COST])
     
