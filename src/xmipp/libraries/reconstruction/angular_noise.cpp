@@ -71,25 +71,43 @@ void ProgAngularNoise::defineParams()
 // #define DEBUG
 void ProgAngularNoise::processImage(const FileName&, const FileName&, const MDRow &rowIn, MDRow &rowOut)
 {
+    // Get the input transformation
+    geo2TransformationMatrix(rowIn, transformMatrix);
     
+    // Apply a random shift
+    if (sigmaShift > 0.0)
+    {
+        Matrix1D<double> shift(2);
+        getRandomUnitVector(shift);
+
+        std::normal_distribution<double> magDist(0.0, sigmaShift);
+        const auto mag = magDist(rd);
+
+        shift *= mag;
+        dMij(transformMatrix, 0, 3) = XX(shift);
+        dMij(transformMatrix, 1, 3) = YY(shift);
+    }
+
     // Apply random rotation
-    if (sigmaRotation > 0.0) {
+    if (sigmaRotation > 0.0) 
+    {
         // Select a random axis:
         Matrix1D<double> axis(3);
         getRandomUnitVector(axis);
 
         // Select the angle
-        const auto angle = 5.0; //TODO
+        std::normal_distribution<double> angleDist(0.0, sigmaRotation);
+        const auto angle = angleDist(rd);
 
         // Get the rotation matrix
-        rotation3DMatrix(angle, axis, rotationMatrix, false);
-            
+        rotation3DMatrix(angle, axis, rotationMatrix, true);
+        
         // Apply transform
-        transformMatrix.resizeNoCopy(3, 3);
-        geo2TransformationMatrix(rowIn, transformMatrix);
         transformMatrix = rotationMatrix * transformMatrix;
-        transformationMatrix2Geo(transformMatrix, rowOut);
     }
+
+    // Set the output transform
+    transformationMatrix2Geo(transformMatrix, rowOut);
 }
 
 // Finish processing ---------------------------------------------------------
