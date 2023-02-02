@@ -84,8 +84,8 @@ void ProgAngularNoise::processImage(const FileName&, const FileName&, const MDRo
         const auto mag = magDist(rd);
 
         shift *= mag;
-        dMij(transformMatrix, 0, 3) = XX(shift);
-        dMij(transformMatrix, 1, 3) = YY(shift);
+        dMij(transformMatrix, 0, 3) += XX(shift);
+        dMij(transformMatrix, 1, 3) += YY(shift);
     }
 
     // Apply random rotation
