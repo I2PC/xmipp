@@ -25,11 +25,14 @@
 
 #include "angular_noise.h"
 
+#include "core/matrix1d.h"
+#include "core/transformations.h"
+
 #include <cmath>
 
 // Empty constructor =======================================================
 ProgAngularNoise::ProgAngularNoise()
-    : generator(rd)
+    : rd()
     , randomNorm(0.0, 1.0)
     , randomAngle(0.0, 2.0 * M_PI)
 {
@@ -99,7 +102,7 @@ void ProgAngularNoise::getRandomUnitVector(Matrix1D<double>& result)
 {
     if(VEC_XSIZE(result) == 2) 
     {
-        const auto phi = randomAngle(generator);
+        const auto phi = randomAngle(rd);
         const auto cosPhi = std::cos(phi);
         const auto sinPhi = std::sin(phi);
         
@@ -111,8 +114,8 @@ void ProgAngularNoise::getRandomUnitVector(Matrix1D<double>& result)
     {
         // Based on:
         // https://math.stackexchange.com/questions/1585975/how-to-generate-random-points-on-a-sphere
-        const auto lambda = std::acos(2*randomNorm(generator) - 1) - (M_PI/2);
-        const auto phi = randomAngle(generator);
+        const auto lambda = std::acos(2*randomNorm(rd) - 1) - (M_PI/2);
+        const auto phi = randomAngle(rd);
         const auto cosLambda = std::cos(lambda);
         const auto sinLambda = std::sin(lambda);
         const auto cosPhi = std::cos(phi);

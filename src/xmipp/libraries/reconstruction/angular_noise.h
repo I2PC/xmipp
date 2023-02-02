@@ -26,10 +26,7 @@
 #define _PROG_ANGULAR_PREDICT
 
 #include "core/xmipp_metadata_program.h"
-#include "core/matrix1d.h"
-#include "core/multidim_array.h"
-#include "core/metadata_vec.h"
-#include "angular_distance.h"
+#include "core/matrix2d.h"
 
 #include <random>
 
@@ -64,7 +61,6 @@ public:
 
 private:
     std::random_device rd;  // Will be used to obtain a seed for the random number engine
-    std::mt19937 generator; // Standard mersenne_twister_engine seeded with rd()
     std::uniform_real_distribution<double> randomNorm;
     std::uniform_real_distribution<double> randomAngle;
     Matrix2D<double> rotationMatrix;
