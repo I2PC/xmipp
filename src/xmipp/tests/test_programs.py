@@ -912,6 +912,20 @@ class TomoDetectMissingWedge(XmippProgramTest):
         self.assertAlmostEqual(abs(plane2[1]), 56.7034, delta=1)
 
 
+class TomoProject(XmippProgramTest):
+    _owner = RM
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_tomo_project'
+
+    def test_case1(self):
+        self.runCase("-i input/phantomBacteriorhodopsin.vol -o %o/image.xmp --angles 0 90 90",
+                outputs=["image.xmp"])
+    def test_case2(self):
+        self.runCase("-i input/phantomBacteriorhodopsin.vol --oroot %o/projections --params input/tomoProjection.param",
+                outputs=["projections.stk","projections.sel"])
+
+
 class TransformAddNoise(XmippProgramTest):
     _owner = COSS
     @classmethod
