@@ -399,8 +399,7 @@ class ImageHeader(XmippProgramTest):
                 preruns=[" xmipp_image_convert input/smallStack.stk --oroot %o/smallImages:spi -o %o/images.xmd" ," xmipp_metadata_utilities -i %o/images.xmd -o %o/newHeader.xmd --fill shiftY constant 2" ],
                 postruns=["xmipp_image_header %o/images.xmd --extract -o %o/outputHeader.xmd" ],
                 outputs=["outputHeader.xmd"])
-
-    def test_case5(self):
+    def test_case6(self):
         self.runCase("-i %o/images.xmd --reset",
                 preruns=[" xmipp_image_convert input/smallStack.stk --oroot %o/smallImages:spi -o %o/images.xmd" ,"xmipp_metadata_utilities -i %o/images.xmd -o %o/newHeader.xmd --fill shiftY constant 2" ,"xmipp_image_header -i %o/newHeader.xmd --assign" ,"xmipp_image_header %o/images.xmd --extract -o %o/preOutputHeader.xmd" ],
                 postruns=["xmipp_image_header %o/images.xmd --extract -o %o/outputHeader.xmd" ],
