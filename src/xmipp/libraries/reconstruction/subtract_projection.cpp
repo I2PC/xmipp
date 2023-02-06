@@ -291,11 +291,13 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	FilterG.w1=sigma;
 	
 	// Initialize Fourier projectors
+	std::cout << "-------Initializing projectors-------" << std::endl;
 	double cutFreq = sampling/maxResol;
 	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	std::unique_ptr<FourierProjector> projectorMask;
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	
+	std::cout << "-------Projectors initialized-------" << std::endl;
+		
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
 	processParticle(1, sizeI, transformerP, transformerI);
@@ -324,8 +326,12 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	MultidimArray< std::complex<double> > IiMFourier;
 	MultidimArray< std::complex<double> > PiMFourier;
 	
+	std::cout << "-------Subtracting particles-------" << std::endl;
+	long setofparticles_size = mdParticles.size();
+	init_progress_bar(setofparticles_size);
+
 	// For each particle in metadata:
-    for (size_t i = 1; i <= mdParticles.size(); ++i) {  
+    for (size_t i = 1; i <= setofparticles_size; ++i) {  
 		// Initialize aux variable
 		disable = false;
 		// Project volume and process projections 
@@ -455,6 +461,8 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		}
 		// Write particle
 		writeParticle(int(i), Idiff, R2adj(0), beta0save, beta1save); 
+		std::cout << "particle " << i << " subtracted" << std::endl;
+		progress_bar(i+1);
 	}
 	// Write metadata 
     mdParticles.write(formatString("%s.xmd", fnOut.c_str()));
