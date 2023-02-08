@@ -42,6 +42,7 @@
 #include <data/morphology.h>
 #include <data/point3D.h>
 #include <data/point2D.h>
+#include <data/basic_pca.h>
 
 #define VERBOSE_OUTPUT
 // #define DEBUG_OUTPUT_FILES
@@ -54,7 +55,9 @@
 // #define DEBUG_DIST
 // #define DEBUG_CENTER_COORDINATES
 // #define DEBUG_REMOVE_DUPLICATES
-// #define DEBUG_FILTER_COORDINATES
+#define DEBUG_FILTER_COORDINATES
+// #define DEBUG_RADIAL_AVERAGE
+// #define DEBUG_MAHALANOBIS_DISTANCE
 
 class ProgImagePeakHighContrast : public XmippProgram
 {
@@ -77,9 +80,10 @@ public:
     int numberSampSlices;
 
     /** Thresholds */
-    double sdThr;                   // Number of SD over the mean to consider a coordinate value as an outlier
-    int numberOfCoordinatesThr;     // Minimum number of coordinates to keep a label
-    double mirrorCorrelationThr;    // Minimum correlation between a fiducial and its mirror
+    double sdThr;                       // Number of SD over the mean to consider a coordinate value as an outlier
+    int numberOfCoordinatesThr;         // Minimum number of coordinates to keep a label
+    double mirrorCorrelationThr;        // Minimum correlation between a fiducial and its mirror
+    double mahalanobisDistanceThr = 2;  // Maximum mahalanobis distance (empirical value)
 
     /** Toggle to use relaxed mode*/
     bool relaxedMode;               // Relaxed mode keeps coordinates when none of them pass the mirror correlation filter
@@ -193,6 +197,16 @@ public:
     */
     std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
 
+    /**
+     * Calculate the radial average of the numSlices slices centered in the feature volume 
+     * (Z direction).
+    */
+    void radialAverage(MultidimArray<float> &feature, MultidimArray<float> &radialAverage, size_t numSlices);
+    
+    /**
+     * 
+    */
+    void mahalanobisDistance(std::vector<MultidimArray<float>> &setOfFeatures_RA, MultidimArray<double> &mahalanobisDistance_List);
 
     // --------------------------- MAIN ----------------------------------
 

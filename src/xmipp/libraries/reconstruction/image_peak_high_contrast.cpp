@@ -1055,6 +1055,7 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 
 	MultidimArray<double> feature;
 	MultidimArray<double> mirrorFeature;
+
 	double dotProductMirror = 0;
 
 	int coordHalfX;
@@ -1062,8 +1063,11 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	int coordHalfZ;
 
 	std::vector<Point3D<double>> newCoordinates3D;
+	
+	int numberOfCoordinates = coordinates3D.size();
 
-	for(size_t n = 0; n < coordinates3D.size(); n++)
+	// --- Filter coordinates by correlation with mirror ---
+	for(size_t n = 0; n < numberOfCoordinates; n++)
 	{
 		// Construct feature and its mirror symmetric
 		feature.initZeros(boxSize, boxSize, boxSize);
@@ -1160,6 +1164,106 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	std::cout << "Number of corrdinates filtered by mirror correlation: " << (coordinates3D.size() - newCoordinates3D.size()) << std::endl;
 	#endif
 
+	// --- Filter coordinates by radial average Mahalanobis distante to average gold bead ---
+	numberOfCoordinates = newCoordinates3D.size();
+
+	MultidimArray<float> feature_float;
+	MultidimArray<float> feature_RA;
+	MultidimArray<double> mahalanobisDistance_List(numberOfCoordinates);
+	
+	std::vector<MultidimArray<float>> setOfFeatures_RA(numberOfCoordinates);
+	// setOfFeatures_RA.reserve(numberOfCoordinates);
+
+	int numAvgSlices = (boxSize*0.25);
+	int halfNumberAvgSlices = numAvgSlices/2;
+
+	// Calculate radial average of every feature
+	#ifdef DEBUG_FILTER_COORDINATES
+	std::cout << "Calculate radial averages " << std::endl;
+	#endif
+
+	for(size_t n = 0; n < numberOfCoordinates; n++)
+	{
+		#ifdef DEBUG_FILTER_COORDINATES
+		std::cout << "Calculating radial average of coordinate " << n << std::endl;
+		#endif
+
+		feature_RA.initZeros(halfBoxSize);
+		feature_float.initZeros(2*halfNumberAvgSlices, boxSize, boxSize);
+
+		for(int k = 0; k < numAvgSlices; k++) // zDim
+		{	
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					coordHalfX = newCoordinates3D[n].x - halfBoxSize;
+					coordHalfY = newCoordinates3D[n].y - halfBoxSize;
+					coordHalfZ = newCoordinates3D[n].z - halfNumberAvgSlices;
+
+					// Check coordinate is not out of volume
+					if (!((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+					     (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+						 (coordHalfX + j) < 0 || (coordHalfX + j) > xSize))
+					{
+						DIRECT_A3D_ELEM(feature_float, k, i, j) = (float)DIRECT_A3D_ELEM(volFiltered, 
+						                                                    	   coordHalfZ + k, 
+																				   coordHalfY + i, 
+																				   coordHalfX + j);
+					}
+				}
+			}
+		}
+
+		feature_float.statisticsAdjust(0.0, 1.0);
+
+		#ifdef DEBUG_FILTER_COORDINATES
+		std::cout << "Feature_float dimensions: (" << XSIZE(feature_float) << ", " << YSIZE(feature_float) << ", " << ZSIZE(feature_float) << ")" << std::endl;
+		#endif
+
+		radialAverage(feature_float, feature_RA, numAvgSlices);
+		setOfFeatures_RA[n] =feature_RA;
+	}
+
+	#ifdef DEBUG_FILTER_COORDINATES
+	std::cout << "Calculate mahalanobis distance " << std::endl;
+	size_t prevNumberOfCoordinates = newCoordinates3D.size();
+	#endif
+
+	mahalanobisDistance(setOfFeatures_RA, mahalanobisDistance_List);
+
+	#ifdef DEBUG_FILTER_COORDINATES
+	for (size_t n = 0; n < setOfFeatures_RA.size(); n++)
+	{
+		std::cout << "pcaAnalyzer.getZscore(" << n << ") " << mahalanobisDistance_List[n] << std::endl;
+	}
+	#endif
+
+	size_t n_bis = 0;
+
+	for (size_t n = 0; n < numberOfCoordinates; n++)
+	{
+		Point3D<double> p = newCoordinates3D[n];
+
+		if (mahalanobisDistance_List[n_bis] > mahalanobisDistanceThr)
+		{
+			#ifdef DEBUG_FILTER_COORDINATES
+			std::cout << "Deleted coordinate due to mahalanobis distance " << n << " at: (" << p.x << ", " << p.y << ", " << p.z << ")" << std::endl;
+			#endif
+
+			newCoordinates3D.erase(newCoordinates3D.begin()+n);
+			numberOfCoordinates--;
+			n--;
+		}
+
+		n_bis++;
+	}
+
+	#ifdef DEBUG_FILTER_COORDINATES
+	std::cout << "Number of corrdinates filtered by mahalanobis distance correlation: " << (prevNumberOfCoordinates - newCoordinates3D.size()) << std::endl;
+	#endif
+
+	// --- Evaluate relaxed mode ---
 	if (newCoordinates3D.size()==0)
 	{
 		if (relaxedMode==false)
@@ -1174,18 +1278,8 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 		coordinates3D = newCoordinates3D;
 	}
 
-	#ifdef DEBUG_FILTER_COORDINATES
-	std::cout << "3D coordinates after filterign by mirror correlation: " << std::endl;
-	
-	for(size_t n = 0; n < coordinates3D.size(); n++)
-	{
-		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
-	}
-	#endif
-
-
-	// Remove coordinates out of volume (any pixel from the box)
-	int numberOfCoordinates = coordinates3D.size();
+	// --- Remove coordinates out of volume (any pixel from the box) ---
+	numberOfCoordinates = coordinates3D.size();
 
 	for (size_t i = 0; i < numberOfCoordinates; i++)
 	{
@@ -1206,6 +1300,15 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 			i--;
 		}
 	}
+
+	#ifdef DEBUG_FILTER_COORDINATES
+	std::cout << "3D coordinates after filtering: " << std::endl;
+	
+	for(size_t n = 0; n < coordinates3D.size(); n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+	}
+	#endif
 	
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Filtering coordinates by correlation finished succesfully!" << std::endl;
@@ -1386,4 +1489,106 @@ std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t
 	#endif
 
 	return coordinatesInSlice;
+}
+
+
+void ProgImagePeakHighContrast::radialAverage(MultidimArray<float> &feature, MultidimArray<float> &radialAverage, size_t numSlices)
+{
+	#ifdef DEBUG_RADIAL_AVERAGE  
+	std::cout << "Calculating radial average..." << std::endl;
+	#endif
+
+	MultidimArray<int> counter(boxSize/2);
+
+	for(int k=0; k<numSlices; k++)  // Zdim
+	{
+		for(int i=0; i<boxSize; i++)  // Xdim
+		{
+			double ii = i-(boxSize/2);
+			double i2 = ii*ii;
+
+			for(int j=0; j<boxSize; j++)  // Ydim
+			{
+				double jj = j-(boxSize/2);
+				int f = sqrt(i2 + jj*jj);
+
+				if (f<(boxSize/2))
+				{
+					DIRECT_A1D_ELEM(radialAverage, f) += DIRECT_A3D_ELEM(feature, k, i, j);
+					DIRECT_A1D_ELEM(counter, f) += 1;
+				}
+			}
+		}
+	}
+
+	#ifdef DEBUG_RADIAL_AVERAGE
+	std::cout << "Radial summatory" << std::endl;
+	for (size_t i = 0; i < boxSize/2; i++)
+	{
+		std::cout << radialAverage[i] << " ";
+	}
+
+	std::cout << std::endl;
+
+	std::cout << "Radial average" << std::endl;
+	#endif
+
+	for (size_t i = 0; i < boxSize/2; i++)
+	{
+		radialAverage[i] /= counter[i];
+		
+		#ifdef DEBUG_RADIAL_AVERAGE  
+		std::cout << radialAverage[i] << " ";
+		#endif
+	}
+
+	#ifdef DEBUG_RADIAL_AVERAGE  
+	std::cout << std::endl;
+	std::cout << "Number of elements per radius" << std::endl;
+
+	for (size_t i = 0; i < boxSize/2; i++)
+	{
+		std::cout << counter[i] << " ";
+	}
+
+	std::cout << std::endl;
+	#endif
+}
+
+
+void ProgImagePeakHighContrast::mahalanobisDistance(std::vector<MultidimArray<float>> &setOfFeatures_RA, MultidimArray<double> &mahalanobisDistance_List)
+{
+	#ifdef DEBUG_MAHALANOBIS_DISTANCE  
+	std::cout << "Calculating Mahalanobis distance..." << std::endl;
+	#endif
+
+	PCAMahalanobisAnalyzer pcaAnalyzer;
+
+	size_t numPCAs = 2;
+	size_t numIter = 200;
+
+	for (size_t n = 0; n < setOfFeatures_RA.size(); n++)
+	{
+		#ifdef DEBUG_MAHALANOBIS_DISTANCE  
+		std::cout << "Adding vector " << n << std::endl;
+		#endif
+
+		pcaAnalyzer.addVector(setOfFeatures_RA[n]);
+	}
+
+	pcaAnalyzer.learnPCABasis(2, 200);
+	pcaAnalyzer.evaluateZScore(2, 200, false);  // int NPCA, int Niter, bool trained NO, const char* fileName, int numdesc
+
+	#ifdef DEBUG_MAHALANOBIS_DISTANCE  
+	std::cout << "Zscore list of vertors" << std::endl;
+	#endif
+
+	for (size_t n = 0; n < setOfFeatures_RA.size(); n++)
+	{
+		#ifdef DEBUG_MAHALANOBIS_DISTANCE  
+		std::cout << "pcaAnalyzer.getZscore(" << n << ") " << pcaAnalyzer.getZscore(n) << std::endl;
+		#endif
+
+		mahalanobisDistance_List[n] = pcaAnalyzer.getZscore(n);
+	}
 }
