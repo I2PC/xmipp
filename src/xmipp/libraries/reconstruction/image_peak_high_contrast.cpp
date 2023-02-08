@@ -1051,6 +1051,7 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	std::cout << "Filter coordinates by correlation..." << std::endl;
 	#endif
 
+	// --- Filter coordinates mirror correlation ---
 	size_t halfBoxSize = boxSize / 2;
 
 	MultidimArray<double> feature;
@@ -1164,104 +1165,106 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	std::cout << "Number of corrdinates filtered by mirror correlation: " << (coordinates3D.size() - newCoordinates3D.size()) << std::endl;
 	#endif
 
-	// --- Filter coordinates by radial average Mahalanobis distante to average gold bead ---
-	numberOfCoordinates = newCoordinates3D.size();
-
-	MultidimArray<float> feature_float;
-	MultidimArray<float> feature_RA;
-	MultidimArray<double> mahalanobisDistance_List(numberOfCoordinates);
-	
-	std::vector<MultidimArray<float>> setOfFeatures_RA(numberOfCoordinates);
-	// setOfFeatures_RA.reserve(numberOfCoordinates);
-
-	int numAvgSlices = (boxSize*0.25);
-	int halfNumberAvgSlices = numAvgSlices/2;
-
-	// Calculate radial average of every feature
-	#ifdef DEBUG_FILTER_COORDINATES
-	std::cout << "Calculate radial averages " << std::endl;
-	#endif
-
-	for(size_t n = 0; n < numberOfCoordinates; n++)
+	// --- Filter coordinates by radial average Mahalanobis distante ---
+	if (newCoordinates3D.size()!=0)  // Check if any coordinate have survived the previous filter
 	{
+		numberOfCoordinates = newCoordinates3D.size();
+
+		MultidimArray<float> feature_float;
+		MultidimArray<float> feature_RA;
+		MultidimArray<double> mahalanobisDistance_List(numberOfCoordinates);
+		
+		std::vector<MultidimArray<float>> setOfFeatures_RA(numberOfCoordinates);
+
+		int numAvgSlices = (boxSize*0.25);
+		int halfNumberAvgSlices = numAvgSlices/2;
+
+		// Calculate radial average of every feature
 		#ifdef DEBUG_FILTER_COORDINATES
-		std::cout << "Calculating radial average of coordinate " << n << std::endl;
+		std::cout << "Calculate radial averages " << std::endl;
 		#endif
 
-		feature_RA.initZeros(halfBoxSize);
-		feature_float.initZeros(2*halfNumberAvgSlices, boxSize, boxSize);
+		for(size_t n = 0; n < numberOfCoordinates; n++)
+		{
+			#ifdef DEBUG_FILTER_COORDINATES
+			std::cout << "Calculating radial average of coordinate " << n << std::endl;
+			#endif
 
-		for(int k = 0; k < numAvgSlices; k++) // zDim
-		{	
-			for(int j = 0; j < boxSize; j++) // xDim
-			{
-				for(int i = 0; i < boxSize; i++) // yDim
+			feature_RA.initZeros(halfBoxSize);
+			feature_float.initZeros(2*halfNumberAvgSlices, boxSize, boxSize);
+
+			for(int k = 0; k < numAvgSlices; k++) // zDim
+			{	
+				for(int j = 0; j < boxSize; j++) // xDim
 				{
-					coordHalfX = newCoordinates3D[n].x - halfBoxSize;
-					coordHalfY = newCoordinates3D[n].y - halfBoxSize;
-					coordHalfZ = newCoordinates3D[n].z - halfNumberAvgSlices;
-
-					// Check coordinate is not out of volume
-					if (!((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
-					     (coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
-						 (coordHalfX + j) < 0 || (coordHalfX + j) > xSize))
+					for(int i = 0; i < boxSize; i++) // yDim
 					{
-						DIRECT_A3D_ELEM(feature_float, k, i, j) = (float)DIRECT_A3D_ELEM(volFiltered, 
-						                                                    	   coordHalfZ + k, 
-																				   coordHalfY + i, 
-																				   coordHalfX + j);
+						coordHalfX = newCoordinates3D[n].x - halfBoxSize;
+						coordHalfY = newCoordinates3D[n].y - halfBoxSize;
+						coordHalfZ = newCoordinates3D[n].z - halfNumberAvgSlices;
+
+						// Check coordinate is not out of volume
+						if (!((coordHalfZ + k) < 0 || (coordHalfZ + k) > zSize ||
+							(coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+							(coordHalfX + j) < 0 || (coordHalfX + j) > xSize))
+						{
+							DIRECT_A3D_ELEM(feature_float, k, i, j) = (float)DIRECT_A3D_ELEM(volFiltered, 
+																					coordHalfZ + k, 
+																					coordHalfY + i, 
+																					coordHalfX + j);
+						}
 					}
 				}
 			}
-		}
 
-		feature_float.statisticsAdjust(0.0, 1.0);
+			feature_float.statisticsAdjust(0.0, 1.0);
 
-		#ifdef DEBUG_FILTER_COORDINATES
-		std::cout << "Feature_float dimensions: (" << XSIZE(feature_float) << ", " << YSIZE(feature_float) << ", " << ZSIZE(feature_float) << ")" << std::endl;
-		#endif
-
-		radialAverage(feature_float, feature_RA, numAvgSlices);
-		setOfFeatures_RA[n] =feature_RA;
-	}
-
-	#ifdef DEBUG_FILTER_COORDINATES
-	std::cout << "Calculate mahalanobis distance " << std::endl;
-	size_t prevNumberOfCoordinates = newCoordinates3D.size();
-	#endif
-
-	mahalanobisDistance(setOfFeatures_RA, mahalanobisDistance_List);
-
-	#ifdef DEBUG_FILTER_COORDINATES
-	for (size_t n = 0; n < setOfFeatures_RA.size(); n++)
-	{
-		std::cout << "pcaAnalyzer.getZscore(" << n << ") " << mahalanobisDistance_List[n] << std::endl;
-	}
-	#endif
-
-	size_t n_bis = 0;
-
-	for (size_t n = 0; n < numberOfCoordinates; n++)
-	{
-		Point3D<double> p = newCoordinates3D[n];
-
-		if (mahalanobisDistance_List[n_bis] > mahalanobisDistanceThr)
-		{
 			#ifdef DEBUG_FILTER_COORDINATES
-			std::cout << "Deleted coordinate due to mahalanobis distance " << n << " at: (" << p.x << ", " << p.y << ", " << p.z << ")" << std::endl;
+			std::cout << "Feature_float dimensions: (" << XSIZE(feature_float) << ", " << YSIZE(feature_float) << ", " << ZSIZE(feature_float) << ")" << std::endl;
 			#endif
 
-			newCoordinates3D.erase(newCoordinates3D.begin()+n);
-			numberOfCoordinates--;
-			n--;
+			radialAverage(feature_float, feature_RA, numAvgSlices);
+			setOfFeatures_RA[n] =feature_RA;
 		}
 
-		n_bis++;
-	}
+		#ifdef DEBUG_FILTER_COORDINATES
+		std::cout << "Calculate mahalanobis distance " << std::endl;
+		size_t prevNumberOfCoordinates = newCoordinates3D.size();
+		#endif
 
-	#ifdef DEBUG_FILTER_COORDINATES
-	std::cout << "Number of corrdinates filtered by mahalanobis distance correlation: " << (prevNumberOfCoordinates - newCoordinates3D.size()) << std::endl;
-	#endif
+		mahalanobisDistance(setOfFeatures_RA, mahalanobisDistance_List);
+
+		#ifdef DEBUG_FILTER_COORDINATES
+		for (size_t n = 0; n < setOfFeatures_RA.size(); n++)
+		{
+			std::cout << "pcaAnalyzer.getZscore(" << n << ") " << mahalanobisDistance_List[n] << std::endl;
+		}
+		#endif
+
+		size_t n_bis = 0;
+
+		for (size_t n = 0; n < numberOfCoordinates; n++)
+		{
+			Point3D<double> p = newCoordinates3D[n];
+
+			if (mahalanobisDistance_List[n_bis] > mahalanobisDistanceThr)
+			{
+				#ifdef DEBUG_FILTER_COORDINATES
+				std::cout << "Deleted coordinate due to mahalanobis distance " << n << " at: (" << p.x << ", " << p.y << ", " << p.z << ")" << std::endl;
+				#endif
+
+				newCoordinates3D.erase(newCoordinates3D.begin()+n);
+				numberOfCoordinates--;
+				n--;
+			}
+
+			n_bis++;
+		}
+
+		#ifdef DEBUG_FILTER_COORDINATES
+		std::cout << "Number of corrdinates filtered by mahalanobis distance correlation: " << (prevNumberOfCoordinates - newCoordinates3D.size()) << std::endl;
+		#endif
+	}
 
 	// --- Evaluate relaxed mode ---
 	if (newCoordinates3D.size()==0)
