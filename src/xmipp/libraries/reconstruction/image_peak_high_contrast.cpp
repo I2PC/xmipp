@@ -41,6 +41,7 @@ void ProgImagePeakHighContrast::readParams()
 	sdThr = getDoubleParam("--sdThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	mirrorCorrelationThr = getDoubleParam("--mirrorCorrelationThr");
+	mahalanobisDistanceThr = getDoubleParam("--mahalanobisDistanceThr");
 	relaxedMode = checkParam("--relaxedMode");
 }
 
@@ -57,6 +58,7 @@ void ProgImagePeakHighContrast::defineParams()
  	addParamsLine("  [--sdThr <sdThr=5>]      								: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
 	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation between a feature and its mirror to consider it a fiducial.");
+	addParamsLine("  [--mahalanobisDistanceThr <mahalanobisDistanceThr=2>]  : Minimum correlation between a feature and its mirror to consider it a fiducial.");
 	addParamsLine("  [--relaxedMode]    									: Relaxed mode keeps coordinates when none of them pass the mirror correlation filter.");
 }
 

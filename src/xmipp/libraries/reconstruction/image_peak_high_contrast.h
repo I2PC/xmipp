@@ -83,7 +83,7 @@ public:
     double sdThr;                       // Number of SD over the mean to consider a coordinate value as an outlier
     int numberOfCoordinatesThr;         // Minimum number of coordinates to keep a label
     double mirrorCorrelationThr;        // Minimum correlation between a fiducial and its mirror
-    double mahalanobisDistanceThr = 2;  // Maximum mahalanobis distance (empirical value)
+    double mahalanobisDistanceThr;      // Maximum mahalanobis distance (empirical value)
 
     /** Toggle to use relaxed mode*/
     bool relaxedMode;               // Relaxed mode keeps coordinates when none of them pass the mirror correlation filter
