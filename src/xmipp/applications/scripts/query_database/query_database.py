@@ -23,7 +23,6 @@
 # ***************************************************************************/
 
 from typing import Optional
-import faiss
 import torch
 import argparse
 
@@ -31,6 +30,7 @@ import xmippPyModules.torch.image as image
 import xmippPyModules.torch.search as search
 import xmippPyModules.torch.alignment as alignment
 import xmippPyModules.torch.operators as operators
+import xmippPyModules.torch.generators as generators
 import xmippPyModules.torch.metadata as md
 
 
@@ -43,7 +43,8 @@ def run(experimental_md_path: str,
         n_shifts : int,
         max_shift : float,
         cutoff: float,
-        batch: int,
+        batch_size: int,
+        max_size: int,
         method: str,
         norm: Optional[str],
         drop_na: bool,
@@ -96,64 +97,85 @@ def run(experimental_md_path: str,
     else:
         shift_transformer = operators.ImageShifter(shifts, dim=image_size, device=transform_device)
     
-    print('Projecting')
+    
+    # Create the datasets
     reference_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
     reference_dataset = image.torch_utils.Dataset(reference_paths)
-    if method == 'fourier':
-        projection_md = alignment.populate_references_fourier(
-            db=db, 
-            dataset=reference_dataset,
-            rotations=rotation_transformer,
-            shifts=shift_transformer,
-            fourier=transformer,
-            flattener=flattener,
-            weighter=weighter,
-            norm=norm,
-            transform_device=transform_device,
-            batch_size=batch
-        )
-    else:
-        projection_md = alignment.populate_references(
-            db=db, 
-            dataset=reference_dataset,
-            rotations=rotation_transformer,
-            shifts=shift_transformer,
-            transformer=transformer,
-            flattener=flattener,
-            weighter=weighter,
-            norm=norm,
-            transform_device=transform_device,
-            batch_size=batch
-        )
     
-    db.finalize()
-    print(f'Database contains {db.get_item_count()} entries')
-    
-    
-    print('Aligning')
     experimental_paths = list(map(image.parse_path, experimental_md[md.IMAGE]))
     experimental_dataset = image.torch_utils.Dataset(experimental_paths)
-    matches = alignment.align(
-        db=db, 
-        dataset=experimental_dataset,
-        transformer=transformer,
-        flattener=flattener, 
-        weighter=weighter,
-        norm=norm,
-        k=1,
-        transform_device=transform_device,
-        batch_size=batch
-    )
-    assert(len(matches.distances) == len(experimental_md))
-    assert(len(matches.indices) == len(experimental_md))
     
-    print('Generating output')
-    result_md = alignment.generate_alignment_metadata(
-        experimental_md=experimental_md,
-        reference_md=reference_md,
-        projection_md=projection_md,
-        matches=matches
+    # Create the loaders
+    pin_memory = transform_device.type == 'cuda'
+    reference_loader = torch.utils.data.DataLoader(
+        reference_dataset,
+        batch_size=batch_size,
+        pin_memory=pin_memory
     )
+
+    
+    # Create the generator
+    if method == 'fourier':
+        reference_generator = generators.fourier_image_transform_generator(
+            dataset = reference_loader,
+            fourier = transformer,
+            flattener = flattener,
+            rotations = rotation_transformer,
+            shifts = shift_transformer,
+            weights = weighter,
+            norm = norm,
+            device = transform_device
+        )
+        
+    else:
+        pass # TODO
+    
+    populate_db = alignment.populate_references(
+        db=db, 
+        dataset=reference_generator, 
+        max_size=max_size
+    )
+    
+    result_md = None
+    for projection_md in populate_db:
+        print(f'Database contains {db.get_item_count()} entries')
+        
+        experimental_loader = torch.utils.data.DataLoader(
+            experimental_dataset,
+            batch_size=batch_size,
+            pin_memory=pin_memory
+        )
+        
+        if method == 'fourier':
+            experimental_generator = generators.fourier_generator(
+                dataset = experimental_loader,
+                fourier = transformer,
+                flattener = flattener,
+                weights = weighter,
+                norm = norm,
+                device = transform_device
+            )
+        else:
+            pass
+        
+        print('Aligning')
+        matches = alignment.align(
+            db=db, 
+            dataset=experimental_generator,
+            k=1,
+            device=transform_device,
+        )
+        assert(len(matches.distances) == len(experimental_md))
+        assert(len(matches.indices) == len(experimental_md))
+        
+        result_md = alignment.generate_alignment_metadata(
+            experimental_md=experimental_md,
+            reference_md=reference_md,
+            projection_md=projection_md,
+            matches=matches,
+            output_md=result_md
+        )
+    
     
     if drop_na:
         result_md.dropna(inplace=True)
@@ -184,6 +206,7 @@ if __name__ == '__main__':
     parser.add_argument('--norm', type=str)
     parser.add_argument('--dropna', action='store_true')
     parser.add_argument('--gpu', nargs='*')
+    parser.add_argument('--max_size', type=int, default=int(2e6))
 
     # Parse
     args = parser.parse_args()
@@ -199,7 +222,8 @@ if __name__ == '__main__':
         n_shifts = args.shifts,
         max_shift = args.max_shift,
         cutoff = args.max_frequency,
-        batch = args.batch,
+        batch_size = args.batch,
+        max_size = args.max_size,
         method = args.method,
         norm = args.norm,
         drop_na = args.dropna,

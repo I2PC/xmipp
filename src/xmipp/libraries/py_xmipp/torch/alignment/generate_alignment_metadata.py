@@ -20,8 +20,11 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from typing import Optional
+
 import pandas as pd
 import torch
+import numpy as np
 
 from .. import metadata as md
 from .. import search
@@ -52,11 +55,32 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
 
     return result
 
-def generate_alignment_metadata(experimental_md: pd.DataFrame,
+def _update_alignment_metadata( output_md: pd.DataFrame,
                                 reference_md: pd.DataFrame,
                                 projection_md: pd.DataFrame,
-                                matches: search.SearchResult ) -> pd.DataFrame:
+                                match_distances: torch.Tensor,
+                                match_indices: torch.IntTensor ) -> pd.DataFrame:
+    # Select the rows to be updated
+    selection = match_distances < output_md[md.COST]
     
+    # Do an alignment for the selected rows
+    alignment_md = _ensemble_alignment_md(
+        reference_md=reference_md,
+        projection_md=projection_md,
+        match_distances=match_distances[selection],
+        match_indices=match_indices[selection]
+    )
+    
+    # Update output
+    output_md.loc[selection, alignment_md.columns] = alignment_md
+    
+    return output_md
+
+def _create_alignment_metadata(experimental_md: pd.DataFrame,
+                               reference_md: pd.DataFrame,
+                               projection_md: pd.DataFrame,
+                               match_distances: torch.Tensor,
+                               match_indices: torch.IntTensor ) -> pd.DataFrame:
     
     # Create the resulting array shifting old alignment values
     output_md = experimental_md.rename(columns={
@@ -67,19 +91,12 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
         md.SHIFT_Y: md.SHIFT_Y2,
     })
     
-    # Rename the reference image column to make it compatible 
-    # with the resulting MD. (No duplicated IMAGE column)
-    # Also add a invalid reference element
-    reference_md = reference_md.rename(columns={
-        md.IMAGE: md.REFERENCE_IMAGE,
-    })
-    
     # Use the first match
     alignment_md = _ensemble_alignment_md(
         reference_md=reference_md, 
         projection_md=projection_md, 
-        match_distances=matches.distances[:,0], 
-        match_indices=matches.indices[:,0]
+        match_distances=match_distances, 
+        match_indices=match_indices
     )
     
     # Add the alignment consensus to the output
@@ -90,4 +107,43 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
         columns=experimental_md.columns.union(output_md.columns, sort=False)
     )
     
+    return output_md
+
+def generate_alignment_metadata(experimental_md: pd.DataFrame,
+                                reference_md: pd.DataFrame,
+                                projection_md: pd.DataFrame,
+                                matches: search.SearchResult,
+                                output_md: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    
+    # Rename the reference image column to make it compatible 
+    # with the resulting MD. (No duplicated IMAGE column)
+    # Also add a invalid reference element
+    reference_md = reference_md.rename(columns={
+        md.IMAGE: md.REFERENCE_IMAGE,
+    })
+    
+    # Currently we only support kNN with k=1
+    # Extract the best result if multiple provided
+    match_distances = matches.distances[:,0].numpy()
+    match_indices = matches.indices[:,0].numpy()
+    
+    # Update or generate depending on wether the output is provided
+    if output_md is None:
+        output_md = _create_alignment_metadata(
+            experimental_md=experimental_md,
+            reference_md=reference_md,
+            projection_md=projection_md,
+            match_distances=match_distances,
+            match_indices=match_indices
+        )
+    else:
+        output_md = _update_alignment_metadata(
+            output_md=output_md,
+            reference_md=reference_md,
+            projection_md=projection_md,
+            match_distances=match_distances,
+            match_indices=match_indices
+        )
+    
+    assert(output_md is not None)
     return output_md

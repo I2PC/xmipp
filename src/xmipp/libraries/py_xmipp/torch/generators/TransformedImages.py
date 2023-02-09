@@ -20,29 +20,12 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence
-import pandas as pd
+from typing import NamedTuple, Optional
 
-from .. import metadata as md
+import torch
 
-def create_reference_metadata(  reference_indices: Sequence[int],
-                                psi_angles: Sequence[float],
-                                x_shifts: Sequence[float],
-                                y_shifts: Sequence[float] ) -> pd.DataFrame:
-        
-    # Create the output md
-    COLUMNS = [
-        md.REF,
-        md.ANGLE_PSI,
-        md.SHIFT_X,
-        md.SHIFT_Y
-    ]
-    assert(len(reference_indices) == len(psi_angles))
-    assert(len(reference_indices) == len(x_shifts))
-    assert(len(reference_indices) == len(y_shifts))
-    result = pd.DataFrame(
-        data=zip(reference_indices, psi_angles, x_shifts, y_shifts),
-        columns=COLUMNS
-    )
-    
-    return result
+class TransformedImages(NamedTuple):
+    coefficients: torch.Tensor
+    indices: torch.IntTensor
+    angle: Optional[float] = None
+    shift: Optional[torch.Tensor] = None
