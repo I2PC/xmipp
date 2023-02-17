@@ -20,18 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence
-import torch
-
-def nfft_freq2(shape: Sequence[int]) -> torch.Tensor:
-    if len(shape) != 2:
-        raise NotImplementedError('nfft_freq is only implemented for N=2')
-
-    
-    freq_x = torch.fft.rfftfreq(shape[-1])
-    freq_y = torch.fft.fftfreq(shape[-2])[...,None]
-    return freq_x**2 + freq_y**2
-    
-def nfft_freq(shape: Sequence[int]) -> torch.Tensor:
-    out = nfft_freq2(shape)
-    return torch.sqrt(out, out=out)
+from .complex_normalize import complex_normalize
+from .l2_normalize import l2_normalize
+from .mu_sigma_normalize import mu_sigma_normalize
+from .flat_view_as_real import flat_view_as_real

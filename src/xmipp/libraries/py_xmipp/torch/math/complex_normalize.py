@@ -20,11 +20,16 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Union, Sequence
+from typing import Optional
 import torch
 
-def l2_normalize(data: torch.Tensor, 
-                 dim: Union[None, int, Sequence[int]] ) -> torch.Tensor:
+def complex_normalize(data: torch.Tensor,
+                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    data /= torch.norm(data, dim=dim, keepdim=True)
-    return data
+    if out is data:
+        out /= torch.abs(out)
+        
+    else:
+        raise NotImplementedError('Only implemented for out=data')
+    
+    return out

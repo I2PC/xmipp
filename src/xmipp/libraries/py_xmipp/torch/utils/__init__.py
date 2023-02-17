@@ -20,10 +20,5 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .flat_view_as_real import flat_view_as_real
-from .normalize import normalize
-from .complex_normalize import complex_normalize
-from .l2_normalize import l2_normalize
 from .progress_bar import progress_bar
-from .nfft_freq import nfft_freq, nfft_freq2
 from .LruCache import LruCache

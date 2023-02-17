@@ -20,14 +20,17 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Union, Sequence
+from typing import Union, Sequence, Optional
 import torch
 
-def normalize(data: torch.Tensor, 
-              dim: Union[None, int, Sequence[int]] ) -> torch.Tensor:
+def l2_normalize(data: torch.Tensor, 
+                 dim: Union[None, int, Sequence[int]],
+                 out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    std, mean = torch.std_mean(data, dim=dim, keepdim=True)
-    data -= mean
-    data /= std
+    if out is data:
+        out /= torch.norm(out, dim=dim, keepdim=True)
+        
+    else:
+        raise NotImplementedError('Only implemented for out=data')
     
-    return data
+    return out
