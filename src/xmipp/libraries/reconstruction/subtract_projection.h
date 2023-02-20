@@ -31,8 +31,14 @@
  #include "core/xmipp_image.h"
  #include "data/fourier_filter.h"
  #include "data/fourier_projection.h"
+ #include "core/xmipp_metadata_program.h"
 
- class ProgSubtractProjection: public XmippProgram
+/**@defgroup ProgSubtractProjection Subtract projections
+   @ingroup ReconsLibrary */
+//@{
+/** Subtract projections from particles */
+
+class ProgSubtractProjection: public XmippMetadataProgram
  {
  private:
     // Input params
@@ -49,9 +55,12 @@
     double cirmaskrad; // Radius of the circular mask
 	int sigma;
     int limitfreq;
+    int maxwiIdx;
+    int i;
     bool nonNegative;
     bool boost;
     bool subtract;
+	MultidimArray<int> wi;
 
     // Data variables
  	Image<double> V; // volume
@@ -71,6 +80,7 @@
     Projection PmaskVol; // reference volume mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
     std::unique_ptr<FourierProjector> projector;
+    std::unique_ptr<FourierProjector> projectorMask;
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection
     FourierTransformer transformerI; // Fourier transformer for particle
@@ -78,6 +88,11 @@
 	MultidimArray< std::complex<double> > PFourier; // FT(projection)
     MultidimArray< std::complex<double> > PFourier0; // FT(projection) estimation of order 0
 	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
+    MultidimArray< std::complex<double> > IiMFourier;
+	MultidimArray< std::complex<double> > PiMFourier;
+
+    FourierTransformer transformerIiM;
+	FourierTransformer transformerPiM;
 
     CTFDescription ctf;
 	FourierFilter FilterCTF;
@@ -102,30 +117,32 @@
 
 
     /// Read argument from command line
-    void readParams() override;
+
+    void readParams();
     /// Show
-    void show() const override;
+    void show() const;
     /// Define parameters
-    void defineParams() override;
+    void defineParams();
+    void preProcess();
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+    void postProcess();
     /// Read and write methods
     void readParticle(const MDRowVec &);
-    void writeParticle(const int &, Image<double> &, double, double, double);
+    void writeParticle(MDRow &rowOut, Image<double> &, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
 
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRowVec &, Projection &);
-    void processParticle(size_t, int, FourierTransformer &, FourierTransformer &);
+    void processParticle(const MDRow &rowIn, int, FourierTransformer &, FourierTransformer &);
     MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
         const MultidimArray<double> &, FourierTransformer &);
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 
-    /// Run
-    void run() override;
  };
  //@}
- #endif
+#endif
+
