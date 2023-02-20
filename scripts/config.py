@@ -516,7 +516,7 @@ class Config:
             return v[v.index('9.5'):]
         elif 11.1 <= nvcc_version <= 11.3:
             return v[v.index('10.4'):]
-        elif 11.4 <= nvcc_version < 11.8:
+        elif 11.4 <= nvcc_version <= 11.8:
             return v[v.index('11.3'):]
         return []
 
