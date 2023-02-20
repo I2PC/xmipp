@@ -114,10 +114,23 @@ class ProgSubtractProjection: public XmippMetadataProgram
     struct Angles part_angles; 
 
     bool disable;
+    /// Read and write methods
+    void readParticle(const MDRow &rowIn);
+    void writeParticle(MDRow &rowOut, Image<double> &, double, double, double);
+    /// Processing methods
+    void createMask(const FileName &, Image<double> &, Image<double> &);
 
-
+    Image<double> binarizeMask(Projection &) const;
+    Image<double> invertMask(const Image<double> &);
+    Image<double> applyCTF(const MDRow &, Projection &);
+    void processParticle(const MDRow &rowIn, int, FourierTransformer &, FourierTransformer &);
+    MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
+        const MultidimArray<double> &, FourierTransformer &);
+    double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+    Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
+        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
+public:
     /// Read argument from command line
-
     void readParams();
     /// Show
     void show() const;
@@ -126,22 +139,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
     void preProcess();
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
     void postProcess();
-    /// Read and write methods
-    void readParticle(const MDRowVec &);
-    void writeParticle(MDRow &rowOut, Image<double> &, double, double, double);
-    /// Processing methods
-    void createMask(const FileName &, Image<double> &, Image<double> &);
-
-    Image<double> binarizeMask(Projection &) const;
-    Image<double> invertMask(const Image<double> &);
-    Image<double> applyCTF(const MDRowVec &, Projection &);
-    void processParticle(const MDRow &rowIn, int, FourierTransformer &, FourierTransformer &);
-    MultidimArray< std::complex<double> > computeEstimationImage(const MultidimArray<double> &, 
-        const MultidimArray<double> &, FourierTransformer &);
-    double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-    Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
-        const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-
  };
  //@}
 #endif

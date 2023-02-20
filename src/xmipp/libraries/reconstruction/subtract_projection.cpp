@@ -303,8 +303,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		
 	// Read first particle
 	const auto sizeI = (int)XSIZE(I());
-	const MDRow rowIn1 = mdParticles.getRow(1);
-	processParticle(rowIn1, sizeI, transformerP, transformerI);
+	processParticle(mdParticles.getRow(1), sizeI, transformerP, transformerI);
 	const MultidimArray<double> &mPctf = Pctf();
 
 	// Construct frequencies image
