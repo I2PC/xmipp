@@ -96,8 +96,6 @@ public:
 
 	void amplitudeMonogenicSignal_float(MultidimArray<float> &significanceMap);
 
-	void estimateLocalResolution(MultidimArray<float> &significanceMap);
-
 	void updateResMap(MultidimArray<float> &resMap, MultidimArray<float> &significanceMap, MultidimArray<int> &mask, float &resolution, size_t iter);
 
 	void FDRcontrol(MultidimArray<float> &significanceMap);

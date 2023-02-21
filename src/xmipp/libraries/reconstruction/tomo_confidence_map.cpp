@@ -83,13 +83,6 @@ void ProgTomoConfidecenceMap::run()
 
 	readAndPrepareData();
 
-	if (locRes)
-	{
-		estimateLocalResolution(significanceMap);
-	}
-
-	exit(0);
-
 	bool normalize = true;
 	
 	confidenceMap(significanceMap, normalize, fullMap, noiseMap);
@@ -108,78 +101,6 @@ void ProgTomoConfidecenceMap::run()
 	significanceImg() = significanceMapFiltered;
 	// significanceImg() = significanceMap;
 	significanceImg.write(fnOut);
-}
-
-void ProgTomoConfidecenceMap::estimateLocalResolution(MultidimArray<float> &significanceMap)
-{
-	std::cout << "Estimating local resolution ... " << std::endl;
-
-	float nyquist = 2*sampling;
-	float resolution = lowRes;
-	resMap.resizeNoCopy(fullMap);
-	resMap.initConstant(lowRes);
-
-	MultidimArray<double> fm, nm;
-
-	MultidimArray<int> mask;
-	mask.initZeros(1, Zdim, Ydim, Xdim);
-	mask.initConstant(1);
-
-	bool normalize = true;
-	size_t iter = 0;
-
-	float freq, tail, lastResolution;
-	lastResolution = 1e38;
-
-	// idx = (freq/freqnyquist)*Ndim;  =>   idx = (sampling/res)/(sampling/niquist)*Ndim = (niquist/res)*Ndim
-	size_t idx = (nyquist/lowRes)*ZSIZE(fullMap);
-
-	//while (resolution>nyquist)
-	for (size_t k = idx; k<ZSIZE(fullMap); k++)
-	{
-		frequencyToAnalyze(freq, tail, k);
-
-		resolution = sampling/freq;
-		if (lastResolution - resolution < step)
-		{
-			continue;
-		}
-		else
-		{
-			lastResolution = resolution;
-		}
-		std::cout << "resolution = " << sampling/freq << "  tail = " << sampling/tail << std::endl;
-
-		filterNoiseAndMap(freq, tail, fm, nm, iter);
-
-		MultidimArray<float> fm_float, nm_float;
-		fm_float.resizeNoCopy(fullMap);
-		nm_float.resizeNoCopy(fullMap);
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fm_float)
-		{
-			DIRECT_MULTIDIM_ELEM(fm_float, n) = (float) DIRECT_MULTIDIM_ELEM(fm, n);
-			DIRECT_MULTIDIM_ELEM(nm_float, n) = (float) DIRECT_MULTIDIM_ELEM(nm, n);
-		}
-
-		confidenceMap(significanceMap, normalize, fm_float, nm_float);
-
-		Image<float> saveImg;
-		saveImg() = significanceMap;
-		FileName fn = formatString("confidence_%i.mrc", iter);
-		saveImg.write(fn);
-
-	std::cout << "filtering ended " << std::endl;
-		//float auxRes = sampling/freq;
-		//updateResMap(resMap, significanceMap, mask, auxRes, iter);
-
-		iter += 1;
-	}
-
-	Image<float> resmapImg;
-	resmapImg() = resMap;
-	resmapImg.write("resmap.mrc");
-
 }
 
 
