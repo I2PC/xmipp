@@ -59,22 +59,22 @@ void ProgTomoConfidecenceMap::defineParams()
 	addUsageLine("This function determines the local resolution of a tomogram. It makes use of two reconstructions, odd and even. The difference between them"
 			"gives a noise reconstruction. Thus, by computing the local amplitude of the signal at different frequencies and establishing a comparison with"
 			"the noise, the local resolution is computed");
-	addParamsLine("  --odd <vol_file=\"\">   			: Half volume 1");
-	addParamsLine("  --even <vol_file=\"\">				: Half volume 2");
-	addParamsLine("  [--mask <vol_file=\"\">]  			: Mask defining the signal. ");
-	addParamsLine("  [--medianFilter]  			        : Set true if a median filter should be applied.");
+	addParamsLine("  --odd <vol_file=\"\">              : Half volume 1");
+	addParamsLine("  --even <vol_file=\"\">	            : Half volume 2");
+	addParamsLine("  [--mask <vol_file=\"\">]           : Mask defining the signal. ");
+	addParamsLine("  [--medianFilter]                   : Set true if a median filter should be applied.");
 	addParamsLine("  [--applySmoothingBeforeConfidence] : Set true if a median filter should be applied.");
 	addParamsLine("  [--applySmoothingAfterConfidence]  : Set true if a median filter should be applied.");
-	addParamsLine("  [--sigmaGauss <s=2>]  			        : Set true if a median filter should be applied.");
-	addParamsLine("  [--fdr <s=0.05>]         			: False discovery rate");
-	addParamsLine("  [--localResolution]  			    : Put this fag to estimate the local resolution of the tomogram");
-	addParamsLine("  [--lowRes <s=30>]         			: Minimum resolution (A)");
-	addParamsLine("  [--highRes <s=1>]         			: Maximum resolution (A)");
-	addParamsLine("  [--step <s=1>]         			: Step");
-	addParamsLine("  [--significance <s=0.95>]       	: The level of confidence for the hypothesis test.");
-	addParamsLine("  --odir <output=\"resmap.mrc\">		: Local resolution volume (in Angstroms)");
-	addParamsLine("  [--sampling_rate <s=1>]   			: Sampling rate (A/px)");
-	addParamsLine("  [--threads <s=4>]               	: Number of threads");
+	addParamsLine("  [--sigmaGauss <s=2>]               : Set true if a median filter should be applied.");
+	addParamsLine("  [--fdr <s=0.05>]                   : False discovery rate");
+	addParamsLine("  [--localResolution]                : Put this fag to estimate the local resolution of the tomogram");
+	addParamsLine("  [--lowRes <s=30>]                  : Minimum resolution (A)");
+	addParamsLine("  [--highRes <s=1>]                  : Maximum resolution (A)");
+	addParamsLine("  [--step <s=1>]                     : Step");
+	addParamsLine("  [--significance <s=0.95>]          : The level of confidence for the hypothesis test.");
+	addParamsLine("  --odir <output=\"resmap.mrc\">     : Local resolution volume (in Angstroms)");
+	addParamsLine("  [--sampling_rate <s=1>]            : Sampling rate (A/px)");
+	addParamsLine("  [--threads <s=4>]                  : Number of threads");
 }
 
 void ProgTomoConfidecenceMap::run()
