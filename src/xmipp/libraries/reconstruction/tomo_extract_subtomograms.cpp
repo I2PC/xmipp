@@ -49,15 +49,15 @@ void ProgTomoExtractSubtomograms::readParams()
 void ProgTomoExtractSubtomograms::defineParams()
 {
 	addUsageLine("This function takes a tomogram an extract a set of subtomogram from it. The coordinates of the subtomograms are speciffied in the metadata given by coordinates.");
-	addParamsLine("  --tomogram <vol_file=\"\">   		: Filename of the tomogram containing the subtomograms to be extracted");
-	addParamsLine("  --coordinates <vol_file=\"\">		: Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
-	addParamsLine("  --boxsize <boxsize=100>			: Particle box size in voxels.");
-	addParamsLine("  [--subtomo]						: Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
-	addParamsLine("  [--invertContrast]					: Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
-	addParamsLine("  [--normalize]					: Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
-	addParamsLine("  [--downsample <scaleFactor=0.5>]	: Scale factor of the extracted subtomograms");
-	addParamsLine("  -o <vol_file=\"\">  				: path to the output directory. ");
-	addParamsLine("  [--threads <s=4>]               	: Number of threads");
+	addParamsLine("  --tomogram <vol_file=\"\">         : Filename of the tomogram containing the subtomograms to be extracted");
+	addParamsLine("  --coordinates <vol_file=\"\">	    : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
+	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
+	addParamsLine("  [--subtomo]                        : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--invertContrast]	                : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--normalize]                      : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
+	addParamsLine("  -o <vol_file=\"\">                 : path to the output directory. ");
+	addParamsLine("  [--threads <s=4>]                  : Number of threads");
 }
 
 void ProgTomoExtractSubtomograms::run()
