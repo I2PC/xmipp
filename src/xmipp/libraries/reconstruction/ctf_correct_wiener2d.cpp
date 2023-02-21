@@ -148,7 +148,7 @@ void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, CTF
 	double result;
 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
 	{
-		result = (DIRECT_N_YX_ELEM (ctfIm, 0, 0, i, j  ));
+		result = (DIRECT_N_YX_ELEM (ctfIm, 0, i, j));
 		dAij(Mwien,i,j) = (result *result);
 	}
 
