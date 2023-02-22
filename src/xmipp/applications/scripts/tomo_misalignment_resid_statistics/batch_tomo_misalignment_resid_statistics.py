@@ -31,6 +31,7 @@ from xmipp_base import *
 import xmippLib
   
 import sys
+import os
 from math import sqrt
 from statsmodels.tsa.stattools import adfuller
 from scipy import stats
@@ -46,17 +47,40 @@ class ScriptTomoResidualStatistics(XmippScript):
     self.p = 0.5
     self.alpha = 0.05
 
+    self.debug = False
+
+    # Save landmark residuals
     self.residSize = {}
-    self.coords = {}
+
     self.residX = {}
     self.residY = {}
+
     self.residXAcc = {}
     self.residYAcc = {}
-    self.moduleAcc = {}
-    self.nPosX = {}
-    self.nPosY = {}
+    self.residModuleAcc = {}
 
-    self.debug = False
+    self.nResidPosX = {}
+    self.nResidPosY = {}
+
+    self.coordsByLandmark = {}
+
+
+    # Save image residuals
+    self.imageSize = {}
+
+    self.imageX = {}
+    self.imageY = {}
+
+    self.imageXAcc = {}
+    self.imageYAcc = {}
+    self.imageModuleAcc = {}
+
+    self.nImagePosX = {}
+    self.nImagePosY = {}
+
+    self.coordsByImage = {}
+
+
 
   def defineParams(self):
     """
@@ -84,6 +108,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     mData = xmippLib.MetaData(mdFilePath)
 
     for objId in mData:
+      # Read landmark chains vectors
       id = mData.getValue(xmippLib.MDL_FRAME_ID, objId)
 
       if id in self.residX.keys():
@@ -91,23 +116,40 @@ class ScriptTomoResidualStatistics(XmippScript):
         self.residY[id].append(mData.getValue(xmippLib.MDL_SHIFT_Y, objId))
 
       else:
-        self.coords[id] = [mData.getValue(xmippLib.MDL_XCOOR, objId),
+        self.coordsByLandmark[id] = [mData.getValue(xmippLib.MDL_XCOOR, objId),
                            mData.getValue(xmippLib.MDL_YCOOR, objId),
                            mData.getValue(xmippLib.MDL_ZCOOR, objId)]
         self.residX[id] = [mData.getValue(xmippLib.MDL_SHIFT_X, objId)]
         self.residY[id] = [mData.getValue(xmippLib.MDL_SHIFT_Y, objId)]
 
+      #Read image vectors
+      id = int(mData.getValue(xmippLib.MDL_Z, objId))
+
+      if id in self.imageX.keys():
+        self.imageX[id].append(mData.getValue(xmippLib.MDL_SHIFT_X, objId))
+        self.imageY[id].append(mData.getValue(xmippLib.MDL_SHIFT_Y, objId))
+
+      else:
+        self.coordsByImage[id] = [mData.getValue(xmippLib.MDL_XCOOR, objId),
+                           mData.getValue(xmippLib.MDL_YCOOR, objId),
+                           mData.getValue(xmippLib.MDL_ZCOOR, objId)]
+        self.imageX[id] = [mData.getValue(xmippLib.MDL_SHIFT_X, objId)]
+        self.imageY[id] = [mData.getValue(xmippLib.MDL_SHIFT_Y, objId)]
+      
     # Debug
     if self.checkParam('--debug'):
       self.debug=True
+
+    print("Residual information read successfully!")
                
 
-  def writeOutputStatsInfo(self, residualStats):
+  def writeOutputStatsInfo(self, residualStats, filePath):
     """
       Write statistical information into metadata
     """
 
-    mdFilePath = self.getParam('-o')
+    print("Writting output stest at " + filePath)
+
     mData = xmippLib.MetaData()
 
     for i in range(len(residualStats)):
@@ -120,16 +162,19 @@ class ScriptTomoResidualStatistics(XmippScript):
       mData.setValue(xmippLib.MDL_YCOOR, residualStats[i][5], id)
       mData.setValue(xmippLib.MDL_ZCOOR, residualStats[i][6], id)
 
-    mData.write(mdFilePath)
+    mData.write(filePath)
 
 
   def generateSideInfo(self):
     """
       Generate residual side information to perform posterior tests
     """
-    
+
+    # Residual info vectors for landmarks
+    print("Generate side information for landmarks...")
+    print(self.residX.keys())
+
     for key in self.residX.keys():
-      # Residual info vectors
       self.residSize[key] = len(self.residX[key])
 
       nPosX = 0
@@ -153,25 +198,65 @@ class ScriptTomoResidualStatistics(XmippScript):
         else:
           self.residYAcc[key].append(r+self.residYAcc[key][i-1])
 
-      self.nPosX[key] = nPosX
-      self.nPosY[key] = nPosY
+      self.nResidPosX[key] = nPosX
+      self.nResidPosY[key] = nPosY
 
       for i in range(self.residSize[key]):
         if i == 0:
-          self.moduleAcc[key] = [sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i])]
+          self.residModuleAcc[key] = [sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i])]
         else:
-          self.moduleAcc[key].append(sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i]))
+          self.residModuleAcc[key].append(sqrt(self.residXAcc[key][i]*self.residXAcc[key][i] + self.residYAcc[key][i]*self.residYAcc[key][i]))
+
+    # Residual info vectors for images
+    print("Generate side information for images...")
+    print(self.imageX.keys())
+
+    for key in self.imageX.keys():
+      self.imageSize[key] = len(self.imageX[key])
+
+      nPosX = 0
+      nPosY = 0
+
+      for i, r in enumerate(self.imageX[key]):
+        if r > 0:
+          nPosX += 1
+
+        if i == 0:
+          self.imageXAcc[key] = [r]
+        else:
+          self.imageXAcc[key].append(r+self.imageXAcc[key][i-1])
+
+      for i, r in enumerate(self.imageY[key]):
+        if r > 0:
+          nPosY += 1
+
+        if i == 0:
+          self.imageYAcc[key] = [r]
+        else:
+          self.imageYAcc[key].append(r+self.imageYAcc[key][i-1])
+
+      self.nImagePosX[key] = nPosX
+      self.nImagePosY[key] = nPosY
+
+      for i in range(self.imageSize[key]):
+        if i == 0:
+          self.imageModuleAcc[key] = [sqrt(self.imageXAcc[key][i]*self.imageXAcc[key][i] + self.imageYAcc[key][i]*self.imageYAcc[key][i])]
+        else:
+          self.imageModuleAcc[key].append(sqrt(self.imageXAcc[key][i]*self.imageXAcc[key][i] + self.imageYAcc[key][i]*self.imageYAcc[key][i]))
 
 
-  def convexHull(self, key):
+    print("Side information generated successfully!")
+
+
+  def convexHull(self, vX, vY):
     """
       Calculate the convex hull from the residual vectors returning its area and perimeter
     """
 
     residualVectors = []
 
-    for i in range(len(self.residX[key])):
-      residualVectors.append([self.residX[key][i], self.residY[key][i]])
+    for i in range(len(vX)):
+      residualVectors.append([vX[i], vY[i]])
 
     try:
       convexHull = ConvexHull(residualVectors)
@@ -214,6 +299,11 @@ class ScriptTomoResidualStatistics(XmippScript):
     """
       Binomial test for sign distribution
     """
+
+    print("-----------------------------------------")
+    print(nPos)
+    print(rs)
+    print(self.p)
 
     pValue = stats.binom_test(nPos, rs , self.p)
 
@@ -267,6 +357,7 @@ class ScriptTomoResidualStatistics(XmippScript):
     self.readResidInfo()
     self.generateSideInfo()
 
+    # Generate residual information for landmarks
     pValues = []
     ch = []
 
@@ -275,17 +366,16 @@ class ScriptTomoResidualStatistics(XmippScript):
 
       if self.debug:
         print("KEY--------->" + str(key))
-        print("resid size" + str(self.residSize[key]))
+        print("resid size " + str(self.residSize[key]))
 
       # Convex hull
-      convexHullArea, convexHullPerimeter = self.convexHull(key=key)
+      convexHullArea, convexHullPerimeter = self.convexHull(vX=self.residX[key], vY=self.residY[key])
 
-      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coords[key][0], self.coords[key][1], self.coords[key][2]])
-      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
+      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
 
 
       # Variance distribution matrix
-      sumRadius = 0
       varianceMatrix = np.zeros([2, 2])
 
       for i in range(len(self.residX[key])):
@@ -296,20 +386,20 @@ class ScriptTomoResidualStatistics(XmippScript):
         ry2 = ry * ry
         rxy = rx * ry
 
-        sumRadius += sqrt(rx2+ry2)
+        sumRadius = sqrt(rx2+ry2)
 
-        if(sqrt(rx2+ry2) == 0):
+        if(sumRadius==0):
           varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
         else:
-          varianceMatrix += np.matrix([[rx2/sqrt(rx2+ry2), rxy/sqrt(rx2+ry2)], [rxy/sqrt(rx2+ry2), ry2/sqrt(rx2+ry2)]])
+          varianceMatrix += np.matrix([[rx2/sumRadius, rxy/sumRadius], [rxy/sumRadius, ry2/sumRadius]])
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
       if self.debug:
         print("lambda1: " + str(lambda1))
         print("lambda2: " + str(lambda2))
-        print("self.moduleAcc")
-        print(self.moduleAcc[key])
+        print("self.residModuleAcc")
+        print(self.residModuleAcc[key])
         print("self.residYAcc")
         print(self.residYAcc[key])
         print("self.residXAcc")
@@ -325,19 +415,19 @@ class ScriptTomoResidualStatistics(XmippScript):
         fTestStat = 1
 
       # Statistical tests
-      pvBinX = self.binomialTest(self.nPosX[key], rs)
-      pvBinY = self.binomialTest(self.nPosY[key], rs)
+      pvBinX = self.binomialTest(self.nResidPosX[key], rs)
+      pvBinY = self.binomialTest(self.nResidPosY[key], rs)
       pvF = self.fTestVar(fTestStat, rs)
-      adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.moduleAcc[key])
+      adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.residModuleAcc[key])
 
       if self.debug:
-        print("self.nPosX[key]" + str(self.nPosX[key]))
-        print("self.nPosY[key]" + str(self.nPosY[key]))
+        print("self.nResidPosX[key]" + str(self.nResidPosX[key]))
+        print("self.nResidPosY[key]" + str(self.nResidPosY[key]))
 
-      pValues.append([pvBinX, str(key) + "_pvBinX", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
-      pValues.append([pvBinY, str(key) + "_pvBinY", self.coords[key][0], self.coords[key][1], self.coords[key][2]])
-      pValues.append([pvF,    str(key) + "_pvF",    self.coords[key][0], self.coords[key][1], self.coords[key][2]])
-      pValues.append([pvADF,  str(key) + "_pvADF",  self.coords[key][0], self.coords[key][1], self.coords[key][2]])
+      pValues.append([pvBinX, str(key) + "_pvBinX", self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
+      pValues.append([pvBinY, str(key) + "_pvBinY", self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
+      pValues.append([pvF,    str(key) + "_pvF",    self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
+      pValues.append([pvADF,  str(key) + "_pvADF",  self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
 
     pValues.sort()
  
@@ -362,7 +452,124 @@ class ScriptTomoResidualStatistics(XmippScript):
       else:
         residualStats.append([1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
 
-    self.writeOutputStatsInfo(residualStats)
+
+    mdFilePath = self.getParam('-o')
+    mdFileName, mdFileExt = os.path.splitext(mdFilePath)
+    mdFilePath = mdFileName + "_resid" + mdFileExt
+
+    self.writeOutputStatsInfo(residualStats, mdFilePath)
+
+    print("\n")
+
+
+    # Generate residual information for images
+    pValues = []
+    ch = []
+
+    for key in self.imageX.keys():
+      rs = self.imageSize[key]
+
+      if self.debug:
+        print("KEY--------->" + str(key))
+        print("resid size " + str(self.imageSize[key]))
+
+      # Convex hull
+      convexHullArea, convexHullPerimeter = self.convexHull(vX=self.imageX[key], vY=self.imageY[key])
+
+      print("a")
+
+      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+
+      print("b")
+
+      # Variance distribution matrix
+      sumRadius = 0
+      varianceMatrix = np.zeros([2, 2])
+
+      print("c")
+
+      for i in range(len(self.imageX[key])):
+        rx = self.imageX[key][i]
+        ry = self.imageY[key][i]
+
+        rx2 = rx * rx
+        ry2 = ry * ry
+        rxy = rx * ry
+
+        sumRadius = sqrt(rx2+ry2)
+
+        if(sumRadius == 0):
+          varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
+        else:
+          varianceMatrix += np.matrix([[rx2/sumRadius, rxy/sumRadius], [rxy/sumRadius, ry2/sumRadius]])
+
+      print("d")
+
+      [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
+
+      if self.debug:
+        print("lambda1: " + str(lambda1))
+        print("lambda2: " + str(lambda2))
+        print("self.imageModuleAcc")
+        print(self.imageModuleAcc[key])
+        print("self.imageYAcc")
+        print(self.imageYAcc[key])
+        print("self.imageXAcc")
+        print(self.imageXAcc[key])
+        print("self.imageY")
+        print(self.imageY[key])
+        print("self.imageX")
+        print(self.imageX[key]) 
+        print("self.nImagePosX[key]")
+        print(self.nImagePosX[key])
+        print("self.nImagePosY[key]")
+        print(self.nImagePosY[key])
+
+      try:
+        fTestStat = lambda1/lambda2
+      except ZeroDivisionError:
+        fTestStat = 1
+
+      # Statistical tests
+      pvBinX = self.binomialTest(self.nImagePosX[key], rs)
+      pvBinY = self.binomialTest(self.nImagePosY[key], rs)
+      pvF = self.fTestVar(fTestStat, rs)
+      adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.imageModuleAcc[key])
+
+      pValues.append([pvBinX, str(key) + "_pvBinX", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+      pValues.append([pvBinY, str(key) + "_pvBinY", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+      pValues.append([pvF,    str(key) + "_pvF",    self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+      pValues.append([pvADF,  str(key) + "_pvADF",  self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+
+    pValues.sort()
+ 
+    residualStats = ch
+    firstFail = True
+
+    if self.debug:
+      print("Pvalues------")
+      for p in pValues:
+        print(p)
+
+    for j, pv in enumerate(pValues):
+      i = j + 1
+
+      if pv[0] > self.alpha:
+        residualStats.append([-1, pv[0], pv[0], pv[1], pv[2], pv[3], pv[4]])
+        
+        if firstFail:
+          print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
+          firstFail = False
+      
+      else:
+        residualStats.append([1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
+
+    mdFilePath = self.getParam('-o')
+    mdFileName, mdFileExt = os.path.splitext(mdFilePath)
+    mdFilePath = mdFileName + "_image" + mdFileExt
+
+    self.writeOutputStatsInfo(residualStats, mdFilePath)
 
     print("\n")
 
