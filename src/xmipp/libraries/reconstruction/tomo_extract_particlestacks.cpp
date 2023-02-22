@@ -139,7 +139,7 @@ void ProgTomoExtractParticleStacks::run()
 	
 			int x_2d, y_2d;
 	
-			x_2d = (int) (xcoor * ct) + 0.5*Xts; //- zcoor* st) + 0.5*Xts; 
+			x_2d = (int) (xcoor * ct + zcoor* st) + 0.5*Xts;
 			y_2d = (int) (ycoor+ 0.5*Yts);
 
 			int xlim = x_2d + halfboxsize;
@@ -148,9 +148,6 @@ void ProgTomoExtractParticleStacks::run()
 			xinit = x_2d - halfboxsize;
 			yinit = y_2d - halfboxsize;
 
-			std::cout << tsTiltAngles[idx] << "  " << x_2d << " " << y_2d << std::endl;
-
-			
 
 			if ((xlim>Xts) || (ylim>Yts) || (xinit<0) || (yinit<0))
 			{
