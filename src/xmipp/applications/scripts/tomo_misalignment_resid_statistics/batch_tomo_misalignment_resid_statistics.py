@@ -172,7 +172,6 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     # Residual info vectors for landmarks
     print("Generate side information for landmarks...")
-    print(self.residX.keys())
 
     for key in self.residX.keys():
       self.residSize[key] = len(self.residX[key])
@@ -209,7 +208,6 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     # Residual info vectors for images
     print("Generate side information for images...")
-    print(self.imageX.keys())
 
     for key in self.imageX.keys():
       self.imageSize[key] = len(self.imageX[key])
@@ -299,11 +297,6 @@ class ScriptTomoResidualStatistics(XmippScript):
     """
       Binomial test for sign distribution
     """
-
-    print("-----------------------------------------")
-    print(nPos)
-    print(rs)
-    print(self.p)
 
     pValue = stats.binom_test(nPos, rs , self.p)
 
@@ -476,18 +469,12 @@ class ScriptTomoResidualStatistics(XmippScript):
       # Convex hull
       convexHullArea, convexHullPerimeter = self.convexHull(vX=self.imageX[key], vY=self.imageY[key])
 
-      print("a")
-
       ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
       ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
-
-      print("b")
 
       # Variance distribution matrix
       sumRadius = 0
       varianceMatrix = np.zeros([2, 2])
-
-      print("c")
 
       for i in range(len(self.imageX[key])):
         rx = self.imageX[key][i]
@@ -503,8 +490,6 @@ class ScriptTomoResidualStatistics(XmippScript):
           varianceMatrix += np.matrix([[rx2, rxy], [rxy, ry2]])
         else:
           varianceMatrix += np.matrix([[rx2/sumRadius, rxy/sumRadius], [rxy/sumRadius, ry2/sumRadius]])
-
-      print("d")
 
       [lambda1, lambda2], _ = np.linalg.eig(varianceMatrix)
 
