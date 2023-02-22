@@ -114,115 +114,116 @@ void ProgTomoConfidecenceMap::frequencyToAnalyze(float &freq, float &tail, int i
 	tail = ((float) (idx - 3))/(2*ZSIZE(fullMap));
 }
 
-
-void ProgTomoConfidecenceMap::filterNoiseAndMap(float &freq, float &tail, MultidimArray<double> &fm, MultidimArray<double> &nm, size_t iter)
-{
-	// Image<double> saveImg;
-	// Image<float> saveImg_float;
-	// saveImg_float() = fullMap;
-	// FileName fn2 = formatString("ffm_%i.mrc", iter);
-	// saveImg_float.write(fn2);
-
-	FourierTransformer transformer;
-	transformer.setThreadsNumber(nthrs);
-	
-	fm.resizeNoCopy(fullMap);
-	nm.resizeNoCopy(fullMap);
-	
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fullMap)
-	{
-			DIRECT_MULTIDIM_ELEM(fm, n) = (double) DIRECT_MULTIDIM_ELEM(fullMap, n);
-			DIRECT_MULTIDIM_ELEM(nm, n) = (double) DIRECT_MULTIDIM_ELEM(noiseMap, n);
-	}	
-
-	MultidimArray< std::complex<double> > fftfullmap, fftnoisemap;
-	transformer.FourierTransform(fm, fftfullmap);
-	transformer.FourierTransform(nm, fftnoisemap);
-
-	//Computing the fft
-	size_t ZdimFT = ZSIZE(fullMap);
-	size_t YdimFT = YSIZE(fullMap);
-	size_t XdimFT = XSIZE(fullMap)/2 + 1;
-
-
-	double u;
-
-	freq_fourier_z.initZeros(ZdimFT);
-	freq_fourier_x.initZeros(XdimFT);
-	freq_fourier_y.initZeros(YdimFT);
-
-	VEC_ELEM(freq_fourier_z,0) = 1e-38;
-	for(size_t k=0; k<ZdimFT; ++k)
-	{
-		FFT_IDX2DIGFREQ(k,Zdim, u);
-		VEC_ELEM(freq_fourier_z,k) = (float) u;
-	}
-
-	VEC_ELEM(freq_fourier_y,0) = 1e-38;
-	for(size_t k=0; k<YdimFT; ++k)
-	{
-		FFT_IDX2DIGFREQ(k,Ydim, u);
-		VEC_ELEM(freq_fourier_y,k) = (float) u;
-	}
-
-	VEC_ELEM(freq_fourier_x,0) = 1e-38;
-	for(size_t k=0; k<XdimFT; ++k)
-	{
-		FFT_IDX2DIGFREQ(k,Xdim, u);
-		VEC_ELEM(freq_fourier_x,k) = (float) u;
-	}
-
-
-	// Filtering in Fourier Space
-	float uz, uy, ux, uz2, u2, uz2y2;
-	float idelta =PI/(freq-tail);
-	// std::complex<float> J(0,1);
-	float un;
-	long n=0;
-	for(size_t k=0; k<ZdimFT; ++k)
-	{
-		uz = VEC_ELEM(freq_fourier_z, k);
-		uz2=uz*uz;
-
-		for(size_t i=0; i<YdimFT; ++i)
-		{
-			uy = VEC_ELEM(freq_fourier_y, i);
-			uz2y2=uz2+uy*uy;
-
-			for(size_t j=0; j<XdimFT; ++j)
-			{
-				ux = VEC_ELEM(freq_fourier_x, j);
-				un=sqrtf(uz2y2+ux*ux);
-				if (un<=tail)
-				{
-					DIRECT_MULTIDIM_ELEM(fftfullmap, n) = 0;
-					DIRECT_MULTIDIM_ELEM(fftnoisemap, n) = 0;
-				}
-				else
-				{
-					if (un<=freq)
-					{
-						double H;
-						H = 0.5*(1+cosf((un-freq)*idelta));
-						DIRECT_MULTIDIM_ELEM(fftfullmap, n) *= H;
-						DIRECT_MULTIDIM_ELEM(fftnoisemap, n) *= H;
-					}
-				}
-				++n;
-			}
-		}
-	}
-
-	transformer.inverseFourierTransform(fftfullmap, fm);
-	transformer.inverseFourierTransform(fftnoisemap, nm);
-
-	Image<double> saveImg;
-	saveImg() = fm;
-	FileName fn = formatString("fm_%i.mrc", iter);
-	saveImg.write(fn);
-
-	std::cout << "filtering ended " << std::endl;
-}
+/*
+*void ProgTomoConfidecenceMap::filterNoiseAndMap(float &freq, float &tail, MultidimArray<double> &fm, MultidimArray<double> &nm, size_t iter)
+*{
+*	// Image<double> saveImg;
+*	// Image<float> saveImg_float;
+*	// saveImg_float() = fullMap;
+*	// FileName fn2 = formatString("ffm_%i.mrc", iter);
+*	// saveImg_float.write(fn2);
+*
+*	FourierTransformer transformer;
+*	transformer.setThreadsNumber(nthrs);
+*	
+*	fm.resizeNoCopy(fullMap);
+*	nm.resizeNoCopy(fullMap);
+*	
+*	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fullMap)
+*	{
+*			DIRECT_MULTIDIM_ELEM(fm, n) = (double) DIRECT_MULTIDIM_ELEM(fullMap, n);
+*			DIRECT_MULTIDIM_ELEM(nm, n) = (double) DIRECT_MULTIDIM_ELEM(noiseMap, n);
+*	}	
+*
+*	MultidimArray< std::complex<double> > fftfullmap, fftnoisemap;
+*	transformer.FourierTransform(fm, fftfullmap);
+*	transformer.FourierTransform(nm, fftnoisemap);
+*
+*	//Computing the fft
+*	size_t ZdimFT = ZSIZE(fullMap);
+*	size_t YdimFT = YSIZE(fullMap);
+*	size_t XdimFT = XSIZE(fullMap)/2 + 1;
+*
+*
+*	double u;
+*
+*	freq_fourier_z.initZeros(ZdimFT);
+*	freq_fourier_x.initZeros(XdimFT);
+*	freq_fourier_y.initZeros(YdimFT);
+*
+*	VEC_ELEM(freq_fourier_z,0) = 1e-38;
+*	for(size_t k=0; k<ZdimFT; ++k)
+*	{
+*		FFT_IDX2DIGFREQ(k,Zdim, u);
+*		VEC_ELEM(freq_fourier_z,k) = (float) u;
+*	}
+*
+*	VEC_ELEM(freq_fourier_y,0) = 1e-38;
+*	for(size_t k=0; k<YdimFT; ++k)
+*	{
+*		FFT_IDX2DIGFREQ(k,Ydim, u);
+*		VEC_ELEM(freq_fourier_y,k) = (float) u;
+*	}
+*
+*	VEC_ELEM(freq_fourier_x,0) = 1e-38;
+*	for(size_t k=0; k<XdimFT; ++k)
+*	{
+*		FFT_IDX2DIGFREQ(k,Xdim, u);
+*		VEC_ELEM(freq_fourier_x,k) = (float) u;
+*	}
+*
+*
+*	// Filtering in Fourier Space
+*	float uz, uy, ux, uz2, u2, uz2y2;
+*	float idelta =PI/(freq-tail);
+*	// std::complex<float> J(0,1);
+*	float un;
+*	long n=0;
+*	for(size_t k=0; k<ZdimFT; ++k)
+*	{
+*		uz = VEC_ELEM(freq_fourier_z, k);
+*		uz2=uz*uz;
+*
+*		for(size_t i=0; i<YdimFT; ++i)
+*		{
+*			uy = VEC_ELEM(freq_fourier_y, i);
+*			uz2y2=uz2+uy*uy;
+*
+*			for(size_t j=0; j<XdimFT; ++j)
+*			{
+*				ux = VEC_ELEM(freq_fourier_x, j);
+*				un=sqrtf(uz2y2+ux*ux);
+*				if (un<=tail)
+*				{
+*					DIRECT_MULTIDIM_ELEM(fftfullmap, n) = 0;
+*					DIRECT_MULTIDIM_ELEM(fftnoisemap, n) = 0;
+*				}
+*				else
+*				{
+*					if (un<=freq)
+*					{
+*						double H;
+*						H = 0.5*(1+cosf((un-freq)*idelta));
+*						DIRECT_MULTIDIM_ELEM(fftfullmap, n) *= H;
+*						DIRECT_MULTIDIM_ELEM(fftnoisemap, n) *= H;
+*					}
+*				}
+*				++n;
+*			}
+*		}
+*	}
+*
+*	transformer.inverseFourierTransform(fftfullmap, fm);
+*	transformer.inverseFourierTransform(fftnoisemap, nm);
+*
+*	Image<double> saveImg;
+*	saveImg() = fm;
+*	FileName fn = formatString("fm_%i.mrc", iter);
+*	saveImg.write(fn);
+*
+*	std::cout << "filtering ended " << std::endl;
+*}
+*/
 
 void ProgTomoConfidecenceMap::updateResMap(MultidimArray<float> &resMap, MultidimArray<float> &significanceMap, MultidimArray<int> &mask, float &resolution, size_t iter)
 {
@@ -254,10 +255,6 @@ void ProgTomoConfidecenceMap::updateResMap(MultidimArray<float> &resMap, Multidi
 	std::cout << "filtering ended " << std::endl;
 }
 
-// void ProgTomoConfidecenceMap::LPF(MultidimArray<float> &significanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap)
-// {
-
-// }
 
 void ProgTomoConfidecenceMap::confidenceMap(MultidimArray<float> &significanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap)
 {
