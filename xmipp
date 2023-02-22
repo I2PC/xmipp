@@ -34,9 +34,10 @@ from scripts import *
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.22.07.0'        #
+XMIPP_VERSION = '3.22.11.0'        #
 XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '13/07/2022'        #
+RELEASE_DATE = '15/11/2022'        #
+
 ####################################
 
 
@@ -204,6 +205,25 @@ def cleanBinaries():
     runJob('find . -iname "*.dblite" -delete')
 
     cleanEmptyFolders()
+
+def cleanDeprecated():
+    listCurrentPrograms = []
+    listFilesXmipp = []
+    runJob('find src/xmipp/bin/*', log=listFilesXmipp,
+           show_command=False, show_output=False)
+    listFilesXmipp = [os.path.basename(x).replace('xmipp_', '') for x in listFilesXmipp]
+    listCurrentFolders = [x[0] for x in os.walk('src/xmipp/applications/programs/')]
+    for folder in listCurrentFolders[1:]:
+        for file in os.listdir(folder):
+            if '.cpp' in file:
+                listCurrentPrograms.append(os.path.basename(folder))
+    listCurrentScripts = [os.path.basename(x[0]) for x in os.walk('src/xmipp/applications/scripts/')]
+    listCurrentPrograms = listCurrentPrograms + listCurrentScripts[1:]
+    list2RemoveXmipp = [x for x in listFilesXmipp if (x not in listCurrentPrograms and 'test_' not in x)]
+    for x in list2RemoveXmipp:
+        runJob('rm src/xmipp/bin/xmipp_{}'.format(x))
+    if len(list2RemoveXmipp) > 0:
+         print('Deprecated programs removed')
 
 def cleanEmptyFolders():
     log = []
@@ -383,6 +403,21 @@ def getDependencies():
         print(red("Cannot get dependencies"))
     return result
 
+def printVersion():
+    buildDir = 'build'
+    shortFlag = ''
+    for arg in sys.argv[2:]:
+        if arg == '--short':
+            shortFlag = '--short'
+        elif arg.startswith('dir='):
+            buildDir = arg[4:]
+    versionBin = "%s/bin/xmipp_version" % buildDir
+    envSetting = "%s/xmipp.bashrc" % buildDir
+    if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
+        print("Build not found...")
+    else:
+        runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
+               show_command=False)
 
 def getScipionHome():
     """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
@@ -698,6 +733,7 @@ def linkToScipion(dirname):
 
 def install(dirname):
     print("Installing ------------------------------------------")
+    cleanDeprecated()
     cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
     ok = True
 
@@ -706,6 +742,9 @@ def install(dirname):
     createDir(dirname+"/lib")
     ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
 
+
+    if os.path.exists(dirname + "/bin"):
+        shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
@@ -804,7 +843,7 @@ def install(dirname):
     fhFish.close()
 
     endMessage(XMIPP_VERNAME)
-
+    printVersion()
     return True
 
 
@@ -843,6 +882,7 @@ def usage(msg=''):
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
+          "   cleanDeprecated:            Clean all deprecated executables from src/xmipp/bin).\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
@@ -912,21 +952,10 @@ if __name__ == '__main__':
         getDependencies()
     elif mode == "cleanBin":
         cleanBinaries()
+    elif mode == 'cleanDeprecated':
+        cleanDeprecated()
     elif mode == "version":
-        buildDir = 'build'
-        shortFlag = ''
-        for arg in sys.argv[2:]:
-            if arg == '--short':
-                shortFlag = '--short'
-            elif arg.startswith('dir='):
-                buildDir = arg[4:]
-        versionBin = "%s/bin/xmipp_version" % buildDir
-        envSetting = "%s/xmipp.bashrc" % buildDir
-        if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
-            print("Build not found...")
-        else:
-            runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
-                   show_command=False)
+        printVersion()
     elif mode == "get_devel_sources":
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
@@ -1046,6 +1075,7 @@ if __name__ == '__main__':
             if arg.lower() == 'debug':
                 debugFlag = 'debug'
         runJob("scripts/tar.py %s %s %s %s" % (mode, ver, br, debugFlag))
+
 
     else:
         usage(" -> option not found <- \n")

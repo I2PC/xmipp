@@ -220,6 +220,9 @@ def addProg(progName, **kwargs):
         src = kwargs.get('src', [join('applications', 'tests', 'function_tests', progName+".cpp")])
     else:
         src = kwargs.get('src', [join('applications', 'programs', progName)])
+        # ignore folders that do not contain any .cpp file (can happen when e.g. switching branches)
+        if not any(f.endswith(".cpp") for f in os.listdir(src[0])):
+            return
 
     kwargs['src'] = src
     # Add all xmipp libraries just in case

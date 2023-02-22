@@ -27,6 +27,7 @@
 #define LIBRARIES_DATA_DIMENSIONS_H_
 
 #include <ostream>
+#include "data/cuda_compatibility.h"
 
 /**@defgroup Dimensions Dimensions
    @ingroup DataLibrary */
@@ -46,7 +47,8 @@ public:
         return Dimensions(m_x, m_y, m_z, n, m_pad_x, m_pad_y, m_pad_z);
     }
 
-    inline constexpr size_t x() const {
+    CUDA_HD
+    constexpr size_t x() const {
         return m_x;
     }
 
@@ -54,7 +56,8 @@ public:
         return m_x + m_pad_x;
     }
 
-    inline constexpr size_t y() const {
+    CUDA_HD
+    constexpr size_t y() const {
         return m_y;
     }
 
@@ -62,7 +65,8 @@ public:
         return m_y + m_pad_y;
     }
 
-    inline constexpr size_t z() const {
+    CUDA_HD
+    constexpr size_t z() const {
         return m_z;
     }
 
@@ -70,7 +74,8 @@ public:
         return m_z + m_pad_z;
     }
 
-    inline constexpr size_t n() const {
+    CUDA_HD
+    constexpr size_t n() const {
         return m_n;
     }
 
@@ -82,7 +87,8 @@ public:
         return (m_x + m_pad_x) * (m_y + m_pad_y);
     }
 
-    inline constexpr size_t xyz() const {
+    CUDA_HD
+    constexpr size_t xyz() const {
         return m_x * m_y * m_z;
     }
 
@@ -90,7 +96,8 @@ public:
         return (m_x + m_pad_x) * (m_y + m_pad_y) * (m_z + m_pad_z);
     }
 
-    inline constexpr size_t sizeSingle() const {
+    CUDA_HD
+    constexpr size_t sizeSingle() const {
         return xyz();
     }
 
@@ -151,12 +158,21 @@ public:
         return (m_z == 1) && (m_y == 1);
     }
 
+    CUDA_HD
     constexpr bool is2D() const {
         return (m_z == 1) && (m_y != 1);
     }
 
+    CUDA_HD
     constexpr bool is3D() const {
         return (m_z != 1) && (m_y != 1);
+    }
+
+    CUDA_HD
+    inline int getDimAsNumber() const {
+        if (is3D()) return 3;
+        if (is2D()) return 2;
+        return 1;
     }
 
 private:

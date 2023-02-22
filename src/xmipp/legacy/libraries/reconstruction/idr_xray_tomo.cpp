@@ -32,7 +32,6 @@
 void ProgIDRXrayTomo::defineParams()
 {
     addUsageLine("Iterative Data Refinement applied to the reconstruction of X-ray tomography projections.");
-    addSeeAlsoLine("xray_psf_create, xray_import, xray_project");
     //Params
     //    projParam.defineParams(this); // Projection parameters
     addParamsLine("-i <md_file>  : Metadata file with input projections");
@@ -62,12 +61,6 @@ void ProgIDRXrayTomo::defineParams()
     addParamsLine("[--psf <psf_param_file=\"\">] : XRay-Microscope parameters file. If not set, then default parameters are chosen.");
     addParamsLine("[--threshold <thr=0.0>]       :+ Normalized threshold relative to maximum of PSF to reduce the volume into slabs");
     //Examples
-    //    addExampleLine("Generating a set of projections using a projection parameter file and two threads:", false);
-    //    addExampleLine("xmipp_xray_project -i volume.vol --oroot images --params projParams.xmd -s 10 --psf psf_560.xmd --thr 2");
-    //    addExampleLine("Generating a single projection at 45 degrees around X axis:", false);
-    //    addExampleLine("xmipp_xray_project -i volume.vol -o image.spi --angles 45 0 90 -s 10 --psf psf_560.xmd");
-    //    addExampleLine("Generating a single projection at 45 degrees around Y axis with default PSF:", false);
-    //    addExampleLine("xmipp_xray_project -i volume.vol -o image.spi --angles 45 90 90 -s 10");
     //Example projection file
     //    addExampleLine("In the following link you can find an example of projection parameter file:",false);
     //    addExampleLine(" ",false);

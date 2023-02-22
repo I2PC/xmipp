@@ -92,7 +92,7 @@ void ProgProject::defineParams()
 {
     addUsageLine("This program is able to generate a set of projections from a volume. ");
     addUsageLine("++The projection is done using the information directly or from a file.");
-    addSeeAlsoLine("tomo_project, xray_project, phantom_create");
+    addSeeAlsoLine("tomo_project,phantom_create");
 
     addParamsLine("   -i <volume_file>                           : Voxel volume, PDB or description file");
     addParamsLine("   -o <image_file>                            : Output stack or image");

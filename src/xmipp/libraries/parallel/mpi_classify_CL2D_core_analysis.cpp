@@ -228,7 +228,7 @@ void ProgClassifyCL2DCore::computeStableCores()
                        coocurrence.initZeros(NthisClass,NthisClass);
                     } catch (XmippError &e)
                     {
-                       std::cerr << e << std::endl;
+                       std::cerr << e.what() << std::endl;
                        std::cerr << "There is a memory allocation error. Most likely there are too many images in this class ("
                                  << NthisClass << " images). Consider increasing the number of initial and final classes\n";
                        REPORT_ERROR(ERR_MEM_NOTENOUGH,"While computing stable class");
