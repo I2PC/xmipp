@@ -260,8 +260,11 @@ class Config:
     def get_supported_GCC(self):
         # we need GCC with C++17 support
         # https://gcc.gnu.org/projects/cxx-status.html
-        return ['', 11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
-                9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
+        return ['',
+                11.3, 11.2, 11.1, 11,
+                10.4, 10.3, 10.2, 10.1, 10,
+                9.5, 9.4, 9.3, 9.2, 9.1, 9,
+                8.5, 8.4, 8.3, 8.2, 8.1, 8,
                 7.5, 7.4, 7.3, 7.2, 7.1, 7]
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
@@ -494,7 +497,7 @@ class Config:
         # https://gist.github.com/ax3l/9489132
         v = ['12.2', '12.1',
              '11.3', '11.2', '11.1', '11',
-             '10.3', '10.2', '10.1', '10',
+             '10.4', '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
              '8.5', '8.4', '8.3', '8.2', '8.1', '8',
              '7.5', '7.4', '7.3', '7.2', '7.1', '7',
@@ -506,14 +509,14 @@ class Config:
         elif 9.0 <= nvcc_version < 9.2:
             return v[v.index('5.5'):]
         elif 9.2 <= nvcc_version < 10.1:
-            return v[v.index('7.3'):]
+            return v[v.index('7.5'):]
         elif 10.1 <= nvcc_version <= 10.2:
             return v[v.index('8.5'):]
         elif 11.0 <= nvcc_version < 11.1:
-            return v[v.index('9.3'):]
-        elif 11.1 <= nvcc_version < 11.5:
-            return v[v.index('10.3'):]
-        elif 11.5 <= nvcc_version <= 11.8:
+            return v[v.index('9.5'):]
+        elif 11.1 <= nvcc_version <= 11.3:
+            return v[v.index('10.4'):]
+        elif 11.4 <= nvcc_version <= 11.8:
             return v[v.index('11.3'):]
         return []
 
