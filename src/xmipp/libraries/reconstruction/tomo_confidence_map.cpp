@@ -108,9 +108,6 @@ void ProgTomoConfidecenceMap::frequencyToAnalyze(float &freq, float &tail, int i
 {
 	freq = (float) idx/(2*ZSIZE(fullMap));
 	
-	//if idx > (ZSIZE(fullMap)-10)
-
-	//TODO: check tail range
 	tail = ((float) (idx - 3))/(2*ZSIZE(fullMap));
 }
 
@@ -596,9 +593,6 @@ void ProgTomoConfidecenceMap::FDRcontrol(MultidimArray<float> &significanceMap)
 				++n;
 			}
 		}
-
-		// float prevPVal = 1.0;
-		//TODO: check performance indexsort
 
 		long nn = 0;
 		for (auto idx: sort_indexes(pValVector)) 
