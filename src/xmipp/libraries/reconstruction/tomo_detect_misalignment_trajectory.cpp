@@ -728,9 +728,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		// 	sliceVector[i] = (sliceVector[i]-maximum)*(sliceVector[i]-maximum);
 		// }
 
-		std::cout << "Slice vector size: " << sliceVectorSize << std::endl;
-
-
         for(size_t e = 0; e < sliceVectorSize; e++)
         {
             int value = sliceVector[e];
@@ -1332,10 +1329,12 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	{
 		double pValue = binomialTest(resImagesOutOfRange[i], numberOfInputCoords, 0.5);
 
+		#ifdef DEBUG_RESIDUAL_ANALYSIS	
 		std::cout << "-----------------------------numberOfInputCoords" << numberOfInputCoords << std::endl;
 		std::cout << "-----------------------------resImagesOutOfRange[i]" << resImagesOutOfRange[i] << std::endl;
 		std::cout << "-----------------------------pvalue" << pValue << std::endl;
-
+		#endif
+		
 		if (pValue < 0.05 && resImagesOutOfRange[i] > (numberOfInputCoords/2))
 		{
 			std::cout << "IMAGE " << i << " IN TILT-SERIES PRESENTS MISALIGNMENT" << std::endl;
