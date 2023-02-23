@@ -21,7 +21,10 @@
 # ***************************************************************************/
 
 from .align import align
-from .augment_data import augment_data
+from .train import train
+from .populate import populate
 from .generate_alignment_metadata import generate_alignment_metadata
-from .populate_references_fourier import populate_references_fourier
-from .populate_references import populate_references
+
+from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
+from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
+from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector

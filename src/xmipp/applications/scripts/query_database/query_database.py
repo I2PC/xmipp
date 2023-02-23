@@ -41,6 +41,7 @@ def run(experimental_md_path: str,
         output_md_path: str,
         n_rotations : int,
         n_shifts : int,
+        max_psi : float,
         max_shift : float,
         cutoff: float,
         batch_size: int,
@@ -48,62 +49,76 @@ def run(experimental_md_path: str,
         method: str,
         norm: Optional[str],
         drop_na: bool,
-        gpu: list ):
+        device_names: list ):
     
     # Devices
-    if gpu:
-        device = torch.device('cuda', int(gpu[0]))
+    if device_names:
+        devices = list(map(torch.device, device_names))
     else:
-        device = torch.device('cpu')
-    transform_device = device
-    db_device = device
+        devices = [torch.device('cpu')]
+    
+    transform_device = devices[0]
+    db_device = devices[0]
     
     # Read input files
     experimental_md = md.read(experimental_md_path)
     reference_md = md.read(reference_md_path)
-    image_size, _ = md.get_image_size(experimental_md)
+    image_size = md.get_image_size(experimental_md)
+    weights = None
+    if weight_image_path:
+        weights = torch.tensor(image.read(weight_image_path))
+        raise NotImplementedError('Weights not implemented')
     
-    
-    print('Uploading')
+    # Read the database
     db = search.FaissDatabase()
-    #db = search.MedianHashDatabase()
     db.read(index_path)
     db.to_device(db_device)
-
-    # Create the transformer and flattener
-    # according to the transform method
-    dim = db.get_dim()
-    if method == 'fourier':
-        transformer = operators.FourierTransformer2D()
-        flattener = operators.FourierLowPassFlattener(image_size, cutoff, padded_length=dim//2, device=transform_device)
-    elif method == 'dct':
-        transformer = operators.DctTransformer2D(image_size, device=transform_device)
-        flattener = operators.DctLowPassFlattener(image_size, cutoff, padded_length=dim, device=transform_device)
-        
-    # Create the weighter
-    weighter = None
-    if weight_image_path:
-        weights = torch.tensor(image.read(weight_image_path)) if weight_image_path else None
-        weighter = operators.Weighter(weights, flattener, device=transform_device) 
     
     # Create the in-plane transforms
-    angles = torch.linspace(-180, 180, n_rotations+1)[:-1]
-    rotation_transformer = operators.ImageRotator(angles, device=transform_device)
-
-    axis_shifts = torch.linspace(-max_shift, max_shift, n_shifts)
-    shifts = torch.cartesian_prod(axis_shifts, axis_shifts)
-    if method == 'fourier':
-        shift_transformer = operators.FourierShiftFilter(image_size, shifts, flattener, device=transform_device)
+    if max_psi >= 180:
+        angles = torch.linspace(-180.0, +180, n_rotations+1)[:-1]
     else:
-        shift_transformer = operators.ImageShifter(shifts, dim=image_size, device=transform_device)
+        angles = torch.linspace(-max_psi, +max_psi, n_rotations)
     
+    max_shift_x = max_shift*image_size[0]
+    max_shift_y = max_shift*image_size[1]
+    shifts_x = torch.linspace(-max_shift_x, +max_shift_x, n_shifts)
+    shifts_y = torch.linspace(-max_shift_y, +max_shift_y, n_shifts)
+    shifts = torch.cartesian_prod(shifts_x, shifts_y)
+    n_transform = len(angles) * len(shifts)
+    print(f'Performing {n_transform} transformations to each reference image')
     
-    # Create the datasets
+    # Create the transformer
+    flattener = operators.FourierLowPassFlattener(
+        dim=image_size,
+        cutoff=cutoff,
+        exclude_dc=True,
+        device=transform_device
+    )
+    reference_transformer = alignment.FourierInPlaneTransformGenerator(
+        dim=image_size,
+        angles=angles,
+        shifts=shifts,
+        flattener=flattener,
+        weighter=None, # TODO
+        norm=norm,
+        device=transform_device
+    )
+    experimental_transformer = alignment.FourierInPlaneTransformCorrector(
+        dim=image_size,
+        flattener=flattener,
+        weighter=None, # TODO
+        norm=norm,
+        device=transform_device
+    )
+    
+    # Create the reference dataset
     reference_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
     reference_dataset = image.torch_utils.Dataset(reference_paths)
-    
     experimental_paths = list(map(image.parse_path, experimental_md[md.IMAGE]))
     experimental_dataset = image.torch_utils.Dataset(experimental_paths)
+    n_total = len(reference_dataset) * n_transform
+    print(f'In total we will consider {n_total} transformed references')
     
     # Create the loaders
     pin_memory = transform_device.type == 'cuda'
@@ -112,78 +127,46 @@ def run(experimental_md_path: str,
         batch_size=batch_size,
         pin_memory=pin_memory
     )
-
+    reference_uploader = map(lambda x : x.to(transform_device, non_blocking=True), reference_loader)
+    reference_batch_iterator = iter(reference_transformer(reference_uploader))
     
-    # Create the generator
-    if method == 'fourier':
-        reference_generator = generators.fourier_image_transform_generator(
-            dataset = reference_loader,
-            fourier = transformer,
-            flattener = flattener,
-            rotations = rotation_transformer,
-            shifts = shift_transformer,
-            weights = weighter,
-            norm = norm,
-            device = transform_device
+    alignment_md = None
+    cum_transform_md = experimental_md[[]]# TODO consider local alignment
+    cum_transform_md_batches = [cum_transform_md[i:i+batch_size] for i in range(0, len(experimental_md), batch_size)] 
+    for i in range(1):
+        print('Uploading')
+        projection_md = alignment.populate(
+            db,
+            dataset=reference_batch_iterator
         )
-        
-    else:
-        pass # TODO
     
-    populate_db = alignment.populate_references(
-        db=db, 
-        dataset=reference_generator, 
-        max_size=max_size
-    )
-    
-    result_md = None
-    for projection_md in populate_db:
-        print(f'Database contains {db.get_item_count()} entries')
-        
         experimental_loader = torch.utils.data.DataLoader(
             experimental_dataset,
             batch_size=batch_size,
             pin_memory=pin_memory
         )
-        
-        if method == 'fourier':
-            experimental_generator = generators.fourier_generator(
-                dataset = experimental_loader,
-                fourier = transformer,
-                flattener = flattener,
-                weights = weighter,
-                norm = norm,
-                device = transform_device
-            )
-        else:
-            pass
-        
+        experimental_uploader = map(lambda x : x.to(transform_device, non_blocking=True), experimental_loader)
+
         print('Aligning')
         matches = alignment.align(
-            db=db, 
-            dataset=experimental_generator,
-            k=1,
-            device=transform_device,
+            db,
+            experimental_transformer(zip(experimental_uploader, cum_transform_md_batches)),
+            k=1
         )
-        assert(len(matches.distances) == len(experimental_md))
-        assert(len(matches.indices) == len(experimental_md))
-        
-        result_md = alignment.generate_alignment_metadata(
+    
+        alignment_md = alignment.generate_alignment_metadata(
             experimental_md=experimental_md,
             reference_md=reference_md,
             projection_md=projection_md,
             matches=matches,
-            output_md=result_md
+            md_cum_transforms=cum_transform_md,
+            output_md=alignment_md
         )
     
-    
     if drop_na:
-        result_md.dropna(inplace=True)
+        alignment_md.dropna(inplace=True)
     
-    # Denormalize shift
-    result_md[[md.SHIFT_X, md.SHIFT_Y]] *= image_size
-    
-    md.write(result_md, output_md_path)
+    md.write(alignment_md, output_md_path)
 
 
 
@@ -200,12 +183,13 @@ if __name__ == '__main__':
     parser.add_argument('--rotations', type=int, required=True)
     parser.add_argument('--shifts', type=int, required=True)
     parser.add_argument('--max_shift', type=float, required=True)
+    parser.add_argument('--max_psi', type=float, default=180.0)
     parser.add_argument('--max_frequency', type=float, required=True)
-    parser.add_argument('--batch', type=int, default=16384)
+    parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
     parser.add_argument('--dropna', action='store_true')
-    parser.add_argument('--gpu', nargs='*')
+    parser.add_argument('--devices', nargs='*')
     parser.add_argument('--max_size', type=int, default=int(2e6))
 
     # Parse
@@ -221,11 +205,12 @@ if __name__ == '__main__':
         n_rotations = args.rotations,
         n_shifts = args.shifts,
         max_shift = args.max_shift,
+        max_psi = args.max_psi,
         cutoff = args.max_frequency,
         batch_size = args.batch,
         max_size = args.max_size,
         method = args.method,
         norm = args.norm,
         drop_na = args.dropna,
-        gpu = args.gpu
+        device_names = args.devices
     )

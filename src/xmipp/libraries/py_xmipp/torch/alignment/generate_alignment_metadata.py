@@ -31,8 +31,8 @@ from .. import search
 
 def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,
-                           match_distances: torch.Tensor,
-                           match_indices: torch.IntTensor,
+                           match_distances: np.ndarray,
+                           match_indices: np.ndarray,
                            md_cum_transforms: Optional[pd.DataFrame] = None) -> pd.DataFrame:
 
     REFERENCE_COLUMNS = [
@@ -60,12 +60,12 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
 
     return result
 
-def _update_alignment_metadata( output_md: pd.DataFrame,
-                                reference_md: pd.DataFrame,
-                                projection_md: pd.DataFrame,
-                                match_distances: torch.Tensor,
-                                match_indices: torch.IntTensor,
-                                md_cum_transforms: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
+def _update_alignment_metadata(output_md: pd.DataFrame,
+                               reference_md: pd.DataFrame,
+                               projection_md: pd.DataFrame,
+                               match_distances: np.ndarray,
+                               match_indices: np.ndarray,
+                               md_cum_transforms: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     # Select the rows to be updated
     selection = match_distances < output_md[md.COST]
     
@@ -89,8 +89,8 @@ def _update_alignment_metadata( output_md: pd.DataFrame,
 def _create_alignment_metadata(experimental_md: pd.DataFrame,
                                reference_md: pd.DataFrame,
                                projection_md: pd.DataFrame,
-                               match_distances: torch.Tensor,
-                               match_indices: torch.IntTensor,
+                               match_distances: np.ndarray,
+                               match_indices: np.ndarray,
                                md_cum_transforms: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     
     # Use the first match
@@ -103,7 +103,7 @@ def _create_alignment_metadata(experimental_md: pd.DataFrame,
     )
     
     # Add the alignment consensus to the output
-    output_md = experimental_md.drop(columns=alignment_md.columns)
+    output_md = experimental_md.drop(columns=alignment_md.columns, errors='ignore')
     output_md = output_md.join(alignment_md)
     
     # Reorder columns for more convenient reading
@@ -122,7 +122,6 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
     
     # Rename the reference image column to make it compatible 
     # with the resulting MD. (No duplicated IMAGE column)
-    # Also add a invalid reference element
     reference_md = reference_md.rename(columns={
         md.IMAGE: md.REFERENCE_IMAGE,
     })

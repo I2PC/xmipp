@@ -23,16 +23,12 @@
 from typing import Optional, Iterable
 import torch
 
-from .. import operators
-from .. import utils
 from .. import search
-
         
 
 def align(db: search.Database, 
           dataset: Iterable[torch.Tensor],
-          k: int,
-          device: Optional[torch.device] = None ) -> search.SearchResult:
+          k: int ) -> search.SearchResult:
 
     database_device = db.get_input_device()
 
@@ -40,8 +36,6 @@ def align(db: search.Database,
     distance_vectors = []
 
     for vectors in dataset:
-        vectors = vectors.to(device)
-        
         # Search them
         s = db.search(vectors.to(database_device), k=k)
         

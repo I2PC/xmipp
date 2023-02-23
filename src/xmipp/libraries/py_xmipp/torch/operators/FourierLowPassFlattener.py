@@ -24,11 +24,11 @@ from typing import Optional, Sequence
 import torch
 
 from .SpectraFlattener import SpectraFlattener
-from ..utils import nfft_freq2
+from ..fourier import rfftnfreq
 
 class FourierLowPassFlattener(SpectraFlattener):
     def __init__(   self, 
-                    dim: int, 
+                    dim: Sequence[int], 
                     cutoff: float, 
                     exclude_dc: bool = True,
                     padded_length: Optional[int] = None,
@@ -41,16 +41,17 @@ class FourierLowPassFlattener(SpectraFlattener):
         )
     
     def _compute_mask(  self, 
-                        dim: int, 
+                        dim: Sequence[int], 
                         cutoff: float,
                         exclude_dc: bool ) -> torch.Tensor:
         
         # Compute the frequency grid
-        freq2 = nfft_freq2((dim, )*2)
+        frequency_grid = rfftnfreq(dim)
+        frequencies2 = torch.sum(frequency_grid**2, dim=0)
         
         # Compute the mask
         cutoff2 = cutoff ** 2
-        mask = freq2.less_equal(cutoff2)
+        mask = frequencies2.less_equal(cutoff2)
         if exclude_dc:
             mask[0, 0] = False
         

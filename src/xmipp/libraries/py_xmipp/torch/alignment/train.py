@@ -20,6 +20,26 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .TransformedImages import TransformedImages
-from .fourier_generator import fourier_generator
-from .fourier_image_transform_generator import fourier_image_transform_generator
+from typing import Optional, Iterable
+import torch
+
+from .. import search
+
+
+def train(db: search.Database, 
+          dataset: Iterable[torch.Tensor],
+          scratch: torch.Tensor ):
+
+    # Write
+    start = 0
+    for vectors in dataset:
+        end = start + len(vectors)
+        
+        # Write 
+        scratch[start:end,:] = vectors.to(scratch.device, non_blocking=True)
+
+        # Setup next iteration
+        start = end
+
+    # Train the database
+    db.train(scratch[:start])

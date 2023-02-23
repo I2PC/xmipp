@@ -20,12 +20,11 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import NamedTuple, Optional
-
+from typing import NamedTuple
 import torch
 
-class TransformedImages(NamedTuple):
-    coefficients: torch.Tensor
+class InPlaneTransformBatch(NamedTuple):
     indices: torch.IntTensor
-    angle: Optional[float] = None
-    shift: Optional[torch.Tensor] = None
+    vectors: torch.Tensor
+    shift: torch.Tensor
+    angle: float

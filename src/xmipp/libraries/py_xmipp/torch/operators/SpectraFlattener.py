@@ -31,16 +31,27 @@ class SpectraFlattener:
         self._mask = mask
         self._indices = self._calculate_indices(mask, device=device)
         self._length = padded_length or len(self._indices)
-    
+
     def __call__(   self,
                     input: torch.Tensor,
                     out: Optional[torch.Tensor] = None) -> torch.Tensor:
         
-        # Ensure output is defined
-        out = self._alloc_output(input, out=out)
+        # Allocate the output
+        flatten_start_dim = -len(self.get_mask().shape)
+        batch_shape = input.shape[:flatten_start_dim]
+        output_shape = batch_shape + (self.get_length(), )
+        out = torch.empty(
+            output_shape, 
+            device=input.device, 
+            dtype=input.dtype,
+            out=out    
+        )
+        
+        if input.shape[flatten_start_dim:] != self.get_mask().shape:
+            raise IndexError('Input has incorrect size')
         
         # Flatten in the same dims as the mask
-        flat_input = torch.flatten(input, start_dim=-len(self.get_mask().shape))
+        flat_input = torch.flatten(input, start_dim=flatten_start_dim)
 
         # Write to the output
         indices = self.get_indices()
@@ -65,17 +76,3 @@ class SpectraFlattener:
         flat_mask = torch.flatten(mask)
         indices = torch.argwhere(flat_mask)[:,0]
         return indices.to(device)
-    
-    def _alloc_output(self,
-                      input: torch.Tensor,
-                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-        
-        batch_shape = input.shape[:-2]
-        output_shape = batch_shape + (self.get_length(), )
-        if out is None:
-            out = torch.empty(output_shape, device=input.device, dtype=input.dtype)
-        else:
-            out.resize_(output_shape)
-            
-        return out
-        

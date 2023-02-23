@@ -22,68 +22,85 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
-import torch
+from typing import Optional, Iterable
 import argparse
 import math
+import torch
 
 import xmippPyModules.torch.image as image
+import xmippPyModules.torch.operators as operators
 import xmippPyModules.torch.search as search
 import xmippPyModules.torch.alignment as alignment
-import xmippPyModules.torch.operators as operators
 import xmippPyModules.torch.metadata as md
 
-
+def _repeat_each_item(iterable: Iterable, times: int):
+    for item in iterable:
+        for _ in range(times):
+            yield item
 
 def run(reference_md_path: str, 
         weight_image_path: Optional[str],
         index_path: str,
         recipe: str,
         max_shift : float,
-        n_training: int,
+        max_psi: float,
         cutoff: float,
         method: str,
         norm: Optional[str],
-        gpu: list,
+        n_training: int,
+        n_batch: int,
+        device_names: list,
         scratch_path: Optional[str]):
    
     # Devices
-    if gpu:
-        device = torch.device('cuda', int(gpu[0]))
+    if device_names:
+        devices = list(map(torch.device, device_names))
     else:
-        device = torch.device('cpu')
+        devices = [torch.device('cpu')]
 
-    transform_device = device
-    db_device = device
+    transform_device = devices[0]
+    db_device = devices[0]
     
     # Read input files
     reference_md = md.read(reference_md_path)
-    image_size, _ = md.get_image_size(reference_md)
-    
-    # Create the transformer and flattener
-    # according to the transform method
-    if method == 'fourier':
-        transformer = operators.FourierTransformer2D()
-        flattener = operators.FourierLowPassFlattener(image_size, cutoff, device=transform_device)
-    elif method == 'dct':
-        transformer = operators.DctTransformer2D(image_size, device=transform_device)
-        flattener = operators.DctLowPassFlattener(image_size, cutoff, device=transform_device)
-        
-    # Create the weighter
-    weighter = None
+    image_size = md.get_image_size(reference_md)
+    weights = None
     if weight_image_path:
-        weights = torch.tensor(image.read(weight_image_path)) if weight_image_path else None
-        weighter = operators.Weighter(weights, flattener, device=transform_device) 
+        weights = torch.tensor(image.read(weight_image_path))
+        raise NotImplementedError('Weights not implemented')
+
+    # Create the transformer
+    flattener = operators.FourierLowPassFlattener(
+        dim=image_size,
+        cutoff=cutoff,
+        exclude_dc=True,
+        device=transform_device
+    )
+    transformer = alignment.FourierInPlaneTransformAugmenter(
+        max_psi=max_psi,
+        max_shift=max_shift,
+        flattener=flattener,
+        weighter=None, # TODO
+        norm=norm
+    )
     
-    # Consider complex numbers
-    dim = flattener.get_length()
-    if transformer.has_complex_output():
-        dim *= 2
+    # Create the image loader
+    image_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
+    dataset = image.torch_utils.Dataset(image_paths)
+    loader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=n_batch,
+        pin_memory=transform_device.type=='cuda'
+    )
+    
+    # Create the image transformer
+    n_repetitions = n_training // len(dataset)
+    n_training = n_repetitions * len(dataset)
     
     # Create the DB to store the data
+    dim = flattener.get_length()*2
     print(f'Data dimensions: {dim}')
     db = search.FaissDatabase(dim, recipe)
-    #db = search.MedianHashDatabase(dim)
     db.to_device(db_device)
     
     # Create the storage for the training set.
@@ -96,28 +113,14 @@ def run(reference_md_path: str,
         training_set = training_set.view(training_set_shape)
     else:
         training_set = torch.empty(training_set_shape, device=torch.device('cpu'))
-    
-    # Do some work
-    print('Augmenting data')
-    image_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
-    dataset = image.torch_utils.Dataset(image_paths)
-    training_set = alignment.augment_data(
+
+    # Run the training
+    uploader = map(lambda x : x.to(transform_device, non_blocking=True), loader)
+    alignment.train(
         db,
-        dataset=dataset,
-        transformer=transformer,
-        flattener=flattener,
-        weighter=weighter,
-        norm=norm,
-        count=n_training,
-        max_rotation=180,
-        max_shift=max_shift,
-        batch_size=8192,
-        transform_device=transform_device,
-        out=training_set
+        dataset=transformer(uploader, times=n_repetitions),
+        scratch=training_set
     )
-    
-    print('Training')
-    db.train(training_set)
     
     # Write to disk
     db.to_device(torch.device('cpu'))
@@ -134,13 +137,14 @@ if __name__ == '__main__':
     parser.add_argument('--recipe', type=str, required=True)
     parser.add_argument('--weights', type=str)
     parser.add_argument('--max_shift', type=float, required=True)
-    parser.add_argument('--training', type=int, default=int(4e6))
-    parser.add_argument('--size', type=int, default=int(2e6))
+    parser.add_argument('--max_psi', type=float, default=180.0)
     parser.add_argument('--max_frequency', type=float, required=True)
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
-    parser.add_argument('--gpu', nargs='*')
-    parser.add_argument('--scratch_path', type=str)
+    parser.add_argument('--training', type=int, default=int(4e6))
+    parser.add_argument('--batch', type=int, default=int(1024))
+    parser.add_argument('--device', nargs='*')
+    parser.add_argument('--scratch', type=str)
 
     # Parse
     args = parser.parse_args()
@@ -152,10 +156,12 @@ if __name__ == '__main__':
         recipe = args.recipe,
         weight_image_path = args.weights,
         max_shift = args.max_shift,
-        n_training = args.training,
+        max_psi = args.max_psi,
         cutoff = args.max_frequency,
         method = args.method,
         norm = args.norm,
-        gpu = args.gpu,
-        scratch_path=args.scratch_path
+        n_training = args.training,
+        n_batch = args.batch,
+        device_names = args.device,
+        scratch_path=args.scratch
     )
