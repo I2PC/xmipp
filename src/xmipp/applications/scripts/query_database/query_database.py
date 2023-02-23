@@ -25,12 +25,12 @@
 from typing import Optional
 import torch
 import argparse
+import itertools
 
 import xmippPyModules.torch.image as image
 import xmippPyModules.torch.search as search
 import xmippPyModules.torch.alignment as alignment
 import xmippPyModules.torch.operators as operators
-import xmippPyModules.torch.generators as generators
 import xmippPyModules.torch.metadata as md
 
 
@@ -48,6 +48,8 @@ def run(experimental_md_path: str,
         max_size: int,
         method: str,
         norm: Optional[str],
+        local_psi: bool,
+        local_shift: bool,
         drop_na: bool,
         device_names: list ):
     
@@ -131,14 +133,23 @@ def run(experimental_md_path: str,
     reference_batch_iterator = iter(reference_transformer(reference_uploader))
     
     alignment_md = None
-    cum_transform_md = experimental_md[[]]# TODO consider local alignment
-    cum_transform_md_batches = [cum_transform_md[i:i+batch_size] for i in range(0, len(experimental_md), batch_size)] 
-    for i in range(1):
+    n_batches_per_iteration = max(1, max_size // min(batch_size, len(reference_dataset)))
+    local_columns = []
+    if local_psi:
+        local_columns.append(md.ANGLE_PSI)
+    if local_shift:
+        local_columns += [md.SHIFT_X, md.SHIFT_Y]
+    local_transform_md = experimental_md[local_columns]
+    local_transform_md_batches = [local_transform_md[i:i+batch_size] for i in range(0, len(experimental_md), batch_size)] 
+    while True:
         print('Uploading')
         projection_md = alignment.populate(
             db,
-            dataset=reference_batch_iterator
+            dataset=itertools.islice(reference_batch_iterator, n_batches_per_iteration)
         )
+        
+        if len(projection_md) == 0:
+            break
     
         experimental_loader = torch.utils.data.DataLoader(
             experimental_dataset,
@@ -150,7 +161,7 @@ def run(experimental_md_path: str,
         print('Aligning')
         matches = alignment.align(
             db,
-            experimental_transformer(zip(experimental_uploader, cum_transform_md_batches)),
+            experimental_transformer(zip(experimental_uploader, local_transform_md_batches)),
             k=1
         )
     
@@ -159,7 +170,7 @@ def run(experimental_md_path: str,
             reference_md=reference_md,
             projection_md=projection_md,
             matches=matches,
-            md_cum_transforms=cum_transform_md,
+            local_transform_md=local_transform_md,
             output_md=alignment_md
         )
     
@@ -188,6 +199,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
+    parser.add_argument('--local_psi', action='store_true')
+    parser.add_argument('--local_shift', action='store_true')
     parser.add_argument('--dropna', action='store_true')
     parser.add_argument('--devices', nargs='*')
     parser.add_argument('--max_size', type=int, default=int(2e6))
@@ -210,6 +223,8 @@ if __name__ == '__main__':
         batch_size = args.batch,
         max_size = args.max_size,
         method = args.method,
+        local_psi = args.local_psi,
+        local_shift = args.local_shift,
         norm = args.norm,
         drop_na = args.dropna,
         device_names = args.devices

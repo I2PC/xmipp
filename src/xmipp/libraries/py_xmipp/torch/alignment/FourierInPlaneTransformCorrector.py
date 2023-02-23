@@ -79,11 +79,10 @@ class FourierInPlaneTransformCorrector:
                 angles = batch_md[md.ANGLE_PSI]
                 
                 # Individually rotate. #FIXME very slow
-                rotated_images = torch.empty_like(batch_images, out=rotated_images)
-                for angle, image, rotated_image in zip(angles, batch_images, rotated_images):
-                    rotated_image[None] = F.rotate(image[None], angle=angle, interpolation=self.interpolation)
+                rotated_images = torch.empty_like(batch_images)
+                for angle, image, rotated_image in zip(-angles, batch_images, rotated_images):
+                    rotated_image[None] = F.rotate(image[None], angle=float(angle), interpolation=self.interpolation)
                     
-                raise NotImplementedError('PSI correction is not implemented') # TODO test and remove
             else:
                 # No need for rotation
                 rotated_images = batch_images
@@ -105,10 +104,14 @@ class FourierInPlaneTransformCorrector:
                 )
             
             if md.SHIFT_X in batch_md.columns and md.SHIFT_Y in batch_md.columns:
-                shifts = torch.tensor(batch_md[md.SHIFT_X, md.SHIFT_Y])
+                shifts = torch.tensor(
+                    batch_md[[md.SHIFT_X, md.SHIFT_Y]].to_numpy(), 
+                    dtype=self.frequencies.dtype,
+                    device=self.frequencies.device
+                )
                 shift_filters = fourier.time_shift_filter(shifts, self.frequencies, out=shift_filters)
                 shifted_rotated_bands = torch.mul(rotated_bands, shift_filters, out=shifted_rotated_bands)
-                raise NotImplementedError('SHIFT correction is not implemented') # TODO test and remove
+
             else:
                 # No need for shift correction
                 shifted_rotated_bands = rotated_bands

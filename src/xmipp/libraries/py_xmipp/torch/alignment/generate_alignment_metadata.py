@@ -33,7 +33,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,
                            match_distances: np.ndarray,
                            match_indices: np.ndarray,
-                           md_cum_transforms: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+                           local_transform_md: Optional[pd.DataFrame] = None) -> pd.DataFrame:
 
     REFERENCE_COLUMNS = [
         md.ANGLE_ROT, 
@@ -55,8 +55,8 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
     result.drop(md.REF, axis=1, inplace=True)
 
     # Accumulate transforms
-    if md_cum_transforms is not None:
-        result[md_cum_transforms.columns] += md_cum_transforms
+    if local_transform_md is not None:
+        result[local_transform_md.columns] += local_transform_md
 
     return result
 
@@ -65,12 +65,12 @@ def _update_alignment_metadata(output_md: pd.DataFrame,
                                projection_md: pd.DataFrame,
                                match_distances: np.ndarray,
                                match_indices: np.ndarray,
-                               md_cum_transforms: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
+                               local_transform_md: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     # Select the rows to be updated
     selection = match_distances < output_md[md.COST]
     
-    if md_cum_transforms is not None:
-        md_cum_transforms = md_cum_transforms[selection]
+    if local_transform_md is not None:
+        local_transform_md = local_transform_md[selection]
     
     # Do an alignment for the selected rows
     alignment_md = _ensemble_alignment_md(
@@ -78,7 +78,7 @@ def _update_alignment_metadata(output_md: pd.DataFrame,
         projection_md=projection_md,
         match_distances=match_distances[selection],
         match_indices=match_indices[selection],
-        md_cum_transforms=md_cum_transforms
+        local_transform_md=local_transform_md
     )
     
     # Update output
@@ -91,7 +91,7 @@ def _create_alignment_metadata(experimental_md: pd.DataFrame,
                                projection_md: pd.DataFrame,
                                match_distances: np.ndarray,
                                match_indices: np.ndarray,
-                               md_cum_transforms: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
+                               local_transform_md: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     
     # Use the first match
     alignment_md = _ensemble_alignment_md(
@@ -99,7 +99,7 @@ def _create_alignment_metadata(experimental_md: pd.DataFrame,
         projection_md=projection_md, 
         match_distances=match_distances, 
         match_indices=match_indices,
-        md_cum_transforms=md_cum_transforms
+        local_transform_md=local_transform_md
     )
     
     # Add the alignment consensus to the output
@@ -117,7 +117,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
                                 reference_md: pd.DataFrame,
                                 projection_md: pd.DataFrame,
                                 matches: search.SearchResult,
-                                md_cum_transforms: Optional[pd.DataFrame] = None,
+                                local_transform_md: Optional[pd.DataFrame] = None,
                                 output_md: Optional[pd.DataFrame] = None) -> pd.DataFrame:
     
     # Rename the reference image column to make it compatible 
@@ -139,7 +139,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
             projection_md=projection_md,
             match_distances=match_distances,
             match_indices=match_indices,
-            md_cum_transforms=md_cum_transforms
+            local_transform_md=local_transform_md
         )
     else:
         output_md = _update_alignment_metadata(
@@ -148,7 +148,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
             projection_md=projection_md,
             match_distances=match_distances,
             match_indices=match_indices,
-            md_cum_transforms=md_cum_transforms
+            local_transform_md=local_transform_md
         )
     
     assert(output_md is not None)
