@@ -7,6 +7,7 @@ import os
 import sys
 import xmippLib
 from time import time
+from scipy.ndimage import shift, rotate
 
 maxSize = 400
 
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     fnModel = sys.argv[2]
     mode = sys.argv[3]
     gpuId = sys.argv[4]
+    outputDir = sys.argv[5]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -91,10 +93,11 @@ if __name__ == "__main__":
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
                     Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                    #Xexp[i,] = shift(Xexp[i, ], (-30, 30, 0), order=1, mode='reflect')
             return Xexp
 
 
-    def produce_output(mdExp, mode, numIm, Y):
+    def produce_output(mdExp, mode, numIm, Y, fnImgs):
 
         print(mode)
         ID = 0
@@ -118,7 +121,7 @@ if __name__ == "__main__":
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
             ID += 1
 
-    print("----------------------------------------ahkbrvfeiwbfc", flush=True)
+
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
 
     mdExp = xmippLib.MetaData(fnXmdExp)
@@ -133,6 +136,7 @@ if __name__ == "__main__":
     tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
     psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
+
     if mode == "Shift":
         labels = []
         for x, y in zip(shiftX, shiftY):
@@ -142,108 +146,86 @@ if __name__ == "__main__":
         for r, t, p in zip(rots, tilts, psis):
             labels.append(np.array((r, t, p)))
 
+
     def custom_loss_function(y_true, y_pred):
         d = tf.abs(y_true - y_pred)
-        d = tf.Print(d, [d], "Inside loss function")
         return tf.reduce_mean(d, axis=-1)
 
 
     start_time = time()
-    print("----Loading model----", flush=True)
-    print(fnModel, flush=True)
 
     model = load_model(fnModel, compile=False)
     model.compile(loss=custom_loss_function, optimizer='adam')
-    print("----model loaded!----", flush=True)
+    # model.compile(optimizer='adam')
+
     manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
 
-
-    produce_output(mdExp, mode, len(fnImgs), Y)
-
+    produce_output(mdExp, mode, len(fnImgs), Y, fnImgs)
 
     print(mdExp)
-    print("-----------Test values------------")
+
     if mode == "Shift":
-        mdExp.write("shift_results.xmd")
+        mdExp.write(os.path.join(outputDir, "shift_results.xmd"))
     elif mode == "Angular":
-        mdExp.write("ang_results.xmd")
+        mdExp.write(os.path.join(outputDir, "ang_results.xmd"))
+
+
+    def calculate_shift_error(pred, test):
+        error = np.zeros(len(pred))
+        for i in range(len(pred)):
+            error[i] = np.sum(np.abs(pred[i] - test[i]))
+        print_results_stats(mode, error)
+        return error
+
+
+    def calculate_angular_error(pred, test):
+        pred_norm = norm(pred, axis=-1)
+        pred_degree = np.zeros(len(pred_norm))
+        error = np.zeros(len(pred_norm))
+        for i in range(len(pred_norm)):
+            pred[i,] = pred[i,] / pred_norm[i]
+            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
+            error[i] = np.min(
+                np.array([np.abs(pred_degree[i] - test[i]), np.abs(np.abs(pred_degree[i] - test[i]) - 360)]))
+        return error
+
+
+    def print_results_stats(elem, err):
+        print("Prediction results of", elem, flush=True)
+        maxAbsError = np.max(err)
+        meanAbsError = np.mean(err)
+        medianAbsError = np.median(err)
+        print("Max Absolute Test Error", maxAbsError)
+        print("Mean Absolute Test Error", meanAbsError)
+        print("Median Absolute Test Error", medianAbsError)
+
 
     if mode == "Shift":
         print("Shift")
         pred = Y
         test = labels
-
-        pred_norm = norm(pred, axis=-1)
-        pred_degree = np.zeros(len(pred_norm))
-        error = np.zeros(len(pred_norm))
-        for i in range(len(pred)):
-            error[i] = np.sum(np.square(pred[i]-test[i]))
-        maxAbsError = np.max(error)
-        meanAbsError = np.mean(error)
-        medianAbsError = np.median(error)
-        print("Max Absolute Test Error", maxAbsError)
-        print("Mean Absolute Test Error", meanAbsError)
-        print("Median Absolute Test Error", medianAbsError)
+        error = calculate_shift_error(pred, test)
+        print_results_stats("Shift", error)
     else:
-        print("Rot:", flush=True)
-        pred = Y[: , 0:2]
+        # Rot
+        pred = Y[:, 0:2]
         test = [i[0] for i in labels]
-        pred_norm = norm(pred, axis=-1)
-        pred_degree = np.zeros(len(pred_norm))
-        error = np.zeros(len(pred_norm))
-        for i in range(len(pred_norm)):
-            pred[i,] = pred[i,]/pred_norm[i]
-            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
-            error[i] = np.min(np.array([np.abs(pred_degree[i]-test[i]), np.abs(np.abs(pred_degree[i]-test[i])-360)]))
-        maxAbsError = np.max(error)
-        meanAbsError = np.mean(error)
-        medianAbsError = np.median(error)
-        print("Max Absolute Test Error", maxAbsError)
-        print("Mean Absolute Test Error", meanAbsError)
-        print("Median Absolute Test Error", medianAbsError)
-
-    if mode == "Shift":
-        print("Shift")
-    else:
-        print("Tilt:", flush=True)
-        pred = Y[: , 2:4]
+        error = calculate_angular_error(pred, test)
+        print_results_stats("Rot", error)
+        # tilt
+        pred = Y[:, 2:4]
         test = [i[1] for i in labels]
-        pred_norm = norm(pred, axis=-1)
-        pred_degree = np.zeros(len(pred_norm))
-        error = np.zeros(len(pred_norm))
-        for i in range(len(pred_norm)):
-            pred[i,] = pred[i,] / pred_norm[i]
-            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
-            error[i] = np.min(
-                np.array([np.abs(pred_degree[i] - test[i]), np.abs(np.abs(pred_degree[i] - test[i]) - 360)]))
-        maxAbsError = np.max(error)
-        meanAbsError = np.mean(error)
-        medianAbsError = np.median(error)
-        print("Max Absolute Test Error", maxAbsError)
-        print("Mean Absolute Test Error", meanAbsError)
-        print("Median Absolute Test Error", medianAbsError)
+        error = calculate_angular_error(pred, test)
+        print_results_stats("Tilt", error)
 
-    if mode == "Shift":
-        print("Shift")
-    else:
-        print("Psi:", flush=True)
-        pred = Y[: , 4:6]
+        pred = Y[:, 4:6]
         test = [i[2] for i in labels]
-        pred_norm = norm(pred, axis=-1)
-        pred_degree = np.zeros(len(pred_norm))
-        error = np.zeros(len(pred_norm))
-        for i in range(len(pred_norm)):
-            pred[i,] = pred[i,] / pred_norm[i]
-            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
-            error[i] = np.min(
-                np.array([np.abs(pred_degree[i] - test[i]), np.abs(np.abs(pred_degree[i] - test[i]) - 360)]))
-        maxAbsError = np.max(error)
-        meanAbsError = np.mean(error)
-        medianAbsError = np.median(error)
-        print("Max Absolute Test Error", maxAbsError)
-        print("Mean Absolute Test Error", meanAbsError)
-        print("Median Absolute Test Error", medianAbsError)
+        error = calculate_angular_error(pred, test)
+        print_results_stats("Psi", error)
+
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
+
+

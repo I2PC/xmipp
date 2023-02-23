@@ -9,10 +9,8 @@ import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
 
-print("------------------------------------------------", flush=True)
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
@@ -23,6 +21,7 @@ if __name__ == "__main__":
     numEpochs = int(sys.argv[5])
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
+
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
@@ -45,27 +44,17 @@ if __name__ == "__main__":
 
         def __init__(self, fnImgs, labels, mode, sigma, batch_size, dim, readInMemory):
             'Initialization'
-            print("----------Initialization---------")
             self.fnImgs = fnImgs
-            print("number of fnImgs:", len(fnImgs))
             self.labels = labels
-            print("number of labels", len(labels))
             self.mode = mode
-            print("mode:", mode)
             self.sigma = sigma
-            print("sigma:", sigma)
             self.batch_size = batch_size
             if self.batch_size > len(self.fnImgs):
                 self.batch_size = len(self.fnImgs)
-            print("batch_size:", batch_size)
             self.dim = dim
-            print("dim:", dim)
             self.readInMemory = readInMemory
-            print("readInMemory:", readInMemory)
             self.on_epoch_end()
-            print("on_epoch_end:", self.on_epoch_end())
 
-            print("-----------Reading data in memory-----------")
             # Read all data in memory
             if self.readInMemory:
                 self.Xexp = np.zeros((len(self.labels), self.dim, self.dim, 1), dtype=np.float64)
@@ -87,61 +76,53 @@ if __name__ == "__main__":
             for i in range(int(self.batch_size)):
                 list_IDs_temp.append(indexes[i])
             # Generate data
-
             Xexp, y = self.__data_generation(list_IDs_temp)
 
             return Xexp, y
 
         def on_epoch_end(self):
             'Updates indexes after each epoch'
-            print("on_epoch_end", flush=True)
             self.indexes = [i for i in range(len(self.labels))]
             np.random.shuffle(self.indexes)
 
         def __data_generation(self, list_IDs_temp):
-            'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
-            # Initialization
-            # Xexp = np.zeros((self.batch_size, self.dim, self.dim, 1), dtype=np.float64)
+            'Generates data containing batch_size samples'
             yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
-
-            # if mode == 'Shift':
-            #     y = np.empty((self.batch_size, 2), dtype=np.float64)
-            # else:
-            #     y = np.empty((self.batch_size, 6), dtype=np.float64)
-
-            ################################################
-            def get_image(fnImage):
-                return np.reshape(xmippLib.Image(fnImage).getData(), (self.dim, self.dim, 1))
-
+            # Functions to handle the data
+            def get_image(fn_image):
+                img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
+                return (img - np.mean(img)) / np.std(img)
             def rotate_image(img, angle):
                 return rotate(img, angle, order=1, mode='reflect', reshape=False)
-
             def shift_image(img, shiftx, shifty):
                 return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
-
-            def get_angles_radians(angles, rAngle):
+            def get_angles_radians(angles, angle):
                 return np.array((math.sin(angles[0]), math.cos(angles[0]), math.sin(angles[1]),
-                                 math.cos(angles[1]), math.sin(angles[2] + rAngle),
-                                 math.cos(angles[2] + rAngle)))
-
+                                 math.cos(angles[1]), math.sin(angles[2] + angle),
+                                 math.cos(angles[2] + angle)))
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
                 fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
-                Iexp = map(get_image, fnIexp)
-
+                Iexp = list(map(get_image, fnIexp))
+            # Data augmentation
             if self.sigma > 0:
                 if mode == 'Shift':
-                    rX = self.sigma * np.random.normal(size=self.batch_size)
-                    rY = self.sigma * np.random.normal(size=self.batch_size)
+                    # Shift image a random amount of px in each direction
+                    rX = (self.sigma/5) * np.random.normal(0, 1, size=self.batch_size)
+                    rY = (self.sigma/5) * np.random.normal(0, 1, size=self.batch_size)
+                    rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+                    rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                     Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
                     y = yvalues + np.vstack((rX, rY)).T
                 else:
+                    # Rotates image a random angle. Thus, Psi must be updated
                     rAngle = self.sigma * np.random.normal(size=self.batch_size)
                     Xexp = np.array(list(map(rotate_image, Iexp, rAngle)))
+                    rAngle = rAngle * math.pi / 180
                     yvalues = yvalues * np.pi / 180
-                    rAngle = rAngle * np.pi / 180
                     y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
+
             else:
                 Xexp = np.array(list(Iexp))
                 if mode == 'Shift':
@@ -150,46 +131,20 @@ if __name__ == "__main__":
                     y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
-            # Generate data
-            # for i, ID in enumerate(list_IDs_temp):  # Read image
-
-
-    #
-    #     if self.readInMemory:
-    #         Iexp = self.Xexp[ID]
-    #     else:
-    #         Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
-    #         Iexp = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-    #
-    #     if mode == "Shift":
-    #         rX = self.sigma * np.random.normal()
-    #         rY = self.sigma * np.random.normal()
-    #         Xexp[i,] = shift(Iexp, (rX, rY, 0), order=1, mode='reflect')
-    #         y[i,] = np.array((rX, rY)) + self.labels[ID]
-    #     else:
-    #         rAngle = self.sigma * np.random.normal()
-    #         if rAngle != 0:
-    #             Xexp[i,] = rotate(Iexp, rAngle, order=1, mode='reflect', reshape=False)
-    #         else:
-    #             Xexp[i,] = Iexp
-    #         anglePsi = (self.labels[ID][2] + rAngle) * math.pi / 180
-    #         angleRot = (self.labels[ID][0]) * math.pi / 180
-    #         angleTilt = (self.labels[ID][1]) * math.pi / 180
-    #
-    #         y[i,] = np.array((math.sin(angleRot), math.cos(angleRot), math.sin(angleTilt), math.cos(angleTilt),
-    #                           math.sin(anglePsi), math.cos(anglePsi)))
-    # return Xexp, y
-
     def constructModel(Xdim, mode):
-        print("constructModel", flush=True)
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         # Network model
-        L = Conv2D(16, (int(Xdim / 10), int(Xdim / 10)), activation="relu")(inputLayer)  # 11 filter size before
+        L = Conv2D(64, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(inputLayer)  # 11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
 
-        L = Conv2D(16, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        L = Conv2D(64, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        L = BatchNormalization()(L)
+        L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
+
+        L = Conv2D(32, (3, 3), activation="relu")(L)  # 11 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
         L = Dropout(0.2)(L)
@@ -198,8 +153,8 @@ if __name__ == "__main__":
         L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
 
-        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
+        # L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        # L = BatchNormalization()(L)
 
         if mode == 'Shift':
             L = Dense(2, name="output", activation="linear")(L)
@@ -217,16 +172,24 @@ if __name__ == "__main__":
     tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
     psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
+    # labels depends on mode (shift or Rot, Tilt, Psi)
+
     if mode == "Shift":
         labels = []
         for x, y in zip(shiftX, shiftY):
             labels.append(np.array((x, y)))
+        ntraining = math.floor(len(fnImgs) * 0.8)
+        training_generator = DataGenerator(fnImgs[0:ntraining], labels[0:ntraining], mode, sigma, batch_size, Xdim,
+                                           readInMemory=False)
+        validation_generator = DataGenerator(fnImgs[(ntraining + 1):], labels[(ntraining + 1):], mode, sigma,
+                                             batch_size, Xdim, readInMemory=False)
     elif mode == "Angular":
         labels = []
         for r, t, p in zip(rots, tilts, psis):
             labels.append(np.array((r, t, p)))
+        training_generator = DataGenerator(fnImgs, labels, mode, sigma, batch_size, Xdim,
+                                           readInMemory=False)
 
-    training_generator = DataGenerator(fnImgs, labels, mode, sigma, batch_size, Xdim, readInMemory=False)
 
     start_time = time()
     model = constructModel(Xdim, mode)
@@ -235,16 +198,19 @@ if __name__ == "__main__":
     adam_opt = Adam(lr=0.001)
 
 
-    def custom_loss_function(y_true, y_pred):
-        d = tf.abs(y_true - y_pred)
-        return tf.reduce_mean(d, axis=-1)
+    # def custom_loss_function(y_true, y_pred):
+    #     d = tf.abs(y_true - y_pred)
+    #     return tf.reduce_mean(d, axis=-1)
 
 
-    model.compile(loss=custom_loss_function, optimizer='adam')
+    model.compile(loss="mean_absolute_error", optimizer='adam')
 
     steps = round(len(fnImgs) / batch_size)
-    history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs)
+    if mode == 'Shift':
+        history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs, validation_data = validation_generator) #https://www.geeksforgeeks.org/keras-fit-and-keras-fit_generator/
+    else:
+        history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs)
+
     model.save(fnModel)
-    print(fnModel)
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
