@@ -135,6 +135,7 @@ public:
 
     /** Vector containig the input 3D coorinates used for alignment */
     std::vector<Point3D<int>> inputCoords;
+    size_t numberOfInputCoords = inputCoords.size();
 
     /** Angle step */
     float tiltAngleStep;
