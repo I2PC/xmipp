@@ -57,6 +57,11 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
     # Accumulate transforms
     if local_transform_md is not None:
         result[local_transform_md.columns] += local_transform_md
+        
+        # Make psi in [-180, 180]
+        if md.ANGLE_PSI in local_transform_md.columns:
+            result[result[md.ANGLE_PSI] > +180.0] -= 360.0
+            result[result[md.ANGLE_PSI] < -180.0] += 360.0
 
     return result
 
