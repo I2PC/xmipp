@@ -541,7 +541,7 @@ class Config:
         if not self.is_empty(Config.OPT_CXX_CUDA):
             return True
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
-        print('gcc candidates based on nvcc version: ', candidates)
+        print(green('gcc candidates based on nvcc version:'), *candidates, sep=", ")
         if resultBool == False:
             print(red('No valid compiler found for CUDA host code. ' +
                          'nvcc_version : ' + str(
