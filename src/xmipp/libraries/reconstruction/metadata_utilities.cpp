@@ -221,13 +221,26 @@ protected:
 
         if (operation == "union")
         {
+            std::cout << "mdIn.size() " << mdIn.size() << std::endl;
+            std::cout << "md2.size() " << md2.size() << std::endl;
+            std::cout << "label " << label << std::endl;
+            std::cout << "label2 " << label2 << std::endl;
             if(mdIn.isEmpty())
+            {
+                std::cout << "METADATA IS EMPTY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
                 mdIn = md2;
+            }
             else
                 mdIn.unionDistinct(md2, label);
         }
         else if (operation == "union_all")
-            mdIn.unionAll(md2);
+            if(mdIn.isEmpty())
+            {
+                std::cout << "METADATA IS EMPTY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+                mdIn = md2;
+            }
+            else
+                mdIn.unionAll(md2);
         else if (operation == "intersection")
             mdIn.intersection(md2, label);
         else if (operation == "subtraction")
@@ -535,10 +548,10 @@ protected:
 public:
     void run()
     {
-    	if (mdIn.size()==0)
-    		return;
         if (checkParam("--set"))
             doSet();
+        else if (mdIn.size()==0)
+    		return;
         else if (checkParam("--operate"))
             doOperate();
         else if (checkParam("--file"))
