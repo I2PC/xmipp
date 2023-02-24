@@ -540,7 +540,7 @@ public:
     {
         if (checkParam("--set"))
             doSet();
-        else if (mdIn.size()==0)
+        else if (mdIn.size()==0)  // Only set operationts allow an empty input md file
     		return;
         else if (checkParam("--operate"))
             doOperate();
