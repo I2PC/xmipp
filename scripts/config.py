@@ -810,7 +810,7 @@ class Config:
 
         cppProg = """
     #include <jni.h>
-    int dummy(){}
+    int dummy(){return 0;}
     """
         with open("xmipp_jni_test.cpp", "w") as cppFile:
             cppFile.write(cppProg)
@@ -848,7 +848,7 @@ class Config:
             print("Checking Matlab configuration ...")
             cppProg = """
         #include <mex.h>
-        int dummy(){}
+        int dummy(){return 0;}
         """
             with open("xmipp_mex.cpp", "w") as cppFile:
                 cppFile.write(cppProg)
@@ -902,7 +902,7 @@ class Config:
                 with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
                     cppFile.write("""
                     #include <starpu.h>
-                    int dummy(){}
+                    int dummy(){return 0;}
                     """)
 
                 if not runJob("%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o" %
