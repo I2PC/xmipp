@@ -70,6 +70,7 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '11.7.0'
+          linux-local-args: '[ "--toolkit" ]'
 
       - run: echo "Installed cuda version is:${{steps.cuda-toolkit.outputs.cuda}}"
       
