@@ -502,20 +502,20 @@ class Config:
              '5.5', '5.4', '5.3', '5.2', '5.1', '5',
              '4.9', '4.8']
         if 8.0 <= nvcc_version < 9.0:
-            return v[v.index('5.3'):]
+            return v[v.index('5.3'):], True
         elif 9.0 <= nvcc_version < 9.2:
-            return v[v.index('5.5'):]
+            return v[v.index('5.5'):], True
         elif 9.2 <= nvcc_version < 10.1:
-            return v[v.index('7.3'):]
+            return v[v.index('7.3'):], True
         elif 10.1 <= nvcc_version <= 10.2:
-            return v[v.index('8.5'):]
+            return v[v.index('8.5'):], True
         elif 11.0 <= nvcc_version < 11.1:
-            return v[v.index('9.3'):]
+            return v[v.index('9.3'):], True
         elif 11.1 <= nvcc_version < 11.5:
-            return v[v.index('10.3'):]
+            return v[v.index('10.3'):], True
         elif 11.5 <= nvcc_version <= 11.8:
-            return v[v.index('11.3'):]
-        return []
+            return v[v.index('11.3'):], True
+        return v, False
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])
@@ -541,12 +541,12 @@ class Config:
     def _set_nvcc_cxx(self, nvcc_version):
         if not self.is_empty(Config.OPT_CXX_CUDA):
             return True
-        candidates = self._get_compatible_GCC(nvcc_version)
-        if candidates == []:
-            print(yellow('No valid compiler found for CUDA host code. ' +
+        candidates, resultBool = self._get_compatible_GCC(nvcc_version)
+        if resultBool == False:
+            print(red('No valid compiler found for CUDA host code. ' +
                          'nvcc_version : ' + str(
-                nvcc_version) + ' ' + self._get_help_msg()))
-            return False
+                nvcc_version) + ' ' + self._get_help_msg()) +
+                  '\nbut trying to continue')
         prg = find_newest('g++', candidates,  False)
         if not prg:# searching a g++ for devToolSet on CentOS
             gccVersion = str(self._get_GCC_version('g++')[0])
