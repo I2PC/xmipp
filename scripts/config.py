@@ -499,8 +499,7 @@ class Config:
              '8.5', '8.4', '8.3', '8.2', '8.1', '8',
              '7.5', '7.4', '7.3', '7.2', '7.1', '7',
              '6.5', '6.4', '6.3', '6.2', '6.1', '6',
-             '5.5', '5.4', '5.3', '5.2', '5.1', '5',
-             '4.9', '4.8']
+             '5.5', '5.4', '5.3', '5.2', '5.1', '5']
         if 8.0 <= nvcc_version < 9.0:
             return v[v.index('5.3'):], True
         elif 9.0 <= nvcc_version < 9.2:
@@ -542,6 +541,7 @@ class Config:
         if not self.is_empty(Config.OPT_CXX_CUDA):
             return True
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
+        print('gcc candidates based on nvcc version: ', candidates)
         if resultBool == False:
             print(red('No valid compiler found for CUDA host code. ' +
                          'nvcc_version : ' + str(
