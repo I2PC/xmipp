@@ -38,16 +38,21 @@ class ProgTomoExtractParticleStacks : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnTs, fnCoor;
+	FileName fnOut;
+    FileName fnTs;
+    FileName fnCoor;
 
-    size_t Xdim, Ydim, Zdim;
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
 
     bool invertContrast;
 
     double scaleFactor;
 
 	/** Is the volume previously masked?*/
-	int  boxsize, nthrs;
+	int  boxsize; 
+    int nthrs;
 
 public:
 
@@ -58,3 +63,4 @@ public:
 };
 //@}
 #endif
+
