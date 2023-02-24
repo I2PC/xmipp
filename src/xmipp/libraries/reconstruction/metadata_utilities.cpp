@@ -220,7 +220,12 @@ protected:
         MDLabel label2 = MDL::str2Label(getParam("--set", 3));
 
         if (operation == "union")
-            mdIn.unionDistinct(md2, label);
+        {
+            if(mdIn.isEmpty())
+                mdIn = md2;
+            else
+                mdIn.unionDistinct(md2, label);
+        }
         else if (operation == "union_all")
             mdIn.unionAll(md2);
         else if (operation == "intersection")
