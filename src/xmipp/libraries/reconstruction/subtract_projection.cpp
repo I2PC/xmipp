@@ -302,24 +302,23 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	std::cout << "-------Projectors initialized-------" << std::endl;
 		
 	// Read first particle
-	const auto sizeI = (int)XSIZE(I());
-	processParticle(mdParticles.getRow(1), sizeI, transformerP, transformerI);
-	const MultidimArray<double> &mPctf = Pctf();
+	mdParticles.getFirstImage(I);
+	transformerI.FourierTransform(I(), IFourier);
 
 	// Construct frequencies image
-	wi.initZeros(PFourier);
+	wi.initZeros(IFourier);
 	Matrix1D<double> w(2); 	
 	for (int i=0; i<YSIZE(wi); i++) {
-		FFT_IDX2DIGFREQ(i,YSIZE(mPctf),YY(w)) 
+		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
-			FFT_IDX2DIGFREQ(j,XSIZE(mPctf),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(mPctf)); // indexes
+			FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
 		}
 	}
 	if (limitfreq == 0)
 		maxwiIdx = (int)XSIZE(wi); 
 	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(PFourier), maxwiIdx)
+		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
 	// Declare complex structures that will be used in the loop
 	std::cout << "-------Subtracting particles-------" << std::endl;
