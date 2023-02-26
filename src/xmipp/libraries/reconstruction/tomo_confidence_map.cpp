@@ -25,7 +25,6 @@
 
 #include "tomo_confidence_map.h"
 #include <core/bilib/kernel.h>
-#include "core/linear_system_helper.h"
 #include <numeric>
 //#define DEBUG
 //#define DEBUG_MASK
@@ -108,6 +107,9 @@ void ProgTomoConfidecenceMap::frequencyToAnalyze(float &freq, float &tail, int i
 {
 	freq = (float) idx/(2*ZSIZE(fullMap));
 	
+	//if idx > (ZSIZE(fullMap)-10)
+
+	//TODO: check tail range
 	tail = ((float) (idx - 3))/(2*ZSIZE(fullMap));
 }
 
@@ -263,47 +265,44 @@ void ProgTomoConfidecenceMap::confidenceMap(MultidimArray<float> &significanceMa
 	MultidimArray<double> fullMap_double;
 	MultidimArray<double> noiseMap_double;
 
-	if (applySmoothingBeforeConfidence)
-	{
-		std::cout << "applying a gaussian bluring before confidence" << std::endl;
+	// if (applySmoothingBeforeConfidence)
+	// {
+	// 	std::cout << "applying a gaussian bluring before confidence" << std::endl;
 
-		//convertToDouble(fullMap, fullMap_double);
-		convertToDouble(noiseMap, noiseMap_double);
+	// 	//convertToDouble(fullMap, fullMap_double);
+	// 	convertToDouble(noiseMap, noiseMap_double);
 
-		//realGaussianFilter(fullMap_double, sigmaGauss);
+	// 	//realGaussianFilter(fullMap_double, sigmaGauss);
 
-		// Image<double> significanceImgs;
-		// significanceImgs() = fullMap_double;
-		// // significanceImg() = significanceMap;
+	// 	// Image<double> significanceImgs;
+	// 	// significanceImgs() = fullMap_double;
+	// 	// // significanceImg() = significanceMap;
 		
-		// significanceImgs.write("fullmap.mrc");
+	// 	// significanceImgs.write("fullmap.mrc");
 		
-		realGaussianFilter(noiseMap_double, sigmaGauss);
+	// 	realGaussianFilter(noiseMap_double, sigmaGauss);
 
-		//convertToFloat(fullMap_double, fullMap);
-		convertToFloat(noiseMap_double, noiseMap);
-	}
-		
-
+	// 	//convertToFloat(fullMap_double, fullMap);
+	// 	convertToFloat(noiseMap_double, noiseMap);
+	// }
 
 	//TODO: estimateNoiseStatistics and normalizeTomogram in the same step
 	estimateNoiseStatistics(noiseMap, noiseVarianceMap, noiseMeanMap, boxsize, thresholdMatrix_mean, thresholdMatrix_std);
 
 	normalizeTomogram(fullMap, noiseVarianceMap, noiseMeanMap);
 
-	//MultidimArray<float> significanceMap;
 	significanceMap.initZeros(fullMap);
 
-	if (applySmoothingAfterConfidence)
-	{
-		std::cout << "applying a gaussian bluring after confidence" << std::endl;
+	// if (applySmoothingAfterConfidence)
+	// {
+	// 	std::cout << "applying a gaussian bluring after confidence" << std::endl;
 
-		convertToDouble(fullMap, fullMap_double);
+	// 	convertToDouble(fullMap, fullMap_double);
 
-		realGaussianFilter(fullMap_double, sigmaGauss);
+	// 	realGaussianFilter(fullMap_double, sigmaGauss);
 
-		convertToFloat(fullMap_double, fullMap);
-	}
+	// 	convertToFloat(fullMap_double, fullMap);
+	// }
 
 	computeSignificanceMap(fullMap, significanceMap, thresholdMatrix_mean, thresholdMatrix_std);
 
@@ -333,6 +332,7 @@ void ProgTomoConfidecenceMap::convertToFloat(MultidimArray<double> &inTomo,
 		DIRECT_MULTIDIM_ELEM(outTomo, n) = (float) DIRECT_MULTIDIM_ELEM(inTomo, n);
 	}
 }
+
 
 void ProgTomoConfidecenceMap::readAndPrepareData()
 {
@@ -396,38 +396,18 @@ void ProgTomoConfidecenceMap::normalizeTomogram(MultidimArray<float> &fullMap, M
 	}
 }
 
-void ProgTomoConfidecenceMap::estimateNoiseStatistics(MultidimArray<float> &noiseMap, 
-													 MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap,
-													 int boxsize, Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std)
+void ProgTomoConfidecenceMap::nosiseEstimation(WeightedLeastSquaresHelper &helperStd, WeightedLeastSquaresHelper &helperMean, 
+												int lX, int lY, double hX, double hY, int Nx, int Ny, int boxsize, Matrix2D<double> &noiseStdMatrix, Matrix2D<double> &noiseMeanMatrix)
 {
-	std::cout << "Estimating noise statistics ...." <<  std::endl;
-	noiseVarianceMap.initZeros(noiseMap);
-	noiseMeanMap.initZeros(noiseMap);
-
-//	std::cout << "Analyzing local noise" << std::endl;
-
-	int Nx = Xdim/boxsize;
-	int Ny = Ydim/boxsize;
-
-	Matrix2D<double> noiseStdMatrix, noiseMeanMatrix;
-	noiseStdMatrix.initZeros(Ny, Nx);
-	noiseMeanMatrix = noiseStdMatrix;
-
-	// For the spline regression. A minimum of 8 points are considered
-	int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
-    WeightedLeastSquaresHelper helperStd, helperMean;
-    helperStd.A.initZeros(Nx*Ny,lX*lY);
+	helperStd.A.initZeros(Nx*Ny,lX*lY);
     helperStd.b.initZeros(Nx*Ny);
     helperStd.w.initZeros(Nx*Ny);
     helperStd.w.initConstant(1);
 	helperMean = helperStd;
 
 
-    double hX = Xdim / (double)(lX-3);
-    double hY = Ydim / (double)(lY-3);
-
 	if ( (Xdim<boxsize) || (Ydim<boxsize) )
-		std::cout << "Error: The tomogram in x-direction or y-direction is too small" << std::endl;
+		std::cout << "Error: The tomogram/tiltseries in x-direction or y-direction is too small" << std::endl;
 
 	std::vector<float> noiseVector(1);
 	// std::vector<double> x,y,t;
@@ -474,24 +454,45 @@ void ProgTomoConfidecenceMap::estimateNoiseStatistics(MultidimArray<float> &nois
 			long n = 0;
 			float sum2=0, sum=0;
 
-			for (int k = startZ; k<finishZ; k++)
+			if (Zdim == 1)
 			{
-				for (int i = yStart; i<yLimit; i++)
+				for (int k = startZ; k<finishZ; k++)
 				{
-					for (int j = xStart; j<xLimit; j++)
+					for (int i = yStart; i<yLimit; i++)
 					{
-						if (n%257 == 0)
+						for (int j = xStart; j<xLimit; j++)
 						{
 							float aux = A3D_ELEM(noiseMap, k, i, j);
 							sum += aux;
 							sum2 += aux*aux;
 							noiseVector.push_back( aux );
 							N++;
-						} //we take one voxel each 257 (prime number) points to reduce noise data
-						n++;
+						}
 					}
 				}
 			}
+			else
+			{
+				for (int k = startZ; k<finishZ; k++)
+				{
+					for (int i = yStart; i<yLimit; i++)
+					{
+						for (int j = xStart; j<xLimit; j++)
+						{
+							if (n%257 == 0)
+							{
+								float aux = A3D_ELEM(noiseMap, k, i, j);
+								sum += aux;
+								sum2 += aux*aux;
+								noiseVector.push_back( aux );
+								N++;
+							} //we take one voxel each 257 (prime number) points to reduce noise data
+							n++;
+						}
+					}
+				}
+			}
+			
 			double std2, meanValue;
 			meanValue = (double ) noiseVector[size_t(noiseVector.size()*0.5)];
 			std2 = sqrt( (double) (sum2/N - (sum/N)*(sum/N)));
@@ -502,6 +503,7 @@ void ProgTomoConfidecenceMap::estimateNoiseStatistics(MultidimArray<float> &nois
 
 			double tileCenterY=0.5*(yLimit+yStart)-startY; // Translated to physical coordinates
 			double tileCenterX=0.5*(xLimit+xStart)-startX;
+
 			// Construction of the spline equation system
 			long idxSpline=0;
 			for(int controlIdxY = -1; controlIdxY < (lY - 1); ++controlIdxY)
@@ -533,7 +535,32 @@ void ProgTomoConfidecenceMap::estimateNoiseStatistics(MultidimArray<float> &nois
 			idxBox+=1;
 		}
 	}
+}
 
+
+void ProgTomoConfidecenceMap::estimateNoiseStatistics(MultidimArray<float> &noiseMap, 
+													 MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap,
+													 int boxsize, Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std)
+{
+	std::cout << "Estimating noise statistics ...." <<  std::endl;
+	noiseVarianceMap.initZeros(noiseMap);
+	noiseMeanMap.initZeros(noiseMap);
+
+	int Nx = Xdim/boxsize;
+	int Ny = Ydim/boxsize;
+
+	// For the spline regression. A minimum of 8 points are considered
+	int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
+	double hX = Xdim / (double)(lX-3);
+    double hY = Ydim / (double)(lY-3);
+
+	Matrix2D<double> noiseStdMatrix, noiseMeanMatrix;
+	noiseStdMatrix.initZeros(Ny, Nx);
+	noiseMeanMatrix = noiseStdMatrix;
+
+    WeightedLeastSquaresHelper helperStd, helperMean;
+
+	nosiseEstimation(helperStd, helperMean, lX, lY, hX, hY, Nx, Ny, boxsize, noiseStdMatrix, noiseMeanMatrix);
 
 	// Spline coefficients
 	Matrix1D<double> cij_std, cij_mean;
@@ -593,6 +620,9 @@ void ProgTomoConfidecenceMap::FDRcontrol(MultidimArray<float> &significanceMap)
 				++n;
 			}
 		}
+
+		// float prevPVal = 1.0;
+		//TODO: check performance indexsort
 
 		long nn = 0;
 		for (auto idx: sort_indexes(pValVector)) 

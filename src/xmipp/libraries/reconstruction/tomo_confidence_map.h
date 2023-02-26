@@ -38,6 +38,7 @@
 #include <data/fourier_filter.h>
 #include <data/filters.h>
 #include <string>
+#include "core/linear_system_helper.h"
 #include "fftwT.h"
 
 /**@defgroup Monogenic Resolution
@@ -49,14 +50,23 @@ class ProgTomoConfidecenceMap : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnVol, fnVol2, fnMask;
+	FileName fnOut;
+	FileName fnVol;
+	FileName fnVol2;
+	FileName fnMask;
 
 	bool locRes, medianFilterBool, applySmoothingBeforeConfidence, applySmoothingAfterConfidence;
 
     size_t Xdim, Ydim, Zdim;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
-	float sampling, lowRes, highRes, sigVal, fdr, step, sigmaGauss;
+	float sampling;
+	float lowRes;
+	float highRes;
+	float sigVal;
+	float fdr;
+	float step;
+	float sigmaGauss;
 
 	/** Is the volume previously masked?*/
 	int  nthrs;
@@ -70,6 +80,9 @@ public:
 	void confidenceMap(MultidimArray<float> &ignificanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap);
 
     void normalizeTomogram(MultidimArray<float> &fullMap, MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap);
+
+	void nosiseEstimation(WeightedLeastSquaresHelper &helperStd, WeightedLeastSquaresHelper &helperMean, 
+												int lX, int lY, double hX, double hY, int Nx, int Ny, int boxsize, Matrix2D<double> &noiseStdMatrix, Matrix2D<double> &noiseMeanMatrix);
 
     void estimateNoiseStatistics(MultidimArray<float> &noiseMap, 
 													 MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap,
