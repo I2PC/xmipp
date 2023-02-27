@@ -626,13 +626,14 @@ class Config:
             return
         nvcc_version, nvcc_full_version = self._get_CUDA_version(
             self.get(Config.OPT_NVCC))
+        print(green('CUDA-' + nvcc_full_version + ' found.'))
+        if nvcc_version != 10.2:
+            print(yellow('CUDA-10.2 is recommended.'))
         self._set_nvcc_cxx(nvcc_version)
         if not self._set_nvcc_lib_dir():
             no_CUDA()
             return
-        print(green('CUDA-' + nvcc_full_version + ' found.'))
-        if nvcc_version != 10.2:
-            print(yellow('CUDA-10.2 is recommended.'))
+
         self._set_nvcc_flags(nvcc_version)
 
         # update config and environment
