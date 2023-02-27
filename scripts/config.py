@@ -513,9 +513,9 @@ class Config:
             return v[v.index('8.5'):], True
         elif 11.0 <= nvcc_version < 11.1:
             return v[v.index('9.5'):], True
-        elif 11.1 <= nvcc_version <= 11.3:
+        elif 11.1 <= nvcc_version <= 11.4: # Using GCC8 with CUDA 11.4 because GCC11 is only supported in CUDA 11.4.1
             return v[v.index('10.4'):], True
-        elif 11.4 <= nvcc_version <= 11.8:
+        elif 11.5 <= nvcc_version <= 11.8:
             return v[v.index('11.3'):], True
         return v, False
 
