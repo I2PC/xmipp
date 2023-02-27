@@ -37,26 +37,17 @@ void ProgTomoConfidecenceMap::readParams()
 {
 	fnVol = getParam("--odd");
 	fnVol2 = getParam("--even");
-<<<<<<< HEAD
-	fnOut = getParam("-o");
-	fnMask = getParam("--mask");
-=======
 	fnOut = getParam("--odir");
 	fnMask = getParam("--mask");
 	medianFilterBool = checkParam("--medianFilter");
 	applySmoothingBeforeConfidence = checkParam("--applySmoothingBeforeConfidence");
 	applySmoothingAfterConfidence = checkParam("--applySmoothingAfterConfidence");
 	sigmaGauss = (float)  getDoubleParam("--sigmaGauss");
->>>>>>> devel
 	locRes = checkParam("--localResolution");
 	lowRes = (float)  getDoubleParam("--lowRes");
 	highRes = (float) getDoubleParam("--highRes");
 	sigVal = (float)  getDoubleParam("--significance");
-<<<<<<< HEAD
-	sampling = getDoubleParam("--sampling_rate");
-=======
 	sampling = (float) getDoubleParam("--sampling_rate");
->>>>>>> devel
 	fdr = (float) getDoubleParam("--fdr");
 	step = (float) getDoubleParam("--step");
 	nthrs = getIntParam("--threads");
@@ -68,20 +59,6 @@ void ProgTomoConfidecenceMap::defineParams()
 	addUsageLine("This function determines the local resolution of a tomogram. It makes use of two reconstructions, odd and even. The difference between them"
 			"gives a noise reconstruction. Thus, by computing the local amplitude of the signal at different frequencies and establishing a comparison with"
 			"the noise, the local resolution is computed");
-<<<<<<< HEAD
-	addParamsLine("  --odd <vol_file=\"\">   			: Half volume 1");
-	addParamsLine("  --even <vol_file=\"\">				: Half volume 2");
-	addParamsLine("  [--mask <vol_file=\"\">]  			: Mask defining the signal. ");
-	addParamsLine("  [--fdr <s=0.05>]         			: False discovery rate");
-	addParamsLine("  [--localResolution]  			    : Put this fag to estimate the local resolution of the tomogram");
-	addParamsLine("  [--lowRes <s=30>]         			: Minimum resolution (A)");
-	addParamsLine("  [--highRes <s=1>]         			: Maximum resolution (A)");
-	addParamsLine("  [--step <s=1>]         			: Step");
-	addParamsLine("  [--significance <s=0.95>]       	: The level of confidence for the hypothesis test.");
-	addParamsLine("  -o <output=\"MGresolution.vol\">	: Local resolution volume (in Angstroms)");
-	addParamsLine("  [--sampling_rate <s=1>]   			: Sampling rate (A/px)");
-	addParamsLine("  [--threads <s=4>]               	: Number of threads");
-=======
 	addParamsLine("  --odd <vol_file=\"\">              : Half volume 1");
 	addParamsLine("  --even <vol_file=\"\">	            : Half volume 2");
 	addParamsLine("  [--mask <vol_file=\"\">]           : Mask defining the signal. ");
@@ -98,29 +75,10 @@ void ProgTomoConfidecenceMap::defineParams()
 	addParamsLine("  --odir <output=\"resmap.mrc\">     : Local resolution volume (in Angstroms)");
 	addParamsLine("  [--sampling_rate <s=1>]            : Sampling rate (A/px)");
 	addParamsLine("  [--threads <s=4>]                  : Number of threads");
->>>>>>> devel
 }
 
 void ProgTomoConfidecenceMap::run()
 {
-<<<<<<< HEAD
-	readAndPrepareData();
-
-	MultidimArray<float> significanceMap;
-	bool normalize = true;
-	
-	confidenceMap(significanceMap, normalize);
-
-	Image<float> significanceImg;
-	significanceImg() = significanceMap;
-	significanceImg.write(fnOut);
-
-}
-
-
-
-void ProgTomoConfidecenceMap::confidenceMap(MultidimArray<float> &significanceMap, bool normalize)
-=======
 	MultidimArray<float> significanceMap;
 
 	readAndPrepareData();
@@ -296,19 +254,12 @@ void ProgTomoConfidecenceMap::updateResMap(MultidimArray<float> &resMap, Multidi
 
 
 void ProgTomoConfidecenceMap::confidenceMap(MultidimArray<float> &significanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap)
->>>>>>> devel
 {
 	MultidimArray<float> noiseVarianceMap, noiseMeanMap;
 	Matrix2D<float> thresholdMatrix_mean, thresholdMatrix_std;
 
 	int boxsize = 50;
 
-<<<<<<< HEAD
-	//TODO: estimateNoiseStatistics and normalizeTomogram in the same step
-	estimateNoiseStatistics(noiseMap, noiseVarianceMap, noiseMeanMap, boxsize, thresholdMatrix_mean, thresholdMatrix_std);
-
-	normalizeTomogram(noiseMap, noiseVarianceMap, noiseMeanMap);
-=======
 	MultidimArray<double> fullMap_double;
 	MultidimArray<double> noiseMap_double;
 
@@ -339,120 +290,10 @@ void ProgTomoConfidecenceMap::confidenceMap(MultidimArray<float> &significanceMa
 	estimateNoiseStatistics(noiseMap, noiseVarianceMap, noiseMeanMap, boxsize, thresholdMatrix_mean, thresholdMatrix_std);
 
 	normalizeTomogram(fullMap, noiseVarianceMap, noiseMeanMap);
->>>>>>> devel
 
 	//MultidimArray<float> significanceMap;
 	significanceMap.initZeros(fullMap);
 
-<<<<<<< HEAD
-	computeSignificanceMap(fullMap, significanceMap, thresholdMatrix_mean, thresholdMatrix_std);
-
-	//FDRcontrol(significanceMap);
-}
-
-
-void ProgTomoConfidecenceMap::readAndPrepareData()
-{
-	std::cout << "Starting ..." << std::endl;
-	std::cout << "           " << std::endl;
-	std::cout << "           " << std::endl;
-
-	Image<float> fMap;
-	fMap.read(fnVol);
-	MultidimArray<float> oddMap, evenMap, fm;
-	fm = fMap();
-	
-	size_t Ndim;
-	fm.getDimensions(Xdim, Ydim, Zdim, Ndim);
-
-	std::cout << " 1 ..." << Xdim << " " << Ydim << " " << Zdim << std::endl;
-	
-	oddMap.initZeros(1, Zdim, Ydim, Xdim);
-	evenMap = oddMap;
-	
-	std::cout << " 2 ..." << XSIZE(evenMap)*YSIZE(evenMap)*ZSIZE(evenMap)  << std::endl;
-	std::cout << " 3 ..." << XSIZE(oddMap)*YSIZE(oddMap)*ZSIZE(oddMap)  << std::endl;
-
-
-	size_t n_even = 0;
-	size_t n_odd = 0;
-	long n =0;
-	for (size_t k = 0; k < Zdim; k++)
-	{	
-		for (size_t i = 0; i < Ydim; i++)
-		{
-			for (size_t j = 0; j < Xdim; j++)
-			{
-				if ((i+j+k) % 2 == 1)
-				{
-					DIRECT_MULTIDIM_ELEM(oddMap, n) = DIRECT_MULTIDIM_ELEM(fm, n);
-					n_odd += 1;
-				}
-				else
-				{
-					DIRECT_MULTIDIM_ELEM(evenMap, n) = DIRECT_MULTIDIM_ELEM(fm, n); 
-					n_even += 1;
-				}
-				++n;
-			}
-		}
-	}
-	std::cout << " 4 ..." << n_odd  << std::endl;
-
-	// Image<float> img;
-	// img() = oddMap;
-	// img.write("oddprefilter.mrc");
-
-	chessBoardInterpolation(oddMap);
-	chessBoardInterpolation(evenMap);
-
-	// img() = oddMap;
-	// img.write("oddafterfilter.mrc");
-
-
-	std::cout << " 5 ..." << n_odd  << std::endl;
-	std::cout << " 6 ..." << n_even  << std::endl;
-
-	// Xdim = (size_t) Xdim/2;
-	// Ydim = (size_t) Ydim/2;
-	// Zdim = (size_t) Zdim/2;
-
-	// std::cout << " 7 ..." << XSIZE(evenMap) << " " << ZSIZE(evenMap) << std::endl;
-
-	fullMap = oddMap+evenMap;
-	noiseMap = oddMap-evenMap;
-	// noiseMap=fullMap;
-	// std::cout << " 8 ..." << std::endl;
-
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(evenMap)
-	// {
-	// 	DIRECT_MULTIDIM_ELEM(fullMap, n) += DIRECT_MULTIDIM_ELEM(evenMap, n);
-	// 	DIRECT_MULTIDIM_ELEM(noiseMap, n) -= DIRECT_MULTIDIM_ELEM(evenMap, n);
-	// }
-	std::cout << " 9 ..." << std::endl;
-}	
-
-void ProgTomoConfidecenceMap::chessBoardInterpolation(MultidimArray<float> &tomo)
-{
-	for (size_t k = 1; k < (Zdim-1); k++)
-	{	
-		for (size_t i = 1; i < (Ydim-1); i++)
-		{
-			for (size_t j = 1; j < (Xdim-1); j++)
-			{
-				if (DIRECT_A3D_ELEM(tomo, k, i, j) == 0)
-				{
-					std::vector<float> medVec(6);
-					medVec[0] = DIRECT_A3D_ELEM(tomo, k, i, j-1);
-					medVec[1] = DIRECT_A3D_ELEM(tomo, k, i, j+1);
-					medVec[2] = DIRECT_A3D_ELEM(tomo, k, i-1, j);
-					medVec[3] = DIRECT_A3D_ELEM(tomo, k, i+1, j);
-					medVec[4] = DIRECT_A3D_ELEM(tomo, k-1, i, j);
-					medVec[5] = DIRECT_A3D_ELEM(tomo, k+1, i, j);
-					sort(medVec.begin(), medVec.end());
-					DIRECT_A3D_ELEM(tomo, k, i, j) = 0.5*(medVec[2] + medVec[3]);
-				}
-=======
 	if (applySmoothingAfterConfidence)
 	{
 		std::cout << "applying a gaussian bluring after confidence" << std::endl;
@@ -538,16 +379,12 @@ void ProgTomoConfidecenceMap::medianFilter(MultidimArray<float> &input_tomogram,
 
 				DIRECT_A3D_ELEM(output_tomogram, k, i, j) = sortedVector[3];
 				sortedVector.clear();
->>>>>>> devel
 			}
 		}
 	}
 }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> devel
 void ProgTomoConfidecenceMap::normalizeTomogram(MultidimArray<float> &fullMap, MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap)
 {
 	std::cout << "normalize Tomogram ...." <<  std::endl;
@@ -559,12 +396,7 @@ void ProgTomoConfidecenceMap::normalizeTomogram(MultidimArray<float> &fullMap, M
 	}
 }
 
-<<<<<<< HEAD
-
-void ProgTomoConfidecenceMap::estimateNoiseStatistics(const MultidimArray<float> &noiseMap, 
-=======
 void ProgTomoConfidecenceMap::estimateNoiseStatistics(MultidimArray<float> &noiseMap, 
->>>>>>> devel
 													 MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap,
 													 int boxsize, Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std)
 {
@@ -762,19 +594,9 @@ void ProgTomoConfidecenceMap::FDRcontrol(MultidimArray<float> &significanceMap)
 			}
 		}
 
-<<<<<<< HEAD
-		// float prevPVal = 1.0;
-		//TODO: check performance indexsort
-
 		long nn = 0;
 		for (auto idx: sort_indexes(pValVector)) 
 		{
-
-=======
-		long nn = 0;
-		for (auto idx: sort_indexes(pValVector)) 
-		{
->>>>>>> devel
 			if (  pValVector[idx] <= fdr *(nn+1)/nelems)
 			{
 				
@@ -782,17 +604,9 @@ void ProgTomoConfidecenceMap::FDRcontrol(MultidimArray<float> &significanceMap)
 			}
 			++nn;
 		}
-<<<<<<< HEAD
-		
-		pValVector.clear();
-	}
-	
-
-=======
 
 		pValVector.clear();
 	}
->>>>>>> devel
 }
 
 
@@ -814,10 +628,7 @@ std::vector<size_t> ProgTomoConfidecenceMap::sort_indexes(const std::vector<T> &
 }
 
 
-<<<<<<< HEAD
-=======
 
->>>>>>> devel
 void ProgTomoConfidecenceMap::computeSignificanceMap(MultidimArray<float> &fullMap, MultidimArray<float> &significanceMap,
 													 Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std)
 {
