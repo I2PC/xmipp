@@ -327,8 +327,8 @@ void ProgCtfGroup::produceSideInfo()
             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
             {
                 //change DIRECT_N__X_ELEM by DIRECT_N_YX_ELEM if you want to process a 2D ctf
-                result =         dAij(diff, i,j)  * DIRECT_N__X_ELEM(mics_ctf2d, counter, 0, 0, dAij(dd,i,j)+1  ) +
-                                 (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, counter, 0, 0, dAij(dd,i,j));
+                result =         dAij(diff, i,j)  * DIRECT_N__X_ELEM(mics_ctf2d, counter, dAij(dd,i,j)+1) +
+                                 (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, counter, dAij(dd,i,j));
                 dAij(Mwien,i,j) += dCount * result *result;
 
             }
@@ -689,8 +689,8 @@ void ProgCtfGroup::writeOutputToDisc()
             //interpolate ctf point from table
             //change DIRECT_N__X_ELEM by DIRECT_N_YX_ELEM if you want to process a 2D ctf
 
-            result =     dAij(diff, i,j)      * DIRECT_N__X_ELEM(mics_ctf2d, order, 0, 0, dAij(dd,i,j)+1  ) +
-                         (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, order, 0, 0, dAij(dd,i,j));
+            result =     dAij(diff, i,j)      * DIRECT_N__X_ELEM(mics_ctf2d, order, dAij(dd,i,j)+1) +
+                         (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, order, dAij(dd,i,j));
             dAij(ctf2D,i,j) += dCount * result ;
         }
     }
