@@ -1,7 +1,6 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_TOMO_EXTRACT_SUBTOMOS
-#define _PROG_TOMO_EXTRACT_SUBTOMOS
+#ifndef _PROG_TOMO_EXTRACT_PARTICLESTACKS
+#define _PROG_TOMO_EXTRACT_PARTICLESTACKS
 
 #include <iostream>
 #include <core/xmipp_program.h>
@@ -35,27 +34,33 @@
 #include <string>
 
 
-class ProgTomoExtractSubtomograms : public XmippProgram
+class ProgTomoExtractParticleStacks : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnTom, fnCoor;
+	FileName fnOut;
+    FileName fnTs;
+    FileName fnCoor;
 
-    size_t Xdim, Ydim, Zdim;
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
 
-    bool invertContrast, normalize;
+    bool invertContrast;
 
     double scaleFactor;
 
 	/** Is the volume previously masked?*/
-	int  boxsize, nthrs;
+	int  boxsize; 
+    int nthrs;
 
 public:
 
     void defineParams();
     void readParams();
-    void readAndPrepareData();
+    //void coord2DfromCoord3D();
     void run();
 };
 //@}
 #endif
+

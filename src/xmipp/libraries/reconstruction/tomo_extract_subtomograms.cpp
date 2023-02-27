@@ -40,6 +40,7 @@ void ProgTomoExtractSubtomograms::readParams()
 	boxsize = getIntParam("--boxsize");
 	scaleFactor = getDoubleParam("--downsample");
 	invertContrast = checkParam("--invertContrast");
+	normalize = checkParam("--normalize");
 	fnOut = getParam("-o");
 	nthrs = getIntParam("--threads");
 }
@@ -48,14 +49,15 @@ void ProgTomoExtractSubtomograms::readParams()
 void ProgTomoExtractSubtomograms::defineParams()
 {
 	addUsageLine("This function takes a tomogram an extract a set of subtomogram from it. The coordinates of the subtomograms are speciffied in the metadata given by coordinates.");
-	addParamsLine("  --tomogram <vol_file=\"\">   		: Filename of the tomogram containing the subtomograms to be extracted");
-	addParamsLine("  --coordinates <vol_file=\"\">		: Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
-	addParamsLine("  --boxsize <boxsize=100>			: Particle box size in voxels.");
-	addParamsLine("  [--subtomo]						: Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
-	addParamsLine("  [--invertContrast]						: Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
-	addParamsLine("  [--downsample <scaleFactor=0.5>]	: Scale factor of the extracted subtomograms");
-	addParamsLine("  -o <vol_file=\"\">  				: path to the output directory. ");
-	addParamsLine("  [--threads <s=4>]               	: Number of threads");
+	addParamsLine("  --tomogram <vol_file=\"\">         : Filename of the tomogram containing the subtomograms to be extracted");
+	addParamsLine("  --coordinates <vol_file=\"\">	    : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
+	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
+	addParamsLine("  [--subtomo]                        : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--invertContrast]	                : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--normalize]                      : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
+	addParamsLine("  -o <vol_file=\"\">                 : path to the output directory. ");
+	addParamsLine("  [--threads <s=4>]                  : Number of threads");
 }
 
 void ProgTomoExtractSubtomograms::run()
@@ -82,6 +84,31 @@ void ProgTomoExtractSubtomograms::run()
 
 	int halfboxsize = floor(0.5*boxsize);
 
+	MultidimArray<double> maskNormalize;
+	if (normalize)
+	{
+		
+		maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
+
+
+		for (int k=0; k<boxsize; k++)
+		{
+			int k2 = (k-halfboxsize);
+			k2 = k2*k2;
+			for (int i=0; i<boxsize; i++)
+			{
+				int i2 = i-halfboxsize;
+				int i2k2 = i2*i2 +k2 ;
+				for (int j=0; j<boxsize; j++)
+				{
+					int j2 = (j- halfboxsize);
+					if (sqrt(i2k2 + j2*j2)>halfboxsize)
+						A3D_ELEM(maskNormalize, k, i, j) = 1;
+				}
+			}
+		}
+	}
+
 	for (const auto& row : md)
 	{
 		row.getValue(MDL_XCOOR, xcoor);
@@ -102,10 +129,12 @@ void ProgTomoExtractSubtomograms::run()
 		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
 			continue;
 
+		
 		subtomo.initZeros(1, boxsize, boxsize, boxsize);
 
 		if (invertContrast)
 		{
+
 			for (int k=zinit; k<zlim; k++)
 			{
 				int kk = k - zcoor;
@@ -133,6 +162,33 @@ void ProgTomoExtractSubtomograms::run()
 					}
 				}
 			}
+		}
+
+		if (normalize)
+		{
+			double sumVal = 0, sumVal2 = 0;
+			double counter = 0;
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+			{
+				if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
+				{
+					double val = DIRECT_MULTIDIM_ELEM(subtomo, n);
+					sumVal += val;
+					sumVal2 += val*val;
+					counter = counter + 1;
+				}
+			}
+
+			double mean, sigma2;
+			mean = sumVal/counter;
+			sigma2 = sqrt(sumVal2/counter - mean*mean);
+
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+			{
+				DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
+				DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
+			}
+
 		}
 		
 		FileName fn;
