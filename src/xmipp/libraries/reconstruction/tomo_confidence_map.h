@@ -51,12 +51,12 @@ public:
 	 /** Filenames */
 	FileName fnOut, fnVol, fnVol2, fnMask;
 
-	bool locRes;
+	bool locRes, medianFilterBool, applySmoothingBeforeConfidence, applySmoothingAfterConfidence;
 
     size_t Xdim, Ydim, Zdim;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
-	float sampling, lowRes, highRes, sigVal, fdr, step;
+	float sampling, lowRes, highRes, sigVal, fdr, step, sigmaGauss;
 
 	/** Is the volume previously masked?*/
 	int  nthrs;
@@ -67,36 +67,42 @@ public:
     void readParams();
     void readAndPrepareData();
 
-	void confidenceMap(MultidimArray<float> &ignificanceMap, bool normalize);
+	void confidenceMap(MultidimArray<float> &ignificanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap);
 
     void normalizeTomogram(MultidimArray<float> &fullMap, MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap);
 
-    void estimateNoiseStatistics(const MultidimArray<float> &noiseMap, 
+    void estimateNoiseStatistics(MultidimArray<float> &noiseMap, 
 													 MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap,
 													 int boxsize, Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std);
 
     void FDRcorrection();
 
+	void medianFilter(MultidimArray<float> &input_tomogram,
+									       MultidimArray<float> &output_tomogram);
+
 	void ampMS(float &resolution, float &freq);
 
+	void convertToDouble(MultidimArray<float> &inTomo,
+												MultidimArray<double> &outTomo);
+
+	void convertToFloat(MultidimArray<double> &inTomo,
+												MultidimArray<float> &outTomo);
 
 	template<typename T>
 	std::vector<size_t> sort_indexes(const std::vector<T> &v);
 
 	void computeSignificanceMap(MultidimArray<float> &fullMap, MultidimArray<float> &significanceMap,
 													 Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std);
-    
+
 	void amplitudeMonogenicSignal_float(MultidimArray<float> &significanceMap);
 
-	void estimateLocalResolution(MultidimArray<float> &significanceMap);
-
-	void updateResMap(MultidimArray<float> &resMap, MultidimArray<float> &significanceMap, float &resolution);
+	void updateResMap(MultidimArray<float> &resMap, MultidimArray<float> &significanceMap, MultidimArray<int> &mask, float &resolution, size_t iter);
 
 	void FDRcontrol(MultidimArray<float> &significanceMap);
 
-	void filterNoiseAndMap(float &freq, float &tail, MultidimArray<double> &fm, MultidimArray<double> &nm);
+	void filterNoiseAndMap(float &freq, float &tail, MultidimArray<double> &fm, MultidimArray<double> &nm, size_t iter);
 
-	void chessBoardInterpolation(MultidimArray<float> &tomo);
+	void frequencyToAnalyze(float &freq, float &tail, int idx);
 
     void run();
 
@@ -104,7 +110,8 @@ public:
 	FFTwT<float> transformerFT;
     fftwf_plan plan;
     Image<int> mask;
-	MultidimArray< float > fullMap, noiseMap;
+	Matrix1D<float> freq_fourier_z, freq_fourier_y, freq_fourier_x;
+	MultidimArray< float > fullMap, noiseMap, resMap;
 };
 //@}
 #endif

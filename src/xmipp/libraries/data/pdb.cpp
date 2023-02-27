@@ -104,7 +104,7 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				at_pos.residue.push_back(resi);
 
 				// Getting the bfactor = 8pi^2*u
-				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
+				double bfactorRad = textToFloat(line.substr(60,6));//sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
 				at_pos.b.push_back(bfactorRad);
 
                                 // Covalent radius of the atom
