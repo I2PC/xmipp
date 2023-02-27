@@ -542,7 +542,7 @@ class Config:
 
     def _set_nvcc_cxx(self, nvcc_version):
         if not self.is_empty(Config.OPT_CXX_CUDA):
-            return True
+            return
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
         print(green('gcc candidates based on nvcc version:'), *candidates, sep=", ")
         if resultBool == False:
@@ -559,10 +559,9 @@ class Config:
                 print(yellow('No valid compiler found for CUDA host code. ' +
                 'nvcc_version : ' + str(nvcc_version) + ' GCC version: ' +
                              gccVersion + ' ' + self._get_help_msg()))
-                return False
         print(green('g++' + ' found in ' + prg))
         self._set(Config.OPT_CXX_CUDA, prg)
-        return True
+        return
 
     def _set_nvcc_lib_dir(self):
         opt = Config.OPT_NVCC_LINKFLAGS
@@ -616,21 +615,25 @@ class Config:
         self._set_if_empty(Config.OPT_NVCC_CXXFLAGS, flags)
 
     def _set_CUDA(self):
-        def print_no_CUDA():
+        def no_CUDA():
             print(red("No valid compiler found. "
                   "Skipping CUDA compilation.\n"))
+            self._set(Config.OPT_CUDA, False)
+            self.environment.update(CUDA=False)
 
         if not self._set_nvcc():
-            print_no_CUDA()
+            no_CUDA()
             return
         nvcc_version, nvcc_full_version = self._get_CUDA_version(
             self.get(Config.OPT_NVCC))
         print(green('CUDA-' + nvcc_full_version + ' found.'))
         if nvcc_version != 10.2:
             print(yellow('CUDA-10.2 is recommended.'))
-        if not self._set_nvcc_cxx(nvcc_version) or not self._set_nvcc_lib_dir():
-            print_no_CUDA()
+        self._set_nvcc_cxx(nvcc_version)
+        if not self._set_nvcc_lib_dir():
+            no_CUDA()
             return
+
         self._set_nvcc_flags(nvcc_version)
 
         # update config and environment
