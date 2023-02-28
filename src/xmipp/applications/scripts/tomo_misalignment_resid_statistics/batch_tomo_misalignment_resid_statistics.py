@@ -520,12 +520,10 @@ class ScriptTomoResidualStatistics(XmippScript):
       pvBinX = self.binomialTest(self.nImagePosX[key], rs)
       pvBinY = self.binomialTest(self.nImagePosY[key], rs)
       pvF = self.fTestVar(fTestStat, rs)
-      adfStatistic, pvADF, cvADF = self.augmentedDickeyFullerTest(self.imageModuleAcc[key])
 
       pValues.append([pvBinX, str(key) + "_pvBinX", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
       pValues.append([pvBinY, str(key) + "_pvBinY", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
       pValues.append([pvF,    str(key) + "_pvF",    self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
-      pValues.append([pvADF,  str(key) + "_pvADF",  self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
 
     pValues.sort()
  
