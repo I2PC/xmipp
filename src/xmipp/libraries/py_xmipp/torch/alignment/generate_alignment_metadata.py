@@ -23,7 +23,6 @@
 from typing import Optional
 
 import pandas as pd
-import torch
 import numpy as np
 
 from .. import metadata as md
@@ -33,6 +32,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,
                            match_distances: np.ndarray,
                            match_indices: np.ndarray,
+                           index: Optional[np.ndarray] = None,
                            local_transform_md: Optional[pd.DataFrame] = None) -> pd.DataFrame:
 
     REFERENCE_COLUMNS = [
@@ -43,7 +43,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
     if md.REF3D in reference_md.columns:
         REFERENCE_COLUMNS.append(md.REF3D) # Used for 3D classification
 
-    result = pd.DataFrame(match_distances, columns=[md.COST])
+    result = pd.DataFrame(match_distances, columns=[md.COST], index=index)
     
     # Left-join the projection metadata to the result
     result = result.join(projection_md, on=match_indices)
@@ -52,7 +52,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
     result = result.join(reference_md[REFERENCE_COLUMNS], on=md.REF)
     
     # Drop the indexing columns
-    result.drop(md.REF, axis=1, inplace=True)
+    result.drop(columns=md.REF, inplace=True)
 
     # Accumulate transforms
     if local_transform_md is not None:
@@ -72,7 +72,7 @@ def _update_alignment_metadata(output_md: pd.DataFrame,
                                match_indices: np.ndarray,
                                local_transform_md: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     # Select the rows to be updated
-    selection = match_distances < output_md[md.COST]
+    selection = match_distances < output_md[md.COST].to_numpy()
     
     if local_transform_md is not None:
         local_transform_md = local_transform_md[selection]
@@ -83,6 +83,7 @@ def _update_alignment_metadata(output_md: pd.DataFrame,
         projection_md=projection_md,
         match_distances=match_distances[selection],
         match_indices=match_indices[selection],
+        index=np.nonzero(selection)[0],
         local_transform_md=local_transform_md
     )
     
