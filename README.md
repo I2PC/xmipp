@@ -54,7 +54,7 @@ Start by cloning the repository and then navigate to the right directory.
 
 `git clone https://github.com/I2PC/xmipp.git xmipp-bundle && cd xmipp-bundle`
 
-You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest. Next is to compile xmipp. There are to possibilities and in both you will can run Xmipp in Scipion (see linking step)
+You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest. Next is to compile xmipp. There are to possibilities and in both you will can run Xmipp in Scipion (see [linking step](https://github.com/I2PC/xmipp/edit/agm_refactoring_readme/README.md#linking-xmipp-standalone-to-scipion))
 - Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will install Xmipp with the dependencies and thier versions that the enviroment you decide, or the default one.
 - Compile Xmipp via Scipion enviroment `scipion3 run ./xmipp` that way you will install Xmipp with the dependencies and their versions that Scipion decided. 
 
@@ -62,7 +62,7 @@ Please refer to `./xmipp --help` for additional info on the compilation process 
 
 It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 
-#### Linking standalone version to Scipion
+#### Linking Xmipp standalone to Scipion
 
 Once the Standalone version has been installed, the user can link such installation to Scipion to have the posibility of use Xmipp inside Scipion. Linking with Scipion requires to the repository of `scipion-em-xmipp` which can be found in the folder `src/scipion-em-xmipp`. This repository contains the files that Scipion needs to execute Xmipp programs. However, it remains to link the Xmipp binaries with Scipion. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#)) and just launch the next command to link the binaries
 
@@ -71,13 +71,13 @@ Once the Standalone version has been installed, the user can link such installat
 where `scipion-em-xmipp` is the folder of the repository, it means `src/scipion-em-xmipp`.
 This command should work in most of the cases. However, if you do this and Scipion does not find Xmipp, please visit [Linking Xmipp to Scipion Troubleshooting](https://github.com/I2PC/xmipp/wiki/Linking-Xmipp-to-Scipion-Troubleshooting)
 
-# Using Xmipp
+## Using Xmipp
 Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply 
 `source build/xmipp.bashrc`
 
 
 # That's all
 
-If you find a bug or you miss some feature, [please create an issue]([url](https://github.com/I2PC/xmipp/issues/new)) and we will have a look at it. For more details and information visit the [wikip page.](https://github.com/I2PC/xmipp/wiki)
+If you find a bug or you miss some feature, [please create an issue]([url](https://github.com/I2PC/xmipp/issues/new)) and we will have a look at it. For more details, troubleshootings and information visit the [wikip page.](https://github.com/I2PC/xmipp/wiki)
 
 If you like this project, Watch or Star it! We are also looking for new collaborators, so contact us if you’re interested
