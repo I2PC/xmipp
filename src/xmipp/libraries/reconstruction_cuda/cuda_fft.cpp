@@ -28,6 +28,8 @@
 #include "cuda_asserts.h"
 #include "cuFFTAdvisor/advisor.h"
 
+#include <iostream>
+
 template<typename T>
 void CudaFFT<T>::init(const HW &gpu, const FFTSettings<T> &settings, bool reuse) {
     bool canReuse = m_isInit

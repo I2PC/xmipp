@@ -24,6 +24,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
 #include <algorithm>
 #include "pdb_reduce_pseudoatoms.h"
 #include "data/pdb.h"
