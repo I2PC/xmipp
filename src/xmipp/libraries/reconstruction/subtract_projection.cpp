@@ -68,7 +68,8 @@
  void ProgSubtractProjection::show() const{
     if (!verbose)
         return;
-	std::cout<< "Input particles:\t" << fnParticles << std::endl
+	std::cout
+	<< "Input particles:\t" << fnParticles << std::endl
 	<< "Reference volume:\t" << fnVolR << std::endl
 	<< "Mask of the region to keep:\t" << fnMask << std::endl
 	<< "Sigma of low pass filter:\t" << sigma << std::endl
@@ -112,8 +113,8 @@
  }
 
  void ProgSubtractProjection::readParticle(const MDRow &r) {
-	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
-	I.read(fnImage);
+	r.getValueOrDefault(MDL_IMAGE, fnImg, "no_filename");
+	I.read(fnImg);
 	I().setXmippOrigin();
  }
 
@@ -287,7 +288,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	createMask(fnMask, vM, ivM);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
-	mdParticles.read(fnParticles);
 	
 	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
@@ -301,20 +301,29 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 	std::cout << "-------Projectors initialized-------" << std::endl;
 		
-	// Read first particle
-	mdParticles.getFirstImage(I);
-	transformerI.FourierTransform(I(), IFourier);
+	// Create mock image of same size as particles (and referencce volume) to get
+	I().initZeros((int)YSIZE(V()),(int)XSIZE(V()));
+	MultidimArray< std::complex<double> > I0Fourier; 
+	FourierTransformer transformerI0; 
+	std::cout << "-------1-------" << std::endl;
+	transformerI0.FourierTransform(I(), I0Fourier, false);
+	std::cout << "-------2-------" << std::endl;
 
 	// Construct frequencies image
 	wi.initZeros(IFourier);
+	std::cout << "-------3-------" << std::endl;
 	Matrix1D<double> w(2); 	
+	std::cout << "-------4-------" << std::endl;
 	for (int i=0; i<YSIZE(wi); i++) {
+		std::cout << "-------for 5-------" << std::endl;
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
+			std::cout << "-------for 6-------" << std::endl;
 			FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
 			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
 		}
 	}
+	std::cout << "-------7-------" << std::endl;
 	if (limitfreq == 0)
 		maxwiIdx = (int)XSIZE(wi); 
 	else
@@ -322,8 +331,9 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 	// Declare complex structures that will be used in the loop
 	std::cout << "-------Subtracting particles-------" << std::endl;
-	long setofparticles_size = mdParticles.size();
-	init_progress_bar(setofparticles_size);
+	// mdParticles.read(fnParticles);
+	// long setofparticles_size = mdParticles.size();
+	// init_progress_bar(setofparticles_size);
 	i = 0;
  }
 
