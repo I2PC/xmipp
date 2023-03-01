@@ -21,6 +21,7 @@ if __name__ == "__main__":
     mode = sys.argv[3]
     gpuId = sys.argv[4]
     outputDir = sys.argv[5]
+    fnXmdImages = sys.argv[6]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -97,7 +98,7 @@ if __name__ == "__main__":
             return Xexp
 
 
-    def produce_output(mdExp, mode, numIm, Y, fnImgs):
+    def produce_output(mdExp, mode, numIm, Y, fnImgs, fnImages):
 
         print(mode)
         ID = 0
@@ -106,6 +107,7 @@ if __name__ == "__main__":
                 shiftX, shiftY = Y[ID]
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
+                mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             elif mode == "Angular":
                 rots = Y[ID][0:2]
                 tilts = Y[ID][2:4]
@@ -136,6 +138,9 @@ if __name__ == "__main__":
     tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
     psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
+    mdExpImages = xmippLib.MetaData(fnXmdImages)
+    fnImages = mdExpImages.getColumnValues(xmippLib.MDL_IMAGE)
+    print(mdExpImages.getColumnValues(xmippLib.MDL_SAMPLINGRATE), flush = True)
 
     if mode == "Shift":
         labels = []
@@ -161,9 +166,9 @@ if __name__ == "__main__":
     manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
 
-    produce_output(mdExp, mode, len(fnImgs), Y, fnImgs)
+    produce_output(mdExp, mode, len(fnImgs), Y, fnImgs, fnImages)
 
-    print(mdExp)
+
 
     if mode == "Shift":
         mdExp.write(os.path.join(outputDir, "shift_results.xmd"))
