@@ -48,17 +48,17 @@ We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Tr
 Also a compiler will be required (`sudo apt install gcc-8 g++-8`)
 
 ## Standalone installation
-Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion. However, in the next section it is explained how to link it with Scipion. Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
+Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion, however, in the next section it is explained how to link it with Scipion. Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
 
 Start by cloning the repository and then navigate to the right directory.
 
 `git clone https://github.com/I2PC/xmipp.git xmipp-bundle && cd xmipp-bundle`
 
-You might want to change the branch at this moment, however, the default branch is recommended, as it contains the latest and greatest. Next is to compile xmipp. There are to possibilities and in both you will can run Xmipp in Scipion (see [linking step](https://github.com/I2PC/xmipp/edit/agm_refactoring_readme/README.md#linking-xmipp-standalone-to-scipion))
+Refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
+
+Next is to compile xmipp. There are to possibilities and in both you will can run Xmipp in Scipion (see [linking step](https://github.com/I2PC/xmipp/edit/agm_refactoring_readme/README.md#linking-xmipp-standalone-to-scipion))
 - Compile Xmipp by invoking the compilation script, which will take you through the rest of the process:`./xmipp` that way you will install Xmipp with the dependencies and thier versions that the enviroment you decide, or the default one.
 - Compile Xmipp via Scipion enviroment `scipion3 run ./xmipp` that way you will install Xmipp with the dependencies and their versions that Scipion decided. 
-
-Please refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
 
 It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 
