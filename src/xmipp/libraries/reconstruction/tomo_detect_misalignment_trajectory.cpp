@@ -1628,8 +1628,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			std::cout << "numberCM " << numberCM << std::endl;
 			std::cout << "sumResid " << sumResid << std::endl;
 			std::cout << "sumResid2 " << sumResid2 << std::endl;
-			std::cout << "longestMisaliChain " << longestMisaliChain << std::endl;
-			std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
 			#endif
 
 			avg = sumResid / numberCM;
