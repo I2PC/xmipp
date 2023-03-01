@@ -1,7 +1,7 @@
 [![Build Status](https://github.com/I2PC/xmipp/actions/workflows/main.yml/badge.svg)](https://github.com/I2PC/xmipp/actions/workflows/main.yml)
 
 # Xmipp
-<a href="https://github.com/I2PC/xmipp"><img src="https://github.com/I2PC/scipion-em-xmipp/blob/devel/xmipp3/xmipp_logo_original.png" alt="drawing" width="320" align="left"></a>
+<a href="https://github.com/I2PC/xmipp"><img src="https://github.com/I2PC/scipion-em-xmipp/blob/devel/xmipp3/xmipp_logo_original.png" alt="drawing" width="330" align="left"></a>
 
 
   
