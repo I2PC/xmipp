@@ -14,7 +14,7 @@ This is the main repository, which contains the majority of the source code for 
 # Getting started
 The recommended way for users (not developers) to install and use Xmipp is via the [Scipion](http://scipion.i2pc.es/) framework, where you can use Xmipp with other Cryo-EM-related software. Xmipp  will be installed during Scipion installation (pay attemption on the -noXmipp flag). The Scipion installer should take care of all dependencies for you, however, you can make its life easier if you have your compiler, CUDA and HDF5 library ready and available in the standard paths. Read below for more details about these softwares requirements. Follow the official [installation guide](https://scipion-em.github.io/docs/release-3.0.0/docs/scipion-modes/how-to-install.html#installation) of Scipion for more details.
 
-## Installation
+## Installation requirements
 ### Supported OS
 We have tested Xmipp compilation on the following operating systems:
 [Ubuntu 16.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-16.04), [Ubuntu 18.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-18.04), [Ubuntu 20.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-20.04), [Ubuntu 22.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-22.04), [Centos 7](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-CentOS-7-9.2009). Visit the OS wiki page for more details.
@@ -47,7 +47,7 @@ We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Tr
 
 Also a compiler will be required (`sudo apt install gcc-8 g++-8`)
 
-### Standalone installation
+## Standalone installation
 Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion. However, in the next section it is explained how to link it with Scipion. Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
 
 Start by cloning the repository and then navigate to the right directory.
@@ -62,7 +62,7 @@ Please refer to `./xmipp --help` for additional info on the compilation process 
 
 It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
 
-#### Linking Xmipp standalone to Scipion
+### Linking Xmipp standalone to Scipion
 
 Once the Standalone version has been installed, the user can link such installation to Scipion to have the posibility of use Xmipp inside Scipion. Linking with Scipion requires to the repository of `scipion-em-xmipp` which can be found in the folder `src/scipion-em-xmipp`. This repository contains the files that Scipion needs to execute Xmipp programs. However, it remains to link the Xmipp binaries with Scipion. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#)) and just launch the next command to link the binaries
 
