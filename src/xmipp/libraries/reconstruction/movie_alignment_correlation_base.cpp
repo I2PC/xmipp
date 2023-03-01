@@ -77,9 +77,11 @@ void AProgMovieAlignmentCorrelation<T>::checkSettings() {
                 "(--maxResForCorrelation) are correctly set. For current sampling, you can "
                 "use maximal resolution of " + std::to_string(this->Ts * 8 * getC()) + " or higher.");
     }
-    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x()
-        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
-            REPORT_ERROR(ERR_LOGIC_ERROR, "More control points than patches. Decrease the number of control points.");
+    if (!skipLocalAlignment) {
+        if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x()
+            || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+                REPORT_ERROR(ERR_LOGIC_ERROR, "More control points than patches. Decrease the number of control points.");
+        }
     }
 }
 
@@ -371,7 +373,7 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
         const AlignmentResult<T> &alignment, MetaData &movie) {
     int j = 0;
     int n = 0;
-    auto negateToDouble = [] (T v) {return (double) (v * -1);};
+    auto negateToDouble = [binning=binning] (T v) {return (double) (v * -1) * binning;};
         for (size_t objId : movie.ids())
         {
             if (n >= nfirst && n <= nlast) {
@@ -448,10 +450,10 @@ void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
         const AlignmentResult<T> &globAlignment) {
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
     std::cout << "Estimated global shifts (in px, from the reference frame";
-    std::cout << (applyBinning() ? ", after binning" : "");
+    std::cout << (applyBinning() ? ", ignoring binning" : "");
     std::cout << "):\n";
     for (auto &s : globAlignment.shifts) {
-        printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
+        printf("X: %07.4f Y: %07.4f\n", s.x * binning, s.y * binning);
     }
     std::cout << std::endl;
 }

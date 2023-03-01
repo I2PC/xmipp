@@ -260,8 +260,11 @@ class Config:
     def get_supported_GCC(self):
         # we need GCC with C++17 support
         # https://gcc.gnu.org/projects/cxx-status.html
-        return ['', 11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
-                9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
+        return ['',
+                11.3, 11.2, 11.1, 11,
+                10.4, 10.3, 10.2, 10.1, 10,
+                9.5, 9.4, 9.3, 9.2, 9.1, 9,
+                8.5, 8.4, 8.3, 8.2, 8.1, 8,
                 7.5, 7.4, 7.3, 7.2, 7.1, 7]
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
@@ -494,28 +497,27 @@ class Config:
         # https://gist.github.com/ax3l/9489132
         v = ['12.2', '12.1',
              '11.3', '11.2', '11.1', '11',
-             '10.3', '10.2', '10.1', '10',
+             '10.4', '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
              '8.5', '8.4', '8.3', '8.2', '8.1', '8',
              '7.5', '7.4', '7.3', '7.2', '7.1', '7',
              '6.5', '6.4', '6.3', '6.2', '6.1', '6',
-             '5.5', '5.4', '5.3', '5.2', '5.1', '5',
-             '4.9', '4.8']
+             '5.5', '5.4', '5.3', '5.2', '5.1', '5']
         if 8.0 <= nvcc_version < 9.0:
-            return v[v.index('5.3'):]
+            return v[v.index('5.3'):], True
         elif 9.0 <= nvcc_version < 9.2:
-            return v[v.index('5.5'):]
+            return v[v.index('5.5'):], True
         elif 9.2 <= nvcc_version < 10.1:
-            return v[v.index('7.3'):]
+            return v[v.index('7.5'):], True
         elif 10.1 <= nvcc_version <= 10.2:
-            return v[v.index('8.5'):]
+            return v[v.index('8.5'):], True
         elif 11.0 <= nvcc_version < 11.1:
-            return v[v.index('9.3'):]
-        elif 11.1 <= nvcc_version < 11.5:
-            return v[v.index('10.3'):]
-        elif 11.5 <= nvcc_version <= 11.7:
-            return v[v.index('11.3'):]
-        return []
+            return v[v.index('9.5'):], True
+        elif 11.1 <= nvcc_version <= 11.4: # Using GCC8 with CUDA 11.4 because GCC11 is only supported in CUDA 11.4.1
+            return v[v.index('10.4'):], True
+        elif 11.5 <= nvcc_version <= 11.8:
+            return v[v.index('11.3'):], True
+        return v, False
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])
@@ -540,8 +542,14 @@ class Config:
 
     def _set_nvcc_cxx(self, nvcc_version):
         if not self.is_empty(Config.OPT_CXX_CUDA):
-            return True
-        candidates = self._get_compatible_GCC(nvcc_version)
+            return
+        candidates, resultBool = self._get_compatible_GCC(nvcc_version)
+        print(green('gcc candidates based on nvcc version:'), *candidates, sep=", ")
+        if resultBool == False:
+            print(red('No valid compiler found for CUDA host code. ' +
+                         'nvcc_version : ' + str(
+                nvcc_version) + ' ' + self._get_help_msg()) +
+                  '\nbut trying to continue')
         prg = find_newest('g++', candidates,  False)
         if not prg:# searching a g++ for devToolSet on CentOS
             gccVersion = str(self._get_GCC_version('g++')[0])
@@ -551,10 +559,9 @@ class Config:
                 print(yellow('No valid compiler found for CUDA host code. ' +
                 'nvcc_version : ' + str(nvcc_version) + ' GCC version: ' +
                              gccVersion + ' ' + self._get_help_msg()))
-                return False
         print(green('g++' + ' found in ' + prg))
         self._set(Config.OPT_CXX_CUDA, prg)
-        return True
+        return
 
     def _set_nvcc_lib_dir(self):
         opt = Config.OPT_NVCC_LINKFLAGS
@@ -608,21 +615,25 @@ class Config:
         self._set_if_empty(Config.OPT_NVCC_CXXFLAGS, flags)
 
     def _set_CUDA(self):
-        def print_no_CUDA():
+        def no_CUDA():
             print(red("No valid compiler found. "
                   "Skipping CUDA compilation.\n"))
+            self._set(Config.OPT_CUDA, False)
+            self.environment.update(CUDA=False)
 
         if not self._set_nvcc():
-            print_no_CUDA()
+            no_CUDA()
             return
         nvcc_version, nvcc_full_version = self._get_CUDA_version(
             self.get(Config.OPT_NVCC))
         print(green('CUDA-' + nvcc_full_version + ' found.'))
         if nvcc_version != 10.2:
             print(yellow('CUDA-10.2 is recommended.'))
-        if not self._set_nvcc_cxx(nvcc_version) or not self._set_nvcc_lib_dir():
-            print_no_CUDA()
+        self._set_nvcc_cxx(nvcc_version)
+        if not self._set_nvcc_lib_dir():
+            no_CUDA()
             return
+
         self._set_nvcc_flags(nvcc_version)
 
         # update config and environment
@@ -802,7 +813,7 @@ class Config:
 
         cppProg = """
     #include <jni.h>
-    int dummy(){}
+    int dummy(){return 0;}
     """
         with open("xmipp_jni_test.cpp", "w") as cppFile:
             cppFile.write(cppProg)
@@ -840,7 +851,7 @@ class Config:
             print("Checking Matlab configuration ...")
             cppProg = """
         #include <mex.h>
-        int dummy(){}
+        int dummy(){return 0;}
         """
             with open("xmipp_mex.cpp", "w") as cppFile:
                 cppFile.write(cppProg)
@@ -894,7 +905,7 @@ class Config:
                 with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
                     cppFile.write("""
                     #include <starpu.h>
-                    int dummy(){}
+                    int dummy(){return 0;}
                     """)
 
                 if not runJob("%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o" %

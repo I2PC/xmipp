@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
 #include "shift_corr_estimator.h"
 
 namespace Alignment {

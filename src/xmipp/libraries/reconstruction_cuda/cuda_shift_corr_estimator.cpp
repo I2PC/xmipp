@@ -286,11 +286,14 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
-    if ( ! GPU::isMemoryPinned(others)) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
-    }
-    if (this->m_allowDataOverwrite && ( ! m_workStream->isGpuPointer(others))) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+    const auto isGpuPtr = m_workStream->isGpuPointer(others);
+    if(!isGpuPtr) {
+        if ( ! GPU::isMemoryPinned(others)) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
+        }
+        if (this->m_allowDataOverwrite) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+        }
     }
 
     m_workStream->set();

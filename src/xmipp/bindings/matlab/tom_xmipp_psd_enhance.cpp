@@ -55,7 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
     }
     catch (XmippError Xe)
     {
-        mexErrMsgTxt(Xe.msg.c_str());
+        mexErrMsgTxt(Xe.what());
     }
     
     setMatrix2D(image, plhs[0]);
