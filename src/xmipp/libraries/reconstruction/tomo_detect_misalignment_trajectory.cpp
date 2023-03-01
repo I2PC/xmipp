@@ -1602,31 +1602,48 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 		size_t numberCM = CM_image.size();
 
-		double avg;
-		double std;
-		size_t residOutOfRange = 0;
-
-		double sumResid = 0;
-		double sumResid2 = 0;
-
-		for (size_t i = 0; i < numberCM; i++)
+		if (numberCM > 0)
 		{
-			double sum = CM_image[i].residuals.x*CM_image[i].residuals.x + CM_image[i].residuals.y*CM_image[i].residuals.y;
-			sumResid2 += sum;
-			sumResid += sqrt(sum);
+			double avg;
+			double std;
+			size_t residOutOfRange = 0;
 
-			if (sumResid > mod2Thr)
+			double sumResid = 0;
+			double sumResid2 = 0;
+
+			for (size_t i = 0; i < numberCM; i++)
 			{
-				residOutOfRange += 1;
-			}
-		}
-		
-		avg = sumResid / numberCM;
-		std = sqrt(sumResid2 / numberCM - avg * avg);
+				double sum = CM_image[i].residuals.x*CM_image[i].residuals.x + CM_image[i].residuals.y*CM_image[i].residuals.y;
+				sumResid2 += sum;
+				sumResid += sqrt(sum);
 
-		imageStatsTable[n][0] = avg;
-		imageStatsTable[n][1] = std;
-		imageStatsTable[n][7] = residOutOfRange;
+				if (sumResid > mod2Thr)
+				{
+					residOutOfRange += 1;
+				}
+			}
+			
+			#ifdef DEBUG_RESIDUAL_ANALYSIS	
+			std::cout << "n " << n << std::endl;
+			std::cout << "numberCM " << numberCM << std::endl;
+			std::cout << "sumResid " << sumResid << std::endl;
+			std::cout << "sumResid2 " << sumResid2 << std::endl;
+			std::cout << "longestMisaliChain " << longestMisaliChain << std::endl;
+			std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
+			#endif
+
+			avg = sumResid / numberCM;
+			std = sqrt(sumResid2 / numberCM - avg * avg);
+
+			#ifdef DEBUG_RESIDUAL_ANALYSIS	
+			std::cout << "avg " << avg << std::endl;
+			std::cout << "std " << std << std::endl;
+			#endif
+
+			imageStatsTable[n][0] = avg;
+			imageStatsTable[n][1] = std;
+			imageStatsTable[n][7] = residOutOfRange;
+		}
 	}
 
 	std::cout << " ----------------------------------------------- imageStatsTable" << std::endl;
