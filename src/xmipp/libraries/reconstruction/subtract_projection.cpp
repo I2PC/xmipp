@@ -302,32 +302,36 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	std::cout << "-------Projectors initialized-------" << std::endl;
 		
 	// Create mock image of same size as particles (and referencce volume) to get
-	I().initZeros((int)YSIZE(V()),(int)XSIZE(V()));
+	Image<double> I0;
+	I0().initZeros((int)YSIZE(V()),(int)XSIZE(V()));
+	I0().initConstant(1);
+	FileName fnImgOut0 = "I0.mrcs";
+	I0.write(fnImgOut0);
 	MultidimArray< std::complex<double> > I0Fourier; 
 	FourierTransformer transformerI0; 
 	std::cout << "-------1-------" << std::endl;
-	transformerI0.FourierTransform(I(), I0Fourier, false);
+	transformerI0.FourierTransform(I0(), I0Fourier, false);
 	std::cout << "-------2-------" << std::endl;
 
 	// Construct frequencies image
-	wi.initZeros(IFourier);
+	wi.initZeros(I0Fourier);
 	std::cout << "-------3-------" << std::endl;
 	Matrix1D<double> w(2); 	
 	std::cout << "-------4-------" << std::endl;
 	for (int i=0; i<YSIZE(wi); i++) {
 		std::cout << "-------for 5-------" << std::endl;
-		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
+		FFT_IDX2DIGFREQ(i,YSIZE(I0Fourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
 			std::cout << "-------for 6-------" << std::endl;
-			FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
+			FFT_IDX2DIGFREQ(j,XSIZE(I0Fourier),XX(w))
+			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(I0Fourier)); // indexes
 		}
 	}
 	std::cout << "-------7-------" << std::endl;
 	if (limitfreq == 0)
 		maxwiIdx = (int)XSIZE(wi); 
 	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
+		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(I0Fourier), maxwiIdx)
 
 	// Declare complex structures that will be used in the loop
 	std::cout << "-------Subtracting particles-------" << std::endl;
