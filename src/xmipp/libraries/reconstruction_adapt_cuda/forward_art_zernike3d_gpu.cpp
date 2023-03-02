@@ -539,24 +539,35 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 	A1D_ELEM(ordered_list, 0) = i;
 
 	// Choose the rest of projections
-	std::cout << "Sorting projections orthogonally...\n" << std::endl;
-	Matrix1D<double> rowj, rowi_1, rowi_N_1;
+	std::cout << "Sorting " << numIMG << " projections orthogonally...\n" << std::endl;
+
+	auto myDotProduct = [](const auto &l, const auto &r) {
+		return l[0] * r[0] + l[1] * r[1] + l[2] * r[2];
+	};
+	auto toArray = [](const auto &mda, auto i) -> std::array<double, 3> {
+		return {mda.mdata[3 * i], mda.mdata[3 * i + 1], mda.mdata[3 * i + 2]};
+	};
+	std::array<double, 3> rowi_1;
+	std::array<double, 3> rowi_N_1;
 	for (i = 1; i < numIMG; i++) {
 		// Compute the product of not already chosen vectors with the just
 		// chosen one, and select that which has minimum product
 		min_prod = MAXFLOAT;
-		//v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
-		if (sort_last_N != -1 && i > sort_last_N)
-			v.getRow(A1D_ELEM(ordered_list, i - sort_last_N - 1), rowi_N_1);
+
+		const bool cond = sort_last_N != -1 && i > sort_last_N;
+		if (cond)
+			rowi_N_1 = toArray(v, A1D_ELEM(ordered_list, i - sort_last_N - 1));
 		else
 			v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
 		bool cond = sort_last_N != -1 && i > sort_last_N;
+		rowi_1 = toArray(v, A1D_ELEM(ordered_list, i - 1));
+
 		for (j = 0; j < numIMG; j++) {
 			if (!chosen.data[j]) {
-				v.getRow(j, rowj);
-				A1D_ELEM(product, j) += ABS(dotProduct(rowi_1, rowj));
+				auto rowj = toArray(v, j);
+				A1D_ELEM(product, j) += ABS(myDotProduct(rowi_1, rowj));
 				if (cond)
-					A1D_ELEM(product, j) -= ABS(dotProduct(rowi_N_1, rowj));
+					A1D_ELEM(product, j) -= ABS(myDotProduct(rowi_N_1, rowj));
 				if (A1D_ELEM(product, j) < min_prod) {
 					min_prod = A1D_ELEM(product, j);
 					min_prod_proj = j;
