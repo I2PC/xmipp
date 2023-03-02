@@ -558,9 +558,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 		if (cond)
 			rowi_N_1 = toArray(v, A1D_ELEM(ordered_list, i - sort_last_N - 1));
 		else
-			v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
-		bool cond = sort_last_N != -1 && i > sort_last_N;
-		rowi_1 = toArray(v, A1D_ELEM(ordered_list, i - 1));
+			rowi_1 = toArray(v, A1D_ELEM(ordered_list, i - 1));
 
 		for (j = 0; j < numIMG; j++) {
 			if (!chosen.data[j]) {
