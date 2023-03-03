@@ -145,7 +145,6 @@ void ProgAngularDistance::run()
     // Build output comment
     /////DF_out.setComment("image rot1 rot2 diff_rot tilt1 tilt2 diff_tilt psi1 psi2 diff_psi ang_dist X1 X2 Xdiff Y1 Y2 Ydiff ShiftDiff");
 
-    int i = 0;
     size_t id;
     FileName fnImg;
     std::vector<double> output;
@@ -155,7 +154,7 @@ void ProgAngularDistance::run()
     auto iter1(DF1.ids().begin());
     auto iter2(DF2.ids().begin());
     const auto s = std::min(DF1.size(), DF2.size());
-    for (; i < s ; ++iter1, ++iter2)
+    for (size_t i = 0; i < s; ++i, ++iter1, ++iter2)
     {
         // Read input data
         size_t itemId;
@@ -255,8 +254,6 @@ void ProgAngularDistance::run()
             DF_out.setValue(MDL_IMAGE,fnImg,id);
             //DF_out.setValue(MDL_ANGLE_COMPARISON,output, id);
         }
-
-        i++;
     }
     if (0 == i) {
         REPORT_ERROR(ERR_NUMERICAL, "i is zero (0), which would lead to division by zero");
