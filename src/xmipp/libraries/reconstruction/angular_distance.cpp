@@ -154,14 +154,17 @@ void ProgAngularDistance::run()
 
     auto iter1(DF1.ids().begin());
     auto iter2(DF2.ids().begin());
-    for (; i < DF1.size() ; ++iter1, ++iter2)
+    const auto s = std::min(DF1.size(), DF2.size());
+    for (; i < s ; ++iter1, ++iter2)
     {
         // Read input data
+        size_t itemId;
         double rot1,  tilt1,  psi1;
         double rot2,  tilt2,  psi2;
         double rot2p, tilt2p, psi2p;
         double distp;
         double X1, X2, Y1, Y2;
+        DF1.getValue(MDL_ITEM_ID,itemId, *iter1);
         DF1.getValue(MDL_IMAGE,fnImg, *iter1);
 
         DF1.getValue(MDL_ANGLE_ROT,rot1, *iter1);
@@ -208,6 +211,7 @@ void ProgAngularDistance::run()
         if (fillOutput)
         {
             MDRowVec row;
+            row.setValue(MDL_ITEM_ID, itemId);
             //output[0]=rot1;
             row.setValue(MDL_ANGLE_ROT, rot1);
             //output[1]=rot2p;
