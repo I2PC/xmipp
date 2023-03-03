@@ -154,7 +154,7 @@ void ProgAngularDistance::run()
     auto iter1(DF1.ids().begin());
     auto iter2(DF2.ids().begin());
     const auto s = std::min(DF1.size(), DF2.size());
-    size_t i;
+    int i;
     for (i = 0; i < s; ++i, ++iter1, ++iter2)
     {
         // Read input data
