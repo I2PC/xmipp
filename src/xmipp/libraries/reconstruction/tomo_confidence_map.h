@@ -32,6 +32,7 @@
 #include <core/xmipp_image.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
+#include <core/metadata_vec.h>
 #include <math.h>
 #include <limits>
 #include <complex>
@@ -51,8 +52,8 @@ class ProgTomoConfidecenceMap : public XmippProgram
 public:
 	 /** Filenames */
 	FileName fnOut;
-	FileName fnVol;
-	FileName fnVol2;
+	FileName fnOdd;
+	FileName fnEven;
 	FileName fnMask;
 
 	bool locRes, medianFilterBool, applySmoothingBeforeConfidence, applySmoothingAfterConfidence;
@@ -74,10 +75,16 @@ public:
 public:
 
     void defineParams();
-    void readParams();
+    
+	void readParams();
+
     void readAndPrepareData();
 
+	void readHalfMaps(FileName &fnOdd, FileName &fnEven);
+
 	void confidenceMap(MultidimArray<float> &ignificanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap);
+
+	void sortImages(MetaDataVec &md, std::vector<FileName> &vecfn, std::vector<double> &vectilt);
 
     void normalizeTomogram(MultidimArray<float> &fullMap, MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap);
 
@@ -121,7 +128,7 @@ public:
 
 public:
 	FFTwT<float> transformerFT;
-    fftwf_plan plan;
+    //fftwf_plan plan;
     Image<int> mask;
 	Matrix1D<float> freq_fourier_z, freq_fourier_y, freq_fourier_x;
 	MultidimArray< float > fullMap, noiseMap, resMap;

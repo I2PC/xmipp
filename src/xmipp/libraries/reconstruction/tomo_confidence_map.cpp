@@ -34,57 +34,146 @@
 
 void ProgTomoConfidecenceMap::readParams()
 {
-	fnVol = getParam("--odd");
-	fnVol2 = getParam("--even");
+	fnOdd = getParam("--odd");
+	fnEven = getParam("--even");
 	fnOut = getParam("--odir");
 	fnMask = getParam("--mask");
 	medianFilterBool = checkParam("--medianFilter");
 	applySmoothingBeforeConfidence = checkParam("--applySmoothingBeforeConfidence");
 	applySmoothingAfterConfidence = checkParam("--applySmoothingAfterConfidence");
 	sigmaGauss = (float)  getDoubleParam("--sigmaGauss");
-	locRes = checkParam("--localResolution");
-	lowRes = (float)  getDoubleParam("--lowRes");
-	highRes = (float) getDoubleParam("--highRes");
 	sigVal = (float)  getDoubleParam("--significance");
 	sampling = (float) getDoubleParam("--sampling_rate");
 	fdr = (float) getDoubleParam("--fdr");
-	step = (float) getDoubleParam("--step");
 	nthrs = getIntParam("--threads");
 }
 
 
 void ProgTomoConfidecenceMap::defineParams()
 {
-	addUsageLine("This function determines the local resolution of a tomogram. It makes use of two reconstructions, odd and even. The difference between them"
-			"gives a noise reconstruction. Thus, by computing the local amplitude of the signal at different frequencies and establishing a comparison with"
-			"the noise, the local resolution is computed");
+	addUsageLine("This program determines the confidence map of a tilt series or a tomogram. The result is a value between 0 and 1,");
+	addUsageLine("being zero a fully reliable point and 0 absolutely unreliable. It means the values is the confidence of the voxels/pixel");
 	addParamsLine("  --odd <vol_file=\"\">              : Half volume 1");
 	addParamsLine("  --even <vol_file=\"\">	            : Half volume 2");
 	addParamsLine("  [--mask <vol_file=\"\">]           : Mask defining the signal. ");
 	addParamsLine("  [--medianFilter]                   : Set true if a median filter should be applied.");
-	addParamsLine("  [--applySmoothingBeforeConfidence] : Set true if a median filter should be applied.");
-	addParamsLine("  [--applySmoothingAfterConfidence]  : Set true if a median filter should be applied.");
-	addParamsLine("  [--sigmaGauss <s=2>]               : Set true if a median filter should be applied.");
+	addParamsLine("  [--applySmoothingBeforeConfidence] : Set true if a smoothing before computing the confidence should be applied.");
+	addParamsLine("  [--applySmoothingAfterConfidence]  : Set true if a smoothing after computing the confidence  should be applied.");
+	addParamsLine("  [--sigmaGauss <s=2>]               : This is the std for the smoothing.");
 	addParamsLine("  [--fdr <s=0.05>]                   : False discovery rate");
-	addParamsLine("  [--localResolution]                : Put this fag to estimate the local resolution of the tomogram");
-	addParamsLine("  [--lowRes <s=30>]                  : Minimum resolution (A)");
-	addParamsLine("  [--highRes <s=1>]                  : Maximum resolution (A)");
-	addParamsLine("  [--step <s=1>]                     : Step");
 	addParamsLine("  [--significance <s=0.95>]          : The level of confidence for the hypothesis test.");
 	addParamsLine("  --odir <output=\"resmap.mrc\">     : Local resolution volume (in Angstroms)");
 	addParamsLine("  [--sampling_rate <s=1>]            : Sampling rate (A/px)");
 	addParamsLine("  [--threads <s=4>]                  : Number of threads");
 }
 
+void ProgTomoConfidecenceMap::readHalfMaps(FileName &fnOdd, FileName &fnEven)
+{
+	Image<float> oddMap, evenMap;
+
+	oddMap.read(fnOdd);
+	evenMap.read(fnEven);
+	auto &odd = oddMap();
+	auto &even = evenMap();
+	fullMap = 0.5*(odd+even);
+	noiseMap = 0.5*(odd-even);
+
+	size_t Ndim;
+	fullMap.getDimensions(Xdim, Ydim, Zdim, Ndim);
+}
+
 void ProgTomoConfidecenceMap::run()
 {
+	std::cout << "Starting ..." << std::endl;
+	std::cout << "           " << std::endl;
+	std::cout << "           " << std::endl;
+
+	MetaDataVec mdOdd, mdEven;
+	std::vector<FileName> vecfnOdd(0), vecfnEven(0);
+	std::vector<double> vectiltOdd(0), vectiltEven(0);
+	
+
+	bool oddismd, evenismd;
+	oddismd = fnOdd.isMetaData();
+	evenismd = fnEven.isMetaData();
+
+	Image<float> oddMap, evenMap;
 	MultidimArray<float> significanceMap;
 
-	readAndPrepareData();
+	// Checking if it is a metadata or if it is a tomogram
+	if (oddismd || evenismd)
+	{
+		if (oddismd && evenismd)
+		{
+			mdOdd.read(fnOdd);
+			mdEven.read(fnEven);
 
-	bool normalize = true;
-	
-	confidenceMap(significanceMap, normalize, fullMap, noiseMap);
+			sortImages(mdOdd, vecfnOdd, vectiltOdd);
+			sortImages(mdEven, vecfnEven, vectiltEven);
+
+			if (vectiltEven.size() != vectiltOdd.size())
+			{
+				REPORT_ERROR(ERR_ARG_INCORRECT, "Metadata files have different number of tilt angles");
+			}
+			else
+			{
+				for (size_t idx=0; idx<vecfnOdd.size(); idx++)
+				{
+					FileName fnImgOdd, fnImgEven;
+					fnImgOdd = vecfnOdd[idx];
+					fnImgEven = vecfnEven[idx];
+					readHalfMaps(fnImgOdd, fnImgEven);
+
+					confidenceMap(significanceMap, true, fullMap, noiseMap);
+
+					MultidimArray<float> significanceMapFiltered;
+					significanceMapFiltered = significanceMap;
+
+					if (medianFilterBool)
+					{
+						std::cout << "applying a median filter" << std::endl;
+						medianFilter(significanceMap, significanceMapFiltered);
+					}
+						
+
+					Image<float> significanceImg;
+					significanceImg() = significanceMapFiltered;
+					// significanceImg() = significanceMap;
+					significanceImg.write(fnOut);
+					FileName fn;
+					fn = fnImgOdd.getBaseName()  + formatString("-%i.mrc", idx);
+					significanceImg.write(fnOut+"/"+fn);
+				}
+			}
+
+		}
+		else
+		{
+			REPORT_ERROR(ERR_ARG_INCORRECT, "At least one of the input files is not a metadata file");
+		}
+	}
+	else
+	{
+		
+		readHalfMaps(fnOdd, fnEven);
+
+		MultidimArray<float> significanceMapFiltered;
+		significanceMapFiltered = significanceMap;
+
+		if (medianFilterBool)
+		{
+			std::cout << "applying a median filter" << std::endl;
+			medianFilter(significanceMap, significanceMapFiltered);
+		}
+		
+
+		Image<float> significanceImg;
+		significanceImg() = significanceMapFiltered;
+		significanceImg.write(fnOut);
+
+
+	}
+
 
 	MultidimArray<float> significanceMapFiltered;
 	significanceMapFiltered = significanceMap;
@@ -100,6 +189,9 @@ void ProgTomoConfidecenceMap::run()
 	significanceImg() = significanceMapFiltered;
 	// significanceImg() = significanceMap;
 	significanceImg.write(fnOut);
+
+
+	
 }
 
 
@@ -113,116 +205,7 @@ void ProgTomoConfidecenceMap::frequencyToAnalyze(float &freq, float &tail, int i
 	tail = ((float) (idx - 3))/(2*ZSIZE(fullMap));
 }
 
-/*
-*void ProgTomoConfidecenceMap::filterNoiseAndMap(float &freq, float &tail, MultidimArray<double> &fm, MultidimArray<double> &nm, size_t iter)
-*{
-*	// Image<double> saveImg;
-*	// Image<float> saveImg_float;
-*	// saveImg_float() = fullMap;
-*	// FileName fn2 = formatString("ffm_%i.mrc", iter);
-*	// saveImg_float.write(fn2);
-*
-*	FourierTransformer transformer;
-*	transformer.setThreadsNumber(nthrs);
-*	
-*	fm.resizeNoCopy(fullMap);
-*	nm.resizeNoCopy(fullMap);
-*	
-*	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fullMap)
-*	{
-*			DIRECT_MULTIDIM_ELEM(fm, n) = (double) DIRECT_MULTIDIM_ELEM(fullMap, n);
-*			DIRECT_MULTIDIM_ELEM(nm, n) = (double) DIRECT_MULTIDIM_ELEM(noiseMap, n);
-*	}	
-*
-*	MultidimArray< std::complex<double> > fftfullmap, fftnoisemap;
-*	transformer.FourierTransform(fm, fftfullmap);
-*	transformer.FourierTransform(nm, fftnoisemap);
-*
-*	//Computing the fft
-*	size_t ZdimFT = ZSIZE(fullMap);
-*	size_t YdimFT = YSIZE(fullMap);
-*	size_t XdimFT = XSIZE(fullMap)/2 + 1;
-*
-*
-*	double u;
-*
-*	freq_fourier_z.initZeros(ZdimFT);
-*	freq_fourier_x.initZeros(XdimFT);
-*	freq_fourier_y.initZeros(YdimFT);
-*
-*	VEC_ELEM(freq_fourier_z,0) = 1e-38;
-*	for(size_t k=0; k<ZdimFT; ++k)
-*	{
-*		FFT_IDX2DIGFREQ(k,Zdim, u);
-*		VEC_ELEM(freq_fourier_z,k) = (float) u;
-*	}
-*
-*	VEC_ELEM(freq_fourier_y,0) = 1e-38;
-*	for(size_t k=0; k<YdimFT; ++k)
-*	{
-*		FFT_IDX2DIGFREQ(k,Ydim, u);
-*		VEC_ELEM(freq_fourier_y,k) = (float) u;
-*	}
-*
-*	VEC_ELEM(freq_fourier_x,0) = 1e-38;
-*	for(size_t k=0; k<XdimFT; ++k)
-*	{
-*		FFT_IDX2DIGFREQ(k,Xdim, u);
-*		VEC_ELEM(freq_fourier_x,k) = (float) u;
-*	}
-*
-*
-*	// Filtering in Fourier Space
-*	float uz, uy, ux, uz2, u2, uz2y2;
-*	float idelta =PI/(freq-tail);
-*	// std::complex<float> J(0,1);
-*	float un;
-*	long n=0;
-*	for(size_t k=0; k<ZdimFT; ++k)
-*	{
-*		uz = VEC_ELEM(freq_fourier_z, k);
-*		uz2=uz*uz;
-*
-*		for(size_t i=0; i<YdimFT; ++i)
-*		{
-*			uy = VEC_ELEM(freq_fourier_y, i);
-*			uz2y2=uz2+uy*uy;
-*
-*			for(size_t j=0; j<XdimFT; ++j)
-*			{
-*				ux = VEC_ELEM(freq_fourier_x, j);
-*				un=sqrtf(uz2y2+ux*ux);
-*				if (un<=tail)
-*				{
-*					DIRECT_MULTIDIM_ELEM(fftfullmap, n) = 0;
-*					DIRECT_MULTIDIM_ELEM(fftnoisemap, n) = 0;
-*				}
-*				else
-*				{
-*					if (un<=freq)
-*					{
-*						double H;
-*						H = 0.5*(1+cosf((un-freq)*idelta));
-*						DIRECT_MULTIDIM_ELEM(fftfullmap, n) *= H;
-*						DIRECT_MULTIDIM_ELEM(fftnoisemap, n) *= H;
-*					}
-*				}
-*				++n;
-*			}
-*		}
-*	}
-*
-*	transformer.inverseFourierTransform(fftfullmap, fm);
-*	transformer.inverseFourierTransform(fftnoisemap, nm);
-*
-*	Image<double> saveImg;
-*	saveImg() = fm;
-*	FileName fn = formatString("fm_%i.mrc", iter);
-*	saveImg.write(fn);
-*
-*	std::cout << "filtering ended " << std::endl;
-*}
-*/
+
 
 void ProgTomoConfidecenceMap::updateResMap(MultidimArray<float> &resMap, MultidimArray<float> &significanceMap, MultidimArray<int> &mask, float &resolution, size_t iter)
 {
@@ -333,26 +316,19 @@ void ProgTomoConfidecenceMap::convertToFloat(MultidimArray<double> &inTomo,
 	}
 }
 
-
-void ProgTomoConfidecenceMap::readAndPrepareData()
+void ProgTomoConfidecenceMap::sortImages(MetaDataVec &md, std::vector<FileName> &vecfn, std::vector<double> &vectilt)
 {
-	std::cout << "Starting ..." << std::endl;
-	std::cout << "           " << std::endl;
-	std::cout << "           " << std::endl;
 
-	Image<float> V;
-
-	Image<float> oddMap, evenMap;
-	oddMap.read(fnVol);
-	evenMap.read(fnVol2);
-	auto &odd = oddMap();
-	auto &even = evenMap();
-	fullMap = 0.5*(odd+even);
-	noiseMap = 0.5*(odd-even);
-
-	size_t Ndim;
-	fullMap.getDimensions(Xdim, Ydim, Zdim, Ndim);
-
+		FileName fn;
+		double tilt;
+		
+		for (const auto& row: md)
+		{
+			row.getValue(MDL_ANGLE_TILT, tilt);
+			row.getValue(MDL_IMAGE, fn);
+			vecfn.push_back(fn);
+			vectilt.push_back(tilt);
+		}
 }
 
 void ProgTomoConfidecenceMap::medianFilter(MultidimArray<float> &input_tomogram,
@@ -527,10 +503,7 @@ void ProgTomoConfidecenceMap::nosiseEstimation(WeightedLeastSquaresHelper &helpe
 					idxSpline+=1;
 				}
 			}
-			// x.push_back(tileCenterX);
-			// y.push_back(tileCenterY);
-			// t.push_back(MAT_ELEM(noiseMeanMatrix, Y_boxIdx, X_boxIdx));
-			// t.push_back(MAT_ELEM(noiseStdMatrix, Y_boxIdx, X_boxIdx));
+
 			noiseVector.clear();
 			idxBox+=1;
 		}
