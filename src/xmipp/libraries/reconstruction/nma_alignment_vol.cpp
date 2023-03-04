@@ -64,7 +64,7 @@ void ProgNmaAlignmentVol::defineParams() {
 	addParamsLine("                                       : Default standard deviation <std> is read from the PDB file.");
 	addParamsLine("  [--trustradius_scale <s=1>]          : Positive scaling factor to scale the initial trust region radius");
 	addParamsLine("==Combined elastic and rigid-body alignment==");
-	addParamsLine("  [--alignVolumes <frm_freq=0.25> <frm_shift=10>]  : Align the deformed volume to the input volume before comparing, this is using frm method for volume alignment with frm_freq and frm_shift as parameters");
+	addParamsLine("  [--alignVolumes <frm_freq=0.25> <frm_shift=10> <frm_mask_radius=-1>]  : Align the deformed volume to the input volume before comparing, this is using frm method for volume alignment with frm_freq and frm_shift as parameters with a spherical mask radius of frm_mask_radius");
 	addParamsLine("                                       : You need to compile Xmipp with SHALIGNMENT support (see install.sh)");
 	addParamsLine("  [--mask <m=\"\">]                    : 3D masking  of the projections of the deformed volume");
 	addParamsLine("  [--tilt_values <tilt0=-90> <tiltF=90>]  : only use if you are trying to compensate for the missing wedge");
@@ -98,6 +98,7 @@ void ProgNmaAlignmentVol::readParams() {
 	if (alignVolumes){
 		frm_freq = getDoubleParam("--alignVolumes",0);
 		frm_shift= getIntParam("--alignVolumes",1);
+		frm_mask_radius= getIntParam("--alignVolumes",2);
 	}
 	tilt0=getIntParam("--tilt_values",0);
 	tiltF=getIntParam("--tilt_values",1);
@@ -236,8 +237,8 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	int err;
 
 	if (global_nma_vol_prog->alignVolumes){
-		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
-				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
+		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --mask circular %d --store %s -v 0 ",
+				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF,global_nma_vol_prog->frm_mask_radius, shifts_angles));
 		//first just see what is the score
 		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		//fit_value is the 7th element in a single line CSV

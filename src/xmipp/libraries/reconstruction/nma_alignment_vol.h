@@ -90,9 +90,10 @@ public:
     // starting and ending tilt angles for compensating for a single tilt wedge mask for tomography data
     int tilt0, tiltF;
 
-    // maximum search frequency and shift while rigid body alignment
+    // maximum search frequency, shift and mask radius while rigid body alignment
     double frm_freq;
     int frm_shift;
+    int frm_mask_radius;
 
 
 public:
