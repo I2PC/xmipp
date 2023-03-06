@@ -1287,7 +1287,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
 
 	// Global alignment analysis
-	std::vector<bool> globalMialingmentVotting(numberOfInputCoords);  // Vector saving status of (mis)aligned chains
+	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, false);  // Vector saving status of (mis)aligned chains
 	float vottingRatio;
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
@@ -1344,7 +1344,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
-		if (numberOfInputCoords)
+		if (globalMialingmentVotting[n])
 		{
 			vottingRatio += 1;
 		}
@@ -1360,8 +1360,17 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		std::cout << "GLOBAL MISLAIGNMENT DETECTED" << std::endl;
 		#endif
 
-		exit(EXIT_SUCCESS);
+		// return;
 	}
+
+	std::cout << "Output global (chain) alingmnet vector" << std::endl;
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		std::cout << globalMialingmentVotting[n] << ", ";
+	}
+	std::cout << std::endl;
+
+
 	
 
 	// Local alignment analysis
@@ -1383,8 +1392,14 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		}
 	}
 
-	sort(resid2Vector.begin(), resid2Vector.end(), std::greater<float>());
+	sort(resid2Vector.begin(), resid2Vector.end());
 	size_t resid2Vector_size = resid2Vector.size();
+
+	std::cout << "SORTED RESIDUALS --------------------------------" << std::endl;
+	for (size_t j = 0; j < resid2Vector_size; j++)
+	{
+		std::cout << resid2Vector[j] << std::endl;
+	}
 
 	for (size_t n = 0; n < nSize; n++)
 	{
@@ -1392,7 +1407,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		getCMbyImage(n, CM_image);
 
 		size_t numberCM = CM_image.size();
-		float vottingRatio;
+		double vottingRatio;
 
 		if (numberCM > 0)
 		{
@@ -1402,15 +1417,23 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 
 				for (size_t j = 0; j < resid2Vector_size; j++)
 				{
-					if(resid2 > resid2Vector[j])
+					if(resid2 < resid2Vector[j])
 					{
-						if ((j/resid2Vector_size) > 0.99)  // *** este thr hay que llevarlo al .h
+						std::cout << "-------------------------------------------------------- " <<std::endl;
+						std::cout << "j " << j <<std::endl;
+						std::cout << "resid2 " << resid2 <<std::endl;
+						std::cout << "resid2Vector[j] " << resid2Vector[j] <<std::endl;
+						std::cout << "-------------------------------- residual value " << resid2 << " position " << j << "percentile " << (double(j)/double(resid2Vector_size)) << std::endl;
+						if ((double(j)/double(resid2Vector_size)) > 0.99)  // *** este thr hay que llevarlo al .h
 						{
 							vottingRatio += 1;
-						}		
+						}
+						break;	
 					}
 				}
 			}
+
+			vottingRatio /= numberCM;
 
 			if (vottingRatio > 0.5)
 			{
