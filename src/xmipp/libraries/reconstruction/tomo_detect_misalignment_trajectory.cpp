@@ -1282,94 +1282,152 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 
 
-bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
+void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 {
 	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
-	double modThr = sqrt(mod2Thr);
 
-	// Analyze residuals out of range distribution
-	MultidimArray<int> resDistribution;
-	std::vector<int> resCoordsOutOfRange(numberOfInputCoords, 0); // Array with the number of tilt-images out of rage for each coordinate
-	std::vector<int> resImagesOutOfRange(nSize, 0); // Array with the number of coordinates out of rage for each tilt-image
+	// Global alignment analysis
+	std::vector<bool> globalMialingmentVotting(numberOfInputCoords);  // Vector saving status of (mis)aligned chains
+	float vottingRatio;
 
-	resDistribution.initZeros(nSize, numberOfInputCoords);
-
-	for (size_t i = 0; i < vCM.size(); i++)
+	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
-		double mod2 = (vCM[i].residuals.x * vCM[i].residuals.x) + (vCM[i].residuals.y * vCM[i].residuals.y);
+		std::vector<CM> CM_fid;
+		getCMbyFiducial(n, CM_fid);
 
-		if (mod2 > mod2Thr)
+		size_t numberCM = CM_fid.size();
+
+		double avg;
+		double std;
+		size_t imagesOutOfRange = 0;
+
+		double sumResid = 0;
+		double sumResid2 = 0;
+
+		for (size_t i = 0; i < numberCM; i++)
 		{
-			DIRECT_A2D_ELEM(resDistribution, (size_t)vCM[i].detectedCoordinate.z, vCM[i].id) = 1;
-			resCoordsOutOfRange[vCM[i].id] += 1;
-			resImagesOutOfRange[(size_t)vCM[i].detectedCoordinate.z] += 1;
+			double sum2 = CM_fid[i].residuals.x*CM_fid[i].residuals.x + CM_fid[i].residuals.y*CM_fid[i].residuals.y;
+			sumResid2 += sum2;
+			sumResid += sqrt(sum2);
+
+			if (sum2 > mod2Thr)
+			{
+				imagesOutOfRange += 1;
+			}
 		}
-	}
 
+		avg = sumResid / numberCM;
+		std = sqrt(sumResid2 / numberCM - avg * avg);
 
-	// *** potentially move thresholds to .h 
-	double resCoordsOutOfRangeThr = 0.05;
-	double resImagesOutOfRangeThr = 0.05;
-
-	int resCoordsOutOfRangeThrAbs = std::max(1, (int)(nSize*0.05));
-
-	size_t numberMisaliCoords = 0;
-	size_t numberMisaliImages = 0;
-
-	for (size_t i = 0; i < resCoordsOutOfRange.size(); i++)
-	{
-		if (resCoordsOutOfRange[i] > resCoordsOutOfRangeThrAbs)
-		{
-			std::cout << "COORDINATE " << i << " PRESENTS MISALIGNMENT THROUGH THE SERIES" << std::endl;
-			numberMisaliCoords += 1;
-		}
-	}
-
-	for (size_t i = 0; i < resImagesOutOfRange.size(); i++)
-	{
-		double pValue = binomialTest(resImagesOutOfRange[i], numberOfInputCoords, 0.5);
-
-		#ifdef DEBUG_RESIDUAL_ANALYSIS	
-		std::cout << "-----------------------------numberOfInputCoords" << numberOfInputCoords << std::endl;
-		std::cout << "-----------------------------resImagesOutOfRange[i]" << resImagesOutOfRange[i] << std::endl;
-		std::cout << "-----------------------------pvalue" << pValue << std::endl;
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << "n " << n << std::endl;
+		std::cout << "numberCM " << numberCM << std::endl;
+		std::cout << "sumResid " << sumResid << std::endl;
+		std::cout << "sumResid2 " << sumResid2 << std::endl;
+		std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
+		std::cout << "avg " << avg << std::endl;
+		std::cout << "std " << std << std::endl;
 		#endif
-		
-		if (pValue < 0.05 && resImagesOutOfRange[i] > (numberOfInputCoords/2))
-		{
-			std::cout << "IMAGE " << i << " IN TILT-SERIES PRESENTS MISALIGNMENT" << std::endl;
-			numberMisaliImages += 1;
 
-			// Fill the local alignment vector
-			localAlignment[i] = false;
+		if (imagesOutOfRange < 4.5)
+		{
+			if (std <= 43.5)
+			{
+				globalMialingmentVotting[n] = true;
+			}			
 		}
+		else if (imagesOutOfRange < 6.5)
+		{
+			globalMialingmentVotting[n] = true;
+		}	
 	}
 
-	if ((numberMisaliCoords/numberOfInputCoords) > 0.1 && numberMisaliCoords > 1)
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		if (numberOfInputCoords)
+		{
+			vottingRatio += 1;
+		}
+		
+	}
+	vottingRatio /= numberOfInputCoords;
+
+	if (vottingRatio < 0.5)
 	{
 		globalAlignment = false;
+		exit(EXIT_SUCCESS);
 	}
 	
 
-	std::cout << "IN TOTAL " << numberMisaliCoords << " OUT OF " << numberOfInputCoords << " INPUT COORDINATES PRESENTS MIALIGNMENT" << std::endl;
-	std::cout << "IN TOTAL " << numberMisaliImages << " TILT-IMAGES PRESENTS MISALIGNMENT" << std::endl;
+	// Local alignment analysis
+	std::vector<float> resid2Vector;  // Vector containing residual^2 values from the aligned landmark chains
 
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		if (globalMialingmentVotting[n])
+		{
+			std::vector<CM> CM_fid;
+			getCMbyFiducial(n, CM_fid);
 
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outFileName = rawname + "/ts_resDistribution.mrc";
+			size_t numberCM = CM_fid.size();
 
-	Image<int> saveImage;
-	saveImage() = resDistribution;
-	saveImage.write(outFileName);
+			for (size_t i = 0; i < numberCM; i++)
+			{
+				resid2Vector.push_back(CM_fid[i].residuals.x*CM_fid[i].residuals.x + CM_fid[i].residuals.y*CM_fid[i].residuals.y);
+			}
+		}
+	}
 
+	sort(resid2Vector.begin(), resid2Vector.end(), std::greater<float>());
+	size_t resid2Vector_size = resid2Vector.size();
 
+	for (size_t n = 0; n < nSize; n++)
+	{
+		std::vector<CM> CM_image;
+		getCMbyImage(n, CM_image);
+
+		size_t numberCM = CM_image.size();
+		float vottingRatio;
+
+		if (numberCM > 0)
+		{
+			for (size_t i = 0; i < numberCM; i++)
+			{
+				double resid2 = CM_image[i].residuals.x*CM_image[i].residuals.x + CM_image[i].residuals.y*CM_image[i].residuals.y;
+
+				for (size_t j = 0; j < resid2Vector_size; j++)
+				{
+					if(resid2 > resid2Vector[j])
+					{
+						if ((j/resid2Vector_size) > 0.99)  // *** este thr hay que llevarlo al .h
+						{
+							vottingRatio += 1;
+						}		
+					}
+				}
+			}
+
+			if (vottingRatio > 0.5)
+			{
+				localAlignment[n] = false;
+			}
+			
+		}
+		else
+		{
+			std::cout << "UNDETECTED COORDINATES IN TILT-IMAGE " << n << ". IMPOSSIBLE TO STUDY MIALIGNMENT" << std::endl;
+		}
+	}
+
+	#ifdef GENERATE_RESIDUAL_STATISTICS
+	// CODE FOR GENERATING RESIDUAL STATISTICS FILE FOR DECISION TREE TRAINING
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// Run XmippScript for statistical residual analysis
 
 	std::cout << "\nRunning residual statistical analysis..." << std::endl;
 
-	lastindex = fnOut.find_last_of("\\/");
-	rawname = fnOut.substr(0, lastindex);
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
 	std::string fnVCM;
 	std::string fnStats;
     fnVCM = rawname + "/vCM.xmd";
@@ -1389,9 +1447,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	
 	std::cout << cmd << std::endl;
 	int systemOut = system(cmd.c_str());
-
-	// NEW APPROACH. NOW WE SPLIT IMAGE AND LANDMARK STATISTICS. ALSO SAVE SEPARATELY BY EACH INDIVIDUAL, NO AVERAGE OR PERCENTILES
-	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	
 	std::string fnStats_lm;
 	std::string fnStats_image;
 
@@ -1594,7 +1650,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		}
 	}
 
-	// Complete residual info
+	// Complete image info
 	for (size_t n = 0; n < nSize; n++)
 	{
 		std::vector<CM> CM_image;
@@ -1722,322 +1778,10 @@ bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		myfile << "\n";
 	}
 	myfile.close();
-
-
+	
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-	// Read results from analysis
-
-	// float avgAreaCH = 0;
-	// float avgPerimeterCH = 0;
-	// float stdAreaCH = 0;
-	// float stdPerimeterCH = 0;
-	// size_t testBinPassed = 0;
-	// size_t testFvarPassed = 0;
-	// size_t testRandomWalkPassed = 0;
-
-	// std::vector<float> areaCHV;
-	// std::vector<float> perimCHV;
-
-	// MetaDataVec residualStatsMd;
-	// size_t objId;
-
-	// residualStatsMd.read(fnStats);
-
-	// int enable;
-	// double value;
-
-	// for(size_t objId : residualStatsMd.ids())
-	// {
-	// 	residualStatsMd.getValue(MDL_ENABLED, enable, objId);
-	// 	residualStatsMd.getValue(MDL_IMAGE, statistic, objId);
-	// 	residualStatsMd.getValue(MDL_MIN, value, objId);
-
-	// 	statisticName = statistic.substr(statistic.find("_")+1);
-
-	// 	if (enable == 1)
-	// 	{
-	// 		if (strcmp(statisticName.c_str(), "pvBinX") == 0 || strcmp(statisticName.c_str(), "pvBinY") == 0)
-	// 		{
-	// 			testBinPassed += 1;
-	// 		}
-
-	// 		else if (strcmp(statisticName.c_str(), "pvF") == 0)
-	// 		{
-	// 			testFvarPassed += 1;
-	// 		}
-
-	// 		else if (strcmp(statisticName.c_str(), "pvADF") == 0)
-	// 		{
-	// 			testRandomWalkPassed += 1;
-	// 		}
-
-	// 		else if (strcmp(statisticName.c_str(), "chArea") == 0)
-	// 		{
-	// 			areaCHV.push_back(value);
-	// 		}
-
-	// 		else if (strcmp(statisticName.c_str(), "chPerim") == 0)
-	// 		{
-	// 			perimCHV.push_back(value);
-	// 		}
-	// 	}
-	// }
-
-	// float sumAreaCH = 0;
-	// float sumPerimeterCH = 0;
-	// float sum2AreaCH = 0;
-	// float sum2PerimeterCH = 0;
-	
-	// for (size_t i = 0; i < perimCHV.size(); i++)
-	// {
-	// 	sumAreaCH += areaCHV[i];
-	// 	sum2AreaCH += areaCHV[i]*areaCHV[i];
-	// 	sumPerimeterCH += perimCHV[i];
-	// 	sum2PerimeterCH += perimCHV[i]*perimCHV[i];
-	// }
-
-	// avgAreaCH = sumAreaCH / numberOfInputCoords;
-	// avgPerimeterCH = sumPerimeterCH / numberOfInputCoords;
-
-	// stdAreaCH = sqrt(sum2AreaCH / numberOfInputCoords - avgAreaCH * avgAreaCH);
-	// stdPerimeterCH = sqrt(sum2PerimeterCH / numberOfInputCoords - avgPerimeterCH * avgPerimeterCH);
-
-	// float rmOutliersAreaCH = 0;
-	// float rmOutliersPerimCH = 0;
-	// size_t counterArea = 0;
-	// size_t counterPerim = 0;
-
-	// for (size_t i = 0; i < perimCHV.size(); i++)
-	// {
-	// 	if (abs(areaCHV[i]-avgAreaCH)<3*stdAreaCH)
-	// 	{
-	// 		rmOutliersAreaCH += areaCHV[i];
-	// 		counterArea += 1;
-	// 	}
-
-	// 	if (abs(perimCHV[i]-avgPerimeterCH)<3*stdPerimeterCH)
-	// 	{
-	// 		rmOutliersPerimCH += perimCHV[i];
-	// 		counterPerim += 1;
-	// 	}
-	// }
-
-	// rmOutliersAreaCH /= counterArea;
-	// rmOutliersPerimCH /= counterPerim;
-
-	// std::cout << "-----------------------------------" << std::endl;
-	// std::cout << "numberOfInputCoords: " << numberOfInputCoords << std::endl;
-	// std::cout << "avgAreaCH: " << avgAreaCH << std::endl;
-	// std::cout << "avgPerimeterCH: " << avgPerimeterCH << std::endl;
-	// std::cout << "sum2AreaCH: " << sum2AreaCH << std::endl;
-	// std::cout << "sum2PerimeterCH: " << sum2PerimeterCH << std::endl;
-	// std::cout << "stdAreaCH: " << stdAreaCH << std::endl;
-	// std::cout << "stdPerimeterCH: " << stdPerimeterCH << std::endl;
-	// std::cout << "counterArea: " << counterArea << std::endl;
-	// std::cout << "counterPerim: " << counterPerim << std::endl;
-	// std::cout << "stdAreaCH: " << stdAreaCH << std::endl;
-	// std::cout << "stdPerimeterCH: " << stdPerimeterCH << std::endl;
-	// std::cout << "-----------------------------------" << std::endl;
-
-	// #ifdef DEBUG_GLOBAL_MISALI
-	// std::cout << "Average convex hull area (removing outliers): " << rmOutliersAreaCH << std::endl;
-	// std::cout << "Average convex hull perimeter (removing outliers): " << rmOutliersPerimCH << std::endl;
-	// std::cout << "Binomial test passed: " << testBinPassed << "/" << 2 * numberOfInputCoords << std::endl;
-	// std::cout << "F variance test passed: " << testFvarPassed << "/" << numberOfInputCoords << std::endl;
-	// std::cout << "Random walk test passed: " << testRandomWalkPassed << "/" << numberOfInputCoords << std::endl;
-	// #endif
-
-	// // 30% of the bead size in pixels
-	// float maxDeviation = mod2Thr;
-
-	// float thrAreaCH = PI*maxDeviation*maxDeviation;
-	// float thrPerimeterCH = 2*PI*maxDeviation;
-
-	// #ifdef DEBUG_GLOBAL_MISALI
-	// std::cout << "Threshold convex hull area: " << thrAreaCH << std::endl;
-	// std::cout << "Threshold convex hull perimeter: " << thrPerimeterCH << std::endl;
-	// #endif
-
-
-	// // Statisticals for decision tree ***
-	// // Images
-	// std::vector<double> averageFiducialResidualsInImage;	// Average residual distance per image
-	// std::vector<double> stdFiducialResidualsInImage;		// STD residual distance per image
-
-
-	// for (size_t i = 0; i < nSize; i++)
-	// {
-	// 	std::vector<CM> vCM_image;
-	// 	getCMbyImage(i, vCM_image);
-	// 	std::vector<double> residualDistanceInImage;
-
-	// 	for (size_t j = 0; j < vCM_image.size(); j++)
-	// 	{
-	// 		double distance = sqrt((vCM_image[j].residuals.x*vCM_image[j].residuals.x)+(vCM_image[j].residuals.y*vCM_image[j].residuals.y));
-	// 		residualDistanceInImage.push_back(distance/fiducialSizePx);
-	// 	}
-
-	// 	double sum = 0;
-	// 	double sum2 = 0;
-	// 	double average = 0;
-	// 	double std = 0;
-	// 	size_t residualDistanceInImageSize = residualDistanceInImage.size();
-
-	// 	for(size_t e = 0; e < residualDistanceInImageSize; e++)
-	// 	{
-	// 		double value = residualDistanceInImage[e];
-	// 		sum += value;
-	// 		sum2 += value*value;
-	// 	}
-
-	// 	average = sum/residualDistanceInImageSize;
-	// 	std = sqrt(sum2/residualDistanceInImageSize - average*average);
-
-	// 	averageFiducialResidualsInImage.push_back(average);
-	// 	stdFiducialResidualsInImage.push_back(std);
-	// }
-
-	// // Ficudials
-	// std::vector<double> averageResidualDistancePerFiducial; 				// Average residual distance per fiducial
-	// std::vector<double> stdResidualDistancePerFiducial; 					// STD residual distance per fiducial
-	// std::vector<double> ratioOfImagesOutOfRange(numberOfInputCoords, 0.0);	// Ratio of images out of range in a single gold bead
-	// std::vector<double> longestMisalignedChain;								// Longest chain of images presenting misalignment (in percentage)
-
-
-	// for (size_t i = 0; i < numberOfInputCoords; i++)
-	// {
-	// 	std::vector<CM> vCM_fiducial;
-	// 	getCMbyFiducial(i, vCM_fiducial);
-	// 	std::vector<double> residualDistancePerFiducial;
-
-	// 	for (size_t j = 0; j < vCM_fiducial.size(); j++)
-	// 	{
-	// 		double distance = sqrt((vCM_fiducial[j].residuals.x*vCM_fiducial[j].residuals.x)+(vCM_fiducial[j].residuals.y*vCM_fiducial[j].residuals.y));
-	// 		residualDistancePerFiducial.push_back(distance/fiducialSizePx);
-
-	// 		if (distance > modThr)
-	// 		{
-	// 			ratioOfImagesOutOfRange[i] += 1;
-	// 		}
-	// 	}
-
-	// 	ratioOfImagesOutOfRange[i] /= nSize;
-		
-	// 	double sum = 0;
-	// 	double sum2 = 0;
-	// 	double average = 0;
-	// 	double std = 0;
-	// 	size_t residualDistancePerFiducialSize = residualDistancePerFiducial.size();
-
-	// 	for(size_t e = 0; e < residualDistancePerFiducialSize; e++)
-	// 	{
-	// 		double value = residualDistancePerFiducial[e];
-	// 		sum += value;
-	// 		sum2 += value*value;
-	// 	}
-
-	// 	average = sum/residualDistancePerFiducialSize;
-	// 	std = sqrt(sum2/residualDistancePerFiducialSize - average*average);
-
-	// 	averageResidualDistancePerFiducial.push_back(average);
-	// 	stdResidualDistancePerFiducial.push_back(std);
-	// }
-
-	// for (size_t i = 0; i < numberOfInputCoords; i++)
-	// {
-	// 	int longestChain = 0;
-	// 	int chain = 0;
-
-	// 	for (size_t j = 0; j < nSize; j++)
-	// 	{
-	// 		if (DIRECT_A2D_ELEM(resDistribution, j, i) == 1)
-	// 		{
-	// 			chain += 1;
-	// 		}
-	// 		else
-	// 		{
-	// 			if (chain > longestChain)
-	// 			{
-	// 				longestChain = chain;
-	// 			}
-
-	// 			chain = 0;
-	// 		}
-	// 	}
-
-	// 	if (chain > longestChain)
-	// 	{
-	// 		longestChain = chain;
-	// 	}
-
-	// 	longestMisalignedChain.push_back((1.0*longestChain)/(1.0*nSize));
-	// }
-
-	// sort(averageFiducialResidualsInImage.begin(), averageFiducialResidualsInImage.end());
-	// sort(stdFiducialResidualsInImage.begin(), stdFiducialResidualsInImage.end());
-	// sort(averageResidualDistancePerFiducial.begin(), averageResidualDistancePerFiducial.end());
-	// sort(stdResidualDistancePerFiducial.begin(), stdResidualDistancePerFiducial.end());
-	// sort(ratioOfImagesOutOfRange.begin(), ratioOfImagesOutOfRange.end());
-	// sort(longestMisalignedChain.begin(), longestMisalignedChain.end());
-
-	// std::ofstream myfile;
-	// myfile.open (decisionTreeStatsFileName_chain, std::ios_base::app);
-	// myfile << averageFiducialResidualsInImage[0];
-	// myfile << ", ";
-	// myfile << averageFiducialResidualsInImage[(int)(averageFiducialResidualsInImage.size()/2)];
-	// myfile << ", ";
-	// myfile << averageFiducialResidualsInImage[averageFiducialResidualsInImage.size()-1];
-	// myfile << ", ";
-
-	// myfile << stdFiducialResidualsInImage[0];
-	// myfile << ", ";
-	// myfile << stdFiducialResidualsInImage[(int)(stdFiducialResidualsInImage.size()/2)];
-	// myfile << ", ";
-	// myfile << stdFiducialResidualsInImage[stdFiducialResidualsInImage.size()-1];
-	// myfile << ", ";
-
-	// myfile << averageResidualDistancePerFiducial[0];
-	// myfile << ", ";
-	// myfile << averageResidualDistancePerFiducial[(int)(averageResidualDistancePerFiducial.size()/2)];
-	// myfile << ", ";
-	// myfile << averageResidualDistancePerFiducial[averageResidualDistancePerFiducial.size()-1];
-	// myfile << ", ";
-
-	// myfile << stdResidualDistancePerFiducial[0];
-	// myfile << ", ";
-	// myfile << stdResidualDistancePerFiducial[(int)(stdResidualDistancePerFiducial.size()/2)];
-	// myfile << ", ";
-	// myfile << stdResidualDistancePerFiducial[stdResidualDistancePerFiducial.size()-1];
-	// myfile << ", ";
-
-	// myfile << ratioOfImagesOutOfRange[0];
-	// myfile << ", ";
-	// myfile << ratioOfImagesOutOfRange[(int)(ratioOfImagesOutOfRange.size()/2)];
-	// myfile << ", ";
-	// myfile << ratioOfImagesOutOfRange[ratioOfImagesOutOfRange.size()-1];
-	// myfile << ", ";
-
-	// myfile << longestMisalignedChain[0];
-	// myfile << ", ";
-	// myfile << longestMisalignedChain[(int)(longestMisalignedChain.size()/2)];
-	// myfile << ", ";
-	// myfile << longestMisalignedChain[longestMisalignedChain.size()-1];
-	// myfile << "\n";
-
-	// myfile.close();
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-	// if ((rmOutliersAreaCH < thrAreaCH) && (rmOutliersPerimCH < thrPerimeterCH))
-	// {
-	// 	return true;
-	// }
-	
-	return false;
+	#endif
 }
-
 
 
 void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
@@ -2810,22 +2554,12 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	adjustCoordinatesCosineStreching();
 
 	// DETECT GLOBAL MISALIGNMENT
-	globalAlignment = detectMisalignmentFromResiduals();			
-
-	// std::cout << "Global alignment: " << globalAlignment << std::endl;
-
-	// // LOCAL MIASALIGNMENT DETECTION
-	// detectLandmarkChains();
-
-	// if(globalAlignment){
-	// 	detectMisalignedTiltImages();
-	// }
+	detectMisalignmentFromResiduals();			
 
 	writeOutputAlignmentReport();
 
 	auto t2 = high_resolution_clock::now();
-	/* Getting number of milliseconds as an integer. */
-    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+    auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
  	std::cout << "Execution time: " << ms_int.count() << "ms\n";
 }
 
@@ -4439,5 +4173,763 @@ void ProgTomoDetectMisalignmentTrajectory::getCMbyImage(size_t tiltImageNumber, 
 // 	saveImageBis() = amplitude;
 // 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 
+// }
+
+
+
+// bool ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
+// {
+// 	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
+// 	double modThr = sqrt(mod2Thr);
+
+// 	// Analyze residuals out of range distribution
+// 	MultidimArray<int> resDistribution;
+// 	std::vector<int> resCoordsOutOfRange(numberOfInputCoords, 0); // Array with the number of tilt-images out of rage for each coordinate
+// 	std::vector<int> resImagesOutOfRange(nSize, 0); // Array with the number of coordinates out of rage for each tilt-image
+
+// 	resDistribution.initZeros(nSize, numberOfInputCoords);
+
+// 	for (size_t i = 0; i < vCM.size(); i++)
+// 	{
+// 		double mod2 = (vCM[i].residuals.x * vCM[i].residuals.x) + (vCM[i].residuals.y * vCM[i].residuals.y);
+
+// 		if (mod2 > mod2Thr)
+// 		{
+// 			DIRECT_A2D_ELEM(resDistribution, (size_t)vCM[i].detectedCoordinate.z, vCM[i].id) = 1;
+// 			resCoordsOutOfRange[vCM[i].id] += 1;
+// 			resImagesOutOfRange[(size_t)vCM[i].detectedCoordinate.z] += 1;
+// 		}
+// 	}
+
+
+// 	// *** potentially move thresholds to .h 
+// 	double resCoordsOutOfRangeThr = 0.05;
+// 	double resImagesOutOfRangeThr = 0.05;
+
+// 	int resCoordsOutOfRangeThrAbs = std::max(1, (int)(nSize*0.05));
+
+// 	size_t numberMisaliCoords = 0;
+// 	size_t numberMisaliImages = 0;
+
+// 	for (size_t i = 0; i < resCoordsOutOfRange.size(); i++)
+// 	{
+// 		if (resCoordsOutOfRange[i] > resCoordsOutOfRangeThrAbs)
+// 		{
+// 			std::cout << "COORDINATE " << i << " PRESENTS MISALIGNMENT THROUGH THE SERIES" << std::endl;
+// 			numberMisaliCoords += 1;
+// 		}
+// 	}
+
+// 	for (size_t i = 0; i < resImagesOutOfRange.size(); i++)
+// 	{
+// 		double pValue = binomialTest(resImagesOutOfRange[i], numberOfInputCoords, 0.5);
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 		std::cout << "-----------------------------numberOfInputCoords" << numberOfInputCoords << std::endl;
+// 		std::cout << "-----------------------------resImagesOutOfRange[i]" << resImagesOutOfRange[i] << std::endl;
+// 		std::cout << "-----------------------------pvalue" << pValue << std::endl;
+// 		#endif
+		
+// 		if (pValue < 0.05 && resImagesOutOfRange[i] > (numberOfInputCoords/2))
+// 		{
+// 			std::cout << "IMAGE " << i << " IN TILT-SERIES PRESENTS MISALIGNMENT" << std::endl;
+// 			numberMisaliImages += 1;
+
+// 			// Fill the local alignment vector
+// 			localAlignment[i] = false;
+// 		}
+// 	}
+
+// 	if ((numberMisaliCoords/numberOfInputCoords) > 0.1 && numberMisaliCoords > 1)
+// 	{
+// 		globalAlignment = false;
+// 	}
+	
+
+// 	std::cout << "IN TOTAL " << numberMisaliCoords << " OUT OF " << numberOfInputCoords << " INPUT COORDINATES PRESENTS MIALIGNMENT" << std::endl;
+// 	std::cout << "IN TOTAL " << numberMisaliImages << " TILT-IMAGES PRESENTS MISALIGNMENT" << std::endl;
+
+
+// 	size_t lastindex = fnOut.find_last_of("\\/");
+// 	std::string rawname = fnOut.substr(0, lastindex);
+// 	std::string outFileName = rawname + "/ts_resDistribution.mrc";
+
+// 	Image<int> saveImage;
+// 	saveImage() = resDistribution;
+// 	saveImage.write(outFileName);
+
+
+// 	// Run XmippScript for statistical residual analysis
+
+// 	std::cout << "\nRunning residual statistical analysis..." << std::endl;
+
+// 	lastindex = fnOut.find_last_of("\\/");
+// 	rawname = fnOut.substr(0, lastindex);
+// 	std::string fnVCM;
+// 	std::string fnStats;
+//     fnVCM = rawname + "/vCM.xmd";
+// 	fnStats = rawname + "/residualStatistics.xmd";
+
+// 	std::string cmd;
+
+// 	#ifdef DEBUG_RESIDUAL_ANALYSIS
+// 	// Debug command
+// 	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug ";
+// 	// cmd = "python3 /home/fdeisidro/data/scipion3/xmipp-bundle/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats + " --debug";
+// 	#else
+// 	// No debug command
+// 	cmd = "python3 /home/fdeisidro/xmipp_devel/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+// 	// cmd = "python3 /home/fdeisidro/data/scipion3/xmipp-bundle/src/xmipp/applications/scripts/tomo_misalignment_resid_statistics/batch_tomo_misalignment_resid_statistics.py -i " + fnVCM + " -o " + fnStats;
+// 	#endif
+	
+// 	std::cout << cmd << std::endl;
+// 	int systemOut = system(cmd.c_str());
+
+// 	// NEW APPROACH. NOW WE SPLIT IMAGE AND LANDMARK STATISTICS. ALSO SAVE SEPARATELY BY EACH INDIVIDUAL, NO AVERAGE OR PERCENTILES
+// 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 	std::string fnStats_lm;
+// 	std::string fnStats_image;
+
+// 	fnStats_lm = rawname + "/residualStatistics_resid.xmd";
+// 	fnStats_image = rawname + "/residualStatistics_image.xmd";
+
+// 	std::string statistic;
+// 	std::string statisticName;
+// 	std::string residualNumber;
+// 	int residualNumber_int;
+// 	double value;
+
+// 	// -- Save residual information --
+// 	MetaDataVec residualStatsMd;
+// 	residualStatsMd.read(fnStats_lm);
+
+// 	// Vector containing stats: avg, std, chArea, chPerim, pvBinX, pvBinY, pvF, pvADF, ImageOutOfRange, LongestMisaliChain
+// 	std::vector<double> residualStatsLine (10);
+// 	std::vector<std::vector<double>> residualStatsTable;
+
+// 	for (size_t i = 0; i < numberOfInputCoords; i++)
+// 	{
+// 		residualStatsTable.push_back(residualStatsLine);
+// 	}
+
+// 	// Save statistics in table
+// 	for(size_t objId : residualStatsMd.ids())
+// 	{
+// 		residualStatsMd.getValue(MDL_IMAGE, statistic, objId);
+// 		residualStatsMd.getValue(MDL_MIN, value, objId);
+
+// 		statisticName = statistic.substr(statistic.find("_")+1);
+// 		residualNumber = statistic.substr(0, statistic.find("_"));
+// 		residualNumber_int = std::stoi(residualNumber);
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 		std::cout << "Reading object " << objId << " from metadata" << std::endl;
+// 		std::cout << "statistic " << statistic << std::endl;
+// 		std::cout << "value " << value << std::endl;
+// 		std::cout << "statisticName " << statisticName << std::endl;
+// 		std::cout << "residualNumber " << residualNumber << std::endl;
+// 		std::cout << "residualNumber_int " << residualNumber_int << std::endl;
+// 		#endif
+
+// 		if (strcmp(statisticName.c_str(), "chArea") == 0)
+// 		{
+// 			residualStatsTable[residualNumber_int][2] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "chPerim") == 0)
+// 		{
+// 			residualStatsTable[residualNumber_int][3] = value;
+// 		}
+		
+// 		else if (strcmp(statisticName.c_str(), "pvBinX") == 0)
+// 		{
+// 			residualStatsTable[residualNumber_int][4] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "pvBinY") == 0)
+// 		{
+// 			residualStatsTable[residualNumber_int][5] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "pvF") == 0)
+// 		{
+// 			residualStatsTable[residualNumber_int][6] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "pvADF") == 0)
+// 		{
+// 			residualStatsTable[residualNumber_int][7] = value;
+// 		}
+// 	}
+
+// 	// Complete residual info
+// 	for (size_t n = 0; n < numberOfInputCoords; n++)
+// 	{
+// 		std::vector<CM> CM_fid;
+// 		getCMbyFiducial(n, CM_fid);
+
+// 		size_t numberCM = CM_fid.size();
+
+// 		double avg;
+// 		double std;
+// 		size_t imagesOutOfRange = 0;
+// 		size_t longestMisaliChain = 0;
+// 		size_t misaliChain = 0;
+
+// 		double sumResid = 0;
+// 		double sumResid2 = 0;
+
+// 		for (size_t i = 0; i < numberCM; i++)
+// 		{
+// 			double sum2 = CM_fid[i].residuals.x*CM_fid[i].residuals.x + CM_fid[i].residuals.y*CM_fid[i].residuals.y;
+// 			sumResid2 += sum2;
+// 			sumResid += sqrt(sum2);
+
+// 			if (sum2 > mod2Thr)
+// 			{
+// 				imagesOutOfRange += 1;
+// 				misaliChain += 1;
+// 			}
+
+// 			else if (misaliChain > longestMisaliChain)
+// 			{
+// 				longestMisaliChain = misaliChain;
+// 				misaliChain = 0;
+// 			}
+// 		}
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 		std::cout << "n " << n << std::endl;
+// 		std::cout << "numberCM " << numberCM << std::endl;
+// 		std::cout << "sumResid " << sumResid << std::endl;
+// 		std::cout << "sumResid2 " << sumResid2 << std::endl;
+// 		std::cout << "longestMisaliChain " << longestMisaliChain << std::endl;
+// 		std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
+// 		#endif
+
+// 		avg = sumResid / numberCM;
+// 		std = sqrt(sumResid2 / numberCM - avg * avg);
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 		std::cout << "avg " << avg << std::endl;
+// 		std::cout << "std " << std << std::endl;
+// 		#endif
+
+// 		residualStatsTable[n][0] = avg;
+// 		residualStatsTable[n][1] = std;
+// 		residualStatsTable[n][8] = imagesOutOfRange;
+// 		residualStatsTable[n][9] = longestMisaliChain;
+// 	}
+
+// 	std::cout << " ----------------------------------------------- residualStatsTable" << std::endl;
+// 	for (size_t n = 0; n < numberOfInputCoords; n++)
+// 	{
+// 		for (size_t i = 0; i < 10; i++)
+// 		{
+// 			std::cout << residualStatsTable[n][i] << " , ";
+// 		}
+// 		std::cout << "\n" ;
+// 	}
+// 	std::cout << " ----------------------------------------------- " << std::endl;
+
+// 	// -- Save image information --
+// 	residualStatsMd.read(fnStats_image);
+
+// 	// Vector containing stats: avg, std, chArea, chPerim, pvBinX, pvBinY, pvF, ResidOutOfRange
+// 	std::vector<double> imageStatsLine (8);
+// 	std::vector<std::vector<double>> imageStatsTable;
+
+// 	for (size_t i = 0; i < nSize; i++)
+// 	{
+// 		imageStatsTable.push_back(imageStatsLine);
+// 	}
+	
+// 	// Save statistics in table
+// 	for(size_t objId : residualStatsMd.ids())
+// 	{
+// 		residualStatsMd.getValue(MDL_IMAGE, statistic, objId);
+// 		residualStatsMd.getValue(MDL_MIN, value, objId);
+
+// 		statisticName = statistic.substr(statistic.find("_")+1);
+// 		residualNumber = statistic.substr(0, statistic.find("_"));
+// 		residualNumber_int = std::stoi(residualNumber);
+
+// 		#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 		std::cout << "Reading object " << objId << " from metadata" << std::endl;
+// 		std::cout << "statistic " << statistic << std::endl;
+// 		std::cout << "value " << value << std::endl;
+// 		std::cout << "statisticName " << statisticName << std::endl;
+// 		std::cout << "residualNumber " << residualNumber << std::endl;
+// 		std::cout << "residualNumber_int " << residualNumber_int << std::endl;
+// 		#endif
+
+// 		if (strcmp(statisticName.c_str(), "chArea") == 0)
+// 		{
+// 			imageStatsTable[residualNumber_int][2] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "chPerim") == 0)
+// 		{
+// 			imageStatsTable[residualNumber_int][3] = value;
+// 		}
+		
+// 		else if (strcmp(statisticName.c_str(), "pvBinX") == 0)
+// 		{
+// 			imageStatsTable[residualNumber_int][4] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "pvBinY") == 0)
+// 		{
+// 			imageStatsTable[residualNumber_int][5] = value;
+// 		}
+
+// 		else if (strcmp(statisticName.c_str(), "pvF") == 0)
+// 		{
+// 			imageStatsTable[residualNumber_int][6] = value;
+// 		}
+// 	}
+
+// 	// Complete residual info
+// 	for (size_t n = 0; n < nSize; n++)
+// 	{
+// 		std::vector<CM> CM_image;
+// 		getCMbyImage(n, CM_image);
+
+// 		size_t numberCM = CM_image.size();
+
+// 		if (numberCM > 0)
+// 		{
+// 			double avg;
+// 			double std;
+// 			size_t residOutOfRange = 0;
+
+// 			double sumResid = 0;
+// 			double sumResid2 = 0;
+
+// 			for (size_t i = 0; i < numberCM; i++)
+// 			{
+// 				double sum = CM_image[i].residuals.x*CM_image[i].residuals.x + CM_image[i].residuals.y*CM_image[i].residuals.y;
+// 				sumResid2 += sum;
+// 				sumResid += sqrt(sum);
+
+// 				if (sumResid > mod2Thr)
+// 				{
+// 					residOutOfRange += 1;
+// 				}
+// 			}
+			
+// 			#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 			std::cout << "n " << n << std::endl;
+// 			std::cout << "numberCM " << numberCM << std::endl;
+// 			std::cout << "sumResid " << sumResid << std::endl;
+// 			std::cout << "sumResid2 " << sumResid2 << std::endl;
+// 			#endif
+
+// 			avg = sumResid / numberCM;
+// 			std = sqrt(sumResid2 / numberCM - avg * avg);
+
+// 			#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 			std::cout << "avg " << avg << std::endl;
+// 			std::cout << "std " << std << std::endl;
+// 			#endif
+
+// 			imageStatsTable[n][0] = avg;
+// 			imageStatsTable[n][1] = std;
+// 			imageStatsTable[n][7] = residOutOfRange;
+// 		}
+// 	}
+
+// 	std::cout << " ----------------------------------------------- imageStatsTable" << std::endl;
+// 	for (size_t n = 0; n < nSize; n++)
+// 	{
+// 		for (size_t i = 0; i < 8; i++)
+// 		{
+// 			std::cout << imageStatsTable[n][i] << " , ";
+// 		}
+// 		std::cout << "\n" ;
+// 	}
+// 	std::cout << " -----------------------------------------------" << std::endl;
+
+// 	// -- Write output file for decision tree training --
+// 	std::string decisionTreeStatsFileName_chain;
+// 	std::string decisionTreeStatsFileName_image;
+
+// 	size_t li = fnOut.find_last_of("\\/");
+// 	std::string fileBaseName = fnOut.substr(0, li);
+// 	li = fileBaseName.find_last_of("\\/");
+// 	fileBaseName = fileBaseName.substr(0, li);
+
+// 	decisionTreeStatsFileName_chain = fileBaseName + "/decisionTreeStats_chain.txt";
+// 	decisionTreeStatsFileName_image = fileBaseName + "/decisionTreeStats_image.txt";
+
+// 	#ifdef DEBUG_RESIDUAL_ANALYSIS	
+// 	std::cout << "fileBaseName " << fileBaseName << std::endl;
+// 	std::cout << "decisionTreeStatsFileName_chain " << decisionTreeStatsFileName_chain << std::endl;
+// 	std::cout << "decisionTreeStatsFileName_image " << decisionTreeStatsFileName_image << std::endl;
+// 	#endif
+	
+// 	std::ofstream myfile;
+
+// 	myfile.open (decisionTreeStatsFileName_chain, std::ios_base::app);
+// 	for (size_t n = 0; n < residualStatsTable.size(); n++)  // Landmark decision tree stats
+// 	{
+// 		myfile << residualStatsTable[n][0];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][1];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][2];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][3];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][4];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][5];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][6];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][7];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][8];
+// 		myfile << ", ";
+// 		myfile << residualStatsTable[n][9];
+// 		myfile << "\n";
+// 	}
+// 	myfile.close();
+
+// 	myfile.open (decisionTreeStatsFileName_image, std::ios_base::app);
+// 	for (size_t n = 0; n < imageStatsTable.size(); n++)  // Image decision tree stats
+// 	{
+// 		myfile << imageStatsTable[n][0];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][1];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][2];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][3];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][4];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][5];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][6];
+// 		myfile << ", ";
+// 		myfile << imageStatsTable[n][7];	
+// 		myfile << "\n";
+// 	}
+// 	myfile.close();
+
+
+// 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// 	// Read results from analysis
+
+// 	// float avgAreaCH = 0;
+// 	// float avgPerimeterCH = 0;
+// 	// float stdAreaCH = 0;
+// 	// float stdPerimeterCH = 0;
+// 	// size_t testBinPassed = 0;
+// 	// size_t testFvarPassed = 0;
+// 	// size_t testRandomWalkPassed = 0;
+
+// 	// std::vector<float> areaCHV;
+// 	// std::vector<float> perimCHV;
+
+// 	// MetaDataVec residualStatsMd;
+// 	// size_t objId;
+
+// 	// residualStatsMd.read(fnStats);
+
+// 	// int enable;
+// 	// double value;
+
+// 	// for(size_t objId : residualStatsMd.ids())
+// 	// {
+// 	// 	residualStatsMd.getValue(MDL_ENABLED, enable, objId);
+// 	// 	residualStatsMd.getValue(MDL_IMAGE, statistic, objId);
+// 	// 	residualStatsMd.getValue(MDL_MIN, value, objId);
+
+// 	// 	statisticName = statistic.substr(statistic.find("_")+1);
+
+// 	// 	if (enable == 1)
+// 	// 	{
+// 	// 		if (strcmp(statisticName.c_str(), "pvBinX") == 0 || strcmp(statisticName.c_str(), "pvBinY") == 0)
+// 	// 		{
+// 	// 			testBinPassed += 1;
+// 	// 		}
+
+// 	// 		else if (strcmp(statisticName.c_str(), "pvF") == 0)
+// 	// 		{
+// 	// 			testFvarPassed += 1;
+// 	// 		}
+
+// 	// 		else if (strcmp(statisticName.c_str(), "pvADF") == 0)
+// 	// 		{
+// 	// 			testRandomWalkPassed += 1;
+// 	// 		}
+
+// 	// 		else if (strcmp(statisticName.c_str(), "chArea") == 0)
+// 	// 		{
+// 	// 			areaCHV.push_back(value);
+// 	// 		}
+
+// 	// 		else if (strcmp(statisticName.c_str(), "chPerim") == 0)
+// 	// 		{
+// 	// 			perimCHV.push_back(value);
+// 	// 		}
+// 	// 	}
+// 	// }
+
+// 	// float sumAreaCH = 0;
+// 	// float sumPerimeterCH = 0;
+// 	// float sum2AreaCH = 0;
+// 	// float sum2PerimeterCH = 0;
+	
+// 	// for (size_t i = 0; i < perimCHV.size(); i++)
+// 	// {
+// 	// 	sumAreaCH += areaCHV[i];
+// 	// 	sum2AreaCH += areaCHV[i]*areaCHV[i];
+// 	// 	sumPerimeterCH += perimCHV[i];
+// 	// 	sum2PerimeterCH += perimCHV[i]*perimCHV[i];
+// 	// }
+
+// 	// avgAreaCH = sumAreaCH / numberOfInputCoords;
+// 	// avgPerimeterCH = sumPerimeterCH / numberOfInputCoords;
+
+// 	// stdAreaCH = sqrt(sum2AreaCH / numberOfInputCoords - avgAreaCH * avgAreaCH);
+// 	// stdPerimeterCH = sqrt(sum2PerimeterCH / numberOfInputCoords - avgPerimeterCH * avgPerimeterCH);
+
+// 	// float rmOutliersAreaCH = 0;
+// 	// float rmOutliersPerimCH = 0;
+// 	// size_t counterArea = 0;
+// 	// size_t counterPerim = 0;
+
+// 	// for (size_t i = 0; i < perimCHV.size(); i++)
+// 	// {
+// 	// 	if (abs(areaCHV[i]-avgAreaCH)<3*stdAreaCH)
+// 	// 	{
+// 	// 		rmOutliersAreaCH += areaCHV[i];
+// 	// 		counterArea += 1;
+// 	// 	}
+
+// 	// 	if (abs(perimCHV[i]-avgPerimeterCH)<3*stdPerimeterCH)
+// 	// 	{
+// 	// 		rmOutliersPerimCH += perimCHV[i];
+// 	// 		counterPerim += 1;
+// 	// 	}
+// 	// }
+
+// 	// rmOutliersAreaCH /= counterArea;
+// 	// rmOutliersPerimCH /= counterPerim;
+
+// 	// std::cout << "-----------------------------------" << std::endl;
+// 	// std::cout << "numberOfInputCoords: " << numberOfInputCoords << std::endl;
+// 	// std::cout << "avgAreaCH: " << avgAreaCH << std::endl;
+// 	// std::cout << "avgPerimeterCH: " << avgPerimeterCH << std::endl;
+// 	// std::cout << "sum2AreaCH: " << sum2AreaCH << std::endl;
+// 	// std::cout << "sum2PerimeterCH: " << sum2PerimeterCH << std::endl;
+// 	// std::cout << "stdAreaCH: " << stdAreaCH << std::endl;
+// 	// std::cout << "stdPerimeterCH: " << stdPerimeterCH << std::endl;
+// 	// std::cout << "counterArea: " << counterArea << std::endl;
+// 	// std::cout << "counterPerim: " << counterPerim << std::endl;
+// 	// std::cout << "stdAreaCH: " << stdAreaCH << std::endl;
+// 	// std::cout << "stdPerimeterCH: " << stdPerimeterCH << std::endl;
+// 	// std::cout << "-----------------------------------" << std::endl;
+
+// 	// #ifdef DEBUG_GLOBAL_MISALI
+// 	// std::cout << "Average convex hull area (removing outliers): " << rmOutliersAreaCH << std::endl;
+// 	// std::cout << "Average convex hull perimeter (removing outliers): " << rmOutliersPerimCH << std::endl;
+// 	// std::cout << "Binomial test passed: " << testBinPassed << "/" << 2 * numberOfInputCoords << std::endl;
+// 	// std::cout << "F variance test passed: " << testFvarPassed << "/" << numberOfInputCoords << std::endl;
+// 	// std::cout << "Random walk test passed: " << testRandomWalkPassed << "/" << numberOfInputCoords << std::endl;
+// 	// #endif
+
+// 	// // 30% of the bead size in pixels
+// 	// float maxDeviation = mod2Thr;
+
+// 	// float thrAreaCH = PI*maxDeviation*maxDeviation;
+// 	// float thrPerimeterCH = 2*PI*maxDeviation;
+
+// 	// #ifdef DEBUG_GLOBAL_MISALI
+// 	// std::cout << "Threshold convex hull area: " << thrAreaCH << std::endl;
+// 	// std::cout << "Threshold convex hull perimeter: " << thrPerimeterCH << std::endl;
+// 	// #endif
+
+
+// 	// // Statisticals for decision tree ***
+// 	// // Images
+// 	// std::vector<double> averageFiducialResidualsInImage;	// Average residual distance per image
+// 	// std::vector<double> stdFiducialResidualsInImage;		// STD residual distance per image
+
+
+// 	// for (size_t i = 0; i < nSize; i++)
+// 	// {
+// 	// 	std::vector<CM> vCM_image;
+// 	// 	getCMbyImage(i, vCM_image);
+// 	// 	std::vector<double> residualDistanceInImage;
+
+// 	// 	for (size_t j = 0; j < vCM_image.size(); j++)
+// 	// 	{
+// 	// 		double distance = sqrt((vCM_image[j].residuals.x*vCM_image[j].residuals.x)+(vCM_image[j].residuals.y*vCM_image[j].residuals.y));
+// 	// 		residualDistanceInImage.push_back(distance/fiducialSizePx);
+// 	// 	}
+
+// 	// 	double sum = 0;
+// 	// 	double sum2 = 0;
+// 	// 	double average = 0;
+// 	// 	double std = 0;
+// 	// 	size_t residualDistanceInImageSize = residualDistanceInImage.size();
+
+// 	// 	for(size_t e = 0; e < residualDistanceInImageSize; e++)
+// 	// 	{
+// 	// 		double value = residualDistanceInImage[e];
+// 	// 		sum += value;
+// 	// 		sum2 += value*value;
+// 	// 	}
+
+// 	// 	average = sum/residualDistanceInImageSize;
+// 	// 	std = sqrt(sum2/residualDistanceInImageSize - average*average);
+
+// 	// 	averageFiducialResidualsInImage.push_back(average);
+// 	// 	stdFiducialResidualsInImage.push_back(std);
+// 	// }
+
+// 	// // Ficudials
+// 	// std::vector<double> averageResidualDistancePerFiducial; 				// Average residual distance per fiducial
+// 	// std::vector<double> stdResidualDistancePerFiducial; 					// STD residual distance per fiducial
+// 	// std::vector<double> ratioOfImagesOutOfRange(numberOfInputCoords, 0.0);	// Ratio of images out of range in a single gold bead
+// 	// std::vector<double> longestMisalignedChain;								// Longest chain of images presenting misalignment (in percentage)
+
+
+// 	// for (size_t i = 0; i < numberOfInputCoords; i++)
+// 	// {
+// 	// 	std::vector<CM> vCM_fiducial;
+// 	// 	getCMbyFiducial(i, vCM_fiducial);
+// 	// 	std::vector<double> residualDistancePerFiducial;
+
+// 	// 	for (size_t j = 0; j < vCM_fiducial.size(); j++)
+// 	// 	{
+// 	// 		double distance = sqrt((vCM_fiducial[j].residuals.x*vCM_fiducial[j].residuals.x)+(vCM_fiducial[j].residuals.y*vCM_fiducial[j].residuals.y));
+// 	// 		residualDistancePerFiducial.push_back(distance/fiducialSizePx);
+
+// 	// 		if (distance > modThr)
+// 	// 		{
+// 	// 			ratioOfImagesOutOfRange[i] += 1;
+// 	// 		}
+// 	// 	}
+
+// 	// 	ratioOfImagesOutOfRange[i] /= nSize;
+		
+// 	// 	double sum = 0;
+// 	// 	double sum2 = 0;
+// 	// 	double average = 0;
+// 	// 	double std = 0;
+// 	// 	size_t residualDistancePerFiducialSize = residualDistancePerFiducial.size();
+
+// 	// 	for(size_t e = 0; e < residualDistancePerFiducialSize; e++)
+// 	// 	{
+// 	// 		double value = residualDistancePerFiducial[e];
+// 	// 		sum += value;
+// 	// 		sum2 += value*value;
+// 	// 	}
+
+// 	// 	average = sum/residualDistancePerFiducialSize;
+// 	// 	std = sqrt(sum2/residualDistancePerFiducialSize - average*average);
+
+// 	// 	averageResidualDistancePerFiducial.push_back(average);
+// 	// 	stdResidualDistancePerFiducial.push_back(std);
+// 	// }
+
+// 	// for (size_t i = 0; i < numberOfInputCoords; i++)
+// 	// {
+// 	// 	int longestChain = 0;
+// 	// 	int chain = 0;
+
+// 	// 	for (size_t j = 0; j < nSize; j++)
+// 	// 	{
+// 	// 		if (DIRECT_A2D_ELEM(resDistribution, j, i) == 1)
+// 	// 		{
+// 	// 			chain += 1;
+// 	// 		}
+// 	// 		else
+// 	// 		{
+// 	// 			if (chain > longestChain)
+// 	// 			{
+// 	// 				longestChain = chain;
+// 	// 			}
+
+// 	// 			chain = 0;
+// 	// 		}
+// 	// 	}
+
+// 	// 	if (chain > longestChain)
+// 	// 	{
+// 	// 		longestChain = chain;
+// 	// 	}
+
+// 	// 	longestMisalignedChain.push_back((1.0*longestChain)/(1.0*nSize));
+// 	// }
+
+// 	// sort(averageFiducialResidualsInImage.begin(), averageFiducialResidualsInImage.end());
+// 	// sort(stdFiducialResidualsInImage.begin(), stdFiducialResidualsInImage.end());
+// 	// sort(averageResidualDistancePerFiducial.begin(), averageResidualDistancePerFiducial.end());
+// 	// sort(stdResidualDistancePerFiducial.begin(), stdResidualDistancePerFiducial.end());
+// 	// sort(ratioOfImagesOutOfRange.begin(), ratioOfImagesOutOfRange.end());
+// 	// sort(longestMisalignedChain.begin(), longestMisalignedChain.end());
+
+// 	// std::ofstream myfile;
+// 	// myfile.open (decisionTreeStatsFileName_chain, std::ios_base::app);
+// 	// myfile << averageFiducialResidualsInImage[0];
+// 	// myfile << ", ";
+// 	// myfile << averageFiducialResidualsInImage[(int)(averageFiducialResidualsInImage.size()/2)];
+// 	// myfile << ", ";
+// 	// myfile << averageFiducialResidualsInImage[averageFiducialResidualsInImage.size()-1];
+// 	// myfile << ", ";
+
+// 	// myfile << stdFiducialResidualsInImage[0];
+// 	// myfile << ", ";
+// 	// myfile << stdFiducialResidualsInImage[(int)(stdFiducialResidualsInImage.size()/2)];
+// 	// myfile << ", ";
+// 	// myfile << stdFiducialResidualsInImage[stdFiducialResidualsInImage.size()-1];
+// 	// myfile << ", ";
+
+// 	// myfile << averageResidualDistancePerFiducial[0];
+// 	// myfile << ", ";
+// 	// myfile << averageResidualDistancePerFiducial[(int)(averageResidualDistancePerFiducial.size()/2)];
+// 	// myfile << ", ";
+// 	// myfile << averageResidualDistancePerFiducial[averageResidualDistancePerFiducial.size()-1];
+// 	// myfile << ", ";
+
+// 	// myfile << stdResidualDistancePerFiducial[0];
+// 	// myfile << ", ";
+// 	// myfile << stdResidualDistancePerFiducial[(int)(stdResidualDistancePerFiducial.size()/2)];
+// 	// myfile << ", ";
+// 	// myfile << stdResidualDistancePerFiducial[stdResidualDistancePerFiducial.size()-1];
+// 	// myfile << ", ";
+
+// 	// myfile << ratioOfImagesOutOfRange[0];
+// 	// myfile << ", ";
+// 	// myfile << ratioOfImagesOutOfRange[(int)(ratioOfImagesOutOfRange.size()/2)];
+// 	// myfile << ", ";
+// 	// myfile << ratioOfImagesOutOfRange[ratioOfImagesOutOfRange.size()-1];
+// 	// myfile << ", ";
+
+// 	// myfile << longestMisalignedChain[0];
+// 	// myfile << ", ";
+// 	// myfile << longestMisalignedChain[(int)(longestMisalignedChain.size()/2)];
+// 	// myfile << ", ";
+// 	// myfile << longestMisalignedChain[longestMisalignedChain.size()-1];
+// 	// myfile << "\n";
+
+// 	// myfile.close();
+
+// 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// 	// if ((rmOutliersAreaCH < thrAreaCH) && (rmOutliersPerimCH < thrPerimeterCH))
+// 	// {
+// 	// 	return true;
+// 	// }
+	
+// 	return false;
 // }
 

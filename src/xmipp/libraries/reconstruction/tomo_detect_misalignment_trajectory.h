@@ -49,6 +49,8 @@
 #include <fstream>
 
 #define VERBOSE_OUTPUT
+#define GENERATE_RESIDUAL_STATISTICS
+
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
 // #define DEBUG_HCC
@@ -396,7 +398,7 @@ public:
 
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
-    bool detectMisalignmentFromResiduals();
+    void detectMisalignmentFromResiduals();
 
     bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
 
