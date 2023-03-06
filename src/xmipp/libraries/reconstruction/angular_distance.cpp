@@ -47,23 +47,27 @@ void ProgAngularDistance::readParams()
     	minSigmaD = getDoubleParam("--compute_weights",2);
     }
     set = getIntParam("--set");
+    compute_average_angle = checkParam("--compute_average_angle");
+    compute_average_shift = checkParam("--compute_average_shift");
 }
 
 // Show ====================================================================
 void ProgAngularDistance::show()
 {
     std::cout
-    << "Angular docfile 1: " << fn_ang1       << std::endl
-    << "Angular docfile 2: " << fn_ang2       << std::endl
-    << "Angular output   : " << fn_out    << std::endl
-    << "Symmetry file    : " << fn_sym        << std::endl
-    << "Check mirrors    : " << check_mirrors << std::endl
-    << "Object rotation  : " << object_rotation<<std::endl
-    << "Compute weights  : " << compute_weights << std::endl
-    << "Min sigma        : " << minSigma << std::endl
-    << "Min sigmaD       : " << minSigmaD << std::endl
-    << "IdLabel          : " << idLabel << std::endl
-    << "Set              : " << set << std::endl
+    << "Angular docfile 1    : " << fn_ang1       << std::endl
+    << "Angular docfile 2    : " << fn_ang2       << std::endl
+    << "Angular output       : " << fn_out    << std::endl
+    << "Symmetry file        : " << fn_sym        << std::endl
+    << "Check mirrors        : " << check_mirrors << std::endl
+    << "Object rotation      : " << object_rotation<<std::endl
+    << "Compute weights      : " << compute_weights << std::endl
+    << "Min sigma            : " << minSigma << std::endl
+    << "Min sigmaD           : " << minSigmaD << std::endl
+    << "IdLabel              : " << idLabel << std::endl
+    << "Set                  : " << set << std::endl
+    << "Compute average angle: " << compute_average_angle << std::endl
+    << "Compute average shift: " << compute_average_shift << std::endl
     ;
 }
 
@@ -98,6 +102,8 @@ void ProgAngularDistance::defineParams()
     addParamsLine("                             : Min sigmaD is the minimum shift standard deviation, set to -1 for not using shifts for weighting");
     addParamsLine("  [--set <set=1>]            : Set of distance to compute (angular_diff0 and jumper_weight0, angular_diff and jumper_weight,");
     addParamsLine("                             : or angular_diff2 and jumper_weight2)");
+    addParamsLine("  [--compute_average_angle]  : Average the angles defined in ang1 and ang2");
+    addParamsLine("  [--compute_average_shift]  : Average the shifts defined in ang1 and ang2");
 }
 
 // Produce side information ================================================
@@ -212,43 +218,71 @@ void ProgAngularDistance::run()
         {
             MDRowVec row;
             row.setValue(MDL_ITEM_ID, itemId);
-            //output[0]=rot1;
-            row.setValue(MDL_ANGLE_ROT, rot1);
-            //output[1]=rot2p;
-            row.setValue(MDL_ANGLE_ROT2, rot2p);
-            //output[2]=rot_diff(i);
+
+            // Write angles
+            if(compute_average_angle) {
+                // Average angles
+                double rotAvg, tiltAvg, psiAvg;
+                computeAverageAngles(rot1, tilt1, psi1,
+                                     rot2p, tilt2p, psi2p,
+                                     rotAvg, tiltAvg, psiAvg );
+
+                row.setValue(MDL_ANGLE_ROT, rotAvg);
+                row.setValue(MDL_ANGLE_ROT2, rot1);
+                row.setValue(MDL_ANGLE_ROT3, rot2p);
+                row.setValue(MDL_ANGLE_TILT, tiltAvg);
+                row.setValue(MDL_ANGLE_TILT2, tilt1);
+                row.setValue(MDL_ANGLE_TILT3, tilt2p);
+                row.setValue(MDL_ANGLE_PSI, psiAvg);
+                row.setValue(MDL_ANGLE_PSI2, psi1);
+                row.setValue(MDL_ANGLE_PSI3, psi2p);
+
+            } else {
+                row.setValue(MDL_ANGLE_ROT, rot1);
+                row.setValue(MDL_ANGLE_ROT2, rot2p);
+                row.setValue(MDL_ANGLE_TILT, tilt1);
+                row.setValue(MDL_ANGLE_TILT2, tilt2p);
+                row.setValue(MDL_ANGLE_PSI, psi1);
+                row.setValue(MDL_ANGLE_PSI2, psi2p);
+            }
+
+            // Write angle differences
             row.setValue(MDL_ANGLE_ROT_DIFF, rot_diff(i));
-            //output[3]=tilt1;
-            row.setValue(MDL_ANGLE_TILT, tilt1);
-            //output[4]=tilt2p;
-            row.setValue(MDL_ANGLE_TILT2, tilt2p);
-            //output[5]=tilt_diff(i);
             row.setValue(MDL_ANGLE_TILT_DIFF,tilt_diff(i) );
-            //output[6]=psi1;
-            row.setValue(MDL_ANGLE_PSI, psi1);
-            //output[7]=psi2p;
-            row.setValue(MDL_ANGLE_PSI2, psi2);
-            //output[8]=psi_diff(i);
             row.setValue(MDL_ANGLE_PSI_DIFF, psi_diff(i));
-            //output[9]=distp;
             if (set==1)
             	row.setValue(MDL_ANGLE_DIFF, distp);
             else
             	row.setValue(MDL_ANGLE_DIFF2, distp);
-            //output[10]=X1;
-            row.setValue(MDL_SHIFT_X,X1);
-            //output[11]=X2;
-            row.setValue(MDL_SHIFT_X2, X2);
-            //output[12]=X_diff(i);
+
+            // Write shifts
+            if(compute_average_shift) {
+                // Compute average
+                double XAvg, YAvg;
+                computeAverageShifts(X1, Y1,
+                                     X2, Y2,
+                                     XAvg, YAvg );
+
+                row.setValue(MDL_SHIFT_X, XAvg);
+                row.setValue(MDL_SHIFT_X2, X1);
+                row.setValue(MDL_SHIFT_X3, X2);
+                row.setValue(MDL_SHIFT_Y, YAvg);
+                row.setValue(MDL_SHIFT_Y2, Y1);
+                row.setValue(MDL_SHIFT_Y3, Y2);
+            } else {
+                row.setValue(MDL_SHIFT_X, X1);
+                row.setValue(MDL_SHIFT_X2, X2);
+                row.setValue(MDL_SHIFT_Y, Y1);
+                row.setValue(MDL_SHIFT_Y2, Y2);
+            }
+
+            // Write shift differences
             row.setValue(MDL_SHIFT_X_DIFF, X_diff(i));
-            //output[13]=Y1;
-            row.setValue(MDL_SHIFT_Y, Y1);
-            //output[14]=Y2;
-            row.setValue(MDL_SHIFT_Y2, Y2);
-            //output[15]=Y_diff(i);
             row.setValue(MDL_SHIFT_Y_DIFF, Y_diff(i));
-            //output[16]=shift_diff(i);
-            row.setValue(MDL_SHIFT_DIFF,shift_diff(i));
+            if (set==1)
+                row.setValue(MDL_SHIFT_DIFF,shift_diff(i));
+            else
+                row.setValue(MDL_SHIFT_DIFF2,shift_diff(i));
 
             id = DF_out.addRow(row);
             //id = DF_out.addObject();
@@ -572,4 +606,19 @@ void ProgAngularDistance::computeWeights()
     }
     DF2weighted.removeDisabled();
     DF2weighted.write(fn_out+"_weights.xmd");
+}
+
+void ProgAngularDistance::computeAverageAngles( double rot1, double tilt1, double psi1,
+                                                double rot2, double tilt2, double psi2,
+                                                double& rot, double& tilt, double& psi )
+{
+    //TODO implement
+}
+
+void ProgAngularDistance::computeAverageShifts( double shiftX1, double shiftY1,
+                                                double shiftX2, double shiftY2,
+                                                double& shiftX, double& shiftY )
+{
+    shiftX = (shiftX1 + shiftX2) / 2;
+    shiftY = (shiftY1 + shiftY2) / 2;
 }
