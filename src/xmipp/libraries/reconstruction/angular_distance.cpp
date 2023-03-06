@@ -613,6 +613,10 @@ void ProgAngularDistance::computeAverageAngles( double rot1, double tilt1, doubl
                                                 double& rot, double& tilt, double& psi )
 {
     //TODO implement
+    //Euler->Quat->Euler
+    rot = (rot1 + rot2) / 2;
+    tilt = (tilt1 + tilt2) / 2;
+    psi = (psi1 + psi2) / 2;
 }
 
 void ProgAngularDistance::computeAverageShifts( double shiftX1, double shiftY1,

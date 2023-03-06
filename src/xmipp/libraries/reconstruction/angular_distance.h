@@ -98,6 +98,7 @@ public:
     static void computeAverageShifts(double shiftX1, double shiftY1,
                                      double shiftX2, double shiftY2,
                                      double& shiftX, double& shiftY );
+
 };
 //@}
 #endif
