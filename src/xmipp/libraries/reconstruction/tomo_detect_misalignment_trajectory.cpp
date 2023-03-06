@@ -1355,6 +1355,11 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	if (vottingRatio < 0.5)
 	{
 		globalAlignment = false;
+
+		#ifdef VERBOSE_OUTPUT
+		std::cout << "GLOBAL MISLAIGNMENT DETECTED" << std::endl;
+		#endif
+
 		exit(EXIT_SUCCESS);
 	}
 	
@@ -1410,12 +1415,18 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			if (vottingRatio > 0.5)
 			{
 				localAlignment[n] = false;
+
+				#ifdef VERBOSE_OUTPUT
+				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << std::endl;
+				#endif
 			}
 			
 		}
 		else
 		{
+			#ifdef VERBOSE_OUTPUT
 			std::cout << "UNDETECTED COORDINATES IN TILT-IMAGE " << n << ". IMPOSSIBLE TO STUDY MIALIGNMENT" << std::endl;
+			#endif
 		}
 	}
 
