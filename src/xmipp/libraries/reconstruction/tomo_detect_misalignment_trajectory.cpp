@@ -1437,14 +1437,14 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 				}
 			}
 
-			vottingRatio /= numberCM;
+			vottingRatio /= float(numberCM);
 
 			if (vottingRatio > 0.5)
 			{
 				localAlignment[n] = false;
 
 				#ifdef VERBOSE_OUTPUT
-				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << ". Failed residuals: " << vottingRatio*100 << "\% out of " << numberCM << std::endl;
+				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << ". Failed residuals: " << vottingRatio << " out of " << numberCM << std::endl;
 				#endif
 			}
 			
