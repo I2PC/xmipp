@@ -1,3 +1,51 @@
+   ## Release 3.23.03 - Kratos
+   ### Xmipp Programs 
+  - Deprecated programs (for more details visit the [wiki](https://github.com/I2PC/xmipp/wiki/Deprecating-programs)):
+    angular_distribution_show, apropos
+    ctf_correct_idr, ctf_create_ctfdat , ctf_show , idr_xray_tomo , image_common_lines , metadata_convert_to_spider , metadata_selfile_create , mlf_refine_3d, ml_refine_3d, ml_tomo , mrc_create_metadata , pdb_construct_dictionary, pdb_restore_with_dictionary , reconstruct_admn , reconstruct_art_pseudo , resolution_ibw , resolution_ssnr , score_micrograph , reconstruct_fourier_starpu , tomo_align_tilt_series, tomo_align_dual_tilt_series, tomo_align_refinement, tomo_align_refinement, tomo_extract_subvolume, tomo_project_main, tomo_remove_fluctuations , tomo_align_tilt_series,transform_range_adjust , validation_tilt_pairs , volume_pca , volume_validate_pca , work_test , 6f4d983 , evaulate_coordinates , extract_subset , image_separate_objects , volume_enhance_contrast , volume_reslice , xray_import , xray_project , xray_psf_create , xray_reconstruct_art , gpu_correlation, gpu_utils, classify_significant, deepAlign.
+  - New programs: tomo_confidence_map, tomo_extract_particlestacks, 
+, tomo_extract_subtomograms, tomo_tiltseries_dose_filter, psd_estimatator
+  - volume_from_pdb: fixing input pdb file being overwritten when '-centerPDB' flag was set
+  - xmipp_phantom_movie:  adding support for fixed step shift & gain and dark image generation
+  - CTF simulation allows astigmatism
+  - xmipp_metadata_utility: Now join operations with an empty set will return a new empty set (previously no output file was generated).
+  - xmipp_matrix_dimred: Program help improved. Exception is now thrown when the number of output dimensions is larger than the input dimensions
+  - xmipp_angular_distance: Added itemId column to the output
+
+
+   ### Protocols scipion-em-xmipp
+  - New protocol status: beta, new, production and updated. Will appear in the left pannel of Scipion 
+  - Protocol subtract_projection: user experience improvements, no final mask by default, apply ciruclar mask in adjustment image to avoid edge artifacts, validate same sampling rate with tolerance in third decimal
+  - Protocol convert_pdb: Allowed to save centered PDB used for conversion. 
+  - Protocol align_volume_and_particles: add alingment validation
+  - Protocol FlexAlign: updating protocol to reflect changes in the executable, fixed test, removing unused protocol (Movie average)
+  - Protocol align_volume_and_particles:Align volume and particles adapted to tomography and works in the absence of tomo plugin.
+  - Protocol volume_consensus: validate same sampling rate with tolerance in third decimal
+  
+   ### Installation and user guide
+   - Refactor and simplified Readme page.
+   - Updating CUDA version compatibility
+   - Updating gcc version availables
+   - Fixd Matlab installation
+   - Added missing array include to fix compilation error with g++12
+   - Alert and not block compilation if gcc - CUDA are not compatible
+   - Avoid compilation warnings
+   - Required pyworkflow==3.0.31
+
+
+   ### Others
+   - Maintenance: Recovered python binding tests
+   - Maintenance: fixing dangling pointer in xmipp_error
+   - Maintenance: Cleaned includes in xmipp_image_base
+   - PSD estimation: templating function, improving performance
+   - Flag cleanDeprecate in the installation; clean all deprecated executables programs 
+   - python binding: fixed bug when Numpy arrays created by slicing were badly interpretted
+   - Removed "seed" library
+   - Fixed memory pinning CUDA bug
+   - Fixed compilation errors on CUDA 9
+
+
+
    ## Release 3.22.11 - Iris
 
   ### Xmipp Programs
@@ -166,10 +214,6 @@
 - Removal of the SVM from inside the XMIPP repository and downloading it as an external dependence
 - Solved a configuration problem with CUDA
 - ml_tomo: Using .mrc instead of .vol ; volume_align: Addded wrapping during alignment
-
-
-
-
 
 
 ## Release 3.21.06 - Caerus
