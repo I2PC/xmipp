@@ -46,6 +46,7 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
  	fnInputCoord = getParam("--inputCoord");
 
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
+	avgResidPercentile_LocalAlignment = getDoubleParam("--avgResidPercentile_LocalAlignment");
 }
 
 
@@ -68,6 +69,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
 
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
+	addParamsLine("  [--avgResidPercentile_LocalAlignment <avgResidPercentile_LocalAlignment=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 
 }
 
