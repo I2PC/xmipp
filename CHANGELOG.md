@@ -21,6 +21,7 @@
   - Protocol FlexAlign: updating protocol to reflect changes in the executable, fixed test, removing unused protocol (Movie average)
   - Protocol align_volume_and_particles:Align volume and particles adapted to tomography and works in the absence of tomo plugin.
   - Protocol volume_consensus: validate same sampling rate with tolerance in third decimal
+  - Protocols deprecated (for more details visit the [wiki](https://github.com/I2PC/xmipp/wiki/Deprecating-programs)): protocol_deep _align, reconstruct_heterogeneous, protocol_metaprotocol_create_output, protocol_metaprotocol_discrete_heterogeneity_scheduler
   
    ### Installation and user guide
    - Refactor and simplified Readme page.
