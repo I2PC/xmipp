@@ -1363,15 +1363,14 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		// return;
 	}
 
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
 	std::cout << "Output global (chain) alingmnet vector" << std::endl;
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
 		std::cout << globalMialingmentVotting[n] << ", ";
 	}
 	std::cout << std::endl;
-
-
-	
+	#endif
 
 	// Local alignment analysis
 	std::vector<float> resid2Vector;  // Vector containing residual^2 values from the aligned landmark chains
@@ -1395,14 +1394,20 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	sort(resid2Vector.begin(), resid2Vector.end());
 	size_t resid2Vector_size = resid2Vector.size();
 
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
 	std::cout << "SORTED RESIDUALS --------------------------------" << std::endl;
 	for (size_t j = 0; j < resid2Vector_size; j++)
 	{
 		std::cout << resid2Vector[j] << std::endl;
 	}
+	#endif
 
 	for (size_t n = 0; n < nSize; n++)
 	{
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << "------------ Analyzing image " << n << std::endl;
+		#endif
+
 		std::vector<CM> CM_image;
 		getCMbyImage(n, CM_image);
 
@@ -1419,12 +1424,11 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 				{
 					if(resid2 < resid2Vector[j])
 					{
-						std::cout << "-------------------------------------------------------- " <<std::endl;
-						std::cout << "j " << j <<std::endl;
-						std::cout << "resid2 " << resid2 <<std::endl;
-						std::cout << "resid2Vector[j] " << resid2Vector[j] <<std::endl;
-						std::cout << "-------------------------------- residual value " << resid2 << " position " << j << "percentile " << (double(j)/double(resid2Vector_size)) << std::endl;
-						if ((double(j)/double(resid2Vector_size)) > 0.99)  // *** este thr hay que llevarlo al .h
+						#ifdef DEBUG_RESIDUAL_ANALYSIS
+						std::cout << "residual value " << resid2 << " position " << j << "percentile " << (double(j)/double(resid2Vector_size)) << std::endl;
+						#endif
+						
+						if ((double(j)/double(resid2Vector_size)) > avgResidPercentile_LocalAlignment)
 						{
 							vottingRatio += 1;
 						}
