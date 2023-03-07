@@ -1412,7 +1412,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		getCMbyImage(n, CM_image);
 
 		size_t numberCM = CM_image.size();
-		double vottingRatio;
+		double vottingRatio = 0;
 
 		if (numberCM > 0)
 		{
