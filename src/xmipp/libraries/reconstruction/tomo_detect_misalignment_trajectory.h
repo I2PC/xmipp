@@ -159,7 +159,7 @@ public:
     float poissonLandmarkPercentile = 0.2;          // Percentencile of the number of landmarks per row among the populated rows (exclude empty rows), taken as the lambda for poisson probability calculation
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
     size_t thrNumberDistanceAngleChain = 3;         // Angular distance (number of angular steps) for two coordinates to belong to the same chain, multiplied by the distance to the tilt axis
-    float avgResidPercentile_LocalAlignment = 0.95;
+    float avgResidPercentile_LocalAlignment = 0.99;
 
     // Distance thresholds are saved in angstroms in order to be independent of the sampling rate and image size
     float minDistanceAng = 20;                      // Minimum distance to consider that 2 landmarks belong to the same chain
