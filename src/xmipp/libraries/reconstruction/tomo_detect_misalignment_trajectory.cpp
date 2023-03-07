@@ -1360,7 +1360,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		std::cout << "GLOBAL MISLAIGNMENT DETECTED" << std::endl;
 		#endif
 
-		// return;
+		return;
 	}
 
 	#ifdef DEBUG_RESIDUAL_ANALYSIS
@@ -1427,7 +1427,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 						#ifdef DEBUG_RESIDUAL_ANALYSIS
 						std::cout << "residual value " << resid2 << " position " << j << "percentile " << (double(j)/double(resid2Vector_size)) << std::endl;
 						#endif
-						
+
 						if ((double(j)/double(resid2Vector_size)) > avgResidPercentile_LocalAlignment)
 						{
 							vottingRatio += 1;
