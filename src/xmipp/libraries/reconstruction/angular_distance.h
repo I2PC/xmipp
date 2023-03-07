@@ -59,6 +59,10 @@ public:
     String idLabel;
     /// Set of angular difference
     int set;
+    /// Compute angle mean
+    bool compute_average_angle;
+    /// Compute shift mean
+    bool compute_average_shift;
 public:
     // DocFile 1
     MetaDataVec DF1;
@@ -86,6 +90,15 @@ public:
 
     /** computeWeights */
     void computeWeights();
+
+    static void computeAverageAngles(double rot1, double tilt1, double psi1,
+                                     double rot2, double tilt2, double psi2,
+                                     double& rot, double& tilt, double& psi );
+
+    static void computeAverageShifts(double shiftX1, double shiftY1,
+                                     double shiftX2, double shiftY2,
+                                     double& shiftX, double& shiftY );
+
 };
 //@}
 #endif
