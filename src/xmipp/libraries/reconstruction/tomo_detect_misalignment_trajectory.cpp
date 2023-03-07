@@ -1438,6 +1438,8 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			}
 
 			vottingRatio /= float(numberCM);
+			std::cout << "-------- For image " << n << " votting ration =" << vottingRatio << " out of " << numberCM << std::endl;
+
 
 			if (vottingRatio > 0.5)
 			{
