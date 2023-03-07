@@ -1444,7 +1444,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 				localAlignment[n] = false;
 
 				#ifdef VERBOSE_OUTPUT
-				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << std::endl;
+				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << ". Failed residuals: " << vottingRatio*100 << "\% out of " << numberCM << std::endl;
 				#endif
 			}
 			
