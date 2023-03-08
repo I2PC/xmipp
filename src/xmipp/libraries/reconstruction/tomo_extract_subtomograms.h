@@ -39,13 +39,20 @@ class ProgTomoExtractSubtomograms : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnTom, fnCoor;
+	FileName fnOut;
+    FileName fnTom;
+    FileName fnCoor;
 
-    size_t Xdim, Ydim, Zdim;
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
 
-    bool invertContrast, normalize;
+    bool invertContrast;
+    bool normalize;
+    bool downsample;
 
     double scaleFactor;
+    double downsampleFactor;
 
 	/** Is the volume previously masked?*/
 	int  boxsize, nthrs;

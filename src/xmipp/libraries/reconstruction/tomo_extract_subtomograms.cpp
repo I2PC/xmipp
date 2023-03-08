@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
+ * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -43,6 +44,8 @@ void ProgTomoExtractSubtomograms::readParams()
 	normalize = checkParam("--normalize");
 	fnOut = getParam("-o");
 	nthrs = getIntParam("--threads");
+	downsample = checkParam("--downsample");
+	downsampleFactor = getDoubleParam("--downsample");
 }
 
 
@@ -132,37 +135,26 @@ void ProgTomoExtractSubtomograms::run()
 		
 		subtomo.initZeros(1, boxsize, boxsize, boxsize);
 
-		if (invertContrast)
+		for (int k=zinit; k<zlim; k++)
 		{
-
-			for (int k=zinit; k<zlim; k++)
+			int kk = k - zcoor;
+			for (int i=yinit; i<ylim; i++)
 			{
-				int kk = k - zcoor;
-				for (int i=yinit; i<ylim; i++)
+				int ii = i-ycoor;
+				for (int j=xinit; j<xlim; j++)
 				{
-					int ii = i-ycoor;
-					for (int j=xinit; j<xlim; j++)
+					if (invertContrast)
 					{
 						A3D_ELEM(subtomo, kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = -A3D_ELEM(tom, k, i, j);
 					}
-				}
-			}
-		}
-		else
-		{
-			for (int k=zinit; k<zlim; k++)
-			{
-				int kk = k - zcoor;
-				for (int i=yinit; i<ylim; i++)
-				{
-					int ii = i-ycoor;
-					for (int j=xinit; j<xlim; j++)
+					else
 					{
 						A3D_ELEM(subtomo, kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = A3D_ELEM(tom, k, i, j);
 					}
 				}
 			}
 		}
+
 
 		if (normalize)
 		{
