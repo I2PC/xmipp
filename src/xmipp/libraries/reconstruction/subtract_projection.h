@@ -79,8 +79,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
  	Projection Pmask; // mask projection for region to keep
     Projection PmaskVol; // reference volume mask projection
 	FourierFilter FilterG; // Gaussian LPF to smooth mask
-    std::unique_ptr<FourierProjector> projector;
-    std::unique_ptr<FourierProjector> projectorMask;
+
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection
     FourierTransformer transformerI; // Fourier transformer for particle
@@ -130,6 +129,17 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 public:
+    // Rank (used for MPI version)
+    int rank;
+    FourierProjector *projector;
+    FourierProjector *projectorMask;
+
+    /// Empty constructor
+    ProgSubtractProjection();
+
+    /// Destructor
+    ~ProgSubtractProjection();
+
     /// Read argument from command line
     void readParams();
     /// Show

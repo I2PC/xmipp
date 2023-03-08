@@ -46,6 +46,25 @@
  #include <vector>
  #include <utility>
 
+
+ // Empty constructor =======================================================
+ProgSubtractProjection::ProgSubtractProjection()
+{
+	produces_a_metadata = true;
+    each_image_produces_an_output = false;
+    keep_input_columns = true;
+    remove_disabled = false;
+	projector = nullptr;
+	projectorMask = nullptr;
+	rank = 0;
+}
+
+ProgSubtractProjection::~ProgSubtractProjection()
+{
+	delete projector;
+	delete projectorMask;
+}
+
  // Read arguments ==========================================================
  void ProgSubtractProjection::readParams()
  {
@@ -83,10 +102,6 @@
  // usage ===================================================================
  void ProgSubtractProjection::defineParams()
  {
-	produces_a_metadata = true;
-    each_image_produces_an_output = false;
-    keep_input_columns = true;
-    remove_disabled = false;
 	 //Usage
      addUsageLine("This program computes the subtraction between particles and a reference"); 
 	 addUsageLine(" volume, by computing its projections with the same angles that input particles have."); 
@@ -267,78 +282,81 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
  void ProgSubtractProjection::preProcess() {
 	// Read input volume, mask and particles metadata
-	show();
-	V.read(fnVolR);
-	V().setXmippOrigin();
+	if (rank==0)
+	{
+		show();
+		V.read(fnVolR);
+		V().setXmippOrigin();
 
-	// Create 2D circular mask to avoid edge artifacts after wrapping
-	size_t Xdim;
-	size_t Ydim;
-	size_t Zdim;
-	size_t Ndim;
-    V.getDimensions(Xdim, Ydim, Zdim, Ndim);
-	cirmask().initZeros((int)Ydim, (int)Xdim);
-	cirmask().setXmippOrigin();
-	if (cirmaskrad == -1.0)
-		cirmaskrad = (double)XSIZE(V())/2;
-	RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
-	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
+		// Create 2D circular mask to avoid edge artifacts after wrapping
+		size_t Xdim;
+		size_t Ydim;
+		size_t Zdim;
+		size_t Ndim;
+		V.getDimensions(Xdim, Ydim, Zdim, Ndim);
+		cirmask().initZeros((int)Ydim, (int)Xdim);
+		cirmask().setXmippOrigin();
+		if (cirmaskrad == -1.0)
+			cirmaskrad = (double)XSIZE(V())/2;
+		RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
+		cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 
-	// Read or create mask keep and compute inverse of mask keep (mask subtract)
-	createMask(fnMask, vM, ivM);
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-		DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
-	
-	// Initialize Gaussian LPF to smooth mask
-	FilterG.FilterShape=REALGAUSSIAN;
-	FilterG.FilterBand=LOWPASS;
-	FilterG.w1=sigma;
-	
-	// Initialize Fourier projectors
-	std::cout << "-------Initializing projectors-------" << std::endl;
-	double cutFreq = sampling/maxResol;
-	projector = std::make_unique<FourierProjector>(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	projectorMask = std::make_unique<FourierProjector>(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-	std::cout << "-------Projectors initialized-------" << std::endl;
+		// Read or create mask keep and compute inverse of mask keep (mask subtract)
+		createMask(fnMask, vM, ivM);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
 		
-	// Create mock image of same size as particles (and referencce volume) to get
-	Image<double> I0;
-	I0().initZeros((int)YSIZE(V()),(int)XSIZE(V()));
-	I0().initConstant(1);
-	FileName fnImgOut0 = "I0.mrcs";
-	I0.write(fnImgOut0);
-	MultidimArray< std::complex<double> > I0Fourier; 
-	FourierTransformer transformerI0; 
-	std::cout << "-------1-------" << std::endl;
-	transformerI0.FourierTransform(I0(), I0Fourier, false);
-	std::cout << "-------2-------" << std::endl;
+		// Initialize Gaussian LPF to smooth mask
+		FilterG.FilterShape=REALGAUSSIAN;
+		FilterG.FilterBand=LOWPASS;
+		FilterG.w1=sigma;
+		
+		// Initialize Fourier projectors
+		std::cout << "-------Initializing projectors-------" << std::endl;
+		double cutFreq = sampling/maxResol;
+		projector = new FourierProjector(V(), padFourier, cutFreq,xmipp_transformation::BSPLINE3);
+		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		// else
+		// {
+		// 	projector = new FourierProjector(padFourier, cutFreq,xmipp_transformation::BSPLINE3);
+		// 	projectorMask = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		// }
+		std::cout << "-------Projectors initialized-------" << std::endl;
+			
+		// Create mock image of same size as particles (and referencce volume) to get
+		I().initZeros((int)YSIZE(V()),(int)XSIZE(V()));
+		I().initConstant(1);
+		std::cout << "-------1-------" << std::endl;
+		transformerI.FourierTransform(I(), IFourier, false);
+		std::cout << "-------2-------" << std::endl;
 
-	// Construct frequencies image
-	wi.initZeros(I0Fourier);
-	std::cout << "-------3-------" << std::endl;
-	Matrix1D<double> w(2); 	
-	std::cout << "-------4-------" << std::endl;
-	for (int i=0; i<YSIZE(wi); i++) {
-		std::cout << "-------for 5-------" << std::endl;
-		FFT_IDX2DIGFREQ(i,YSIZE(I0Fourier),YY(w)) 
-		for (int j=0; j<XSIZE(wi); j++)  {
-			std::cout << "-------for 6-------" << std::endl;
-			FFT_IDX2DIGFREQ(j,XSIZE(I0Fourier),XX(w))
-			DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(I0Fourier)); // indexes
+		// Construct frequencies image
+		wi.initZeros(IFourier);
+		std::cout << "-------3-------" << std::endl;
+		Matrix1D<double> w(2); 	
+		std::cout << "-------4-------" << std::endl;
+		for (int i=0; i<YSIZE(wi); i++) {
+			std::cout << "-------for 5-------" << std::endl;
+			FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
+			for (int j=0; j<XSIZE(wi); j++)  {
+				std::cout << "-------for 6-------" << std::endl;
+				FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
+				DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
+			}
 		}
-	}
-	std::cout << "-------7-------" << std::endl;
-	if (limitfreq == 0)
-		maxwiIdx = (int)XSIZE(wi); 
-	else
-		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(I0Fourier), maxwiIdx)
+		std::cout << "-------7-------" << std::endl;
+		if (limitfreq == 0)
+			maxwiIdx = (int)XSIZE(wi); 
+		else
+			DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
-	// Declare complex structures that will be used in the loop
-	std::cout << "-------Subtracting particles-------" << std::endl;
-	// mdParticles.read(fnParticles);
-	// long setofparticles_size = mdParticles.size();
-	// init_progress_bar(setofparticles_size);
-	i = 0;
+		// Declare complex structures that will be used in the loop
+		std::cout << "-------Subtracting particles-------" << std::endl;
+		// mdParticles.read(fnParticles);
+		// long setofparticles_size = mdParticles.size();
+		// init_progress_bar(setofparticles_size);
+		i = 0;
+	}
  }
 
 void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
