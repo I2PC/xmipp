@@ -76,7 +76,7 @@ Xmipp is installed in the build directory located in the same directory where th
 `source build/xmipp.bashrc`
 
 
-# That's all
+## That's all
 
 If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es. For more details, troubleshootings and information visit the [wikip page.](https://github.com/I2PC/xmipp/wiki)
 
