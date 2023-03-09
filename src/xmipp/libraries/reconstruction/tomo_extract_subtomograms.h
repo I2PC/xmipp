@@ -1,8 +1,9 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
- *
+ * 			   Carlos Oscar S. Sorzano                   coss@cnb.csic.es
+ * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
+ * 
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,9 +31,12 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
+#include <core/xmipp_fftw.h>
 #include <limits>
 #include <complex>
 #include <string>
+
+// #define DEBUG
 
 
 class ProgTomoExtractSubtomograms : public XmippProgram
@@ -55,13 +59,13 @@ public:
     double downsampleFactor;
 
 	/** Is the volume previously masked?*/
-	int  boxsize, nthrs;
+	int boxsize;
+    int nthrs;
 
 public:
 
     void defineParams();
     void readParams();
-    void readAndPrepareData();
     void run();
 };
 //@}
