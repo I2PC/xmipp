@@ -30,6 +30,8 @@
 #include "core/geometry.h"
 #include <core/metadata_db.h>
 
+#include <cassert>
+
 // Read arguments ==========================================================
 void ProgAngularDistance::readParams()
 {
@@ -47,6 +49,7 @@ void ProgAngularDistance::readParams()
     	minSigmaD = getDoubleParam("--compute_weights",2);
     }
     set = getIntParam("--set");
+    ang = getIntParam("--ang");
     compute_average_angle = checkParam("--compute_average_angle");
     compute_average_shift = checkParam("--compute_average_shift");
 }
@@ -66,6 +69,7 @@ void ProgAngularDistance::show()
     << "Min sigmaD           : " << minSigmaD << std::endl
     << "IdLabel              : " << idLabel << std::endl
     << "Set                  : " << set << std::endl
+    << "Ang                  : " << ang << std::endl
     << "Compute average angle: " << compute_average_angle << std::endl
     << "Compute average shift: " << compute_average_shift << std::endl
     ;
@@ -102,6 +106,9 @@ void ProgAngularDistance::defineParams()
     addParamsLine("                             : Min sigmaD is the minimum shift standard deviation, set to -1 for not using shifts for weighting");
     addParamsLine("  [--set <set=1>]            : Set of distance to compute (angular_diff0 and jumper_weight0, angular_diff and jumper_weight,");
     addParamsLine("                             : or angular_diff2 and jumper_weight2)");
+    addParamsLine("  [--ang <ang=1>]            : The angle set to be written in the first position. Note that ang2 may be modified");
+    addParamsLine("                             : so that for the given symmetry is the closest to ang1. Therefore using ang=2 is useful ");
+    addParamsLine("                             : to obtain get ang2 close to ang1");
     addParamsLine("  [--compute_average_angle]  : Average the angles defined in ang1 and ang2");
     addParamsLine("  [--compute_average_shift]  : Average the shifts defined in ang1 and ang2");
 }
@@ -236,7 +243,13 @@ void ProgAngularDistance::run()
                 row.setValue(MDL_ANGLE_PSI, psiAvg);
                 row.setValue(MDL_ANGLE_PSI2, psi1);
                 row.setValue(MDL_ANGLE_PSI3, psi2p);
-
+            } else if (ang==2) {
+                row.setValue(MDL_ANGLE_ROT, rot2p);
+                row.setValue(MDL_ANGLE_ROT2, rot1);
+                row.setValue(MDL_ANGLE_TILT, tilt2p);
+                row.setValue(MDL_ANGLE_TILT2, tilt1);
+                row.setValue(MDL_ANGLE_PSI, psi2p);
+                row.setValue(MDL_ANGLE_PSI2, psi1);
             } else {
                 row.setValue(MDL_ANGLE_ROT, rot1);
                 row.setValue(MDL_ANGLE_ROT2, rot2p);
@@ -269,6 +282,11 @@ void ProgAngularDistance::run()
                 row.setValue(MDL_SHIFT_Y, YAvg);
                 row.setValue(MDL_SHIFT_Y2, Y1);
                 row.setValue(MDL_SHIFT_Y3, Y2);
+            } else if(ang==2) {
+                row.setValue(MDL_SHIFT_X, X2);
+                row.setValue(MDL_SHIFT_X2, X1);
+                row.setValue(MDL_SHIFT_Y, Y2);
+                row.setValue(MDL_SHIFT_Y2, Y1);
             } else {
                 row.setValue(MDL_SHIFT_X, X1);
                 row.setValue(MDL_SHIFT_X2, X2);
@@ -608,15 +626,107 @@ void ProgAngularDistance::computeWeights()
     DF2weighted.write(fn_out+"_weights.xmd");
 }
 
+void ProgAngularDistance::euler2quat(   double rot, double tilt, double psi,
+                                        double q[4] )
+{
+    // Convert to radians and divide by 2
+    const double ai = -DEG2RAD(rot) / 2;
+    const double aj = DEG2RAD(tilt) / 2;
+    const double ak = -DEG2RAD(psi) / 2;
+
+    // Obtain sin and cos
+    const double    si = std::sin(ai),
+                    ci = std::cos(ai),
+                    sj = std::sin(aj),
+                    cj = std::cos(aj),
+                    sk = std::sin(ak),
+                    ck = std::cos(ak);
+
+    const double    cc = ci * ck,
+                    cs = ci * sk,
+                    sc = si * ck,
+                    ss = si * sk;
+
+    // Compute the quaternion values
+    // WXYZ
+    q[0] = +cj * (cc - ss);
+    q[1] = +sj * (cs - sc);
+    q[2] = -sj * (cc + ss);
+    q[3] = +cj * (cs + sc);
+}
+
+void ProgAngularDistance::quat2Euler(   const double q[4],
+                                        double& rot, double& tilt, double& psi )
+{
+    // Multiply the quaternion by sqrt2 to avoid multiplying pairs by 2
+    const auto sqrt2 = std::sqrt(2);
+    const auto qw = sqrt2 * q[0];
+    const auto qx = sqrt2 * q[1];
+    const auto qy = sqrt2 * q[2];
+    const auto qz = sqrt2 * q[3];
+
+    // Obtain pairwise products of the quaternion elements
+    const auto qx2 = qx*qx;
+    const auto qy2 = qy*qy;
+    const auto qz2 = qz*qz;
+    const auto qxqy = qx*qy;
+    const auto qxqz = qx*qz;
+    const auto qxqw = qx*qw;
+    const auto qyqz = qy*qz;
+    const auto qyqw = qy*qw;
+    const auto qzqw = qz*qw;
+
+    // Ensemble the matrix
+    const double    m00 = 1 - qy2 - qz2,
+                    m01 = qxqy - qzqw,
+                    m02 = qxqz + qyqw,
+                    m10 = qxqy + qzqw,
+                    m11 = 1 - qx2 - qz2,
+                    m12 = qyqz - qxqw,
+                    m20 = qxqz - qyqw,
+                    m21 = qyqz + qxqw,
+                    m22 = 1 - qx2 - qy2;
+
+
+
+    const auto sy = std::sqrt(m21*m21 + m20*m20);
+    double ax, ay, az;
+    if(sy > 1e-6) {
+        ax = std::atan2(m21, m20);
+        ay = std::atan2(sy, m22);
+        az = std::atan2(m12, -m02);
+    } else {
+        ax = std::atan2(-m10, m11);
+        ay = std::atan2(sy, m22);
+        az = 0;
+    }
+
+    rot = RAD2DEG(ax);
+    tilt = RAD2DEG(ay);
+    psi = RAD2DEG(az);
+}
+
 void ProgAngularDistance::computeAverageAngles( double rot1, double tilt1, double psi1,
                                                 double rot2, double tilt2, double psi2,
                                                 double& rot, double& tilt, double& psi )
 {
-    //TODO implement
-    //Euler->Quat->Euler
-    rot = (rot1 + rot2) / 2;
-    tilt = (tilt1 + tilt2) / 2;
-    psi = (psi1 + psi2) / 2;
+    // Convert the angles to quaternions
+    Matrix1D<double> eigvals;
+    Matrix2D<double> quaternions(2, 4), m, eigvecs;
+    euler2quat(rot1, tilt1, psi1, &MAT_ELEM(quaternions, 0, 0));
+    euler2quat(rot2, tilt2, psi2, &MAT_ELEM(quaternions, 1, 0));
+    
+    // Average quaternions into a matrix
+    matrixOperation_AtA(quaternions, m);
+    m /= 2;
+
+    // Compute the largest eigenvector
+    firstEigs(m, 1UL, eigvals, eigvecs, true);
+
+    // Convert back to euler. As eigvecs has a single
+    // column it is safe to take a pointer to its data
+    assert(MAT_SIZE(eigvecs) == 4);
+    quat2Euler(MATRIX2D_ARRAY(eigvecs), rot, tilt, psi);
 }
 
 void ProgAngularDistance::computeAverageShifts( double shiftX1, double shiftY1,
