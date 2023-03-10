@@ -1,10 +1,12 @@
    ## Release 3.23.03 - Kratos
    ### Xmipp Programs 
+   
+  - New programs: tomo_confidence_map, tomo_extract_particlestacks, 
+, tomo_extract_subtomograms, tomo_tiltseries_dose_filter, psd_estimatator
   - Deprecated programs (for more details visit the [wiki](https://github.com/I2PC/xmipp/wiki/Deprecating-programs)):
     angular_distribution_show, apropos
     ctf_correct_idr, ctf_create_ctfdat , ctf_show , idr_xray_tomo , image_common_lines , metadata_convert_to_spider , metadata_selfile_create , mlf_refine_3d, ml_refine_3d, ml_tomo , mrc_create_metadata , pdb_construct_dictionary, pdb_restore_with_dictionary , reconstruct_admn , reconstruct_art_pseudo , resolution_ibw , resolution_ssnr , score_micrograph , reconstruct_fourier_starpu , tomo_align_tilt_series, tomo_align_dual_tilt_series, tomo_align_refinement, tomo_align_refinement, tomo_extract_subvolume, tomo_project_main, tomo_remove_fluctuations , tomo_align_tilt_series,transform_range_adjust , validation_tilt_pairs , volume_pca , volume_validate_pca , work_test , 6f4d983 , evaulate_coordinates , extract_subset , image_separate_objects , volume_enhance_contrast , volume_reslice , xray_import , xray_project , xray_psf_create , xray_reconstruct_art , gpu_correlation, gpu_utils, classify_significant, deepAlign.
-  - New programs: tomo_confidence_map, tomo_extract_particlestacks, 
-, tomo_extract_subtomograms, tomo_tiltseries_dose_filter, psd_estimatator
+
   - volume_from_pdb: fixing input pdb file being overwritten when '-centerPDB' flag was set
   - xmipp_phantom_movie:  adding support for fixed step shift & gain and dark image generation
   - CTF simulation allows astigmatism
