@@ -35,7 +35,7 @@ from scripts import *
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
 XMIPP_VERSION = '3.23.03.0'        #
-XMIPP_VERNAME = 'Kratos'           #
+XMIPP_VERNAME = 'devel'           #
 RELEASE_DATE = '09/03/2023'        #
 
 ####################################
