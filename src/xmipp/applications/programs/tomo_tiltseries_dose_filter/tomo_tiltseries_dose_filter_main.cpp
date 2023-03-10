@@ -1,6 +1,6 @@
 /***************************************************************************
- * Authors:     Joaquin Oton (joton@cnb.csic.es)
  *
+ * Authors:    J.L. Vilas (jlvilas@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,37 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef MPI_PROJECT_XR_H_
-#define MPI_PROJECT_XR_H_
+#include <reconstruction/tomo_tiltseries_dose_filter.h>
 
-#include "parallel/xmipp_mpi.h"
-#include "reconstruction/project_xray.h"
-
-/**@defgroup ProgMPIXrayProject ProgMPIXrayProject
-   @ingroup Programs */
-//@{
-/* Projection XR Program -------------------------------- */
-/** Program class for the project program */
-class ProgMPIXrayProject: public ProgXrayProject
-{
-    std::shared_ptr<MpiNode> node;
-public:
-    void read(int argc, char** argv);
-
-    void run();
-
-protected:
-    void defineParams();
-};
-
-
-/* Effectively project ===================================================== */
-int PROJECT_mpi_XR_Effectively_project(
-    ParametersProjectionTomography &prm,
-    XrayProjPhantom &side,
-    Projection &proj,
-    XRayPSF &psf,
-    MetaData &SF) ;
-
-/** @} */
-#endif /* MPI_PROJECT_XR_H_ */
+RUN_XMIPP_PROGRAM(ProgTomoTSFilterDose)

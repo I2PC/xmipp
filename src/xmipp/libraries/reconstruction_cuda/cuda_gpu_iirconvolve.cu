@@ -260,37 +260,37 @@ __global__ void cols_iterate(data_ptr< T > in, int x, int y) {
     b) variable size: 5100 MPix/s
 */
 template< typename T >
-void solveGPU(data_ptr< T > in, int x, int y) {
+void solveGPU(data_ptr< T > in, int x, int y, cudaStream_t stream) {
 
     const int x_padded = (x / COL_BLOCK_SIZE) * COL_BLOCK_SIZE + COL_BLOCK_SIZE * (x % COL_BLOCK_SIZE != 0);
     const int y_padded = (y / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE * (y % BLOCK_SIZE != 0);
 
-    sum_rows<<<y, WARP_SIZE>>>(in, x);
+    sum_rows<<<y, WARP_SIZE, 0, stream>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    gpuErrchk(cudaStreamSynchronize(stream));
 
-    rows_iterate<<<y_padded / BLOCK_SIZE, BLOCK_SIZE>>>(in, x);
+    rows_iterate<<<y_padded / BLOCK_SIZE, BLOCK_SIZE, 0, stream>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    gpuErrchk(cudaStreamSynchronize(stream));
 
-    sum_columns<<<x, WARP_SIZE>>>(in, x);
+    sum_columns<<<x, WARP_SIZE, 0, stream>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    gpuErrchk(cudaStreamSynchronize(stream));
 
-    cols_iterate<<<x_padded / COL_BLOCK_SIZE, COL_BLOCK_SIZE>>>(in, x, y);
+    cols_iterate<<<x_padded / COL_BLOCK_SIZE, COL_BLOCK_SIZE, 0, stream>>>(in, x, y);
     gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    gpuErrchk(cudaStreamSynchronize(stream));
 }
 
 } // namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels
 
 void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(float* input,
-                int xDim, int yDim) {
-    iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim );
+                int xDim, int yDim, cudaStream_t stream) {
+    iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim, stream );
 }
 
 void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(double* input,
-                int xDim, int yDim) {
-    iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim );
+                int xDim, int yDim, cudaStream_t stream) {
+    iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim, stream );
 }
 

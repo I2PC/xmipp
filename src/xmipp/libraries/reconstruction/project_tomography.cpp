@@ -30,20 +30,17 @@
 void ProgProjectTomography::defineParams()
 {
     addUsageLine("Generate projections as if it were a single axis tomographic series.");
-    addSeeAlsoLine("phantom_create, phantom_project, xray_project");
+    addSeeAlsoLine("phantom_create, phantom_project");
     //Params
     projParam.defineParams(this);
     //Examples
     addExampleLine("Generating a set of projections using a projection parameter:", false);
-    addExampleLine("xmipp_xray_project -i volume.vol --oroot images --params projParams.xmd");
     addExampleLine("Generating a single projection at 45 degrees around X axis:", false);
-    addExampleLine("xmipp_xray_project -i volume.vol -o image.spi --angles 45 0 90");
     addExampleLine("Generating a single projection at 45 degrees around Y axis:", false);
-    addExampleLine("xmipp_xray_project -i volume.vol -o image.spi --angles 45 90 90");
     //Example projection file
     addExampleLine("In the following link you can find an example of projection parameter file:",false);
     addExampleLine(" ",false);
-    addExampleLine("http://sourceforge.net/p/testxmipp/code/ci/master/tree/input/tomoProjection.param?format=raw",false);
+    addExampleLine("https://sourceforge.net/p/testxmipp/code/ci/master/tree/input/tomoProjection.param?format=raw",false);
 }
 
 void ProgProjectTomography::readParams()

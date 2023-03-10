@@ -1,90 +1,55 @@
 #!/usr/bin/env python3
-"""
-@summary: This pyUnit test module defines the unit tests for the Xmipp Python Interface
-scipion3 run python3 -m unittest  tests._test_pythoninferface_xmipp
-"""
+# **************************************************************************
+# *
+# * Authors:      David Maluenda (dmaluenda@cnb.csic.es)
+# *      based on J.M. De la Rosa Trevin (jmdelarosa@cnb.csic.es)
+# *               David Strelak (davidstrelak@gmail.com)
+# *
+# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 2 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'scipion@cnb.csic.es'
+# *
+# **************************************************************************
 
-# import os
-from os.path import exists #join
-# import sys
-# import unittest
+import unittest
 from tempfile import NamedTemporaryFile
 import time
-import unittest
-from xmipp3 import getXmippPath
-
-from test import *
-from xmippLib import *
-
-# from pyworkflow.tests import *
-from bindings.python.xmipp_base import *
-# from xmipp3 import getXmippPath
-import pyworkflow.utils as pwutils
+from  xmippLib import *
+import os
 
 
-def testFile(filename):
-    return pwutils.join("pythoninterface", filename)
-
-def binaryFileComparison(nameo, namet):
-    ## open files
-    try:
-        file1 = open(nameo, "rb")
-    except:
-        print("cannot open file:", nameo)
-        exit()
-    try:
-        file2 = open(namet, "rb")
-    except:
-        print("cannot open file:", namet)
-        file1.close()
-        exit()
-    ## read 1b from each file until one file reaches eof or bytes don't match
-    x = 1; y = 1
-    while (x == 1) and (y == 1):
-        a = file1.read(1)
-        b = file2.read(1)
-        x = len(a)
-        y = len(b)
-        if (a != b) or (x != y):
-            return False
-    file2.close()
-    file1.close()
-    return True
-
-
-from tests.test_programs_xmipp import XmippProgramTest
-
-# TODO: this test shoud not go here 
-#class AngularDiscreteAssign(XmippProgramTest):
-#    _owner = 'COSS'
-#    @classmethod
-#    def getProgram(cls):
-#        return 'xmipp_angular_discrete_assign'
-#
-#    def test_case1(self):
-#        self.runCase("-i input/aFewProjections.sel -o %o/assigned_angles.xmd --ref %o/reference.doc",
-#                preruns=["xmipp_angular_project_library -i input/phantomBacteriorhodopsin.vol -o %o/reference.stk --sampling_rate 10" ],
-#                outputs=["assigned_angles.xmd"])
-
-
-
-class TestXmippPythonInterface(unittest.TestCase):
-    
-    testsPath = getXmippPath("resources", "test")
-    # Temporary filenames used
+class PythonBindingTest(unittest.TestCase):
+    def createTmpFile(self, filename):
+        return os.path.join(os.environ.get("XMIPP_TEST_DATA"), 'input', filename)
 
     def getTmpName(self, suffix='.xmd'):
-        """ Get temporary filenames in /tmp' that will be removed 
-        after tests execution. 
+        """ Get temporary filenames in /tmp' that will be removed
+        after tests execution.
         """
         ntf = NamedTemporaryFile(dir="/tmp/", suffix=suffix)
         self.tempNames.append(ntf)
         return ntf.name
 
     def setUp(self):
-        """This function performs all the setup stuff.      
+        """This function performs all the setup stuff.
         """
-        os.chdir(self.testsPath)
+        # os.chdir(self.testsPath)
         self.tempNames = []
 
     def tearDown(self):
@@ -103,8 +68,9 @@ class TestXmippPythonInterface(unittest.TestCase):
         b = Euler_angles2matrix(rot, tilt, psi)
         self.assertAlmostEqual(a.all(), b.all(), 2)
 
+
     def test_xmipp_Euler_matrix2angles(self):
-        from numpy  import array
+        from numpy import array, arange
 
         a = array([[ 0.70710678, 0.70710678, -0.        ],
                    [-0.70710678, 0.70710678, 0.        ],
@@ -120,8 +86,31 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertAlmostEqual(tilt, tilt1, 4)
         self.assertAlmostEqual(psi, psi1, 4)
 
+        # test that slicing the array won't affect the result
+        rot = tilt = psi = 0.0
+        A = arange(16.0).reshape(4, -1)
+        B = A[:3,:3]
+        rot1,tilt1,psi1 = Euler_matrix2angles(B)
+        self.assertAlmostEqual(48.36646, rot1, 4)
+        self.assertAlmostEqual(32.31153, tilt1, 4)
+        self.assertAlmostEqual(108.43494, psi1, 4)
+
+        # test that integer values won't affect it
+        rot = tilt = psi = 0.0
+        D = [[0,1,2],[4,5,6],[8,9,10]]
+        rot1,tilt1,psi1 = Euler_matrix2angles(D)
+        self.assertAlmostEqual(48.36646, rot1, 4)
+        self.assertAlmostEqual(32.31153, tilt1, 4)
+        self.assertAlmostEqual(108.43494, psi1, 4)
+
+        # test that other types fail
+        self.assertRaises(TypeError, Euler_matrix2angles, B.astype(complex))
+
+        # test that bad dimension fails
+        self.assertRaises(IndexError, Euler_matrix2angles, A)
+        self.assertRaises(IndexError, Euler_matrix2angles, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
     def test_xmipp_activateMathExtensions(self):
-        '''activateMathExtensions'''
         md1 = MetaData()
         activateMathExtensions()
         id = md1.addObject()
@@ -143,27 +132,8 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertEqual(md1, md2)
 
     def test_xmipp_errorBetween2CTFs(self):
-        '''activateMathExtensions'''
         md1 = MetaData()
         id = md1.addObject()
-        #         md1.setValue(MDL_CTF_SAMPLING_RATE, 1., id)
-        #         md1.setValue(MDL_CTF_VOLTAGE, 300., id);
-        #         md1.setValue(MDL_CTF_DEFOCUSU, 5000., id);
-        #         md1.setValue(MDL_CTF_DEFOCUSV, 7500., id);
-        #         md1.setValue(MDL_CTF_DEFOCUS_ANGLE, -45., id);
-        #         md1.setValue(MDL_CTF_CS, 2., id);
-        #         md1.setValue(MDL_CTF_Q0, 0.1, id);
-        #
-        #         md2 = MetaData()
-        #         id = md2.addObject()
-        #         md2.setValue(MDL_CTF_SAMPLING_RATE, 1., id)
-        #         md2.setValue(MDL_CTF_VOLTAGE, 300., id);
-        #         md2.setValue(MDL_CTF_DEFOCUSU, 10000., id);
-        #         md2.setValue(MDL_CTF_DEFOCUSV, 10000., id);
-        #         md2.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id);
-        #         md2.setValue(MDL_CTF_CS, 2., id);
-        #         md2.setValue(MDL_CTF_Q0, 0.1, id);
-
         md1.setValue(MDL_CTF_SAMPLING_RATE, 1., id)
         md1.setValue(MDL_CTF_VOLTAGE, 200., id);
         md1.setValue(MDL_CTF_DEFOCUSU, 18306.250000, id);
@@ -182,13 +152,11 @@ class TestXmippPythonInterface(unittest.TestCase):
         md2.setValue(MDL_CTF_CS, 2., id);
         md2.setValue(MDL_CTF_Q0, 0.07, id);
 
-
         error = errorBetween2CTFs(md1,md2, 256, 0.05,0.25)
 
         self.assertAlmostEqual(error, 5045.79,0)
 
     def test_xmipp_errorMaxFreqCTFs(self):
-        '''activateMathExtensions'''
         from math import pi
         md1 = MetaData()
         id = md1.addObject()
@@ -201,12 +169,10 @@ class TestXmippPythonInterface(unittest.TestCase):
         md1.setValue(MDL_CTF_Q0, 0.1, id);
 
         resolution = errorMaxFreqCTFs(md1,pi/2.)
-
         self.assertAlmostEqual(resolution, 7.6852355,2)
 
 
     def test_xmipp_errorMaxFreqCTFs2D(self):
-        '''activateMathExtensions'''
         md1 = MetaData()
         id = md1.addObject()
         md1.setValue(MDL_CTF_SAMPLING_RATE, 2., id)
@@ -229,7 +195,6 @@ class TestXmippPythonInterface(unittest.TestCase):
         resolution = errorMaxFreqCTFs2D(md1,md2)
 
         self.assertAlmostEqual(resolution, 13.921659080780355,2)
-
 
     def test_FileName_compose(self):
         fn1 = FileName("kk000001.xmp")
@@ -255,28 +220,25 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertFalse(fn2.isInStack())
 
     def test_FileName_isMetaData(self):
-        imgPath = testFile("smallStack.stk")
+        imgPath = self.createTmpFile("smallStack.stk")
         fn1 = FileName(imgPath)
-        try:
-            result = fn1.isMetaData()
-        except:
-            print("cannot open file:", fn1)
-            exit()
+        result = fn1.isMetaData()
         self.assertFalse(result)
 
-        imgPath = testFile("test.xmd")
+        imgPath = self.createTmpFile("test.xmd")
         fn2 = FileName(imgPath)
         self.assertTrue (fn2.isMetaData())
 
+    @unittest.skip("reference data not available")
     def test_Image_add(self):
-        stackPath = testFile("smallStack.stk")
+        stackPath = self.createTmpFile("smallStack.stk")
         img1 = Image("1@" + stackPath)
         img2 = Image("2@" + stackPath)
         sum = img1 + img2
         sum2 = Image("1@" + stackPath)
         sum2.inplaceAdd(img2)
 
-        sumRef = Image(testFile("sum.spi"))
+        sumRef = Image(self.createTmpFile("sum.spi"))
         self.assertEqual(sum, sumRef)
         self.assertEqual(sum2, sumRef)
 
@@ -286,7 +248,7 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertNotEqual(sum, img1)
 
     def test_Image_multiplyDivide(self):
-        imgPath = testFile("singleImage.spi")
+        imgPath = self.createTmpFile("singleImage.spi")
         img1 = Image(imgPath)
         img2 = Image(imgPath)
         imgSum = Image(imgPath)
@@ -307,7 +269,6 @@ class TestXmippPythonInterface(unittest.TestCase):
         img1 *= 3
         self.assertEqual(imgSum, img1)
 
-
         imgSum2.inplaceDivide(3.)
         # TODO: division does not work
         # imgSum /= 3.
@@ -318,9 +279,8 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertEqual(imgSum, img2)
 
     def test_Image_multiplyInplace(self):
-        # Test multiplication inplace by value and image
         from numpy  import array
-        
+
         def _createImage(data):
             img = Image()
             img.setDataType(DT_FLOAT)
@@ -347,19 +307,19 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertEqual(img1, img3)
 
     def test_Image_compare(self):
-        imgPath = testFile("singleImage.spi")
+        imgPath = self.createTmpFile("singleImage.spi")
         img1 = Image()
         img1.read(imgPath)
         img2 = Image(imgPath)
         # Test that image is equal to itself
         self.assertEqual(img1, img2)
         # Test different images
-        imgPath = "1@" + testFile("smallStack.stk")
+        imgPath = "1@" + self.createTmpFile("smallStack.stk")
         img2.read(imgPath)
         self.assertNotEqual(img1, img2)
 
     def test_Image_computeStatistics(self):
-        stackPath = testFile("smallStack.stk")
+        stackPath = self.createTmpFile("smallStack.stk")
         img1 = Image("1@" + stackPath)
         mean, dev, min, max = img1.computeStats()
         self.assertAlmostEqual(mean, -0.000360, 5)
@@ -382,7 +342,7 @@ class TestXmippPythonInterface(unittest.TestCase):
 
     def test_Image_getData(self):
         from numpy import array
-        img1 = Image(testFile("singleImage.spi"))
+        img1 = Image(self.createTmpFile("singleImage.spi"))
         Z = img1.getData()
         Zref = array([[-0.27623099,-0.13268562, 0.32305956],
                       [ 1.07257104, 0.73135602, 0.49813408],
@@ -390,7 +350,7 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertEqual(Z.all(), Zref.all())
 
     def test_Image_initConstant(self):
-        imgPath = testFile("tinyImage.spi")
+        imgPath = self.createTmpFile("singleImage.spi")
         img = Image(imgPath)
         img.initConstant(1.)
         for i in range(0, 3):
@@ -399,7 +359,7 @@ class TestXmippPythonInterface(unittest.TestCase):
                 self.assertAlmostEqual(p, 1.0)
 
     def test_Image_initRandom(self):
-        imgPath = testFile("tinyImage.spi")
+        imgPath = self.createTmpFile("singleImage.spi")
         img = Image(imgPath)
         img.resize(1024, 1024)
         img.initRandom(0., 1., XMIPP_RND_GAUSSIAN)
@@ -407,25 +367,28 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertAlmostEqual(mean, 0., 2)
         self.assertAlmostEqual(dev, 1., 2)
 
+    @unittest.skip("reference data not available")
     def test_Image_minus(self):
-        pathSum = testFile("sum.spi")
+        pathSum = self.createTmpFile("sum.spi")
         imgAdd = Image(pathSum)
-        path1 = "1@" + testFile("smallStack.stk")
+        path1 = "1@" + self.createTmpFile("smallStack.stk")
         img1 = Image(path1)
-        path2 = "2@" + testFile("smallStack.stk")
+        path2 = "2@" + self.createTmpFile("smallStack.stk")
         img2 = Image(path2)
 
         imgAdd -= img2
         self.assertEqual(img1, imgAdd)
 
+    @unittest.skip("reference data not available")
     def test_Image_project(self):
-        vol=Image(testFile('progVol.vol'))
+        vol=Image(self.createTmpFile('progVol.vol'))
         vol.convert2DataType(DT_DOUBLE)
         proj=projectVolumeDouble(vol,0.,0.,0.)
         self.assertEqual(1,1)
 
+    @unittest.skip("reference data not available")
     def test_Image_projectFourier(self):
-        vol = Image(testFile('progVol.vol'))
+        vol = Image(self.createTmpFile('progVol.vol'))
         vol.convert2DataType(DT_DOUBLE)
         proj = Image()
         proj.setDataType(DT_DOUBLE)
@@ -435,14 +398,12 @@ class TestXmippPythonInterface(unittest.TestCase):
         splineDegree = 2
         vol.write('/tmp/vol1.vol')
         fp = FourierProjector(vol, padding, maxFreq, splineDegree)
-        # After creating the f
         fp.projectVolume(proj, 0, 0, 0)
-
-        #vol.write('/tmp/vol2.vol')
         proj.write('/tmp/kk.spi')
 
+    @unittest.skip("reference data not available")
     def test_Image_read(self):
-        imgPath = testFile("tinyImage.spi")
+        imgPath = self.createTmpFile("tinyImage.spi")
         img = Image(imgPath)
         count = 0.
         for i in range(0, 3):
@@ -452,21 +413,22 @@ class TestXmippPythonInterface(unittest.TestCase):
                 count += 1.
 
     def test_Image_read_header(self):
-        imgPath = testFile("tinyImage.spi")
+        imgPath = self.createTmpFile("singleImage.spi")
         img = Image()
         img.read(imgPath, HEADER)
 
         (x, y, z, n) = img.getDimensions()
 
-        self.assertEqual(x, 3)
-        self.assertEqual(y, 3)
+        self.assertEqual(x, 64)
+        self.assertEqual(y, 64)
         self.assertEqual(z, 1)
         self.assertEqual(n, 1)
 
+    @unittest.skip("reference data not available")
     def test_Image_readApplyGeo(self):
-        imgPath = testFile("tinyRotated.spi")
+        imgPath = self.createTmpFile("tinyRotated.spi")
         img = Image(imgPath)
-        imgPath = testFile("tinyImage.spi")
+        imgPath = self.createTmpFile("tinyImage.spi")
         md = MetaData()
         id = md.addObject()
         md.setValue(MDL_IMAGE, imgPath, id)
@@ -531,17 +493,16 @@ class TestXmippPythonInterface(unittest.TestCase):
         img2.setPixel(0, 0, 2,2,8.)
 
         img.applyTransforMatScipion(A)
-        #print img.getData(),"\n", img2.getData()
         for i in range(0, dim):
             for j in range (0, dim):
                 p1 = img.getPixel(0, 0, i, j)
                 p2 = img2.getPixel(0, 0, i, j)
                 self.assertAlmostEqual(p1, p2)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_getValue(self):
-        '''MetaData_GetValues'''
-        mdPath = testFile("test.xmd")
-        mdPath2 = testFile("proj_ctf_1.stk")
+        mdPath = self.createTmpFile("test.xmd")
+        mdPath2 = self.createTmpFile("proj_ctf_1.stk")
         mD = MetaData(mdPath)
         img = mD.getValue(MDL_IMAGE, 1)
         self.assertEqual(img, '000001@' + mdPath2)
@@ -554,34 +515,35 @@ class TestXmippPythonInterface(unittest.TestCase):
         ref = mD.getValue(MDL_REF3D, 2)
         self.assertEqual(ref, 2)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_importObjects(self):
-        '''import metadata subset'''
-        mdPath = testFile("test.xmd")
+        mdPath = self.createTmpFile("test.xmd")
         mD = MetaData(mdPath)
         mDout = MetaData()
         mDout.importObjects(mD, MDValueEQ(MDL_REF3D, -1))
-        mdPath = testFile("importObject.xmd")
+        mdPath = self.createTmpFile("importObject.xmd")
         mD = MetaData(mdPath)
         self.assertEqual(mD, mDout)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_iter(self):
-        mdPath = testFile("test.xmd")
+        mdPath = self.createTmpFile("test.xmd")
         mD = MetaData(mdPath)
         i = 1
         for id in mD:
             img = mD.getValue(MDL_IMAGE, id)
-            expImg = testFile("test.xmd")
-            expImg = ("00000%d@" % i) + testFile("proj_ctf_1.stk")
-            #expImg = '00000%d@Images/proj_ctf_1.stk' % i
+            expImg = self.createTmpFile("test.xmd")
+            expImg = ("00000%d@" % i) + self.createTmpFile("proj_ctf_1.stk")
             self.assertEqual(img, expImg)
             i += 1
 
+    @unittest.skip("reference data not available")
     def test_Metadata_existsBlockInMetaDataFile(self):
-        mdPath = "b2@"+testFile("testBlock.xmd")
+        mdPath = "b2@"+self.createTmpFile("testBlock.xmd")
         self.assertTrue(existsBlockInMetaDataFile(mdPath))
-        mdPath = "nonexisting@"+testFile("testBlock.xmd")
+        mdPath = "nonexisting@"+self.createTmpFile("testBlock.xmd")
         self.assertFalse(existsBlockInMetaDataFile(mdPath))
-        mdPath = "gggg@"+testFile("testBlock.xmd")
+        mdPath = "gggg@"+self.createTmpFile("testBlock.xmd")
         self.assertRaises(Exception,existsBlockInMetaDataFile(mdPath))
 
     def test_Metadata_operate(self):
@@ -614,8 +576,8 @@ class TestXmippPythonInterface(unittest.TestCase):
 
     def test_xmipp_addLabelAlias(self):
         tmpFileName = '/tmp/test_pythoninterface_readPlain1.xmd'
-        line1="""# XMIPP_STAR_1 * 
-# 
+        line1="""# XMIPP_STAR_1 *
+#
 data_images
 
 loop_
@@ -623,7 +585,6 @@ _rlnVoltage #1
 _rlnDefocusU #2
   200.0 10000.0
   201.0 10000.0"""
-        #createTestImage
         f = open(tmpFileName,'w')
         f.write(line1)
         f.flush()
@@ -642,7 +603,6 @@ _rlnDefocusU #2
         os.remove(tmpFileName)
 
     def test_Metadata_renameColumn(self):
-        '''test_Metadata_renameColumn'''
         md = MetaData()
         id = md.addObject()
         md.setValue(MDL_ANGLE_ROT, 1., id)
@@ -668,7 +628,6 @@ _rlnDefocusU #2
         md.renameColumn(MDL_ANGLE_PSI,MDL_ANGLE_PSI2)
         self.assertEqual(md, md2)
 
-
         md.clear()
         id = md.addObject()
         md.setValue(MDL_ANGLE_ROT, 1., id)
@@ -684,7 +643,6 @@ _rlnDefocusU #2
         self.assertEqual(md, md2)
 
     def test_Metadata_sort(self):
-        '''test_Metadata_sort'''
         md = MetaData()
         id = md.addObject()
         md.setValue(MDL_ANGLE_ROT, 1., id)
@@ -739,9 +697,7 @@ _rlnDefocusU #2
         md2.setValue(MDL_ANGLE_TILT, 12., id)
         self.assertEqual(mdAux, md2)
 
-    #tests for join1 and join2 pending
     def test_Metadata_joinNatural(self):
-        #create metadta
         md = MetaData()
         md2 = MetaData()
         mdout = MetaData()
@@ -771,7 +727,6 @@ _rlnDefocusU #2
         self.assertEqual(mdout, md)
 
     def test_Metadata_intersect(self):
-        #create metadta
         md = MetaData()
         md2 = MetaData()
         mdout = MetaData()
@@ -799,8 +754,8 @@ _rlnDefocusU #2
 
         self.assertEqual(mdout, md)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_read(self):
-        '''MetaData_setValues'''
         '''This test should produce the following metadata, which is the same of 'test.xmd'
         data_
         loop_
@@ -814,7 +769,7 @@ _rlnDefocusU #2
          000002@pythoninterface/proj_ctf_1.stk  CTFs/10.ctfparam   200.000000         20 ' 1.000000     4.000000     9.000000 '          2
          000003@pythoninterface/proj_ctf_1.stk  CTFs/10.ctfparam  -300.000000         30 ' 1.000000     8.000000    27.000000 '         -3
         '''
-        mdPath = testFile("test.xmd")
+        mdPath = self.createTmpFile("test.xmd")
         mdRef = MetaData(mdPath)
         md = MetaData()
         ii = -1
@@ -831,7 +786,7 @@ _rlnDefocusU #2
             md.setValue(MDL_REF3D, (i * ii), id)
             ii *= -1
 
-        tmpFileName = '/tmp/test_pythoninterface_read_tmp.xmd'
+        tmpFileName = createTmpFile('test_pythoninterface_read_tmp.xmd')
         md.write(tmpFileName)
 
         md2 = MetaData()
@@ -839,8 +794,8 @@ _rlnDefocusU #2
         os.remove(tmpFileName)
         self.assertEqual(md, md2)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_read_with_labels(self):
-        '''MetaData_setValues'''
         '''This test should produce the following metadata, which is the same of 'test.xmd'
         data_
         loop_
@@ -854,7 +809,7 @@ _rlnDefocusU #2
          000002@pythoninterface/proj_ctf_1.stk  CTFs/10.ctfparam   200.000000         20 ' 1.000000     4.000000     9.000000 '          2
          000003@pythoninterface/proj_ctf_1.stk  CTFs/10.ctfparam  -300.000000         30 ' 1.000000     8.000000    27.000000 '         -3
         '''
-        mdPath = testFile("test.xmd")
+        mdPath = self.createTmpFile("test.xmd")
         mdRef = MetaData(mdPath)
         md = MetaData()
         ii = -1
@@ -871,7 +826,7 @@ _rlnDefocusU #2
             md.setValue(MDL_REF3D, (i * ii), id)
             ii *= -1
 
-        tmpFileName = '/tmp/test_pythoninterface_read_tmp.xmd'
+        tmpFileName = self.createTmpFile('test_pythoninterface_read_tmp.xmd')
         md.write(tmpFileName)
 
         mdList = [MDL_IMAGE, MDL_COUNT]
@@ -886,6 +841,7 @@ _rlnDefocusU #2
             md2.setValue(MDL_COUNT, (i * 10), id)
         self.assertEqual(md, md2)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_setColumnFormat(self):
         '''MetaData_setValues'''
         '''This test should produce the following metadata, which is the same of 'test_row.xmd'
@@ -893,7 +849,7 @@ _rlnDefocusU #2
          _image 000001@Images/proj_ctf_1.stk
          _CTFModel CTFs/10.ctfparam
         '''
-        mdPath = testFile("test_row.xmd")
+        mdPath = self.createTmpFile("test_row.xmd")
         mdRef = MetaData(mdPath)
         md = MetaData()
         ii = -1
@@ -911,6 +867,7 @@ _rlnDefocusU #2
         self.assertEqual(equalBool, True)
         os.remove(rowFileName)
 
+    @unittest.skip("reference data not available")
     def test_Metadata_setValue(self):
         '''MetaData_setValues'''
         '''This test should produce the following metadata, which is the same of 'test.xmd'
@@ -926,7 +883,7 @@ _rlnDefocusU #2
          000002@pythoninterface/proj_ctf_1.stk  CTFs/10.ctfparam   200.000000         20 [     1.000000     4.000000     9.000000 ]          2
          000003@pythoninterface/proj_ctf_1.stk  CTFs/10.ctfparam  -300.000000         30 [     1.000000     8.000000    27.000000 ]         -3
         '''
-        mdPath = testFile("test.xmd")
+        mdPath = self.createTmpFile("test.xmd")
         mdRef = MetaData(mdPath)
         md = MetaData()
         ii = -1
@@ -950,58 +907,51 @@ _rlnDefocusU #2
 
 
     def test_Metadata_compareTwoMetadataFiles(self):
+        fn = self.getTmpName()
+        fn2 = self.getTmpName()
+        fn3 = self.getTmpName()
 
-        try:
-            from tempfile import NamedTemporaryFile
+        auxMd = MetaData()
+        auxMd2 = MetaData()
 
-            fn = self.getTmpName()
-            fn2 = self.getTmpName()
-            fn3 = self.getTmpName()
+        auxMd.setValue(MDL_IMAGE, "image_1.xmp", auxMd.addObject())
+        auxMd.setValue(MDL_IMAGE, "image_2.xmp", auxMd.addObject())
 
-            auxMd = MetaData()
-            auxMd2 = MetaData()
+        auxMd.write("block_000000@" + fn, MD_OVERWRITE)
+        auxMd.clear()
+        auxMd.setValue(MDL_IMAGE, "image_data_1_1.xmp", auxMd.addObject())
+        auxMd.setValue(MDL_IMAGE, "image_data_1_2.xmp", auxMd.addObject())
+        auxMd.write("block_000001@" + fn, MD_APPEND)
+        auxMd.clear()
+        auxMd.setValue(MDL_IMAGE, "image_data_2_1.xmp", auxMd.addObject())
+        auxMd.setValue(MDL_IMAGE, "image_data_2_2.xmp", auxMd.addObject())
+        auxMd.write("block_000000@" + fn2, MD_OVERWRITE)
+        auxMd.clear()
+        auxMd.setValue(MDL_IMAGE, "image_data_A_1.xmp", auxMd.addObject())
+        auxMd.setValue(MDL_IMAGE, "image_data_A_2.xmp", auxMd.addObject())
+        auxMd.write("block_000001@" + fn2, MD_APPEND)
+        auxMd.clear()
 
-            auxMd.setValue(MDL_IMAGE, "image_1.xmp", auxMd.addObject())
-            auxMd.setValue(MDL_IMAGE, "image_2.xmp", auxMd.addObject())
+        self.assertFalse(compareTwoMetadataFiles(fn, fn2))
+        self.assertTrue(compareTwoMetadataFiles(fn, fn))
 
-            auxMd.write("block_000000@" + fn, MD_OVERWRITE)
-            auxMd.clear()
-            auxMd.setValue(MDL_IMAGE, "image_data_1_1.xmp", auxMd.addObject())
-            auxMd.setValue(MDL_IMAGE, "image_data_1_2.xmp", auxMd.addObject())
-            auxMd.write("block_000001@" + fn, MD_APPEND)
-            auxMd.clear()
-            auxMd.setValue(MDL_IMAGE, "image_data_2_1.xmp", auxMd.addObject())
-            auxMd.setValue(MDL_IMAGE, "image_data_2_2.xmp", auxMd.addObject())
-            auxMd.write("block_000000@" + fn2, MD_OVERWRITE)
-            auxMd.clear()
-            auxMd.setValue(MDL_IMAGE, "image_data_A_1.xmp", auxMd.addObject())
-            auxMd.setValue(MDL_IMAGE, "image_data_A_2.xmp", auxMd.addObject())
-            auxMd.write("block_000001@" + fn2, MD_APPEND)
-            auxMd.clear()
+        sfnFN = FileName(fn)
+        sfn2FN = FileName(fn2)
+        self.assertFalse(compareTwoMetadataFiles(sfnFN, sfn2FN))
+        self.assertTrue(compareTwoMetadataFiles(sfnFN, sfnFN))
 
-            self.assertFalse(compareTwoMetadataFiles(fn, fn2))
-            self.assertTrue(compareTwoMetadataFiles(fn, fn))
+        auxMd.setValue(MDL_IMAGE, "image_1.xmpSPACE", auxMd.addObject())
+        auxMd.setValue(MDL_IMAGE, "image_2.xmp", auxMd.addObject())
+        auxMd.write("block_000000@" + fn2, MD_OVERWRITE)
+        auxMd.clear()
+        auxMd.setValue(MDL_IMAGE, "image_data_1_1.xmp", auxMd.addObject())
+        auxMd.setValue(MDL_IMAGE, "image_data_1_2.xmp", auxMd.addObject())
+        auxMd.write("block_000001@" + fn2, MD_APPEND)
 
-            sfnFN = FileName(fn)
-            sfn2FN = FileName(fn2)
-            self.assertFalse(compareTwoMetadataFiles(sfnFN, sfn2FN))
-            self.assertTrue(compareTwoMetadataFiles(sfnFN, sfnFN))
+        command = "sed 's/SPACE/ /g' " + fn2 + ">" + fn3
+        os.system(command)
 
-            auxMd.setValue(MDL_IMAGE, "image_1.xmpSPACE", auxMd.addObject())
-            auxMd.setValue(MDL_IMAGE, "image_2.xmp", auxMd.addObject())
-            auxMd.write("block_000000@" + fn2, MD_OVERWRITE)
-            auxMd.clear()
-            auxMd.setValue(MDL_IMAGE, "image_data_1_1.xmp", auxMd.addObject())
-            auxMd.setValue(MDL_IMAGE, "image_data_1_2.xmp", auxMd.addObject())
-            auxMd.write("block_000001@" + fn2, MD_APPEND)
-
-            command = "sed 's/SPACE/ /g' " + fn2 + ">" + fn3
-            os.system(command)
-
-            self.assertTrue(compareTwoMetadataFiles(fn, fn3))
-
-        except Exception as e:
-            print(str(e))
+        self.assertTrue(compareTwoMetadataFiles(fn, fn3))
 
     def test_Metadata_agregate(self):
         mdOut = MetaData()
@@ -1112,12 +1062,11 @@ _rlnDefocusU #2
         fnStar   = self.getTmpName('.xmd')
         fnSqlite = self.getTmpName('.sqlite')
         outFileName=""
-        #fill buffers so comparison is fair
-        #if you do not fill buffers first meassurements will be muchfaster
-        print("fill buffers so comparisons are fair")
+        # fill buffers so comparison is fair
+        # if you do not fill buffers first meassurements will be much faster
         tmpFn="/tmp/deleteme.xmd"
         timestamp1 = time.time()
-        if exists(tmpFn):
+        if os.path.exists(tmpFn):
             os.remove(tmpFn)
         for met in range(1, numberMetadatas):
             outFileName = "b%06d@%s" % (met,tmpFn)
@@ -1130,9 +1079,7 @@ _rlnDefocusU #2
             md.write(outFileName,MD_APPEND)
             md.clear()
         timestamp2 = time.time()
-        print("\nBUFFER FILLING took %.2f seconds" % (timestamp2 - timestamp1))
 
-        #write sqlite lineal
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
             outFileName = "b%06d@%s" % (met,fnSqlite)
@@ -1146,7 +1093,6 @@ _rlnDefocusU #2
             md.clear()
         timestamp2 = time.time()
         print("\nwrite(append) sqlite took %.2f seconds" % (timestamp2 - timestamp1))
-        #write star lineal
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
             outFileName = "b%06d@%s" % (met,fnStar)
@@ -1162,14 +1108,14 @@ _rlnDefocusU #2
         print("\nwrite(append) star took %.2f seconds" % (timestamp2 - timestamp1))
         self.assertEqual(1, 1)
 
-        #read random ///////////////////////////////////////////////////7
+        # read sequential
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
             outFileName = "b%06d@%s" % (met,fnSqlite)
             md.read(outFileName)
             md.clear()
         timestamp2 = time.time()
-        print("\nread(secuential) sqlite took %.2f seconds" % (timestamp2 - timestamp1))
+        print("\nread(sequential) sqlite took %.2f seconds" % (timestamp2 - timestamp1))
 
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
@@ -1177,16 +1123,14 @@ _rlnDefocusU #2
             md.read(outFileName)
             md.clear()
         timestamp2 = time.time()
-        print("\nread(secuential) star took %.2f seconds" % (timestamp2 - timestamp1))
+        print("\nread(sequential) star took %.2f seconds" % (timestamp2 - timestamp1))
 
     def test_SymList_readSymmetryFile(self):
-        '''readSymmetryFile'''
         a = SymList()
         a.readSymmetryFile("i3")
         self.assertEqual(True, True)
 
     def test_SymList_computeDistance(self):
-        '''computeDistance'''
         SL = SymList()
         SL.readSymmetryFile("i3h")
         md = MetaData()
@@ -1221,8 +1165,3 @@ _rlnDefocusU #2
         self.assertAlmostEqual(m[1][1],l[1][1])
         self.assertAlmostEqual(m[0][0],l[0][0])
         self.assertAlmostEqual(m[1][1],0.)
-
-if __name__ == '__main__':
-    loader = unittest.TestLoader()
-    loader.sortTestMethodsUsing = None
-    unittest.main(testLoader=loader)

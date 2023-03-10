@@ -44,7 +44,6 @@ protected:
         addUsageLine("A param file can be passed or directly setting the microscope parameters.");
         addUsageLine("The program generates a PSF volume file and its associated info file.");
         //See Also
-        addSeeAlsoLine("xray_project");
         addParamsLine("[-i <psf_param_file>] : XRay-Microscope parameters file.");
         addParamsLine(" alias --input;");
         addParamsLine("[-o <output_name_file>]  : Name for output files. It creates a PSF volume file and a PSF parameters file.");

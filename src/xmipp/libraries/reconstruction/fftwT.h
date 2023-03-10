@@ -66,9 +66,9 @@ public:
     ~FFTwT() {
         release();
     }
-    void init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse=true);
+    void init(const HW &cpu, const FFTSettings<T> &settings, bool reuse=true);
     void release();
-    size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
+    size_t estimatePlanBytes(const FFTSettings<T> &settings);
     std::complex<T>* fft(T *inOut);
     std::complex<T>* fft(const T *in, std::complex<T> *out);
 
@@ -108,11 +108,11 @@ public:
 
     static const fftw_plan createPlan(
             const CPU &cpu,
-            const FFTSettingsNew<double> &settings,
+            const FFTSettings<double> &settings,
             bool isDataAligned=false);
     static const fftwf_plan createPlan(
             const CPU &cpu,
-            const FFTSettingsNew<float> &settings,
+            const FFTSettings<float> &settings,
             bool isDataAligned=false);
 
     template<typename P>
@@ -128,7 +128,7 @@ private:
     static void *m_mockOut;
 
     void *m_plan;
-    const FFTSettingsNew<T> *m_settings;
+    const FFTSettings<T> *m_settings;
     T *m_SD;
     std::complex<T> *m_FD;
 
@@ -137,7 +137,7 @@ private:
     bool m_isInit;
 
     template<typename U, typename F>
-    static U planHelper(const FFTSettingsNew<T> &settings, F function,
+    static U planHelper(const FFTSettings<T> &settings, F function,
             int threads, bool isDataAligned);
 
     void setDefault();
@@ -146,7 +146,7 @@ private:
 
     void release(T *SD, std::complex<T> *FD);
 
-    bool needsAuxArray(const FFTSettingsNew<T> &settings);
+    bool needsAuxArray(const FFTSettings<T> &settings);
 
     static typename FFTwT_planType::plan<T>::type cast(void *p) {
         return static_cast<typename FFTwT_planType::plan<T>::type>(p);

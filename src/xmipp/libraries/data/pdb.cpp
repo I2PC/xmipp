@@ -51,18 +51,6 @@ extern "C" {
 #define HY36_WIDTH_5_MIN -9999
 #define HY36_WIDTH_5_MAX 87440031 /* 100000 + 2*26*36*36*36*36 - 1 */
 
-const char*
-hy36encode(unsigned width, int value, char* result);
-
-const char*
-hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
-
-void
-hy36encodeSafe(unsigned width, int value, char* result);
-
-void
-hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result);
-
 #ifdef __cplusplus
 }
 #endif
@@ -116,7 +104,7 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				at_pos.residue.push_back(resi);
 
 				// Getting the bfactor = 8pi^2*u
-				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
+				double bfactorRad = textToFloat(line.substr(60,6));//sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
 				at_pos.b.push_back(bfactorRad);
 
                                 // Covalent radius of the atom

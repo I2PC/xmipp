@@ -47,18 +47,13 @@
 #include "eq_system_solver.h"
 #include "bspline_helper.h"
 #include "data/point2D.h"
+#include <optional>
 
 /**@defgroup AProgMovieAlignmentCorrelation Movie Alignment Correlation
    @ingroup ReconsLibrary */
 //@{
 template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
-
-    /** wrapping strategy constants */
-#define OUTSIDE_WRAP 0
-#define OUTSIDE_AVG 1
-#define OUTSIDE_VALUE 2
-
 public:
     /// Read argument from command line
     virtual void readParams();
@@ -73,6 +68,15 @@ public:
     void run();
 
 protected:
+    /**
+     * @return dimension of the raw movie frames and their count (taking into account slicing indicated by the user)
+     **/
+    Dimensions getMovieSizeRaw();
+
+    /**
+     * @return dimension of the movie frames and their count after binning, if applied
+     **/
+    Dimensions getMovieSize();
 
     /**
      * Compute alignment of the each frame from frame-to-frame shifts
@@ -87,12 +91,6 @@ protected:
     AlignmentResult<T> computeAlignment(
             Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
             const core::optional<size_t> &refFrame, size_t N, int verbose);
-
-    /**
-     * Method does a sanity check on the settings of the program,
-     * reporting found issues and exiting program.
-     */
-    void checkSettings();
 
     /**
      * Method finds a reference image, i.e. an image which has smallest relative
@@ -127,15 +125,6 @@ protected:
     MultidimArray<T> createLPF(T Ts, const Dimensions &dims);
 
     /**
-     * Method loads a single frame from the movie
-     * @param movie to load from
-     * @param objId id of the image to load
-     * @param out loaded frame
-     */
-    void loadFrame(const MetaData& movie, size_t objId,
-            Image<T>& out);
-
-    /**
      * Method loads a single frame from the movie and apply gain and dark
      * pixel correction
      * @param movie to load from
@@ -146,7 +135,7 @@ protected:
      */
     void loadFrame(const MetaData &movie, const Image<T> &dark,
             const Image<T> &igain, size_t objId,
-            Image<T> &out);
+            Image<T> &out) const;
 
     /**
      * This method applies global shifts and can also produce 'average'
@@ -217,28 +206,37 @@ protected:
      * Returns pixel resolution of the scaled movie
      * @param scaleFactor (<= 1) used to change size of the movie
      */
-    T getPixelResolution(T scaleFactor);
+    float getPixelResolution(float scaleFactor) const;
 
     /**
      * Returns scale factor as requested by user
      */
-    T getScaleFactor();
+    float getScaleFactor() const;
 
     /** Returns size of the patch as requested by user */
-    std::pair<size_t, size_t> getRequestedPatchSize() {
+    std::pair<size_t, size_t> getRequestedPatchSize() const {
         return {minLocalRes / Ts, minLocalRes / Ts};
     }
 
-    /** Sets number of patches, based on size of the movie and patch */
-    void setNoOfPaches(const Dimensions &movieDim,
-            const Dimensions &patchDim);
 
     /** Get binning factor for resulting micrograph / alignend movie */
-    T getOutputBinning() {
-        return outputBinning;
+    auto getBinning() const {
+        return binning;
     }
-private:
 
+    bool applyBinning() const {
+        return binning != 1.0;
+    }
+
+private:
+    void setNoOfPatches();
+
+    /**
+     * Method does a sanity check on the settings of the program,
+     * reporting found issues and exiting program.
+     */
+    void checkSettings();
+       
     /**
      * Method will create a 1D Low Pass Filter
      * @param Ts pixel resolution of the resulting filter
@@ -256,8 +254,6 @@ private:
      */
     void scaleLPF(const MultidimArray<T>& lpf, const Dimensions &dims, MultidimArray<T>& result);
 
-
-
     /**
      * Method to store global (frame) shifts computed for the movie
      * @param alignment result to store
@@ -265,13 +261,6 @@ private:
      */
     void storeGlobalShifts(const AlignmentResult<T> &alignment,
             MetaData &movie);
-
-    /**
-     * Method loads global shift from the given movie
-     * @param movie where shifts are stored
-     * @return global alignment as stored in the movie
-     */
-    AlignmentResult<T> loadGlobalShifts(MetaData &movie);
 
     /**
      * Method loads dark correction image
@@ -290,12 +279,6 @@ private:
      * @param movie where the input should be stored
      */
     void readMovie(MetaData& movie);
-
-    /**
-     * Sets all shifts in the movie to zero (0)
-     * @param movie to update
-     */
-    void setZeroShift(MetaData& movie);
 
     /**
      * Method to store all computed results to hard drive
@@ -323,26 +306,16 @@ private:
     void printGlobalShift(const AlignmentResult<T> &globAlignment);
 
     /** Returns pixel size of the movie after downsampling to 4 sigma */
-    T getTsPrime();
+    float getTsPrime() const;
+
     /** Returns constant used for filter sigma computation */
-    T getC();
+    float getC() const;
 
 protected:
     /** First and last frame (inclusive)*/
     int nfirst, nlast;
-    /** Max shift */
-    T maxShift;
-    /*****************************/
-    /** crop corner **/
-    /*****************************/
-    /** x left top corner **/
-    int xLTcorner;
-    /** y left top corner **/
-    int yLTcorner;
-    /** x right down corner **/
-    int xDRcorner;
-    /** y right down corner **/
-    int yDRcorner;
+    /** Max shift in pixels*/
+    float maxShift;
     /** Aligned movie */
     FileName fnAligned;
     /** Aligned micrograph */
@@ -351,39 +324,34 @@ protected:
     int nfirstSum, nlastSum;
     /** Aligned micrograph */
     FileName fnInitialAvg;
-    /** Bspline order */
-    int BsplineOrder;
-    /** Outside mode */
-    int outsideMode;
-    /** Outside value */
-    T outsideValue;
-    /** if true, local alignment should be performed */
-    bool processLocalShifts;
-    /** Solver iterations */
-    int solverIterations;
-    /** Metadata with shifts */
-    FileName fnOut;
     /** Number of patches used for local alignment */
     std::pair<size_t, size_t> localAlignPatches;
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
+    /** Solver iterations */
+    static constexpr int solverIterations = 2;
 
 private:
+    /** if true, local alignment will be skipped */
+    bool skipLocalAlignment;
+    /** Metadata with shifts */
+    FileName fnOut;
+    /** Filename of movie metadata */
+    FileName fnMovie;
     /** Minimal resolution (in A) of the patch for local alignment */
     size_t minLocalRes;
     /** Max resolution in A to preserve during alignment*/
-    T maxResForCorrelation; //
+    float maxResForCorrelation; //
     /** Pixel size of the movie*/
-    T Ts;
-    /** Filename of movie metadata */
-    FileName fnMovie;
+    float Ts;
     /** Correction images */
     FileName fnDark, fnGain;
-    /** Binning factor used for output */
-    T outputBinning;
-    /** Do not calculate and use the input shifts */
-    bool useInputShifts;
-
+    /** Binning factor, >= 1 */
+    float binning;
+    /** Size of the raw movie, only the requested frames */
+    std::optional<Dimensions> movieSizeRaw;
+    /** Size of the movie as it should be processed */
+    std::optional<Dimensions> movieSize;
 };
 //@}
 #endif

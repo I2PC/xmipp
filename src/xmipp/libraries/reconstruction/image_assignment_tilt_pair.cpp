@@ -30,6 +30,7 @@
 #include "core/matrix2d.h"
 #include "core/linear_system_helper.h"
 #include "core/xmipp_image_extension.h"
+#include "core/xmipp_funcs.h"
 
 void ProgassignmentTiltPair::readParams()
 {

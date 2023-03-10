@@ -28,6 +28,7 @@
 #include "core/transformations.h"
 #include "data/mask.h"
 #include "data/filters.h"
+#include "core/metadata_db.h"
 
 // Empty constructor =======================================================
 ProgClassifySignificant::~ProgClassifySignificant()
