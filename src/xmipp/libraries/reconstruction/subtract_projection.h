@@ -82,8 +82,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
 
     const MultidimArray<double> *ctfImage = nullptr; // needed for FourierProjector
 	FourierTransformer transformerP; // Fourier transformer for projection
-    FourierTransformer transformerI; // Fourier transformer for particle
-    MultidimArray< std::complex<double> > IFourier; // FT(particle)
+    
 	MultidimArray< std::complex<double> > PFourier; // FT(projection)
     MultidimArray< std::complex<double> > PFourier0; // FT(projection) estimation of order 0
 	MultidimArray< std::complex<double> > PFourier1; // FT(projection) estimation of order 1
@@ -133,6 +132,8 @@ public:
     int rank;
     FourierProjector *projector;
     FourierProjector *projectorMask;
+    FourierTransformer transformerI; // Fourier transformer for particle
+    MultidimArray< std::complex<double> > IFourier; // FT(particle)
 
     /// Empty constructor
     ProgSubtractProjection();

@@ -88,7 +88,7 @@ public:
         MetaData &mdIn = *getInputMd();
         mdIn.addLabel(MDL_GATHER_ID);
         mdIn.fillLinear(MDL_GATHER_ID,1,1);
-        createTaskDistributor(mdIn, blockSize);6
+        createTaskDistributor(mdIn, blockSize);
     }
     void startProcessing()
     {
