@@ -27,7 +27,7 @@
    - Refactor and simplified Readme page.
    - Updating CUDA version compatibility
    - Updating gcc version availables
-   - Fixd Matlab installation
+   - Fixed Matlab installation
    - Added missing array include to fix compilation error with g++12
    - Alert and not block compilation if gcc - CUDA are not compatible
    - Avoid compilation warnings
