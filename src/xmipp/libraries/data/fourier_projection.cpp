@@ -88,7 +88,7 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
     produceSideInfo();
 }
 
-void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
+void FourierProjector::projectToFourier(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
     double freqy;
     double freqx;
@@ -243,6 +243,10 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             *(ptrI_ij+1) = ab_cd - ac - bd;
         }
     }
+}
+
+void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf) {
+    projectToFourier(rot, tilt, psi, ctf);
     transformer2D.inverseFourierTransform();
 }
 
