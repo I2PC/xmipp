@@ -39,7 +39,7 @@ void ProgReconstructNoise::defineParams() {
 
     addParamsLine("   -r <md_file>                      : Reference volume");
     
-    addParamsLine("   [--padding <padding=2>]           : Padding factor");
+    addParamsLine("   [--padding <padding=1>]           : Padding factor");
     addParamsLine("   [--max_resolution <resolution=1>] : Resolution limit");
 
     addParamsLine("   [--useCTF]                        : Consider the CTF when comparing images");
@@ -62,6 +62,9 @@ void ProgReconstructNoise::show() const {
     if (verbose < 1) return;
 
     std::cout << "Reference volume            : " << fnReferenceVolume << "\n";
+    
+    std::cout << "Padding                     : " << paddingFactor << "\n";
+    std::cout << "Max resolution              : " << maxResolution << "\n";
 
     std::cout << "Use CTF                     : " << useCtf << "\n";
     if(useCtf) {
