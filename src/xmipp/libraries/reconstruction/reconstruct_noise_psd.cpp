@@ -37,15 +37,13 @@ void ProgReconstructNoise::defineParams() {
     each_image_produces_an_output = true;
     XmippMetadataProgram::defineParams();
 
-    addParamsLine("   -r <md_file>                    : Reference volume");
+    addParamsLine("   -r <md_file>                      : Reference volume");
     
-    addParamsLine("   --padding <padding>             : Padding factor");
-    addParamsLine("   --max_resolution <resolution>   : Resolution limit");
+    addParamsLine("   [--padding <padding=2>]           : Padding factor");
+    addParamsLine("   [--max_resolution <resolution=1>] : Resolution limit");
 
-    addParamsLine("   [--useCTF]                      : Consider the CTF when comparing images");
+    addParamsLine("   [--useCTF]                        : Consider the CTF when comparing images");
     m_ctfDesc.defineParams(this);
-
-    addParamsLine("   --thr <threads>                 : Number of threads");
 
 }
 
@@ -93,10 +91,10 @@ void ProgReconstructNoise::postProcess() {
 
 void ProgReconstructNoise::writeOutput() {
     XmippMetadataProgram::writeOutput();
-    Image<Real>(m_avgExpImagePsd).write(oroot + "avgExperimentalPsd.stk");
-    Image<Real>(m_avgRefImagePsd).write(oroot + "avgReferencePsd.stk");
-    Image<Real>(m_avgNoisePsd).write(oroot + "avgNoisePsd.stk");
-    if(useCtf) Image<Real>(m_avgCtfPsd).write(oroot + "avgCtfPsd.stk");
+    Image<Real>(m_avgExpImagePsd).write(oroot + "avgExperimentalPsd.mrc");
+    Image<Real>(m_avgRefImagePsd).write(oroot + "avgReferencePsd.mrc");
+    Image<Real>(m_avgNoisePsd).write(oroot + "avgNoisePsd.mrc");
+    if(useCtf) Image<Real>(m_avgCtfPsd).write(oroot + "avgCtfPsd.mrc");
 }
 
 void ProgReconstructNoise::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
@@ -120,7 +118,7 @@ void ProgReconstructNoise::processImage(const FileName &fnImg, const FileName &f
 
     // Project the volume
     const auto& proj = projectReference(rot, tilt, psi, useCtf ? &m_ctf : nullptr);
-    updatePsd(m_avgCtfPsd, proj);
+    updatePsd(m_avgRefImagePsd, proj);
 
     // Compute the Fourier transform of the image
     m_fourier.FourierTransform(
