@@ -64,23 +64,30 @@ def run(reference_md_path: str,
     # Read input files
     reference_md = md.read(reference_md_path)
     image_size = md.get_image_size(reference_md)
-    weights = None
-    if weight_image_path:
-        weights = torch.tensor(image.read(weight_image_path))
-        raise NotImplementedError('Weights not implemented')
 
-    # Create the transformer
+    # Create the flattener
     flattener = operators.FourierLowPassFlattener(
         dim=image_size,
         cutoff=cutoff,
         exclude_dc=True,
         device=transform_device
     )
+    
+    # Read weights
+    weighter = None
+    if weight_image_path:
+        weighter = operators.Weighter(
+            weights=torch.tensor(image.read(weight_image_path)),
+            flattener=flattener,
+            device=transform_device
+        )
+
+    # Create the transformer
     transformer = alignment.FourierInPlaneTransformAugmenter(
         max_psi=max_psi,
         max_shift=max_shift,
         flattener=flattener,
-        weighter=None, # TODO
+        weighter=weighter,
         norm=norm
     )
     

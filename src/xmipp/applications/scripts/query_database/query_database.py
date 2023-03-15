@@ -66,10 +66,6 @@ def run(experimental_md_path: str,
     experimental_md = md.read(experimental_md_path)
     reference_md = md.read(reference_md_path)
     image_size = md.get_image_size(experimental_md)
-    weights = None
-    if weight_image_path:
-        weights = torch.tensor(image.read(weight_image_path))
-        raise NotImplementedError('Weights not implemented')
     
     # Read the database
     db = search.FaissDatabase()
@@ -90,30 +86,41 @@ def run(experimental_md_path: str,
     n_transform = len(angles) * len(shifts)
     print(f'Performing {n_transform} transformations to each reference image')
     
-    # Create the transformer
+    # Create the band flattener
     flattener = operators.FourierLowPassFlattener(
         dim=image_size,
         cutoff=cutoff,
         exclude_dc=True,
         device=transform_device
     )
+
+    # Read weights
+    weighter = None
+    if weight_image_path:
+        weighter = operators.Weighter(
+            weights=torch.tensor(image.read(weight_image_path)),
+            flattener=flattener,
+            device=transform_device
+        )
+    
+    # Create the transformers
     reference_transformer = alignment.FourierInPlaneTransformGenerator(
         dim=image_size,
         angles=angles,
         shifts=shifts,
         flattener=flattener,
-        weighter=None, # TODO
+        weighter=weighter,
         norm=norm,
         device=transform_device
     )
     experimental_transformer = alignment.FourierInPlaneTransformCorrector(
         dim=image_size,
         flattener=flattener,
-        weighter=None, # TODO
+        weighter=weighter,
         norm=norm,
         device=transform_device
     )
-    
+
     # Create the reference dataset
     reference_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
     reference_dataset = image.torch_utils.Dataset(reference_paths)
