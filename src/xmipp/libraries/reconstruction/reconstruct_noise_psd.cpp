@@ -129,10 +129,10 @@ void ProgReconstructNoise::processImage(const FileName &fnImg, const FileName &f
         m_experimentalFourier,
         false
     );
-    shiftSpectra(m_experimentalFourier, shiftX, shiftY);
     updatePsd(m_avgExpImagePsd, m_experimentalFourier);
 
     //Compute the noise in place
+    shiftSpectra(m_experimentalFourier, shiftX, shiftY);
     assert(proj.sameShape(m_experimentalFourier));
     m_experimentalFourier -= proj;
     updatePsd(m_avgNoisePsd, m_experimentalFourier);
@@ -182,7 +182,7 @@ void ProgReconstructNoise::shiftSpectra(MultidimArray<Complex>& spectra, double 
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(spectra) {
         // Convert the indices to fourier coefficients
         FFT_IDX2DIGFREQ_FAST(static_cast<int>(i), ny, ny_2, ny_inv, fy);
-        FFT_IDX2DIGFREQ_FAST(static_cast<int>(j), nx, nx_2, nx_inv, fx);
+        fx = j*nx_inv;
 
         const auto theta = fy*dy + fx*dx; // Dot product of (dx, dy) and (j, i)
         DIRECT_A2D_ELEM(spectra, i, j) *= std::polar(1.0, theta); //e^(i*theta)
