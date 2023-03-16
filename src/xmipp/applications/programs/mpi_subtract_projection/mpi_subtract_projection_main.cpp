@@ -23,10 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/subtract_projection.cpp>
-
-class MpiProgSubtractProjection
-    : public BasicMpiMetadataProgram<ProgSubtractProjection> {};
+#include <parallel/mpi_subtract_projection.h>
 
 RUN_XMIPP_PROGRAM(MpiProgSubtractProjection)

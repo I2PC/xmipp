@@ -23,107 +23,98 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <mpi.h>
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/subtract_projection.h>
+#include "mpi_subtract_projection.h"
 
-
-class MpiProgSubtractProjection: public ProgSubtractProjection, public MpiMetadataProgram
+void MpiProgSubtractProjection::defineParams()
 {
-public:
+    ProgSubtractProjection::defineParams();
+    MpiMetadataProgram::defineParams();
+}
+void MpiProgSubtractProjection::readParams()
+{
+    MpiMetadataProgram::readParams();
+    ProgSubtractProjection::readParams();
+}
+void MpiProgSubtractProjection::read(int argc, char **argv, bool reportErrors)
+{
+    MpiMetadataProgram::read(argc, argv);
+}
+void MpiProgSubtractProjection::preProcess()
+{
+    rank = node->rank;
+    std::cout << "MPI rank=" << rank << std::endl;
+    ProgSubtractProjection::preProcess();
+    node->barrierWait();
+    std::cout << "After barrier" << std::endl;
 
-    void defineParams()
+    // Get the volume padded size from rank 0
+    int realSize, origin;
+    if (node->rank == 0)
     {
-        ProgSubtractProjection::defineParams();
-        MpiMetadataProgram::defineParams();
+        realSize = XSIZE(projector->VfourierRealCoefs);
+        origin = STARTINGX(projector->VfourierRealCoefs);
     }
-    void readParams()
-    {
-        MpiMetadataProgram::readParams();
-        ProgSubtractProjection::readParams();
-    }
-    void read(int argc, char **argv, bool reportErrors = true)
-    {
-        MpiMetadataProgram::read(argc,argv);
-    }
-    void preProcess()
-    {
-    	rank=node->rank;
-        ProgSubtractProjection::preProcess();
-   		node->barrierWait();
+    MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-   		// Get the volume padded size from rank 0
-   		int realSize, origin;
-   		if (node->rank==0)
-   		{
-   			realSize = XSIZE(projector->VfourierRealCoefs);
-   			origin = STARTINGX(projector->VfourierRealCoefs);
-   		}
-        MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-        MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        if (rank!=0)
-        {
-        	projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
-        	projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
-        	STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
-        	STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
-
-            //projectorMask->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
-        	//projectorMask->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
-        	//STARTINGX(projectorMask->VfourierRealCoefs)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=origin;
-        	//STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=origin;
-        }
-        MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-        //MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierRealCoefs), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        //MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    	if (rank!=0)
-        	projector->produceSideInfoProjection();
-            // projectorMask->produceSideInfoProjection();
-
-        MetaData &mdIn = *getInputMd();
-        mdIn.addLabel(MDL_GATHER_ID);
-        mdIn.fillLinear(MDL_GATHER_ID,1,1);
-        createTaskDistributor(mdIn, blockSize);
-    }
-    void startProcessing()
+    if (rank != 0)
     {
-        if (node->rank==1)
-        {
-        	verbose=1;
-            ProgSubtractProjection::startProcessing();
-        }
-        node->barrierWait();
-    }
-    void showProgress()
-    {
-        if (node->rank==1)
-        {
-            time_bar_done=first+1;
-            ProgSubtractProjection::showProgress();
-        }
-    }
+        projector->VfourierRealCoefs.resizeNoCopy(realSize, realSize, realSize);
+        projector->VfourierImagCoefs.resizeNoCopy(realSize, realSize, realSize);
+        STARTINGX(projector->VfourierRealCoefs) = STARTINGY(projector->VfourierRealCoefs) = STARTINGZ(projector->VfourierRealCoefs) = origin;
+        STARTINGX(projector->VfourierImagCoefs) = STARTINGY(projector->VfourierImagCoefs) = STARTINGZ(projector->VfourierImagCoefs) = origin;
 
-    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
-    {
-        return getTaskToProcess(objId, objIndex);
+        // projectorMask->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
+        // projectorMask->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
+        // STARTINGX(projectorMask->VfourierRealCoefs)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=origin;
+        // STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=origin;
     }
-    void finishProcessing()
+    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    // MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierRealCoefs), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    if (rank != 0)
+        projector->produceSideInfoProjection();
+    // projectorMask->produceSideInfoProjection();
+
+    MetaData &mdIn = *getInputMd();
+    mdIn.addLabel(MDL_GATHER_ID);
+    mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
+    createTaskDistributor(mdIn, blockSize);
+}
+void MpiProgSubtractProjection::startProcessing()
+{
+    if (node->rank == 1)
     {
-        node->gatherMetadatas(getOutputMd(), fn_out);
-    	MetaDataVec MDaux;
-    	MDaux.sort(getOutputMd(), MDL_GATHER_ID);
-        MDaux.removeLabel(MDL_GATHER_ID);
-        getOutputMd()=MDaux;
-        if (node->isMaster())
-            ProgSubtractProjection::finishProcessing();
+        verbose = 1;
+        ProgSubtractProjection::startProcessing();
     }
-    void wait()
+    node->barrierWait();
+}
+void MpiProgSubtractProjection::showProgress()
+{
+    if (node->rank == 1)
     {
-		distributor->wait();
+        time_bar_done = first + 1;
+        ProgSubtractProjection::showProgress();
     }
-};
+}
+
+
+void MpiProgSubtractProjection::finishProcessing()
+{
+    node->gatherMetadatas(getOutputMd(), fn_out);
+    MetaDataVec MDaux;
+    MDaux.sort(getOutputMd(), MDL_GATHER_ID);
+    MDaux.removeLabel(MDL_GATHER_ID);
+    getOutputMd() = MDaux;
+    if (node->isMaster())
+        ProgSubtractProjection::finishProcessing();
+}
+void MpiProgSubtractProjection::wait()
+{
+    distributor->wait();
+}

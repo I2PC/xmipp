@@ -281,9 +281,11 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 }
 
  void ProgSubtractProjection::preProcess() {
+	std::cout << "Serial rank: " << rank << std::endl;
 	// Read input volume, mask and particles metadata
 	if (rank==0)
 	{
+		std::cout << "Estoy aqui" << std::endl;
 		show();
 		V.read(fnVolR);
 		V().setXmippOrigin();
