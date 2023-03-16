@@ -677,8 +677,8 @@ void ProgAngularDistance::quat2Euler(   const double q[4],
     const auto qzqw = qz*qw;
 
     // Ensemble the matrix
-    const double    m00 = 1 - qy2 - qz2,
-                    m01 = qxqy - qzqw,
+    const double  //m00 = 1 - qy2 - qz2,
+                  //m01 = qxqy - qzqw,
                     m02 = qxqz + qyqw,
                     m10 = qxqy + qzqw,
                     m11 = 1 - qx2 - qz2,
