@@ -52,7 +52,7 @@ class Config:
 
     def create(self):
         print("Configuring -----------------------------------------")
-        self._create_empty()
+        # self._create_empty()
 
         if self.configDict['VERIFIED'] == '':
             self.configDict['VERIFIED'] = 'False'
@@ -181,6 +181,10 @@ class Config:
         self.environment = Environment()
         for label in labels:
             # We let to set up the xmipp configuration via environ.
+            value = os.environ.get(label, "")
+
+            if value !="":
+                print("%s variable found in the environment with this value: %s." % (label, value))
             self.configDict[label] = os.environ.get(label, "")
 
     def _config_OpenCV(self):
@@ -777,23 +781,35 @@ class Config:
                 javaHomeDir = javaProgramPath.replace("/jre/bin", "")
                 javaHomeDir = javaHomeDir.replace("/bin", "")
                 self.configDict["JAVA_HOME"] = javaHomeDir
-
-        if self.configDict["JAVA_BINDIR"] == "" and self.configDict["JAVA_HOME"]:
-            self.configDict["JAVA_BINDIR"] = "%(JAVA_HOME)s/bin"
-        if self.configDict["JAVAC"] == "" and self.configDict["JAVA_HOME"]:
-            self.configDict["JAVAC"] = "%(JAVA_BINDIR)s/javac"
-        if self.configDict["JAR"] == "" and self.configDict["JAVA_HOME"]:
-            self.configDict["JAR"] = "%(JAVA_BINDIR)s/jar"
-        if self.configDict["JNI_CPPPATH"] == "" and self.configDict["JAVA_HOME"]:
-            self.configDict["JNI_CPPPATH"] = "%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
-
-        if (os.path.isfile((self.configDict["JAVAC"] % self.configDict) % self.configDict) and
-                os.path.isfile((self.configDict["JAR"] % self.configDict) % self.configDict) and
-                os.path.isdir("%(JAVA_HOME)s/include" % self.configDict)):
-            print(green("Java detected at: %s" % self.configDict["JAVA_HOME"]))
+            print("JAVA_HOME (%s) guessed from javac or installed in conda." % self.configDict["JAVA_HOME"])
         else:
-            print(red("No development environ for 'java' found. "
-                      "Please, check JAVA_HOME, JAVAC, JAR and JNI_CPPPATH variables."))
+            print("JAVA_HOME (%s) already available. Either coming from the environment or in a previous config file." % self.configDict["JAVA_HOME"])
+
+
+        def addSecondaryJavaVariable(varName, defaultValue, checkMethod=os.path.isfile, multiplePaths=False):
+            if self.configDict[varName] == "" and self.configDict["JAVA_HOME"]:
+                self.configDict[varName] = defaultValue
+
+            resolvedValue = (self.configDict[varName] % self.configDict) % self.configDict
+
+            if multiplePaths:
+                resolvedValue = resolvedValue.split(":")
+            else:
+                resolvedValue= [resolvedValue]
+
+            for path in resolvedValue:
+
+                if checkMethod(path):
+                    print(green("%s detected at: %s" % (varName, path)))
+                else:
+                    print(red("%s NOT detected at: %s" % (varName, path)))
+
+
+        addSecondaryJavaVariable("JAVA_BINDIR", "%(JAVA_HOME)s/bin", checkMethod=os.path.isdir)
+        addSecondaryJavaVariable("JAVAC", "%(JAVA_BINDIR)s/javac")
+        addSecondaryJavaVariable("JAR", "%(JAVA_BINDIR)s/jar")
+        addSecondaryJavaVariable("JNI_CPPPATH", "%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux", checkMethod=os.path.isdir, multiplePaths=True)
+
 
     def _check_Java(self):
         if not checkProgram(self.configDict['JAVAC']):
