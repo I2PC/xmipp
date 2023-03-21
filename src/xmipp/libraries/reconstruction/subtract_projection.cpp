@@ -281,11 +281,10 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 }
 
  void ProgSubtractProjection::preProcess() {
-	std::cout << "Serial rank: " << rank << std::endl;
 	// Read input volume, mask and particles metadata
 	if (rank==0)
 	{
-		std::cout << "Estoy aqui" << std::endl;
+		std::cout << "Serial rank: " << rank << std::endl;
 		show();
 		V.read(fnVolR);
 		V().setXmippOrigin();
@@ -326,27 +325,20 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		std::cout << "-------Projectors initialized-------" << std::endl;
 			
 		// Create mock image of same size as particles (and referencce volume) to get
-		I().initZeros((int)YSIZE(V()),(int)XSIZE(V()));
+		I().initZeros(Xdim, Ydim);
 		I().initConstant(1);
-		std::cout << "-------1-------" << std::endl;
 		transformerI.FourierTransform(I(), IFourier, false);
-		std::cout << "-------2-------" << std::endl;
 
 		// Construct frequencies image
 		wi.initZeros(IFourier);
-		std::cout << "-------3-------" << std::endl;
 		Matrix1D<double> w(2); 	
-		std::cout << "-------4-------" << std::endl;
 		for (int i=0; i<YSIZE(wi); i++) {
-			std::cout << "-------for 5-------" << std::endl;
 			FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 			for (int j=0; j<XSIZE(wi); j++)  {
-				std::cout << "-------for 6-------" << std::endl;
 				FFT_IDX2DIGFREQ(j,XSIZE(IFourier),XX(w))
 				DIRECT_A2D_ELEM(wi,i,j) = (int)round((sqrt(YY(w)*YY(w) + XX(w)*XX(w))) * (int)XSIZE(IFourier)); // indexes
 			}
 		}
-		std::cout << "-------7-------" << std::endl;
 		if (limitfreq == 0)
 			maxwiIdx = (int)XSIZE(wi); 
 		else

@@ -44,8 +44,6 @@ void MpiProgSubtractProjection::preProcess()
     rank = node->rank;
     std::cout << "MPI rank=" << rank << std::endl;
     ProgSubtractProjection::preProcess();
-    node->barrierWait();
-    std::cout << "After barrier" << std::endl;
 
     // Get the volume padded size from rank 0
     int realSize, origin;
@@ -55,17 +53,26 @@ void MpiProgSubtractProjection::preProcess()
         origin = STARTINGX(projector->VfourierRealCoefs);
     }
     MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    std::cout << " rank =" << rank << "-------3-------" << std::endl;
     MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    std::cout << " rank =" << rank << "-------4-------" << std::endl;
+    //MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&(projector), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    std::cout << " rank =" << rank << "-------5-------" << std::endl;
+    //MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    //std::cout << " rank =" << rank << "-------6-------" << std::endl;
 
     if (rank != 0)
     {
+        std::cout << " rank !0 =" << rank << std::endl;
         projector->VfourierRealCoefs.resizeNoCopy(realSize, realSize, realSize);
+        std::cout << "-------7-------" << std::endl;
         projector->VfourierImagCoefs.resizeNoCopy(realSize, realSize, realSize);
+        std::cout << "-------8-------" << std::endl;
         STARTINGX(projector->VfourierRealCoefs) = STARTINGY(projector->VfourierRealCoefs) = STARTINGZ(projector->VfourierRealCoefs) = origin;
+        std::cout << "-------9-------" << std::endl;
         STARTINGX(projector->VfourierImagCoefs) = STARTINGY(projector->VfourierImagCoefs) = STARTINGZ(projector->VfourierImagCoefs) = origin;
-
+        std::cout << "-------10-------" << std::endl;
         // projectorMask->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
         // projectorMask->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
         // STARTINGX(projectorMask->VfourierRealCoefs)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=origin;
