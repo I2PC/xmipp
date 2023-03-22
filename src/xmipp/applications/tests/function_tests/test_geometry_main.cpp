@@ -139,7 +139,6 @@ TEST_F(GeometryTest, rotateAngleAroundAxis)
 // check the plane fit is right
 TEST_F( GeometryTest, least_squares_plane_fit_All_Points)
 {
-    XMIPP_TRY
     MultidimArray<double> img;
 
     img.resize(4,4);
@@ -151,12 +150,10 @@ TEST_F( GeometryTest, least_squares_plane_fit_All_Points)
     EXPECT_NEAR(a,1,XMIPP_EQUAL_ACCURACY);
     EXPECT_NEAR(b,1,XMIPP_EQUAL_ACCURACY);
     EXPECT_NEAR(c,0,XMIPP_EQUAL_ACCURACY);
-    XMIPP_CATCH
 }
 
 TEST_F( GeometryTest, normalize_ramp)
 {
-    XMIPP_TRY
     MultidimArray<double> img;
 
     img.resize(4,4);
@@ -166,5 +163,4 @@ TEST_F( GeometryTest, normalize_ramp)
     normalize_ramp(img);
     img.selfABS();
     EXPECT_NEAR(img.sum(),0,XMIPP_EQUAL_ACCURACY);
-    XMIPP_CATCH
 }

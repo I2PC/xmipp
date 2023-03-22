@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
 #include "shift_corr_estimator.h"
 
 namespace Alignment {
@@ -30,7 +31,7 @@ namespace Alignment {
 
 template<typename T>
 void ShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
-        const FFTSettingsNew<T> &settings, size_t maxShift,
+        const FFTSettings<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT,
         bool allowDataOverwrite) {
     if (1 != hw.size()) {
@@ -267,7 +268,7 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
         std::complex<T> *othersF,
         T *othersS,
         std::complex<T> *ref,
-        const FFTSettingsNew<T> &settings,
+        const FFTSettings<T> &settings,
         void *plan,
         size_t maxShift) {
     // we need even input in order to perform the shift (in FD, while correlating) properly

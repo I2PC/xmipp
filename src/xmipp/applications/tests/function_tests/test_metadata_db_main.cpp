@@ -519,8 +519,6 @@ TEST_F( MetadataTest, MDInfo)
     FileName fnSTAR;
     fnSTAR = fn + ".xmd";
 
-    XMIPP_TRY
-
     mDsource.write(fnDB);
     mDsource.write(fnSTAR);
 
@@ -542,8 +540,6 @@ TEST_F( MetadataTest, MDInfo)
     for (size_t i = 0; i < labels.size(); ++i)
       EXPECT_TRUE(mdOnlyOne.containsLabel(labels[i]));
 
-    XMIPP_CATCH
-
     unlink(fn.c_str());
     unlink(fnDB.c_str());
     unlink(fnSTAR.c_str());
@@ -564,11 +560,9 @@ TEST_F( MetadataTest,multiWrite)
     FileName fnXMLref  =(String)"metadata/mDsource.xml";
     FileName fnSTARref =(String)"metadata/mDsource.xmd";
 
-    XMIPP_TRY
     // mDsource.write((String)"myblock@"+fnDB);
     mDsource.write((String)"myblock@"+fnXML);
     mDsource.write((String)"myblock@"+fnSTAR);
-    XMIPP_CATCH
 
     // EXPECT_TRUE(compareTwoFiles(fnDB, fnDBref));
     EXPECT_TRUE(compareTwoFiles(fnXML, fnXMLref));
@@ -610,7 +604,6 @@ TEST_F( MetadataTest,multiWriteSqlite)
     md.addRow(row);
 
     FileName fileNameA = FileName();
-    XMIPP_TRY
     fileNameA.compose("block001", fnDB);
 
     md.setValue(MDL_ORDER,(size_t)11, md.firstRowId());
@@ -642,7 +635,6 @@ TEST_F( MetadataTest,multiWriteSqlite)
     EXPECT_EQ(readBlockList[1],"block002");
     EXPECT_EQ(readBlockList[2],"block003");
 
-    XMIPP_CATCH
     unlink(fn.c_str());
     unlink(fnDB.c_str());
 }
@@ -781,7 +773,6 @@ TEST_F( MetadataTest, CheckRegularExpression2)
 
 TEST_F( MetadataTest, compareTwoMetadataFiles)
 {
-    XMIPP_TRY
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
@@ -833,12 +824,10 @@ TEST_F( MetadataTest, compareTwoMetadataFiles)
     unlink(sfn);
     unlink(sfn2);
     unlink(sfn3);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, FillExpand)
 {
-    XMIPP_TRY
     //create 2 temporary CTFs plus a metadata with dependences
     char sfn1[64] = "";
     strncpy(sfn1, "/tmp/FillExpandCTF2_XXXXXX", sizeof sfn1);
@@ -910,7 +899,6 @@ TEST_F( MetadataTest, FillExpand)
 
     unlink(sfn1);
     unlink(sfn2);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, ImportObject)
@@ -1088,28 +1076,21 @@ TEST_F( MetadataTest, JoinVector)
 
 TEST_F( MetadataTest, MDValueEQ)
 {
-    try
-    {
-        MetaDataDb md;
-        md.setValue(MDL_IMAGE, (String)"a", md.addObject());
-        md.setValue(MDL_IMAGE, (String)"b", md.addObject());
-        md.setValue(MDL_IMAGE, (String)"c", md.addObject());
-        md.setValue(MDL_IMAGE, (String)"a", md.addObject());
+    MetaDataDb md;
+    md.setValue(MDL_IMAGE, (String)"a", md.addObject());
+    md.setValue(MDL_IMAGE, (String)"b", md.addObject());
+    md.setValue(MDL_IMAGE, (String)"c", md.addObject());
+    md.setValue(MDL_IMAGE, (String)"a", md.addObject());
 
-        MetaDataDb md2;
-        md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
-        md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
+    MetaDataDb md2;
+    md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
+    md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
 
-        MDValueEQ eq(MDL_IMAGE,(String)"a");
-        //Test empty query
-        MetaDataDb md3;
-        md3.importObjects(md, eq);
-        EXPECT_EQ(md2, md3);
-    }
-    catch (XmippError &xe)
-    {
-        std::cerr << "DEBUG_JM: xe: " << xe << std::endl;
-    }
+    MDValueEQ eq(MDL_IMAGE,(String)"a");
+    //Test empty query
+    MetaDataDb md3;
+    md3.importObjects(md, eq);
+    EXPECT_EQ(md2, md3);
 }
 
 TEST_F( MetadataTest, NaturalJoin)
@@ -1167,8 +1148,6 @@ TEST_F( MetadataTest, OperateExt)
 
 TEST_F( MetadataTest, RegularExp)
 {
-    XMIPP_TRY
-
     //create temporal file with three metadas
     //char sfnStar[64] = "";
     //char sfnSqlite[64] = "";
@@ -1228,8 +1207,6 @@ TEST_F( MetadataTest, RegularExp)
     unlink(fn.c_str());
     unlink(sfnStar.c_str());
     //unlink(sfnSqlite);
-
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, Query)
@@ -1477,7 +1454,6 @@ TEST_F( MetadataTest, ExistsBlock)
 
 TEST_F( MetadataTest, ReadWriteAppendBlock)
 {
-    XMIPP_TRY
     //temp file name
     char sfn[32] = "";
     strncpy(sfn, "/tmp/testWrite_XXXXXX", sizeof sfn);
@@ -1490,7 +1466,6 @@ TEST_F( MetadataTest, ReadWriteAppendBlock)
     FileName sfn2 = "metadata/ReadWriteAppendBlock.xmd";
     EXPECT_TRUE(compareTwoFiles(sfn,sfn2,0));
     unlink(sfn);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, RemoveDuplicates)
@@ -1629,7 +1604,6 @@ TEST_F( MetadataTest, setGetValue)
 }
 TEST_F( MetadataTest, Comment)
 {
-    XMIPP_TRY
     char sfn[64] = "";
     MetaDataDb md1(mDsource);
     strncpy(sfn, "/tmp/testComment_XXXXXX", sizeof sfn);
@@ -1646,13 +1620,10 @@ TEST_F( MetadataTest, Comment)
     s2=md2.getComment();
     EXPECT_EQ(s1, s2);
     unlink(sfn);
-
-    XMIPP_CATCH
 }
 //read file with vector
 TEST_F( MetadataTest, getValue)
 {
-    XMIPP_TRY
     std::vector<double> v1(3);
     std::vector<double> v2(3);
     MetaDataDb auxMD1;
@@ -1667,12 +1638,10 @@ TEST_F( MetadataTest, getValue)
     EXPECT_EQ(v1[0],v2[0]);
     EXPECT_EQ(v1[1],v2[1]);
     EXPECT_EQ(v1[2],v2[2]);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, getValueDefault)
 {
-    XMIPP_TRY
     MetaDataDb auxMD1;
     MetaDataDb auxMD2;
     double rot=1., tilt=2., psi=3.;
@@ -1699,12 +1668,9 @@ TEST_F( MetadataTest, getValueDefault)
     auxMD1.getRow2(rowIn, id);
     rowIn.getValueOrDefault(MDL_ANGLE_PSI,psi2,3.);
     EXPECT_EQ(psi,psi2);
-
-    XMIPP_CATCH
 }
 TEST_F( MetadataTest, getValueAbort)
 {
-    XMIPP_TRY
     MetaDataDb auxMD1;
     double rot=1.;
     id = auxMD1.addObject();
@@ -1717,12 +1683,10 @@ TEST_F( MetadataTest, getValueAbort)
     auxMD1.getRow(rowIn, id);
     std::cerr << "TEST COMMENT: You should get the error  Cannot find label: anglePsi" <<std::endl;
     EXPECT_THROW(rowGetValueOrAbort(rowIn,MDL_ANGLE_PSI,rot), XmippError);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, CopyColumn)
 {
-    XMIPP_TRY
     MetaDataDb md1(mDsource), md2(mDsource);
     double value;
 
@@ -1735,12 +1699,10 @@ TEST_F( MetadataTest, CopyColumn)
     md2.copyColumn(MDL_Z, MDL_Y);
 
     EXPECT_EQ(md1, md2);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, RenameColumn)
 {
-    XMIPP_TRY
     MetaDataDb md1(mDsource);
     MetaDataDb md2;
     md1.renameColumn(MDL_Y,MDL_Z);
@@ -1753,12 +1715,10 @@ TEST_F( MetadataTest, RenameColumn)
 
 
     EXPECT_EQ(md1, md2);
-    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 {
-//    XMIPP_TRY
 //    FileName fnSTAR =(String)"metadata/symop.star";
 //    char sfn[64] = "";
 //    strncpy(sfn, "/tmp/BsoftRemoveLoopBlock1_XXXXXX.star", sizeof sfn);
@@ -1833,13 +1793,10 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    EXPECT_EQ(md5090col, readMd);
 //
 //    unlink(sfn);
-//    XMIPP_CATCH
-
 }
 
 TEST_F( MetadataTest, bsoftRestoreLoopBlock)
 {
-//    XMIPP_TRY
 //    FileName fnSTAR =(String)"metadata/symop.star";
 //    char sfn[64] = "";
 //    strncpy(sfn, "/tmp/BsoftRemoveLoopBlock1_XXXXXX.star", sizeof sfn);
@@ -1876,8 +1833,6 @@ TEST_F( MetadataTest, bsoftRestoreLoopBlock)
 //    EXPECT_EQ(md1b, readMd);
 //    unlink(sfn);
 //    unlink(sfn2);
-//
-//    XMIPP_CATCH
 }
 
 TEST_F( MetadataTest, updateRow)
@@ -1895,21 +1850,15 @@ TEST_F( MetadataTest, updateRow)
     ASSERT_FALSE(auxMetadata==mDsource);
 
     MDRowSql row;
-    row.setValue(MDL_X, 1.);
-    row.setValue(MDL_Y, 2.);
-    auxMetadata.setRow( row, id1);
-    row.setValue(MDL_X, 3.);
-    row.setValue(MDL_Y, 4.);
-    auxMetadata.setRow( row, id2);
-    ASSERT_EQ(auxMetadata,mDsource);
-
-    row.setValue(MDL_X, 1.);
-    row.setValue(MDL_Y, 2.);
-    auxMetadata.setRow2( row, id1);
-    row.setValue(MDL_X, 3.);
-    row.setValue(MDL_Y, 4.);
-    auxMetadata.setRow2( row, id2);
-    ASSERT_EQ(auxMetadata,mDsource);
+    row.setValue(MDL_X, 11.);
+    row.setValue(MDL_Y, 22.);
+    ASSERT_TRUE(auxMetadata.setRow( row, id1));
+    row.setValue(MDL_X, 33.);
+    row.setValue(MDL_Y, 44.);
+    ASSERT_TRUE(auxMetadata.setRow( row, id2));
+    ASSERT_EQ(auxMetadata,mDanotherSource);
+    ASSERT_TRUE(auxMetadata.setRow( row, 25)); // non-existent ID does not update the DB and does not fail
+    ASSERT_EQ(auxMetadata,mDanotherSource);
 
     //Test form double with a given precission.
 /*    auxMetadata.clear();

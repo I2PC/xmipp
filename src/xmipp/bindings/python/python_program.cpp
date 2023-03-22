@@ -164,7 +164,7 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -194,7 +194,7 @@ Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -224,7 +224,7 @@ Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -248,7 +248,7 @@ Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -272,7 +272,7 @@ Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -293,7 +293,7 @@ Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -368,7 +368,7 @@ Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -393,7 +393,7 @@ Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -423,7 +423,7 @@ Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }

@@ -44,7 +44,9 @@ public:
         tmpIn.data = in.release();
 
         GeoTransformerTest< T > gt;
-        gt.initLazyForBSpline( x, y, 1, 1, 1, 1 );
+        GPU gpu;
+        gpu.set();
+        gt.initLazyForBSpline( x, y, 1, 1, 1, 1, gpu );
         gt.produceAndLoadCoeffsTest( tmpIn );
 
         auto gpu_out = gt.copy_out_d_inTest( size );

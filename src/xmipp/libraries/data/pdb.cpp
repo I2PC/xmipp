@@ -51,12 +51,6 @@ extern "C" {
 #define HY36_WIDTH_5_MIN -9999
 #define HY36_WIDTH_5_MAX 87440031 /* 100000 + 2*26*36*36*36*36 - 1 */
 
-const char*
-hy36encode(unsigned width, int value, char* result);
-
-const char*
-hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
-
 #ifdef __cplusplus
 }
 #endif
@@ -110,7 +104,7 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				at_pos.residue.push_back(resi);
 
 				// Getting the bfactor = 8pi^2*u
-				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
+				double bfactorRad = textToFloat(line.substr(60,6));//sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
 				at_pos.b.push_back(bfactorRad);
 
                                 // Covalent radius of the atom
@@ -474,7 +468,12 @@ void PDBPhantom::shift(double x, double y, double z)
 }
 
 /* Read phantom from PDB --------------------------------------------------- */
-void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double threshold)
+void PDBRichPhantom::read(const FileName &fnPDB, bool pseudoatoms, double threshold)
+/* - fnPDB is the filename of the PDB file
+   - pseudoatoms is a flag for returning intensities (stored in B-factors) instead of atoms.
+     **false** (default) is used when there are no pseudoatoms or when using a threshold 
+   - threshold is a B factor threshold for filtering out for pdb_reduce_pseudoatoms
+*/
 {
     // Open file
     std::ifstream fh_in;
@@ -483,7 +482,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    std::string line;
+    auto line = std::string(80, ' ');
     std::string kind;
 
     RichAtom atom;
@@ -498,29 +497,37 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
         kind = line.substr(0,4);
         if (kind == "ATOM" || kind == "HETA")
         {
+			line.resize (80,' ');
+
 			// Extract atom type and position
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-			atom.name=line.substr(12,4);
-			atom.atomType = line[13];
-			atom.altloc=line[16];
-			atom.resname=line.substr(17,3);
-			atom.chainid=line[21];
-			atom.resseq = textToInteger(line.substr(22,4));
+			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
+			atom.record = line.substr(0,6);
+			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom.serial);
+			atom.name = line.substr(12,4);
+			atom.altloc = line[16];
+			atom.resname = line.substr(17,3);
+			atom.chainid = line[21];
+			hy36decodeSafe(4, line.substr(22,4).c_str(), 4, &atom.resseq);
 			atom.icode = line[26];
 			atom.x = textToFloat(line.substr(30,8));
 			atom.y = textToFloat(line.substr(38,8));
 			atom.z = textToFloat(line.substr(46,8));
 			atom.occupancy = textToFloat(line.substr(54,6));
 			atom.bfactor = textToFloat(line.substr(60,6));
-			if(pseudoatoms != -1)
-				intensities.push_back(atom.bfactor);
+			atom.segment = line.substr(72,4);
+			atom.atomType = line.substr(76,2);
+			atom.charge = line.substr(78,2);
 
-			if(atom.bfactor >= threshold && pseudoatoms == -1)
+			if(pseudoatoms)
+				intensities.push_back(atom.bfactor);
+            
+			if(!pseudoatoms && atom.bfactor >= threshold)
 				atomList.push_back(atom);
 
-        } else if (kind == "REMA")
-        	remarks.push_back(line);
+		} else if (kind == "REMA")
+			remarks.push_back(line);
     }
 
     // Close files
@@ -528,25 +535,40 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
 }
 
 /* Write phantom to PDB --------------------------------------------------- */
-void PDBRichPhantom::write(const FileName &fnPDB)
+void PDBRichPhantom::write(const FileName &fnPDB, bool renumber)
 {
     FILE* fh_out=fopen(fnPDB.c_str(),"w");
     if (!fh_out)
         REPORT_ERROR(ERR_IO_NOWRITE, fnPDB);
     size_t imax=remarks.size();
     for (size_t i=0; i<imax; ++i)
-    	fprintf(fh_out,"%s\n",remarks[i].c_str());
+        fprintf(fh_out,"%s\n",remarks[i].c_str());
+
     imax=atomList.size();
     for (size_t i=0; i<imax; ++i)
     {
     	const RichAtom &atom=atomList[i];
-        char result[5+1];
-        const char* errmsg = hy36encode(5, (int)i, result);
-    	fprintf (fh_out,"ATOM  %5s %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-    			result,atom.name.c_str(),
-    			atom.altloc,atom.resname.c_str(),atom.chainid,
-    			atom.resseq,atom.icode,atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
-    			atom.name.c_str());
+        char serial[5+1];
+        if (!renumber) {
+            auto* errmsg3 = hy36encode(5, atom.serial, serial);
+            if (errmsg3) {
+                reportWarning("Failed to use atom.serial. Using i+1 instead.");
+                renumber=true;
+                hy36encodeSafe(5, (int)i + 1, serial);
+            }
+        }
+        else {
+            // use i+1 instead
+            hy36encodeSafe(5, (int)i + 1, serial);
+        }
+        char resseq[4+1];
+        hy36encodeSafe(4, atom.resseq, resseq);
+        fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%-2s\n",
+				atom.record.c_str(),serial,atom.name.c_str(),
+				atom.altloc,atom.resname.c_str(),atom.chainid,
+				resseq,atom.icode,
+				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
+				atom.segment.c_str(),atom.atomType.c_str(),atom.charge.c_str());
     }
     fclose(fh_out);
 }
@@ -1634,4 +1656,22 @@ hy36decode(unsigned width, const char* s, unsigned s_size, int* result)
   }
   *result = 0;
   return invalid_number_literal();
+}
+
+// safe function for hy36decode
+void hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result)
+{
+    auto* errmsg = hy36decode(width, s, s_size, result); 
+    if (errmsg) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg);
+    }
+}
+
+// safe function for hy36encode
+void hy36encodeSafe(unsigned width, int value, char* result)
+{
+    const char* errmsg = hy36encode(width, value, result); 
+    if (errmsg) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg);
+    }
 }
