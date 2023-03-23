@@ -1392,35 +1392,84 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			}
 		}
 	}
+		
+	bool elementRemoved;
+	
+	// do
+	// {
+	// 	elementRemoved = false;
 
-	sort(resid2Vector.begin(), resid2Vector.end());
+	// 	size_t resid2Vector_size = resid2Vector.size();
+	// 	double sum2resid2 = 0;
+	// 	double sumResid2 = 0;
+
+	// 	for (size_t i = 0; i < resid2Vector_size; i++)
+	// 	{
+	// 		double sum = resid2Vector[i];
+	// 		sum2resid2 += sum*sum;
+	// 		sumResid2 += sum;
+	// 	}
+
+	// 	double resid2avg = sumResid2 / resid2Vector_size;
+	// 	double resid2std = sqrt(sum2resid2 / resid2Vector_size - resid2avg * resid2avg);
+
+	// 	double resid2thr_high = resid2avg + 2*resid2std;
+	// 	double resid2thr_low = resid2avg - 2*resid2std;
+
+	// 	std::cout << "resid2thr_high " << resid2thr_high << std::endl;
+	// 	std::cout << "resid2thr_low " << resid2thr_low << std::endl;
+
+	// 	for (size_t i = 0; i < resid2Vector.size(); i++)
+	// 	{
+	// 		if (resid2Vector[i] > resid2thr_high || resid2Vector[i] < resid2thr_low)
+	// 		{
+	// 			resid2Vector.erase(resid2Vector.begin()+i);
+	// 			elementRemoved = true;
+	// 		}
+	// 	}
+
+	// 	#ifdef DEBUG_RESIDUAL_ANALYSIS
+	// 	std::cout << "RESIDUALS -------------------------------- size: " << resid2Vector_size << std::endl;
+	// 	for (size_t j = 0; j < resid2Vector_size; j++)
+	// 	{
+	// 		// std::cout << resid2Vector[j] << std::endl;
+	// 	}
+	// 	#endif
+
+	// 	std::cout << "elementRemoved " << elementRemoved <<  std::endl;
+
+	// }while(elementRemoved);
+	
 	size_t resid2Vector_size = resid2Vector.size();
+	sort(resid2Vector.begin(), resid2Vector.end());
 
 	#ifdef DEBUG_RESIDUAL_ANALYSIS
-	std::cout << "SORTED RESIDUALS --------------------------------" << std::endl;
+	std::cout << "SORTED RESIDUALS -------------------------------- size: " << resid2Vector_size << std::endl;
 	for (size_t j = 0; j < resid2Vector_size; j++)
 	{
 		std::cout << resid2Vector[j] << std::endl;
 	}
 	#endif
-
+	
 	for (size_t n = 0; n < nSize; n++)
 	{
-		#ifdef DEBUG_RESIDUAL_ANALYSIS
-		std::cout << "------------ Analyzing image " << n << std::endl;
-		#endif
-
 		std::vector<CM> CM_image;
 		getCMbyImage(n, CM_image);
 
 		size_t numberCM = CM_image.size();
 		double vottingRatio = 0;
 
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << "------------ Analyzing image " << n << ". Presenting " << numberCM << " coordinates." <<  std::endl;
+		#endif
+
 		if (numberCM > 0)
 		{
 			for (size_t i = 0; i < numberCM; i++)
 			{
 				double resid2 = CM_image[i].residuals.x*CM_image[i].residuals.x + CM_image[i].residuals.y*CM_image[i].residuals.y;
+
+				bool found = false;
 
 				for (size_t j = 0; j < resid2Vector_size; j++)
 				{
@@ -1434,9 +1483,17 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 						{
 							vottingRatio += 1;
 						}
+						found = true;
 						break;	
 					}
 				}
+
+				if (!found)  // In case resid2 is bigger than the biggest element in resid2Vector
+				{
+					std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!resid2 is bigger than the biggest element in resid2Vector" << std::endl;
+					vottingRatio += 1;
+				}
+				
 			}
 
 			vottingRatio /= float(numberCM);
@@ -1448,7 +1505,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 				localAlignment[n] = false;
 
 				#ifdef VERBOSE_OUTPUT
-				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << ". Failed residuals: " << vottingRatio << " out of " << numberCM << std::endl;
+				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << ". Failed residuals ratio: " << vottingRatio << " out of " << numberCM << std::endl;
 				#endif
 			}
 			
