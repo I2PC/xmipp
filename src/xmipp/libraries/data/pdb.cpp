@@ -419,6 +419,12 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
 /* Read phantom from PDB --------------------------------------------------- */
 void PDBPhantom::read(const FileName &fnPDB)
 {
+    // Check if file extension is .cif or .pdb
+    if (fnPDB.size() > 4 && fnPDB.substr(fnPDB.size() - 4) == ".cif") {
+        std::cout << "Filename: " << "\n";
+        return;
+    }
+
     // Open file
     std::ifstream fh_in;
     fh_in.open(fnPDB.c_str());
