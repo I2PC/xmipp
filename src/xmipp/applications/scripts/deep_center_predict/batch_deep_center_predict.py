@@ -9,16 +9,15 @@ import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
 
-maxSize = 400
+maxSize = 237
 
 if __name__ == "__main__":
-    print("----in deep_center_predict----", flush=True)
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
-    fnModel = sys.argv[2]
-    mode = sys.argv[3]
+    fnShiftModel = sys.argv[2]
+    fnAngModel = sys.argv[3]
     gpuId = sys.argv[4]
     outputDir = sys.argv[5]
     fnXmdImages = sys.argv[6]
@@ -36,11 +35,9 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.Sequence):
         'Generates data for fnImgs'
 
-        def __init__(self, fnImgs, mode, maxSize, dim, readInMemory):
+        def __init__(self, fnImgs, maxSize, dim, readInMemory):
             'Initialization'
-            print("----------Initialization---------", flush=True)
             self.fnImgs = fnImgs
-            self.mode = mode
             self.maxSize = maxSize
             self.dim = dim
             self.readInMemory = readInMemory
@@ -55,14 +52,12 @@ if __name__ == "__main__":
 
         def __len__(self):
             'Denotes the number of batches per predictions'
-            print("maxSize", flush=True)
             return maxSize
 
         def __getitem__(self, index):
             'Generate one batch of data'
             # Generate indexes of the batch
             indexes = self.indexes[index * maxSize:(index + 1) * maxSize]
-
             # Find list of IDs
             list_IDs_temp = []
             for i in range(len(indexes)):
@@ -94,13 +89,11 @@ if __name__ == "__main__":
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
                     Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                    #Xexp[i,] = shift(Xexp[i, ], (-30, 30, 0), order=1, mode='reflect')
+                    # Xexp[i,] = shift(Xexp[i, ], (-20, 0, 0), order=1, mode='reflect')
             return Xexp
 
 
-    def produce_output(mdExp, mode, numIm, Y, fnImgs, fnImages):
-
-        print(mode)
+    def produce_output(mdExp, mode, Y, fnImages):
         ID = 0
         for objId in mdExp:
             if mode == "Shift":
@@ -132,102 +125,34 @@ if __name__ == "__main__":
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
     mdExp = xmippLib.MetaData(fnXmdExp)
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-    shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
-    shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
-    rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
-    tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
-    psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
     mdExpImages = xmippLib.MetaData(fnXmdImages)
     fnImages = mdExpImages.getColumnValues(xmippLib.MDL_IMAGE)
-    print(mdExpImages.getColumnValues(xmippLib.MDL_SAMPLINGRATE), flush = True)
-
-    if mode == "Shift":
-        labels = []
-        for x, y in zip(shiftX, shiftY):
-            labels.append(np.array((x, y)))
-    elif mode == "Angular":
-        labels = []
-        for r, t, p in zip(rots, tilts, psis):
-            labels.append(np.array((r, t, p)))
-
-
-    def custom_loss_function(y_true, y_pred):
-        d = tf.abs(y_true - y_pred)
-        return tf.reduce_mean(d, axis=-1)
 
 
     start_time = time()
 
-    model = load_model(fnModel, compile=False)
-    model.compile(loss=custom_loss_function, optimizer='adam')
+    ShiftModel = load_model(fnShiftModel, compile=True)
+    AngModel = load_model(fnAngModel, compile=True)
+    # model.compile(loss=custom_loss_function, optimizer='adam')
     # model.compile(optimizer='adam')
 
-    manager = DataGenerator(fnImgs, mode, maxSize, Xdim, readInMemory=False)
-    Y = model.predict_generator(manager, manager.getNumberOfBlocks())
+    ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
 
-    produce_output(mdExp, mode, len(fnImgs), Y, fnImgs, fnImages)
+    print("Number OF Blocks", ShiftManager.getNumberOfBlocks())
 
+    Y = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
 
+    print(len(Y), flush=True)
 
-    if mode == "Shift":
-        mdExp.write(os.path.join(outputDir, "shift_results.xmd"))
-    elif mode == "Angular":
-        mdExp.write(os.path.join(outputDir, "ang_results.xmd"))
+    produce_output(mdExp, 'Shift', Y, fnImages)
 
+    AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
+    Y = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
 
-    def calculate_shift_error(pred, test):
-        error = np.zeros(len(pred))
-        for i in range(len(pred)):
-            error[i] = np.sum(np.abs(pred[i] - test[i]))
-        print_results_stats(mode, error)
-        return error
+    produce_output(mdExp, 'Angular', Y, fnImages)
 
-
-    def calculate_angular_error(pred, test):
-        pred_norm = norm(pred, axis=-1)
-        pred_degree = np.zeros(len(pred_norm))
-        error = np.zeros(len(pred_norm))
-        for i in range(len(pred_norm)):
-            pred[i,] = pred[i,] / pred_norm[i]
-            pred_degree[i] = (math.atan2(pred[i, 0], pred[i, 1])) * 180 / math.pi
-            error[i] = np.min(
-                np.array([np.abs(pred_degree[i] - test[i]), np.abs(np.abs(pred_degree[i] - test[i]) - 360)]))
-        return error
-
-
-    def print_results_stats(elem, err):
-        print("Prediction results of", elem, flush=True)
-        maxAbsError = np.max(err)
-        meanAbsError = np.mean(err)
-        medianAbsError = np.median(err)
-        print("Max Absolute Test Error", maxAbsError)
-        print("Mean Absolute Test Error", meanAbsError)
-        print("Median Absolute Test Error", medianAbsError)
-
-
-    if mode == "Shift":
-        print("Shift")
-        pred = Y
-        test = labels
-        error = calculate_shift_error(pred, test)
-        print_results_stats("Shift", error)
-    else:
-        # Rot
-        pred = Y[:, 0:2]
-        test = [i[0] for i in labels]
-        error = calculate_angular_error(pred, test)
-        print_results_stats("Rot", error)
-        # tilt
-        pred = Y[:, 2:4]
-        test = [i[1] for i in labels]
-        error = calculate_angular_error(pred, test)
-        print_results_stats("Tilt", error)
-
-        pred = Y[:, 4:6]
-        test = [i[2] for i in labels]
-        error = calculate_angular_error(pred, test)
-        print_results_stats("Psi", error)
+    mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
 
 
     elapsed_time = time() - start_time

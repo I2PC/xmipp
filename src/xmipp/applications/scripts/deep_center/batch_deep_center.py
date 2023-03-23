@@ -29,7 +29,7 @@ if __name__ == "__main__":
     from keras.callbacks import TensorBoard, ModelCheckpoint
     from keras.models import Model
     from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
-        Subtract, SeparableConv2D, GlobalAveragePooling2D
+        Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
     from keras.optimizers import *
     import keras
     from keras import callbacks
@@ -93,6 +93,7 @@ if __name__ == "__main__":
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
                 return (img - np.mean(img)) / np.std(img)
             def rotate_image(img, angle):
+                # angle in degrees
                 return rotate(img, angle, order=1, mode='reflect', reshape=False)
             def shift_image(img, shiftx, shifty):
                 return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
@@ -117,10 +118,13 @@ if __name__ == "__main__":
                     y = yvalues + np.vstack((rX, rY)).T
                 else:
                     # Rotates image a random angle. Thus, Psi must be updated
-                    rAngle = self.sigma * np.random.normal(size=self.batch_size)
+                    # rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+                    # rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+                    rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
+                    # Iexp = np.array(list((map(shift_image, Iexp, rX, rY))))
                     Xexp = np.array(list(map(rotate_image, Iexp, rAngle)))
                     rAngle = rAngle * math.pi / 180
-                    yvalues = yvalues * np.pi / 180
+                    yvalues = yvalues * math.pi / 180
                     y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
 
             else:
@@ -135,23 +139,58 @@ if __name__ == "__main__":
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         # Network model
-        L = Conv2D(64, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(inputLayer)  # 11 filter size before
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
 
-        L = Conv2D(64, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)  # 11 filter size before
+        L = Conv2D(16, (7, 7), activation="relu", padding="same")(inputLayer)
+        L = BatchNormalization()(L)
+        L = Conv2D(16, (3, 3), activation="relu", padding="same")(L)
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
         L = Dropout(0.2)(L)
 
-        L = Conv2D(32, (3, 3), activation="relu")(L)  # 11 filter size before
+        L = Conv2D(32, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Conv2D(32, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Conv2D(32, (3, 3), activation="relu", padding="same")(L)
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
         L = Dropout(0.2)(L)
+
+        # L = Conv2D(64, (int(Xdim / 20), int(Xdim / 20)), activation="relu")(L)
+        L = Conv2D(64, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Conv2D(64, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Conv2D(64, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
+
+        L = Conv2D(128, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Conv2D(128, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Conv2D(128, (3, 3), activation="relu", padding="same")(L)
+        L = BatchNormalization()(L)
+        L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
+
+        # L = Conv2D(512, (3, 3), activation="relu")(L)
+        # L = BatchNormalization()(L)
+        # L = MaxPooling2D()(L)
+        # L = Dropout(0.2)(L)
 
         L = Flatten()(L)
-        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
+
+        L = Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
+        L = Dropout(0.2)(L)
+
+        L = Dense(32, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = BatchNormalization()(L)
+        L = Dropout(0.2)(L)
 
         # L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         # L = BatchNormalization()(L)
@@ -179,16 +218,28 @@ if __name__ == "__main__":
         for x, y in zip(shiftX, shiftY):
             labels.append(np.array((x, y)))
         ntraining = math.floor(len(fnImgs) * 0.8)
-        training_generator = DataGenerator(fnImgs[0:ntraining], labels[0:ntraining], mode, sigma, batch_size, Xdim,
+        ind = [i for i in range(len(labels))]
+        np.random.shuffle(ind)
+        indTrain = ind[0:ntraining]
+        indVal = ind[(ntraining+1):]
+        training_generator = DataGenerator([fnImgs[i] for i in indTrain], [labels[i] for i in indTrain], mode, sigma, batch_size, Xdim,
                                            readInMemory=False)
-        validation_generator = DataGenerator(fnImgs[(ntraining + 1):], labels[(ntraining + 1):], mode, sigma,
+        validation_generator = DataGenerator([fnImgs[i] for i in indVal], [labels[i] for i in indVal], mode, sigma,
                                              batch_size, Xdim, readInMemory=False)
     elif mode == "Angular":
         labels = []
         for r, t, p in zip(rots, tilts, psis):
             labels.append(np.array((r, t, p)))
-        training_generator = DataGenerator(fnImgs, labels, mode, sigma, batch_size, Xdim,
+        ntraining = math.floor(len(fnImgs) * 0.8)
+        ind = [i for i in range(len(labels))]
+        np.random.shuffle(ind)
+        indTrain = ind[0:ntraining]
+        indVal = ind[(ntraining + 1):]
+        training_generator = DataGenerator([fnImgs[i] for i in indTrain], [labels[i] for i in indTrain], mode, sigma,
+                                           batch_size, Xdim,
                                            readInMemory=False)
+        validation_generator = DataGenerator([fnImgs[i] for i in indVal], [labels[i] for i in indVal], mode, sigma,
+                                             batch_size, Xdim, readInMemory=False)
 
 
     start_time = time()
@@ -209,7 +260,7 @@ if __name__ == "__main__":
     if mode == 'Shift':
         history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs, validation_data = validation_generator) #https://www.geeksforgeeks.org/keras-fit-and-keras-fit_generator/
     else:
-        history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs)
+        history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs, validation_data = validation_generator)
 
     model.save(fnModel)
     elapsed_time = time() - start_time
