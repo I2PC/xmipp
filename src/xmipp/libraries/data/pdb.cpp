@@ -25,14 +25,16 @@
 
 #include <fstream>
 #include <string>
+#include <cif++.hpp>
+#include <filesystem>
 #include "pdb.h"
 #include "core/matrix2d.h"
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
-#include "data/fourier_projection.h"
+//#include "data/fourier_projection.h"
 #include "data/integration.h"
-#include "data/mask.h"
+//#include "data/mask.h"
 #include "data/numerical_tools.h"
 
 /* If you change the include guards, please be sure to also rename the
@@ -416,15 +418,44 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
     fh_out.close();
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
-void PDBPhantom::read(const FileName &fnPDB)
-{
-    // Check if file extension is .cif or .pdb
-    if (fnPDB.size() > 4 && fnPDB.substr(fnPDB.size() - 4) == ".cif") {
-        std::cout << "Filename: " << "\n";
-        return;
+/**
+ * @brief Checks if the file uses a supported extension type.
+ * 
+ * This function checks if the given file path has one of the given supported extensions, with or without compression
+ * in any of the accepted compressions.
+ * 
+ * @param filePath File including path.
+ * @param acceptedExtensions List of accepted extensions.
+ * @param acceptedCompressions List of accepted compressions.
+ * @return The factorial of n.
+*/
+bool checkExtension(std::filesystem::path filePath, std::list<std::string> acceptedExtensions, std::list<std::string> acceptedCompressions) {
+    // File extension is invalid by default 
+    bool validExtension = false;
+
+    // Checking if file extension is in accepted extensions with or without an accepted compression
+    if (std::find(acceptedExtensions.begin(), acceptedExtensions.end(), filePath.extension()) != acceptedExtensions.end()) {
+        // Accepted extension without compression
+        validExtension = true;
+    } else {
+        if (std::find(acceptedCompressions.begin(), acceptedCompressions.end(), filePath.extension()) != acceptedCompressions.end()) {
+            // Accepted compression detected
+            // Checking if next extension is valid
+            std::filesystem::path shortedPath = filePath.parent_path().u8string() + "/" + filePath.stem().u8string();
+            if (std::find(acceptedExtensions.begin(), acceptedExtensions.end(), shortedPath.extension()) != acceptedExtensions.end()) {
+                // Accepted extension with compression
+                validExtension = true;
+            }
+        }
     }
 
+    // Returning calculated validity
+    return validExtension;
+}
+
+/* Read phantom from PDB --------------------------------------------------- */
+void PDBPhantom::readPDB(const FileName &fnPDB)
+{
     // Open file
     std::ifstream fh_in;
     fh_in.open(fnPDB.c_str());
@@ -459,6 +490,51 @@ void PDBPhantom::read(const FileName &fnPDB)
 
     // Close files
     fh_in.close();
+}
+
+void PDBPhantom::readCIF(const FileName &fnPDB)
+{
+    // Parsing mmCIF file
+    cif::file cifFile;
+    cifFile.load(fnPDB);
+
+    // Extrayendo "front" <----- REVISAR SI ESTÁ LEYENDO UN FRAGMENTO O EL DOCUMENTO ENTERO (QUÉ HACE FRONT)
+    auto& db = cifFile.front();
+
+    // Reading Atom section
+    // Typical line:
+    // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
+    auto& atom_site = db["atom_site"];
+
+    // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
+    Atom atom;
+	for (const auto& [atom_id, x_pos, y_pos, z_pos]: atom_site.find
+        <std::string,float,float,float>
+        (
+            cif::key("group_PDB") == "ATOM" || cif::key("group_PDB") == "HETATM",
+            "label_atom_id",
+            "Cartn_x",
+            "Cartn_y",
+            "Cartn_z"
+        ))
+	{
+        atom.atomType = atom_id;
+        atom.x = x_pos;
+        atom.y = y_pos;
+        atom.z = z_pos;
+        atomList.push_back(atom);
+	}
+}
+
+/* Read phantom from PDB and CIF ------------------------------------------- */
+void PDBPhantom::read(const FileName &fnPDB)
+{
+    // Checking if extension is .cif or .pdb
+    if (checkExtension(fnPDB, {".cif"}, {".gz"})) {
+        readCIF(fnPDB);
+    } else {
+        readPDB(fnPDB);
+    }
 }
 
 /* Shift ------------------------------------------------------------------- */
