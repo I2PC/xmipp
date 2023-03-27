@@ -551,7 +551,7 @@ void readCIF(const FileName &fnPDB, std::vector<Atom> &atomList)
 /**
  * @brief Read phantom from either a PDB of CIF file.
  * 
- * This function reads the given PDB or CIF file and inserts the found atoms inside in class' atom list.
+ * This function reads the given PDB or CIF file and inserts the found atoms inside in class's atom list.
  * 
  * @param fnPDB PDB/CIF file.
 */
