@@ -25,16 +25,21 @@
 
 #include <fstream>
 #include <string>
-#include <cif++.hpp>
 #include <filesystem>
+#include <cif++.hpp>
+
+// TMP
+#include <list>
+#include <algorithm>
+
 #include "pdb.h"
 #include "core/matrix2d.h"
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
-//#include "data/fourier_projection.h"
+#include "data/fourier_projection.h"
 #include "data/integration.h"
-//#include "data/mask.h"
+#include "data/mask.h"
 #include "data/numerical_tools.h"
 
 /* If you change the include guards, please be sure to also rename the
@@ -429,20 +434,20 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
  * @param acceptedCompressions List of accepted compressions.
  * @return The factorial of n.
 */
-bool checkExtension(std::filesystem::path filePath, std::list<std::string> acceptedExtensions, std::list<std::string> acceptedCompressions) {
+bool checkExtension(const std::filesystem::path filePath, const std::list<std::string> acceptedExtensions, const std::list<std::string> acceptedCompressions) {
     // File extension is invalid by default 
     bool validExtension = false;
 
     // Checking if file extension is in accepted extensions with or without an accepted compression
-    if (std::find(acceptedExtensions.begin(), acceptedExtensions.end(), filePath.extension()) != acceptedExtensions.end()) {
+    if (find(acceptedExtensions.begin(), acceptedExtensions.end(), filePath.extension()) != acceptedExtensions.end()) {
         // Accepted extension without compression
         validExtension = true;
     } else {
-        if (std::find(acceptedCompressions.begin(), acceptedCompressions.end(), filePath.extension()) != acceptedCompressions.end()) {
+        if (find(acceptedCompressions.begin(), acceptedCompressions.end(), filePath.extension()) != acceptedCompressions.end()) {
             // Accepted compression detected
             // Checking if next extension is valid
-            std::filesystem::path shortedPath = filePath.parent_path().u8string() + "/" + filePath.stem().u8string();
-            if (std::find(acceptedExtensions.begin(), acceptedExtensions.end(), shortedPath.extension()) != acceptedExtensions.end()) {
+            const std::filesystem::path shortedPath = filePath.parent_path().u8string() + "/" + filePath.stem().u8string();
+            if (find(acceptedExtensions.begin(), acceptedExtensions.end(), shortedPath.extension()) != acceptedExtensions.end()) {
                 // Accepted extension with compression
                 validExtension = true;
             }
@@ -454,7 +459,7 @@ bool checkExtension(std::filesystem::path filePath, std::list<std::string> accep
 }
 
 /* Read phantom from PDB --------------------------------------------------- */
-void PDBPhantom::readPDB(const FileName &fnPDB)
+void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
 {
     // Open file
     std::ifstream fh_in;
@@ -492,13 +497,15 @@ void PDBPhantom::readPDB(const FileName &fnPDB)
     fh_in.close();
 }
 
-void PDBPhantom::readCIF(const FileName &fnPDB)
+/* Read phantom from CIF --------------------------------------------------- */
+/*
+void readCIF(const FileName &fnPDB, std::vector<Atom> &atomList)
 {
     // Parsing mmCIF file
     cif::file cifFile;
     cifFile.load(fnPDB);
 
-    // Extrayendo "front" <----- REVISAR SI ESTÁ LEYENDO UN FRAGMENTO O EL DOCUMENTO ENTERO (QUÉ HACE FRONT)
+    // Extrayendo datos del archivo en un DataBlock
     auto& db = cifFile.front();
 
     // Reading Atom section
@@ -525,15 +532,16 @@ void PDBPhantom::readCIF(const FileName &fnPDB)
         atomList.push_back(atom);
 	}
 }
+*/
 
-/* Read phantom from PDB and CIF ------------------------------------------- */
+/* Read phantom from PDB or CIF ----------------------------------------------- */
 void PDBPhantom::read(const FileName &fnPDB)
 {
     // Checking if extension is .cif or .pdb
-    if (checkExtension(fnPDB, {".cif"}, {".gz"})) {
-        readCIF(fnPDB);
+    if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
+        //readCIF(fnPDB.getString(), atomList);
     } else {
-        readPDB(fnPDB);
+        readPDB(fnPDB, atomList);
     }
 }
 
