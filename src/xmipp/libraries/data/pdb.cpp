@@ -432,7 +432,7 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
  * @param filePath File including path.
  * @param acceptedExtensions List of accepted extensions.
  * @param acceptedCompressions List of accepted compressions.
- * @return The factorial of n.
+ * @return true if the extension is valid, false otherwise.
 */
 bool checkExtension(const std::filesystem::path filePath, const std::list<std::string> acceptedExtensions, const std::list<std::string> acceptedCompressions) {
     // File extension is invalid by default 
