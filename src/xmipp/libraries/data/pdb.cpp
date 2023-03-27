@@ -458,7 +458,14 @@ bool checkExtension(const std::filesystem::path filePath, const std::list<std::s
     return validExtension;
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
+/**
+ * @brief Read phantom from PDB.
+ * 
+ * This function reads the given PDB file and inserts the found atoms inside in the given atom list.
+ * 
+ * @param fnPDB PDB file.
+ * @param atomList Atom list where new atoms should be added.
+*/
 void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
 {
     // Open file
@@ -497,7 +504,14 @@ void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
     fh_in.close();
 }
 
-/* Read phantom from CIF --------------------------------------------------- */
+/**
+ * @brief Read phantom from CIF.
+ * 
+ * This function reads the given CIF file and inserts the found atoms inside in the given atom list.
+ * 
+ * @param fnPDB CIF file.
+ * @param atomList Atom list where new atoms should be added.
+*/
 /*
 void readCIF(const FileName &fnPDB, std::vector<Atom> &atomList)
 {
@@ -534,7 +548,13 @@ void readCIF(const FileName &fnPDB, std::vector<Atom> &atomList)
 }
 */
 
-/* Read phantom from PDB or CIF ----------------------------------------------- */
+/**
+ * @brief Read phantom from either a PDB of CIF file.
+ * 
+ * This function reads the given PDB or CIF file and inserts the found atoms inside in class' atom list.
+ * 
+ * @param fnPDB PDB/CIF file.
+*/
 void PDBPhantom::read(const FileName &fnPDB)
 {
     // Checking if extension is .cif or .pdb
