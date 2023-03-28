@@ -434,7 +434,7 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
  * @param acceptedCompressions List of accepted compressions.
  * @return true if the extension is valid, false otherwise.
 */
-bool checkExtension(const std::filesystem::path filePath, const std::list<std::string> acceptedExtensions, const std::list<std::string> acceptedCompressions) {
+bool checkExtension(const std::filesystem::path &filePath, const std::list<std::string> &acceptedExtensions, const std::list<std::string> &acceptedCompressions) {
     // File extension is invalid by default 
     bool validExtension = false;
 
@@ -461,12 +461,12 @@ bool checkExtension(const std::filesystem::path filePath, const std::list<std::s
 /**
  * @brief Read phantom from PDB.
  * 
- * This function reads the given PDB file and inserts the found atoms inside in the given atom list.
+ * This function reads the given PDB file and inserts the found atoms inside in the class's atom list.
  * 
  * @param fnPDB PDB file.
- * @param atomList Atom list where new atoms should be added.
+ * @param addAtom Function to add atoms to class's atom list.
 */
-void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
+void readPDB(const FileName &fnPDB, const std::function<void(Atom)> &addAtom)
 {
     // Open file
     std::ifstream fh_in;
@@ -483,9 +483,7 @@ void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
         // Read an ATOM line
         getline(fh_in, line);
         if (line == "")
-        {
             continue;
-        }
         kind = line.substr(0,4);
         if (kind != "ATOM" && kind != "HETA")
             continue;
@@ -497,7 +495,7 @@ void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
         atom.x = textToFloat(line.substr(30,8));
         atom.y = textToFloat(line.substr(38,8));
         atom.z = textToFloat(line.substr(46,8));
-        atomList.push_back(atom);
+        addAtom(atom);
     }
 
     // Close files
@@ -507,13 +505,12 @@ void readPDB(const FileName &fnPDB, std::vector<Atom> &atomList)
 /**
  * @brief Read phantom from CIF.
  * 
- * This function reads the given CIF file and inserts the found atoms inside in the given atom list.
+ * This function reads the given CIF file and inserts the found atoms inside in the class's atom list.
  * 
- * @param fnPDB CIF file.
- * @param atomList Atom list where new atoms should be added.
+ * @param fnPDB CIF file path.
+ * @param addAtom Function to add atoms to class's atom list.
 */
-/*
-void readCIF(const FileName &fnPDB, std::vector<Atom> &atomList)
+void readCIF(const std::string &fnPDB, const std::function<void(Atom)> &addAtom)
 {
     // Parsing mmCIF file
     cif::file cifFile;
@@ -539,14 +536,15 @@ void readCIF(const FileName &fnPDB, std::vector<Atom> &atomList)
             "Cartn_z"
         ))
 	{
-        atom.atomType = atom_id;
+        // Obtaining:
+        // C 58.775 31.984 111.803
+        atom.atomType = atom_id[0];
         atom.x = x_pos;
         atom.y = y_pos;
         atom.z = z_pos;
-        atomList.push_back(atom);
+        addAtom(atom);
 	}
 }
-*/
 
 /**
  * @brief Read phantom from either a PDB of CIF file.
@@ -559,9 +557,9 @@ void PDBPhantom::read(const FileName &fnPDB)
 {
     // Checking if extension is .cif or .pdb
     if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
-        //readCIF(fnPDB.getString(), atomList);
+        readCIF(fnPDB.getString(), bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
     } else {
-        readPDB(fnPDB, atomList);
+        readPDB(fnPDB, bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
     }
 }
 
