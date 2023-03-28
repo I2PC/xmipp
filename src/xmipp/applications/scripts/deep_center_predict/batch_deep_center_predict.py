@@ -7,6 +7,7 @@ import os
 import sys
 import xmippLib
 from time import time
+from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift, rotate
 
 maxSize = 237
@@ -93,6 +94,28 @@ if __name__ == "__main__":
             return Xexp
 
 
+    def rotation6d_to_matrix(rot):
+
+        a1 = np.array((rot[0], rot[2], rot[4]))
+        a2 = np.array((rot[1], rot[3], rot[5]))
+        a1 = np.reshape(a1, (3, 1))
+        a2 = np.reshape(a2, (3, 1))
+
+        b1 = a1 / np.linalg.norm(a1)
+
+        c1 = np.multiply(b1, a2)
+        c2 = np.sum(c1)
+
+        b2 = a2 - c2 * b1
+        b2 = b2 / np.linalg.norm(b2)
+        b3 = np.cross(b1, b2, axis=0)
+        return np.concatenate((b1, b2, b3), axis = 1)
+
+    def matrix_to_euler(mat):
+        r = Rotation.from_matrix(mat)
+        angles = r.as_euler("xyz", degrees=True)
+        return angles
+
     def produce_output(mdExp, mode, Y, fnImages):
         ID = 0
         for objId in mdExp:
@@ -111,9 +134,11 @@ if __name__ == "__main__":
                 rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
                 tilts /= norm(tilts)
                 tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
-                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, float(psis_degree), objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, float(rots_degree), objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, float(tilts_degree), objId)
+                rotmatrix = rotation6d_to_matrix(Y[ID])
+                angles = matrix_to_euler(rotmatrix)
+                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
             ID += 1
 
 
@@ -132,9 +157,10 @@ if __name__ == "__main__":
 
     start_time = time()
 
-    ShiftModel = load_model(fnShiftModel, compile=True)
-    AngModel = load_model(fnAngModel, compile=True)
-    # model.compile(loss=custom_loss_function, optimizer='adam')
+    ShiftModel = load_model(fnShiftModel, compile=False)
+    AngModel = load_model(fnAngModel, compile=False)
+    ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
+    AngModel.compile(loss="mean_squared_error", optimizer='adam')
     # model.compile(optimizer='adam')
 
     ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
