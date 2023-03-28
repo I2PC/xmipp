@@ -95,6 +95,7 @@ class FaissDatabase(Database):
             resources = faiss.StandardGpuResources()
             co = faiss.GpuClonerOptions()
             co.useFloat16 = use_f16
+            co.useFloat16CoarseQuantizer = use_f16
             
             self._index = faiss.index_cpu_to_gpu(
                 resources,
