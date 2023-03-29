@@ -1336,23 +1336,44 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 			if (std <= 43.5)
 			{
 				globalMialingmentVotting[n] = true;
+				
+				#ifdef DEBUG_RESIDUAL_ANALYSIS
+				std::cout << "Chain number " << n << "present global misalignment with std=" << std << std::endl;
+				#endif
 			}			
 		}
 		else if (imagesOutOfRange < 6.5)
 		{
 			globalMialingmentVotting[n] = true;
+
+			#ifdef DEBUG_RESIDUAL_ANALYSIS
+			std::cout << "Chain number " << n << "present global misalignment with imagesOutOfRange=" << imagesOutOfRange << std::endl;
+			#endif
 		}	
 	}
 
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
+	std::cout << "globalMialingmentVotting" << std::endl;
+	#endif
+
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << globalMialingmentVotting[n] << " ";
+		#endif
+
 		if (globalMialingmentVotting[n])
 		{
 			vottingRatio += 1;
 		}
 		
 	}
+
 	vottingRatio /= numberOfInputCoords;
+
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
+	std::cout  << "\n votting ratio " << vottingRatio << std::endl;
+	#endif
 
 	if (vottingRatio < 0.5)
 	{
