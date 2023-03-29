@@ -147,7 +147,7 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB file
+    /// Read from PDB or CIF file
     void read(const FileName &fnPDB);
 
     /// Apply a shift to all atoms

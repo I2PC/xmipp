@@ -25,6 +25,13 @@
 
 #include <fstream>
 #include <string>
+#include <filesystem>
+#include <cif++.hpp>
+
+// TMP
+#include <list>
+#include <algorithm>
+
 #include "pdb.h"
 #include "core/matrix2d.h"
 #include "core/multidim_array.h"
@@ -416,8 +423,50 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
     fh_out.close();
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
-void PDBPhantom::read(const FileName &fnPDB)
+/**
+ * @brief Checks if the file uses a supported extension type.
+ * 
+ * This function checks if the given file path has one of the given supported extensions, with or without compression
+ * in any of the accepted compressions.
+ * 
+ * @param filePath File including path.
+ * @param acceptedExtensions List of accepted extensions.
+ * @param acceptedCompressions List of accepted compressions.
+ * @return true if the extension is valid, false otherwise.
+*/
+bool checkExtension(const std::filesystem::path &filePath, const std::list<std::string> &acceptedExtensions, const std::list<std::string> &acceptedCompressions) {
+    // File extension is invalid by default 
+    bool validExtension = false;
+
+    // Checking if file extension is in accepted extensions with or without an accepted compression
+    if (find(acceptedExtensions.begin(), acceptedExtensions.end(), filePath.extension()) != acceptedExtensions.end()) {
+        // Accepted extension without compression
+        validExtension = true;
+    } else {
+        if (find(acceptedCompressions.begin(), acceptedCompressions.end(), filePath.extension()) != acceptedCompressions.end()) {
+            // Accepted compression detected
+            // Checking if next extension is valid
+            const std::filesystem::path shortedPath = filePath.parent_path().u8string() + "/" + filePath.stem().u8string();
+            if (find(acceptedExtensions.begin(), acceptedExtensions.end(), shortedPath.extension()) != acceptedExtensions.end()) {
+                // Accepted extension with compression
+                validExtension = true;
+            }
+        }
+    }
+
+    // Returning calculated validity
+    return validExtension;
+}
+
+/**
+ * @brief Read phantom from PDB.
+ * 
+ * This function reads the given PDB file and inserts the found atoms inside in the class's atom list.
+ * 
+ * @param fnPDB PDB file.
+ * @param addAtom Function to add atoms to class's atom list.
+*/
+void readPDB(const FileName &fnPDB, const std::function<void(Atom)> &addAtom)
 {
     // Open file
     std::ifstream fh_in;
@@ -434,9 +483,7 @@ void PDBPhantom::read(const FileName &fnPDB)
         // Read an ATOM line
         getline(fh_in, line);
         if (line == "")
-        {
             continue;
-        }
         kind = line.substr(0,4);
         if (kind != "ATOM" && kind != "HETA")
             continue;
@@ -448,11 +495,72 @@ void PDBPhantom::read(const FileName &fnPDB)
         atom.x = textToFloat(line.substr(30,8));
         atom.y = textToFloat(line.substr(38,8));
         atom.z = textToFloat(line.substr(46,8));
-        atomList.push_back(atom);
+        addAtom(atom);
     }
 
     // Close files
     fh_in.close();
+}
+
+/**
+ * @brief Read phantom from CIF.
+ * 
+ * This function reads the given CIF file and inserts the found atoms inside in the class's atom list.
+ * 
+ * @param fnPDB CIF file path.
+ * @param addAtom Function to add atoms to class's atom list.
+*/
+void readCIF(const std::string &fnPDB, const std::function<void(Atom)> &addAtom)
+{
+    // Parsing mmCIF file
+    cif::file cifFile;
+    cifFile.load(fnPDB);
+
+    // Extrayendo datos del archivo en un DataBlock
+    auto& db = cifFile.front();
+
+    // Reading Atom section
+    // Typical line:
+    // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
+    auto& atom_site = db["atom_site"];
+
+    // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
+    Atom atom;
+	for (const auto& [atom_id, x_pos, y_pos, z_pos]: atom_site.find
+        <std::string,float,float,float>
+        (
+            cif::key("group_PDB") == "ATOM" || cif::key("group_PDB") == "HETATM",
+            "label_atom_id",
+            "Cartn_x",
+            "Cartn_y",
+            "Cartn_z"
+        ))
+	{
+        // Obtaining:
+        // C 58.775 31.984 111.803
+        atom.atomType = atom_id[0];
+        atom.x = x_pos;
+        atom.y = y_pos;
+        atom.z = z_pos;
+        addAtom(atom);
+	}
+}
+
+/**
+ * @brief Read phantom from either a PDB of CIF file.
+ * 
+ * This function reads the given PDB or CIF file and inserts the found atoms inside in class's atom list.
+ * 
+ * @param fnPDB PDB/CIF file.
+*/
+void PDBPhantom::read(const FileName &fnPDB)
+{
+    // Checking if extension is .cif or .pdb
+    if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
+        readCIF(fnPDB.getString(), bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
+    } else {
+        readPDB(fnPDB, bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
+    }
 }
 
 /* Shift ------------------------------------------------------------------- */
