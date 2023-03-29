@@ -30,6 +30,7 @@
 #define _XMIPP_PDB_HH
 
 #include <vector>
+#include <libcifpp/include/cif++.hpp>
 #include "core/xmipp_error.h"
 
 template<typename T>
@@ -129,6 +130,9 @@ public:
     /// List of atoms
     std::vector<Atom> atomList;
 
+    // Whole data block
+    cif::datablock dataBlock;
+
     /// Add Atom
     void addAtom(const Atom &atom)
     {
@@ -147,7 +151,13 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB or CIF file
+    /**
+     * @brief Read phantom from either a PDB of CIF file.
+     * 
+     * This function reads the given PDB or CIF file and inserts the found atoms inside in class's atom list.
+     * 
+     * @param fnPDB PDB/CIF file.
+    */
     void read(const FileName &fnPDB);
 
     /// Apply a shift to all atoms
@@ -219,10 +229,13 @@ class PDBRichPhantom
 public:
 	/// List of remarks
 	std::vector<std::string> remarks;
-public:
+
     /// List of atoms
     std::vector<RichAtom> atomList;
     std::vector<double> intensities;
+
+    // Whole data block
+    cif::datablock dataBlock;
 
     /// Add Atom
     void addAtom(const RichAtom &atom)
@@ -236,7 +249,16 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB file
+    /**
+     * @brief Read rich phantom from either a PDB of CIF file.
+     * 
+     * This function reads the given PDB or CIF file and stores the found atoms, remarks, and intensities.
+     * 
+     * @param fnPDB PDB/CIF file.
+     * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms.
+     *  **false** (default) is used when there are no pseudoatoms or when using a threshold.
+     * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
+    */
     void read(const FileName &fnPDB, bool pseudoatoms = false, double threshold = 0.0);
 
     /// Write to PDB file
