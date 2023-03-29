@@ -1395,50 +1395,50 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		
 	bool elementRemoved;
 	
-	// do
-	// {
-	// 	elementRemoved = false;
+	do
+	{
+		elementRemoved = false;
 
-	// 	size_t resid2Vector_size = resid2Vector.size();
-	// 	double sum2resid2 = 0;
-	// 	double sumResid2 = 0;
+		size_t resid2Vector_size = resid2Vector.size();
+		double sum2resid2 = 0;
+		double sumResid2 = 0;
 
-	// 	for (size_t i = 0; i < resid2Vector_size; i++)
-	// 	{
-	// 		double sum = resid2Vector[i];
-	// 		sum2resid2 += sum*sum;
-	// 		sumResid2 += sum;
-	// 	}
+		for (size_t i = 0; i < resid2Vector_size; i++)
+		{
+			double sum = resid2Vector[i];
+			sum2resid2 += sum*sum;
+			sumResid2 += sum;
+		}
 
-	// 	double resid2avg = sumResid2 / resid2Vector_size;
-	// 	double resid2std = sqrt(sum2resid2 / resid2Vector_size - resid2avg * resid2avg);
+		double resid2avg = sumResid2 / resid2Vector_size;
+		double resid2std = sqrt(sum2resid2 / resid2Vector_size - resid2avg * resid2avg);
 
-	// 	double resid2thr_high = resid2avg + 2*resid2std;
-	// 	double resid2thr_low = resid2avg - 2*resid2std;
+		double resid2thr_high = resid2avg + 2*resid2std;
+		double resid2thr_low = resid2avg - 2*resid2std;
 
-	// 	std::cout << "resid2thr_high " << resid2thr_high << std::endl;
-	// 	std::cout << "resid2thr_low " << resid2thr_low << std::endl;
+		std::cout << "resid2thr_high " << resid2thr_high << std::endl;
+		std::cout << "resid2thr_low " << resid2thr_low << std::endl;
 
-	// 	for (size_t i = 0; i < resid2Vector.size(); i++)
-	// 	{
-	// 		if (resid2Vector[i] > resid2thr_high || resid2Vector[i] < resid2thr_low)
-	// 		{
-	// 			resid2Vector.erase(resid2Vector.begin()+i);
-	// 			elementRemoved = true;
-	// 		}
-	// 	}
+		for (size_t i = 0; i < resid2Vector.size(); i++)
+		{
+			if (resid2Vector[i] > resid2thr_high || resid2Vector[i] < resid2thr_low)
+			{
+				resid2Vector.erase(resid2Vector.begin()+i);
+				elementRemoved = true;
+			}
+		}
 
-	// 	#ifdef DEBUG_RESIDUAL_ANALYSIS
-	// 	std::cout << "RESIDUALS -------------------------------- size: " << resid2Vector_size << std::endl;
-	// 	for (size_t j = 0; j < resid2Vector_size; j++)
-	// 	{
-	// 		// std::cout << resid2Vector[j] << std::endl;
-	// 	}
-	// 	#endif
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << "RESIDUALS -------------------------------- size: " << resid2Vector_size << std::endl;
+		for (size_t j = 0; j < resid2Vector_size; j++)
+		{
+			// std::cout << resid2Vector[j] << std::endl;
+		}
+		#endif
 
-	// 	std::cout << "elementRemoved " << elementRemoved <<  std::endl;
+		std::cout << "elementRemoved " << elementRemoved <<  std::endl;
 
-	// }while(elementRemoved);
+	}while(elementRemoved);
 	
 	size_t resid2Vector_size = resid2Vector.size();
 	sort(resid2Vector.begin(), resid2Vector.end());

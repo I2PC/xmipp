@@ -62,7 +62,7 @@
 // #define DEBUG_LOCAL_MISALI
 // #define DEBUG_RESID
 // #define DEBUG_COORDS_CS
-// #define DEBUG_RESIDUAL_ANALYSIS
+#define DEBUG_RESIDUAL_ANALYSIS
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
