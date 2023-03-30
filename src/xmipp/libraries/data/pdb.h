@@ -259,10 +259,19 @@ public:
      *  **false** (default) is used when there are no pseudoatoms or when using a threshold.
      * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
     */
-    void read(const FileName &fnPDB, bool pseudoatoms = false, double threshold = 0.0);
+    void read(const FileName &fnPDB, const bool pseudoatoms = false, const double threshold = 0.0);
 
-    /// Write to PDB file
-    void write(const FileName &fnPDB, bool renumber = false);
+    /**
+     * @brief Write rich phantom to PDB or CIF file.
+     * 
+     * This function stores all the data of the rich phantom into a PDB or CIF file.
+     * Note: Conversion is not enabled yet, so if a file read from a PDB is written into a CIF file,
+     * results might not be great. Atoms should be properly translated, but remarks and intensities probably not.
+     * 
+     * @param fnPDB PDB/CIF file to write to.
+     * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
+    */
+    void write(const FileName &fnPDB, const bool renumber = false);
 
 };
 
