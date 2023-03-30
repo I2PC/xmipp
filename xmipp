@@ -525,7 +525,7 @@ def compile_libcifpp():
     os.chdir(currDir)
     libDir = "src/xmipp/lib"
     createDir(libDir)
-    ok = ok and runJob("cp " + os.path.join(libcifppDir, "lib", "libcifpp.so") + " " + libDir)
+    ok = ok and runJob("cp " + os.path.join(libcifppDir, "lib", "libcifpp.so*") + " " + libDir)
     return ok
 
 def compile(Nproc):
@@ -735,12 +735,14 @@ def linkToScipion(dirname):
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
         CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so")
+        CIFPPLib5 = os.path.join(xmippLink, "lib", "libcifpp.so.5")
         bindings = os.path.join(xmippLink, "bindings", "python", "*")
 
         os.chdir(scipionSoftwareEM)
         runJob("ln -srf %s %s" % (coreLib, scipionLibs))
         runJob("ln -srf %s %s" % (SVMLib, scipionLibs))
         runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs))
+        runJob("ln -srf %s %s" % (CIFPPLib5, scipionLibs))
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
