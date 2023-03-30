@@ -671,29 +671,34 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
 
     // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
     RichAtom atom;
-	for (const auto& [record, serialNumber, atomId, resName, chain, resSeq, iCode, xPos, yPos, zPos, occupancy, bFactor, charge]:
-        atom_site.find<std::string,int,std::string,std::string,std::string,int,std::string,float,float,float,float,float,std::string>
+	for (const auto& [record, serialNumber, atomId, altId, resName, chain, resSeq, seqId, iCode, xPos, yPos, zPos, occupancy, bFactor, charge, authSeqId, authCompId, authAsymId, authAtomId, pdbNum]:
+        atom_site.find<std::string,int,std::string, std::string,std::string,std::string,int,int,std::string,float,float,float,float,float,std::string,int,std::string,std::string,std::string,int>
         (
             // Note: search by key is needed to iterate list of atoms. Workaround: use every possible record type for the search
             cif::key("group_PDB") == "ATOM" || cif::key("group_PDB") == "HETATM",
-            "group_PDB",        // Record:          -->ATOM<--   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "id",               // Serial number:   ATOM   -->8<--      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "label_atom_id",    // Id:              ATOM   8      C  -->CD1<-- . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "label_comp_id",    // Chain name:      ATOM   8      C  CD1 . -->ILE<-- A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "label_asym_id",    // Chain location:  ATOM   8      C  CD1 . ILE -->A<--  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "label_entity_id",  // Residue sequence:ATOM   8      C  CD1 . ILE A  -->1<-- 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "pdbx_PDB_ins_code",// Ins code:        ATOM   8      C  CD1 . ILE A  1 3    -->?<-- 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "Cartn_x",          // X position:      ATOM   8      C  CD1 . ILE A  1 3    ? -->48.271<--  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "Cartn_y",          // Y position:      ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  -->183.605<-- 19.253  1.00 35.73  ? 3    ILE A CD1 1
-            "Cartn_z",          // Z position:      ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 -->19.253<--  1.00 35.73  ? 3    ILE A CD1 1
-            "occupancy",        // Occupancy:       ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  -->1.00<-- 35.73  ? 3    ILE A CD1 1
-            "B_iso_or_equiv",   // B factor:        ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 -->35.73<--  ? 3    ILE A CD1 1
-            "pdbx_formal_charge"// Charge:          ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  -->?<-- 3    ILE A CD1 1
+            "group_PDB",            // Record:          -->ATOM<--   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "id",                   // Serial number:   ATOM   -->8<--      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_atom_id",        // Id:              ATOM   8      C  -->CD1<-- . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_alt_id",         // Alt id:          ATOM   8      C  CD1 -->.<-- ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_comp_id",        // Chain name:      ATOM   8      C  CD1 . -->ILE<-- A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_asym_id",        // Chain location:  ATOM   8      C  CD1 . ILE -->A<--  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_entity_id",      // Residue sequence:ATOM   8      C  CD1 . ILE A  -->1<-- 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_seq_id",         // Sequence id:     ATOM   8      C  CD1 . ILE A  1 -->3<--    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "pdbx_PDB_ins_code",    // Ins code:        ATOM   8      C  CD1 . ILE A  1 3    -->?<-- 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "Cartn_x",              // X position:      ATOM   8      C  CD1 . ILE A  1 3    ? -->48.271<--  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "Cartn_y",              // Y position:      ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  -->183.605<-- 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "Cartn_z",              // Z position:      ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 -->19.253<--  1.00 35.73  ? 3    ILE A CD1 1
+            "occupancy",            // Occupancy:       ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  -->1.00<-- 35.73  ? 3    ILE A CD1 1
+            "B_iso_or_equiv",       // B factor:        ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 -->35.73<--  ? 3    ILE A CD1 1
+            "pdbx_formal_charge",   // Author charge:   ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  -->?<-- 3    ILE A CD1 1
+            "auth_seq_id",          // Author seq id:   ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? -->3<--    ILE A CD1 1
+            "auth_comp_id",         // Author chainname:ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    -->ILE<-- A CD1 1
+            "auth_asym_id",         // Author chain loc:ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE -->A<-- CD1 1
+            "auth_atom_id",         // Author id:       ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A -->CD1<-- 1
+            "pdbx_PDB_model_num"    // PDB model number:ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 -->1<--
         ))
 	{
-        // Obtaining:
-        // ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-        // ****   *         ***   *** *  *      * ******  ******* ******  **** *****  *
+        // Storing values in atom list
         atom.record = record;
         atom.serial = serialNumber;
         atom.name = atomId;
@@ -709,6 +714,11 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.occupancy = occupancy;
         atom.bfactor = bFactor;
         atom.charge = charge;
+        atom.authSeqId = authSeqId;
+        atom.authCompId = authCompId;
+        atom.authAsymId = authAsymId;
+        atom.authAtomId = authAtomId;
+        atom.pdbNum = pdbNum;
         addAtom(atom);
 	}
 
@@ -795,6 +805,7 @@ void writeCIF(const std::string &fnCIF, const bool renumber, const std::vector<R
         atomSiteInserter = {
             {"group_PDB", atom.record},
             {"id", atom.serial},
+            {"type_symbol", atom.name[0]},
             {"label_atom_id", atom.name},
             {"label_comp_id", atom.resname},
             {"label_asym_id", atom.altloc},

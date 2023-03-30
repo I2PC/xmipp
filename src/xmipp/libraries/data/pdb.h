@@ -213,14 +213,34 @@ public:
     /// Bfactor
     double bfactor;
 
-    /// segment name
-    std::string segment;
-
     /// atom element type
     std::string atomType;
 
     /// 2-char charge with sign 2nd (e.g. 1- or 2+)
     std::string charge;
+
+    /* PDB Specific values */
+    /// segment name
+    std::string segment;
+
+    /* CIF Specific values */
+    // Alt id
+    std::string altid;
+
+    // Author sequence id
+    int authSeqId;
+
+    // Author chain name
+    std::string authCompId;
+
+    // Author chain location
+    std::string authAsymId;
+
+    // Author atom name
+    std::string authAtomId;
+
+    // PDB model number
+    int pdbNum;
 };
 
 /** Phantom description using atoms. */
