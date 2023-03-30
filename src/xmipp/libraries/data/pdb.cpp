@@ -785,10 +785,11 @@ void writeCIF(const std::string &fnCIF, const bool renumber, const std::vector<R
     // Opening CIF file
     std::ofstream cifFile(fnCIF);
 
-    // Creating atom_site category from atom list and inserting data into it
+    // Creating atom_site category
     cif::category atomSite("atom_site");
     cif::row_initializer atomSiteInserter;
 
+    // Inserting data from atom list
     for (RichAtom atom : atomList) {
         // Defining row
         atomSiteInserter = {
@@ -811,8 +812,17 @@ void writeCIF(const std::string &fnCIF, const bool renumber, const std::vector<R
         atomSite.emplace(std::move(atomSiteInserter));
     }
 
+    // Getting iterator for current atom site in data block
+    auto categoryIterator = std::find_if(dataBlock.begin(), dataBlock.end(), [](const cif::category& cat) {
+        return cat.name() == "atom_site";
+    });
+
     // Updating atom list in stored data block
-    dataBlock["atom_site"] = atomSite;
+    if (categoryIterator != dataBlock.end()) {
+        auto nextIterator = std::next(categoryIterator);
+        dataBlock.erase(categoryIterator);
+        dataBlock.insert(nextIterator, atomSite);
+    }
 
     // Writing datablock to file
     dataBlock.write(cifFile);
