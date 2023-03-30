@@ -224,8 +224,8 @@ public:
     std::string segment;
 
     /* CIF Specific values */
-    // Alt id
-    std::string altid;
+    // Sequence id
+    std::string seqId;
 
     // Author sequence id
     int authSeqId;

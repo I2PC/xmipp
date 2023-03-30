@@ -671,8 +671,10 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
 
     // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
     RichAtom atom;
-	for (const auto& [record, serialNumber, atomId, altId, resName, chain, resSeq, seqId, iCode, xPos, yPos, zPos, occupancy, bFactor, charge, authSeqId, authCompId, authAsymId, authAtomId, pdbNum]:
-        atom_site.find<std::string,int,std::string, std::string,std::string,std::string,int,int,std::string,float,float,float,float,float,std::string,int,std::string,std::string,std::string,int>
+	for (const auto& [record, serialNumber, atomId, altId, resName, chain, resSeq, seqId, iCode, xPos, yPos, zPos,
+            occupancy, bFactor, charge, authSeqId, authCompId, authAsymId, authAtomId, pdbNum]:
+        atom_site.find<std::string,int,std::string, std::string,std::string,std::string,int,int,std::string,float,
+            float,float,float,float,std::string,int,std::string,std::string,std::string,int>
         (
             // Note: search by key is needed to iterate list of atoms. Workaround: use every possible record type for the search
             cif::key("group_PDB") == "ATOM" || cif::key("group_PDB") == "HETATM",
@@ -707,6 +709,7 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.altloc = chain[0];
         atom.chainid = chain[0];
         atom.resseq = resSeq;
+        atom.seqId = seqId;
         atom.icode = iCode[0];
         atom.x = xPos;
         atom.y = yPos;
@@ -810,13 +813,19 @@ void writeCIF(const std::string &fnCIF, const bool renumber, const std::vector<R
             {"label_comp_id", atom.resname},
             {"label_asym_id", atom.altloc},
             {"label_entity_id", atom.resseq},
+            {"label_seq_id", atom.seqId},
             {"pdbx_PDB_ins_code", atom.icode},
             {"Cartn_x", atom.x},
             {"Cartn_y", atom.y},
             {"Cartn_z", atom.z},
             {"occupancy", atom.occupancy},
             {"B_iso_or_equiv", atom.bfactor},
-            {"pdbx_formal_charge", atom.charge}
+            {"pdbx_formal_charge", atom.charge},
+            {"auth_seq_id", atom.charge},
+            {"auth_comp_id", atom.authCompId},
+            {"auth_asym_id", atom.authAsymId},
+            {"auth_atom_id", atom.authAtomId},
+            {"pdbx_PDB_model_num", atom.pdbNum}
         };
 
         // Inserting row
