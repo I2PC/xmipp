@@ -1289,7 +1289,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
 
 	// Global alignment analysis
-	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, false);  // Vector saving status of (mis)aligned chains
+	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, true);  // Vector saving status of (mis)aligned chains
 	float vottingRatio;
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
@@ -1331,23 +1331,20 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 		std::cout << "std " << std << std::endl;
 		#endif
 
-		if (imagesOutOfRange < 4.5)
+		if (imagesOutOfRange > 4.5 && std > 43.5)
 		{
-			if (std <= 43.5)
-			{
-				globalMialingmentVotting[n] = true;
-				
-				#ifdef DEBUG_RESIDUAL_ANALYSIS
-				std::cout << "Chain number " << n << "present global misalignment with std=" << std << std::endl;
-				#endif
-			}			
+			globalMialingmentVotting[n] = false;
+			
+			#ifdef DEBUG_RESIDUAL_ANALYSIS
+			std::cout << "Chain number " << n << " present global misalignment with std=" << std << " and imagesOutOfRange=" << imagesOutOfRange << std::endl;
+			#endif			
 		}
-		else if (imagesOutOfRange < 6.5)
+		else if (imagesOutOfRange > 6.5)
 		{
-			globalMialingmentVotting[n] = true;
+			globalMialingmentVotting[n] = false;
 
 			#ifdef DEBUG_RESIDUAL_ANALYSIS
-			std::cout << "Chain number " << n << "present global misalignment with imagesOutOfRange=" << imagesOutOfRange << std::endl;
+			std::cout << "Chain number " << n << " present global misalignment with imagesOutOfRange=" << imagesOutOfRange << std::endl;
 			#endif
 		}	
 	}
