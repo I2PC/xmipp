@@ -49,9 +49,9 @@ class ScriptCompile(XmippScript):
         self.addExampleLine('#include <core/xmipp_image.h>')
         self.addExampleLine('int main()')
         self.addExampleLine('{')
-        self.addExampleLine('Image<double> V("volume.mrc:mrc");')
-        self.addExampleLine('V().printShape();')
-        self.addExampleLine('return 0')
+        self.addExampleLine('   Image<double> V("volume.mrc:mrc");')
+        self.addExampleLine('   V().printShape();')
+        self.addExampleLine('   return 0')
         self.addExampleLine('}')
                                                 
     def getFlags(self):
