@@ -70,7 +70,6 @@ class ScriptCompile(XmippScript):
             cf.read(os.path.join(xmippSrcHome,"xmipp.conf"))
         except ParsingError:
             sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
-        print(cf.items())
         flagDict=dict(cf.items('BUILD'))
 
         flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
