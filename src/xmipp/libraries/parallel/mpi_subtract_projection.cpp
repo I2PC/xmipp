@@ -73,11 +73,10 @@ void MpiProgSubtractProjection::preProcess()
     MPI_Bcast(&(projectorMask->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
     std::cout << " rank =" << rank << "-------9-------" << std::endl;
     MPI_Bcast(&(projectorMask->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------10-------" << std::endl;
+    std::cout << " rank =" << rank << "-------10-------" << std::endl;  // rank 0 llega al menos hasta aquí antes de que fallen los otros
 
     if (rank != 0)
     {
-        std::cout << " rank !0 =" << rank << std::endl;
         projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
         std::cout << " rank =" << rank << "-------11-------" << std::endl;
         projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
