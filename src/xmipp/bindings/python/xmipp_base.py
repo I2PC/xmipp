@@ -323,17 +323,17 @@ class CondaEnvManager(object):
         pyVer = kwargs.get('pythonVersion', None)
         python = "python="+pyVer if pyVer else ""
 
-        deps = ' '.join([dep for dep in kwargs.get('dependencies', [])])
+        deps = ' '.join(kwargs.get('dependencies', []))
 
         chs = kwargs.get('channels', [])
-        chFlags = (" -c %s" % " -c ".join([c for c in chs]) if len(chs) > 0 else "")
+        chFlags = " ".join(['-c ' + c for c in chs])
 
         options = installCmdOptions or kwargs.get('defaultInstallOptions', {})
-        pipPack = kwargs.get('pipPackages', [])
+        pipPack = kwargs.get('pipPackages', set())
         if kwargs.get('xmippEnviron', True):
             # xmippLib is compiled using a certain numpy.
             #  If it is load in the conda environment, numpy must be the same.
-            pipPack.append(CondaEnvManager.getCurInstalledDep('numpy'))
+            pipPack.add(CondaEnvManager.getCurInstalledDep('numpy'))#get the numpy of scipion3 enviroment
 
         # Composing the commands
         cmdList = []
@@ -343,7 +343,7 @@ class CondaEnvManager(object):
                        % (environName, python, deps, chFlags))
         cmdList.append("conda activate %s" % environName)
         if pipPack:
-            cmdList.append("pip install %s" % " ".join([dep for dep in pipPack]))
+            cmdList.append("pip install %s" % " ".join(pipPack))
         cmdList.append("conda env export > %s.yml" % environName)
 
         cmd = ' && '.join(cmdList)
