@@ -576,6 +576,8 @@ DataType npyType2Datatype(int npy)
         return DT_CFloat;
     case NPY_CDOUBLE:
         return DT_CDouble;
+    case NPY_HALF:
+        return DT_HalfFloat;
     default:
         return DT_Unknown;
     }
