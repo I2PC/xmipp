@@ -509,11 +509,11 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             try
             {
                 if (MetaData_Check(input))
-                    self->metadata = std::make_unique<MetaDataDb>(MetaData_Value(input));
+                    self->metadata = std::make_unique<MetaDataVec>(MetaData_Value(input));
                 else if ((pyStr = PyObject_Str(input)) != nullptr)
                 {
                     const char *str = PyUnicode_AsUTF8(pyStr);
-                    self->metadata = std::make_unique<MetaDataDb>(str);
+                    self->metadata = std::make_unique<MetaDataVec>(str);
                 }
                 else
                 {
@@ -530,7 +530,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         }
         else
         {
-            self->metadata = std::make_unique<MetaDataDb>();
+            self->metadata = std::make_unique<MetaDataVec>();
         }
     }
     return (PyObject *)self;
@@ -1613,8 +1613,8 @@ MetaData_iter(PyObject *obj)
     try
     {
         auto *self = reinterpret_cast<MetaDataObject*>(obj);
-        self->iter = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().begin());
-        self->iter_end = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().end());
+        self->iter = std::make_unique<MetaDataVec::id_iterator>(self->metadata->ids().begin());
+        self->iter_end = std::make_unique<MetaDataVec::id_iterator>(self->metadata->ids().end());
         Py_INCREF(self);
         return (PyObject *) self;
         //return Py_BuildValue("l", self->metadata->iteratorBegin());
@@ -1660,7 +1660,7 @@ MetaData_sort(PyObject *obj, PyObject *args, PyObject *kwargs)
             if (PyBool_Check(ascPy))
                 asc = (ascPy == Py_True);
             const auto *self = reinterpret_cast<MetaDataObject*>(obj);
-            MetaDataDb MDaux = *(self->metadata);
+            MetaDataVec MDaux = *(self->metadata);
             self->metadata->clear();
             self->metadata->sort(MDaux, (MDLabel) label,asc,limit,offset);
             Py_RETURN_NONE;
@@ -1684,7 +1684,7 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             const auto *self = reinterpret_cast<MetaDataObject*>(obj);
-            MetaDataDb MDaux = *(self->metadata);
+            MetaDataVec MDaux = *(self->metadata);
             self->metadata->clear();
             self->metadata->removeDuplicates(MDaux, (MDLabel)label);
             Py_RETURN_NONE;

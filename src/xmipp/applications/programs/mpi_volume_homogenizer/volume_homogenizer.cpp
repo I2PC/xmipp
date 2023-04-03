@@ -142,7 +142,7 @@ void ProgVolumeHomogenizer::run()
 	FileName fn_proj, fnIn;
 	Image<double> inV, refV;
 	Image<double> imgIn, imgCorr;
-	MetaDataDb setOfImgIn, setOfImgOut;
+	MetaDataVec setOfImgIn, setOfImgOut;
 	double rot, tilt, psi;
 	bool flip;
 	Projection projIn, projRef;
@@ -151,7 +151,7 @@ void ProgVolumeHomogenizer::run()
 	cv::Mat planes[]={flow, flow};
     FileName stackName = fnSetOfImgOut.removeAllExtensions() + ".stk";
     FileName mdName = fnSetOfImgOut.removeAllExtensions() + ".xmd";
-    MDRowSql rowInput;
+    MetaDataVecRow rowInput;
 
 	inV.read(fnVol);
 	inV().setXmippOrigin();

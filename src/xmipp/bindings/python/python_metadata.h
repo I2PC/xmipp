@@ -27,7 +27,7 @@
 #ifndef _PYTHON_METADATA_H
 #define _PYTHON_METADATA_H
 
-#include "core/metadata_db.h"
+#include "core/metadata_vec.h"
 #include "core/metadata_object.h"
 #include "Python.h"
 
@@ -124,9 +124,9 @@ extern PyTypeObject MDQueryType;
 typedef struct
 {
     PyObject_HEAD
-    std::unique_ptr<MetaDataDb> metadata;
-    std::unique_ptr<MetaDataDb::id_iterator> iter;
-    std::unique_ptr<MetaDataDb::id_iterator> iter_end;
+    std::unique_ptr<MetaDataVec> metadata;
+    std::unique_ptr<MetaDataVec::id_iterator> iter;
+    std::unique_ptr<MetaDataVec::id_iterator> iter_end;
 }
 MetaDataObject;
 
