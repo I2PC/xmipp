@@ -543,6 +543,8 @@ NPY_TYPES datatype2NpyType(DataType dt)
         return NPY_CFLOAT;
     case DT_CDouble:
         return NPY_CDOUBLE;
+    case DT_HalfFloat:
+        return NPY_HALF;
     default:
         return NPY_NOTYPE;
     }
