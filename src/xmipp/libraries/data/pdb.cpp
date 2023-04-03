@@ -667,7 +667,7 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
     cif::datablock& db = cifFile.front();
 
     // Reading Atom section
-    cif::category& atom_site& = db["atom_site"];
+    cif::category& atom_site = db["atom_site"];
 
     // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
     RichAtom atom;
