@@ -651,13 +651,12 @@ void readRichPDB(const FileName &fnPDB, const std::function<void(RichAtom)> &add
  * @param fnPDB CIF file path.
  * @param addAtom Function to add atoms to class's atom list.
  * @param intensities List of atom intensities.
- * @param remarks List of file remarks.
  * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms. false (default) is used when there are no pseudoatoms or when using a threshold.
  * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
  * @param dataBlock Data block used to store all of CIF file's fields.
 */
 void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &addAtom, std::vector<double> &intensities,
-    std::vector<std::string> &remarks, const bool pseudoatoms, const double threshold, cif::datablock &dataBlock)
+    const bool pseudoatoms, const double threshold, cif::datablock &dataBlock)
 {
     // Parsing mmCIF file
     cif::file cifFile;
@@ -722,7 +721,15 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.authAsymId = authAsymId;
         atom.authAtomId = authAtomId;
         atom.pdbNum = pdbNum;
-        addAtom(atom);
+
+        // If it is a pseudoatom, insert B factor into intensities
+        if(pseudoatoms) {
+            intensities.push_back(atom.bfactor);
+        } else {
+            // Adding atom if is not pseudoatom and B factor is not greater than set threshold
+            if (atom.bfactor >= threshold)
+                addAtom(atom);
+        }
 	}
 
     // Storing whole datablock
@@ -733,7 +740,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, const bool pseudoatoms, const d
 {
     // Checking if extension is .cif or .pdb
     if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
-        readRichCIF(fnPDB.getString(), bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, remarks, pseudoatoms, threshold, dataBlock);
+        readRichCIF(fnPDB.getString(), bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, pseudoatoms, threshold, dataBlock);
     } else {
         readRichPDB(fnPDB, bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, remarks, pseudoatoms, threshold);
     }
@@ -746,6 +753,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, const bool pseudoatoms, const d
  * 
  * @param fnPDB PDB file to write to.
  * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
+ * @param remarks List of remarks.
+ * @param atomList List of atoms to be stored.
 */
 void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::string> &remarks, const std::vector<RichAtom> &atomList)
 {
@@ -792,6 +801,8 @@ void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::strin
  * 
  * @param fnPDB PDB file path to write to.
  * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
+ * @param atomList List of atoms to be stored.
+ * @param dataBlock Data block containing the full CIF file.
 */
 void writeCIF(const std::string &fnCIF, const bool renumber, const std::vector<RichAtom> &atomList, cif::datablock &dataBlock)
 {
