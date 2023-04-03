@@ -513,12 +513,12 @@ void readCIF(const std::string &fnCIF, const std::function<void(Atom)> &addAtom,
     cifFile.load(fnCIF);
 
     // Extrayendo datos del archivo en un DataBlock
-    cif::datablock db = cifFile.front();
+    cif::datablock& db = cifFile.front();
 
     // Reading Atom section
     // Typical line:
     // ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
-    auto& atom_site = db["atom_site"];
+    cif::category& atom_site = db["atom_site"];
 
     // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
     Atom atom;
@@ -664,10 +664,10 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
     cifFile.load(fnCIF);
 
     // Extrayendo datos del archivo en un DataBlock
-    cif::datablock db = cifFile.front();
+    cif::datablock& db = cifFile.front();
 
     // Reading Atom section
-    auto& atom_site = db["atom_site"];
+    cif::category& atom_site& = db["atom_site"];
 
     // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
     RichAtom atom;
