@@ -52,6 +52,7 @@ class ProgTomoConfidecenceMap : public XmippProgram
 public:
 	 /** Filenames */
 	FileName fnOut;
+	FileName fnTs;
 	FileName fnOdd;
 	FileName fnEven;
 	FileName fnMask;
@@ -70,17 +71,13 @@ public:
 	float sigmaGauss;
 
 	/** Is the volume previously masked?*/
-	int  nthrs;
+	int  nthrs, boxsize;
 
 public:
 
     void defineParams();
     
 	void readParams();
-
-    void readAndPrepareData();
-
-	void readHalfMaps(FileName &fnOdd, FileName &fnEven);
 
 	void confidenceMap(MultidimArray<float> &ignificanceMap, bool normalize, MultidimArray<float> &fullMap, MultidimArray<float> &noiseMap);
 
@@ -95,18 +92,8 @@ public:
 													 MultidimArray<float> &noiseVarianceMap, MultidimArray<float> &noiseMeanMap,
 													 int boxsize, Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std);
 
-    void FDRcorrection();
-
 	void medianFilter(MultidimArray<float> &input_tomogram,
 									       MultidimArray<float> &output_tomogram);
-
-	void ampMS(float &resolution, float &freq);
-
-	void convertToDouble(MultidimArray<float> &inTomo,
-												MultidimArray<double> &outTomo);
-
-	void convertToFloat(MultidimArray<double> &inTomo,
-												MultidimArray<float> &outTomo);
 
 	template<typename T>
 	std::vector<size_t> sort_indexes(const std::vector<T> &v);
@@ -114,15 +101,19 @@ public:
 	void computeSignificanceMap(MultidimArray<float> &fullMap, MultidimArray<float> &significanceMap,
 													 Matrix2D<float> &thresholdMatrix_mean, Matrix2D<float> &thresholdMatrix_std);
 
-	void amplitudeMonogenicSignal_float(MultidimArray<float> &significanceMap);
+	void defineFourierFilter(MultidimArray<std::complex<double>> &mapfftV);
 
-	void updateResMap(MultidimArray<float> &resMap, MultidimArray<float> &significanceMap, MultidimArray<int> &mask, float &resolution, size_t iter);
+	void convertToDouble(MultidimArray<float> &inTomo, MultidimArray<double> &outTomo);
 
-	void FDRcontrol(MultidimArray<float> &significanceMap);
+	void convertToFloat(MultidimArray<double> &inTomo, MultidimArray<float> &outTomo);
 
-	void filterNoiseAndMap(float &freq, float &tail, MultidimArray<double> &fm, MultidimArray<double> &nm, size_t iter);
+	void nyquistFilter(MultidimArray<std::complex<double>> &fftImg);
 
-	void frequencyToAnalyze(float &freq, float &tail, int idx);
+	void medianFilter3D(MultidimArray<float> &input_tomogram,
+									       MultidimArray<float> &output_tomogram);
+
+	void medianFilter2D(MultidimArray<float> &input_img,
+											MultidimArray<float> &output_img);
 
     void run();
 
@@ -132,6 +123,7 @@ public:
     Image<int> mask;
 	Matrix1D<float> freq_fourier_z, freq_fourier_y, freq_fourier_x;
 	MultidimArray< float > fullMap, noiseMap, resMap;
+	MultidimArray<double> fourierFilterShape;
 };
 //@}
 #endif
