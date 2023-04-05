@@ -97,12 +97,11 @@ private:
          * 2) three vectors defined in the .h, real_z1z2, absz1_vec, absz2_vec, with z1*conj(z2),  ||z1||, ||z2||, defined in
          * float to speed up the computation and reduce the use of memory. These vector make use of the two half maps FT1, and FT2.
          */
-		void arrangeFSC_and_fscGlobal(double sampling_rate,
-				                    	double &thrs, MultidimArray<double> &freq);
+		void arrangeFSC_and_fscGlobal(double &thrs, MultidimArray<double> &freq);
 
         /* This function estiamtes the global FSC between two half maps. The half maps are defined in the .h.
         */
-        void fscGlobal(double sampling_rate, double &threshold, double &resol);
+        void fscGlobal(double &threshold, double &resol);
 
         /* Defines a Matrix2D with coordinates Rot and tilt achieving a uniform coverage of the
         * projection sphere. Bool alot = True, implies a dense coverage */

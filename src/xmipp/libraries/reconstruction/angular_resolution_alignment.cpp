@@ -65,9 +65,9 @@ void ProgAngResAlign::defineParams()
 	addParamsLine("   [--threads <Nthreads=1>]           : (Optional) Number of threads to be used");
 
 	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px", false);
-	addExampleLine("xmipp_angular_resolution_alignment --half1 half1.mrc --half2 half2.mrc --sampling_rate 2 ");
+	addExampleLine("xmipp_angular_resolution_alignment --half1 half1.mrc --half2 half2.mrc --sampling 2 ");
 	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px and a mask mask.mrc", false);
-	addExampleLine("xmipp_angular_resolution_alignment --half1 half1.mrc --half2 half2.mrc --mask mask.mrc --sampling_rate 2 ");
+	addExampleLine("xmipp_angular_resolution_alignment --half1 half1.mrc --half2 half2.mrc --mask mask.mrc --sampling 2 ");
 }
 
 void ProgAngResAlign::readParams()
@@ -189,8 +189,7 @@ void ProgAngResAlign::defineFrequenciesSimple(const MultidimArray<double> &input
 
 
 
-void ProgAngResAlign::arrangeFSC_and_fscGlobal(double sampling_rate,
-				double &thrs, MultidimArray<double> &freq)
+void ProgAngResAlign::arrangeFSC_and_fscGlobal(double &thrs, MultidimArray<double> &freq)
 	{
 		// cumpos is the the cumulative number of frequencies per shell number
 		// First shell has 0 elements
@@ -295,7 +294,7 @@ void ProgAngResAlign::arrangeFSC_and_fscGlobal(double sampling_rate,
 		}
 	}
 
-void ProgAngResAlign::fscGlobal(double sampling_rate, double &threshold, double &resol)
+void ProgAngResAlign::fscGlobal(double &threshold, double &resol)
 	{
 		// num and den are de numerator and denominator of the fsc
 		MultidimArray<double> num, den1, den2;
@@ -1130,7 +1129,7 @@ void ProgAngResAlign::run()
 			// Storing the shell of both maps as vectors global
 			// The global FSC is also computed
 			MultidimArray<double> freq;
-			arrangeFSC_and_fscGlobal(sampling, thrs, freq);
+			arrangeFSC_and_fscGlobal(thrs, freq);
 
 
 			double res;
@@ -1159,7 +1158,7 @@ void ProgAngResAlign::run()
 			}
 			else
 			{
-				fscGlobal(sampling, thrs, res);
+				fscGlobal(thrs, res);
 			}
 
 			std::cout << "Radius "<< shellRadius << "/" << maxRadius << " " << res << "A" << std::endl;
