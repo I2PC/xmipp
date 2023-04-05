@@ -724,10 +724,10 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
 
         // If it is a pseudoatom, insert B factor into intensities
         if(pseudoatoms) {
-            intensities.push_back(atom.bfactor);
+            intensities.push_back(bFactor);
         } else {
             // Adding atom if is not pseudoatom and B factor is not greater than set threshold
-            if (atom.bfactor >= threshold)
+            if (bFactor >= threshold)
                 addAtom(atom);
         }
 	}
@@ -800,11 +800,10 @@ void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::strin
  * This function stores all the data of the rich phantom into a CIF file.
  * 
  * @param fnPDB PDB file path to write to.
- * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
  * @param atomList List of atoms to be stored.
  * @param dataBlock Data block containing the full CIF file.
 */
-void writeCIF(const std::string &fnCIF, const bool renumber, const std::vector<RichAtom> &atomList, cif::datablock &dataBlock)
+void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, cif::datablock &dataBlock)
 {
     // Opening CIF file
     std::ofstream cifFile(fnCIF);
@@ -867,7 +866,7 @@ void PDBRichPhantom::write(const FileName &fnPDB, const bool renumber)
 
     // Checking if extension is .cif or .pdb
     if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
-        writeCIF(fnPDB.getString(), renumber, atomList, dataBlock);
+        writeCIF(fnPDB.getString(), atomList, dataBlock);
     } else {
         writePDB(fnPDB, renumber, remarks, atomList);
     }
