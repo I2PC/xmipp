@@ -863,7 +863,6 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
 
 void PDBRichPhantom::write(const FileName &fnPDB, const bool renumber)
 {
-
     // Checking if extension is .cif or .pdb
     if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
         writeCIF(fnPDB.getString(), atomList, dataBlock);
