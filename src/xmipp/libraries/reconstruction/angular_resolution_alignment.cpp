@@ -61,7 +61,7 @@ void ProgAngResAlign::defineParams()
 
 	addParamsLine("   [--anglecone <ang_con=17>]         : (Optional) Angle Cone (angle between the axis and the  generatrix) for estimating the directional FSC");
 	addParamsLine("   [--threshold <thrs=0.143>]         : (Optional) Threshold for the FSC/directionalFSC estimation ");
-	addParamsLine("   [--helix]          				 : (Optional) If the reconstruction is a helix put this flag. The axis of the helix must be along the z-axis");
+	addParamsLine("   [--helix]                          : (Optional) If the reconstruction is a helix put this flag. The axis of the helix must be along the z-axis");
 	addParamsLine("   [--threads <Nthreads=1>]           : (Optional) Number of threads to be used");
 
 	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px", false);
@@ -128,7 +128,7 @@ void ProgAngResAlign::defineFrequenciesSimple(const MultidimArray<double> &input
 	}
 	
 	//Initializing map with frequencies
-	double val = 1.9;
+
 	freqMap.initZeros(1, zdimFourier, ydimFourier, xdimFourier);  //Nyquist is 2, we take 1.9 greater than Nyquist
 
 	freqElems.initZeros(xvoldim/2+1);
@@ -230,9 +230,9 @@ void ProgAngResAlign::arrangeFSC_and_fscGlobal(double sampling_rate,
 		den1 = num;
 		den2 = num;
 
-		int ZdimFT1=(int)ZSIZE(FT1);
-		int YdimFT1=(int)YSIZE(FT1);
-		int XdimFT1=(int)XSIZE(FT1);
+		auto ZdimFT1=(int)ZSIZE(FT1);
+		auto YdimFT1=(int)YSIZE(FT1);
+		auto XdimFT1=(int)XSIZE(FT1);
 
 		// fx, fy, fz, defined in the .h are the frequencies of each pixel with frequency
 		// lesser than Nyquist along each axis. They are used to compute the dot product
@@ -303,22 +303,18 @@ void ProgAngResAlign::fscGlobal(double sampling_rate, double &threshold, double 
 		den1 = num;
 		den2 = num;
 
-		int ZdimFT1=(int)ZSIZE(FT1);
-		int YdimFT1=(int)YSIZE(FT1);
-		int XdimFT1=(int)XSIZE(FT1);
+		auto ZdimFT1=(int)ZSIZE(FT1);
+		auto YdimFT1=(int)YSIZE(FT1);
+		auto XdimFT1=(int)XSIZE(FT1);
 
 		long n = 0;
 		for (int k=0; k<ZdimFT1; k++)
 		{
-			double uz = VEC_ELEM(freq_fourier_z, k);
 			for (int i=0; i<YdimFT1; i++)
 			{
-				double uy = VEC_ELEM(freq_fourier_y, i);
 				for (int j=0; j<XdimFT1; j++)
 				{
-					double ux = VEC_ELEM(freq_fourier_x, j);
-					
-					double iun = DIRECT_MULTIDIM_ELEM(freqMap,n);
+					auto iun = DIRECT_MULTIDIM_ELEM(freqMap,n);
 					double f = 1/iun;
 					++n;
 
@@ -330,7 +326,7 @@ void ProgAngResAlign::fscGlobal(double sampling_rate, double &threshold, double 
 						continue;
 					
 					// Index of each frequency
-					int idx = (int) round(f * xvoldim);
+					auto idx = (int) round(f * xvoldim);
 					
 					// Fourier coefficients of both halves
 					std::complex<double> &z1 = dAkij(FT1, k, i, j);
@@ -429,9 +425,9 @@ void ProgAngResAlign::fscDir_fast(MultidimArray<float> &fsc, double rot, double 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(real_z1z2)
 	{
 		// frecuencies of the fourier position
-		float ux = DIRECT_MULTIDIM_ELEM(fx, n);
-		float uy = DIRECT_MULTIDIM_ELEM(fy, n);
-		float uz = DIRECT_MULTIDIM_ELEM(fz, n);
+		auto ux = DIRECT_MULTIDIM_ELEM(fx, n);
+		auto uy = DIRECT_MULTIDIM_ELEM(fy, n);
+		auto uz = DIRECT_MULTIDIM_ELEM(fz, n);
 
 		// angle between the position and the direction of the cone
 		float cosine = fabs(x_dir*ux + y_dir*uy + z_dir*uz);
