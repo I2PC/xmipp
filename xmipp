@@ -511,7 +511,6 @@ def compile_libsvm():
     return ok
 
 def compile_libcifpp():
-    #if the libcifpp repo is updated, but PRs were not merged, update manually
     currDir = os.getcwd()
     # Moving to library directory
     libcifppDir = os.path.join("src", "libcifpp")

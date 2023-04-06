@@ -106,7 +106,7 @@ def addLib(name, **kwargs):
     incs = kwargs.get('incs', []) + [join(XMIPP_PATH, 'external'),
         join(XMIPP_PATH, 'libraries'),
         join(XMIPP_BUNDLE, 'xmippCore'),
-        join(XMIPP_BUNDLE, 'libcifpp', 'build', 'include')]
+        join(XMIPP_BUNDLE, 'libcifpp', 'include')]
     kwargs['incs'] = incs
 
     deps = kwargs.get('deps', [])
