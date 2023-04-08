@@ -237,6 +237,7 @@ def addProg(progName, **kwargs):
         join(XMIPP_PATH, 'external'),
         join(XMIPP_PATH, 'libraries'),
         join(XMIPP_BUNDLE,'xmippCore'),
+        join(XMIPP_BUNDLE,'libcifpp', 'include')
     ]
     if progName.startswith('test_'):
         incs.append(join(XMIPP_BUNDLE, join('googletest', 'googletest', 'include')))
