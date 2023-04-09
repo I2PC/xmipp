@@ -30,7 +30,7 @@
 #define _XMIPP_PDB_HH
 
 #include <vector>
-#include "libcifpp/include/cif++.hpp"
+#include "cif++.hpp"
 #include "core/xmipp_error.h"
 
 template<typename T>

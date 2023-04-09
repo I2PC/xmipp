@@ -26,7 +26,7 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
-#include "libcifpp/include/cif++.hpp"
+#include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
 #include "core/multidim_array.h"
