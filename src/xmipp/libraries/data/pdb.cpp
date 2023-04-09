@@ -672,7 +672,7 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
     RichAtom atom;
 	for (const auto& [record, serialNumber, atomId, altId, resName, chain, resSeq, seqId, iCode, xPos, yPos, zPos,
             occupancy, bFactor, charge, authSeqId, authCompId, authAsymId, authAtomId, pdbNum]:
-        atom_site.find<std::string,int,std::string, std::string,std::string,std::string,int,int,std::string,float,
+        atom_site.find<std::string,int,std::string,std::string,std::string,std::string,int,int,std::string,float,
             float,float,float,float,std::string,int,std::string,std::string,std::string,int>
         (
             // Note: search by key is needed to iterate list of atoms. Workaround: use every possible record type for the search
@@ -704,6 +704,7 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.serial = serialNumber;
         atom.name = atomId;
         atom.atomType = atomId;
+        atom.atlId = altId;
         atom.resname = resName;
         atom.altloc = chain[0];
         atom.chainid = chain[0];
@@ -821,6 +822,7 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
             {"type_symbol", atom.name[0]},
             {"label_atom_id", atom.name},
             {"label_comp_id", atom.resname},
+            {"label_alt_id", atom.altId},
             {"label_asym_id", atom.altloc},
             {"label_entity_id", atom.resseq},
             {"label_seq_id", atom.seqId},

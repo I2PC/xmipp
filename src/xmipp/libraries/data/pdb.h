@@ -224,6 +224,9 @@ public:
     std::string segment;
 
     /* CIF Specific values */
+    // Alternative id
+    std::string altId;
+
     // Sequence id
     std::string seqId;
 
