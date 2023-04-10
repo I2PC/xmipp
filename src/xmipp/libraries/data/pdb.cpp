@@ -26,6 +26,8 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+#include <iomanip>
+#include <sstream>
 #include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
@@ -706,11 +708,13 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.atomType = atomId;
         atom.altId = altId;
         atom.resname = resName;
-        atom.altloc = chain[0];
+        atom.altloc = chain;
         atom.chainid = chain[0];
         atom.resseq = resSeq;
         atom.seqId = seqId;
-        if (!iCode.empty()) atom.icode = iCode[0];
+        //if (iCode.empty()) atom.icode = '?'; else atom.icode = iCode[0];
+        atom.icode = iCode;
+        atom.x = xPos;
         atom.y = yPos;
         atom.z = zPos;
         atom.occupancy = occupancy;
@@ -784,10 +788,10 @@ void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::strin
         }
         char resseq[4+1];
         hy36encodeSafe(4, atom.resseq, resseq);
-        fprintf (fh_out,"%-6s%5s %-4s%c%-4s%c%4s%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%-2s\n",
+        fprintf (fh_out,"%-6s%5s %-4s%s%-4s%c%4s%s   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%-2s\n",
 				atom.record.c_str(),serial,atom.name.c_str(),
-				atom.altloc,atom.resname.c_str(),atom.chainid,
-				resseq,atom.icode,
+				atom.altloc.c_str(),atom.resname.c_str(),atom.chainid,
+				resseq,atom.icode.c_str(),
 				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
 				atom.segment.c_str(),atom.atomType.c_str(),atom.charge.c_str());
     }
@@ -812,8 +816,46 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
     cif::category atomSite("atom_site");
     cif::row_initializer atomSiteInserter;
 
+    // Declaring temporary variables for occupancy, coords, and Bfactor
+    std::stringstream tempStream;
+    std::string occupancy;
+    std::string xPos;
+    std::string yPos;
+    std::string zPos;
+    std::string bFactor;
+
     // Inserting data from atom list
     for (RichAtom atom : atomList) {
+        // Converting occupancy to string with 2 fixed decimals
+        tempStream << std::fixed << std::setprecision(2) << atom.occupancy;
+        occupancy = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting xPos to string with 3 fixed decimals
+        tempStream << std::fixed << std::setprecision(3) << atom.x;
+        xPos = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting yPos to string with 3 fixed decimals
+        tempStream << std::fixed << std::setprecision(3) << atom.y;
+        yPos = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting zPos to string with 3 fixed decimals
+        tempStream << std::fixed << std::setprecision(3) << atom.z;
+        zPos = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting bFactor to string with 2 fixed decimals
+        tempStream << std::fixed << std::setprecision(2) << atom.bfactor;
+        bFactor = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
         // Defining row
         atomSiteInserter = {
             {"group_PDB", atom.record},
@@ -826,11 +868,11 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
             {"label_entity_id", atom.resseq},
             {"label_seq_id", atom.seqId},
             {"pdbx_PDB_ins_code", atom.icode},
-            {"Cartn_x", atom.x},
-            {"Cartn_y", atom.y},
-            {"Cartn_z", atom.z},
-            {"occupancy", atom.occupancy},
-            {"B_iso_or_equiv", atom.bfactor},
+            {"Cartn_x", xPos},
+            {"Cartn_y", yPos},
+            {"Cartn_z", zPos},
+            {"occupancy", occupancy},
+            {"B_iso_or_equiv", bFactor},
             {"pdbx_formal_charge", atom.charge},
             {"auth_seq_id", atom.authSeqId},
             {"auth_comp_id", atom.authCompId},

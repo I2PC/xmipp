@@ -193,7 +193,7 @@ public:
     std::string name;
 
     /// Alternate location
-    char altloc;
+    std::string altloc;
 
     /// Residue name
     std::string resname;
@@ -205,7 +205,7 @@ public:
     int resseq;
 
     /// Icode
-    char icode;
+    std::string icode;
 
     /// Occupancy
     double occupancy;
