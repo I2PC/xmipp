@@ -228,7 +228,7 @@ public:
     std::string altId;
 
     // Sequence id
-    std::string seqId;
+    int seqId;
 
     // Author sequence id
     int authSeqId;

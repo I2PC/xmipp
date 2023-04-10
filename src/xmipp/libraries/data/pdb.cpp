@@ -704,14 +704,13 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.serial = serialNumber;
         atom.name = atomId;
         atom.atomType = atomId;
-        atom.atlId = altId;
+        atom.altId = altId;
         atom.resname = resName;
         atom.altloc = chain[0];
         atom.chainid = chain[0];
         atom.resseq = resSeq;
         atom.seqId = seqId;
-        atom.icode = iCode[0];
-        atom.x = xPos;
+        if (!iCode.empty()) atom.icode = iCode[0];
         atom.y = yPos;
         atom.z = zPos;
         atom.occupancy = occupancy;
@@ -821,8 +820,8 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
             {"id", atom.serial},
             {"type_symbol", atom.name[0]},
             {"label_atom_id", atom.name},
-            {"label_comp_id", atom.resname},
             {"label_alt_id", atom.altId},
+            {"label_comp_id", atom.resname},
             {"label_asym_id", atom.altloc},
             {"label_entity_id", atom.resseq},
             {"label_seq_id", atom.seqId},
@@ -833,7 +832,7 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
             {"occupancy", atom.occupancy},
             {"B_iso_or_equiv", atom.bfactor},
             {"pdbx_formal_charge", atom.charge},
-            {"auth_seq_id", atom.charge},
+            {"auth_seq_id", atom.authSeqId},
             {"auth_comp_id", atom.authCompId},
             {"auth_asym_id", atom.authAsymId},
             {"auth_atom_id", atom.authAtomId},
