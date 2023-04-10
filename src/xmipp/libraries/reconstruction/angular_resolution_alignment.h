@@ -97,7 +97,7 @@ private:
          * 2) three vectors defined in the .h, real_z1z2, absz1_vec, absz2_vec, with z1*conj(z2),  ||z1||, ||z2||, defined in
          * float to speed up the computation and reduce the use of memory. These vector make use of the two half maps FT1, and FT2.
          */
-		void arrangeFSC_and_fscGlobal(MultidimArray<double> &freq);
+		void arrangeFSC_and_fscGlobal();
 
         /* This function estiamtes the global FSC between two half maps. The half maps are defined in the .h.
         */

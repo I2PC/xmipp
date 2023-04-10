@@ -188,8 +188,7 @@ void ProgAngResAlign::defineFrequenciesSimple(const MultidimArray<double> &input
 }
 
 
-
-void ProgAngResAlign::arrangeFSC_and_fscGlobal(MultidimArray<double> &freq)
+void ProgAngResAlign::arrangeFSC_and_fscGlobal()
 	{
 		// cumpos is the the cumulative number of frequencies per shell number
 		// First shell has 0 elements
@@ -1122,8 +1121,8 @@ void ProgAngResAlign::run()
 
 			// Storing the shell of both maps as vectors global
 			// The global FSC is also computed
-			MultidimArray<double> freq;
-			arrangeFSC_and_fscGlobal(thrs, freq);
+			
+			arrangeFSC_and_fscGlobal();
 
 
 			double res;
