@@ -189,7 +189,7 @@ void ProgAngResAlign::defineFrequenciesSimple(const MultidimArray<double> &input
 
 
 
-void ProgAngResAlign::arrangeFSC_and_fscGlobal(double &thrs, MultidimArray<double> &freq)
+void ProgAngResAlign::arrangeFSC_and_fscGlobal(MultidimArray<double> &freq)
 	{
 		// cumpos is the the cumulative number of frequencies per shell number
 		// First shell has 0 elements
