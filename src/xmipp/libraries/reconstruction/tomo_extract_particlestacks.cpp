@@ -165,9 +165,6 @@ void ProgTomoExtractParticleStacks::run()
 		{
 			tsImg = tsImages[idx];
 			tilt = tsTiltAngles[idx]*PI/180;
-			rot = tsRotAngles[idx];
-
-			//std::cout << tsNames[idx] << std::endl;
 
 			double ct = cos(tilt);
 			double st = sin(tilt);

@@ -432,7 +432,7 @@ void ProgTomoConfidecenceMap::nosiseEstimation(WeightedLeastSquaresHelper &helpe
 			}
 			
 			double std2, meanValue;
-			meanValue = (double) noiseVector[size_t(noiseVector.size()*0.5)];
+			//meanValue = (double) noiseVector[size_t(noiseVector.size()*0.5)];
 			meanValue = (double) sum/N;
 			std2 = sqrt( (double) (sum2/N - (sum/N)*(sum/N)));
 
