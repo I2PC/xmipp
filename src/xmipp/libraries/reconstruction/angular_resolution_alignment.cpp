@@ -264,7 +264,7 @@ void ProgAngResAlign::arrangeFSC_and_fscGlobal(double &thrs, MultidimArray<doubl
 						continue;
 					
 					// Index of each frequency
-					int idx = (int) round(f * xvoldim);
+					auto idx = (int) round(f * xvoldim);
 					
 					int idx_count = DIRECT_MULTIDIM_ELEM(cumpos, idx) + DIRECT_MULTIDIM_ELEM(pos, idx); 
 
@@ -354,7 +354,7 @@ void ProgAngResAlign::fscGlobal(double &threshold, double &resol)
 			if (flagRes && (i>2) && (dAi(fsc,i)<=threshold))
 			{
 				flagRes = false;
-				double ff = (float) i / (xvoldim * sampling); // frequency
+				double ff = (double) i / (xvoldim * sampling); // frequency
 				resol = 1./ff;
 			}
 		}
@@ -368,7 +368,7 @@ void ProgAngResAlign::fscInterpolation(const MultidimArray<double> &freq, const 
 	// Here the FSC at 0.143 is obtained by interpolating
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
 	{
-		double ff = dAi(frc,i);
+		auto ff = dAi(frc,i);
 		if ( (ff<=thrs) && (i>2) )
 		{
 			double y2, y1, x2, x1, slope, ny;
@@ -992,14 +992,8 @@ void ProgAngResAlign::readData(MultidimArray<double> &half1, MultidimArray<doubl
 		{
 			double radiusThreshold;
 
-			if (isHelix)
-			{
-				radiusThreshold = 0.75;
-			}
-			else
-			{
-				radiusThreshold = 0.75;
-			}
+			radiusThreshold = 0.75;
+
 
 			for (size_t k=0; k<radiusElems.nzyxdim; k++)
 			{
