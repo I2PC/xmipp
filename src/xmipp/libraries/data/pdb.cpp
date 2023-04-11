@@ -857,6 +857,7 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
 
         // Defining row
         // Empty string or char values are substitued with "." or '.' (no value)
+        // No "?" are inserted since it is not allowed by spec
         atomSiteInserter = {
             {"group_PDB", atom.record.empty() ? "." : atom.record},
             {"id", atom.serial},
