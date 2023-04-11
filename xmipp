@@ -509,11 +509,8 @@ def compile_libsvm():
 
 def checkScons():
     log = []
-    if runJob("scons --version", log=log, show_output=False, show_command=False):
-        if log[0].find('''Command 'scons' not found''') != -1:
-            return False
-        else:
-            return True
+    return runJob("scons --version", log=log, show_output=False, show_command=False)
+
 
 def compile(Nproc):
     if checkScons():
