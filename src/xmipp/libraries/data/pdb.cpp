@@ -712,7 +712,6 @@ void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &
         atom.chainid = chain[0];
         atom.resseq = resSeq;
         atom.seqId = seqId;
-        //if (iCode.empty()) atom.icode = '?'; else atom.icode = iCode[0];
         atom.icode = iCode;
         atom.x = xPos;
         atom.y = yPos;
@@ -857,27 +856,28 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
         tempStream.str("");
 
         // Defining row
+        // Empty string or char values are substitued with "." or '.' (no value)
         atomSiteInserter = {
-            {"group_PDB", atom.record},
+            {"group_PDB", atom.record.empty() ? "." : atom.record},
             {"id", atom.serial},
-            {"type_symbol", atom.name[0]},
-            {"label_atom_id", atom.name},
-            {"label_alt_id", atom.altId},
-            {"label_comp_id", atom.resname},
-            {"label_asym_id", atom.altloc},
+            {"type_symbol", atom.name.empty() ? '.' : atom.name[0]},
+            {"label_atom_id", atom.name.empty() ? "." : atom.name},
+            {"label_alt_id", atom.altId.empty() ? "." : atom.altId},
+            {"label_comp_id", atom.resname.empty() ? "." : atom.resname},
+            {"label_asym_id", atom.altloc.empty() ? "." : atom.altloc},
             {"label_entity_id", atom.resseq},
             {"label_seq_id", atom.seqId},
-            {"pdbx_PDB_ins_code", atom.icode},
+            {"pdbx_PDB_ins_code", atom.icode.empty() ? "." : atom.icode},
             {"Cartn_x", xPos},
             {"Cartn_y", yPos},
             {"Cartn_z", zPos},
             {"occupancy", occupancy},
             {"B_iso_or_equiv", bFactor},
-            {"pdbx_formal_charge", atom.charge},
+            {"pdbx_formal_charge", atom.charge.empty() ? "." : atom.charge},
             {"auth_seq_id", atom.authSeqId},
-            {"auth_comp_id", atom.authCompId},
-            {"auth_asym_id", atom.authAsymId},
-            {"auth_atom_id", atom.authAtomId},
+            {"auth_comp_id", atom.authCompId.empty() ? "." : atom.authCompId},
+            {"auth_asym_id", atom.authAsymId.empty() ? "." : atom.authAsymId},
+            {"auth_atom_id", atom.authAtomId.empty() ? "." : atom.authAtomId},
             {"pdbx_PDB_model_num", atom.pdbNum}
         };
 
