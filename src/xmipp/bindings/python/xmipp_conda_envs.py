@@ -1,11 +1,11 @@
 XMIPP_CONDA_ENVS = {
   "xmipp_DLTK_v0.3": {
-    "pythonVersion": "3",
-    "dependencies": ["pandas=0.23",
-                     "scikit-image=0.14",
-                     "opencv=3.4",
+    "pythonVersion": "3.9",
+    "dependencies": ["pandas=1.3.5",
+                     "scikit-image=1.19.3",
+                     "opencv=4.6",
                      "tensorflow%(gpuTag)s=1.15",
-                     "keras=2.2",
+                     "keras=2.3",
                      "scikit-learn=0.22"],
     "channels": ["anaconda"],
     "pipPackages": {},
