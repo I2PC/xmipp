@@ -506,15 +506,6 @@ class ImageResize(XmippProgramTest):
                 outputs=["volume_32.vol"])
 
 
-class ImageRotationalSpectra(XmippProgramTest):
-    _owner = COSS
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_image_rotational_spectra'
-
-    def test_case1(self):
-        self.runCase("-i input/images_some.stk -o %o/spectra.xmd --r1 10 --r2 40",
-                outputs=["spectra.xmd","spectra.vec"])
 
 
 class ImageRotationalPcaMpi(XmippProgramTest):

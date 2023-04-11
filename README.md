@@ -43,7 +43,7 @@ We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Tr
 
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake`
 
-`pip install scons numpy`
+`pip install scons` in the enviroment that xmipp will be compiled (scipion3 if you will run Xmipp within Scipion)
 
 Also a compiler will be required (`sudo apt install gcc-8 g++-8`)
 
