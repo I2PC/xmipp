@@ -333,7 +333,7 @@ class CondaEnvManager(object):
         if kwargs.get('xmippEnviron', True):
             # xmippLib is compiled using a certain numpy.
             #  If it is load in the conda environment, numpy must be the same.
-            pipPack.add(CondaEnvManager.getCurInstalledDep('numpy'))#get the numpy of scipion3 enviroment
+            pipPack.append(CondaEnvManager.getCurInstalledDep('numpy'))
 
         # Composing the commands
         cmdList = []
