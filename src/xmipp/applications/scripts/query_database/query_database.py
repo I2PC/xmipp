@@ -51,6 +51,7 @@ def run(experimental_md_path: str,
         local_psi: bool,
         local_shift: bool,
         drop_na: bool,
+        k: int,
         device_names: list ):
     
     # Devices
@@ -169,7 +170,7 @@ def run(experimental_md_path: str,
         matches = alignment.align(
             db,
             experimental_transformer(zip(experimental_uploader, local_transform_md_batches)),
-            k=1
+            k=k
         )
     
         alignment_md = alignment.generate_alignment_metadata(
@@ -209,6 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--local_psi', action='store_true')
     parser.add_argument('--local_shift', action='store_true')
     parser.add_argument('--dropna', action='store_true')
+    parser.add_argument('-k', type=int, default=1)
     parser.add_argument('--devices', nargs='*')
     parser.add_argument('--max_size', type=int, default=int(2e6))
 
@@ -234,5 +236,6 @@ if __name__ == '__main__':
         local_shift = args.local_shift,
         norm = args.norm,
         drop_na = args.dropna,
+        k = args.k,
         device_names = args.devices
     )

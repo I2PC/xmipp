@@ -132,13 +132,18 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
         md.IMAGE: md.REFERENCE_IMAGE,
     })
     
-    # Currently we only support kNN with k=1
-    # Extract the best result if multiple provided
-    match_distances = matches.distances[:,0].numpy()
-    match_indices = matches.indices[:,0].numpy()
+    # Flatten the kNN results into a single dim and provide
+    # them as a numpy array. Concatenate columns to match
+    # the concatenation of experimental md
+    k = matches.indices.shape[1]
+    match_distances = matches.distances.numpy().flatten()
+    match_indices = matches.indices.numpy().flatten()
     
     # Update or generate depending on wether the output is provided
     if output_md is None:
+        # Repeat each row of the experimental MD k times
+        experimental_md = experimental_md.loc[experimental_md.index.repeat(k)].reset_index(drop=True)
+        
         output_md = _create_alignment_metadata(
             experimental_md=experimental_md,
             reference_md=reference_md,

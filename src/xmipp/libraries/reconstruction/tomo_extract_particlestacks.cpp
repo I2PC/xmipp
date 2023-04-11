@@ -76,7 +76,7 @@ void ProgTomoExtractParticleStacks::run()
 	auto &ptrtiltImg = tiltImg();
 
 	// The tilt series is stored as a stack of images;
-	std::vector<MultidimArray<double> > tsImages(0);
+	std::vector<MultidimArray<double> > tsImages;
 	MultidimArray<double> tsImg;
 	std::vector<double> tsTiltAngles(0), tsRotAngles(0);
 	std::vector<FileName> tsNames(0);
