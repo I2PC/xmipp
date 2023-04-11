@@ -508,8 +508,7 @@ def compile_libsvm():
     return ok
 
 def checkScons():
-    log = []
-    return runJob("scons --version", log=log, show_output=False, show_command=False)
+    return runJob("scons --version", show_output=False, show_command=False)
 
 
 def compile(Nproc):
