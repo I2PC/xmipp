@@ -1,4 +1,4 @@
-name: xmipp_MicCleaner
+name: xmipp_deepHand
 channels:
   - anaconda
   - defaults
