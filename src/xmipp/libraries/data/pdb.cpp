@@ -455,6 +455,7 @@ bool checkExtension(const std::filesystem::path &filePath, const std::list<std::
     return validExtension;
 }
 
+template<typename callable>
 /**
  * @brief Read phantom from PDB.
  * 
@@ -463,7 +464,7 @@ bool checkExtension(const std::filesystem::path &filePath, const std::list<std::
  * @param fnPDB PDB file.
  * @param addAtom Function to add atoms to class's atom list.
 */
-void readPDB(const FileName &fnPDB, const std::function<void(Atom)> &addAtom)
+void readPDB(const FileName &fnPDB, const callable &addAtom)
 {
     // Open file
     std::ifstream fh_in;
@@ -499,6 +500,7 @@ void readPDB(const FileName &fnPDB, const std::function<void(Atom)> &addAtom)
     fh_in.close();
 }
 
+template<typename callable>
 /**
  * @brief Read phantom from CIF.
  * 
@@ -508,7 +510,7 @@ void readPDB(const FileName &fnPDB, const std::function<void(Atom)> &addAtom)
  * @param addAtom Function to add atoms to class's atom list.
  * @param dataBlock Data block used to store all of CIF file's fields.
 */
-void readCIF(const std::string &fnCIF, const std::function<void(Atom)> &addAtom, cif::datablock &dataBlock)
+void readCIF(const std::string &fnCIF, const callable &addAtom, cif::datablock &dataBlock)
 {
     // Parsing mmCIF file
     cif::file cifFile;
@@ -570,6 +572,7 @@ void PDBPhantom::shift(double x, double y, double z)
     }
 }
 
+template<typename callable>
 /**
  * @brief Read rich phantom from either a PDB of CIF file.
  * 
@@ -582,7 +585,7 @@ void PDBPhantom::shift(double x, double y, double z)
  * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms. false (default) is used when there are no pseudoatoms or when using a threshold.
  * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
 */
-void readRichPDB(const FileName &fnPDB, const std::function<void(RichAtom)> &addAtom, std::vector<double> &intensities,
+void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<double> &intensities,
     std::vector<std::string> &remarks, const bool pseudoatoms, const double threshold)
 {
     // Open file
@@ -644,6 +647,7 @@ void readRichPDB(const FileName &fnPDB, const std::function<void(RichAtom)> &add
     fh_in.close();
 }
 
+template<typename callable>
 /**
  * @brief Read rich phantom from CIF.
  * 
@@ -657,7 +661,7 @@ void readRichPDB(const FileName &fnPDB, const std::function<void(RichAtom)> &add
  * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
  * @param dataBlock Data block used to store all of CIF file's fields.
 */
-void readRichCIF(const std::string &fnCIF, const std::function<void(RichAtom)> &addAtom, std::vector<double> &intensities,
+void readRichCIF(const std::string &fnCIF, const callable &addAtom, std::vector<double> &intensities,
     const bool pseudoatoms, const double threshold, cif::datablock &dataBlock)
 {
     // Parsing mmCIF file
@@ -749,6 +753,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, const bool pseudoatoms, const d
     }
 }
 
+template<typename callable>
 /**
  * @brief Write rich phantom to PDB file.
  * 
@@ -759,7 +764,7 @@ void PDBRichPhantom::read(const FileName &fnPDB, const bool pseudoatoms, const d
  * @param remarks List of remarks.
  * @param atomList List of atoms to be stored.
 */
-void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::string> &remarks, const std::vector<RichAtom> &atomList)
+void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::string> &remarks, const callable &atomList)
 {
     FILE* fh_out=fopen(fnPDB.c_str(),"w");
     if (!fh_out)
@@ -797,6 +802,7 @@ void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::strin
     fclose(fh_out);
 }
 
+template<typename callable>
 /**
  * @brief Write rich phantom to CIF file.
  * 
@@ -806,7 +812,7 @@ void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::strin
  * @param atomList List of atoms to be stored.
  * @param dataBlock Data block containing the full CIF file.
 */
-void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, cif::datablock &dataBlock)
+void writeCIF(const std::string &fnCIF, const callable &atomList, cif::datablock &dataBlock)
 {
     // Opening CIF file
     std::ofstream cifFile(fnCIF);
@@ -886,13 +892,9 @@ void writeCIF(const std::string &fnCIF, const std::vector<RichAtom> &atomList, c
         atomSite.emplace(std::move(atomSiteInserter));
     }
 
-    // Getting iterator for current atom site in data block
-    auto categoryIterator = std::find_if(dataBlock.begin(), dataBlock.end(), [](const cif::category& cat) {
-        return cat.name() == "atom_site";
-    });
-
     // Updating atom list in stored data block
-    if (categoryIterator != dataBlock.end()) {
+    if (auto categoryIterator = std::find_if(dataBlock.begin(), dataBlock.end(), [](const cif::category& cat)
+        { return cat.name() == "atom_site"; }); categoryIterator != dataBlock.end()) {
         auto nextIterator = std::next(categoryIterator);
         dataBlock.erase(categoryIterator);
         dataBlock.insert(nextIterator, atomSite);
