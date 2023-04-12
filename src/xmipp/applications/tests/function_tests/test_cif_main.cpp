@@ -3,6 +3,7 @@
 #include "core/xmipp_filename.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include <cstdio>
 
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
@@ -104,4 +105,7 @@ TEST_F(CIFTest, writeFile)
     // Comparing values for the first atom in list
     // ATOM   1    N N   . PRO A 1 1   ? 16.979 13.301 44.555 1.00 30.05 ? 1   PRO A N   1 
     compareFirstAtom(pdb.atomList[0]);
+
+    // Attempting to remove produced file
+    remove(writePath.c_str());
 }
