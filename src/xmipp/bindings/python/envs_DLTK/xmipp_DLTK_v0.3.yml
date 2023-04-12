@@ -1,0 +1,13 @@
+name: xmipp_DLTK_v0.3
+channels:
+  - anaconda
+  - defaults
+dependencies:
+  - python=3.7
+  - scikit-image=0.14
+  - tensorflow=1.15
+  - keras=2.2
+  - scikit-learn=0.22
+  - pip
+  - pip:
+      - numpy==1.21
