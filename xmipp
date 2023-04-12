@@ -507,15 +507,22 @@ def compile_libsvm():
     ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
     return ok
 
+def checkScons():
+    return runJob("scons --version", show_output=False, show_command=False)
+
 
 def compile(Nproc):
-    if isinstance(Nproc, str) and Nproc.startswith('N='):
-        Nproc = int(Nproc.split('N=')[1])
-    buildConfig.check_version()
-    if not compileDependencies(Nproc):
+    if checkScons():
+        if isinstance(Nproc, str) and Nproc.startswith('N='):
+            Nproc = int(Nproc.split('N=')[1])
+        buildConfig.check_version()
+        if not compileDependencies(Nproc):
+            return False
+        return compileXmipp(Nproc)
+    else:
+        print(red('Scons package not found. Please install it in the enviroment '
+                    'you install Xmipp (pip install SCons) or in the system'))
         return False
-    return compileXmipp(Nproc)
-
 
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
@@ -765,6 +772,7 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
+    ok = ok and runJob(cpCmd+" -r src/xmipp/bindings/python/envs_DLTK/ " + dirname + "/bindings/python/envs_DLTK")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
