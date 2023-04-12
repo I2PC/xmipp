@@ -23,5 +23,4 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": True
   }
 
-
 }

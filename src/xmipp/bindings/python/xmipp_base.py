@@ -317,7 +317,11 @@ class CondaEnvManager(object):
             if os.path.exists(gpuRequirementsFn):
                 requirementsFn = gpuRequirementsFn
         
-        return ('conda env create --force -f %s' % requirementsFn), requirementsFn
+        target = os.path.basename(requirementsFn)
+        commands = [] 
+        commands.append('conda env create --force -f %s' % requirementsFn)
+        commands.append('conda env export -f %s' % target)
+        return ' && '.join(commands), target
 
 def getModel(*modelPath, **kwargs):
     """ Returns the path to the models folder followed by
