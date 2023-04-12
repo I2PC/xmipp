@@ -527,14 +527,22 @@ def compile_libcifpp():
     ok = ok and runJob("cp " + os.path.join(libcifppDir, "lib", "libcifpp.so*") + " " + libDir)
     return ok
 
-def compile(Nproc):
-    if isinstance(Nproc, str) and Nproc.startswith('N='):
-        Nproc = int(Nproc.split('N=')[1])
-    buildConfig.check_version()
-    if not compileDependencies(Nproc):
-        return False
-    return compileXmipp(Nproc)
+def checkScons():
+    return runJob("scons --version", show_output=False, show_command=False)
 
+
+def compile(Nproc):
+    if checkScons():
+        if isinstance(Nproc, str) and Nproc.startswith('N='):
+            Nproc = int(Nproc.split('N=')[1])
+        buildConfig.check_version()
+        if not compileDependencies(Nproc):
+            return False
+        return compileXmipp(Nproc)
+    else:
+        print(red('Scons package not found. Please install it in the enviroment '
+                    'you install Xmipp (pip install SCons) or in the system'))
+        return False
 
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
