@@ -81,12 +81,9 @@ TEST_F(CIFTest, readFile)
     FileName fileName(readPath); // Sample file from libcifpp examples
     pdb.read(fileName);
 
-    // Getting first atom in list
+    // Comparing values for the first atom in list
     // ATOM   1    N N   . PRO A 1 1   ? 16.979 13.301 44.555 1.00 30.05 ? 1   PRO A N   1 
-    RichAtom firstAtom = pdb.atomList[0];
-
-    // Comparing values for the first atom
-    compareFirstAtom(firstAtom);
+    compareFirstAtom(pdb.atomList[0]);
 }
 
 TEST_F(CIFTest, writeFile)
@@ -104,10 +101,7 @@ TEST_F(CIFTest, writeFile)
     // Reading written file
     pdb.read(writePath);
 
-    // Getting first atom in list
+    // Comparing values for the first atom in list
     // ATOM   1    N N   . PRO A 1 1   ? 16.979 13.301 44.555 1.00 30.05 ? 1   PRO A N   1 
-    RichAtom firstAtom = pdb.atomList[0];
-
-    // Comparing values for the first atom
-    compareFirstAtom(firstAtom);
+    compareFirstAtom(pdb.atomList[0]);
 }
