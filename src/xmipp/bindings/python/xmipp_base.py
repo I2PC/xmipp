@@ -312,7 +312,10 @@ class CondaEnvManager(object):
         # Consider the gpu version if requested
         if gpu:
             root, ext = os.path.splitext(requirementsFn)
-            requirementsFn = root + '-gpu' + ext
+            gpuRequirementsFn = root + '-gpu' + ext
+            
+            if os.path.exists(gpuRequirementsFn):
+                requirementsFn = gpuRequirementsFn
         
         return ('conda env create --force -f %s' % requirementsFn), requirementsFn
 
