@@ -36,15 +36,12 @@ public:
     void readParams();
     void read(int argc, char **argv, bool reportErrors = true);
     void preProcess();
-    
     void startProcessing();
-    
     void showProgress();
-   
     virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         return getTaskToProcess(objId, objIndex);
-    }   
+    }
     void finishProcessing();
     
     void wait();

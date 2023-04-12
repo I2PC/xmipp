@@ -50,71 +50,64 @@ void MpiProgSubtractProjection::preProcess()
     if (node->rank == 0)
     {
         realSize = XSIZE(projector->VfourierRealCoefs);
-        std::cout << " rank =" << rank << "-------0-------" << std::endl;
         origin = STARTINGX(projector->VfourierRealCoefs);
-        std::cout << " rank =" << rank << "-------1-------" << std::endl;
         realSizeMask = XSIZE(projectorMask->VfourierRealCoefs);
-        std::cout << " rank =" << rank << "-------2-------" << std::endl;
         originMask = STARTINGX(projectorMask->VfourierRealCoefs);
     }
     MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------3-------" << std::endl;
     MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------4-------" << std::endl;
-    MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); //aqui no llegan los rank !0
-    std::cout << " rank =" << rank << "-------5-------" << std::endl;
-    MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------6-------" << std::endl;
-
+    MPI_Bcast(&(projector/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD); //aqui no llegan los rank !0
+    //MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------7-------" << std::endl;
     MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------8-------" << std::endl;
-    MPI_Bcast(&(projectorMask->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------9-------" << std::endl;
-    MPI_Bcast(&(projectorMask->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------10-------" << std::endl;  // rank 0 llega al menos hasta aquí antes de que fallen los otros
+    MPI_Bcast(&(projectorMask/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    //MPI_Bcast(&(projectorMask->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    //std::cout << " rank =" << rank << "-------10-------" << std::endl;  
 
-    if (rank != 0)
-    {
-        projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
-        std::cout << " rank =" << rank << "-------11-------" << std::endl;
-        projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
-        std::cout << " rank =" << rank << "-------12-------" << std::endl;
-        STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
-        std::cout << " rank =" << rank << "-------13-------" << std::endl;
-        STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
-        std::cout << " rank =" << rank << "-------14-------" << std::endl;
+    // if (rank != 0)
+    // {
+    //     //projector/*->VfourierRealCoefs*/.resizeNoCopy(realSize,realSize,realSize);
+    //     std::cout << " rank =" << rank << "-------11-------" << std::endl;
+    //     //projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
+    //     std::cout << " rank =" << rank << "-------12-------" << std::endl;
+    //     //STARTINGX(projector/*->VfourierRealCoefs*/)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
+    //     std::cout << " rank =" << rank << "-------13-------" << std::endl;
+    //     //STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
+    //     std::cout << " rank =" << rank << "-------14-------" << std::endl;
 
-        projectorMask->VfourierRealCoefs.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
-        std::cout << " rank =" << rank << "-------15-------" << std::endl;
-        projectorMask->VfourierImagCoefs.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
-        std::cout << " rank =" << rank << "-------16-------" << std::endl;
-        STARTINGX(projectorMask->VfourierRealCoefs)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=originMask;
-        std::cout << " rank =" << rank << "-------17-------" << std::endl;
-        STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=originMask;
-        std::cout << " rank =" << rank << "-------18-------" << std::endl;
-    }
+    //     //projectorMask/*->VfourierRealCoefs*/.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
+    //     std::cout << " rank =" << rank << "-------15-------" << std::endl;
+    //     //projectorMask->VfourierImagCoefs.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
+    //     std::cout << " rank =" << rank << "-------16-------" << std::endl;
+    //     //STARTINGX(projectorMask/*->VfourierRealCoefs*/)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=originMask;
+    //     std::cout << " rank =" << rank << "-------17-------" << std::endl;
+    //     //STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=originMask;
+    //     std::cout << " rank =" << rank << "-------18-------" << std::endl;
+    // }
 
-    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------19-------" << std::endl;
-    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------20-------" << std::endl;
-    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierRealCoefs), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------21-------" << std::endl;
-    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    std::cout << " rank =" << rank << "-------22-------" << std::endl;
+    // //MPI_Bcast(MULTIDIM_ARRAY(projector/*->VfourierRealCoefs*/), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // std::cout << " rank =" << rank << "-------19-------" << std::endl;
+    // //MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // std::cout << " rank =" << rank << "-------20-------" << std::endl;
+    // //MPI_Bcast(MULTIDIM_ARRAY(projectorMask-/*>VfourierRealCoefs*/), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // std::cout << " rank =" << rank << "-------21-------" << std::endl;
+    // //MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // std::cout << " rank =" << rank << "-------22-------" << std::endl;
 
-    if (rank != 0)
-    {
-        projector->produceSideInfoProjection();
-        projectorMask->produceSideInfoProjection();
-    }
+    // if (rank != 0)
+    // {
+    //     std::cout << " rank =" << rank << "-------10-------" << std::endl;
+    //     projector->produceSideInfoProjection();
+    //     std::cout << " rank =" << rank << "-------11-------" << std::endl;
+    //     projectorMask->produceSideInfoProjection();
+    //     std::cout << " rank =" << rank << "-------12-------" << std::endl;
+    // }
 
     MetaData &mdIn = *getInputMd();
     mdIn.addLabel(MDL_GATHER_ID);
     mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
     createTaskDistributor(mdIn, blockSize);
+    std::cout << "------preProcess done------" << std::endl;
 }
 void MpiProgSubtractProjection::startProcessing()
 {
@@ -124,14 +117,19 @@ void MpiProgSubtractProjection::startProcessing()
         ProgSubtractProjection::startProcessing();
     }
     node->barrierWait();
+    std::cout <<  " rank =" << rank << "------startProcessing done------" << std::endl;
 }
-void MpiProgSubtractProjection::showProgress()
+void MpiProgSubtractProjection::showProgress() // NO ENTRA AQUI
 {
+    std::cout <<  " rank =" << rank << "------1------" << std::endl;
     if (node->rank == 1)
     {
+        std::cout <<  " rank =" << rank << "------2------" << std::endl;
         time_bar_done = first + 1;
+        std::cout <<  " rank =" << rank << "------3------" << std::endl;
         ProgSubtractProjection::showProgress();
     }
+    std::cout << "------showProgress done------" << std::endl;
 }
 
 
@@ -144,6 +142,7 @@ void MpiProgSubtractProjection::finishProcessing()
     getOutputMd() = MDaux;
     if (node->isMaster())
         ProgSubtractProjection::finishProcessing();
+    std::cout << "------finishProcessing done------" << std::endl;
 }
 void MpiProgSubtractProjection::wait()
 {
