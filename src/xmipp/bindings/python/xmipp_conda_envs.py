@@ -23,8 +23,8 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": True
   },
 
-  "xmipp_swiftres": {
-    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_swiftres.yml'),
+  "xmipp_swiftalign": {
+    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_swiftalign.yml'),
     "xmippEnviron": True
   }
 

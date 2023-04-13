@@ -27,16 +27,11 @@ import argparse
 import math
 import torch
 
-import xmippPyModules.swiftres.image as image
-import xmippPyModules.swiftres.operators as operators
-import xmippPyModules.swiftres.search as search
-import xmippPyModules.swiftres.alignment as alignment
-import xmippPyModules.swiftres.metadata as md
-
-def _repeat_each_item(iterable: Iterable, times: int):
-    for item in iterable:
-        for _ in range(times):
-            yield item
+import xmippPyModules.swiftalign.image as image
+import xmippPyModules.swiftalign.operators as operators
+import xmippPyModules.swiftalign.search as search
+import xmippPyModules.swiftalign.alignment as alignment
+import xmippPyModules.swiftalign.metadata as md
 
 def run(reference_md_path: str, 
         weight_image_path: Optional[str],
@@ -115,8 +110,8 @@ def run(reference_md_path: str,
     # This will be LARGE. Therefore provide a MMAP path
     training_set_shape = (n_training, dim)
     if scratch_path:
-        size = math.prod(training_set_shape)
-        storage = torch.FloatStorage.from_file(scratch_path, shared=True, size=size)
+        nbytes = 4*math.prod(training_set_shape)
+        storage = torch.UntypedStorage.from_file(scratch_path, shared=True, nbytes=nbytes)
         training_set = torch.FloatTensor(storage=storage)
         training_set = training_set.view(training_set_shape)
     else:

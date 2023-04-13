@@ -1,4 +1,4 @@
-name: xmipp_swiftres
+name: xmipp_swiftalign
 channels:
   - pytorch
   - nvidia
