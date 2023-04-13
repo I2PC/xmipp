@@ -110,8 +110,8 @@ def run(reference_md_path: str,
     # This will be LARGE. Therefore provide a MMAP path
     training_set_shape = (n_training, dim)
     if scratch_path:
-        nbytes = 4*math.prod(training_set_shape)
-        storage = torch.UntypedStorage.from_file(scratch_path, shared=True, nbytes=nbytes)
+        size = math.prod(training_set_shape)
+        storage = torch.FloatStorage.from_file(scratch_path, shared=True, size=size)
         training_set = torch.FloatTensor(storage=storage)
         training_set = training_set.view(training_set_shape)
     else:
