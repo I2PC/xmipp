@@ -27,11 +27,11 @@ import torch
 import argparse
 import itertools
 
-import xmippPyModules.torch.image as image
-import xmippPyModules.torch.search as search
-import xmippPyModules.torch.alignment as alignment
-import xmippPyModules.torch.operators as operators
-import xmippPyModules.torch.metadata as md
+import xmippPyModules.swiftres.image as image
+import xmippPyModules.swiftres.search as search
+import xmippPyModules.swiftres.alignment as alignment
+import xmippPyModules.swiftres.operators as operators
+import xmippPyModules.swiftres.metadata as md
 
 
 def run(experimental_md_path: str, 

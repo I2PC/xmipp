@@ -27,11 +27,11 @@ import argparse
 import math
 import torch
 
-import xmippPyModules.torch.image as image
-import xmippPyModules.torch.operators as operators
-import xmippPyModules.torch.search as search
-import xmippPyModules.torch.alignment as alignment
-import xmippPyModules.torch.metadata as md
+import xmippPyModules.swiftres.image as image
+import xmippPyModules.swiftres.operators as operators
+import xmippPyModules.swiftres.search as search
+import xmippPyModules.swiftres.alignment as alignment
+import xmippPyModules.swiftres.metadata as md
 
 def _repeat_each_item(iterable: Iterable, times: int):
     for item in iterable:
