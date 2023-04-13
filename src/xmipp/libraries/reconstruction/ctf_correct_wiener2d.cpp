@@ -91,111 +91,6 @@ void ProgCorrectWiener2D::postProcess()
 
 }
 
-void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, CTFDescription & ctf)
-{
-	int paddimY = Ydim*pad;
-	int paddimX = Xdim*pad;
-	ctf.enable_CTF = true;
-	ctf.enable_CTFnoise = false;
-	ctf.produceSideInfo();
-
-	MultidimArray<std::complex<double> > ctfComplex;
-	MultidimArray<double> ctfIm;
-
-	Mwien.resize(paddimY,paddimX);
-
-	ctf.Tm = sampling_rate;
-	//ctf.Tm /= pad;
-
-	if (isIsotropic)
-	{
-		double avgdef = (ctf.DeltafU + ctf.DeltafV)/2.;
-		ctf.DeltafU = avgdef;
-		ctf.DeltafV = avgdef;
-	}
-
-
-	ctfIm.resize(1, 1, paddimY, paddimX,false);
-	//Esto puede estar mal. Cuidado con el sampling de la ctf!!!
-
-	if (correct_envelope)
-		ctf.generateCTF(paddimY, paddimX, ctfComplex);
-	else
-		ctf.generateCTFWithoutDamping(paddimY, paddimX, ctfComplex);
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(ctfIm)
-	{
-		if (phase_flipped)
-			dAij(ctfIm, i, j) = fabs(dAij(ctfComplex, i, j).real());
-		else
-			dAij(ctfIm, i, j) = dAij(ctfComplex, i, j).real();
-	}
-
-//#define DEBUG
-#ifdef DEBUG
-	{
-		Image<double> save;
-		save()=ctfIm;
-		save.write("PPPctf2.spi");
-		//exit(1);
-		//std::cout << "Press any key\n";
-		//char c;
-		//std::cin >> c;
-	}
-#endif
-#undef DEBUG
-
-	double result;
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
-	{
-		result = (DIRECT_N_YX_ELEM (ctfIm, 0, i, j));
-		dAij(Mwien,i,j) = (result *result);
-	}
-
-#ifdef DEBUG
-
-{
-	Image<double> save;
-	save()=Mwien;
-	save.write("vienerB.spi");
-}
-#endif
-#undef DEBUG
-
-// Add Wiener constant
-if (wiener_constant < 0.)
-{
-
-	// Use Grigorieff's default for Wiener filter constant: 10% of average over all Mwien terms
-	// Grigorieff JSB 157(1) (2006), pp 117-125
-	double valueW = 0.1*Mwien.computeAvg();
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
-	{
-		dAij(Mwien,i,j) += valueW;
-		dAij(Mwien,i,j) = dAij(ctfIm, i, j)/dAij(Mwien, i, j);
-	}
-}
-else
-{
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
-    {
-		dAij(Mwien,i,j) += wiener_constant;
-		dAij(Mwien,i,j) = dAij(ctfIm, i, j)/dAij(Mwien, i, j);
-    }
-}
-
-#ifdef DEBUG
-
-{
-	Image<double> save;
-	save()=Mwien;
-	save.write("vienerC.spi");
-}
-#endif
-#undef DEBUG
-
-}
-
 //#define DEBUG
 void ProgCorrectWiener2D::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
@@ -212,7 +107,12 @@ void ProgCorrectWiener2D::processImage(const FileName &fnImg, const FileName &fn
 	int paddimX = Xdim*pad;
 	MultidimArray<std::complex<double> > Faux;
 
-	generateWienerFilter(Mwien,ctf);
+	generateCtf(ctfImg, ctf);
+	if(signalPsd.nzyxdim && noisePsd.nzyxdim) {
+		generateWienerFilter(Mwien, ctfImg, signalPsd, noisePsd);
+	} else {
+		generateWienerFilter(Mwien, ctfImg, wiener_constant);
+	}
 
 #ifdef DEBUG
 
@@ -267,5 +167,127 @@ void ProgCorrectWiener2D::processImage(const FileName &fnImg, const FileName &fn
 }
 #endif
 #undef DEBUG
+}
 
+
+void ProgCorrectWiener2D::generateCtf(MultidimArray<double> &ctfIm, CTFDescription &ctf) const
+{
+	int paddimY = Ydim*pad;
+	int paddimX = Xdim*pad;
+	ctf.enable_CTF = true;
+	ctf.enable_CTFnoise = false;
+	ctf.produceSideInfo();
+
+	MultidimArray<std::complex<double> > ctfComplex;
+
+	ctf.Tm = sampling_rate;
+	//ctf.Tm /= pad;
+
+	if (isIsotropic)
+	{
+		double avgdef = (ctf.DeltafU + ctf.DeltafV)/2.;
+		ctf.DeltafU = avgdef;
+		ctf.DeltafV = avgdef;
+	}
+
+
+	ctfIm.resize(1, 1, paddimY, paddimX,false);
+	//Esto puede estar mal. Cuidado con el sampling de la ctf!!!
+
+	if (correct_envelope)
+		ctf.generateCTF(paddimY, paddimX, ctfComplex);
+	else
+		ctf.generateCTFWithoutDamping(paddimY, paddimX, ctfComplex);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(ctfIm)
+	{
+		if (phase_flipped)
+			dAij(ctfIm, i, j) = fabs(dAij(ctfComplex, i, j).real());
+		else
+			dAij(ctfIm, i, j) = dAij(ctfComplex, i, j).real();
+	}
+}
+
+void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, const MultidimArray<double>& ctf, double wc) {
+	Mwien.resizeNoCopy(ctf);
+
+//#define DEBUG
+#ifdef DEBUG
+	{
+		Image<double> save;
+		save()=ctfIm;
+		save.write("PPPctf2.spi");
+		//exit(1);
+		//std::cout << "Press any key\n";
+		//char c;
+		//std::cin >> c;
+	}
+#endif
+#undef DEBUG
+
+	double result;
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
+	{
+		result = (DIRECT_N_YX_ELEM (ctfIm, 0, i, j));
+		dAij(Mwien,i,j) = (result *result);
+	}
+
+#ifdef DEBUG
+
+{
+	Image<double> save;
+	save()=Mwien;
+	save.write("vienerB.spi");
+}
+#endif
+#undef DEBUG
+
+// Add Wiener constant
+if (wc < 0.)
+{
+
+	// Use Grigorieff's default for Wiener filter constant: 10% of average over all Mwien terms
+	// Grigorieff JSB 157(1) (2006), pp 117-125
+	double valueW = 0.1*Mwien.computeAvg();
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
+	{
+		dAij(Mwien,i,j) += valueW;
+		dAij(Mwien,i,j) = dAij(ctfIm, i, j)/dAij(Mwien, i, j);
+	}
+}
+else
+{
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
+    {
+		dAij(Mwien,i,j) += wc;
+		dAij(Mwien,i,j) = dAij(ctfIm, i, j)/dAij(Mwien, i, j);
+    }
+}
+
+#ifdef DEBUG
+
+{
+	Image<double> save;
+	save()=Mwien;
+	save.write("vienerC.spi");
+}
+#endif
+#undef DEBUG
+}
+
+void ProgCorrectWiener2D::generateWienerFilter( MultidimArray<double> &Mwien, 
+                                        		const MultidimArray<double>& ctf, 
+                                        		const MultidimArray<double>& signalPsd, 
+                                        		const MultidimArray<double>& noisePsd ) const
+{
+	Mwien.resizeNoCopy(ctf);
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien) {
+		auto& w = = Aij(Mwien, i, j);
+		const auto& c = = Aij(ctf, i, j);
+		const auto& s = = Aij(signalPsd, i, j);
+		const auto& n = = Aij(noisePsd, i, j);
+		const auto cs = c*s;
+
+		w = cs / (c*cs + n);
+	}
 }

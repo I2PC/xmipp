@@ -64,9 +64,14 @@ public:
 
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
-    void generateWienerFilter(MultidimArray<double> &Mwien, CTFDescription &ctf);
-
 	void postProcess();
+
+    void generateCtf(MultidimArray<double> &ctfImg, CTFDescription &ctf) const;
+    static void generateWienerFilter(MultidimArray<double> &Mwien, const MultidimArray<double>& ctf, double wc);
+    static void generateWienerFilter(   MultidimArray<double> &Mwien, 
+                                        const MultidimArray<double>& ctf, 
+                                        const MultidimArray<double>& signalPsd, 
+                                        const MultidimArray<double>& noisePsd );
 public:
 	Image<double> img;
 
@@ -75,6 +80,9 @@ public:
 	size_t Ydim, Xdim;
 
 	MultidimArray<double> Mwien;
+	MultidimArray<double> ctfImg;
+	MultidimArray<double> signalPsd;
+	MultidimArray<double> noisePsd;
 	MultidimArray<std::complex<double> > Faux;
     FourierTransformer transformer;
 };
