@@ -1,0 +1,9 @@
+name: xmipp_deepHand
+channels:
+  - anaconda
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pytorch=1.6
+

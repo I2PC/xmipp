@@ -1,0 +1,14 @@
+name: xmipp_swiftres
+channels:
+  - pytorch
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - numpy=1.23
+  - pytorch=1.11
+  - torchvision=0.12
+  - faiss=1.7.3
+  - mrcfile=1.4.3
+  - starfile=0.4.12
