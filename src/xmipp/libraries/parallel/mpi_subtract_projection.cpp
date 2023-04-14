@@ -42,7 +42,6 @@ void MpiProgSubtractProjection::read(int argc, char **argv, bool reportErrors)
 void MpiProgSubtractProjection::preProcess()
 {
     rank = node->rank;
-    std::cout << "MPI rank=" << rank << std::endl;
     ProgSubtractProjection::preProcess();
 
     // Get the volume padded size from rank 0
@@ -56,12 +55,12 @@ void MpiProgSubtractProjection::preProcess()
     }
     MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projector/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD); //aqui no llegan los rank !0
-    //MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&(projector/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD); 
+    MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&(projectorMask/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //MPI_Bcast(&(projectorMask->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&(projectorMask->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
     //std::cout << " rank =" << rank << "-------10-------" << std::endl;  
 
     // if (rank != 0)
@@ -94,20 +93,19 @@ void MpiProgSubtractProjection::preProcess()
     // //MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
     // std::cout << " rank =" << rank << "-------22-------" << std::endl;
 
-    // if (rank != 0)
-    // {
-    //     std::cout << " rank =" << rank << "-------10-------" << std::endl;
-    //     projector->produceSideInfoProjection();
-    //     std::cout << " rank =" << rank << "-------11-------" << std::endl;
-    //     projectorMask->produceSideInfoProjection();
-    //     std::cout << " rank =" << rank << "-------12-------" << std::endl;
-    // }
+    if (rank != 0)
+    {
+        std::cout << " rank =" << rank << "-------10-------" << std::endl;
+        projector->produceSideInfoProjection();
+        std::cout << " rank =" << rank << "-------11-------" << std::endl;
+        projectorMask->produceSideInfoProjection();
+        std::cout << " rank =" << rank << "-------12-------" << std::endl;
+    }
 
     MetaData &mdIn = *getInputMd();
     mdIn.addLabel(MDL_GATHER_ID);
     mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
     createTaskDistributor(mdIn, blockSize);
-    std::cout << "------preProcess done------" << std::endl;
 }
 void MpiProgSubtractProjection::startProcessing()
 {
@@ -117,19 +115,14 @@ void MpiProgSubtractProjection::startProcessing()
         ProgSubtractProjection::startProcessing();
     }
     node->barrierWait();
-    std::cout <<  " rank =" << rank << "------startProcessing done------" << std::endl;
 }
 void MpiProgSubtractProjection::showProgress() // NO ENTRA AQUI
 {
-    std::cout <<  " rank =" << rank << "------1------" << std::endl;
     if (node->rank == 1)
     {
-        std::cout <<  " rank =" << rank << "------2------" << std::endl;
         time_bar_done = first + 1;
-        std::cout <<  " rank =" << rank << "------3------" << std::endl;
         ProgSubtractProjection::showProgress();
     }
-    std::cout << "------showProgress done------" << std::endl;
 }
 
 

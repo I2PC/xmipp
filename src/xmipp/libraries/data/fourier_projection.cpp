@@ -90,11 +90,16 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
 
 void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
+    std::cout << "------pp1------" << std::endl;
     double freqy;
     double freqx;
     std::complex< double > f;
+    std::cout << "rot: "<< rot << std::endl;
+    std::cout << "tilt: "<< tilt << std::endl;
+    std::cout << "psi: "<< psi << std::endl;
     Euler_angles2matrix(rot,tilt,psi,E);
-
+    std::cout << "E: "<< E << std::endl;
+    std::cout << "------pp2------" << std::endl;
     projectionFourier.initZeros();
     double maxFreq2=maxFrequency*maxFrequency;
     auto Xdim=(int)XSIZE(VfourierRealCoefs);
@@ -221,7 +226,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
 					d += yxsumIm * aux;
                 }
             }
-
+            std::cout << "------pp2------" << std::endl;
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
@@ -243,6 +248,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             *(ptrI_ij+1) = ab_cd - ac - bd;
         }
     }
+    std::cout << "------pp3------" << std::endl;
     transformer2D.inverseFourierTransform();
 }
 
@@ -301,7 +307,9 @@ void FourierProjector::produceSideInfo()
 void FourierProjector::produceSideInfoProjection()
 {
     // Allocate memory for the 2D Fourier transform
+    std::cout << "------side1------" << std::endl;
     projection().initZeros(volumeSize,volumeSize);
+    std::cout << "------side2------" << std::endl;
     projection().setXmippOrigin();
     transformer2D.FourierTransform(projection(),projectionFourier,false);
 
@@ -327,7 +335,10 @@ void FourierProjector::produceSideInfoProjection()
 void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdim,
                    double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
-	projector.project(rot,tilt,psi,ctf);
+	std::cout << "------p1------" << std::endl;
+    projector.project(rot,tilt,psi,ctf);
+    std::cout << "------p2------" << std::endl;
     P() = projector.projection();
+    std::cout << "------p3------" << std::endl;
 }
 

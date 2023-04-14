@@ -218,14 +218,22 @@ void ProgSubtractProjection::processParticle(const MDRow &row, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
+	std::cout << "------110------" << std::endl;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
+	std::cout << "------111------" << std::endl;
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
+	std::cout << "------112------" << std::endl;
 	Pctf = applyCTF(row, P);
+	std::cout << "------113------" << std::endl;
 	MultidimArray<double> &mPctf = Pctf();
+	std::cout << "------114------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
+	std::cout << "------115------" << std::endl;
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
+	std::cout << "------116------" << std::endl;
 	transformerIf.FourierTransform(I(), IFourier, false);
+	std::cout << "------117------" << std::endl;
 }
 
 MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
@@ -284,7 +292,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	// Read input volume, mask and particles metadata
 	if (rank==0)
 	{
-		std::cout << "Serial rank: " << rank << std::endl;
 		show();
 		V.read(fnVolR);
 		V().setXmippOrigin();
@@ -345,7 +352,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 			DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
 		// Declare complex structures that will be used in the loop
-		std::cout << "-------Subtracting particles-------" << std::endl;
+		std::cout << "-------Starting subtraction-------" << std::endl;
 		// mdParticles.read(fnParticles);
 		// long setofparticles_size = mdParticles.size();
 		// init_progress_bar(setofparticles_size);
@@ -358,43 +365,59 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	// Initialize aux variable
 	disable = false;
 	i++;
-
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
+	std::cout << "------11------" << std::endl;
 	processParticle(rowIn, sizeI, transformerP, transformerI);
+	std::cout << "------12------" << std::endl;
 	// Build projected and final masks
 	if (fnMask.isEmpty()) { // If there is no provided mask
 		M().initZeros(P());
+		std::cout << "------13------" << std::endl;
 		// inverse mask (iM) is all 1s
 		iM = invertMask(M);
+		std::cout << "------14------" << std::endl;
 	}
 	else { // If a mask has been provided
+		std::cout << "------15------" << std::endl;
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
+		std::cout << "------16------" << std::endl;
 		// Apply binarization, shift and gaussian filter to the projected mask
 		M = binarizeMask(Pmask);
+		std::cout << "------17------" << std::endl;
 		selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
+		std::cout << "------18------" << std::endl;
 		FilterG.applyMaskSpace(M());
+		std::cout << "------19------" << std::endl;
 		if (subtract) // If the mask contains the part to subtract: inverse the original mask
 			iM = M;
 		else // Compute inverse of original mask
 			iM = invertMask(M);
+		std::cout << "------20------" << std::endl;
 	}
 	
 	// Compute estimation images: IiM = I*iM and PiM = P*iM	
 	IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
+	std::cout << "------21------" << std::endl;
 	PiMFourier = computeEstimationImage(Pctf(), iM(), transformerPiM);
+	std::cout << "------22------" << std::endl;
 
 	// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
 	MultidimArray<double> num0;
 	num0.initZeros(maxwiIdx+1); 
+	std::cout << "------23------" << std::endl;
 	MultidimArray<double> den0;
 	den0.initZeros(maxwiIdx+1);
+	std::cout << "------24------" << std::endl;
 	Matrix2D<double> A1;
 	A1.initZeros(2,2);
+	std::cout << "------25------" << std::endl;
 	Matrix1D<double> b1;
 	b1.initZeros(2);
+	std::cout << "------26------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
 		int win = DIRECT_MULTIDIM_ELEM(wi, n);
+		std::cout << "------27------" << std::endl;
 		if (win < maxwiIdx) 
 		{
 			double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
@@ -409,20 +432,26 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 			b1(1) += win*(real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))+imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)));
 		}
 	}
+	std::cout << "------28------" << std::endl;
 	A1(1,0) = A1(0,1);
 
 	// Compute beta00 from order 0 model
+	std::cout << "------29------" << std::endl;
 	double beta00 = num0.sum()/den0.sum();
+	std::cout << "------30------" << std::endl;
 	if (nonNegative && beta00 < 0) 
 	{
 		disable = true;
 	}
-
+	std::cout << "------31------" << std::endl;
 	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 	PFourier0 = PFourier;
+	std::cout << "------32------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
 		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
+	std::cout << "------33------" << std::endl;
 	PFourier0(0,0) = IiMFourier(0,0); 
+	std::cout << "------34------" << std::endl;
 
 	// Compute beta01 and beta1 from order 1 model
 	PseudoInverseHelper h;
@@ -432,12 +461,14 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	solveLinearSystem(h,betas1); 
 	double beta01 = betas1(0);
 	double beta1 = betas1(1);
+	std::cout << "------35------" << std::endl;
 
 	// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
 	PFourier1 = PFourier;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
 		DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 	PFourier1(0,0) = IiMFourier(0,0); 
+	std::cout << "------36------" << std::endl;
 
 	// Check best model
 	Matrix1D<double> R2adj = checkBestModel(PFourier, PFourier0, PFourier1, IFourier);
@@ -453,11 +484,13 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		beta0save = beta01;
 		beta1save = beta1;
 	}
+	std::cout << "------37------" << std::endl;
 
 	// Create empty new image for output particle
 	MultidimArray<double> &mIdiff=Idiff();
 	mIdiff.initZeros(I());
 	mIdiff.setXmippOrigin();
+	std::cout << "------38------" << std::endl;
 
 	// Boosting of original particles
 	if (boost)
@@ -479,12 +512,15 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	else
 	{
 		// Recover adjusted projection (P) in real space
+		std::cout << "------39------" << std::endl;
 		transformerP.inverseFourierTransform(PFourier, P());
+		std::cout << "------40------" << std::endl;
 		mIdiff.initZeros(I());
 		mIdiff.setXmippOrigin();
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
 			DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
 	}
+	std::cout << "------41------" << std::endl;
 	// Write particle
 	writeParticle(rowOut, Idiff, R2adj(0), beta0save, beta1save); 
 	std::cout << "particle " << i << " subtracted" << std::endl;
