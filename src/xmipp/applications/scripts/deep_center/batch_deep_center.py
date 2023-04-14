@@ -7,22 +7,32 @@ import os
 import sys
 import xmippLib
 from time import time
-from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift, rotate
 
 if __name__ == "__main__":
-    from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
+    SL = xmippLib.SymList()
+    print("SL", SL, flush=True)
+
+    SL.readSymmetryFile("C1")
+
+    SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
+
+    print("distance", SL.computeDistanceAngles(90, 90, 90, 0, 0, 0, False, False, False))
+
+    from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
     print("------------------", flush=True)
-    print(fnModel, flush=True)
     mode = sys.argv[3]
     sigma = float(sys.argv[4])
     numEpochs = int(sys.argv[5])
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
+    if mode == 'Angular':
+        representation = sys.argv[8]
+        loss_function = sys.argv[9]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -131,12 +141,10 @@ if __name__ == "__main__":
 
             def matrix_to_rotation6d(mat):
                 r6d = np.delete(mat, -1, axis=1)
-                # print("r6d", r6d, flush=True)
                 return np.array((r6d[0, 0], r6d[0, 1], r6d[1, 0], r6d[1, 1], r6d[2, 0], r6d[2, 1]))
 
             def euler_to_rotation6d(angles, psi_rotation):
                 mat = euler_angles_to_matrix(angles, psi_rotation)
-                # print("mat", mat, flush=True)
                 return matrix_to_rotation6d(mat)
 
             if self.readInMemory:
@@ -165,10 +173,10 @@ if __name__ == "__main__":
                     rAngle = rAngle * math.pi / 180
                     yvalues = yvalues * math.pi / 180
 
-                    # rotation_matrix = list(map(euler_angles_to_matrix, yvalues, rAngle))
-                    # representation_6d = list(map(matrix_to_rotation6d, rotation_matrix))
-                    y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-
+                    if representation == 'euler':
+                        y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
+                    else:
+                        y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
             else:
                 Xexp = np.array(list(Iexp))
                 if mode == 'Shift':
@@ -203,10 +211,6 @@ if __name__ == "__main__":
         L = MaxPooling2D()(L)
         L = Dropout(0.2)(L)
 
-        L = Conv2D(512, (3, 3), activation="relu")(L)
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
 
         # L = Conv2D(512, (3, 3), activation="relu")(L)
         # L = BatchNormalization()(L)
@@ -232,8 +236,6 @@ if __name__ == "__main__":
             L = Dense(2, name="output", activation="linear")(L)
         else:
             L = Dense(6, name="output", activation="linear")(L)
-
-
 
         return Model(inputLayer, L)
 
@@ -302,7 +304,6 @@ if __name__ == "__main__":
         b3 = K.expand_dims(b3, axis=2)
         return K.concatenate((b1, b2, b3), axis=2)
 
-
     def geodesic_distance(y_true, y_pred):
         mat_true = rotation6d_to_matrix(y_true)
         mat_pred = rotation6d_to_matrix(y_pred)
@@ -312,19 +313,28 @@ if __name__ == "__main__":
         val = tf.math.maximum(val, tf.constant([-1.]))
         return K.mean(tf.math.acos(val), axis=-1)
 
-    def custom_loss_function(y_true, y_pred):
+    def geodesic_loss(y_true, y_pred):
         d = geodesic_distance(y_true, y_pred)
         return d
 
     steps = round(len(fnImgs) / batch_size)
     if mode == 'Shift':
-        model.compile(loss='mean_squared_error', optimizer='adam')
+        model.compile(loss='mean_absolute_error', optimizer='adam')
         history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                      validation_data=validation_generator)
+                                          validation_data=validation_generator)
     else:
-        model.compile(loss=custom_loss_function, optimizer='adam')
-        history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                      validation_data=validation_generator)
+        if loss_function == 'l1':
+            model.compile(loss='mean_absolute_error', optimizer='adam')
+            history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
+                                          validation_data=validation_generator)
+        elif loss_function == 'l2':
+            model.compile(loss='mean_squared_error', optimizer='adam')
+            history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
+                                          validation_data=validation_generator)
+        else:
+            model.compile(loss=geodesic_loss, optimizer='adam')
+            history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
+                                          validation_data=validation_generator)
 
     model.save(fnModel)
     elapsed_time = time() - start_time

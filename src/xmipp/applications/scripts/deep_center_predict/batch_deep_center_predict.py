@@ -22,6 +22,7 @@ if __name__ == "__main__":
     gpuId = sys.argv[4]
     outputDir = sys.argv[5]
     fnXmdImages = sys.argv[6]
+    representation = sys.argv[7]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -109,7 +110,7 @@ if __name__ == "__main__":
         b2 = a2 - c2 * b1
         b2 = b2 / np.linalg.norm(b2)
         b3 = np.cross(b1, b2, axis=0)
-        return np.concatenate((b1, b2, b3), axis = 1)
+        return np.concatenate((b1, b2, b3), axis=1)
 
     def matrix_to_euler(mat):
         r = Rotation.from_matrix(mat)
@@ -125,20 +126,25 @@ if __name__ == "__main__":
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
                 mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             elif mode == "Angular":
-                rots = Y[ID][0:2]
-                tilts = Y[ID][2:4]
-                psis = Y[ID][4:]
-                psis /= norm(psis)
-                psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
-                rots /= norm(rots)
-                rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
-                tilts /= norm(tilts)
-                tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
-                rotmatrix = rotation6d_to_matrix(Y[ID])
-                angles = matrix_to_euler(rotmatrix)
-                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+                if representation == 'euler':
+                    rots = Y[ID][0:2]
+                    tilts = Y[ID][2:4]
+                    psis = Y[ID][4:]
+                    psis /= norm(psis)
+                    psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
+                    rots /= norm(rots)
+                    rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
+                    tilts /= norm(tilts)
+                    tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
+                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
+                else:
+                    rotmatrix = rotation6d_to_matrix(Y[ID])
+                    angles = matrix_to_euler(rotmatrix)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
             ID += 1
 
 
@@ -165,11 +171,7 @@ if __name__ == "__main__":
 
     ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
 
-    print("Number OF Blocks", ShiftManager.getNumberOfBlocks())
-
     Y = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
-
-    print(len(Y), flush=True)
 
     produce_output(mdExp, 'Shift', Y, fnImages)
 
