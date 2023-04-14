@@ -284,10 +284,8 @@ class CondaEnvManager(object):
 
     @staticmethod
     def yieldInstallAllCmds(useGpu):
-        options = {"gpuTag": "-gpu" if useGpu else ""}
-
-        for envName, envDict in CondaEnvManager.XMIPP_CONDA_ENVS.items():
-            yield CondaEnvManager.installEnvironCmd(envName, options, **envDict)
+        for env in CondaEnvManager.XMIPP_CONDA_ENVS.values():
+            yield CondaEnvManager.installEnvironCmd(env['requirements'], gpu=useGpu)
 
     @staticmethod
     def getCurInstalledDep(dependency, defaultVersion=None, environ=None):
@@ -310,51 +308,20 @@ class CondaEnvManager(object):
         return dependency+'=='+defaultVersion if defaultVersion else dependency
 
     @staticmethod
-    def installEnvironCmd(environName, installCmdOptions=None, **kwargs):
-        """ expected kwargs:  see xmipp_conda_envs.py
-                pythonVersion: number, if None (default) no python is installed
-                dependencies: list, 'depName=ver' or just 'depName' ([] default)
-                channels: list, channel names where looking for
-                defaultInstallOptions: dict, to be converted in command formating
-                                             (e.g. gpuTag=-gpu, {} by default)
-                pipPackages: list, pipName==ver' or just 'pipName' ([] default)
-        """
-        # Preparing options from kwargs
-        pyVer = kwargs.get('pythonVersion', None)
-        python = "python="+pyVer if pyVer else ""
-
-        deps = ' '.join([dep for dep in kwargs.get('dependencies', [])])
-
-        chs = kwargs.get('channels', [])
-        chFlags = (" -c %s" % " -c ".join([c for c in chs]) if len(chs) > 0 else "")
-
-        options = installCmdOptions or kwargs.get('defaultInstallOptions', {})
-        pipPack = kwargs.get('pipPackages', [])
-        if kwargs.get('xmippEnviron', True):
-            # xmippLib is compiled using a certain numpy.
-            #  If it is load in the conda environment, numpy must be the same.
-            pipPack.append(CondaEnvManager.getCurInstalledDep('numpy'))
-
-        # Composing the commands
-        cmdList = []
-        cmdList.append("export PYTHONPATH=\"\"")  # TODO: consider if from kwargs
-        cmdList.append(CondaEnvManager.getCondaActivationCmd())
-        cmdList.append("conda create --force --yes -n %s %s %s %s"
-                       % (environName, python, deps, chFlags))
-        cmdList.append("conda activate %s" % environName)
-        if pipPack:
-            cmdList.append("pip install %s" % " ".join([dep for dep in pipPack]))
-        cmdList.append("conda env export > %s.yml" % environName)
-
-        cmd = ' && '.join(cmdList)
-        try:
-            cmd = cmd % options
-        except KeyError as ex:  # chr(37) = %
-            print("Option not found constructing the conda installing commnad:\n"
-                  "%s  %s  (%s)" % (cmd, chr(37), ', '.join(options.keys())))
-
-        return cmd, environName
-
+    def installEnvironCmd(requirementsFn: str, gpu=False):
+        # Consider the gpu version if requested
+        if gpu:
+            root, ext = os.path.splitext(requirementsFn)
+            gpuRequirementsFn = root + '-gpu' + ext
+            
+            if os.path.exists(gpuRequirementsFn):
+                requirementsFn = gpuRequirementsFn
+        
+        target = os.path.basename(requirementsFn)
+        commands = [] 
+        commands.append('conda env create --force -f %s' % requirementsFn)
+        commands.append('conda env export -f %s' % target)
+        return ' && '.join(commands), target
 
 def getModel(*modelPath, **kwargs):
     """ Returns the path to the models folder followed by
