@@ -53,15 +53,21 @@ void MpiProgSubtractProjection::preProcess()
         realSizeMask = XSIZE(projectorMask->VfourierRealCoefs);
         originMask = STARTINGX(projectorMask->VfourierRealCoefs);
     }
+    std::cout << " rank =" << rank << "-------1-------" << std::endl;  
+
     MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projector/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD); 
-    MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    //MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
+    //MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD); // FALLA PARA LOS RANKS != 0
+
+    std::cout << " rank =" << rank << "-------2-------" << std::endl;  
+
     MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projectorMask/*->volumePaddedSize*/), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&(projectorMask->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //std::cout << " rank =" << rank << "-------10-------" << std::endl;  
+    //MPI_Bcast(&(projectorMask->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    //MPI_Bcast(&projectorMask->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);  // FALLA PARA LOS RANKS != 0
+
+    std::cout << " rank =" << rank << "-------3-------" << std::endl;  
 
     // if (rank != 0)
     // {
@@ -116,7 +122,7 @@ void MpiProgSubtractProjection::startProcessing()
     }
     node->barrierWait();
 }
-void MpiProgSubtractProjection::showProgress() // NO ENTRA AQUI
+void MpiProgSubtractProjection::showProgress() 
 {
     if (node->rank == 1)
     {

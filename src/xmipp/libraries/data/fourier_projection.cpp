@@ -226,7 +226,6 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
 					d += yxsumIm * aux;
                 }
             }
-            std::cout << "------pp2------" << std::endl;
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
@@ -307,9 +306,9 @@ void FourierProjector::produceSideInfo()
 void FourierProjector::produceSideInfoProjection()
 {
     // Allocate memory for the 2D Fourier transform
-    std::cout << "------side1------" << std::endl;
+    std::cout << "------volume size: ------" << volumeSize << std::endl;
     projection().initZeros(volumeSize,volumeSize);
-    std::cout << "------side2------" << std::endl;
+    std::cout << "------side1------" << std::endl;
     projection().setXmippOrigin();
     transformer2D.FourierTransform(projection(),projectionFourier,false);
 
@@ -330,6 +329,7 @@ void FourierProjector::produceSideInfoProjection()
 			DIRECT_A2D_ELEM(phaseShiftImgA,i,j) = cos(dotp);
         }
     }
+    std::cout << "------side2------" << std::endl;
 }
 
 void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdim,
