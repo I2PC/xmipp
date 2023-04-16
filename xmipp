@@ -59,14 +59,14 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 CTPL: 'https://github.com/vit-vit/CTPL.git',
                 GTEST: 'https://github.com/google/googletest',
                 LIBSVM: 'https://github.com/cossorzano/libsvm.git',
-                LIBCIFPP: 'https://github.com/PDB-REDO/libcifpp.git'}
+                LIBCIFPP: 'https://github.com/MartinSalinas98/libcifpp'}
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
                 GTEST: ('v.1.13.0', Config.KEY_BUILD_TESTS),
                 LIBSVM: ('master', None),
-                LIBCIFPP: ('trunk', None)}
+                LIBCIFPP: ('gcc9', None)}
 
 # if a skippable compilation fails (if 'key' found in the failed code),
 # a hint is printed in order to export 'value' or edit the config file
