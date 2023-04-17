@@ -128,14 +128,14 @@ if __name__ == "__main__":
             elif mode == "Angular":
                 if representation == 'euler':
                     rots = Y[ID][0:2]
-                    tilts = Y[ID][2:4]
-                    psis = Y[ID][4:]
+                    tilt = Y[ID][2]
+                    psis = Y[ID][3:]
                     psis /= norm(psis)
                     psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
                     rots /= norm(rots)
                     rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
-                    tilts /= norm(tilts)
-                    tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
+                    tilt /= norm(tilt)
+                    tilts_degree = (math.acos(tilt)) * 180 / math.pi
                     mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
                     mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
                     mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)

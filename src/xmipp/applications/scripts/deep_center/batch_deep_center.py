@@ -117,6 +117,9 @@ if __name__ == "__main__":
                 return np.array((math.sin(angles[0]), math.cos(angles[0]), math.sin(angles[1]),
                                  math.cos(angles[1]), math.sin(angles[2] + angle),
                                  math.cos(angles[2] + angle)))
+            def get_sincos_representation(angles, angle):
+                return np.array((math.sin(angles[0]), math.cos(angles[0]), math.cos(angles[1]), math.sin(angles[2] + angle),
+                                 math.cos(angles[2] + angle)))
 
             def R_rot(theta):
                 return np.matrix([[1, 0, 0],
@@ -174,7 +177,7 @@ if __name__ == "__main__":
                     yvalues = yvalues * math.pi / 180
 
                     if representation == 'euler':
-                        y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
+                        y = np.array(list((map(get_sincos_representation, yvalues, rAngle))))
                     else:
                         y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
             else:
@@ -182,7 +185,7 @@ if __name__ == "__main__":
                 if mode == 'Shift':
                     y = yvalues
                 else:
-                    y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
+                    y = np.array(list((map(get_sincos_representation, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
 
@@ -235,7 +238,7 @@ if __name__ == "__main__":
         if mode == 'Shift':
             L = Dense(2, name="output", activation="linear")(L)
         else:
-            L = Dense(6, name="output", activation="linear")(L)
+            L = Dense(5, name="output", activation="linear")(L)
 
         return Model(inputLayer, L)
 
