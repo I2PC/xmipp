@@ -218,22 +218,14 @@ void ProgSubtractProjection::processParticle(const MDRow &row, int sizeImg, Four
 	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
-	std::cout << "------110------" << std::endl;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
-	std::cout << "------111------" << std::endl;
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	std::cout << "------112------" << std::endl;
 	Pctf = applyCTF(row, P);
-	std::cout << "------113------" << std::endl;
 	MultidimArray<double> &mPctf = Pctf();
-	std::cout << "------114------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
-	std::cout << "------115------" << std::endl;
 	transformerPf.FourierTransform(Pctf(), PFourier, false);
-	std::cout << "------116------" << std::endl;
 	transformerIf.FourierTransform(I(), IFourier, false);
-	std::cout << "------117------" << std::endl;
 }
 
 MultidimArray< std::complex<double> > ProgSubtractProjection::computeEstimationImage(const MultidimArray<double> &Img, 
@@ -290,8 +282,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
  void ProgSubtractProjection::preProcess() {
 	// Read input volume, mask and particles metadata
-	if (rank==0)
-	{
+
 		show();
 		V.read(fnVolR);
 		V().setXmippOrigin();
@@ -309,6 +300,10 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
 		cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 
+		double cutFreq = sampling/maxResol;
+
+	if (rank==0)
+	{
 		// Read or create mask keep and compute inverse of mask keep (mask subtract)
 		createMask(fnMask, vM, ivM);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
@@ -318,18 +313,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		FilterG.FilterShape=REALGAUSSIAN;
 		FilterG.FilterBand=LOWPASS;
 		FilterG.w1=sigma;
-		
-		// Initialize Fourier projectors
-		std::cout << "-------Initializing projectors-------" << std::endl;
-		double cutFreq = sampling/maxResol;
-		projector = new FourierProjector(V(), padFourier, cutFreq,xmipp_transformation::BSPLINE3);
-		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-		// else
-		// {
-		// 	projector = new FourierProjector(padFourier, cutFreq,xmipp_transformation::BSPLINE3);
-		// 	projectorMask = new FourierProjector(padFourier, cutFreq, xmipp_transformation::BSPLINE3);
-		// }
-		std::cout << "-------Projectors initialized-------" << std::endl;
 			
 		// Create mock image of same size as particles (and referencce volume) to get
 		I().initZeros(Xdim, Ydim);
@@ -352,11 +335,22 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 			DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
 		// Declare complex structures that will be used in the loop
-		std::cout << "-------Starting subtraction-------" << std::endl;
 		// mdParticles.read(fnParticles);
 		// long setofparticles_size = mdParticles.size();
 		// init_progress_bar(setofparticles_size);
 		i = 0;
+
+		// Initialize Fourier projectors
+		std::cout << "-------Initializing projectors-------" << std::endl;
+		projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
+		std::cout << "-------Projectors initialized-------" << std::endl;
+	}
+
+	else
+	{
+		projector = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
+		projectorMask = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
 	}
  }
 
@@ -367,51 +361,36 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	i++;
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
-	std::cout << "------11------" << std::endl;
 	processParticle(rowIn, sizeI, transformerP, transformerI);
-	std::cout << "------12------" << std::endl;
 	// Build projected and final masks
 	if (fnMask.isEmpty()) { // If there is no provided mask
 		M().initZeros(P());
-		std::cout << "------13------" << std::endl;
 		// inverse mask (iM) is all 1s
 		iM = invertMask(M);
-		std::cout << "------14------" << std::endl;
 	}
 	else { // If a mask has been provided
-		std::cout << "------15------" << std::endl;
 		projectVolume(*projectorMask, Pmask, sizeI, sizeI, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);	
-		std::cout << "------16------" << std::endl;
 		// Apply binarization, shift and gaussian filter to the projected mask
 		M = binarizeMask(Pmask);
-		std::cout << "------17------" << std::endl;
 		selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
-		std::cout << "------18------" << std::endl;
 		FilterG.applyMaskSpace(M());
-		std::cout << "------19------" << std::endl;
 		if (subtract) // If the mask contains the part to subtract: inverse the original mask
 			iM = M;
 		else // Compute inverse of original mask
 			iM = invertMask(M);
-		std::cout << "------20------" << std::endl;
 	}
 	
 	// Compute estimation images: IiM = I*iM and PiM = P*iM	
 	IiMFourier = computeEstimationImage(I(), iM(), transformerIiM);
-	std::cout << "------21------" << std::endl;
 	PiMFourier = computeEstimationImage(Pctf(), iM(), transformerPiM);
-	std::cout << "------22------" << std::endl;
 
 	// Estimate transformation with model of order 0: T(w) = beta00 and model of order 1: T(w) = beta01 + beta1*w
 	MultidimArray<double> num0;
 	num0.initZeros(maxwiIdx+1); 
-	std::cout << "------23------" << std::endl;
 	MultidimArray<double> den0;
 	den0.initZeros(maxwiIdx+1);
-	std::cout << "------24------" << std::endl;
 	Matrix2D<double> A1;
 	A1.initZeros(2,2);
-	std::cout << "------25------" << std::endl;
 	Matrix1D<double> b1;
 	b1.initZeros(2);
 	std::cout << "------26------" << std::endl;

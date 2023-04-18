@@ -43,7 +43,6 @@ void MpiProgSubtractProjection::preProcess()
 {
     rank = node->rank;
     ProgSubtractProjection::preProcess();
-
     // Get the volume padded size from rank 0
     int realSize, origin, realSizeMask, originMask;
     if (node->rank == 0)
@@ -53,59 +52,39 @@ void MpiProgSubtractProjection::preProcess()
         realSizeMask = XSIZE(projectorMask->VfourierRealCoefs);
         originMask = STARTINGX(projectorMask->VfourierRealCoefs);
     }
-    std::cout << " rank =" << rank << "-------1-------" << std::endl;  
 
     MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
-    //MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD); // FALLA PARA LOS RANKS != 0
-
-    std::cout << " rank =" << rank << "-------2-------" << std::endl;  
+    MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD); 
+    MPI_Bcast(&projector->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     MPI_Bcast(&realSizeMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&originMask, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //MPI_Bcast(&(projectorMask->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //MPI_Bcast(&projectorMask->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);  // FALLA PARA LOS RANKS != 0
-
-    std::cout << " rank =" << rank << "-------3-------" << std::endl;  
-
-    // if (rank != 0)
-    // {
-    //     //projector/*->VfourierRealCoefs*/.resizeNoCopy(realSize,realSize,realSize);
-    //     std::cout << " rank =" << rank << "-------11-------" << std::endl;
-    //     //projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
-    //     std::cout << " rank =" << rank << "-------12-------" << std::endl;
-    //     //STARTINGX(projector/*->VfourierRealCoefs*/)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
-    //     std::cout << " rank =" << rank << "-------13-------" << std::endl;
-    //     //STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
-    //     std::cout << " rank =" << rank << "-------14-------" << std::endl;
-
-    //     //projectorMask/*->VfourierRealCoefs*/.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
-    //     std::cout << " rank =" << rank << "-------15-------" << std::endl;
-    //     //projectorMask->VfourierImagCoefs.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
-    //     std::cout << " rank =" << rank << "-------16-------" << std::endl;
-    //     //STARTINGX(projectorMask/*->VfourierRealCoefs*/)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=originMask;
-    //     std::cout << " rank =" << rank << "-------17-------" << std::endl;
-    //     //STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=originMask;
-    //     std::cout << " rank =" << rank << "-------18-------" << std::endl;
-    // }
-
-    // //MPI_Bcast(MULTIDIM_ARRAY(projector/*->VfourierRealCoefs*/), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    // std::cout << " rank =" << rank << "-------19-------" << std::endl;
-    // //MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    // std::cout << " rank =" << rank << "-------20-------" << std::endl;
-    // //MPI_Bcast(MULTIDIM_ARRAY(projectorMask-/*>VfourierRealCoefs*/), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    // std::cout << " rank =" << rank << "-------21-------" << std::endl;
-    // //MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    // std::cout << " rank =" << rank << "-------22-------" << std::endl;
+    MPI_Bcast(&(projectorMask->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&projectorMask->volumeSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     if (rank != 0)
     {
-        std::cout << " rank =" << rank << "-------10-------" << std::endl;
+        projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
+        projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
+        STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
+        STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
+
+        projectorMask->VfourierRealCoefs.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
+        projectorMask->VfourierImagCoefs.resizeNoCopy(realSizeMask,realSizeMask,realSizeMask);
+        STARTINGX(projectorMask->VfourierRealCoefs)=STARTINGY(projectorMask->VfourierRealCoefs)=STARTINGZ(projectorMask->VfourierRealCoefs)=originMask;
+        STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=originMask;
+    }
+
+    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierRealCoefs), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    if (rank != 0)
+    {
         projector->produceSideInfoProjection();
-        std::cout << " rank =" << rank << "-------11-------" << std::endl;
         projectorMask->produceSideInfoProjection();
-        std::cout << " rank =" << rank << "-------12-------" << std::endl;
     }
 
     MetaData &mdIn = *getInputMd();
