@@ -11,3 +11,4 @@ dependencies:
   - pip
   - pip:
       - numpy==1.21
+      - h5py==2.10.0
