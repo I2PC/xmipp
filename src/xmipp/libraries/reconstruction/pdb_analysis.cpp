@@ -70,7 +70,7 @@ void ProgPdbAnalysis::run()
 {
 	if (op=="distance_histogram")
 	{
-		PDBPhantom pdb; // It cannot be a PDBRichAtom because it also has to work with pseudoatomic structures
+		PDBPhantom pdb; // It cannot be a PDBRichPhantom because it also has to work with pseudoatomic structures
 		pdb.read(fn_pdb);
 		Histogram1D hist;
 		distanceHistogramPDB(pdb,Nnearest,maxDistance,200,hist);

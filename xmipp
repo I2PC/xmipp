@@ -49,6 +49,7 @@ CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
+LIBCIFPP = 'libcifpp'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
@@ -57,13 +58,15 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
                 CTPL: 'https://github.com/vit-vit/CTPL.git',
                 GTEST: 'https://github.com/google/googletest',
-                LIBSVM: 'https://github.com/cossorzano/libsvm.git'}
+                LIBSVM: 'https://github.com/cossorzano/libsvm.git',
+                LIBCIFPP: 'https://github.com/MartinSalinas98/libcifpp'}
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('release-1.10.0', Config.KEY_BUILD_TESTS),
-                LIBSVM: ('master', None)}
+                GTEST: ('v.1.13.0', Config.KEY_BUILD_TESTS),
+                LIBSVM: ('master', None),
+                LIBCIFPP: ('gcc9', None)}
 
 # if a skippable compilation fails (if 'key' found in the failed code),
 # a hint is printed in order to export 'value' or edit the config file
@@ -507,6 +510,23 @@ def compile_libsvm():
     ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
     return ok
 
+def compile_libcifpp():
+    currDir = os.getcwd()
+    # Moving to library directory
+    libcifppDir = os.path.join("src", "libcifpp")
+    os.chdir(libcifppDir)
+    # Installing
+    fullDir = os.path.join(currDir, libcifppDir, '')
+    ok = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON")
+    ok = ok and runJob("cmake --build build")
+    ok = ok and runJob("cmake --install build")
+    # Copying .so file
+    os.chdir(currDir)
+    libDir = "src/xmipp/lib"
+    createDir(libDir)
+    ok = ok and runJob("cp " + os.path.join(libcifppDir, "lib", "libcifpp.so*") + " " + libDir)
+    return ok
+
 def checkScons():
     return runJob("scons --version", show_output=False, show_command=False)
 
@@ -538,6 +558,7 @@ def compileDependencies(Nproc):
     if buildConfig.is_true(Config.KEY_BUILD_TESTS):
         result = result and compile_googletest()
     result = result and compile_libsvm()
+    result = result and compile_libcifpp()
     if not result:
         print(red("Cannot build dependencies"))
     return result
@@ -720,11 +741,13 @@ def linkToScipion(dirname):
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
+        CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
         bindings = os.path.join(xmippLink, "bindings", "python", "*")
 
         os.chdir(scipionSoftwareEM)
         runJob("ln -srf %s %s" % (coreLib, scipionLibs))
         runJob("ln -srf %s %s" % (SVMLib, scipionLibs))
+        runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs))
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
