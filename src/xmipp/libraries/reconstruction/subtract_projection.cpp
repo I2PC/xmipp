@@ -302,18 +302,6 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 
 		double cutFreq = sampling/maxResol;
 
-	if (rank==0)
-	{
-		// Read or create mask keep and compute inverse of mask keep (mask subtract)
-		createMask(fnMask, vM, ivM);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
-			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
-		
-		// Initialize Gaussian LPF to smooth mask
-		FilterG.FilterShape=REALGAUSSIAN;
-		FilterG.FilterBand=LOWPASS;
-		FilterG.w1=sigma;
-			
 		// Create mock image of same size as particles (and referencce volume) to get
 		I().initZeros(Xdim, Ydim);
 		I().initConstant(1);
@@ -334,6 +322,19 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		else
 			DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
+
+	if (rank==0)
+	{
+		// Read or create mask keep and compute inverse of mask keep (mask subtract)
+		createMask(fnMask, vM, ivM);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
+			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
+		
+		// Initialize Gaussian LPF to smooth mask
+		FilterG.FilterShape=REALGAUSSIAN;
+		FilterG.FilterBand=LOWPASS;
+		FilterG.w1=sigma;
+			
 		// Declare complex structures that will be used in the loop
 		// mdParticles.read(fnParticles);
 		// long setofparticles_size = mdParticles.size();
@@ -393,10 +394,8 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	A1.initZeros(2,2);
 	Matrix1D<double> b1;
 	b1.initZeros(2);
-	std::cout << "------26------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PiMFourier) {
 		int win = DIRECT_MULTIDIM_ELEM(wi, n);
-		std::cout << "------27------" << std::endl;
 		if (win < maxwiIdx) 
 		{
 			double realPiMFourier = real(DIRECT_MULTIDIM_ELEM(PiMFourier,n));
@@ -411,39 +410,36 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 			b1(1) += win*(real(DIRECT_MULTIDIM_ELEM(IiMFourier,n))+imag(DIRECT_MULTIDIM_ELEM(IiMFourier,n)));
 		}
 	}
-	std::cout << "------28------" << std::endl;
 	A1(1,0) = A1(0,1);
 
 	// Compute beta00 from order 0 model
-	std::cout << "------29------" << std::endl;
 	double beta00 = num0.sum()/den0.sum();
-	std::cout << "------30------" << std::endl;
 	if (nonNegative && beta00 < 0) 
 	{
 		disable = true;
 	}
-	std::cout << "------31------" << std::endl;
 	// Apply adjustment order 0: PFourier0 = T(w) * PFourier = beta00 * PFourier
 	PFourier0 = PFourier;
-	std::cout << "------32------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier0) 
 		DIRECT_MULTIDIM_ELEM(PFourier0,n) *= beta00; 
-	std::cout << "------33------" << std::endl;
 	PFourier0(0,0) = IiMFourier(0,0); 
-	std::cout << "------34------" << std::endl;
 
 	// Compute beta01 and beta1 from order 1 model
 	PseudoInverseHelper h;
 	h.A = A1;
 	h.b = b1;
 	Matrix1D<double> betas1;
+	std::cout << "------17------" << std::endl;
 	solveLinearSystem(h,betas1); 
+	std::cout << "------32------" << std::endl;
 	double beta01 = betas1(0);
+	std::cout << "------33------" << std::endl;
 	double beta1 = betas1(1);
-	std::cout << "------35------" << std::endl;
+	std::cout << "------34------" << std::endl;
 
 	// Apply adjustment order 1: PFourier1 = T(w) * PFourier = (beta01 + beta1*w) * PFourier
 	PFourier1 = PFourier;
+	std::cout << "------35------" << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PFourier1)
 		DIRECT_MULTIDIM_ELEM(PFourier1,n) *= (beta01+beta1*DIRECT_MULTIDIM_ELEM(wi,n)); 
 	PFourier1(0,0) = IiMFourier(0,0); 
