@@ -120,7 +120,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
     void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
-
     Image<double> binarizeMask(Projection &) const;
     Image<double> invertMask(const Image<double> &);
     Image<double> applyCTF(const MDRow &, Projection &);
@@ -131,18 +130,13 @@ class ProgSubtractProjection: public XmippMetadataProgram
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
 public:
-    // Rank (used for MPI version)
-    int rank;
+    int rank; // for MPI version
     FourierProjector *projector;
     FourierProjector *projectorMask;
-    //FourierTransformer transformerI; // Fourier transformer for particle
-
     /// Empty constructor
     ProgSubtractProjection();
-
     /// Destructor
     ~ProgSubtractProjection();
-
     /// Read argument from command line
     void readParams();
     /// Show

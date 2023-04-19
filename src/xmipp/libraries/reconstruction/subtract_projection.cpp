@@ -148,22 +148,23 @@ ProgSubtractProjection::~ProgSubtractProjection()
 
  void ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m, Image<double> &im) {
 	if (fnM.isEmpty()) 
+	{
+		m().initZeros((int)XSIZE(V()),(int)YSIZE(V()),(int)ZSIZE(V()));
+		im = m;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
+			DIRECT_MULTIDIM_ELEM(im(),n) += 1; 
+	}
+	else 
+	{
+		m.read(fnM);
+		m().setXmippOrigin();
+		im = m;
+		if (!subtract)
 		{
-			m().initZeros((int)XSIZE(V()),(int)YSIZE(V()),(int)ZSIZE(V()));
-			im = m;
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
-				DIRECT_MULTIDIM_ELEM(im(),n) += 1; 
-		}
-	else {
-			m.read(fnM);
-			m().setXmippOrigin();
-			im = m;
-			if (!subtract)
-			{
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(im())
-					DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1;
-			} 
-		}
+				DIRECT_MULTIDIM_ELEM(im(),n) = (DIRECT_MULTIDIM_ELEM(m(),n)*(-1))+1;
+		} 
+	}
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const {
@@ -295,9 +296,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 		cirmaskrad = (double)XSIZE(V())/2;
 	RaisedCosineMask(cirmask(), cirmaskrad*0.8, cirmaskrad*0.9);
 	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
-
-	double cutFreq = sampling/maxResol;
-
+	
 	// Create mock image of same size as particles (and referencce volume) to get
 	I().initZeros(Xdim, Ydim);
 	I().initConstant(1);
@@ -311,6 +310,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	// Construct frequencies image
 	wi.initZeros(IFourier);
 	Matrix1D<double> w(2); 	
+	double cutFreq = sampling/maxResol;
 	for (int i=0; i<YSIZE(wi); i++) {
 		FFT_IDX2DIGFREQ(i,YSIZE(IFourier),YY(w)) 
 		for (int j=0; j<XSIZE(wi); j++)  {
@@ -323,24 +323,18 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	else
 		DIGFREQ2FFT_IDX(cutFreq, (int)YSIZE(IFourier), maxwiIdx)
 
-
 	if (rank==0)
 	{
 		// Read or create mask keep and compute inverse of mask keep (mask subtract)
 		createMask(fnMask, vM, ivM);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V())
 			DIRECT_MULTIDIM_ELEM(V(),n) = DIRECT_MULTIDIM_ELEM(V(),n)*DIRECT_MULTIDIM_ELEM(ivM(),n); 
-			
-		// init_progress_bar(setofparticles_size);
-		//i = 0;
-
 		// Initialize Fourier projectors
 		std::cout << "-------Initializing projectors-------" << std::endl;
 		projector = new FourierProjector(V(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 		projectorMask = new FourierProjector(vM(), padFourier, cutFreq, xmipp_transformation::BSPLINE3);
 		std::cout << "-------Projectors initialized-------" << std::endl;
 	}
-
 	else
 	{
 		projector = new FourierProjector(padFourier,cutFreq,xmipp_transformation::BSPLINE3);
@@ -352,7 +346,6 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
  { 
 	// Initialize aux variable
 	disable = false;
-	i++;
 	// Project volume and process projections 
 	const auto sizeI = (int)XSIZE(I());
 	processParticle(rowIn, sizeI, transformerP, transformerI);
@@ -452,8 +445,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 	mIdiff.initZeros(I());
 	mIdiff.setXmippOrigin();
 
-	// Boosting of original particles
-	if (boost)
+	if (boost) // Boosting of original particles
 	{
 		if (R2adj(1) == 0)
 		{
@@ -467,9 +459,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		}
 		transformerI.inverseFourierTransform(IFourier, Idiff());
 	} 
-	
-	// Subtraction
-	else
+	else  // Subtraction
 	{
 		// Recover adjusted projection (P) in real space
 		transformerP.inverseFourierTransform(PFourier, P());
@@ -478,10 +468,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIdiff)
 			DIRECT_MULTIDIM_ELEM(mIdiff,n) = DIRECT_MULTIDIM_ELEM(I(),n)-DIRECT_MULTIDIM_ELEM(P(),n);
 	}
-	// Write particle
 	writeParticle(rowOut, fnImgOut, Idiff, R2adj(0), beta0save, beta1save); 
-	//std::cout << "particle " << i << " subtracted" << std::endl;
-	//progress_bar(i+1);
 }
 
 void ProgSubtractProjection::postProcess()
