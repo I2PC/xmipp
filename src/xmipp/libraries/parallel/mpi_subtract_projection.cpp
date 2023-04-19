@@ -110,7 +110,6 @@ void MpiProgSubtractProjection::showProgress()
     }
 }
 
-
 void MpiProgSubtractProjection::finishProcessing()
 {
     node->gatherMetadatas(getOutputMd(), fn_out);
@@ -120,7 +119,6 @@ void MpiProgSubtractProjection::finishProcessing()
     getOutputMd() = MDaux;
     if (node->isMaster())
         ProgSubtractProjection::finishProcessing();
-    std::cout << "------finishProcessing done------" << std::endl;
 }
 void MpiProgSubtractProjection::wait()
 {

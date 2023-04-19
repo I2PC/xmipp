@@ -117,7 +117,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     bool disable;
     /// Read and write methods
     void readParticle(const MDRow &rowIn);
-    void writeParticle(MDRow &rowOut, Image<double> &, double, double, double);
+    void writeParticle(MDRow &rowOut, FileName, Image<double> &, double, double, double);
     /// Processing methods
     void createMask(const FileName &, Image<double> &, Image<double> &);
 
