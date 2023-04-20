@@ -200,4 +200,4 @@ REGISTER_TYPED_TEST_SUITE_P(PSD_Estimator_Test,
 );
 
 typedef ::testing::Types<double, float> TestTypes;
-INSTANTIATE_TYPED_TEST_SUITE_P(, PSD_Estimator_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(psd_estimator, PSD_Estimator_Test, TestTypes);
