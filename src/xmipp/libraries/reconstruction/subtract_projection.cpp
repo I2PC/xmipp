@@ -361,9 +361,9 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		M = binarizeMask(Pmask);
 		selfTranslate(xmipp_transformation::LINEAR, M(), roffset, xmipp_transformation::DONT_WRAP);
 		FilterG.applyMaskSpace(M());
-		if (subtract) // If the mask contains the part to subtract: inverse the original mask
+		if (subtract) // If the mask contains the part to SUBTRACT: iM = input mask
 			iM = M;
-		else // Compute inverse of original mask
+		else // If the mask contains the part to KEEP: iM = INVERSE of original mask
 			iM = invertMask(M);
 	}
 	
