@@ -66,7 +66,7 @@ DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
                 GTEST: ('v.1.13.0', Config.KEY_BUILD_TESTS),
                 LIBSVM: ('master', None),
-                LIBCIFPP: ('gcc9', None)}
+                LIBCIFPP: ('ms_feature_ciflibrary', None)}
 
 # if a skippable compilation fails (if 'key' found in the failed code),
 # a hint is printed in order to export 'value' or edit the config file
@@ -520,11 +520,13 @@ def compile_libcifpp():
     ok = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON")
     ok = ok and runJob("cmake --build build")
     ok = ok and runJob("cmake --install build")
+    # Check if libcifpp created up on compiling lib or lib64 directory
+    libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
     # Copying .so file
     os.chdir(currDir)
     libDir = "src/xmipp/lib"
     createDir(libDir)
-    ok = ok and runJob("cp " + os.path.join(libcifppDir, "lib", "libcifpp.so*") + " " + libDir)
+    ok = ok and runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir)
     return ok
 
 def checkScons():
