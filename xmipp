@@ -24,7 +24,10 @@
 # ***************************************************************************/
 
 
-import os, re, shutil, sys
+import os
+import re
+import shutil
+import sys
 from datetime import datetime
 from scripts import *
 from scripts.utils import checkCMakeVersion

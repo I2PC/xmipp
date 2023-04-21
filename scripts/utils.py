@@ -23,7 +23,9 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-import subprocess, glob, distutils.spawn
+import subprocess
+import glob
+import distutils.spawn
 from os import environ, path, remove
 from shutil import which
 from os.path import realpath
