@@ -94,6 +94,13 @@ void ProgCorrectWiener2D::postProcess()
 
 void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, CTFDescription & ctf)
 {
+	WF.pad = pad;
+	WF.correct_envelope = correct_envelope;
+	WF.sampling_rate = sampling_rate;
+	WF.wiener_constant = wiener_constant;
+	WF.wiener_constant = isIsotropic;
+	WF.phase_flipped = phase_flipped;
+
 	WF.wienerFilter(Mwien, ctf);
 }
 

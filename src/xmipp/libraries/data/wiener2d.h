@@ -52,6 +52,8 @@ class Wiener2D
 		double sampling_rate;
 
 	public:
+		void applyWienerFilter(MultidimArray<double> &ptrImg, CTFDescription &ctf);
+
 		void applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
    		void wienerFilter(MultidimArray<double> &Mwien, CTFDescription &ctf);

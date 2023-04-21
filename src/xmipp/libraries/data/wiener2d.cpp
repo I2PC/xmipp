@@ -42,7 +42,6 @@ void Wiener2D::wienerFilter(MultidimArray<double> &Mwien, CTFDescription & ctf)
 	Mwien.resize(paddimY,paddimX);
 
 	ctf.Tm = sampling_rate;
-	//ctf.Tm /= pad;
 
 	if (isIsotropic)
 	{
@@ -103,21 +102,13 @@ void Wiener2D::wienerFilter(MultidimArray<double> &Mwien, CTFDescription & ctf)
 
 }
 
-
-void Wiener2D::applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
+void Wiener2D::applyWienerFilter(MultidimArray<double> &ptrImg, CTFDescription &ctf)
 {
-
-	rowOut = rowIn;
-
-	img.read(fnImg);
-	ctf.readFromMdRow(rowIn);
-	ctf.phase_shift = (ctf.phase_shift*PI)/180;
-	img().setXmippOrigin();
-	Ydim = YSIZE(img());
-	Xdim = XSIZE(img());
+	ptrImg.setXmippOrigin();
+	Ydim = YSIZE(ptrImg);
+	Xdim = XSIZE(ptrImg);
 	int paddimY = Ydim*pad;
 	int paddimX = Xdim*pad;
-	MultidimArray<std::complex<double> > Faux;
 
 	wienerFilter(Mwien,ctf);
 
@@ -128,16 +119,17 @@ void Wiener2D::applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut
         int xF = LAST_XMIPP_INDEX(paddimX);
         int y0 = FIRST_XMIPP_INDEX(paddimY);
         int yF = LAST_XMIPP_INDEX(paddimY);
-        img().selfWindow(y0, x0, yF, xF);
+        ptrImg.selfWindow(y0, x0, yF, xF);
     }
 
-    transformer.FourierTransform(img(), Faux);
+	MultidimArray<std::complex<double> > Faux;
+    transformer.FourierTransform(ptrImg, Faux);
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Faux)
     {
         dAij(Faux,i,j) *= dAij(Mwien,i,j);
     }
 
-    transformer.inverseFourierTransform(Faux, img());
+    transformer.inverseFourierTransform(Faux, ptrImg);
 	if (paddimX >= Xdim)
     {
         // de-pad real-space image
@@ -145,10 +137,62 @@ void Wiener2D::applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut
         int y0 = FIRST_XMIPP_INDEX(Ydim);
         int xF = LAST_XMIPP_INDEX(Xdim);
         int yF = LAST_XMIPP_INDEX(Ydim);
-        img().selfWindow(y0, x0, yF, xF);
+        ptrImg.selfWindow(y0, x0, yF, xF);
     }
+}
 
-    img.write(fnImgOut);
+
+void Wiener2D::applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
+{
+
+	rowOut = rowIn;
+
+	img.read(fnImg);
+	ctf.readFromMdRow(rowIn);
+	ctf.phase_shift = (ctf.phase_shift*PI)/180;
+	MultidimArray<double> &ptrImg =img();
+
+	applyWienerFilter(ptrImg, ctf);
+
+	// img().setXmippOrigin();
+	// Ydim = YSIZE(img());
+	// Xdim = XSIZE(img());
+	// int paddimY = Ydim*pad;
+	// int paddimX = Xdim*pad;
+
+	// wienerFilter(Mwien,ctf);
+
+    // if (paddimX >= Xdim)
+    // {
+    //     // pad real-space image
+    //     int x0 = FIRST_XMIPP_INDEX(paddimX);
+    //     int xF = LAST_XMIPP_INDEX(paddimX);
+    //     int y0 = FIRST_XMIPP_INDEX(paddimY);
+    //     int yF = LAST_XMIPP_INDEX(paddimY);
+    //     img().selfWindow(y0, x0, yF, xF);
+    // }
+
+	// MultidimArray<std::complex<double> > Faux;
+    // transformer.FourierTransform(img(), Faux);
+    // FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Faux)
+    // {
+    //     dAij(Faux,i,j) *= dAij(Mwien,i,j);
+    // }
+
+    // transformer.inverseFourierTransform(Faux, img());
+	// if (paddimX >= Xdim)
+    // {
+    //     // de-pad real-space image
+    //     int x0 = FIRST_XMIPP_INDEX(Xdim);
+    //     int y0 = FIRST_XMIPP_INDEX(Ydim);
+    //     int xF = LAST_XMIPP_INDEX(Xdim);
+    //     int yF = LAST_XMIPP_INDEX(Ydim);
+    //     img().selfWindow(y0, x0, yF, xF);
+    // }
+
+    Image<double> svImg;
+	svImg() = ptrImg;
+    ptrImg.write(fnImgOut);
     rowOut.setValue(MDL_IMAGE, fnImgOut);
 
 }
