@@ -38,7 +38,7 @@ from scripts.utils import checkCMakeVersion
 XMIPP_VERSION = '3.23.03.0'        #
 XMIPP_VERNAME = 'devel'           #
 RELEASE_DATE = '09/03/2023'        #
-
+CMAKE_VERSION_REQUIRED = '3.16'
 ####################################
 
 
@@ -513,8 +513,7 @@ def compile_libsvm():
 
 def compile_libcifpp():
     # Check if CMake version is up to date
-    MINIMUM_CMAKE_VERSION = '3.16'
-    error = checkCMakeVersion(MINIMUM_CMAKE_VERSION)
+    error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
     if error:
         print(error)
         return False
