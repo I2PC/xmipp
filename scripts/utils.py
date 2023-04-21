@@ -284,11 +284,12 @@ def version_tuple(version_str):
     return tuple(map(int, version_str.split('.')))
 
 def checkCMakeVersion(minimumRequired=None):
+    cmakeInstallURL = 'https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install'
     if minimumRequired:
         try:
             result = subprocess.check_output(['cmake', '--version'])
             cmake_version = result.decode('utf-8').split('\n')[0].split()[-1]
             if version_tuple(cmake_version) < version_tuple(minimumRequired):
-                return f"\033[91mYour CMake version ({cmake_version}) is below {minimumRequired}. Please update your CMake version by following the instructions at https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install\033[0m"
+                return f"\033[91mYour CMake version ({cmake_version}) is below {minimumRequired}. Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m"
         except FileNotFoundError:
             return "CMake is not installed"
