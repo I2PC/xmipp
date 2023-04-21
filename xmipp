@@ -30,6 +30,7 @@ import shutil
 import sys
 from datetime import datetime
 from scripts import *
+from scripts.utils import checkCMakeVersion
 
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
@@ -37,7 +38,7 @@ from scripts import *
 XMIPP_VERSION = '3.23.03.0'        #
 XMIPP_VERNAME = 'devel'           #
 RELEASE_DATE = '09/03/2023'        #
-
+CMAKE_VERSION_REQUIRED = '3.16'
 ####################################
 
 
@@ -511,6 +512,11 @@ def compile_libsvm():
     return ok
 
 def compile_libcifpp():
+    # Check if CMake version is up to date
+    error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
+    if error:
+        print(error)
+        return False
     currDir = os.getcwd()
     # Moving to library directory
     libcifppDir = os.path.join("src", "libcifpp")
