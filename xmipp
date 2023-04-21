@@ -24,12 +24,10 @@
 # ***************************************************************************/
 
 
-import os
-import re
-import shutil
-import sys
+import os, re, shutil, sys
 from datetime import datetime
 from scripts import *
+from scripts.utils import checkCMakeVersion
 
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
@@ -511,6 +509,12 @@ def compile_libsvm():
     return ok
 
 def compile_libcifpp():
+    # Check if CMake version is up to date
+    MINIMUM_CMAKE_VERSION = '3.16'
+    error = checkCMakeVersion(MINIMUM_CMAKE_VERSION)
+    if error:
+        print(error)
+        return False
     currDir = os.getcwd()
     # Moving to library directory
     libcifppDir = os.path.join("src", "libcifpp")

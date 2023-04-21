@@ -23,13 +23,10 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-import subprocess
+import subprocess, glob, distutils.spawn
 from os import environ, path, remove
-import distutils.spawn
-import glob
 from shutil import which
 from os.path import realpath
-
 
 def green(text):
     return "\033[92m "+text+"\033[0m"
@@ -283,3 +280,15 @@ def isGitRepo(path='./'):
     return runJob('git rev-parse --git-dir > /dev/null 2>&1', cwd=path,
                   show_command=False, show_output=False)
 
+def version_tuple(version_str):
+    return tuple(map(int, version_str.split('.')))
+
+def checkCMakeVersion(minimumRequired=None):
+    if minimumRequired:
+        try:
+            result = subprocess.check_output(['cmake', '--version'])
+            cmake_version = result.decode('utf-8').split('\n')[0].split()[-1]
+            if version_tuple(cmake_version) < version_tuple(minimumRequired):
+                return f"\033[91mYour CMake version ({cmake_version}) is below {minimumRequired}. Please update your CMake version by following the instructions at https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install\033[0m"
+        except FileNotFoundError:
+            return "CMake is not installed"
