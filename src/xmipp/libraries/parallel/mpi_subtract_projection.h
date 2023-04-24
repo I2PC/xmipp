@@ -32,18 +32,18 @@ class MpiProgSubtractProjection: public ProgSubtractProjection, public MpiMetada
 {
 public:
 
-    void defineParams();
-    void readParams();
-    void read(int argc, char **argv, bool reportErrors = true);
-    void preProcess();
-    void startProcessing();
-    void showProgress();
-    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
+    void defineParams() override;
+    void readParams() override;
+    void read(int argc, char **argv, bool reportErrors = true) override;
+    void preProcess() override;
+    void startProcessing() override;
+    void showProgress() override;
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         return getTaskToProcess(objId, objIndex);
     }
-    void finishProcessing();
+    void finishProcessing() override;
     
-    void wait();
+    void wait() override;
     
 };

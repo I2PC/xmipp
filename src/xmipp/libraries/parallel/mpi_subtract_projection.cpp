@@ -41,15 +41,18 @@ void MpiProgSubtractProjection::read(int argc, char **argv, bool reportErrors)
 }
 void MpiProgSubtractProjection::preProcess()
 {
-    rank = node->rank;
+    rank = (int)node->rank;
     ProgSubtractProjection::preProcess();
     // Get the volume padded size from rank 0
-    int realSize, origin, realSizeMask, originMask;
+    int realSize;
+    int origin;
+    int realSizeMask;
+    int originMask;
     if (node->rank == 0)
     {
-        realSize = XSIZE(projector->VfourierRealCoefs);
+        realSize = (int)XSIZE(projector->VfourierRealCoefs);
         origin = STARTINGX(projector->VfourierRealCoefs);
-        realSizeMask = XSIZE(projectorMask->VfourierRealCoefs);
+        realSizeMask = (int)XSIZE(projectorMask->VfourierRealCoefs);
         originMask = STARTINGX(projectorMask->VfourierRealCoefs);
     }
 
@@ -76,10 +79,10 @@ void MpiProgSubtractProjection::preProcess()
         STARTINGX(projectorMask->VfourierImagCoefs)=STARTINGY(projectorMask->VfourierImagCoefs)=STARTINGZ(projectorMask->VfourierImagCoefs)=originMask;
     }
 
-    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierRealCoefs), MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), (int)MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), (int)MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierRealCoefs), (int)MULTIDIM_SIZE(projectorMask->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(MULTIDIM_ARRAY(projectorMask->VfourierImagCoefs), (int)MULTIDIM_SIZE(projectorMask->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     if (rank != 0)
     {

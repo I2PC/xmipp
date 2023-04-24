@@ -40,11 +40,11 @@
 
 class ProgSubtractProjection: public XmippMetadataProgram
  {
- private:
+ public:
     // Input params
     FileName fnVolR; // Input reference volume
     FileName fnParticles; // Input metadata
-	FileName fnImg; // Particle filename
+	FileName fnImgI; // Particle filename
     FileName fnOut; // Output metadata
     FileName fnMaskVol; // Input 3D mask of the reference volume
     FileName fnMask; // Input 3D mask for region to keep
@@ -56,7 +56,6 @@ class ProgSubtractProjection: public XmippMetadataProgram
 	int sigma;
     int limitfreq;
     int maxwiIdx;
-    int i;
     bool nonNegative;
     bool boost;
     bool subtract;
@@ -129,23 +128,23 @@ class ProgSubtractProjection: public XmippMetadataProgram
     double evaluateFitting(const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
     Matrix1D<double> checkBestModel(MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &, 
         const MultidimArray< std::complex<double> > &, const MultidimArray< std::complex<double> > &) const;
-public:
+
     int rank; // for MPI version
     FourierProjector *projector;
     FourierProjector *projectorMask;
     /// Empty constructor
     ProgSubtractProjection();
     /// Destructor
-    ~ProgSubtractProjection();
+    ~ProgSubtractProjection() override;
     /// Read argument from command line
-    void readParams();
+    void readParams() override;
     /// Show
-    void show() const;
+    void show() const override;
     /// Define parameters
-    void defineParams();
-    void preProcess();
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
-    void postProcess();
+    void defineParams() override;
+    void preProcess() override;
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+    void postProcess() override;
  };
  //@}
 #endif

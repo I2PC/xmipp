@@ -129,12 +129,12 @@ ProgSubtractProjection::~ProgSubtractProjection()
  }
 
  void ProgSubtractProjection::readParticle(const MDRow &r) {
-	r.getValueOrDefault(MDL_IMAGE, fnImg, "no_filename");
-	I.read(fnImg);
+	r.getValueOrDefault(MDL_IMAGE, fnImgI, "no_filename");
+	I.read(fnImgI);
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save) {
+ void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName const &fnImgOut, Image<double> &img, double R2a, double b0save, double b1save) const{
 	img.write(fnImgOut);
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
 	rowOut.setValue(MDL_SUBTRACTION_R2, R2a); 
@@ -207,18 +207,18 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	return proj;
  }
 
-void ProgSubtractProjection::processParticle(const MDRow &row, int sizeImg, FourierTransformer &transformerPf, FourierTransformer &transformerIf) {
-	readParticle(row);
-	row.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
-	row.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
-	row.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
+void ProgSubtractProjection::processParticle(const MDRow &rowprocess, int sizeImg, FourierTransformer &transformerPf, FourierTransformer &transformerIf) {
+	readParticle(rowprocess);
+	rowprocess.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
+	rowprocess.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
+	rowprocess.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
 	roffset.initZeros(2);
-	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
-	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
+	rowprocess.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
+	rowprocess.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 	roffset *= -1;
 	projectVolume(*projector, P, sizeImg, sizeImg, part_angles.rot, part_angles.tilt, part_angles.psi, ctfImage);
 	selfTranslate(xmipp_transformation::LINEAR, P(), roffset, xmipp_transformation::WRAP);
-	Pctf = applyCTF(row, P);
+	Pctf = applyCTF(rowprocess, P);
 	MultidimArray<double> &mPctf = Pctf();
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mPctf)
 		DIRECT_MULTIDIM_ELEM(mPctf,n) = DIRECT_MULTIDIM_ELEM(mPctf,n) * DIRECT_MULTIDIM_ELEM(cirmask(),n);
@@ -298,7 +298,7 @@ Matrix1D<double> ProgSubtractProjection::checkBestModel(MultidimArray< std::comp
 	cirmask.write(formatString("%s/cirmask.mrc", fnProj.c_str()));
 	
 	// Create mock image of same size as particles (and referencce volume) to get
-	I().initZeros(Xdim, Ydim);
+	I().initZeros((int)Ydim, (int)Xdim);
 	I().initConstant(1);
 	transformerI.FourierTransform(I(), IFourier, false);
 
@@ -434,7 +434,7 @@ void ProgSubtractProjection::processImage(const FileName &fnImg, const FileName 
 		beta0save = beta00;
 		beta1save = 0;
 	}
-	else if (R2adj(1) == 1)
+	else
 	{
 		beta0save = beta01;
 		beta1save = beta1;
