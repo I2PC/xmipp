@@ -138,8 +138,7 @@ def run(experimental_md_path: str,
         batch_size=batch_size,
         pin_memory=pin_memory
     )
-    reference_uploader = map(lambda x : x.to(transform_device, non_blocking=True), reference_loader)
-    reference_batch_iterator = iter(reference_transformer(reference_uploader))
+    reference_batch_iterator = iter(reference_transformer(reference_loader))
     
     alignment_md = None
     n_batches_per_iteration = max(1, max_size // min(batch_size, len(reference_dataset)))
@@ -172,13 +171,12 @@ def run(experimental_md_path: str,
             batch_size=batch_size,
             pin_memory=pin_memory
         )
-        experimental_uploader = map(lambda x : x.to(transform_device, non_blocking=True), experimental_loader)
 
         print('Aligning')
         start_time = time.perf_counter()
         matches = alignment.align(
             db,
-            experimental_transformer(zip(experimental_uploader, local_transform_md_batches)),
+            experimental_transformer(zip(experimental_loader, local_transform_md_batches)),
             k=k
         )
     

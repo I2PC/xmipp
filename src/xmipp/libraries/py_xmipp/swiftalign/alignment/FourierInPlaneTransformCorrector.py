@@ -62,6 +62,9 @@ class FourierInPlaneTransformCorrector:
         self.rotated_band = None
         self.shifted_rotated_band = None
         
+        # Device
+        self.device = device
+        
     def __call__(self, 
                  images: Iterable[Tuple[torch.Tensor, pd.DataFrame]]) -> torch.Tensor:
         
@@ -75,6 +78,9 @@ class FourierInPlaneTransformCorrector:
         shifted_rotated_bands = None
         
         for batch_images, batch_md in images:
+            if self.device is not None:
+                batch_images = batch_images.to(self.device, non_blocking=True)
+
             if md.ANGLE_PSI in batch_md.columns:
                 angles = batch_md[md.ANGLE_PSI]
                 

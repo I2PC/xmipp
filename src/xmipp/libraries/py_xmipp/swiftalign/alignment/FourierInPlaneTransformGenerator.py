@@ -62,6 +62,9 @@ class FourierInPlaneTransformGenerator:
         self.interpolation = interpolation
         self.norm = norm
         
+        # Device
+        self.device = device
+        
     def __call__(self, 
                  images: Iterable[torch.Tensor]) -> InPlaneTransformBatch:
         
@@ -76,6 +79,9 @@ class FourierInPlaneTransformGenerator:
         
         start = 0
         for batch in images:
+            if self.device is not None:
+                batch = batch.to(self.device, non_blocking=True)
+            
             end = start + len(batch)
             indices = torch.arange(start=start, end=end, out=indices)
             
