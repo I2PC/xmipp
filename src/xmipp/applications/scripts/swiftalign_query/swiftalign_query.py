@@ -27,6 +27,7 @@ import torch
 import argparse
 import itertools
 import time
+import pandas as pd
 
 import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.search as search
@@ -34,6 +35,11 @@ import xmippPyModules.swiftalign.alignment as alignment
 import xmippPyModules.swiftalign.operators as operators
 import xmippPyModules.swiftalign.metadata as md
 
+def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFrame:
+    for i in range(0, len(df), batch_size):
+        start = i
+        end = start + batch_size
+        yield df[start:end]
 
 def run(experimental_md_path: str, 
         reference_md_path: str, 
@@ -148,7 +154,6 @@ def run(experimental_md_path: str,
     if local_shift:
         local_columns += [md.SHIFT_X, md.SHIFT_Y]
     local_transform_md = experimental_md[local_columns]
-    local_transform_md_batches = [local_transform_md[i:i+batch_size] for i in range(0, len(experimental_md), batch_size)] 
     populate_time = 0.0
     alignment_time = 0.0
     while True:
@@ -176,7 +181,7 @@ def run(experimental_md_path: str,
         start_time = time.perf_counter()
         matches = alignment.align(
             db,
-            experimental_transformer(zip(experimental_loader, local_transform_md_batches)),
+            experimental_transformer(zip(experimental_loader, _dataframe_batch_generator(local_transform_md, batch_size))),
             k=k
         )
     
