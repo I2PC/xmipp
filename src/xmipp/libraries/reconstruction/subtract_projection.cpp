@@ -134,7 +134,7 @@ ProgSubtractProjection::~ProgSubtractProjection()
 	I().setXmippOrigin();
  }
 
- void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName const &fnImgOut, Image<double> &img, double R2a, double b0save, double b1save) const{
+ void ProgSubtractProjection::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img, double R2a, double b0save, double b1save) {
 	img.write(fnImgOut);
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
 	rowOut.setValue(MDL_SUBTRACTION_R2, R2a); 
