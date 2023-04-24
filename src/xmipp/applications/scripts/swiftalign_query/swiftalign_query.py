@@ -26,6 +26,7 @@ from typing import Optional
 import torch
 import argparse
 import itertools
+import time
 
 import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.search as search
@@ -149,12 +150,19 @@ def run(experimental_md_path: str,
         local_columns += [md.SHIFT_X, md.SHIFT_Y]
     local_transform_md = experimental_md[local_columns]
     local_transform_md_batches = [local_transform_md[i:i+batch_size] for i in range(0, len(experimental_md), batch_size)] 
+    populate_time = 0.0
+    alignment_time = 0.0
     while True:
+        
         print('Uploading')
+        start_time = time.perf_counter()
         projection_md = alignment.populate(
             db,
             dataset=itertools.islice(reference_batch_iterator, n_batches_per_iteration)
         )
+        end_time = time.perf_counter()
+        populate_time += end_time - start_time
+
         
         if len(projection_md) == 0:
             break
@@ -167,6 +175,7 @@ def run(experimental_md_path: str,
         experimental_uploader = map(lambda x : x.to(transform_device, non_blocking=True), experimental_loader)
 
         print('Aligning')
+        start_time = time.perf_counter()
         matches = alignment.align(
             db,
             experimental_transformer(zip(experimental_uploader, local_transform_md_batches)),
@@ -181,6 +190,13 @@ def run(experimental_md_path: str,
             local_transform_md=local_transform_md,
             output_md=alignment_md
         )
+        end_time = time.perf_counter()
+        alignment_time += end_time - start_time
+
+    
+    print('Populate time (s): ' + str(populate_time))
+    print('Alignment time (s): ' + str(alignment_time))
+    print('Alignment per particle (ms/part.): ' + str(alignment_time*1e3/len(experimental_dataset)))
     
     if drop_na:
         alignment_md.dropna(inplace=True)
