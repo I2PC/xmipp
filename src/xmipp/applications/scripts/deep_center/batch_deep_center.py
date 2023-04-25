@@ -11,15 +11,6 @@ from scipy.ndimage import shift, rotate
 
 if __name__ == "__main__":
 
-    SL = xmippLib.SymList()
-    print("SL", SL, flush=True)
-
-    SL.readSymmetryFile("C1")
-
-    SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
-
-    print("distance", SL.computeDistanceAngles(90, 90, 90, 0, 0, 0, False, False, False))
-
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -117,9 +108,6 @@ if __name__ == "__main__":
                 return np.array((math.sin(angles[0]), math.cos(angles[0]), math.sin(angles[1]),
                                  math.cos(angles[1]), math.sin(angles[2] + angle),
                                  math.cos(angles[2] + angle)))
-            def get_sincos_representation(angles, angle):
-                return np.array((math.sin(angles[0]), math.cos(angles[0]), math.cos(angles[1]), math.sin(angles[2] + angle),
-                                 math.cos(angles[2] + angle)))
 
             def R_rot(theta):
                 return np.matrix([[1, 0, 0],
@@ -150,6 +138,14 @@ if __name__ == "__main__":
                 mat = euler_angles_to_matrix(angles, psi_rotation)
                 return matrix_to_rotation6d(mat)
 
+            def euler_to_cartesian(angles, psi_rotation):
+                x = math.sin(angles[1])*math.cos(angles[0])
+                y = math.sin(angles[1])*math.sin(angles[0])
+                z = math.cos(angles[1])
+                sinpsi = math.sin(angles[2] + psi_rotation)
+                cospsi = math.cos(angles[2] + psi_rotation)
+                return np.array((x, y, z, sinpsi, cospsi))
+
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
@@ -167,17 +163,19 @@ if __name__ == "__main__":
                     y = yvalues + np.vstack((rX, rY)).T
                 else:
                     # Rotates image a random angle. Thus, Psi must be updated
-                    # rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-                    # rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+                    #rX = 0.01*self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+                    #rY = 0.01*self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                     rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
 
-                    # Iexp = np.array(list((map(shift_image, Iexp, rX, rY))))
+                    #Iexp = np.array(list((map(shift_image, Iexp, rX, rY))))
                     Xexp = np.array(list(map(rotate_image, Iexp, rAngle)))
                     rAngle = rAngle * math.pi / 180
                     yvalues = yvalues * math.pi / 180
 
                     if representation == 'euler':
-                        y = np.array(list((map(get_sincos_representation, yvalues, rAngle))))
+                        y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
+                    elif representation == 'cartesian':
+                        y = np.array(list((map(euler_to_cartesian, yvalues, rAngle))))
                     else:
                         y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
             else:
@@ -185,7 +183,7 @@ if __name__ == "__main__":
                 if mode == 'Shift':
                     y = yvalues
                 else:
-                    y = np.array(list((map(get_sincos_representation, yvalues, np.zeros(self.batch_size)))))
+                    y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
 
@@ -238,7 +236,10 @@ if __name__ == "__main__":
         if mode == 'Shift':
             L = Dense(2, name="output", activation="linear")(L)
         else:
-            L = Dense(5, name="output", activation="linear")(L)
+            if representation == 'cartesian':
+                L = Dense(5, name="output", activation="linear")(L)
+            else:
+                L = Dense(6, name="output", activation="linear")(L)
 
         return Model(inputLayer, L)
 
@@ -317,8 +318,89 @@ if __name__ == "__main__":
         return K.mean(tf.math.acos(val), axis=-1)
 
     def geodesic_loss(y_true, y_pred):
+        print('y_true', y_true)
         d = geodesic_distance(y_true, y_pred)
         return d
+
+
+
+    SL = xmippLib.SymList()
+    print("SL", SL, flush=True)
+
+    SL.readSymmetryFile("C1")
+
+    SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
+
+    print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
+
+    def euler_to_matrix(angles):
+
+
+        return True
+
+
+    def R_rot(x, y):
+        # (x,y) must be a normalized
+        # Construct the rotation matrix for each sample in the batch
+        ones = tf.ones_like(x)
+        zeros = tf.zeros_like(x)
+        batch_size = tf.shape(x)[0]
+        rot_matrix = tf.concat([
+            tf.concat([ones, zeros, zeros], axis=1),
+            tf.concat([zeros, y, -x], axis=1),
+            tf.concat([zeros, x, y], axis=1)
+        ], axis=1)
+        return tf.reshape(rot_matrix, (batch_size, 3, 3))
+
+    def R_tilt(x, y):
+        # Construct the rotation matrix for each sample in the batch
+        ones = tf.ones_like(x)
+        zeros = tf.zeros_like(x)
+        batch_size = tf.shape(x)[0]
+        tilt_matrix = tf.concat([
+            tf.concat([y, zeros, x], axis=1),
+            tf.concat([zeros, ones, zeros], axis=1),
+            tf.concat([-x, zeros, y], axis=1)
+        ], axis=1)
+        return tf.reshape(tilt_matrix, (batch_size, 3, 3))
+
+    def R_psi(x, y):
+        # Construct the rotation matrix for each sample in the batch
+        ones = tf.ones_like(x)
+        zeros = tf.zeros_like(x)
+        batch_size = tf.shape(x)[0]
+        psi_matrix = tf.concat([
+            tf.concat([y, -x, zeros], axis=1),
+            tf.concat([x, y, zeros], axis=1),
+            tf.concat([zeros, zeros, ones], axis=1)
+        ], axis=1)
+        print('R_psi', psi_matrix)
+        return tf.reshape(psi_matrix, (batch_size, 3, 3))
+
+    def rotation_matrix(angles):
+        print('angles', angles)
+        rot = angles[:, slice(0, 2)]
+        tilt = angles[:, slice(2, 4)]
+        psi = angles[:, slice(4, 6)]
+        print('rot', rot)
+        nrot = tf.linalg.normalize(rot, axis=1)[0]
+        ntilt = tf.linalg.normalize(tilt, axis=1)[0]
+        npsi = tf.linalg.normalize(psi, axis=1)[0]
+        return tf.matmul(R_psi(nrot[:, slice(0,1)], nrot[:, slice(1,2)]), tf.matmul(R_tilt(ntilt[:, slice(0,1)], ntilt[:, slice(1,2)]), R_psi(npsi[:, slice(0,1)], npsi[:, slice(1,2)])))
+
+
+    def distanceBetweenMatrix(mat1, mat2):
+        return True
+
+
+    def custom_loss(y_true, y_pred):
+        print('y_true', y_true)
+        rotation_true = rotation_matrix(y_true)
+        print('rotation_true',rotation_true)
+        rotation_pred = rotation_matrix(y_pred)
+        print('rotation_pred',rotation_pred)
+        val = -tf.linalg.matmul(rotation_true, rotation_pred, transpose_b=True)
+        return K.mean(val)
 
     steps = round(len(fnImgs) / batch_size)
     if mode == 'Shift':
@@ -335,8 +417,13 @@ if __name__ == "__main__":
             history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
                                           validation_data=validation_generator)
         else:
-            model.compile(loss=geodesic_loss, optimizer='adam')
-            history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
+            if representation == 'euler':
+                model.compile(loss=custom_loss, optimizer='adam')
+                history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
+                                              validation_data=validation_generator)
+            else:
+                model.compile(loss=geodesic_loss, optimizer='adam')
+                history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
                                           validation_data=validation_generator)
 
     model.save(fnModel)

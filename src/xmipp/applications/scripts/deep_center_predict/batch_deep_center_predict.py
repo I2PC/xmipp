@@ -10,7 +10,7 @@ from time import time
 from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift, rotate
 
-maxSize = 237
+maxSize = 128
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -54,11 +54,15 @@ if __name__ == "__main__":
 
         def __len__(self):
             'Denotes the number of batches per predictions'
-            return maxSize
+            num = len(self.fnImgs) // maxSize
+            if len(self.fnImgs) % maxSize > 0:
+                num = num + 1
+            return num
 
         def __getitem__(self, index):
             'Generate one batch of data'
             # Generate indexes of the batch
+            print('index', index, flush=True)
             indexes = self.indexes[index * maxSize:(index + 1) * maxSize]
             # Find list of IDs
             list_IDs_temp = []
@@ -128,17 +132,29 @@ if __name__ == "__main__":
             elif mode == "Angular":
                 if representation == 'euler':
                     rots = Y[ID][0:2]
-                    tilt = Y[ID][2]
-                    psis = Y[ID][3:]
+                    tilts = Y[ID][2:4]
+                    psis = Y[ID][4:]
                     psis /= norm(psis)
                     psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
                     rots /= norm(rots)
                     rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
-                    tilt /= norm(tilt)
-                    tilts_degree = (math.acos(tilt)) * 180 / math.pi
+                    tilts /= norm(tilts)
+                    tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
                     mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
                     mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
                     mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
+                elif representation == 'cartesian':
+                    psis = Y[ID][3:]
+                    psis /= norm(psis)
+                    psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
+                    rots = math.atan2(Y[ID][1], Y[ID][0])
+                    rots_degree = rots * 180 / math.pi
+                    tilts = math.atan2(math.sqrt(math.pow(Y[ID][1], 2) + math.pow(Y[ID][0], 2)), Y[ID][2])
+                    tilts_degree = tilts * 180 / math.pi
+                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
+
                 else:
                     rotmatrix = rotation6d_to_matrix(Y[ID])
                     angles = matrix_to_euler(rotmatrix)
