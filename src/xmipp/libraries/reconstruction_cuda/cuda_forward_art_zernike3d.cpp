@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -308,6 +309,11 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 {
 	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
 	auto optimalizedSize = ceil(sizeB / BLOCK_SIZE) * BLOCK_SIZE;
+	cout << "sizeB: ";
+	cout << sizeB << '\n';
+	cout << "sizeB / BLOCK_SIZE\n";
+	cout << (sizeB / BLOCK_SIZE) << '\n';
+	cout << '\n';
 	blockX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
 	gridX = optimalizedSize / blockX;
 	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
