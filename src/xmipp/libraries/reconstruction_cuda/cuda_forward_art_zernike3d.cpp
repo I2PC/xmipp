@@ -309,11 +309,11 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 {
 	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
 	auto optimalizedSize = ceil(sizeB / BLOCK_SIZE) * BLOCK_SIZE;
-	cout << "sizeB: ";
-	cout << sizeB << '\n';
-	cout << "sizeB / BLOCK_SIZE\n";
-	cout << (sizeB / BLOCK_SIZE) << '\n';
-	cout << '\n';
+	std::cout << "sizeB: ";
+	std::cout << sizeB << '\n';
+	std::cout << "sizeB / BLOCK_SIZE\n";
+	std::cout << (sizeB / BLOCK_SIZE) << '\n';
+	std::cout << '\n';
 	blockX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
 	gridX = optimalizedSize / blockX;
 	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
