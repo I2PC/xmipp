@@ -312,7 +312,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	std::cout << "sizeB: ";
 	std::cout << sizeB << '\n';
 	std::cout << "sizeB / BLOCK_SIZE: ";
-	std::cout << (sizeB / BLOCK_SIZE) << '\n';
+	std::cout << (static_cast<double>(sizeB) / static_cast<double>(BLOCK_SIZE)) << '\n';
 	std::cout << '\n';
 	blockX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
 	gridX = optimalizedSize / blockX;
