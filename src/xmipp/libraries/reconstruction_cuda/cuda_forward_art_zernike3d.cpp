@@ -308,17 +308,17 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  ydimF(parameters.VRecMaskF.ydim)
 {
 	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
-	auto optimalizedSize = ceil(sizeB / BLOCK_SIZE) * BLOCK_SIZE;
+	auto optimalizedSize = ceil(static_cast<double>(sizeB) / static_cast<double>(BLOCK_SIZE)) * BLOCK_SIZE;
 	std::cout << "sizeB: ";
 	std::cout << sizeB << '\n';
-	std::cout << "sizeB / BLOCK_SIZE\n";
+	std::cout << "sizeB / BLOCK_SIZE: ";
 	std::cout << (sizeB / BLOCK_SIZE) << '\n';
 	std::cout << '\n';
 	blockX = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
 	gridX = optimalizedSize / blockX;
 	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
 		filterMaskTransportCoordinates(parameters.VRecMaskF, parameters.loopStep, true);
-	optimalizedSize = ceil(sizeF / BLOCK_SIZE) * BLOCK_SIZE;
+	optimalizedSize = ceil(static_cast<double>(sizeF) / static_cast<double>(BLOCK_SIZE)) * BLOCK_SIZE;
 	blockXStep = std::__gcd(BLOCK_SIZE, static_cast<int>(optimalizedSize));
 	gridXStep = optimalizedSize / blockXStep;
 }
