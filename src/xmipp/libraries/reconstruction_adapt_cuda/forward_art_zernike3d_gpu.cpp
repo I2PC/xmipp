@@ -656,9 +656,7 @@ void ProgForwardArtZernike3DGPU::artModel()
 				if (sigma.size() > 1)
 					c = sg * sg;
 				diffVal -= c * A2D_ELEM(mP, i, j);
-				std::cout << "mP: " << i << " " << j << " " << A2D_ELEM(mP, i, j) << std::endl;
 				sumMw += c * c * A2D_ELEM(mW, i, j);
-				std::cout << "mW: " << i << " " << j << " " << A2D_ELEM(mW, i, j) << std::endl;
 			}
 			if (sumMw > 0.0) {
 				A2D_ELEM(mId, i, j) = lambda * (diffVal) / XMIPP_MAX(sumMw, 1.0);
