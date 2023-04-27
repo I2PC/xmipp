@@ -62,7 +62,6 @@ if __name__ == "__main__":
         def __getitem__(self, index):
             'Generate one batch of data'
             # Generate indexes of the batch
-            print('index', index, flush=True)
             indexes = self.indexes[index * maxSize:(index + 1) * maxSize]
             # Find list of IDs
             list_IDs_temp = []
