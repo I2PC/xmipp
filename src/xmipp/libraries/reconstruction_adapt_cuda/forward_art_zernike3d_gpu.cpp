@@ -319,11 +319,11 @@ void ProgForwardArtZernike3DGPU::processImage(const FileName &fnImg,
 	rowIn.getValue(MDL_ANGLE_PSI, psi);
 	rowIn.getValueOrDefault(MDL_SHIFT_X, shiftX, 0.0);
 	rowIn.getValueOrDefault(MDL_SHIFT_Y, shiftY, 0.0);
-	std::vector<PrecisionType> vectortemp;
+	std::vector<double> vectortemp;
 	if (useZernike) {
 		rowIn.getValue(MDL_SPH_COEFFICIENTS, vectortemp);
-		std::vector<PrecisionType> vec(vectortemp.begin(), vectortemp.end());
-		clnm = vec;
+		std::vector<double> vec(vectortemp.begin(), vectortemp.end());
+		typeCast(vec, clnm);
 	}
 	rowIn.getValueOrDefault(MDL_FLIP, flip, false);
 
