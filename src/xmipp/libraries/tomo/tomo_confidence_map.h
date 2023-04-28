@@ -38,12 +38,10 @@
 #include <data/fourier_filter.h>
 #include <data/filters.h>
 #include <string>
-#include "fftwT.h"
 
-/**@defgroup Monogenic Resolution
-   @ingroup ReconsLibrary */
-//@{
-/** SSNR parameters. */
+#include "data/fftwT.h"
+
+
 
 class ProgTomoConfidecenceMap : public XmippProgram
 {

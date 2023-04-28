@@ -38,7 +38,6 @@
 #include <data/fourier_filter.h>
 #include <data/filters.h>
 #include <string>
-#include "symmetrize.h"
 
 /**@defgroup Monogenic Resolution
    @ingroup ReconsLibrary */
