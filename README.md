@@ -28,6 +28,8 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 #### Compiler
 Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required. If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
 
+#### Cmake
+Xmipp requires Cmake 3.16 or above. To update it please [visit](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install)
 #### Cuda
 Xmipp supports Cuda 8 through 11.7. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins. Pay attemption to the [compiler - CUDA](https://gist.github.com/ax3l/9489132) compatibility.
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).

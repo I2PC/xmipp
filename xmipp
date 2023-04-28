@@ -30,6 +30,7 @@ import shutil
 import sys
 from datetime import datetime
 from scripts import *
+from scripts.utils import checkCMakeVersion
 
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
@@ -37,7 +38,7 @@ from scripts import *
 XMIPP_VERSION = '3.23.03.0'        #
 XMIPP_VERNAME = 'devel'           #
 RELEASE_DATE = '09/03/2023'        #
-
+CMAKE_VERSION_REQUIRED = '3.16'
 ####################################
 
 
@@ -66,7 +67,7 @@ DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
                 GTEST: ('v.1.13.0', Config.KEY_BUILD_TESTS),
                 LIBSVM: ('master', None),
-                LIBCIFPP: ('gcc9', None)}
+                LIBCIFPP: ('ms_feature_ciflibrary', None)}
 
 # if a skippable compilation fails (if 'key' found in the failed code),
 # a hint is printed in order to export 'value' or edit the config file
@@ -511,6 +512,11 @@ def compile_libsvm():
     return ok
 
 def compile_libcifpp():
+    # Check if CMake version is up to date
+    error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
+    if error:
+        print(error)
+        return False
     currDir = os.getcwd()
     # Moving to library directory
     libcifppDir = os.path.join("src", "libcifpp")
@@ -520,11 +526,13 @@ def compile_libcifpp():
     ok = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON")
     ok = ok and runJob("cmake --build build")
     ok = ok and runJob("cmake --install build")
+    # Check if libcifpp created up on compiling lib or lib64 directory
+    libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
     # Copying .so file
     os.chdir(currDir)
     libDir = "src/xmipp/lib"
     createDir(libDir)
-    ok = ok and runJob("cp " + os.path.join(libcifppDir, "lib", "libcifpp.so*") + " " + libDir)
+    ok = ok and runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir)
     return ok
 
 def checkScons():
