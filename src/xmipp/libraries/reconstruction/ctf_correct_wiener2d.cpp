@@ -92,21 +92,16 @@ void ProgCorrectWiener2D::postProcess()
 
 }
 
-void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, CTFDescription & ctf)
+
+void ProgCorrectWiener2D::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
 	WF.pad = pad;
 	WF.correct_envelope = correct_envelope;
 	WF.sampling_rate = sampling_rate;
 	WF.wiener_constant = wiener_constant;
-	WF.wiener_constant = isIsotropic;
+	WF.isIsotropic = isIsotropic;
 	WF.phase_flipped = phase_flipped;
-
-	WF.wienerFilter(Mwien, ctf);
-}
-
-//#define DEBUG
-void ProgCorrectWiener2D::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
-{
 	WF.applyWienerFilter(fnImg, fnImgOut, rowIn, rowOut);
 
 }
+
