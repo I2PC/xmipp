@@ -507,7 +507,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 {
 	int i, j;
 	size_t numIMG = getInputMd()->size();
-	MultidimArray<bool> chosen(numIMG);
+	MultidimArray<short> chosen(numIMG);
 	MultidimArray<double> product(numIMG);
 	double min_prod = MAXFLOAT;
 	;
@@ -524,7 +524,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 	for (i = 0; i < numIMG; i++) {
 		Matrix1D<double> z;
 		// Initially no image is chosen
-		A1D_ELEM(chosen, i) = false;
+		A1D_ELEM(chosen, i) = 0;
 
 		// Compute the Euler matrix for each image and keep only
 		// the third row of each one
@@ -535,37 +535,25 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 
 	// Pick first projection as the first one to be presented
 	i = 0;
-	A1D_ELEM(chosen, i) = true;
+	A1D_ELEM(chosen, i) = 1;
 	A1D_ELEM(ordered_list, 0) = i;
 
 	// Choose the rest of projections
-	std::cout << "Sorting " << numIMG << " projections orthogonally...\n" << std::endl;
-
-	auto myDotProduct = [](const auto &l, const auto &r) {
-		return l[0] * r[0] + l[1] * r[1] + l[2] * r[2];
-	};
-	auto toArray = [](const auto &mda, auto i) -> std::array<double, 3> {
-		return {mda.mdata[3 * i], mda.mdata[3 * i + 1], mda.mdata[3 * i + 2]};
-	};
-	std::array<double, 3> rowi_1;
-	std::array<double, 3> rowi_N_1;
+	std::cout << "Sorting projections orthogonally...\n" << std::endl;
+	Matrix1D<double> rowj, rowi_1, rowi_N_1;
 	for (i = 1; i < numIMG; i++) {
 		// Compute the product of not already chosen vectors with the just
 		// chosen one, and select that which has minimum product
 		min_prod = MAXFLOAT;
-
-		const bool cond = sort_last_N != -1 && i > sort_last_N;
-		if (cond)
-			rowi_N_1 = toArray(v, A1D_ELEM(ordered_list, i - sort_last_N - 1));
-		else
-			rowi_1 = toArray(v, A1D_ELEM(ordered_list, i - 1));
-
+		v.getRow(A1D_ELEM(ordered_list, i - 1), rowi_1);
+		if (sort_last_N != -1 && i > sort_last_N)
+			v.getRow(A1D_ELEM(ordered_list, i - sort_last_N - 1), rowi_N_1);
 		for (j = 0; j < numIMG; j++) {
-			if (!chosen.data[j]) {
-				auto rowj = toArray(v, j);
-				A1D_ELEM(product, j) += ABS(myDotProduct(rowi_1, rowj));
-				if (cond)
-					A1D_ELEM(product, j) -= ABS(myDotProduct(rowi_N_1, rowj));
+			if (!A1D_ELEM(chosen, j)) {
+				v.getRow(j, rowj);
+				A1D_ELEM(product, j) += ABS(dotProduct(rowi_1, rowj));
+				if (sort_last_N != -1 && i > sort_last_N)
+					A1D_ELEM(product, j) -= ABS(dotProduct(rowi_N_1, rowj));
 				if (A1D_ELEM(product, j) < min_prod) {
 					min_prod = A1D_ELEM(product, j);
 					min_prod_proj = j;
@@ -575,7 +563,7 @@ void ProgForwardArtZernike3DGPU::sortOrthogonal()
 
 		// Store the chosen vector and mark it as chosen
 		A1D_ELEM(ordered_list, i) = min_prod_proj;
-		A1D_ELEM(chosen, min_prod_proj) = true;
+		A1D_ELEM(chosen, min_prod_proj) = 1;
 	}
 }
 
