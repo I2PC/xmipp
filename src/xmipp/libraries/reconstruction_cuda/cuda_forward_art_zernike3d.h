@@ -113,7 +113,7 @@ class Program {
 
 	int *VRecMaskF;
 
-	const MultidimArrayCuda<PrecisionType> VRecMaskB;
+	MultidimArrayCuda<PrecisionType> VRecMaskB;
 
 	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
 
