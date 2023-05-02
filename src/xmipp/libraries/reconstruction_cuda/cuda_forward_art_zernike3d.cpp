@@ -411,23 +411,25 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike><<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(
-		cudaMV,
-		cudaMId,
-		VRecMaskB,
-		lastZ,
-		lastY,
-		lastX,
-		step,
-		commonParameters.iRmaxF,
-		commonParameters.idxY0,
-		commonParameters.idxZ0,
-		cudaVL1,
-		cudaVN,
-		cudaVL2,
-		cudaVM,
-		commonParameters.cudaClnm,
-		createRotationMatrix<PrecisionType>(parameters.angles));
+	auto cudaR = transportMatrix2DToGpu(createRotationMatrix<PrecisionType>(parameters.angles));
+
+	backwardKernel<PrecisionType, usesZernike>
+		<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV,
+																			cudaMId,
+																			VRecMaskB,
+																			lastZ,
+																			lastY,
+																			lastX,
+																			step,
+																			commonParameters.iRmaxF,
+																			commonParameters.idxY0,
+																			commonParameters.idxZ0,
+																			cudaVL1,
+																			cudaVN,
+																			cudaVL2,
+																			cudaVM,
+																			commonParameters.cudaClnm,
+																			cudaR);
 
 	cudaDeviceSynchronize();
 
