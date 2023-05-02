@@ -107,6 +107,8 @@ class Program {
 
 	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
 
+	size_t blockXB, blockYB, blockZB, gridXB, gridYB, gridZB;
+
 	size_t blockXStep, gridXStep;
 
 	int *VRecMaskF, *VRecMaskB;
