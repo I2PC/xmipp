@@ -111,7 +111,9 @@ class Program {
 
 	size_t blockXStep, gridXStep;
 
-	int *VRecMaskF, *VRecMaskB;
+	int *VRecMaskF;
+
+	const MultidimArrayCuda<PrecisionType> VRecMaskB;
 
 	unsigned *cudaCoordinatesB, *cudaCoordinatesF;
 
