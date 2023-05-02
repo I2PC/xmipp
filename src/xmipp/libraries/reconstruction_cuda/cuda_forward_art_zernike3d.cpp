@@ -405,38 +405,28 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto cudaMId = initializeMultidimArrayCuda(mId);
-
-	// Texture
-	cudaTextureObject_t mIdTexture = initTextureMultidimArray<PrecisionType>(cudaMId, mId.zdim);
+	const int step = 1;
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	backwardKernel<PrecisionType, usesZernike><<<gridX, blockX>>>(cudaMV,
-																  cudaCoordinatesB,
-																  xdimB,
-																  ydimB,
-																  static_cast<unsigned>(sizeB),
-																  commonParameters.iRmaxF,
-																  static_cast<unsigned>(commonParameters.idxY0),
-																  static_cast<unsigned>(commonParameters.idxZ0),
-																  cudaVL1,
-																  cudaVN,
-																  cudaVL2,
-																  cudaVM,
-																  commonParameters.cudaClnm,
-																  commonParameters.R.mdata[0],
-																  commonParameters.R.mdata[1],
-																  commonParameters.R.mdata[2],
-																  commonParameters.R.mdata[3],
-																  commonParameters.R.mdata[4],
-																  commonParameters.R.mdata[5],
-																  mIdTexture,
-																  mId.xinit,
-																  mId.yinit,
-																  static_cast<int>(mId.xdim),
-																  static_cast<int>(mId.ydim));
-	gpuErrchk(cudaPeekAtLastError());
+	backwardKernel<PrecisionType, usesZernike>
+		<<<dim3(gridX, gridY, gridZ), dim3(blockX, blockY, blockZ)>>>(cudaMV,
+																	  cudaMId,
+																	  VRecMaskB,
+																	  lastZ,
+																	  lastY,
+																	  lastX,
+																	  step,
+																	  commonParameters.iRmaxF,
+																	  commonParameters.idxY0,
+																	  commonParameters.idxZ0,
+																	  cudaVL1,
+																	  cudaVN,
+																	  cudaVL2,
+																	  cudaVM,
+																	  commonParameters.cudaClnm,
+																	  commonParameters.cudaR);
 
 	cudaDeviceSynchronize();
 
