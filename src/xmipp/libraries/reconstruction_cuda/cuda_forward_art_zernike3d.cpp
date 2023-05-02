@@ -303,6 +303,7 @@ namespace {
 template<typename PrecisionType>
 Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters parameters)
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
+	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
 	  cudaSigma(transportStdVectorToGpu(parameters.sigma)),
 	  RmaxDef(parameters.RmaxDef),
@@ -340,6 +341,7 @@ template<typename PrecisionType>
 Program<PrecisionType>::~Program()
 {
 	cudaFree(VRecMaskF);
+	cudaFree(VRecMaskB);
 	cudaFree(cudaMV.data);
 	cudaFree(cudaCoordinatesB);
 	cudaFree(cudaCoordinatesF);
