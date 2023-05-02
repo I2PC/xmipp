@@ -193,7 +193,7 @@ namespace {
 
 	}
 
-	/*struct BlockSizes
+	struct BlockSizes
 	blockSizeArchitecture()
 
 	{
@@ -226,7 +226,7 @@ namespace {
 				break;
 		}
 		return output;
-	}*/
+	}
 
 	template<typename T>
 	cudaTextureObject_t initTextureMultidimArray(MultidimArrayCuda<T> &array, size_t zdim)
