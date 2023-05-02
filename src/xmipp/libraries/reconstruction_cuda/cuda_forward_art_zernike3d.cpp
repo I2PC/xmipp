@@ -315,8 +315,6 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
 	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
 	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
-	  xdimB(static_cast<unsigned>(parameters.VRecMaskB.xdim)),
-	  ydimB(static_cast<unsigned>(parameters.VRecMaskB.ydim)),
 	  xdimF(parameters.VRecMaskF.xdim),
 	  ydimF(parameters.VRecMaskF.ydim),
 	  blockXB(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim)),
@@ -326,13 +324,9 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridYB(parameters.Vrefined().ydim / blockYB),
 	  gridZB(parameters.Vrefined().zdim / blockZB)
 {
-	std::tie(cudaCoordinatesB, sizeB) = filterMaskTransportCoordinates(parameters.VRecMaskB, 1);
-	auto optimalizedSize = ceil(static_cast<double>(sizeB) / static_cast<double>(BLOCK_SIZE)) * BLOCK_SIZE;
-	blockX = BLOCK_SIZE;
-	gridX = optimalizedSize / blockX;
 	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
 		filterMaskTransportCoordinates(parameters.VRecMaskF, parameters.loopStep, parameters.sigma.size() > 1);
-	optimalizedSize = ceil(static_cast<double>(sizeF) / static_cast<double>(BLOCK_SIZE)) * BLOCK_SIZE;
+	auto optimalizedSize = ceil(static_cast<double>(sizeF) / static_cast<double>(BLOCK_SIZE)) * BLOCK_SIZE;
 	blockXStep = BLOCK_SIZE;
 	gridXStep = optimalizedSize / blockXStep;
 }
@@ -343,7 +337,6 @@ Program<PrecisionType>::~Program()
 	cudaFree(VRecMaskF);
 	cudaFree(VRecMaskB.data);
 	cudaFree(cudaMV.data);
-	cudaFree(cudaCoordinatesB);
 	cudaFree(cudaCoordinatesF);
 	cudaFree(const_cast<PrecisionType *>(cudaSigma));
 
