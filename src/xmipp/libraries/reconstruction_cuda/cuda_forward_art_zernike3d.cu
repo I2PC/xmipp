@@ -335,29 +335,27 @@ namespace device {
 	}
 
 	template<typename PrecisionType>
-	__device__ PrecisionType interpolatedElement2DCuda(const PrecisionType x,
-													   const PrecisionType y,
-													   const cudaTextureObject_t texMId,
-													   const int xinitMId,
-													   const int yinitMId,
-													   const int xdimMId,
-													   const int ydimMId)
+	__device__ PrecisionType interpolatedElement2DCuda(PrecisionType x,
+													   PrecisionType y,
+													   const MultidimArrayCuda<PrecisionType> &diffImage)
 	{
 		int x0 = CUDA_FLOOR(x);
+		PrecisionType fx = x - x0;
 		int x1 = x0 + 1;
 		int y0 = CUDA_FLOOR(y);
+		PrecisionType fy = y - y0;
 		int y1 = y0 + 1;
 
-		int i0 = yinitMId;
-		int j0 = xinitMId;
-		int iF = yinitMId + ydimMId - 1;
-		int jF = xinitMId + xdimMId - 1;
+		int i0 = STARTINGY(diffImage);
+		int j0 = STARTINGX(diffImage);
+		int iF = FINISHINGY(diffImage);
+		int jF = FINISHINGX(diffImage);
 
 #define ASSIGNVAL2DCUDA(d, i, j)                      \
 	if ((j) < j0 || (j) > jF || (i) < i0 || (i) > iF) \
 		d = (PrecisionType)0;                         \
 	else                                              \
-		d = tex1Dfetch<PrecisionType>(texMId, (int)(((i) - (i0)) * xdimMId + ((j) - (j0))));
+		d = A2D_ELEM(diffImage, i, j);
 
 		PrecisionType d00, d10, d11, d01;
 		ASSIGNVAL2DCUDA(d00, y0, x0);
@@ -365,8 +363,6 @@ namespace device {
 		ASSIGNVAL2DCUDA(d10, y1, x0);
 		ASSIGNVAL2DCUDA(d11, y1, x1);
 
-		PrecisionType fx = x - x0;
-		PrecisionType fy = y - y0;
 		PrecisionType d0 = LIN_INTERP(fx, d00, d01);
 		PrecisionType d1 = LIN_INTERP(fx, d10, d11);
 		return LIN_INTERP(fy, d0, d1);
