@@ -608,7 +608,7 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 	double rVol;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
 	{
-
+		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
 		if ( (rVol>=(last_resolution_2-0.001)) && (rVol<=lowest_res) ) //the value 0.001 is a tolerance
 		{
 			resolVec.push_back(rVol);
