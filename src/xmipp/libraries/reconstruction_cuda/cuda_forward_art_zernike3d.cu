@@ -364,19 +364,19 @@ namespace device {
 		if ((threadIdx.x & 7) == 0) {
 			int index = threadIdx.x >> 3;
 			if (values[index * 2] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[index * 2]);
+				//atomicAddPrecision(&A2D_ELEM(mP, i, j), values[index * 2]);
 			}
 			if (values[index * 2 + 1] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[index * 2 + 1]);
+				//atomicAddPrecision(&A2D_ELEM(mW, i, j), values[index * 2 + 1]);
 			}
 		}
 
 		if (threadIdx.x == 255) {
 			if (values[64] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[65]);
+				//atomicAddPrecision(&A2D_ELEM(mP, i, j), values[65]);
 			}
 			if (values[64] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[65]);
+				//atomicAddPrecision(&A2D_ELEM(mW, i, j), values[65]);
 			}
 		}
 	}
