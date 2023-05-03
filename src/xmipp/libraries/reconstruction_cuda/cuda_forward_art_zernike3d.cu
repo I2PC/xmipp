@@ -461,20 +461,15 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType r5)
 {
 	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
-	if (sizeF <= threadIndex) {
+	/*if (sizeF <= threadIndex) {
 		return;
 	}
 	unsigned threadPosition = cudaCoordinatesF[threadIndex];
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
-		/*auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
-		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
-		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
-	/*auto cudaPAligned = __builtin_assume_aligned(cudaP, 16);
-	auto cudaWAligned = __builtin_assume_aligned(cudaW, 16);*/
 	auto &mP = cudaP[img_idx];
 	auto &mW = cudaW[img_idx];
 	__builtin_assume(xdim > 0);
@@ -485,7 +480,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	/*PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
+	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (usesZernike) {
 		auto k2 = k * k;
 		auto kr = k * iRmaxF;
