@@ -460,8 +460,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType r4,
 							  const PrecisionType r5)
 {
-	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
-	/*if (sizeF <= threadIndex) {
+	/*int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
+	if (sizeF <= threadIndex) {
 		return;
 	}
 	unsigned threadPosition = cudaCoordinatesF[threadIndex];
