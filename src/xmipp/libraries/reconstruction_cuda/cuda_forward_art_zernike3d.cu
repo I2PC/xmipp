@@ -315,14 +315,56 @@ namespace device {
 								   const int y,
 								   const int z)
 	{
+		__shared__ int coordinates[34];
+		__shared__ PrecisionType values[34];
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
+		if (threadIdx.x & 15 == 0) {
+			coordinates[(threadIdx.x >> 4) * 2] = i;
+			coordinates[(threadIdx.x >> 4) * 2 + 1] = j;
+			values[(threadIdx.x >> 4) * 2] = CST(0.0);
+			values[(threadIdx.x >> 4) * 2 + 1] = CST(0.0);
+		}
+		if (threadIdx.x == 255) {
+			coordinates[32] = i;
+			coordinates[33] = j;
+			values[(threadIdx.x >> 4) * 2] = CST(0.0);
+			values[(threadIdx.x >> 4) * 2 + 1] = CST(0.0);
+		}
+		__syncthreads();
+
 		if (!IS_OUTSIDE2D(mP, i, j)) {
 			//if (j != x || i != y) {
-			printf("%d,%d,%d,%d,%d\n", j, i, x, y, z);
+			//printf("%d,%d,%d,%d,%d\n", j, i, x, y, z);
 			//}
-			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
-			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
+			int index = threadIdx.x >> 4;
+			if (coordinates[index * 2] == i && coordinates[index * 2 + 1] == j) {
+				values[index * 2] += weight;
+				values[index * 2 + 1] += CST(1.0);
+			} else if (coordinates[(index + 1) * 2] == i && coordinates[(index + 1) * 2 + 1] == j) {
+				values[(index + 1) * 2] += weight;
+				values[(index + 1) * 2 + 1] += CST(1.0);
+			} else {
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
+				atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
+			}
+			__syncthreads();
+		}
+		if (threadIdx.x & 15 == 0) {
+			if (values[(threadIdx.x >> 4) * 2] != CST(0.0)) {
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[(threadIdx.x >> 4) * 2]);
+			}
+			if (values[(threadIdx.x >> 4) * 2 + 1] != CST(0.0)) {
+				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[(threadIdx.x >> 4) * 2 + 1]);
+			}
+		}
+		if (threadIdx.x == 255) {
+			if (values[32] != CST(0.0)) {
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[32]);
+			}
+			if (values[33] != CST(0.0)) {
+				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[33]);
+			}
 		}
 	}
 
