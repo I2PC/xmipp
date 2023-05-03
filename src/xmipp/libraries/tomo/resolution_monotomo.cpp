@@ -604,38 +604,44 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 
 	// Count number of voxels with resolution
 	size_t N=0;
+	std::vector<double> resolVec(0);
 	double rVol;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
 	{
 		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
 		if ( (rVol>=(last_resolution_2-0.001)) && (rVol<=lowest_res) ) //the value 0.001 is a tolerance
 		{
+			resolVec.push_back(rVol);
 			++N;
 		}
 	}
 
 
 	// Get all resolution values
-	MultidimArray<double> resolutions(N);
-	size_t N_iter=0;
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-	{
-		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
-		if ( (rVol>(last_resolution_2-0.001)) && (rVol<=lowest_res))
-		{
-			DIRECT_MULTIDIM_ELEM(resolutions,N_iter)=rVol;
-			N_iter++;
-		}
-	}
+//	MultidimArray<double> resolutions(N);
+//
+//	size_t N_iter=0;
+//
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
+//	{
+//		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+//		if ( (rVol>(last_resolution_2-0.001)) && (rVol<=lowest_res))
+//		{
+//			resol.push_back(rVol);
+//			DIRECT_MULTIDIM_ELEM(resolutions,N_iter)=rVol;
+//			N_iter++;
+//		}
+//	}
 
 	//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
 
 	// Sort value and get threshold
-	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
-	double medianResolution = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
+	//std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
 
-	std::cout << "median Resolution = " << medianResolution << std::endl;
+	//double medianResolution = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
+
+	//std::cout << "median Resolution = " << medianResolution << std::endl;
+	std::cout << "median Resolution2 = " << resolVec[(int)(0.5*N)] << std::endl;
 }
 
 
