@@ -604,19 +604,30 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 
 	// Count number of voxels with resolution
 	size_t N=0;
+	double rVol;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<=lowest_res) ) //the value 0.001 is a tolerance
+	{
+		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+		if ( (rVol>=(last_resolution_2-0.001)) && (rVol<=lowest_res) ) //the value 0.001 is a tolerance
+		{
 			++N;
+		}
+	}
+
 
 	// Get all resolution values
 	MultidimArray<double> resolutions(N);
 	size_t N_iter=0;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<=lowest_res))
+	{
+		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+		if ( (rVol>(last_resolution_2-0.001)) && (rVol<=lowest_res))
 		{
-			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+			DIRECT_MULTIDIM_ELEM(resolutions,N_iter)=rVol;
+			N_iter++;
 		}
+	}
 
 	//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
 
