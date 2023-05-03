@@ -277,12 +277,12 @@ namespace {
 		return std::make_tuple(coordinatesCuda, coordinates.size());
 	}
 
-	unsigned convertCoordinates(unsigned old)
+	unsigned convertCoordinates(unsigned old, MultidimArray<T> &mask)
 	{
-		unsigned z = old % 8;
-		unsigned x = old / 8 % 8;
-		unsigned y = old / 64;
-		return x + y * 8 + z * 64;
+		unsigned z = old % mask.xdim;
+		unsigned x = old / mask.xdim % mask.ydim;
+		unsigned y = old / mask.yxdim;
+		return x + y * mask.xdim + z * mask.yxdim;
 	}
 
 	template<typename T>
@@ -294,7 +294,7 @@ namespace {
 		std::vector<unsigned> coordinates;
 		std::vector<T> values;
 		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			unsigned j = convertCoordinates(i);
+			unsigned j = convertCoordinates(i, mask);
 			if (checkStep(mask, step, static_cast<size_t>(j))) {
 				coordinates.push_back(j);
 				if (transportValues) {
