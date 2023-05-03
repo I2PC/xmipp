@@ -319,7 +319,7 @@ namespace device {
 		__shared__ PrecisionType values[34];
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
-		if (threadIdx.x & 15 == 0) {
+		if ((threadIdx.x & 15) == 0) {
 			coordinates[(threadIdx.x >> 4) * 2] = i;
 			coordinates[(threadIdx.x >> 4) * 2 + 1] = j;
 			values[(threadIdx.x >> 4) * 2] = CST(0.0);
@@ -352,7 +352,7 @@ namespace device {
 
 		__syncthreads();
 
-		if (threadIdx.x & 15 == 0) {
+		if ((threadIdx.x & 15) == 0) {
 			if (values[(threadIdx.x >> 4) * 2] != CST(0.0)) {
 				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[(threadIdx.x >> 4) * 2]);
 			}
