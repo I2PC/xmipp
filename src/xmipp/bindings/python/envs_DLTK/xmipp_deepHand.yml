@@ -1,4 +1,4 @@
-name: xmipp_deepHand
+name: xmipp_pyTorch
 channels:
   - anaconda
   - defaults
