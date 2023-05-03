@@ -277,6 +277,14 @@ namespace {
 		return std::make_tuple(coordinatesCuda, coordinates.size());
 	}
 
+	unsigned convertCoordinates(unsigned old)
+	{
+		unsigned z = old % 8;
+		unsigned x = old / 8 % 8;
+		unsigned y = old / 64;
+		return x + y * 8 + z * 64;
+	}
+
 	template<typename T>
 	std::tuple<unsigned *, size_t, int *> filterMaskTransportCoordinates(MultidimArray<T> &mask,
 																		 int step,
@@ -286,10 +294,11 @@ namespace {
 		std::vector<unsigned> coordinates;
 		std::vector<T> values;
 		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			if (checkStep(mask, step, static_cast<size_t>(i))) {
-				coordinates.push_back(i);
+			unsigned j = convertCoordinates(i);
+			if (checkStep(mask, step, static_cast<size_t>(j))) {
+				coordinates.push_back(j);
 				if (transportValues) {
-					values.push_back(mask[i]);
+					values.push_back(mask[j]);
 				}
 			}
 		}
