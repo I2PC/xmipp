@@ -460,7 +460,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  const PrecisionType r4,
 							  const PrecisionType r5)
 {
-	/*int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
+	int threadIndex = threadIdx.x + blockIdx.x * blockDim.x;
 	if (sizeF <= threadIndex) {
 		return;
 	}
@@ -508,9 +508,9 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_z = k + gz;
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
-	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;*/
-	//PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
-	//device::splattingAtPos(pos_x, pos_y, mP, mW, weight, j, i, k);
+	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
+	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
+	device::splattingAtPos(pos_x, pos_y, mP, mW, weight, j, i, k);
 }
 
 /*
