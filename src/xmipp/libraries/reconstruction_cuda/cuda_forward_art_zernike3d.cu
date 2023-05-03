@@ -318,9 +318,9 @@ namespace device {
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
 		if (!IS_OUTSIDE2D(mP, i, j)) {
-			/*if (j != x || i != y) {
-				printf("x:%d y:%d for x:%d y:%d z:%d\n", j, i, x, y, z);
-			}*/
+			//if (j != x || i != y) {
+			printf("x:%d y:%d for x:%d y:%d z:%d\n", j, i, x, y, z);
+			//}
 			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
 			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 		}
