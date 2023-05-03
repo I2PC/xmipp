@@ -59,7 +59,8 @@ def run(experimental_md_path: str,
         local_shift: bool,
         drop_na: bool,
         k: int,
-        device_names: list ):
+        device_names: list,
+        use_f16: bool ):
     
     # Devices
     if device_names:
@@ -78,7 +79,7 @@ def run(experimental_md_path: str,
     # Read the database
     db = search.FaissDatabase()
     db.read(index_path)
-    db.to_device(db_device)
+    db.to_device(db_device, use_f16=use_f16, reserve_vecs=max_size)
     
     # Create the in-plane transforms
     if max_psi >= 180:
@@ -232,6 +233,7 @@ if __name__ == '__main__':
     parser.add_argument('-k', type=int, default=1)
     parser.add_argument('--devices', nargs='*')
     parser.add_argument('--max_size', type=int, default=int(2e6))
+    parser.add_argument('--fp16', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -256,5 +258,6 @@ if __name__ == '__main__':
         norm = args.norm,
         drop_na = args.dropna,
         k = args.k,
-        device_names = args.devices
+        device_names = args.devices,
+        use_f16=args.fp16
     )

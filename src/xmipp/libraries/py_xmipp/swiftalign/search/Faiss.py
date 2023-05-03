@@ -90,12 +90,19 @@ class FaissDatabase(Database):
     def write(self, path: str):
         faiss.write_index(self._index, path)
     
-    def to_device(self, device: torch.device, use_f16: bool = False):
+    def to_device(self, 
+                  device: torch.device, 
+                  use_f16: bool = False, 
+                  reserve_vecs: int = 0,
+                  use_precomputed = False ):
         if device.type == 'cuda':
             resources = faiss.StandardGpuResources()
+            resources.setDefaultNullStreamAllDevices() # To interop with torch
             co = faiss.GpuClonerOptions()
             co.useFloat16 = use_f16
-            co.useFloat16CoarseQuantizer = use_f16
+            #co.useFloat16CoarseQuantizer = use_f16
+            co.usePrecomputed = use_precomputed
+            co.reserveVecs = reserve_vecs
             
             self._index = faiss.index_cpu_to_gpu(
                 resources,

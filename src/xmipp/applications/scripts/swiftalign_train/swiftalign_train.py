@@ -104,7 +104,7 @@ def run(reference_md_path: str,
     dim = flattener.get_length()*2
     print(f'Data dimensions: {dim}')
     db = search.FaissDatabase(dim, recipe)
-    db.to_device(db_device, use_f16)
+    db.to_device(db_device, use_f16=use_f16)
     
     # Create the storage for the training set.
     # This will be LARGE. Therefore provide a MMAP path
