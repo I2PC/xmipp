@@ -348,8 +348,10 @@ namespace device {
 				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
 				atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 			}
-			__syncthreads();
 		}
+
+		__syncthreads();
+
 		if (threadIdx.x & 15 == 0) {
 			if (values[(threadIdx.x >> 4) * 2] != CST(0.0)) {
 				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[(threadIdx.x >> 4) * 2]);
