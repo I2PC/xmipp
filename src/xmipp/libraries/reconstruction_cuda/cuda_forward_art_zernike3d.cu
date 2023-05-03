@@ -315,69 +315,12 @@ namespace device {
 								   const int y,
 								   const int z)
 	{
-		__shared__ int coordinates[66];
-		__shared__ PrecisionType values[66];
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
-		if ((threadIdx.x & 7) == 0) {
-			coordinates[(threadIdx.x >> 3) * 2] = i;
-			coordinates[(threadIdx.x >> 3) * 2 + 1] = j;
-			values[(threadIdx.x >> 3) * 2] = CST(0.0);
-			values[(threadIdx.x >> 3) * 2 + 1] = CST(0.0);
-		}
-		if (threadIdx.x == 255) {
-			coordinates[64] = i;
-			coordinates[65] = j;
-			values[64] = CST(0.0);
-			values[65] = CST(0.0);
-		}
-		__syncthreads();
-
 		if (!IS_OUTSIDE2D(mP, i, j)) {
-			//if (j != x || i != y) {
-			//printf("%d,%d,%d,%d,%d\n", j, i, x, y, z);
-			//}
-			int index = threadIdx.x >> 3;
-			if (coordinates[index * 2] == i && coordinates[index * 2 + 1] == j) {
-				values[index * 2] += weight;
-				values[index * 2 + 1] += CST(1.0);
-				/*printf("Hit 0\n");*/
-			} else if (coordinates[(index + 1) * 2] == i && coordinates[(index + 1) * 2 + 1] == j) {
-				values[(index + 1) * 2] += weight;
-				values[(index + 1) * 2 + 1] += CST(1.0);
-				/*printf("Hit 1\n");*/
-			} else {
-				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
-				atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
-				/*printf("Miss %d %d, %d %d, %d %d\n",
-					   i,
-					   j,
-					   coordinates[index * 2],
-					   coordinates[index * 2 + 1],
-					   coordinates[(index + 1) * 2],
-					   coordinates[(index + 1) * 2 + 1]);*/
-			}
-		}
-
-		__syncthreads();
-
-		if ((threadIdx.x & 7) == 0) {
-			int index = threadIdx.x >> 3;
-			if (values[index * 2] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[index * 2]);
-			}
-			if (values[index * 2 + 1] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[index * 2 + 1]);
-			}
-		}
-
-		if (threadIdx.x == 255) {
-			if (values[64] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[65]);
-			}
-			if (values[64] != CST(0.0)) {
-				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[65]);
-			}
+			print("x:%d y:%d for x:%d y:%d z:%d\n", j, i, x, y, z);
+			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
+			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 		}
 	}
 
@@ -468,8 +411,13 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
+		/*auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
+		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
+		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
+	/*auto cudaPAligned = __builtin_assume_aligned(cudaP, 16);
+	auto cudaWAligned = __builtin_assume_aligned(cudaW, 16);*/
 	auto &mP = cudaP[img_idx];
 	auto &mW = cudaW[img_idx];
 	__builtin_assume(xdim > 0);

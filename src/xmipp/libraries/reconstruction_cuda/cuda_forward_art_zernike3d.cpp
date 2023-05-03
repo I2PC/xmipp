@@ -278,15 +278,6 @@ namespace {
 	}
 
 	template<typename T>
-	unsigned convertCoordinates(unsigned old, MultidimArray<T> &mask)
-	{
-		unsigned z = old % mask.xdim;
-		unsigned x = old / mask.xdim % mask.ydim;
-		unsigned y = old / mask.yxdim;
-		return x + y * mask.xdim + z * mask.yxdim;
-	}
-
-	template<typename T>
 	std::tuple<unsigned *, size_t, int *> filterMaskTransportCoordinates(MultidimArray<T> &mask,
 																		 int step,
 																		 bool transportValues)
@@ -295,11 +286,10 @@ namespace {
 		std::vector<unsigned> coordinates;
 		std::vector<T> values;
 		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
-			unsigned j = convertCoordinates(i, mask);
-			if (checkStep(mask, step, static_cast<size_t>(j))) {
-				coordinates.push_back(j);
+			if (checkStep(mask, step, static_cast<size_t>(i))) {
+				coordinates.push_back(i);
 				if (transportValues) {
-					values.push_back(mask[j]);
+					values.push_back(mask[i]);
 				}
 			}
 		}
