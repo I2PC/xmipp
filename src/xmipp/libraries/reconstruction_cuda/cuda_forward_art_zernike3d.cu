@@ -310,11 +310,15 @@ namespace device {
 								   const PrecisionType pos_y,
 								   MultidimArrayCuda<PrecisionType> &mP,
 								   MultidimArrayCuda<PrecisionType> &mW,
-								   const PrecisionType weight)
+								   const PrecisionType weight,
+								   const int x,
+								   const int y,
+								   const int z)
 	{
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
 		if (!IS_OUTSIDE2D(mP, i, j)) {
+			print("x:%d y:%d for x:%d y:%d z:%d\n", j, i, x, y, z);
 			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
 			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 		}
@@ -454,7 +458,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
 	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
-	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
+	device::splattingAtPos(pos_x, pos_y, mP, mW, weight, j, i, k);
 }
 
 /*
