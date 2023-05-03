@@ -485,7 +485,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
+	/*PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (usesZernike) {
 		auto k2 = k * k;
 		auto kr = k * iRmaxF;
@@ -513,7 +513,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto r_z = k + gz;
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
-	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
+	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;*/
 	//PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
 	//device::splattingAtPos(pos_x, pos_y, mP, mW, weight, j, i, k);
 }
