@@ -347,8 +347,8 @@ namespace device {
 				values[(index + 1) * 2 + 1] += CST(1.0);
 				/*printf("Hit 1\n");*/
 			} else {
-				/*atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
-				atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));*/
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
+				atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
 				/*printf("Miss %d %d, %d %d, %d %d\n",
 					   i,
 					   j,
@@ -364,19 +364,19 @@ namespace device {
 		if ((threadIdx.x & 7) == 0) {
 			int index = threadIdx.x >> 3;
 			if (values[index * 2] != CST(0.0)) {
-				//atomicAddPrecision(&A2D_ELEM(mP, i, j), values[index * 2]);
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[index * 2]);
 			}
 			if (values[index * 2 + 1] != CST(0.0)) {
-				//atomicAddPrecision(&A2D_ELEM(mW, i, j), values[index * 2 + 1]);
+				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[index * 2 + 1]);
 			}
 		}
 
 		if (threadIdx.x == 255) {
 			if (values[64] != CST(0.0)) {
-				//atomicAddPrecision(&A2D_ELEM(mP, i, j), values[65]);
+				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[65]);
 			}
 			if (values[64] != CST(0.0)) {
-				//atomicAddPrecision(&A2D_ELEM(mW, i, j), values[65]);
+				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[65]);
 			}
 		}
 	}
@@ -515,7 +515,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
 	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
-	device::splattingAtPos(pos_x, pos_y, mP, mW, weight, j, i, k);
+	//device::splattingAtPos(pos_x, pos_y, mP, mW, weight, j, i, k);
 }
 
 /*
