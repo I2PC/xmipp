@@ -328,8 +328,8 @@ namespace device {
 		if (threadIdx.x == 255) {
 			coordinates[32] = i;
 			coordinates[33] = j;
-			values[(threadIdx.x >> 4) * 2] = CST(0.0);
-			values[(threadIdx.x >> 4) * 2 + 1] = CST(0.0);
+			values[32] = CST(0.0);
+			values[33] = CST(0.0);
 		}
 		__syncthreads();
 
@@ -360,6 +360,7 @@ namespace device {
 				atomicAddPrecision(&A2D_ELEM(mW, i, j), values[(threadIdx.x >> 4) * 2 + 1]);
 			}
 		}
+
 		if (threadIdx.x == 255) {
 			if (values[32] != CST(0.0)) {
 				atomicAddPrecision(&A2D_ELEM(mP, i, j), values[32]);
