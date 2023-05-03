@@ -341,15 +341,21 @@ namespace device {
 			if (coordinates[index * 2] == i && coordinates[index * 2 + 1] == j) {
 				values[index * 2] += weight;
 				values[index * 2 + 1] += CST(1.0);
-				printf("Hit 0\n");
+				/*printf("Hit 0\n");*/
 			} else if (coordinates[(index + 1) * 2] == i && coordinates[(index + 1) * 2 + 1] == j) {
 				values[(index + 1) * 2] += weight;
 				values[(index + 1) * 2 + 1] += CST(1.0);
-				printf("Hit 1\n");
+				/*printf("Hit 1\n");*/
 			} else {
 				atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
 				atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
-				printf("Miss\n");
+				/*printf("Miss %d %d, %d %d, %d %d\n",
+					   i,
+					   j,
+					   coordinates[index * 2],
+					   coordinates[index * 2 + 1],
+					   coordinates[(index + 1) * 2],
+					   coordinates[(index + 1) * 2 + 1]);*/
 			}
 		}
 
