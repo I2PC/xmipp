@@ -277,6 +277,7 @@ namespace {
 		return std::make_tuple(coordinatesCuda, coordinates.size());
 	}
 
+	template<typename T>
 	unsigned convertCoordinates(unsigned old, MultidimArray<T> &mask)
 	{
 		unsigned z = old % mask.xdim;
