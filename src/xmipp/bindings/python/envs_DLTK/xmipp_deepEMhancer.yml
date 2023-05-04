@@ -1,3 +1,5 @@
+#Protocols ussing the enviroment: protocol_deepEMhancer
+
 name: xmipp_deepEMhancer
 channels:
   - anaconda

@@ -1,3 +1,9 @@
+#Protocols ussing the enviroment:
+#protocol_screen_deeplearning
+#protocol_deep_denoising
+#protocol_resolution_deepres
+#protocol_screen_deepConsensus
+
 name: xmipp_DLTK_v0.3
 channels:
   - anaconda
