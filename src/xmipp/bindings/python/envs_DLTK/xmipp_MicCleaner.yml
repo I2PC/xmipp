@@ -1,0 +1,10 @@
+name: xmipp_MicCleaner
+channels:
+  - anaconda
+  - defaults
+  - rsanchez1369
+  - conda-forge
+dependencies:
+  - python=3.6
+  - micrograph-cleaner-em=0.35
+
