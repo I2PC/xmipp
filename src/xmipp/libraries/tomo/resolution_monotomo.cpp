@@ -603,7 +603,6 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 	//is at 300 and the smoothing cast values of 299 and they must be removed.
 
 	// Count number of voxels with resolution
-	size_t N=0;
 	std::vector<double> resolVec(0);
 	double rVol;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
@@ -612,10 +611,11 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 		if ( (rVol>=(last_resolution_2-0.001)) && (rVol<=lowest_res) ) //the value 0.001 is a tolerance
 		{
 			resolVec.push_back(rVol);
-			++N;
 		}
 	}
 
+	size_t N;
+	N = resolVec.size();
 	std::sort(resolVec.begin(), resolVec.end());
 
 	std::cout << "median Resolution = " << resolVec[(int)(0.5*N)] << std::endl;
@@ -632,7 +632,7 @@ void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutio
 	lowest_res = list[0];
 
 	// Count number of voxels with resolution
-	size_t N=0;
+
 	double rVol;
 	std::vector<double> resolVec(0);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
@@ -641,10 +641,11 @@ void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutio
 		if (rVol>=(last_resolution_2-0.001))//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
 		{
 			resolVec.push_back(rVol);
-			++N;
 		}
 
 	}
+	size_t N;
+	N = resolVec.size();
 
 	std::sort(resolVec.begin(), resolVec.end());
 
