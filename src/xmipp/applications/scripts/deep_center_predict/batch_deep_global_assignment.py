@@ -316,9 +316,9 @@ if __name__ == "__main__":
         #a1 = keras.layers.BatchNormalization()(y_pred[:, slice(0, 6, 2)])
         #a2 = keras.layers.BatchNormalization()(y_pred[:, slice(1, 6, 2)])
         y_pred = tf.Print(y_pred, [y_pred], message="This is y_pred: ")
-        a1 = tf.linalg.normalize(y_pred[:, slice(0, 6, 2)], axis=0)[0]
+        a1 = tf.linalg.normalize(y_pred[:, slice(0, 6, 2)])[0]
         a1 = tf.Print(a1, [a1], message="This is a1: ")
-        a2 = tf.linalg.normalize(y_pred[:, slice(1, 6, 2)], axis=0)[0]
+        a2 = tf.linalg.normalize(y_pred[:, slice(1, 6, 2)])[0]
         a2 = tf.Print(a2, [a2], message="This is a2: ")
         y_true = tf.Print(y_true, [y_true], message="This is y_true: ")
         d = K.sum(y_true[:, 0]*a1[:, 0])
@@ -483,3 +483,5 @@ if __name__ == "__main__":
         print("Time in training model: %0.10f seconds." % elapsed_time)
 
         #transfer_model.save(fnModel)
+
+

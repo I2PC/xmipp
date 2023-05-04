@@ -78,7 +78,7 @@ if __name__ == "__main__":
             self.indexes = [i for i in range(len(self.fnImgs))]
 
         def getNumberOfBlocks(self):
-            # self.st = ImagesNumber/maxSize        
+            # self.st = ImagesNumber/maxSize
             self.st = len(self.fnImgs) // maxSize
             if len(self.fnImgs) % maxSize > 0:
                 self.st = self.st + 1
@@ -116,10 +116,12 @@ if __name__ == "__main__":
         b3 = np.cross(b1, b2, axis=0)
         return np.concatenate((b1, b2, b3), axis=1)
 
+
     def matrix_to_euler(mat):
         r = Rotation.from_matrix(mat)
         angles = r.as_euler("xyz", degrees=True)
         return angles
+
 
     def produce_output(mdExp, mode, Y, fnImages):
         ID = 0
@@ -143,7 +145,7 @@ if __name__ == "__main__":
                             costilts = 1
                         if costilts < -1:
                             costilts = -1
-                            
+
                         tilts_degree = math.acos(costilts) * 180 / math.pi
                         mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
                         mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
@@ -194,7 +196,6 @@ if __name__ == "__main__":
     mdExpImages = xmippLib.MetaData(fnXmdImages)
     fnImages = mdExpImages.getColumnValues(xmippLib.MDL_IMAGE)
 
-
     start_time = time()
 
     ShiftModel = load_model(fnShiftModel, compile=False)
@@ -216,8 +217,5 @@ if __name__ == "__main__":
 
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
 
-
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
-
-
