@@ -209,7 +209,6 @@ void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const Mul
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdif)
 	energy += DIRECT_MULTIDIM_ELEM(Vdif, n) * DIRECT_MULTIDIM_ELEM(Vdif, n);
 	energy = sqrt(energy / MULTIDIM_SIZE(Vdif));
-	std::cout << "Energy: " << energy << std::endl;
 }
 
 void ProgVolumeSubtraction::centerFFTMagnitude(MultidimArray<double> &VolRad,
@@ -361,7 +360,6 @@ void ProgVolumeSubtraction::runIteration(Image<double> &V,Image<double> &V1,cons
 		const MultidimArray<double> &V1FourierMag,const MultidimArray<std::complex<double>> &V2FourierPhase,
 		const MultidimArray<double> &mask, FourierFilter &filter2) {
 	if (computeE)
-		std::cout << "---Iter " << n << std::endl;
 
 	transformer2.FourierTransform(V(), V2Fourier, false);
 	if (radavg) {

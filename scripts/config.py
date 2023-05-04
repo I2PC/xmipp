@@ -52,7 +52,7 @@ class Config:
 
     def create(self):
         print("Configuring -----------------------------------------")
-        # self._create_empty()
+        self._create_empty()
 
         if self.configDict['VERIFIED'] == '':
             self.configDict['VERIFIED'] = 'False'
