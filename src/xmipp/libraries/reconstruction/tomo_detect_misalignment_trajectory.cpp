@@ -162,7 +162,12 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 // --------------------------- HEAD functions ----------------------------
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber) // *** remove imageNumber only for debugging purposes
 {
-	tiltImage.rangeAdjust(0, 1024);
+	// tiltImage.rangeAdjust(0, 1024);
+	double ti_mean;
+	double ti_std;
+
+	tiltImage.computeAvgStdev(ti_mean, ti_std);
+	tiltImage.statisticsAdjust(ti_mean, ti_std);
 
 	// Detect interpolation region
 	MultidimArray<double> tmpImage = tiltImage;
@@ -745,23 +750,28 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         // double threshold = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
 
         #ifdef DEBUG_HCC
+		std::cout << "------------------------------------------------------" << std::endl;
 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << " Threshold: " << threshold << std::endl;
         #endif
 
-		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
-
-		int numberOfPointsAddedBinaryMap = 0;
-
+		int numberOfPointsAddedBinaryMap;
 		bool firstExecution = true;
+		int numberOfNewPeakedCoordinates;
+		std::vector<Point3D<double>> newCoordinates3D;
 
-		int numberOfNewPeakedCoordinates = 0;
+		size_t iteration = 0;
 
-		do
+		while(true)
 		{
+			numberOfPointsAddedBinaryMap = 0;
+			numberOfNewPeakedCoordinates = 0;
+			newCoordinates3D.clear();
+			binaryCoordinatesMapSlice.initZeros(ySize, xSize);
+
 			if (!firstExecution)
 			{
-				threshold -= 0.1 * threshold;
-				std::cout << "new threshold " << threshold << std::endl;
+				threshold += 0.05 * threshold;
+				std::cout << "New threshold " << threshold << std::endl;
 			}
 			
 
@@ -787,7 +797,11 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
 			#endif
 
-			firstExecution = false;
+			iteration +=1;
+			std::cout << " iteration " <<  iteration << std::endl;
+			std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
+			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
+
 			int colour;
 
 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
@@ -795,19 +809,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			#ifdef DEBUG_HCC
 			std::cout << "Colour: " << colour << std::endl;
 			#endif
-
-			for(size_t i = 0; i < ySize; i++)
-			{
-				for(size_t j = 0; j < xSize; ++j)
-				{
-					double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-					
-					if (value > 0)
-					{			
-						DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
-					}
-				}
-			}
 
 			std::vector<std::vector<int>> coordinatesPerLabelX (colour);
 			std::vector<std::vector<int>> coordinatesPerLabelY (colour);
@@ -856,13 +857,42 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				if(keep)
 				{
 					Point3D<double> point3D(xCoorCM, yCoorCM, k);
-					coordinates3D.push_back(point3D);
+					newCoordinates3D.push_back(point3D);
 
 					numberOfNewPeakedCoordinates += 1;
 				}
 			}
 
-		} while(numberOfNewPeakedCoordinates < 1);
+			if (numberOfNewPeakedCoordinates < 100)
+			{
+				for (size_t i = 0; i < newCoordinates3D.size(); i++)
+				{
+					coordinates3D.push_back(newCoordinates3D[i]);
+				}
+
+				for(size_t i = 0; i < ySize; i++)
+				{
+					for(size_t j = 0; j < xSize; ++j)
+					{
+						double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+						if (value > 0)
+						{
+							DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
+						}
+					}
+				}
+
+				std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
+				std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
+
+				break;
+			}
+
+			firstExecution = false;
+		}
+
+		// } while(!(numberOfNewPeakedCoordinates < 1));
 	
 		// std::cout << "Occupancy vector=";
 		// for (size_t i = 0; i < occupancyV.size(); i++)
