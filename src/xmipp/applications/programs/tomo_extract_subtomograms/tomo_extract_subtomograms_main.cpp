@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_extract_subtomograms.h>
+#include <tomo/tomo_extract_subtomograms.h>
 
 int main(int argc, char **argv)
 {
