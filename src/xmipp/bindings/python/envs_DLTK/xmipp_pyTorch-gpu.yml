@@ -1,11 +1,12 @@
 #Protocols ussing the enviroment: protocol_deepHand
 
-name: pyTorchEr
+name: xmipp_pyTorch
 channels:
   - anaconda
   - defaults
   - conda-forge
   - pytorch
+  - nvidia
 dependencies:
   - python=3.8
   - numpy=1.23
@@ -13,6 +14,7 @@ dependencies:
   - kornia=0.6.12
   - starfile=0.4.12
   - pytorch==1.11
+  - pytorch-cuda=11.7
   - torchvision=0.12
 
 
