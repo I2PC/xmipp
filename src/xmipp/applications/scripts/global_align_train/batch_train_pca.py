@@ -12,9 +12,9 @@ import argparse
 import sys, os
 import numpy as np
 import torch
-
+# from functions.pca_gpu import *
+# from functions.bnb_gpu import *
 from xmippPyModules.globalAlignFunction import (bnb_gpu, pca_gpu, assessment)
-
 import time
 
 def precalculateBands(nBand, dim, sampling, maxRes, minRes):
@@ -46,24 +46,26 @@ if __name__=="__main__":
        
     parser = argparse.ArgumentParser(description="Train PCA")
     parser.add_argument("-i", "--mrc", help="input mrc file for experimental images)", required=True)
-    parser.add_argument("-n", "--bands", help="number of bands", required=True)
-    parser.add_argument("-s", "--sampling", help="pixel size of the images", required=True)
-    parser.add_argument("-hr", "--highres", help="highest resolution to consider", required=True)
-    parser.add_argument("-lr", "--lowres", help="lowest resolution to consider", required=True)
-    parser.add_argument("-p", "--perc", help="PCA percentage (between 0-1)", required=True)
-    parser.add_argument("-t", "--training", help="percentage of image for training (between 0-1)", required=True)
-    parser.add_argument("-o", "--output", help="Root directory for the output files", required=True)
+    parser.add_argument("-n", "--bands", type=int, default=1, help="number of bands, default = 1")
+    parser.add_argument("-s", "--sampling", type=float, help="pixel size of the images", required=True)
+    parser.add_argument("-hr", "--highres", type=float, help="highest resolution to consider", required=True)
+    parser.add_argument("-lr", "--lowres", type=float, help="lowest resolution to consider", required=True)
+    parser.add_argument("-p", "--perc", type=float, help="PCA percentage (between 0-1)", required=True)
+    parser.add_argument("-t", "--training", type=int, help="number of image for training", required=True)
+    parser.add_argument("-o", "--output", help="Root directory for the output files, for example: train_pca", required=True)
+    parser.add_argument("--batchPCA",  action="store_true", help="BatchPCA only and not onlinePCA")
     
     args = parser.parse_args()
 
     expFile = args.mrc  
-    nBand = int(args.bands) 
-    sampling = float(args.sampling)
-    maxRes = float(args.highres)
-    minRes = float(args.lowres)
-    per_eig = float(args.perc)
-    train = float(args.training)
+    nBand = args.bands 
+    sampling = args.sampling
+    maxRes = args.highres
+    minRes = args.lowres
+    per_eig = args.perc
+    train = args.training
     output = args.output
+    batchPCA = args.batchPCA
     
     torch.cuda.is_available()
     torch.cuda.current_device()
@@ -73,13 +75,12 @@ if __name__=="__main__":
     print("Reading Images")
     mexp = mrcfile.mmap(expFile, permissive=True)
     dim = mexp.data.shape[1]
-    nExp = int(train * mexp.data.shape[0])
-    nExp = 30000 
+    nExp = train 
 
     
     # Precalculate frequency bands  
     freq_band = precalculateBands(nBand, dim, sampling, maxRes, minRes) 
-    torch.save(freq_band, "freq_bands.pt")
+    torch.save(freq_band, output + "_bands.pt")
 
     coef = torch.zeros(nBand, dtype=int)
     for n in range(nBand):
@@ -110,7 +111,7 @@ if __name__=="__main__":
         
     #Training PCA 
     pca = PCAgpu(nBand)    
-    mean, vals, vecs = pca.trainingPCAonline(band, coef, per_eig) 
+    mean, vals, vecs = pca.trainingPCAonline(band, coef, per_eig, batchPCA) 
     torch.save(mean, output + "_mean.pt")
     torch.save(vals, output + "_vals.pt")
     torch.save(vecs, output + "_vecs.pt")        
