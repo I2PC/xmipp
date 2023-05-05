@@ -1,6 +1,6 @@
 #Protocols ussing the enviroment: protocol_deepHand
 
-name: pyTorchEr
+name: xmipp_pyTorch
 channels:
   - anaconda
   - defaults
