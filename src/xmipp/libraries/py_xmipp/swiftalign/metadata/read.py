@@ -20,8 +20,14 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-import starfile
+from typing import Optional
+import starfile.parser
 import pandas as pd
 
-def read(path: str) -> pd.DataFrame:
-    return starfile.read(path)
+def read(path: str, table: Optional[str] = None) -> pd.DataFrame:
+    star = starfile.parser.StarParser(filename=path)
+    
+    if table is not None:
+        return star.first_dataframe
+    else:
+        return star.dataframes[table]
