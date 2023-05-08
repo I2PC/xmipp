@@ -56,47 +56,7 @@ class BnBgpu:
                 if (tx or ty != 0):
                     self.vectorShift.append( [float(tx),float(ty)] )                  
 
-        return self.vectorRot, self.vectorShift
-    
-    
-    def signal_to_noise_statistic(self, images):
-        
-        #create mask
-        dim = images.size(dim=1)
-        radius = dim // 2
-        y, x = torch.meshgrid(torch.arange(dim), torch.arange(dim))
-        dist = torch.sqrt((x - radius)**2 + (y - radius)**2)
-        mask = dist <= radius        
-        mask = mask.float()       
-        inv_mask = torch.logical_not(mask)
-        
-        mask = mask.bool()
-        inv_mask = inv_mask.bool()
-        
-        pixels_in_mask = torch.masked_select(images, mask.unsqueeze(0))
-        pixels_out_mask = torch.masked_select(images, inv_mask.unsqueeze(0))
-        
-        self.mean_value_in = torch.mean(pixels_in_mask)
-        self.std_value_in = torch.std(pixels_in_mask)
-        
-        self.mean_value_out = torch.mean(pixels_out_mask)
-        self.std_value_out = torch.std(pixels_out_mask)
-        
-        # mask = mask.expand(images.size(dim=0), dim, dim)
-        # masked_images = images * mask
-        # image_means = torch.mean(masked_images.view(images.size(dim=0), -1), dim=1)
-        # images_std =  torch.std(masked_images.view(images.size(dim=0), -1), dim=1)
-        # mean_of_means = torch.mean(image_means)
-        # mean_of_std = torch.mean(images_std)
-        # return masked_images
-        # return(mean_of_means, mean_of_std)
-        return(self.mean_value_in, self.std_value_in, self.mean_value_out, self.std_value_out)
-
-    
-    def calculate_dif_scale(self, prjImages, expImages):
-        self.signal_to_noise_statistic(prjImages)
-        self.signal_to_noise_statistic(expImages)
-        
+        return self.vectorRot, self.vectorShift      
      
     
     def precShiftBand(self, ft, freq_band, grid_flat, coef, shift):

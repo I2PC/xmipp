@@ -14,7 +14,8 @@ import numpy as np
 import torch
 # from functions.pca_gpu import *
 # from functions.bnb_gpu import *
-from xmippPyModules.globalAlignFunction import (bnb_gpu, pca_gpu, assessment)
+from xmippPyModules.globalAlignFunction.bnb_gpu import *
+from xmippPyModules.globalAlignFunction.pca_gpu import *
 import time
 
 def precalculateBands(nBand, dim, sampling, maxRes, minRes):

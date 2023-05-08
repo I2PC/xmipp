@@ -12,7 +12,9 @@ import sys, os
 import numpy as np
 # from functions.bnb_gpu import *
 # from functions.assessment import *
-from xmippPyModules.globalAlignFunction import (bnb_gpu, assessment)
+from xmippPyModules.globalAlignFunction.bnb_gpu import *
+from xmippPyModules.globalAlignFunction.pca_gpu import *
+from xmippPyModules.globalAlignFunction.assessment import *
 import matplotlib.pyplot as plt
 
 
@@ -102,14 +104,6 @@ if __name__=="__main__":
 
     bnb = BnBgpu(nBand)
     assess = evaluation()
-    
-    # mean, std, noise_mean, noise_std = bnb.signal_to_noise_statistic(tref)
-    im = bnb.signal_to_noise_statistic(tref)
-    # print(mean.item(), std.item())
-    # print(mean.item(), std.item(), noise_mean.item(), noise_std.item())
-    # plt.imshow(im[100])
-    # plt.show()
-    exit()
        
     print("---Precomputing the projections of the experimental images---")
     
