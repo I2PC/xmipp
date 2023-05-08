@@ -33,6 +33,6 @@ def get_image_size(data: pd.DataFrame) -> Tuple:
 
 def sort_by_image_filename(df: pd.DataFrame, label: str = labels.IMAGE) -> pd.DataFrame:
     filenames = df[label].str.split('@', n=2)
-    filenames.apply(list.reverse)
+    filenames.apply(list.reverse) # So that filename is compared first
     indices = np.argsort(filenames)
     return df.reindex(indices)
