@@ -32,7 +32,7 @@ class LruCache:
         self._data = OrderedDict()
         
     def __call__(self, *args):        
-        # Check if path's filename is in cache
+        # Check if args are cached
         it = self._data.get(args, None)
         
         # Update cache
