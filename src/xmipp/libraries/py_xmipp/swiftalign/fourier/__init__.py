@@ -20,5 +20,6 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
+from .remove_symmetic_half import remove_symmetric_half
 from .rfftnfreq import rfftnfreq
 from .time_shift_filter import time_shift_filter

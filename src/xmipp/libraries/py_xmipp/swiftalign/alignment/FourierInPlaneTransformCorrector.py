@@ -42,7 +42,7 @@ class FourierInPlaneTransformCorrector:
     def __init__(self,
                  dim: Sequence[int],
                  flattener: operators.SpectraFlattener,
-                 weighter: Optional[operators.Weighter] = None,
+                 weights: Optional[torch.Tensor] = None,
                  norm: Optional[str] = None,
                  interpolation: T.InterpolationMode = T.InterpolationMode.BILINEAR,
                  device: Optional[torch.device] = None ) -> None:
@@ -52,7 +52,7 @@ class FourierInPlaneTransformCorrector:
         # Operations
         self.fourier = operators.FourierTransformer2D()
         self.flattener = flattener
-        self.weighter = weighter
+        self.weights = weights
         self.interpolation = interpolation
         self.norm = norm
         
@@ -103,11 +103,8 @@ class FourierInPlaneTransformCorrector:
                 out=rotated_bands
             )              
             
-            if self.weighter:
-                rotated_bands=self.weighter(
-                    rotated_bands, 
-                    out=rotated_bands
-                )
+            if self.weights is not None:
+                rotated_bands *= self.weights
             
             if md.SHIFT_X in batch_md.columns and md.SHIFT_Y in batch_md.columns:
                 shifts = torch.tensor(

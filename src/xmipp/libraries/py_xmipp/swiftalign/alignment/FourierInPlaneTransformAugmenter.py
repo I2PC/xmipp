@@ -24,6 +24,8 @@ from typing import Iterable, Optional
 import torch
 import torchvision.transforms as T
 
+import random
+
 from .. import operators
 from .. import math
 
@@ -32,7 +34,8 @@ class FourierInPlaneTransformAugmenter:
                  max_psi: float,
                  max_shift: float,
                  flattener: operators.SpectraFlattener,
-                 weighter: Optional[operators.Weighter] = None,
+                 ctfs: Optional[torch.Tensor] = None,
+                 weights: Optional[torch.Tensor] = None,
                  norm: Optional[str] = None,
                  interpolation: T.InterpolationMode = T.InterpolationMode.BILINEAR ) -> None:
         
@@ -46,7 +49,8 @@ class FourierInPlaneTransformAugmenter:
         # Operations
         self.fourier = operators.FourierTransformer2D()
         self.flattener = flattener
-        self.weighter = weighter
+        self.ctfs = ctfs
+        self.weights = weights
         self.norm = norm
         
     def __call__(self, 
@@ -66,7 +70,12 @@ class FourierInPlaneTransformAugmenter:
                 images_fourier_transform = self.fourier(images_affine, out=images_fourier_transform)
                 images_band = self.flattener(images_fourier_transform, out=images_band)
 
-                if self.weighter:
-                    images_band = self.weighter(images_band, out=images_band)
+                if self.weights is not None:
+                    images_band *= self.weights
+
+                if self.ctfs is not None:
+                    # Select a random CTF and apply it
+                    ctf = self.ctfs[random.randrange(len(self.ctfs))]
+                    images_band *= ctf
 
                 yield math.flat_view_as_real(images_band)

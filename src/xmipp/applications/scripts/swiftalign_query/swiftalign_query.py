@@ -33,6 +33,7 @@ import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.search as search
 import xmippPyModules.swiftalign.alignment as alignment
 import xmippPyModules.swiftalign.operators as operators
+import xmippPyModules.swiftalign.fourier as fourier
 import xmippPyModules.swiftalign.metadata as md
 
 def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFrame:
@@ -41,9 +42,24 @@ def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFram
         end = start + batch_size
         yield df[start:end]
 
+def _read_weights(path: Optional[str], 
+                  flattener: operators.SpectraFlattener, 
+                  device: Optional[torch.device] = None ) -> torch.Tensor:
+    
+    weights = None
+    if path:
+        weight_image = image.read(path)
+        weight_image = torch.tensor(weight_image, device=device)
+        weight_image = fourier.remove_symmetric_half(weight_image)
+        weights = flattener(weight_image)
+        weights = torch.sqrt(weights, out=weights)
+    
+    return weights
+
 def run(experimental_md_path: str, 
         reference_md_path: str, 
         index_path: str,
+        ctf_md_path: Optional[str],
         weight_image_path: Optional[str],
         output_md_path: str,
         n_rotations : int,
@@ -104,13 +120,18 @@ def run(experimental_md_path: str,
     )
 
     # Read weights
-    weighter = None
-    if weight_image_path:
-        weighter = operators.Weighter(
-            weights=torch.tensor(image.read(weight_image_path)),
-            flattener=flattener,
-            device=transform_device
-        )
+    weights = None
+
+    # Read CTFs
+    ctfs = None
+    ctf_md = None
+    if ctf_md_path:
+        ctf_md = md.read(ctf_md_path)
+        ctf_paths = list(map(image.parse_path, ctf_md[md.IMAGE]))
+        ctf_dataset = image.torch_utils.Dataset(ctf_paths)
+        ctf_images = torch.utils.data.default_collate([ctf_dataset[i] for i in range(len(ctf_dataset))])
+        ctf_images = fourier.remove_symmetric_half(ctf_images)
+        ctfs = flattener(ctf_images.to(transform_device))
     
     # Create the transformers
     reference_transformer = alignment.FourierInPlaneTransformGenerator(
@@ -118,14 +139,15 @@ def run(experimental_md_path: str,
         angles=angles,
         shifts=shifts,
         flattener=flattener,
-        weighter=weighter,
+        ctfs=ctfs,
+        weights=weights,
         norm=norm,
         device=transform_device
     )
     experimental_transformer = alignment.FourierInPlaneTransformCorrector(
         dim=image_size,
         flattener=flattener,
-        weighter=weighter,
+        weights=weights,
         norm=norm,
         device=transform_device
     )
@@ -219,6 +241,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', required=True)
     parser.add_argument('--weights')
     parser.add_argument('--index', required=True)
+    parser.add_argument('--ctf', type=str)
     parser.add_argument('--rotations', type=int, required=True)
     parser.add_argument('--shifts', type=int, required=True)
     parser.add_argument('--max_shift', type=float, required=True)
@@ -243,6 +266,7 @@ if __name__ == '__main__':
         experimental_md_path = args.i,
         reference_md_path = args.r,
         index_path = args.index,
+        ctf_md_path = args.ctf,
         weight_image_path = args.weights,
         output_md_path = args.o,
         n_rotations = args.rotations,

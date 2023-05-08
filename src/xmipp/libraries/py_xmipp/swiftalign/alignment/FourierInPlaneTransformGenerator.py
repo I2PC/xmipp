@@ -24,6 +24,7 @@ from typing import Sequence, Iterable, Optional
 import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
+import itertools
 
 from .. import operators
 from .. import math
@@ -45,7 +46,8 @@ class FourierInPlaneTransformGenerator:
                  angles: torch.Tensor,
                  shifts: torch.Tensor,
                  flattener: operators.SpectraFlattener,
-                 weighter: Optional[operators.Weighter] = None,
+                 ctfs: Optional[torch.Tensor] = None,
+                 weights: Optional[torch.Tensor] = None,
                  norm: Optional[str] = None,
                  interpolation: T.InterpolationMode = T.InterpolationMode.BILINEAR,
                  device: Optional[torch.device] = None ) -> None:
@@ -58,7 +60,8 @@ class FourierInPlaneTransformGenerator:
         # Operations
         self.fourier = operators.FourierTransformer2D()
         self.flattener = flattener
-        self.weighter = weighter
+        self.ctfs = ctfs
+        self.weights = weights
         self.interpolation = interpolation
         self.norm = norm
         
@@ -75,7 +78,8 @@ class FourierInPlaneTransformGenerator:
         rotated_images = None
         rotated_fourier_transforms = None
         rotated_bands = None
-        shifted_rotated_bands = None
+        ctf_bands = None
+        shifted_bands = None
         
         start = 0
         for batch in images:
@@ -102,25 +106,35 @@ class FourierInPlaneTransformGenerator:
                     out=rotated_bands
                 )
                 
-                if self.weighter:
-                    rotated_bands = self.weighter(
-                        rotated_bands, 
-                        out=rotated_bands
-                    )
+                if self.weights is not None:
+                    rotated_bands *= self.weights
                 
-                for shift, shift_filter in zip(self.shifts, self.shift_filters):
-                    shifted_rotated_bands = torch.mul(
-                        rotated_bands,
-                        shift_filter,
-                        out=shifted_rotated_bands
-                    )
+                ctfs = self.ctfs if self.ctfs is not None else itertools.repeat(None, times=1)
+                for ctf in ctfs:
+                    if ctf is not None:
+                        # Apply the CTF when provided
+                        ctf_bands = torch.mul(
+                            rotated_bands, 
+                            ctf, 
+                            out=ctf_bands
+                        )
+                    else:
+                        # No CTF
+                        ctf_bands = rotated_bands
                     
-                    yield InPlaneTransformBatch(
-                        indices=indices,
-                        vectors=math.flat_view_as_real(shifted_rotated_bands),
-                        angle=float(angle),
-                        shift=shift
-                    )
+                    for shift, shift_filter in zip(self.shifts, self.shift_filters):
+                        shifted_bands = torch.mul(
+                            ctf_bands,
+                            shift_filter,
+                            out=shifted_bands
+                        )
+                        
+                        yield InPlaneTransformBatch(
+                            indices=indices,
+                            vectors=math.flat_view_as_real(shifted_bands),
+                            angle=float(angle),
+                            shift=shift
+                        )
         
             # Advance the counter for the next iteration
             start = end

@@ -23,13 +23,14 @@
 from typing import Sequence
 import numpy as np
 import torch
+import mrcfile
 
 from ..read import read
 from ..Path import Path
 from ...utils import LruCache
 
-def _read(filename: str) -> np.ndarray:
-    return read(filename, mmap=True)
+def _read(filename: str):
+    return mrcfile.mmap(filename, mode='r')
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, paths: Sequence[Path], max_open=64):
@@ -44,8 +45,11 @@ class Dataset(torch.utils.data.Dataset):
         path: Path = self._paths[index]
         
         # Get referenced data
-        data: np.ndarray = self._cache(path.filename)
-        if path.position_in_stack is not None:
+        mrc = self._cache(path.filename)
+        
+        # Extract the data
+        data = mrc.data
+        if mrc.is_image_stack() or mrc.is_volume_stack():
             data = data[path.position_in_stack-1]
             
         return torch.tensor(data)

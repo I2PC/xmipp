@@ -29,14 +29,16 @@ import torch
 
 import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.operators as operators
+import xmippPyModules.swiftalign.fourier as fourier
 import xmippPyModules.swiftalign.search as search
 import xmippPyModules.swiftalign.alignment as alignment
 import xmippPyModules.swiftalign.metadata as md
 
 def run(reference_md_path: str, 
-        weight_image_path: Optional[str],
         index_path: str,
         recipe: str,
+        ctf_md_path: Optional[str],
+        weight_image_path: Optional[str],
         max_shift : float,
         max_psi: float,
         cutoff: float,
@@ -70,20 +72,31 @@ def run(reference_md_path: str,
     )
     
     # Read weights
-    weighter = None
+    weights = None
     if weight_image_path:
-        weighter = operators.Weighter(
-            weights=torch.tensor(image.read(weight_image_path)),
-            flattener=flattener,
-            device=transform_device
-        )
+        weight_image = torch.tensor(image.read(weight_image_path), device=transform_device)
+        weight_image = fourier.remove_symmetric_half(weight_image)
+        weights = flattener(weight_image)
+        weights = torch.sqrt(weights, out=weights)
 
+    # Read CTFs
+    ctfs = None
+    ctf_md = None
+    if ctf_md_path:
+        ctf_md = md.read(ctf_md_path)
+        ctf_paths = list(map(image.parse_path, ctf_md[md.IMAGE]))
+        ctf_dataset = image.torch_utils.Dataset(ctf_paths)
+        ctf_images = torch.utils.data.default_collate([ctf_dataset[i] for i in range(len(ctf_dataset))])
+        ctf_images = fourier.remove_symmetric_half(ctf_images)
+        ctfs = flattener(ctf_images.to(transform_device))
+        
     # Create the transformer
     transformer = alignment.FourierInPlaneTransformAugmenter(
         max_psi=max_psi,
         max_shift=max_shift,
         flattener=flattener,
-        weighter=weighter,
+        ctfs=ctfs,
+        weights=weights,
         norm=norm
     )
     
@@ -138,6 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', type=str, required=True)
     parser.add_argument('-o', type=str, required=True)
     parser.add_argument('--recipe', type=str, required=True)
+    parser.add_argument('--ctf', type=str)
     parser.add_argument('--weights', type=str)
     parser.add_argument('--max_shift', type=float, required=True)
     parser.add_argument('--max_psi', type=float, default=180.0)
@@ -158,6 +172,7 @@ if __name__ == '__main__':
         reference_md_path = args.i,
         index_path = args.o,
         recipe = args.recipe,
+        ctf_md_path = args.ctf,
         weight_image_path = args.weights,
         max_shift = args.max_shift,
         max_psi = args.max_psi,

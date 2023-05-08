@@ -20,22 +20,9 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
 import torch
 
-from .SpectraFlattener import SpectraFlattener
-
-class Weighter:
-    def __init__(self,
-                 weights: torch.Tensor,
-                 flattener: SpectraFlattener,
-                 device: Optional[torch.device] = None):
-        
-        self._weights = flattener(weights[:,:flattener.get_mask().shape[-1]].to(device))
-    
-    def __call__(   self,
-                    input: torch.Tensor,
-                    out: Optional[torch.Tensor] = None ):
-        torch.mul(input, self._weights, out=out)
-        return out
-    
+def remove_symmetric_half(input: torch.Tensor) -> torch.Tensor:
+    x_size = input.shape[-1]
+    half_x_size = x_size // 2 + 1
+    return input[...,:half_x_size]
