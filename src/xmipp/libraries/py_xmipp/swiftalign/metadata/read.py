@@ -28,6 +28,6 @@ def read(path: str, table: Optional[str] = None) -> pd.DataFrame:
     star = starfile.parser.StarParser(filename=path)
     
     if table is not None:
-        return star.first_dataframe
-    else:
         return star.dataframes[table]
+    else:
+        return star.first_dataframe

@@ -88,8 +88,8 @@ def run(experimental_md_path: str,
     db_device = devices[0]
     
     # Read input files
-    experimental_md = md.read(experimental_md_path)
-    reference_md = md.read(reference_md_path)
+    experimental_md = md.sort_by_image_filename(md.read(experimental_md_path))
+    reference_md = md.sort_by_image_filename(md.read(reference_md_path))
     image_size = md.get_image_size(experimental_md)
     
     # Read the database
@@ -227,6 +227,9 @@ def run(experimental_md_path: str,
     if drop_na:
         alignment_md.dropna(inplace=True)
     
+    if md.ITEM_ID in alignment_md.columns:
+        alignment_md.sort_values(by=md.ITEM_ID, axis=0, inplace=True)
+
     md.write(alignment_md, output_md_path)
 
 

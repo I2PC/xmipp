@@ -60,7 +60,7 @@ def run(reference_md_path: str,
     db_device = devices[0]
     
     # Read input files
-    reference_md = md.read(reference_md_path)
+    reference_md =  md.sort_by_image_filename(md.read(reference_md_path))
     image_size = md.get_image_size(reference_md)
 
     # Create the flattener

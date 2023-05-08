@@ -31,8 +31,7 @@ def _read(filename: str):
     return mrcfile.mmap(filename, mode='r')
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, paths: Sequence[Path], max_open=4096):
-        
+    def __init__(self, paths: Sequence[Path], max_open=64):
         self._paths = paths
         self._cache = LruCache(_read, capacity=max_open)
         

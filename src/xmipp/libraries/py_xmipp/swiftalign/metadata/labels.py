@@ -42,3 +42,5 @@ SHIFT_X = 'shiftX'
 SHIFT_X2 = 'shiftX2'
 SHIFT_Y = 'shiftY'
 SHIFT_Y2 = 'shiftY2'
+
+ITEM_ID = 'itemId'

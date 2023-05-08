@@ -23,4 +23,4 @@
 from .labels import *
 from .read import read
 from .write import write
-from .utils import get_image_size
+from .utils import get_image_size, sort_by_image_filename
