@@ -18,8 +18,8 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": False
   },
   
-  "xmipp_deepHand": {
-    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_deepHand.yml'),
+  "xmipp_pyTorch": {
+    "requirements": os.path.join(_REQUIREMENT_PATH, 'xmipp_pyTorch.yml'),
     "xmippEnviron": True
   },
 

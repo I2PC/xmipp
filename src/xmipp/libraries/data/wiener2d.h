@@ -1,6 +1,7 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
+ * Authors:    Javier Vargas   (jvargas@cnb.csic.es)
+ * Authors:    Jose Luis Vilas (jlvilas@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,11 +24,49 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <tomo/tomo_extract_particlestacks.h>
+#ifndef _WIENER2D
+#define _WIENER2D
 
-int main(int argc, char **argv)
+#include "core/xmipp_metadata_program.h"
+#include "data/ctf.h"
+#include "core/xmipp_image.h"
+#include "data/filters.h"
+
+//template<typename T>
+class Wiener2D
 {
-	ProgTomoExtractParticleStacks program;
-    program.read(argc, argv);
-    return program.tryRun();
-}
+	public:
+		bool phase_flipped;
+
+		/** Padding factor */
+		double pad;
+
+		bool isIsotropic;
+
+		bool correct_envelope;
+
+		/// Wiener filter constant
+		double wiener_constant;
+
+		/// Sampling rate
+		double sampling_rate;
+
+	public:
+		void applyWienerFilter(MultidimArray<double> &ptrImg, CTFDescription &ctf);
+
+		void applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+
+   		void wienerFilter(MultidimArray<double> &Mwien, CTFDescription &ctf);
+
+	public:
+		Image<double> img;
+
+		CTFDescription ctf;
+
+		size_t Ydim, Xdim;
+
+		MultidimArray<double> Mwien;
+		MultidimArray<std::complex<double> > Faux;
+		FourierTransformer transformer;
+};
+#endif
