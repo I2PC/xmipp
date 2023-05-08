@@ -25,7 +25,6 @@ import numpy as np
 import torch
 import mrcfile
 
-from ..read import read
 from ..Path import Path
 from ...utils import LruCache
 
