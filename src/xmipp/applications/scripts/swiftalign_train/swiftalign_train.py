@@ -34,6 +34,34 @@ import xmippPyModules.swiftalign.search as search
 import xmippPyModules.swiftalign.alignment as alignment
 import xmippPyModules.swiftalign.metadata as md
 
+def _read_weights(path: Optional[str], 
+                  flattener: operators.SpectraFlattener, 
+                  device: Optional[torch.device] = None ) -> torch.Tensor:
+    weights = None
+    if path:
+        weight_image = image.read(path)
+        weight_image = torch.tensor(weight_image, device=device)
+        weight_image = fourier.remove_symmetric_half(weight_image)
+        weights = flattener(weight_image)
+        weights = torch.sqrt(weights, out=weights)
+    
+    return weights
+
+def _read_ctf(path: Optional[str],
+              flattener: operators.SpectraFlattener,
+              device: Optional[torch.device] = None ) -> torch.Tensor:
+    ctfs = None
+    ctf_md = None
+    if path:
+        ctf_md = md.read(path)
+        ctf_paths = list(map(image.parse_path, ctf_md[md.IMAGE]))
+        ctf_dataset = image.torch_utils.Dataset(ctf_paths)
+        ctf_images = torch.utils.data.default_collate([ctf_dataset[i] for i in range(len(ctf_dataset))])
+        ctf_images = fourier.remove_symmetric_half(ctf_images)
+        ctfs = flattener(ctf_images.to(device))
+        
+    return ctfs
+
 def run(reference_md_path: str, 
         index_path: str,
         recipe: str,
@@ -72,12 +100,10 @@ def run(reference_md_path: str,
     )
     
     # Read weights
-    weights = None
-    if weight_image_path:
-        weight_image = torch.tensor(image.read(weight_image_path), device=transform_device)
-        weight_image = fourier.remove_symmetric_half(weight_image)
-        weights = flattener(weight_image)
-        weights = torch.sqrt(weights, out=weights)
+    weights = _read_weights(weight_image_path, flattener, transform_device)
+
+    # Read CTFs
+    ctfs = _read_ctf(ctf_md_path, flattener, transform_device)
 
     # Read CTFs
     ctfs = None
