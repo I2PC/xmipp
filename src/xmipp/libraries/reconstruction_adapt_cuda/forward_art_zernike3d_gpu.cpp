@@ -31,11 +31,9 @@
 #include <data/projection.h>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <numeric>
 #include <stdexcept>
-#include <thread>
 #include "data/cpu.h"
 
 // Empty constructor =======================================================
@@ -410,7 +408,6 @@ void ProgForwardArtZernike3DGPU::recoverVol()
 
 void ProgForwardArtZernike3DGPU::run()
 {
-	std::cout << std::max(std::thread::hardware_concurrency(), 1u) << std::endl;
 	FileName fnImg, fnImgOut, fullBaseName;
 	getOutputMd().clear();	//this allows multiple runs of the same Program object
 
