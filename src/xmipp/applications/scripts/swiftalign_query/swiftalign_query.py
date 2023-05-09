@@ -227,9 +227,7 @@ def run(experimental_md_path: str,
     if drop_na:
         alignment_md.dropna(inplace=True)
     
-    if md.ITEM_ID in alignment_md.columns:
-        alignment_md.sort_values(by=md.ITEM_ID, axis=0, inplace=True)
-
+    alignment_md.sort_index(axis=0, inplace=True)
     md.write(alignment_md, output_md_path)
 
 
