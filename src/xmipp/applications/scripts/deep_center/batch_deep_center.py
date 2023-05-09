@@ -25,7 +25,9 @@ if __name__ == "__main__":
     if mode == 'Angular':
         representation = sys.argv[8]
         loss_function = sys.argv[9]
-        fnNoisyXmdExp = sys.argv[10]
+        pretrained = sys.argv[10]
+        if pretrained == 'yes':
+            fnPreModel = sys.argv[11]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -313,21 +315,16 @@ if __name__ == "__main__":
     #    return K.mean(d)
 
     def geodesic_distance(y_true, y_pred):
-        #a1 = keras.layers.BatchNormalization()(y_pred[:, slice(0, 6, 2)])
-        #a2 = keras.layers.BatchNormalization()(y_pred[:, slice(1, 6, 2)])
-        y_pred = tf.Print(y_pred, [y_pred], message="This is y_pred: ")
-        a1 = tf.linalg.normalize(y_pred[:, slice(0, 6, 2)], axis=0)[0]
-        a1 = tf.Print(a1, [a1], message="This is a1: ")
-        a2 = tf.linalg.normalize(y_pred[:, slice(1, 6, 2)], axis=0)[0]
-        a2 = tf.Print(a2, [a2], message="This is a2: ")
-        y_true = tf.Print(y_true, [y_true], message="This is y_true: ")
+        a1 = y_pred[:, slice(0, 6, 2)]
+        a2 = y_pred[:, slice(1, 6, 2)]
+        a1 = tf.linalg.normalize(a1, axis=1)[0]
+        a2 = tf.linalg.normalize(a2, axis=1)[0]
         d = K.sum(y_true[:, 0]*a1[:, 0])
         d += K.sum(y_true[:, 2] * a1[:, 1])
         d += K.sum(y_true[:, 4] * a1[:, 2])
         d += K.sum(y_true[:, 1] * a2[:, 0])
         d += K.sum(y_true[:, 3] * a2[:, 1])
         d += K.sum(y_true[:, 5] * a2[:, 2])
-
         return -d
 
     def geodesic_loss(y_true, y_pred):
@@ -397,24 +394,31 @@ if __name__ == "__main__":
         return K.mean(d)
 
 
-    SL = xmippLib.SymList()
-    print("SL", SL, flush=True)
-
-    SL.readSymmetryFile("C1")
-
-    SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
-
-    Matrices = SL.getSymmetryMatrices('C2')
-
-    print('Matrices', Matrices, flush=True)
-
-    print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
+    # SL = xmippLib.SymList()
+    # print("SL", SL, flush=True)
+#
+    # SL.readSymmetryFile("C1")
+#
+    # SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
+#
+    # Matrices = SL.getSymmetryMatrices('C2')
+#
+    # print('Matrices', Matrices, flush=True)
+#
+    # print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
 
     start_time = time()
-    model = constructModel(Xdim, mode)
+    if mode == 'Shift':
+        model = constructModel(Xdim, mode)
+    else:
+        if pretrained == 'yes':
+            model = load_model(fnPreModel, compile=False)
+            adam_opt = Adam(lr=0.0005)
+        else:
+            model = constructModel(Xdim, mode)
+            adam_opt = Adam(lr=0.001)
 
     model.summary()
-    adam_opt = Adam(lr=0.001)
 
     steps = round(len(fnImgs) / batch_size)
     if mode == 'Shift':
@@ -428,58 +432,13 @@ if __name__ == "__main__":
             if representation == 'euler':
                 model.compile(loss=custom_loss, optimizer='adam')
             else:
-                model.compile(loss=geodesic_loss, optimizer='adam')
+                model.compile(loss=geodesic_loss, optimizer=adam_opt)
+
+    save_best_model = ModelCheckpoint(fnModel, monitor='val_loss',
+                                      save_best_only=True)
 
     history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                  validation_data=validation_generator)
+                                  validation_data=validation_generator, callbacks=[save_best_model])
 
-    model.save(fnModel)
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
-
-
-    # Transfer learning:
-    if mode == 'Angular':
-        print("Transfer learning")
-        model.load_weights(fnModel)
-        Xdim, fnImgs, labels, indTrain, indVal = get_labels(fnNoisyXmdExp, mode)
-
-        transfer_training_generator = DataGenerator([fnImgs[i] for i in indTrain], [labels[i] for i in indTrain], mode,
-                                                    sigma,
-                                                    batch_size, Xdim, readInMemory=False)
-        transfer_validation_generator = DataGenerator([fnImgs[i] for i in indVal], [labels[i] for i in indVal], mode, sigma,
-                                                      batch_size, Xdim, readInMemory=False)
-
-        #for layer in model.layers:
-        #    layer.trainable = False
-        print("print1")
-
-        adam_opt = Adam(lr=0.0001)
-
-        if representation == 'cartesian':
-            new_output = Dense(5, name="output", activation="linear")(model.layers[-2].output)
-        elif representation == 'euler' and loss_function == 'geodesic':
-            new_output = Dense(5, name="output", activation="tanh")(model.layers[-2].output)
-        else:
-            new_output = Dense(6, name="output", activation="linear")(model.layers[-2].output)
-
-        transfer_model = Model(inputs=model.input, outputs=new_output)
-        print("print2")
-        if loss_function == 'l1':
-            transfer_model.compile(loss='mean_absolute_error', optimizer='adam')
-        elif loss_function == 'l2':
-            transfer_model.compile(loss='mean_squared_error', optimizer='adam')
-        else:
-            if representation == 'euler':
-                transfer_model.compile(loss=custom_loss, optimizer='adam')
-            else:
-                transfer_model.compile(loss=geodesic_loss, optimizer=adam_opt)
-        print("print3")
-        start_time = time()
-        numEpochs = 1
-        transfer_model.summary()
-        history = transfer_model.fit_generator(generator=transfer_training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                     validation_data=transfer_validation_generator)
-        print("Time in training model: %0.10f seconds." % elapsed_time)
-
-        #transfer_model.save(fnModel)

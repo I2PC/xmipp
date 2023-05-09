@@ -18,12 +18,14 @@ if __name__ == "__main__":
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnShiftModel = sys.argv[2]
-    fnAngModel = sys.argv[3]
+    predictAngles = sys.argv[3]
     gpuId = sys.argv[4]
     outputDir = sys.argv[5]
     fnXmdImages = sys.argv[6]
-    representation = sys.argv[7]
-    loss_function = sys.argv[8]
+    if predictAngles == 'yes':
+        fnAngModel = sys.argv[7]
+        representation = sys.argv[8]
+        loss_function = sys.argv[9]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -158,9 +160,9 @@ if __name__ == "__main__":
                         rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
                         tilts /= norm(tilts)
                         tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
-                        mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
-                        mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
-                        mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
+                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
                 elif representation == 'cartesian':
                     psis = Y[ID][3:]
                     psis /= norm(psis)
@@ -198,10 +200,7 @@ if __name__ == "__main__":
     start_time = time()
 
     ShiftModel = load_model(fnShiftModel, compile=False)
-    AngModel = load_model(fnAngModel, compile=False)
     ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
-    AngModel.compile(loss="mean_squared_error", optimizer='adam')
-    # model.compile(optimizer='adam')
 
     ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
 
@@ -209,10 +208,12 @@ if __name__ == "__main__":
 
     produce_output(mdExp, 'Shift', Y, fnImages)
 
-    AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
-    Y = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
-
-    produce_output(mdExp, 'Angular', Y, fnImages)
+    if predictAngles == 'yes':
+        AngModel = load_model(fnAngModel, compile=False)
+        AngModel.compile(loss="mean_squared_error", optimizer='adam')
+        AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
+        Y = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
+        produce_output(mdExp, 'Angular', Y, fnImages)
 
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
 
