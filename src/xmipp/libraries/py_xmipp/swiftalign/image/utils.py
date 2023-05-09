@@ -22,6 +22,15 @@
 
 from .Path import Path
 
+import mrcfile
+
+def get_image2d_size(filename: str):
+    with mrcfile.open(filename, mode='r', header_only=True) as mrc:
+        header = mrc.header
+        nx = int(header['nx'])
+        ny = int(header['ny'])
+        return ny, nx
+
 def parse_path(f: str) -> Path:
     STACK_INDEXER = '@'
     parts = f.split(STACK_INDEXER, maxsplit=1)

@@ -27,9 +27,9 @@ import pandas as pd
 from . import labels
 from .. import image
 
-def get_image_size(data: pd.DataFrame) -> Tuple:
+def get_image2d_size(data: pd.DataFrame) -> Tuple:
     path = image.parse_path(data.loc[0, labels.IMAGE])
-    return image.read(path.filename).shape[-2:]
+    return image.get_image2d_size(path.filename)
 
 def sort_by_image_filename(df: pd.DataFrame, label: str = labels.IMAGE) -> pd.DataFrame:
     filenames = df[label].apply(image.parse_path)

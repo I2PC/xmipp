@@ -22,6 +22,6 @@
 
 from .read import read
 from .write import write
-from .utils import parse_path
+from .utils import get_image2d_size, parse_path
 from .Path import Path
 from . import torch_utils

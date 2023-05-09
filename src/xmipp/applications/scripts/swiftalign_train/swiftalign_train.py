@@ -89,7 +89,7 @@ def run(reference_md_path: str,
     
     # Read input files
     reference_md =  md.sort_by_image_filename(md.read(reference_md_path))
-    image_size = md.get_image_size(reference_md)
+    image_size = md.get_image2d_size(reference_md)
 
     # Create the flattener
     flattener = operators.FourierLowPassFlattener(

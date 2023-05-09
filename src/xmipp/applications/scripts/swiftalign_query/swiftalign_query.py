@@ -104,7 +104,7 @@ def run(experimental_md_path: str,
     # Read input files
     experimental_md = md.sort_by_image_filename(md.read(experimental_md_path))
     reference_md = md.sort_by_image_filename(md.read(reference_md_path))
-    image_size = md.get_image_size(experimental_md)
+    image_size = md.get_image2d_size(experimental_md)
     
     # Read the database
     db = search.FaissDatabase()
