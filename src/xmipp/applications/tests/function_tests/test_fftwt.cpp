@@ -1,5 +1,5 @@
+#include "data/fftwT.h"
 #include "data/cpu.h"
-#include "reconstruction/fftwT.h"
 
 template<typename T>
 class AFT_Test;

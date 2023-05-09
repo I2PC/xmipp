@@ -24,10 +24,11 @@
  ***************************************************************************/
 
 #include "psd_estimator.h"
+
+#include "data/fftwT.h"
 #include "data/dimensions.h"
 #include "data/rectangle.h"
 #include "reconstruction/ctf_estimate_from_micrograph.h"
-#include "fftwT.h"
 #include "core/histogram.h"
 
 template<typename T>

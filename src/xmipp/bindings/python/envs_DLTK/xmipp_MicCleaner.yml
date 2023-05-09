@@ -1,3 +1,5 @@
+#Protocols ussing the enviroment: protocol_deepMicrographScreen
+
 name: xmipp_MicCleaner
 channels:
   - anaconda

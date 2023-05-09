@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_filter_coordinates.h>
+#include <tomo/tomo_filter_coordinates.h>
 
 int main(int argc, char **argv)
 {
