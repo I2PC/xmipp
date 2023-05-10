@@ -15,7 +15,6 @@ import numpy as np
 from xmippPyModules.globalAlignFunction.bnb_gpu import *
 from xmippPyModules.globalAlignFunction.pca_gpu import *
 from xmippPyModules.globalAlignFunction.assessment import *
-import matplotlib.pyplot as plt
 
 
 def read_images(mrcfilename):
