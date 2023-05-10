@@ -16,18 +16,18 @@ if __name__ == "__main__":
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
-    print("------------------", flush=True)
     mode = sys.argv[3]
     sigma = float(sys.argv[4])
     numEpochs = int(sys.argv[5])
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
     if mode == 'Angular':
-        representation = sys.argv[8]
-        loss_function = sys.argv[9]
-        pretrained = sys.argv[10]
+        learning_rate = float(sys.argv[8])
+        representation = sys.argv[9]
+        loss_function = sys.argv[10]
+        pretrained = sys.argv[11]
         if pretrained == 'yes':
-            fnPreModel = sys.argv[11]
+            fnPreModel = sys.argv[12]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -413,11 +413,9 @@ if __name__ == "__main__":
     else:
         if pretrained == 'yes':
             model = load_model(fnPreModel, compile=False)
-            adam_opt = Adam(lr=0.0005)
         else:
             model = constructModel(Xdim, mode)
-            adam_opt = Adam(lr=0.001)
-
+        adam_opt = Adam(lr=learning_rate)
     model.summary()
 
     steps = round(len(fnImgs) / batch_size)
