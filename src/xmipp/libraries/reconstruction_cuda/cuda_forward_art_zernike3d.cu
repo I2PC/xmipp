@@ -4,10 +4,6 @@
 #include "cuda_forward_art_zernike3d.h"
 #include "cuda_forward_art_zernike3d_defines.h"
 
-/*#include <thrust/device_vector.h>
-#include <thrust/execution_policy.h>
-#include <thrust/find.h>*/
-
 namespace cuda_forward_art_zernike3D {
 
 // Constants
@@ -570,13 +566,8 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int img_idx = 0;
 	if (sigma_size > 1) {
 		PrecisionType sigma_mask = cudaVRecMaskF[threadIndex];
-		/*auto cudaSigmaBegin = thrust::device_pointer_cast(cudaSigma);
-		auto cudaSigmaEnd = thrust::device_pointer_cast(cudaSigma + sigma_size);
-		img_idx = thrust::find(thrust::device, cudaSigmaBegin, cudaSigmaEnd, sigma_mask).get() - cudaSigma;*/
 		img_idx = device::findCuda(cudaSigma, sigma_size, sigma_mask);
 	}
-	/*auto cudaPAligned = __builtin_assume_aligned(cudaP, 16);
-	auto cudaWAligned = __builtin_assume_aligned(cudaW, 16);*/
 	auto &mP = cudaP[img_idx];
 	auto &mW = cudaW[img_idx];
 	__builtin_assume(xdim > 0);
@@ -587,6 +578,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
+	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
 	PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 	if (usesZernike) {
 		auto k2 = k * k;
@@ -616,7 +608,6 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
-	PrecisionType weight = A3D_ELEM(cudaMV, k, i, j);
 	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
 }
 
