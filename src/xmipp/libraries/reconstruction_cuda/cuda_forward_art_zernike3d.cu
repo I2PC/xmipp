@@ -17,6 +17,8 @@ static constexpr float CUDA_PI = 3.1415926535897f;
 #define ATAN2 atan2f
 #define COS cosf
 #define SIN sinf
+#define POW powf
+#define ABSC fabsf
 #define CUDA_FLOOR floorf
 #define CUDA_ROUND lroundf
 
@@ -48,14 +50,16 @@ namespace device {
 
 #if L2 >= 5
 		// Variables needed for l2 >= 5
-		PrecisionType tht = CST(0.0), phi = CST(0.0), cost = CST(0.0), sint = CST(0.0), cost2 = CST(0.0),
-					  sint2 = CST(0.0);
+		PrecisionType tht = CST(0.0), phi = CST(0.0), cost = CST(0.0), sinp = CST(0.0), cost2 = CST(0.0),
+					  sinp2 = CST(0.0), cosp = CST(0.0);
 		if (l2 >= 5) {
+			PrecisionType mf = CST(m);
 			tht = ATAN2(yr, xr);
 			phi = ATAN2(zr, SQRT(xr2 + yr2));
-			sint = SIN(phi);
+			sinp = SIN(ABSC(mf) * phi);
 			cost = COS(tht);
-			sint2 = sint * sint;
+			cosp = COS(ABSC(mf) * phi);
+			sinp2 = sinp * sinp;
 			cost2 = cost * cost;
 		}
 #endif	// L2 >= 5
@@ -65,18 +69,18 @@ namespace device {
 
 		switch (l1) {
 			case 0:
-				R = SQRT(CST(3));
+				R = SQRT(CST(3.0));
 				break;
 			case 1:
-				R = SQRT(CST(5)) * rr;
+				R = SQRT(CST(5.0)) * rr;
 				break;
 			case 2:
 				switch (n) {
 					case 0:
-						R = CST(-0.5) * SQRT(CST(7)) * (CST(2.5) * (1 - 2 * r2) + CST(0.5));
+						R = CST(-0.5) * SQRT(CST(7.0)) * (CST(2.5) * (CST(1.0) - CST(2.0) * r2) + CST(0.5));
 						break;
 					case 2:
-						R = SQRT(CST(7)) * r2;
+						R = SQRT(CST(7.0)) * r2;
 						break;
 				}
 				break;
@@ -84,10 +88,10 @@ namespace device {
 			case 3:
 				switch (n) {
 					case 1:
-						R = CST(-1.5) * rr * (CST(3.5) * (1 - 2 * r2) + CST(1.5));
+						R = CST(-1.5) * rr * (CST(3.5) * (CST(1.0) - CST(2.0) * r2) + CST(1.5));
 						break;
 					case 3:
-						R = 3 * r2 * rr;
+						R = CST(3.0) * r2 * rr;
 				}
 				break;
 #endif	// L1 >= 3
@@ -95,13 +99,14 @@ namespace device {
 			case 4:
 				switch (n) {
 					case 0:
-						R = SQRT(CST(11)) * ((63 * r2 * r2 / 8) - (35 * r2 / 4) + (CST(15) / CST(8)));
+						R = SQRT(CST(11.0))
+							* ((CST(63.0) * r2 * r2 / CST(8.0)) - (CST(35.0) * r2 / CST(4.0)) + (CST(15.0) / CST(8.0)));
 						break;
 					case 2:
-						R = CST(-0.5) * SQRT(CST(11)) * r2 * (CST(4.5) * (1 - 2 * r2) + CST(2.5));
+						R = CST(-0.5) * SQRT(CST(11.0)) * r2 * (CST(4.5) * (CST(1.0) - CST(2.0) * r2) + CST(2.5));
 						break;
 					case 4:
-						R = SQRT(CST(11)) * r2 * r2;
+						R = SQRT(CST(11.0)) * r2 * r2;
 						break;
 				}
 				break;
@@ -110,14 +115,55 @@ namespace device {
 			case 5:
 				switch (n) {
 					case 1:
-						R = SQRT(CST(13)) * rr * ((99 * r2 * r2 / 8) - (63 * r2 / 4) + (CST(35) / CST(8)));
+						R = SQRT(CST(13.0)) * rr
+							* ((CST(99.0) * r2 * r2 / CST(8.0)) - (CST(63.0) * r2 / CST(4.0)) + (CST(35.0) / CST(8.0)));
 						break;
 					case 3:
-						R = CST(-0.5) * SQRT(CST(13)) * r2 * rr * (CST(5.5) * (1 - 2 * r2) + CST(3.5));
+						R = CST(-0.5) * SQRT(CST(13.0)) * r2 * rr * (CST(5.5) * (CST(1.0) - CST(2.0) * r2) + CST(3.5));
+						break;
+					case 5:
+						R = SQRT(CST(13.0)) * r2 * r2 * rr;
 						break;
 				}
 				break;
 #endif	// L1 >= 5
+#if L1 >= 6
+			case 6:
+				switch (n) {
+					case 0:
+						R = CST(103.8) * r2 * r2 * r2 - CST(167.7) * r2 * r2 + CST(76.25) * r2 - CST(8.472);
+						break;
+					case 2:
+						R = CST(69.23) * r2 * r2 * r2 - CST(95.86) * r2 * r2 + CST(30.5) * r2;
+						break;
+					case 4:
+						R = CST(25.17) * r2 * r2 * r2 - CST(21.3) * r2 * r2;
+						break;
+					case 6:
+						R = CST(3.873) * r2 * r2 * r2;
+						break;
+				}
+				break;
+#endif	// L1 >= 6
+#if L1 >= 7
+			case 7:
+				switch (n) {
+					case 1:
+						R = CST(184.3) * r2 * r2 * r2 * rr - CST(331.7) * r2 * r2 * rr + CST(178.6) * r2 * rr
+							- CST(27.06) * rr;
+						break;
+					case 3:
+						R = CST(100.5) * r2 * r2 * r2 * rr - CST(147.4) * r2 * r2 * rr + CST(51.02) * r2 * rr;
+						break;
+					case 5:
+						R = CST(30.92) * r2 * r2 * r2 * rr - CST(26.8) * r2 * r2 * rr;
+						break;
+					case 7:
+						R = CST(4.123) * r2 * r2 * r2 * rr;
+						break;
+				}
+				break;
+#endif	// L1 >= 7
 		}
 
 		// Spherical harmonic
@@ -232,52 +278,169 @@ namespace device {
 			case 5:
 				switch (m) {
 					case -5:
-						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2 * sint
+						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sinp2 * sinp2 * sinp
 							* SIN(CST(5.0) * phi);
 						break;
 					case -4:
-						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2
+						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sinp2 * sinp2
 							* SIN(CST(4.0) * phi);
 						break;
 					case -3:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sinp2 * sinp
 							* (CST(9.0) * cost2 - CST(1.0)) * SIN(CST(3.0) * phi);
 						break;
 					case -2:
-						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sint2
+						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sinp2
 							* (CST(3.0) * cost2 * cost - cost) * SIN(CST(2.0) * phi);
 						break;
 					case -1:
-						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sint
-							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) * SIN(phi);
+						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sinp
+							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + CST(1.0)) * SIN(phi);
 						break;
 					case 0:
 						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / CUDA_PI)
 							* (CST(63.0) * cost2 * cost2 * cost - CST(70.0) * cost2 * cost + CST(15.0) * cost);
 						break;
 					case 1:
-						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sint
-							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) * COS(phi);
+						Y = (CST(1.0) / CST(8.0)) * SQRT(CST(165.0) / (CST(4.0) * CUDA_PI)) * sinp
+							* (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + CST(1.0)) * COS(phi);
 						break;
 					case 2:
-						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sint2
+						Y = (CST(1.0) / CST(4.0)) * SQRT(CST(1155.0) / (CST(4.0) * CUDA_PI)) * sinp2
 							* (CST(3.0) * cost2 * cost - cost) * COS(CST(2.0) * phi);
 						break;
 					case 3:
-						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint
+						Y = (CST(1.0) / CST(16.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sinp2 * sinp
 							* (CST(9.0) * cost2 - CST(1.0)) * COS(CST(3.0) * phi);
 						break;
 					case 4:
-						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2
+						Y = (CST(3.0) / CST(8.0)) * SQRT(CST(385.0) / (CST(2.0) * CUDA_PI)) * sinp2 * sinp2
 							* COS(CST(4.0) * phi);
 						break;
 					case 5:
-						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sint2 * sint2 * sint
+						Y = (CST(3.0) / CST(16.0)) * SQRT(CST(77.0) / (CST(2.0) * CUDA_PI)) * sinp2 * sinp2 * sinp
 							* COS(CST(5.0) * phi);
 						break;
 				}
 				break;
 #endif	// L2 >= 5
+#if L2 >= 6
+			case 6:
+				switch (m) {
+					case -6:
+						Y = -CST(0.6832) * sinp * POW(cost2 - CST(1.0), CST(3.0));
+						break;
+					case -5:
+						Y = CST(2.367) * cost * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(2.5));
+						break;
+					case -4:
+						Y = CST(0.001068) * sinp * (CST(5198.0) * cost2 - CST(472.5)) * POW(cost2 - CST(1.0), CST(2.0));
+						break;
+					case -3:
+						Y = -CST(0.005849) * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(1.5))
+							* (-CST(1732.0) * cost2 * cost + CST(472.5) * cost);
+						break;
+					case -2:
+						Y = -CST(0.03509) * sinp * (cost2 - CST(1.0))
+							* (CST(433.1) * cost2 * cost2 - CST(236.2) * cost2 + CST(13.12));
+						break;
+					case -1:
+						Y = CST(0.222) * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(0.5))
+							* (CST(86.62) * cost2 * cost2 * cost - CST(78.75) * cost2 * cost + CST(13.12) * cost);
+						break;
+					case 0:
+						Y = CST(14.68) * cost2 * cost2 * cost2 - CST(20.02) * cost2 * cost2 + CST(6.675) * cost2
+							- CST(0.3178);
+						break;
+					case 1:
+						Y = CST(0.222) * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(0.5))
+							* (CST(86.62) * cost2 * cost2 * cost - CST(78.75) * cost2 * cost
+							   + CST(13.12) * cost);  //FIXME: Here we need cost instead of cost2
+						break;
+					case 2:
+						Y = -CST(0.03509) * cosp * (cost2 - CST(1.0))
+							* (CST(433.1) * cost2 * cost2 - CST(236.2) * cost2 + CST(13.12));
+						break;
+					case 3:
+						Y = -CST(0.005849) * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(1.5))
+							* (-CST(1732.0) * cost2 * cost + CST(472.5) * cost);
+						break;
+					case 4:
+						Y = CST(0.001068) * cosp * (CST(5198.0) * cost2 - CST(472.5)) * POW(cost2 - CST(1.0), CST(2.0));
+						break;
+					case 5:
+						Y = CST(2.367) * cost * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(2.5));
+						break;
+					case 6:
+						Y = -CST(0.6832) * cosp * POW(cost2 - CST(1.0), CST(3.0));
+						break;
+				}
+				break;
+#endif	// L2 >= 6
+#if L2 >= 7
+			case 7:
+				switch (m) {
+					case -7:
+						Y = CST(0.7072) * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(3.5));
+						break;
+					case -6:
+						Y = -CST(2.646) * cost * sinp * POW(cost2 - CST(1.0), CST(3.0));
+						break;
+					case -5:
+						Y = CST(9.984e-5) * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(2.5))
+							* (CST(67570.0) * cost2 - CST(5198.0));
+						break;
+					case -4:
+						Y = -CST(0.000599) * sinp * POW(cost2 - CST(1.0), CST(2.0))
+							* (-CST(22520.0) * cost2 * cost + CST(5198.0) * cost);
+						break;
+					case -3:
+						Y = CST(0.003974) * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(1.5))
+							* (CST(5631.0) * cost2 * cost2 - CST(2599.0) * cost2 + CST(118.1));
+						break;
+					case -2:
+						Y = -CST(0.0281) * sinp * (cost2 - CST(1.0))
+							* (CST(1126.0) * cost2 * cost2 * cost - CST(866.2) * cost2 * cost + CST(118.1) * cost);
+						break;
+					case -1:
+						Y = CST(0.2065) * sinp * POW(CST(1.0) - CST(1.0) * cost2, CST(0.5))
+							* (CST(187.7) * cost2 * cost2 * cost2 - CST(216.6) * cost2 * cost2 + CST(59.06) * cost2
+							   - CST(2.188));
+						break;
+					case 0:
+						Y = CST(29.29) * cost2 * cost2 * cost2 * cost - CST(47.32) * cost2 * cost2 * cost
+							+ CST(21.51) * cost2 * cost - CST(2.39) * cost;
+						break;
+					case 1:
+						Y = CST(0.2065) * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(0.5))
+							* (CST(187.7) * cost2 * cost2 * cost2 - CST(216.6) * cost2 * cost2 + CST(59.06) * cost2
+							   - CST(2.188));
+						break;
+					case 2:
+						Y = -CST(0.0281) * cosp * (cost2 - CST(1.0))
+							* (CST(1126.0) * cost2 * cost2 * cost - CST(866.2) * cost2 * cost + CST(118.1) * cost);
+						break;
+					case 3:
+						Y = CST(0.003974) * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(1.5))
+							* (CST(5631.0) * cost2 * cost2 - CST(2599.0) * cost2 + CST(118.1));
+						break;
+					case 4:
+						Y = -CST(0.000599) * cosp * POW(cost2 - CST(1.0), CST(2.0))
+							* (-CST(22520.0) * cost2 * cost + CST(5198.0) * cost);
+						break;
+					case 5:
+						Y = CST(9.984e-5) * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(2.5))
+							* (CST(67570.0) * cost2 - CST(5198.0));
+						break;
+					case 6:
+						Y = -CST(2.646) * cost * cosp * POW(cost2 - CST(1.0), CST(3.0));
+						break;
+					case 7:
+						Y = CST(0.7072) * cosp * POW(CST(1.0) - CST(1.0) * cost2, CST(3.5));
+						break;
+				}
+				break;
+#endif	// L2 >= 7
 		}
 
 		return R * Y;

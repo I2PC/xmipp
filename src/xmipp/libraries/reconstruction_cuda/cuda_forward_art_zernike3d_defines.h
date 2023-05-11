@@ -14,10 +14,10 @@
 // (Setting exact degrees you use in the run may increase performance,
 // especially when the degrees are low)
 #ifndef L1
-#define L1 5
+#define L1 7
 #endif
 #ifndef L2
-#define L2 5
+#define L2 7
 #endif
 
 // Universal block sizes
