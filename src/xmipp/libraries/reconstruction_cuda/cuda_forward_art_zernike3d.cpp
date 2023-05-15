@@ -40,7 +40,7 @@ namespace {
 
 	// Copies data from CPU to the GPU
 	template<typename T>
-	void transportData(T **dest, const T *source, size_t n)
+	void transferData(T **dest, const T *source, size_t n)
 	{
 		if (cudaMalloc(dest, sizeof(T) * n) != cudaSuccess) {
 			processCudaError();
@@ -54,7 +54,7 @@ namespace {
 
 	// Copies data from GPU to the CPU
 	template<typename T>
-	void transportDataFromGPU(T *dest, const T *source, size_t n)
+	void transferDataFromGPU(T *dest, const T *source, size_t n)
 	{
 		if (cudaMemcpy(dest, source, sizeof(T) * n, cudaMemcpyDeviceToHost) != cudaSuccess) {
 			processCudaError();
@@ -62,42 +62,42 @@ namespace {
 	}
 
 	template<typename T>
-	T *transportMultidimArrayToGpu(const MultidimArray<T> &inputArray)
+	T *transferMultidimArrayToGpu(const MultidimArray<T> &inputArray)
 	{
 		T *outputArrayData;
-		transportData(&outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
+		transferData(&outputArrayData, inputArray.data, inputArray.xdim * inputArray.ydim * inputArray.zdim);
 		return outputArrayData;
 	}
 
 	template<typename T>
-	MultidimArrayCuda<T> *transportVectorOfMultidimArrayToGpu(const std::vector<MultidimArrayCuda<T>> &inputVector)
+	MultidimArrayCuda<T> *transferVectorOfMultidimArrayToGpu(const std::vector<MultidimArrayCuda<T>> &inputVector)
 	{
 		MultidimArrayCuda<T> *outputVectorData;
-		transportData(&outputVectorData, inputVector.data(), inputVector.size());
+		transferData(&outputVectorData, inputVector.data(), inputVector.size());
 		return outputVectorData;
 	}
 
 	template<typename T>
-	T *transportMatrix1DToGpu(const Matrix1D<T> &inputVector)
+	T *transferMatrix1DToGpu(const Matrix1D<T> &inputVector)
 	{
 		T *outputVector;
-		transportData(&outputVector, inputVector.vdata, inputVector.vdim);
+		transferData(&outputVector, inputVector.vdata, inputVector.vdim);
 		return outputVector;
 	}
 
 	template<typename T>
-	T *transportStdVectorToGpu(const std::vector<T> &inputVector)
+	T *transferStdVectorToGpu(const std::vector<T> &inputVector)
 	{
 		T *outputVector;
-		transportData(&outputVector, inputVector.data(), inputVector.size());
+		transferData(&outputVector, inputVector.data(), inputVector.size());
 		return outputVector;
 	}
 
 	template<typename T>
-	T *transportMatrix2DToGpu(const Matrix2D<T> &inputMatrix)
+	T *transferMatrix2DToGpu(const Matrix2D<T> &inputMatrix)
 	{
 		T *outputMatrixData;
-		transportData(&outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
+		transferData(&outputMatrixData, inputMatrix.mdata, inputMatrix.mdim);
 		return outputMatrixData;
 	}
 
@@ -108,7 +108,7 @@ namespace {
 			.xdim = static_cast<unsigned>(multidimArray.xdim), .ydim = static_cast<unsigned>(multidimArray.ydim),
 			.yxdim = static_cast<unsigned>(multidimArray.yxdim), .xinit = multidimArray.xinit,
 			.yinit = multidimArray.yinit, .zinit = multidimArray.zinit,
-			.data = transportMultidimArrayToGpu(multidimArray)
+			.data = transferMultidimArrayToGpu(multidimArray)
 		};
 
 		return cudaArray;
@@ -117,7 +117,7 @@ namespace {
 	template<typename T>
 	void updateMultidimArrayWithGPUData(MultidimArray<T> &multidimArray, const MultidimArrayCuda<T> &multidimArrayCuda)
 	{
-		transportDataFromGPU(
+		transferDataFromGPU(
 			multidimArray.data, multidimArrayCuda.data, multidimArray.xdim * multidimArray.ydim * multidimArray.zdim);
 	}
 
@@ -139,7 +139,7 @@ namespace {
 		for (int m = 0; m < image.size(); m++) {
 			output.push_back(initializeMultidimArrayCuda(image[m]()));
 		}
-		return std::make_pair(transportVectorOfMultidimArrayToGpu(output), output);
+		return std::make_pair(transferVectorOfMultidimArrayToGpu(output), output);
 	}
 
 	template<typename T>
@@ -185,7 +185,7 @@ namespace {
 		const Matrix2D<T> R = createRotationMatrix<T>(angles);
 
 		struct Program<T>::CommonKernelParameters output = {
-			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transportStdVectorToGpu(clnm), .R = R,
+			.idxY0 = idxY0, .idxZ0 = idxZ0, .iRmaxF = iRmaxF, .cudaClnm = transferStdVectorToGpu(clnm), .R = R,
 		};
 
 		return output;
@@ -244,9 +244,9 @@ namespace {
 	}
 
 	template<typename T>
-	std::tuple<unsigned *, size_t, int *> filterMaskTransportCoordinates(MultidimArray<T> &mask,
-																		 int step,
-																		 bool transportValues)
+	std::tuple<unsigned *, size_t, int *> filterMasktransferCoordinates(MultidimArray<T> &mask,
+																		int step,
+																		bool transferValues)
 
 	{
 		std::vector<unsigned> coordinates;
@@ -254,13 +254,13 @@ namespace {
 		for (unsigned i = 0; i < static_cast<unsigned>(mask.yxdim * mask.zdim); i++) {
 			if (checkStep(mask, step, static_cast<size_t>(i))) {
 				coordinates.push_back(i);
-				if (transportValues) {
+				if (transferValues) {
 					values.push_back(mask[i]);
 				}
 			}
 		}
-		unsigned *coordinatesCuda = transportStdVectorToGpu(coordinates);
-		int *valuesCuda = transportStdVectorToGpu(values);
+		unsigned *coordinatesCuda = transferStdVectorToGpu(coordinates);
+		int *valuesCuda = transferStdVectorToGpu(values);
 		return std::make_tuple(coordinatesCuda, coordinates.size(), valuesCuda);
 	}
 
@@ -271,15 +271,15 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	: cudaMV(initializeMultidimArrayCuda(parameters.Vrefined())),
 	  VRecMaskB(initializeMultidimArrayCuda(parameters.VRecMaskB)),
 	  sigma(parameters.sigma),
-	  cudaSigma(transportStdVectorToGpu(parameters.sigma)),
+	  cudaSigma(transferStdVectorToGpu(parameters.sigma)),
 	  RmaxDef(parameters.RmaxDef),
 	  lastX(FINISHINGX(parameters.Vrefined())),
 	  lastY(FINISHINGY(parameters.Vrefined())),
 	  lastZ(FINISHINGZ(parameters.Vrefined())),
-	  cudaVL1(transportMatrix1DToGpu(parameters.vL1)),
-	  cudaVL2(transportMatrix1DToGpu(parameters.vL2)),
-	  cudaVN(transportMatrix1DToGpu(parameters.vN)),
-	  cudaVM(transportMatrix1DToGpu(parameters.vM)),
+	  cudaVL1(transferMatrix1DToGpu(parameters.vL1)),
+	  cudaVL2(transferMatrix1DToGpu(parameters.vL2)),
+	  cudaVN(transferMatrix1DToGpu(parameters.vN)),
+	  cudaVM(transferMatrix1DToGpu(parameters.vM)),
 	  xdimF(parameters.VRecMaskF.xdim),
 	  ydimF(parameters.VRecMaskF.ydim),
 	  blockXB(std::__gcd(blockSizeArchitecture().x, parameters.Vrefined().xdim)),
@@ -290,7 +290,7 @@ Program<PrecisionType>::Program(const Program<PrecisionType>::ConstantParameters
 	  gridZB(parameters.Vrefined().zdim / blockZB)
 {
 	std::tie(cudaCoordinatesF, sizeF, VRecMaskF) =
-		filterMaskTransportCoordinates(parameters.VRecMaskF, parameters.loopStep, parameters.sigma.size() > 1);
+		filterMasktransferCoordinates(parameters.VRecMaskF, parameters.loopStep, parameters.sigma.size() > 1);
 	auto optimalizedSize = ceil(static_cast<double>(sizeF) / static_cast<double>(BLOCK_SIZE)) * BLOCK_SIZE;
 	gridX = optimalizedSize / BLOCK_SIZE;
 }
@@ -375,7 +375,7 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
 
-	auto cudaR = transportMatrix2DToGpu(createRotationMatrix<PrecisionType>(parameters.angles));
+	auto cudaR = transferMatrix2DToGpu(createRotationMatrix<PrecisionType>(parameters.angles));
 
 	backwardKernel<PrecisionType, usesZernike>
 		<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV,
