@@ -97,19 +97,15 @@ class Program {
 
 	const int RmaxDef;
 
-	const int loopStep;
-
 	const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
 
 	const std::vector<PrecisionType> sigma;
 
 	const PrecisionType *cudaSigma;
 
-	size_t blockX, blockY, blockZ, gridX, gridY, gridZ;
+	const size_t blockXB, blockYB, blockZB, gridXB, gridYB, gridZB;
 
-	size_t blockXB, blockYB, blockZB, gridXB, gridYB, gridZB;
-
-	size_t blockXStep, gridXStep;
+	size_t blockX;
 
 	int *VRecMaskF;
 
