@@ -105,7 +105,7 @@ class Program {
 
 	const size_t blockXB, blockYB, blockZB, gridXB, gridYB, gridZB;
 
-	size_t blockX;
+	size_t gridX;
 
 	int *VRecMaskF;
 
