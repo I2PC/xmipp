@@ -162,8 +162,8 @@ if __name__ == "__main__":
                 Iexp = list(map(get_image, fnIexp))
             # Data augmentation
             if self.sigma > 0:
-                rX = (self.sigma / 5) * np.random.normal(0, 1, size=self.batch_size)
-                rY = (self.sigma / 5) * np.random.normal(0, 1, size=self.batch_size)
+                rX = (self.sigma/5) * np.random.normal(0, 1, size=self.batch_size)
+                rY = (self.sigma/5) * np.random.normal(0, 1, size=self.batch_size)
                 rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                 rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                 if mode == 'Shift':
@@ -172,6 +172,7 @@ if __name__ == "__main__":
                     y = yvalues + np.vstack((rX, rY)).T
                 else:
                     # Shift image a random amount of px in each direction
+
                     Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
 
                     # Rotates image a random angle. Thus, Psi must be updated
@@ -195,7 +196,15 @@ if __name__ == "__main__":
                 if mode == 'Shift':
                     y = yvalues
                 else:
-                    y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
+                    if representation == 'euler':
+                        if loss_function == 'geodesic':
+                            y = np.array(list((map(get_angles_radians_geo, yvalues, np.zeros(self.batch_size)))))
+                        else:
+                            y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
+                    elif representation == 'cartesian':
+                        y = np.array(list((map(euler_to_cartesian, yvalues, np.zeros(self.batch_size)))))
+                    else:
+                        y = np.array(list((map(euler_to_rotation6d, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
 
@@ -314,6 +323,82 @@ if __name__ == "__main__":
     #    d = -tf.linalg.trace(R)
     #    return K.mean(d)
 
+    SL = xmippLib.SymList()
+    print("SL", SL, flush=True)
+    SL.readSymmetryFile("C2")
+    #
+    # SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
+    #
+    Matrices = SL.getSymmetryMatrices('o')
+    print('Matrices', Matrices, flush=True)
+    #
+    # print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
+
+    def eq_matrices(y_true, R):
+
+        # matrices must be transposed before ¿?
+        y_true = tf.Print(y_true, [y_true], message="This is y_true: ")
+        tfR = tf.constant(R)
+        tfR = tf.Print(tfR, [tfR], message="This is tfR: ")
+        tfR = tf.transpose(tfR, perm=[1, 0, 2])
+        # I could have a number and pass it...
+        # Reshape the tensor to (3, ?)
+        matrices = tf.reshape(tfR, (3, -1))
+        matrices = tf.Print(matrices, [matrices], message="matrices: ")
+
+        eq_rotations = tf.matmul(y_true, matrices)
+        eq_rotations = tf.Print(eq_rotations, [eq_rotations], message="This is eq_rotations: ")
+
+        shape = tf.shape(eq_rotations)
+        eq_rotations = tf.reshape(eq_rotations, [shape[0], -1, shape[1]])
+        eq_rotations6d = eq_rotations[:, :, :-1]
+        eq_rotations6d = tf.Print(eq_rotations6d, [eq_rotations6d], message="This is eq_rotations6d: ")
+        return tf.reshape(eq_rotations6d, [shape[0], shape[1], -1])
+
+    def compute_distances(y_pred, eq_y_true):
+        a1 = y_pred[:, slice(0, 6, 2)]
+        a2 = y_pred[:, slice(1, 6, 2)]
+        a1 = tf.linalg.normalize(a1, axis=1)[0]
+        a2 = tf.linalg.normalize(a2, axis=1)[0]
+        a1 = tf.expand_dims(a1, axis=-1)
+        a2 = tf.expand_dims(a2, axis=-1)
+
+        mat_pred = tf.concat([a1, a2], axis=-1)
+
+        odd_columns = eq_y_true[:, :, ::2]
+        even_columns = eq_y_true[:, :, 1::2]
+        odd_columns_expanded = tf.expand_dims(odd_columns, axis=0)
+        even_columns_expanded = tf.expand_dims(even_columns, axis=0)
+
+        # Perform dot multiplication between columns
+        dot_product = tf.multiply(mat_pred[:, :, 0:1], odd_columns_expanded) + tf.multiply(mat_pred[:, :, 1:2],
+                                                                                           even_columns_expanded)
+        #return dot_product
+        # Reduce the result along the second dimension
+        distances = -tf.reduce_sum(dot_product, axis=2)
+
+        return distances
+
+    def geodesic_distance_symmetries(y_true, y_pred):
+        mat_true = rotation6d_to_matrix(y_true)
+        eq_true = eq_matrices(mat_true, Matrices)
+        ds = compute_distances(y_pred, eq_true)
+        ds = tf.Print(ds, [ds], message="This is ds: ")
+        d = tf.reduce_min(ds, axis=2, keepdims=True)
+        d = tf.Print(d, [d], message="This is d: ")
+
+        print(K.sum(d))
+        return K.sum(d)
+
+    #def geodesic_ditance_symmetries(y_true, y_pred):
+    #    a1 = y_pred[:, slice(0, 6, 2)]
+    #    a2 = y_pred[:, slice(1, 6, 2)]
+    #    a1 = tf.linalg.normalize(a1, axis=1)[0]
+    #    a2 = tf.linalg.normalize(a2, axis=1)[0]
+    #    dist = K.dot(a1, K.transpose(y_true[:, slice(0, 6, 2)])) + K.dot(a2, K.transpose(y_true[:, slice(1, 6, 2)]))
+#
+    #    for matriz in Matrices:
+    #    return False
     def geodesic_distance(y_true, y_pred):
         a1 = y_pred[:, slice(0, 6, 2)]
         a2 = y_pred[:, slice(1, 6, 2)]
@@ -394,18 +479,7 @@ if __name__ == "__main__":
         return K.mean(d)
 
 
-    # SL = xmippLib.SymList()
-    # print("SL", SL, flush=True)
-#
-    # SL.readSymmetryFile("C1")
-#
-    # SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
-#
-    # Matrices = SL.getSymmetryMatrices('C2')
-#
-    # print('Matrices', Matrices, flush=True)
-#
-    # print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
+
 
     start_time = time()
     if mode == 'Shift':
@@ -422,6 +496,7 @@ if __name__ == "__main__":
     if mode == 'Shift':
         model.compile(loss='mean_absolute_error', optimizer='adam')
     else:
+
         if loss_function == 'l1':
             model.compile(loss='mean_absolute_error', optimizer='adam')
         elif loss_function == 'l2':
@@ -431,6 +506,7 @@ if __name__ == "__main__":
                 model.compile(loss=custom_loss, optimizer='adam')
             else:
                 model.compile(loss=geodesic_loss, optimizer=adam_opt)
+                #model.compile(loss=geodesic_distance_symmetries, optimizer=adam_opt)
 
     save_best_model = ModelCheckpoint(fnModel, monitor='val_loss',
                                       save_best_only=True)

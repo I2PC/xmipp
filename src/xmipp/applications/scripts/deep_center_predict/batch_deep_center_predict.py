@@ -97,7 +97,7 @@ if __name__ == "__main__":
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
                     Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                    # Xexp[i,] = shift(Xexp[i, ], (-20, 0, 0), order=1, mode='reflect')
+                    #Xexp[i,] = shift(Xexp[i, ], (-10, 10, 0), order=1, mode='reflect')
             return Xexp
 
 
