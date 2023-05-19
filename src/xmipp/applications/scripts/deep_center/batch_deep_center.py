@@ -36,7 +36,7 @@ if __name__ == "__main__":
     from keras.callbacks import TensorBoard, ModelCheckpoint
     from keras.models import Model
     from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
-        Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
+        Activation, Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
     from keras.optimizers import *
     import keras
     from keras import callbacks
@@ -213,37 +213,58 @@ if __name__ == "__main__":
 
         # Network model
 
-        L = Conv2D(32, (3, 3), activation="relu")(inputLayer)
+        L = Conv2D(32, (3, 3), padding="same")(inputLayer)
         L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
 
-        L = Conv2D(64, (3, 3), activation="relu")(L)
+        L = Conv2D(64, (3, 3), padding="same")(L)
         L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
+        L = Conv2D(64, (3, 3), padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
 
-        L = Conv2D(128, (3, 3), activation="relu")(L)
+        L = Conv2D(128, (3, 3), padding="same")(L)
         L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
+        L = Conv2D(128, (3, 3), padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
 
-        L = Conv2D(256, (3, 3), activation="relu")(L)
+        L = Conv2D(256, (3, 3), padding="same")(L)
         L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
+        L = Conv2D(256, (3, 3), padding="same")(L)
+        L = BatchNormalization()(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        L = Dropout(0.5)(L)
 
         L = Flatten()(L)
-        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
 
-        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(256, kernel_regularizer=regularizers.l1(0.001))(L)
         L = BatchNormalization()(L)
-        L = Dropout(0.2)(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.5)(L)
 
-        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(256, kernel_regularizer=regularizers.l1(0.001))(L)
         L = BatchNormalization()(L)
-        L = Dropout(0.2)(L)
+        L = Activation('relu')(L)
+        L = Dropout(0.5)(L)
+
+        L = Dense(256, kernel_regularizer=regularizers.l1(0.001))(L)
+        L = BatchNormalization()(L)
+        L = Activation('relu')(L)
 
         if mode == 'Shift':
             L = Dense(2, name="output", activation="linear")(L)
@@ -326,13 +347,7 @@ if __name__ == "__main__":
     SL = xmippLib.SymList()
     print("SL", SL, flush=True)
     SL.readSymmetryFile("C2")
-    #
-    # SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
-    #
     Matrices = SL.getSymmetryMatrices('o')
-    print('Matrices', Matrices, flush=True)
-    #
-    # print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
 
     def eq_matrices(y_true, R):
 
