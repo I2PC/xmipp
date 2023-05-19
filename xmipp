@@ -442,8 +442,10 @@ def compileModule(Nproc,module):
     if module == "xmipp":
         stampVersion()
     log = []
-    ok = runJob("/usr/bin/env python3 $(which scons) -j%s" % Nproc, "src/%s" % module, log=log)
+    ok = runJob("/usr/bin/env python3 $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
+                show_command=False)
     lastError= ''
+    print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
         failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines
