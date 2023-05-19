@@ -74,7 +74,7 @@ class Config:
         print(blue("Configuration completed....."))
 
     def check(self):
-        print("Checking configuration ------------------------------")
+        print("\nChecking configuration ------------------------------")
         if self.configDict['VERIFIED'] != 'True':
             if not self._check_compiler():
                 print(red("Cannot compile"))

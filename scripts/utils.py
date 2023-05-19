@@ -317,7 +317,7 @@ def checkCMakeVersion(minimumRequired=None):
     try:
         # Getting CMake version
         outputLog = []
-        runJob('cmake --version', show_output=False, log=outputLog)
+        runJob('cmake --version', show_output=False, log=outputLog, show_command=False)
         result = '\n'.join(outputLog)
         cmakVersion = result.split('\n')[0].split()[-1]
 
