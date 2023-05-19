@@ -78,6 +78,27 @@ def endMessage(XMIPP_VERNAME):
     print(border)
 
 
+def errorEndMessage(XMIPP_VERNAME):
+    if XMIPP_VERNAME == 'devel':
+        strError = 'Unable to install Xmipp.\n\n' \
+                   'Devel version of Xmipp is constantly beeing improved, some errors might appear temporary,\n' \
+                   'please contact us if you find any. If you have modified code inside Xmipp please check it.\n' \
+                   'In anycase for more information about the error check the error message above.'
+        print(
+            red('\n\n---------------------------------------------------------------------------'))
+        print(red(strError))
+        print(
+            red('---------------------------------------------------------------------------'))
+    else:#release
+        strError = 'Unable to install Xmipp.\n\nSome changes will let you install Xmipp. ' \
+                   'Please review the previous error message,\nvisit our guide of installation https://github.com/I2PC/xmipp ' \
+                   '\nand also the wiki page with some details https://github.com/I2PC/xmipp/wiki'
+        print(
+            red('\n\n---------------------------------------------------------------------------'))
+        print(red(strError))
+        print(
+            red('---------------------------------------------------------------------------'))
+
 
 def find(program, path=[]):
     location = which(program)

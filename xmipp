@@ -274,6 +274,7 @@ def cloneOrCheckout(repo, branch):
 
     if not os.path.exists(repo_dir):
         print('Clonning repository: {}/{}'.format(repo, branch))
+        print(yellow('Working...'), end='\r')
         # If the repo doesn't exist, just clone the whole repo
         if branch is None:
             # let the git client to decide what is the default branch
@@ -284,6 +285,7 @@ def cloneOrCheckout(repo, branch):
                           show_output=False, show_command=False)
     else:
         print('Checkouting and pull repository: {}/{}'.format(repo, branch))
+        print(yellow('Working...'), end='\r')
         workDir = os.getcwd()
         os.chdir(repo_dir)
         res = checkout(branch) and pull()
@@ -392,7 +394,7 @@ def getSources(branch):
         repos.append(XMIPP)
     for r in repos:
         if cloneOrCheckout(r, branch):
-            print(green('Done'))
+            print(green('Done          '))
         else:
             print(red("Cannot get the sources"))
             return False
@@ -409,7 +411,7 @@ def getDependencies():
         configChecked = not args[1] or buildConfig.is_true(args[1])
         if configChecked and result:
             result = cloneOrCheckout(dep, branch)
-            print(green('Done'))
+            print(green('Done          '))
     if not result:
         print(red("Cannot get dependencies"))
 
@@ -481,12 +483,14 @@ def compileModule(Nproc,module):
                                   "try '%s' and re-compile." % (missingDir, hint)))
         print(red("\nSome error occurred during the compilation of '%s'%s.\n"
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
+        errorEndMessage(XMIPP_VERNAME)
         sys.exit(1)
     return ok
 
 
 def compile_cuFFTAdvisor():
     print("Building cuFFTAdvisor...")
+    print(yellow('Working...'), end='\r')
     log = []
     advisorDir = "src/cuFFTAdvisor/"
     currDir = os.getcwd()
@@ -497,7 +501,7 @@ def compile_cuFFTAdvisor():
         log = []
         os.chdir(currDir)
         if runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir, log=log, show_output=False, show_command=False):
-            print(green("Done"))
+            print(green("Done       "))
             return True
         else:
             print(red(log[0]))
@@ -509,6 +513,7 @@ def compile_cuFFTAdvisor():
 
 def compile_googletest():
     print("Building googletest...")
+    print(yellow('Working...'), end='\r')
     log = []
     currDir = os.getcwd()
     buildDir = os.path.join("src", "googletest", "build")
@@ -518,7 +523,7 @@ def compile_googletest():
         log = []
         if runJob("make gtest gtest_main", log=log, show_output=False, show_command=False):
             os.chdir(currDir)
-            print(green("Done"))
+            print(green("Done       "))
             return True
         else:
             print(red(log[0]))
@@ -530,6 +535,7 @@ def compile_googletest():
 
 def compile_libsvm():
     print("Building libsvm...")
+    print(yellow('Working...'), end='\r')
     log = []
     #if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
     currDir = os.getcwd()
@@ -541,7 +547,7 @@ def compile_libsvm():
         os.chdir(currDir)
         createDir(libDir)
         if runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir, log=log, show_command=False, show_output=False):
-            print(green("Done"))
+            print(green("Done         "))
             return True
         else:
             print(red(log[0]))
@@ -553,6 +559,7 @@ def compile_libsvm():
 
 def compile_libcifpp():
     print("Building libcifpp...")
+    print(yellow('Working...'), end='\r')
     log = []
     # Check if CMake version is up to date
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
@@ -579,7 +586,7 @@ def compile_libcifpp():
                 createDir(libDir)
                 log = []
                 if runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir, log=log, show_output=False, show_command=False):
-                    print(green("Done"))
+                    print(green("Done       "))
                     return True
                 else:
                     print(red(log[0]))
@@ -632,11 +639,13 @@ def compileDependencies(Nproc):
 
 
 def compileXmipp(Nproc):
-    print("\nCompiling -------------------------------------------")
+    print("\nCompiling xmippCore-------------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
+    print("\nCompiling xmipp-------------------------------------------")
     if not compileModule(Nproc,"xmipp"):
         return False
+    print("\nCompiling xmippViz-------------------------------------------")
     if not compileModule(Nproc,"xmippViz"):
         return False
     return True
@@ -666,6 +675,7 @@ def runTests(testNames):
         print(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
               blue('source build/xmipp.bashrc'))
+        errorEndMessage(XMIPP_VERNAME)
         sys.exit(1)
 
     dataSetPath = os.path.join(testsPath, 'data')
@@ -884,6 +894,7 @@ def install(dirname):
 
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
+        errorEndMessage(XMIPP_VERNAME)
         sys.exit(1)
 
     # Scipion connection
@@ -1088,6 +1099,7 @@ if __name__ == '__main__':
         ok = ok and install(dir)
         if not ok:
             print(red("\nSome error occurred...\n"))
+            errorEndMessage(XMIPP_VERNAME)
             sys.exit(1)
     elif mode == "install":
         if n == 3:
@@ -1131,7 +1143,8 @@ if __name__ == '__main__':
         if ok:
            sys.exit(0)
         else:
-           sys.exit(1)
+            errorEndMessage(XMIPP_VERNAME)
+            sys.exit(1)
     elif mode == "create_devel_paths":
         if n == 3:
             dir = sys.argv[2]
