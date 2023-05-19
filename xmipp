@@ -439,13 +439,30 @@ def getScipionHome():
 
 
 def compileModule(Nproc,module):
-    if module == "xmipp":
+    sconsProgress = False
+    progresLines = 0
+    progresLinesPrecompiled = 0
+    pythonU = ''
+    if module == "xmipp" or module == "xmippCore" or module == "xmippViz":
         stampVersion()
+        #if XMIPP_VERNAME == 'devel':
+        sconsProgress = True
+        pythonU = '-u'
+        progresLines = 773
+        progresLinesPrecompiled = 222
+    if module == "xmippCore":
+        progresLines = 123
+        progresLinesPrecompiled = 6
+    if module == "xmippViz":
+        progresLines = 56
+        progresLinesPrecompiled = 17
+
     log = []
-    ok = runJob("/usr/bin/env python3 $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
-                show_command=False)
+    ok = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
+                show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
+                progresLinesPrecompiled=progresLinesPrecompiled)
     lastError= ''
-    print(yellow('len log scons module: {}: {}'.format(module, len(log))))
+    #print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
         failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines

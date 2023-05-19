@@ -112,13 +112,44 @@ def find(program, path=[]):
         return None
 
 
+def binariesPrecompiled(log):
+    n = 0
+    for l in log:
+        if 'is up to date' in str(l):
+            n += 1
+    if n>20:
+        return True
+    else:
+        return False
+
+
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
-           in_parallel=False):
+           in_parallel=False, sconsProgress=False,
+           progresLines=773, progresLinesPrecompiled=222):
     str_out = []
     if show_command:
         print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, shell=True)
+    n = 0
+    while sconsProgress:
+        line = p.stdout.readline()
+        if line != '':
+            #print(str(line))
+            log.append(line)
+            if n >50:
+                if binariesPrecompiled(log):
+                    prg = int((n*100)/progresLinesPrecompiled)
+                    print(green('Progress: {}%'.format(prg)), end='\r')
+                else:
+                    prg = int((n*100)/progresLines)
+                    print(green('Progress: {}%'.format(prg)), end='\r')
+            n += 1
+        if not line:
+            print('break')
+            break
+
+
     while not in_parallel:
         output = p.stdout.readline().decode("utf-8")
         if output == '' and p.poll() is not None:
