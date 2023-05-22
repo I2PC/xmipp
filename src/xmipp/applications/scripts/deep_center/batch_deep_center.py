@@ -23,11 +23,9 @@ if __name__ == "__main__":
     gpuId = sys.argv[7]
     if mode == 'Angular':
         learning_rate = float(sys.argv[8])
-        representation = sys.argv[9]
-        loss_function = sys.argv[10]
-        pretrained = sys.argv[11]
+        pretrained = sys.argv[9]
         if pretrained == 'yes':
-            fnPreModel = sys.argv[12]
+            fnPreModel = sys.argv[10]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -182,29 +180,13 @@ if __name__ == "__main__":
                     rAngle = rAngle * math.pi / 180
                     yvalues = yvalues * math.pi / 180
 
-                    if representation == 'euler':
-                        if loss_function == 'geodesic':
-                            y = np.array(list((map(get_angles_radians_geo, yvalues, rAngle))))
-                        else:
-                            y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
-                    elif representation == 'cartesian':
-                        y = np.array(list((map(euler_to_cartesian, yvalues, rAngle))))
-                    else:
-                        y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+                    y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
             else:
                 Xexp = np.array(list(Iexp))
                 if mode == 'Shift':
                     y = yvalues
                 else:
-                    if representation == 'euler':
-                        if loss_function == 'geodesic':
-                            y = np.array(list((map(get_angles_radians_geo, yvalues, np.zeros(self.batch_size)))))
-                        else:
-                            y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
-                    elif representation == 'cartesian':
-                        y = np.array(list((map(euler_to_cartesian, yvalues, np.zeros(self.batch_size)))))
-                    else:
-                        y = np.array(list((map(euler_to_rotation6d, yvalues, np.zeros(self.batch_size)))))
+                    y = np.array(list((map(euler_to_rotation6d, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
 
@@ -248,12 +230,7 @@ if __name__ == "__main__":
         if mode == 'Shift':
             L = Dense(2, name="output", activation="linear")(L)
         else:
-            if representation == 'cartesian':
-                L = Dense(5, name="output", activation="linear")(L)
-            elif (representation == 'euler') and (loss_function == 'geodesic'):
-                L = Dense(5, name="output", activation="tanh")(L)
-            else:
-                L = Dense(6, name="output", activation="linear")(L)
+            L = Dense(6, name="output", activation="linear")(L)
 
         return Model(inputLayer, L)
 
@@ -311,82 +288,6 @@ if __name__ == "__main__":
         b3 = K.expand_dims(b3, axis=2)
         return K.concatenate((b1, b2, b3), axis=2)
 
-
-    # s = np.matmul(quaternions.T, quaternions)
-    # s /= len(quaternions)
-    # eigenValues, eigenVectors = np.linalg.eig(s)
-    # return np.real(eigenVectors[:, np.argmax(eigenValues)])
-
-    SL = xmippLib.SymList()
-    print("SL", SL, flush=True)
-    SL.readSymmetryFile("C2")
-    Matrices = SL.getSymmetryMatrices('o')
-
-    def eq_matrices(y_true, R):
-
-        # matrices must be transposed before ¿?
-        y_true = tf.Print(y_true, [y_true], message="This is y_true: ")
-        tfR = tf.constant(R)
-        tfR = tf.Print(tfR, [tfR], message="This is tfR: ")
-        tfR = tf.transpose(tfR, perm=[1, 0, 2])
-        # I could have a number and pass it...
-        # Reshape the tensor to (3, ?)
-        matrices = tf.reshape(tfR, (3, -1))
-        matrices = tf.Print(matrices, [matrices], message="matrices: ")
-
-        eq_rotations = tf.matmul(y_true, matrices)
-        eq_rotations = tf.Print(eq_rotations, [eq_rotations], message="This is eq_rotations: ")
-
-        shape = tf.shape(eq_rotations)
-        eq_rotations = tf.reshape(eq_rotations, [shape[0], -1, shape[1]])
-        eq_rotations6d = eq_rotations[:, :, :-1]
-        eq_rotations6d = tf.Print(eq_rotations6d, [eq_rotations6d], message="This is eq_rotations6d: ")
-        return tf.reshape(eq_rotations6d, [shape[0], shape[1], -1])
-
-    def compute_distances(y_pred, eq_y_true):
-        a1 = y_pred[:, slice(0, 6, 2)]
-        a2 = y_pred[:, slice(1, 6, 2)]
-        a1 = tf.linalg.normalize(a1, axis=1)[0]
-        a2 = tf.linalg.normalize(a2, axis=1)[0]
-        a1 = tf.expand_dims(a1, axis=-1)
-        a2 = tf.expand_dims(a2, axis=-1)
-
-        mat_pred = tf.concat([a1, a2], axis=-1)
-
-        odd_columns = eq_y_true[:, :, ::2]
-        even_columns = eq_y_true[:, :, 1::2]
-        odd_columns_expanded = tf.expand_dims(odd_columns, axis=0)
-        even_columns_expanded = tf.expand_dims(even_columns, axis=0)
-
-        # Perform dot multiplication between columns
-        dot_product = tf.multiply(mat_pred[:, :, 0:1], odd_columns_expanded) + tf.multiply(mat_pred[:, :, 1:2],
-                                                                                           even_columns_expanded)
-        #return dot_product
-        # Reduce the result along the second dimension
-        distances = -tf.reduce_sum(dot_product, axis=2)
-
-        return distances
-
-    def geodesic_distance_symmetries(y_true, y_pred):
-        mat_true = rotation6d_to_matrix(y_true)
-        eq_true = eq_matrices(mat_true, Matrices)
-        ds = compute_distances(y_pred, eq_true)
-        ds = tf.Print(ds, [ds], message="This is ds: ")
-        d = tf.reduce_min(ds, axis=2, keepdims=True)
-        d = tf.Print(d, [d], message="This is d: ")
-
-        print(K.sum(d))
-        return K.sum(d)
-
-    #def geodesic_ditance_symmetries(y_true, y_pred):
-    #    a1 = y_pred[:, slice(0, 6, 2)]
-    #    a2 = y_pred[:, slice(1, 6, 2)]
-    #    a1 = tf.linalg.normalize(a1, axis=1)[0]
-    #    a2 = tf.linalg.normalize(a2, axis=1)[0]
-    #    dist = K.dot(a1, K.transpose(y_true[:, slice(0, 6, 2)])) + K.dot(a2, K.transpose(y_true[:, slice(1, 6, 2)]))
-#
-    #    for matriz in Matrices:
-    #    return False
     def geodesic_distance(y_true, y_pred):
         a1 = y_pred[:, slice(0, 6, 2)]
         a2 = y_pred[:, slice(1, 6, 2)]
@@ -484,17 +385,8 @@ if __name__ == "__main__":
     if mode == 'Shift':
         model.compile(loss='mean_absolute_error', optimizer='adam')
     else:
-
-        if loss_function == 'l1':
-            model.compile(loss='mean_absolute_error', optimizer='adam')
-        elif loss_function == 'l2':
-            model.compile(loss='mean_squared_error', optimizer='adam')
-        else:
-            if representation == 'euler':
-                model.compile(loss=custom_loss, optimizer='adam')
-            else:
-                model.compile(loss=geodesic_loss, optimizer=adam_opt)
-                #model.compile(loss=geodesic_distance_symmetries, optimizer=adam_opt)
+        model.compile(loss=geodesic_loss, optimizer=adam_opt)
+        #model.compile(loss=geodesic_distance_symmetries, optimizer=adam_opt)
 
     save_best_model = ModelCheckpoint(fnModel, monitor='val_loss',
                                       save_best_only=True)

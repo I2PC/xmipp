@@ -24,8 +24,6 @@ if __name__ == "__main__":
     fnXmdImages = sys.argv[6]
     if predictAngles == 'yes':
         fnAngModel = sys.argv[7]
-        representation = sys.argv[8]
-        loss_function = sys.argv[9]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -132,55 +130,11 @@ if __name__ == "__main__":
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
                 mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             elif mode == "Angular":
-                if representation == 'euler':
-                    if loss_function == 'geodesic':
-                        rots = Y[ID][0:2]
-                        costilts = Y[ID][2]
-                        psis = Y[ID][3:]
-                        psis /= norm(psis)
-                        psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
-                        rots /= norm(rots)
-                        rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
-                        if costilts > 1:
-                            costilts = 1
-                        if costilts < -1:
-                            costilts = -1
-                            
-                        tilts_degree = math.acos(costilts) * 180 / math.pi
-                        mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
-                        mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
-                        mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
-                    else:
-                        rots = Y[ID][0:2]
-                        tilts = Y[ID][2:4]
-                        psis = Y[ID][4:]
-                        psis /= norm(psis)
-                        psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
-                        rots /= norm(rots)
-                        rots_degree = (math.atan2(rots[0], rots[1])) * 180 / math.pi
-                        tilts /= norm(tilts)
-                        tilts_degree = (math.atan2(tilts[0], tilts[1])) * 180 / math.pi
-                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
-                elif representation == 'cartesian':
-                    psis = Y[ID][3:]
-                    psis /= norm(psis)
-                    psis_degree = (math.atan2(psis[0], psis[1])) * 180 / math.pi
-                    rots = math.atan2(Y[ID][1], Y[ID][0])
-                    rots_degree = rots * 180 / math.pi
-                    tilts = math.atan2(math.sqrt(math.pow(Y[ID][1], 2) + math.pow(Y[ID][0], 2)), Y[ID][2])
-                    tilts_degree = tilts * 180 / math.pi
-                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psis_degree, objId)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rots_degree, objId)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilts_degree, objId)
-
-                else:
-                    rotmatrix = rotation6d_to_matrix(Y[ID])
-                    angles = matrix_to_euler(rotmatrix)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
-                    mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+                rotmatrix = rotation6d_to_matrix(Y[ID])
+                angles = matrix_to_euler(rotmatrix)
+                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
+                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
             ID += 1
 
 
@@ -189,13 +143,8 @@ if __name__ == "__main__":
     mdExp = xmippLib.MetaData(fnXmdExp)
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
 
-    Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
-    mdExp = xmippLib.MetaData(fnXmdExp)
-    fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-
     mdExpImages = xmippLib.MetaData(fnXmdImages)
     fnImages = mdExpImages.getColumnValues(xmippLib.MDL_IMAGE)
-
 
     start_time = time()
 
