@@ -213,58 +213,37 @@ if __name__ == "__main__":
 
         # Network model
 
-        L = Conv2D(32, (3, 3), padding="same")(inputLayer)
+        L = Conv2D(32, (3, 3), activation="relu")(inputLayer)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
 
-        L = Conv2D(64, (3, 3), padding="same")(L)
+        L = Conv2D(64, (3, 3), activation="relu")(L)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
-        L = Conv2D(64, (3, 3), padding="same")(L)
-        L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
 
-        L = Conv2D(128, (3, 3), padding="same")(L)
+        L = Conv2D(128, (3, 3), activation="relu")(L)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
-        L = Conv2D(128, (3, 3), padding="same")(L)
-        L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
+        L = Dropout(0.2)(L)
 
-        L = Conv2D(256, (3, 3), padding="same")(L)
+        L = Conv2D(256, (3, 3), activation="relu")(L)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
-        L = Conv2D(256, (3, 3), padding="same")(L)
-        L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.1)(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.5)(L)
+        L = Dropout(0.2)(L)
 
         L = Flatten()(L)
-
-        L = Dense(256, kernel_regularizer=regularizers.l1(0.001))(L)
+        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.5)(L)
+        L = Dropout(0.2)(L)
 
-        L = Dense(256, kernel_regularizer=regularizers.l1(0.001))(L)
+        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
-        L = Dropout(0.5)(L)
+        L = Dropout(0.2)(L)
 
-        L = Dense(256, kernel_regularizer=regularizers.l1(0.001))(L)
+        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
-        L = Activation('relu')(L)
 
         if mode == 'Shift':
             L = Dense(2, name="output", activation="linear")(L)
@@ -333,16 +312,10 @@ if __name__ == "__main__":
         return K.concatenate((b1, b2, b3), axis=2)
 
 
-    #def geodesic_distance(y_true, y_pred):
-    #    mat_true = rotation6d_to_matrix(y_true)
-    #    mat_pred = rotation6d_to_matrix(y_pred)
-    #    R = tf.matmul(mat_true, mat_pred, transpose_b=True)
-    #    #val = (K.tf.linalg.trace(R) - 1) / 2
-    #    #val = tf.math.minimum(val, tf.constant([0.999]))
-    #    #val = tf.math.maximum(val, tf.constant([-0.999]))
-    #    #return K.mean(tf.math.acos(val), axis=-1)
-    #    d = -tf.linalg.trace(R)
-    #    return K.mean(d)
+    # s = np.matmul(quaternions.T, quaternions)
+    # s /= len(quaternions)
+    # eigenValues, eigenVectors = np.linalg.eig(s)
+    # return np.real(eigenVectors[:, np.argmax(eigenValues)])
 
     SL = xmippLib.SymList()
     print("SL", SL, flush=True)
