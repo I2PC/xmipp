@@ -14,3 +14,5 @@ dependencies:
   - faiss-gpu=1.7.3
   - mrcfile=1.4.3
   - starfile=0.4.12
+  - scipy=1.10.1
+  - kornia=0.6.12

@@ -20,35 +20,72 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Sequence, Iterable, Optional, Tuple
+from typing import Iterable, Optional, Tuple
 import pandas as pd
 import torch
 import torchvision.transforms as T
-import torchvision.transforms.functional as F
+import kornia
 
 from .. import operators
 from .. import math
-from .. import fourier
 from .. import metadata as md
 
-def _compute_frequencies(flattener: operators.SpectraFlattener,
-                         dim: Sequence[int],
-                         device: Optional[torch.device] = None ) -> torch.Tensor:
-    d = 1.0/(2*torch.pi)
-    frequency_grid = fourier.rfftnfreq(dim, d=d, device=device)
-    return flattener(frequency_grid)
+def _create_rotation_matrix(angles: torch.Tensor,
+                            out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    result = torch.empty((len(angles), 2, 2), out=out)
+    
+    # A day lost here :-)
+    angles = torch.deg2rad(angles)
+    
+    result[:,0,0] = torch.cos(angles, out=result[:,0,0])
+    result[:,1,0] = torch.sin(angles, out=result[:,0,1])
+    result[:,0,1] = -result[:,1,0]
+    result[:,1,1] = result[:,0,0]
+
+    return result
+
+def _create_affine_matrix(angles: torch.Tensor,
+                          shifts: torch.Tensor,
+                          centre: torch.Tensor,
+                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+
+    batch_size = len(angles)
+
+    if angles.shape != (batch_size, ):
+        raise RuntimeError('angles has not the expected size')
+
+    if shifts.shape != (batch_size, 2):
+        raise RuntimeError('shifts has not the expected size')
+
+    result = torch.empty((batch_size, 2, 3), out=out)
+
+    # Compute the rotation matrix
+    rotation_matrices = result[:,:2,:2]
+    rotation_matrices = _create_rotation_matrix(
+        angles=angles.to(result), 
+        out=rotation_matrices
+    )
+    
+    # Apply the shifts
+    shifts = shifts - centre
+    result[:,:,2,None] = torch.matmul(
+        rotation_matrices, 
+        shifts[...,None].to(result), 
+        out=result[:,:,2,None]
+    )
+    result[:,:,2] += centre
+
+    return result
 
 class FourierInPlaneTransformCorrector:
     def __init__(self,
-                 dim: Sequence[int],
                  flattener: operators.SpectraFlattener,
                  weights: Optional[torch.Tensor] = None,
                  norm: Optional[str] = None,
                  interpolation: T.InterpolationMode = T.InterpolationMode.BILINEAR,
                  device: Optional[torch.device] = None ) -> None:
 
-        self.frequencies = _compute_frequencies(flattener, dim, device=device)
-        
         # Operations
         self.fourier = operators.FourierTransformer2D()
         self.flattener = flattener
@@ -71,53 +108,50 @@ class FourierInPlaneTransformCorrector:
         if self.norm:
             raise NotImplementedError('Normalization is not implemented')
 
-        rotated_images = None
-        rotated_fourier_transforms = None
-        rotated_bands = None
-        shift_filters = None
-        shifted_rotated_bands = None
+        transform_matrix = None
+        fourier_transforms = None
+        bands = None
+        
+        TRANSFORM_LABELS = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y]
         
         for batch_images, batch_md in images:
             if self.device is not None:
                 batch_images = batch_images.to(self.device, non_blocking=True)
+            
+            if all(map(batch_md.columns.__contains__, TRANSFORM_LABELS)):
+                transformations = torch.from_numpy(batch_md[TRANSFORM_LABELS].to_numpy())
+                angles = transformations[:,0]
+                shifts = transformations[:,1:]
+                centre = torch.tensor(batch_images.shape[-2:]) / 2
 
-            if md.ANGLE_PSI in batch_md.columns:
-                angles = batch_md[md.ANGLE_PSI]
-                
-                # Individually rotate. #FIXME very slow
-                rotated_images = torch.empty_like(batch_images)
-                for angle, image, rotated_image in zip(-angles, batch_images, rotated_images):
-                    rotated_image[None] = F.rotate(image[None], angle=float(angle), interpolation=self.interpolation)
-                    
-            else:
-                # No need for rotation
-                rotated_images = batch_images
-                
-            rotated_fourier_transforms = self.fourier(
-                rotated_images, 
-                out=rotated_fourier_transforms
+                transform_matrix = _create_affine_matrix(
+                    angles=angles,
+                    shifts=shifts,
+                    centre=centre,
+                    out=transform_matrix
+                )
+            
+                batch_images = batch_images[:,None,:,:]
+                batch_images = kornia.geometry.transform.affine(
+                    batch_images,
+                    matrix=transform_matrix.to(batch_images, non_blocking=True),
+                    mode='bilinear',
+                    padding_mode='border'
+                )
+                batch_images = batch_images[:,0,:,:]
+
+            fourier_transforms = self.fourier(
+                batch_images, 
+                out=fourier_transforms
             )
             
-            rotated_bands = self.flattener(
-                rotated_fourier_transforms,
-                out=rotated_bands
+            bands = self.flattener(
+                fourier_transforms,
+                out=bands
             )              
             
             if self.weights is not None:
-                rotated_bands *= self.weights
-            
-            if md.SHIFT_X in batch_md.columns and md.SHIFT_Y in batch_md.columns:
-                shifts = torch.tensor(
-                    batch_md[[md.SHIFT_X, md.SHIFT_Y]].to_numpy(), 
-                    dtype=self.frequencies.dtype,
-                    device=self.frequencies.device
-                )
-                shift_filters = fourier.time_shift_filter(shifts, self.frequencies, out=shift_filters)
-                shifted_rotated_bands = torch.mul(rotated_bands, shift_filters, out=shifted_rotated_bands)
-
-            else:
-                # No need for shift correction
-                shifted_rotated_bands = rotated_bands
-
-            yield math.flat_view_as_real(shifted_rotated_bands)
+                bands *= self.weights
+                
+            yield math.flat_view_as_real(bands)
             

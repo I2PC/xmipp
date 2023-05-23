@@ -85,8 +85,7 @@ def run(experimental_md_path: str,
         max_size: int,
         method: str,
         norm: Optional[str],
-        local_psi: bool,
-        local_shift: bool,
+        local: bool,
         drop_na: bool,
         k: int,
         device_names: list,
@@ -151,7 +150,6 @@ def run(experimental_md_path: str,
         device=transform_device
     )
     experimental_transformer = alignment.FourierInPlaneTransformCorrector(
-        dim=image_size,
         flattener=flattener,
         weights=weights,
         norm=norm,
@@ -177,11 +175,10 @@ def run(experimental_md_path: str,
     
     alignment_md = None
     n_batches_per_iteration = max(1, max_size // min(batch_size, len(reference_dataset)))
-    local_columns = []
-    if local_psi:
-        local_columns.append(md.ANGLE_PSI)
-    if local_shift:
-        local_columns += [md.SHIFT_X, md.SHIFT_Y]
+    if local:
+        local_columns = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y]
+    else:
+        local_columns = []
     local_transform_md = experimental_md[local_columns]
     populate_time = 0.0
     alignment_time = 0.0
@@ -257,8 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
-    parser.add_argument('--local_psi', action='store_true')
-    parser.add_argument('--local_shift', action='store_true')
+    parser.add_argument('--local', action='store_true')
     parser.add_argument('--dropna', action='store_true')
     parser.add_argument('-k', type=int, default=1)
     parser.add_argument('--devices', nargs='*')
@@ -284,8 +280,7 @@ if __name__ == '__main__':
         batch_size = args.batch,
         max_size = args.max_size,
         method = args.method,
-        local_psi = args.local_psi,
-        local_shift = args.local_shift,
+        local = args.local,
         norm = args.norm,
         drop_na = args.dropna,
         k = args.k,
