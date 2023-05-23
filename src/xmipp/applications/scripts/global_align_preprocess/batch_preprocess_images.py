@@ -64,8 +64,11 @@ def apply_scale(prjImages, expImages, radius):
     expMeanSignal, expStdSignal, expMeanNoise, expStdNoise = signal_to_noise_statistic(expImages, radius)
     # print(expMeanSignal, expStdSignal, expMeanNoise, expStdNoise)
     
-    a = torch.sqrt( (prjStdSignal*prjStdSignal)/(expStdSignal*expStdSignal - expStdNoise*expStdNoise) )
+    a = prjStdSignal*prjStdSignal
+    denom = torch.abs(expStdSignal*expStdSignal - expStdNoise*expStdNoise)
+    a = torch.sqrt(a/denom)
     b = prjMeanSignal - a*(expMeanSignal-expMeanNoise)
+    print(a,b)
       
     prjImages = (prjImages - b)/a
     
