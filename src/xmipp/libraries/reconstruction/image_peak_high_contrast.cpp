@@ -49,17 +49,17 @@ void ProgImagePeakHighContrast::readParams()
 void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume.");
-	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
+	addParamsLine("  --vol <vol_file=\"\">                   				: File path to input volume.");
+	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: File path to output coordinates file.");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
-   	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
- 	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
-  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
- 	addParamsLine("  [--sdThr <sdThr=5>]      								: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
- 	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
-	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation between a feature and its mirror to consider it a fiducial.");
-	addParamsLine("  [--mahalanobisDistanceThr <mahalanobisDistanceThr=2>]  : Minimum correlation between a feature and its mirror to consider it a fiducial.");
-	addParamsLine("  [--relaxedMode]    									: Relaxed mode keeps coordinates when none of them pass the mirror correlation filter.");
+   	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Size of the fiducial markers in Angstroms (A).");
+ 	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked fiducials.");
+  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of sampling slices to calculate the threshold value.");
+ 	addParamsLine("  [--sdThr <sdThr=5>]      								: Number of STD away the mean to consider that a pixel has an outlier value.");
+ 	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of points attracted to a coordinate.");
+	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation of a coordinate with its mirror.");
+	addParamsLine("  [--mahalanobisDistanceThr <mahalanobisDistanceThr=2>]  : Minimum Mahalanobis distance.");
+	addParamsLine("  [--relaxedMode]    									: Mode to disable a filter in case it removes all coordinates.");
 }
 
 
