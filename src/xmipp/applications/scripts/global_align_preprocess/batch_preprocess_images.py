@@ -66,6 +66,8 @@ def apply_scale(prjImages, expImages, radius):
     
     a = prjStdSignal*prjStdSignal
     denom = torch.abs(expStdSignal*expStdSignal - expStdNoise*expStdNoise)
+    if denom == 0:
+        denom = 0.000000001
     a = torch.sqrt(a/denom)
     b = prjMeanSignal - a*(expMeanSignal-expMeanNoise)
     print(a,b)
