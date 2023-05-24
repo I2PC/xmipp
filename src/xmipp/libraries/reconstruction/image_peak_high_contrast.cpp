@@ -42,7 +42,13 @@ void ProgImagePeakHighContrast::readParams()
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	mirrorCorrelationThr = getDoubleParam("--mirrorCorrelationThr");
 	mahalanobisDistanceThr = getDoubleParam("--mahalanobisDistanceThr");
-	relaxedMode = checkParam("--relaxedMode");
+	relaxedMode = checkParam("--relaxedModeThr");
+
+	if (relaxedMode)
+	{
+		relaxedModeThr = getIntParam("--relaxedModeThr");
+	}
+	
 }
 
 
@@ -59,7 +65,7 @@ void ProgImagePeakHighContrast::defineParams()
  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of points attracted to a coordinate.");
 	addParamsLine("  [--mirrorCorrelationThr <mirrorCorrelationThr=0.1>]    : Minimum correlation of a coordinate with its mirror.");
 	addParamsLine("  [--mahalanobisDistanceThr <mahalanobisDistanceThr=2>]  : Minimum Mahalanobis distance.");
-	addParamsLine("  [--relaxedMode]    									: Mode to disable a filter in case it removes all coordinates.");
+	addParamsLine("  [--relaxedModeThr <mahalanobisDistanceThr=3>]    		: Number of remaining coordinates to disable a filter in case it removes all coordinates.");
 }
 
 
@@ -1269,9 +1275,9 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	}
 
 	// --- Evaluate relaxed mode ---
-	if (newCoordinates3D.size()==0)
+	if (relaxedMode==false)
 	{
-		if (relaxedMode==false)
+		if (newCoordinates3D.size()<=relaxedModeThr)
 		{
 			coordinates3D.clear();
 			coordinates3D = newCoordinates3D;

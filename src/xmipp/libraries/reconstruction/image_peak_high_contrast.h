@@ -85,8 +85,9 @@ public:
     double mirrorCorrelationThr;        // Minimum correlation between a fiducial and its mirror
     double mahalanobisDistanceThr;      // Maximum mahalanobis distance (empirical value)
 
-    /** Toggle to use relaxed mode*/
+    /** Params to use relaxed mode*/
     bool relaxedMode;               // Relaxed mode keeps coordinates when none of them pass the mirror correlation filter
+    int relaxedModeThr = 0;             // Number of coordinates to run relaxed mode
 
     /** Fiducial size in pixels */
      double fiducialSizePx;
