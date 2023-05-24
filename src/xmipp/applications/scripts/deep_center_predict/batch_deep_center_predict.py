@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift, rotate
 #from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
 
-maxSize = 128
+maxSize = 64
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -311,7 +311,7 @@ if __name__ == "__main__":
         angles = r.as_euler("xyz", degrees=True)
         return angles
 
-    def produce_output(mdExp, mode, Y, fnImages):
+    def produce_output(mdExp, mode, Y, distance, fnImages):
         ID = 0
         for objId in mdExp:
             if mode == "Shift":
@@ -324,11 +324,15 @@ if __name__ == "__main__":
                 mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+                if distance[ID] > 15:
+                    mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
 
-    def convert_to_cuaternions(rep6d):
-        matrix = np.array(list(map(rotation6d_to_matrix, rep6d)))
-        return np.array(list(map(quaternion_from_matrix, matrix)))
+    def convert_to_matrix(rep6d):
+        return np.array(list(map(rotation6d_to_matrix, rep6d)))
+
+    def convert_to_quaternions(mat):
+        return np.array(list(map(quaternion_from_matrix, mat)))
 
     def average_quaternions(quaternions):
         s = np.matmul(quaternions.T, quaternions)
@@ -336,11 +340,29 @@ if __name__ == "__main__":
         eigenValues, eigenVectors = np.linalg.eig(s)
         return np.real(eigenVectors[:, np.argmax(eigenValues)])
 
+    def maximum_distance(av_mat, mat):
+        c = mat * av_mat[np.newaxis, 0:3, 0:3]
+        d = np.sum(c, axis=(1, 2))
+        ang_Distances = np.arccos((d-1)/2)
+        return np.max(ang_Distances)
+
+    #def average_of_rotations(pred6d):
+    #    matrix = convert_to_matrix(pred6d)
+    #    quats = convert_to_quaternions(matrix)
+    #    av_quats = average_quaternions(quats)
+    #    av_matrix = quaternion_matrix(av_quats)
+    #    max_distances = maximum_distance(av_matrix, matrix) * 180 / math.pi
+
+
     def compute_averages(pred6d):
-        quats = np.array(list(map(convert_to_cuaternions, pred6d)))
+        mats = np.array(list(map(convert_to_matrix, pred6d)))
+        quats = np.array(list(map(convert_to_quaternions, mats)))
         av_quats = np.array(list(map(average_quaternions, quats)))
-        av_euler = np.array(list(map(euler_from_quaternion, av_quats)))
-        return av_euler
+        av_matrix = np.array(list(map(quaternion_matrix, av_quats)))
+        max_distances = np.array(list(map(maximum_distance, av_matrix, mats)))*180/math.pi
+        av_euler = np.array(list(map(euler_from_matrix, av_matrix)))
+        return av_euler, max_distances
+        #return av_euler
 
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
@@ -359,8 +381,9 @@ if __name__ == "__main__":
     ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
 
     Y = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
+    distance = np.zeros(len(fnImgs))
+    produce_output(mdExp, 'Shift', Y, distance, fnImages)
 
-    produce_output(mdExp, 'Shift', Y, fnImages)
 
     if predictAngles == 'yes':
         predictions = np.zeros((len(fnImgs), numModels, 6))
@@ -369,8 +392,8 @@ if __name__ == "__main__":
            AngModel.compile(loss="mean_squared_error", optimizer='adam')
            AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
            predictions[:, index, :] = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
-        Y = compute_averages(predictions)
-        produce_output(mdExp, 'Angular', Y, fnImages)
+        Y, distance = compute_averages(predictions)
+        produce_output(mdExp, 'Angular', Y, distance, fnImages)
 
         # AngModel = load_model(fnAngModel, compile=False)
         # AngModel.compile(loss="mean_squared_error", optimizer='adam')
