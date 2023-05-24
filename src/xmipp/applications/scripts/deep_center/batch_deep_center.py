@@ -21,9 +21,11 @@ if __name__ == "__main__":
     numEpochs = int(sys.argv[5])
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
+    numModels = 1
     if mode == 'Angular':
         learning_rate = float(sys.argv[8])
         pretrained = sys.argv[9]
+        numModels = int(sys.argv[11])
         if pretrained == 'yes':
             fnPreModel = sys.argv[10]
 
@@ -60,6 +62,8 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
 
+            print("fnImages DataGenerator len", len(self.fnImgs), flush=True)
+
             # Read all data in memory
             if self.readInMemory:
                 self.Xexp = np.zeros((len(self.labels), self.dim, self.dim, 1), dtype=np.float64)
@@ -70,6 +74,7 @@ if __name__ == "__main__":
         def __len__(self):
             'Denotes the number of batches per epoch'
             num_batches = int(np.floor((len(self.labels)) / self.batch_size))
+            print('num_batches', num_batches)
             return num_batches
 
         def __getitem__(self, index):
@@ -106,16 +111,6 @@ if __name__ == "__main__":
             def shift_image(img, shiftx, shifty):
                 return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
 
-            def get_angles_radians(angles, angle):
-                return np.array((math.sin(angles[0]), math.cos(angles[0]), math.sin(angles[1]),
-                                 math.cos(angles[1]), math.sin(angles[2] + angle),
-                                 math.cos(angles[2] + angle)))
-
-            def get_angles_radians_geo(angles, angle):
-                return np.array((math.sin(angles[0]), math.cos(angles[0]),
-                                 math.cos(angles[1]), math.sin(angles[2] + angle),
-                                 math.cos(angles[2] + angle)))
-
             def R_rot(theta):
                 return np.matrix([[1, 0, 0],
                                   [0, math.cos(theta), -math.sin(theta)],
@@ -145,14 +140,6 @@ if __name__ == "__main__":
                 mat = euler_angles_to_matrix(angles, psi_rotation)
                 return matrix_to_rotation6d(mat)
 
-            def euler_to_cartesian(angles, psi_rotation):
-                x = math.sin(angles[1]) * math.cos(angles[0])
-                y = math.sin(angles[1]) * math.sin(angles[0])
-                z = math.cos(angles[1])
-                sinpsi = math.sin(angles[2] + psi_rotation)
-                cospsi = math.cos(angles[2] + psi_rotation)
-                return np.array((x, y, z, sinpsi, cospsi))
-
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
@@ -160,8 +147,8 @@ if __name__ == "__main__":
                 Iexp = list(map(get_image, fnIexp))
             # Data augmentation
             if self.sigma > 0:
-                rX = (self.sigma/5) * np.random.normal(0, 1, size=self.batch_size)
-                rY = (self.sigma/5) * np.random.normal(0, 1, size=self.batch_size)
+                rX = (self.sigma / 5) * np.random.normal(0, 1, size=self.batch_size)
+                rY = (self.sigma / 5) * np.random.normal(0, 1, size=self.batch_size)
                 rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                 rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                 if mode == 'Shift':
@@ -263,13 +250,6 @@ if __name__ == "__main__":
         return Xdim, fnImgs, labels_val, train, valid
 
 
-    Xdim, fnImgs, labels, indTrain, indVal = get_labels(fnXmdExp, mode)
-
-    training_generator = DataGenerator([fnImgs[i] for i in indTrain], [labels[i] for i in indTrain], mode, sigma,
-                                       batch_size, Xdim, readInMemory=False)
-    validation_generator = DataGenerator([fnImgs[i] for i in indVal], [labels[i] for i in indVal], mode, sigma,
-                                         batch_size, Xdim, readInMemory=False)
-
     import tensorflow as tf
     import keras.backend as K
 
@@ -288,18 +268,20 @@ if __name__ == "__main__":
         b3 = K.expand_dims(b3, axis=2)
         return K.concatenate((b1, b2, b3), axis=2)
 
+
     def geodesic_distance(y_true, y_pred):
         a1 = y_pred[:, slice(0, 6, 2)]
         a2 = y_pred[:, slice(1, 6, 2)]
         a1 = tf.linalg.normalize(a1, axis=1)[0]
         a2 = tf.linalg.normalize(a2, axis=1)[0]
-        d = K.sum(y_true[:, 0]*a1[:, 0])
+        d = K.sum(y_true[:, 0] * a1[:, 0])
         d += K.sum(y_true[:, 2] * a1[:, 1])
         d += K.sum(y_true[:, 4] * a1[:, 2])
         d += K.sum(y_true[:, 1] * a2[:, 0])
         d += K.sum(y_true[:, 3] * a2[:, 1])
         d += K.sum(y_true[:, 5] * a2[:, 2])
         return -d
+
 
     def geodesic_loss(y_true, y_pred):
         d = geodesic_distance(y_true, y_pred)
@@ -368,31 +350,43 @@ if __name__ == "__main__":
         return K.mean(d)
 
 
-
-
+    Xdim, fnImgs, labels, indTrain, indVal = get_labels(fnXmdExp, mode)
     start_time = time()
-    if mode == 'Shift':
-        model = constructModel(Xdim, mode)
-    else:
-        if pretrained == 'yes':
-            model = load_model(fnPreModel, compile=False)
-        else:
+
+    lenTrain = int(len(indTrain) / numModels)
+    lenVal = int(len(indVal) / numModels)
+    print("len", len(indTrain))
+    print("lenTrain", lenTrain)
+
+    for index in range(numModels):
+        training_generator = DataGenerator([fnImgs[i] for i in indTrain[index * lenTrain: (index + 1) * lenTrain]],
+                                           [labels[i] for i in indTrain[index * lenTrain: (index + 1) * lenTrain]],
+                                           mode, sigma, batch_size, Xdim, readInMemory=False)
+        print("len train" + str(index), len(indTrain[index * lenTrain: (index + 1) * lenTrain]))
+        print("len val" + str(index), len(indVal[index * lenVal: (index + 1) * lenVal]), flush=True)
+        validation_generator = DataGenerator([fnImgs[i] for i in indVal[index * lenVal: (index + 1) * lenVal]],
+                                             [labels[i] for i in indVal[index * lenVal: (index + 1) * lenVal]],
+                                             mode, sigma, batch_size, Xdim, readInMemory=False)
+
+        if mode == 'Shift':
             model = constructModel(Xdim, mode)
-        adam_opt = Adam(lr=learning_rate)
-    model.summary()
+        else:
+            if pretrained == 'yes':
+                model = load_model(fnPreModel, compile=False)
+            else:
+                model = constructModel(Xdim, mode)
+            adam_opt = Adam(lr=learning_rate)
+        model.summary()
 
-    steps = round(len(fnImgs) / batch_size)
-    if mode == 'Shift':
-        model.compile(loss='mean_absolute_error', optimizer='adam')
-    else:
-        model.compile(loss=geodesic_loss, optimizer=adam_opt)
-        #model.compile(loss=geodesic_distance_symmetries, optimizer=adam_opt)
 
-    save_best_model = ModelCheckpoint(fnModel, monitor='val_loss',
-                                      save_best_only=True)
+        if mode == 'Shift':
+            model.compile(loss='mean_absolute_error', optimizer='adam')
+        else:
+            model.compile(loss=geodesic_loss, optimizer=adam_opt)
+        save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
+                                          save_best_only=True)
 
-    history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                  validation_data=validation_generator, callbacks=[save_best_model])
-
+        history = model.fit_generator(generator=training_generator, epochs=numEpochs,
+                                      validation_data=validation_generator, callbacks=[save_best_model])
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
