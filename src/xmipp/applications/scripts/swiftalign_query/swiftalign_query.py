@@ -22,7 +22,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Tuple
 import torch
 import argparse
 import itertools
@@ -70,6 +70,34 @@ def _read_ctf(path: Optional[str],
         
     return ctfs
 
+def _calculate_rotations(max_psi: float, 
+                         n_rotations: int ) -> torch.Tensor:
+    
+    result = None
+    if n_rotations > 1:
+        if max_psi >= 180:
+            # Consider [-180, +180)
+            result = torch.linspace(-180.0, +180, n_rotations+1)[:-1]
+        else:
+            # Consider [-max_psi, +max_psi]
+            result = torch.linspace(-max_psi, +max_psi, n_rotations)
+    else:
+        # No rotations
+        result = torch.full((1, ), 0.0)
+        
+    return result
+        
+
+def _calculate_shifts(max_shift: float, 
+                      n_shifts: int, 
+                      image_size: Tuple[int, int]) -> torch.Tensor:
+    max_shift_x = max_shift*image_size[0]
+    max_shift_y = max_shift*image_size[1]
+    shifts_x = torch.linspace(-max_shift_x, +max_shift_x, n_shifts)
+    shifts_y = torch.linspace(-max_shift_y, +max_shift_y, n_shifts)
+    shifts = torch.cartesian_prod(shifts_x, shifts_y)
+    return shifts
+
 def run(experimental_md_path: str, 
         reference_md_path: str, 
         index_path: str,
@@ -111,16 +139,8 @@ def run(experimental_md_path: str,
     db.to_device(db_device, use_f16=use_f16, reserve_vecs=max_size)
     
     # Create the in-plane transforms
-    if max_psi >= 180:
-        angles = torch.linspace(-180.0, +180, n_rotations+1)[:-1]
-    else:
-        angles = torch.linspace(-max_psi, +max_psi, n_rotations)
-    
-    max_shift_x = max_shift*image_size[0]
-    max_shift_y = max_shift*image_size[1]
-    shifts_x = torch.linspace(-max_shift_x, +max_shift_x, n_shifts)
-    shifts_y = torch.linspace(-max_shift_y, +max_shift_y, n_shifts)
-    shifts = torch.cartesian_prod(shifts_x, shifts_y)
+    angles = _calculate_rotations(max_psi=max_psi, n_rotations=n_rotations)   
+    shifts = _calculate_shifts(max_shift=max_shift, n_shifts=n_shifts, image_size=image_size)
     n_transform = len(angles) * len(shifts)
     print(f'Performing {n_transform} transformations to each reference image')
     
@@ -175,10 +195,7 @@ def run(experimental_md_path: str,
     
     alignment_md = None
     n_batches_per_iteration = max(1, max_size // min(batch_size, len(reference_dataset)))
-    if local:
-        local_columns = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y]
-    else:
-        local_columns = []
+    local_columns = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y] if local else []
     local_transform_md = experimental_md[local_columns]
     populate_time = 0.0
     alignment_time = 0.0

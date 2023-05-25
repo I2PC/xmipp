@@ -136,7 +136,7 @@ class FourierInPlaneTransformCorrector:
                     batch_images,
                     matrix=transform_matrix.to(batch_images, non_blocking=True),
                     mode='bilinear',
-                    padding_mode='border'
+                    padding_mode='zeros'
                 )
                 batch_images = batch_images[:,0,:,:]
 
