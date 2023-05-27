@@ -54,34 +54,55 @@ class DeepPickingConsensusTomoNetworkManager():
         """
         self.rootPath = rootPath
         self.nThreads = nThreads
+        self.nGPUs = 0
 
-        checkpointsName = os.path.join(rootPath, "nnchkpoints")
-        self.checkpointsNameTemplate = os.path.join(checkpointsName)
+        checkpointsName = os.path.join(rootPath, "checkpoint")
+        self.checkpointsNameTemplate = os.path.join(checkpointsName, "model.hdf5")
+
         self.optimizer = None
         self.model = None
-        self.compiledNetwork : keras.Model = None
+        self.compiledNetwork  = None
         self.wantedGPUs = gpuIDs
 
+        if gpuIDs is not None:
+            # Set TF so it only sees the desired GPUs
+            self.gpusConfig()
 
 
-    def startSessionAndInit(self):
+    def gpusConfig(self):
         """
+        This function allows TF only to see the GPUs wanted for the processing,
+        thus avoiding the use of unwanted GPUs on multi-user systems.
         """
 
-        # Check GPUs and config TF
-        availGPU = tf.config.list_physical_devices('GPU')
-        print("Found the following GPUs in the system: ", len(availGPU))
+        # Check GPUs in system
+        availGPUs = tf.config.list_physical_devices('GPU')
+        print("Found this many GPUs in the system: ", availGPUs)
+        # Compare with the asked amount
+        assert len(self.wantedGPUs) <= len(availGPUs), "Not enough GPUs in the system for the asked amount"
+        print("Trying to lock GPUs with id: ", self.wantedGPUs)
+
+        # Set as visible only selected GPUs
+        try:
+            myGPUs = [ availGPUs[gpu] for gpu in availGPUs ]
+            tf.config.set_visible_devices(myGPUs,'GPU')
+            self.nGPUs = len(self.wantedGPUs)
+        except:
+            print("Could not disable (already initialized virtual devices?)")
+            return
         
-
+        if self.nGPUs > 1:
+            # Configuration for TF Strategies
+            pass
 
 
     def createNetwork(self, xdim, ydim, zdim, num_chan, nData=2**12):      
 
         print("Compiling the model into a network")
-        
+        # Get the model structure
         model : keras.models.Sequential = self.getModel(dataset_size=nData, input_shape=(xdim,ydim,zdim,num_chan))
-        
-        self.compiledNetwork = model.compile(loss='', optimizer='adam')
+        # Compile the model
+        self.compiledNetwork = model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     def loadNetwork(self, modelFile, keepTraining=True):
         if not os.path.isfile(modelFile):
@@ -91,7 +112,24 @@ class DeepPickingConsensusTomoNetworkManager():
         if keepTraining:
             pass
 
- 
+    def trainNetwork(self, nEpochs, dataman, learningRate, autoStop=True):
+        """
+        nEpochs: int. Number of epochs to be run in training stage
+        dataman: DataMan. Data provider for training batch.
+        """
+
+        # Print the input information
+        print("Max epochs: ", nEpochs)
+        print("Learning rate: %.1e"%(learningRate))
+        print("Auto stop feature: ", autoStop)
+
+    def evalNetwork():
+        pass
+
+    def predictNetwork():
+        pass
+
+
 
     def getModel(self, dataset_size, input_shape):
         """
