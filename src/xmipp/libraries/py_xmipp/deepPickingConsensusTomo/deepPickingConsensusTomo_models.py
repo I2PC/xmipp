@@ -25,7 +25,7 @@
 # * Initial release: june 2023
 # **************************************************************************
 
-import deepPickingConsensusTomo_networks
+import libraries.py_xmipp.deepPickingConsensusTomo.deepPickingConsensusTomo_networkDef as deepPickingConsensusTomo_networkDef
 
 def loadNN(netMan):
     pass
