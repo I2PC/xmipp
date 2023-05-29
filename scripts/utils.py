@@ -123,9 +123,17 @@ def binariesPrecompiled(log):
         return False
 
 
+
+def printProgressBar(value, sizeBar=50):#value 0 - 100
+    sizeValue = int((value * sizeBar) / 100)
+    templateStr = green('[') + green('#' * sizeValue) + yellow('-' * (sizeBar - sizeValue)) + yellow(']') + green(str(value) + '%')
+
+    format = '%(value)02d/%(max_value)d'
+    return templateStr
+
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            in_parallel=False, sconsProgress=False,
-           progresLines=773, progresLinesPrecompiled=222):
+           progresLines=773, progresLinesPrecompiled=222):#capturar el error!
     str_out = []
     if show_command:
         print(green(cmd))
@@ -137,16 +145,15 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         if line != '':
             #print(str(line))
             log.append(line)
-            if n >50:
+            if n > 50:
                 if binariesPrecompiled(log):
                     prg = int((n*100)/progresLinesPrecompiled)
-                    print(green('Progress: {}%'.format(prg)), end='\r')
                 else:
                     prg = int((n*100)/progresLines)
-                    print(green('Progress: {}%'.format(prg)), end='\r')
+                print(printProgressBar(prg), end='\r', sep='')
             n += 1
         if not line:
-            print('break')
+            print('')
             break
 
 
@@ -173,6 +180,9 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return False
 
 
+def write_compileLog(log):
+    with open("compileLOG.txt", "a") as logFile:#no imprime con salto de linea ni imprime todo
+        logFile.write(str(log[0]))
 def whereis(program, findReal=False, env=None):
     programPath = distutils.spawn.find_executable(program, path=env)
     if programPath:

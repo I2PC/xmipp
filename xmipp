@@ -442,12 +442,10 @@ def compileModule(Nproc,module):
     sconsProgress = False
     progresLines = 0
     progresLinesPrecompiled = 0
-    pythonU = ''
+    print(yellow('Working...'), end='\r')
     if module == "xmipp" or module == "xmippCore" or module == "xmippViz":
         stampVersion()
-        #if XMIPP_VERNAME == 'devel':
         sconsProgress = True
-        pythonU = '-u'
         progresLines = 773
         progresLinesPrecompiled = 222
     if module == "xmippCore":
@@ -456,11 +454,11 @@ def compileModule(Nproc,module):
     if module == "xmippViz":
         progresLines = 56
         progresLinesPrecompiled = 17
-
     log = []
     ok = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
                 show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
                 progresLinesPrecompiled=progresLinesPrecompiled)
+    write_compileLog(log[0])
     lastError= ''
     #print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
@@ -504,6 +502,8 @@ def compileModule(Nproc,module):
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
         errorEndMessage(XMIPP_VERNAME)
         sys.exit(1)
+    print(green("Done       "))
+
     return ok
 
 
@@ -859,6 +859,9 @@ def linkToScipion(dirname):
 
 def install(dirname):
     print("\nInstalling ------------------------------------------")
+    print(yellow('Working...'), end='\r')
+    if XMIPP_VERNAME =='devel':  show_command = True
+    else: show_command = False
     cleanDeprecated()
     cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
     ok = True
@@ -866,13 +869,13 @@ def install(dirname):
     createDir(dirname)
 
     createDir(dirname+"/lib")
-    ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
+    ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/", show_command=show_command)
 
 
     if os.path.exists(dirname + "/bin"):
         shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
-    ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
+    ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/", show_command=show_command)
 
     destPathPyModule = os.path.expanduser(os.path.abspath(os.path.join(dirname, "pylib", "xmippPyModules")))
     createDir(destPathPyModule)
@@ -881,45 +884,46 @@ def install(dirname):
         with open(initFn, 'w') as f:
             pass  # just to create a init file to be able to import it as module
 
-    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule)
+    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule, show_command=show_command)
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
-    ok = ok and runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/", show_command=show_command)
 
     createDir(dirname+"/bindings/python")
-    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
-    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
-    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
-    ok = ok and runJob(cpCmd+" -r src/xmipp/bindings/python/envs_DLTK/ " + dirname + "/bindings/python/envs_DLTK")
-    ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
-    ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" -r src/xmipp/bindings/python/envs_DLTK/ " + dirname + "/bindings/python/envs_DLTK", show_command=show_command)
+    ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/", show_command=show_command)
 
     createDir(dirname+"/bindings/python/sh_alignment")
-    ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
-    ok = ok and runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
+    ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/", show_command=show_command)
 
     createDir(dirname+"/resources")
-    ok = ok and runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
+    ok = ok and runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/", show_command=show_command)
 
     # ok = ok and runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
     createDir(dirname+"/bindings/java")
-    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
-    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
-    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
-    ok = ok and runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/", show_command=show_command)
+    ok = ok and runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/", show_command=show_command)
 
-    ok = ok and runJob(cpCmd+" xmippEnv.json "+dirname+"/xmippEnv.json")
+    ok = ok and runJob(cpCmd+" xmippEnv.json "+dirname+"/xmippEnv.json", show_command=show_command)
 
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
         errorEndMessage(XMIPP_VERNAME)
         sys.exit(1)
+    print(green('Done            '))
 
     # Scipion connection
     linkToScipion(dirname)
 
-    runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
+    runJob("touch %s/v%s" % (dirname, XMIPP_VERSION), show_command=False)  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
     fhBash.write("# This script is valid for bash and zsh\n\n")
