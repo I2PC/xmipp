@@ -15,10 +15,13 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         XmippScript.__init__(self)
 
+
+    #  --------------------- DEFINE PARAMS -----------------------------
     def defineParams(self):
+        # Description
         self.addUsageLine('Detect artifacted tomographic reconstruction from extracted fiducial markers')
         
-        ## params
+        # Params
         self.addParamsLine(' --inputModel1: path to model for strong misalignment detection')
         self.addParamsLine(' --inputModel2: path to model for waek misalignment detection')
         self.addParamsLine(' --subtomoFilePath: file path of the xmd file containg the extracted subtomos. ' +
@@ -30,30 +33,12 @@ class ScriptDeepMisalignmentDetection(XmippScript):
                            'tomograms is splitted into two, using this threshold to settle if the tomograms present'
                            'or not a weak misalignment.')
         
-        ## examples       
+        # Examples       
         self.addExampleLine('xmipp_deep_misalingment_detection -inputModel1 path/to/model1 --inputModel2 path/to/model2 ' +
                             '--subtomoFilePath path/to/xoords.xmd')
-        
-    def run(self):
-        # Read input params
-        self.readInputParams()
 
-        # Get subtomo path list from directory
-        subtomoPathList = self.getSubtomoPathList(self.subtomoFilePath)
-
-        # Make prediction from subtomos in list
-        if len(subtomoPathList) != 0:
-            totalNumberOfSubtomos = len(subtomoPathList)
-            print("Total number of subtomos: " + str(totalNumberOfSubtomos))
-
-            self.loadModels()
-
-            overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray = \
-                self.makePrediction(subtomoPathList)
-
-            print("For volume id " + str(tsId) + " obtained prediction from " +
-                    str(len(subtomoPathList)) + " subtomos is " + str(overallPrediction))
-            
+    
+    #  --------------------- I/O FUNCTIONS -----------------------------
     def readInputParams(self):
         self.inputModel1 = self.getParam('--inputModel1')
         self.inputModel2 = self.getParam('--inputModel2')
@@ -61,8 +46,10 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.misaliThrBool = self.checkParam('--misaliThr')
 
         if self.misaliThrBool:
-            self.misaliThr = self.getDoubleParam('--misaliThr')
+            self.misaliThr = self.getDoubleParam('--misaliThr')        
 
+
+    #  --------------------- MAIN FUNCTIONS -----------------------------
     def getSubtomoPathList(coordFilePath):
         coordFilePath_noExt = os.path.splitext(coordFilePath)[0]
         counter = 1
@@ -80,13 +67,6 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         return subtomoPathList
     
-    def loadModels(self):
-        self.firstModel = load_model(self.inputModel1)
-        # print(self.firstModel.summary())
-
-        self.secondModel = load_model(self.inputModel2)
-        # print(self.secondModel.summary())
-
     def makePrediction(self, subtomoPathList):
         """
         :param subtomoPathList: list to every subtomo extracted to be analyzed
@@ -137,7 +117,15 @@ class ScriptDeepMisalignmentDetection(XmippScript):
                     overallPrediction = 2  # Weak misalignment
 
         return overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray
-    
+
+
+    #  --------------------- UTILS FUNCTIONS -----------------------------
+    def loadModels(self):
+        self.firstModel = self.load_model(self.inputModel1)
+        # print(self.firstModel.summary())
+
+        self.secondModel = self.load_model(self.inputModel2)
+        # print(self.secondModel.summary())
 
     def determineOverallPrediction(predictionList, overallCriteria):
         """
@@ -178,6 +166,29 @@ class ScriptDeepMisalignmentDetection(XmippScript):
             # aligned (1) or misaligned (0)
             return (True if predictionAvg > 0.5 else False), predictionAvg
 
+
+    #  --------------------- RUN -----------------------------
+    def run(self):
+        # Read input params
+        self.readInputParams()
+
+        # Get subtomo path list from directory
+        subtomoPathList = self.getSubtomoPathList(self.subtomoFilePath)
+
+        # Make prediction from subtomos in list
+        if len(subtomoPathList) != 0:
+            totalNumberOfSubtomos = len(subtomoPathList)
+            print("Total number of subtomos: " + str(totalNumberOfSubtomos))
+
+            self.loadModels()
+
+            overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray = \
+                self.makePrediction(subtomoPathList)
+
+            print("For volume id " + str(tsId) + " obtained prediction from " +
+                    str(len(subtomoPathList)) + " subtomos is " + str(overallPrediction))
+            
+            
     
 if __name__ == "__main__":
     exitCode = ScriptDeepMisalignmentDetection().tryRun()
