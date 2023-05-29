@@ -1393,7 +1393,7 @@ void ProgImagePeakHighContrast::run()
 
 
 
-// --------------------------- UTILS functions ----------------------------
+// --------------------------- UTILS FUNCTIONS ----------------------------
 
 void ProgImagePeakHighContrast::generateSideInfo()
 {
