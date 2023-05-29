@@ -516,7 +516,7 @@ def compile_cuFFTAdvisor():
     libDir = "src/xmipp/lib/"
     createDir(libDir)
     os.chdir(advisorDir)
-    if runJob("make al", show_command=False, show_output=False, log=log):
+    if runJob("make all", show_command=False, show_output=False, log=log):
         log = []
         os.chdir(currDir)
         if runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir, log=log, show_output=False, show_command=False):

@@ -49,16 +49,54 @@ def bold(text):
     return "\033[1m "+text+"\033[0m"
 
 
+def get_GCC_version(compiler):
+    def get_version_tokens(v):
+        log = []
+        runJob(compiler + v, show_output=False,
+               show_command=False, log=log)
+        if log[0].find('command not found') != -1:
+            return '', ''
+        else:
+            return log[0].strip(), log[0].strip().split('.')
+
+    full_version, tokens = get_version_tokens(" -dumpversion")
+    if full_version == '':
+        return
+    elif len(tokens) < 2:
+        full_version, tokens = get_version_tokens(" -dumpfullversion")
+    gccVersion = float(str(tokens[0] + '.' + tokens[1]))
+    return gccVersion, full_version
+
+def find_GCC(candidates, show=False):
+    gccVersion, full_version = get_GCC_version('gcc')
+    if gccVersion == '':
+        print(red('Not compiler found, please install it. We require gcc/g++ >=8'))
+        return ''
+    if str(gccVersion) in candidates:
+        log=[]
+        runJob('type gcc', log=log, show_output=False, show_command=False)
+        if log[0].find('not found') == -1:
+            loc = log[0].split(' ')[2]
+            if show:
+                print(green('gcc {} found for CUDA: {}'.format(full_version, loc)))
+            return loc
+    else:
+        return find_newest('g++', candidates,  False)
+
+
+
+
 def find_newest(program, versions, show):
     for v in versions:
         p = program + '-' + str(v) if v else program
         loc = find(p)
         if loc:
             if show:
+                print(green('gcc {} found for CUDA: {}'.format(v, loc)))
                 print(green(p + ' found in ' + loc))
             return loc
     if show:
-        print(red(program + ' not found'))
+        print(yellow(program + ' not found'))
     return ''
 
 

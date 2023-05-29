@@ -268,8 +268,7 @@ class Config:
                 11.3, 11.2, 11.1, 11,
                 10.4, 10.3, 10.2, 10.1, 10,
                 9.5, 9.4, 9.3, 9.2, 9.1, 9,
-                8.5, 8.4, 8.3, 8.2, 8.1, 8,
-                7.5, 7.4, 7.3, 7.2, 7.1, 7]
+                8.5, 8.4, 8.3, 8.2, 8.1, 8]
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
         if not self.is_empty(opt):
@@ -394,35 +393,24 @@ class Config:
         if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"]:
             self._config_OpenCV()
 
-    def _get_GCC_version(self, compiler):
-        def get_version_tokens(v):
-            log = []
-            runJob(compiler + v, show_output=False,
-                   show_command=False, log=log)
-            return log[0].strip(), log[0].strip().split('.')
 
-        full_version, tokens = get_version_tokens(" -dumpversion")
-        if len(tokens) < 2:
-            full_version, tokens = get_version_tokens(" -dumpfullversion")
-        gccVersion = float(str(tokens[0] + '.' + tokens[1]))
-        return gccVersion, full_version
 
 
     def _ensure_GCC_GPP_version(self, compiler):
         if not checkProgram(compiler, True):
             sys.exit(-7)
-        gccVersion, fullVersion = self._get_GCC_version(compiler)
+        gccVersion, fullVersion = get_GCC_version(compiler)
+        if gccVersion == '':
+            print(red('Compiler {} not found.'.format(compiler)))
+            sys.exit(-8)
+
         print(green('Detected ' + compiler + " in version " +
                     fullVersion + '.'))
-        if gccVersion < 7.0:
-            print(red('Version 7.0 or higher is required.'))
+        if gccVersion < 8.0:
+            print(red('Version 8.0 or higher is required.'))
             print(yellow('Please go to https://github.com/I2PC/xmipp#compiler to solve it.'))
             sys.exit(-8)
-        elif gccVersion < 8.0:
-            print(yellow('Consider updating your compiler. Xmipp will soon require GCC 8 or newer.'))
-            print(yellow('Please go to https://github.com/I2PC/xmipp#compiler.'))
-        else:
-            print(green(compiler + ' ' + fullVersion + ' detected'))
+        print(green(compiler + ' ' + fullVersion + ' detected'))
 
     def _ensure_compiler_version(self, compiler):
         if 'g++' in compiler or 'gcc' in compiler:
@@ -503,17 +491,8 @@ class Config:
              '11.3', '11.2', '11.1', '11',
              '10.4', '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
-             '8.5', '8.4', '8.3', '8.2', '8.1', '8',
-             '7.5', '7.4', '7.3', '7.2', '7.1', '7',
-             '6.5', '6.4', '6.3', '6.2', '6.1', '6',
-             '5.5', '5.4', '5.3', '5.2', '5.1', '5']
-        if 8.0 <= nvcc_version < 9.0:
-            return v[v.index('5.3'):], True
-        elif 9.0 <= nvcc_version < 9.2:
-            return v[v.index('5.5'):], True
-        elif 9.2 <= nvcc_version < 10.1:
-            return v[v.index('7.5'):], True
-        elif 10.1 <= nvcc_version <= 10.2:
+             '8.5', '8.4', '8.3', '8.2', '8.1', '8']
+        if 10.1 <= nvcc_version <= 10.2:
             return v[v.index('8.5'):], True
         elif 11.0 <= nvcc_version < 11.1:
             return v[v.index('9.5'):], True
@@ -521,7 +500,10 @@ class Config:
             return v[v.index('10.4'):], True
         elif 11.5 <= nvcc_version <= 11.8:
             return v[v.index('11.3'):], True
-        return v, False
+        elif nvcc_version > 11.8:
+            return v, True
+        else:
+            return v, False
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])
@@ -548,24 +530,20 @@ class Config:
         if not self.is_empty(Config.OPT_CXX_CUDA):
             return
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
-        print(green('gcc candidates based on nvcc version:'), *candidates, sep=", ")
-        if resultBool == False:
-            print(red('No valid compiler found for CUDA host code. ' +
-                         'nvcc_version : ' + str(
-                nvcc_version) + ' ' + self._get_help_msg()) +
-                  '\nbut trying to continue')
-        prg = find_newest('g++', candidates,  False)
+        if not resultBool:
+            print(yellow('CUDA version {} not compatible with Xmipp. Please install CUDA>=10.1'.format(nvcc_version)), *candidates, sep=", ")
+            print('gcc candidates based on nvcc version:', *candidates, sep=", ")
+            return
+
+        prg = find_GCC(candidates, show=True)
         if not prg:# searching a g++ for devToolSet on CentOS
-            gccVersion = str(self._get_GCC_version('g++')[0])
-            if gccVersion in candidates:
-                prg = whereis('g++', True)
-            else:
-                print(yellow('No valid compiler found for CUDA host code. ' +
-                'nvcc_version : ' + str(nvcc_version) + ' GCC version: ' +
-                             gccVersion + ' ' + self._get_help_msg()))
-        print(green('g++' + ' found in ' + prg))
+            print('gcc candidates based on nvcc version:', *candidates,
+                  sep=", ")
+            print(yellow('No valid compiler found for CUDA host code. ' +
+                'nvcc_version : ' + str(nvcc_version) +' ' + self._get_help_msg()))
+            return
+
         self._set(Config.OPT_CXX_CUDA, prg)
-        return
 
     def _set_nvcc_lib_dir(self):
         opt = Config.OPT_NVCC_LINKFLAGS
