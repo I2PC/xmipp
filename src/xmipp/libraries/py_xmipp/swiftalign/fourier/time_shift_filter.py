@@ -30,6 +30,6 @@ def time_shift_filter(shift: torch.Tensor,
     # Fourier time shift theorem:
     # https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Some_discrete_Fourier_transform_pairs
     angles = -torch.matmul(shift, freq)
-    gain = torch.tensor(1.0, dtype=angles.dtype, device=angles.device) # TODO try to avoid using this
+    gain = torch.tensor(1.0).to(angles) # TODO try to avoid using this
     out = torch.polar(gain, angles, out=out)
     return out
