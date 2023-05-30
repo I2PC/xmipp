@@ -23,7 +23,6 @@
 from typing import Iterable, Optional, Tuple
 import pandas as pd
 import torch
-import torchvision.transforms as T
 import kornia
 
 from .. import operators
@@ -33,17 +32,17 @@ from .. import metadata as md
 def _create_rotation_matrix(angles: torch.Tensor,
                             out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    result = torch.empty((len(angles), 2, 2), out=out)
+    out = torch.empty((len(angles), 2, 2), out=out)
     
     # A day lost here :-)
     angles = torch.deg2rad(angles)
     
-    result[:,0,0] = torch.cos(angles, out=result[:,0,0])
-    result[:,1,0] = torch.sin(angles, out=result[:,0,1])
-    result[:,0,1] = -result[:,1,0]
-    result[:,1,1] = result[:,0,0]
+    out[:,0,0] = torch.cos(angles, out=out[:,0,0])
+    out[:,1,0] = torch.sin(angles, out=out[:,0,1])
+    out[:,0,1] = -out[:,1,0]
+    out[:,1,1] = out[:,0,0]
 
-    return result
+    return out
 
 def _create_affine_matrix(angles: torch.Tensor,
                           shifts: torch.Tensor,
@@ -58,32 +57,32 @@ def _create_affine_matrix(angles: torch.Tensor,
     if shifts.shape != (batch_size, 2):
         raise RuntimeError('shifts has not the expected size')
 
-    result = torch.empty((batch_size, 2, 3), out=out)
+    out = torch.empty((batch_size, 2, 3), out=out)
 
     # Compute the rotation matrix
-    rotation_matrices = result[:,:2,:2]
+    rotation_matrices = out[:,:2,:2]
     rotation_matrices = _create_rotation_matrix(
-        angles=angles.to(result), 
+        angles=angles.to(out), 
         out=rotation_matrices
     )
     
     # Apply the shifts
     shifts = shifts - centre
-    result[:,:,2,None] = torch.matmul(
+    out[:,:,2,None] = torch.matmul(
         rotation_matrices, 
-        shifts[...,None].to(result), 
-        out=result[:,:,2,None]
+        shifts[...,None].to(out), 
+        out=out[:,:,2,None]
     )
-    result[:,:,2] += centre
+    out[:,:,2] += centre
 
-    return result
+    return out
 
 class FourierInPlaneTransformCorrector:
     def __init__(self,
                  flattener: operators.SpectraFlattener,
                  weights: Optional[torch.Tensor] = None,
                  norm: Optional[str] = None,
-                 interpolation: T.InterpolationMode = T.InterpolationMode.BILINEAR,
+                 interpolation: str = 'bilinear',
                  device: Optional[torch.device] = None ) -> None:
 
         # Operations
@@ -115,6 +114,9 @@ class FourierInPlaneTransformCorrector:
         TRANSFORM_LABELS = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y]
         
         for batch_images, batch_md in images:
+            if len(batch_images) != len(batch_md):
+                raise RuntimeError('Metadata and image batch sizes do not match')
+            
             if self.device is not None:
                 batch_images = batch_images.to(self.device, non_blocking=True)
             
@@ -135,10 +137,11 @@ class FourierInPlaneTransformCorrector:
                 batch_images = kornia.geometry.transform.affine(
                     batch_images,
                     matrix=transform_matrix.to(batch_images, non_blocking=True),
-                    mode='bilinear',
+                    mode=self.interpolation,
                     padding_mode='zeros'
                 )
                 batch_images = batch_images[:,0,:,:]
+
 
             fourier_transforms = self.fourier(
                 batch_images, 

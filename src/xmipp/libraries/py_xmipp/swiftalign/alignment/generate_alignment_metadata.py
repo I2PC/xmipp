@@ -20,7 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Sequence
 
 import pandas as pd
 import numpy as np
@@ -32,16 +32,9 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
                            projection_md: pd.DataFrame,
                            match_distances: np.ndarray,
                            match_indices: np.ndarray,
+                           reference_columns: Sequence[int],
                            index: Optional[np.ndarray] = None,
-                           local_transform_md: Optional[pd.DataFrame] = None) -> pd.DataFrame:
-
-    REFERENCE_COLUMNS = [
-        md.ANGLE_ROT, 
-        md.ANGLE_TILT, 
-        md.REFERENCE_IMAGE, 
-    ]
-    if md.REF3D in reference_md.columns:
-        REFERENCE_COLUMNS.append(md.REF3D) # Used for 3D classification
+                           local_transform_md: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
 
     result = pd.DataFrame(match_distances, columns=[md.COST], index=index)
     
@@ -49,7 +42,7 @@ def _ensemble_alignment_md(reference_md: pd.DataFrame,
     result = result.join(projection_md, on=match_indices)
     
     # Left-join the reference metadata to the result
-    result = result.join(reference_md[REFERENCE_COLUMNS], on=md.REF)
+    result = result.join(reference_md[reference_columns], on=md.REF)
     
     # Drop the indexing columns
     result.drop(columns=md.REF, inplace=True)
@@ -70,6 +63,7 @@ def _update_alignment_metadata(output_md: pd.DataFrame,
                                projection_md: pd.DataFrame,
                                match_distances: np.ndarray,
                                match_indices: np.ndarray,
+                               reference_columns: Sequence[int],
                                local_transform_md: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     # Select the rows to be updated
     selection = match_distances < output_md[md.COST].to_numpy()
@@ -83,6 +77,7 @@ def _update_alignment_metadata(output_md: pd.DataFrame,
         projection_md=projection_md,
         match_distances=match_distances[selection],
         match_indices=match_indices[selection],
+        reference_columns=reference_columns,
         index=np.nonzero(selection)[0],
         local_transform_md=local_transform_md
     )
@@ -97,6 +92,7 @@ def _create_alignment_metadata(experimental_md: pd.DataFrame,
                                projection_md: pd.DataFrame,
                                match_distances: np.ndarray,
                                match_indices: np.ndarray,
+                               reference_columns: Sequence[int],
                                local_transform_md: Optional[pd.DataFrame] = None ) -> pd.DataFrame:
     
     # Use the first match
@@ -105,6 +101,7 @@ def _create_alignment_metadata(experimental_md: pd.DataFrame,
         projection_md=projection_md, 
         match_distances=match_distances, 
         match_indices=match_indices,
+        reference_columns=reference_columns,
         local_transform_md=local_transform_md
     )
     
@@ -123,6 +120,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
                                 reference_md: pd.DataFrame,
                                 projection_md: pd.DataFrame,
                                 matches: search.SearchResult,
+                                reference_columns: Sequence[int],
                                 local_transform_md: Optional[pd.DataFrame] = None,
                                 output_md: Optional[pd.DataFrame] = None) -> pd.DataFrame:
     
@@ -150,6 +148,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
             projection_md=projection_md,
             match_distances=match_distances,
             match_indices=match_indices,
+            reference_columns=reference_columns,
             local_transform_md=local_transform_md
         )
     else:
@@ -159,6 +158,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
             projection_md=projection_md,
             match_distances=match_distances,
             match_indices=match_indices,
+            reference_columns=reference_columns,
             local_transform_md=local_transform_md
         )
     

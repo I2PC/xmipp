@@ -176,6 +176,14 @@ def run(experimental_md_path: str,
         device=transform_device
     )
 
+    REFERENCE_COLUMNS = [
+        md.ANGLE_ROT, 
+        md.ANGLE_TILT, 
+        md.REFERENCE_IMAGE, 
+    ]
+    if md.REF3D in reference_md.columns:
+        REFERENCE_COLUMNS.append(md.REF3D) # Used for 3D classification
+
     # Create the reference dataset
     reference_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
     reference_dataset = image.torch_utils.Dataset(reference_paths)
@@ -234,6 +242,7 @@ def run(experimental_md_path: str,
             projection_md=projection_md,
             matches=matches,
             local_transform_md=local_transform_md,
+            reference_columns=REFERENCE_COLUMNS,
             output_md=alignment_md
         )
         end_time = time.perf_counter()
