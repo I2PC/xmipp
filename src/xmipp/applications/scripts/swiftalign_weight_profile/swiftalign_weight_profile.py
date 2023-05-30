@@ -1,33 +1,32 @@
-import torch
 import argparse
-
-import operators
-import image
-import search
-import utils
 import scipy
-import metadata as md
+import torch
+
+import xmippPyModules.swiftalign.image as image
+import xmippPyModules.swiftalign.fourier as fourier
+import xmippPyModules.swiftalign.metadata as md
 
 
 
-def run(ssnr_md_path: str, 
+def run(noise_md_path: str, 
         output_image: str,
         sampling: float,
         size: int ):
     
     # Read the md
-    ssnr_md = md.read(ssnr_md_path)
+    noise_md = md.read(noise_md_path)
 
     # Create an interpolator from the data
     interpolator = scipy.interpolate.interp1d(
-        x=ssnr_md[md.RESOLUTION_FREQ],
-        y=ssnr_md[md.SIGMANOISE],
+        x=noise_md[md.RESOLUTION_FREQ],
+        y=noise_md[md.SIGMANOISE],
         kind='linear',
         bounds_error=False
     )
     
     # Compute the noise image
-    freq = utils.nfft_freq((size, )*2) / sampling
+    freq_grid = fourier.rfftnfreq((size, )*2)
+    freq = torch.norm(freq_grid, axis=0) / sampling
     noise = interpolator(freq)
     weights = 1.0 / noise
     
