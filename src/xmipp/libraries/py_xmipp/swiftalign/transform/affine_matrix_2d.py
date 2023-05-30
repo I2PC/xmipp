@@ -23,30 +23,45 @@
 from typing import Optional
 import torch
 
-def combine_affine_2d(rotation_matrices_2d: torch.Tensor,
-                      shifts: torch.Tensor,
-                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+from .rotation_matrix_2d import rotation_matrix_2d
+
+def affine_matrix_2d(angles: torch.Tensor,
+                     shifts: torch.Tensor,
+                     centre: torch.Tensor,
+                     shift_first: bool = False,
+                     out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+
+    batch_size = len(angles)
+
+    if angles.shape != (batch_size, ):
+        raise RuntimeError('angles has not the expected size')
+
+    if shifts.shape != (batch_size, 2):
+        raise RuntimeError('shifts has not the expected size')
+
+    out = torch.empty((batch_size, 2, 3), out=out)
+
+    # Compute the rotation matrix
+    rotation_matrices = out[:,:2,:2]
+    rotation_matrices = rotation_matrix_2d(
+        angles=angles, 
+        out=rotation_matrices
+    )
     
-    # Create the output if not existent
-    MATRIX_SHAPE = (2, 3)
-    shape = torch.broadcast_shapes(
-        rotation_matrices_2d.shape[:-2], 
-        shifts.shape[:-1]
-    ) + MATRIX_SHAPE
-    device = rotation_matrices_2d.device
-    if out is None:
-        out = torch.empty(shape, device=device)
+    # Determine the shifts
+    if shift_first:
+        pre_shift = shifts - centre
+        post_shift = centre
     else:
-        if out.shape != shape:
-            pass # raise exception
-    assert(out.shape == shape)
+        pre_shift = -centre
+        post_shift = shifts + centre
     
-    # Write the rotation matrix
-    out[...,0:2,0:2] = rotation_matrices_2d
-    
-    # Write the shift
-    out[...,0:2,2] = shifts
-    
+    # Apply the shifts
+    out[:,:,2,None] = torch.matmul(
+        rotation_matrices, 
+        pre_shift[...,None], 
+        out=out[:,:,2,None]
+    )
+    out[:,:,2] += post_shift
+
     return out
-    
-    

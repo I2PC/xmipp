@@ -21,29 +21,23 @@
 # ***************************************************************************/
 
 from typing import Optional
-import torch
-import math
-import torch.nn.functional as F
 
-def apply_affine(images: torch.Tensor,
-                 matrix: torch.Tensor,
-                 out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+import torch
+import kornia
+
+def affine_2d(images: torch.Tensor,
+              matrices: torch.Tensor,
+              interpolation: str = 'bilinear',
+              padding: str = 'zeros',
+              out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    batch_shape = images.shape[:-2]
-    image_shape = images.shape[-2:]
-    n_batch = math.prod(batch_shape)
+    images = images[:,None,:,:]
+    result = kornia.geometry.transform.affine(
+        images,
+        matrix=matrices,
+        mode=interpolation,
+        padding_mode=padding
+    )
+    result = result[:,0,:,:]
+    return result
     
-    # Create the grid
-    grid = F.affine_grid(matrix[None,...], (1, 1) + image_shape, align_corners=False)
-    grid_shape = (n_batch, ) + grid.shape[1:]
-    grid = grid.expand(grid_shape)
-    
-    # Flatten the images
-    flattened_shape = (n_batch, 1) + image_shape
-    flattened_images = images.view(flattened_shape)
-    
-    # Transform the batch
-    out = F.grid_sample(flattened_images, grid, align_corners=False)
-    out = out.view(images.shape)
-    
-    return out

@@ -23,74 +23,11 @@
 from typing import Iterable, Optional, Tuple
 import pandas as pd
 import torch
-import kornia
 
 from .. import operators
+from .. import transform
 from .. import math
 from .. import metadata as md
-
-def _create_rotation_matrix(angles: torch.Tensor,
-                            out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-    
-    out = torch.empty((len(angles), 2, 2), out=out)
-    
-    # A day lost here :-)
-    angles = torch.deg2rad(angles)
-    
-    out[:,0,0] = torch.cos(angles, out=out[:,0,0])
-    out[:,1,0] = torch.sin(angles, out=out[:,0,1])
-    out[:,0,1] = -out[:,1,0]
-    out[:,1,1] = out[:,0,0]
-
-    return out
-
-def _create_affine_matrix(angles: torch.Tensor,
-                          shifts: torch.Tensor,
-                          centre: torch.Tensor,
-                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-
-    batch_size = len(angles)
-
-    if angles.shape != (batch_size, ):
-        raise RuntimeError('angles has not the expected size')
-
-    if shifts.shape != (batch_size, 2):
-        raise RuntimeError('shifts has not the expected size')
-
-    out = torch.empty((batch_size, 2, 3), out=out)
-
-    # Compute the rotation matrix
-    rotation_matrices = out[:,:2,:2]
-    rotation_matrices = _create_rotation_matrix(
-        angles=angles.to(out), 
-        out=rotation_matrices
-    )
-    
-    # Apply the shifts
-    shifts = shifts - centre
-    out[:,:,2,None] = torch.matmul(
-        rotation_matrices, 
-        shifts[...,None].to(out), 
-        out=out[:,:,2,None]
-    )
-    out[:,:,2] += centre
-
-    return out
-
-def _affine_transform(images: torch.Tensor,
-                      matrices: torch.Tensor,
-                      interpolation: str = 'bilinear',
-                      padding: str = 'zeros' ) -> torch.Tensor:
-    images = images[:,None,:,:]
-    result = kornia.geometry.transform.affine(
-        images,
-        matrix=matrices,
-        mode=interpolation,
-        padding_mode=padding
-    )
-    result = result[:,0,:,:]
-    return result
-    
 
 class FourierInPlaneTransformCorrector:
     def __init__(self,
@@ -122,6 +59,7 @@ class FourierInPlaneTransformCorrector:
         if self.norm:
             raise NotImplementedError('Normalization is not implemented')
 
+        angles = None
         transform_matrix = None
         fourier_transforms = None
         bands = None
@@ -136,25 +74,25 @@ class FourierInPlaneTransformCorrector:
                 batch_images = batch_images.to(self.device, non_blocking=True)
             
             if all(map(batch_md.columns.__contains__, TRANSFORM_LABELS)):
-                transformations = torch.from_numpy(batch_md[TRANSFORM_LABELS].to_numpy())
-                angles = transformations[:,0]
+                transformations = torch.as_tensor(batch_md[TRANSFORM_LABELS].to_numpy(), dtype=torch.float32)
+                angles = torch.deg2rad(transformations[:,0], out=angles)
                 shifts = transformations[:,1:]
                 centre = torch.tensor(batch_images.shape[-2:]) / 2
 
-                transform_matrix = _create_affine_matrix(
+                transform_matrix = transform.affine_matrix_2d(
                     angles=angles,
                     shifts=shifts,
                     centre=centre,
+                    shift_first=True,
                     out=transform_matrix
                 )
             
-                batch_images = _affine_transform(
+                batch_images = transform.affine_2d(
                     images=batch_images,
                     matrices=transform_matrix.to(batch_images, non_blocking=True),
                     interpolation=self.interpolation,
                     padding='zeros'
                 )
-
 
             fourier_transforms = self.fourier(
                 batch_images, 
