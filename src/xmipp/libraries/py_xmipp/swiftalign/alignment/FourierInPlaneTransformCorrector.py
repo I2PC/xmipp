@@ -77,6 +77,21 @@ def _create_affine_matrix(angles: torch.Tensor,
 
     return out
 
+def _affine_transform(images: torch.Tensor,
+                      matrices: torch.Tensor,
+                      interpolation: str = 'bilinear',
+                      padding: str = 'zeros' ) -> torch.Tensor:
+    images = images[:,None,:,:]
+    result = kornia.geometry.transform.affine(
+        images,
+        matrix=matrices,
+        mode=interpolation,
+        padding_mode=padding
+    )
+    result = result[:,0,:,:]
+    return result
+    
+
 class FourierInPlaneTransformCorrector:
     def __init__(self,
                  flattener: operators.SpectraFlattener,
@@ -133,14 +148,12 @@ class FourierInPlaneTransformCorrector:
                     out=transform_matrix
                 )
             
-                batch_images = batch_images[:,None,:,:]
-                batch_images = kornia.geometry.transform.affine(
-                    batch_images,
-                    matrix=transform_matrix.to(batch_images, non_blocking=True),
-                    mode=self.interpolation,
-                    padding_mode='zeros'
+                batch_images = _affine_transform(
+                    images=batch_images,
+                    matrices=transform_matrix.to(batch_images, non_blocking=True),
+                    interpolation=self.interpolation,
+                    padding='zeros'
                 )
-                batch_images = batch_images[:,0,:,:]
 
 
             fourier_transforms = self.fourier(
