@@ -12,6 +12,7 @@ from scipy.ndimage import shift, rotate
 #from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
 
 maxSize = 64
+tolerance = 15
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -23,9 +24,11 @@ if __name__ == "__main__":
     gpuId = sys.argv[4]
     outputDir = sys.argv[5]
     fnXmdImages = sys.argv[6]
+    numShiftModels = int(sys.argv[7])
     if predictAngles == 'yes':
-        fnAngModel = sys.argv[7]
-        numModels = int(sys.argv[8])
+        fnAngModel = sys.argv[8]
+        numAngModels = int(sys.argv[9])
+        tolerance = int(sys.argv[10])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -319,12 +322,14 @@ if __name__ == "__main__":
                 mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
                 mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
                 mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
+                if distance[ID] > 5:
+                    mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             elif mode == "Angular":
                 angles = Y[ID]*180/math.pi
                 mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
-                if distance[ID] > 15:
+                if distance[ID] > tolerance:
                     mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
 
@@ -344,25 +349,49 @@ if __name__ == "__main__":
         c = mat * av_mat[np.newaxis, 0:3, 0:3]
         d = np.sum(c, axis=(1, 2))
         ang_Distances = np.arccos((d-1)/2)
-        return np.max(ang_Distances)
+        return np.max(ang_Distances), np.argmax(ang_Distances)
 
-    #def average_of_rotations(pred6d):
-    #    matrix = convert_to_matrix(pred6d)
-    #    quats = convert_to_quaternions(matrix)
-    #    av_quats = average_quaternions(quats)
-    #    av_matrix = quaternion_matrix(av_quats)
-    #    max_distances = maximum_distance(av_matrix, matrix) * 180 / math.pi
+    def average_of_rotations(pred6d):
+        matrix = convert_to_matrix(pred6d)
+        quats = convert_to_quaternions(matrix)
+        av_quats = average_quaternions(quats)
+        av_matrix = quaternion_matrix(av_quats)
+        max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
+        max_distance = max_distance * 180 / math.pi
+        if max_distance > tolerance:
+            matrix = np.delete(matrix, max_dif_particle, axis=0)
+            quats = np.delete(quats, max_dif_particle, axis=0)
+            av_quats = average_quaternions(quats)
+            av_matrix = quaternion_matrix(av_quats)
+            max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
+            max_distance = max_distance * 180 / math.pi
+        av_euler = euler_from_matrix(av_matrix)
+        return np.append(av_euler, max_distance)
 
+    def compute_ang_averages(pred6d):
+        # mats = np.array(list(map(convert_to_matrix, pred6d)))
+        # quats = np.array(list(map(convert_to_quaternions, mats)))
+        # av_quats = np.array(list(map(average_quaternions, quats)))
+        # av_matrix = np.array(list(map(quaternion_matrix, av_quats)))
+        # max_distances = np.array(list(map(maximum_distance, av_matrix, mats)))*180/math.pi
+        # av_euler = np.array(list(map(euler_from_matrix, av_matrix)))
+        # return av_euler, max_distances
+        averages_mdistance = np.array(list(map(average_of_rotations, pred6d)))
+        average = averages_mdistance[:, 0:3]
+        mdistance = averages_mdistance[:, 3]
+        return average, mdistance
 
-    def compute_averages(pred6d):
-        mats = np.array(list(map(convert_to_matrix, pred6d)))
-        quats = np.array(list(map(convert_to_quaternions, mats)))
-        av_quats = np.array(list(map(average_quaternions, quats)))
-        av_matrix = np.array(list(map(quaternion_matrix, av_quats)))
-        max_distances = np.array(list(map(maximum_distance, av_matrix, mats)))*180/math.pi
-        av_euler = np.array(list(map(euler_from_matrix, av_matrix)))
-        return av_euler, max_distances
-        #return av_euler
+    def average_of_shifts(predshift):
+        av_shift = np.average(predshift, axis=0)
+        distancesxy = np.abs(av_shift-predshift)
+        max_distance = np.max(np.sum(distancesxy, axis=1))
+        return np.append(av_shift, max_distance)
+    def compute_shift_averages(predshift):
+        averages_mdistance = np.array(list(map(average_of_shifts, predshift)))
+        average = averages_mdistance[:, 0:2]
+        mdistance = averages_mdistance[:, 2]
+        return average, mdistance
+
 
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
@@ -375,24 +404,32 @@ if __name__ == "__main__":
 
     start_time = time()
 
-    ShiftModel = load_model(fnShiftModel, compile=False)
-    ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
+    #ShiftModel = load_model(fnShiftModel, compile=False)
+    #ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
+#
+    #ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
+#
+    #Y = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
+    #distance = np.zeros(len(fnImgs))
+    #produce_output(mdExp, 'Shift', Y, distance, fnImages)
 
-    ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
-
-    Y = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
-    distance = np.zeros(len(fnImgs))
+    predictions = np.zeros((len(fnImgs), numShiftModels, 2))
+    for index in range(numShiftModels):
+        ShiftModel = load_model(fnShiftModel + str(index) + ".h5", compile=False)
+        ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
+        ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
+        predictions[:, index, :] = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
+    Y, distance = compute_shift_averages(predictions)
     produce_output(mdExp, 'Shift', Y, distance, fnImages)
 
-
     if predictAngles == 'yes':
-        predictions = np.zeros((len(fnImgs), numModels, 6))
-        for index in range(numModels):
+        predictions = np.zeros((len(fnImgs), numAngModels, 6))
+        for index in range(numAngModels):
            AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
            AngModel.compile(loss="mean_squared_error", optimizer='adam')
            AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
            predictions[:, index, :] = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
-        Y, distance = compute_averages(predictions)
+        Y, distance = compute_ang_averages(predictions)
         produce_output(mdExp, 'Angular', Y, distance, fnImages)
 
         # AngModel = load_model(fnAngModel, compile=False)
@@ -406,5 +443,7 @@ if __name__ == "__main__":
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
+
+
 
 

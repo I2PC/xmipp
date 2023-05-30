@@ -21,13 +21,12 @@ if __name__ == "__main__":
     numEpochs = int(sys.argv[5])
     batch_size = int(sys.argv[6])
     gpuId = sys.argv[7]
-    numModels = 1
+    numModels = int(sys.argv[8])
     if mode == 'Angular':
-        learning_rate = float(sys.argv[8])
-        pretrained = sys.argv[9]
-        numModels = int(sys.argv[11])
+        learning_rate = float(sys.argv[9])
+        pretrained = sys.argv[10]
         if pretrained == 'yes':
-            fnPreModel = sys.argv[10]
+            fnPreModel = sys.argv[11]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -62,7 +61,6 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
 
-            print("fnImages DataGenerator len", len(self.fnImgs), flush=True)
 
             # Read all data in memory
             if self.readInMemory:
@@ -74,7 +72,6 @@ if __name__ == "__main__":
         def __len__(self):
             'Denotes the number of batches per epoch'
             num_batches = int(np.floor((len(self.labels)) / self.batch_size))
-            print('num_batches', num_batches)
             return num_batches
 
         def __getitem__(self, index):
@@ -153,11 +150,12 @@ if __name__ == "__main__":
                 rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
                 if mode == 'Shift':
                     # Shift image a random amount of px in each direction
+                    rX = rX * 3
+                    rY = rY * 3
                     Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
                     y = yvalues + np.vstack((rX, rY)).T
                 else:
                     # Shift image a random amount of px in each direction
-
                     Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
 
                     # Rotates image a random angle. Thus, Psi must be updated
@@ -355,15 +353,11 @@ if __name__ == "__main__":
 
     lenTrain = int(len(indTrain) / numModels)
     lenVal = int(len(indVal) / numModels)
-    print("len", len(indTrain))
-    print("lenTrain", lenTrain)
 
     for index in range(numModels):
         training_generator = DataGenerator([fnImgs[i] for i in indTrain[index * lenTrain: (index + 1) * lenTrain]],
                                            [labels[i] for i in indTrain[index * lenTrain: (index + 1) * lenTrain]],
                                            mode, sigma, batch_size, Xdim, readInMemory=False)
-        print("len train" + str(index), len(indTrain[index * lenTrain: (index + 1) * lenTrain]))
-        print("len val" + str(index), len(indVal[index * lenVal: (index + 1) * lenVal]), flush=True)
         validation_generator = DataGenerator([fnImgs[i] for i in indVal[index * lenVal: (index + 1) * lenVal]],
                                              [labels[i] for i in indVal[index * lenVal: (index + 1) * lenVal]],
                                              mode, sigma, batch_size, Xdim, readInMemory=False)
