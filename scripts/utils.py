@@ -162,19 +162,20 @@ def binariesPrecompiled(log):
 
 
 
-def printProgressBar(value, sizeBar=50):#value 0 - 100
+def printProgressBar(value, sizeBar=30):#value 0 - 100
     sizeValue = int((value * sizeBar) / 100)
-    templateStr = green('[') + green('#' * sizeValue) + yellow('-' * (sizeBar - sizeValue)) + yellow(']') + green(str(value) + '%')
-
-    format = '%(value)02d/%(max_value)d'
+    templateStr = green(str(value) + '%') + green('[') + green('#' * sizeValue) + yellow('-' * (sizeBar - sizeValue)) + yellow(']')
     return templateStr
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
-           in_parallel=False, sconsProgress=False,
-           progresLines=773, progresLinesPrecompiled=222):#capturar el error!
+           showWithReturn=True, in_parallel=False, sconsProgress=False,
+           progresLines=False, progresLinesPrecompiled=False):#capturar el error!
     str_out = []
     if show_command:
-        print(green(cmd))
+        if showWithReturn == True:
+            print(yellow(cmd), end='\r')
+        else:
+            print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, shell=True)
     n = 0
@@ -183,16 +184,18 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         if line != '':
             #print(str(line))
             log.append(line)
-            if n > 50:
+            if n > 30:
                 if binariesPrecompiled(log):
                     prg = int((n*100)/progresLinesPrecompiled)
                 else:
                     prg = int((n*100)/progresLines)
-                print(printProgressBar(prg), end='\r', sep='')
+                str2Print = printProgressBar(prg) + yellow(str(line))
+
+                print(str2Print, end=' ')
             n += 1
         if not line:
             print('')
-            break
+            return True
 
 
     while not in_parallel:

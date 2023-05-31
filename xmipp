@@ -442,16 +442,20 @@ def compileModule(Nproc,module):
     sconsProgress = False
     progresLines = 0
     progresLinesPrecompiled = 0
-    print(yellow('Working...'), end='\r')
-    if module == "xmipp" or module == "xmippCore" or module == "xmippViz":
+    if module == "xmipp":
         stampVersion()
         sconsProgress = True
         progresLines = 773
         progresLinesPrecompiled = 222
     if module == "xmippCore":
+        print(yellow('Working...'), end='\r')
+        sconsProgress = True
         progresLines = 123
         progresLinesPrecompiled = 6
     if module == "xmippViz":
+        print(yellow('Working...'), end='\r')
+        sconsProgress = True
+
         progresLines = 56
         progresLinesPrecompiled = 17
     log = []
@@ -830,6 +834,7 @@ def linkToScipion(dirname):
     dirnameAbs = os.path.join(currentDir,dirname)
     if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
         print("\nLinking to Scipion ------------------------------------------")
+        print(yellow('Working...'), end='\r')
         if os.path.isdir(xmippHomeLink):
             runJob("rm %s" %xmippHomeLink)
         runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink))
@@ -847,8 +852,8 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
-        print(green(str("xmipp Link for Scipion: " + xmippHomeLink)))
-        print(green("Xmipp linked to Scipion3"))
+        print(green(str("xmipp linked to Scipion: " + xmippHomeLink) + (' ' * 150)))
+
 
     else:
         print(yellow("No scipion3 found. If you intended to use Xmipp in "
@@ -918,7 +923,7 @@ def install(dirname):
         print(red("\nSome error occurred during the installation.\n"))
         errorEndMessage(XMIPP_VERNAME)
         sys.exit(1)
-    print(green('Done            '))
+    print(green('Done' + (' ' * 150)))
 
     # Scipion connection
     linkToScipion(dirname)
