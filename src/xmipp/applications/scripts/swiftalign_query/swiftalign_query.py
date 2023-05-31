@@ -22,7 +22,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Sequence
 import torch
 import argparse
 import itertools
@@ -115,6 +115,7 @@ def run(experimental_md_path: str,
         norm: Optional[str],
         local: bool,
         drop_na: bool,
+        reference_labels: Sequence[str],
         k: int,
         device_names: list,
         use_f16: bool ):
@@ -176,14 +177,6 @@ def run(experimental_md_path: str,
         device=transform_device
     )
 
-    REFERENCE_COLUMNS = [
-        md.ANGLE_ROT, 
-        md.ANGLE_TILT, 
-        md.REFERENCE_IMAGE, 
-    ]
-    if md.REF3D in reference_md.columns:
-        REFERENCE_COLUMNS.append(md.REF3D) # Used for 3D classification
-
     # Create the reference dataset
     reference_paths = list(map(image.parse_path, reference_md[md.IMAGE]))
     reference_dataset = image.torch_utils.Dataset(reference_paths)
@@ -242,7 +235,7 @@ def run(experimental_md_path: str,
             projection_md=projection_md,
             matches=matches,
             local_transform_md=local_transform_md,
-            reference_columns=REFERENCE_COLUMNS,
+            reference_columns=reference_labels,
             output_md=alignment_md
         )
         end_time = time.perf_counter()
@@ -282,6 +275,7 @@ if __name__ == '__main__':
     parser.add_argument('--norm', type=str)
     parser.add_argument('--local', action='store_true')
     parser.add_argument('--dropna', action='store_true')
+    parser.add_argument('--reference_labels', type=str, nargs='*')
     parser.add_argument('-k', type=int, default=1)
     parser.add_argument('--devices', nargs='*')
     parser.add_argument('--max_size', type=int, default=int(2e6))
@@ -309,7 +303,8 @@ if __name__ == '__main__':
         local = args.local,
         norm = args.norm,
         drop_na = args.dropna,
+        reference_labels = args.reference_labels,
         k = args.k,
         device_names = args.devices,
-        use_f16=args.fp16
+        use_f16 = args.fp16
     )
