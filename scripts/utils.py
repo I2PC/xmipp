@@ -285,8 +285,20 @@ def isGitRepo(path='./'):
 def version_tuple(versionStr):
     """
     This function returns the given version sting ('1.0.7' for example) into a tuple, so it can be compared.
+    It also accepts other version schemes, like 1.0.9-rc, but only the numeric part is taken into account.
     """
-    return tuple(map(int, versionStr.split('.')))
+    # Split the version string by dots
+    version_parts = versionStr.split('.')
+    # Initialize an empty list to store the numerical parts of the version string
+    numerical_parts = []
+    # Iterate over each part of the version string
+    for part in version_parts:
+        # Split the part by hyphens
+        subparts = part.split('-')
+        # The first subpart is always numerical, so we append it to our list
+        numerical_parts.append(int(subparts[0]))
+    # Convert the list of numerical parts to a tuple and return it
+    return tuple(numerical_parts)
 
 def checkCMakeVersion(minimumRequired=None):
     """

@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_confidence_map.h>
+#include <tomo/tomo_confidence_map.h>
 
 int main(int argc, char **argv)
 {

@@ -1518,7 +1518,7 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 			Y = 14.68*costh2*costh2*costh2 - 20.02*costh2*costh2 + 6.675*costh2 - 0.3178;
 			break;
 		case 1:
-			Y = 0.222*cosph*pow(1.0 - 1.0*costh2, 0.5)*(86.62*costh2*costh2*costh - 78.75*costh2*costh + 13.12*costh2);
+			Y = 0.222*cosph*pow(1.0 - 1.0*costh2, 0.5)*(86.62*costh2*costh2*costh - 78.75*costh2*costh + 13.12*costh);
 			break;
 		case 2:
 			Y = -0.03509*cosph*(costh2 - 1.0)*(433.1*costh2*costh2 - 236.2*costh2 + 13.12);
