@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+import sys
+import os
+
 import numpy as np
 
-import sys, os
 import xmippLib
-
-
 from xmipp_base import XmippScript
+from tensorflow.keras.models import load_model
 
 
 class ScriptDeepMisalignmentDetection(XmippScript):
@@ -14,7 +15,13 @@ class ScriptDeepMisalignmentDetection(XmippScript):
     def __init__(self):
 
         XmippScript.__init__(self)
-
+        
+        self.inputModel1 = None
+        self.inputModel2 = None
+        self.subtomoFilePath = None
+        self.misaliThrBool = None
+        self.misaliThr = None
+        self.outputXmdFilePath = None
 
     #  --------------------- DEFINE PARAMS -----------------------------
     def defineParams(self):
@@ -22,12 +29,12 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.addUsageLine('Detect artifacted tomographic reconstruction from extracted fiducial markers')
         
         # Params
-        self.addParamsLine(' --inputModel1: path to model for strong misalignment detection')
-        self.addParamsLine(' --inputModel2: path to model for waek misalignment detection')
-        self.addParamsLine(' --subtomoFilePath: file path of the xmd file containg the extracted subtomos. ' +
+        self.addParamsLine(' --inputModel1 <inputModel1>: path to model for strong misalignment detection')
+        self.addParamsLine(' --inputModel2 <inputModel2>: path to model for waek misalignment detection')
+        self.addParamsLine(' --subtomoFilePath <subtomoFilePath>: file path of the xmd file containg the coordiantes of the extracted subtomos. ' +
                            'The extracted subtomo should be in the same folder with the same basename + "-[numberOfSubtomo]." ' +
-                           'This is the output you get when extracting with xmipp_tomo_extract_subtomograms.')
-        self.addParamsLine(' --misaliThr: Threshold to settle if a tomogram presents weak or strong misalignment. If this value is '
+                           'This is the output got when extracting with xmipp_tomo_extract_subtomograms.')
+        self.addParamsLine(' --misaliThr <inputMetadaFile>: Threshold to settle if a tomogram presents weak or strong misalignment. If this value is '
                            'not provided two output set of tomograms are generated, those discarded which present '
                            'strong misalignment and those which do not. If this value is provided the second group of '
                            'tomograms is splitted into two, using this threshold to settle if the tomograms present'
@@ -46,11 +53,40 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.misaliThrBool = self.checkParam('--misaliThr')
 
         if self.misaliThrBool:
-            self.misaliThr = self.getDoubleParam('--misaliThr')        
+            self.misaliThr = self.getDoubleParam('--misaliThr')
+
+        self.outputSubtomoXmdFilePath = os.path.join(os.path.dirname(self.subtomoFilePath), "misalignmentSubtomoStatistics.xmd")
+        self.outputTomoXmdFilePath = os.path.join(os.path.dirname(self.subtomoFilePath), "misalignmentTomoStatistics.xmd")
+
+
+    def generateOutputXmd(self, overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray):
+        
+        print("Writting output subtomo stats at " + self.outputSubtomoXmdFilePath)
+
+        # Write subtomo statistics
+        mData1 = xmippLib.MetaData()
+
+        for i in range(len(firstPredictionArray)):
+            id = mData1.addObject()
+            mData1.setValue(xmippLib.MDL_MAX, firstPredictionArray[i],  id)
+            mData1.setValue(xmippLib.MDL_MIN, secondPredictionArray[i], id)
+        
+        mData1.write(self.outputSubtomoXmdFilePath)
+
+        # Write tomo statistics
+        print("Writting output tomo stats at " + self.outputTomoXmdFilePath)
+
+        mData2 = xmippLib.MetaData()
+
+        id = mData2.addObject(1)
+        mData2.setValue(xmippLib.MDL_MAX, overallPrediction,  id)
+        mData2.setValue(xmippLib.MDL_MIN, predictionAverage, id)
+
+        mData2.write(self.outputTomoXmdFilePath)
 
 
     #  --------------------- MAIN FUNCTIONS -----------------------------
-    def getSubtomoPathList(coordFilePath):
+    def getSubtomoPathList(self, coordFilePath):
         coordFilePath_noExt = os.path.splitext(coordFilePath)[0]
         counter = 1
 
@@ -58,6 +94,8 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         while True:
             subtomoPath = coordFilePath_noExt + '-' + str(counter) + '.mrc'
+
+            print(subtomoPath)
 
             if not os.path.exists(subtomoPath):
                 break
@@ -121,10 +159,10 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
     #  --------------------- UTILS FUNCTIONS -----------------------------
     def loadModels(self):
-        self.firstModel = self.load_model(self.inputModel1)
+        self.firstModel = load_model(self.inputModel1)
         # print(self.firstModel.summary())
 
-        self.secondModel = self.load_model(self.inputModel2)
+        self.secondModel = load_model(self.inputModel2)
         # print(self.secondModel.summary())
 
     def determineOverallPrediction(predictionList, overallCriteria):
@@ -176,6 +214,14 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         subtomoPathList = self.getSubtomoPathList(self.subtomoFilePath)
 
         # Make prediction from subtomos in list
+        overallPrediction = None
+        predictionAverage = None
+        firstPredictionArray = None
+        secondPredictionArray = None
+
+        print("subtomoPathList")
+        print(subtomoPathList)
+
         if len(subtomoPathList) != 0:
             totalNumberOfSubtomos = len(subtomoPathList)
             print("Total number of subtomos: " + str(totalNumberOfSubtomos))
@@ -188,6 +234,8 @@ class ScriptDeepMisalignmentDetection(XmippScript):
             print("For volume id " + str(tsId) + " obtained prediction from " +
                     str(len(subtomoPathList)) + " subtomos is " + str(overallPrediction))
             
+        # Generate output
+        self.generateOutputXmd(overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray)
             
     
 if __name__ == "__main__":
