@@ -33,7 +33,6 @@ from.environment import Environment
 
 class Config:
     FILE_NAME = 'xmipp.conf'
-    KEY_BUILD_TESTS = 'BUILD_TESTS'
     KEY_USE_DL = 'USE_DL'
     KEY_VERSION = 'CONFIG_VERSION'
     KEY_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
@@ -65,7 +64,6 @@ class Config:
         self._config_Matlab()
         self._config_StarPU()
         self._config_DL()
-        self._config_tests()
 
         self.configDict[Config.KEY_VERSION] = self._get_version()
 
@@ -74,7 +72,7 @@ class Config:
         print(blue("Configuration completed....."))
 
     def check(self):
-        print("\nChecking configuration ------------------------------")
+        print("\nChecking configuration -----------------------------------")
         if self.configDict['VERIFIED'] != 'True':
             if not self._check_compiler():
                 print(red("Cannot compile"))
@@ -170,7 +168,7 @@ class Config:
                 configFile.write("%s=%s\n" % (label, self.configDict[label]))
 
     def _create_empty(self):
-        labels = [Config.KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
+        labels = [ 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
                   'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
                   'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
                   'MATLAB_DIR', 'CUDA', 'DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV_VERSION',
@@ -195,7 +193,7 @@ class Config:
 
         if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
                       % (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
-                         self.configDict["INCDIRFLAGS"]), show_output=False):
+                         self.configDict["INCDIRFLAGS"]), show_output=False, showWithReturn=True):
             print(yellow("OpenCV not found"))
             self.configDict["OPENCV"] = False
             self.configDict["OPENCVSUPPORTSCUDA"] = False
@@ -287,6 +285,8 @@ class Config:
             Config.KEY_LINKERFORPROGRAMS, 'g++', self.get_supported_GCC())
 
     def _config_compiler(self):
+        print('Configuring compiler')
+
         if self.configDict["DEBUG"] == "":
             self.configDict["DEBUG"] = "False"
 
@@ -326,6 +326,7 @@ class Config:
             self.environment.update(LD_LIBRARY_PATH=localLib)
 
             # extra libs
+            print('Configuring HDF5')
             hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
             isHdf5CppLinking = checkLib(self.get(Config.KEY_CXX), '-lhdf5_cpp')
             isHdf5Linking = checkLib(self.get(Config.KEY_CXX), '-lhdf5')
@@ -389,6 +390,7 @@ class Config:
             self.configDict["PYTHONINCFLAGS"] = ' '.join(
                 ["-I%s" % iDir for iDir in incDirs])
 
+        print('Configuring OpenCV')
         self.configDict["OPENCV"] = os.environ.get("OPENCV", "")
         if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"]:
             self._config_OpenCV()
@@ -429,7 +431,7 @@ class Config:
         return "hdf5"
 
     def _check_compiler(self):
-        print("Checking compiler configuration ...")
+        print("Checking compiler configuration")
         # in case user specified some wrapper of the compiler
         # get rid of it: 'ccache g++' -> 'g++'
         currentCxx = self.get(Config.KEY_CXX).split()[-1]
@@ -597,6 +599,7 @@ class Config:
         self._set_if_empty(Config.OPT_NVCC_CXXFLAGS, flags)
 
     def _set_CUDA(self):
+        print('Configuring CUDA')
         def no_CUDA():
             print(red("No valid compiler found. "
                   "Skipping CUDA compilation.\n"))
@@ -653,6 +656,7 @@ class Config:
         return True
 
     def _config_MPI(self):
+        print('Configuring MPI')
         mpiBinCandidates = [os.environ.get('MPI_BINDIR', 'None'),
                             '/usr/lib/openmpi/bin',
                             '/usr/lib64/openmpi/bin']
@@ -743,6 +747,7 @@ class Config:
         return True
 
     def _config_Java(self):
+        print('Configuring JAVA')
         if self.configDict["JAVA_HOME"] == "":
             javaProgramPath = whereis('javac', findReal=True)
             if not javaProgramPath:
@@ -792,7 +797,7 @@ class Config:
     def _check_Java(self):
         if not checkProgram(self.configDict['JAVAC']):
             return False
-        print("Checking Java configuration...")
+        print("Checking Java configuration")
         javaProg = """
         public class Xmipp {
         public static void main(String[] args) {}
@@ -946,7 +951,7 @@ class Config:
         else:
             return notFound
 
-    def _config_tests(self):
-        if self.configDict[Config.KEY_BUILD_TESTS] == "":
-            self.configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow(
-                '\nDo you want to build tests [yes/NO]'), default=False, actually_ask=self.ask)
+    # def _config_tests(self):
+    #     if self.configDict[Config.KEY_BUILD_TESTS] == "":
+    #         self.configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow(
+    #             '\nDo you want to build tests [YES/no]'), default=True, actually_ask=self.ask)

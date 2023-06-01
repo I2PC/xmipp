@@ -121,7 +121,7 @@ def errorEndMessage(XMIPP_VERNAME):
         strError = 'Unable to install Xmipp.\n\n' \
                    'Devel version of Xmipp is constantly beeing improved, some errors might appear temporary,\n' \
                    'please contact us if you find any. If you have modified code inside Xmipp please check it.\n' \
-                   'In anycase for more information about the error check the error message above.'
+                   'In anycase for more information about the error check compileLOG.txt file.'
         print(
             red('\n\n---------------------------------------------------------------------------'))
         print(red(strError))
@@ -136,7 +136,6 @@ def errorEndMessage(XMIPP_VERNAME):
         print(red(strError))
         print(
             red('---------------------------------------------------------------------------'))
-
 
 def find(program, path=[]):
     location = which(program)
@@ -169,7 +168,7 @@ def printProgressBar(value, sizeBar=30):#value 0 - 100
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            showWithReturn=True, in_parallel=False, sconsProgress=False,
-           progresLines=False, progresLinesPrecompiled=False):#capturar el error!
+           progresLines=False, progresLinesPrecompiled=False, printProgress=False):
     str_out = []
     if show_command:
         if showWithReturn == True:
@@ -180,22 +179,22 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                          stderr=subprocess.STDOUT, shell=True)
     n = 0
     while sconsProgress:
-        line = p.stdout.readline()
+        progresL = progresLines
+        line = p.stdout.readline().decode("utf-8")
         if line != '':
-            #print(str(line))
             log.append(line)
-            if n > 30:
-                if binariesPrecompiled(log):
-                    prg = int((n*100)/progresLinesPrecompiled)
-                else:
-                    prg = int((n*100)/progresLines)
-                str2Print = printProgressBar(prg) + yellow(str(line))
-
-                print(str2Print, end=' ')
-            n += 1
+            if printProgress == True:
+                if n == 30 and binariesPrecompiled(log):
+                        progresL = progresLinesPrecompiled
+                prg = round((n*100)/progresL)
+                str2Print = printProgressBar(prg) + ' ' + line.replace('\n', '') + ('' * 100)
+                print(str2Print, end='\r')
+                n += 1
         if not line:
-            print('')
-            return True
+            if p.poll() == 0:
+                return True
+            else:
+                return False
 
 
     while not in_parallel:
@@ -217,13 +216,17 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
     else:
         if show_output is False and log is None:
             print(yellow(''.join(str_out)))
-            print('\n')
         return False
 
 
-def write_compileLog(log):
-    with open("compileLOG.txt", "a") as logFile:#no imprime con salto de linea ni imprime todo
-        logFile.write(str(log[0]))
+def write_compileLog(log, COMPILE_LOG='', append=True):
+    if append ==True:
+        HTW = 'a'
+    else:
+        HTW = 'w'
+    with open(COMPILE_LOG, HTW) as logFile:#no imprime con salto de linea ni imprime todo
+        logFile.write(log)
+
 def whereis(program, findReal=False, env=None):
     programPath = distutils.spawn.find_executable(program, path=env)
     if programPath:
@@ -342,6 +345,8 @@ def askPath(default='', ask=True):
             print(red("No alternative found in the system."))
         return default
 
+def askShell(msg='', default=True):
+    runJob()
 
 def askYesNo(msg='', default=True, actually_ask=True):
     if not actually_ask:

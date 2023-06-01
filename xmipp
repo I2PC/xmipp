@@ -33,6 +33,7 @@ from scripts import *
 from scripts.utils import checkCMakeVersion
 
 
+
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
 XMIPP_VERSION = '3.23.03.0'        #
@@ -51,6 +52,9 @@ CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
+VERSION_FILE = 'Xmipp_version.txt'
+COMPILE_LOG = 'compileLOG.txt'
+CONFIG_FILE = 'xmipp.conf'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
@@ -65,7 +69,7 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('v.1.13.0', Config.KEY_BUILD_TESTS),
+                GTEST: ('v.1.13.0', None),
                 LIBSVM: ('master', None),
                 LIBCIFPP: ('ms_feature_ciflibrary', None)}
 
@@ -170,16 +174,15 @@ int main(int argc, char** argv){
         std::cout << "  Core branch:      %(CORE_BRANCH)s" << std::endl;
         std::cout << "  Viz branch:       %(VIZ_BRANCH)s" << std::endl;
         std::cout << "  Compilation date: %(LAST_COMPILATION)s" << std::endl;
-        std::cout << "  Compiler:         g++ " << __VERSION__ << std::endl;
-        std::cout << "  Compiling system: " << utsname.machine << " " << utsname.sysname
+        std::cout << "  System compiler:  g++ " << __VERSION__ << std::endl;
+        std::cout << "  System:           " << utsname.machine << " " << utsname.sysname
                   << " " << utsname.release << std::endl 
                   << "                    " << utsname.version << std::endl;
-        std::cout << std::endl;
+        std::cout;
     }
     return 0;
 }
 """ % compilingInfo)
-
 
 def createDir(dirname):
     if not os.path.exists(dirname):
@@ -201,13 +204,12 @@ def cleanSources():
 
 def cleanBinaries():
     for ext in ['so', 'os', 'o']:
-        runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
-    runJob('find . -iname "*.pyc" -delete')
-    runJob("rm -rf %s build" % Config.FILE_NAME)
+        runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext, showWithReturn=False)
+    runJob('find . -iname "*.pyc" -delete', showWithReturn=False)
+    runJob("rm -rf %s build" % Config.FILE_NAME, showWithReturn=False)
     # I'm getting ValueError : unsupported pickle protocol: 5' when switching from one python version to another
     # This seems to be cached at dblite file.
-    runJob('find . -iname "*.dblite" -delete')
-
+    runJob('find . -iname "*.dblite" -delete', showWithReturn=False)
     cleanEmptyFolders()
 
 def cleanDeprecated():
@@ -232,7 +234,8 @@ def cleanDeprecated():
 def cleanEmptyFolders():
     log = []
     path = "src/xmipp/applications/programs/"
-    runJob("find {} –type d -empty".format(path), log=log, show_output=False)
+    runJob("find {} –type d -empty".format(path), log=log, show_output=False,
+           showWithReturn=False)
     for folder in log:
         if os.path.isdir(folder):
             runJob("rm -rf {}".format(folder))
@@ -385,7 +388,7 @@ def getDefaultBranch(repo):
 
 
 def getSources(branch):
-    print("\nGetting sources -------------------------------------")
+    print("\nGetting sources ------------------------------------------")
     ensureGit(True)
     createDir("src")
     repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
@@ -430,8 +433,28 @@ def printVersion():
     if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
         print("Build not found...")
     else:
+        log=[]
         runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
-               show_command=False)
+               show_command=False, log=log)
+    log2 = []
+    runJob('cmake --version', log=log2, show_command=False, show_output=False)
+    print('  {}'.format(log2[0]))
+    log3 = []
+    if runJob('nvcc --version', log=log3, show_command=False, show_output=False):
+        log3 = ''.join(log3)
+        log3 = log3[log3.find('release'):log3.find('release') + 12]
+        print('  nvcc version:     {}'.format(log3))
+    log = '\n'.join(log)
+    log = log.replace('\x1b[4m', '')
+    log = log.replace('\x1b[24m', '')
+    log = log.replace('\x1b[1m', '')
+    log = log.replace('\x1b[0m', '')
+    with open(VERSION_FILE, 'w') as f:
+        f.write(log)
+        f.write('\n  nvcc version:     ')
+        f.write(log3)
+        f.write('\n  ')
+        f.write(log2[0])
 
 def getScipionHome():
     """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
@@ -440,29 +463,32 @@ def getScipionHome():
 
 def compileModule(Nproc,module):
     sconsProgress = False
-    progresLines = 0
-    progresLinesPrecompiled = 0
+    printProgress = False
+    progresLines = 1
+    progresLinesPrecompiled = 1
+    print(yellow('Working...'), end='\r')
     if module == "xmipp":
+        write_compileLog('\n' + '#' * 27 + '\nCompiling Xmipp------------\n',
+                         COMPILE_LOG=COMPILE_LOG)
+        printProgress = True
         stampVersion()
         sconsProgress = True
         progresLines = 773
-        progresLinesPrecompiled = 222
+        progresLinesPrecompiled = 232
     if module == "xmippCore":
-        print(yellow('Working...'), end='\r')
+        write_compileLog('\n' + '#' * 27 + '\nCompiling XmippCore--------\n',
+                         COMPILE_LOG=COMPILE_LOG)
         sconsProgress = True
-        progresLines = 123
-        progresLinesPrecompiled = 6
     if module == "xmippViz":
-        print(yellow('Working...'), end='\r')
+        write_compileLog('\n' + '#' * 27 + '\nCompiling XmippViz---------\n',
+                         COMPILE_LOG=COMPILE_LOG)
         sconsProgress = True
-
-        progresLines = 56
-        progresLinesPrecompiled = 17
     log = []
     ok = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
                 show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
-                progresLinesPrecompiled=progresLinesPrecompiled)
-    write_compileLog(log[0])
+                progresLinesPrecompiled=progresLinesPrecompiled, printProgress=printProgress)
+
+    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
     lastError= ''
     #print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
@@ -502,12 +528,10 @@ def compileModule(Nproc,module):
                                 if os.path.isdir(depDir) else './xmipp get_dependencies')
                         print(red("This file belongs to %s dependency. Please, "
                                   "try '%s' and re-compile." % (missingDir, hint)))
-        print(red("\nSome error occurred during the compilation of '%s'%s.\n"
+        print(red("Some error occurred during the compilation of '%s'%s."
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
-        errorEndMessage(XMIPP_VERNAME)
-        sys.exit(1)
-    print(green("Done       "))
-
+        return False
+    print(green('Done. Visit compileLOG.txt for details' + (' ' * 150)))
     return ok
 
 
@@ -642,7 +666,7 @@ def compile(Nproc):
         return False
 
 def compileDependencies(Nproc):
-    print("\nBuilding Dependencies -------------------------------------")
+    print("\nBuilding Dependencies ------------------------------------")
     result = True
     if buildConfig.is_true('CUDA'):
         cudaBinDir, nvccBaseName = os.path.split(buildConfig.get()['NVCC'])
@@ -652,8 +676,7 @@ def compileDependencies(Nproc):
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
-    if buildConfig.is_true(Config.KEY_BUILD_TESTS):
-        result = result and compile_googletest()
+    result = result and compile_googletest()
     result = result and compile_libsvm()
     result = result and compile_libcifpp()
     if not result:
@@ -662,13 +685,15 @@ def compileDependencies(Nproc):
 
 
 def compileXmipp(Nproc):
-    print("\nCompiling xmippCore-------------------------------------------")
+    todayDate = 'Compilation Date: {}\n'.format(datetime.today())
+    write_compileLog(todayDate, append=False, COMPILE_LOG=COMPILE_LOG)
+    print("\nCompiling xmippCore---------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
     print("\nCompiling xmipp-------------------------------------------")
     if not compileModule(Nproc,"xmipp"):
         return False
-    print("\nCompiling xmippViz-------------------------------------------")
+    print("\nCompiling xmippViz----------------------------------------")
     if not compileModule(Nproc,"xmippViz"):
         return False
     return True
@@ -833,7 +858,7 @@ def linkToScipion(dirname):
     currentDir = os.getcwd()
     dirnameAbs = os.path.join(currentDir,dirname)
     if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
-        print("\nLinking to Scipion ------------------------------------------")
+        print("\nLinking to Scipion ---------------------------------------")
         print(yellow('Working...'), end='\r')
         if os.path.isdir(xmippHomeLink):
             runJob("rm %s" %xmippHomeLink)
@@ -863,7 +888,7 @@ def linkToScipion(dirname):
 
 
 def install(dirname):
-    print("\nInstalling ------------------------------------------")
+    print("\nInstalling -----------------------------------------------")
     print(yellow('Working...'), end='\r')
     if XMIPP_VERNAME =='devel':  show_command = True
     else: show_command = False
@@ -922,7 +947,7 @@ def install(dirname):
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
         errorEndMessage(XMIPP_VERNAME)
-        sys.exit(1)
+        return False
     print(green('Done' + (' ' * 150)))
 
     # Scipion connection
@@ -980,7 +1005,6 @@ def install(dirname):
     fhFish.close()
 
     endMessage(XMIPP_VERNAME)
-    printVersion()
     return True
 
 
@@ -1044,6 +1068,21 @@ def usage(msg=''):
           )
 
 
+def exitProgram(error=False):
+    runJob(
+        'tar -czf reportInstallation.tar.gz {} {} {} '.format(CONFIG_FILE,
+                                                              VERSION_FILE,
+                                                              COMPILE_LOG),
+        show_output=False, show_command=False)
+    if error:
+        errorEndMessage(XMIPP_VERNAME)
+
+        print(red(
+        'You can report the details of the installation sharing the generated reportInstallation.tar.gz file'))
+
+    printVersion()
+    sys.exit(0)
+
 if __name__ == '__main__':
     # Running always under this own directory.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -1064,9 +1103,6 @@ if __name__ == '__main__':
         mode = sys.argv[1]
     else:
         mode = "all"
-
-    # if not ensureGit():
-    #     sys.exit(-1)
 
     buildConfig = Config(askUser)
     buildConfig.read()
@@ -1111,9 +1147,10 @@ if __name__ == '__main__':
                   "  * %s has been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
+            exitProgram(error=False)
         else:
             print(red("\nSome error occurred during the compilation\n"))
-            sys.exit(1)
+            exitProgram(error=True)
     elif mode == "compileAndInstall":
         Nproc = 8
         dir = "build"
@@ -1126,15 +1163,18 @@ if __name__ == '__main__':
         ok = compile(Nproc)
         ok = ok and install(dir)
         if not ok:
-            print(red("\nSome error occurred...\n"))
-            errorEndMessage(XMIPP_VERNAME)
-            sys.exit(1)
+            exitProgram(error=True)
+        else:
+            exitProgram(error=False)
+
     elif mode == "install":
         if n == 3:
             dir = sys.argv[2]
         else:
             dir = "build"
-        install(dir)
+        ok = install(dir)
+        if not ok:
+            sys.exit(1)
     elif mode == "get_models":
         modelsDir = 'build' if n==2 else sys.argv[2]
         downloadDeepLearningModels(modelsDir, dedicatedMode=True)
@@ -1154,7 +1194,6 @@ if __name__ == '__main__':
             else:
                 usage("Unknown %s argument"%arg)
                 sys.exit(1)
-
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
             buildConfig.create()
@@ -1169,10 +1208,9 @@ if __name__ == '__main__':
             and compile(Nproc)
             and install(buildDir))
         if ok:
-           sys.exit(0)
+            exitProgram()
         else:
-            errorEndMessage(XMIPP_VERNAME)
-            sys.exit(1)
+            exitProgram(error=True)
     elif mode == "create_devel_paths":
         if n == 3:
             dir = sys.argv[2]
@@ -1214,9 +1252,8 @@ if __name__ == '__main__':
             if arg.lower() == 'debug':
                 debugFlag = 'debug'
         runJob("scripts/tar.py %s %s %s %s" % (mode, ver, br, debugFlag))
-
-
     else:
         usage(" -> option not found <- \n")
+
 
 
