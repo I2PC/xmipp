@@ -33,13 +33,21 @@ def signal_to_noise_statistic(images, radius):
     
     #create circular mask
     dim = images.size(dim=1)
+    center = dim // 2
     
     if not radius:
         radius = dim // 2
-    y, x = torch.meshgrid(torch.arange(dim), torch.arange(dim), indexing='ij')
-    dist = torch.sqrt((x - radius)**2 + (y - radius)**2)
-    mask = dist <= radius        
-    mask = mask.float()       
+        
+    y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
+    dist = torch.sqrt(x**2 + y**2)
+
+    mask = dist <= radius
+    mask = mask.float()    
+        
+    # y, x = torch.meshgrid(torch.arange(dim), torch.arange(dim), indexing='ij')
+    # dist = torch.sqrt((x - radius)**2 + (y - radius)**2)
+    # mask = dist <= radius        
+    # mask = mask.float()       
     inv_mask = torch.logical_not(mask)
     
     mask = mask.bool()#.to(cuda)
