@@ -6,11 +6,12 @@ import numpy as np
 
 import xmippLib
 from xmipp_base import XmippScript
+
 from tensorflow.keras.models import load_model
 
 
 class ScriptDeepMisalignmentDetection(XmippScript):
-    # _conda_env="xmipp_pyTorch" *** generar nuestro propio enviroment??
+    _conda_env="xmipp_DLTK_v0.3" 
 
     def __init__(self):
 
