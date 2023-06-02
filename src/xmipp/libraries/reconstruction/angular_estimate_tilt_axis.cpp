@@ -59,6 +59,7 @@ void ProgAngularEstimateTiltAxis::run()
 	MetaDataVec mdOut;
 	size_t id;
 	double alphaU, alphaT, gamma;
+
 	if (mdU.size()==0)
 	{
 		id=mdOut.addObject();
@@ -82,7 +83,6 @@ void ProgAngularEstimateTiltAxis::run()
 
         aligner.addCoordinatePair(xu,yu,xt,yt);
 	}
-
 	aligner.calculatePassingMatrix();
 	aligner.computeGamma();
 
@@ -92,13 +92,11 @@ void ProgAngularEstimateTiltAxis::run()
 	if (fnOut.exists())
 		mdOut.read(fnOut);
 
-	id=mdOut.addObject();
-	mdOut.setValue(MDL_ANGLE_Y,alphaU,id);
-	mdOut.setValue(MDL_ANGLE_Y2,alphaT,id);
-	mdOut.setValue(MDL_ANGLE_TILT,gamma,id);
-//
-//	mdU.getValue(MDL_IMAGE, imname,id);
-//	mdOut.setValue(MDL_IMAGE, imname,id);
+	MDRowVec row;
+	row.setValue(MDL_ANGLE_Y, alphaU);
+	row.setValue(MDL_ANGLE_Y2, alphaT);
+	row.setValue(MDL_ANGLE_TILT, gamma);
+	mdOut.addRow(row);
 
 	mdOut.write(fnOut);
 

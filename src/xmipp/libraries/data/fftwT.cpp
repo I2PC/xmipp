@@ -23,7 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "fftwT.h"
+#include "../data/fftwT.h"
+
 #include "core/xmipp_error.h"
 #include <array>
 #include <mutex>
