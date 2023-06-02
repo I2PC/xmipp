@@ -1,5 +1,4 @@
 #include "unitCell.h"
-#include "core/metadata_db.h"
 #include <math.h>
 // 60 is the angle between the vectors
 // icosahedron from_5f_to_2f and from_5f_2fp: vector that joing a vertex with the two closes 2-fold symmetry axis
