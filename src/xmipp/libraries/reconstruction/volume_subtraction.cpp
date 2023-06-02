@@ -359,7 +359,6 @@ MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &
 void ProgVolumeSubtraction::runIteration(Image<double> &V,Image<double> &V1,const MultidimArray<double> &radQuotient,
 		const MultidimArray<double> &V1FourierMag,const MultidimArray<std::complex<double>> &V2FourierPhase,
 		const MultidimArray<double> &mask, FourierFilter &filter2) {
-	if (computeE)
 
 	transformer2.FourierTransform(V(), V2Fourier, false);
 	if (radavg) {
