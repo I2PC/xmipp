@@ -52,7 +52,7 @@ CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
-VERSION_FILE = 'Xmipp_version.txt'
+VERSION_FILE = 'xmipp_version.txt'
 COMPILE_LOG = 'compileLOG.txt'
 CONFIG_FILE = 'xmipp.conf'
 
@@ -436,6 +436,11 @@ def printVersion():
         log=[]
         runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
                show_command=False, log=log)
+        log = '\n'.join(log)
+        log = log.replace('\x1b[4m', '')
+        log = log.replace('\x1b[24m', '')
+        log = log.replace('\x1b[1m', '')
+        log = log.replace('\x1b[0m', '')
     log2 = []
     runJob('cmake --version', log=log2, show_command=False, show_output=False)
     print('  {}'.format(log2[0]))
@@ -444,11 +449,7 @@ def printVersion():
         log3 = ''.join(log3)
         log3 = log3[log3.find('release'):log3.find('release') + 12]
         print('  nvcc version:     {}'.format(log3))
-    log = '\n'.join(log)
-    log = log.replace('\x1b[4m', '')
-    log = log.replace('\x1b[24m', '')
-    log = log.replace('\x1b[1m', '')
-    log = log.replace('\x1b[0m', '')
+
     with open(VERSION_FILE, 'w') as f:
         f.write(log)
         f.write('\n  nvcc version:     ')
@@ -471,7 +472,6 @@ def compileModule(Nproc,module):
         write_compileLog('\n' + '#' * 27 + '\nCompiling Xmipp------------\n',
                          COMPILE_LOG=COMPILE_LOG)
         printProgress = True
-        stampVersion()
         sconsProgress = True
         progresLines = 773
         progresLinesPrecompiled = 232
@@ -606,7 +606,7 @@ def compile_libsvm():
 
 def compile_libcifpp():
     print("Building libcifpp...")
-    print(yellow('Working...'), end='\r')
+    print(yellow('Working... (It could takes 1 or 2 minutes)'), end='\r')
     log = []
     # Check if CMake version is up to date
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
@@ -687,6 +687,7 @@ def compileDependencies(Nproc):
 def compileXmipp(Nproc):
     todayDate = 'Compilation Date: {}\n'.format(datetime.today())
     write_compileLog(todayDate, append=False, COMPILE_LOG=COMPILE_LOG)
+    stampVersion()
     print("\nCompiling xmippCore---------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
@@ -1069,6 +1070,7 @@ def usage(msg=''):
 
 
 def exitProgram(error=False):
+    printVersion()
     runJob(
         'tar -czf reportInstallation.tar.gz {} {} {} '.format(CONFIG_FILE,
                                                               VERSION_FILE,
@@ -1076,11 +1078,9 @@ def exitProgram(error=False):
         show_output=False, show_command=False)
     if error:
         errorEndMessage(XMIPP_VERNAME)
-
         print(red(
         'You can report the details of the installation sharing the generated reportInstallation.tar.gz file'))
 
-    printVersion()
     sys.exit(0)
 
 if __name__ == '__main__':

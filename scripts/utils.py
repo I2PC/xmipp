@@ -188,6 +188,8 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                         progresL = progresLinesPrecompiled
                 prg = round((n*100)/progresL)
                 str2Print = printProgressBar(prg) + ' ' + line.replace('\n', '') + ('' * 100)
+                if str2Print.endswith('\n'):
+                    print(str2Print)
                 print(str2Print, end='\r')
                 n += 1
         if not line:

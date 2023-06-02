@@ -710,7 +710,7 @@ class Config:
             self.configDict["MPI_LINKERFORPROGRAMS"] = self.configDict["MPI_CXX"]
 
     def _check_MPI(self):
-        print("Checking MPI configuration ...")
+        print("\nChecking MPI configuration")
         cppProg = """
     #include <mpi.h>
     int main(){}
