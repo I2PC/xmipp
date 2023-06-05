@@ -36,16 +36,15 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.addParamsLine(' --subtomoFilePath <subtomoFilePath>: file path of the xmd file containg the coordiantes of the extracted subtomos. ' +
                            'The extracted subtomo should be in the same folder with the same basename + "-[numberOfSubtomo]." ' +
                            'This is the output got when extracting with xmipp_tomo_extract_subtomograms.')
-        self.addParamsLine(' --misaliThr <inputMetadaFile>: Threshold to settle if a tomogram presents weak or strong misalignment. If this value is '
+        self.addParamsLine(' --misaliThr <misaliThr>: Threshold to settle if a tomogram presents weak or strong misalignment. If this value is '
                            'not provided two output set of tomograms are generated, those discarded which present '
                            'strong misalignment and those which do not. If this value is provided the second group of '
                            'tomograms is splitted into two, using this threshold to settle if the tomograms present'
                            'or not a weak misalignment.')
-        self.addParamsLine(' --misalignmentCriteriaVotes <misalignmentCriteriaVotes>: Define criteria used '
-                           'for making a decision on the presence of misalignment on the tomogram based on the individual '
-                           'scores of each subtomogram. If this option is not provided (default) the mean of this scores '
-                           'is calculated. If provided a votting system based on if each subtomo score is closer to 0 o 1 '
-                           'is implented. ')
+        self.addParamsLine(' --misalignmentCriteriaVotes: Define criteria used for making a decision on the presence '
+                           'of misalignment on the tomogram based on the individual scores of each subtomogram. If '
+                           'this option is not provided (default) the mean of this scores is calculated. If '
+                           'provided a votting system based on if each subtomo score is closer to 0 o 1 is implented. ')
         
         # Examples       
         self.addExampleLine('xmipp_deep_misalingment_detection -inputModel1 path/to/model1 --inputModel2 path/to/model2 ' +
