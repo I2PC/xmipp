@@ -23,6 +23,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.misaliThrBool = None
         self.misaliThr = None
         self.outputXmdFilePath = None
+        self.misalignmentCriteria = 1  # Use mean mode
 
     #  --------------------- DEFINE PARAMS -----------------------------
     def defineParams(self):
@@ -40,10 +41,15 @@ class ScriptDeepMisalignmentDetection(XmippScript):
                            'strong misalignment and those which do not. If this value is provided the second group of '
                            'tomograms is splitted into two, using this threshold to settle if the tomograms present'
                            'or not a weak misalignment.')
+        self.addParamsLine(' --misalignmentCriteriaVotes <misalignmentCriteriaVotes>: Define criteria used '
+                           'for making a decision on the presence of misalignment on the tomogram based on the individual '
+                           'scores of each subtomogram. If this option is not provided (default) the mean of this scores '
+                           'is calculated. If provided a votting system based on if each subtomo score is closer to 0 o 1 '
+                           'is implented. ')
         
         # Examples       
         self.addExampleLine('xmipp_deep_misalingment_detection -inputModel1 path/to/model1 --inputModel2 path/to/model2 ' +
-                            '--subtomoFilePath path/to/xoords.xmd')
+                            '--subtomoFilePath path/to/coords.xmd')
 
     
     #  --------------------- I/O FUNCTIONS -----------------------------
@@ -51,10 +57,15 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.inputModel1 = self.getParam('--inputModel1')
         self.inputModel2 = self.getParam('--inputModel2')
         self.subtomoFilePath = self.getParam('--subtomoFilePath')
-        self.misaliThrBool = self.checkParam('--misaliThr')
 
+        self.misaliThrBool = self.checkParam('--misaliThr')
         if self.misaliThrBool:
             self.misaliThr = self.getDoubleParam('--misaliThr')
+
+        self.misalignmentCriteriaVotesBool = self.checkParam('--misalignmentCriteriaVotes')
+        if self.misalignmentCriteriaVotesBool:
+            self.misalignmentCriteria = 0
+
 
         self.outputSubtomoXmdFilePath = os.path.join(os.path.dirname(self.subtomoFilePath), "misalignmentSubtomoStatistics.xmd")
         self.outputTomoXmdFilePath = os.path.join(os.path.dirname(self.subtomoFilePath), "misalignmentTomoStatistics.xmd")
@@ -134,7 +145,8 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         firstPredictionArray = self.firstModel.predict(subtomoArray)
 
-        overallPrediction, predictionAverage = self.determineOverallPrediction(firstPredictionArray, overallCriteria=1)
+        overallPrediction, predictionAverage = self.determineOverallPrediction(firstPredictionArray, 
+                                                                               overallCriteria=self.misalignmentCriteria)
 
         if not overallPrediction:
             overallPrediction = 1  # Strong misalignment
@@ -146,7 +158,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
             secondPredictionArray = self.secondModel.predict(subtomoArray)
 
             overallPrediction, predictionAverage = self.determineOverallPrediction(secondPredictionArray,
-                                                                                   overallCriteria=1)
+                                                                                   overallCriteria=self.misalignmentCriteria)
 
             if self.misaliThrBool:  # Using threshold
 
