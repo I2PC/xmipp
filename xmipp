@@ -691,7 +691,7 @@ def compileXmipp(Nproc):
     print("\nCompiling xmippCore---------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
-    print("\nCompiling xmipp-------------------------------------------")
+    print("\nCompiling xmipp-------------------------------------------\n")
     if not compileModule(Nproc,"xmipp"):
         return False
     print("\nCompiling xmippViz----------------------------------------")
