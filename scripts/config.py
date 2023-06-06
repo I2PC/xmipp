@@ -878,9 +878,9 @@ class Config:
                     print(green("Matlab detected at " + matlabBinDir))
 
     def _check_Matlab(self):
-        print("Checking Matlab configuration")
         ans = True
         if self.configDict["MATLAB"] == "True":
+            print("Checking Matlab configuration")
             if not checkProgram("matlab"):
                 return False
             print("Checking Matlab configuration ...")
@@ -919,10 +919,9 @@ class Config:
             self.configDict["STARPU_LIBRARY"] = "libstarpu-1.3"
 
     def _check_StarPU(self):
-        print("Checking StarPU configuration")
-
         ans = True
         if self.configDict["STARPU"] == "True":
+            print("Checking StarPU configuration")
             if self.configDict["CUDA"] != "True":
                 ans = False
                 print(red("CUDA must be enabled together with STARPU"))

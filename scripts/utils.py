@@ -170,6 +170,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            showWithReturn=True, in_parallel=False, sconsProgress=False,
            progresLines=False, progresLinesPrecompiled=False, printProgress=False):
     str_out = []
+    precompiled = False
     if show_command:
         if showWithReturn == True:
             print(yellow(cmd), end='\r')
@@ -179,22 +180,26 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                          stderr=subprocess.STDOUT, shell=True)
     n = 0
     while sconsProgress:
-        UP = "\x1B[1A" #Move the coursor one line up
-        progresL = progresLines
+        UP = "\x1B[1A\r" #Move the coursor one line up and move to the begin in
+        if precompiled == True:
+            progresL = progresLinesPrecompiled
+        else:
+            progresL = progresLines
         line = p.stdout.readline().decode("utf-8")
         if line != '':
             log.append(line)
             if printProgress == True:
                 if n == 30 and binariesPrecompiled(log):
-                        progresL = progresLinesPrecompiled
+                        precompiled=True
                 prg = round((n*100)/progresL)
-                str2Print = UP + printProgressBar(prg) + '\n' + line.replace('\n', '') + ('' * 100)
-                if str2Print.endswith('\n'):
-                    print(f"{str2Print}")
-                print(str2Print, end='\r')
+                if prg > 100: prg = 100
+                #print('n: {} progresL: {} prg: {}'.format(n, progresL, prg))
+                str2Print = printProgressBar(prg) + '\n' + line.replace('\n', '') + ('' * 100)
+                print(f"{str2Print}", end=UP)
                 n += 1
         if not line:
             if p.poll() == 0:
+                #print('\nTotal Lines Xmipp: {}'.format(n))
                 return True
             else:
                 return False

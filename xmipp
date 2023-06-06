@@ -423,6 +423,7 @@ def getDependencies():
 def printVersion():
     buildDir = 'build'
     shortFlag = ''
+    log = []
     for arg in sys.argv[2:]:
         if arg == '--short':
             shortFlag = '--short'
@@ -433,7 +434,6 @@ def printVersion():
     if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
         print("Build not found...")
     else:
-        log=[]
         runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
                show_command=False, log=log)
         log = '\n'.join(log)
@@ -451,7 +451,7 @@ def printVersion():
         print('  nvcc version:     {}'.format(log3))
 
     with open(VERSION_FILE, 'w') as f:
-        f.write(log)
+        f.write(str(log))
         f.write('\n  nvcc version:     ')
         f.write(log3)
         f.write('\n  ')
@@ -469,18 +469,18 @@ def compileModule(Nproc,module):
     progresLinesPrecompiled = 1
     print(yellow('Working...'), end='\r')
     if module == "xmipp":
-        write_compileLog('\n' + '#' * 27 + '\nCompiling Xmipp------------\n',
+        write_compileLog('\n\n' + '#' * 27 + '\nCompiling Xmipp------------\n',
                          COMPILE_LOG=COMPILE_LOG)
         printProgress = True
         sconsProgress = True
         progresLines = 773
         progresLinesPrecompiled = 232
     if module == "xmippCore":
-        write_compileLog('\n' + '#' * 27 + '\nCompiling XmippCore--------\n',
+        write_compileLog('\n\n' + '#' * 27 + '\nCompiling XmippCore--------\n',
                          COMPILE_LOG=COMPILE_LOG)
         sconsProgress = True
     if module == "xmippViz":
-        write_compileLog('\n' + '#' * 27 + '\nCompiling XmippViz---------\n',
+        write_compileLog('\n\n' + '#' * 27 + '\nCompiling XmippViz---------\n',
                          COMPILE_LOG=COMPILE_LOG)
         sconsProgress = True
     log = []
@@ -676,34 +676,34 @@ def compileDependencies(Nproc):
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         if (checkProgram('make', True) or installDepConda('make')):
-            write_compileLog('\n' + '#' * 27 + '\nCompiling cuFFTAdvisor--------\n',
+            write_compileLog('\n\n' + '#' * 27 + '\nCompiling cuFFTAdvisor--------\n',
                              COMPILE_LOG=COMPILE_LOG)
             result, log = compile_cuFFTAdvisor()
-            write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+            write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
             if not result:
                 print(red("Cannot build cuFFTAdvisor dependence"))
                 return False
 
-    write_compileLog('\n' + '#' * 27 + '\nCompiling googletest--------\n',
+    write_compileLog('\n\n' + '#' * 27 + '\nCompiling googletest--------\n',
                      COMPILE_LOG=COMPILE_LOG)
     result, log = compile_googletest()
-    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+    write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
         print(red("Cannot build googletest dependence"))
         return False
 
-    write_compileLog('\n' + '#' * 27 + '\nCompiling libsvm--------\n',
+    write_compileLog('\n\n' + '#' * 27 + '\nCompiling libsvm--------\n',
                      COMPILE_LOG=COMPILE_LOG)
     result, log = compile_libsvm()
-    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+    write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
         print(red("Cannot build libsvm dependence"))
         return False
 
-    write_compileLog('\n' + '#' * 27 + '\nCompiling libcifpp--------\n',
+    write_compileLog('\n\n' + '#' * 27 + '\nCompiling libcifpp--------\n',
                      COMPILE_LOG=COMPILE_LOG)
     result, log = compile_libcifpp()
-    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+    write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
         print(red("Cannot build libcifpp dependences"))
         return False
