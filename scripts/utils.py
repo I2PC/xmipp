@@ -86,13 +86,12 @@ def find_GCC(candidates, show=False):
 
 
 
-def find_newest(program, versions, show):
+def find_newest(program, versions, show=True):
     for v in versions:
         p = program + '-' + str(v) if v else program
         loc = find(p)
         if loc:
             if show:
-                print(green('gcc {} found for CUDA: {}'.format(v, loc)))
                 print(green(p + ' found in ' + loc))
             return loc
     if show:
@@ -158,6 +157,7 @@ def binariesPrecompiled(log):
         return True
     else:
         return False
+
 
 
 
@@ -320,9 +320,10 @@ def findFileInDirList(fnH, dirlist):
 
 def checkLib(gxx, libFlag):
     """ Returns True if lib is found. """
+    log = []
     result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
                     gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
-                    show_output=False, show_command=False)
+                    show_output=False, show_command=False, log=log)
     remove('xmipp_check_lib.cpp')
     remove('a.out') if path.isfile('a.out') else None
     return result

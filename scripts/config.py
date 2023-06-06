@@ -43,6 +43,7 @@ class Config:
     OPT_NVCC = 'NVCC'
     OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
     OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
+    MINOR_GCC_VERSION = 8
 
 
     def __init__(self, askUser=False):
@@ -56,7 +57,8 @@ class Config:
         if self.configDict['VERIFIED'] == '':
             self.configDict['VERIFIED'] = 'False'
 
-        self._config_compiler()
+        if not self._config_compiler():
+            return False
         self._set_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -69,7 +71,7 @@ class Config:
 
         self.write()
         self.environment.write()
-        print(blue("Configuration completed....."))
+        print(green("\nConfiguration completed and written on xmipp.conf.\n"))
 
     def check(self):
         print("\nChecking configuration -----------------------------------")
@@ -110,7 +112,7 @@ class Config:
             self.configDict['VERIFIED'] = "True"
             self.write()  # store result
         else:
-            print(blue("'%s' is already checked. Set VERIFIED=False to have it re-checked"
+            print(green("'%s' is already checked. Set VERIFIED=False to have it re-checked"
                        % Config.FILE_NAME))
         return True
 
@@ -193,7 +195,8 @@ class Config:
 
         if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
                       % (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
-                         self.configDict["INCDIRFLAGS"]), show_output=False, showWithReturn=True):
+                         self.configDict["INCDIRFLAGS"]), show_command=False,
+                      show_output=False, showWithReturn=True):
             print(yellow("OpenCV not found"))
             self.configDict["OPENCV"] = False
             self.configDict["OPENCVSUPPORTSCUDA"] = False
@@ -212,10 +215,11 @@ class Config:
                               '}\n')
             if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
                           % (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
-                             self.configDict["INCDIRFLAGS"]), show_output=False):
+                             self.configDict["INCDIRFLAGS"]),
+                          show_command=False, show_output=False):
                 self.configDict["OPENCV_VERSION"] = 2
             else:
-                runJob("./xmipp_test_opencv")
+                runJob("./xmipp_test_opencv", show_output=False, show_command=False)
                 f = open("xmipp_test_opencv.txt")
                 versionStr = f.readline()
                 f.close()
@@ -234,13 +238,14 @@ class Config:
                 cppFile.write(cppProg)
             if runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
                  (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
-                  self.configDict["INCDIRFLAGS"]), show_output=False, log=[]):
+                  self.configDict["INCDIRFLAGS"]),
+                      show_output=False, log=[], show_command=False):
                 self.configDict["OPENCVSUPPORTSCUDA"] = True
             else:
                 self.configDict["OPENCVSUPPORTSCUDA"] = False
             print(green("OPENCV-%s detected %s CUDA support"
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
-        runJob("rm -v xmipp_test_opencv*", show_output=False)
+        runJob("rm -v xmipp_test_opencv*", show_output=False, show_command=False)
 
     def _get_help_msg(self):
         msg_missing = 'The config file %s is missing.\n' % Config.FILE_NAME
@@ -263,22 +268,22 @@ class Config:
         # we need GCC with C++17 support
         # https://gcc.gnu.org/projects/cxx-status.html
         return ['',
-                11.3, 11.2, 11.1, 11,
+                11.4, 11.3, 11.2, 11.1, 11,
                 10.4, 10.3, 10.2, 10.1, 10,
                 9.5, 9.4, 9.3, 9.2, 9.1, 9,
                 8.5, 8.4, 8.3, 8.2, 8.1, 8]
 
-    def _set_compiler_linker_helper(self, opt, prg, versions):
+    def _set_compiler_linker_helper(self, opt, prg, versions, show=False):
         if not self.is_empty(opt):
             return
-        prg = find_newest(prg, versions, True)
+        prg = find_newest(prg, versions, show=show)
         if isCIBuild() and prg:
             prg = 'ccache ' + prg
         self._set(opt, prg)
 
     def _set_cxx(self):
         self._set_compiler_linker_helper(
-            Config.KEY_CXX, 'g++', self.get_supported_GCC())
+            Config.KEY_CXX, 'g++', self.get_supported_GCC(), show=True)
 
     def _set_linker(self):
         self._set_compiler_linker_helper(
@@ -286,13 +291,14 @@ class Config:
 
     def _config_compiler(self):
         print('Configuring compiler')
-
         if self.configDict["DEBUG"] == "":
             self.configDict["DEBUG"] = "False"
-
         if self.configDict["CC"] == "" and checkProgram("gcc"):
             self.configDict["CC"] = "gcc"
-            print(green('gcc detected'))
+            if get_GCC_version("gcc")[0] < Config.MINOR_GCC_VERSION:
+                print(red("gcc version required >= 8, detected gcc {}".format(get_GCC_version("gcc")[0])))
+            else:
+                print(green('gcc {} detected'.format(get_GCC_version("gcc")[0])))
         self._set_cxx()
         self._set_linker()
         if self.configDict["CC"] == "gcc":
@@ -318,36 +324,40 @@ class Config:
         
         from sysconfig import get_paths
         info = get_paths()
-        hdf5Found = 'hdf5 library found at: '
+
         if self.configDict["LIBDIRFLAGS"] == "":
+            print('Configuring HDF5')
+            hdf5Found = 'hdf5 library found at: '
             # /usr/local/lib or /path/to/virtEnv/lib
             localLib = "%s/lib" % info['data']
             self.configDict["LIBDIRFLAGS"] = "-L%s" % localLib
             self.environment.update(LD_LIBRARY_PATH=localLib)
-
             # extra libs
-            print('Configuring HDF5')
+            path2FindHDF5 = ["/usr/lib",
+                             "/usr/lib/x86_64-linux-gnu/hdf5/serial",
+                             "/usr/lib/x86_64-linux-gnu"]
             hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
             isHdf5CppLinking = checkLib(self.get(Config.KEY_CXX), '-lhdf5_cpp')
             isHdf5Linking = checkLib(self.get(Config.KEY_CXX), '-lhdf5')
             if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
-                print(yellow("\n'libhdf5' not found at '%s'." % localLib))
-                hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
-                                                         "/usr/lib/x86_64-linux-gnu/hdf5/serial",
-                                                         "/usr/lib/x86_64-linux-gnu"])
-                hdf5Lib = askPath(hdf5Lib, self.ask)
-                if hdf5Lib:
+                hdf5Lib = findFileInDirList("libhdf5*", path2FindHDF5)
+                if hdf5Lib == '':
+                    print(yellow('HDF5 not found at {}'.format(path2FindHDF5)))
+                    hdf5Lib = askPath('', self.ask)
+                    if hdf5Lib == '':
+                        installDepConda('hdf5', self.ask)
+                else:
                     self.configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
                     self.environment.update(LD_LIBRARY_PATH=hdf5Lib)
-                else:
-                    installDepConda('hdf5', self.ask)
 
             if hdf5InLocalLib != '':
                 print(green(str(hdf5Found + hdf5InLocalLib)))
-            elif isHdf5CppLinking and isHdf5Linking:
-                print(green(str(hdf5Found + 'system. "ld -lhdf5 '
-                    '--verbose" to get the list of paths where it searchs')))
-
+            elif isHdf5CppLinking != False:
+                print(green(str(hdf5Found + isHdf5CppLinking)))
+            elif isHdf5Linking !=False:
+                print(green(str(hdf5Found + isHdf5Linking)))
+            elif hdf5Lib != '':
+                print(green(str(hdf5Found + hdf5Lib)))
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
             print(red("'libfftw3' not found in the system"))
@@ -365,16 +375,23 @@ class Config:
 
             # extra includes
             if not findFileInDirList("hdf5.h", [localInc, "/usr/include"]):
-                print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
                 # Add more candidates if needed
                 hdf5Inc = findFileInDirList(
                     "hdf5.h", "/usr/include/hdf5/serial")
-                hdf5Inc = askPath(hdf5Inc, self.ask)
+                if hdf5Inc == '':
+                    print(yellow(
+                        "Headers for 'libhdf5' not found at '%s'." % "/usr/include/hdf5/serial"))
+                    hdf5Inc = askPath('', self.ask)
+                    if hdf5Inc == '':
+                        print(red("Headers for 'libhdf5' not found"))
                 if hdf5Inc:
+                    print(green(
+                        "Headers for 'libhdf5' found at '%s'." % hdf5Inc))
                     self.configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
             if findFileInDirList("opencv4/opencv2/core/core.hpp", ["/usr/include"]):
                 self.configDict["INCDIRFLAGS"] += " -I%s" % "/usr/include/opencv4"
+
 
         if self.configDict["PYTHON_LIB"] == "":
             # malloc flavour is not needed from 3.8
@@ -382,7 +399,6 @@ class Config:
             self.configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
                                                                sys.version_info.minor,
                                                                malloc)
-
         if self.configDict["PYTHONINCFLAGS"] == "":
             import numpy
             incDirs = [info['include'], numpy.get_include()]
@@ -395,6 +411,8 @@ class Config:
         if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"]:
             self._config_OpenCV()
 
+        return True
+
 
 
 
@@ -406,13 +424,11 @@ class Config:
             print(red('Compiler {} not found.'.format(compiler)))
             sys.exit(-8)
 
-        print(green('Detected ' + compiler + " in version " +
-                    fullVersion + '.'))
+        print(green('Detected ' + compiler + " in version " + fullVersion + '.'))
         if gccVersion < 8.0:
             print(red('Version 8.0 or higher is required.'))
             print(yellow('Please go to https://github.com/I2PC/xmipp#compiler to solve it.'))
             sys.exit(-8)
-        print(green(compiler + ' ' + fullVersion + ' detected'))
 
     def _ensure_compiler_version(self, compiler):
         if 'g++' in compiler or 'gcc' in compiler:
@@ -612,8 +628,6 @@ class Config:
         nvcc_version, nvcc_full_version = self._get_CUDA_version(
             self.get(Config.OPT_NVCC))
         print(green('CUDA-' + nvcc_full_version + ' found.'))
-        if nvcc_version != 10.2:
-            print(yellow('CUDA-10.2 is recommended.'))
         self._set_nvcc_cxx(nvcc_version)
         if not self._set_nvcc_lib_dir():
             no_CUDA()
@@ -764,9 +778,10 @@ class Config:
                 javaHomeDir = javaProgramPath.replace("/jre/bin", "")
                 javaHomeDir = javaHomeDir.replace("/bin", "")
                 self.configDict["JAVA_HOME"] = javaHomeDir
-            print("JAVA_HOME (%s) guessed from javac or installed in conda." % self.configDict["JAVA_HOME"])
+            print(green("JAVA_HOME (%s) guessed from javac or installed in conda." % self.configDict["JAVA_HOME"]))
         else:
-            print("JAVA_HOME (%s) already available. Either coming from the environment or in a previous config file." % self.configDict["JAVA_HOME"])
+            print(green("JAVA_HOME (%s) already available. Either coming from the environment or in a previous config file." %
+                        self.configDict["JAVA_HOME"]))
 
 
         def addSecondaryJavaVariable(varName, defaultValue, checkMethod=os.path.isfile, multiplePaths=False):
@@ -919,15 +934,10 @@ class Config:
         if (Config.KEY_USE_DL in self.configDict) and (self.configDict[Config.KEY_USE_DL] != 'True'):
             self.configDict[Config.KEY_USE_DL] = 'False'
 
-    def check_version(self):
+    def check_version(self, XMIPP_VERNAME):
         if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
-            print(yellow("We did some changes in repository which may not be compatible with your current config file.\n" \
-                   "Run './xmipp config' to generate a new config file and compile Xmipp again.\n" \
-                   "We recommend you to create a backup before regenerating it (use --help for additional info)\n"))
-            if not askYesNo(yellow(
-                    '\nDo you want to compile without generating a new config file [YES/no]'), default=True,
-                    actually_ask=self.ask):
-                exit(-1)
+            print(yellow("There are some changes in repository which may not be compatible with your current config file.\n" \
+                   "Run './xmipp config' to generate a new config file.\n"))
 
     def _get_version(self):
         """ If git not present means it is in production mode

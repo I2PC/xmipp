@@ -656,7 +656,7 @@ def compile(Nproc):
     if checkScons():
         if isinstance(Nproc, str) and Nproc.startswith('N='):
             Nproc = int(Nproc.split('N=')[1])
-        buildConfig.check_version()
+        buildConfig.check_version(XMIPP_VERNAME)
         if not compileDependencies(Nproc):
             return False
         return compileXmipp(Nproc)
@@ -1196,9 +1196,10 @@ if __name__ == '__main__':
                 sys.exit(1)
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
-            buildConfig.create()
+            if not buildConfig.create():
+                sys.exit(1)
         else:
-            print(blue("'%s' detected." % Config.FILE_NAME))
+            print(green("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
         ok = (buildConfig.check()
