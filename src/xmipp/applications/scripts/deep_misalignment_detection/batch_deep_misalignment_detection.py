@@ -6,12 +6,13 @@ import numpy as np
 
 import xmippLib
 from xmipp_base import XmippScript
+from xmippLib import Image
 
 from tensorflow.keras.models import load_model
 
 
 class ScriptDeepMisalignmentDetection(XmippScript):
-    _conda_env="xmipp_DLTK_v0.3" 
+    _conda_env="xmipp_DLTK_v0.4" 
 
     def __init__(self):
 
@@ -79,8 +80,8 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         for i in range(len(firstPredictionArray)):
             id = mData1.addObject()
-            mData1.setValue(xmippLib.MDL_MAX, firstPredictionArray[i],  id)
-            mData1.setValue(xmippLib.MDL_MIN, secondPredictionArray[i], id)
+            mData1.setValue(xmippLib.MDL_MAX, float(firstPredictionArray[i]),  id)
+            mData1.setValue(xmippLib.MDL_MIN, float(secondPredictionArray[i]), id)
         
         mData1.write(self.outputSubtomoXmdFilePath)
 
@@ -89,9 +90,9 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         mData2 = xmippLib.MetaData()
 
-        id = mData2.addObject(1)
-        mData2.setValue(xmippLib.MDL_MAX, overallPrediction,  id)
-        mData2.setValue(xmippLib.MDL_MIN, predictionAverage, id)
+        id = mData2.addObject()
+        mData2.setValue(xmippLib.MDL_MAX, float(overallPrediction),  id)
+        mData2.setValue(xmippLib.MDL_MIN, float(predictionAverage), id)
 
         mData2.write(self.outputTomoXmdFilePath)
 
@@ -105,8 +106,6 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         while True:
             subtomoPath = coordFilePath_noExt + '-' + str(counter) + '.mrc'
-
-            print(subtomoPath)
 
             if not os.path.exists(subtomoPath):
                 break
@@ -125,15 +124,13 @@ class ScriptDeepMisalignmentDetection(XmippScript):
             2: weak misalignment (second split negative). Implies the existence of an input alignment threshold
             3: alignment (second split positive)
         """
-        ih = ImageHandler() # *** como se usa el IH desde aqui??
 
         numberOfSubtomos = len(subtomoPathList)
 
         subtomoArray = np.zeros((numberOfSubtomos, 32, 32, 32), dtype=np.float64)
 
         for index, subtomo in enumerate(subtomoPathList):
-            subtomoDataTmp = ih.read(subtomo)
-            subtomoDataTmp = subtomoDataTmp.getData()
+            subtomoDataTmp = Image(subtomo).getData()
 
             subtomoArray[index, :, :, :] = subtomoDataTmp[:, :, :]
 
@@ -144,8 +141,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         firstPredictionArray = self.firstModel.predict(subtomoArray)
 
-        overallPrediction, predictionAverage = self.determineOverallPrediction(firstPredictionArray, 
-                                                                               overallCriteria=self.misalignmentCriteria)
+        overallPrediction, predictionAverage = self.determineOverallPrediction(firstPredictionArray, self.misalignmentCriteria)
 
         if not overallPrediction:
             overallPrediction = 1  # Strong misalignment
@@ -156,8 +152,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         else:
             secondPredictionArray = self.secondModel.predict(subtomoArray)
 
-            overallPrediction, predictionAverage = self.determineOverallPrediction(secondPredictionArray,
-                                                                                   overallCriteria=self.misalignmentCriteria)
+            overallPrediction, predictionAverage = self.determineOverallPrediction(secondPredictionArray, self.misalignmentCriteria)
 
             if self.misaliThrBool:  # Using threshold
 
@@ -177,7 +172,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         self.secondModel = load_model(self.inputModel2)
         # print(self.secondModel.summary())
 
-    def determineOverallPrediction(predictionList, overallCriteria):
+    def determineOverallPrediction(self, predictionList, overallCriteria):
         """
         This method return an overall prediction based on the different singular predictions for each gold bead. This
         can be estimated with a voting system (no considering the actual score value) or as the average of the obtained
@@ -231,9 +226,6 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         firstPredictionArray = None
         secondPredictionArray = None
 
-        print("subtomoPathList")
-        print(subtomoPathList)
-
         if len(subtomoPathList) != 0:
             totalNumberOfSubtomos = len(subtomoPathList)
             print("Total number of subtomos: " + str(totalNumberOfSubtomos))
@@ -243,7 +235,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
             overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray = \
                 self.makePrediction(subtomoPathList)
 
-            print("For volume id " + str(tsId) + " obtained prediction from " +
+            print("For coordinates in " + str(os.path.basename(self.subtomoFilePath)) + " obtained prediction from " +
                     str(len(subtomoPathList)) + " subtomos is " + str(overallPrediction))
             
         # Generate output
