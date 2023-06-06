@@ -194,14 +194,19 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 prg = round((n*100)/progresL)
                 if prg > 100: prg = 100
                 #print('n: {} progresL: {} prg: {}'.format(n, progresL, prg))
-                str2Print = printProgressBar(prg) + '\n' + line.replace('\n', '') + ('' * 100)
+                line = line.replace('\n', '')
+                line = line.replace("\r", '')
+                line = line.replace("\b", '')
+                str2Print = printProgressBar(prg) + '\n' + line + ('' * 100)
                 print(f"{str2Print}", end=UP)
                 n += 1
         if not line:
             if p.poll() == 0:
-                #print('\nTotal Lines Xmipp: {}'.format(n))
+                print(printProgressBar(100))
+                print('\n')
                 return True
             else:
+                print('\n')
                 return False
 
 

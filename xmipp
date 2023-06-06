@@ -472,17 +472,14 @@ def compileModule(Nproc,module):
         write_compileLog('\n\n' + '#' * 27 + '\nCompiling Xmipp------------\n',
                          COMPILE_LOG=COMPILE_LOG)
         printProgress = True
-        sconsProgress = True
         progresLines = 773
         progresLinesPrecompiled = 232
     if module == "xmippCore":
         write_compileLog('\n\n' + '#' * 27 + '\nCompiling XmippCore--------\n',
                          COMPILE_LOG=COMPILE_LOG)
-        sconsProgress = True
     if module == "xmippViz":
         write_compileLog('\n\n' + '#' * 27 + '\nCompiling XmippViz---------\n',
                          COMPILE_LOG=COMPILE_LOG)
-        sconsProgress = True
     log = []
     ok = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
                 show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
