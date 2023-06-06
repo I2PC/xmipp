@@ -545,17 +545,17 @@ def compile_cuFFTAdvisor():
     createDir(libDir)
     os.chdir(advisorDir)
     if runJob("make all", show_command=False, show_output=False, log=log):
-        log = []
+        log2 = []
         os.chdir(currDir)
-        if runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir, log=log, show_output=False, show_command=False):
+        if runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir, log=log2, show_output=False, show_command=False):
             print(green("Done       "))
-            return True
+            return True, log + log2
         else:
             print(red(log[0]))
-            return False
+            return False, log + log2
     else:
         print(red(log[0]))
-        return False
+        return False, log
 
 
 def compile_googletest():
@@ -571,13 +571,13 @@ def compile_googletest():
         if runJob("make gtest gtest_main", log=log, show_output=False, show_command=False):
             os.chdir(currDir)
             print(green("Done       "))
-            return True
+            return True, log
         else:
             print(red(log[0]))
-            return False
+            return False, log
     else:
         print(red(log[0]))
-        return False
+        return False, log
 
 
 def compile_libsvm():
@@ -589,19 +589,19 @@ def compile_libsvm():
     libsvmDir = os.path.join("src", "libsvm")
     os.chdir(libsvmDir)
     if runJob("make lib", show_output=False, show_command=False, log=log):
-        log = []
+        log2 = []
         libDir = "src/xmipp/lib"
         os.chdir(currDir)
         createDir(libDir)
-        if runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir, log=log, show_command=False, show_output=False):
+        if runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir, log=log2, show_command=False, show_output=False):
             print(green("Done         "))
-            return True
+            return True, log + log2
         else:
             print(red(log[0]))
-            return False
+            return False, log + log2
     else:
         print(red(log[0]))
-        return False
+        return False, log
 
 
 def compile_libcifpp():
@@ -612,7 +612,7 @@ def compile_libcifpp():
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
     if error:
         red(error)
-        return False
+        return False, log
     currDir = os.getcwd()
     # Moving to library directory
     libcifppDir = os.path.join("src", "libcifpp")
@@ -621,32 +621,32 @@ def compile_libcifpp():
     fullDir = os.path.join(currDir, libcifppDir, '')
     if runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON",
               show_output=False, show_command=False, log=log):
-        log = []
-        if runJob("cmake --build build", show_output=False, show_command=False, log=log):
-            log = []
-            if runJob("cmake --install build", show_output=False, show_command=False, log=log):
+        log1 = []
+        if runJob("cmake --build build", show_output=False, show_command=False, log=log1):
+            log2 = []
+            if runJob("cmake --install build", show_output=False, show_command=False, log=log2):
                 # Check if libcifpp created up on compiling lib or lib64 directory
                 libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
                 # Copying .so file
                 os.chdir(currDir)
                 libDir = "src/xmipp/lib"
                 createDir(libDir)
-                log = []
-                if runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir, log=log, show_output=False, show_command=False):
-                    print(green("Done       "))
-                    return True
+                log3 = []
+                if runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir, log=log3, show_output=False, show_command=False):
+                    print(green("Done" + (' ' * 150)))
+                    return True, log + log1 + log2 + log3
                 else:
                     print(red(log[0]))
-                    return False
+                    return False,  log + log1 + log2 + log3
             else:
                 print(red(log[0]))
-                return False
+                return False, log + log1 + log2
         else:
             print(red(log[0]))
-            return False
+            return False, log + log1
     else:
         print(red(log[0]))
-        return False
+        return False, log
 
 def checkScons():
     return runJob("scons --version", show_output=False, show_command=False)
@@ -657,6 +657,8 @@ def compile(Nproc):
         if isinstance(Nproc, str) and Nproc.startswith('N='):
             Nproc = int(Nproc.split('N=')[1])
         buildConfig.check_version(XMIPP_VERNAME)
+        todayDate = 'Compilation Date: {}\n'.format(datetime.today())
+        write_compileLog(todayDate, append=False, COMPILE_LOG=COMPILE_LOG)
         if not compileDependencies(Nproc):
             return False
         return compileXmipp(Nproc)
@@ -667,26 +669,49 @@ def compile(Nproc):
 
 def compileDependencies(Nproc):
     print("\nBuilding Dependencies ------------------------------------")
-    result = True
     if buildConfig.is_true('CUDA'):
         cudaBinDir, nvccBaseName = os.path.split(buildConfig.get()['NVCC'])
         # cuFFTAdvisor compilation needs 'nvcc' accessible through the PATH
         if not checkProgram(nvccBaseName, False) and checkProgram(buildConfig.get()['NVCC'], False):
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
-        result = (checkProgram('make', True) or installDepConda('make'))
-        result = result and compile_cuFFTAdvisor()
-    result = result and compile_googletest()
-    result = result and compile_libsvm()
-    result = result and compile_libcifpp()
+        if (checkProgram('make', True) or installDepConda('make')):
+            write_compileLog('\n' + '#' * 27 + '\nCompiling cuFFTAdvisor--------\n',
+                             COMPILE_LOG=COMPILE_LOG)
+            result, log = compile_cuFFTAdvisor()
+            write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+            if not result:
+                print(red("Cannot build cuFFTAdvisor dependence"))
+                return False
+
+    write_compileLog('\n' + '#' * 27 + '\nCompiling googletest--------\n',
+                     COMPILE_LOG=COMPILE_LOG)
+    result, log = compile_googletest()
+    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
-        print(red("Cannot build dependencies"))
-    return result
+        print(red("Cannot build googletest dependence"))
+        return False
+
+    write_compileLog('\n' + '#' * 27 + '\nCompiling libsvm--------\n',
+                     COMPILE_LOG=COMPILE_LOG)
+    result, log = compile_libsvm()
+    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+    if not result:
+        print(red("Cannot build libsvm dependence"))
+        return False
+
+    write_compileLog('\n' + '#' * 27 + '\nCompiling libcifpp--------\n',
+                     COMPILE_LOG=COMPILE_LOG)
+    result, log = compile_libcifpp()
+    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+    if not result:
+        print(red("Cannot build libcifpp dependences"))
+        return False
+
+    return True
 
 
 def compileXmipp(Nproc):
-    todayDate = 'Compilation Date: {}\n'.format(datetime.today())
-    write_compileLog(todayDate, append=False, COMPILE_LOG=COMPILE_LOG)
     stampVersion()
     print("\nCompiling xmippCore---------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
@@ -1104,7 +1129,8 @@ if __name__ == '__main__':
     else:
         mode = "all"
 
-    buildConfig = Config(askUser)
+    Config
+    buildConfig = Config(askUser, )
     buildConfig.read()
 
     if mode == "cleanAll":

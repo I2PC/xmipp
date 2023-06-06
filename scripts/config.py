@@ -44,6 +44,7 @@ class Config:
     OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
     OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
     MINOR_GCC_VERSION = 8
+    CMAKE_VERSION_REQUIRED = '3.16'
 
 
     def __init__(self, askUser=False):
@@ -57,8 +58,8 @@ class Config:
         if self.configDict['VERIFIED'] == '':
             self.configDict['VERIFIED'] = 'False'
 
-        if not self._config_compiler():
-            return False
+        self._config_compiler()
+        self._config_cmake()
         self._set_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -91,21 +92,21 @@ class Config:
                 return False
             if not self._check_MPI():
                 print(red("Cannot compile with MPI or use it"))
-                runJob("rm xmipp_mpi_test_main*")
+                runJob("rm xmipp_mpi_test_main*", show_command=False)
                 return False
             if not self._check_Java():
                 print(red("Cannot compile with Java"))
-                runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
+                runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*", show_command=False)
                 return False
             if not self._check_CUDA():
                 print(red("Cannot compile with NVCC, continuing without CUDA"))
                 # if fails, the test files remains
-                runJob("rm xmipp_cuda_test*")
+                runJob("rm xmipp_cuda_test*", show_command=False)
                 self.configDict["CUDA"] = "False"
             if not self._check_Matlab():
                 print(red("Cannot compile with Matlab, continuing without Matlab"))
                 self.configDict["MATLAB"] = "False"
-                runJob("rm xmipp_mex*")
+                runJob("rm xmipp_mex*", show_command=False)
             if not self._check_StarPU():
                 print(red("Cannot compile with StarPU, continuing without StarPU"))
                 self.configDict["STARPU"] = "False"
@@ -411,9 +412,12 @@ class Config:
         if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"]:
             self._config_OpenCV()
 
-        return True
-
-
+    def _config_cmake(self):
+        error = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
+        if error:
+            print('Configuring cmake')
+            print(red(error))
+            return False
 
 
     def _ensure_GCC_GPP_version(self, compiler):
@@ -475,7 +479,9 @@ class Config:
             cppFile.write(cppProg)
 
         if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s" %
-                      (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"], self.configDict["PYTHONINCFLAGS"])):
+                      (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
+                       self.configDict["INCDIRFLAGS"], self.configDict["PYTHONINCFLAGS"]),
+                      show_command=False, show_output=False):
             print(
                 red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf"))
             # FIXME: Check the dependencies list
@@ -483,10 +489,12 @@ class Config:
             return False
         libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
         if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-                      (self.get(Config.KEY_LINKERFORPROGRAMS), self.configDict["LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5)):
+                      (self.get(Config.KEY_LINKERFORPROGRAMS), self.configDict["LINKFLAGS"],
+                       self.configDict["LIBDIRFLAGS"], libhdf5),
+                      show_command=False, show_output=False):
             print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
             return False
-        runJob("rm xmipp_test_main*")
+        runJob("rm xmipp_test_main*", show_command=False, show_output=False)
         return True
 
     def _get_CUDA_version(self, nvcc):
@@ -643,9 +651,10 @@ class Config:
 
     def _check_CUDA(self):
         if self.configDict["CUDA"] == "True":
+            print("Checking CUDA configuration")
+            print(yellow('Working...'), end='\r')
             if not checkProgram(self.configDict["NVCC"]):
                 return False
-            print("Checking CUDA configuration ...")
             cppProg = """
         #include <cuda_runtime.h>
         #include <cufft.h>
@@ -655,18 +664,22 @@ class Config:
                 cppFile.write(cppProg)
 
             if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o" %
-                          (self.configDict["NVCC"], self.configDict["NVCC_CXXFLAGS"], self.configDict["INCDIRFLAGS"])):
+                          (self.configDict["NVCC"], self.configDict["NVCC_CXXFLAGS"],
+                           self.configDict["INCDIRFLAGS"]), show_command=False,show_output=False):
                 print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
                 return False
             if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" %
-                          (self.configDict["NVCC"], self.configDict["NVCC_LINKFLAGS"])):
+                          (self.configDict["NVCC"], self.configDict["NVCC_LINKFLAGS"])
+                          , show_command=False,show_output=False):
                 print(red("Check the NVCC and NVCC_LINKFLAGS"))
                 return False
             if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" %
-                          (self.get(Config.KEY_CXX), self.configDict["NVCC_LINKFLAGS"])):
+                          (self.get(Config.KEY_CXX), self.configDict["NVCC_LINKFLAGS"])
+                          , show_command=False,show_output=False):
                 print(red("Check the CXX and NVCC_LINKFLAGS"))
                 return False
-            runJob("rm xmipp_cuda_test*")
+            runJob("rm xmipp_cuda_test*", show_command=False,show_output=False)
+        print(green('Done ' + (' ' * 150)))
         return True
 
     def _config_MPI(self):
@@ -734,7 +747,8 @@ class Config:
 
         if not runJob("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
                       % (self.configDict["MPI_CXX"], self.configDict["INCDIRFLAGS"],
-                         self.configDict["CXXFLAGS"], self.configDict["MPI_CXXFLAGS"])):
+                         self.configDict["CXXFLAGS"], self.configDict["MPI_CXXFLAGS"]),
+                      show_output=False,show_command=False):
             print(red(
                 "MPI compilation failed. Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
             print(red("In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations."
@@ -745,12 +759,13 @@ class Config:
         if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
                       "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread"
                       % (self.configDict["MPI_LINKERFORPROGRAMS"], self.configDict["LINKFLAGS"],
-                         self.configDict["MPI_LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5)):
+                         self.configDict["MPI_LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5),
+                      show_output=False, show_command=False):
             print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
             print(red("In addition, MPI_LINKFLAGS can also be used to add flags to MPI links. "
                       "'%s --showme:compile' might help" % self.configDict['MPI_CXX']))
             return False
-        runJob("rm xmipp_mpi_test_main*")
+        runJob("rm xmipp_mpi_test_main*", show_output=False,show_command=False)
 
         echoString = blue(
             "   > This sentence should be printed 2 times if mpi runs fine")
@@ -793,7 +808,7 @@ class Config:
             if multiplePaths:
                 resolvedValue = resolvedValue.split(":")
             else:
-                resolvedValue= [resolvedValue]
+                resolvedValue = [resolvedValue]
 
             for path in resolvedValue:
 
@@ -806,13 +821,15 @@ class Config:
         addSecondaryJavaVariable("JAVA_BINDIR", "%(JAVA_HOME)s/bin", checkMethod=os.path.isdir)
         addSecondaryJavaVariable("JAVAC", "%(JAVA_BINDIR)s/javac")
         addSecondaryJavaVariable("JAR", "%(JAVA_BINDIR)s/jar")
-        addSecondaryJavaVariable("JNI_CPPPATH", "%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux", checkMethod=os.path.isdir, multiplePaths=True)
+        addSecondaryJavaVariable("JNI_CPPPATH", "%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux",
+                                 checkMethod=os.path.isdir, multiplePaths=True)
 
 
     def _check_Java(self):
+        print("Checking Java configuration")
+        print(yellow('Working ...'), end='\r')
         if not checkProgram(self.configDict['JAVAC']):
             return False
-        print("Checking Java configuration")
         javaProg = """
         public class Xmipp {
         public static void main(String[] args) {}
@@ -820,10 +837,11 @@ class Config:
     """
         with open("Xmipp.java", "w") as javaFile:
             javaFile.write(javaProg)
-        if not runJob("%s Xmipp.java" % self.configDict["JAVAC"]):
+        if not runJob("%s Xmipp.java" % self.configDict["JAVAC"],
+                      show_command=False,show_output=False):
             print(red("Check the JAVAC"))
             return False
-        runJob("rm Xmipp.java Xmipp.class")
+        runJob("rm Xmipp.java Xmipp.class",show_command=False,show_output=False)
 
         cppProg = """
     #include <jni.h>
@@ -836,10 +854,12 @@ class Config:
         for x in self.configDict['JNI_CPPPATH'].split(':'):
             incs += " -I"+x
         if not runJob("%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %
-                      (self.get(Config.KEY_CXX), incs, self.configDict["INCDIRFLAGS"])):
+                      (self.get(Config.KEY_CXX), incs, self.configDict["INCDIRFLAGS"]),
+                      show_command=False,show_output=False):
             print(red("Check the JNI_CPPPATH, CXX and INCDIRFLAGS"))
             return False
-        runJob("rm xmipp_jni_test*")
+        runJob("rm xmipp_jni_test*", show_command=False,show_output=False)
+        print(green('Done ' + (' ' * 150)))
         return True
 
     def _config_Matlab(self):
@@ -858,6 +878,7 @@ class Config:
                     print(green("Matlab detected at " + matlabBinDir))
 
     def _check_Matlab(self):
+        print("Checking Matlab configuration")
         ans = True
         if self.configDict["MATLAB"] == "True":
             if not checkProgram("matlab"):
@@ -898,6 +919,8 @@ class Config:
             self.configDict["STARPU_LIBRARY"] = "libstarpu-1.3"
 
     def _check_StarPU(self):
+        print("Checking StarPU configuration")
+
         ans = True
         if self.configDict["STARPU"] == "True":
             if self.configDict["CUDA"] != "True":
