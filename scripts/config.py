@@ -769,7 +769,8 @@ class Config:
 
         echoString = blue(
             "   > This sentence should be printed 2 times if mpi runs fine")
-        if not (runJob("%s -np 2 echo '%s.'" % (self.configDict['MPI_RUN'], echoString)) or
+        if not (runJob("%s -np 2 echo '%s.'" % (self.configDict['MPI_RUN'], echoString),
+                       show_command=False, showWithReturn=False) or
                 runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (self.configDict['MPI_RUN'], echoString))):
             print(red("mpirun or mpiexec have failed."))
             return False

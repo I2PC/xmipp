@@ -463,17 +463,17 @@ def getScipionHome():
 
 
 def compileModule(Nproc,module):
-    sconsProgress = False
+    sconsProgress = True
     printProgress = False
     progresLines = 1
     progresLinesPrecompiled = 1
-    print(yellow('Working...'), end='\r')
+    print(yellow('Working... Visit compileLOG.txt for details'), end='\r')
     if module == "xmipp":
         write_compileLog('\n\n' + '#' * 27 + '\nCompiling Xmipp------------\n',
                          COMPILE_LOG=COMPILE_LOG)
         printProgress = True
-        progresLines = 773
-        progresLinesPrecompiled = 232
+        progresLines = 780 #773
+        progresLinesPrecompiled = 235 #232
     if module == "xmippCore":
         write_compileLog('\n\n' + '#' * 27 + '\nCompiling XmippCore--------\n',
                          COMPILE_LOG=COMPILE_LOG)
@@ -713,7 +713,7 @@ def compileXmipp(Nproc):
     print("\nCompiling xmippCore---------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
-    print("\nCompiling xmipp-------------------------------------------\n")
+    print("\nCompiling xmipp-------------------------------------------")
     if not compileModule(Nproc,"xmipp"):
         return False
     print("\nCompiling xmippViz----------------------------------------")
@@ -1219,8 +1219,8 @@ if __name__ == '__main__':
                 sys.exit(1)
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
-            if not buildConfig.create():
-                sys.exit(1)
+            buildConfig.create()
+
         else:
             print(green("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths

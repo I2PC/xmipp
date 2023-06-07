@@ -163,7 +163,8 @@ def binariesPrecompiled(log):
 
 def printProgressBar(value, sizeBar=30):#value 0 - 100
     sizeValue = int((value * sizeBar) / 100)
-    templateStr = green(str(value) + '%') + green('[') + green('#' * sizeValue) + yellow('-' * (sizeBar - sizeValue)) + yellow(']')
+    templateStr = green(str(value) + '%') + green('[') + green('#' * sizeValue) \
+                  + yellow('-' * (sizeBar - sizeValue)) + green(']') + (' ' * 50)
     return templateStr
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
@@ -197,13 +198,13 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 line = line.replace('\n', '')
                 line = line.replace("\r", '')
                 line = line.replace("\b", '')
-                str2Print = printProgressBar(prg) + '\n' + line + ('' * 100)
-                print(f"{str2Print}", end=UP)
+                str2Print = printProgressBar(prg) + '\n' + line[:150] + '...' + ('' * 100)
+                print(f"{yellow(str2Print)}", end=UP)
                 n += 1
         if not line:
             if p.poll() == 0:
-                print(printProgressBar(100))
-                print('\n')
+                if printProgress:
+                    print(printProgressBar(100))
                 return True
             else:
                 print('\n')
