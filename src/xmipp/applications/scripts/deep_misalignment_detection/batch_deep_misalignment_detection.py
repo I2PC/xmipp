@@ -49,8 +49,8 @@ class ScriptDeepMisalignmentDetection(XmippScript):
                            'provided a votting system based on if each subtomo score is closer to 0 o 1 is implented. ')
         
         # Examples       
-        self.addExampleLine('xmipp_deep_misalingment_detection -inputModel1 path/to/model1 --inputModel2 path/to/model2 ' +
-                            '--subtomoFilePath path/to/coords.xmd')
+        self.addExampleLine('xmipp_deep_misalingment_detection -modelPick 0 --subtomoFilePath path/to/coords.xmd ' 
+                            '--misaliThr 0.45')
 
     
     #  --------------------- I/O FUNCTIONS -----------------------------
