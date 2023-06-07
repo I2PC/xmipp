@@ -198,7 +198,8 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 line = line.replace('\n', '')
                 line = line.replace("\r", '')
                 line = line.replace("\b", '')
-                str2Print = printProgressBar(prg) + '\n' + line[:150] + '...' + ('' * 100)
+                str2Print = line[:150] + '...' + ('' * 100) + '\n' + printProgressBar(prg)
+                #str2Print = printProgressBar(prg) + '\n' + line[:150] + '...' + ('' * 100)
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
         if not line:

@@ -563,17 +563,18 @@ def compile_googletest():
     buildDir = os.path.join("src", "googletest", "build")
     createDir(buildDir)
     os.chdir(buildDir)
-    if runJob("cmake ..", show_output=False, show_command=False):
-        log = []
-        if runJob("make gtest gtest_main", log=log, show_output=False, show_command=False):
+    if runJob("cmake ..", show_output=False, show_command=False, log=log):
+        log2 = []
+        if runJob("make gtest gtest_main", show_output=False,
+                  show_command=False, log=log2):
             os.chdir(currDir)
             print(green("Done       "))
-            return True, log
+            return True, log + log2
         else:
-            print(red(log[0]))
-            return False, log
+            print(red(str(log + log2)))
+            return False, log + log2
     else:
-        print(red(log[0]))
+        print(red(str(log)))
         return False, log
 
 
