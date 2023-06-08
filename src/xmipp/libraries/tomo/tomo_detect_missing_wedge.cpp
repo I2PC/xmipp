@@ -62,13 +62,13 @@ double evaluatePlane(double rot, double tilt,
     int Nneg=0, Npos=0;
     double maxFreq2=maxFreq*maxFreq;
     auto iPlaneWidth=(int)ceil(planeWidth);
-    for (double ix=0; ix<=N; ix++)
+    for (int ix=0; ix<=N; ix++)
     {
         XX(freq)=ix*df;
         double fx2=XX(freq)*XX(freq);
         if (fx2>maxFreq2)
             continue;
-        for (double iy=-(int)N; iy<=N; iy++)
+        for (int iy=-(int)N; iy<=N; iy++)
         {
             YY(freq)=iy*df;
             double fx2fy2=fx2+YY(freq)*YY(freq);

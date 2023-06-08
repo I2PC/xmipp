@@ -321,7 +321,7 @@ class HaPi():
         return prediction, result
 
 class ScriptDeepHand(XmippScript):
-    _conda_env="xmipp_deepHand"
+    _conda_env="xmipp_pyTorch"
 
     def __init__(self):
 

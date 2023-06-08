@@ -24,12 +24,11 @@
 # ***************************************************************************/
 
 import subprocess
-from os import environ, path, remove
-import distutils.spawn
 import glob
+import distutils.spawn
+from os import environ, path, remove
 from shutil import which
 from os.path import realpath
-
 
 def green(text):
     return "\033[92m "+text+"\033[0m"
@@ -283,3 +282,47 @@ def isGitRepo(path='./'):
     return runJob('git rev-parse --git-dir > /dev/null 2>&1', cwd=path,
                   show_command=False, show_output=False)
 
+def version_tuple(versionStr):
+    """
+    This function returns the given version sting ('1.0.7' for example) into a tuple, so it can be compared.
+    It also accepts other version schemes, like 1.0.9-rc, but only the numeric part is taken into account.
+    """
+    # Split the version string by dots
+    version_parts = versionStr.split('.')
+    # Initialize an empty list to store the numerical parts of the version string
+    numerical_parts = []
+    # Iterate over each part of the version string
+    for part in version_parts:
+        # Split the part by hyphens
+        subparts = part.split('-')
+        # The first subpart is always numerical, so we append it to our list
+        numerical_parts.append(int(subparts[0]))
+    # Convert the list of numerical parts to a tuple and return it
+    return tuple(numerical_parts)
+
+def checkCMakeVersion(minimumRequired=None):
+    """
+    ### This function checks if the current installed version, if installed, is above the minimum required version.
+    ### If no version is provided it just checks if CMake is installed.
+
+    #### Params:
+    minimumRequired (str): Optional. Minimum required CMake version.
+
+    #### Returns:
+    An error message in color red in a string if there is a problem with CMake, None otherwise.
+    """
+    # Defining link for cmake installation & update guide
+    cmakeInstallURL = 'https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install'
+
+    try:
+        # Getting CMake version
+        outputLog = []
+        runJob('cmake --version', show_output=False, log=outputLog)
+        result = '\n'.join(outputLog)
+        cmakVersion = result.split('\n')[0].split()[-1]
+
+        # Checking if installed version is below minimum required
+        if minimumRequired and (version_tuple(cmakVersion) < version_tuple(minimumRequired)):
+            return f"\033[91mYour CMake version ({cmakVersion}) is below {minimumRequired}. Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m"
+    except FileNotFoundError:
+        return f"\033[91mCMake is not installed. Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m"

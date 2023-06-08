@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
+ * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,11 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <tomo/tomo_extract_particlestacks.h>
+#include <parallel/mpi_subtract_projection.h>
 
-int main(int argc, char **argv)
-{
-	ProgTomoExtractParticleStacks program;
-    program.read(argc, argv);
-    return program.tryRun();
-}
+RUN_XMIPP_PROGRAM(MpiProgSubtractProjection)
