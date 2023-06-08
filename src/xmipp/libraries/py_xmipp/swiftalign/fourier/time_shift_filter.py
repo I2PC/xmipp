@@ -26,6 +26,16 @@ import torch
 def time_shift_filter(shift: torch.Tensor,
                       freq: torch.Tensor,
                       out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    """Generates a multidimensional shift filter in Fourier space
+
+    Args:
+        shift (torch.Tensor): Shift in samples. (B, n) where shape, where B is the batch size and n is the dimensions 
+        freq (torch.Tensor): Frequency grid in radians. (B, dn, ... dy, dx)
+        out (Optional[torch.Tensor], optional): Preallocated tensor. Defaults to None.
+
+    Returns:
+        torch.Tensor: _description_
+    """
     
     # Fourier time shift theorem:
     # https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Some_discrete_Fourier_transform_pairs

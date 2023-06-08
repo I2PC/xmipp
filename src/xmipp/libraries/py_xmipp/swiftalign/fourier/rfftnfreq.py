@@ -25,12 +25,25 @@ import torch
 
 def rfftnfreq(dim: Sequence[int], 
               d: float = 1.0,
+              dtype: Optional[type] = None,
               device: Optional[torch.device] = None) -> torch.Tensor:
+    """Creates a multidimensional Fourier frequency grid
+
+    Args:
+        dim (Sequence[int]): Image size
+        d (float, optional): Normalization. Defaults to 1.0.
+        dtype (Optional[type], optional): Element type. Defaults to float32.
+        device (Optional[torch.device], optional): Device. Defaults to CPU.
+
+    Returns:
+        torch.Tensor: _description_
+    """
+    
     def fftfreq(dim: int) -> torch.Tensor:
-        return torch.fft.fftfreq(dim, d=d, device=device)
+        return torch.fft.fftfreq(dim, d=d, dtype=dtype, device=device)
     
     def rfftfreq(dim: int) -> torch.Tensor:
-        return torch.fft.rfftfreq(dim, d=d, device=device)
+        return torch.fft.rfftfreq(dim, d=d, dtype=dtype, device=device)
     
     # Compute the frequencies for each axis.
     # For the last axis use rfft

@@ -23,6 +23,14 @@
 import torch
 
 def remove_symmetric_half(input: torch.Tensor) -> torch.Tensor:
+    """Removes the conjugate symmetry from a multidimensional Fourier transform
+
+    Args:
+        input (torch.Tensor): Input tensor
+
+    Returns:
+        torch.Tensor: Input without symmetry
+    """
     x_size = input.shape[-1]
     half_x_size = x_size // 2 + 1
     return input[...,:half_x_size]
