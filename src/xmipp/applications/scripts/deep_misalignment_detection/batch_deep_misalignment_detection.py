@@ -11,7 +11,7 @@ from xmippLib import Image
 from tensorflow.keras.models import load_model
 
 class ScriptDeepMisalignmentDetection(XmippScript):
-    _conda_env="xmipp_DLTK_v0.4" 
+    _conda_env="xmipp_DLTK_v1.0" 
 
     def __init__(self):
 
