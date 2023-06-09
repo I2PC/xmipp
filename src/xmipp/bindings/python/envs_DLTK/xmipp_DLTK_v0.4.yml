@@ -4,11 +4,12 @@
 name: xmipp_DLTK_v0.4
 channels:
   - anaconda
+  - conda-forge
   - defaults
 dependencies:
-  - python=3.7
+  - python=3.8
   - tensorflow-gpu=2.7
   - keras=2.7
   - pip
   - pip:
-      - numpy==1.18.4
+      - numpy==1.23
