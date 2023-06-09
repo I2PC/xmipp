@@ -1,7 +1,7 @@
 #Protocols ussing the enviroment:
 #xmipp_deep_misalingment_detection
 
-name: xmipp_DLTK_v0.4
+name: xmipp_DLTK_v1.0
 channels:
   - anaconda
   - conda-forge
