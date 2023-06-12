@@ -67,5 +67,3 @@ xmippEnv.json
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
 
-# Ignore vscode config files
-/.vscode/*
