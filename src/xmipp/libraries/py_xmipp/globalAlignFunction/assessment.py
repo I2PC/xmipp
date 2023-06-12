@@ -7,7 +7,11 @@
 """
 import numpy as np
 import starfile
+import mrcfile
 import torch
+import os
+import concurrent.futures
+
 
 class evaluation:
     
@@ -17,7 +21,7 @@ class evaluation:
         self.cuda = torch.device('cuda:0')
         
     #for experimental images with starfile module
-    def getValue(self, prjStar):
+    def getAngle(self, prjStar):
         
         star=starfile.read(prjStar)
         self.angle_triplet = []
@@ -78,69 +82,45 @@ class evaluation:
         return self.expShifts
     
     
-        #for experimental images with starfile module
+        #for experimental images with starfile module      
+        
     def writeExpStar(self, prjStar, expStar, matchPair, shiftVec, nExp, apply_shifts, output):
         
-        self.getValue(prjStar)
+        self.getAngle(prjStar)
         self.getShifts(expStar, nExp)
         expShifts = self.expShifts.cpu().numpy()
-        # self.getPosition(expStar, nExp)
-        # expRot = self.expPosition[:,0].cpu().numpy()
-        # expShifts = self.expPosition[:,1:].cpu().numpy()
-        star=starfile.read(expStar)
-        new = output #+ "newStar_exp.xmd"
-        
-        #Initializing columns
-        star["anglePsi"] = 0.0
-        star["angleRot"] = 0.0
-        star["angleTilt"] = 0.0 
-        star["shiftX"] = 0.0
-        star["shiftY"] = 0.0
-        star["shiftZ"] = 0.0
-
-        for i in range(len(star)):
-                                
-            id = int(matchPair[i][1])
-            new_psi = matchPair[i][3]
-            posS = int(matchPair[i][4])           
-            new_shiftX = float(shiftVec[posS][0])
-            new_shiftY = float(shiftVec[posS][1])
-            
-            if(new_psi < 180):
-                new_psi = new_psi
-            else:
-                new_psi = new_psi - 360
-            # if(new_psi > 180):
-            #     new_psi = 360 - new_psi
-            # else:
-            #     new_psi = -new_psi 
-                
-            # if(expRot[i] < 180):
-            #     expRot[i] = expRot[i]
-            # else:
-            #     expRot[i] = expRot[i] - 360
-        
-             
-            # if apply_shifts:
-            #     star.at[i, "anglePsi"] = new_psi + self.angle_triplet[id][0] + expRot[i]
-            # else:
-            star.at[i, "anglePsi"] = new_psi + self.angle_triplet[id][0]
-            star.at[i, "angleRot"] = self.angle_triplet[id][1]
-            star.at[i, "angleTilt"] = self.angle_triplet[id][2]
-
-            if apply_shifts:
-                star.at[i, "shiftX"] = new_shiftX + expShifts[i][0]
-                star.at[i, "shiftY"] = new_shiftY + expShifts[i][1]
-            else:
-                star.at[i, "shiftX"] = new_shiftX
-                star.at[i, "shiftY"] = new_shiftY 
-        
+        star = starfile.read(expStar)
+        new = output  
+    
+        # Adjustment of Psi angles
+        psi_adjusted = matchPair[:, 3]
+        psi_adjusted = np.where(psi_adjusted > 180, psi_adjusted - 360, psi_adjusted)
+    
+        columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
+        for column in columns:
+            if column not in star.columns:
+                star[column] = 0.0
+    
+        # Updating columns in the dataframe
+        angle_triplet = np.array(self.angle_triplet)
+        shiftVec = np.array(shiftVec)
+        star.loc[:, "anglePsi"] = psi_adjusted + angle_triplet[matchPair[:, 1].astype(int), 0]
+        star.loc[:, "angleRot"] = angle_triplet[matchPair[:, 1].astype(int), 1]
+        star.loc[:, "angleTilt"] = angle_triplet[matchPair[:, 1].astype(int), 2]
+    
+        if apply_shifts:
+            star.loc[:, "shiftX"] = shiftVec[matchPair[:, 4].astype(int), 0] + expShifts[:, 0]
+            star.loc[:, "shiftY"] = shiftVec[matchPair[:, 4].astype(int), 1] + expShifts[:, 1]
+        else:
+            star.loc[:, "shiftX"] = shiftVec[matchPair[:, 4].astype(int), 0]
+            star.loc[:, "shiftY"] = shiftVec[matchPair[:, 4].astype(int), 1]
+    
         starfile.write(star, new)
-        
+    
         
     def writeExpStarRelion(self, prjStar, expStar, matchPair, shiftVec, sampling, nExp, apply_shifts, output):
         
-        self.getValue(prjStar)
+        self.getAngle(prjStar)
         self.getShiftsRelion2(expStar, sampling, nExp)
         self.expShifts = self.expShifts.cpu().numpy()
         star=starfile.read(expStar)
@@ -189,39 +169,73 @@ class evaluation:
         starfile.write(star, new)
     
    
-   
-   
-    
-    #for experimental images with starfile module
-    def writeExpStar2(self, prjStar, expStar, matchPair, bnb, move):
+    def convertRelionStarToXmd(self, relionStar, output):
+        star=starfile.read(relionStar)
         
-        rotVec, shiftVec = bnb.setRotAndShift(move[0], move[1], move[2])
-        self.getValue(prjStar)
-        star=starfile.read(expStar)
-        new = "newStar_exp.star"
-        count = 0
-        for i in range(len(star)):
-                                
-            id = matchPair[i][1]-1
-            posR = matchPair[i][2]-1
-            posS = matchPair[i][3]-1
-            
-            new_psi = float(rotVec[posR])
-            new_shiftX = float(shiftVec[posS][0])
-            new_shiftY = float(shiftVec[posS][1])
-            
-            if(new_psi < 180):
-                new_psi = new_psi
-            else:
-                new_psi = new_psi - 360
-            
-            star["anglePsi"][i] = new_psi + self.angle_triplet[id][0]
-            star["angleRot"][i] = self.angle_triplet[id][1]
-            star["angleTilt"][i] = self.angle_triplet[id][2] 
-
-            star["shiftX"][i] = -new_shiftX  
-            star["shiftY"][i] = -new_shiftY
+        dict = {
+                'rlnOriginXAngst': 'shiftX',
+                'rlnOriginYAngst': 'shiftY',
+                'rlnCoordinateX': 'xcoor',
+                'rlnCoordinateY': 'ycoor',            
+                'rlnAnglePsi': 'anglePsi',
+                'rlnAngleRot': 'angleRot',             
+                'rlnAngleTilt': 'angleTilt',
+                'rlnDefocusU': 'ctfDefocusU',                
+                'rlnDefocusV': 'ctfDefocusV',
+                'rlnDefocusAngle': 'ctfDefocusAngle',
+                'rlnCtfMaxResolution': 'ctfCritMaxFreq',            
+                'rlnCtfFigureOfMerit': 'ctfCritFitting',            
+                'rlnImageName': 'image'                
+            }
+                    
+        sampling = star['optics']['rlnImagePixelSize'] 
         
-        starfile.write(star, new)
-
-
+        star['data'] = star['particles']
+        del star['particles']
+        
+        id = range(1, len(star['data'])+1)
+        star['data']['itemId'] = id
+        
+        star['data']['rlnOriginXAngst'] = star['data']['rlnOriginXAngst']/float(sampling)
+        star['data']['rlnOriginYAngst'] = star['data']['rlnOriginYAngst']/float(sampling)
+        
+        star['data']['ctfVoltage'] = float(star['optics']['rlnVoltage'])
+        star['data']['ctfSphericalAberration'] = float(star['optics']['rlnSphericalAberration'])
+        star['data']['ctfQ0'] = float(star['optics']['rlnAmplitudeContrast'])
+        star['data']['enabled'] = 1
+        star['data']['flip'] = 0
+        
+        for relion, xmipp in dict.items():
+            if relion in star['data'].columns:
+                star['data'].rename(columns={relion: xmipp}, inplace=True)
+        
+        del star['optics']
+        star = star['data'].drop(columns=star['data'].filter(regex='^rln', axis=1))
+        
+        starfile.write(star, output)
+     
+        
+    def createStack(self, relionStar, output):
+        star = starfile.read(relionStar)
+        rln_image_name = star['particles']['rlnImageName']
+        
+        batch_mrc = []
+        
+        for line in rln_image_name:
+            image_num, mrc_filename = line.split('@')
+              
+            with mrcfile.open(mrc_filename, permissive=True) as mrcs:
+                image = mrcs.data[int(image_num)-1]
+                
+            batch_mrc.append(image.astype(np.float32))
+        
+        batch_mrc = np.stack(batch_mrc)
+        
+        # Save images
+        with mrcfile.new(output, overwrite=True) as mrc_out:
+            mrc_out.set_data(batch_mrc)
+ 
+            
+            
+            
+            

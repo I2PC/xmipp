@@ -11,6 +11,8 @@ import argparse
 import sys, os
 import numpy as np
 import torch
+# from functions.assessment import *
+from xmippPyModules.globalAlignFunction.assessment import *
 
 torch.cuda.is_available()
 torch.cuda.current_device()
@@ -86,15 +88,37 @@ def apply_scale(prjImages, expImages, radius):
   
        
 if __name__=="__main__":
-      
-    parser = argparse.ArgumentParser(description="Program used to equalize the scales of the "
-                                    "reference particles with respect to the experimental particles. "
-                                     "If the volume used to generate the reference particles was created "
-                                     "with XMIPP, this step is not necessary.")
-    parser.add_argument("-i", "--exp", help="input mrc file for experimental images)", required=True)
-    parser.add_argument("-r", "--ref", help="input mrc file for references images)", required=True)
-    parser.add_argument("-o", "--output", help="Root directory for the output mrc preprocess images (example: references_scale.mrcs)", required=True)
-    parser.add_argument("-rad", "--radius", type=float, help="Radius of the circular mask that will be used to define the background area (in pixels)")
+          
+    examples = """
+    Examples:
+    for scale leveling:
+      preprocess.py -o references_scale.mrcs -i exp_file.mrcs -r ref_file.mrcs -rad 80
+    for convert star to xmd
+      preprocess.py -o xmipp_file.xmd -s star_relion.star --convert
+    for create mrcs stack
+      preprocess.py -o stack.mrcs --s star_relion.star --create_stack
+    """
+    parser = argparse.ArgumentParser(prog='preprocess_images.py', description="Program used for multiple purposes. "
+                                     " It can be used to convert the Relion star file to Xmipp xmd format, "
+                                     " create the mrcs stack from the star file, and scale the reference particles "
+                                     " when they are generated from a volume that has not been reconstructed using Xmipp.",
+                                     epilog = examples, formatter_class=argparse.RawDescriptionHelpFormatter)
+    
+    # Agregar grupo de acciones para los argumentos obligatorios
+    required_args_group = parser.add_argument_group('required arguments')
+    required_args_group.add_argument("-o", "--output", help="File output", required=True)
+    
+    # Agregar grupo de acciones para el subcomando scale_leveling
+    scale_leveling_group = parser.add_argument_group('scale_leveling', 'Arguments for scale leveling')
+    scale_leveling_group.add_argument("-i", "--exp", help="input mrcs file for experimental images. It is necessary for scale leveling")
+    scale_leveling_group.add_argument("-r", "--ref", help="input mrcs file for reference images")
+    scale_leveling_group.add_argument("-rad", "--radius", type=float, help="Radius of the circular mask that will be used to define the background area (in pixels)")
+    
+    # Agregar grupo de acciones para el subcomando convert_star
+    convert_star_group = parser.add_argument_group('convert_star or create_stack', 'Arguments for converting star to xmd or create mrcs stack')
+    convert_star_group.add_argument("-s", "--star", help="input star file")
+    convert_star_group.add_argument("--convert", action="store_true", help="Convert Relion star to Xmipp xmd")
+    convert_star_group.add_argument("--create_stack", action="store_true", help="Create mrcs stack from star file")   
     
     args = parser.parse_args()
     
@@ -102,31 +126,42 @@ if __name__=="__main__":
     prjFile = args.ref
     output = args.output
     radius =  args.radius
+    star = args.star
+    create_stack = args.create_stack
+    convert = args.convert
 
-    #Read Images
-    mmap = mrcfile.mmap(expFile, permissive=True)
-    nExp = mmap.data.shape[0]
-    prjImages = read_images(prjFile) 
+    if prjFile:
+        #Read Images
+        mmap = mrcfile.mmap(expFile, permissive=True)
+        nExp = mmap.data.shape[0]
+        prjImages = read_images(prjFile) 
+        
+        #convert ref images to tensor 
+        tref= torch.from_numpy(prjImages).float().to("cpu")
+        # tref= torch.from_numpy(prjImages).float().to(cuda)
+        del(prjImages)
     
-    #convert ref images to tensor 
-    tref= torch.from_numpy(prjImages).float().to("cpu")
-    # tref= torch.from_numpy(prjImages).float().to(cuda)
-    del(prjImages)
-
-    num = 20000
-    if nExp < num:
-        num =  nExp
-    
-    print("Scaling particles")
-    Texp = torch.from_numpy(mmap.data[:num].astype(np.float32)).to("cpu")
-    # Texp = torch.from_numpy(mmap.data[:num].astype(np.float32)).to(cuda)
-    tref = apply_scale(tref, Texp, radius)
-    del(Texp)
-    
-        #save preprocess images
-    save_images(tref.numpy(), output)
-
-
+        num = 20000
+        if nExp < num:
+            num =  nExp
+        
+        print("Scaling particles")
+        Texp = torch.from_numpy(mmap.data[:num].astype(np.float32)).to("cpu")
+        # Texp = torch.from_numpy(mmap.data[:num].astype(np.float32)).to(cuda)
+        tref = apply_scale(tref, Texp, radius)
+        del(Texp)
+        
+            #save preprocess images
+        save_images(tref.numpy(), output)
+        
+    if convert:
+        assess = evaluation()
+        assess.convertRelionStarToXmd(star, output)
+        
+    if create_stack:
+        assess = evaluation()
+        print("Creating mrc stack")
+        assess.createStack(star, output)
   
 
 

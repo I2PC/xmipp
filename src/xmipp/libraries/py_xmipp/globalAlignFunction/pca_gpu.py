@@ -21,10 +21,8 @@ class PCAgpu:
         self.cuda = torch.device('cuda:0')
          
                
-    def first_mean(self, firstBands, firstSet):
-        
-        self.mean = torch.sum(firstBands , 0)/firstSet
-            
+    def first_mean(self, firstBands, firstSet):        
+        self.mean = torch.sum(firstBands , 0)/firstSet           
         return self.mean
     
     
@@ -226,11 +224,14 @@ class PCAgpu:
                 self.Bvals =  self.eigval
                 self.Bvecs = self.vecs_update
 
-        self.error(self.Bvals, self.Bvar, per_eig)
+        
+        # self.error(self.Bvals, self.Bvar, per_eig)
         for n in range(self.nBand):
-            print("eigenvector %s ---- percentage %s" %(int(self.eigs[n]+1), "{:.2f}".format(self.perc[n])))
+            trunc = self.Bvecs[0].size(dim=1)*per_eig
+            # print("eigenvector %s ---- percentage %s" %(int(self.eigs[n]+1), "{:.2f}".format(self.perc[n])))
             #Reshaping Eigenvectors
-            self.Bvecs[n] = self.Bvecs[n][:,:(int(self.eigs[n]+1))]
+            self.Bvecs[n] = self.Bvecs[n][:,:(int(trunc+1))]
+            print(self.Bvecs[n].shape)
 
         return(self.Bmean, self.Bvals, self.Bvecs)
     

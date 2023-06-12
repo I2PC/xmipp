@@ -80,11 +80,12 @@ if __name__=="__main__":
            
     torch.cuda.is_available()
     torch.cuda.current_device()
-    cuda = torch.device('cuda:0')
+    cuda = torch.device('cuda')
 
     #Read Images
     mmap = mrcfile.mmap(expFile, permissive=True)
     nExp = mmap.data.shape[0]
+    dim = mmap.data.shape[1]
     prjImages = read_images(prjFile) 
     
     #convert ref images to tensor 
@@ -103,70 +104,66 @@ if __name__=="__main__":
 
     bnb = BnBgpu(nBand)
     assess = evaluation()
-       
-    print("---Precomputing the projections of the experimental images---")
     
+    #Precomputed rotation and shift applied to references  
+    angSet = (-amax, amax, ang)
+    shiftSet = (-maxshift, maxshift+shiftMove, shiftMove)
+    vectorRot, vectorshift = bnb.setRotAndShift(angSet, shiftSet)
+    vectorRot.sort()         
+    nShift = len(vectorshift)
+    
+    #for particle centering
     if apply_shifts:
         if relion:
             prev_shifts = assess.getShiftsRelion(expStar, sampling, nExp)
         else:
             prev_shifts = assess.getShifts(expStar, nExp)
-            # prev_shifts = assess.getPosition(expStar, nExp)
 
         print("Experimental particles will be centered")
         
 
-    expBatchSize = 2000
+    print("---Precomputing the projections of the experimental images---")
+    
+    expBatchSize = 2048
     count = 0
     step = int(np.ceil(nExp/expBatchSize))
-    batch_projExp_cpu = [0 for i in range(step)]   
+    batch_projExp_cpu = [0 for i in range(step)] 
                 
     for initBatch in range(0, nExp, expBatchSize):
         
         expImages = mmap.data[initBatch:initBatch+expBatchSize].astype(np.float32)#.copy()
-        Texp = torch.from_numpy(expImages).float().to(cuda)       
+        Texp = torch.from_numpy(expImages).float().to(cuda)     
         del(expImages)
 
         #center experimetal particles
         if apply_shifts:
             Texp = bnb.center_shifts(Texp, initBatch, expBatchSize, prev_shifts)
-            # Texp = bnb.center_shifts2(Texp, initBatch, expBatchSize, prev_shifts)
-            # Texp = bnb.center_rot(Texp, initBatch, expBatchSize, prev_shifts)
 
-        batch_projExp = bnb.create_batchExp(Texp, freqBn, coef, cvecs)
+        batch_projExp = bnb.create_batchExp(Texp, freqBn, coef, cvecs) 
+        del(Texp)
         batch_projExp = torch.stack(batch_projExp)
         batch_projExp_cpu[count] = batch_projExp.to("cpu")
         del(batch_projExp)
         count+=1 
-     
-
-    #Precomputed rotation and shift applied to references  
-    # move = (ang, shiftMove, maxshift)
-    # vectorRot, vectorshift = bnb.setRotAndShift(move[0], move[1], move[2])
-    angSet = (-amax, amax, ang)
-    shiftSet = (-maxshift, maxshift+shiftMove, shiftMove)
-    vectorRot, vectorshift = bnb.setRotAndShift2(angSet, shiftSet)
-    vectorRot.sort()
-          
-    nShift = len(vectorshift)
+    
     matches = torch.full((nExp, 5), float("Inf"), device = cuda) 
     
     for rot in vectorRot:
-        
-        print("rotation angle  %s"%rot) 
-        print("---Precomputing the projections of the reference images---")      
-        batch_projRef = bnb.precalculate_projection(tref, freqBn, grid_flat, coef, cvecs, rot, vectorshift)
 
+        print("rotation angle  %s"%rot) 
+        # print("---Computing the projections of the reference images---")      
+        batch_projRef = bnb.precalculate_projection(tref, freqBn, grid_flat, coef, cvecs, rot, vectorshift)
         count = 0
-        print("matches")
+        # print("matches")
         for initBatch in range(0, nExp, expBatchSize):
 
             batch_projExp = batch_projExp_cpu[count].to('cuda', non_blocking=True)
+
             matches = bnb.match_batch(batch_projExp, batch_projRef, initBatch, matches, rot, nShift)
-            
             del(batch_projExp)
             count+=1
-    
+        del(batch_projRef)
+        
     matches = matches.cpu().numpy()
   
     #Write new starfile 
@@ -175,7 +172,6 @@ if __name__=="__main__":
     else:       
         assess.writeExpStar(prjStar, expStar, matches, vectorshift, nExp, apply_shifts, output)
   
-
 
 
 
