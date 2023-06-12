@@ -43,7 +43,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
                            'strong misalignment and those which do not. If this value is provided the second group of '
                            'tomograms is splitted into two, using this threshold to settle if the tomograms present'
                            'or not a weak misalignment.')
-        self.addParamsLine(' --misalignmentCriteriaVotes: Define criteria used for making a decision on the presence '
+        self.addParamsLine(' [--misalignmentCriteriaVotes]: Define criteria used for making a decision on the presence '
                            'of misalignment on the tomogram based on the individual scores of each subtomogram. If '
                            'this option is not provided (default) the mean of this scores is calculated. If '
                            'provided a votting system based on if each subtomo score is closer to 0 o 1 is implented. ')
