@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift, rotate
 #from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
 
-maxSize = 64
+maxSize = 32
 tolerance = 15
 
 if __name__ == "__main__":
@@ -352,30 +352,32 @@ if __name__ == "__main__":
         return np.max(ang_Distances), np.argmax(ang_Distances)
 
     def average_of_rotations(pred6d):
+        minParticles = 1+int(numAngModels/2)
         matrix = convert_to_matrix(pred6d)
         quats = convert_to_quaternions(matrix)
         av_quats = average_quaternions(quats)
         av_matrix = quaternion_matrix(av_quats)
         max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
         max_distance = max_distance * 180 / math.pi
-        if max_distance > tolerance:
+
+        while (np.shape(matrix)[0] > minParticles) and (max_distance > tolerance):
             matrix = np.delete(matrix, max_dif_particle, axis=0)
             quats = np.delete(quats, max_dif_particle, axis=0)
             av_quats = average_quaternions(quats)
             av_matrix = quaternion_matrix(av_quats)
             max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
             max_distance = max_distance * 180 / math.pi
+        #if max_distance > tolerance:
+        #    matrix = np.delete(matrix, max_dif_particle, axis=0)
+        #    quats = np.delete(quats, max_dif_particle, axis=0)
+        #    av_quats = average_quaternions(quats)
+        #    av_matrix = quaternion_matrix(av_quats)
+        #    max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
+        #    max_distance = max_distance * 180 / math.pi
         av_euler = euler_from_matrix(av_matrix)
         return np.append(av_euler, max_distance)
 
     def compute_ang_averages(pred6d):
-        # mats = np.array(list(map(convert_to_matrix, pred6d)))
-        # quats = np.array(list(map(convert_to_quaternions, mats)))
-        # av_quats = np.array(list(map(average_quaternions, quats)))
-        # av_matrix = np.array(list(map(quaternion_matrix, av_quats)))
-        # max_distances = np.array(list(map(maximum_distance, av_matrix, mats)))*180/math.pi
-        # av_euler = np.array(list(map(euler_from_matrix, av_matrix)))
-        # return av_euler, max_distances
         averages_mdistance = np.array(list(map(average_of_rotations, pred6d)))
         average = averages_mdistance[:, 0:3]
         mdistance = averages_mdistance[:, 3]

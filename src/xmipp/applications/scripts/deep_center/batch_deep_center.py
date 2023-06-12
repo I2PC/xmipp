@@ -8,6 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -35,7 +36,7 @@ if __name__ == "__main__":
     from keras.callbacks import TensorBoard, ModelCheckpoint
     from keras.models import Model
     from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
-        Activation, Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
+        Activation, Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, LeakyReLU, Add
     from keras.optimizers import *
     import keras
     from keras import callbacks
@@ -175,41 +176,109 @@ if __name__ == "__main__":
             return Xexp, y
 
 
+
+
+
+    def conv_block(x, filters, kernel_size, strides=(1, 1), activation='relu', batch_normalization=True):
+        x = Conv2D(filters=filters, kernel_size=kernel_size, strides=strides, padding='same')(x)
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        x = Activation(activation)(x)
+        return x
+
+
+    def identity_block(tensor, filters, kernel_size, activation='relu', batch_normalization=True):
+        x = conv_block(tensor, filters, kernel_size, activation=activation, batch_normalization=batch_normalization)
+        x = Conv2D(filters=filters, kernel_size=kernel_size, padding='same')(x)
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        x = Add()([tensor, x])
+        x = Activation(activation)(x)
+        return x
+
+
+    def resnet(Xdim, mode):
+        inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+
+        x = conv_block(inputLayer, filters=64, kernel_size=(7, 7), strides=(2, 2))
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
+
+        for _ in range(3):
+            x = identity_block(x, filters=64, kernel_size=(3, 3))
+
+        x = conv_block(x, filters=128, kernel_size=(3, 3), strides=(2, 2))
+
+        for _ in range(3):
+            x = identity_block(x, filters=128, kernel_size=(3, 3))
+
+        x = conv_block(x, filters=256, kernel_size=(3, 3), strides=(2, 2))
+
+        for _ in range(5):
+            x = identity_block(x, filters=256, kernel_size=(3, 3))
+
+        x = conv_block(x, filters=512, kernel_size=(3, 3), strides=(2, 2))
+
+        for _ in range(2):
+            x = identity_block(x, filters=512, kernel_size=(3, 3))
+
+        x = GlobalAveragePooling2D()(x)
+        if mode == 'Shift':
+            x = Dense(2, name="output", activation="linear")(x)
+        else:
+            x = Dense(6, name="output", activation="linear")(x)
+
+        model = Model(inputs=inputLayer, outputs=x)
+        return model
+
+
+
+
+
     def constructModel(Xdim, mode):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         # Network model
-
-        L = Conv2D(32, (3, 3), activation="relu")(inputLayer)
+        L = Conv2D(32, (3, 3), padding='same')(inputLayer)
         L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        L = Dropout(0.1)(L)
 
-        L = Conv2D(64, (3, 3), activation="relu")(L)
+        L = Conv2D(64, (3, 3), padding='same')(L)
         L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        L = Dropout(0.1)(L)
 
-        L = Conv2D(128, (3, 3), activation="relu")(L)
+        L = Conv2D(128, (3, 3), padding='same')(L)
         L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        L = Dropout(0.1)(L)
 
-        L = Conv2D(256, (3, 3), activation="relu")(L)
+        L = Conv2D(256, (3, 3), padding='same')(L)
         L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
         L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        L = Dropout(0.1)(L)
+
+        L = Conv2D(512, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
+        L = Dropout(0.1)(L)
 
         L = Flatten()(L)
-        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        # L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(1024, activation='relu')(L)
         L = BatchNormalization()(L)
         L = Dropout(0.2)(L)
 
-        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(1024, activation='relu')(L)
         L = BatchNormalization()(L)
         L = Dropout(0.2)(L)
 
-        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
+        L = Dense(1024, activation='relu')(L)
         L = BatchNormalization()(L)
 
         if mode == 'Shift':
@@ -230,22 +299,35 @@ if __name__ == "__main__":
         tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
         psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
-        labels_val = []
+        labels = []
 
+        numTiltDivs = 5
+        numRotDivs = 10
+        limits_rot = np.linspace(-180.01, 180, num=(numRotDivs+1))
+        limits_tilt = np.zeros(numTiltDivs+1)
+        limits_tilt[0] = -0.01
+        for i in range(1, numTiltDivs+1):
+            limits_tilt[i] = math.acos(1-2*(i/numTiltDivs))
+        limits_tilt = limits_tilt*180/math.pi
+        zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
+
+        i = 0
         if mode == "Shift":
             for x, y in zip(shiftX, shiftY):
-                labels_val.append(np.array((x, y)))
+                labels.append(np.array((x, y)))
         elif mode == "Angular":
             for r, t, p in zip(rots, tilts, psis):
-                labels_val.append(np.array((r, t, p)))
+                labels.append(np.array((r, t, p)))
+                region_rot = np.digitize(r, limits_rot, right=True) - 1  # Índice de la región para el componente x
+                region_tilt = np.digitize(t, limits_tilt, right=True) - 1  # Índice de la región para el componente y
+                region_idx = region_rot * (len(limits_tilt)-1) + region_tilt  # Índice de la región combinada
+                zone[region_idx].append(i)
+                i += 1
 
-        ntraining = math.floor(len(fnImgs) * 0.8)
-        ind = [i for i in range(len(labels_val))]
-        np.random.shuffle(ind)
-        train = ind[0:ntraining]
-        valid = ind[(ntraining + 1):]
+        for i in range((len(limits_tilt)-1)*(len(limits_rot)-1)):
+            print(len(zone[i]))
 
-        return Xdim, fnImgs, labels_val, train, valid
+        return Xdim, fnImgs, labels, zone
 
 
     import tensorflow as tf
@@ -266,23 +348,37 @@ if __name__ == "__main__":
         b3 = K.expand_dims(b3, axis=2)
         return K.concatenate((b1, b2, b3), axis=2)
 
-
+    def geodesic_distance2(y_true, y_pred):
+        a1 = y_pred[:, slice(0, 6, 2)]
+        b1 = y_pred[:, slice(1, 6, 2)]
+        a2 = tf.linalg.normalize(a1, axis=1)[0]
+        c1 = tf.multiply(a1, b1)
+        c2 = tf.reduce_sum(c1, axis=1, keepdims=True)
+        b2 = b1 - tf.multiply(c2, a2)
+        b2 = tf.linalg.normalize(b2, axis=1)[0]
+        d = y_true[:, 0] * a2[:, 0]
+        d += y_true[:, 2] * a2[:, 1]
+        d += y_true[:, 4] * a2[:, 2]
+        d += y_true[:, 1] * b2[:, 0]
+        d += y_true[:, 3] * b2[:, 1]
+        d += y_true[:, 5] * b2[:, 2]
+        return -d
     def geodesic_distance(y_true, y_pred):
         a1 = y_pred[:, slice(0, 6, 2)]
         a2 = y_pred[:, slice(1, 6, 2)]
         a1 = tf.linalg.normalize(a1, axis=1)[0]
         a2 = tf.linalg.normalize(a2, axis=1)[0]
-        d = K.sum(y_true[:, 0] * a1[:, 0])
-        d += K.sum(y_true[:, 2] * a1[:, 1])
-        d += K.sum(y_true[:, 4] * a1[:, 2])
-        d += K.sum(y_true[:, 1] * a2[:, 0])
-        d += K.sum(y_true[:, 3] * a2[:, 1])
-        d += K.sum(y_true[:, 5] * a2[:, 2])
+        d = y_true[:, 0] * a1[:, 0]
+        d += y_true[:, 2] * a1[:, 1]
+        d += y_true[:, 4] * a1[:, 2]
+        d += y_true[:, 1] * a2[:, 0]
+        d += y_true[:, 3] * a2[:, 1]
+        d += y_true[:, 5] * a2[:, 2]
         return -d
 
 
     def geodesic_loss(y_true, y_pred):
-        d = geodesic_distance(y_true, y_pred)
+        d = K.mean(geodesic_distance(y_true, y_pred))
         return d
 
 
@@ -340,35 +436,42 @@ if __name__ == "__main__":
                                    R_psi(npsi[:, slice(0, 1)], npsi[:, slice(1, 2)])))
 
 
-    def custom_loss(y_true, y_pred):
-        rotation_true = rotation_matrix(y_true)
-        rotation_pred = rotation_matrix(y_pred)
-        rotmul = tf.linalg.matmul(rotation_true, rotation_pred, transpose_b=True)
-        d = -tf.linalg.trace(rotmul)
-        return K.mean(d)
 
-
-    Xdim, fnImgs, labels, indTrain, indVal = get_labels(fnXmdExp, mode)
+    Xdim, fnImgs, labels, zone = get_labels(fnXmdExp, mode)
     start_time = time()
 
-    lenTrain = int(len(indTrain) / numModels)
-    lenVal = int(len(indVal) / numModels)
+    if numModels == 1:
+        lenTrain = int(len(fnImgs)*0.8)
+        lenVal = len(fnImgs)-lenTrain
+    else:
+        lenTrain = int(len(fnImgs) / 3)
+        lenVal = int(len(fnImgs) / 12)
+
+
+    elements_zone = int((lenVal+lenTrain)/len(zone))
+    print('elements_zone', elements_zone, flush=True)
 
     for index in range(numModels):
-        training_generator = DataGenerator([fnImgs[i] for i in indTrain[index * lenTrain: (index + 1) * lenTrain]],
-                                           [labels[i] for i in indTrain[index * lenTrain: (index + 1) * lenTrain]],
+
+        random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
+        if mode == 'Angular':
+            for i in range(len(zone)):
+                random_sample[i*elements_zone:(i+1)*elements_zone] = np.random.choice(zone[i], size=elements_zone, replace=True)
+            np.random.shuffle(random_sample)
+        training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
+                                           [labels[i] for i in random_sample[0:lenTrain]],
                                            mode, sigma, batch_size, Xdim, readInMemory=False)
-        validation_generator = DataGenerator([fnImgs[i] for i in indVal[index * lenVal: (index + 1) * lenVal]],
-                                             [labels[i] for i in indVal[index * lenVal: (index + 1) * lenVal]],
+        validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
+                                             [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
                                              mode, sigma, batch_size, Xdim, readInMemory=False)
 
         if mode == 'Shift':
-            model = constructModel(Xdim, mode)
+            model = resnet(Xdim, mode)
         else:
             if pretrained == 'yes':
                 model = load_model(fnPreModel, compile=False)
             else:
-                model = constructModel(Xdim, mode)
+                model = resnet(Xdim, mode)
             adam_opt = Adam(lr=learning_rate)
         model.summary()
 
@@ -382,5 +485,14 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model])
+        #if mode != 'Shift':
+        #    plt.plot(history.history['loss'])
+        #    plt.plot(history.history['val_loss'])
+        #    plt.title('model loss')
+        #    plt.ylabel('loss')
+        #    plt.xlabel('epoch')
+        #    plt.legend(['train', 'test'], loc='upper left')
+        #    plt.show()
+
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
