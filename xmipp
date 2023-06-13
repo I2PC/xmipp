@@ -511,7 +511,7 @@ def compile_libsvm():
     ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
     return ok
 
-def compile_libcifpp():
+def compile_libcifpp(Nproc):
     # Check if CMake version is up to date
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
     if error:
@@ -524,7 +524,7 @@ def compile_libcifpp():
     # Installing
     fullDir = os.path.join(currDir, libcifppDir, '')
     ok = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON")
-    ok = ok and runJob("cmake --build build")
+    ok = ok and runJob(f"cmake --build build -j {Nproc}")
     ok = ok and runJob("cmake --install build")
     # Check if libcifpp created up on compiling lib or lib64 directory
     libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
@@ -566,7 +566,7 @@ def compileDependencies(Nproc):
     if buildConfig.is_true(Config.KEY_BUILD_TESTS):
         result = result and compile_googletest()
     result = result and compile_libsvm()
-    result = result and compile_libcifpp()
+    result = result and compile_libcifpp(Nproc)
     if not result:
         print(red("Cannot build dependencies"))
     return result
