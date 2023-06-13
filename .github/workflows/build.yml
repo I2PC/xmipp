@@ -42,6 +42,10 @@ jobs:
           cuda: '11.7.0'
           linux-local-args: '[ "--toolkit" ]'
       
+      # Using CCache to speed C/C++ compilation
+      - name: Install ccache
+        uses: hendrikmuhs/ccache-action@v1.0.3
+      
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
         with:
@@ -49,7 +53,11 @@ jobs:
 
       # Compiling Xmipp in the Pull Request branch
       - name: Compile Xmipp
-        run: ./xmipp noAsk
         env:
           CIBuild: 1
           BUILD_TESTS: True
+        run: |
+          wget -nv https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -q build-wrapper-linux-x86.zip          
+          echo "${PWD}/build-wrapper-linux-x86" >> $GITHUB_PATH
+          ./xmipp noAsk
