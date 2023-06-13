@@ -22,8 +22,7 @@ jobs:
         
       # Installing apt dependencies
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake
-      #sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake libopencv-dev openmpi-bin
       
       # Setting up Python
       - uses: actions/setup-python@v4
