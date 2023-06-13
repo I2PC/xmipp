@@ -1,7 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
+ * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,38 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_TOMO_EXTRACT_SUBTOMOS
-#define _PROG_TOMO_EXTRACT_SUBTOMOS
+#include <tomo/tomo_extract_particlestacks.h>
 
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <limits>
-#include <complex>
-#include <string>
-
-
-class ProgTomoExtractSubtomograms : public XmippProgram
+int main(int argc, char **argv)
 {
-public:
-	 /** Filenames */
-	FileName fnOut, fnTom, fnCoor;
-
-    size_t Xdim, Ydim, Zdim;
-
-    bool invertContrast;
-
-    double scaleFactor;
-
-	/** Is the volume previously masked?*/
-	int  boxsize, nthrs;
-
-public:
-
-    void defineParams();
-    void readParams();
-    void readAndPrepareData();
-    void run();
-};
-//@}
-#endif
+	ProgTomoExtractParticleStacks program;
+    program.read(argc, argv);
+    return program.tryRun();
+}

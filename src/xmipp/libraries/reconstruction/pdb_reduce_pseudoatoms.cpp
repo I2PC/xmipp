@@ -24,6 +24,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
 #include <algorithm>
 #include "pdb_reduce_pseudoatoms.h"
 #include "data/pdb.h"
@@ -37,7 +38,7 @@ ProgPdbReduce::ProgPdbReduce()
 void ProgPdbReduce::defineParams()
 {
 	addUsageLine("Reduce the number of pseudoatoms in a volume.");
-	addExampleLine("   xmipp_pdb_reduce -i 1o7d.vol -o 1o7dreduced.vol --threshold 0.15");
+	addExampleLine("   xmipp_pdb_reduce_pseudoatoms -i 1o7d.vol -o 1o7dreduced.vol --threshold 0.15");
 
 	addParamsLine("   -i <pdb_file>                          : File to process");
 	addParamsLine("  [-o <fn_root>]                          : Root name for output");
