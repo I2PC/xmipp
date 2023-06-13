@@ -138,6 +138,11 @@ if __name__ == "__main__":
                 mat = euler_angles_to_matrix(angles, psi_rotation)
                 return matrix_to_rotation6d(mat)
 
+            def make_redundant(rep_6d):
+                rep_6d = np.append(rep_6d, 2*rep_6d)
+                print('rep_6d', rep_6d, flush = True)
+                return rep_6d
+
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
@@ -167,6 +172,8 @@ if __name__ == "__main__":
                     yvalues = yvalues * math.pi / 180
 
                     y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+                    #y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+                    #y = np.array(list((map(make_redundant, y_6d))))
             else:
                 Xexp = np.array(list(Iexp))
                 if mode == 'Shift':
@@ -179,7 +186,7 @@ if __name__ == "__main__":
 
 
 
-    def conv_block(x, filters, kernel_size, strides=(1, 1), activation='relu', batch_normalization=True):
+    def conv_block1(x, filters, kernel_size, strides=(1, 1), activation='relu', batch_normalization=True):
         x = Conv2D(filters=filters, kernel_size=kernel_size, strides=strides, padding='same')(x)
         if batch_normalization:
             x = BatchNormalization()(x)
@@ -187,7 +194,7 @@ if __name__ == "__main__":
         return x
 
 
-    def identity_block(tensor, filters, kernel_size, activation='relu', batch_normalization=True):
+    def identity_block1(tensor, filters, kernel_size, activation='relu', batch_normalization=True):
         x = conv_block(tensor, filters, kernel_size, activation=activation, batch_normalization=batch_normalization)
         x = Conv2D(filters=filters, kernel_size=kernel_size, padding='same')(x)
         if batch_normalization:
@@ -196,30 +203,58 @@ if __name__ == "__main__":
         x = Activation(activation)(x)
         return x
 
+    def identity_block(tensor, filters):
+
+        x = Conv2D(filters, (3, 3), padding='same')(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x = Add()([x, tensor])
+        x = Activation('relu')(x)
+        return x
+
+    def conv_block(tensor, filters):
+        x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
+
+        x = Add()([x, x_res])
+        x = Activation('relu')(x)
+        return x
+
 
     def resnet(Xdim, mode):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        x = conv_block(inputLayer, filters=64, kernel_size=(7, 7), strides=(2, 2))
+        x = conv_block1(inputLayer, filters=64, kernel_size=(7, 7), strides=(2, 2))
         x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
 
         for _ in range(3):
-            x = identity_block(x, filters=64, kernel_size=(3, 3))
+            x = identity_block(x, filters=64)
 
-        x = conv_block(x, filters=128, kernel_size=(3, 3), strides=(2, 2))
+        x = conv_block(x, filters=128)
 
         for _ in range(3):
-            x = identity_block(x, filters=128, kernel_size=(3, 3))
+            x = identity_block(x, filters=128)
 
-        x = conv_block(x, filters=256, kernel_size=(3, 3), strides=(2, 2))
+        x = conv_block(x, filters=256)
 
         for _ in range(5):
-            x = identity_block(x, filters=256, kernel_size=(3, 3))
+            x = identity_block(x, filters=256)
 
-        x = conv_block(x, filters=512, kernel_size=(3, 3), strides=(2, 2))
+        #x = conv_block(x, filters=512, kernel_size=(3, 3), strides=(2, 2))
+        x = conv_block(x, filters=512)
 
         for _ in range(2):
-            x = identity_block(x, filters=512, kernel_size=(3, 3))
+            x = identity_block(x, filters=512)
 
         x = GlobalAveragePooling2D()(x)
         if mode == 'Shift':
@@ -227,8 +262,8 @@ if __name__ == "__main__":
         else:
             x = Dense(6, name="output", activation="linear")(x)
 
-        model = Model(inputs=inputLayer, outputs=x)
-        return model
+        model_net = Model(inputs=inputLayer, outputs=x)
+        return model_net
 
 
 
