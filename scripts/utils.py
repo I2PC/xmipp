@@ -174,7 +174,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
     precompiled = False
     if show_command:
         if showWithReturn == True:
-            print(yellow(cmd), end='\r')
+            print(yellow(completeSplitLine(80, cmd)), end='\r')
         else:
             print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
@@ -194,15 +194,11 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                         precompiled=True
                 prg = round((n*100)/progresL)
                 if prg > 100: prg = 100
-                #print('n: {} progresL: {} prg: {}'.format(n, progresL, prg))
                 line = line.replace('\n', "")
                 line = line.replace("\r", "")
                 line = line.replace("\b", "")
-                emptyLine = 100 - len(line)
-                if emptyLine > 0:
-                    line = line + (" " * emptyLine)
-                str2Print = line[:100] + "..." + "\n" + printProgressBar(prg)
-                #str2Print = printProgressBar(prg) + '\n' + line[:150] + '...' + ('' * 100)
+                line = completeSplitLine(80, line + '...')
+                str2Print = line + "\n" + printProgressBar(prg)
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
         if not line:
@@ -236,6 +232,14 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
             print(yellow(''.join(str_out)))
         return False
 
+
+def completeSplitLine(sizeLine, line):
+    emptyLine = sizeLine - len(line)
+    if emptyLine > 0:
+        line = line + (" " * emptyLine)
+    if emptyLine < 0:
+        line = line[:sizeLine]
+    return line
 
 def write_compileLog(log, COMPILE_LOG='', append=True):
     if append ==True:
