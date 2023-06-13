@@ -794,7 +794,7 @@ def addDeepLearninModel(login, modelPath='', update=None):
         with pretrained data. All the models stored in the server will be downloads
         using the 'get_models' mode or during the compilation/installation time
         if 'USE_DL=True' in the config file. [or with 'scipion3 installb deepLearningToolkit']
-        
+        modelsPath must be the absolute path
         Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]
         
         Behaviour: 0. modelName = basename(modelsPath) <- Please, check the folder's name!

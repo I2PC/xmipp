@@ -40,8 +40,6 @@ ProgArtZernike3D::ProgArtZernike3D()
     showOptimization = false;
 }
 
-ProgArtZernike3D::~ProgArtZernike3D() = default;
-
 // Read arguments ==========================================================
 void ProgArtZernike3D::readParams()
 {
