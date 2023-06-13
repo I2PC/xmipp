@@ -1510,6 +1510,7 @@ void ProgImagePeakHighContrast::radialAverage(MultidimArray<float> &feature, Mul
 	#endif
 
 	MultidimArray<int> counter(boxSize/2);
+	counter.initZeros();
 
 	for(int k=0; k<numSlices; k++)  // Zdim
 	{
