@@ -24,6 +24,14 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip gcc-10 g++-10
       
+      # Select gcc and g++ 10
+      - name: Select gcc/c++ 10
+        run: |
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
+          sudo update-alternatives --config gcc <<< $'1\n'
+          sudo update-alternatives --config g++ <<< $'1\n'
+      
       # Setting up Python
       - uses: actions/setup-python@v4
         with:
