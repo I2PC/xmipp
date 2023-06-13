@@ -1,0 +1,56 @@
+# Workflow name
+name: Build Xmipp
+
+# Specify when the Action should be triggered: when a pull request is opened against the 'devel' or 'master' branch
+on:
+  pull_request:
+    branches: [devel, master]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    # Disabling shallow clone is recommended for improving relevancy of reporting
+    steps:
+      # Updating repositories
+      - name: Update 
+        run: sudo apt-get update
+        
+      # Installing apt dependencies
+      - name: Install dependencies
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
+      
+      # Setting up Python
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.9.15' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+          
+      # Installing Python dependencies
+      - name: Install python dependencies
+        run:  |
+           python -m pip install --upgrade pip
+           pip install scons numpy
+       
+       # Installing CUDA                
+      - uses: Jimver/cuda-toolkit@v0.2.8
+        id: cuda-toolkit
+        with:
+          cuda: '11.7.0'
+          linux-local-args: '[ "--toolkit" ]'
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+            fetch-depth: 0
+
+      # Compiling Xmipp in the Pull Request branch
+      - name: Compile Xmipp
+        run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
+        env:
+          CIBuild: 1
+          BUILD_TESTS: True
