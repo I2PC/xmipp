@@ -195,10 +195,13 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 prg = round((n*100)/progresL)
                 if prg > 100: prg = 100
                 #print('n: {} progresL: {} prg: {}'.format(n, progresL, prg))
-                line = line.replace('\n', '')
-                line = line.replace("\r", '')
-                line = line.replace("\b", '')
-                str2Print = line[:150] + '...' + ('' * 100) + '\n' + printProgressBar(prg)
+                line = line.replace('\n', "")
+                line = line.replace("\r", "")
+                line = line.replace("\b", "")
+                emptyLine = 100 - len(line)
+                if emptyLine > 0:
+                    line = line + (" " * emptyLine)
+                str2Print = line[:100] + "..." + "\n" + printProgressBar(prg)
                 #str2Print = printProgressBar(prg) + '\n' + line[:150] + '...' + ('' * 100)
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
