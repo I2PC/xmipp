@@ -11,7 +11,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
@@ -22,7 +22,8 @@ jobs:
         
       # Installing apt dependencies
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake
+      #sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake
       
       # Setting up Python
       - uses: actions/setup-python@v4
@@ -56,8 +57,4 @@ jobs:
         env:
           CIBuild: 1
           BUILD_TESTS: True
-        run: |
-          wget -nv https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
-          unzip -q build-wrapper-linux-x86.zip
-          echo "${PWD}/build-wrapper-linux-x86" >> $GITHUB_PATH
-          ./xmipp noAsk
+        run: ./xmipp noAsk
