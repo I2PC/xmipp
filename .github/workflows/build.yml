@@ -37,7 +37,7 @@ jobs:
            pip install scons numpy
        
        # Installing CUDA                
-      - uses: Jimver/cuda-toolkit@v0.2.8
+      - uses: Jimver/cuda-toolkit@v0.2.10
         id: cuda-toolkit
         with:
           cuda: '11.7.0'
