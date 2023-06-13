@@ -130,11 +130,11 @@ public:
         if (rank == 0)
         {
             show();
-            //randon numbers must be the same in all nodes
-            std::random_device rd;
+            //random numbers must be the same in all nodes
             if(perturb_projection_vector!=0)
             {
-                my_seed=rd();
+                srand(getpid());
+                my_seed = rand();
             }
         }
 #ifdef  DEBUGTIME

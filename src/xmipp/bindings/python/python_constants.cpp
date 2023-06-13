@@ -437,6 +437,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_TIME);
 
     ADD_CONST(MDL_TRANSFORM_MATRIX);
+    ADD_CONST(MDL_TSID);
     ADD_CONST(MDL_TOMOGRAM_VOLUME);
     ADD_CONST(MDL_TOMOGRAMMD);
 
@@ -546,6 +547,7 @@ void addLabels(PyObject * dict)
     ADD_CONST2("DT_COMPLEXFLOAT", DT_CFloat);
     ADD_CONST2("DT_COMPLEXDOUBLE", DT_CDouble);
     ADD_CONST2("DT_BOOL", DT_Bool);
+    ADD_CONST2("DT_HALFFLOAT", DT_HalfFloat);
     ADD_CONST2("DT_LASTENTRY", DT_LastEntry);
 
     ADD_CONST(VIEW_Z_NEG);

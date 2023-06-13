@@ -94,7 +94,6 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
     double freqx;
     std::complex< double > f;
     Euler_angles2matrix(rot,tilt,psi,E);
-
     projectionFourier.initZeros();
     double maxFreq2=maxFrequency*maxFrequency;
     auto Xdim=(int)XSIZE(VfourierRealCoefs);
@@ -221,7 +220,6 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
 					d += yxsumIm * aux;
                 }
             }
-
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
@@ -327,7 +325,7 @@ void FourierProjector::produceSideInfoProjection()
 void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdim,
                    double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
-	projector.project(rot,tilt,psi,ctf);
+    projector.project(rot,tilt,psi,ctf);
     P() = projector.projection();
 }
 

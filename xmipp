@@ -30,14 +30,15 @@ import shutil
 import sys
 from datetime import datetime
 from scripts import *
+from scripts.utils import checkCMakeVersion
 
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.22.11.0'        #
+XMIPP_VERSION = '3.23.03.0'        #
 XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '15/11/2022'        #
-
+RELEASE_DATE = '09/03/2023'        #
+CMAKE_VERSION_REQUIRED = '3.16'
 ####################################
 
 
@@ -49,6 +50,7 @@ CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
+LIBCIFPP = 'libcifpp'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
@@ -57,13 +59,15 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
                 CTPL: 'https://github.com/vit-vit/CTPL.git',
                 GTEST: 'https://github.com/google/googletest',
-                LIBSVM: 'https://github.com/cossorzano/libsvm.git'}
+                LIBSVM: 'https://github.com/cossorzano/libsvm.git',
+                LIBCIFPP: 'https://github.com/MartinSalinas98/libcifpp'}
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('release-1.10.0', Config.KEY_BUILD_TESTS),
-                LIBSVM: ('master', None)}
+                GTEST: ('v.1.13.0', Config.KEY_BUILD_TESTS),
+                LIBSVM: ('master', None),
+                LIBCIFPP: ('ms_feature_ciflibrary', None)}
 
 # if a skippable compilation fails (if 'key' found in the failed code),
 # a hint is printed in order to export 'value' or edit the config file
@@ -507,15 +511,46 @@ def compile_libsvm():
     ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
     return ok
 
+def compile_libcifpp():
+    # Check if CMake version is up to date
+    error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
+    if error:
+        print(error)
+        return False
+    currDir = os.getcwd()
+    # Moving to library directory
+    libcifppDir = os.path.join("src", "libcifpp")
+    os.chdir(libcifppDir)
+    # Installing
+    fullDir = os.path.join(currDir, libcifppDir, '')
+    ok = runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON")
+    ok = ok and runJob("cmake --build build")
+    ok = ok and runJob("cmake --install build")
+    # Check if libcifpp created up on compiling lib or lib64 directory
+    libcifppLibDir = "lib64" if os.path.exists("lib64") else "lib"
+    # Copying .so file
+    os.chdir(currDir)
+    libDir = "src/xmipp/lib"
+    createDir(libDir)
+    ok = ok and runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir)
+    return ok
+
+def checkScons():
+    return runJob("scons --version", show_output=False, show_command=False)
+
 
 def compile(Nproc):
-    if isinstance(Nproc, str) and Nproc.startswith('N='):
-        Nproc = int(Nproc.split('N=')[1])
-    buildConfig.check_version()
-    if not compileDependencies(Nproc):
+    if checkScons():
+        if isinstance(Nproc, str) and Nproc.startswith('N='):
+            Nproc = int(Nproc.split('N=')[1])
+        buildConfig.check_version()
+        if not compileDependencies(Nproc):
+            return False
+        return compileXmipp(Nproc)
+    else:
+        print(red('Scons package not found. Please install it in the enviroment '
+                    'you install Xmipp (pip install SCons) or in the system'))
         return False
-    return compileXmipp(Nproc)
-
 
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
@@ -531,6 +566,7 @@ def compileDependencies(Nproc):
     if buildConfig.is_true(Config.KEY_BUILD_TESTS):
         result = result and compile_googletest()
     result = result and compile_libsvm()
+    result = result and compile_libcifpp()
     if not result:
         print(red("Cannot build dependencies"))
     return result
@@ -617,7 +653,7 @@ def addDeepLearninModel(login, modelPath='', update=None):
         with pretrained data. All the models stored in the server will be downloads
         using the 'get_models' mode or during the compilation/installation time
         if 'USE_DL=True' in the config file. [or with 'scipion3 installb deepLearningToolkit']
-        
+        modelsPath must be the absolute path
         Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]
         
         Behaviour: 0. modelName = basename(modelsPath) <- Please, check the folder's name!
@@ -713,11 +749,13 @@ def linkToScipion(dirname):
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
         SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
+        CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
         bindings = os.path.join(xmippLink, "bindings", "python", "*")
 
         os.chdir(scipionSoftwareEM)
         runJob("ln -srf %s %s" % (coreLib, scipionLibs))
         runJob("ln -srf %s %s" % (SVMLib, scipionLibs))
+        runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs))
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
@@ -765,6 +803,7 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
+    ok = ok and runJob(cpCmd+" -r src/xmipp/bindings/python/envs_DLTK/ " + dirname + "/bindings/python/envs_DLTK")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
