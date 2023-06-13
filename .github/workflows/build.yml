@@ -22,7 +22,7 @@ jobs:
         
       # Installing apt dependencies
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
+        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libopencv-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip gcc-10 g++-10
       
       # Setting up Python
       - uses: actions/setup-python@v4
