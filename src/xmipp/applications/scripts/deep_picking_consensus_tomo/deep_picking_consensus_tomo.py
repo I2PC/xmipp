@@ -99,12 +99,8 @@ class ScriptDeepConsensus3D(XmippScript):
 
         # Train parameters
         self.addParamsLine('==== Training mode ====')
-        self.addParamsLine('[ --truevolfiles <path> ]  : ":" separated paths to the positive subtomos (xmd)')
-        self.addParamsLine('[ --falsevolfiles <path>  ]  : ":" separated paths to the negative subtomos (xmd)')
-        self.addParamsLine('[ --trueweights ]  : ":" separated positive subtomo file weights'
-                            'Default: none - program autoweights -1:-1:-1...')
-        self.addParamsLine('[ --falseweights]  : ":" separated negative subtomo file weights'
-                           'Default: none - program autoweights -1:-1:-1...')
+        self.addParamsLine('[ --truevolfile <path> ]  : path to the positive subtomos (xmd)')
+        self.addParamsLine('[ --falsevolfile <path>  ]  : path to the negative subtomos (xmd)')
         self.addParamsLine('[ -e <numberOfEpochs> ]  : Number of training epochs (int). Default: 5')
         self.addParamsLine('[ -l <learningRate> ] : Learning rate (float). Default: 1e-4')
         self.addParamsLine('[ -r <regStrength> ] : L2 regularization level (float). Default: 1e-5')
@@ -278,8 +274,23 @@ class ScriptDeepConsensus3D(XmippScript):
         gpustring = str(self.gpus)
         print("Execution will use GPUS with ID: " + gpustring)
 
-        # TODO: generate args for train or score
-        # TODO: launch train o test worker
+        if self.mode == "train":
+
+            # TODO: generate args for train or score
+            if self.traintype == MODEL_TRAIN_NEW:
+                pass
+            elif self.traintype == MODEL_TRAIN_PRETRAIN:
+                pass
+            elif self.traintype == MODEL_TRAIN_PREVRUN:
+                pass
+
+        elif self.mode == "score":
+            pass
+        else:
+            print("Execution mode not specified, exiting...")
+            sys.exit(-1)
+
+
         sys.exit(0)
 
     @staticmethod
@@ -288,13 +299,16 @@ class ScriptDeepConsensus3D(XmippScript):
         pass
 
     @staticmethod
-    def scoringWorker():
-        # TODO: definir entradas
-        pass
+    def scoringWorker(netDataPath:str, posTestDict: dict, negTestDict:dict, predictDict: dict,
+                      outVolsPath:str, gpus:list, nthreads:int):
+        
+        # Set the thread number
+        systemThreads = multiprocessing.cpu_count()
+        threads = min(nthreads, systemThreads)
+
+        
+
 
 if __name__ == '__main__':
-    exitCode = ScriptDeepConsensus3D().run()
+    exitCode = ScriptDeepConsensus3D().tryRun()
     sys.exit(exitCode)
-        
-
-        
