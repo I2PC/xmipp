@@ -72,28 +72,22 @@ class Config:
 
         self.write()
         self.environment.write()
-        print(green("\nConfiguration completed and written on xmipp.conf.\n"))
+        print(green("\nConfiguration completed and written on xmipp.conf\n"))
 
     def check(self):
         print("\nChecking configuration -----------------------------------")
         if self.configDict['VERIFIED'] != 'True':
-            if not self._check_compiler():
-                print(red("Cannot compile"))
-                print("Possible solutions")  # FIXME: check libraries
-                print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "
-                      "python3-numpy python3-scipy python3-mpi4py")
-                print(
-                    "In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
-                print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
-                      "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
-                print("\nRemember to re-run './xmipp config' after installing libraries in order to "
-                      "take into account the new system configuration.")
-                runJob("rm xmipp_test_main*")
-                return False
-            if not self._check_MPI():
+            status = self._check_compiler()
+            if status[0] == False:
+                return status #status = [False, index, error msg, suport Msg]
+            status = self._check_hdf5()
+            if not status:
+                return status
+            status = self._check_MPI()
+            if not status[0]:
                 print(red("Cannot compile with MPI or use it"))
                 runJob("rm xmipp_mpi_test_main*", show_command=False)
-                return False
+                return status
             if not self._check_Java():
                 print(red("Cannot compile with Java"))
                 runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*", show_command=False)
@@ -115,7 +109,7 @@ class Config:
         else:
             print(green("'%s' is already checked. Set VERIFIED=False to have it re-checked"
                        % Config.FILE_NAME))
-        return True
+        return True, 0
 
     def get(self, option=None):
         if option:
@@ -294,7 +288,7 @@ class Config:
         print('Configuring compiler')
         if self.configDict["DEBUG"] == "":
             self.configDict["DEBUG"] = "False"
-        if self.configDict["CC"] == "" and checkProgram("gcc"):
+        if self.configDict["CC"] == "" and checkProgram("gcc")[0]:
             self.configDict["CC"] = "gcc"
             if get_GCC_version("gcc")[0] < Config.MINOR_GCC_VERSION:
                 print(red("gcc version required >= 8, detected gcc {}".format(get_GCC_version("gcc")[0])))
@@ -421,25 +415,26 @@ class Config:
 
 
     def _ensure_GCC_GPP_version(self, compiler):
-        if not checkProgram(compiler, True):
-            sys.exit(-7)
+        status = checkProgram(compiler)
+        if status[0] == False:
+            return status #status = [False, index, error msg, suport Msg]
         gccVersion, fullVersion = get_GCC_version(compiler)
         if gccVersion == '':
-            print(red('Compiler {} not found.'.format(compiler)))
-            sys.exit(-8)
-
+            return False, 3
         print(green('Detected ' + compiler + " in version " + fullVersion + '.'))
         if gccVersion < 8.0:
-            print(red('Version 8.0 or higher is required.'))
-            print(yellow('Please go to https://github.com/I2PC/xmipp#compiler to solve it.'))
-            sys.exit(-8)
+            return False, 4
+        return True, 0
 
     def _ensure_compiler_version(self, compiler):
         if 'g++' in compiler or 'gcc' in compiler:
-            self._ensure_GCC_GPP_version(compiler)
+            status = self._ensure_GCC_GPP_version(compiler)
+            if status[0] == False:
+                return status #status = [False, index, error msg, suport Msg]
         else:
-            print(red('Version detection for \'' +
-                  compiler + '\' is not implemented.'))
+            return False, 2
+        return True, 0
+
 
     def _get_Hdf5_name(self, libdirflags):
         libdirs = libdirflags.split("-L")
@@ -455,7 +450,10 @@ class Config:
         # in case user specified some wrapper of the compiler
         # get rid of it: 'ccache g++' -> 'g++'
         currentCxx = self.get(Config.KEY_CXX).split()[-1]
-        self._ensure_compiler_version(currentCxx)
+        status = self._ensure_compiler_version(currentCxx)
+        if status[0] == False:
+            return status
+
 
         cppProg = """
     #include <fftw3.h>
@@ -482,21 +480,21 @@ class Config:
                       (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
                        self.configDict["INCDIRFLAGS"], self.configDict["PYTHONINCFLAGS"]),
                       show_command=False, show_output=False):
-            print(
-                red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf"))
-            # FIXME: Check the dependencies list
-            print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread"))
-            return False
+            return False, 5
+
+        return True, 0
+
+    def _check_hdf5(self):
+        print("Checking hdf5 configuration")
         libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
         if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
                       (self.get(Config.KEY_LINKERFORPROGRAMS), self.configDict["LINKFLAGS"],
                        self.configDict["LIBDIRFLAGS"], libhdf5),
                       show_command=False, show_output=False):
-            print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
-            return False
+            return False, 6
         runJob("rm xmipp_test_main*", show_command=False, show_output=False)
-        return True
-
+        print(green('Done ' + (' ' * 150)))
+        return True, 0
     def _get_CUDA_version(self, nvcc):
         log = []
         runJob(nvcc + " --version", show_output=False,
@@ -653,7 +651,7 @@ class Config:
         if self.configDict["CUDA"] == "True":
             print("Checking CUDA configuration")
             print(yellow('Working...'), end='\r')
-            if not checkProgram(self.configDict["NVCC"]):
+            if not checkProgram(self.configDict["NVCC"][0]):
                 return False
             cppProg = """
         #include <cuda_runtime.h>
@@ -688,10 +686,10 @@ class Config:
                             '/usr/lib/openmpi/bin',
                             '/usr/lib64/openmpi/bin']
         if self.configDict["MPI_RUN"] == "":
-            if checkProgram("mpirun", False):
+            if checkProgram("mpirun")[0]:
                 self.configDict["MPI_RUN"] = "mpirun"
                 print(green("'mpirun' detected."))
-            elif checkProgram("mpiexec", False):
+            elif checkProgram("mpiexec")[0]:
                 self.configDict["MPI_RUN"] = "mpiexec"
                 print(green("'mpiexec' detected."))
             else:
@@ -703,7 +701,7 @@ class Config:
                     checkProgram(self.configDict["MPI_RUN"])
                     self.environment.update(PATH=mpiDir)
         if self.configDict["MPI_CC"] == "":
-            if checkProgram("mpicc", False):
+            if checkProgram("mpicc")[0]:
                 self.configDict["MPI_CC"] = "mpicc"
                 print(green("'mpicc' detected."))
             else:
@@ -714,7 +712,7 @@ class Config:
                     self.configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
                     checkProgram(self.configDict["MPI_CC"])
         if self.configDict["MPI_CXX"] == "":
-            if checkProgram("mpicxx", False):
+            if checkProgram("mpicxx")[0]:
                 self.configDict["MPI_CXX"] = "mpicxx"
                 print(green("'mpicxx' detected."))
             else:
@@ -749,11 +747,7 @@ class Config:
                       % (self.configDict["MPI_CXX"], self.configDict["INCDIRFLAGS"],
                          self.configDict["CXXFLAGS"], self.configDict["MPI_CXXFLAGS"]),
                       show_output=False,show_command=False):
-            print(red(
-                "MPI compilation failed. Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
-            print(red("In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations."
-                      "'%s --showme:compile' might help" % self.configDict['MPI_CXX']))
-            return False
+            return False, 8
 
         libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
         if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
@@ -761,10 +755,7 @@ class Config:
                       % (self.configDict["MPI_LINKERFORPROGRAMS"], self.configDict["LINKFLAGS"],
                          self.configDict["MPI_LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5),
                       show_output=False, show_command=False):
-            print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
-            print(red("In addition, MPI_LINKFLAGS can also be used to add flags to MPI links. "
-                      "'%s --showme:compile' might help" % self.configDict['MPI_CXX']))
-            return False
+            return False, 9
         runJob("rm xmipp_mpi_test_main*", show_output=False,show_command=False)
 
         echoString = blue(
@@ -773,8 +764,8 @@ class Config:
                        show_command=False, showWithReturn=False) or
                 runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (self.configDict['MPI_RUN'], echoString))):
             print(red("mpirun or mpiexec have failed."))
-            return False
-        return True
+            return False, 10
+        return True, 0
 
     def _config_Java(self):
         print('Configuring JAVA')
@@ -829,7 +820,7 @@ class Config:
     def _check_Java(self):
         print("Checking Java configuration")
         print(yellow('Working ...'), end='\r')
-        if not checkProgram(self.configDict['JAVAC']):
+        if not checkProgram(self.configDict['JAVAC'][0]):
             return False
         javaProg = """
         public class Xmipp {
@@ -865,13 +856,13 @@ class Config:
 
     def _config_Matlab(self):
         if self.configDict["MATLAB"] == "":
-            if checkProgram("matlab", False):
+            if checkProgram("matlab")[0]:
                 self.configDict["MATLAB"] = "True"
             else:
                 self.configDict["MATLAB"] = "False"
         if self.configDict["MATLAB"] == "True":
             if self.configDict["MATLAB_DIR"] == "":
-                if checkProgram("matlab"):
+                if checkProgram("matlab")[0]:
                     matlabBinDir = whereis("matlab", findReal=True)
                     self.environment.update(MATLAB_BIN_DIR=matlabBinDir)
                     self.configDict["MATLAB_DIR"] = matlabBinDir.replace(
@@ -882,7 +873,7 @@ class Config:
         ans = True
         if self.configDict["MATLAB"] == "True":
             print("Checking Matlab configuration")
-            if not checkProgram("matlab"):
+            if not checkProgram("matlab")[0]:
                 return False
             print("Checking Matlab configuration ...")
             cppProg = """
@@ -902,12 +893,12 @@ class Config:
         # TODO(Jan Polak): This check would be probably better done with pkg-config
         if self.configDict["STARPU"] == "":
             # Heuristic only, StarPU has no main executable
-            if checkProgram("starpu_sched_display", show=False):
+            if checkProgram("starpu_sched_display")[0]:
                 self.configDict["STARPU"] = "True"
             else:
                 self.configDict["STARPU"] = "False"
         if self.configDict["STARPU"] == "True":
-            if self.configDict["STARPU_HOME"] == "" and checkProgram("starpu_sched_display"):
+            if self.configDict["STARPU_HOME"] == "" and checkProgram("starpu_sched_display")[0]:
                 starpuBinDir = os.path.dirname(os.path.realpath(
                     distutils.spawn.find_executable("starpu_sched_display")))
                 self.configDict["STARPU_HOME"] = starpuBinDir.replace(
@@ -969,7 +960,7 @@ class Config:
         commitFn = os.path.join(
             'src', 'xmipp', 'commit.info')  # FIXME check if this is still true
         notFound = "(no git repo detected)"
-        if ensureGit(False) and isGitRepo():
+        if ensureGit(False)[0] and isGitRepo():
             scriptName = []
             runJob('git ls-files --full-name ' +
                    __file__, show_command=False, log=scriptName, show_output=False)

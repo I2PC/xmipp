@@ -22,7 +22,7 @@
 # *  All comments concerning this program package may be sent to the
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-
+import os.path
 import subprocess
 import glob
 import distutils.spawn
@@ -115,26 +115,37 @@ def endMessage(XMIPP_VERNAME):
     print(border)
 
 
-def errorEndMessage(XMIPP_VERNAME):
+def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
+    print(
+        red('\n\n---------------------------------------------------------------------------'))
+    if status:
+        print(red(status[2]))
+        print(red(status[3]))
+    else:
+        print(red(errorList(errorNum)[1]))
+        print(red(errorList(errorNum)[2]))
+
     if XMIPP_VERNAME == 'devel':
         strError = 'Unable to install Xmipp.\n\n' \
-                   'Devel version of Xmipp is constantly beeing improved, some errors might appear temporary,\n' \
-                   'please contact us if you find any. If you have modified code inside Xmipp please check it.\n' \
-                   'In anycase for more information about the error check compileLOG.txt file.'
+                   'Devel version of Xmipp is constantly beeing improved, some errors might appear\n temporary,' \
+                   'please contact us if you find any. If you have modified code inside\n Xmipp please check it.' \
+                   'In anycase for more information about the error check \ncompileLOG.txt file.'
         print(
-            red('\n\n---------------------------------------------------------------------------'))
+            red('---------------------------------------------------------------------------'))
         print(red(strError))
         print(
             red('---------------------------------------------------------------------------'))
     else:#release
         strError = 'Unable to install Xmipp.\n\nSome changes will let you install Xmipp. ' \
                    'Please review the previous error message,\nvisit our guide of installation https://github.com/I2PC/xmipp ' \
-                   '\nand also the wiki page with some details https://github.com/I2PC/xmipp/wiki'
+                   '\nand also the wiki page with some details https://github.com/I2PC/xmipp/wiki' \
+                   'Also you can contact us xmipp@cnb.csic.es or Discord/Scipion/xmipp\n'
         print(
             red('\n\n---------------------------------------------------------------------------'))
         print(red(strError))
         print(
             red('---------------------------------------------------------------------------'))
+
 
 def find(program, path=[]):
     location = which(program)
@@ -259,7 +270,7 @@ def whereis(program, findReal=False, env=None):
         return None
 
 
-def checkProgram(programName, show=True):
+def checkProgram(programName):
     systems = ["Ubuntu/Debian", "ManjaroLinux"]
     try:
         osInfo = subprocess.Popen(["lsb_release", "--id"],
@@ -293,30 +304,25 @@ def checkProgram(programName, show=True):
         "sudo apt-get -y install python3-pip", "sudo pacman -Syu --noconfirm pip"]
     systemInstructions["make"] = [
         "sudo apt-get -y install make", "sudo pacman -Syu --noconfirm make"]
-    ok = True
-    cont = True
     if not whereis(programName):
-        if cont:
-            if show:
-                print(red("Cannot find '%s'." % path.basename(programName)))
-                idx = 0
-                if programName in systemInstructions:
-                    if osId >= 0:
-                        print(red(" - %s OS detected, please try: %s"
-                                  % (systems[osId],
-                                     systemInstructions[programName][osId])))
-                    else:
-                        print(red("   Do:"))
-                        for instructions in systemInstructions[programName]:
-                            print(red("    - In %s: %s" %
-                                  (systems[idx], instructions)))
-                            idx += 1
-                    print("\nRemember to re-run './xmipp config' after install new software in order to "
-                          "take into account the new system configuration.")
-            ok = False
+        strError = "Cannot find '%s'." % path.basename(programName)
+        idx = 0
+        if programName in systemInstructions:
+            if osId >= 0:
+                strSupport = " - %s OS detected, please try: %s"% (systems[osId],
+                             systemInstructions[programName][osId])
+            else:
+                strSupport = "   Do:"
+                for instructions in systemInstructions[programName]:
+                    strSupport += "    - In %s: %s" %(systems[idx], instructions)
+                    idx += 1
+            strSupport +="\nRemember to re-run './xmipp config' after install " \
+                         "new software in order to take into account the new system configuration."
+            status = [False, 1, strError, strSupport]
         else:
-            ok = False
-    return ok
+            status = [False, 0]
+        return status
+    return True, []
 
 
 def isCIBuild():
@@ -399,14 +405,13 @@ def installDepConda(dep, askUser):
 
 
 def ensureGit(critical=False):
-    if not checkProgram('git', critical):
+    if not checkProgram('git')[0]:
         if critical or path.isdir('.git'):
             # .git dir found means devel mode, which needs git
-            print(red("Git not found."))
-            exit(-1)
+            return False, 7
         else:
-            return False
-    return True
+            return False, 0
+    return True, 0
 
 
 def isGitRepo(path='./'):
@@ -457,3 +462,34 @@ def checkCMakeVersion(minimumRequired=None):
             return f"\033[91mYour CMake version ({cmakVersion}) is below {minimumRequired}. Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m"
     except FileNotFoundError:
         return f"\033[91mCMake is not installed. Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m"
+
+def removeCompileAndReportFile(COMPRESED_REPORT, COMPILE_LOG):
+    if os.path.isfile(COMPRESED_REPORT):
+        runJob('rm {}'.format(COMPRESED_REPORT), show_command=False)
+    if os.path.isfile(COMPILE_LOG):
+        runJob('rm {}'.format(COMPILE_LOG), show_command=False)
+def errorList(errorNum):
+    errorList = [
+        #[index, error description, possible solutions]
+        [0, 'No error', ''],
+        [1, 'Error generated on checkProgram', ''],
+        [2, 'Version of compiler is not implemented', 'Review the CXX flag in the xmipp.conf'],
+        [3, 'Compiler read from xmipp.conf CXX not found', 'Review the CXX flag in the xmipp.conf'],
+        [4, 'Version 8.0 or higher of the compiler is required', 'Please go to https://github.com/I2PC/xmipp#compiler to solve it.'],
+        [5, 'Some library has fail beeing included', 'Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf\n'
+                'If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread'],
+        [6, 'hdf5 can not be included', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS in xmipp.conf and visit https://github.com/I2PC/xmipp/wiki/HDF5-Troubleshooting'],
+        [7, 'Git not found on the repository', ''],
+        [8, 'MPI compilation failed', 'Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in xmipp.conf'
+         'In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations'],
+        [9, 'MPI compilation failed', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS'],
+        [10, 'mpi test (mpirun or mpiexec) has faild.', ''],
+        [11, '', ''],
+        [12, '', ''],
+        [13, '', ''],
+        [14, '', ''],
+        [15, '', ''],
+        [16, '', ''],
+
+    ]
+    return errorList[errorNum]

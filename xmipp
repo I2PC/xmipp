@@ -55,6 +55,7 @@ LIBCIFPP = 'libcifpp'
 VERSION_FILE = 'xmipp_version.txt'
 COMPILE_LOG = 'compileLOG.txt'
 CONFIG_FILE = 'xmipp.conf'
+COMPRESED_REPORT = 'reportInstallation.tar.gz'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
@@ -107,7 +108,7 @@ def stampVersion():
         if os.path.isfile(commitFn):
             with open(commitFn, 'r') as file:
                 commitInfo = file.readline()
-        elif ensureGit(False):
+        elif ensureGit(False)[0]:
             found, br, hsh = getCurrentBranch(os.path.join('src', repo),
                                               getHash=True)
             commitInfo = "%s (%s)" % (br, hsh) if found else notFoundInfo
@@ -198,7 +199,7 @@ def cleanSources():
     runJob("rm -rf src/xmipp/bin")
     runJob("rm -rf src/xmipp/lib")
     runJob("rm -rf src/xmipp/.sconsign.dblite")
-    if ensureGit(False):
+    if ensureGit(False)[0]:
         runJob("git stash")  # to get exactly like in repo
 
 
@@ -389,7 +390,8 @@ def getDefaultBranch(repo):
 
 def getSources(branch):
     print("\nGetting sources ------------------------------------------")
-    ensureGit(True)
+    if ensureGit(True)[0] == False:
+        exitProgram(status[1])
     createDir("src")
     repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
     if not isCIBuild():
@@ -406,7 +408,9 @@ def getSources(branch):
 
 def getDependencies():
     print("\nGetting Dependencies -------------------------------------")
-    ensureGit(True)
+    status = ensureGit(True)
+    if status[0] == False:
+        exitProgram(status[1])
     createDir("src")
     result = True
     for dep, args in DEPENDENCIES.items():
@@ -528,7 +532,7 @@ def compileModule(Nproc,module):
         print(red("Some error occurred during the compilation of '%s'%s."
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
         return False
-    print(green('Done. Visit compileLOG.txt for details' + (' ' * 150)))
+    print(green('Done. Visit compileLOG.txt for details' + (' ' * 80)))
     return ok
 
 
@@ -670,10 +674,10 @@ def compileDependencies(Nproc):
     if buildConfig.is_true('CUDA'):
         cudaBinDir, nvccBaseName = os.path.split(buildConfig.get()['NVCC'])
         # cuFFTAdvisor compilation needs 'nvcc' accessible through the PATH
-        if not checkProgram(nvccBaseName, False) and checkProgram(buildConfig.get()['NVCC'], False):
+        if not checkProgram(nvccBaseName) and checkProgram(buildConfig.get()['NVCC']):
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
-        if (checkProgram('make', True) or installDepConda('make')):
+        if (checkProgram('make') or installDepConda('make')):
             write_compileLog('\n\n' + '#' * 27 + '\nCompiling cuFFTAdvisor--------\n',
                              COMPILE_LOG=COMPILE_LOG)
             result, log = compile_cuFFTAdvisor()
@@ -747,8 +751,8 @@ def runTests(testNames):
         print(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
               blue('source build/xmipp.bashrc'))
-        errorEndMessage(XMIPP_VERNAME)
-        sys.exit(1)
+        exitProgram()
+
 
     dataSetPath = os.path.join(testsPath, 'data')
     # if not os.path.isdir(dataSetPath):
@@ -775,7 +779,7 @@ def runTests(testNames):
 
 
 def getPython():
-    if checkProgram("scipion3", False):
+    if checkProgram("scipion3")[0]:
         return "scipion3 python"
     else:
         return 'python3'
@@ -917,7 +921,7 @@ def install(dirname):
     if XMIPP_VERNAME =='devel':  show_command = True
     else: show_command = False
     cleanDeprecated()
-    cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
+    cpCmd = "rsync -LptgoD" if checkProgram("rsync") else "cp"
     ok = True
 
     createDir(dirname)
@@ -970,7 +974,7 @@ def install(dirname):
 
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
-        errorEndMessage(XMIPP_VERNAME)
+        exitProgram()
         return False
     print(green('Done' + (' ' * 150)))
 
@@ -1092,15 +1096,20 @@ def usage(msg=''):
           )
 
 
-def exitProgram(error=False):
+def exitProgram(error=0, status=''):
     printVersion()
-    runJob(
-        'tar -czf reportInstallation.tar.gz {} {} {} '.format(CONFIG_FILE,
-                                                              VERSION_FILE,
-                                                              COMPILE_LOG),
-        show_output=False, show_command=False)
+    try:
+        log = []
+        runJob(
+        'tar -czf {} {} {} {} '.format(COMPRESED_REPORT,
+                                      CONFIG_FILE,
+                                      VERSION_FILE,
+                                      COMPILE_LOG),
+            show_output=False, show_command=False, log=log)
+    except Exception as e:
+        pass
     if error:
-        errorEndMessage(XMIPP_VERNAME)
+        errorEndMessage(XMIPP_VERNAME, error, status)
         print(red(
         'You can report the details of the installation sharing the generated reportInstallation.tar.gz file'))
 
@@ -1171,10 +1180,10 @@ if __name__ == '__main__':
                   "  * %s has been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
-            exitProgram(error=False)
+            exitProgram(error=0)
         else:
             print(red("\nSome error occurred during the compilation\n"))
-            exitProgram(error=True)
+            exitProgram(error=1)
     elif mode == "compileAndInstall":
         Nproc = 8
         dir = "build"
@@ -1184,12 +1193,13 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
+        removeCompileAndReportFile(COMPRESED_REPORT, COMPILE_LOG)
         ok = compile(Nproc)
         ok = ok and install(dir)
         if not ok:
-            exitProgram(error=True)
+            exitProgram(error=1)
         else:
-            exitProgram(error=False)
+            exitProgram(error=0)
 
     elif mode == "install":
         if n == 3:
@@ -1225,17 +1235,23 @@ if __name__ == '__main__':
         else:
             print(green("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
+        removeCompileAndReportFile(COMPRESED_REPORT, COMPILE_LOG)
         buildConfig.read()
-        ok = (buildConfig.check()
-            and downloadDeepLearningModels(buildDir)
-            and getDependencies()
-            and getSources(branch)
-            and compile(Nproc)
-            and install(buildDir))
+        status = buildConfig.check()
+        if status[0] == False: #status = [False, index, error msg, suport Msg]
+            if len(status) > 2:
+                exitProgram(status[1], status)
+            else:
+                exitProgram(status[1])
+        ok = downloadDeepLearningModels(buildDir)
+        ok = ok and getDependencies()\
+             and getSources(branch)\
+             and compile(Nproc)\
+             and install(buildDir)
         if ok:
             exitProgram()
         else:
-            exitProgram(error=True)
+            exitProgram(error=1)
     elif mode == "create_devel_paths":
         if n == 3:
             dir = sys.argv[2]
@@ -1243,13 +1259,17 @@ if __name__ == '__main__':
             dir = "."
         writeDevelPaths(dir)
     elif mode == "git":
-        ensureGit(True)
+        status = ensureGit(True)
+        if status [0] == False:
+            exitProgram(status[1])
         runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
     elif mode == "gitConfig":
-        ensureGit(True)
+        status = ensureGit(True)
+        if status [0] == False:
+            exitProgram(status[1])
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
