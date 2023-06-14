@@ -69,6 +69,8 @@ class DataMan(object):
         self.batchSize = BATCH_SIZE
         self.split = self.batchSize // 2
         self.valFrac = valFrac
+        # Know if MD has been loaded
+        self.mdLoaded = False
 
         if valFrac !=0:
             assert 0 not in self.getNBatchesPerEpoch(), "Error, the number of positive particles for training is to small (%d). Must be >> %d"%(self.nTrue, BATCH_SIZE)
@@ -101,39 +103,87 @@ class DataMan(object):
         subtomoShape = (None, None, None, 1)
 
         # Start reading with Xmipp image library
-        for item in sorted(dataD):
-            weight = float(dataD[item])
-            mdObj = xmippLib.MetaData(item)
+        for fname in sorted(dataD):
+            weight = float(dataD[fname])
+            mdObj = xmippLib.MetaData(fname)
             XI = xmippLib.Image()
+            XI.read()
+            # TODO: Equivalente en 3D?
             pass
 
-class Batch(object):
+        self.mdLoaded = True
+
+    def getMetadata(self, which = None):
+        """
+        Return previously collected metadata
+        """
+        if not self.mdLoaded:
+            return None
+        if which is None:
+            true = [t for t in self.mdListTrue]
+            false = [f for f in self.mdListFalse]
+            return true, false
+        else:
+            mdTrue = self.mdListTrue[which]
+            mdFalse = self.mdListFalse[which]
+            return mdTrue, mdFalse
+
     # DATA AUGMENTATION METHODS
 
-    def _do_randomFlip_x():
-        pass
-    def _do_randomFlip_y():
-        pass
-    def _do_randomFlip_z():
-        pass
-    def _do_randomRot():
-        pass
-    def _do_randomBlur():
-        pass
+    def _do_randomFlip_x(self, batch):
+        output = []
+        for i in range(len(batch)):
+            if bool(random.getrandbits(1)):
+                output.add()
+        return output         
+
+    def _do_randomFlip_y(self, batch):
+        output = []
+        for i in range(len(batch)):
+            if bool(random.getrandbits(1)):
+                output.add()
+        return output
+    
+    def _do_randomFlip_y(self, batch):
+        output = []
+        for i in range(len(batch)):
+            if bool(random.getrandbits(1)):
+                output.add()
+        return output
+
+    def _do_randomRot(self, max_angle, batch):
+        output = []
+        for i in range(len(batch)):
+            # Random angle
+            angle = random.uniform(-max_angle, max_angle)
+            # Dim0
+            if bool(random.getrandbits(1)):
+                self.data.add()
+            # Dim1
+            if bool(random.getrandbits(1)):
+                self.data.add()
+        return output
+
+    def _do_randomBlur(self, batch):
+        output = []
+        for i in range(len(batch)):
+            if bool(random.getrandbits(1)):
+                self.data.add()
+        return output
 
     # DATA AUGMENTATION
-    def augmentBatch(self, batch:DataMan):
+    def augmentBatch(self, batch):
         """
         When called, it will permorm random operations to generate more
         information based on the input dataset (data augmentation).
         """
         if bool(random.getrandbits(1)):
-            batch._do_randomFlip_x()
+            self._do_randomFlip_x(batch)
         if bool(random.getrandbits(1)):
-            batch._do_randomFlip_y()
+            self._do_randomFlip_y(batch)
         if bool(random.getrandbits(1)):
-            batch._do_randomFlip_z()
+            self._do_randomFlip_z(batch)
         if bool(random.getrandbits(1)):
-            batch._do_randomRot()
+            self._do_randomRot(batch)
         if bool(random.getrandbits(1)):
-            batch._do_randomBlur()
+            self._do_randomBlur(batch)
