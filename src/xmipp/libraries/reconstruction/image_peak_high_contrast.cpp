@@ -103,13 +103,11 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	std::cout << "Preprocessing volume..." << std::endl;
 	#endif
 
-
 	// -- Average
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Averaging volume..." << std::endl;
 	#endif
 
-	// Image<double> sliceTomo;
 	MultidimArray<double> slice(ySize, xSize);
 	MultidimArray<double> sliceU(ySize, xSize);
 	MultidimArray<double> sliceD(ySize, xSize);
@@ -170,8 +168,6 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	std::cout << "Applying bandpass filter to volume..." << std::endl;
 	#endif
 
-	int ux, uy, uz, uz2, uz2y2;
-
 	int n=0;
 
 	double freqLow = samplingRate / (fiducialSize*1.1);
@@ -198,7 +194,11 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 
 	for(size_t k=0; k<ZSIZE(fftV); ++k)
 	{
-		double uz, uy, ux, uz2y2, uz2;
+		double uz;
+		double uy;
+		double ux;
+		double uz2y2;
+		double uz2;
 
 		FFT_IDX2DIGFREQ(k,zSize,uz);
 		uz2=uz*uz;
@@ -350,9 +350,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 	double standardDeviation = sqrt(sum2/Nelems - average*average);
 
 	double thresholdL = average-sdThr*standardDeviation;
-	double thresholdU = average+sdThr*standardDeviation;
 
 	#ifdef DEBUG_HCC
+	double thresholdU = average+sdThr*standardDeviation;
 	std::cout << "ThresholdU value = " << thresholdU << std::endl;
 	std::cout << "ThresholdL value = " << thresholdL << std::endl;
 	#endif
@@ -374,8 +374,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double>
 			{
 				double value = DIRECT_A3D_ELEM(inputTomo, k, i, j);
 
-				// if (value < thresholdL || value > thresholdU) 
-				// {
 				if (value < thresholdL) 
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
@@ -790,7 +788,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 		CorrelationAux aux;
 		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
 
-		double maximumCorrelation = MINDOUBLE;
+		auto maximumCorrelation = MINDOUBLE;
 		double xDisplacement = 0;
 		double yDisplacement = 0;
 		double zDisplacement = 0;
@@ -1174,7 +1172,7 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 	#endif
 
 	// --- Filter coordinates by radial average Mahalanobis distante ---
-	if (newCoordinates3D.size()!=0)  // Check if any coordinate have survived the previous filter
+	if (!newCoordinates3D.empty())  // Check if any coordinate have survived the previous filter
 	{
 		numberOfCoordinates = newCoordinates3D.size();
 
@@ -1253,7 +1251,9 @@ void ProgImagePeakHighContrast::filterCoordinatesByCorrelation(MultidimArray<dou
 
 		for (size_t n = 0; n < numberOfCoordinates; n++)
 		{
+			#ifdef DEBUG_FILTER_COORDINATES
 			Point3D<double> p = newCoordinates3D[n];
+			#endif
 
 			if (mahalanobisDistance_List[n_bis] > mahalanobisDistanceThr)
 			{
@@ -1409,7 +1409,7 @@ void ProgImagePeakHighContrast::generateSideInfo()
 }
 
 
-bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY) const
 {
 	#ifdef DEBUG_FILTERLABEL
 	// // Uncomment for phantom
@@ -1449,7 +1449,7 @@ bool ProgImagePeakHighContrast::filterLabeledRegions(std::vector<int> coordinate
 	maxDistace = sqrt(maxSquareDistance);
 
 	// Check sphericity of the labeled region
-	double circumscribedArea = PI * (maxDistace * maxDistace);;
+	double circumscribedArea = PI * (maxDistace * maxDistace);
 	double area = 0.0 + (double)coordinatesPerLabelX.size();
 	double ocupation;
 
@@ -1503,7 +1503,7 @@ std::vector<size_t> ProgImagePeakHighContrast::getCoordinatesInSliceIndex(size_t
 }
 
 
-void ProgImagePeakHighContrast::radialAverage(MultidimArray<float> &feature, MultidimArray<float> &radialAverage, size_t numSlices)
+void ProgImagePeakHighContrast::radialAverage(MultidimArray<float> &feature, MultidimArray<float> &radialAverage, size_t numSlices) const
 {
 	#ifdef DEBUG_RADIAL_AVERAGE  
 	std::cout << "Calculating radial average..." << std::endl;
@@ -1568,16 +1568,13 @@ void ProgImagePeakHighContrast::radialAverage(MultidimArray<float> &feature, Mul
 }
 
 
-void ProgImagePeakHighContrast::mahalanobisDistance(std::vector<MultidimArray<float>> &setOfFeatures_RA, MultidimArray<double> &mahalanobisDistance_List)
+void ProgImagePeakHighContrast::mahalanobisDistance(std::vector<MultidimArray<float>> &setOfFeatures_RA, MultidimArray<double> &mahalanobisDistance_List) const
 {
 	#ifdef DEBUG_MAHALANOBIS_DISTANCE  
 	std::cout << "Calculating Mahalanobis distance..." << std::endl;
 	#endif
 
 	PCAMahalanobisAnalyzer pcaAnalyzer;
-
-	size_t numPCAs = 2;
-	size_t numIter = 200;
 
 	for (size_t n = 0; n < setOfFeatures_RA.size(); n++)
 	{

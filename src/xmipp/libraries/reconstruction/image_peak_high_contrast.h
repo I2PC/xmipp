@@ -190,7 +190,7 @@ public:
      * (minimum number of points that should contain) and shape (present a globular structure,
      * as expected from a gold bead).
     */
-    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY) const;
 
     /**
      * Get index coordinates from slice. Return the index in the 3D coordinates vector of those 
@@ -202,12 +202,12 @@ public:
      * Calculate the radial average of the numSlices slices centered in the feature volume 
      * (Z direction).
     */
-    void radialAverage(MultidimArray<float> &feature, MultidimArray<float> &radialAverage, size_t numSlices);
+    void radialAverage(MultidimArray<float> &feature, MultidimArray<float> &radialAverage, size_t numSlices) const;
     
     /**
      * 
     */
-    void mahalanobisDistance(std::vector<MultidimArray<float>> &setOfFeatures_RA, MultidimArray<double> &mahalanobisDistance_List);
+    void mahalanobisDistance(std::vector<MultidimArray<float>> &setOfFeatures_RA, MultidimArray<double> &mahalanobisDistance_List) const;
 
     // --------------------------- MAIN ----------------------------------
 

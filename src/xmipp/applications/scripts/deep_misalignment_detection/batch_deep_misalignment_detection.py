@@ -57,8 +57,6 @@ class ScriptDeepMisalignmentDetection(XmippScript):
     def readInputParams(self):
         self.modelPick = self.getDoubleParam('--modelPick')
 
-        # self.inputModel1 = self.getModel("deepEMhancer", 'production_checkpoints/deepEMhancer_tightTarget.hd5')
-
         if self.modelPick == 0:
             self.inputModel1 = self.getModel("deepTomoMisalignment", "xmipp_FS_phc_model.06-0.01.h5")
         elif self.modelPick == 1:
@@ -92,9 +90,9 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         mData1 = xmippLib.MetaData()
 
         for i in range(len(firstPredictionArray)):
-            id = mData1.addObject()
-            mData1.setValue(xmippLib.MDL_MAX, float(firstPredictionArray[i]),  id)
-            mData1.setValue(xmippLib.MDL_MIN, float(secondPredictionArray[i]), id)
+            md_id = mData1.addObject()
+            mData1.setValue(xmippLib.MDL_MAX, float(firstPredictionArray[i]),  md_id)
+            mData1.setValue(xmippLib.MDL_MIN, float(secondPredictionArray[i]), md_id)
         
         mData1.write(self.outputSubtomoXmdFilePath)
 
@@ -103,9 +101,9 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         mData2 = xmippLib.MetaData()
 
-        id = mData2.addObject()
-        mData2.setValue(xmippLib.MDL_MAX, float(overallPrediction),  id)
-        mData2.setValue(xmippLib.MDL_MIN, float(predictionAverage), id)
+        md_id = mData2.addObject()
+        mData2.setValue(xmippLib.MDL_MAX, float(overallPrediction),  md_id)
+        mData2.setValue(xmippLib.MDL_MIN, float(predictionAverage), md_id)
 
         mData2.write(self.outputTomoXmdFilePath)
 
