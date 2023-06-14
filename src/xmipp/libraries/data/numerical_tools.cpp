@@ -58,9 +58,7 @@ void powellOptimizer(Matrix1D<double> &p, int i0, int n,
             xi[ptr] = (i == j) ? steps(i - 1) : 0;
 
     // Optimize
-    xi -= n; // This is because NR works with matrices starting at [1,1]
-    powell(auxpptr, xi, n, ftol, iter, fret, f, prm, show);
-    xi += n;
+    powell(auxpptr, xi -n, n, ftol, iter, fret, f, prm, show); // xi - n because NR works with matrices starting at [1,1]
 }
 
 /* Gaussian interpolator -------------------------------------------------- */
