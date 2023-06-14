@@ -22,6 +22,7 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include <vector>
 #include "numerical_tools.h"
 #include "core/matrix2d.h"
 #include "core/numerical_recipes.h"
