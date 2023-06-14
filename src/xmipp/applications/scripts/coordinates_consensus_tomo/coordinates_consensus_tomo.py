@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # **************************************************************************
 # *
 # * Authors:    Mikel Iceta Tena (miceta@cnb.csic.es)
