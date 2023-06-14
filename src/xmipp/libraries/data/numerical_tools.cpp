@@ -45,14 +45,13 @@ void powellOptimizer(Matrix1D<double> &p, int i0, int n,
                      double ftol, double &fret,
                      int &iter, const Matrix1D<double> &steps, bool show)
 {
-    double *xi = nullptr;
-
     // Adapt indexes of p
     double *pptr = p.adaptForNumericalRecipes();
     double *auxpptr = pptr + (i0 - 1);
 
     // Form direction matrix
-    ask_Tvector(xi, 1, n*n);
+    std::vector<double> buffer(n*n);
+    auto *xi= buffer.data()-1;
     for (int i = 1, ptr = 1; i <= n; i++)
         for (int j = 1; j <= n; j++, ptr++)
             xi[ptr] = (i == j) ? steps(i - 1) : 0;
@@ -61,9 +60,6 @@ void powellOptimizer(Matrix1D<double> &p, int i0, int n,
     xi -= n; // This is because NR works with matrices starting at [1,1]
     powell(auxpptr, xi, n, ftol, iter, fret, f, prm, show);
     xi += n;
-
-    // Exit
-    free_Tvector(xi, 1, n*n);
 }
 
 /* Gaussian interpolator -------------------------------------------------- */
