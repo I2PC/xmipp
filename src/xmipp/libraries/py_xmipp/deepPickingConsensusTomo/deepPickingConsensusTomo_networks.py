@@ -35,12 +35,12 @@ from tensorflow.python.client import device_lib
 from keras import layers as l
 import os
 
-CONV_LAYERS = 4
+CONV_LAYERS = 3
 PREF_SIDE = 256
 PROB_DROPOUT = 0.3
 
 class DeepPickingConsensusTomoNetworkManager():
-    def __init__(self, nThreads, gpuIDs, rootPath):
+    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str):
         """
         rootPath: str. Root directory for the NN data to be saved.
                                 Normally: "extra/nnetData/"
@@ -48,20 +48,18 @@ class DeepPickingConsensusTomoNetworkManager():
                                                         "/tflogs"
                                                         "..."
         nThreads: int. Number of threads for execution
-        gpuIDs: tuple<int>. GPUs to use
-
-
+        gpuIDs: list<int>. GPUs to use
         """
-        self.rootPath = rootPath
+        self.nnPath = rootPath
         self.nThreads = nThreads
-        self.nGPUs = 0
+        self.gpustrings : list
 
         checkpointsName = os.path.join(rootPath, "checkpoint")
         self.checkpointsNameTemplate = os.path.join(checkpointsName, "model.hdf5")
 
         self.optimizer = None
         self.model = None
-        self.compiledNetwork  = None
+        self.compiledNetwork = None
         self.wantedGPUs = gpuIDs
 
         if gpuIDs is not None:
@@ -82,32 +80,23 @@ class DeepPickingConsensusTomoNetworkManager():
         assert len(self.wantedGPUs) <= len(availGPUs), "Not enough GPUs in the system for the asked amount"
         print("Trying to lock GPUs with id: ", self.wantedGPUs)
 
-        # Set as visible only selected GPUs
-        try:
-            myGPUs = [ availGPUs[gpu] for gpu in availGPUs ]
-            tf.config.set_visible_devices(myGPUs,'GPU')
-            self.nGPUs = len(self.wantedGPUs)
-        except:
-            print("Could not disable (already initialized virtual devices?)")
-            return
+        self.gpustrings = ["/gpu:%d" % id for id in self.wantedGPUs]
+        self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)
+        tf.config.threading.set_intra_op_parallelism_threads(self.nThreads)
         
-        if self.nGPUs > 1:
-            # Configuration for TF Strategies
-            pass
-
-
+    
     def createNetwork(self, xdim, ydim, zdim, num_chan, nData=2**12):      
 
         print("Compiling the model into a network")
         # Get the model structure
-        model : keras.models.Sequential = self.getModel(dataset_size=nData, input_shape=(xdim,ydim,zdim,num_chan))
-        # Compile the model
-        self.compiledNetwork = model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        self.compiledNetwork = self.getNetwork(dataset_size=nData, input_shape=(xdim,ydim,zdim,num_chan))
 
     def loadNetwork(self, modelFile, keepTraining=True):
         if not os.path.isfile(modelFile):
             raise ValueError("Model file %s not found",modelFile)
-        self.compiledNetwork = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
+        with self.mirrored_strategy.scope():
+            aux : keras.Model = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
+            self.compiledNetwork = aux.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         if keepTraining:
             pass
@@ -129,9 +118,7 @@ class DeepPickingConsensusTomoNetworkManager():
     def predictNetwork():
         pass
 
-
-
-    def getModel(self, dataset_size, input_shape):
+    def getNetwork(self, dataset_size, input_shape):
         """
         Generate the structure of the Neural Network.
         dataset_size: int Expected number of picked subtomos
@@ -147,51 +134,50 @@ class DeepPickingConsensusTomoNetworkManager():
         else:
             filtermult = 8
 
-
         # PRINT PARAMETERS
         print("Intermediate layer count: %d", CONV_LAYERS)
         print("Box size %d,%d,%d", input_shape[0], input_shape[1], input_shape[2])
 
-        model : keras.models.Sequential = keras.models.Sequential()
-        
-        if input_shape!=(PREF_SIDE, PREF_SIDE, PREF_SIDE, 1):
-            model.add(l.Input(shape=(None,None,None, input_shape[-1])))
-            assert keras.backend.backend() == 'tensorflow', 'You should be using Tensorflow for resizing'
-            model.add(l.Lambda( lambda img: keras.backend.resize_volumes
-                                            (img, PREF_SIDE, PREF_SIDE, PREF_SIDE),
-                                              name="Resize layer"))
-        else:
-            model.add(keras.Input(input_shape))
+        with self.mirrored_strategy.scope():
+            # Input size different than NN desired side
+            if input_shape != (PREF_SIDE, PREF_SIDE, PREF_SIDE, 1):
+                input_layer = l.Input(shape = (None, None, None, input_shape[-1]))
+                model = l.Lambda( lambda img: keras.backend.resize_volumes
+                                (img, PREF_SIDE, PREF_SIDE, PREF_SIDE), name="Resizing layer")(input_layer)
+            else:
+                input_layer = l.Input(shape = input_shape)
+                model = input_layer
 
-        # DNN PART
-        for i in range(1, CONV_LAYERS + 1):
-            # Convolve with an increasing number of filters
-            # Several convolutions before pooling assure a better grasp of 
-            # the features are taken before shrinking the image
-            model.add(l.Conv3D(filters=2**(filtermult), kernel_size=(3,3,3),
-                             activation='relu', padding='same',kernel_regularizer='l1_l2'))
-            filtermult += 1
-            model.add()
-            filtermult += 1
-            model.add()
-            filtermult +=1
-            # Normalize
-            model.add(l.BatchNormalization())
-            # Activate
-            model.add(l.Activation('relu'))
-            # Until last layer, sharpen for edges to be easily detectable
-            if i != CONV_LAYERS:
-                model.add(l.MaxPooling3D())
+            # DNN PART
+            for i in range(1, CONV_LAYERS + 1):
+                # Convolve with an increasing number of filters
+                # Several convolutions before pooling assure a better grasp of 
+                # the features are taken before shrinking the image
+                model = l.Conv3D(filters=2**(filtermult), kernel_size=(3,3,3),
+                                activation='relu', padding='same',kernel_regularizer='l1_l2')(model)
+                filtermult += 1
+                model = l.Conv3D(filters = 2**(filtermult), kernel_size = (2,2,2),
+                                activation='relu', padding='same', kernel_regularizer='l1_l2')(model)
+                filtermult += 1
+                # Normalize
+                model = l.BatchNormalization()(model)
+                # Activate
+                model = l.Activation('relu')(model)
+                # Until last layer, sharpen for edges to be easily detectable
+                if i != CONV_LAYERS:
+                    model = l.MaxPooling3D(pool_size = 2, strides = 2, paddint='same')(model)
 
-        # Final touches
-        # Desharpen edges
-        model.add(l.AveragePooling3D(pool_size=4, strides=(2,2,2), padding='same'))
-        # Compact and drop
-        model.add(l.Flatten())
-        model.add(l.Dense(units=512, activation='relu', kernel_initializer='he_uniform', kernel_regularizer='l1_l2'))
-        model.add(l.Dense(units=256, activation='relu', kernel_regularizer='l2'))
-        model.add(l.Dropout(PROB_DROPOUT))
-        # Final predictions - 2 classes (GOOD / BAD)
-        model.add(l.Dense(units=2, activation='softmax'))
-    
-        return model
+            # Final touches
+            # Desharpen edges
+            l.AveragePooling3D(pool_size=4, strides=(2,2,2), padding='same')
+            # Compact and drop
+            l.Flatten()
+            l.Dense(units=512, activation='relu', kernel_initializer='he_uniform', kernel_regularizer='l1_l2')
+            l.Dense(units=256, activation='relu', kernel_regularizer='l2')
+            l.Dropout(PROB_DROPOUT)
+
+            # Final predictions - 2 classes (GOOD / BAD)
+            pred_layer = l.Dense(units=2, activation='softmax')(model)
+            network = keras.Model(inputs=input_layer, output=pred_layer)
+            network.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        return network
