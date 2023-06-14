@@ -38,7 +38,6 @@ import sys, os
 import xmippLib
 
 from deepPickingConsensusTomo_networks import PREF_SIDE
-from deepPickingConsensusTomo_dataman import Batch
 
 BATCH_SIZE = 128
 SAVE_AFTER = 25
@@ -50,68 +49,37 @@ class DataMan(object):
     the NN to train and work.
     """
 
-    def __init__(self, posDict, negDict, valFrac=0.15):
+    valFrac : float # Fraction for validation steps
+    nFalse : int # Total number of negative examples
+    nTrue : int # Total number of positive examples
+    mdLoaded : bool # Is metadata loaded?
+    splitPoint : int # Where to split the set
+    batchSize : int # Batch size for NN
+    
+
+    def __init__(self, posfn: str, negfn:str, valFrac=0.15):
         """
-        posDict: positive pickings
-        negDict: negative pickings
+        posfn: positive pickings XMD filename
+        negfn: negative pickings XMD filename
         valFrac: fraction to use in the validation step
         """
-        self.batch : Batch = None
 
-        if valFrac > 0.3:
-            valFrac = 0.3
-            print("You must use less than 0.3 for validation")
-        self.mdListFalse = None
-        
-        # Internal variables
-        self.mdListTrue, self.fnMergedListTrue, self.weightListTrue, self.nTrue, self.shape = self.collectMD(posDict)
-        self.nFalse = 0 #100% false subtomos
+        # MD Loading
+        self.boxsize, self.posVolsFns = self.collectMD(posfn)
+        _, self.negVolsFns = self.collectMD(negfn)
         self.batchSize = BATCH_SIZE
-        self.split = self.batchSize // 2
+        self.splitPoint = self.batchSize // 2
         self.valFrac = valFrac
-        # Know if MD has been loaded
-        self.mdLoaded = False
-
-        if valFrac !=0:
-            assert 0 not in self.getNBatchesPerEpoch(), "Error, the number of positive particles for training is to small (%d). Must be >> %d"%(self.nTrue, BATCH_SIZE)
-        else:
-            assert self.getNBatchesPerEpoch()[0] != 0, "Error, the number of particles for testing is to small (%d). Must be >> %d"%(self.nTrue, BATCH_SIZE)
- 
-        if valFrac > 0:
-            pass
-        else:
-            pass
-
-        self.mdListFalse, self.fnMergedListFalse, self.weightListFalse, self.nFalse, shapeFalse = self.collectMD(negDict)
-        assert shapeFalse == self.shape, "Not all images have the same shape!"
-        # Randomly choose which 100% bad subtomos are for training
-        self.trainIdsNeg = np.random.choice(self.nFalse, int((1-valFrac)*self.nFalse), False)
-        # Randomly choose which 100% bad subtomos are for validating
-        self.valIdsNeg = np.array()
     
-    def collectMD(self, dataD):
+    def collectMD(self, filename: str):
         """
         Form the metadata structures needed for the NN to work
         dataD: dictionary to gather information about
         """
 
-        # Generate empty structures
-        MDList = []
-        fnamesList_merged = []
-        weightsList_merged = []
-        nSubtomos = []
-        subtomoShape = (None, None, None, 1)
+        md = xmippLib.MetaData(filename)
+        md.getColumnValues(xmippLib.MDL_IMAGE, )
 
-        # Start reading with Xmipp image library
-        for fname in sorted(dataD):
-            weight = float(dataD[fname])
-            mdObj = xmippLib.MetaData(fname)
-            XI = xmippLib.Image()
-            XI.read()
-            # TODO: Equivalente en 3D?
-            pass
-
-        self.mdLoaded = True
 
     def getMetadata(self, which = None):
         """
