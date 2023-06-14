@@ -54,6 +54,7 @@
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
 // #define DEBUG_HCC
+#define DEBUG_CENTER_COORDINATES
 // #define DEBUG_VOTTING
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
@@ -224,6 +225,10 @@ public:
      *
     */
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
+
+
+    void centerCoordinates(MultidimArray<double> tiltSeriesFiltered);
+
 
     /**
      * Detect landmark chains from landmark coordinates.
