@@ -30,10 +30,9 @@
 # * Initial release: june 2023
 # **************************************************************************
 
-import sys, os
+import sys
 
 import numpy as np
-from enum import Enum
 from typing import NamedTuple
 import xmippLib
 from xmipp_base import XmippScript
@@ -59,12 +58,12 @@ class ScriptCoordsConsensusTomo(XmippScript):
                           '- Integer identifier of the picker who saw it'
                           )
         
-        self.addParamsLine('--input <path> input')
-        self.addParamsLine('--outputPos <path> output')
-        self.addParamsLine('--outputDoubt <path>')
-        self.addParamsLine('--boxsize <int> boxsize')
-        self.addParamsLine('--radius <double> radius')
-        self.addParamsLine('--number <int> number')
+        self.addParamsLine('--input <path> : input')
+        self.addParamsLine('--outputPos <path> : output path for positive subtomos')
+        self.addParamsLine('--outputDoubt <path> : output path for doubtful subtomos')
+        self.addParamsLine('--boxsize <int> : boxsize')
+        self.addParamsLine('--radius <double> : radius')
+        self.addParamsLine('--number <int> : number')
 
     def run(self):
         # Aux class
@@ -85,10 +84,11 @@ class ScriptCoordsConsensusTomo(XmippScript):
         consensus = []
 
         # Read from Xmipp MD
+        print("Starting 3D coordinates consensus")
         md = xmippLib.MetaData(self.inputFile)
         for row_id in md:
 
-            coords = np.empty(3, dtype=int)
+            coords = np.empty(3)
             coords[0] = md.getValue(xmippLib.MDL_X, row_id)
             coords[1] = md.getValue(xmippLib.MDL_Y, row_id)
             coords[2] = md.getValue(xmippLib.MDL_Z, row_id)
@@ -100,7 +100,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
                     item.pickers.add(picker_id)
                     break
             else:
-                consensus.append(Coordinate(coords, picker_id))
+                consensus.append(Coordinate(coords, {picker_id}))
 
         
         outMd = xmippLib.MetaData() # MD handle for unsure = all - {positive}
@@ -117,9 +117,17 @@ class ScriptCoordsConsensusTomo(XmippScript):
             nun.setValue(xmippLib.MDL_Y, item.xyz[1], row_id)
             nun.setValue(xmippLib.MDL_Z, item.xyz[2], row_id)
             nun.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
-
+            
         outMd.write(self.outputFileDoubt)
+        print("Written doubtful subtomos to " + self.outputFileDoubt)
         outMdPos.write(self.outputFilePos)
+        print("Written positive subtomos to " + self.outputFilePos)
+
+
+if __name__ == '__main__':
+    exitCode = ScriptCoordsConsensusTomo().tryRun()
+    sys.exit(exitCode)
+    
     
 
                     
