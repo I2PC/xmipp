@@ -162,13 +162,6 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 // --------------------------- HEAD functions ----------------------------
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber) // *** remove imageNumber only for debugging purposes
 {
-	// tiltImage.rangeAdjust(0, 1024);
-	double ti_mean;
-	double ti_std;
-
-	tiltImage.computeAvgStdev(ti_mean, ti_std);
-	tiltImage.statisticsAdjust(ti_mean, ti_std);
-
 	// Detect interpolation region
 	MultidimArray<double> tmpImage = tiltImage;
 
@@ -648,6 +641,9 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 	for(size_t k = 0; k < nSize; ++k)
 	{
+		#ifdef VERBOSE_OUTPUT
+		std::cout <<  "Searching for high contrast coordinates in tilt-image " << k << std::endl;
+		#endif
 		std::vector<int> sliceVector;
 
 		// Calculate threshold value for each image of the series
@@ -746,12 +742,12 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        double threshold = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
-        // double threshold = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
+        double thresholdL = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
+        double thresholdU = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
 
         #ifdef DEBUG_HCC
 		std::cout << "------------------------------------------------------" << std::endl;
-		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << " Threshold: " << threshold << std::endl;
+		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
         #endif
 
 		int numberOfPointsAddedBinaryMap;
@@ -767,11 +763,15 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			numberOfNewPeakedCoordinates = 0;
 			newCoordinates3D.clear();
 			binaryCoordinatesMapSlice.initZeros(ySize, xSize);
+			labelCoordiantesMapSlice.initZeros(ySize, xSize);
 
 			if (!firstExecution)
 			{
-				threshold += 0.05 * threshold;
-				std::cout << "New threshold " << threshold << std::endl;
+				thresholdL -= 0.05 * standardDeviation;
+				std::cout << "New thresholdL " << thresholdL << std::endl;
+
+				thresholdU += 0.05 * standardDeviation;
+				std::cout << "New thresholdU " << thresholdU << std::endl;
 			}
 			
 
@@ -780,11 +780,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				for(size_t j = 0; j < xSize; ++j)
 				{
 					double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
-
-					// if ((value-maximum)*(value-maximum) > threshold)
-					// {
-					
-					if (value < threshold)
+				
+					if (value < thresholdL | value > thresholdU)
 					{
 						DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 						
@@ -799,7 +796,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 			iteration +=1;
 			std::cout << " iteration " <<  iteration << std::endl;
-			std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
+			std::cout << " numberOfPointsAddedBinaryMap " <<  numberOfPointsAddedBinaryMap << std::endl;
 			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
 
 			int colour;
@@ -863,7 +860,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				}
 			}
 
-			if (numberOfNewPeakedCoordinates < 100)
+			std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
+			std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
+
+			if (newCoordinates3D.size() < inputCoords.size()*5)
 			{
 				for (size_t i = 0; i < newCoordinates3D.size(); i++)
 				{
