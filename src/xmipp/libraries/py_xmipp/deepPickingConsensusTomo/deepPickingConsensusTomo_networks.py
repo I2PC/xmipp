@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # **************************************************************************
 # *
 # * Authors:    Mikel Iceta Tena (miceta@cnb.csic.es)
@@ -33,11 +34,13 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.client import device_lib
 from keras import layers as l
+from keras import callbacks as cb
 import os
 
 CONV_LAYERS = 3
 PREF_SIDE = 256
 PROB_DROPOUT = 0.3
+CHECK_POINT_AT= 50 #In batches
 
 class DeepPickingConsensusTomoNetworkManager():
     def __init__(self, nThreads:int, gpuIDs:list, rootPath:str):
@@ -50,6 +53,7 @@ class DeepPickingConsensusTomoNetworkManager():
         nThreads: int. Number of threads for execution
         gpuIDs: list<int>. GPUs to use
         """
+
         self.nnPath = rootPath
         self.nThreads = nThreads
         self.gpustrings : list
@@ -66,6 +70,8 @@ class DeepPickingConsensusTomoNetworkManager():
             # Set TF so it only sees the desired GPUs
             self.gpusConfig()
 
+        self.checkPointsName = os.path.join(rootPath,"tfchkpoint.hdf5")
+
 
     def gpusConfig(self):
         """
@@ -81,9 +87,7 @@ class DeepPickingConsensusTomoNetworkManager():
         print("Trying to lock GPUs with id: ", self.wantedGPUs)
 
         self.gpustrings = ["/gpu:%d" % id for id in self.wantedGPUs]
-        self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)
-        tf.config.threading.set_intra_op_parallelism_threads(self.nThreads)
-        
+        self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)        
     
     def createNetwork(self, xdim, ydim, zdim, num_chan, nData=2**12):      
 
@@ -111,6 +115,20 @@ class DeepPickingConsensusTomoNetworkManager():
         print("Max epochs: ", nEpochs)
         print("Learning rate: %.1e"%(learningRate))
         print("Auto stop feature: ", autoStop)
+
+        n_batches_per_epoch_train, n_batches_per_epoch_val= dataman.getNBatchesPerEpoch()
+        epochN = max(1, nEpochs * float(n_batches_per_epoch_train/CHECK_POINT_AT))
+
+        currentChkName = self.checkPointsName
+        cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False)]
+
+        if autoStop:
+            cBacks += [cb.EarlyStopping()]
+
+        self.compiledNetwork.fit(dataman.getDataIterator(stage="train"), steps_per_epoch=CHECK_POINT_AT,
+                                validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
+                                validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
+                                use_multiprocessing=True, verbose=2)
 
     def evalNetwork():
         pass
