@@ -43,6 +43,8 @@ def distance(a: np.ndarray, b: np.ndarray) -> float:
 class ScriptCoordsConsensusTomo(XmippScript):
     inputFile : str
     outputFile : str
+    outputFileDoubt : str
+    outputFilePos : str
     boxSize : int
     consensusRadius : float
     consensusThreshold : float
@@ -61,6 +63,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--input <path> : input')
         self.addParamsLine('--outputPos <path> : output path for positive subtomos')
         self.addParamsLine('--outputDoubt <path> : output path for doubtful subtomos')
+        self.addParamsLine('--outputAll <path> : output path for all subtomos')
         self.addParamsLine('--boxsize <int> : boxsize')
         self.addParamsLine('--radius <double> : radius')
         self.addParamsLine('--number <int> : number')
@@ -73,6 +76,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
 
         # Read args
         self.inputFile = self.getParam('--input')
+        self.outputFile = self.getParam('--outputAll')
         self.outputFilePos = self.getParam('--outputPos')
         self.outputFileDoubt = self.getParam('--outputDoubt')
         self.boxSize = self.getIntParam('--boxsize')
@@ -103,22 +107,35 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 consensus.append(Coordinate(coords, {picker_id}))
 
         
-        outMd = xmippLib.MetaData() # MD handle for unsure = all - {positive}
+        outMd = xmippLib.MetaData() # MD handle for all
+        outMdDoubt = xmippLib.MetaData() # MD handle for unsure = all - {positive}
         outMdPos = xmippLib.MetaData() # MD handle for positive
+        
 
         for item in consensus:
             if len(item.pickers) >= self.consensusThreshold:
                 nun = outMdPos
             else:
-                nun = outMd
+                nun = outMdDoubt
 
+            # Write to specific
             row_id = nun.addObject()
             nun.setValue(xmippLib.MDL_X, item.xyz[0], row_id)
             nun.setValue(xmippLib.MDL_Y, item.xyz[1], row_id)
             nun.setValue(xmippLib.MDL_Z, item.xyz[2], row_id)
             nun.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
             
-        outMd.write(self.outputFileDoubt)
+            # Write to general
+            row_idg = outMd.addObject()
+            outMd.setValue(xmippLib.MDL_X, item.xyz[0], row_idg)
+            outMd.setValue(xmippLib.MDL_Y, item.xyz[1], row_idg)
+            outMd.setValue(xmippLib.MDL_Z, item.xyz[2], row_idg)
+            outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
+
+        # Write everything to XMD files
+        outMd.write(self.outputFile) 
+        print("Written all subtomos to " + self.outputFile)   
+        outMdDoubt.write(self.outputFileDoubt)
         print("Written doubtful subtomos to " + self.outputFileDoubt)
         outMdPos.write(self.outputFilePos)
         print("Written positive subtomos to " + self.outputFilePos)
