@@ -85,13 +85,12 @@ class Config:
                 return status
             status = self._check_MPI()
             if not status[0]:
-                print(red("Cannot compile with MPI or use it"))
                 runJob("rm xmipp_mpi_test_main*", show_command=False)
                 return status
-            if not self._check_Java():
-                print(red("Cannot compile with Java"))
+            status = self._check_Java()
+            if not status[0]:
                 runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*", show_command=False)
-                return False
+                return status
             if not self._check_CUDA():
                 print(red("Cannot compile with NVCC, continuing without CUDA"))
                 # if fails, the test files remains
@@ -821,7 +820,7 @@ class Config:
         print("Checking Java configuration")
         print(yellow('Working ...'), end='\r')
         if not checkProgram(self.configDict['JAVAC'][0]):
-            return False
+            return False, 11
         javaProg = """
         public class Xmipp {
         public static void main(String[] args) {}
@@ -831,8 +830,7 @@ class Config:
             javaFile.write(javaProg)
         if not runJob("%s Xmipp.java" % self.configDict["JAVAC"],
                       show_command=False,show_output=False):
-            print(red("Check the JAVAC"))
-            return False
+            return False, 12
         runJob("rm Xmipp.java Xmipp.class",show_command=False,show_output=False)
 
         cppProg = """
@@ -848,11 +846,10 @@ class Config:
         if not runJob("%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %
                       (self.get(Config.KEY_CXX), incs, self.configDict["INCDIRFLAGS"]),
                       show_command=False,show_output=False):
-            print(red("Check the JNI_CPPPATH, CXX and INCDIRFLAGS"))
-            return False
+            return False, 13
         runJob("rm xmipp_jni_test*", show_command=False,show_output=False)
         print(green('Done ' + (' ' * 150)))
-        return True
+        return True, 0
 
     def _config_Matlab(self):
         if self.configDict["MATLAB"] == "":

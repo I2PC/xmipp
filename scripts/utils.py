@@ -114,8 +114,6 @@ def endMessage(XMIPP_VERNAME):
 def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
     ErrMsg1 = ''
     ErrMsg2 = ''
-    print(
-        red('\n\n---------------------------------------------------------------------------'))
     if status:
         ErrMsg1 = status[2]
         ErrMsg2 = status[3]
@@ -123,31 +121,23 @@ def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
         ErrMsg1 = errorList(errorNum)[1]
         ErrMsg2 = errorList(errorNum)[2]
 
-    if XMIPP_VERNAME == 'devel':
-        strError = 'Unable to install Xmipp.\n\n' \
-                   'Devel version of Xmipp is constantly beeing improved, some errors might appear temporary\n' + \
-                   '{}. '.format(ErrMsg1) + \
-                    '{}. '.format(ErrMsg2) + \
-                   '\bPlease contact us if you find any. If you have modified code inside Xmipp please check it.' \
-                   'In anycase for more information about the error check \ncompileLOG.txt file.'
-        print(
-            red('---------------------------------------------------------------------------'))
-        print(red(strError))
-        print(
-            red('---------------------------------------------------------------------------'))
-    else:#release
-        strError = 'Unable to install Xmipp.\n\n' +\
-                    '{}'.format(ErrMsg1) + \
-                   'Please review the previous error message. {}'.format(ErrMsg2) +\
-                   '\nvisit our guide of installation https://github.com/I2PC/xmipp ' \
-                   '\nand also the wiki page with some details https://github.com/I2PC/xmipp/wiki' \
-                   'Also you can contact us xmipp@cnb.csic.es or Discord/Scipion/xmipp\n'
-        print(
-            red('\n\n---------------------------------------------------------------------------'))
-        print(red(strError))
-        print(
-            red('---------------------------------------------------------------------------'))
+    print("\033[1m" + " Unable to install Xmipp.\n" + "\033[0m")
 
+    if XMIPP_VERNAME == 'devel':
+        print(' Devel version of Xmipp is constantly beeing improved, some errors might appear temporary.' )
+        print(red('{}. '.format(ErrMsg1) + '{}. '.format(ErrMsg2)))
+        print(' For more information about the error check compileLOG.txt file if exist.\n'
+              ' Devel consideration: If you have modified code inside Xmipp please check it.')
+
+    else:#release
+        print(red('{}. '.format(ErrMsg1) + '{}. '.format(ErrMsg2)))
+        print(' For more information about the error check compileLOG.txt file if exist.\n'
+              ' You can visit our guide of installation https://github.com/I2PC/xmipp,\n'
+              ' visit the wiki page with some details https://github.com/I2PC/xmipp/wiki \n'
+              ' and you can contact us xmipp@cnb.csic.es or Discord/Scipion/xmipp\n'
+              'To report the details of the error please share the reportInstallation.tar.gz file')
+
+    print(('---------------------------------------------------------------------------'))
 
 def find(program, path=[]):
     location = which(program)
@@ -407,12 +397,13 @@ def installDepConda(dep, askUser):
 
 
 def ensureGit(critical=False):
-    if not checkProgram('git')[0]:
-        if critical or path.isdir('.git'):
-            # .git dir found means devel mode, which needs git
-            return False, 7
-        else:
-            return False, 0
+    status = checkProgram('git')
+    if status[0] == False:
+        return status
+        # if critical or path.isdir('.git'):
+        #     # .git dir found means devel mode, which needs git
+        #     return False, 7
+        # else:
     return True, 0
 
 
@@ -475,21 +466,21 @@ def errorList(errorNum):
     errorList = [
         #[index, error description, possible solutions]
         [0, 'No error', ''],
-        [1, 'Error generated on checkProgram', 'Check the xmipp.conf flags'],
+        [1, 'Error generated on checkProgram function', 'Check the xmipp.conf flags'],
         [2, 'Version of compiler is not implemented', 'Review the CXX flag in the xmipp.conf'],
         [3, 'Compiler read from xmipp.conf CXX not found', 'Review the CXX flag in the xmipp.conf'],
         [4, 'Version 8.0 or higher of the compiler is required', 'Please go to https://github.com/I2PC/xmipp#compiler to solve it.'],
         [5, 'Some library has fail beeing included', 'Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf\n'
                 'If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread'],
         [6, 'hdf5 can not be included', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS in xmipp.conf and visit https://github.com/I2PC/xmipp/wiki/HDF5-Troubleshooting'],
-        [7, 'Git not found on the repository', ''],
+        [7, 'Git not found on the repository', 'Please install git'],
         [8, 'MPI compilation failed', 'Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in xmipp.conf'
          'In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations'],
         [9, 'MPI compilation failed', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS'],
         [10, 'mpi test (mpirun or mpiexec) has faild.', ''],
-        [11, '', ''],
-        [12, '', ''],
-        [13, '', ''],
+        [11, 'Java not found in system', ''],
+        [12, 'JAVAC does not work', 'Check the JAVAC flag on xmipp.conf'],
+        [13, 'JAVA fails. jni include fails', 'Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
         [14, '', ''],
         [15, '', ''],
         [16, '', ''],

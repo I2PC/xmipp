@@ -407,10 +407,10 @@ def getSources(branch):
 
 
 def getDependencies():
-    print("\nGetting Dependencies -------------------------------------")
+    print("\nGetting external dependencies -------------------------------------")
     status = ensureGit(True)
     if status[0] == False:
-        exitProgram(status[1])
+        exitProgram(status[1], status)
     createDir("src")
     result = True
     for dep, args in DEPENDENCIES.items():
@@ -1109,8 +1109,6 @@ def exitProgram(error=0, status=''):
         pass
     if error:
         errorEndMessage(XMIPP_VERNAME, error, status)
-        print(red(
-        'You can report the details of the installation sharing the generated reportInstallation.tar.gz file'))
 
     printVersion()
     sys.exit(0)
@@ -1231,7 +1229,6 @@ if __name__ == '__main__':
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
             buildConfig.create()
-
         else:
             print(green("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
