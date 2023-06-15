@@ -34,6 +34,8 @@ import sys, os
 import numpy as np
 import pandas as pd
 
+from typing import List
+
 import multiprocessing as mp
 
 from xmipp_base import XmippScript
@@ -65,25 +67,32 @@ class ScriptPickNoiseTomo(XmippScript):
                           'subtomos and uses brute force to obtain coordinates representing "noise"\n'
                           'for use as negative input in the DeepConsensusTomo NN training.')
 
-        self.addParamsLine('--input <path> : Path to the XMD file containing MDL_X MDL_Y and MDL_Z')
-        self.addParamsLine('--output <path> : Path for the resulting XMD file to be written.')
-        self.addParamsLine('--radius <float> : Radius (in fraction of boxsize) for thresholding the distances')
-        self.addParamsLine('--boxsize <int> : Size in pixels of the square box for subtomograms')
-        self.addParamsLine('--samplingrate <float> : Sampling rate in Angstroms/pixel')
-        self.addParamsLine('--limit <float> : Amount (in fraction of total input coords) of pickings to do. Default=0.7')
-        self.addParamsLine('--threads <int> : Number of threads to parallelize the search. Default=4')
-        self.addParamsLine('--static : flag to stop the algorithm from reducing the radius')
+        self.addParamsLine('--input <inputFile> : Path to the XMD file containing MDL_X MDL_Y and MDL_Z')
+        self.addParamsLine('--output <outputFile> : Path for the resulting XMD file to be written.')
+        self.addParamsLine('--radius <radius> : Radius (in fraction of boxsize) for thresholding the distances')
+        self.addParamsLine('--boxsize <boxsize> : Size in pixels of the square box for subtomograms')
+        self.addParamsLine('--samplingrate <srate> : Sampling rate in Angstroms/pixel')
+        self.addParamsLine('--size <x> <y> <z> : Triplet representing the tomo size')
+        self.addParamsLine('[ --limit <limit=0.7> ] : Amount (in fraction of total input coords) of pickings to do. Default=0.7')
+        self.addParamsLine('[ --threads <int=4> ] : Number of threads to parallelize the search. Default=4')
+        self.addParamsLine('[ --static ] : flag to stop the algorithm from reducing the radius')
 
         self.addExampleLine('xmipp_pick_noise_tomo --input tomo05_coords.xmd --boxsize 200 --samplingrate 2.17')
 
     def run(self):
         
+        print("Started 3D noise picking script", flush=True)
         # Parse input arguments
         self.inputFn = self.getParam('--input')
         self.outputFn = self.getParam('--output')
         self.radius = self.getDoubleParam('--radius')
         self.boxSize = self.getIntParam('--boxsize')
         self.samplingRate = self.getDoubleParam('--samplingrate')
+        self.tomoSize = np.empty(3, dtype=int)
+        self.tomoSize[0] = self.getIntParam('--size', 0)
+        self.tomoSize[1] = self.getIntParam('--size', 1)
+        self.tomoSize[2] = self.getIntParam('--size', 2)
+        print ("Picking noise for %d X %d X %d tomogram" %(self.tomoSize[0],self.tomoSize[1],self.tomoSize[2]))
         
         # Default limit if not specified
         if self.checkParam('--limit'):
@@ -101,30 +110,55 @@ class ScriptPickNoiseTomo(XmippScript):
         if self.checkParam('--static'):
             self.static = True
 
-        assert os.path.isdir(self.inputFn), "Provided input file name is not a directory"
-
-        allCoords : set  = {}
+        if not os.path.isfile(self.inputFn):
+            raise RuntimeError("Provided input file name does not exist")
 
         # Load all of the coordinates of the tomo into memory
+        print("PickNoiseTomo reading coords into memory", flush=True)
         tomoMd = xmippLib.MetaData(self.inputFn)
+
+        total = tomoMd.size()
+        indizeak = ['xyz', 'tomo_id']
+        self.allCoords = pd.DataFrame(index=range(total),columns=indizeak)
+
         for row_id in tomoMd:
             coords = np.empty(3)
             coords[0] = tomoMd.getValue(xmippLib.MDL_X, row_id)
             coords[1] = tomoMd.getValue(xmippLib.MDL_Y, row_id)
             coords[2] = tomoMd.getValue(xmippLib.MDL_Z, row_id)
-            allCoords.add(coords)
+            tomoid = tomoMd.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, row_id)
+            self.allCoords.loc[row_id, 'xyz'] = coords
+            self.allCoords.loc[row_id, 'tomo_id'] = tomoid            
 
         # Generate iterspace for MP
-        self.limitPerThread = int(len(allCoords) * self.limit / self.nThreads)
-
+        self.limitPerThread = int(len(self.allCoords) * self.limit / self.nThreads)
 
         # Launch the search in parallel
-        print("Launching search for %d coordinates on %d cores" % self.limitPerThread*self.nThreads, self.nThreads)
-        res : list = []
-        with mp.Pool(processes=self.nThreads) as pool:
-            res.append (pool.apply(self.pickFun, args=(allCoords, self.limitPerThread, self.boxSize, self.radius)))
+        print("Launching search for %d coordinates on %d cores" % (self.limitPerThread*self.nThreads, self.nThreads))
+        
+        # Generate a queue to queue the output data from the worker threads
+        # queue = mp.Queue()
+        # workers = []
+        # Launch the worker
+        # for _ in range(self.nThreads):
+        #     p = mp.Process(target=self.pickFun, args=(queue, allCoords, self.limitPerThread, self.boxSize, self.radius))
+        #     p.start()
+        #     workers.append(p)
+        
+        # res : list = []
+        # process: mp.Process
+        # for process in workers:
+        #     process.join() # Wait for completion
+        #     res += queue.get() # Add to final res
+
+        # Lo mesmo pero en secoencial
+        res = []
+        for _ in range(self.nThreads):
+            res += self.pickFun()
         # Write the results
+        print("PickNoiseTomo found %d noise volumes" %(res))
         outMd = xmippLib.MetaData()
+        print("Writing to file...")
         for elem in res:
             row_id = outMd.addObject()
             outMd.setValue(xmippLib.MDL_X, elem[0], row_id)
@@ -132,29 +166,29 @@ class ScriptPickNoiseTomo(XmippScript):
             outMd.setValue(xmippLib.MDL_Z, elem[2], row_id)
         outMd.write(self.outputFn)
 
-    def pickFun(coordsList : set, limit: int, boxsize: int, radius: float) -> list :
+    def pickFun(self) -> list:
         res = []
 
-        maxDistance : float = radius * boxsize
+        maxDistance : float = self.radius * self.boxSize
 
         for i in range(ITERS_PER_THREAD):
             # Generate a random coordinate
-            candidate = np.empty(3)
-            candidate[0] = np.random.choice([-1, 1]) * np.random.rand(1,3) * boxsize
-            candidate[1] = np.random.choice([-1, 1]) * np.random.rand(1,3) * boxsize
-            candidate[2] = np.random.choice([-1, 1]) * np.random.rand(1,3) * boxsize
+            candidate = (np.random.rand(3) - 0.5) * self.tomoSize
 
-            for existingCoord in coordsList:
+            # Validate
+            for existingCoord in self.allCoords['xyz']:
                 if distance(candidate, existingCoord) < maxDistance:
                     break
             else:
                 # No particle collides with this, adding to noise
+                print("Found OK candidate: " + str(candidate))
                 res.append(candidate)
             
-            if len(res) >= limit:
+            if len(res) >= self.limitPerThread:
                 # The goal is achieved, no more needed
                 break
 
+        #queue.put(res)
         return res
 
 if __name__ == '__main__':
