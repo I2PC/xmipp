@@ -29,18 +29,16 @@ import distutils.spawn
 from os import environ, path, remove
 from shutil import which
 from os.path import realpath
+import sys
 
 def green(text):
     return "\033[92m "+text+"\033[0m"
 
-
 def yellow(text):
     return "\033[93m " + text + "\033[0m"
 
-
 def red(text):
     return "\033[91m "+text+"\033[0m"
-
 
 def blue(text):
     return "\033[34m "+text+"\033[0m"
@@ -84,8 +82,6 @@ def find_GCC(candidates, show=False):
         return find_newest('g++', candidates,  False)
 
 
-
-
 def find_newest(program, versions, show=True):
     for v in versions:
         p = program + '-' + str(v) if v else program
@@ -116,19 +112,23 @@ def endMessage(XMIPP_VERNAME):
 
 
 def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
+    ErrMsg1 = ''
+    ErrMsg2 = ''
     print(
         red('\n\n---------------------------------------------------------------------------'))
     if status:
-        print(red(status[2]))
-        print(red(status[3]))
+        ErrMsg1 = status[2]
+        ErrMsg2 = status[3]
     else:
-        print(red(errorList(errorNum)[1]))
-        print(red(errorList(errorNum)[2]))
+        ErrMsg1 = errorList(errorNum)[1]
+        ErrMsg2 = errorList(errorNum)[2]
 
     if XMIPP_VERNAME == 'devel':
         strError = 'Unable to install Xmipp.\n\n' \
-                   'Devel version of Xmipp is constantly beeing improved, some errors might appear\n temporary,' \
-                   'please contact us if you find any. If you have modified code inside\n Xmipp please check it.' \
+                   'Devel version of Xmipp is constantly beeing improved, some errors might appear temporary\n' + \
+                   '{}. '.format(ErrMsg1) + \
+                    '{}. '.format(ErrMsg2) + \
+                   '\bPlease contact us if you find any. If you have modified code inside Xmipp please check it.' \
                    'In anycase for more information about the error check \ncompileLOG.txt file.'
         print(
             red('---------------------------------------------------------------------------'))
@@ -136,8 +136,10 @@ def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
         print(
             red('---------------------------------------------------------------------------'))
     else:#release
-        strError = 'Unable to install Xmipp.\n\nSome changes will let you install Xmipp. ' \
-                   'Please review the previous error message,\nvisit our guide of installation https://github.com/I2PC/xmipp ' \
+        strError = 'Unable to install Xmipp.\n\n' +\
+                    '{}'.format(ErrMsg1) + \
+                   'Please review the previous error message. {}'.format(ErrMsg2) +\
+                   '\nvisit our guide of installation https://github.com/I2PC/xmipp ' \
                    '\nand also the wiki page with some details https://github.com/I2PC/xmipp/wiki' \
                    'Also you can contact us xmipp@cnb.csic.es or Discord/Scipion/xmipp\n'
         print(
@@ -172,7 +174,7 @@ def binariesPrecompiled(log):
 
 
 
-def printProgressBar(value, sizeBar=30):#value 0 - 100
+def printProgressBar(value, sizeBar=40):#value 0 - 100
     sizeValue = int((value * sizeBar) / 100)
     templateStr = green(str(value) + '%') + green('[') + green('#' * sizeValue) \
                   + yellow('-' * (sizeBar - sizeValue)) + green(']') + (' ' * 50)
@@ -208,7 +210,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 line = line.replace('\n', "")
                 line = line.replace("\r", "")
                 line = line.replace("\b", "")
-                line = completeSplitLine(80, line + '...')
+                line = completeSplitLine(70, line)
                 str2Print = line + "\n" + printProgressBar(prg)
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
@@ -249,7 +251,7 @@ def completeSplitLine(sizeLine, line):
     if emptyLine > 0:
         line = line + (" " * emptyLine)
     if emptyLine < 0:
-        line = line[:sizeLine]
+        line = line[:sizeLine - 3] + '...'
     return line
 
 def write_compileLog(log, COMPILE_LOG='', append=True):
@@ -468,11 +470,12 @@ def removeCompileAndReportFile(COMPRESED_REPORT, COMPILE_LOG):
         runJob('rm {}'.format(COMPRESED_REPORT), show_command=False)
     if os.path.isfile(COMPILE_LOG):
         runJob('rm {}'.format(COMPILE_LOG), show_command=False)
+
 def errorList(errorNum):
     errorList = [
         #[index, error description, possible solutions]
         [0, 'No error', ''],
-        [1, 'Error generated on checkProgram', ''],
+        [1, 'Error generated on checkProgram', 'Check the xmipp.conf flags'],
         [2, 'Version of compiler is not implemented', 'Review the CXX flag in the xmipp.conf'],
         [3, 'Compiler read from xmipp.conf CXX not found', 'Review the CXX flag in the xmipp.conf'],
         [4, 'Version 8.0 or higher of the compiler is required', 'Please go to https://github.com/I2PC/xmipp#compiler to solve it.'],

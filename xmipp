@@ -532,7 +532,7 @@ def compileModule(Nproc,module):
         print(red("Some error occurred during the compilation of '%s'%s."
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
         return False
-    print(green('Done. Visit compileLOG.txt for details' + (' ' * 80)))
+    print(green('Done. Visit compileLOG.txt for details' + (' ' * 70)))
     return ok
 
 
@@ -905,7 +905,7 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
-        print(green(str("xmipp linked to Scipion: " + xmippHomeLink) + (' ' * 150)))
+        print(green(str("xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)))
 
 
     else:
@@ -976,7 +976,7 @@ def install(dirname):
         print(red("\nSome error occurred during the installation.\n"))
         exitProgram()
         return False
-    print(green('Done' + (' ' * 150)))
+    print(green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), dirname))))
 
     # Scipion connection
     linkToScipion(dirname)
@@ -1097,7 +1097,6 @@ def usage(msg=''):
 
 
 def exitProgram(error=0, status=''):
-    printVersion()
     try:
         log = []
         runJob(
@@ -1113,6 +1112,7 @@ def exitProgram(error=0, status=''):
         print(red(
         'You can report the details of the installation sharing the generated reportInstallation.tar.gz file'))
 
+    printVersion()
     sys.exit(0)
 
 if __name__ == '__main__':
