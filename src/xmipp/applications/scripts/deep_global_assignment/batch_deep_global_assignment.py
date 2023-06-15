@@ -8,6 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -16,16 +17,15 @@ if __name__ == "__main__":
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
-    print("------------------", flush=True)
-    mode = sys.argv[3]
-    sigma = float(sys.argv[4])
-    numEpochs = int(sys.argv[5])
-    batch_size = int(sys.argv[6])
-    gpuId = sys.argv[7]
-    if mode == 'Angular':
-        representation = sys.argv[8]
-        loss_function = sys.argv[9]
-        fnNoisyXmdExp = sys.argv[10]
+    sigma = float(sys.argv[3])
+    numEpochs = int(sys.argv[4])
+    batch_size = int(sys.argv[5])
+    gpuId = sys.argv[6]
+    numModels = int(sys.argv[7])
+    learning_rate = float(sys.argv[8])
+    pretrained = sys.argv[9]
+    if pretrained == 'yes':
+        fnPreModel = sys.argv[10]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     from keras.callbacks import TensorBoard, ModelCheckpoint
     from keras.models import Model
     from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
-        Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D
+        Activation, Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, LeakyReLU, Add
     from keras.optimizers import *
     import keras
     from keras import callbacks
@@ -47,11 +47,10 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.Sequence):
         'Generates data for fnImgs'
 
-        def __init__(self, fnImgs, labels, mode, sigma, batch_size, dim, readInMemory):
+        def __init__(self, fnImgs, labels, sigma, batch_size, dim, readInMemory, shifts):
             'Initialization'
             self.fnImgs = fnImgs
             self.labels = labels
-            self.mode = mode
             self.sigma = sigma
             self.batch_size = batch_size
             if self.batch_size > len(self.fnImgs):
@@ -59,6 +58,8 @@ if __name__ == "__main__":
             self.dim = dim
             self.readInMemory = readInMemory
             self.on_epoch_end()
+            self.shifts = shifts
+
 
             # Read all data in memory
             if self.readInMemory:
@@ -93,41 +94,33 @@ if __name__ == "__main__":
         def __data_generation(self, list_IDs_temp):
             'Generates data containing batch_size samples'
             yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
+            yshifts = np.array(itemgetter(*list_IDs_temp)(self.shifts))
 
             # Functions to handle the data
             def get_image(fn_image):
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
                 return (img - np.mean(img)) / np.std(img)
 
+            def shift_image(img, shiftx, shifty, yshift):
+
+                return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='reflect')
+
             def rotate_image(img, angle):
                 # angle in degrees
                 return rotate(img, angle, order=1, mode='reflect', reshape=False)
 
-            def shift_image(img, shiftx, shifty):
-                return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
-
-            def get_angles_radians(angles, angle):
-                return np.array((math.sin(angles[0]), math.cos(angles[0]), math.sin(angles[1]),
-                                 math.cos(angles[1]), math.sin(angles[2] + angle),
-                                 math.cos(angles[2] + angle)))
-
-            def get_angles_radians_geo(angles, angle):
-                return np.array((math.sin(angles[0]), math.cos(angles[0]),
-                                 math.cos(angles[1]), math.sin(angles[2] + angle),
-                                 math.cos(angles[2] + angle)))
-
             def R_rot(theta):
-                return np.matrix([[1, 0, 0],
+                return np.array([[1, 0, 0],
                                   [0, math.cos(theta), -math.sin(theta)],
                                   [0, math.sin(theta), math.cos(theta)]])
 
             def R_tilt(theta):
-                return np.matrix([[math.cos(theta), 0, math.sin(theta)],
+                return np.array([[math.cos(theta), 0, math.sin(theta)],
                                   [0, 1, 0],
                                   [-math.sin(theta), 0, math.cos(theta)]])
 
             def R_psi(theta):
-                return np.matrix([[math.cos(theta), -math.sin(theta), 0],
+                return np.array([[math.cos(theta), -math.sin(theta), 0],
                                   [math.sin(theta), math.cos(theta), 0],
                                   [0, 0, 1]])
 
@@ -135,7 +128,7 @@ if __name__ == "__main__":
                 Rx = R_rot(angles[0])
                 Ry = R_tilt(angles[1] - math.pi / 2)
                 Rz = R_psi(angles[2] + psi_rotation)
-                return Rz * Ry * Rx
+                return np.matmul(np.matmul(Rz, Ry), Rx)
 
             def matrix_to_rotation6d(mat):
                 r6d = np.delete(mat, -1, axis=1)
@@ -145,343 +138,187 @@ if __name__ == "__main__":
                 mat = euler_angles_to_matrix(angles, psi_rotation)
                 return matrix_to_rotation6d(mat)
 
-            def euler_to_cartesian(angles, psi_rotation):
-                x = math.sin(angles[1]) * math.cos(angles[0])
-                y = math.sin(angles[1]) * math.sin(angles[0])
-                z = math.cos(angles[1])
-                sinpsi = math.sin(angles[2] + psi_rotation)
-                cospsi = math.cos(angles[2] + psi_rotation)
-                return np.array((x, y, z, sinpsi, cospsi))
+            def make_redundant(rep_6d):
+                rep_6d = np.append(rep_6d, 2*rep_6d)
+                for i in range(6):
+                    j = (i+1) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
+                for i in range(6):
+                    j = (i + 3) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 2) % 6
+                    k = (i + 4) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
+                for i in range(6):
+                    j = (i + 5) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 4) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                return rep_6d
 
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
                 fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
                 Iexp = list(map(get_image, fnIexp))
-            # Data augmentation
-            if self.sigma > 0:
-                rX = (self.sigma / 5) * np.random.normal(0, 1, size=self.batch_size)
-                rY = (self.sigma / 5) * np.random.normal(0, 1, size=self.batch_size)
-                rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-                rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-                if mode == 'Shift':
-                    # Shift image a random amount of px in each direction
-                    Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
-                    y = yvalues + np.vstack((rX, rY)).T
-                else:
-                    # Shift image a random amount of px in each direction
-                    Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
 
-                    # Rotates image a random angle. Thus, Psi must be updated
-                    rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
+            rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+            rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+            # Shift image a random amount of px in each direction
+            Xexp = np.array(list((map(shift_image, Iexp, rX, rY, yshifts))))
+            # Rotates image a random angle. Thus, Psi must be updated
+            rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
+            Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
+            rAngle = rAngle * math.pi / 180
+            yvalues = yvalues * math.pi / 180
+            y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+            y = np.array(list((map(make_redundant, y_6d))))
 
-                    Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
-                    rAngle = rAngle * math.pi / 180
-                    yvalues = yvalues * math.pi / 180
-
-                    if representation == 'euler':
-                        if loss_function == 'geodesic':
-                            y = np.array(list((map(get_angles_radians_geo, yvalues, rAngle))))
-                        else:
-                            y = np.array(list((map(get_angles_radians, yvalues, rAngle))))
-                    elif representation == 'cartesian':
-                        y = np.array(list((map(euler_to_cartesian, yvalues, rAngle))))
-                    else:
-                        y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-            else:
-                Xexp = np.array(list(Iexp))
-                if mode == 'Shift':
-                    y = yvalues
-                else:
-                    y = np.array(list((map(get_angles_radians, yvalues, np.zeros(self.batch_size)))))
             return Xexp, y
 
+    def identity_block(tensor, filters):
 
-    def constructModel(Xdim, mode):
+        x = Conv2D(filters, (3, 3), padding='same')(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x = Add()([x, tensor])
+        x = Activation('relu')(x)
+        return x
+
+    def conv_block(tensor, filters):
+        x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
+
+        x = Add()([x, x_res])
+        x = Activation('relu')(x)
+        return x
+
+    def constructModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        # Network model
+        x = Conv2D(filters=64, kernel_size=(7, 7), strides=(2,2), padding='same')(inputLayer)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
 
-        L = Conv2D(32, (3, 3), activation="relu")(inputLayer)
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        for _ in range(1):
+            x = identity_block(x, filters=64)
 
-        L = Conv2D(64, (3, 3), activation="relu")(L)
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        x = conv_block(x, filters=128)
 
-        L = Conv2D(128, (3, 3), activation="relu")(L)
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        for _ in range(1):
+            x = identity_block(x, filters=128)
 
-        L = Conv2D(256, (3, 3), activation="relu")(L)
-        L = BatchNormalization()(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.2)(L)
+        x = conv_block(x, filters=256)
 
-        L = Flatten()(L)
-        L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
+        for _ in range(1):
+            x = identity_block(x, filters=256)
 
-        L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
-        L = Dropout(0.2)(L)
+        x = conv_block(x, filters=512)
 
-        L = Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = BatchNormalization()(L)
-        L = Dropout(0.2)(L)
+        for _ in range(1):
+            x = identity_block(x, filters=512)
 
-        if mode == 'Shift':
-            L = Dense(2, name="output", activation="linear")(L)
-        else:
-            if representation == 'cartesian':
-                L = Dense(5, name="output", activation="linear")(L)
-            elif (representation == 'euler') and (loss_function == 'geodesic'):
-                L = Dense(5, name="output", activation="tanh")(L)
-            else:
-                L = Dense(6, name="output", activation="linear")(L)
+        x = GlobalAveragePooling2D()(x)
 
-        return Model(inputLayer, L)
+        x = Dense(42, name="output", activation="linear")(x)
+
+        return Model(inputLayer, x)
 
 
-    def get_labels(fnImages, mode):
+    def get_labels(fnImages):
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
-        fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
+        fnImg = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
         shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
         shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
         rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
         tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
         psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
-        labels_val = []
+        label = []
+        shift = []
 
-        if mode == "Shift":
-            for x, y in zip(shiftX, shiftY):
-                labels_val.append(np.array((x, y)))
-        elif mode == "Angular":
-            for r, t, p in zip(rots, tilts, psis):
-                labels_val.append(np.array((r, t, p)))
+        numTiltDivs = 5
+        numRotDivs = 10
+        limits_rot = np.linspace(-180.01, 180, num=(numRotDivs+1))
+        limits_tilt = np.zeros(numTiltDivs+1)
+        limits_tilt[0] = -0.01
+        for i in range(1, numTiltDivs+1):
+            limits_tilt[i] = math.acos(1-2*(i/numTiltDivs))
+        limits_tilt = limits_tilt*180/math.pi
+        zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
 
-        ntraining = math.floor(len(fnImgs) * 0.8)
-        ind = [i for i in range(len(labels_val))]
-        np.random.shuffle(ind)
-        train = ind[0:ntraining]
-        valid = ind[(ntraining + 1):]
+        i = 0
 
-        return Xdim, fnImgs, labels_val, train, valid
+        for r, t, p in zip(rots, tilts, psis, shiftX, shiftY):
+            label.append(np.array((r, t, p)))
+            shift.append(np.array(shiftX, shiftY))
+            region_rot = np.digitize(r, limits_rot, right=True) - 1  # Índice de la región para el componente x
+            region_tilt = np.digitize(t, limits_tilt, right=True) - 1  # Índice de la región para el componente y
+            region_idx = region_rot * (len(limits_tilt)-1) + region_tilt  # Índice de la región combinada
+            zone[region_idx].append(i)
+            i += 1
 
+        return Xdim, fnImg, label, zone, shift
 
-    Xdim, fnImgs, labels, indTrain, indVal = get_labels(fnXmdExp, mode)
-
-    training_generator = DataGenerator([fnImgs[i] for i in indTrain], [labels[i] for i in indTrain], mode, sigma,
-                                       batch_size, Xdim, readInMemory=False)
-    validation_generator = DataGenerator([fnImgs[i] for i in indVal], [labels[i] for i in indVal], mode, sigma,
-                                         batch_size, Xdim, readInMemory=False)
-
-    import tensorflow as tf
-    import keras.backend as K
-
-
-    def rotation6d_to_matrix(rot):
-        a1 = rot[:, slice(0, 6, 2)]
-        a2 = rot[:, slice(1, 6, 2)]
-        a1 = K.reshape(a1, (-1, 3))
-        a2 = K.reshape(a2, (-1, 3))
-        b1 = tf.linalg.normalize(a1, axis=1)[0]
-        b3 = K.tf.cross(b1, a2)
-        b3 = tf.linalg.normalize(b3, axis=1)[0]
-        b2 = K.tf.cross(b3, b1)
-        b1 = K.expand_dims(b1, axis=2)
-        b2 = K.expand_dims(b2, axis=2)
-        b3 = K.expand_dims(b3, axis=2)
-        return K.concatenate((b1, b2, b3), axis=2)
-
-
-    #def geodesic_distance(y_true, y_pred):
-    #    mat_true = rotation6d_to_matrix(y_true)
-    #    mat_pred = rotation6d_to_matrix(y_pred)
-    #    R = tf.matmul(mat_true, mat_pred, transpose_b=True)
-    #    #val = (K.tf.linalg.trace(R) - 1) / 2
-    #    #val = tf.math.minimum(val, tf.constant([0.999]))
-    #    #val = tf.math.maximum(val, tf.constant([-0.999]))
-    #    #return K.mean(tf.math.acos(val), axis=-1)
-    #    d = -tf.linalg.trace(R)
-    #    return K.mean(d)
-
-    def geodesic_distance(y_true, y_pred):
-        #a1 = keras.layers.BatchNormalization()(y_pred[:, slice(0, 6, 2)])
-        #a2 = keras.layers.BatchNormalization()(y_pred[:, slice(1, 6, 2)])
-        y_pred = tf.Print(y_pred, [y_pred], message="This is y_pred: ")
-        a1 = tf.linalg.normalize(y_pred[:, slice(0, 6, 2)])[0]
-        a1 = tf.Print(a1, [a1], message="This is a1: ")
-        a2 = tf.linalg.normalize(y_pred[:, slice(1, 6, 2)])[0]
-        a2 = tf.Print(a2, [a2], message="This is a2: ")
-        y_true = tf.Print(y_true, [y_true], message="This is y_true: ")
-        d = K.sum(y_true[:, 0]*a1[:, 0])
-        d += K.sum(y_true[:, 2] * a1[:, 1])
-        d += K.sum(y_true[:, 4] * a1[:, 2])
-        d += K.sum(y_true[:, 1] * a2[:, 0])
-        d += K.sum(y_true[:, 3] * a2[:, 1])
-        d += K.sum(y_true[:, 5] * a2[:, 2])
-
-        return -d
-
-    def geodesic_loss(y_true, y_pred):
-        d = geodesic_distance(y_true, y_pred)
-        return d
-
-
-    def R_rot(x, y):
-        # (x,y) must be a normalized
-        # Construct the rotation matrix for each sample in the batch
-        ones = tf.ones_like(x)
-        zeros = tf.zeros_like(x)
-        batch_size = tf.shape(x)[0]
-        rot_matrix = tf.concat([
-            tf.concat([ones, zeros, zeros], axis=1),
-            tf.concat([zeros, y, -x], axis=1),
-            tf.concat([zeros, x, y], axis=1)
-        ], axis=1)
-        return tf.reshape(rot_matrix, (batch_size, 3, 3))
-
-
-    def R_tilt(x, y):
-        # Construct the rotation matrix for each sample in the batch
-        ones = tf.ones_like(x)
-        zeros = tf.zeros_like(x)
-        batch_size = tf.shape(x)[0]
-        tilt_matrix = tf.concat([
-            tf.concat([y, zeros, x], axis=1),
-            tf.concat([zeros, ones, zeros], axis=1),
-            tf.concat([-x, zeros, y], axis=1)
-        ], axis=1)
-        return tf.reshape(tilt_matrix, (batch_size, 3, 3))
-
-
-    def R_psi(x, y):
-        # Construct the rotation matrix for each sample in the batch
-        ones = tf.ones_like(x)
-        zeros = tf.zeros_like(x)
-        batch_size = tf.shape(x)[0]
-        psi_matrix = tf.concat([
-            tf.concat([y, -x, zeros], axis=1),
-            tf.concat([x, y, zeros], axis=1),
-            tf.concat([zeros, zeros, ones], axis=1)
-        ], axis=1)
-        return tf.reshape(psi_matrix, (batch_size, 3, 3))
-
-
-    def rotation_matrix(angles):
-        rot = angles[:, slice(0, 2)]
-        cos_tilt = angles[:, slice(2, 3)]
-        tilt = tf.math.acos(cos_tilt)
-        sin = tf.math.sin(tilt)
-        ntilt = tf.concat([sin, cos_tilt], axis=1)
-        psi = angles[:, slice(3, 5)]
-        nrot = tf.linalg.normalize(rot, axis=1)[0]
-        npsi = tf.linalg.normalize(psi, axis=1)[0]
-        return tf.matmul(R_psi(nrot[:, slice(0, 1)], nrot[:, slice(1, 2)]),
-                         tf.matmul(R_tilt(ntilt[:, slice(0, 1)], ntilt[:, slice(1, 2)]),
-                                   R_psi(npsi[:, slice(0, 1)], npsi[:, slice(1, 2)])))
-
-
-    def custom_loss(y_true, y_pred):
-        rotation_true = rotation_matrix(y_true)
-        rotation_pred = rotation_matrix(y_pred)
-        rotmul = tf.linalg.matmul(rotation_true, rotation_pred, transpose_b=True)
-        d = -tf.linalg.trace(rotmul)
-        return K.mean(d)
-
-
-    SL = xmippLib.SymList()
-    print("SL", SL, flush=True)
-
-    SL.readSymmetryFile("C1")
-
-    SL.computeDistanceAngles(90, 90, 90, 90, 90, 90, False, False, False)
-
-    Matrices = SL.getSymmetryMatrices('C2')
-
-    print('Matrices', Matrices, flush=True)
-
-    print("distance", SL.computeDistanceAngles(45, 0, 0, 90, 0, 0, False, False, False))
-
+    Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
     start_time = time()
-    model = constructModel(Xdim, mode)
 
-    model.summary()
-    adam_opt = Adam(lr=0.001)
-
-    steps = round(len(fnImgs) / batch_size)
-    if mode == 'Shift':
-        model.compile(loss='mean_absolute_error', optimizer='adam')
+    if numModels == 1:
+        lenTrain = int(len(fnImgs)*0.8)
+        lenVal = len(fnImgs)-lenTrain
     else:
-        if loss_function == 'l1':
-            model.compile(loss='mean_absolute_error', optimizer='adam')
-        elif loss_function == 'l2':
-            model.compile(loss='mean_squared_error', optimizer='adam')
+        lenTrain = int(len(fnImgs) / 3)
+        lenVal = int(len(fnImgs) / 12)
+
+    elements_zone = int((lenVal+lenTrain)/len(zones))
+    print('elements_zone', elements_zone, flush=True)
+
+    for index in range(numModels):
+
+        random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
+
+        training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
+                                           [labels[i] for i in random_sample[0:lenTrain]],
+                                           sigma, batch_size, Xdims, shifts, readInMemory=False)
+        validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
+                                             [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
+                                             sigma, batch_size, Xdims, shifts, readInMemory=False)
+
+        if pretrained == 'yes':
+            model = load_model(fnPreModel, compile=False)
         else:
-            if representation == 'euler':
-                model.compile(loss=custom_loss, optimizer='adam')
-            else:
-                model.compile(loss=geodesic_loss, optimizer='adam')
+            model = constructModel(Xdims)
+        adam_opt = Adam(lr=learning_rate)
+        model.summary()
 
-    history = model.fit_generator(generator=training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                  validation_data=validation_generator)
+        model.compile(loss='mean_squared_error', optimizer=adam_opt)
+        save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
+                                          save_best_only=True)
 
-    model.save(fnModel)
+        history = model.fit_generator(generator=training_generator, epochs=numEpochs,
+                                      validation_data=validation_generator, callbacks=[save_best_model])
+
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['val_loss'])
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'test'], loc='upper left')
+        plt.show()
+
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
-
-
-    # Transfer learning:
-    if mode == 'Angular':
-        print("Transfer learning")
-        model.load_weights(fnModel)
-        Xdim, fnImgs, labels, indTrain, indVal = get_labels(fnNoisyXmdExp, mode)
-
-        transfer_training_generator = DataGenerator([fnImgs[i] for i in indTrain], [labels[i] for i in indTrain], mode,
-                                                    sigma,
-                                                    batch_size, Xdim, readInMemory=False)
-        transfer_validation_generator = DataGenerator([fnImgs[i] for i in indVal], [labels[i] for i in indVal], mode, sigma,
-                                                      batch_size, Xdim, readInMemory=False)
-
-        #for layer in model.layers:
-        #    layer.trainable = False
-        print("print1")
-
-        adam_opt = Adam(lr=0.0001)
-
-        if representation == 'cartesian':
-            new_output = Dense(5, name="output", activation="linear")(model.layers[-2].output)
-        elif representation == 'euler' and loss_function == 'geodesic':
-            new_output = Dense(5, name="output", activation="tanh")(model.layers[-2].output)
-        else:
-            new_output = Dense(6, name="output", activation="linear")(model.layers[-2].output)
-
-        transfer_model = Model(inputs=model.input, outputs=new_output)
-        print("print2")
-        if loss_function == 'l1':
-            transfer_model.compile(loss='mean_absolute_error', optimizer='adam')
-        elif loss_function == 'l2':
-            transfer_model.compile(loss='mean_squared_error', optimizer='adam')
-        else:
-            if representation == 'euler':
-                transfer_model.compile(loss=custom_loss, optimizer='adam')
-            else:
-                transfer_model.compile(loss=geodesic_loss, optimizer=adam_opt)
-        print("print3")
-        start_time = time()
-        numEpochs = 1
-        transfer_model.summary()
-        history = transfer_model.fit_generator(generator=transfer_training_generator, steps_per_epoch=steps, epochs=numEpochs,
-                                     validation_data=transfer_validation_generator)
-        print("Time in training model: %0.10f seconds." % elapsed_time)
-
-        #transfer_model.save(fnModel)
-
-

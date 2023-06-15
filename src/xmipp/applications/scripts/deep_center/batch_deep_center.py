@@ -140,8 +140,24 @@ if __name__ == "__main__":
 
             def make_redundant(rep_6d):
                 rep_6d = np.append(rep_6d, 2*rep_6d)
-                print('rep_6d', rep_6d, flush = True)
+                for i in range(6):
+                    j = (i+1) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
+                for i in range(6):
+                    j = (i + 3) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 2) % 6
+                    k = (i + 4) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
+                for i in range(6):
+                    j = (i + 5) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 4) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
                 return rep_6d
+
 
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
@@ -171,9 +187,8 @@ if __name__ == "__main__":
                     rAngle = rAngle * math.pi / 180
                     yvalues = yvalues * math.pi / 180
 
-                    y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-                    #y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-                    #y = np.array(list((map(make_redundant, y_6d))))
+                    y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+                    y = np.array(list((map(make_redundant, y_6d))))
             else:
                 Xexp = np.array(list(Iexp))
                 if mode == 'Shift':
@@ -272,56 +287,35 @@ if __name__ == "__main__":
     def constructModel(Xdim, mode):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        # Network model
-        L = Conv2D(32, (3, 3), padding='same')(inputLayer)
-        L = BatchNormalization()(L)
-        L = Activation(activation='relu')(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.1)(L)
+        x = conv_block1(inputLayer, filters=64, kernel_size=(7, 7), strides=(2, 2))
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
 
-        L = Conv2D(64, (3, 3), padding='same')(L)
-        L = BatchNormalization()(L)
-        L = Activation(activation='relu')(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.1)(L)
+        for _ in range(1):
+            x = identity_block(x, filters=64)
 
-        L = Conv2D(128, (3, 3), padding='same')(L)
-        L = BatchNormalization()(L)
-        L = Activation(activation='relu')(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.1)(L)
+        x = conv_block(x, filters=128)
 
-        L = Conv2D(256, (3, 3), padding='same')(L)
-        L = BatchNormalization()(L)
-        L = Activation(activation='relu')(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.1)(L)
+        for _ in range(1):
+            x = identity_block(x, filters=128)
 
-        L = Conv2D(512, (3, 3), padding='same')(L)
-        L = BatchNormalization()(L)
-        L = Activation(activation='relu')(L)
-        L = MaxPooling2D()(L)
-        L = Dropout(0.1)(L)
+        x = conv_block(x, filters=256)
 
-        L = Flatten()(L)
-        # L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-        L = Dense(1024, activation='relu')(L)
-        L = BatchNormalization()(L)
-        L = Dropout(0.2)(L)
+        for _ in range(1):
+            x = identity_block(x, filters=256)
 
-        L = Dense(1024, activation='relu')(L)
-        L = BatchNormalization()(L)
-        L = Dropout(0.2)(L)
+        x = conv_block(x, filters=512)
 
-        L = Dense(1024, activation='relu')(L)
-        L = BatchNormalization()(L)
+        for _ in range(1):
+            x = identity_block(x, filters=512)
+
+        x = GlobalAveragePooling2D()(x)
 
         if mode == 'Shift':
-            L = Dense(2, name="output", activation="linear")(L)
+            x = Dense(2, name="output", activation="linear")(x)
         else:
-            L = Dense(6, name="output", activation="linear")(L)
+            x = Dense(42, name="output", activation="linear")(x)
 
-        return Model(inputLayer, L)
+        return Model(inputLayer, x)
 
 
     def get_labels(fnImages, mode):
@@ -501,12 +495,12 @@ if __name__ == "__main__":
                                              mode, sigma, batch_size, Xdim, readInMemory=False)
 
         if mode == 'Shift':
-            model = resnet(Xdim, mode)
+            model = constructModel(Xdim, mode)
         else:
             if pretrained == 'yes':
                 model = load_model(fnPreModel, compile=False)
             else:
-                model = resnet(Xdim, mode)
+                model = constructModel(Xdim, mode)
             adam_opt = Adam(lr=learning_rate)
         model.summary()
 
@@ -514,20 +508,21 @@ if __name__ == "__main__":
         if mode == 'Shift':
             model.compile(loss='mean_absolute_error', optimizer='adam')
         else:
-            model.compile(loss=geodesic_loss, optimizer=adam_opt)
+            #model.compile(loss=geodesic_loss, optimizer=adam_opt)
+            model.compile(loss='mean_squared_error', optimizer=adam_opt)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model])
-        #if mode != 'Shift':
-        #    plt.plot(history.history['loss'])
-        #    plt.plot(history.history['val_loss'])
-        #    plt.title('model loss')
-        #    plt.ylabel('loss')
-        #    plt.xlabel('epoch')
-        #    plt.legend(['train', 'test'], loc='upper left')
-        #    plt.show()
+        if mode != 'Shift':
+            plt.plot(history.history['loss'])
+            plt.plot(history.history['val_loss'])
+            plt.title('model loss')
+            plt.ylabel('loss')
+            plt.xlabel('epoch')
+            plt.legend(['train', 'test'], loc='upper left')
+            plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)

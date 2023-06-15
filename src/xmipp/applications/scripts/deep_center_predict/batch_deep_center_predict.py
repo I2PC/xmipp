@@ -351,9 +351,32 @@ if __name__ == "__main__":
         ang_Distances = np.arccos((d-1)/2)
         return np.max(ang_Distances), np.argmax(ang_Distances)
 
-    def average_of_rotations(pred6d):
+    def calculate_r6d(redundant):
+        A = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
+                      [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
+                      [0, 0, 0, 2, 0, 0], [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 2],
+                      [1, -1, 0, 0, 0, 0], [0, 1, -1, 0, 0, 0], [0, 0, 1, -1, 0, 0],
+                      [0, 0, 0, 1, -1, 0], [0, 0, 0, 0, 1, -1], [-1, 0, 0, 0, 0, 1],
+                      [2, 0, 0, -1, 0, 0], [0, 2, 0, 0, -1, 0], [0, 0, 2, 0, 0, -1],
+                      [-1, 0, 0, 2, 0, 0], [0, -1, 0, 0, 2, 0], [0, 0, -1, 0, 0, 2],
+                      [1, 0, 1, 0, -1, 0], [0, 1, 0, 1, 0, -1], [-1, 0, 1, 0, 1, 0],
+                      [0, -1, 0, 1, 0, 1], [1, 0, -1, 0, 1, 0], [0, 1, 0, -1, 0, 1],
+                      [1, 0, 0, 0, 0, -1], [-1, 1, 0, 0, 0, 0], [0, -1, 1, 0, 0, 0],
+                      [0, 0, -1, 1, 0, 0], [0, 0, 0, -1, 1, 0], [0, 0, 0, 0, -1, 1],
+                      [1, 0, 0, 0, -1, 0], [0, 1, 0, 0, 0, -1], [-1, 0, 1, 0, 0, 0],
+                      [0, -1, 0, 1, 0, 0], [0, 0, -1, 0, 1, 0], [0, 0, 0, -1, 0, 1]])
+        #A = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
+        #              [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
+        #              [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
+        #              [0, 0, 0, 2, 0, 0], [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 2]])
+        return np.array([np.linalg.lstsq(A, redundant[0])[0]])
+
+    def average_of_rotations(p6d_redundant):
         minParticles = 1+int(numAngModels/2)
+        pred6d = calculate_r6d(p6d_redundant)
         matrix = convert_to_matrix(pred6d)
+        #matrix = convert_to_matrix(p6d_redundant)
         quats = convert_to_quaternions(matrix)
         av_quats = average_quaternions(quats)
         av_matrix = quaternion_matrix(av_quats)
@@ -425,7 +448,7 @@ if __name__ == "__main__":
     produce_output(mdExp, 'Shift', Y, distance, fnImages)
 
     if predictAngles == 'yes':
-        predictions = np.zeros((len(fnImgs), numAngModels, 6))
+        predictions = np.zeros((len(fnImgs), numAngModels, 42))
         for index in range(numAngModels):
            AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
            AngModel.compile(loss="mean_squared_error", optimizer='adam')
