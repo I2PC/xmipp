@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # **************************************************************************
 # *
 # * Authors:    Mikel Iceta Tena (miceta@cnb.csic.es)
@@ -37,7 +38,7 @@ import sys, os
 
 import xmippLib
 
-from deepPickingConsensusTomo_networks import PREF_SIDE
+from .deepPickingConsensusTomo_networks import PREF_SIDE
 
 BATCH_SIZE = 128
 SAVE_AFTER = 25
@@ -50,51 +51,87 @@ class DataMan(object):
     """
 
     valFrac : float # Fraction for validation steps
-    nFalse : int # Total number of negative examples
-    nTrue : int # Total number of positive examples
-    mdLoaded : bool # Is metadata loaded?
+    nNeg : int # Total number of negative examples
+    nPos : int # Total number of positive examples
     splitPoint : int # Where to split the set
     batchSize : int # Batch size for NN
     
 
-    def __init__(self, posfn: str, negfn:str, valFrac=0.15):
+    def __init__(self, pospath: str, negpath: str, boxSize: int, valFrac=0.15, doubtpath:str = None):
         """
-        posfn: positive pickings XMD filename
-        negfn: negative pickings XMD filename
+        posfn: positive pickings path
+        negfn: negative pickings path
         valFrac: fraction to use in the validation step
         """
 
         # MD Loading
-        self.boxsize, self.posVolsFns = self.collectMD(posfn)
-        _, self.negVolsFns = self.collectMD(negfn)
+        self.posVolsFns = self.getFolderContent(pospath, ".mrc")
+        self.nPos = len(self.posVolsFns)
+        self.negVolsFns = self.getFolderContent(negpath, ".mrc")
+        self.nNeg = len(self.negVolsFns)
+
+        if doubtpath is not None:
+            self.doubtVolsFn = self.getFolderContent(doubtpath, ".mrc")
+
+        self.boxSize = boxSize
         self.batchSize = BATCH_SIZE
         self.splitPoint = self.batchSize // 2
         self.valFrac = valFrac
-    
-    def collectMD(self, filename: str):
-        """
-        Form the metadata structures needed for the NN to work
-        dataD: dictionary to gather information about
-        """
 
-        md = xmippLib.MetaData(filename)
-        md.getColumnValues(xmippLib.MDL_IMAGE, )
+        if valFrac > 0:
+            self.trainingFnsPos= random.choices(self.posVolsFns, k=int((1-valFrac)*self.nPos))
+            self.validationFnsPos= list(set(self.posVolsFns).difference(self.trainingFnsPos))
 
-
-    def getMetadata(self, which = None):
-        """
-        Return previously collected metadata
-        """
-        if not self.mdLoaded:
-            return None
-        if which is None:
-            true = [t for t in self.mdListTrue]
-            false = [f for f in self.mdListFalse]
-            return true, false
+            self.trainingFnsNeg = random.choices(self.negVolsFns, k=int((1-valFrac)*self.nNeg))
+            self.validationFnsNeg = list(set(self.negVolsFns).difference(self.trainingFnsNeg))
         else:
-            mdTrue = self.mdListTrue[which]
-            mdFalse = self.mdListFalse[which]
-            return mdTrue, mdFalse
+            self.trainingFnsPos = self.posVolsFns
+            self.validationFnsPos = None
+            self.trainingFnsNeg = self.negVolsFns
+            self.validationFnsPos = None
+
+    def getNBatchesPerEpoch(self):
+        return (int((1-self.valFrac)*self.nPos*2./self.batchSize),
+             int(self.valFrac*self.nPos*2./self.batchSize))
+
+    def getFolderContent(self, path: str, filter: str) -> list :
+        # TODO: implement filter
+        return os.listdir(path)
+    
+    def getDataIterator(self, stage, nEpochs, nBatches=None):
+        if nEpochs < 0:
+            nEpochs = sys.maxsize
+        for i in range(nEpochs):
+            for batch in self._getOneEpochTrainOrValidate(stage = stage, nBatches = nBatches):
+                yield batch
+
+    def _getOneEpochTrainOrValidate(self, stage, nBatches):
+
+        # Volumes and labels for this batch
+        x = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize))
+        y = np.empty(self.batchSize)
+
+        if stage == "train":
+            posFns = self.trainingFnsPos
+            negFns = self.trainingFnsNeg
+            
+        elif stage == "validate":
+            posFns = self.validationFnsPos
+            negFns = self.validationFnsNeg
+        
+        image = xmippLib.Image()
+        for _ in range(nBatches):
+            for i in range(self.batchSize):
+                label = random.randrange(2)
+                if label == 0:
+                    filename = random.choice(negFns)
+                else:
+                    filename = random.choice(posFns)
+
+                image.read(filename)
+                x[i] = image.getData()
+                y[i] = label
+            yield x,y
 
     # DATA AUGMENTATION METHODS
 
@@ -112,7 +149,7 @@ class DataMan(object):
                 output.add()
         return output
     
-    def _do_randomFlip_y(self, batch):
+    def _do_randomFlip_z(self, batch):
         output = []
         for i in range(len(batch)):
             if bool(random.getrandbits(1)):
