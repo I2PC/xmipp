@@ -92,10 +92,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         md = xmippLib.MetaData(self.inputFile)
         for row_id in md:
 
-            coords = np.empty(3)
-            coords[0] = md.getValue(xmippLib.MDL_X, row_id)
-            coords[1] = md.getValue(xmippLib.MDL_Y, row_id)
-            coords[2] = md.getValue(xmippLib.MDL_Z, row_id)
+            coords = np.empty(3, dtype=int)
+            coords[0] = md.getValue(xmippLib.MDL_XCOOR, row_id)
+            coords[1] = md.getValue(xmippLib.MDL_YCOOR, row_id)
+            coords[2] = md.getValue(xmippLib.MDL_ZCOOR, row_id)
             picker_id = md.getValue(xmippLib.MDL_REF, row_id)
             
             item : Coordinate
@@ -120,16 +120,16 @@ class ScriptCoordsConsensusTomo(XmippScript):
 
             # Write to specific
             row_id = nun.addObject()
-            nun.setValue(xmippLib.MDL_X, item.xyz[0], row_id)
-            nun.setValue(xmippLib.MDL_Y, item.xyz[1], row_id)
-            nun.setValue(xmippLib.MDL_Z, item.xyz[2], row_id)
+            nun.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_id)
+            nun.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_id)
+            nun.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_id)
             nun.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
             
             # Write to general
             row_idg = outMd.addObject()
-            outMd.setValue(xmippLib.MDL_X, item.xyz[0], row_idg)
-            outMd.setValue(xmippLib.MDL_Y, item.xyz[1], row_idg)
-            outMd.setValue(xmippLib.MDL_Z, item.xyz[2], row_idg)
+            outMd.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_idg)
+            outMd.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_idg)
+            outMd.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_idg)
             outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
 
         # Write everything to XMD files

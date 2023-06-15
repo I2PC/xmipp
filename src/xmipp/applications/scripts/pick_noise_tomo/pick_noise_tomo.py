@@ -122,10 +122,10 @@ class ScriptPickNoiseTomo(XmippScript):
         self.allCoords = pd.DataFrame(index=range(total),columns=indizeak)
 
         for row_id in tomoMd:
-            coords = np.empty(3)
-            coords[0] = tomoMd.getValue(xmippLib.MDL_X, row_id)
-            coords[1] = tomoMd.getValue(xmippLib.MDL_Y, row_id)
-            coords[2] = tomoMd.getValue(xmippLib.MDL_Z, row_id)
+            coords = np.empty(3, dtype=int)
+            coords[0] = tomoMd.getValue(xmippLib.MDL_XCOOR, row_id)
+            coords[1] = tomoMd.getValue(xmippLib.MDL_YCOOR, row_id)
+            coords[2] = tomoMd.getValue(xmippLib.MDL_ZCOOR, row_id)
             tomoid = tomoMd.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, row_id)
             self.allCoords.loc[row_id, 'xyz'] = coords
             self.allCoords.loc[row_id, 'tomo_id'] = tomoid            
@@ -156,14 +156,14 @@ class ScriptPickNoiseTomo(XmippScript):
         for _ in range(self.nThreads):
             res += self.pickFun()
         # Write the results
-        print("PickNoiseTomo found %d noise volumes" %(res))
+        print("PickNoiseTomo found %d noise volumes" %(len(res)))
         outMd = xmippLib.MetaData()
         print("Writing to file...")
         for elem in res:
             row_id = outMd.addObject()
-            outMd.setValue(xmippLib.MDL_X, elem[0], row_id)
-            outMd.setValue(xmippLib.MDL_Y, elem[1], row_id)
-            outMd.setValue(xmippLib.MDL_Z, elem[2], row_id)
+            outMd.setValue(xmippLib.MDL_XCOOR, int(elem[0]), row_id)
+            outMd.setValue(xmippLib.MDL_YCOOR, int(elem[1]), row_id)
+            outMd.setValue(xmippLib.MDL_ZCOOR, int(elem[2]), row_id)
         outMd.write(self.outputFn)
 
     def pickFun(self) -> list:
@@ -173,7 +173,7 @@ class ScriptPickNoiseTomo(XmippScript):
 
         for i in range(ITERS_PER_THREAD):
             # Generate a random coordinate
-            candidate = (np.random.rand(3) - 0.5) * self.tomoSize
+            candidate = (np.random.rand(3) * self.tomoSize).astype(int)
 
             # Validate
             for existingCoord in self.allCoords['xyz']:
@@ -181,7 +181,7 @@ class ScriptPickNoiseTomo(XmippScript):
                     break
             else:
                 # No particle collides with this, adding to noise
-                print("Found OK candidate: " + str(candidate))
+                # print("Found OK candidate: " + str(candidate))
                 res.append(candidate)
             
             if len(res) >= self.limitPerThread:
