@@ -43,6 +43,8 @@ MODEL_TRAIN_NEW=0
 MODEL_TRAIN_PRETRAIN=1
 MODEL_TRAIN_PREVRUN=2
 MODEL_TRAIN_TYPELIST=["From scratch", "Existing model", "Previous run"]
+BATCHSIZE = 128
+
 
 class ScriptDeepConsensus3D(XmippScript):
     
@@ -131,8 +133,9 @@ class ScriptDeepConsensus3D(XmippScript):
         if self.checkParam('-t'):
             self.numThreads = self.getIntParam('-t')
         else:
-            sysThreads = multiprocessing.cpu_count()
-            self.numThreads = min(sysThreads, 4)
+            #sysThreads = multiprocessing.cpu_count()
+            #self.numThreads = min(sysThreads, 4)
+            self.numThreads = 4
 
         # GPU acceleration
         gpustr : str = self.getParam('-g')
@@ -294,6 +297,8 @@ class ScriptDeepConsensus3D(XmippScript):
         
         netMan = NM(self.numThreads, self.gpus, self.netpath)
         netMan.createNetwork(self.consboxsize, self.consboxsize, self.consboxsize, 1)
+        netMan.compiledNetwork.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        netMan.trainNetwork(self.nepochs, dataMan, self.learningrate, autoStop=True)
 
     def doScore():
         pass

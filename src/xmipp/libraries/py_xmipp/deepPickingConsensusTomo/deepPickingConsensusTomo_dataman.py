@@ -40,7 +40,8 @@ import xmippLib
 
 from .deepPickingConsensusTomo_networks import PREF_SIDE
 
-BATCH_SIZE = 128
+BATCH_SIZE = 64
+N_BATCHES = 5
 SAVE_AFTER = 25
 
 class DataMan(object):
@@ -96,9 +97,10 @@ class DataMan(object):
 
     def getFolderContent(self, path: str, filter: str) -> list :
         # TODO: implement filter
-        return os.listdir(path)
+        fns = os.listdir(path)
+        return [ path + "/" + fn for fn in fns ] 
     
-    def getDataIterator(self, stage, nEpochs, nBatches=None):
+    def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
         if nEpochs < 0:
             nEpochs = sys.maxsize
         for i in range(nEpochs):
@@ -109,7 +111,7 @@ class DataMan(object):
 
         # Volumes and labels for this batch
         x = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize))
-        y = np.empty(self.batchSize)
+        y = np.empty((self.batchSize, 2))
 
         if stage == "train":
             posFns = self.trainingFnsPos
@@ -129,8 +131,10 @@ class DataMan(object):
                     filename = random.choice(posFns)
 
                 image.read(filename)
-                x[i] = image.getData()
-                y[i] = label
+                xmippIm : np.ndarray = image.getData()
+                x[i] = xmippIm
+                y[i,0] = label
+                y[i,1] = 1 - label
             yield x,y
 
     # DATA AUGMENTATION METHODS

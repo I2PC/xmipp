@@ -31,14 +31,18 @@
 # **************************************************************************
 
 import tensorflow as tf
-from tensorflow import keras
+
 from tensorflow.python.client import device_lib
 from keras import layers as l
 from keras import callbacks as cb
+from keras import backend
+from keras import Model
+from keras.models import Sequential
+
 import os
 
-CONV_LAYERS = 3
-PREF_SIDE = 256
+CONV_LAYERS = 2
+PREF_SIDE = 64
 PROB_DROPOUT = 0.3
 CHECK_POINT_AT= 50 #In batches
 
@@ -72,7 +76,6 @@ class DeepPickingConsensusTomoNetworkManager():
 
         self.checkPointsName = os.path.join(rootPath,"tfchkpoint.hdf5")
 
-
     def gpusConfig(self):
         """
         This function allows TF only to see the GPUs wanted for the processing,
@@ -85,15 +88,18 @@ class DeepPickingConsensusTomoNetworkManager():
         # Compare with the asked amount
         assert len(self.wantedGPUs) <= len(availGPUs), "Not enough GPUs in the system for the asked amount"
         print("Trying to lock GPUs with id: ", self.wantedGPUs)
-
-        self.gpustrings = ["/gpu:%d" % id for id in self.wantedGPUs]
-        self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)        
+        self.gpustrings = ["GPU:%d" % id for id in self.wantedGPUs]
+        print(self.gpustrings)
+        gpustring = self.gpustrings[0]
+        self.mirrored_strategy = tf.distribute.OneDeviceStrategy(device=gpustring)
+        # self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)      
+        #atexit.register(self.mirrored_strategy._extended._collective_ops._pool.close)  
     
-    def createNetwork(self, xdim, ydim, zdim, num_chan, nData=2**12):      
+    def createNetwork(self, xdim, ydim, zdim, nData=2**12):      
 
         print("Compiling the model into a network")
         # Get the model structure
-        self.compiledNetwork = self.getNetwork(dataset_size=nData, input_shape=(xdim,ydim,zdim,num_chan))
+        self.compiledNetwork = self.getNetwork(dataset_size=nData, input_shape=(zdim,ydim,xdim,1))
 
     def loadNetwork(self, modelFile, keepTraining=True):
         if not os.path.isfile(modelFile):
@@ -148,54 +154,69 @@ class DeepPickingConsensusTomoNetworkManager():
         if dataset_size < UMBRAL_1:
             filtermult = 2
         elif UMBRAL_1 <= dataset_size < UMBRAL_2:
-            filtermult = 4
+            filtermult = 3
         else:
-            filtermult = 8
+            filtermult = 4
 
         # PRINT PARAMETERS
-        print("Intermediate layer count: %d", CONV_LAYERS)
-        print("Box size %d,%d,%d", input_shape[0], input_shape[1], input_shape[2])
+        print("Intermediate layer count: %d" % (CONV_LAYERS))
+        print("Input shape %d,%d,%d"% (input_shape[0], input_shape[1], input_shape[2]))
 
         with self.mirrored_strategy.scope():
             # Input size different than NN desired side
-            if input_shape != (PREF_SIDE, PREF_SIDE, PREF_SIDE, 1):
-                input_layer = l.Input(shape = (None, None, None, input_shape[-1]))
-                model = l.Lambda( lambda img: keras.backend.resize_volumes
-                                (img, PREF_SIDE, PREF_SIDE, PREF_SIDE), name="Resizing layer")(input_layer)
-            else:
-                input_layer = l.Input(shape = input_shape)
-                model = input_layer
+            model = Sequential()
+        
+            model.add(l.Input(shape = input_shape))
+            srcDim = input_shape[0]
+            destDim = PREF_SIDE
+            # Cube modifications
+            if srcDim < destDim: # Need to increase cube sizes
+                factor = round(destDim / srcDim)
+                model.add(l.Lambda(lambda img: backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
+            elif srcDim > destDim: # Need to decrease cube sizes
+                factor = round(srcDim / destDim)
+                model.add(l.AveragePooling3D(pool_size=(factor,)*3))
+
+            print("INIT SECSO")
+            print(model.output_shape)
+            print(input_shape)
 
             # DNN PART
             for i in range(1, CONV_LAYERS + 1):
                 # Convolve with an increasing number of filters
                 # Several convolutions before pooling assure a better grasp of 
                 # the features are taken before shrinking the image
-                model = l.Conv3D(filters=2**(filtermult), kernel_size=(3,3,3),
-                                activation='relu', padding='same',kernel_regularizer='l1_l2')(model)
-                filtermult += 1
-                model = l.Conv3D(filters = 2**(filtermult), kernel_size = (2,2,2),
-                                activation='relu', padding='same', kernel_regularizer='l1_l2')(model)
-                filtermult += 1
+                model.add(l.Conv3D(filters=2**(filtermult), kernel_size=(4,4,4),
+                                activation='relu', padding='same',kernel_regularizer='l1_l2'))
+                
+                # filtermult += 1
+                # model = l.Conv3D(filters = 2**(filtermult), kernel_size = (8,8,8),
+                #                 activation='relu', padding='same', kernel_regularizer='l1_l2')(model)
+                # filtermult += 1
                 # Normalize
-                model = l.BatchNormalization()(model)
+                model.add(l.BatchNormalization())
                 # Activate
-                model = l.Activation('relu')(model)
-                # Until last layer, sharpen for edges to be easily detectable
+                model.add(l.Activation('relu'))
+
                 if i != CONV_LAYERS:
-                    model = l.MaxPooling3D(pool_size = 2, strides = 2, paddint='same')(model)
+                    model.add(l.MaxPooling3D(pool_size=(2,2,2), padding='same'))
+                
 
             # Final touches
             # Desharpen edges
-            l.AveragePooling3D(pool_size=4, strides=(2,2,2), padding='same')
+            model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
             # Compact and drop
-            l.Flatten()
-            l.Dense(units=512, activation='relu', kernel_initializer='he_uniform', kernel_regularizer='l1_l2')
-            l.Dense(units=256, activation='relu', kernel_regularizer='l2')
-            l.Dropout(PROB_DROPOUT)
+            model.add(l.Flatten())
+            model.add(l.Dense(units=128, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dropout(PROB_DROPOUT))
+            model.add(l.Dense(units=64, activation='sigmoid'))
+            model.add(l.Dropout(PROB_DROPOUT))
+            model.add(l.Dense(units=32, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dropout(PROB_DROPOUT))
 
-            # Final predictions - 2 classes (GOOD / BAD)
-            pred_layer = l.Dense(units=2, activation='softmax')(model)
-            network = keras.Model(inputs=input_layer, output=pred_layer)
-            network.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-        return network
+            # Final predictions - 2 classes probabilities (p(GOOD),p(BAD))
+            model.add(l.Dense(units=2, activation='softmax'))
+            print(model.summary())
+            #model.build((None,PREF_SIDE))
+            model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        return model
