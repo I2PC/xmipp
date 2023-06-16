@@ -242,13 +242,16 @@ def cleanEmptyFolders():
             runJob("rm -rf {}".format(folder))
 
 def checkout(branch):
+    log = []
     r, currentBranch = getCurrentBranch()
     if currentBranch == branch:
         return True
-    if isRepositoryClean() and runJob("git checkout %s" % branch, show_command=False, show_output=False):
+    isRepositoryClean()
+    if runJob("git checkout %s" % branch,  log=log, show_command=False, show_output=False):
         return True
-    print(red("Cannot checkout branch '%s'. Remaining on the branch '%s'." % (branch, currentBranch)))
-    return False
+    else:
+        print(yellow("Cannot checkout branch '%s'. Remaining on the branch '%s'." % (branch, currentBranch)))
+    return True
 
 
 def isRepositoryClean(showError=True):
@@ -280,21 +283,27 @@ def cloneOrCheckout(repo, branch):
         print('Clonning repository: {}/{}'.format(repo, branch))
         print(yellow('Working...'), end='\r')
         # If the repo doesn't exist, just clone the whole repo
+        log = []
         if branch is None:
             # let the git client to decide what is the default branch
-            return runJob("git clone %s %s" % (REPOSITORIES[repo], repo_dir),
-                          show_output=False, show_command=False)
+            status = runJob("git clone %s %s" % (REPOSITORIES[repo], repo_dir),
+                          show_output=False, show_command=False, log=log)
+            if status == False:
+                exitProgram(1, [False, 1, ''.join(log), "Please review the conexion to the repository"])
         else:
-            return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir),
-                          show_output=False, show_command=False)
+            status = runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir),
+                          show_output=False, show_command=False, log=log)
+            if status == False:
+                exitProgram(1, [False, 1, ''.join(log), "Please review the conexion to the repository"])
     else:
         print('Checkouting and pull repository: {}/{}'.format(repo, branch))
         print(yellow('Working...'), end='\r')
         workDir = os.getcwd()
         os.chdir(repo_dir)
-        res = checkout(branch) and pull()
+        checkout(branch)
+        pull()
         os.chdir(workDir)
-        return res
+        return True
 
 
 def removePrefix(text, prefix):
@@ -337,7 +346,7 @@ def getCurrentBranch(cwd='./', getHash=False):
            show_command=False, log=log)
     if result:  # log contains commit_space_branchName
         return (True,) + tuple(log[0].split()[::-1][0:outBranchArgs])
-    print(red('Cannot list branches for ' + ''.join(log)))
+    print(yellow('Cannot list branches for ' + ''.join(log)))
     return (False,) + (None,)*outBranchArgs
 
 
@@ -348,8 +357,9 @@ def getAllBranchesAndTags(repo):
     if result:
         branchesAndTags = [l.split('/')[-1] for l in log]
         return True, branchesAndTags
-    print(red('Cannot list branches for ' + repo + ''.join(log)))
-    return False, []
+    strError = 'Cannot list branches for ' + repo + ' ' + ''.join(log)
+    status = [False, 1, strError, "Please review the conexion to the repository"]
+    exitProgram(1, status)
 
 
 def getBranch(repo, repo_dir):
@@ -383,13 +393,13 @@ def getDefaultBranch(repo):
             if key in l:
                 branch = l.split(key)[1] # HEAD branch: devel
                 return (True, branch.strip())
-    print(red('Cannot auto-detect default branch for ' + repo +
-              '. Maybe git version < 1.8.5?\n' + ''.join(log)))
-    return (False, None)
+    exitProgram(1, [False, 1, 'Cannot auto-detect default branch for ' + repo +
+              '. Maybe git version < 1.8.5?\n' + ''.join(log),
+              'Check the git version and the internet conexion'])
 
 
 def getSources(branch):
-    print("\nGetting sources ------------------------------------------")
+    print("\nGetting Xmipp sources ------------------------------------------")
     if ensureGit(True)[0] == False:
         exitProgram(status[1])
     createDir("src")
@@ -400,9 +410,6 @@ def getSources(branch):
     for r in repos:
         if cloneOrCheckout(r, branch):
             print(green('Done          '))
-        else:
-            print(red("Cannot get the sources"))
-            return False
     return True
 
 
@@ -412,17 +419,14 @@ def getDependencies():
     if status[0] == False:
         exitProgram(status[1], status)
     createDir("src")
-    result = True
     for dep, args in DEPENDENCIES.items():
         branch = args[0]
         configChecked = not args[1] or buildConfig.is_true(args[1])
-        if configChecked and result:
-            result = cloneOrCheckout(dep, branch)
+        if configChecked:
+            cloneOrCheckout(dep, branch)
             print(green('Done          '))
-    if not result:
-        print(red("Cannot get dependencies"))
+            return True
 
-    return result
 
 def printVersion():
     buildDir = 'build'
@@ -504,21 +508,21 @@ def compileModule(Nproc,module):
                 errorMsg = errorRegex.group(4)
                 for k, v in SKIPPABLE_BINS.items():
                     if k in failingBin:
-                        print(red("\nSome error found compiling '%s' program."
-                                  % failingBin.split('/')[-1]))
-                        print(red("You can skip this program by including '%s' "
-                                  "in the config file." % (v)))
+                        exitProgram(1, [False, 1,
+                                        "\nSome error found compiling '%s' program."
+                                        % failingBin.split('/')[-1],
+                                        "You can skip this program by including '%s' "
+                                        "in the config file." % (v)])
                 if 'unsupported pickle protocol' in errorMsg:
-                    print(red("\nThis error might be because you changed the python "
-                              "version. If so, please run './xmipp cleanBin' to "
-                              "clean up the installation and, then './xmipp' to "
-                              "re-compile it."))
+                    exitProgram(1, [False, 1, 'Unsupported pickle protocol',
+                                    "\nThis error might be because you changed the python "
+                                    "version. If so, please run './xmipp cleanBin' to "
+                                    "clean up the installation and, then re-compile Xmipp."])
             errorRegex = re.match(".*: fatal error: (.*): No such file or directory", l)
             if errorRegex:
                 missingPath = errorRegex.group(1)
                 if lastError != missingPath:
                     lastError = missingPath
-                    print(red("\n'%s' file not found." % missingPath))
                     missingDir = missingPath.split(os.path.sep)[0]
                     missingFile = os.path.join(*missingPath.split(os.path.sep))
                     if len(missingFile) > 1:
@@ -527,11 +531,17 @@ def compileModule(Nproc,module):
                         depDir = os.path.join('src', missingDir)
                         hint = ('cd %s ; git checkout -- %s ; cd -' % (depDir, missingFile)
                                 if os.path.isdir(depDir) else './xmipp get_dependencies')
-                        print(red("This file belongs to %s dependency. Please, "
-                                  "try '%s' and re-compile." % (missingDir, hint)))
-        print(red("Some error occurred during the compilation of '%s'%s."
-                  % (module, (" ('%s')" % failingBin) if failingBin else '')))
-        return False
+                        strSupport = "This file belongs to %s dependency. Please, " \
+                                     "try '%s' and re-compile." % (missingDir, hint)
+                    else: strSupport = 'Run /xmipp cleanAll to remove all repositories ' \
+                                       '(local changes will be removed) and compile Xmipp from scrach'
+
+                    exitProgram(1, [False, 1, "\n'%s' file not found." % missingPath, strSupport])
+
+        exitProgram(1, [False, "Some error occurred during the compilation of '%s'%s."
+                  % (module, (" ('%s')" % failingBin) if failingBin else ''),
+                 'Review the compileLOG.txt file for more details about the error.'])
+
     print(green('Done. Visit compileLOG.txt for details' + (' ' * 70)))
     return ok
 
@@ -665,9 +675,7 @@ def compile(Nproc):
             return False
         return compileXmipp(Nproc)
     else:
-        print(red('Scons package not found. Please install it in the enviroment '
-                    'you install Xmipp (pip install SCons) or in the system'))
-        return False
+        exitProgram(15)
 
 def compileDependencies(Nproc):
     print("\nBuilding Dependencies ------------------------------------")
@@ -683,33 +691,28 @@ def compileDependencies(Nproc):
             result, log = compile_cuFFTAdvisor()
             write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
             if not result:
-                print(red("Cannot build cuFFTAdvisor dependence"))
-                return False
+                exitProgram(16)
 
     write_compileLog('\n\n' + '#' * 27 + '\nCompiling googletest--------\n',
                      COMPILE_LOG=COMPILE_LOG)
     result, log = compile_googletest()
     write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
-        print(red("Cannot build googletest dependence"))
-        return False
+        exitProgram(17)
 
     write_compileLog('\n\n' + '#' * 27 + '\nCompiling libsvm--------\n',
                      COMPILE_LOG=COMPILE_LOG)
     result, log = compile_libsvm()
     write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
-        print(red("Cannot build libsvm dependence"))
-        return False
+        exitProgram(18)
 
     write_compileLog('\n\n' + '#' * 27 + '\nCompiling libcifpp--------\n',
                      COMPILE_LOG=COMPILE_LOG)
     result, log = compile_libcifpp()
     write_compileLog('\n'.join(log), COMPILE_LOG=COMPILE_LOG)
     if not result:
-        print(red("Cannot build libcifpp dependences"))
-        return False
-
+        exitProgram(19)
     return True
 
 
@@ -1096,7 +1099,7 @@ def usage(msg=''):
           )
 
 
-def exitProgram(error=0, status=''):
+def exitProgram(error=0, status=None):
     try:
         log = []
         runJob(

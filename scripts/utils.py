@@ -112,8 +112,6 @@ def endMessage(XMIPP_VERNAME):
 
 
 def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
-    ErrMsg1 = ''
-    ErrMsg2 = ''
     if status:
         ErrMsg1 = status[2]
         ErrMsg2 = status[3]
@@ -125,12 +123,12 @@ def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
 
     if XMIPP_VERNAME == 'devel':
         print(' Devel version of Xmipp is constantly beeing improved, some errors might appear temporary.' )
-        print(red('{}. '.format(ErrMsg1) + '{}. '.format(ErrMsg2)))
+        print(red('{}. '.format(ErrMsg1) + '\n {}. '.format(ErrMsg2)))
         print(' For more information about the error check compileLOG.txt file if exist.\n'
               ' Devel consideration: If you have modified code inside Xmipp please check it.')
 
     else:#release
-        print(red('{}. '.format(ErrMsg1) + '{}. '.format(ErrMsg2)))
+        print(red('{}. '.format(ErrMsg1) + '\n {}. '.format(ErrMsg2)))
         print(' For more information about the error check compileLOG.txt file if exist.\n'
               ' You can visit our guide of installation https://github.com/I2PC/xmipp,\n'
               ' visit the wiki page with some details https://github.com/I2PC/xmipp/wiki \n'
@@ -466,7 +464,7 @@ def errorList(errorNum):
     errorList = [
         #[index, error description, possible solutions]
         [0, 'No error', ''],
-        [1, 'Error generated on checkProgram function', 'Check the xmipp.conf flags'],
+        [1, 'Specific error. Sentence overwritten', 'Check the xmipp.conf flags'],
         [2, 'Version of compiler is not implemented', 'Review the CXX flag in the xmipp.conf'],
         [3, 'Compiler read from xmipp.conf CXX not found', 'Review the CXX flag in the xmipp.conf'],
         [4, 'Version 8.0 or higher of the compiler is required', 'Please go to https://github.com/I2PC/xmipp#compiler to solve it.'],
@@ -481,9 +479,20 @@ def errorList(errorNum):
         [11, 'Java not found in system', ''],
         [12, 'JAVAC does not work', 'Check the JAVAC flag on xmipp.conf'],
         [13, 'JAVA fails. jni include fails', 'Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
-        [14, '', ''],
-        [15, '', ''],
-        [16, '', ''],
+        [14, 'Error git', 'Please review the conexion to the repository'],
+        [15, 'Scons package not found', 'Install it in the enviroment you install Xmipp (pip install SCons) or in the system'],
+        [16, 'Cannot build cuFFTAdvisor dependence', 'Review the documentation about CUDA and if the error persist \n'
+            'you could disable CUDA functionalities with CUDA=False on the xmipp.conf file'],
+        [17, 'Cannot build googletest dependence', 'Review the repository has been downloaded correctly. Run /xmipp cleanAll \nto remove all repositories (local changes will be removed) and compile Xmipp from scrach'
+                                                   'Review the cmake version of your system and review compileLOG.txt file\n for more details about the error '],
+        [18, 'Cannot build libsvm dependence', 'Review the repository has been downloaded correctly run ./xmipp cleanAll \nto remove all repositories (local changes would be removed'],
+        [19, 'Cannot build libcifpp dependences', 'Review the repository has been downloaded correctly. Review the cmake version of your system. Visit https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install \n'
+                                                  'and https://github.com/I2PC/xmipp/wiki/Cmake-troubleshoting '],
+        [17, '', ''],
+        [17, '', ''],
+        [17, '', ''],
+        [17, '', ''],
+        [17, '', ''],
 
     ]
     return errorList[errorNum]
