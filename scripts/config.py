@@ -947,8 +947,8 @@ class Config:
 
     def check_version(self, XMIPP_VERNAME):
         if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
-            print(yellow("There are some changes in repository which may not be compatible with your current config file.\n" \
-                   "Run './xmipp config' to generate a new config file.\n"))
+            print(yellow("There are some changes in repository which may not be compatible\n"
+                         " with your config file. Run './xmipp config' to generate a new config file."))
 
     def _get_version(self):
         """ If git not present means it is in production mode

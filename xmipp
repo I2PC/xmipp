@@ -399,7 +399,7 @@ def getDefaultBranch(repo):
 
 
 def getSources(branch):
-    print("\nGetting Xmipp sources ------------------------------------------")
+    print("\nGetting Xmipp sources ------------------------------------")
     if ensureGit(True)[0] == False:
         exitProgram(status[1])
     createDir("src")
@@ -414,7 +414,7 @@ def getSources(branch):
 
 
 def getDependencies():
-    print("\nGetting external dependencies -------------------------------------")
+    print("\nGetting external dependencies ----------------------------")
     status = ensureGit(True)
     if status[0] == False:
         exitProgram(status[1], status)
@@ -538,9 +538,9 @@ def compileModule(Nproc,module):
 
                     exitProgram(1, [False, 1, "\n'%s' file not found." % missingPath, strSupport])
 
-        exitProgram(1, [False, "Some error occurred during the compilation of '%s'%s."
-                  % (module, (" ('%s')" % failingBin) if failingBin else ''),
-                 'Review the compileLOG.txt file for more details about the error.'])
+        exitProgram(1, [False, 1, "Some error occurred during the compilation of %s %s" %
+                        (module, (" ('%s')" % failingBin) if failingBin else ''),
+                    ''])
 
     print(green('Done. Visit compileLOG.txt for details' + (' ' * 70)))
     return ok
@@ -645,7 +645,7 @@ def compile_libcifpp():
                 createDir(libDir)
                 log3 = []
                 if runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir, log=log3, show_output=False, show_command=False):
-                    print(green("Done" + (' ' * 150)))
+                    print(green("Done" + (' ' * 70)))
                     return True, log + log1 + log2 + log3
                 else:
                     print(red(log[0]))
@@ -754,7 +754,7 @@ def runTests(testNames):
         print(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
               blue('source build/xmipp.bashrc'))
-        exitProgram()
+        exitProgram(0)
 
 
     dataSetPath = os.path.join(testsPath, 'data')
@@ -908,7 +908,7 @@ def linkToScipion(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
         os.chdir(currentDir)
-        print(green(str("xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)))
+        print(green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)))
 
 
     else:
@@ -1112,9 +1112,9 @@ def exitProgram(error=0, status=None):
         pass
     if error:
         errorEndMessage(XMIPP_VERNAME, error, status)
-
-    printVersion()
+        printVersion()
     sys.exit(0)
+
 
 if __name__ == '__main__':
     # Running always under this own directory.

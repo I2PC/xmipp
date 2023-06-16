@@ -96,12 +96,11 @@ def find_newest(program, versions, show=True):
 
 
 def endMessage(XMIPP_VERNAME):
-    strXmipp = 'Xmipp {} has been successfully installed!'.format(
+    strXmipp = 'Xmipp {} has been successfully installed, enjoy it!'.format(
         XMIPP_VERNAME)
     lenStr = len(strXmipp)
     border = '*' * (lenStr + 5)
     spaceStr = ' ' * (lenStr + 3)
-    print('\n')
     print(border)
     print('*' + spaceStr + '*')
     print('* ', end='')
@@ -109,6 +108,7 @@ def endMessage(XMIPP_VERNAME):
     print(' *')
     print('*' + spaceStr + '*')
     print(border)
+    print('\n')
 
 
 def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
@@ -119,23 +119,25 @@ def errorEndMessage(XMIPP_VERNAME, errorNum, status=''):
         ErrMsg1 = errorList(errorNum)[1]
         ErrMsg2 = errorList(errorNum)[2]
 
-    print("\033[1m" + " Unable to install Xmipp.\n" + "\033[0m")
+    print(('\n---------------------------------------------------------------'))
+
+    print( " Unable to install Xmipp.\n")
 
     if XMIPP_VERNAME == 'devel':
         print(' Devel version of Xmipp is constantly beeing improved, some errors might appear temporary.' )
-        print(red('{}. '.format(ErrMsg1) + '\n {}. '.format(ErrMsg2)))
+        print(red('{}. '.format(ErrMsg1) + '\n {} '.format(ErrMsg2)))
         print(' For more information about the error check compileLOG.txt file if exist.\n'
-              ' Devel consideration: If you have modified code inside Xmipp please check it.')
+              ' Developers note: If you have modified code inside Xmipp please check it.')
 
     else:#release
-        print(red('{}. '.format(ErrMsg1) + '\n {}. '.format(ErrMsg2)))
+        print(red('{}. '.format(ErrMsg1) + '\n {} '.format(ErrMsg2)))
         print(' For more information about the error check compileLOG.txt file if exist.\n'
               ' You can visit our guide of installation https://github.com/I2PC/xmipp,\n'
               ' visit the wiki page with some details https://github.com/I2PC/xmipp/wiki \n'
               ' and you can contact us xmipp@cnb.csic.es or Discord/Scipion/xmipp\n'
               'To report the details of the error please share the reportInstallation.tar.gz file')
 
-    print(('---------------------------------------------------------------------------'))
+    print(('---------------------------------------------------------------'))
 
 def find(program, path=[]):
     location = which(program)
@@ -487,12 +489,7 @@ def errorList(errorNum):
                                                    'Review the cmake version of your system and review compileLOG.txt file\n for more details about the error '],
         [18, 'Cannot build libsvm dependence', 'Review the repository has been downloaded correctly run ./xmipp cleanAll \nto remove all repositories (local changes would be removed'],
         [19, 'Cannot build libcifpp dependences', 'Review the repository has been downloaded correctly. Review the cmake version of your system. Visit https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install \n'
-                                                  'and https://github.com/I2PC/xmipp/wiki/Cmake-troubleshoting '],
-        [17, '', ''],
-        [17, '', ''],
-        [17, '', ''],
-        [17, '', ''],
-        [17, '', ''],
+                                                  'and https://github.com/I2PC/xmipp/wiki/Cmake-troubleshoting ']
 
     ]
     return errorList[errorNum]
