@@ -865,6 +865,9 @@ def downloadDeepLearningModels(dest, dedicatedMode=False):
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 
+    if not os.path.exists('bin/xmipp_sync_data'):
+        print(red('Xmipp has not been installed. Please, first install it '))
+        return False
     if dest == 'build':
         modelsPath = os.path.join(dest, 'models')
     else:
@@ -1082,33 +1085,43 @@ def usage(msg=''):
     if msg != '':
         print(red(msg))
     print("Usage: xmipp [options]\n"
-          "   version [dir=build];        Returns the version information. Add '--short' to print only the version number.\n"
-          "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
-          "   get_dependencies:           Retrieve dependencies from github\n"
-          "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
-          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
-          "   cleanDeprecated:            Clean all deprecated executables from src/xmipp/bin).\n"
-          "   cleanAll:                   Delete all (sources and build directories)\n"
-          "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
+          "   ----------------------------\n"
+          "   version [dir=build]         Returns the version information. Add '--short' to print only the version number.\n"
+          "   compile [N]                 Compile with N processors (8 by default)\n"
+          "   install [dir]               Install at dir (./build by default)\n"
+          "   compileAndInstall [N] [dir] Compile with N processors (8 by default) and install in the dir directory ('build' by\n"
+          "                               default)\n"
+          "   all [op1=opt1 op2=opt2...]  (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
+          "   ----------------------------\n"
+          "   config [noAsk]              Configure compilation variables. If 'noAsk' is passed, it will try to automatically \n"
+          "                               found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
-          "   check_config:               Check that the configuration is correct\n"
-          "   compile [N]:                Compile with N processors (8 by default)\n"
-          "   compileAndInstall [N] [dir] Compile with N processors (8 by default) and install in the dir directory ('build' by default)\n"
-          "   install [dir]:              Install at dir (./build by default)\n"
-          "   get_models [dir]:           Download the Deep Learning Models at dir/models (./build/models by default).\n"
+          "   check_config                Check that the configuration is correct\n"
+          "   ----------------------------\n"
+          "   get_dependencies            Retrieve dependencies from github\n"
+          "   get_devel_sources [branch]  Retrieve development sources from github for a given branch (devel branch by default)\n"
+          "   get_models [dir]            Download the Deep Learning Models at dir/models (./build/models by default).\n"
+          "   ----------------------------\n"
+          "   cleanBin                    Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
+          "   cleanDeprecated             Clean all deprecated executables from src/xmipp/bin).\n"
+          "   cleanAll                    Delete all (sources and build directories)\n"
+          "   ----------------------------\n"
           "   test [--show] testName:     Run tests to check Xmipp programs (without args, it shows a detailed help).\n"
-          "                                 if --show is activated without testName all are shown, \n"
-          "                                 instead a grep of testName is done \n"
-          "For developers:\n"
-          "   create_devel_paths:         Create bashrc files for devel\n"
-          "   git ...:                    Git command to all 4 repositories\n"
-          "   gitConfig:                  Change the git config from https to git\n"
-          "   addModel login modelPath:   Takes a deepLearning model from the 'modelPath', makes a tgz of it and \n"
-          "                                   uploads the .tgz according to the <login>. \n"
-          "                                   Note the login (usr@server) must have write permisions to Nolan machine.\n"
-          "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
-          "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
-          "                                   <ver> usually X.YY.MM (add debug to package this local script and the local scripts/tar.py) \n"
+          "                               if --show is activated without testName all are shown, \n"
+          "                               instead a grep of testName is done \n"
+          "   ----------------------------\n"
+          "   For developers:\n"
+          "   create_devel_paths          Create bashrc files for devel\n"
+          "   git [command]               Git command to all 4 repositories\n"
+          "   gitConfig                   Change the git config from https to git\n"
+          "   addModel login modelPath    Takes a deepLearning model from the 'modelPath', makes a tgz of it and \n"
+          "                               uploads the .tgz according to the <login>. \n"
+          "                               Note the login (usr@server) must have write permisions to Nolan machine.\n"
+          "   tar <mode> [v=ver] [br=br]  Create a bundle of the xmipp (without arguments shows a detailed help)\n"
+          "                               <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources \n"
+          "                               put a branch (default: master).'\n"
+          "                               <ver> usually X.YY.MM (add debug to package this local script and \n"
+          "                               the local scripts/tar.py) \n"
           )
 
 
