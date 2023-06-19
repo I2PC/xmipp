@@ -1,0 +1,11 @@
+First add the protocol "protocol_prepare_deepConsensus.py" to xmipp protocols 
+by copying it to scipion-em-xmipp/xmipp3/protocols and adding to
+~/app/xmipp_bundle/src/scipion-em-xmipp/xmipp3/protocols/__init__.py  the following line
+
+#from .protocol_prepare_deepConsensus import XmippProtPrepareDeepConsensus
+
+Then, train it using different sets of true coordinates and false coordinates.
+
+The order of the sets in the form DO MATTER
+
+
