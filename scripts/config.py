@@ -494,7 +494,7 @@ class Config:
                       show_command=False, show_output=False):
             return False, 6
         runJob("rm xmipp_test_main*", show_command=False, show_output=False)
-        print(green('Done ' + (' ' * 150)))
+        print(green('Done ' + (' ' * 70)))
         return True, 0
     def _get_CUDA_version(self, nvcc):
         log = []
@@ -680,7 +680,7 @@ class Config:
                 print(red("Check the CXX and NVCC_LINKFLAGS"))
                 return False
             runJob("rm xmipp_cuda_test*", show_command=False,show_output=False)
-        print(green('Done ' + (' ' * 150)))
+        print(green('Done ' + (' ' * 70)))
         return True
 
     def _config_MPI(self):
@@ -768,6 +768,7 @@ class Config:
                 runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (self.configDict['MPI_RUN'], echoString))):
             print(red("mpirun or mpiexec have failed."))
             return False, 10
+        print(green('Done ' + (' ' * 70)))
         return True, 0
 
     def _config_Java(self):

@@ -295,6 +295,8 @@ def cloneOrCheckout(repo, branch):
                           show_output=False, show_command=False, log=log)
             if status == False:
                 exitProgram(1, [False, 1, ''.join(log), "Please review the conexion to the repository"])
+        return True
+
     else:
         print('Checkouting and pull repository: {}/{}'.format(repo, branch))
         print(yellow('Working...'), end='\r')
