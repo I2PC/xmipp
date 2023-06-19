@@ -427,7 +427,7 @@ def getDependencies():
         if configChecked:
             cloneOrCheckout(dep, branch)
             print(green('Done          '))
-            return True
+    return True
 
 
 def printVersion():
