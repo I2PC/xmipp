@@ -349,9 +349,11 @@ class Config:
             if hdf5InLocalLib != '':
                 print(green(str(hdf5Found + hdf5InLocalLib)))
             elif isHdf5CppLinking != False:
-                print(green(str(hdf5Found + isHdf5CppLinking)))
+                print(green('{} found on the system'.format(
+                    self.get(Config.KEY_CXX), '-lhdf5_cpp')))
             elif isHdf5Linking !=False:
-                print(green(str(hdf5Found + isHdf5Linking)))
+                print(green('{} found on the system'.format(
+                    self.get(Config.KEY_CXX), '-lhdf5')))
             elif hdf5Lib != '':
                 print(green(str(hdf5Found + hdf5Lib)))
 
