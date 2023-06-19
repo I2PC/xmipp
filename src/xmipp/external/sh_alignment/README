@@ -1,9 +1,0 @@
-Newest version of the numpy.i can be found here:
-https://github.com/numpy/numpy/blob/master/tools/swig/numpy.i
-
-Original code from Yuxiang Chen FRM package
-to produce swig_frm.py and frm_wrap.c do in this directory
-
-swig -python frm.i
-
-Then rename frm_wrap.c -> frm_wrap.cpp
