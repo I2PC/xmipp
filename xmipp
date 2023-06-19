@@ -1296,10 +1296,10 @@ if __name__ == '__main__':
         status = ensureGit(True)
         if status [0] == False:
             exitProgram(status[1])
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config")
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config", showWithReturn=False)
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config", showWithReturn=False)
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config", showWithReturn=False)
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config", showWithReturn=False)
     elif mode == 'addModel':
         update = False
         if not (n == 4 or (n == 5 and sys.argv[4] == '--update') or (n == 3 and sys.argv[2] == '--help')):
