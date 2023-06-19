@@ -87,8 +87,9 @@ class evaluation:
     def writeExpStar(self, prjStar, expStar, matchPair, shiftVec, nExp, apply_shifts, output):
         
         self.getAngle(prjStar)
-        self.getShifts(expStar, nExp)
-        expShifts = self.expShifts.cpu().numpy()
+        if apply_shifts:
+            self.getShifts(expStar, nExp)
+            expShifts = self.expShifts.cpu().numpy()
         star = starfile.read(expStar)
         new = output  
     
