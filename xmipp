@@ -358,7 +358,7 @@ def getAllBranchesAndTags(repo):
         branchesAndTags = [l.split('/')[-1] for l in log]
         return True, branchesAndTags
     strError = 'Cannot list branches for ' + repo + ' ' + ''.join(log)
-    status = [False, 1, strError, "Please review the conexion to the repository"]
+    status = [False, 1, strError, "Please review the connetion to the repository"]
     exitProgram(1, status)
 
 
@@ -395,7 +395,7 @@ def getDefaultBranch(repo):
                 return (True, branch.strip())
     exitProgram(1, [False, 1, 'Cannot auto-detect default branch for ' + repo +
               '. Maybe git version < 1.8.5?\n' + ''.join(log),
-              'Check the git version and the internet conexion'])
+              'Check the git version and the internet connetion'])
 
 
 def getSources(branch):

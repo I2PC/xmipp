@@ -65,10 +65,11 @@ def get_GCC_version(compiler):
     gccVersion = float(str(tokens[0] + '.' + tokens[1]))
     return gccVersion, full_version
 
-def find_GCC(candidates, show=False):
+def find_GCC(candidates, minimumGCC='', show=False):
     gccVersion, full_version = get_GCC_version('gcc')
     if gccVersion == '':
-        print(red('Not compiler found, please install it. We require gcc/g++ >=8'))
+        print(red('Not compiler found, please install it. We require gcc/g++ >={}'.
+                  format(minimumGCC)))
         return ''
     if str(gccVersion) in candidates:
         log=[]

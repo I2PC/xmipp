@@ -43,7 +43,9 @@ class Config:
     OPT_NVCC = 'NVCC'
     OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
     OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
-    MINOR_GCC_VERSION = 8
+    MINIMUM_GCC_VERSION = 8
+    MINIMUM_CUDA_VERSION = 10.1
+
     CMAKE_VERSION_REQUIRED = '3.16'
 
 
@@ -289,7 +291,7 @@ class Config:
             self.configDict["DEBUG"] = "False"
         if self.configDict["CC"] == "" and checkProgram("gcc")[0]:
             self.configDict["CC"] = "gcc"
-            if get_GCC_version("gcc")[0] < Config.MINOR_GCC_VERSION:
+            if get_GCC_version("gcc")[0] < Config.MINIMUM_GCC_VERSION:
                 print(red("gcc version required >= 8, detected gcc {}".format(get_GCC_version("gcc")[0])))
             else:
                 print(green('gcc {} detected'.format(get_GCC_version("gcc")[0])))
@@ -421,7 +423,7 @@ class Config:
         if gccVersion == '':
             return False, 3
         print(green('Detected ' + compiler + " in version " + fullVersion + '.'))
-        if gccVersion < 8.0:
+        if gccVersion < Config.MINIMUM_GCC_VERSION:
             return False, 4
         return True, 0
 
@@ -554,11 +556,13 @@ class Config:
             return
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
         if not resultBool:
-            print(yellow('CUDA version {} not compatible with Xmipp. Please install CUDA>=10.1'.format(nvcc_version)), *candidates, sep=", ")
+            print(yellow('CUDA version {} not compatible with Xmipp. Please '
+                         'install CUDA>={}'.format(Config.MINIMUM_CUDA_VERSION,
+                                        nvcc_version)), *candidates, sep=", ")
             print('gcc candidates based on nvcc version:', *candidates, sep=", ")
             return
 
-        prg = find_GCC(candidates, show=True)
+        prg = find_GCC(candidates, minimumGCC=Config.MINIMUM_GCC_VERSION, show=True)
         if not prg:# searching a g++ for devToolSet on CentOS
             print('gcc candidates based on nvcc version:', *candidates,
                   sep=", ")
