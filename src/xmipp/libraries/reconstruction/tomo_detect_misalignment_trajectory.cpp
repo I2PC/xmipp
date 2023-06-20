@@ -713,7 +713,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			}
 		}
 
-        double sum = 0, sum2 = 0;
+        double sum = 0;
+		double sum2 = 0;
         int Nelems = 0;
         double average = 0;
         double standardDeviation = 0;
@@ -800,7 +801,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
 
 			int colour;
-
+			
 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
 			#ifdef DEBUG_HCC
