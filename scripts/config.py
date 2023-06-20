@@ -498,6 +498,7 @@ class Config:
         runJob("rm xmipp_test_main*", show_command=False, show_output=False)
         print(green('Done ' + (' ' * 70)))
         return True, 0
+
     def _get_CUDA_version(self, nvcc):
         log = []
         runJob(nvcc + " --version", show_output=False,
@@ -700,7 +701,8 @@ class Config:
             else:
                 print(yellow("\n'mpirun' and 'mpiexec' not found in the PATH"))
                 mpiDir = findFileInDirList('mpirun', mpiBinCandidates)
-                mpiDir = askPath(mpiDir, self.ask)
+                if mpiDir == '':
+                    mpiDir = askPath(mpiDir, self.ask)
                 if mpiDir:
                     self.configDict["MPI_RUN"] = os.path.join(mpiDir, "mpirun")
                     checkProgram(self.configDict["MPI_RUN"])
@@ -710,9 +712,10 @@ class Config:
                 self.configDict["MPI_CC"] = "mpicc"
                 print(green("'mpicc' detected."))
             else:
-                print(yellow("\n'mpicc' not found in the PATH"))
                 mpiDir = findFileInDirList('mpicc', mpiBinCandidates)
-                mpiDir = askPath(mpiDir, self.ask)
+                if mpiDir == '':
+                    print(yellow("\n'mpicc' not found in the PATH"))
+                    mpiDir = askPath(mpiDir, self.ask)
                 if mpiDir:
                     self.configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
                     checkProgram(self.configDict["MPI_CC"])
@@ -721,9 +724,10 @@ class Config:
                 self.configDict["MPI_CXX"] = "mpicxx"
                 print(green("'mpicxx' detected."))
             else:
-                print(yellow("\n'mpicxx' not found in the PATH"))
                 mpiDir = findFileInDirList('mpicxx', mpiBinCandidates)
-                mpiDir = askPath(mpiDir, self.ask)
+                if mpiDir == '':
+                    print(yellow("\n'mpicxx' not found in the PATH"))
+                    mpiDir = askPath(mpiDir, self.ask)
                 if mpiDir:
                     self.configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
                     checkProgram(self.configDict["MPI_CXX"])
@@ -778,10 +782,11 @@ class Config:
         if self.configDict["JAVA_HOME"] == "":
             javaProgramPath = whereis('javac', findReal=True)
             if not javaProgramPath:
-                print(yellow("\n'javac' not found in the PATH"))
                 javaProgramPath = findFileInDirList(
                     'javac', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
-                javaProgramPath = askPath(javaProgramPath, self.ask)
+                if javaProgramPath == '':
+                    print(yellow("\n'javac' not found in the PATH"))
+                    javaProgramPath = askPath(javaProgramPath, self.ask)
             if not os.path.isdir(javaProgramPath):
                 installDepConda('openjdk', self.ask)
                 javaProgramPath = whereis('javac', findReal=True)
