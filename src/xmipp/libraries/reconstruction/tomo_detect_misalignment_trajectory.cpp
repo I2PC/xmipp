@@ -801,6 +801,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
 
 			int colour;
+
+			closing2D(binaryCoordinatesMapSlice, 2, 2, 8);
 			
 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
@@ -2896,6 +2898,91 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 
 // --------------------------- UTILS functions ----------------------------
+
+void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binaryImage, int size, int count, int neig)
+{
+	closing2D()
+	MultidimArray<double> tmp;
+    int i;
+
+	//dilate
+    tmp = binaryImage;
+	binaryImage.initZeros();
+
+    for (i = 0;i < size;i++)
+    {
+		double sum = 0;
+		double dcount=count;
+		
+		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+			{
+				if (A2D_ELEM(in,i, j) == 0)
+				{
+					// 4-environment
+					A2D_ELEM(binaryImage, i, j) = 0;
+					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+						A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+					if (sum > dcount)
+					{ //change the value to foreground
+						A2D_ELEM(binaryImage, i, j) = 1;
+					}
+					else if (neig == 8)
+					{ //8-environment
+						sum +=A2D_ELEM(binaryImage,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+							A2D_ELEM(binaryImage,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+						if (sum > dcount)
+						{ //change the value to foreground
+							A2D_ELEM(binaryImage, i, j) = 1;
+						}
+					}
+				}
+				else
+				{
+					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+				}
+        	}
+    }
+
+	// erode
+	tmp = binaryImage;
+	binaryImage.initZeros();
+
+    for (i = 0;i < size;i++)
+    {
+		double sum = 0;
+		double dcount=count;
+
+		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+			{
+				if (A2D_ELEM(tmp,i, j) == 0)
+				{
+					// 4-environment
+					A2D_ELEM(binaryImage, i, j) = 0;
+					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+						A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+					if (sum > dcount)
+					{ //change the value to foreground
+						A2D_ELEM(binaryImage, i, j) = 1;
+					}
+					else if (neig == 8)
+					{ //8-environment
+						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+							A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+						if (sum > dcount)
+						{ //change the value to foreground
+							A2D_ELEM(binaryImage, i, j) = 1;
+						}
+					}
+				}
+				else
+				{
+					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+				}
+			}
+    }
+}
 
 bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
