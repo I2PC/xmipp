@@ -58,6 +58,7 @@ if __name__=="__main__":
     parser.add_argument("-o", "--output", help="Root directory for the output files", required=True)
     parser.add_argument("-stExp", "--sartExp", help="star file for experimental images", required=True)
     parser.add_argument("-stRef", "--starRef", help="star file for experimental images", required=True)
+    parser.add_argument("-radius", type=int, help="radius for circular mask (in pixels)")       
     parser.add_argument("--apply_shifts",  action="store_true", help="Apply starfile shifts to experimental images")
     parser.add_argument("--relion",  action="store_true", help="save starfile in relion format")
     
@@ -75,12 +76,20 @@ if __name__=="__main__":
     output = args.output
     expStar = args.sartExp
     prjStar = args.starRef 
+    radius = args.radius
     apply_shifts = args.apply_shifts
     relion =  args.relion
            
     torch.cuda.is_available()
     torch.cuda.current_device()
     cuda = torch.device('cuda')
+    
+    freqBn = torch.load(bands) 
+    cvecs = torch.load(vecs)
+    nBand = freqBn.unique().size(dim=0) - 1
+    
+    bnb = BnBgpu(nBand)
+    assess = evaluation()
 
     #Read Images
     mmap = mrcfile.mmap(expFile, permissive=True)
@@ -90,20 +99,15 @@ if __name__=="__main__":
     
     #convert ref images to tensor 
     tref= torch.from_numpy(prjImages).float().to("cpu")
+    if radius:
+        tref = tref * bnb.create_mask(tref, radius)
     del(prjImages)
-       
-    freqBn = torch.load(bands) 
-    cvecs = torch.load(vecs)
-    nBand = freqBn.unique().size(dim=0) - 1
     
     coef = torch.zeros(nBand, dtype=int)
     for n in range(nBand):
         coef[n] = 2*torch.sum(freqBn==n)
 
     grid_flat = flatGrid(freqBn, coef, nBand)
-
-    bnb = BnBgpu(nBand)
-    assess = evaluation()
     
     #Precomputed rotation and shift applied to references  
     angSet = (-amax, amax, ang)
@@ -132,7 +136,9 @@ if __name__=="__main__":
     for initBatch in range(0, nExp, expBatchSize):
         
         expImages = mmap.data[initBatch:initBatch+expBatchSize].astype(np.float32)#.copy()
-        Texp = torch.from_numpy(expImages).float().to(cuda)     
+        Texp = torch.from_numpy(expImages).float().to(cuda)  
+        if radius:
+            Texp = Texp * bnb.create_mask(Texp, radius)    
         del(expImages)
 
         #center experimetal particles

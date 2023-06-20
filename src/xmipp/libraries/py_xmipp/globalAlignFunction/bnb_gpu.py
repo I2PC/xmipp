@@ -214,9 +214,18 @@ class BnBgpu:
         
         return(transforTexp)
         
+       
+    def create_mask(self, images, rad):
 
+        dim = images.size(dim=1)
+        center = dim // 2
+        y, x = torch.meshgrid(torch.arange(dim) - center, torch.arange(dim) - center, indexing='ij')
+        dist = torch.sqrt(x**2 + y**2).to(images.device)
+
+        self.mask = dist <= rad
+        self.mask = self.mask.float() 
         
-
+        return self.mask
             
 
     
