@@ -299,7 +299,7 @@ public:
      *
     */
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
-    void closing2D(MultidimArray<double> binaryImage, int size, int count, int neig)
+    void closing2D(MultidimArray<double> binaryImage, int size, int count, int neig);
 
     /**
      * Filter labeled regions.

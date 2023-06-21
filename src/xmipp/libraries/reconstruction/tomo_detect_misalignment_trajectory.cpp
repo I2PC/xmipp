@@ -802,7 +802,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 			int colour;
 
-			closing2D(binaryCoordinatesMapSlice, 2, 2, 8);
+			closing2D(binaryCoordinatesMapSlice, 5, 2, 8);
 			
 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
 
@@ -891,6 +891,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 				break;
 			}
+
 
 			firstExecution = false;
 		}
@@ -2901,13 +2902,14 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binaryImage, int size, int count, int neig)
 {
-	closing2D()
 	MultidimArray<double> tmp;
     int i;
 
 	//dilate
     tmp = binaryImage;
-	binaryImage.initZeros();
+	binaryImage.initZeros(ySize, xSize);
+
+	size = 1;
 
     for (i = 0;i < size;i++)
     {
@@ -2917,20 +2919,20 @@ void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binar
 		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
 			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
 			{
-				if (A2D_ELEM(in,i, j) == 0)
+				if (A2D_ELEM(tmp,i, j) == 0)
 				{
 					// 4-environment
 					A2D_ELEM(binaryImage, i, j) = 0;
 					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-						A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
 					if (sum > dcount)
 					{ //change the value to foreground
 						A2D_ELEM(binaryImage, i, j) = 1;
 					}
 					else if (neig == 8)
 					{ //8-environment
-						sum +=A2D_ELEM(binaryImage,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-							A2D_ELEM(binaryImage,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
 						if (sum > dcount)
 						{ //change the value to foreground
 							A2D_ELEM(binaryImage, i, j) = 1;
@@ -2946,7 +2948,7 @@ void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binar
 
 	// erode
 	tmp = binaryImage;
-	binaryImage.initZeros();
+	binaryImage.initZeros(ySize, xSize);
 
     for (i = 0;i < size;i++)
     {
@@ -2956,23 +2958,23 @@ void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binar
 		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
 			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
 			{
-				if (A2D_ELEM(tmp,i, j) == 0)
+				if (A2D_ELEM(tmp,i, j) == 1)
 				{
 					// 4-environment
-					A2D_ELEM(binaryImage, i, j) = 0;
+					A2D_ELEM(binaryImage, i, j) = 1;
 					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-						A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
-					if (sum > dcount)
+						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+					if ((4 - sum) > dcount)
 					{ //change the value to foreground
-						A2D_ELEM(binaryImage, i, j) = 1;
+						A2D_ELEM(binaryImage, i, j) = 0;
 					}
 					else if (neig == 8)
 					{ //8-environment
 						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-							A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
-						if (sum > dcount)
+							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+						if ((neig - sum) > dcount)
 						{ //change the value to foreground
-							A2D_ELEM(binaryImage, i, j) = 1;
+							A2D_ELEM(binaryImage, i, j) = 0;
 						}
 					}
 				}
