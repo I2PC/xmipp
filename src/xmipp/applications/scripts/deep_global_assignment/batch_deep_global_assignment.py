@@ -103,7 +103,8 @@ if __name__ == "__main__":
                 return (img - np.mean(img)) / np.std(img)
 
             def shift_image(img, shiftx, shifty, yshift):
-                return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='reflect')
+                #return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='reflect')
+                return shift(img, (shiftx - yshift[0], shifty - yshift[1], 0), order=1, mode='reflect')
 
             def rotate_image(img, angle):
                 # angle in degrees
@@ -281,9 +282,10 @@ if __name__ == "__main__":
         model.compile(loss='mean_squared_error', optimizer=adam_opt)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
+        patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model])
+                                      validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
 
         plt.plot(history.history['loss'])
         plt.plot(history.history['val_loss'])
