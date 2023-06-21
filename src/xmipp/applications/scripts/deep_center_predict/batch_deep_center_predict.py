@@ -124,34 +124,7 @@ if __name__ == "__main__":
         """Return quaternion from rotation matrix.
 
         If isprecise is True, the input matrix is assumed to be a precise rotation
-        matrix and a faster algorithm is used.
-
-        >>> q = quaternion_from_matrix(np.identity(4), True)
-        >>> np.allclose(q, [1, 0, 0, 0])
-        True
-        >>> q = quaternion_from_matrix(np.diag([1, -1, -1, 1]))
-        >>> np.allclose(q, [0, 1, 0, 0]) or np.allclose(q, [0, -1, 0, 0])
-        True
-        >>> R = rotation_matrix(0.123, (1, 2, 3))
-        >>> q = quaternion_from_matrix(R, True)
-        >>> np.allclose(q, [0.9981095, 0.0164262, 0.0328524, 0.0492786])
-        True
-        >>> R = [[-0.545, 0.797, 0.260, 0], [0.733, 0.603, -0.313, 0],
-        ...      [-0.407, 0.021, -0.913, 0], [0, 0, 0, 1]]
-        >>> q = quaternion_from_matrix(R)
-        >>> np.allclose(q, [0.19069, 0.43736, 0.87485, -0.083611])
-        True
-        >>> R = [[0.395, 0.362, 0.843, 0], [-0.626, 0.796, -0.056, 0],
-        ...      [-0.677, -0.498, 0.529, 0], [0, 0, 0, 1]]
-        >>> q = quaternion_from_matrix(R)
-        >>> np.allclose(q, [0.82336615, -0.13610694, 0.46344705, -0.29792603])
-        True
-        >>> R = random_rotation_matrix()
-        >>> q = quaternion_from_matrix(R)
-        >>> is_same_transform(R, quaternion_matrix(q))
-        True
-
-        """
+        matrix and a faster algorithm is used."""
         M = np.array(matrix, dtype=np.float64, copy=False)[:4, :4]
         if isprecise:
             q = np.empty((4,))
@@ -198,19 +171,7 @@ if __name__ == "__main__":
 
 
     def quaternion_matrix(quaternion):
-        """Return homogeneous rotation matrix from quaternion.
-
-        >>> M = quaternion_matrix([0.99810947, 0.06146124, 0, 0])
-        >>> np.allclose(M, rotation_matrix(0.123, [1, 0, 0]))
-        True
-        >>> M = quaternion_matrix([1, 0, 0, 0])
-        >>> np.allclose(M, np.identity(4))
-        True
-        >>> M = quaternion_matrix([0, 1, 0, 0])
-        >>> np.allclose(M, np.diag([1, -1, -1, 1]))
-        True
-
-        """
+        """Return homogeneous rotation matrix from quaternion."""
         q = np.array(quaternion, dtype=np.float64, copy=True)
         n = np.dot(q, q)
         if n < _EPS:
@@ -229,20 +190,7 @@ if __name__ == "__main__":
 
         axes : One of 24 axis sequences as string or encoded tuple
 
-        Note that many Euler angle triplets can describe one matrix.
-
-        >>> R0 = euler_matrix(1, 2, 3, 'syxz')
-        >>> al, be, ga = euler_from_matrix(R0, 'syxz')
-        >>> R1 = euler_matrix(al, be, ga, 'syxz')
-        >>> np.allclose(R0, R1)
-        True
-        >>> angles = (4*math.pi) * (np.random.random(3) - 0.5)
-        >>> for axes in _AXES2TUPLE.keys():
-        ...    R0 = euler_matrix(axes=axes, *angles)
-        ...    R1 = euler_matrix(axes=axes, *euler_from_matrix(R0, axes))
-        ...    if not np.allclose(R0, R1): print(axes, "failed")
-
-        """
+        Note that many Euler angle triplets can describe one matrix."""
         try:
             firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
         except (AttributeError, KeyError):
@@ -283,13 +231,7 @@ if __name__ == "__main__":
 
 
     def euler_from_quaternion(quaternion, axes='sxyz'):
-        """Return Euler angles from quaternion for specified axis sequence.
-
-        >>> angles = euler_from_quaternion([0.99810947, 0.06146124, 0, 0])
-        >>> np.allclose(angles, [0.123, 0, 0])
-        True
-
-        """
+        """Return Euler angles from quaternion for specified axis sequence."""
         return euler_from_matrix(quaternion_matrix(quaternion), axes)
 
     def rotation6d_to_matrix(rot):
@@ -330,6 +272,7 @@ if __name__ == "__main__":
                 mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
                 mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
                 if distance[ID] > tolerance:
+                    print('distance', distance[ID], flush=True)
                     mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
 
@@ -370,7 +313,13 @@ if __name__ == "__main__":
         #              [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
         #              [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
         #              [0, 0, 0, 2, 0, 0], [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 2]])
-        return np.array([np.linalg.lstsq(A, redundant[0])[0]])
+        X = np.zeros((redundant.shape[0], 6))
+
+        # Resolver los sistemas de ecuaciones para cada componente de B
+        for i in range(X.shape[0]):
+            X[i] = np.linalg.lstsq(A, redundant[i])[0]
+
+        return np.array(X)
 
     def average_of_rotations(p6d_redundant):
         minParticles = 1+int(numAngModels/2)
@@ -382,7 +331,6 @@ if __name__ == "__main__":
         av_matrix = quaternion_matrix(av_quats)
         max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
         max_distance = max_distance * 180 / math.pi
-
         while (np.shape(matrix)[0] > minParticles) and (max_distance > tolerance):
             matrix = np.delete(matrix, max_dif_particle, axis=0)
             quats = np.delete(quats, max_dif_particle, axis=0)

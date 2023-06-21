@@ -23,9 +23,10 @@ if __name__ == "__main__":
     gpuId = sys.argv[6]
     numModels = int(sys.argv[7])
     learning_rate = float(sys.argv[8])
-    pretrained = sys.argv[9]
+    patience = int(sys.argv[9])
+    pretrained = sys.argv[10]
     if pretrained == 'yes':
-        fnPreModel = sys.argv[10]
+        fnPreModel = sys.argv[11]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -47,7 +48,7 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.Sequence):
         'Generates data for fnImgs'
 
-        def __init__(self, fnImgs, labels, sigma, batch_size, dim, readInMemory, shifts):
+        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
             'Initialization'
             self.fnImgs = fnImgs
             self.labels = labels
@@ -102,7 +103,6 @@ if __name__ == "__main__":
                 return (img - np.mean(img)) / np.std(img)
 
             def shift_image(img, shiftx, shifty, yshift):
-
                 return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='reflect')
 
             def rotate_image(img, angle):
@@ -178,19 +178,6 @@ if __name__ == "__main__":
 
             return Xexp, y
 
-    def identity_block(tensor, filters):
-
-        x = Conv2D(filters, (3, 3), padding='same')(tensor)
-        x = BatchNormalization(axis=3)(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(filters, (3, 3), padding='same')(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x = Add()([x, tensor])
-        x = Activation('relu')(x)
-        return x
-
     def conv_block(tensor, filters):
         x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
         x = BatchNormalization(axis=3)(x)
@@ -208,28 +195,15 @@ if __name__ == "__main__":
     def constructModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        x = Conv2D(filters=64, kernel_size=(7, 7), strides=(2,2), padding='same')(inputLayer)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
+        x = conv_block(inputLayer, filters=32)
 
-        for _ in range(1):
-            x = identity_block(x, filters=64)
+        x = conv_block(x, filters=64)
 
         x = conv_block(x, filters=128)
 
-        for _ in range(1):
-            x = identity_block(x, filters=128)
-
         x = conv_block(x, filters=256)
 
-        for _ in range(1):
-            x = identity_block(x, filters=256)
-
         x = conv_block(x, filters=512)
-
-        for _ in range(1):
-            x = identity_block(x, filters=512)
 
         x = GlobalAveragePooling2D()(x)
 
@@ -249,7 +223,7 @@ if __name__ == "__main__":
         psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
         label = []
-        shift = []
+        img_shift = []
 
         numTiltDivs = 5
         numRotDivs = 10
@@ -262,17 +236,16 @@ if __name__ == "__main__":
         zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
 
         i = 0
-
-        for r, t, p in zip(rots, tilts, psis, shiftX, shiftY):
+        for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             label.append(np.array((r, t, p)))
-            shift.append(np.array(shiftX, shiftY))
+            img_shift.append(np.array((sX, sY)))
             region_rot = np.digitize(r, limits_rot, right=True) - 1  # Índice de la región para el componente x
             region_tilt = np.digitize(t, limits_tilt, right=True) - 1  # Índice de la región para el componente y
             region_idx = region_rot * (len(limits_tilt)-1) + region_tilt  # Índice de la región combinada
             zone[region_idx].append(i)
             i += 1
 
-        return Xdim, fnImg, label, zone, shift
+        return Xdim, fnImg, label, zone, img_shift
 
     Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
     start_time = time()

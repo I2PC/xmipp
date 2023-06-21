@@ -287,25 +287,26 @@ if __name__ == "__main__":
     def constructModel(Xdim, mode):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        x = conv_block1(inputLayer, filters=64, kernel_size=(7, 7), strides=(2, 2))
-        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
+        x = conv_block(inputLayer, filters=32)
 
-        for _ in range(1):
+        x = conv_block(x, filters=64)
+
+        for _ in range(0):
             x = identity_block(x, filters=64)
 
         x = conv_block(x, filters=128)
 
-        for _ in range(1):
+        for _ in range(0):
             x = identity_block(x, filters=128)
 
         x = conv_block(x, filters=256)
 
-        for _ in range(1):
+        for _ in range(0):
             x = identity_block(x, filters=256)
 
         x = conv_block(x, filters=512)
 
-        for _ in range(1):
+        for _ in range(0):
             x = identity_block(x, filters=512)
 
         x = GlobalAveragePooling2D()(x)
@@ -316,6 +317,48 @@ if __name__ == "__main__":
             x = Dense(42, name="output", activation="linear")(x)
 
         return Model(inputLayer, x)
+
+    def constructModel2(Xdim, mode):
+
+        inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+
+        # Network model
+        L = Conv2D(32, (3, 3), padding='same')(inputLayer)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
+
+        L = Conv2D(64, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
+
+        L = Conv2D(128, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
+
+        L = Conv2D(256, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
+
+        L = Conv2D(512, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = GlobalAveragePooling2D()(L)
+
+
+        if mode == 'Shift':
+            L = Dense(2, name="output", activation="linear")(L)
+        else:
+            L = Dense(42, name="output", activation="linear")(L)
+
+        return Model(inputLayer, L)
+
+
+
+
 
 
     def get_labels(fnImages, mode):
@@ -352,10 +395,6 @@ if __name__ == "__main__":
                 region_idx = region_rot * (len(limits_tilt)-1) + region_tilt  # Índice de la región combinada
                 zone[region_idx].append(i)
                 i += 1
-
-        for i in range((len(limits_tilt)-1)*(len(limits_rot)-1)):
-            print(len(zone[i]))
-
         return Xdim, fnImgs, labels, zone
 
 
@@ -473,12 +512,12 @@ if __name__ == "__main__":
         lenTrain = int(len(fnImgs)*0.8)
         lenVal = len(fnImgs)-lenTrain
     else:
-        lenTrain = int(len(fnImgs) / 3)
-        lenVal = int(len(fnImgs) / 12)
+        lenTrain = int(len(fnImgs) / 5)
+        print('lenTrain', lenTrain, flush=True)
+        lenVal = int(len(fnImgs) / 20)
 
 
     elements_zone = int((lenVal+lenTrain)/len(zone))
-    print('elements_zone', elements_zone, flush=True)
 
     for index in range(numModels):
 
@@ -512,9 +551,10 @@ if __name__ == "__main__":
             model.compile(loss='mean_squared_error', optimizer=adam_opt)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
+        patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model])
+                                      validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
         if mode != 'Shift':
             plt.plot(history.history['loss'])
             plt.plot(history.history['val_loss'])
