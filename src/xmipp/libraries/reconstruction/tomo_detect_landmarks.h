@@ -32,11 +32,19 @@
 #include <complex>
 #include <string>
 #include <stdio.h>
+#include <core/xmipp_filename.h>
+#include <core/multidim_array.h>
+#include <core/xmipp_program.h>
+#include <core/metadata_label.h>
+#include <core/metadata_vec.h>
+#include <core/xmipp_image_generic.h>
+#include <data/point3D.h>
 
 #include <fstream>
 
 #define VERBOSE_OUTPUT
 
+#define DEBUG_DIM
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
@@ -52,13 +60,7 @@ public:
     /** Input info */
     double fiducialSize;
     double samplingRate;
-
-    bool checkInputCoord;
-
-
-
-
-    
+   
     /** Input tilt-series dimensions */
     size_t xSize;
 	size_t ySize;
@@ -66,22 +68,46 @@ public:
     size_t nSize;
 
 
+    /** Vector for peaked coordinates components */
+    std::vector<Point3D<double>> coordinates3D;
+
+    /** Fiducial size in pixels */
+    float fiducialSizePx;
+
+    // Define the Sobel kernels
+    std::vector<std::vector<int>> sobelX = {{-1, 0, 1},
+                                            {-2, 0, 2},
+                                            {-1, 0, 1}};
+                                  
+    std::vector<std::vector<int>> sobelY = {{-1, -2, -1},
+                                            { 0,  0,  0},
+                                            { 1,  2,  1}};
 
 public:
 
     // --------------------------- INFO functions ----------------------------
-
+    
     void readParams();
 
     void defineParams();
 
+    void generateSideInfo();
+
 
     // --------------------------- HEAD functions ----------------------------
+    
+    void sobelFiler(MultidimArray<double> &tiltImage);
+
+
+    // --------------------------- I/O functions ----------------------------
+    
+    void writeOutputCoordinates();
 
 
     // --------------------------- MAIN ----------------------------------
 
     void run();
+
 };
 
 #endif
