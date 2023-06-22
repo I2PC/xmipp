@@ -520,18 +520,21 @@ class Config:
              '10.4', '10.3', '10.2', '10.1', '10',
              '9.4', '9.3', '9.2', '9.1', '9',
              '8.5', '8.4', '8.3', '8.2', '8.1', '8']
-        if 10.1 <= nvcc_version <= 10.2:
-            return v[v.index('8.5'):], True
-        elif 11.0 <= nvcc_version < 11.1:
-            return v[v.index('9.5'):], True
-        elif 11.1 <= nvcc_version <= 11.4: # Using GCC8 with CUDA 11.4 because GCC11 is only supported in CUDA 11.4.1
-            return v[v.index('10.4'):], True
-        elif 11.5 <= nvcc_version <= 11.8:
-            return v[v.index('11.3'):], True
-        elif nvcc_version > 11.8:
-            return v, True
-        else:
-            return v, False
+        CUDA_GCC_COMPATIBILITY = {
+            '10.1-10.2': v[v.index('8.5'):],
+            '11.0-11.0': v[v.index('9.4'):],
+            '11.1-11.4': v[v.index('10.4'):],
+            '11.5-11.8': v[v.index('11.2'):],
+            '12.0-12.1': v[v.index('12.2'):],
+        }
+
+        for key, value in CUDA_GCC_COMPATIBILITY.items():
+            list = key.split('-')
+            if float(nvcc_version) >= float(list[0]) and\
+                    float(nvcc_version) <= float(list[1]):
+                return value, True
+
+        return v, False
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])
