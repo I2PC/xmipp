@@ -30,6 +30,7 @@
 #define _XMIPP_PDB_HH
 
 #include <vector>
+#include "cif++.hpp"
 #include "core/xmipp_error.h"
 
 template<typename T>
@@ -129,6 +130,9 @@ public:
     /// List of atoms
     std::vector<Atom> atomList;
 
+    // Whole data block
+    cif::datablock dataBlock;
+
     /// Add Atom
     void addAtom(const Atom &atom)
     {
@@ -147,7 +151,13 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB file
+    /**
+     * @brief Read phantom from either a PDB of CIF file.
+     * 
+     * This function reads the given PDB or CIF file and inserts the found atoms inside in class's atom list.
+     * 
+     * @param fnPDB PDB/CIF file.
+    */
     void read(const FileName &fnPDB);
 
     /// Apply a shift to all atoms
@@ -183,7 +193,7 @@ public:
     std::string name;
 
     /// Alternate location
-    char altloc;
+    std::string altloc;
 
     /// Residue name
     std::string resname;
@@ -195,7 +205,7 @@ public:
     int resseq;
 
     /// Icode
-    char icode;
+    std::string icode;
 
     /// Occupancy
     double occupancy;
@@ -203,14 +213,37 @@ public:
     /// Bfactor
     double bfactor;
 
-    /// segment name
-    std::string segment;
-
     /// atom element type
     std::string atomType;
 
     /// 2-char charge with sign 2nd (e.g. 1- or 2+)
     std::string charge;
+
+    /* PDB Specific values */
+    /// segment name
+    std::string segment;
+
+    /* CIF Specific values */
+    // Alternative id
+    std::string altId;
+
+    // Sequence id
+    int seqId;
+
+    // Author sequence id
+    int authSeqId;
+
+    // Author chain name
+    std::string authCompId;
+
+    // Author chain location
+    std::string authAsymId;
+
+    // Author atom name
+    std::string authAtomId;
+
+    // PDB model number
+    int pdbNum;
 };
 
 /** Phantom description using atoms. */
@@ -219,10 +252,13 @@ class PDBRichPhantom
 public:
 	/// List of remarks
 	std::vector<std::string> remarks;
-public:
+
     /// List of atoms
     std::vector<RichAtom> atomList;
     std::vector<double> intensities;
+
+    // Whole data block
+    cif::datablock dataBlock;
 
     /// Add Atom
     void addAtom(const RichAtom &atom)
@@ -236,11 +272,29 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB file
-    void read(const FileName &fnPDB, bool pseudoatoms = false, double threshold = 0.0);
+    /**
+     * @brief Read rich phantom from either a PDB of CIF file.
+     * 
+     * This function reads the given PDB or CIF file and stores the found atoms, remarks, and intensities.
+     * 
+     * @param fnPDB PDB/CIF file.
+     * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms.
+     *  **false** (default) is used when there are no pseudoatoms or when using a threshold.
+     * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
+    */
+    void read(const FileName &fnPDB, const bool pseudoatoms = false, const double threshold = 0.0);
 
-    /// Write to PDB file
-    void write(const FileName &fnPDB, bool renumber = false);
+    /**
+     * @brief Write rich phantom to PDB or CIF file.
+     * 
+     * This function stores all the data of the rich phantom into a PDB or CIF file.
+     * Note: Conversion is not enabled yet, so if a file read from a PDB is written into a CIF file,
+     * results might not be great. Atoms should be properly translated, but remarks and intensities probably not.
+     * 
+     * @param fnPDB PDB/CIF file to write to.
+     * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
+    */
+    void write(const FileName &fnPDB, const bool renumber = false);
 
 };
 

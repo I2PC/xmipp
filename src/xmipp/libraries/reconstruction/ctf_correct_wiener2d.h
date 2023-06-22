@@ -28,6 +28,7 @@
 
 #include "core/xmipp_metadata_program.h"
 #include "data/ctf.h"
+#include "data/wiener2d.h"
 #include "core/xmipp_image.h"
 #include "data/filters.h"
 
@@ -39,6 +40,9 @@ class ProgCorrectWiener2D: public XmippMetadataProgram
 
 
 public:
+    /* Wiener class*/
+    Wiener2D WF;
+
     bool phase_flipped;
 
     /** Padding factor */

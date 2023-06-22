@@ -603,28 +603,22 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 	//is at 300 and the smoothing cast values of 299 and they must be removed.
 
 	// Count number of voxels with resolution
-	size_t N=0;
+	std::vector<double> resolVec(0);
+	double rVol;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<=lowest_res) ) //the value 0.001 is a tolerance
-			++N;
-
-	// Get all resolution values
-	MultidimArray<double> resolutions(N);
-	size_t N_iter=0;
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<=lowest_res))
+	{
+		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+		if ( (rVol>=(last_resolution_2-0.001)) && (rVol<=lowest_res) ) //the value 0.001 is a tolerance
 		{
-			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+			resolVec.push_back(rVol);
 		}
+	}
 
-	//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
+	size_t N;
+	N = resolVec.size();
+	std::sort(resolVec.begin(), resolVec.end());
 
-	// Sort value and get threshold
-	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
-	double medianResolution = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
-
-	std::cout << "median Resolution = " << medianResolution << std::endl;
+	std::cout << "median Resolution = " << resolVec[(int)(0.5*N)] << std::endl;
 }
 
 
@@ -638,28 +632,24 @@ void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutio
 	lowest_res = list[0];
 
 	// Count number of voxels with resolution
-	size_t N=0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001))//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
-			++N;
 
-	// Get all resolution values
-	MultidimArray<double> resolutions(N);
-	size_t N_iter=0;
-
+	double rVol;
+	std::vector<double> resolVec(0);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001))//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res))
+	{
+		rVol = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+		if (rVol>=(last_resolution_2-0.001))//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
 		{
-			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+			resolVec.push_back(rVol);
 		}
 
-//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
+	}
+	size_t N;
+	N = resolVec.size();
 
-	// Sort value and get threshold
-	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
-	double filling_value = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
-	double trimming_value = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
-	resolutionThreshold = A1D_ELEM(resolutions, (int)((0.95)*N));
+	std::sort(resolVec.begin(), resolVec.end());
+
+	resolutionThreshold = resolVec[(int)((0.95)*N)];
 
 	std::cout << "resolutionThreshold = " << resolutionThreshold <<  std::endl;
 }

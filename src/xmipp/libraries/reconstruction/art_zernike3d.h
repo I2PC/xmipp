@@ -127,9 +127,6 @@ public:
     /// Empty constructor
 	ProgArtZernike3D();
 
-    /// Destructor
-    ~ProgArtZernike3D();
-
     /// Read argument from command line
     void readParams();
 
