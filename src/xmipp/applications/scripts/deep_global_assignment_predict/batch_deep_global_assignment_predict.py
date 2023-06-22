@@ -13,7 +13,6 @@ from scipy.ndimage import shift, rotate
 # from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
 
 maxSize = 32
-tolerance = 15
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed

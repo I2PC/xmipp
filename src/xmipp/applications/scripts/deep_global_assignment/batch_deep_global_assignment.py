@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
             def shift_image(img, shiftx, shifty, yshift):
                 #return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='reflect')
-                return shift(img, (shiftx - yshift[0], shifty - yshift[1], 0), order=1, mode='reflect')
+                return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
 
             def rotate_image(img, angle):
                 # angle in degrees

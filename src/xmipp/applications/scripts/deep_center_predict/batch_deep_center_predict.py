@@ -12,23 +12,19 @@ from scipy.ndimage import shift, rotate
 #from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
 
 maxSize = 32
-tolerance = 15
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
-    fnShiftModel = sys.argv[2]
-    predictAngles = sys.argv[3]
-    gpuId = sys.argv[4]
-    outputDir = sys.argv[5]
-    fnXmdImages = sys.argv[6]
-    numShiftModels = int(sys.argv[7])
-    if predictAngles == 'yes':
-        fnAngModel = sys.argv[8]
-        numAngModels = int(sys.argv[9])
-        tolerance = int(sys.argv[10])
+    gpuId = sys.argv[2]
+    outputDir = sys.argv[3]
+    fnXmdImages = sys.argv[4]
+    fnModel = sys.argv[5]
+    numModels = int(sys.argv[6])
+    tolerance = int(sys.argv[7])
+    maxModels = int(sys.argv[8])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -100,272 +96,39 @@ if __name__ == "__main__":
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
                     Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                    #Xexp[i,] = shift(Xexp[i, ], (-10, 10, 0), order=1, mode='reflect')
             return Xexp
 
-    _AXES2TUPLE = {
-        'sxyz': (0, 0, 0, 0), 'sxyx': (0, 0, 1, 0), 'sxzy': (0, 1, 0, 0),
-        'sxzx': (0, 1, 1, 0), 'syzx': (1, 0, 0, 0), 'syzy': (1, 0, 1, 0),
-        'syxz': (1, 1, 0, 0), 'syxy': (1, 1, 1, 0), 'szxy': (2, 0, 0, 0),
-        'szxz': (2, 0, 1, 0), 'szyx': (2, 1, 0, 0), 'szyz': (2, 1, 1, 0),
-        'rzyx': (0, 0, 0, 1), 'rxyx': (0, 0, 1, 1), 'ryzx': (0, 1, 0, 1),
-        'rxzx': (0, 1, 1, 1), 'rxzy': (1, 0, 0, 1), 'ryzy': (1, 0, 1, 1),
-        'rzxy': (1, 1, 0, 1), 'ryxy': (1, 1, 1, 1), 'ryxz': (2, 0, 0, 1),
-        'rzxz': (2, 0, 1, 1), 'rxyz': (2, 1, 0, 1), 'rzyz': (2, 1, 1, 1)}
-
-    _TUPLE2AXES = dict((v, k) for k, v in _AXES2TUPLE.items())
-    # axis sequences for Euler angles
-    _NEXT_AXIS = [1, 2, 0, 1]
-
-    _EPS = np.finfo(float).eps * 4.0
-
-
-    def quaternion_from_matrix(matrix, isprecise=False):
-        """Return quaternion from rotation matrix.
-
-        If isprecise is True, the input matrix is assumed to be a precise rotation
-        matrix and a faster algorithm is used."""
-        M = np.array(matrix, dtype=np.float64, copy=False)[:4, :4]
-        if isprecise:
-            q = np.empty((4,))
-            t = np.trace(M)
-            if t > M[3, 3]:
-                q[0] = t
-                q[3] = M[1, 0] - M[0, 1]
-                q[2] = M[0, 2] - M[2, 0]
-                q[1] = M[2, 1] - M[1, 2]
-            else:
-                i, j, k = 1, 2, 3
-                if M[1, 1] > M[0, 0]:
-                    i, j, k = 2, 3, 1
-                if M[2, 2] > M[i, i]:
-                    i, j, k = 3, 1, 2
-                t = M[i, i] - (M[j, j] + M[k, k]) + M[3, 3]
-                q[i] = t
-                q[j] = M[i, j] + M[j, i]
-                q[k] = M[k, i] + M[i, k]
-                q[3] = M[k, j] - M[j, k]
-            q *= 0.5 / math.sqrt(t * M[3, 3])
-        else:
-            m00 = M[0, 0]
-            m01 = M[0, 1]
-            m02 = M[0, 2]
-            m10 = M[1, 0]
-            m11 = M[1, 1]
-            m12 = M[1, 2]
-            m20 = M[2, 0]
-            m21 = M[2, 1]
-            m22 = M[2, 2]
-            # symmetric matrix K
-            K = np.array([[m00 - m11 - m22, 0.0, 0.0, 0.0],
-                          [m01 + m10, m11 - m00 - m22, 0.0, 0.0],
-                          [m02 + m20, m12 + m21, m22 - m00 - m11, 0.0],
-                          [m21 - m12, m02 - m20, m10 - m01, m00 + m11 + m22]])
-            K /= 3.0
-            # quaternion is eigenvector of K that corresponds to largest eigenvalue
-            w, V = np.linalg.eigh(K)
-            q = V[[3, 0, 1, 2], np.argmax(w)]
-        if q[0] < 0.0:
-            np.negative(q, q)
-        return q
-
-
-    def quaternion_matrix(quaternion):
-        """Return homogeneous rotation matrix from quaternion."""
-        q = np.array(quaternion, dtype=np.float64, copy=True)
-        n = np.dot(q, q)
-        if n < _EPS:
-            return np.identity(4)
-        q *= math.sqrt(2.0 / n)
-        q = np.outer(q, q)
-        return np.array([
-            [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0], 0.0],
-            [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0], 0.0],
-            [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2], 0.0],
-            [0.0, 0.0, 0.0, 1.0]])
-
-
-    def euler_from_matrix(matrix, axes='sxyz'):
-        """Return Euler angles from rotation matrix for specified axis sequence.
-
-        axes : One of 24 axis sequences as string or encoded tuple
-
-        Note that many Euler angle triplets can describe one matrix."""
-        try:
-            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
-        except (AttributeError, KeyError):
-            _TUPLE2AXES[axes]  # validation
-            firstaxis, parity, repetition, frame = axes
-
-        i = firstaxis
-        j = _NEXT_AXIS[i + parity]
-        k = _NEXT_AXIS[i - parity + 1]
-
-        M = np.array(matrix, dtype=np.float64, copy=False)[:3, :3]
-        if repetition:
-            sy = math.sqrt(M[i, j] * M[i, j] + M[i, k] * M[i, k])
-            if sy > _EPS:
-                ax = math.atan2(M[i, j], M[i, k])
-                ay = math.atan2(sy, M[i, i])
-                az = math.atan2(M[j, i], -M[k, i])
-            else:
-                ax = math.atan2(-M[j, k], M[j, j])
-                ay = math.atan2(sy, M[i, i])
-                az = 0.0
-        else:
-            cy = math.sqrt(M[i, i] * M[i, i] + M[j, i] * M[j, i])
-            if cy > _EPS:
-                ax = math.atan2(M[k, j], M[k, k])
-                ay = math.atan2(-M[k, i], cy)
-                az = math.atan2(M[j, i], M[i, i])
-            else:
-                ax = math.atan2(-M[j, k], M[j, j])
-                ay = math.atan2(-M[k, i], cy)
-                az = 0.0
-
-        if parity:
-            ax, ay, az = -ax, -ay, -az
-        if frame:
-            ax, az = az, ax
-        return ax, ay, az
-
-
-    def euler_from_quaternion(quaternion, axes='sxyz'):
-        """Return Euler angles from quaternion for specified axis sequence."""
-        return euler_from_matrix(quaternion_matrix(quaternion), axes)
-
-    def rotation6d_to_matrix(rot):
-
-        a1 = np.array((rot[0], rot[2], rot[4]))
-        a2 = np.array((rot[1], rot[3], rot[5]))
-        a1 = np.reshape(a1, (3, 1))
-        a2 = np.reshape(a2, (3, 1))
-
-        b1 = a1 / np.linalg.norm(a1)
-
-        c1 = np.multiply(b1, a2)
-        c2 = np.sum(c1)
-
-        b2 = a2 - c2 * b1
-        b2 = b2 / np.linalg.norm(b2)
-        b3 = np.cross(b1, b2, axis=0)
-        return np.concatenate((b1, b2, b3), axis=1)
-
-    def matrix_to_euler(mat):
-        r = Rotation.from_matrix(mat)
-        angles = r.as_euler("xyz", degrees=True)
-        return angles
-
-    def produce_output(mdExp, mode, Y, distance, fnImages):
+    def produce_output(mdExp, Y, distance, fnImages):
         ID = 0
         for objId in mdExp:
-            if mode == "Shift":
-                shiftX, shiftY = Y[ID]
-                mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
-                mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
-                mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
-                if distance[ID] > 5:
-                    mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
-            elif mode == "Angular":
-                angles = Y[ID]*180/math.pi
-                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
-                if distance[ID] > tolerance:
-                    print('distance', distance[ID], flush=True)
-                    mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
+            shiftX, shiftY = Y[ID]
+            mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
+            mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
+            mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
+            if distance[ID] > tolerance:
+                mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
-
-    def convert_to_matrix(rep6d):
-        return np.array(list(map(rotation6d_to_matrix, rep6d)))
-
-    def convert_to_quaternions(mat):
-        return np.array(list(map(quaternion_from_matrix, mat)))
-
-    def average_quaternions(quaternions):
-        s = np.matmul(quaternions.T, quaternions)
-        s /= len(quaternions)
-        eigenValues, eigenVectors = np.linalg.eig(s)
-        return np.real(eigenVectors[:, np.argmax(eigenValues)])
-
-    def maximum_distance(av_mat, mat):
-        c = mat * av_mat[np.newaxis, 0:3, 0:3]
-        d = np.sum(c, axis=(1, 2))
-        ang_Distances = np.arccos((d-1)/2)
-        return np.max(ang_Distances), np.argmax(ang_Distances)
-
-    def calculate_r6d(redundant):
-        A = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
-                      [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
-                      [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
-                      [0, 0, 0, 2, 0, 0], [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 2],
-                      [1, -1, 0, 0, 0, 0], [0, 1, -1, 0, 0, 0], [0, 0, 1, -1, 0, 0],
-                      [0, 0, 0, 1, -1, 0], [0, 0, 0, 0, 1, -1], [-1, 0, 0, 0, 0, 1],
-                      [2, 0, 0, -1, 0, 0], [0, 2, 0, 0, -1, 0], [0, 0, 2, 0, 0, -1],
-                      [-1, 0, 0, 2, 0, 0], [0, -1, 0, 0, 2, 0], [0, 0, -1, 0, 0, 2],
-                      [1, 0, 1, 0, -1, 0], [0, 1, 0, 1, 0, -1], [-1, 0, 1, 0, 1, 0],
-                      [0, -1, 0, 1, 0, 1], [1, 0, -1, 0, 1, 0], [0, 1, 0, -1, 0, 1],
-                      [1, 0, 0, 0, 0, -1], [-1, 1, 0, 0, 0, 0], [0, -1, 1, 0, 0, 0],
-                      [0, 0, -1, 1, 0, 0], [0, 0, 0, -1, 1, 0], [0, 0, 0, 0, -1, 1],
-                      [1, 0, 0, 0, -1, 0], [0, 1, 0, 0, 0, -1], [-1, 0, 1, 0, 0, 0],
-                      [0, -1, 0, 1, 0, 0], [0, 0, -1, 0, 1, 0], [0, 0, 0, -1, 0, 1]])
-        #A = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
-        #              [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
-        #              [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
-        #              [0, 0, 0, 2, 0, 0], [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 2]])
-        X = np.zeros((redundant.shape[0], 6))
-
-        # Resolver los sistemas de ecuaciones para cada componente de B
-        for i in range(X.shape[0]):
-            X[i] = np.linalg.lstsq(A, redundant[i])[0]
-
-        return np.array(X)
-
-    def average_of_rotations(p6d_redundant):
-        minParticles = 1+int(numAngModels/2)
-        pred6d = calculate_r6d(p6d_redundant)
-        matrix = convert_to_matrix(pred6d)
-        #matrix = convert_to_matrix(p6d_redundant)
-        quats = convert_to_quaternions(matrix)
-        av_quats = average_quaternions(quats)
-        av_matrix = quaternion_matrix(av_quats)
-        max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
-        max_distance = max_distance * 180 / math.pi
-        while (np.shape(matrix)[0] > minParticles) and (max_distance > tolerance):
-            matrix = np.delete(matrix, max_dif_particle, axis=0)
-            quats = np.delete(quats, max_dif_particle, axis=0)
-            av_quats = average_quaternions(quats)
-            av_matrix = quaternion_matrix(av_quats)
-            max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
-            max_distance = max_distance * 180 / math.pi
-        #if max_distance > tolerance:
-        #    matrix = np.delete(matrix, max_dif_particle, axis=0)
-        #    quats = np.delete(quats, max_dif_particle, axis=0)
-        #    av_quats = average_quaternions(quats)
-        #    av_matrix = quaternion_matrix(av_quats)
-        #    max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
-        #    max_distance = max_distance * 180 / math.pi
-        av_euler = euler_from_matrix(av_matrix)
-        return np.append(av_euler, max_distance)
-
-    def compute_ang_averages(pred6d):
-        averages_mdistance = np.array(list(map(average_of_rotations, pred6d)))
-        average = averages_mdistance[:, 0:3]
-        mdistance = averages_mdistance[:, 3]
-        return average, mdistance
 
     def average_of_shifts(predshift):
         av_shift = np.average(predshift, axis=0)
         distancesxy = np.abs(av_shift-predshift)
-        max_distance = np.max(np.sum(distancesxy, axis=1))
+        minParticles = np.shape(predshift)[0] - maxModels
+        distances = np.sum(distancesxy, axis=1)
+        max_distance = np.max(distances)
+        max_dif_particle = np.argmax(distances)
+        while (np.shape(predshift)[0] > minParticles) and (max_distance > tolerance):
+            predshift = np.delete(predshift, max_dif_particle, axis=0)
+            av_shift = np.average(predshift, axis=0)
+            distancesxy = np.abs(av_shift - predshift)
+            distances = np.sum(distancesxy, axis=1)
+            max_distance = np.max(distances)
+            max_dif_particle = np.argmax(distances)
         return np.append(av_shift, max_distance)
     def compute_shift_averages(predshift):
         averages_mdistance = np.array(list(map(average_of_shifts, predshift)))
         average = averages_mdistance[:, 0:2]
         mdistance = averages_mdistance[:, 2]
         return average, mdistance
-
-
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
 
@@ -377,42 +140,16 @@ if __name__ == "__main__":
 
     start_time = time()
 
-    #ShiftModel = load_model(fnShiftModel, compile=False)
-    #ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
-#
-    #ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
-#
-    #Y = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
-    #distance = np.zeros(len(fnImgs))
-    #produce_output(mdExp, 'Shift', Y, distance, fnImages)
-
-    predictions = np.zeros((len(fnImgs), numShiftModels, 2))
-    for index in range(numShiftModels):
-        ShiftModel = load_model(fnShiftModel + str(index) + ".h5", compile=False)
+    predictions = np.zeros((len(fnImgs), numModels, 2))
+    for index in range(numModels):
+        ShiftModel = load_model(fnModel + str(index) + ".h5", compile=False)
         ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
         ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
         predictions[:, index, :] = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
     Y, distance = compute_shift_averages(predictions)
-    produce_output(mdExp, 'Shift', Y, distance, fnImages)
-
-    if predictAngles == 'yes':
-        predictions = np.zeros((len(fnImgs), numAngModels, 42))
-        for index in range(numAngModels):
-           AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
-           AngModel.compile(loss="mean_squared_error", optimizer='adam')
-           AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
-           predictions[:, index, :] = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
-        Y, distance = compute_ang_averages(predictions)
-        produce_output(mdExp, 'Angular', Y, distance, fnImages)
-
-        # AngModel = load_model(fnAngModel, compile=False)
-        # AngModel.compile(loss="mean_squared_error", optimizer='adam')
-        # AngManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
-        # Y = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
-        # produce_output(mdExp, 'Angular', Y, fnImages)
+    produce_output(mdExp, Y, distance, fnImages)
 
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
-
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)

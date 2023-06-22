@@ -207,7 +207,7 @@ if __name__ == "__main__":
     import tensorflow as tf
     import keras.backend as K
 
-    Xdim, fnImgs, labels, zone = get_labels(fnXmdExp)
+    Xdim, fnImgs, labels = get_labels(fnXmdExp)
     start_time = time()
 
     if numModels == 1:
@@ -217,9 +217,6 @@ if __name__ == "__main__":
         lenTrain = int(len(fnImgs) / 5)
         print('lenTrain', lenTrain, flush=True)
         lenVal = int(len(fnImgs) / 20)
-
-
-    elements_zone = int((lenVal+lenTrain)/len(zone))
 
     for index in range(numModels):
 
