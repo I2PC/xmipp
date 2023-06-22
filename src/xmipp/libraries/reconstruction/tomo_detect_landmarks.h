@@ -42,13 +42,16 @@
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_image_generic.h>
 #include <data/point3D.h>
+#include <data/filters.h>
 
 #include <fstream>
 
 #define VERBOSE_OUTPUT
 
 #define DEBUG_DIM
-#define DEBUG_BANDPASS
+// #define DEBUG_DOWNSAMPLE
+// #define DEBUG_SOBEL
+#define DEBUG_HCC
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectLandmarks : public XmippProgram
@@ -117,6 +120,7 @@ public:
 
     void sobelFiler(MultidimArray<double> &tiltImage);
 
+    void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     // --------------------------- I/O functions ----------------------------
     

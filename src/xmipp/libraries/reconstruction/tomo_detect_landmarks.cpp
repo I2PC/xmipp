@@ -155,6 +155,213 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
     }
 }
 
+void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Picking high contrast coordinates..." << std::endl;
+	#endif
+
+    MultidimArray<double> binaryCoordinatesMapSlice;
+    MultidimArray<double> labelCoordiantesMapSlice;
+    MultidimArray<double> labelCoordiantesMap;
+
+	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
+
+	for(size_t k = 0; k < nSize; ++k)
+	{
+		#ifdef DEBUG_HCC
+		std::cout <<  "Searching for high contrast coordinates in tilt-image " << k << std::endl;
+		#endif
+
+		std::vector<int> sliceVector;
+
+        double sum = 0;
+		double sum2 = 0;
+        int Nelems = 0;
+        double average = 0;
+        double standardDeviation = 0;
+        double sliceVectorSize = sliceVector.size();
+
+
+        for(size_t e = 0; e < sliceVectorSize; e++)
+        {
+            int value = sliceVector[e];
+            sum += value;
+            sum2 += value*value;
+            ++Nelems;
+        }
+
+        average = sum / sliceVectorSize;
+        standardDeviation = sqrt(sum2/Nelems - average*average);
+
+        double thresholdU = average + 3 * standardDeviation;
+
+        #ifdef DEBUG_HCC
+		std::cout << "------------------------------------------------------" << std::endl;
+		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+        #endif
+
+		int numberOfPointsAddedBinaryMap;
+		bool firstExecution = true;
+		int numberOfNewPeakedCoordinates;
+		std::vector<Point3D<double>> newCoordinates3D;
+
+		size_t iteration = 0;
+
+		while(true)
+		{
+			numberOfPointsAddedBinaryMap = 0;
+			numberOfNewPeakedCoordinates = 0;
+			newCoordinates3D.clear();
+			binaryCoordinatesMapSlice.initZeros(ySize, xSize);
+			labelCoordiantesMapSlice.initZeros(ySize, xSize);
+
+			if (!firstExecution)
+			{
+				thresholdU += 0.05 * standardDeviation;
+				std::cout << "New thresholdU " << thresholdU << std::endl;
+			}
+			
+
+			for(size_t i = 0; i < ySize; i++)
+			{
+				for(size_t j = 0; j < xSize; ++j)
+				{
+					double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
+				
+					if (value > thresholdU)
+					{
+						DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+						
+						numberOfPointsAddedBinaryMap += 1;
+					}
+				}
+			}
+
+			#ifdef DEBUG_HCC
+			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
+			#endif
+
+			iteration +=1;
+			std::cout << " iteration " <<  iteration << std::endl;
+			std::cout << " numberOfPointsAddedBinaryMap " <<  numberOfPointsAddedBinaryMap << std::endl;
+			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
+
+			int colour;
+		
+			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
+
+			#ifdef DEBUG_HCC
+			std::cout << "Colour: " << colour << std::endl;
+			#endif
+
+			std::vector<std::vector<int>> coordinatesPerLabelX (colour);
+			std::vector<std::vector<int>> coordinatesPerLabelY (colour);
+
+			for(size_t i = 0; i < ySize; i++)
+			{
+				for(size_t j = 0; j < xSize; ++j)
+				{
+					int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+					if(value!=0)
+					{
+						coordinatesPerLabelX[value-1].push_back(j);
+						coordinatesPerLabelY[value-1].push_back(i);
+					}
+				}
+			}
+
+			size_t numberOfCoordinatesPerValue;
+
+            break;
+
+
+			// Trim coordinates based on the characteristics of the labeled region
+			// for(size_t value = 0; value < colour; value++)
+			// {
+			// 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+			// 	int xCoor = 0;
+			// 	int yCoor = 0;
+
+			// 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+			// 	{
+			// 		xCoor += coordinatesPerLabelX[value][coordinate];
+			// 		yCoor += coordinatesPerLabelY[value][coordinate];
+			// 	}
+
+			// 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+			// 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+			// 	bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			
+
+			// 	if(keep)
+			// 	{
+			// 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+			// 		newCoordinates3D.push_back(point3D);
+
+			// 		numberOfNewPeakedCoordinates += 1;
+			// 	}
+			// }
+
+			// std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
+			// std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
+
+			// if (newCoordinates3D.size() < inputCoords.size()*5)
+			// {
+			// 	for (size_t i = 0; i < newCoordinates3D.size(); i++)
+			// 	{
+			// 		coordinates3D.push_back(newCoordinates3D[i]);
+			// 	}
+
+			// 	for(size_t i = 0; i < ySize; i++)
+			// 	{
+			// 		for(size_t j = 0; j < xSize; ++j)
+			// 		{
+			// 			double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+			// 			if (value > 0)
+			// 			{
+			// 				DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
+			// 			}
+			// 		}
+			// 	}
+
+			// 	std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
+			// 	std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
+
+			// 	break;
+			// }
+
+
+			// firstExecution = false;
+		}	
+
+		#ifdef DEBUG_HCC
+		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
+		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
+		#endif
+
+    }
+
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
+	#endif
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameLabeledVolume;
+    outputFileNameLabeledVolume = rawname + "/ts_labeled.mrcs";
+
+	Image<double> saveImage;
+	saveImage() = labelCoordiantesMap; 
+	saveImage.write(outputFileNameLabeledVolume);
+	#endif
+}
 
 // --------------------------- I/O functions ----------------------------
 
@@ -274,6 +481,9 @@ void ProgTomoDetectLandmarks::run()
         MultidimArray<double> tiltImage_ds;
         tiltImage_ds.initZeros(ySize_d, xSize_d);
 
+        #ifdef DEBUG_DOWNSAMPLE
+        std::cout << "Aplying sobel filter to image " << counter << std::endl;
+        #endif
         downsample(ptrImg, tiltImage_ds);
 
         #ifdef DEBUG_DIM
@@ -282,7 +492,9 @@ void ProgTomoDetectLandmarks::run()
         std::cout << "y " << YSIZE(ptrImg) << std::endl;
         #endif
 
+        #ifdef DEBUG_SOBEL
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
+        #endif
         sobelFiler(tiltImage_ds);
 
         for (size_t i = 0; i < ySize_d; ++i)
@@ -295,6 +507,8 @@ void ProgTomoDetectLandmarks::run()
 
 		counter++;
 	}
+
+    getHighContrastCoordinates(filteredTiltSeries);
 	
     #ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
