@@ -1,0 +1,57 @@
+# Workflow name
+name: Build Xmipp
+
+# Specify when the Action should be triggered: when a pull request is opened against the 'devel' or 'master' branch
+on:
+  pull_request:
+    branches: [devel, master]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: debian-12
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    # Disabling shallow clone is recommended for improving relevancy of reporting
+    steps:
+      # Installing apt dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake libopencv-dev openmpi-bin
+      
+      # Setting up Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9.15' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          
+      # Installing Python dependencies
+      - name: Install python dependencies
+        run: |
+           python -m pip install --upgrade pip
+           pip install scons numpy
+       
+       # Installing CUDA                
+      - uses: Jimver/cuda-toolkit@v0.2.10
+        id: cuda-toolkit
+        with:
+          cuda: '11.7.0'
+          linux-local-args: '[ "--toolkit" ]'
+      
+      # Using CCache to speed C/C++ compilation
+      - name: Install ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+        with:
+            fetch-depth: 0
+
+      # Compiling Xmipp in the Pull Request branch
+      - name: Compile Xmipp
+        env:
+          CIBuild: 1
+          BUILD_TESTS: True
+        run: ./xmipp noAsk
