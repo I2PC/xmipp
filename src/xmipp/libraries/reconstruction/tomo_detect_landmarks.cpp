@@ -228,7 +228,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-        closing2D(binaryCoordinatesMapSlice, 5, 1, 4);
+        closing2D(binaryCoordinatesMapSlice, 5, 1, 8);
 
         int colour;
         colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
@@ -725,7 +725,7 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	#endif
 
 
-	if (relativeArea > 4 || relativeArea < 0.1)
+	if (relativeArea > 4 || relativeArea < 0.5)
 	{
 		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
