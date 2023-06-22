@@ -45,7 +45,18 @@ class Config:
     OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
     MINIMUM_GCC_VERSION = 8
     MINIMUM_CUDA_VERSION = 10.1
-
+    vGCC = ['12.2', '12.1',
+            '11.3', '11.2', '11.1', '11',
+            '10.4', '10.3', '10.2', '10.1', '10',
+            '9.4', '9.3', '9.2', '9.1', '9',
+            '8.5', '8.4', '8.3', '8.2', '8.1', '8']
+    CUDA_GCC_COMPATIBILITY = {
+        '10.1-10.2': vGCC[vGCC.index('8.5'):],
+        '11.0-11.0': vGCC[vGCC.index('9.4'):],
+        '11.1-11.4': vGCC[vGCC.index('10.4'):],
+        '11.5-11.8': vGCC[vGCC.index('11.2'):],
+        '12.0-12.1': vGCC[vGCC.index('12.2'):],
+    }
     CMAKE_VERSION_REQUIRED = '3.16'
 
 
@@ -411,10 +422,11 @@ class Config:
 
     def _config_cmake(self):
         error = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
-        if error:
-            print('Configuring cmake')
-            print(red(error))
-            return False
+        if error[0] == False:
+            print(red(error[2]))
+            print(red(error[3]))
+            return error
+
 
 
     def _ensure_GCC_GPP_version(self, compiler):
@@ -515,26 +527,12 @@ class Config:
 
     def _get_compatible_GCC(self, nvcc_version):
         # https://gist.github.com/ax3l/9489132
-        v = ['12.2', '12.1',
-             '11.3', '11.2', '11.1', '11',
-             '10.4', '10.3', '10.2', '10.1', '10',
-             '9.4', '9.3', '9.2', '9.1', '9',
-             '8.5', '8.4', '8.3', '8.2', '8.1', '8']
-        CUDA_GCC_COMPATIBILITY = {
-            '10.1-10.2': v[v.index('8.5'):],
-            '11.0-11.0': v[v.index('9.4'):],
-            '11.1-11.4': v[v.index('10.4'):],
-            '11.5-11.8': v[v.index('11.2'):],
-            '12.0-12.1': v[v.index('12.2'):],
-        }
-
-        for key, value in CUDA_GCC_COMPATIBILITY.items():
+        for key, value in Config.CUDA_GCC_COMPATIBILITY.items():
             list = key.split('-')
             if float(nvcc_version) >= float(list[0]) and\
                     float(nvcc_version) <= float(list[1]):
                 return value, True
-
-        return v, False
+        return Config.vGCC, False
 
     def _join_with_prefix(self, collection, prefix):
         return ' '.join([prefix + i for i in collection if i])

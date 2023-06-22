@@ -632,8 +632,8 @@ def compile_libcifpp(Nproc):
     log = []
     # Check if CMake version is up to date
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
-    if error:
-        red(error)
+    if error[0] == False:
+        exitProgram(1, error)
         return False, log
     currDir = os.getcwd()
     # Moving to library directory

@@ -453,9 +453,15 @@ def checkCMakeVersion(minimumRequired=None):
 
         # Checking if installed version is below minimum required
         if minimumRequired and (version_tuple(cmakVersion) < version_tuple(minimumRequired)):
-            return f"\033[91mYour CMake version ({cmakVersion}) is below {minimumRequired}. Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m"
+            return False, [False, 1, f"\033[91mYour CMake version ({cmakVersion}) is below {minimumRequired}. ",
+                       f"Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m"]
+        return True, []
     except FileNotFoundError:
-        return f"\033[91mCMake is not installed. Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m"
+        return False, [False, 1, f"\033[91mCMake is not installed",
+                   f" Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m"]
+    except Exception:
+        return False, [False, 1, "Can not get the cmake version",
+        "Please visit https://github.com/I2PC/xmipp/wiki/Cmake-troubleshoting"]
 
 def removeCompileAndReportFile(COMPRESED_REPORT, COMPILE_LOG):
     if os.path.isfile(COMPRESED_REPORT):
