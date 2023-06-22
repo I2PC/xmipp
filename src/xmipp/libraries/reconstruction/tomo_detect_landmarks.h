@@ -83,10 +83,8 @@ public:
     size_t normDim_d;
 
     /** Target fiducial size and downsampling factor */
-    size_t targetFS = 16;
+    double targetFS;
     double ds_factor;
-
-
 
     /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;

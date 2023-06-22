@@ -37,6 +37,8 @@ void ProgTomoDetectLandmarks::readParams()
 
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
+
+    targetFS = getDoubleParam("--targetLMsize");
 }
 
 
@@ -49,6 +51,8 @@ void ProgTomoDetectLandmarks::defineParams()
 
 	addParamsLine("  [--samplingRate <samplingRate=1>]			: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]		: Fiducial size in Angstroms (A).");
+
+	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
 }
 
 
@@ -165,7 +169,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
     MultidimArray<double> labelCoordiantesMapSlice;
     MultidimArray<double> labelCoordiantesMap;
 
-	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
+	labelCoordiantesMap.initZeros(nSize, zSize, ySize_d, xSize_d);
 
 	for(size_t k = 0; k < nSize; ++k)
 	{
@@ -175,13 +179,20 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		std::vector<int> sliceVector;
 
+		for (size_t j = 0; j < ySize_d; j++)
+		{
+			for (size_t i = 0; i < xSize_d; i++)
+			{
+				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+			}
+		}
+
         double sum = 0;
 		double sum2 = 0;
         int Nelems = 0;
         double average = 0;
         double standardDeviation = 0;
         double sliceVectorSize = sliceVector.size();
-
 
         for(size_t e = 0; e < sliceVectorSize; e++)
         {
@@ -201,146 +212,103 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
         #endif
 
-		int numberOfPointsAddedBinaryMap;
-		bool firstExecution = true;
-		int numberOfNewPeakedCoordinates;
-		std::vector<Point3D<double>> newCoordinates3D;
+        binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
+        labelCoordiantesMapSlice.initZeros(ySize_d, xSize_d);
 
-		size_t iteration = 0;
+        for(size_t i = 0; i < ySize_d; i++)
+        {
+            for(size_t j = 0; j < xSize_d; ++j)
+            {
+                double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
+            
+                if (value > thresholdU)
+                {
+                    DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+                }
+            }
+        }
 
-		while(true)
-		{
-			numberOfPointsAddedBinaryMap = 0;
-			numberOfNewPeakedCoordinates = 0;
-			newCoordinates3D.clear();
-			binaryCoordinatesMapSlice.initZeros(ySize, xSize);
-			labelCoordiantesMapSlice.initZeros(ySize, xSize);
+        int colour;
+        colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
-			if (!firstExecution)
-			{
-				thresholdU += 0.05 * standardDeviation;
-				std::cout << "New thresholdU " << thresholdU << std::endl;
-			}
-			
+        #ifdef DEBUG_HCC
+        std::cout << "Colour: " << colour << std::endl;
+        #endif
 
-			for(size_t i = 0; i < ySize; i++)
-			{
-				for(size_t j = 0; j < xSize; ++j)
-				{
-					double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
-				
-					if (value > thresholdU)
-					{
-						DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
-						
-						numberOfPointsAddedBinaryMap += 1;
-					}
-				}
-			}
+        // std::vector<std::vector<int>> coordinatesPerLabelX (colour);
+        // std::vector<std::vector<int>> coordinatesPerLabelY (colour);
 
-			#ifdef DEBUG_HCC
-			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
-			#endif
+        // for(size_t i = 0; i < ySize_d; i++)
+        // {
+        //     for(size_t j = 0; j < xSize_d; ++j)
+        //     {
+        //         int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
-			iteration +=1;
-			std::cout << " iteration " <<  iteration << std::endl;
-			std::cout << " numberOfPointsAddedBinaryMap " <<  numberOfPointsAddedBinaryMap << std::endl;
-			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
+        //         if(value!=0)
+        //         {
+        //             coordinatesPerLabelX[value-1].push_back(j);
+        //             coordinatesPerLabelY[value-1].push_back(i);
+        //         }
+        //     }
+        // }
 
-			int colour;
-		
-			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
+        // size_t numberOfCoordinatesPerValue;
 
-			#ifdef DEBUG_HCC
-			std::cout << "Colour: " << colour << std::endl;
-			#endif
+        // Trim coordinates based on the characteristics of the labeled region
+        // for(size_t value = 0; value < colour; value++)
+        // {
+        // 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
 
-			std::vector<std::vector<int>> coordinatesPerLabelX (colour);
-			std::vector<std::vector<int>> coordinatesPerLabelY (colour);
+        // 	int xCoor = 0;
+        // 	int yCoor = 0;
 
-			for(size_t i = 0; i < ySize; i++)
-			{
-				for(size_t j = 0; j < xSize; ++j)
-				{
-					int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+        // 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+        // 	{
+        // 		xCoor += coordinatesPerLabelX[value][coordinate];
+        // 		yCoor += coordinatesPerLabelY[value][coordinate];
+        // 	}
 
-					if(value!=0)
-					{
-						coordinatesPerLabelX[value-1].push_back(j);
-						coordinatesPerLabelY[value-1].push_back(i);
-					}
-				}
-			}
+        // 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+        // 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-			size_t numberOfCoordinatesPerValue;
+        // 	bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+        
 
-            break;
+        // 	if(keep)
+        // 	{
+        // 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+        // 		newCoordinates3D.push_back(point3D);
 
+        // 		numberOfNewPeakedCoordinates += 1;
+        // 	}
+        // }
 
-			// Trim coordinates based on the characteristics of the labeled region
-			// for(size_t value = 0; value < colour; value++)
-			// {
-			// 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+        // std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
+        // std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
 
-			// 	int xCoor = 0;
-			// 	int yCoor = 0;
+        // if (newCoordinates3D.size() < inputCoords.size()*5)
 
-			// 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
-			// 	{
-			// 		xCoor += coordinatesPerLabelX[value][coordinate];
-			// 		yCoor += coordinatesPerLabelY[value][coordinate];
-			// 	}
+        // for (size_t i = 0; i < newCoordinates3D.size(); i++)
+        // {
+        //     coordinates3D.push_back(newCoordinates3D[i]);
+        // }
 
-			// 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
-			// 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+        for(size_t i = 0; i < ySize_d; i++)
+        {
+            for(size_t j = 0; j < xSize_d; ++j)
+            {
+                double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
-			// 	bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			
+                if (value > 0)
+                {
+                    DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
+                }
+            }
+        }
 
-			// 	if(keep)
-			// 	{
-			// 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
-			// 		newCoordinates3D.push_back(point3D);
-
-			// 		numberOfNewPeakedCoordinates += 1;
-			// 	}
-			// }
-
-			// std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
-			// std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
-
-			// if (newCoordinates3D.size() < inputCoords.size()*5)
-			// {
-			// 	for (size_t i = 0; i < newCoordinates3D.size(); i++)
-			// 	{
-			// 		coordinates3D.push_back(newCoordinates3D[i]);
-			// 	}
-
-			// 	for(size_t i = 0; i < ySize; i++)
-			// 	{
-			// 		for(size_t j = 0; j < xSize; ++j)
-			// 		{
-			// 			double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-
-			// 			if (value > 0)
-			// 			{
-			// 				DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
-			// 			}
-			// 		}
-			// 	}
-
-			// 	std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
-			// 	std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
-
-			// 	break;
-			// }
-
-
-			// firstExecution = false;
-		}	
+        std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
 
 		#ifdef DEBUG_HCC
-		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
 		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
 		#endif
 
