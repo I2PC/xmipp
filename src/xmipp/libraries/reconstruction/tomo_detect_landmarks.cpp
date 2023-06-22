@@ -228,6 +228,8 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
+        closing2D(binaryCoordinatesMapSlice, 5, 1, 4);
+
         int colour;
         colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
@@ -571,6 +573,93 @@ void ProgTomoDetectLandmarks::run()
 
 
 // --------------------------- UTILS functions ----------------------------
+void ProgTomoDetectLandmarks::closing2D(MultidimArray<double> &binaryImage, int size, int count, int neig)
+{
+	MultidimArray<double> tmp;
+    double sum = 0;
+
+	//dilate
+    tmp = binaryImage;
+	binaryImage.initZeros(ySize_d, xSize_d);
+
+    for (int n = 0;n < size;n++)
+    {
+        #ifdef DEBUG_CLOSING
+        std::cout << "Dilate iteration " << n <<std::endl;
+        #endif
+
+		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+			{
+				if (A2D_ELEM(tmp,i, j) == 0)
+				{
+					// 4-environment
+					A2D_ELEM(binaryImage, i, j) = 0;
+					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+					if (sum > count)
+					{ //change the value to foreground
+						A2D_ELEM(binaryImage, i, j) = 1;
+					}
+					else if (neig == 8)
+					{ //8-environment
+						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+						if (sum > count)
+						{ //change the value to foreground
+							A2D_ELEM(binaryImage, i, j) = 1;
+						}
+					}
+				}
+				else
+				{
+					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+				}
+        	}
+    }
+
+	// erode
+	tmp = binaryImage;
+	binaryImage.initZeros(ySize_d, xSize_d);
+
+    for (int n = 0;n < size;n++)
+    {
+        #ifdef DEBUG_CLOSING
+        std::cout << "Dilate iteration " << n <<std::endl;
+        #endif
+
+		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+			{
+
+				if (A2D_ELEM(tmp,i, j) == 1)
+				{
+					// 4-environment
+					A2D_ELEM(binaryImage, i, j) = 1;
+					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+					if ((4 - sum) > count)
+					{ //change the value to foreground
+						A2D_ELEM(binaryImage, i, j) = 0;
+					}
+					else if (neig == 8)
+					{ //8-environment
+						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+						if ((neig - sum) > count)
+						{ //change the value to foreground
+							A2D_ELEM(binaryImage, i, j) = 0;
+						}
+					}
+				}
+				else
+				{
+					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+				}
+			}
+    }
+}
+
 bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Calculate the furthest point of the region from the centroid
@@ -626,7 +715,7 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	}
 
 	// Check the relative area compared with the expected goldbead
-	double expectedArea = PI * ((targetFS/2) * targetFS/2);
+	double expectedArea = PI * ((targetFS) * targetFS);
 	double relativeArea = (4*area)/expectedArea;  // Due to filtering and labelling processes labeled gold beads tend to reduce its radius in half
 
 	#ifdef DEBUG_FILTERLABEL

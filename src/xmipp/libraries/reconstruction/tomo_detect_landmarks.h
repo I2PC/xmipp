@@ -52,8 +52,9 @@
 #define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
 // #define DEBUG_SOBEL
-// #define DEBUG_FILTERLABEL
-#define DEBUG_HCC
+#define DEBUG_CLOSING
+#define DEBUG_FILTERLABEL
+// #define DEBUG_HCC
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectLandmarks : public XmippProgram
@@ -132,6 +133,8 @@ public:
     void run();
 
     // --------------------------- UTILS functions ----------------------------
+
+    void closing2D(MultidimArray<double> &binaryImage, int size, int count, int neig);
 
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
     
