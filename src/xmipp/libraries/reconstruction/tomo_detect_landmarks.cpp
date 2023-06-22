@@ -30,7 +30,7 @@
 
 // --------------------------- INFO functions ----------------------------
 
-void ProgTomoDetectMisalignmentTrajectory::readParams()
+void ProgTomoDetectLandmarks::readParams()
 {
 	fnVol = getParam("-i");
 	fnOut = getParam("-o");
@@ -41,7 +41,7 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 
 
 
-void ProgTomoDetectMisalignmentTrajectory::defineParams()
+void ProgTomoDetectLandmarks::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   	    : Input tilt-series.");
@@ -53,29 +53,75 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 
 
-void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
+void ProgTomoDetectLandmarks::generateSideInfo()
 {
 	fiducialSizePx = fiducialSize / samplingRate; 
+    
+    ds_factor = targetFS / fiducialSizePx; 
+    xSize_d = xSize * ds_factor;
+    ySize_d = ySize * ds_factor;
+
+    std::cout << "Generating side info: " << std::endl;
+    std::cout << "fiducialSizePx: " << fiducialSizePx << std::endl;
+    std::cout << "ds_factor: " << ds_factor << std::endl;
+    std::cout << "xSize_d: " << xSize_d << std::endl;
+    std::cout << "ySize_d: " << ySize_d << std::endl;
 }
 
 
 // --------------------------- HEAD functions ----------------------------
+void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds)
+{
+    MultidimArray<std::complex<double>> fftImg;
+	MultidimArray<std::complex<double>> fftImg_ds;
 
-void ProgTomoDetectMisalignmentTrajectory::sobelFiler(MultidimArray<double> &tiltImage)
+	FourierTransformer transformer1;
+	FourierTransformer transformer2;
+
+    std::cout << "a" << std::endl;
+
+    fftImg_ds.initZeros(ySize_d, xSize_d/2+1);
+    transformer1.FourierTransform(tiltImage, fftImg, false);
+
+
+    std::cout << "b" << std::endl;
+
+    for (size_t i = 0; i < ySize_d/2; ++i)
+    {
+        for (size_t j = 0; j < xSize_d/2; ++j)
+        {
+            // DIRECT_A2D_ELEM(fftImg_ds, i, j) = DIRECT_A2D_ELEM(fftImg, 
+            //                                                    (ySize/2)-(ySize_d/2)+i, 
+            //                                                    (xSize/2)-(xSize_d/2)+j);
+
+            DIRECT_A2D_ELEM(fftImg_ds, i, j) = DIRECT_A2D_ELEM(fftImg, i, j);
+            DIRECT_A2D_ELEM(fftImg_ds, (ySize_d/2)+i, j) = DIRECT_A2D_ELEM(fftImg, ySize-ySize_d/2+i, j);
+        }
+    }
+
+    std::cout << "c" << std::endl;
+
+    transformer2.inverseFourierTransform(fftImg_ds, tiltImage_ds);
+
+    std::cout << "d" << std::endl;
+
+}
+
+void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
 {  
     // Create the gradient images for x and y directions
     MultidimArray<double>  gradX;
     MultidimArray<double>  gradY;
 
-    gradX.initZeros(ySize, xSize);
-    gradY.initZeros(ySize, xSize);
-    
+    gradX.initZeros(ySize_d, xSize_d);
+    gradY.initZeros(ySize_d, xSize_d);
+
     // Apply the Sobel filter in the x-direction
-    for (int i = 1; i < ySize - 1; ++i)
+    for (int i = 1; i < ySize_d - 1; ++i)
     {
-        for (int j = 1; j < xSize - 1; ++j)
+        for (int j = 1; j < xSize_d - 1; ++j)
         {
-            int pixelValue = 0;
+            double pixelValue = 0;
             
             for (int k = -1; k <= 1; ++k)
             {
@@ -90,11 +136,11 @@ void ProgTomoDetectMisalignmentTrajectory::sobelFiler(MultidimArray<double> &til
     }
     
     // Apply the Sobel filter in the y-direction
-    for (int i = 1; i < ySize - 1; ++i)
+    for (int i = 1; i < ySize_d - 1; ++i)
     {
-        for (int j = 1; j < xSize - 1; ++j)
+        for (int j = 1; j < xSize_d - 1; ++j)
         {
-            int pixelValue = 0;
+            double pixelValue = 0;
             
             for (int k = -1; k <= 1; ++k)
             {
@@ -104,20 +150,20 @@ void ProgTomoDetectMisalignmentTrajectory::sobelFiler(MultidimArray<double> &til
                 }
             }
             
-            A2D_ELEM(gradX, i, j) = pixelValue;
+            A2D_ELEM(gradY, i, j) = pixelValue;
         }
     }
     
     // Compute the gradient magnitude   
-    tiltImage.initZeros(ySize, xSize);
+    tiltImage.initZeros(ySize_d, xSize_d);
 
-    for (int i = 0; i < ySize; ++i)
+    for (int i = 0; i < ySize_d; ++i)
     {
-        for (int j = 0; j < xSize; ++j)
+        for (int j = 0; j < xSize_d; ++j)
         {
 
-            A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(tiltImage, i, j) * A2D_ELEM(tiltImage, i, j) + 
-                                             A2D_ELEM(tiltImage, i, j) * A2D_ELEM(tiltImage, i, j));
+            A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
+                                             A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
         }
     }
 }
@@ -125,7 +171,7 @@ void ProgTomoDetectMisalignmentTrajectory::sobelFiler(MultidimArray<double> &til
 
 // --------------------------- I/O functions ----------------------------
 
-void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
+void ProgTomoDetectLandmarks::writeOutputCoordinates()
 {
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
@@ -155,7 +201,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 
 // --------------------------- MAIN ----------------------------------
 
-void ProgTomoDetectMisalignmentTrajectory::run()
+void ProgTomoDetectLandmarks::run()
 {
 	using std::chrono::high_resolution_clock;
     using std::chrono::duration_cast;
@@ -222,25 +268,42 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	Ndim = tiltseriesmd.size();
 
 	MultidimArray<double> filteredTiltSeries;
-	filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
+	filteredTiltSeries.initZeros(Ndim, 1, ySize_d, xSize_d);
+
+    #ifdef DEBUG_DIM
+	std::cout << "Filtered tilt-series dimensions:" << std::endl;
+	std::cout << "x " << XSIZE(filteredTiltSeries) << std::endl;
+	std::cout << "y " << YSIZE(filteredTiltSeries) << std::endl;
+	std::cout << "z " << ZSIZE(filteredTiltSeries) << std::endl;
+	std::cout << "n " << NSIZE(filteredTiltSeries) << std::endl;
+	#endif
 
 	for(size_t objId : tiltseriesmd.ids())
 	{
 		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
-		#ifdef DEBUG_PREPROCESS
-        std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
-		#endif
-
         imgTS.read(fnTSimg);
 
-        sobelFiler(ptrImg);
+        MultidimArray<double> tiltImage_ds;
+        tiltImage_ds.initZeros(ySize_d, xSize_d);
 
-        for (size_t i = 0; i < Ydim; ++i)
+        std::cout << "Downsampling image " << counter << std::endl;
+        downsample(ptrImg, tiltImage_ds);
+
+        #ifdef DEBUG_DIM
+        std::cout << "Tilt-image dimensions after dowsampling:" << std::endl;
+        std::cout << "x " << XSIZE(ptrImg) << std::endl;
+        std::cout << "y " << YSIZE(ptrImg) << std::endl;
+        #endif
+
+        std::cout << "Aplying sobel filter to image " << counter << std::endl;
+        sobelFiler(tiltImage_ds);
+
+        for (size_t i = 0; i < ySize_d; ++i)
         {
-            for (size_t j = 0; j < Xdim; ++j)
+            for (size_t j = 0; j < xSize_d; ++j)
             {
-				DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+				DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(tiltImage_ds, i, j);
 			}
 		}
 
@@ -260,8 +323,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	#ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
-	std::cout << "x " << xSize << std::endl;
-	std::cout << "y " << ySize << std::endl;
+	std::cout << "x " << xSize_d << std::endl;
+	std::cout << "y " << ySize_d << std::endl;
 	std::cout << "z " << zSize << std::endl;
 	std::cout << "n " << nSize << std::endl;
 	#endif

@@ -37,6 +37,9 @@
 #include <core/xmipp_program.h>
 #include <core/metadata_label.h>
 #include <core/metadata_vec.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
 #include <core/xmipp_image_generic.h>
 #include <data/point3D.h>
 
@@ -45,9 +48,10 @@
 #define VERBOSE_OUTPUT
 
 #define DEBUG_DIM
+#define DEBUG_BANDPASS
 #define DEBUG_OUTPUT_FILES
 
-class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
+class ProgTomoDetectLandmarks : public XmippProgram
 {
 
 public:
@@ -66,6 +70,19 @@ public:
 	size_t ySize;
 	size_t zSize;
     size_t nSize;
+    size_t normDim;
+
+    /** Input tilt-series dimensions after downsampling */
+    size_t xSize_d;
+	size_t ySize_d;
+	size_t zSize_d;
+    size_t nSize_d;
+    size_t normDim_d;
+
+    /** Target fiducial size and downsampling factor */
+    size_t targetFS = 16;
+    double ds_factor;
+
 
 
     /** Vector for peaked coordinates components */
@@ -75,11 +92,11 @@ public:
     float fiducialSizePx;
 
     // Define the Sobel kernels
-    std::vector<std::vector<int>> sobelX = {{-1, 0, 1},
+    std::vector<std::vector<double>> sobelX = {{-1, 0, 1},
                                             {-2, 0, 2},
                                             {-1, 0, 1}};
                                   
-    std::vector<std::vector<int>> sobelY = {{-1, -2, -1},
+    std::vector<std::vector<double>> sobelY = {{-1, -2, -1},
                                             { 0,  0,  0},
                                             { 1,  2,  1}};
 
@@ -96,6 +113,8 @@ public:
 
     // --------------------------- HEAD functions ----------------------------
     
+    void downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds);
+
     void sobelFiler(MultidimArray<double> &tiltImage);
 
 
