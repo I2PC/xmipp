@@ -492,4 +492,80 @@ void ProgTomoDetectLandmarks::run()
 
 
 // --------------------------- UTILS functions ----------------------------
+bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+{
+	// Calculate the furthest point of the region from the centroid
+	double maxSquareDistance = 0;
+	double distance;
 
+	#ifdef DEBUG_FILTERLABEL
+	size_t debugN;
+	#endif
+
+	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
+	{
+		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
+
+		if(distance >= maxSquareDistance)
+		{
+			#ifdef DEBUG_FILTERLABEL
+			debugN = n;
+			#endif
+
+			maxSquareDistance = distance;
+		}
+	}
+
+	double maxDistace;
+	maxDistace = sqrt(maxSquareDistance);
+
+	// Check sphericity of the labeled region
+	double circumscribedArea = PI * (maxDistace * maxDistace);;
+	double area = 0.0 + (double)coordinatesPerLabelX.size();
+	double ocupation;
+
+	ocupation = area / circumscribedArea;
+
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "debugN " << debugN << std::endl;
+	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+	std::cout << "centroX " << centroX << std::endl;
+	std::cout << "centroY " << centroY << std::endl;
+	std::cout << "area " << area << std::endl;
+	std::cout << "circumscribedArea " << circumscribedArea << std::endl;
+	std::cout << "maxDistace " << maxDistace << std::endl;
+	std::cout << "ocupation " << ocupation << std::endl;
+	#endif
+
+	if(ocupation < 0.5)
+	{
+		#ifdef DEBUG_FILTERLABEL
+		std::cout << "COORDINATE REMOVED AT (" << centroX << " , " << centroY << ") BECAUSE OF OCCUPATION"<< std::endl;
+		#endif
+		return false;
+	}
+
+	// Check the relative area compared with the expected goldbead
+	double expectedArea = PI * ((targetFS/2) * targetFS/2);
+	double relativeArea = (4*area)/expectedArea;  // Due to filtering and labelling processes labeled gold beads tend to reduce its radius in half
+
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "expectedArea " << expectedArea << std::endl;
+	std::cout << "relativeArea " << relativeArea << std::endl;
+	std::cout << "-------------------------------------------"  << std::endl;
+	#endif
+
+
+	if (relativeArea > 4 || relativeArea < 0.1)
+	{
+		#ifdef DEBUG_FILTERLABEL
+		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
+		#endif
+		return false;
+	}
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
+	#endif
+	return true;
+}

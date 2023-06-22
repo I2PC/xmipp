@@ -51,6 +51,7 @@
 #define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
 // #define DEBUG_SOBEL
+#define DEBUG_FILTERLABEL
 #define DEBUG_HCC
 #define DEBUG_OUTPUT_FILES
 
@@ -120,15 +121,19 @@ public:
 
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
-    // --------------------------- I/O functions ----------------------------
+    // ---------------------------- I/O functions -----------------------------
     
     void writeOutputCoordinates();
 
 
-    // --------------------------- MAIN ----------------------------------
+    // ------------------------------ MAIN ------------------------------------
 
     void run();
 
+    // --------------------------- UTILS functions ----------------------------
+
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+    
 };
 
 #endif
