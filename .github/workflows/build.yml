@@ -16,13 +16,11 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
-      # Updating repositories
-      - name: Update
-        run: sudo apt-get update
-        
       # Installing apt dependencies
       - name: Install dependencies
-        run: sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake libopencv-dev openmpi-bin
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfftw3-dev libopenmpi-dev libhdf5-dev libtiff5-dev python3-numpy python3-dev libsqlite3-dev default-jdk git cmake libopencv-dev openmpi-bin
       
       # Setting up Python
       - uses: actions/setup-python@v4
