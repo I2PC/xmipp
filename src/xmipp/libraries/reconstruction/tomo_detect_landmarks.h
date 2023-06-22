@@ -42,6 +42,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_image_generic.h>
 #include <data/point3D.h>
+#include <data/point2D.h>
 #include <data/filters.h>
 
 #include <fstream>
@@ -51,7 +52,7 @@
 #define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
 // #define DEBUG_SOBEL
-#define DEBUG_FILTERLABEL
+// #define DEBUG_FILTERLABEL
 #define DEBUG_HCC
 #define DEBUG_OUTPUT_FILES
 

@@ -254,9 +254,9 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
         size_t numberOfCoordinatesPerValue;
 
-        Trim coordinates based on the characteristics of the labeled region
+        // Trim coordinates based on the characteristics of the labeled region
         for(size_t value = 0; value < colour; value++)
-        {
+        {   
         	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
 
         	int xCoor = 0;
@@ -293,19 +293,21 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
                 }
             }
         }
-
-        std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
-
-		#ifdef DEBUG_HCC
-		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
-		#endif
-
     }
-
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
 	#endif
+
+    #ifdef DEBUG_HCC
+    // std::cout << "--- List do peaked coordinates: " << std::endl;
+    // for (size_t i = 0; i < coordinates3D.size(); i++)
+    // {
+    //     std::cout << "(" << coordinates3D[i].x << ", " << 
+    //                         coordinates3D[i].y << ", " << 
+    //                         coordinates3D[i].z << ")"  << std::endl;
+    // }
+    #endif
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of("\\/");
@@ -316,6 +318,80 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
 	saveImage.write(outputFileNameLabeledVolume);
+	#endif
+
+    // Generate output labeled_filtered series
+	#ifdef DEBUG_OUTPUT_FILES
+	MultidimArray<int> filteredLabeledTS;
+	filteredLabeledTS.initZeros(nSize, zSize, ySize_d, xSize_d);
+
+    std::vector<Point2D<double>> cis;
+
+	for (size_t n = 0; n < nSize; n++)
+	{
+        cis.clear();
+
+        // Get coordinate in slice n
+		Point2D<double> coordinate(0, 0);
+
+        for(size_t k = 0; k < coordinates3D.size(); k++)
+        {
+            if(n == coordinates3D[k].z)
+            {
+                coordinate.x = coordinates3D[k].x;
+                coordinate.y = coordinates3D[k].y;
+                cis.push_back(coordinate);
+            }
+        }
+
+        std::cout << "--- cis at image " << n << std::endl;
+        for (size_t i = 0; i < cis.size(); i++)
+        {
+            std::cout << "(" << cis[i].x << ", " << 
+                                cis[i].y << ")"  << std::endl;
+        }
+
+        // Paint dots in tilt-image
+		MultidimArray<int> filteredLabeledTS_Image;
+		filteredLabeledTS_Image.initZeros(ySize_d, xSize_d);
+
+		for(size_t i = 0; i < cis.size(); i++)
+		{
+            int x = (int)cis[i].x;
+            int y = (int)cis[i].y;
+            int value = 1;
+
+            int beadSize = (int)(targetFS*0.75);
+
+            for (int i = -beadSize; i <= beadSize; i++)
+            {
+                for (int j = -beadSize; j <= beadSize; j++)
+                {
+                    if (j + y > 0 && i + x  > 0 && j + y < ySize_d && i + x < xSize_d && i*i+j*j <= beadSize*beadSize)
+                    {
+                        DIRECT_A2D_ELEM(filteredLabeledTS_Image, (j + y), (i + x)) = value;
+                    }
+                }
+            }
+		}
+
+		for (size_t i = 0; i < ySize_d; ++i)
+		{
+			for (size_t j = 0; j < xSize_d; ++j)
+			{
+				DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
+			}
+		}
+	}
+
+	size_t lastindexBis = fnOut.find_last_of("\\/");
+	std::string rawnameBis = fnOut.substr(0, lastindexBis);
+	std::string outputFileNameFilteredVolumeBis;
+    outputFileNameFilteredVolumeBis = rawnameBis + "/ts_labeled_filtered.mrcs";
+
+	Image<int> saveImageBis;
+	saveImageBis() = filteredLabeledTS;
+	saveImageBis.write(outputFileNameFilteredVolumeBis);
 	#endif
 }
 
@@ -334,8 +410,8 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 	for(size_t i = 0; i < coordinates3D.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
-		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
+		md.setValue(MDL_XCOOR, (int)(coordinates3D[i].x/ds_factor), id);
+		md.setValue(MDL_YCOOR, (int)(coordinates3D[i].y/ds_factor), id);
 		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
 	}
 
@@ -484,6 +560,9 @@ void ProgTomoDetectLandmarks::run()
 	saveImage() = filteredTiltSeries;
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
+
+    // Write output coordinates
+    writeOutputCoordinates();
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
