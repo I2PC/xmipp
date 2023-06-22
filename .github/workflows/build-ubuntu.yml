@@ -1,5 +1,5 @@
 # Workflow name
-name: Build Xmipp
+name: Build Xmipp (Ubuntu)
 
 # Specify when the Action should be triggered: when a pull request is opened against the 'devel' or 'master' branch
 on:
@@ -9,7 +9,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  build-ubuntu:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
 
