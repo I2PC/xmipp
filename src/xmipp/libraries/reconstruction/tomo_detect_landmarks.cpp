@@ -235,63 +235,51 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         std::cout << "Colour: " << colour << std::endl;
         #endif
 
-        // std::vector<std::vector<int>> coordinatesPerLabelX (colour);
-        // std::vector<std::vector<int>> coordinatesPerLabelY (colour);
+        std::vector<std::vector<int>> coordinatesPerLabelX (colour);
+        std::vector<std::vector<int>> coordinatesPerLabelY (colour);
 
-        // for(size_t i = 0; i < ySize_d; i++)
-        // {
-        //     for(size_t j = 0; j < xSize_d; ++j)
-        //     {
-        //         int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+        for(size_t i = 0; i < ySize_d; i++)
+        {
+            for(size_t j = 0; j < xSize_d; ++j)
+            {
+                int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
-        //         if(value!=0)
-        //         {
-        //             coordinatesPerLabelX[value-1].push_back(j);
-        //             coordinatesPerLabelY[value-1].push_back(i);
-        //         }
-        //     }
-        // }
+                if(value!=0)
+                {
+                    coordinatesPerLabelX[value-1].push_back(j);
+                    coordinatesPerLabelY[value-1].push_back(i);
+                }
+            }
+        }
 
-        // size_t numberOfCoordinatesPerValue;
+        size_t numberOfCoordinatesPerValue;
 
-        // Trim coordinates based on the characteristics of the labeled region
-        // for(size_t value = 0; value < colour; value++)
-        // {
-        // 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+        Trim coordinates based on the characteristics of the labeled region
+        for(size_t value = 0; value < colour; value++)
+        {
+        	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
 
-        // 	int xCoor = 0;
-        // 	int yCoor = 0;
+        	int xCoor = 0;
+        	int yCoor = 0;
 
-        // 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
-        // 	{
-        // 		xCoor += coordinatesPerLabelX[value][coordinate];
-        // 		yCoor += coordinatesPerLabelY[value][coordinate];
-        // 	}
+        	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+        	{
+        		xCoor += coordinatesPerLabelX[value][coordinate];
+        		yCoor += coordinatesPerLabelY[value][coordinate];
+        	}
 
-        // 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
-        // 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+        	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+        	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-        // 	bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+        	bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
         
 
-        // 	if(keep)
-        // 	{
-        // 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
-        // 		newCoordinates3D.push_back(point3D);
-
-        // 		numberOfNewPeakedCoordinates += 1;
-        // 	}
-        // }
-
-        // std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
-        // std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
-
-        // if (newCoordinates3D.size() < inputCoords.size()*5)
-
-        // for (size_t i = 0; i < newCoordinates3D.size(); i++)
-        // {
-        //     coordinates3D.push_back(newCoordinates3D[i]);
-        // }
+        	if(keep)
+        	{
+        		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+        		coordinates3D.push_back(point3D);
+        	}
+        }
 
         for(size_t i = 0; i < ySize_d; i++)
         {
