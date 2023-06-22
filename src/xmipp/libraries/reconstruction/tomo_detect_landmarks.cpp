@@ -78,33 +78,20 @@ void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, Multi
 	FourierTransformer transformer1;
 	FourierTransformer transformer2;
 
-    std::cout << "a" << std::endl;
-
     fftImg_ds.initZeros(ySize_d, xSize_d/2+1);
     transformer1.FourierTransform(tiltImage, fftImg, false);
 
-
-    std::cout << "b" << std::endl;
 
     for (size_t i = 0; i < ySize_d/2; ++i)
     {
         for (size_t j = 0; j < xSize_d/2; ++j)
         {
-            // DIRECT_A2D_ELEM(fftImg_ds, i, j) = DIRECT_A2D_ELEM(fftImg, 
-            //                                                    (ySize/2)-(ySize_d/2)+i, 
-            //                                                    (xSize/2)-(xSize_d/2)+j);
-
             DIRECT_A2D_ELEM(fftImg_ds, i, j) = DIRECT_A2D_ELEM(fftImg, i, j);
             DIRECT_A2D_ELEM(fftImg_ds, (ySize_d/2)+i, j) = DIRECT_A2D_ELEM(fftImg, ySize-ySize_d/2+i, j);
         }
     }
 
-    std::cout << "c" << std::endl;
-
     transformer2.inverseFourierTransform(fftImg_ds, tiltImage_ds);
-
-    std::cout << "d" << std::endl;
-
 }
 
 void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
@@ -287,7 +274,6 @@ void ProgTomoDetectLandmarks::run()
         MultidimArray<double> tiltImage_ds;
         tiltImage_ds.initZeros(ySize_d, xSize_d);
 
-        std::cout << "Downsampling image " << counter << std::endl;
         downsample(ptrImg, tiltImage_ds);
 
         #ifdef DEBUG_DIM
@@ -310,6 +296,14 @@ void ProgTomoDetectLandmarks::run()
 		counter++;
 	}
 	
+    #ifdef DEBUG_DIM
+	std::cout << "Filtered tilt-series dimensions:" << std::endl;
+	std::cout << "x " << xSize_d << std::endl;
+	std::cout << "y " << ySize_d << std::endl;
+	std::cout << "z " << zSize << std::endl;
+	std::cout << "n " << nSize << std::endl;
+	#endif
+
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
@@ -319,14 +313,6 @@ void ProgTomoDetectLandmarks::run()
 	Image<double> saveImage;
 	saveImage() = filteredTiltSeries;
 	saveImage.write(outputFileNameFilteredVolume);
-	#endif
-
-	#ifdef DEBUG_DIM
-	std::cout << "Filtered tilt-series dimensions:" << std::endl;
-	std::cout << "x " << xSize_d << std::endl;
-	std::cout << "y " << ySize_d << std::endl;
-	std::cout << "z " << zSize << std::endl;
-	std::cout << "n " << nSize << std::endl;
 	#endif
 
 	auto t2 = high_resolution_clock::now();
