@@ -276,13 +276,10 @@ def pull():
 
 def cloneOrCheckout(repo, branch):
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
-    if branch not in getAllBranchesAndTags(repo)[1]:
-        branch = None
-
     if not os.path.exists(repo_dir):
-        if branch == None:
+        if branch not in getAllBranchesAndTags(repo):
             branchName = 'HEAD'
-        else: branchName = branch
+            branch = None
         print('Clonning repository: {}/{}'.format(repo, branchName))
         print(yellow('Working...'), end='\r')
         # If the repo doesn't exist, just clone the whole repo
