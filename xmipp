@@ -93,7 +93,7 @@ def checkGithubConnection():
     except gaierror:
         return False
     finally:
-        conn.close()
+        conn.close() 
 
 
 def stampVersion():
