@@ -696,7 +696,7 @@ def compileDependencies(Nproc):
     if buildConfig.is_true('CUDA'):
         cudaBinDir, nvccBaseName = os.path.split(buildConfig.get()['NVCC'])
         # cuFFTAdvisor compilation needs 'nvcc' accessible through the PATH
-        if not checkProgram(nvccBaseName) and checkProgram(buildConfig.get()['NVCC']):
+        if not checkProgram(nvccBaseName)[0] and checkProgram(buildConfig.get()['NVCC'])[0]:
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         if (checkProgram('make') or installDepConda('make')):
