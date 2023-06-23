@@ -93,7 +93,7 @@ def checkGithubConnection():
     except gaierror:
         return False
     finally:
-        conn.close()
+        conn.close() 
 
 
 def stampVersion():
@@ -382,7 +382,8 @@ def getDefaultBranch(repo):
                 return (True, branch.strip())
     exitProgram(1, [False, 1, 'Cannot auto-detect default branch for ' + repo +
               '. Maybe git version < 1.8.5?\n' + ''.join(log),
-              'Check the git version and the internet connetion'])
+              'Check the git version, the languaje must be english, check also '
+              'the internet connetion'])
 
 
 def getSources(branch):
