@@ -539,7 +539,7 @@ void ProgTomoDetectLandmarks::run()
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
         #endif
         sobelFiler(tiltImage_ds);
-        enhanceGoldBeads(tiltImage_ds);
+        enhanceLandmarks(tiltImage_ds);
 
         for (size_t i = 0; i < ySize_d; ++i)
         {
@@ -749,7 +749,7 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 }
 
 
-bool ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &referenceImage)
+void ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &referenceImage)
 {
     int targetFS_half = targetFS/2;
     int targetFS_half_sq = targetFS_half*targetFS_half;
@@ -763,7 +763,7 @@ bool ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
         {
             if ((k*k+l*l) < targetFS_half_sq)
             {
-                A2D_ELEM(tmp, xSize_d + k, ySize + l) = 1;
+                A2D_ELEM(referenceImage, xSize_d + k, ySize + l) = 1;
             }
         }
     }
@@ -771,13 +771,14 @@ bool ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
     // Apply Sobel filer to reference
     sobelFiler(referenceImage);
 
+    // Save reference
     #ifdef DEBUG_REFERENCE
     size_t li = fnOut.find_last_of("\\/");
 	std::string rn = fnOut.substr(0, li);
 	std::string outFN;
-    outFN = rn + "/ts_labeled_filtered.mrcs";
+    outFN = rn + "/landmarkReference.mrcs";
 
-	Image<int> si;
+	Image<double> si;
 	si() = referenceImage;
 	si.write(outFN);
     #endif
