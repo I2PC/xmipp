@@ -169,7 +169,7 @@ public:
      * Remove duplicated coordinates. Iteratively, merge those coordinates referred to the same 
      * high contrast feature based on a minimum distance threshold (the fiducial size).
     */
-    void removeDuplicatedCoordinates(MultidimArray<double> volFiltered);
+    void removeDuplicatedCoordinates();
 
     /**
      * Filter coordinates by the correlation. Calculate the dot product between each feature and 

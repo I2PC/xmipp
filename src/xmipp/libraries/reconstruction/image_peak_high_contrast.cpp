@@ -895,7 +895,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 }
 
 
-void ProgImagePeakHighContrast::removeDuplicatedCoordinates(MultidimArray<double> volFiltered)
+void ProgImagePeakHighContrast::removeDuplicatedCoordinates()
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Removing duplicated coordinates..." << std::endl;
@@ -1378,7 +1378,7 @@ void ProgImagePeakHighContrast::run()
 
 	centerCoordinates(inputTomo);
 
-	removeDuplicatedCoordinates(inputTomo);
+	removeDuplicatedCoordinates();
 
 	filterCoordinatesByCorrelation(inputTomo);
 
