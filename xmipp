@@ -275,6 +275,7 @@ def pull():
 
 
 def cloneOrCheckout(repo, branch):
+    branchName = branch
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
     if not os.path.exists(repo_dir):
         if branch not in getAllBranchesAndTags(repo):
