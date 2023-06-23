@@ -275,12 +275,13 @@ def pull():
 
 
 def cloneOrCheckout(repo, branch):
+    branchName = branch
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
-    if branch not in getAllBranchesAndTags(repo)[1]:
-        branch = getBranch(repo, repo_dir)[1]
-
     if not os.path.exists(repo_dir):
-        print('Clonning repository: {}/{}'.format(repo, branch))
+        if branch not in getAllBranchesAndTags(repo):
+            branchName = 'HEAD'
+            branch = None
+        print('Clonning repository: {}/{}'.format(repo, branchName))
         print(yellow('Working...'), end='\r')
         # If the repo doesn't exist, just clone the whole repo
         log = []
@@ -358,26 +359,10 @@ def getAllBranchesAndTags(repo):
                     show_output=False, log=log, show_command=False)
     if result:
         branchesAndTags = [l.split('/')[-1] for l in log]
-        return True, branchesAndTags
+        return branchesAndTags
     strError = 'Cannot list branches for ' + repo + ' ' + ''.join(log)
     status = [False, 1, strError, "Please review the connetion to the repository"]
     exitProgram(1, status)
-
-
-def getBranch(repo, repo_dir):
-    # return current branch
-    r, branch = getCurrentBranch(repo_dir)
-    if r:
-        return r, branch
-    # return same branch as xmipp
-    # we need to get current branch of the xmipp
-    r1, branchHint = (getCurrentCIBranch() if isCIBuild()
-                      else getCurrentBranch())
-    r2, branches = getAllBranchesAndTags(repo)
-    if r1 and r2 and branchHint in branches:
-        return True, branchHint
-    # default branch
-    return getDefaultBranch(repo)
 
 
 def getDefaultBranch(repo):
