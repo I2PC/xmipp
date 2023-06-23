@@ -763,7 +763,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
         {
             if ((k*k+l*l) < targetFS_half_sq)
             {
-                A2D_ELEM(referenceImage, xSize_d + k, ySize + l) = 1;
+                A2D_ELEM(referenceImage, ySize_d + k, xSize + l) = 1;
             }
         }
     }
