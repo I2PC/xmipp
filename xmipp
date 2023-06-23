@@ -361,7 +361,7 @@ def getAllBranchesAndTags(repo):
                     show_output=False, log=log, show_command=False)
     if result:
         branchesAndTags = [l.split('/')[-1] for l in log]
-        return True, branchesAndTags
+        return branchesAndTags
     strError = 'Cannot list branches for ' + repo + ' ' + ''.join(log)
     status = [False, 1, strError, "Please review the connetion to the repository"]
     exitProgram(1, status)
