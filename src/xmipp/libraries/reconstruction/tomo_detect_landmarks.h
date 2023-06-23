@@ -121,6 +121,8 @@ public:
 
     void sobelFiler(MultidimArray<double> &tiltImage);
 
+    void enhanceLandmarks(MultidimArray<double> &tiltImage);
+
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     // ---------------------------- I/O functions -----------------------------
@@ -137,6 +139,8 @@ public:
     void closing2D(MultidimArray<double> &binaryImage, int size, int count, int neig);
 
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+
+    void createLandmarkTemplate (MultidimArray<double> &referenceImage);
     
 };
 

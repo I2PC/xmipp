@@ -159,6 +159,15 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
     }
 }
 
+void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
+{
+    // Create phantom for landmark reference
+    MultidimArray<double>  landmarkReference;
+    createLandmarkTemplate(landmarkReference);
+
+    
+}
+
 void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -228,7 +237,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-        closing2D(binaryCoordinatesMapSlice, 5, 1, 8);
+        closing2D(binaryCoordinatesMapSlice, 3, 1, 8);
 
         int colour;
         colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
@@ -530,6 +539,7 @@ void ProgTomoDetectLandmarks::run()
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
         #endif
         sobelFiler(tiltImage_ds);
+        enhanceGoldBeads(tiltImage_ds);
 
         for (size_t i = 0; i < ySize_d; ++i)
         {
@@ -736,4 +746,24 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
 	#endif
 	return true;
+}
+
+
+bool ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &referenceImage)
+{
+    int targetFS_half = targetFS/2;
+    int targetFS_half_sq = targetFS_half*targetFS_half;
+
+    referenceImage.initZeros(ySize_d, xSize_d);
+    
+    for (int k = -targetFS_half; k <= targetFS_half; ++k)
+    {
+        for (int l = -targetFS_half; l <= targetFS_half; ++l)
+        {
+            if ((k*k+l*l) < targetFS_half_sq)
+            {
+                A2D_ELEM(tmp, xSize_d + k, ySize + l) = 1;
+            }
+        }
+    }
 }
