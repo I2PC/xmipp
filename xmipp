@@ -1289,10 +1289,14 @@ if __name__ == '__main__':
         status = ensureGit(True)
         if status [0] == False:
             exitProgram(status[1])
-        runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
-        runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
-        runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
-        runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
+        print('-Repository xmippCore:\t\t', end='')
+        runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]), show_command=False)
+        print('\n-Repository xmipp:\t\t', end='')
+        runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]), show_command=False)
+        print('\n-Repository xmippViz:\t\t', end='')
+        runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]), show_command=False)
+        print('\n-Repository scipion-em-xmipp:\t', end='')
+        runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]), show_command=False)
     elif mode == "gitConfig":
         status = ensureGit(True)
         if status [0] == False:
