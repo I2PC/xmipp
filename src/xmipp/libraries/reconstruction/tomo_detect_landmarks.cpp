@@ -165,7 +165,7 @@ void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
     MultidimArray<double>  landmarkReference;
     createLandmarkTemplate(landmarkReference);
 
-    
+
 }
 
 void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
@@ -756,6 +756,7 @@ bool ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
 
     referenceImage.initZeros(ySize_d, xSize_d);
     
+    // Create tilt-image with a single landamrk
     for (int k = -targetFS_half; k <= targetFS_half; ++k)
     {
         for (int l = -targetFS_half; l <= targetFS_half; ++l)
@@ -766,4 +767,18 @@ bool ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
             }
         }
     }
+
+    // Apply Sobel filer to reference
+    sobelFiler(referenceImage);
+
+    #ifdef DEBUG_REFERENCE
+    size_t li = fnOut.find_last_of("\\/");
+	std::string rn = fnOut.substr(0, li);
+	std::string outFN;
+    outFN = rn + "/ts_labeled_filtered.mrcs";
+
+	Image<int> si;
+	si() = referenceImage;
+	si.write(outFN);
+    #endif
 }
