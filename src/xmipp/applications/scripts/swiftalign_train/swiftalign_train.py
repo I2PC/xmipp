@@ -165,7 +165,7 @@ def run(reference_md_path: str,
     )
     
     # Write to disk
-    db.to_device(torch.device('cpu'))
+    #db.to_device(torch.device('cpu'))
     db.write(index_path)
 
 
