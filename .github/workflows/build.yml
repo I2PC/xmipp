@@ -40,10 +40,6 @@ jobs:
           cuda: '11.7.0'
           linux-local-args: '[ "--toolkit" ]'
       
-      # Using CCache to speed C/C++ compilation
-      - name: Install ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-      
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
         with:
