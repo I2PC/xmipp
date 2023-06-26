@@ -137,7 +137,7 @@ def run(experimental_md_path: str,
     # Read the database
     db = search.FaissDatabase()
     db.read(index_path)
-    #db.to_device(db_device, use_f16=use_f16, reserve_vecs=max_size)
+    db.to_device(db_device, use_f16=use_f16, reserve_vecs=max_size)
     
     # Create the in-plane transforms
     angles = _calculate_rotations(max_psi=max_psi, n_rotations=n_rotations)   
