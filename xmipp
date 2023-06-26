@@ -614,7 +614,7 @@ def compile_libsvm():
 
 def compile_libcifpp(Nproc):
     print("Building libcifpp...")
-    print(yellow('Working... (It could takes 1 or 2 minutes)'), end='\r')
+    print(yellow('Working... (It could take 1 or 2 minutes)'), end='\r')
     log = []
     # Check if CMake version is up to date
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
