@@ -105,17 +105,6 @@ def run(reference_md_path: str,
     # Read CTFs
     ctfs = _read_ctf(ctf_md_path, flattener, transform_device)
 
-    # Read CTFs
-    ctfs = None
-    ctf_md = None
-    if ctf_md_path:
-        ctf_md = md.read(ctf_md_path)
-        ctf_paths = list(map(image.parse_path, ctf_md[md.IMAGE]))
-        ctf_dataset = image.torch_utils.Dataset(ctf_paths)
-        ctf_images = torch.utils.data.default_collate([ctf_dataset[i] for i in range(len(ctf_dataset))])
-        ctf_images = fourier.remove_symmetric_half(ctf_images)
-        ctfs = flattener(ctf_images.to(transform_device))
-        
     # Create the transformer
     transformer = alignment.FourierInPlaneTransformAugmenter(
         max_psi=max_psi,
