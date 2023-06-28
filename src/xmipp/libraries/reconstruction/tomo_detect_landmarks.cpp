@@ -29,7 +29,6 @@
 
 
 // --------------------------- INFO functions ----------------------------
-
 void ProgTomoDetectLandmarks::readParams()
 {
 	fnVol = getParam("-i");
@@ -41,7 +40,6 @@ void ProgTomoDetectLandmarks::readParams()
     targetFS = getDoubleParam("--targetLMsize");
     thrSD = getIntParam("--thrSD");
 }
-
 
 
 void ProgTomoDetectLandmarks::defineParams()
@@ -58,7 +56,6 @@ void ProgTomoDetectLandmarks::defineParams()
 }
 
 
-
 void ProgTomoDetectLandmarks::generateSideInfo()
 {
 	fiducialSizePx = fiducialSize / samplingRate; 
@@ -73,6 +70,7 @@ void ProgTomoDetectLandmarks::generateSideInfo()
     std::cout << "xSize_d: " << xSize_d << std::endl;
     std::cout << "ySize_d: " << ySize_d << std::endl;
 }
+
 
 
 // --------------------------- HEAD functions ----------------------------
@@ -99,6 +97,7 @@ void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, Multi
 
     transformer2.inverseFourierTransform(fftImg_ds, tiltImage_ds);
 }
+
 
 void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
 {  
@@ -161,6 +160,7 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
     }
 }
 
+
 void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 {
 	MultidimArray<double> tiltImage_enhanced;
@@ -169,6 +169,7 @@ void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 	correlation_matrix(tiltImage, landmarkReference, tiltImage_enhanced, aux, true);
 	tiltImage = tiltImage_enhanced;
 }
+
 
 void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
 {
@@ -238,8 +239,6 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
                 }
             }
         }
-
-        // closing2D(binaryCoordinatesMapSlice, 3, 1, 8);
 
         int colour;
         colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
@@ -412,8 +411,9 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 	#endif
 }
 
-// --------------------------- I/O functions ----------------------------
 
+
+// --------------------------- I/O functions ----------------------------
 void ProgTomoDetectLandmarks::writeOutputCoordinates()
 {
 	MetaDataVec md;
@@ -437,8 +437,8 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 }
 
 
-// --------------------------- MAIN ----------------------------------
 
+// --------------------------- MAIN ----------------------------------
 void ProgTomoDetectLandmarks::run()
 {
 	using std::chrono::high_resolution_clock;
@@ -586,94 +586,8 @@ void ProgTomoDetectLandmarks::run()
 }
 
 
+
 // --------------------------- UTILS functions ----------------------------
-void ProgTomoDetectLandmarks::closing2D(MultidimArray<double> &binaryImage, int size, int count, int neig)
-{
-	MultidimArray<double> tmp;
-    double sum = 0;
-
-	//dilate
-    // tmp = binaryImage;
-	// binaryImage.initZeros(ySize_d, xSize_d);
-
-    // for (int n = 0;n < size;n++)
-    // {
-    //     #ifdef DEBUG_CLOSING
-    //     std::cout << "Dilate iteration " << n <<std::endl;
-    //     #endif
-
-	// 	for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
-	// 		for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
-	// 		{
-	// 			if (A2D_ELEM(tmp,i, j) == 0)
-	// 			{
-	// 				// 4-environment
-	// 				A2D_ELEM(binaryImage, i, j) = 0;
-	// 				sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-	// 					  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
-	// 				if (sum > count)
-	// 				{ //change the value to foreground
-	// 					A2D_ELEM(binaryImage, i, j) = 1;
-	// 				}
-	// 				else if (neig == 8)
-	// 				{ //8-environment
-	// 					sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-	// 						  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
-	// 					if (sum > count)
-	// 					{ //change the value to foreground
-	// 						A2D_ELEM(binaryImage, i, j) = 1;
-	// 					}
-	// 				}
-	// 			}
-	// 			else
-	// 			{
-	// 				A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
-	// 			}
-    //     	}
-    // }
-
-	// erode
-	tmp = binaryImage;
-	binaryImage.initZeros(ySize_d, xSize_d);
-
-    for (int n = 0;n < size;n++)
-    {
-        #ifdef DEBUG_CLOSING
-        std::cout << "Erode iteration " << n <<std::endl;
-        #endif
-
-		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
-			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
-			{
-
-				if (A2D_ELEM(tmp,i, j) == 1)
-				{
-					// 4-environment
-					A2D_ELEM(binaryImage, i, j) = 1;
-					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
-					if ((4 - sum) > count)
-					{ //change the value to foreground
-						A2D_ELEM(binaryImage, i, j) = 0;
-					}
-					else if (neig == 8)
-					{ //8-environment
-						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
-						if ((neig - sum) > count)
-						{ //change the value to foreground
-							A2D_ELEM(binaryImage, i, j) = 0;
-						}
-					}
-				}
-				else
-				{
-					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
-				}
-			}
-    }
-}
-
 bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Calculate the furthest point of the region from the centroid
