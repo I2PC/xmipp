@@ -113,38 +113,75 @@ public:
 
     // --------------------------- INFO functions ----------------------------
     
+    /**
+     * Read input program parameters.
+    */
     void readParams();
 
+    /**
+     * Define input program parameters.
+    */
     void defineParams();
 
+    /**
+     * Calculate global parameters used through the program.
+    */
     void generateSideInfo();
 
 
     // --------------------------- HEAD functions ----------------------------
     
+    /**
+     * Dowsample input tilt-image to resize landmarks to target size.
+    */
     void downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds);
 
+    /**
+     * Apply Sobel filter to input tilt image.
+    */
     void sobelFiler(MultidimArray<double> &tiltImage);
 
+    /**
+     * Convolve tilt-image with filtered reference landmark (correlation in Fourier
+     * space) to enhance landamrks.
+    */
     void enhanceLandmarks(MultidimArray<double> &tiltImage);
 
+    /**
+     * Peak high contrast coordinates in a volume. Detect coordinates with an outlier value, 
+     * generate a binary map to posterior label it, and filter the labeled regions depending on
+     * size and shape. Keep
+    */
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     // ---------------------------- I/O functions -----------------------------
-    
+
+    /**
+     * Write output coordinates metadata.
+    */
     void writeOutputCoordinates();
 
 
     // ------------------------------ MAIN ------------------------------------
 
+    /**
+     * Run main program.
+    */
     void run();
 
     // --------------------------- UTILS functions ----------------------------
 
-    void closing2D(MultidimArray<double> &binaryImage, int size, int count, int neig);
-
+    /**
+     * Filter labeled regions. Util method to remove those labeles regions based on their size 
+     * (minimum number of points that should contain) and shape (present a globular structure,
+     * as expected from a gold bead).
+    */
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
 
+    /**
+     * Create landmark template on the fly to posteriorly to convolve with each tilt-image to
+     * enhance landmarks.
+    */
     void createLandmarkTemplate();
     
 };
