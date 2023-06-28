@@ -39,6 +39,7 @@ void ProgTomoDetectLandmarks::readParams()
 	fiducialSize = getDoubleParam("--fiducialSize");
 
     targetFS = getDoubleParam("--targetLMsize");
+    thrSD = getIntParam("--thrSD");
 }
 
 
@@ -47,12 +48,13 @@ void ProgTomoDetectLandmarks::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   	    : Input tilt-series.");
-	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]    : Output file containing the alignemnt report.");
+	addParamsLine("  [-o <output=\"./landmarkCoordinates.xmd\">]    : Output file containing the alignemnt report.");
 
 	addParamsLine("  [--samplingRate <samplingRate=1>]			: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]		: Fiducial size in Angstroms (A).");
 
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
+	addParamsLine("  [--thrSD <thrSD=5>]		    		: Number of times over the mean has to be a pixel valur to consider it an outlier.");
 }
 
 
@@ -161,11 +163,11 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
 
 void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 {
-    // Create phantom for landmark reference
-    MultidimArray<double>  landmarkReference;
-    createLandmarkTemplate(landmarkReference);
-
-
+	MultidimArray<double> tiltImage_enhanced;
+	CorrelationAux aux;
+	
+	correlation_matrix(tiltImage, landmarkReference, tiltImage_enhanced, aux, true);
+	tiltImage = tiltImage_enhanced;
 }
 
 void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
@@ -214,7 +216,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        double thresholdU = average + 3 * standardDeviation;
+        double thresholdU = average + thrSD * standardDeviation;
 
         #ifdef DEBUG_HCC
 		std::cout << "------------------------------------------------------" << std::endl;
@@ -237,7 +239,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-        closing2D(binaryCoordinatesMapSlice, 3, 1, 8);
+        // closing2D(binaryCoordinatesMapSlice, 3, 1, 8);
 
         int colour;
         colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
@@ -266,6 +268,10 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         size_t numberOfCoordinatesPerValue;
 
         // Trim coordinates based on the characteristics of the labeled region
+		#ifdef DEBUG_FILTERLABEL
+		std::cout <<  "Filtering labels in tilt-image " << k << std::endl;
+		#endif
+
         for(size_t value = 0; value < colour; value++)
         {   
         	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
@@ -410,11 +416,6 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 void ProgTomoDetectLandmarks::writeOutputCoordinates()
 {
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameLandmarkCoordinates;
-    outputFileNameLandmarkCoordinates = rawname + "/ts_landmarkCoordinates.xmd";
-
 	MetaDataVec md;
 	size_t id;
 
@@ -427,10 +428,10 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 	}
 
 
-	md.write(outputFileNameLandmarkCoordinates);
+	md.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Output coordinates metadata saved at: " << outputFileNameLandmarkCoordinates << std::endl;
+	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
 
 }
@@ -515,6 +516,9 @@ void ProgTomoDetectLandmarks::run()
 	std::cout << "n " << NSIZE(filteredTiltSeries) << std::endl;
 	#endif
 
+	// Create phantom for landmark reference
+    createLandmarkTemplate();
+
 	for(size_t objId : tiltseriesmd.ids())
 	{
 		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
@@ -589,44 +593,44 @@ void ProgTomoDetectLandmarks::closing2D(MultidimArray<double> &binaryImage, int 
     double sum = 0;
 
 	//dilate
-    tmp = binaryImage;
-	binaryImage.initZeros(ySize_d, xSize_d);
+    // tmp = binaryImage;
+	// binaryImage.initZeros(ySize_d, xSize_d);
 
-    for (int n = 0;n < size;n++)
-    {
-        #ifdef DEBUG_CLOSING
-        std::cout << "Dilate iteration " << n <<std::endl;
-        #endif
+    // for (int n = 0;n < size;n++)
+    // {
+    //     #ifdef DEBUG_CLOSING
+    //     std::cout << "Dilate iteration " << n <<std::endl;
+    //     #endif
 
-		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
-			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
-			{
-				if (A2D_ELEM(tmp,i, j) == 0)
-				{
-					// 4-environment
-					A2D_ELEM(binaryImage, i, j) = 0;
-					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
-					if (sum > count)
-					{ //change the value to foreground
-						A2D_ELEM(binaryImage, i, j) = 1;
-					}
-					else if (neig == 8)
-					{ //8-environment
-						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
-						if (sum > count)
-						{ //change the value to foreground
-							A2D_ELEM(binaryImage, i, j) = 1;
-						}
-					}
-				}
-				else
-				{
-					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
-				}
-        	}
-    }
+	// 	for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+	// 		for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+	// 		{
+	// 			if (A2D_ELEM(tmp,i, j) == 0)
+	// 			{
+	// 				// 4-environment
+	// 				A2D_ELEM(binaryImage, i, j) = 0;
+	// 				sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+	// 					  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+	// 				if (sum > count)
+	// 				{ //change the value to foreground
+	// 					A2D_ELEM(binaryImage, i, j) = 1;
+	// 				}
+	// 				else if (neig == 8)
+	// 				{ //8-environment
+	// 					sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+	// 						  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+	// 					if (sum > count)
+	// 					{ //change the value to foreground
+	// 						A2D_ELEM(binaryImage, i, j) = 1;
+	// 					}
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+	// 			}
+    //     	}
+    // }
 
 	// erode
 	tmp = binaryImage;
@@ -635,7 +639,7 @@ void ProgTomoDetectLandmarks::closing2D(MultidimArray<double> &binaryImage, int 
     for (int n = 0;n < size;n++)
     {
         #ifdef DEBUG_CLOSING
-        std::cout << "Dilate iteration " << n <<std::endl;
+        std::cout << "Erode iteration " << n <<std::endl;
         #endif
 
 		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
@@ -716,10 +720,11 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	std::cout << "ocupation " << ocupation << std::endl;
 	#endif
 
-	if(ocupation < 0.5)
+	if(ocupation < 0.25)
 	{
 		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT (" << centroX << " , " << centroY << ") BECAUSE OF OCCUPATION"<< std::endl;
+		std::cout << "-------------------------------------------"  << std::endl;
 		#endif
 		return false;
 	}
@@ -731,30 +736,32 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	#ifdef DEBUG_FILTERLABEL
 	std::cout << "expectedArea " << expectedArea << std::endl;
 	std::cout << "relativeArea " << relativeArea << std::endl;
-	std::cout << "-------------------------------------------"  << std::endl;
 	#endif
 
 
-	if (relativeArea > 4 || relativeArea < 0.5)
+	if (relativeArea > 4 || relativeArea < 0.25)
 	{
 		#ifdef DEBUG_FILTERLABEL
 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
+		std::cout << "-------------------------------------------"  << std::endl;
 		#endif
 		return false;
 	}
 	#ifdef DEBUG_FILTERLABEL
 	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
+	std::cout << "-------------------------------------------"  << std::endl;
 	#endif
 	return true;
 }
 
 
-void ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &referenceImage)
+void ProgTomoDetectLandmarks::createLandmarkTemplate()
 {
+	// Generate first reference
     int targetFS_half = targetFS/2;
     int targetFS_half_sq = targetFS_half*targetFS_half;
 
-    referenceImage.initZeros(ySize_d, xSize_d);
+    landmarkReference.initZeros(ySize_d, xSize_d);
     
     // Create tilt-image with a single landamrk
     for (int k = -targetFS_half; k <= targetFS_half; ++k)
@@ -763,13 +770,13 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
         {
             if ((k*k+l*l) < targetFS_half_sq)
             {
-                A2D_ELEM(referenceImage, ySize_d + k, xSize + l) = 1;
+                A2D_ELEM(landmarkReference, ySize_d/2 + k, xSize_d/2 + l) = 1;
             }
         }
     }
 
     // Apply Sobel filer to reference
-    sobelFiler(referenceImage);
+    sobelFiler(landmarkReference);
 
     // Save reference
     #ifdef DEBUG_REFERENCE
@@ -779,7 +786,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate(MultidimArray<double> &refe
     outFN = rn + "/landmarkReference.mrcs";
 
 	Image<double> si;
-	si() = referenceImage;
+	si() = landmarkReference;
 	si.write(outFN);
     #endif
 }

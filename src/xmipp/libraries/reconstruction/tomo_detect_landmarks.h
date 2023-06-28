@@ -49,10 +49,10 @@
 
 #define VERBOSE_OUTPUT
 
-#define DEBUG_DIM
+// #define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
 // #define DEBUG_SOBEL
-#define DEBUG_CLOSING
+// #define DEBUG_CLOSING
 #define DEBUG_FILTERLABEL
 // #define DEBUG_HCC
 #define DEBUG_REFERENCE
@@ -89,6 +89,7 @@ public:
     /** Target fiducial size and downsampling factor */
     double targetFS;
     double ds_factor;
+    double thrSD;
 
     /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;
@@ -104,6 +105,9 @@ public:
     std::vector<std::vector<double>> sobelY = {{-1, -2, -1},
                                             { 0,  0,  0},
                                             { 1,  2,  1}};
+
+    // Landmark reference for enhancement
+    MultidimArray<double> landmarkReference;
 
 public:
 
@@ -141,7 +145,7 @@ public:
 
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
 
-    void createLandmarkTemplate (MultidimArray<double> &referenceImage);
+    void createLandmarkTemplate();
     
 };
 
