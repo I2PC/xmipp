@@ -72,7 +72,7 @@ class Config:
             self.configDict['VERIFIED'] = 'False'
 
         self._config_compiler()
-        self._config_cmake()
+        status = self._config_cmake()
         self._set_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -86,6 +86,10 @@ class Config:
         self.write()
         self.environment.write()
         print(green("\nConfiguration completed and written on xmipp.conf\n"))
+        if status[0] == False:
+            return False, status
+        else:
+            return True,[]
 
     def check(self):
         print("\nChecking configuration -----------------------------------")
