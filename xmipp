@@ -70,7 +70,7 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('v1.13.0', None),
+                GTEST: ('v1.13.x', None),
                 LIBSVM: ('master', None),
                 LIBCIFPP: ('ms_feature_ciflibrary', None)}
 
