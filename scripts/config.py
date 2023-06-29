@@ -423,8 +423,8 @@ class Config:
     def _config_cmake(self):
         error = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
         if error[0] == False:
-            print(red(error[2]))
-            print(red(error[3]))
+            print(red(error[1][2]))
+            print(red(error[1][3]))
             return error
 
 
