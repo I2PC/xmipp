@@ -1243,9 +1243,7 @@ if __name__ == '__main__':
                 sys.exit(1)
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
-            status = buildConfig.create()
-            if status[0] == False:
-                exitProgram(1,status)
+            buildConfig.create()
         else:
             print(green("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
