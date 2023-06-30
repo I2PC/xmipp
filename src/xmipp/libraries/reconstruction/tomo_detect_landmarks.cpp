@@ -606,6 +606,7 @@ void ProgTomoDetectLandmarks::centerCoordinates(MultidimArray<double> tiltSeries
 }
 
 
+
 // --------------------------- I/O functions ----------------------------
 void ProgTomoDetectLandmarks::writeOutputCoordinates()
 {

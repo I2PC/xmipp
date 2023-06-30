@@ -49,15 +49,15 @@
 
 #define VERBOSE_OUTPUT
 
-#define DEBUG_DIM
+// #define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
 // #define DEBUG_SOBEL
 // #define DEBUG_CLOSING
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_HCC
 // #define DEBUG_REFERENCE
-#define DEBUG_CENTER_COORDINATES
-#define DEBUG_OUTPUT_FILES
+// #define DEBUG_CENTER_COORDINATES
+// #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectLandmarks : public XmippProgram
 {
