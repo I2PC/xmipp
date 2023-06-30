@@ -56,6 +56,7 @@
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_HCC
 // #define DEBUG_REFERENCE
+// #define DEBUG_CENTER_COORDINATES
 // #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectLandmarks : public XmippProgram
@@ -71,7 +72,7 @@ public:
     /** Input info */
     double fiducialSize;
     double samplingRate;
-   
+
     /** Input tilt-series dimensions */
     size_t xSize;
 	size_t ySize;
@@ -101,7 +102,7 @@ public:
     std::vector<std::vector<double>> sobelX = {{-1, 0, 1},
                                             {-2, 0, 2},
                                             {-1, 0, 1}};
-                                  
+
     std::vector<std::vector<double>> sobelY = {{-1, -2, -1},
                                             { 0,  0,  0},
                                             { 1,  2,  1}};
@@ -112,7 +113,7 @@ public:
 public:
 
     // --------------------------- INFO functions ----------------------------
-    
+
     /**
      * Read input program parameters.
     */
@@ -130,7 +131,7 @@ public:
 
 
     // --------------------------- HEAD functions ----------------------------
-    
+
     /**
      * Dowsample input tilt-image to resize landmarks to target size.
     */
@@ -150,9 +151,15 @@ public:
     /**
      * Peak high contrast coordinates in a volume. Detect coordinates with an outlier value, 
      * generate a binary map to posterior label it, and filter the labeled regions depending on
-     * size and shape. Keep
+     * size and shape.
     */
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
+
+    /**
+     * Center the high-contrast coordinates selected according to the density.
+    */
+    void centerCoordinates(MultidimArray<double> tiltSeries);
+
 
     // ---------------------------- I/O functions -----------------------------
 
@@ -183,7 +190,7 @@ public:
      * enhance landmarks.
     */
     void createLandmarkTemplate();
-    
+
 };
 
 #endif

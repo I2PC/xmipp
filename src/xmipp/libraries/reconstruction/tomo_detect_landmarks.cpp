@@ -59,7 +59,7 @@ void ProgTomoDetectLandmarks::defineParams()
 void ProgTomoDetectLandmarks::generateSideInfo()
 {
 	fiducialSizePx = fiducialSize / samplingRate; 
-    
+
     ds_factor = targetFS / fiducialSizePx; 
     xSize_d = xSize * ds_factor;
     ySize_d = ySize * ds_factor;
@@ -114,7 +114,7 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
         for (int j = 1; j < xSize_d - 1; ++j)
         {
             double pixelValue = 0;
-            
+
             for (int k = -1; k <= 1; ++k)
             {
                 for (int l = -1; l <= 1; ++l)
@@ -122,18 +122,18 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
                     pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
                 }
             }
-            
+
             A2D_ELEM(gradX, i, j) = pixelValue;
         }
     }
-    
+
     // Apply the Sobel filter in the y-direction
     for (int i = 1; i < ySize_d - 1; ++i)
     {
         for (int j = 1; j < xSize_d - 1; ++j)
         {
             double pixelValue = 0;
-            
+
             for (int k = -1; k <= 1; ++k)
             {
                 for (int l = -1; l <= 1; ++l)
@@ -141,11 +141,11 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
                     pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
                 }
             }
-            
+
             A2D_ELEM(gradY, i, j) = pixelValue;
         }
     }
-    
+
     // Compute the gradient magnitude   
     tiltImage.initZeros(ySize_d, xSize_d);
 
@@ -165,7 +165,7 @@ void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 {
 	MultidimArray<double> tiltImage_enhanced;
 	CorrelationAux aux;
-	
+
 	correlation_matrix(tiltImage, landmarkReference, tiltImage_enhanced, aux, true);
 	tiltImage = tiltImage_enhanced;
 }
@@ -232,7 +232,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             for(size_t j = 0; j < xSize_d; ++j)
             {
                 double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
-            
+
                 if (value > thresholdU)
                 {
                     DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
@@ -288,11 +288,11 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
         	bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-        
+
 
         	if(keep)
         	{
-        		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+        		Point3D<double> point3D(xCoorCM/ds_factor, yCoorCM/ds_factor, k);
         		coordinates3D.push_back(point3D);
         	}
         }
@@ -316,13 +316,13 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 	#endif
 
     #ifdef DEBUG_HCC
-    // std::cout << "--- List do peaked coordinates: " << std::endl;
-    // for (size_t i = 0; i < coordinates3D.size(); i++)
-    // {
-    //     std::cout << "(" << coordinates3D[i].x << ", " << 
-    //                         coordinates3D[i].y << ", " << 
-    //                         coordinates3D[i].z << ")"  << std::endl;
-    // }
+    std::cout << "--- List do peaked coordinates: " << std::endl;
+    for (size_t i = 0; i < coordinates3D.size(); i++)
+    {
+        std::cout << "(" << coordinates3D[i].x << ", " << 
+                            coordinates3D[i].y << ", " << 
+                            coordinates3D[i].z << ")"  << std::endl;
+    }
     #endif
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -412,6 +412,200 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 }
 
 
+void ProgTomoDetectLandmarks::centerCoordinates(MultidimArray<double> tiltSeries)
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering coordinates..." << std::endl;
+	#endif
+
+	size_t numberOfFeatures = coordinates3D.size();
+
+	MultidimArray<double> feature;
+	MultidimArray<double> mirrorFeature;
+	MultidimArray<double> correlationVolumeR;
+
+	int coordHalfX;
+	int coordHalfY;
+	int ti;
+
+	int boxSize = int(fiducialSizePx);
+	int doubleBoxSize = fiducialSizePx * 2;
+
+	#ifdef DEBUG_CENTER_COORDINATES
+	std::cout << "Tilt-series dimensions:" << std::endl;
+	std::cout << "x " << XSIZE(tiltSeries) << std::endl;
+	std::cout << "y " << YSIZE(tiltSeries) << std::endl;
+	std::cout << "z " << ZSIZE(tiltSeries) << std::endl;
+	std::cout << "n " << NSIZE(tiltSeries) << std::endl;
+	#endif
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		#ifdef DEBUG_CENTER_COORDINATES
+		std::cout << "-------------------- coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+		#endif
+
+		// Construct feature and its mirror symmetric. We quadruple the size to include a feature two times
+		// the box size plus padding to avoid incoherences in the shift sign
+		feature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
+		mirrorFeature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
+
+		coordHalfX = coordinates3D[n].x - boxSize;
+		coordHalfY = coordinates3D[n].y - boxSize;
+		ti = coordinates3D[n].z;
+
+		for(int i = 0; i < doubleBoxSize; i++) // yDim
+		{
+			for(int j = 0; j < doubleBoxSize; j++) // xDim
+			{
+				// Check coordinate is not out of volume
+				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+				{
+					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = 0;
+
+					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 0;
+				}
+				else
+				{
+					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = DIRECT_A3D_ELEM(tiltSeries, 
+																		ti, 
+																		coordHalfY + i, 
+																		coordHalfX + j);
+
+					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 
+					DIRECT_A3D_ELEM(tiltSeries, 
+									ti, 
+									coordHalfY + i,
+									coordHalfX + j);
+				}
+			}
+		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		Image<double> image;
+
+		std::cout << "Feature dimensions (" << XSIZE(feature) << ", " << YSIZE(feature) << ", " << ZSIZE(feature) << ")" << std::endl;
+		image() = feature;
+		size_t lastindex = fnOut.find_last_of(".");
+		std::string rawname = fnOut.substr(0, lastindex);
+		std::string outputFileName;
+		outputFileName = rawname + "_" + std::to_string(n) + "_feature.mrc";
+		image.write(outputFileName);
+
+		std::cout << "Mirror feature dimensions (" << XSIZE(mirrorFeature) << ", " << YSIZE(mirrorFeature) << ", " << ZSIZE(mirrorFeature) << ")" << std::endl;
+		image() = mirrorFeature;
+		outputFileName = rawname + "_" + std::to_string(n) + "_mirrorFeature.mrc";
+		image.write(outputFileName);
+		#endif
+
+		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+		CorrelationAux aux;
+		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
+
+		auto maximumCorrelation = MINDOUBLE;
+		int xDisplacement = 0;
+		int yDisplacement = 0;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(correlationVolumeR)
+		{
+			if (n==0)
+			{
+				std::cout << "Pixel (" << i << ", " << j << ")" << std::endl;
+			}
+
+			double value = DIRECT_A2D_ELEM(correlationVolumeR, i, j);
+
+			if (value > maximumCorrelation)
+			{
+				std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
+
+				maximumCorrelation = value;
+				xDisplacement = j;
+				yDisplacement = i;
+			}
+		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+		std::cout << "xDisplacement " << (xDisplacement - doubleBoxSize) / 2 << std::endl;
+		std::cout << "yDisplacement " << (yDisplacement - doubleBoxSize) / 2 << std::endl;
+
+		std::cout << "Correlation volume dimensions (" << XSIZE(correlationVolumeR) << ", " << YSIZE(correlationVolumeR) << ")" << std::endl;
+		#endif
+
+
+		// Update coordinate and remove if it is moved out of the volume
+		double updatedCoordinateX = coordinates3D[n].x + (xDisplacement - doubleBoxSize) / 2;
+		double updatedCoordinateY = coordinates3D[n].y + (yDisplacement - doubleBoxSize) / 2;
+
+		int deletedCoordinates = 0;
+
+		if (updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
+			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
+		{
+			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
+			deletedCoordinates++;
+		}
+		else
+		{
+			coordinates3D[n].x = updatedCoordinateX;
+			coordinates3D[n].y = updatedCoordinateY;
+		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		// Construct and save the centered feature
+		MultidimArray<double> centerFeature;
+
+		centerFeature.initZeros(doubleBoxSize, doubleBoxSize);
+
+		coordHalfX = coordinates3D[n].x - boxSize;
+		coordHalfY = coordinates3D[n].y - boxSize;
+
+		for(int j = 0; j < doubleBoxSize; j++) // xDim
+		{
+			for(int i = 0; i < doubleBoxSize; i++) // yDim
+			{
+				// Check coordinate is not out of volume
+				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+				{
+					DIRECT_A2D_ELEM(centerFeature, i, j) = 0;
+				}
+				else
+				{
+					DIRECT_A2D_ELEM(centerFeature, i, j) = DIRECT_A3D_ELEM(tiltSeries,
+																				ti,
+																				coordHalfY + i,
+																				coordHalfX + j);
+				}
+			}
+		}
+
+		std::cout << "Centered feature dimensions (" << XSIZE(centerFeature) << ", " << YSIZE(centerFeature) << ")" << std::endl;
+
+		image() = centerFeature;
+		outputFileName = rawname + "_" + std::to_string(n) + "_centerFeature.mrc";
+		image.write(outputFileName);
+		#endif
+	}
+
+	#ifdef DEBUG_CENTER_COORDINATES
+	std::cout << "3D coordinates after centering: " << std::endl;
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
+	}
+	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering of coordinates finished successfully!" << std::endl;
+	#endif
+}
+
+
 
 // --------------------------- I/O functions ----------------------------
 void ProgTomoDetectLandmarks::writeOutputCoordinates()
@@ -422,14 +616,14 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 	for(size_t i = 0; i < coordinates3D.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, (int)(coordinates3D[i].x/ds_factor), id);
-		md.setValue(MDL_YCOOR, (int)(coordinates3D[i].y/ds_factor), id);
+		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
 		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
 	}
 
 
 	md.write(fnOut);
-	
+
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
@@ -496,17 +690,15 @@ void ProgTomoDetectLandmarks::run()
 	Image<double> imgTS;
 
 	MultidimArray<double> &ptrImg = imgTS();
-    MultidimArray<double> projImgTS;
-    MultidimArray<double> filteredImg;
-    MultidimArray<double> freqMap;
-
-	projImgTS.initZeros(Ydim, Xdim);
 
 	size_t Ndim, counter = 0;
 	Ndim = tiltseriesmd.size();
 
 	MultidimArray<double> filteredTiltSeries;
 	filteredTiltSeries.initZeros(Ndim, 1, ySize_d, xSize_d);
+
+	MultidimArray<double> tiltSeries;
+	tiltSeries.initZeros(Ndim, 1, ySize, xSize);
 
     #ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
@@ -534,10 +726,26 @@ void ProgTomoDetectLandmarks::run()
         downsample(ptrImg, tiltImage_ds);
 
         #ifdef DEBUG_DIM
-        std::cout << "Tilt-image dimensions after dowsampling:" << std::endl;
+        std::cout << "Tilt-image dimensions before dowsampling:" << std::endl;
         std::cout << "x " << XSIZE(ptrImg) << std::endl;
         std::cout << "y " << YSIZE(ptrImg) << std::endl;
+
+		std::cout << "Tilt-image dimensions after dowsampling:" << std::endl;
+		std::cout << "x " << XSIZE(tiltImage_ds) << std::endl;
+        std::cout << "y " << YSIZE(tiltImage_ds) << std::endl;
         #endif
+
+		// Contruct normalized tilt-series for posterior coordinates centering
+		ptrImg.statisticsAdjust(0.0, 1.0);
+
+		for (size_t i = 0; i < ySize; ++i)
+        {
+            for (size_t j = 0; j < xSize; ++j)
+            {
+				DIRECT_NZYX_ELEM(tiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+			}
+		}
+
 
         #ifdef DEBUG_SOBEL
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
@@ -556,9 +764,7 @@ void ProgTomoDetectLandmarks::run()
 		counter++;
 	}
 
-    getHighContrastCoordinates(filteredTiltSeries);
-	
-    #ifdef DEBUG_DIM
+	#ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
 	std::cout << "x " << xSize_d << std::endl;
 	std::cout << "y " << ySize_d << std::endl;
@@ -575,7 +781,17 @@ void ProgTomoDetectLandmarks::run()
 	Image<double> saveImage;
 	saveImage() = filteredTiltSeries;
 	saveImage.write(outputFileNameFilteredVolume);
+
+	std::string tsFN;
+    tsFN = rawname + "/ts.mrcs";
+
+	saveImage() = tiltSeries;
+	saveImage.write(tsFN);
 	#endif
+
+    getHighContrastCoordinates(filteredTiltSeries);
+
+	centerCoordinates(tiltSeries);
 
     // Write output coordinates
     writeOutputCoordinates();
@@ -676,7 +892,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
     int targetFS_half_sq = targetFS_half*targetFS_half;
 
     landmarkReference.initZeros(ySize_d, xSize_d);
-    
+
     // Create tilt-image with a single landamrk
     for (int k = -targetFS_half; k <= targetFS_half; ++k)
     {
