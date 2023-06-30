@@ -292,7 +292,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
         	if(keep)
         	{
-        		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+        		Point3D<double> point3D(xCoorCM/ds_factor, yCoorCM/ds_factor, k);
         		coordinates3D.push_back(point3D);
         	}
         }
@@ -316,13 +316,13 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 	#endif
 
     #ifdef DEBUG_HCC
-    // std::cout << "--- List do peaked coordinates: " << std::endl;
-    // for (size_t i = 0; i < coordinates3D.size(); i++)
-    // {
-    //     std::cout << "(" << coordinates3D[i].x << ", " << 
-    //                         coordinates3D[i].y << ", " << 
-    //                         coordinates3D[i].z << ")"  << std::endl;
-    // }
+    std::cout << "--- List do peaked coordinates: " << std::endl;
+    for (size_t i = 0; i < coordinates3D.size(); i++)
+    {
+        std::cout << "(" << coordinates3D[i].x << ", " << 
+                            coordinates3D[i].y << ", " << 
+                            coordinates3D[i].z << ")"  << std::endl;
+    }
     #endif
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -413,6 +413,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 
 
+
 // --------------------------- I/O functions ----------------------------
 void ProgTomoDetectLandmarks::writeOutputCoordinates()
 {
@@ -422,8 +423,8 @@ void ProgTomoDetectLandmarks::writeOutputCoordinates()
 	for(size_t i = 0; i < coordinates3D.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, (int)(coordinates3D[i].x/ds_factor), id);
-		md.setValue(MDL_YCOOR, (int)(coordinates3D[i].y/ds_factor), id);
+		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
 		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
 	}
 
@@ -496,17 +497,15 @@ void ProgTomoDetectLandmarks::run()
 	Image<double> imgTS;
 
 	MultidimArray<double> &ptrImg = imgTS();
-    MultidimArray<double> projImgTS;
-    MultidimArray<double> filteredImg;
-    MultidimArray<double> freqMap;
-
-	projImgTS.initZeros(Ydim, Xdim);
 
 	size_t Ndim, counter = 0;
 	Ndim = tiltseriesmd.size();
 
 	MultidimArray<double> filteredTiltSeries;
 	filteredTiltSeries.initZeros(Ndim, 1, ySize_d, xSize_d);
+
+	MultidimArray<double> tiltSeries;
+	tiltSeries.initZeros(Ndim, 1, ySize, xSize);
 
     #ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
@@ -534,10 +533,26 @@ void ProgTomoDetectLandmarks::run()
         downsample(ptrImg, tiltImage_ds);
 
         #ifdef DEBUG_DIM
-        std::cout << "Tilt-image dimensions after dowsampling:" << std::endl;
+        std::cout << "Tilt-image dimensions before dowsampling:" << std::endl;
         std::cout << "x " << XSIZE(ptrImg) << std::endl;
         std::cout << "y " << YSIZE(ptrImg) << std::endl;
+
+		std::cout << "Tilt-image dimensions after dowsampling:" << std::endl;
+		std::cout << "x " << XSIZE(tiltImage_ds) << std::endl;
+        std::cout << "y " << YSIZE(tiltImage_ds) << std::endl;
         #endif
+
+		// Contruct normalized tilt-series for posterior coordinates centering
+		ptrImg.statisticsAdjust(0.0, 1.0);
+
+		for (size_t i = 0; i < ySize; ++i)
+        {
+            for (size_t j = 0; j < xSize; ++j)
+            {
+				DIRECT_NZYX_ELEM(tiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+			}
+		}
+
 
         #ifdef DEBUG_SOBEL
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
@@ -556,9 +571,7 @@ void ProgTomoDetectLandmarks::run()
 		counter++;
 	}
 
-    getHighContrastCoordinates(filteredTiltSeries);
-	
-    #ifdef DEBUG_DIM
+	#ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
 	std::cout << "x " << xSize_d << std::endl;
 	std::cout << "y " << ySize_d << std::endl;
@@ -575,7 +588,17 @@ void ProgTomoDetectLandmarks::run()
 	Image<double> saveImage;
 	saveImage() = filteredTiltSeries;
 	saveImage.write(outputFileNameFilteredVolume);
+
+	std::string tsFN;
+    tsFN = rawname + "/ts.mrcs";
+
+	saveImage() = tiltSeries;
+	saveImage.write(tsFN);
 	#endif
+
+    getHighContrastCoordinates(filteredTiltSeries);
+
+	centerCoordinates(tiltSeries);
 
     // Write output coordinates
     writeOutputCoordinates();
