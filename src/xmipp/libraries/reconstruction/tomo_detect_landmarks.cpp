@@ -412,6 +412,198 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 }
 
 
+void ProgTomoDetectLandmarks::centerCoordinates(MultidimArray<double> tiltSeries)
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering coordinates..." << std::endl;
+	#endif
+
+	size_t numberOfFeatures = coordinates3D.size();
+
+	MultidimArray<double> feature;
+	MultidimArray<double> mirrorFeature;
+	MultidimArray<double> correlationVolumeR;
+
+	int coordHalfX;
+	int coordHalfY;
+	int ti;
+
+	int boxSize = int(fiducialSizePx);
+	int doubleBoxSize = fiducialSizePx * 2;
+
+	#ifdef DEBUG_CENTER_COORDINATES
+	std::cout << "Tilt-series dimensions:" << std::endl;
+	std::cout << "x " << XSIZE(tiltSeries) << std::endl;
+	std::cout << "y " << YSIZE(tiltSeries) << std::endl;
+	std::cout << "z " << ZSIZE(tiltSeries) << std::endl;
+	std::cout << "n " << NSIZE(tiltSeries) << std::endl;
+	#endif
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		#ifdef DEBUG_CENTER_COORDINATES
+		std::cout << "-------------------- coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+		#endif
+
+		// Construct feature and its mirror symmetric. We quadruple the size to include a feature two times
+		// the box size plus padding to avoid incoherences in the shift sign
+		feature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
+		mirrorFeature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
+
+		coordHalfX = coordinates3D[n].x - boxSize;
+		coordHalfY = coordinates3D[n].y - boxSize;
+		ti = coordinates3D[n].z;
+
+		for(int i = 0; i < doubleBoxSize; i++) // yDim
+		{
+			for(int j = 0; j < doubleBoxSize; j++) // xDim
+			{
+				// Check coordinate is not out of volume
+				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+				{
+					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = 0;
+
+					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 0;
+				}
+				else
+				{
+					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = DIRECT_A3D_ELEM(tiltSeries, 
+																		ti, 
+																		coordHalfY + i, 
+																		coordHalfX + j);
+
+					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 
+					DIRECT_A3D_ELEM(tiltSeries, 
+									ti, 
+									coordHalfY + i,
+									coordHalfX + j);
+				}
+			}
+		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		Image<double> image;
+
+		std::cout << "Feature dimensions (" << XSIZE(feature) << ", " << YSIZE(feature) << ", " << ZSIZE(feature) << ")" << std::endl;
+		image() = feature;
+		size_t lastindex = fnOut.find_last_of(".");
+		std::string rawname = fnOut.substr(0, lastindex);
+		std::string outputFileName;
+		outputFileName = rawname + "_" + std::to_string(n) + "_feature.mrc";
+		image.write(outputFileName);
+
+		std::cout << "Mirror feature dimensions (" << XSIZE(mirrorFeature) << ", " << YSIZE(mirrorFeature) << ", " << ZSIZE(mirrorFeature) << ")" << std::endl;
+		image() = mirrorFeature;
+		outputFileName = rawname + "_" + std::to_string(n) + "_mirrorFeature.mrc";
+		image.write(outputFileName);
+		#endif
+
+		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+		CorrelationAux aux;
+		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
+
+		auto maximumCorrelation = MINDOUBLE;
+		int xDisplacement = 0;
+		int yDisplacement = 0;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(correlationVolumeR)
+		{
+			if (n==0)
+			{
+				std::cout << "Pixel (" << i << ", " << j << ")" << std::endl;
+			}
+			
+			double value = DIRECT_A2D_ELEM(correlationVolumeR, i, j);
+
+			if (value > maximumCorrelation)
+			{
+				std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
+
+				maximumCorrelation = value;
+				xDisplacement = j;
+				yDisplacement = i;
+			}
+		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+		std::cout << "xDisplacement " << (xDisplacement - doubleBoxSize) / 2 << std::endl;
+		std::cout << "yDisplacement " << (yDisplacement - doubleBoxSize) / 2 << std::endl;
+
+		std::cout << "Correlation volume dimensions (" << XSIZE(correlationVolumeR) << ", " << YSIZE(correlationVolumeR) << ")" << std::endl;
+		#endif
+
+
+		// Update coordinate and remove if it is moved out of the volume
+		double updatedCoordinateX = coordinates3D[n].x + (xDisplacement - doubleBoxSize) / 2;
+		double updatedCoordinateY = coordinates3D[n].y + (yDisplacement - doubleBoxSize) / 2;
+
+		int deletedCoordinates = 0;
+
+		if (updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
+			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
+		{
+			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
+			deletedCoordinates++;
+		}
+		else
+		{
+			coordinates3D[n].x = updatedCoordinateX;
+			coordinates3D[n].y = updatedCoordinateY;
+		}
+
+		#ifdef DEBUG_CENTER_COORDINATES
+		// Construct and save the centered feature
+		MultidimArray<double> centerFeature;
+
+		centerFeature.initZeros(doubleBoxSize, doubleBoxSize);
+
+		coordHalfX = coordinates3D[n].x - boxSize;
+		coordHalfY = coordinates3D[n].y - boxSize;
+
+		for(int j = 0; j < doubleBoxSize; j++) // xDim
+		{
+			for(int i = 0; i < doubleBoxSize; i++) // yDim
+			{
+				// Check coordinate is not out of volume
+				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+				{
+					DIRECT_A2D_ELEM(centerFeature, i, j) = 0;
+				}
+				else
+				{
+					DIRECT_A2D_ELEM(centerFeature, i, j) = DIRECT_A3D_ELEM(tiltSeries,
+																				ti,
+																				coordHalfY + i,
+																				coordHalfX + j);
+				}
+			}
+		}
+
+		std::cout << "Centered feature dimensions (" << XSIZE(centerFeature) << ", " << YSIZE(centerFeature) << ")" << std::endl;
+
+		image() = centerFeature;
+		outputFileName = rawname + "_" + std::to_string(n) + "_centerFeature.mrc";
+		image.write(outputFileName);
+		#endif
+	}
+
+	#ifdef DEBUG_CENTER_COORDINATES
+	std::cout << "3D coordinates after centering: " << std::endl;
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
+	}
+	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering of coordinates finished successfully!" << std::endl;
+	#endif
+}
 
 
 // --------------------------- I/O functions ----------------------------
