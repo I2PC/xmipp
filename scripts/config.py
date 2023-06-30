@@ -102,7 +102,7 @@ class Config:
                 runJob("rm xmipp_mpi_test_main*", show_command=False)
                 return status
             status = self._check_cmake()
-            if not status[0]:
+            if status[0] == False:
                 return status
             status = self._check_Java()
             if not status[0]:
@@ -749,10 +749,10 @@ class Config:
 
     def _check_cmake(self):
         print("\nChecking cmake configuration")
-        error = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
-        if error[0] == False:
-            return error[1]
-        return True
+        status = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
+        if status[0] == False:
+            return status[1]
+        return True, []
 
 
     def _check_MPI(self):
