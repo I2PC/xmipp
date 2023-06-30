@@ -66,3 +66,8 @@ xmippEnv.json
 .devel_version
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
+
+# Output files from compilation
+compileLOG.txt
+reportInstallation.tar.gz
+xmipp_version.txt
