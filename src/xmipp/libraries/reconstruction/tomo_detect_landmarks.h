@@ -49,14 +49,15 @@
 
 #define VERBOSE_OUTPUT
 
-// #define DEBUG_DIM
+#define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
 // #define DEBUG_SOBEL
 // #define DEBUG_CLOSING
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_HCC
 // #define DEBUG_REFERENCE
-// #define DEBUG_OUTPUT_FILES
+#define DEBUG_CENTER_COORDINATES
+#define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectLandmarks : public XmippProgram
 {
@@ -150,9 +151,15 @@ public:
     /**
      * Peak high contrast coordinates in a volume. Detect coordinates with an outlier value, 
      * generate a binary map to posterior label it, and filter the labeled regions depending on
-     * size and shape. Keep
+     * size and shape.
     */
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
+
+    /**
+     * Center the high-contrast coordinates selected according to the density.
+    */
+    void centerCoordinates(MultidimArray<double> tiltSeries);
+
 
     // ---------------------------- I/O functions -----------------------------
 
