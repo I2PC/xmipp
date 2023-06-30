@@ -752,6 +752,7 @@ class Config:
         error = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
         if error[0] == False:
             return error[1]
+        return True
 
 
     def _check_MPI(self):
