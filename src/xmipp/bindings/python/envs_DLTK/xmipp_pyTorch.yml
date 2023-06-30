@@ -10,8 +10,8 @@ dependencies:
   - python=3.8
   - numpy=1.23
   - mrcfile=1.4.3
-  - kornia=0.6.8
-  - starfile=0.4.11
+  - kornia=0.6.8 #The last that that is provided as *.bz2 extension
+  - starfile=0.4.11 #The last that that is provided as *.bz2 extension
   - pytorch==1.11
   - torchvision=0.12
 
