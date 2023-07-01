@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 return (img - np.mean(img)) / np.std(img)
 
             def shift_image(img, shiftx, shifty):
-                return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
+                return shift(img, (shiftx, shifty, 0), order=1, mode='wrap')
 
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
@@ -163,35 +163,35 @@ if __name__ == "__main__":
         return x
 
     def constructModel(Xdim):
+
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        x = conv_block(inputLayer, filters=32)
+        L = Conv2D(8, (3, 3), padding='same')(inputLayer)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
 
-        x = conv_block(x, filters=64)
+        L = Conv2D(16, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
 
-        for _ in range(0):
-            x = identity_block(x, filters=64)
+        L = Conv2D(32, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
 
-        x = conv_block(x, filters=128)
+        L = Conv2D(64, (3, 3), padding='same')(L)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
 
-        for _ in range(0):
-            x = identity_block(x, filters=128)
+        L = Flatten()(L)
 
-        x = conv_block(x, filters=256)
+        L = Dense(2, name="output", activation="linear")(L)
 
-        for _ in range(0):
-            x = identity_block(x, filters=256)
+        return Model(inputLayer, L)
 
-        x = conv_block(x, filters=512)
-
-        for _ in range(0):
-            x = identity_block(x, filters=512)
-
-        x = GlobalAveragePooling2D()(x)
-
-        x = Dense(2, name="output", activation="linear")(x)
-
-        return Model(inputLayer, x)
 
     def get_labels(fnImages):
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
@@ -243,13 +243,13 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
-        plt.plot(history.history['loss'])
-        plt.plot(history.history['val_loss'])
-        plt.title('model loss')
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.legend(['train', 'test'], loc='upper left')
-        plt.show()
+        #plt.plot(history.history['loss'])
+        #plt.plot(history.history['val_loss'])
+        #plt.title('model loss')
+        #plt.ylabel('loss')
+        #plt.xlabel('epoch')
+        #plt.legend(['train', 'test'], loc='upper left')
+        #plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)

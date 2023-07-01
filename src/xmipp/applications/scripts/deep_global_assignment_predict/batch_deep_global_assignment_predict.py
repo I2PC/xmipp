@@ -88,7 +88,7 @@ if __name__ == "__main__":
         def __data_generation(self, list_IDs_temp):
             'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
             def shift_image(img, img_shifts):
-                return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='reflect')
+                return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
             # Initialization
             Xexp = np.zeros((len(list_IDs_temp), self.dim, self.dim, 1), dtype=np.float64)
 
@@ -267,6 +267,7 @@ if __name__ == "__main__":
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+            mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             if distance[ID] > tolerance:
                 mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
@@ -359,12 +360,36 @@ if __name__ == "__main__":
 
     start_time = time()
 
-    predictions = np.zeros((len(fnImgs), numAngModels, 42))
+
+    def shift_image(img, img_shifts):
+        return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
+
+    models = []
     for index in range(numAngModels):
         AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
-        AngManager = DataGenerator(fnImgs, maxSize, Xdim, shifts, readInMemory=False)
-        predictions[:, index, :] = AngModel.predict_generator(AngManager, AngManager.getNumberOfBlocks())
+        models.append(AngModel)
+
+    numImgs = len(fnImgs)
+    predictions = np.zeros((numImgs, numAngModels, 42))
+    numBatches = numImgs // maxSize
+    print('numBatches', numBatches)
+    if numImgs % maxSize > 0:
+        numBatches = numBatches + 1
+    k = 0
+    for i in range(numBatches):
+        print(i, flush=True)
+        numPredictions = min(maxSize, numImgs-i*maxSize)
+        print('numPredictions', numPredictions, flush=True)
+        Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
+        for j in range(numPredictions):
+            Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
+            Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+            Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
+            k += 1
+        for index in range(numAngModels):
+            predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
+
     Y, distance = compute_ang_averages(predictions)
     produce_output(mdExp, Y, distance, fnImages)
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))

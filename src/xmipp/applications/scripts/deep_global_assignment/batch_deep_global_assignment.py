@@ -103,8 +103,8 @@ if __name__ == "__main__":
                 return (img - np.mean(img)) / np.std(img)
 
             def shift_image(img, shiftx, shifty, yshift):
-                #return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='reflect')
-                return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
+                return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='wrap')
+                #return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
 
             def rotate_image(img, angle):
                 # angle in degrees
@@ -193,18 +193,45 @@ if __name__ == "__main__":
         x = Activation('relu')(x)
         return x
 
+    def identity_block(tensor, filters):
+
+        x = Conv2D(filters, (3, 3), padding='same')(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x = Add()([x, tensor])
+        x = Activation('relu')(x)
+        return x
+
+
+    def conv_batchnorm_relu(x, filters, kernel_size, strides=1):
+
+        x = Conv2D(filters=filters, kernel_size=kernel_size, strides=strides, padding='same')(x)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+
+        return x
+
     def constructModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        x = conv_block(inputLayer, filters=32)
+        #x = Conv2D(filters=64, kernel_size=(7,7), strides=(2,2), padding='same')(inputLayer)
+        #x = BatchNormalization()(x)
+        #x = Activation('relu')(x)
+        #x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
 
-        x = conv_block(x, filters=64)
+        x = conv_block(inputLayer, filters=64)
 
         x = conv_block(x, filters=128)
 
         x = conv_block(x, filters=256)
 
         x = conv_block(x, filters=512)
+
+        x = conv_block(x, filters=1024)
 
         x = GlobalAveragePooling2D()(x)
 
@@ -255,8 +282,8 @@ if __name__ == "__main__":
         lenTrain = int(len(fnImgs)*0.8)
         lenVal = len(fnImgs)-lenTrain
     else:
-        lenTrain = int(len(fnImgs) / 3)
-        lenVal = int(len(fnImgs) / 12)
+        lenTrain = int(len(fnImgs) / 5)
+        lenVal = int(len(fnImgs) / 20)
 
     elements_zone = int((lenVal+lenTrain)/len(zones))
     print('elements_zone', elements_zone, flush=True)
@@ -276,6 +303,7 @@ if __name__ == "__main__":
             model = load_model(fnPreModel, compile=False)
         else:
             model = constructModel(Xdims)
+
         adam_opt = Adam(lr=learning_rate)
         model.summary()
 
@@ -284,16 +312,9 @@ if __name__ == "__main__":
                                           save_best_only=True)
         patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
+
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
-
-        plt.plot(history.history['loss'])
-        plt.plot(history.history['val_loss'])
-        plt.title('model loss')
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.legend(['train', 'test'], loc='upper left')
-        plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
