@@ -87,6 +87,7 @@ class Config:
         self.environment.write()
         print(green("\nConfiguration completed and written on xmipp.conf\n"))
 
+
     def check(self):
         print("\nChecking configuration -----------------------------------")
         if self.configDict['VERIFIED'] != 'True':
@@ -99,6 +100,9 @@ class Config:
             status = self._check_MPI()
             if not status[0]:
                 runJob("rm xmipp_mpi_test_main*", show_command=False)
+                return status
+            status = self._check_cmake()
+            if status[0] == False:
                 return status
             status = self._check_Java()
             if not status[0]:
@@ -423,9 +427,8 @@ class Config:
     def _config_cmake(self):
         error = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
         if error[0] == False:
-            print(red(error[2]))
-            print(red(error[3]))
-            return error
+            print(red(error[1][2]))
+            print(red(error[1][3]))
 
 
 
@@ -743,6 +746,14 @@ class Config:
 
         if self.configDict["MPI_LINKERFORPROGRAMS"] == "":
             self.configDict["MPI_LINKERFORPROGRAMS"] = self.configDict["MPI_CXX"]
+
+    def _check_cmake(self):
+        print("\nChecking cmake configuration")
+        status = checkCMakeVersion(Config.CMAKE_VERSION_REQUIRED)
+        if status[0] == False:
+            return status[1]
+        return True, []
+
 
     def _check_MPI(self):
         print("\nChecking MPI configuration")
