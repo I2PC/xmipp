@@ -8,9 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.spatial.transform import Rotation
-from scipy.ndimage import shift, rotate
-
-# from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
+from scipy.ndimage import shift
 
 maxSize = 32
 
@@ -31,78 +29,8 @@ if __name__ == "__main__":
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
 
-    from keras.models import Model
     import keras
     from keras.models import load_model
-    import tensorflow as tf
-
-
-    class DataGenerator(keras.utils.Sequence):
-        'Generates data for fnImgs'
-
-        def __init__(self, fnImgs, maxSize, dim, shifts, readInMemory):
-            'Initialization'
-            self.fnImgs = fnImgs
-            self.maxSize = maxSize
-            self.dim = dim
-            self.shifts = shifts
-            self.readInMemory = readInMemory
-            self.on_epoch_end()
-
-            # Read all data in memory
-            if self.readInMemory:
-                self.Xexp = np.zeros((len(self.fnImgs), self.dim, self.dim, 1), dtype=np.float64)
-                for i in range(len(self.fnImgs)):
-                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(), (self.dim, self.dim, 1))
-                    self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-
-        def __len__(self):
-            'Denotes the number of batches per predictions'
-            num = len(self.fnImgs) // maxSize
-            if len(self.fnImgs) % maxSize > 0:
-                num = num + 1
-            return num
-
-        def __getitem__(self, index):
-            'Generate one batch of data'
-            # Generate indexes of the batch
-            indexes = self.indexes[index * maxSize:(index + 1) * maxSize]
-            # Find list of IDs
-            list_IDs_temp = []
-            for i in range(len(indexes)):
-                list_IDs_temp.append(indexes[i])
-
-            # Generate data
-            Xexp = self.__data_generation(list_IDs_temp)
-
-            return Xexp
-
-        def on_epoch_end(self):
-            self.indexes = [i for i in range(len(self.fnImgs))]
-
-        def getNumberOfBlocks(self):
-            self.st = len(self.fnImgs) // maxSize
-            if len(self.fnImgs) % maxSize > 0:
-                self.st = self.st + 1
-
-        def __data_generation(self, list_IDs_temp):
-            'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
-            def shift_image(img, img_shifts):
-                return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
-            # Initialization
-            Xexp = np.zeros((len(list_IDs_temp), self.dim, self.dim, 1), dtype=np.float64)
-
-            # Generate data
-            for i, ID in enumerate(list_IDs_temp):
-                # Read image
-                if self.readInMemory:
-                    Xexp[i,] = self.Xexp[ID]
-                else:
-                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
-                    Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-                    Xexp[i,] = shift_image(Xexp[i,], self.shifts[i])
-            return Xexp
-
 
     _AXES2TUPLE = {
         'sxyz': (0, 0, 0, 0), 'sxyx': (0, 0, 1, 0), 'sxzy': (0, 1, 0, 0),
@@ -195,7 +123,7 @@ if __name__ == "__main__":
         try:
             firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
         except (AttributeError, KeyError):
-            _TUPLE2AXES[axes]  # validation
+            _TUPLE2AXES[axes]
             firstaxis, parity, repetition, frame = axes
 
         i = firstaxis
@@ -237,7 +165,7 @@ if __name__ == "__main__":
 
 
     def rotation6d_to_matrix(rot):
-
+        """Return rotation matrix from 6D representation."""
         a1 = np.array((rot[0], rot[2], rot[4]))
         a2 = np.array((rot[1], rot[3], rot[5]))
         a1 = np.reshape(a1, (3, 1))
@@ -255,6 +183,7 @@ if __name__ == "__main__":
 
 
     def matrix_to_euler(mat):
+        """Return Euler angles from rotation matrix"""
         r = Rotation.from_matrix(mat)
         angles = r.as_euler("xyz", degrees=True)
         return angles
@@ -282,6 +211,7 @@ if __name__ == "__main__":
 
 
     def average_quaternions(quaternions):
+        """Calculates the average quaternion from a set"""
         s = np.matmul(quaternions.T, quaternions)
         s /= len(quaternions)
         eigenValues, eigenVectors = np.linalg.eig(s)
@@ -289,6 +219,7 @@ if __name__ == "__main__":
 
 
     def maximum_distance(av_mat, mat):
+        """Max and argMax distance in angles from a set of rotation matrix"""
         c = mat * av_mat[np.newaxis, 0:3, 0:3]
         d = np.sum(c, axis=(1, 2))
         ang_Distances = np.arccos((d - 1) / 2)
@@ -296,6 +227,7 @@ if __name__ == "__main__":
 
 
     def calculate_r6d(redundant):
+        """Solves linear system to get 6D representation from 42 parameters output"""
         A = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
                       [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
                       [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
@@ -319,26 +251,31 @@ if __name__ == "__main__":
 
 
     def average_of_rotations(p6d_redundant):
+        """Consensus tool"""
+        # Calculates average angle for each particle
         pred6d = calculate_r6d(p6d_redundant)
         matrix = convert_to_matrix(pred6d)
-        minParticles = np.shape(matrix)[0] - maxModels
+        # min number of models
+        minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
         av_quats = average_quaternions(quats)
         av_matrix = quaternion_matrix(av_quats)
-        max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
+        # max and argmax distance of a prediction to the average
+        max_distance, max_dif_model = maximum_distance(av_matrix, matrix)
         max_distance = max_distance * 180 / math.pi
-        while (np.shape(matrix)[0] > minParticles) and (max_distance > tolerance):
-            matrix = np.delete(matrix, max_dif_particle, axis=0)
-            quats = np.delete(quats, max_dif_particle, axis=0)
+        while (np.shape(matrix)[0] > minModels) and (max_distance > tolerance):
+            # deletes predictions from the max_dif_model and recalculates averages
+            matrix = np.delete(matrix, max_dif_model, axis=0)
+            quats = np.delete(quats, max_dif_model, axis=0)
             av_quats = average_quaternions(quats)
             av_matrix = quaternion_matrix(av_quats)
-            max_distance, max_dif_particle = maximum_distance(av_matrix, matrix)
+            max_distance, max_dif_model = maximum_distance(av_matrix, matrix)
             max_distance = max_distance * 180 / math.pi
         av_euler = euler_from_matrix(av_matrix)
         return np.append(av_euler, max_distance)
 
-
     def compute_ang_averages(pred6d):
+        """Calls consensus tool"""
         averages_mdistance = np.array(list(map(average_of_rotations, pred6d)))
         average = averages_mdistance[:, 0:3]
         mdistance = averages_mdistance[:, 3]
@@ -359,9 +296,8 @@ if __name__ == "__main__":
         shifts.append(np.array((sX, sY)))
 
     start_time = time()
-
-
     def shift_image(img, img_shifts):
+        """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
     models = []
@@ -373,14 +309,12 @@ if __name__ == "__main__":
     numImgs = len(fnImgs)
     predictions = np.zeros((numImgs, numAngModels, 42))
     numBatches = numImgs // maxSize
-    print('numBatches', numBatches)
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
     k = 0
+    # perform batch predictions for each model
     for i in range(numBatches):
-        print(i, flush=True)
         numPredictions = min(maxSize, numImgs-i*maxSize)
-        print('numPredictions', numPredictions, flush=True)
         Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
         for j in range(numPredictions):
             Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))

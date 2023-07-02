@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 
-import math
 import numpy as np
-from numpy.linalg import norm
 import os
 import sys
 import xmippLib
 from time import time
-from scipy.spatial.transform import Rotation
-from scipy.ndimage import shift, rotate
-#from pwem.convert.transformations import quaternion_from_matrix, euler_from_quaternion
 
 maxSize = 32
 
@@ -30,17 +25,16 @@ if __name__ == "__main__":
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
 
-    from keras.models import Model
     import keras
     from keras.models import load_model
-    import tensorflow as tf
+
 
 
     class DataGenerator(keras.utils.Sequence):
-        'Generates data for fnImgs'
+        """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, maxSize, dim, readInMemory):
-            'Initialization'
+            """Initialization"""
             self.fnImgs = fnImgs
             self.maxSize = maxSize
             self.dim = dim
@@ -55,14 +49,14 @@ if __name__ == "__main__":
                     self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
 
         def __len__(self):
-            'Denotes the number of batches per predictions'
+            """Denotes the number of batches per predictions"""
             num = len(self.fnImgs) // maxSize
             if len(self.fnImgs) % maxSize > 0:
                 num = num + 1
             return num
 
         def __getitem__(self, index):
-            'Generate one batch of data'
+            """Generate one batch of data"""
             # Generate indexes of the batch
             indexes = self.indexes[index * maxSize:(index + 1) * maxSize]
             # Find list of IDs
@@ -79,52 +73,60 @@ if __name__ == "__main__":
             self.indexes = [i for i in range(len(self.fnImgs))]
 
         def getNumberOfBlocks(self):
-            # self.st = ImagesNumber/maxSize        
             self.st = len(self.fnImgs) // maxSize
             if len(self.fnImgs) % maxSize > 0:
                 self.st = self.st + 1
 
         def __data_generation(self, list_IDs_temp):
-            'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
+            """Generates data containing batch_size samples"""
             # Initialization
             Xexp = np.zeros((len(list_IDs_temp), self.dim, self.dim, 1), dtype=np.float64)
             # Generate data
             for i, ID in enumerate(list_IDs_temp):
                 # Read image
                 if self.readInMemory:
-                    Xexp[i,] = self.Xexp[ID]
+                    Xexp[i, ] = self.Xexp[ID]
                 else:
                     Iexp = np.reshape(xmippLib.Image(self.fnImgs[ID]).getData(), (self.dim, self.dim, 1))
-                    Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                    Xexp[i, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
             return Xexp
 
-    def produce_output(mdExp, Y, distance, fnImages):
+    def produce_output(mdExp, Y, distance, fnImg):
         ID = 0
         for objId in mdExp:
+            # Set predictions in mdExp
             shiftX, shiftY = Y[ID]
             mdExp.setValue(xmippLib.MDL_SHIFT_X, float(shiftX), objId)
             mdExp.setValue(xmippLib.MDL_SHIFT_Y, float(shiftY), objId)
-            mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
+            mdExp.setValue(xmippLib.MDL_IMAGE, fnImg[ID], objId)
             if distance[ID] > tolerance:
                 mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
 
     def average_of_shifts(predshift):
+        """Consensus tool"""
+        # Calculates average shift for each particle
         av_shift = np.average(predshift, axis=0)
         distancesxy = np.abs(av_shift-predshift)
-        minParticles = np.shape(predshift)[0] - maxModels
+        # min number of models
+        minModels = np.shape(predshift)[0] - maxModels
+        # Calculates norm 1 of distances
         distances = np.sum(distancesxy, axis=1)
         max_distance = np.max(distances)
-        max_dif_particle = np.argmax(distances)
-        while (np.shape(predshift)[0] > minParticles) and (max_distance > tolerance):
-            predshift = np.delete(predshift, max_dif_particle, axis=0)
+        # max distance model to the average
+        max_dif_model = np.argmax(distances)
+        while (np.shape(predshift)[0] > minModels) and (max_distance > tolerance):
+            # deletes predictions from the max_dif_model and recalculates averages
+            predshift = np.delete(predshift, max_dif_model, axis=0)
             av_shift = np.average(predshift, axis=0)
             distancesxy = np.abs(av_shift - predshift)
             distances = np.sum(distancesxy, axis=1)
             max_distance = np.max(distances)
-            max_dif_particle = np.argmax(distances)
+            max_dif_model = np.argmax(distances)
         return np.append(av_shift, max_distance)
+
     def compute_shift_averages(predshift):
+        """Calls consensus tool"""
         averages_mdistance = np.array(list(map(average_of_shifts, predshift)))
         average = averages_mdistance[:, 0:2]
         mdistance = averages_mdistance[:, 2]
@@ -141,10 +143,10 @@ if __name__ == "__main__":
     start_time = time()
 
     predictions = np.zeros((len(fnImgs), numModels, 2))
+    ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
     for index in range(numModels):
         ShiftModel = load_model(fnModel + str(index) + ".h5", compile=False)
         ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
-        ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
         predictions[:, index, :] = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
     Y, distance = compute_shift_averages(predictions)
     produce_output(mdExp, Y, distance, fnImages)

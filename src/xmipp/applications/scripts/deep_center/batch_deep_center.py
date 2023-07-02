@@ -7,7 +7,7 @@ import os
 import sys
 import xmippLib
 from time import time
-from scipy.ndimage import shift, rotate
+from scipy.ndimage import shift
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
@@ -32,24 +32,20 @@ if __name__ == "__main__":
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
 
-    from keras.callbacks import TensorBoard, ModelCheckpoint
+    from keras.callbacks import ModelCheckpoint
     from keras.models import Model
-    from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
-        Activation, Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, LeakyReLU, Add
+    from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Flatten, Dense, concatenate, Activation
     from keras.optimizers import *
     import keras
-    from keras import callbacks
-    from keras.callbacks import Callback
-    from keras import regularizers
     from keras.models import load_model
     import tensorflow as tf
 
 
     class DataGenerator(keras.utils.Sequence):
-        'Generates data for fnImgs'
+        """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, readInMemory):
-            'Initialization'
+            """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
             self.sigma = sigma
@@ -69,12 +65,12 @@ if __name__ == "__main__":
                     self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
 
         def __len__(self):
-            'Denotes the number of batches per epoch'
+            """Denotes the number of batches per epoch"""
             num_batches = int(np.floor((len(self.labels)) / self.batch_size))
             return num_batches
 
         def __getitem__(self, index):
-            'Generate one batch of data'
+            """Generate one batch of data"""
             # Generate indexes of the batch
             indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
             # Find list of IDs
@@ -87,20 +83,22 @@ if __name__ == "__main__":
             return Xexp, y
 
         def on_epoch_end(self):
-            'Updates indexes after each epoch'
+            """Updates indexes after each epoch"""
             self.indexes = [i for i in range(len(self.labels))]
             np.random.shuffle(self.indexes)
 
         def __data_generation(self, list_IDs_temp):
-            'Generates data containing batch_size samples'
+            """Generates data containing batch_size samples"""
             yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
 
             # Functions to handle the data
             def get_image(fn_image):
+                """Normalize image"""
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
                 return (img - np.mean(img)) / np.std(img)
 
             def shift_image(img, shiftx, shifty):
+                """Shifts image in X and Y"""
                 return shift(img, (shiftx, shifty, 0), order=1, mode='wrap')
 
             if self.readInMemory:
@@ -118,52 +116,8 @@ if __name__ == "__main__":
             y = yvalues + np.vstack((rX, rY)).T
             return Xexp, y
 
-    def conv_block1(x, filters, kernel_size, strides=(1, 1), activation='relu', batch_normalization=True):
-        x = Conv2D(filters=filters, kernel_size=kernel_size, strides=strides, padding='same')(x)
-        if batch_normalization:
-            x = BatchNormalization()(x)
-        x = Activation(activation)(x)
-        return x
-
-
-    def identity_block1(tensor, filters, kernel_size, activation='relu', batch_normalization=True):
-        x = conv_block(tensor, filters, kernel_size, activation=activation, batch_normalization=batch_normalization)
-        x = Conv2D(filters=filters, kernel_size=kernel_size, padding='same')(x)
-        if batch_normalization:
-            x = BatchNormalization()(x)
-        x = Add()([tensor, x])
-        x = Activation(activation)(x)
-        return x
-
-    def identity_block(tensor, filters):
-
-        x = Conv2D(filters, (3, 3), padding='same')(tensor)
-        x = BatchNormalization(axis=3)(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(filters, (3, 3), padding='same')(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x = Add()([x, tensor])
-        x = Activation('relu')(x)
-        return x
-
-    def conv_block(tensor, filters):
-        x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
-        x = BatchNormalization(axis=3)(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(filters, (3, 3), padding='same')(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
-
-        x = Add()([x, x_res])
-        x = Activation('relu')(x)
-        return x
-
     def constructModel(Xdim):
-
+        """CNN architecture"""
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
         L = Conv2D(8, (3, 3), padding='same')(inputLayer)
@@ -194,6 +148,7 @@ if __name__ == "__main__":
 
 
     def get_labels(fnImages):
+        """Returns dimensions, images and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
         fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
@@ -204,22 +159,19 @@ if __name__ == "__main__":
             labels.append(np.array((x, y)))
         return Xdim, fnImgs, labels
 
-    import tensorflow as tf
-    import keras.backend as K
-
     Xdim, fnImgs, labels = get_labels(fnXmdExp)
     start_time = time()
 
+    # Train-Validation sets
     if numModels == 1:
         lenTrain = int(len(fnImgs)*0.8)
         lenVal = len(fnImgs)-lenTrain
     else:
-        lenTrain = int(len(fnImgs) / 5)
+        lenTrain = int(len(fnImgs) / 3)
         print('lenTrain', lenTrain, flush=True)
-        lenVal = int(len(fnImgs) / 20)
+        lenVal = int(len(fnImgs) / 12)
 
     for index in range(numModels):
-
         random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
         if pretrained == 'yes':
             model = load_model(fnPreModel, compile=False)

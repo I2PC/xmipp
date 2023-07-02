@@ -34,22 +34,19 @@ if __name__ == "__main__":
 
     from keras.callbacks import TensorBoard, ModelCheckpoint
     from keras.models import Model
-    from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Flatten, Dense, concatenate, \
-        Activation, Subtract, SeparableConv2D, GlobalAveragePooling2D, AveragePooling2D, LeakyReLU, Add
+    from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
+        Activation, GlobalAveragePooling2D, Add
     from keras.optimizers import *
     import keras
-    from keras import callbacks
-    from keras.callbacks import Callback
-    from keras import regularizers
     from keras.models import load_model
     import tensorflow as tf
 
 
     class DataGenerator(keras.utils.Sequence):
-        'Generates data for fnImgs'
+        """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
-            'Initialization'
+            """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
             self.sigma = sigma
@@ -70,12 +67,12 @@ if __name__ == "__main__":
                     self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
 
         def __len__(self):
-            'Denotes the number of batches per epoch'
+            """Denotes the number of batches per epoch"""
             num_batches = int(np.floor((len(self.labels)) / self.batch_size))
             return num_batches
 
         def __getitem__(self, index):
-            'Generate one batch of data'
+            """Generate one batch of data"""
             # Generate indexes of the batch
             indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
             # Find list of IDs
@@ -88,12 +85,12 @@ if __name__ == "__main__":
             return Xexp, y
 
         def on_epoch_end(self):
-            'Updates indexes after each epoch'
+            """Updates indexes after each epoch"""
             self.indexes = [i for i in range(len(self.labels))]
             np.random.shuffle(self.indexes)
 
         def __data_generation(self, list_IDs_temp):
-            'Generates data containing batch_size samples'
+            """Generates data containing batch_size samples"""
             yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
             yshifts = np.array(itemgetter(*list_IDs_temp)(self.shifts))
 
@@ -104,7 +101,6 @@ if __name__ == "__main__":
 
             def shift_image(img, shiftx, shifty, yshift):
                 return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='wrap')
-                #return shift(img, (shiftx, shifty, 0), order=1, mode='reflect')
 
             def rotate_image(img, angle):
                 # angle in degrees
@@ -169,7 +165,7 @@ if __name__ == "__main__":
             rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
             # Shift image a random amount of px in each direction
             Xexp = np.array(list((map(shift_image, Iexp, rX, rY, yshifts))))
-            # Rotates image a random angle. Thus, Psi must be updated
+            # Rotates image a random angle. Psi must be updated
             rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
             rAngle = rAngle * math.pi / 180
@@ -180,6 +176,7 @@ if __name__ == "__main__":
             return Xexp, y
 
     def conv_block(tensor, filters):
+        # Convolutional block of RESNET
         x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
         x = BatchNormalization(axis=3)(x)
         x = Activation('relu')(x)
@@ -193,35 +190,9 @@ if __name__ == "__main__":
         x = Activation('relu')(x)
         return x
 
-    def identity_block(tensor, filters):
-
-        x = Conv2D(filters, (3, 3), padding='same')(tensor)
-        x = BatchNormalization(axis=3)(x)
-        x = Activation('relu')(x)
-
-        x = Conv2D(filters, (3, 3), padding='same')(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x = Add()([x, tensor])
-        x = Activation('relu')(x)
-        return x
-
-
-    def conv_batchnorm_relu(x, filters, kernel_size, strides=1):
-
-        x = Conv2D(filters=filters, kernel_size=kernel_size, strides=strides, padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-
-        return x
-
     def constructModel(Xdim):
+        """RESNET architecture"""
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
-
-        #x = Conv2D(filters=64, kernel_size=(7,7), strides=(2,2), padding='same')(inputLayer)
-        #x = BatchNormalization()(x)
-        #x = Activation('relu')(x)
-        #x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
 
         x = conv_block(inputLayer, filters=64)
 
@@ -241,6 +212,7 @@ if __name__ == "__main__":
 
 
     def get_labels(fnImages):
+        """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
         fnImg = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
@@ -253,6 +225,8 @@ if __name__ == "__main__":
         label = []
         img_shift = []
 
+        # For better performance, images are selected to be 'homogeneously' distributed in the sphere
+        # 50 divisions with equal area
         numTiltDivs = 5
         numRotDivs = 10
         limits_rot = np.linspace(-180.01, 180, num=(numRotDivs+1))
@@ -261,15 +235,17 @@ if __name__ == "__main__":
         for i in range(1, numTiltDivs+1):
             limits_tilt[i] = math.acos(1-2*(i/numTiltDivs))
         limits_tilt = limits_tilt*180/math.pi
-        zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
 
+        # Each particle is assigned to a division
+        zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
         i = 0
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             label.append(np.array((r, t, p)))
             img_shift.append(np.array((sX, sY)))
-            region_rot = np.digitize(r, limits_rot, right=True) - 1  # Índice de la región para el componente x
-            region_tilt = np.digitize(t, limits_tilt, right=True) - 1  # Índice de la región para el componente y
-            region_idx = region_rot * (len(limits_tilt)-1) + region_tilt  # Índice de la región combinada
+            region_rot = np.digitize(r, limits_rot, right=True) - 1
+            region_tilt = np.digitize(t, limits_tilt, right=True) - 1
+            # Region index
+            region_idx = region_rot * (len(limits_tilt)-1) + region_tilt
             zone[region_idx].append(i)
             i += 1
 
@@ -278,18 +254,18 @@ if __name__ == "__main__":
     Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
     start_time = time()
 
+    # Train-Validation sets
     if numModels == 1:
         lenTrain = int(len(fnImgs)*0.8)
         lenVal = len(fnImgs)-lenTrain
     else:
-        lenTrain = int(len(fnImgs) / 5)
-        lenVal = int(len(fnImgs) / 20)
+        lenTrain = int(len(fnImgs) / 3)
+        lenVal = int(len(fnImgs) / 12)
 
     elements_zone = int((lenVal+lenTrain)/len(zones))
-    print('elements_zone', elements_zone, flush=True)
 
     for index in range(numModels):
-
+        # chooses equal number of particles for each division
         random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
 
         training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
