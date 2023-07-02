@@ -42,10 +42,7 @@
 #include "core/linear_system_helper.h"
 #include "fftwT.h"
 
-/**@defgroup Monogenic Resolution
-   @ingroup ReconsLibrary */
-//@{
-/** SSNR parameters. */
+
 
 class ProgTomoConfidecenceMap : public XmippProgram
 {

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
+ * Authors:  Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -20,14 +20,30 @@
  * 02111-1307  USA
  *
  *  All comments concerning this program package may be sent to the
- *  e-mail address 'xmipp@cnb.csic.es'
+ *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <tomo/tomo_extract_particlestacks.h>
+#include <mpi.h>
+#include <parallel/xmipp_mpi.h>
+#include <reconstruction/subtract_projection.h>
 
-int main(int argc, char **argv)
+
+class MpiProgSubtractProjection: public ProgSubtractProjection, public MpiMetadataProgram
 {
-	ProgTomoExtractParticleStacks program;
-    program.read(argc, argv);
-    return program.tryRun();
-}
+public:
+
+    void defineParams() override;
+    void readParams() override;
+    void read(int argc, char **argv, bool reportErrors = true) override;
+    void preProcess() override;
+    void startProcessing() override;
+    void showProgress() override;
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override
+    {
+        return getTaskToProcess(objId, objIndex);
+    }
+    void finishProcessing() override;
+    
+    void wait() override;
+    
+};

@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_tiltseries_dose_filter.h>
+#include <tomo/tomo_tiltseries_dose_filter.h>
 
 RUN_XMIPP_PROGRAM(ProgTomoTSFilterDose)
