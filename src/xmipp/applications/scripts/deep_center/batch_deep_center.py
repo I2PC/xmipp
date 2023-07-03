@@ -56,7 +56,6 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
 
-
             # Read all data in memory
             if self.readInMemory:
                 self.Xexp = np.zeros((len(self.labels), self.dim, self.dim, 1), dtype=np.float64)
@@ -111,7 +110,7 @@ if __name__ == "__main__":
             rY = self.sigma * np.random.normal(0, 1, size=self.batch_size)
             rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
             rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            # Shift image a random amount of px in each direction
+                        # Shift image a random amount of px in each direction
             Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
             y = yvalues + np.vstack((rX, rY)).T
             return Xexp, y
