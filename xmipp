@@ -481,8 +481,6 @@ def compileModule(Nproc,module):
                 show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
                 progresLinesPrecompiled=progresLinesPrecompiled, printProgress=printProgress,
                 COMPILE_LOG=COMPILE_LOG)
-
-    #write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
     lastError= ''
     #print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
