@@ -514,16 +514,20 @@ void ProgTomoDetectLandmarks::centerCoordinates(MultidimArray<double> tiltSeries
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(correlationVolumeR)
 		{
+			#ifdef DEBUG_CENTER_COORDINATES
 			if (n==0)
 			{
 				std::cout << "Pixel (" << i << ", " << j << ")" << std::endl;
 			}
+			#endif
 
 			double value = DIRECT_A2D_ELEM(correlationVolumeR, i, j);
 
 			if (value > maximumCorrelation)
 			{
+				#ifdef DEBUG_CENTER_COORDINATES
 				std::cout << "new maximumCorrelation " << value << " at (" << i << ", " << j << ")" << std::endl;
+				#endif
 
 				maximumCorrelation = value;
 				xDisplacement = j;
