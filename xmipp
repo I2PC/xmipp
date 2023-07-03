@@ -479,9 +479,10 @@ def compileModule(Nproc,module):
     log = []
     ok = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
                 show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
-                progresLinesPrecompiled=progresLinesPrecompiled, printProgress=printProgress)
+                progresLinesPrecompiled=progresLinesPrecompiled, printProgress=printProgress,
+                COMPILE_LOG=COMPILE_LOG)
 
-    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+    #write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
     lastError= ''
     #print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
