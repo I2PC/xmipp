@@ -69,6 +69,11 @@ void ProgTomoDetectLandmarks::generateSideInfo()
     std::cout << "ds_factor: " << ds_factor << std::endl;
     std::cout << "xSize_d: " << xSize_d << std::endl;
     std::cout << "ySize_d: " << ySize_d << std::endl;
+    std::cout << "fnVol: " << fnVol << std::endl;
+    std::cout << "fnOut: " << fnOut << std::endl;
+    std::cout << "fiducialSize: " << fiducialSize << std::endl;
+    std::cout << "targetFS: " << targetFS << std::endl;
+    std::cout << "thrSD: " << thrSD << std::endl;
 }
 
 

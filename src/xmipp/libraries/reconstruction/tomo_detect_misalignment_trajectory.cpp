@@ -161,16 +161,18 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	#endif
 
 	// Initialize landmark detector
-	// size_t lastIndex = fnOut.find_last_of("\\/");
-	// std::string lmCoordsFn = fnOut.substr(0, lastIndex);
-	// std::string lmCoordsFn = rawname + "/landmarks.xmd";
+	size_t lastIndex = fnOut.find_last_of("\\/");
+	std::string lmCoordsFn = fnOut.substr(0, lastIndex);
+	lmCoordsFn = lmCoordsFn + "/landmarkCoordinates.xmd";
 
-	// lmDetector.fnVol = fnVol;
-	// lmDetector.fnOut = lmCoordsFn;
-	// lmDetector.samplingRate = samplingRate;
-	// lmDetector.fiducialSize = fiducialSize;
-	// lmDetector.targetFS = targetFS;
-	// lmDetector.thrSD = thrSDHCC;
+	lmDetector.fnVol = fnVol;
+	lmDetector.fnOut = lmCoordsFn;
+	lmDetector.samplingRate = samplingRate;
+	lmDetector.fiducialSize = fiducialSize;
+	lmDetector.targetFS = targetFS;
+	lmDetector.thrSD = thrSDHCC;
+
+	lmDetector.run();
 }
 
 
@@ -2807,72 +2809,73 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	size_t objId, objId_ts;
 	Image<double> imgTS;
 
-	MultidimArray<double> &ptrImg = imgTS();
-    MultidimArray<double> projImgTS;
-    MultidimArray<double> filteredImg;
-    MultidimArray<double> freqMap;
+	// MultidimArray<double> &ptrImg = imgTS();
+    // MultidimArray<double> projImgTS;
+    // MultidimArray<double> filteredImg;
+    // MultidimArray<double> freqMap;
 
-	projImgTS.initZeros(Ydim, Xdim);
+	// projImgTS.initZeros(Ydim, Xdim);
 
-	size_t Ndim, counter = 0;
-	Ndim = tiltseriesmd.size();
+	// size_t Ndim, counter = 0;
+	// Ndim = tiltseriesmd.size();
 
-	MultidimArray<double> filteredTiltSeries;
-	filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
+	// MultidimArray<double> filteredTiltSeries;
+	// filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
 
-	for(size_t objId : tiltseriesmd.ids())
-	{
-		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
+	// for(size_t objId : tiltseriesmd.ids())
+	// {
+	// 	tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
-		#ifdef DEBUG_PREPROCESS
-        std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
-		#endif
+	// 	#ifdef DEBUG_PREPROCESS
+    //     std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
+	// 	#endif
 
-        imgTS.read(fnTSimg);
+    //     imgTS.read(fnTSimg);
 
-		// Comment for phantom
-        bandPassFilter(ptrImg, counter);
+	// 	// Comment for phantom
+    //     bandPassFilter(ptrImg, counter);
 
-        for (size_t i = 0; i < Ydim; ++i)
-        {
-            for (size_t j = 0; j < Xdim; ++j)
-            {
-				DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
-			}
-		}
+    //     for (size_t i = 0; i < Ydim; ++i)
+    //     {
+    //         for (size_t j = 0; j < Xdim; ++j)
+    //         {
+	// 			DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+	// 		}
+	// 	}
 
-		counter++;
-	}
+	// 	counter++;
+	// }
 	
-	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume = rawname + "/ts_filtered.mrcs";
+	// #ifdef DEBUG_OUTPUT_FILES
+	// size_t lastindex = fnOut.find_last_of("\\/");
+	// std::string rawname = fnOut.substr(0, lastindex);
+	// std::string outputFileNameFilteredVolume;
+    // outputFileNameFilteredVolume = rawname + "/ts_filtered.mrcs";
 
-	Image<double> saveImage;
-	saveImage() = filteredTiltSeries;
-	saveImage.write(outputFileNameFilteredVolume);
-	#endif
+	// Image<double> saveImage;
+	// saveImage() = filteredTiltSeries;
+	// saveImage.write(outputFileNameFilteredVolume);
+	// #endif
 
-	#ifdef DEBUG_DIM
-	std::cout << "Filtered tilt-series dimensions:" << std::endl;
-	std::cout << "x " << xSize << std::endl;
-	std::cout << "y " << ySize << std::endl;
-	std::cout << "z " << zSize << std::endl;
-	std::cout << "n " << nSize << std::endl;
-	#endif
+	// #ifdef DEBUG_DIM
+	// std::cout << "Filtered tilt-series dimensions:" << std::endl;
+	// std::cout << "x " << xSize << std::endl;
+	// std::cout << "y " << ySize << std::endl;
+	// std::cout << "z " << zSize << std::endl;
+	// std::cout << "n " << nSize << std::endl;
+	// #endif
 
-	getHighContrastCoordinates(filteredTiltSeries);
+	// getHighContrastCoordinates(filteredTiltSeries);
 
-	centerCoordinates(filteredTiltSeries);
+	// centerCoordinates(filteredTiltSeries);
 
-	bool continueVotting = true;
-	while (continueVotting)
-	{
-		continueVotting = votingHCC();
-	}
+	// bool continueVotting = true;
+	// while (continueVotting)
+	// {
+	// 	continueVotting = votingHCC();
+	// }
 	
+	coordinates3D = lmDetector.coordinates3D;
 
 	MultidimArray<int> proyectedCoordinates;
 	proyectedCoordinates.initZeros(ySize, xSize);
