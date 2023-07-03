@@ -47,6 +47,8 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
 	avgResidPercentile_LocalAlignment = getDoubleParam("--avgResidPercentile_LocalAlignment");
+
+	targetFS = getDoubleParam("--targetLMsize");
 }
 
 
@@ -71,6 +73,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 	addParamsLine("  [--avgResidPercentile_LocalAlignment <avgResidPercentile_LocalAlignment=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 
+	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
 }
 
 
@@ -156,6 +159,18 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of input coordinates: " << numberOfInputCoords << std::endl;
 	#endif
+
+	// Initialize landmark detector
+	// size_t lastIndex = fnOut.find_last_of("\\/");
+	// std::string lmCoordsFn = fnOut.substr(0, lastIndex);
+	// std::string lmCoordsFn = rawname + "/landmarks.xmd";
+
+	// lmDetector.fnVol = fnVol;
+	// lmDetector.fnOut = lmCoordsFn;
+	// lmDetector.samplingRate = samplingRate;
+	// lmDetector.fiducialSize = fiducialSize;
+	// lmDetector.targetFS = targetFS;
+	// lmDetector.thrSD = thrSDHCC;
 }
 
 

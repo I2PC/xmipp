@@ -45,8 +45,8 @@
 #include <data/point3D.h>
 #include <data/point2D.h>
 #include <stdio.h>
-
 #include <fstream>
+#include "tomo_detect_landmarks.h"
 
 #define VERBOSE_OUTPUT
 // #define GENERATE_RESIDUAL_STATISTICS
@@ -70,6 +70,12 @@ class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
 {
 
 public:
+    /** Landmark detector */
+    ProgTomoDetectLandmarks lmDetector;
+
+    /** Params specific for landmark detectior */
+    double targetFS;
+
     /** Filenames */
     FileName fnVol;
     FileName fnOut;
