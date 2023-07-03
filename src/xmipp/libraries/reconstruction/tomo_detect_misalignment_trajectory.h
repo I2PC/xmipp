@@ -189,6 +189,8 @@ public:
     bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
     void writeOutputAlignmentReport();
 
+    void detectInterpolationEdges(MultidimArray<double> &tiltImage);
+
 
 
     // --------------------------- INFO functions ----------------------------

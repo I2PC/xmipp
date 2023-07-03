@@ -2805,11 +2805,13 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	generateSideInfo();
 
+	
+
 	FileName fnTSimg;
 	size_t objId, objId_ts;
 	Image<double> imgTS;
 
-	// MultidimArray<double> &ptrImg = imgTS();
+	MultidimArray<double> &ptrImg = imgTS();
     // MultidimArray<double> projImgTS;
     // MultidimArray<double> filteredImg;
     // MultidimArray<double> freqMap;
@@ -2822,29 +2824,29 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	// MultidimArray<double> filteredTiltSeries;
 	// filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
 
-	// for(size_t objId : tiltseriesmd.ids())
-	// {
-	// 	tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
+	for(size_t objId : tiltseriesmd.ids())
+	{
+		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
-	// 	#ifdef DEBUG_PREPROCESS
-    //     std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
-	// 	#endif
+		#ifdef DEBUG_PREPROCESS
+        std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
+		#endif
 
-    //     imgTS.read(fnTSimg);
+        imgTS.read(fnTSimg);
 
-	// 	// Comment for phantom
-    //     bandPassFilter(ptrImg, counter);
+		// Comment for phantom
+        detectInterpolationEdges(ptrImg);
 
-    //     for (size_t i = 0; i < Ydim; ++i)
-    //     {
-    //         for (size_t j = 0; j < Xdim; ++j)
-    //         {
-	// 			DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
-	// 		}
-	// 	}
+        // for (size_t i = 0; i < Ydim; ++i)
+        // {
+        //     for (size_t j = 0; j < Xdim; ++j)
+        //     {
+		// 		DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+		// 	}
+		// }
 
-	// 	counter++;
-	// }
+		// counter++;
+	}
 	
 	// #ifdef DEBUG_OUTPUT_FILES
 	// size_t lastindex = fnOut.find_last_of("\\/");
@@ -2896,9 +2898,9 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 	#endif
 
-	#ifdef DEBUG_OUTPUT_FILES
-	writeOutputCoordinates();
-	#endif
+	// #ifdef DEBUG_OUTPUT_FILES
+	// writeOutputCoordinates();
+	// #endif
 
 	calculateResidualVectors();
 	writeOutputVCM();
@@ -2917,6 +2919,96 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 
 // --------------------------- UTILS functions ----------------------------
+
+void ProgTomoDetectMisalignmentTrajectory::detectInterpolationEdges(MultidimArray<double> &tiltImage)
+{
+	// Detect interpolation region
+	MultidimArray<double> tmpImage = tiltImage;
+
+	for (size_t i = 1; i < xSize-1; i++)
+	{
+		for (size_t j = 1; j < ySize-1; j++)
+		{
+			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
+											   -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
+											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
+											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
+									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
+		}
+	}
+
+	
+	// Background value as the median of the corners
+	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
+								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
+								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
+								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
+
+	sort(corners.begin(), corners.end(), std::greater<double>());
+
+	double backgroundValue = (corners[1]+corners[2])/2;
+
+	// Margin thickness
+	int marginThickness = (int)(fiducialSizePx * 0.5);
+
+	auto epsilon = MINDOUBLE;
+
+	std::vector<Point2D<int>> interpolationLimits;
+
+	bool firstLimitFound;
+
+	int xMin;
+	int xMax;
+
+	for (size_t j = 1; j < ySize-2; j++)
+	{
+		for (size_t i = 1; i < xSize-1; i++)
+		{
+			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+			{
+				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
+
+				// Fill margin thickness with background value
+				for (size_t a = i; a < i + marginThickness; a++)
+				{
+					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+				}
+				
+				break;
+			}
+		}
+
+
+		for (size_t i = xSize-1; i > 1; i--)
+		{
+			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+			{
+				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
+
+				// Fill margin thickness with background value
+				for (size_t a = i - marginThickness; a < i; a++)
+				{
+					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+				}
+
+				break;
+			}
+		}
+
+		if (xMin >= xMax)
+		{
+			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
+			xMax = value;
+			xMin = value;
+		}
+		
+		Point2D<int> limit (xMin, xMax);
+		interpolationLimits.push_back(limit);
+	}
+
+	interpolationLimitsVector.push_back(interpolationLimits);
+}
+
 
 void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binaryImage, int size, int count, int neig)
 {
