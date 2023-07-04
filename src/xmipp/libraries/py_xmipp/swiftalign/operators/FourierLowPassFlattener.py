@@ -53,8 +53,10 @@ class FourierLowPassFlattener(SpectraFlattener):
         cutoff2 = cutoff ** 2
         mask = frequencies2.less_equal(cutoff2)
         if exclude_dc:
+            # Remove symmetric coefficients and DC
             mask[:(dim[-2]//2),0] = False
         else:
+            # Remove symmetric coefficients
             mask[1:(dim[-2]//2),0] = False
         
         return mask
