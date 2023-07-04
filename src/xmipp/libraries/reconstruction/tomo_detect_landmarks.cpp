@@ -104,7 +104,125 @@ void ProgTomoDetectLandmarks::downsample(MultidimArray<double> &tiltImage, Multi
 }
 
 
-void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
+void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &tiltImage)
+{
+	// Detect interpolation region
+	MultidimArray<double> tmpImage = tiltImage;
+
+	for (size_t i = 1; i < xSize-1; i++)
+	{
+		for (size_t j = 1; j < ySize-1; j++)
+		{
+			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
+											   -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
+											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
+											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
+									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
+		}
+	}
+
+	
+	// Background value as the median of the corners
+	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
+								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
+								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
+								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
+
+	sort(corners.begin(), corners.end(), std::greater<double>());
+
+	double backgroundValue = (corners[1]+corners[2])/2;
+
+	// Margin thickness
+	int marginThickness = (int)(fiducialSizePx * 0.5);
+
+	auto epsilon = MINDOUBLE;
+
+	std::vector<Point2D<int>> interpolationLimits;
+
+	bool firstLimitFound;
+
+	int xMin;
+	int xMax;
+
+	for (size_t j = 1; j < ySize-2; j++)
+	{
+		for (size_t i = 1; i < xSize-1; i++)
+		{
+			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+			{
+				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
+
+				// Fill margin thickness with background value
+				for (size_t a = i; a < xMin; a++)
+				{
+					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+				}
+				
+				break;
+			}
+		}
+
+		for (size_t i = xSize-1; i > 1; i--)
+		{
+			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+			{
+				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
+
+				// Fill margin thickness with background value
+				for (size_t a = xMax; a < i; a++)
+				{
+					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+				}
+
+				break;
+			}
+		}
+
+		if (xMin >= xMax)
+		{
+			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
+			xMax = value;
+			xMin = value;
+		}
+		
+		Point2D<int> limit (xMin, xMax);
+		interpolationLimits.push_back(limit);
+	}
+
+	// // Apply DS factor to interpolation limits
+	// std::vector<Point2D<int>> interpolationLimits_ds;
+
+	// double meanXmin;
+	// double meanXmax;
+
+	// int windowSize = (int)(1/ds_factor);
+	// int windowSizeCounter = windowSize;
+
+	// for (size_t i = 0; i < interpolationLimits.size(); i++)
+	// {
+	// 	meanXmax += interpolationLimits[i].x * ds_factor;
+	// 	meanXmin += interpolationLimits[i].y * ds_factor;
+
+	// 	windowSizeCounter -= 1;
+		
+	// 	if (windowSizeCounter == 0)
+	// 	{
+	// 		Point2D<int> limit ((int) (meanXmax / windowSize), 
+	// 							(int) (meanXmin / windowSize));
+
+	// 		interpolationLimits_ds.push_back(limit);
+
+	// 		windowSizeCounter = windowSize;
+	// 		meanXmax = 0;
+	// 		meanXmin = 0;
+	// 	}
+	// }
+
+	// interpolationLimitsVector.push_back(interpolationLimits_ds);
+}
+
+
+void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage, int ti)
 {  
     // Create the gradient images for x and y directions
     MultidimArray<double>  gradX;
@@ -113,56 +231,112 @@ void ProgTomoDetectLandmarks::sobelFiler(MultidimArray<double> &tiltImage)
     gradX.initZeros(ySize_d, xSize_d);
     gradY.initZeros(ySize_d, xSize_d);
 
-    // Apply the Sobel filter in the x-direction
-    for (int i = 1; i < ySize_d - 1; ++i)
-    {
-        for (int j = 1; j < xSize_d - 1; ++j)
-        {
-            double pixelValue = 0;
+	if (ti == -1) // Do not consider interpolation edges (only for reference)
+	{
+		// Apply the Sobel filter in the x-direction
+		for (int i = 1; i < ySize_d - 1; ++i)
+		{
+			for (int j = 1; j < xSize_d - 1; ++j)
+			{
+				double pixelValue = 0;
 
-            for (int k = -1; k <= 1; ++k)
-            {
-                for (int l = -1; l <= 1; ++l)
-                {
-                    pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
-                }
-            }
+				for (int k = -1; k <= 1; ++k)
+				{
+					for (int l = -1; l <= 1; ++l)
+					{
+						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
+					}
+				}
 
-            A2D_ELEM(gradX, i, j) = pixelValue;
-        }
-    }
+				A2D_ELEM(gradX, i, j) = pixelValue;
+			}
+		}
 
-    // Apply the Sobel filter in the y-direction
-    for (int i = 1; i < ySize_d - 1; ++i)
-    {
-        for (int j = 1; j < xSize_d - 1; ++j)
-        {
-            double pixelValue = 0;
+		// Apply the Sobel filter in the y-direction
+		for (int i = 1; i < ySize_d - 1; ++i)
+		{
+			for (int j = 1; j < xSize_d - 1; ++j)
+			{
+				double pixelValue = 0;
 
-            for (int k = -1; k <= 1; ++k)
-            {
-                for (int l = -1; l <= 1; ++l)
-                {
-                    pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
-                }
-            }
+				for (int k = -1; k <= 1; ++k)
+				{
+					for (int l = -1; l <= 1; ++l)
+					{
+						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
+					}
+				}
 
-            A2D_ELEM(gradY, i, j) = pixelValue;
-        }
-    }
+				A2D_ELEM(gradY, i, j) = pixelValue;
+			}
+		}
 
-    // Compute the gradient magnitude   
-    tiltImage.initZeros(ySize_d, xSize_d);
+		// Compute the gradient magnitude   
+		tiltImage.initZeros(ySize_d, xSize_d);
 
-    for (int i = 0; i < ySize_d; ++i)
-    {
-        for (int j = 0; j < xSize_d; ++j)
-        {
+		for (int i = 0; i < ySize_d; ++i)
+		{
+			for (int j = 0; j < xSize_d; ++j)
+			{
 
-            A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
-                                             A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
-        }
-    }
+				A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
+												A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
+			}
+		}
+	}
+	else // Consider interpolation edges
+	{
+		// Apply the Sobel filter in the x-direction
+		for (int i = 1; i < ySize_d - 1; ++i)
+		{
+			for (int j = 1; j < xSize_d - 1; ++j)
+			{
+				double pixelValue = 0;
+
+				for (int k = -1; k <= 1; ++k)
+				{
+					for (int l = -1; l <= 1; ++l)
+					{
+						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelX[k + 1][l + 1];
+					}
+				}
+
+				A2D_ELEM(gradX, i, j) = pixelValue;
+			}
+		}
+
+		// Apply the Sobel filter in the y-direction
+		for (int i = 1; i < ySize_d - 1; ++i)
+		{
+			for (int j = 1; j < xSize_d - 1; ++j)
+			{
+				double pixelValue = 0;
+
+				for (int k = -1; k <= 1; ++k)
+				{
+					for (int l = -1; l <= 1; ++l)
+					{
+						pixelValue += A2D_ELEM(tiltImage, i + k, j + l) * sobelY[k + 1][l + 1];
+					}
+				}
+
+				A2D_ELEM(gradY, i, j) = pixelValue;
+			}
+		}
+
+		// Compute the gradient magnitude   
+		tiltImage.initZeros(ySize_d, xSize_d);
+
+		for (int i = 0; i < ySize_d; ++i)
+		{
+			for (int j = 0; j < xSize_d; ++j)
+			{
+
+				A2D_ELEM(tiltImage, i, j) = sqrt(A2D_ELEM(gradX, i, j) * A2D_ELEM(gradX, i, j) + 
+												A2D_ELEM(gradY, i, j) * A2D_ELEM(gradY, i, j));
+			}
+		}
+	}
 }
 
 
@@ -729,17 +903,34 @@ void ProgTomoDetectLandmarks::run()
         MultidimArray<double> tiltImage_ds;
         tiltImage_ds.initZeros(ySize_d, xSize_d);
 
+		// Detect interpolation edges
+		#ifdef DEBUG_INTERPOLATION_EDGES
+		std::cout << "Detecting interpolation edges for image " << counter << std::endl;
+		#endif
+
+		detectInterpolationEdges(ptrImg);
+
+		#ifdef DEBUG_INTERPOLATION_EDGES
+		std::cout << "Interpolation edges for image " << counter << std::endl;
+
+		for (size_t i = 0; i < interpolationLimitsVector[counter].size(); i++)
+		{
+			std::cout << "y: " << i << " xMin: " << interpolationLimitsVector[counter][i].x << " xMax: " << interpolationLimitsVector[counter][i].y << std::endl;
+		}
+		#endif
+
+		// Downsample
         #ifdef DEBUG_DOWNSAMPLE
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
         #endif
         downsample(ptrImg, tiltImage_ds);
 
         #ifdef DEBUG_DIM
-        std::cout << "Tilt-image dimensions before dowsampling:" << std::endl;
+        std::cout << "Tilt-image dimensions before downsampling:" << std::endl;
         std::cout << "x " << XSIZE(ptrImg) << std::endl;
         std::cout << "y " << YSIZE(ptrImg) << std::endl;
 
-		std::cout << "Tilt-image dimensions after dowsampling:" << std::endl;
+		std::cout << "Tilt-image dimensions after downsampling:" << std::endl;
 		std::cout << "x " << XSIZE(tiltImage_ds) << std::endl;
         std::cout << "y " << YSIZE(tiltImage_ds) << std::endl;
         #endif
@@ -755,11 +946,11 @@ void ProgTomoDetectLandmarks::run()
 			}
 		}
 
-
+		// Sobel filter and landmark enhancement
         #ifdef DEBUG_SOBEL
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
         #endif
-        sobelFiler(tiltImage_ds);
+        sobelFiler(tiltImage_ds, counter);
         enhanceLandmarks(tiltImage_ds);
 
         for (size_t i = 0; i < ySize_d; ++i)
@@ -915,7 +1106,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
     }
 
     // Apply Sobel filer to reference
-    sobelFiler(landmarkReference);
+    sobelFiler(landmarkReference, -1);
 
     // Save reference
     #ifdef DEBUG_REFERENCE

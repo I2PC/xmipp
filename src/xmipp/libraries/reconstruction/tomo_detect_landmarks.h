@@ -51,7 +51,8 @@
 
 // #define DEBUG_DIM
 // #define DEBUG_DOWNSAMPLE
-// #define DEBUG_SOBEL
+#define DEBUG_INTERPOLATION_EDGES
+#define DEBUG_SOBEL
 // #define DEBUG_CLOSING
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_HCC
@@ -95,6 +96,10 @@ public:
     /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;
 
+    // Vector of points saving the interpolation limits for each tilt-image
+    std::vector<std::vector<Point2D<int>>> interpolationLimitsVector;
+    std::vector<std::vector<Point2D<int>>> interpolationLimitsVector_ds;
+
     /** Fiducial size in pixels */
     float fiducialSizePx;
 
@@ -137,10 +142,12 @@ public:
     */
     void downsample(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImage_ds);
 
+    void detectInterpolationEdges(MultidimArray<double> &tiltImage);
+
     /**
      * Apply Sobel filter to input tilt image.
     */
-    void sobelFiler(MultidimArray<double> &tiltImage);
+    void sobelFiler(MultidimArray<double> &tiltImage, int ti);
 
     /**
      * Convolve tilt-image with filtered reference landmark (correlation in Fourier
