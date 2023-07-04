@@ -53,8 +53,8 @@ class FourierLowPassFlattener(SpectraFlattener):
         cutoff2 = cutoff ** 2
         mask = frequencies2.less_equal(cutoff2)
         if exclude_dc:
-            mask[:(dim[-2]//2+1),0] = False
+            mask[:(dim[-2]//2),0] = False
         else:
-            mask[1:(dim[-2]//2+1),0] = False
+            mask[1:(dim[-2]//2),0] = False
         
         return mask
