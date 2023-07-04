@@ -70,7 +70,7 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('v1.13.0', None),
+                GTEST: ('v1.13.x', None),
                 LIBSVM: ('master', None),
                 LIBCIFPP: ('ms_feature_ciflibrary', None)}
 
@@ -479,9 +479,8 @@ def compileModule(Nproc,module):
     log = []
     ok = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % Nproc, "src/%s" % module, log=log,
                 show_command=False, sconsProgress=sconsProgress, progresLines=progresLines,
-                progresLinesPrecompiled=progresLinesPrecompiled, printProgress=printProgress)
-
-    write_compileLog(''.join(log), COMPILE_LOG=COMPILE_LOG)
+                progresLinesPrecompiled=progresLinesPrecompiled, printProgress=printProgress,
+                COMPILE_LOG=COMPILE_LOG)
     lastError= ''
     #print(yellow('len log scons module: {}: {}'.format(module, len(log))))
     if not ok:
@@ -614,12 +613,12 @@ def compile_libsvm():
 
 def compile_libcifpp(Nproc):
     print("Building libcifpp...")
-    print(yellow('Working... (It could takes 1 or 2 minutes)'), end='\r')
+    print(yellow('Working...'), end='\r')
     log = []
     # Check if CMake version is up to date
     error = checkCMakeVersion(CMAKE_VERSION_REQUIRED)
     if error[0] == False:
-        exitProgram(1, error)
+        exitProgram(1, error[1])
         return False, log
     currDir = os.getcwd()
     # Moving to library directory
