@@ -38,8 +38,9 @@ private:
   FileName fnVol2;
   FileName fnVol1;
   FileName fnOutVol;
-  FileName fnMask1;
+  FileName fnMask;
   bool performSubtraction;
+  int neighborhood;
 
 	/// Read arguments
 	void readParams() override;

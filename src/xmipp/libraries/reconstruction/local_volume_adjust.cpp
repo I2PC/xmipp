@@ -38,13 +38,11 @@ void ProgLocalVolumeAdjust::defineParams() {
 	// Parameters
 	addParamsLine("--i1 <volume>			: Reference volume");
 	addParamsLine("--i2 <volume>			: Volume to modify");
-	addParamsLine("[-o <structure=\"\">]\t: Volume 2 modified or "
-			"volume difference");
-	addParamsLine("\t: If no name is given, "
-			"then output_volume.mrc");
-	addParamsLine("[--sub]\t: Perform the "
-			"subtraction of the volumes. Output will be the difference");
-	addParamsLine("[--mask1 <mask=\"\">]		: Mask for volume 1");
+	addParamsLine("[-o <structure=\"\">]\t: Volume 2 modified or volume difference");
+	addParamsLine("\t: If no name is given, then output_volume.mrc");
+	addParamsLine("--mask <mask=\"\">		: Mask for volume 1");
+	addParamsLine("[--neighborhood <n=5>]\t: side length (in pixels) of a square which will define the region of adjustment");
+	addParamsLine("[--sub]\t: Perform the subtraction of the volumes. Output will be the difference");
 }
 
 // Read arguments ==========================================================
@@ -55,23 +53,34 @@ void ProgLocalVolumeAdjust::readParams() {
 	if (fnOutVol.isEmpty())
 		fnOutVol = "output_volume.mrc";
 	performSubtraction = checkParam("--sub");
-	fnMask1 = getParam("--mask1");
+	fnMask = getParam("--mask");
+	neighborhood = getIntParam("--neighborhood");
 }
 
 // Show ====================================================================
 void ProgLocalVolumeAdjust::show() const {
-	std::cout << "Input volume 1:\t" << fnVol1 << std::endl
+	std::cout << "Input volume 1 (reference):\t" << fnVol1 << std::endl
 			<< "Input volume 2:\t" << fnVol2 << std::endl
-			<< "Input mask 1:\t" << fnMask1 << std::endl
+			<< "Input mask:\t" << fnMask << std::endl
 			<< "Output:\t" << fnOutVol << std::endl;
 }
 
 void ProgLocalVolumeAdjust::run() {
 	show();
-    Image<double> V1;
-	V1.read(fnVol1);
+    Image<double> Vref;
+	Vref.read(fnVol1);
+	MultidimArray<double> &mVref=Vref();
 	Image<double> V;
 	V.read(fnVol2);
+	MultidimArray<double> &mV=V();
+	Image<double> M;
+	M.read(fnMask);
+	MultidimArray<double> &mM=M();
 	/* The output of this program is a modified version of V (V')*/
+	if (performSubtraction)
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mV)
+			DIRECT_MULTIDIM_ELEM(mV,n) = DIRECT_MULTIDIM_ELEM(mV,n)-DIRECT_MULTIDIM_ELEM(mVref,n);
+	}
 	V.write(fnOutVol);
 }
