@@ -144,10 +144,15 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	int xMin;
 	int xMax;
 
+	#ifdef DEBUG_INTERPOLATION_EDGES
+	std::cout << "Background value: " << backgroundValue << std::endl;
+	std::cout << "Margin thickness: " << marginThickness << std::endl;
+	#endif
+
 	for (size_t j = 1; j < ySize-2; j++)
 	{
 		for (size_t i = 1; i < xSize-1; i++)
-		{
+		{		
 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
 			{
 				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
@@ -162,7 +167,7 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 			}
 		}
 
-		for (size_t i = xSize-1; i > 1; i--)
+		for (size_t i = xSize-2; i > 1; i--)
 		{
 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
 			{
@@ -188,6 +193,8 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 		Point2D<int> limit (xMin, xMax);
 		interpolationLimits.push_back(limit);
 	}
+
+	interpolationLimitsVector.push_back(interpolationLimits);
 
 	// // Apply DS factor to interpolation limits
 	// std::vector<Point2D<int>> interpolationLimits_ds;
@@ -218,7 +225,7 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	// 	}
 	// }
 
-	// interpolationLimitsVector.push_back(interpolationLimits_ds);
+	// interpolationLimitsVector_ds.push_back(interpolationLimits_ds);
 }
 
 
