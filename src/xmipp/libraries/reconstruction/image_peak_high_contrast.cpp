@@ -181,7 +181,7 @@ void ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTom
 	normDim = (xSize>ySize) ? xSize : ySize;
 
 	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
-	w = 43.2 / normDim;
+	//w = 43.2 / normDim;
 
 	#ifdef DEBUG_PREPROCESS
 	std::cout << "samplingRate " << samplingRate << std::endl;
