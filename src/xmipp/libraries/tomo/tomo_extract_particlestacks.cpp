@@ -40,6 +40,7 @@ void ProgTomoExtractParticleStacks::readParams()
 	boxsize = getIntParam("--boxsize");
 	invertContrast = checkParam("--invertContrast");
 	scaleFactor = getDoubleParam("--downsample");
+	normalize = checkParam("--normalize");
 	fnOut = getParam("-o");
 	nthrs = getIntParam("--threads");
 }
@@ -52,12 +53,33 @@ void ProgTomoExtractParticleStacks::defineParams()
 	addParamsLine("  --coordinates <xmd_file=\"\">      : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
 	addParamsLine("  [--invertContrast]                 : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+	addParamsLine("  [--normalize]                      : Put this flag to normalize the background of the particle (zero mean and unit std)");
 	addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
 	addParamsLine("  -o <mrc_file=\"\">                 : path to the output directory. ");
 	addParamsLine("  [--threads <s=4>]                  : Number of threads");
 }
 
+void ProgTomoExtractParticleStacks::createCircle(MultidimArray<double> &maskNormalize)
+{
+	int halfboxsize = 0.5* boxsize;
+	if (normalize)
+	{
+		
+		maskNormalize.initZeros(1, 1, boxsize, boxsize);
 
+		for (int i=0; i<boxsize; i++)
+		{
+			int i2 = i-halfboxsize;
+			int i2k2 = i2*i2;
+			for (int j=0; j<boxsize; j++)
+			{
+				int j2 = (j- halfboxsize);
+				if (sqrt(i2k2 + j2*j2)>halfboxsize)
+					A2D_ELEM(maskNormalize, i, j) = 1;
+			}
+		}
+	}
+}
 
 void ProgTomoExtractParticleStacks::run()
 {
@@ -67,7 +89,7 @@ void ProgTomoExtractParticleStacks::run()
 	mdts.read(fnTs);
 	mdcoords.read(fnCoor);
 
-	int xcoor, ycoor, zcoor, xinit, yinit, zinit;
+	int xcoor, ycoor, zcoor, xinit, yinit;
 	size_t idx=1;
 
 	FileName fnImg;
@@ -85,11 +107,14 @@ void ProgTomoExtractParticleStacks::run()
 
 	size_t Nimages = 0;
 
+	std::string tsid;
+
 	for (const auto& row : mdts)
 	{
 		row.getValue(MDL_IMAGE, fnImg);
 		row.getValue(MDL_ANGLE_TILT, tilt);
 		row.getValue(MDL_ANGLE_ROT, rot);
+		row.getValue(MDL_TSID, tsid);
 
 		tiltImg.read(fnImg);
 
@@ -110,19 +135,29 @@ void ProgTomoExtractParticleStacks::run()
 	Image<double> finalStack;
 	auto &particlestack = finalStack();
 
-	std::string tsid;
+	MultidimArray<double> maskNormalize;
+	if (normalize)
+	{
+		createCircle(maskNormalize);
+	}
+
 	size_t elem = 0; 
+
+	FileName fnXmd;
+	fnXmd = tsid + formatString(".xmd");
+
+	std::cout << tsid << std::endl;
 
 	for (const auto& row : mdcoords)
 	{
-		row.getValue(MDL_TSID, tsid);
 		row.getValue(MDL_XCOOR, xcoor);
 		row.getValue(MDL_YCOOR, ycoor);
 		row.getValue(MDL_ZCOOR, zcoor);
 
-		FileName fn;
+		FileName fnMrc;
 
-		fn = fnCoor.getBaseName() + tsid + formatString("-%i.mrc", elem);
+		fnMrc = tsid + formatString("-%i.mrcs", elem);
+		
 
 		particlestack.initZeros(Nimages, 1, boxsize, boxsize);
 
@@ -130,9 +165,6 @@ void ProgTomoExtractParticleStacks::run()
 		{
 			tsImg = tsImages[idx];
 			tilt = tsTiltAngles[idx]*PI/180;
-			rot = tsRotAngles[idx];
-
-			std::cout << tsNames[idx] << std::endl;
 
 			double ct = cos(tilt);
 			double st = sin(tilt);
@@ -180,22 +212,64 @@ void ProgTomoExtractParticleStacks::run()
 				}
 			}
 
+			if (normalize)
+			{
+				for (size_t ti = 0; ti<Nimages; ti++)
+				{
+					double sumVal = 0, sumVal2 = 0;
+				 	double counter = 0;
 
+						long n = 0;
+						for (int i=0; i<boxsize; i++)
+						{
+							for (int j=0; j<boxsize; j++)
+							{
+								if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
+								{
+									double val = DIRECT_N_YX_ELEM(particlestack, ti, i, j);
+									sumVal += val;
+									sumVal2 += val*val;
+									counter = counter + 1;
+								}
+								n++;			
+								
+							}
+						}
+
+
+					double mean, sigma2;
+					mean = sumVal/counter;
+					sigma2 = sqrt(sumVal2/counter - mean*mean);
+
+					for (int i=0; i<boxsize; i++)
+					{
+						for (int j=0; j<boxsize; j++)
+						{
+							DIRECT_N_YX_ELEM(particlestack, ti, i, j) -= mean;
+							DIRECT_N_YX_ELEM(particlestack, ti, i, j) /= sigma2;
+						}
+					}
+				}
+			}
 
 			MDRowVec rowParticleStack;
 			rowParticleStack.setValue(MDL_TSID, tsid);
-			rowParticleStack.setValue(MDL_IMAGE, fn);
-			rowParticleStack.setValue(MDL_ANGLE_TILT, tilt);
-			rowParticleStack.setValue(MDL_ANGLE_ROT, rot);
+			FileName idxstr;
+			idxstr = formatString("%i@",idx+1);
+
+			rowParticleStack.setValue(MDL_IMAGE, idxstr+fnMrc);
+			rowParticleStack.setValue(MDL_ANGLE_TILT, tsTiltAngles[idx]);
+			rowParticleStack.setValue(MDL_ANGLE_ROT, tsRotAngles[idx]);
 			rowParticleStack.setValue(MDL_XCOOR, x_2d);
 			rowParticleStack.setValue(MDL_YCOOR, y_2d);
 
 			mdparticlestack.addRow(rowParticleStack);
+			mdparticlestack.write(fnOut+"/"+fnXmd);
 		}
 
 
 
-		finalStack.write(fnOut+"/"+fn);
+		finalStack.write(fnOut+"/"+fnMrc);
 
 		elem += 1;
 	}
