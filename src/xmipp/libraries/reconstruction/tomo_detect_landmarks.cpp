@@ -121,7 +121,6 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 		}
 	}
 
-	
 	// Background value as the median of the corners
 	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
 								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
@@ -135,11 +134,33 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	// Margin thickness
 	int marginThickness = (int)(fiducialSizePx * 0.5);
 
+	// Fill borders (1 px) with backgound value (no affected by Laplacian)
+	for (size_t j = 0; j < xSize; j++)
+	{
+		// First row
+		DIRECT_A2D_ELEM(tiltImage, 0, j) = backgroundValue;
+		DIRECT_A2D_ELEM(tmpImage, 0, j) = 0;
+
+		// Last row
+		DIRECT_A2D_ELEM(tiltImage, ySize-1, j) = backgroundValue;
+		DIRECT_A2D_ELEM(tmpImage, ySize-1, j) = 0;
+	}
+
+	for (size_t i = 0; i < ySize; i++)
+	{
+		// First column
+		DIRECT_A2D_ELEM(tiltImage, i, 0) = backgroundValue;
+		DIRECT_A2D_ELEM(tmpImage, i, 0) = 0;
+
+		// Last column
+		DIRECT_A2D_ELEM(tiltImage, i, xSize-1) = backgroundValue;
+		DIRECT_A2D_ELEM(tmpImage, i, xSize-1) = 0;
+	}
+
+	// Detect edges
 	auto epsilon = MINDOUBLE;
 
 	std::vector<Point2D<int>> interpolationLimits;
-
-	bool firstLimitFound;
 
 	int xMin;
 	int xMax;
@@ -149,16 +170,16 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	std::cout << "Margin thickness: " << marginThickness << std::endl;
 	#endif
 
-	for (size_t j = 1; j < ySize-2; j++)
+	for (size_t j = 0; j < ySize; j++)
 	{
-		for (size_t i = 1; i < xSize-1; i++)
+		for (size_t i = 0; i < xSize; i++)
 		{		
 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
 			{
-				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
+				xMin = ((i + marginThickness)>xSize) ? xSize : (i + marginThickness);
 
 				// Fill margin thickness with background value
-				for (size_t a = i; a < xMin; a++)
+				for (size_t a = 0; a < xMin; a++)
 				{
 					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
 				}
@@ -167,14 +188,14 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 			}
 		}
 
-		for (size_t i = xSize-2; i > 1; i--)
+		for (size_t i = xSize-1; i > 0; i--)
 		{
 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
 			{
 				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
 
 				// Fill margin thickness with background value
-				for (size_t a = xMax; a < i; a++)
+				for (size_t a = xMax; a < xSize; a++)
 				{
 					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
 				}
