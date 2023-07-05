@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
+ * Authors:    Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,11 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/angular_resolution_alignment.h>
+#include <reconstruction/image_peak_high_contrast.cpp>
 
 int main(int argc, char **argv)
 {
-	ProgAngResAlign program;
+	ProgImagePeakHighContrast program;
     program.read(argc, argv);
     return program.tryRun();
 }
