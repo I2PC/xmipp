@@ -46,7 +46,7 @@ public:
     size_t Ydim;
     size_t Zdim;
 
-    bool invertContrast;
+    bool invertContrast, normalize;
 
     double scaleFactor;
 
@@ -57,10 +57,12 @@ public:
 public:
 
     void defineParams();
+
+    void createCircle(MultidimArray<double> &maskNormalize);
+
     void readParams();
-    //void coord2DfromCoord3D();
+
     void run();
 };
 //@}
 #endif
-

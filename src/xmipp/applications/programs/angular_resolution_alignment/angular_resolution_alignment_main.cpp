@@ -23,11 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <tomo/tomo_confidence_map.h>
+#include <reconstruction/angular_resolution_alignment.h>
 
 int main(int argc, char **argv)
 {
-	ProgTomoConfidecenceMap program;
+	ProgAngResAlign program;
     program.read(argc, argv);
     return program.tryRun();
 }
