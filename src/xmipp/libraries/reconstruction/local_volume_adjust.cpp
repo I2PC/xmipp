@@ -54,7 +54,7 @@ void ProgLocalVolumeAdjust::readParams() {
 		fnOutVol = "output_volume.mrc";
 	performSubtraction = checkParam("--sub");
 	fnMask = getParam("--mask");
-	neighborhood = getIntParam("--neighborhood");
+	neighborhood = getIntParam("--neighborhood"); //TODO: ask in A and convert to pixels (ask sampling rate)
 }
 
 // Show ====================================================================
@@ -67,6 +67,7 @@ void ProgLocalVolumeAdjust::show() const {
 
 void ProgLocalVolumeAdjust::run() {
 	show();
+	// Read inputs
     Image<double> Vref;
 	Vref.read(fnVol1);
 	MultidimArray<double> &mVref=Vref();
@@ -76,11 +77,66 @@ void ProgLocalVolumeAdjust::run() {
 	Image<double> M;
 	M.read(fnMask);
 	MultidimArray<double> &mM=M();
-	/* The output of this program is a modified version of V (V')*/
-	if (performSubtraction)
+	std::cout << "----0---" << std::endl;
+	//std::cout << "----neighborhood = " << neighborhood << std::endl;
+	k=0;
+	j=0;
+	i=0;
+	std::cout << "----1---" << std::endl;
+	for (size_t s; s <= s<ZSIZE(mV); s+(neighborhood*neighborhood*neighborhood)) //TODO: check
 	{
+		std::cout << "----2---" << std::endl;
+		// Compute adjustment (c) TODO: per regions (neighborhood)
+		sumV_Vref = 0;
+		sumV_Vref = 0;
+		for (k; k <= neighborhood; ++k)
+		{
+			std::cout << "----3---" << std::endl;
+			for (i; i <= neighborhood; ++i)
+			{
+				std::cout << "----4---" << std::endl;
+				for (j; j <= neighborhood; ++j)
+				{
+					std::cout << "----5---" << std::endl;
+					std::cout << "k = "<< k << std::endl;
+					std::cout << "i = "<< i << std::endl;
+					std::cout << "j = "<< j << std::endl;
+					if (DIRECT_A3D_ELEM(mM,k,i,j)==1) // Condition to check if we are inside mask
+					{
+						std::cout << "----6---" << std::endl;
+						sumV_Vref += DIRECT_A3D_ELEM(mV,k,i,j)*DIRECT_A3D_ELEM(mVref,k,i,j);
+						std::cout << "----7---" << std::endl;
+						sumVref2 += DIRECT_A3D_ELEM(mVref,k,i,j)*DIRECT_A3D_ELEM(mVref,k,i,j);
+						std::cout << "----8---" << std::endl;
+					}
+					else //TODO: check
+					{
+						std::cout << "----66---" << std::endl;
+						sumV_Vref += 0;
+						std::cout << "----77---" << std::endl;
+						sumVref2 += 0;
+						std::cout << "----88---" << std::endl;
+					}
+				}     
+			}
+		}
+		std::cout << "----9---" << std::endl;
+		c = sumV_Vref/sumVref2;
+		std::cout << "----10---" << std::endl;
+		// Apply adjustment
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mVref) 
+		{
+			DIRECT_MULTIDIM_ELEM(mV, n) *= c;
+		} 
+	}
+	std::cout << "----11---" << std::endl;
+	// The output of this program is a modified version of V (V')
+	if (performSubtraction) // Or the output is the subtraction V = Vref - V
+	{
+		std::cout << "----12---" << std::endl;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mV)
 			DIRECT_MULTIDIM_ELEM(mV,n) = DIRECT_MULTIDIM_ELEM(mV,n)-DIRECT_MULTIDIM_ELEM(mVref,n);
 	}
+	std::cout << "----13---" << std::endl;
 	V.write(fnOutVol);
 }

@@ -35,12 +35,18 @@ class ProgLocalVolumeAdjust: public XmippProgram {
 by using a least squares solution in a sliding window*/
 
 private:
-  FileName fnVol2;
-  FileName fnVol1;
-  FileName fnOutVol;
-  FileName fnMask;
-  bool performSubtraction;
-  int neighborhood;
+	FileName fnVol2;
+	FileName fnVol1;
+	FileName fnOutVol;
+	FileName fnMask;
+	bool performSubtraction;
+	int neighborhood;
+	double c;
+	double sumV_Vref;
+	double sumVref2;
+	size_t k;
+	size_t j;
+	size_t i;
 
 	/// Read arguments
 	void readParams() override;
