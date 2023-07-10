@@ -1124,6 +1124,7 @@ def exitProgram(error=0, status=None):
     if error:
         errorEndMessage(XMIPP_VERNAME, error, status)
         printVersion()
+        sys.exit(1)
     sys.exit(0)
 
 
