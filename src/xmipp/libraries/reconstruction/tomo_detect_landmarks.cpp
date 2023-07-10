@@ -129,10 +129,10 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 
 	sort(corners.begin(), corners.end(), std::greater<double>());
 
-	double backgroundValue = (corners[1]+corners[2])/2;
+	backgroundValue = (corners[1]+corners[2])/2;
 
 	// Margin thickness
-	int marginThickness = (int)(fiducialSizePx * 0.5);
+	marginThickness = (int)(fiducialSizePx * 0.5);
 
 	// Fill borders (1 px) with backgound value (no affected by Laplacian)
 	for (size_t j = 0; j < xSize; j++)

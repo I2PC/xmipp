@@ -46,7 +46,7 @@
 #include <data/filters.h>
 
 #include <fstream>
-
+   
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
@@ -99,6 +99,12 @@ public:
     // Vector of points saving the interpolation limits for each tilt-image
     std::vector<std::vector<Point2D<int>>> interpolationLimitsVector;
     std::vector<std::vector<Point2D<int>>> interpolationLimitsVector_ds;
+
+    // Background value to fill interpolation edges
+    double backgroundValue;
+
+    // Margin thickness to remove interpolation edges
+    int marginThickness;
 
     /** Fiducial size in pixels */
     float fiducialSizePx;
