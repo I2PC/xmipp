@@ -84,35 +84,31 @@ void ProgLocalVolumeAdjust::run() {
 	int cubic_neighborhood;
 	cubic_neighborhood = neighborhood*neighborhood*neighborhood;
 	iters = floor(ZYXSIZE(mV)/cubic_neighborhood);
-	std::cout << "----iters: " << iters << std::endl;
+	std::cout << "iters: "<< iters << std::endl;
 	int xsize = XSIZE(mV);
 	int ysize = YSIZE(mV);
 	int zsize = ZSIZE(mV);
-	k=0;
-	i=0;
-	j=0;
-	for (size_t s=0; s <= iters; s++) //TODO: check
+	int ki = 0;
+	int ii = 0;
+	int ji = 0;
+	for (size_t s=0; s < iters; s++) 
 	{
-		// Compute adjustment (c) TODO: per regions (neighborhood)
 		sumV_Vref = 0;
 		sumV_Vref = 0;
 		
-		for (k=0; k <= neighborhood; ++k)
+		// go over each subvolume
+		for (k=0; k < neighborhood; ++k)
 		{
-			for (i=0; i <= neighborhood; ++i)
+			for (i=0; i < neighborhood; ++i)
 			{
-				for (j=0; j <= neighborhood; ++j)
+				for (j=0; j < neighborhood; ++j)
 				{
-					std::cout << "-------" << std::endl;
-					std::cout << "k = "<< k << std::endl;
-					std::cout << "i = "<< i << std::endl;
-					std::cout << "j = "<< j << std::endl;
-					if (DIRECT_A3D_ELEM(mM,k,i,j)==1) // Condition to check if we are inside mask
+					if (DIRECT_A3D_ELEM(mM,ki+k,ii+i,ji+j) == 1) // Condition to check if we are inside mask
 					{
-						sumV_Vref += DIRECT_A3D_ELEM(mV,k,i,j)*DIRECT_A3D_ELEM(mVref,k,i,j);
-						sumVref2 += DIRECT_A3D_ELEM(mVref,k,i,j)*DIRECT_A3D_ELEM(mVref,k,i,j);
+						sumV_Vref += DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j)*DIRECT_A3D_ELEM(mVref,ki+k,ii+i,ji+j);
+						sumVref2 += DIRECT_A3D_ELEM(mVref,ki+k,ii+i,ji+j)*DIRECT_A3D_ELEM(mVref,ki+k,ii+i,ji+j);
 					}
-					else //TODO: check
+					else 
 					{
 						sumV_Vref += 0;
 						sumVref2 += 0;
@@ -120,22 +116,56 @@ void ProgLocalVolumeAdjust::run() {
 				}     
 			}
 		}
-		std::cout << "-------" << std::endl;
-		std::cout << "sumV_Vref = "<< sumV_Vref << std::endl;
-		std::cout << "sumVref2 = "<< sumVref2 << std::endl;
+
 		c = sumV_Vref/sumVref2;
+
+		std::cout << "-------" << std::endl;
+		std::cout << "ki = "<< ki << std::endl;
+		std::cout << "ii = "<< ii << std::endl;
+		std::cout << "ji = "<< ji << std::endl;
 		std::cout << "c = "<< c << std::endl;
+
 		// Apply adjustment TODO: per regions
-		for (size_t ki=0; ki <= neighborhood; ++ki)
+		for (k=0; k < neighborhood; ++k)
 		{
-			for (size_t ii=0; ii <= neighborhood; ++ii)
+			for (i=0; i < neighborhood; ++i)
 			{
-				for (size_t ji=0; ji <= neighborhood; ++ji)
+				for (j=0; j < neighborhood; ++j)
 				{
-					DIRECT_A3D_ELEM(mV,ki,ii,ji) *= c;
+					if (DIRECT_A3D_ELEM(mM,ki+k,ii+i,ji+j) == 1) // Condition to check if we are inside mask
+					{
+						DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j) *= c;
+					}
+					else
+					{
+						DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j) = 0;
+					}
 				}
 			}
 		}
+
+		// Take the index to start in next subvolume
+		if (ji < (xsize-neighborhood))
+			ji += neighborhood;
+		else
+			ji = 0;
+
+		if (ji == 0)
+		{
+			if (ii < (ysize-neighborhood))
+				ii += neighborhood;
+			else
+				ii = 0;
+		}
+
+		if (ii == 0 && ji == 0)
+		{
+			if (ki < (zsize-neighborhood))
+				ki += neighborhood;
+			else
+				ki = 0;
+		}
+
 	}
 
 	// The output of this program is a modified version of V (V')
