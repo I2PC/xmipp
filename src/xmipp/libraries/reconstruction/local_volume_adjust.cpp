@@ -94,7 +94,7 @@ void ProgLocalVolumeAdjust::run() {
 	for (size_t s=0; s < iters; s++) 
 	{
 		sumV_Vref = 0;
-		sumV_Vref = 0;
+		sumVref2 = 0;
 		
 		// go over each subvolume
 		for (k=0; k < neighborhood; ++k)
@@ -118,11 +118,7 @@ void ProgLocalVolumeAdjust::run() {
 		}
 
 		c = sumV_Vref/sumVref2;
-
 		std::cout << "-------" << std::endl;
-		std::cout << "ki = "<< ki << std::endl;
-		std::cout << "ii = "<< ii << std::endl;
-		std::cout << "ji = "<< ji << std::endl;
 		std::cout << "c = "<< c << std::endl;
 
 		// Apply adjustment TODO: per regions
@@ -134,15 +130,15 @@ void ProgLocalVolumeAdjust::run() {
 				{
 					if (DIRECT_A3D_ELEM(mM,ki+k,ii+i,ji+j) == 1) // Condition to check if we are inside mask
 					{
-						DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j) *= c;
-					}
-					else
-					{
-						DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j) = 0;
+						DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j) /= c;
 					}
 				}
 			}
 		}
+
+		std::cout << "ki+k = "<< ki+k << std::endl;
+		std::cout << "ii+i = "<< ii+i << std::endl;
+		std::cout << "ji+j = "<< ji+j << std::endl;
 
 		// Take the index to start in next subvolume
 		if (ji < (xsize-neighborhood))
@@ -172,7 +168,10 @@ void ProgLocalVolumeAdjust::run() {
 	if (performSubtraction) // Or the output is the subtraction V = Vref - V
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mV)
-			DIRECT_MULTIDIM_ELEM(mV,n) = DIRECT_MULTIDIM_ELEM(mV,n)-DIRECT_MULTIDIM_ELEM(mVref,n);
+			//DIRECT_MULTIDIM_ELEM(mV,n) = (DIRECT_MULTIDIM_ELEM(mV,n)-DIRECT_MULTIDIM_ELEM(mVref,n))*DIRECT_MULTIDIM_ELEM(mM,n);
+			DIRECT_MULTIDIM_ELEM(mV, n) = DIRECT_MULTIDIM_ELEM(mVref, n) * (1 - DIRECT_MULTIDIM_ELEM(mM, n)) 
+				+ (DIRECT_MULTIDIM_ELEM(mVref, n) - std::min(DIRECT_MULTIDIM_ELEM(mV, n), DIRECT_MULTIDIM_ELEM(mVref, n))) 
+				* DIRECT_MULTIDIM_ELEM(mM, n);
 	}
 	V.write(fnOutVol);
 }
