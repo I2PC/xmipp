@@ -177,1154 +177,6 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 
 // --------------------------- HEAD functions ----------------------------
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber) // *** remove imageNumber only for debugging purposes
-{
-	// Detect interpolation region
-	MultidimArray<double> tmpImage = tiltImage;
-
-	for (size_t i = 1; i < xSize-1; i++)
-	{
-		for (size_t j = 1; j < ySize-1; j++)
-		{
-			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
-											   -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
-											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
-											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
-									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
-		}
-	}
-
-	// if (imageNumber == 10)
-	// {
-	
-	// #ifdef DEBUG_OUTPUT_FILES
-	// size_t lastindex = fnOut.find_last_of("\\/");
-	// std::string rawname = fnOut.substr(0, lastindex);
-	// std::string outputFileNameFilteredVolume;
-    // outputFileNameFilteredVolume = rawname + "/ts_laplace.mrcs";
-
-	// Image<double> saveImage;
-	// saveImage() = tmpImage;
-	// saveImage.write(outputFileNameFilteredVolume);
-	// #endif
-	// }
-
-
-	// int x1 = 0;  			// (x1, 0)
-	// int x2 = xSize - 1;  	// (x2, 0)
-	// int x3 = 0;  			// (x3, ySize)
-	// int x4 = xSize - 1;  	// (x4, ySize)
-	// int y1 = 0;  			// (y1, 0)
-	// int y2 = ySize - 1;  	// (xSize, y2)
-	// int y3 = 0;  			// (0, y3)
-	// int y4 = ySize -1;  	// (xSize, y4)
-	
-	// Background value as the median of the corners
-	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
-								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
-								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
-								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
-
-	sort(corners.begin(), corners.end(), std::greater<double>());
-
-	double backgroundValue = (corners[1]+corners[2])/2;
-
-	// Margin thickness
-	int marginThickness = (int)(fiducialSizePx * 0.5);
-
-	auto epsilon = MINDOUBLE;
-
-	std::vector<Point2D<int>> interpolationLimits;
-
-	bool firstLimitFound;
-
-	int xMin;
-	int xMax;
-
-	for (size_t j = 1; j < ySize-2; j++)
-	{
-		for (size_t i = 1; i < xSize-1; i++)
-		{
-			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
-			{
-				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
-
-				// Fill margin thickness with background value
-				for (size_t a = i; a < i + marginThickness; a++)
-				{
-					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
-				}
-				
-				break;
-			}
-		}
-
-
-		for (size_t i = xSize-1; i > 1; i--)
-		{
-			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
-			{
-				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
-
-				// Fill margin thickness with background value
-				for (size_t a = i - marginThickness; a < i; a++)
-				{
-					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
-				}
-
-				break;
-			}
-		}
-
-		if (xMin >= xMax)
-		{
-			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
-			xMax = value;
-			xMin = value;
-		}
-		
-		Point2D<int> limit (xMin, xMax);
-		interpolationLimits.push_back(limit);
-	}
-
-	interpolationLimitsVector.push_back(interpolationLimits);
-
-	// for (size_t i = 1; i < xSize-2; i++)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
-	// 	{
-	// 		x1=i;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t i = xSize-2; i > x1; i--)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
-	// 	{
-	// 		x2=i;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t i = 1; i < xSize-2; i++)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
-	// 	{
-	// 		x3=i;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t i = xSize-2; i > x3; i--)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
-	// 	{
-	// 		x4=i;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t j = 1; j < ySize-2; j++)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
-	// 	{
-	// 		y1=j;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t j = 1; j < ySize-2; j++)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
-	// 	{
-	// 		y2=j;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t j = ySize-2; j > y1; j--)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
-	// 	{
-	// 		y3=j;
-	// 		break;
-	// 	}
-	// }
-
-	// for (size_t j = ySize-2; j > y2; j--)
-	// {
-	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
-	// 	{
-	// 		y4=j;
-	// 		break;
-	// 	}
-	// }
-
-	// #ifdef DEBUG_PREPROCESS
-	// std::cout<< "x1: " << x1<<std::endl;
-	// std::cout<< "x2: " << x2<<std::endl;
-	// std::cout<< "x3: " << x3<<std::endl;
-	// std::cout<< "x4: " << x4<<std::endl;
-	// std::cout<< "y1: " << y1<<std::endl;
-	// std::cout<< "y2: " << y2<<std::endl;
-	// std::cout<< "y3: " << y3<<std::endl;
-	// std::cout<< "y4: " << y4<<std::endl;
-	// # endif 
-
-	// // Remove interpolation edges
-	// int jmin;
-	// int jmax;
-
-	// double m1 = (double)(-y1)/(x1);
-	// double m2 = (double)(-y2)/(x2-(double)xSize);
-	// double m3 = (double)(y3-(double)ySize)/(-x3);
-	// double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
-
-	// #ifdef DEBUG_PREPROCESS
-	// std::cout<< "m1: " << m1<<std::endl;
-	// std::cout<< "m2: " << m2<<std::endl;
-	// std::cout<< "m3: " << m3<<std::endl;
-	// std::cout<< "m4: " << m4<<std::endl;
-	// #endif
-
-	// x1 += marginThickness * cos(abs(atan(m1)));  // (x1, 0)
-	// x2 -= marginThickness * cos(abs(atan(m2)));  // (x2, 0)
-	// x3 += marginThickness * cos(abs(atan(m3)));  // (x3, ySize)
-	// x4 -= marginThickness * cos(abs(atan(m4)));  // (x4, ySize)
-	// y1 += marginThickness * sin(abs(atan(m1)));  // (y1, 0)
-	// y2 += marginThickness * sin(abs(atan(m2)));  // (xSize, y2)
-	// y3 -= marginThickness * sin(abs(atan(m3)));  // (0, y3)
-	// y4 -= marginThickness * sin(abs(atan(m4)));  // (xSize, y4)
-
-	// m1 = (double)(-y1)/(x1);
-	// m2 = (double)(-y2)/(x2-(double)xSize);
-	// m3 = (double)(y3-(double)ySize)/(-x3);
-	// m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
-
-	// #ifdef DEBUG_PREPROCESS
-	// std::cout<< "x1: " << x1<<std::endl;
-	// std::cout<< "x2: " << x2<<std::endl;
-	// std::cout<< "x3: " << x3<<std::endl;
-	// std::cout<< "x4: " << x4<<std::endl;
-	// std::cout<< "y1: " << y1<<std::endl;
-	// std::cout<< "y2: " << y2<<std::endl;
-	// std::cout<< "y3: " << y3<<std::endl;
-	// std::cout<< "y4: " << y4<<std::endl;
-	// # endif 
-	
-	// #ifdef DEBUG_PREPROCESS
-	// std::cout<< "m1: " << m1<<std::endl;
-	// std::cout<< "m2: " << m2<<std::endl;
-	// std::cout<< "m3: " << m3<<std::endl;
-	// std::cout<< "m4: " << m4<<std::endl;
-	// #endif
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout  << "backgroundValue " << backgroundValue << std::endl;
-	std::cout  << "marginThickness " << marginThickness << std::endl;
-	// std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
-	// std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
-	#endif
-
-	// IC ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
-	// vIC.push_back(ic);
-
-	// for (int i = 0; i < xSize; i++)
-	// {
-	// 	// minimum y index for interation
-	// 	if(i < x1)
-	// 	{
-	// 		jmin = (int)(m1*i+y1);
-	// 	}
-	// 	else if (i > x2)
-	// 	{
-	// 		jmin = (int)(m2*(i-(int)xSize)+y2);
-	// 	}
-	// 	else
-	// 	{
-	// 		jmin = 1;
-	// 	}
-		
-	// 	// maximum y index for interation
-	// 	if(i < x3)
-	// 	{
-	// 		jmax = (int)(m3*(i-x3)+(int)ySize);
-	// 	}
-	// 	else if (i > x4)
-	// 	{
-	// 		jmax = (int)(m4*(i-x4)+(int)ySize);
-	// 	}
-	// 	else
-	// 	{
-	// 		jmax = (int)(ySize-2);
-	// 	}
-
-	// 	// check range in image size
-	// 	if(jmin < 1)
-	// 	{
-	// 		jmin = 1;
-	// 	}
-
-	// 	if(jmax > (int)(ySize-2))
-	// 	{
-	// 		jmax = (int)(ySize-2);
-	// 	}
-		
-	// 	// Remove edges
-	// 	for (int j = 0; j <= jmin; j++)
-	// 	{
-	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
-	// 	}
-
-	// 	for (int j = jmax; j < ySize; j++)
-	// 	{
-	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
-	// 	}
-	// }
-
-	// Bandpass filter image
-	FourierTransformer transformer1(FFTW_BACKWARD);
-	MultidimArray<std::complex<double>> fftImg;
-	transformer1.FourierTransform(tiltImage, fftImg, true);
-
-	normDim = (xSize>ySize) ? xSize : ySize;
-
-	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
-	double w = 43.2 / normDim;
-
-    double lowFreqFilt = samplingRate/(1.05*fiducialSize);
-	double highFreqFilt = samplingRate/(0.95*fiducialSize);
-
-	double tail_high = highFreqFilt + w;
-    double tail_low = lowFreqFilt - w;
-
-	double delta = PI / w;
-
-    double uy;
-	double ux;
-	double u;
-	double uy2;
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout << "Filter params: " << std::endl;
-	std::cout << "samplingRate: " << samplingRate << std::endl;
-	std::cout << "normDim: " << normDim << std::endl;
-	std::cout << "w: " << w << std::endl;
-	std::cout << "lowFreqFilt: " << lowFreqFilt << std::endl;
-	std::cout << "highFreqFilt: " << highFreqFilt << std::endl;
-	std::cout << "tail_low: " << tail_low << std::endl;
-	std::cout << "tail_high: " << tail_high << std::endl;
-	std::cout << "delta: " << delta << std::endl;
-	#endif
-
-	long n=0;
-
-	for(size_t i=0; i<YSIZE(fftImg); ++i)
-	{
-		FFT_IDX2DIGFREQ(i, ySize, uy);
-		uy2=uy*uy;
-
-		for(size_t j=0; j<XSIZE(fftImg); ++j)
-		{
-			FFT_IDX2DIGFREQ(j, xSize, ux);
-			u=sqrt(uy2+ux*ux);
-
-			if (u > tail_high || u < tail_low)
-			{
-				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
-			}
-			else
-			{
-				if (u >= highFreqFilt && u <=tail_high)
-				{
-					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
-				}
-
-				if (u <= lowFreqFilt && u >= tail_low)
-				{
-					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
-				}
-			}
-
-			++n;
-		}
-	}
-
-	transformer1.inverseFourierTransform(fftImg, tiltImage);
-
-    // Apply Laplacian to tilt-image with kernel:
-	//     0 -1 0
-	// k = -1 4 -1
-	//     0 -1 0
-
-	tmpImage = tiltImage;
-	tiltImage.initZeros(ySize, xSize);
-
-	#ifdef DEBUG_PREPROCESS
-	std::cout << "Laplacian in interpolation limits" << std::endl;
-	std::cout << "interpolationLimits.size() " << interpolationLimits.size() << std::endl;
-	#endif
-
-	for (size_t j = 1; j < ySize-2; j++)
-	{
-		Point2D<int> il = interpolationLimits[j-1];
-		xMin = il.x;
-		xMax = il.y;
-
-		#ifdef DEBUG_PREPROCESS
-		std::cout << "j " << j << ", xMax " << xMax << ", xMin " << xMin << std::endl;
-		#endif
-
-		for (size_t i = xMin; i < xMax; i++)
-		{
-			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
-												-1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
-												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
-												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
-												4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
-		}
-	}
-
-// 	for (int i = 1; i < xSize-2; i++)
-// 	{
-// 		// minimum y index for interation
-// 		if(i < x1)
-// 		{
-// 			jmin = (int)(m1*i+y1);
-// 		}
-// 		else if (i > x2)
-// 		{
-// 			jmin = (int)(m2*(i-(int)xSize)+y2);
-// 		}
-// 		else
-// 		{
-// 			jmin = 1;
-// 		}
-		
-// 		// maximum y index for interation
-// 		if(i < x3)
-// 		{
-// 			jmax = (int)(m3*(i-x3)+(int)ySize);
-// 		}
-// 		else if (i > x4)
-// 		{
-// 			jmax = (int)(m4*(i-x4)+(int)ySize);
-// 		}
-// 		else
-// 		{
-// 			jmax = (int)(ySize-2);
-// 		}
-
-// 		// check range in image size
-// 		if(jmin < 1)
-// 		{
-// 			jmin = 1;
-// 		}
-
-// 		if(jmax > (int)(ySize-2))
-// 		{
-// 			jmax = (int)(ySize-2);
-// 		}
-		
-// 		// Apply laplacian in when y belongs to (jmin, jmax)
-// 		for (int j = jmin; j <= jmax; j++)
-// 		{
-// 			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-2 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
-// 											    -2 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
-// 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
-// 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
-// 									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
-// 		}	
-// 	}
-
-}
-
-
-
-void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Picking high contrast coordinates..." << std::endl;
-	#endif
-
-	// *** reutilizar binaryCoordinatesMapSlice slice a slice y descartar labelCoordiantesMap
-	// OJO perdería mos el debug de la serie con el labelling
-    MultidimArray<double> binaryCoordinatesMapSlice;
-    MultidimArray<double> labelCoordiantesMapSlice;
-    MultidimArray<double> labelCoordiantesMap;
-
-	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
-
-	for(size_t k = 0; k < nSize; ++k)
-	{
-		#ifdef VERBOSE_OUTPUT
-		std::cout <<  "Searching for high contrast coordinates in tilt-image " << k << std::endl;
-		#endif
-		std::vector<int> sliceVector;
-
-		// Calculate threshold value for each image of the series
-		// IC ic = vIC[k];
-		// int jmin;
-		// int jmax;
-
-        // for(size_t i = 0; i < xSize; ++i)
-        // {
-		// 	// Search inside the interpolation edges
-		// 	if(i < ic.x1)
-		// 	{
-		// 		jmin = (int)(ic.m1*i+ic.y1);
-		// 	}
-		// 	else if (i > ic.x2)
-		// 	{
-		// 		jmin = (int)(ic.m2*(i-(int)xSize)+ic.y2);
-		// 	}
-		// 	else
-		// 	{
-		// 		jmin = 0;
-		// 	}
-			
-		// 	if(i < ic.x3)
-		// 	{
-		// 		jmax = (int)(ic.m3*(i-ic.x3)+(int)ySize);
-		// 	}
-		// 	else if (i > ic.x4)
-		// 	{
-		// 		jmax = (int)(ic.m4*(i-ic.x4)+(int)ySize);
-		// 	}
-		// 	else
-		// 	{
-		// 		jmax = (int)(ySize-1);
-		// 	}
-
-		// 	if(jmin < 0)
-		// 	{
-		// 		jmin = 0;
-		// 	}
-
-		// 	if(jmax > (int)(ySize))
-		// 	{
-		// 		jmax = (int)(ySize);
-		// 	}
-			
-		// 	for (int j = jmin; j < jmax; j++)
-		// 	{
-		// 			/// *** enhance performance: do not use slice vector, sum directly from image
-		// 			sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
-		// 	}	
-        // }
-
-		std::vector<Point2D<int>> interpolationLimits = interpolationLimitsVector[k];
-		int xMin;
-		int xMax;
-
-		for (size_t j = 1; j < ySize-2; j++)
-		{
-			Point2D<int> il = interpolationLimits[j-1];
-			xMin = il.x;
-			xMax = il.y;
-
-			for (size_t i = xMin; i < xMax; i++)
-			{
-				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
-			}
-		}
-
-        double sum = 0;
-		double sum2 = 0;
-        int Nelems = 0;
-        double average = 0;
-        double standardDeviation = 0;
-        double sliceVectorSize = sliceVector.size();
-
-		// ***TODO: value = (value-min)^2 aplicar no linearidad
-
-		// int maximum = *max_element(sliceVector.begin(), sliceVector.end());
-		// #ifdef DEBUG_HCC
-		// std::cout << "maximum: " <<  maximum << std::endl;
-        // #endif
-
-		// for (size_t i = 0; i < sliceVectorSize; i++)
-		// {
-		// 	sliceVector[i] = (sliceVector[i]-maximum)*(sliceVector[i]-maximum);
-		// }
-
-        for(size_t e = 0; e < sliceVectorSize; e++)
-        {
-            int value = sliceVector[e];
-            sum += value;
-            sum2 += value*value;
-            ++Nelems;
-        }
-
-        average = sum / sliceVectorSize;
-        standardDeviation = sqrt(sum2/Nelems - average*average);
-
-        double thresholdL = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
-        double thresholdU = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
-
-        #ifdef DEBUG_HCC
-		std::cout << "------------------------------------------------------" << std::endl;
-		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
-        #endif
-
-		int numberOfPointsAddedBinaryMap;
-		bool firstExecution = true;
-		int numberOfNewPeakedCoordinates;
-		std::vector<Point3D<double>> newCoordinates3D;
-
-		size_t iteration = 0;
-
-		while(true)
-		{
-			numberOfPointsAddedBinaryMap = 0;
-			numberOfNewPeakedCoordinates = 0;
-			newCoordinates3D.clear();
-			binaryCoordinatesMapSlice.initZeros(ySize, xSize);
-			labelCoordiantesMapSlice.initZeros(ySize, xSize);
-
-			if (!firstExecution)
-			{
-				thresholdL -= 0.05 * standardDeviation;
-				std::cout << "New thresholdL " << thresholdL << std::endl;
-
-				thresholdU += 0.05 * standardDeviation;
-				std::cout << "New thresholdU " << thresholdU << std::endl;
-			}
-			
-
-			for(size_t i = 0; i < ySize; i++)
-			{
-				for(size_t j = 0; j < xSize; ++j)
-				{
-					double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
-				
-					if (value < thresholdL | value > thresholdU)
-					{
-						DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
-						
-						numberOfPointsAddedBinaryMap += 1;
-					}
-				}
-			}
-
-			#ifdef DEBUG_HCC
-			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
-			#endif
-
-			iteration +=1;
-			std::cout << " iteration " <<  iteration << std::endl;
-			std::cout << " numberOfPointsAddedBinaryMap " <<  numberOfPointsAddedBinaryMap << std::endl;
-			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
-
-			int colour;
-
-			closing2D(binaryCoordinatesMapSlice, 5, 2, 8);
-			
-			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
-
-			#ifdef DEBUG_HCC
-			std::cout << "Colour: " << colour << std::endl;
-			#endif
-
-			std::vector<std::vector<int>> coordinatesPerLabelX (colour);
-			std::vector<std::vector<int>> coordinatesPerLabelY (colour);
-
-			for(size_t i = 0; i < ySize; i++)
-			{
-				for(size_t j = 0; j < xSize; ++j)
-				{
-					int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-
-					if(value!=0)
-					{
-						coordinatesPerLabelX[value-1].push_back(j);
-						coordinatesPerLabelY[value-1].push_back(i);
-					}
-				}
-			}
-
-			size_t numberOfCoordinatesPerValue;
-
-
-			// std::vector<double> occupancyV;
-
-			// Trim coordinates based on the characteristics of the labeled region
-			for(size_t value = 0; value < colour; value++)
-			{
-				numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
-
-				int xCoor = 0;
-				int yCoor = 0;
-
-				for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
-				{
-					xCoor += coordinatesPerLabelX[value][coordinate];
-					yCoor += coordinatesPerLabelY[value][coordinate];
-				}
-
-				double xCoorCM = xCoor/numberOfCoordinatesPerValue;
-				double yCoorCM = yCoor/numberOfCoordinatesPerValue;
-
-				bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			
-				// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-				// occupancyV.push_back(occupancy);
-
-				if(keep)
-				{
-					Point3D<double> point3D(xCoorCM, yCoorCM, k);
-					newCoordinates3D.push_back(point3D);
-
-					numberOfNewPeakedCoordinates += 1;
-				}
-			}
-
-			std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
-			std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
-
-			if (newCoordinates3D.size() < inputCoords.size()*5)
-			{
-				for (size_t i = 0; i < newCoordinates3D.size(); i++)
-				{
-					coordinates3D.push_back(newCoordinates3D[i]);
-				}
-
-				for(size_t i = 0; i < ySize; i++)
-				{
-					for(size_t j = 0; j < xSize; ++j)
-					{
-						double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-
-						if (value > 0)
-						{
-							DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
-						}
-					}
-				}
-
-				std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
-				std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
-
-				break;
-			}
-
-
-			firstExecution = false;
-		}
-
-		// } while(!(numberOfNewPeakedCoordinates < 1));
-	
-		// std::cout << "Occupancy vector=";
-		// for (size_t i = 0; i < occupancyV.size(); i++)
-		// {
-		// 	std::cout << occupancyV[i] << " ";
-		// }
-		// std::cout << "" << std::endl;
-		
-
-		// sort(occupancyV.begin(), occupancyV.end(), std::greater<double>());
-
-		// std::cout << "Occupancy vector sorted=";
-		// for (size_t i = 0; i < occupancyV.size(); i++)
-		// {
-		// 	std::cout << occupancyV[i] << " ";
-		// }
-		// std::cout << "" << std::endl;
-
-		// double occupancyThr = occupancyV[20];
-
-		// std::cout << occupancyThr << std::endl;
-
-
-		// // Add coordinates if occupancy > occupancyThr
-		// for(size_t value = 0; value < colour; value++)
-		// {
-		// 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
-
-		// 	int xCoor = 0;
-		// 	int yCoor = 0;
-
-		// 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
-		// 	{
-		// 		xCoor += coordinatesPerLabelX[value][coordinate];
-		// 		yCoor += coordinatesPerLabelY[value][coordinate];
-		// 	}
-
-		// 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
-		// 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
-
-		// 	// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			
-		// 	double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-
-		// 	if(occupancy>occupancyThr)
-		// 	{
-		// 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
-		// 		coordinates3D.push_back(point3D);
-
-		// 		#ifdef DEBUG_HCC
-		// 		numberOfNewPeakedCoordinates += 1;
-		// 		#endif
-			
-		// 	}
-		// }
-		
-
-		#ifdef DEBUG_HCC
-		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
-		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
-		#endif
-
-    }
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
-	#endif
-
-	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameLabeledVolume;
-    outputFileNameLabeledVolume = rawname + "/ts_labeled.mrcs";
-
-	Image<double> saveImage;
-	saveImage() = labelCoordiantesMap; 
-	saveImage.write(outputFileNameLabeledVolume);
-	#endif
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "High contrast coordinates picked succesfully!" << std::endl;
-	#endif
-}
-
-
-void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<double> tiltSeriesFiltered)
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Centering coordinates..." << std::endl;
-	#endif
-
-	size_t numberOfFeatures = coordinates3D.size();
-
-	MultidimArray<double> feature;
-	MultidimArray<double> mirrorFeature;
-	MultidimArray<double> correlationVolumeR;
-
-	int coordHalfX;
-	int coordHalfY;
-	int ti;
-
-	int boxSize = int(fiducialSizePx);
-	int doubleBoxSize = fiducialSizePx * 2;
-
-	for(size_t n = 0; n < numberOfFeatures; n++)
-	{
-		#ifdef DEBUG_CENTER_COORDINATES
-		std::cout << "-------------------- coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
-		#endif
-
-		// Construct feature and its mirror symmetric. We quadruple the size to include a feature two times
-		// the box size plus padding to avoid incoherences in the shift sign
-		feature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
-		mirrorFeature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
-
-		coordHalfX = coordinates3D[n].x - boxSize;
-		coordHalfY = coordinates3D[n].y - boxSize;
-		ti = coordinates3D[n].z;
-
-		for(int j = 0; j < doubleBoxSize; j++) // xDim
-		{
-			for(int i = 0; i < doubleBoxSize; i++) // yDim
-			{
-				// Check coordinate is not out of volume
-				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
-					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
-				{
-					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = 0;
-
-					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 0;
-				}
-				else
-				{
-					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = DIRECT_A3D_ELEM(tiltSeriesFiltered, 
-																		ti, 
-																		coordHalfY + i, 
-																		coordHalfX + j);
-
-					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 
-					DIRECT_A3D_ELEM(tiltSeriesFiltered, 
-									ti, 
-									coordHalfY + i,
-									coordHalfX + j);
-				}
-			}
-		}
-
-		#ifdef DEBUG_CENTER_COORDINATES
-		Image<double> image;
-
-		std::cout << "Feature dimensions (" << XSIZE(feature) << ", " << YSIZE(feature) << ", " << ZSIZE(feature) << ")" << std::endl;
-		image() = feature;
-		size_t lastindex = fnOut.find_last_of(".");
-		std::string rawname = fnOut.substr(0, lastindex);
-		std::string outputFileName;
-		outputFileName = rawname + "_" + std::to_string(n) + "_feature.mrc";
-		image.write(outputFileName);
-
-		std::cout << "Mirror feature dimensions (" << XSIZE(mirrorFeature) << ", " << YSIZE(mirrorFeature) << ", " << ZSIZE(mirrorFeature) << ")" << std::endl;
-		image() = mirrorFeature;
-		outputFileName = rawname + "_" + std::to_string(n) + "_mirrorFeature.mrc";
-		image.write(outputFileName);
-		#endif
-
-		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
-		CorrelationAux aux;
-		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
-
-		auto maximumCorrelation = MINDOUBLE;
-		double xDisplacement = 0;
-		double yDisplacement = 0;
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(correlationVolumeR)
-		{
-			double value = DIRECT_A2D_ELEM(correlationVolumeR, i, j);
-
-			if (value > maximumCorrelation)
-			{
-				maximumCorrelation = value;
-				xDisplacement = j;
-				yDisplacement = i;
-			}
-		}
-
-		#ifdef DEBUG_CENTER_COORDINATES
-		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
-		std::cout << "xDisplacement " << ((int) xDisplacement - doubleBoxSize) / 2 << std::endl;
-		std::cout << "yDisplacement " << ((int) yDisplacement - doubleBoxSize) / 2 << std::endl;
-
-		std::cout << "Correlation volume dimensions (" << XSIZE(correlationVolumeR) << ", " << YSIZE(correlationVolumeR) << ")" << std::endl;
-		#endif
-
-
-		// Update coordinate and remove if it is moved out of the volume
-		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - doubleBoxSize) / 2;
-		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - doubleBoxSize) / 2;
-
-		int deletedCoordinates = 0;
-
-		if (updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
-			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
-		{
-			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
-			deletedCoordinates++;
-		}
-		else
-		{
-			coordinates3D[n].x = updatedCoordinateX;
-			coordinates3D[n].y = updatedCoordinateY;
-		}
-
-		#ifdef DEBUG_CENTER_COORDINATES
-		// Construct and save the centered feature
-		MultidimArray<double> centerFeature;
-
-		centerFeature.initZeros(doubleBoxSize, doubleBoxSize);
-
-		coordHalfX = coordinates3D[n].x - boxSize;
-		coordHalfY = coordinates3D[n].y - boxSize;
-
-		for(int j = 0; j < doubleBoxSize; j++) // xDim
-		{
-			for(int i = 0; i < doubleBoxSize; i++) // yDim
-			{
-				// Check coordinate is not out of volume
-				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
-					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
-				{
-					DIRECT_A2D_ELEM(centerFeature, i, j) = 0;
-				}
-				else
-				{
-					DIRECT_A2D_ELEM(centerFeature, i, j) = DIRECT_A3D_ELEM(tiltSeriesFiltered,
-																				ti,
-																				coordHalfY + i,
-																				coordHalfX + j);
-				}
-			}
-		}
-
-		std::cout << "Centered feature dimensions (" << XSIZE(centerFeature) << ", " << YSIZE(centerFeature) << ")" << std::endl;
-
-		image() = centerFeature;
-		outputFileName = rawname + "_" + std::to_string(n) + "_centerFeature.mrc";
-		image.write(outputFileName);
-		#endif
-	}
-
-	#ifdef DEBUG_CENTER_COORDINATES
-	std::cout << "3D coordinates after centering: " << std::endl;
-
-	for(size_t n = 0; n < numberOfFeatures; n++)
-	{
-		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
-
-	}
-	#endif
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Centering of coordinates finished successfully!" << std::endl;
-	#endif
-}
-
-
-bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
-{
-	std::vector<size_t> coordinatesInSlice;
-	std::vector<size_t> coordinatesInSlice_left;
-	std::vector<size_t> coordinatesInSlice_right;
-
-	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
-
-	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx);
-
-	#ifdef DEBUG_VOTTING
-	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
-	#endif
-
-	// Votting step	
-	for (int n = 0; n < nSize; n++)
-	{
-		#ifdef DEBUG_VOTTING
-		std::cout << "votting image " << n << std::endl;
-		#endif
-
-		coordinatesInSlice = getCoordinatesInSliceIndex(n);
-		
-		// Skip for first image in the series
-		if (n != 0)
-		{
-			coordinatesInSlice_left = getCoordinatesInSliceIndex(n-1);
-		}
-
-		// Skip for last image in the series
-		if (n != (nSize-1))
-		{		
-			coordinatesInSlice_right = getCoordinatesInSliceIndex(n+1);
-		}
-
-		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
-		{
-			Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
-
-			// Skip for first image in the series
-			if (n != 0)
-			{
-				for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
-				{
-					Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
-					float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
-
-					if(distance2 < thrVottingDistance2)
-					{
-						coord3DVotes_V[coordinatesInSlice[i]] += 1;
-					}
-				}
-			}
-
-			// Skip for last image in the series
-			if (n != (nSize-1))
-			{		
-				for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
-				{
-					Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
-					float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
-
-					if(distance2 < thrVottingDistance2)
-					{
-						coord3DVotes_V[coordinatesInSlice[i]] += 1;
-					}
-				}
-			}
-		}
-
-		#ifdef VERBOSE_OUTPUT
-		if (coordinatesInSlice.size() == 0)
-		{
-			std::cout << "No matching coordinates for slice " << n << std::endl;
-		}
-		#endif
-		
-	}
-
-	// Trimming step
-	size_t deletedIndexes = 0;
-
-	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
-	{
-		if (coord3DVotes_V[i] == 0)
-		{
-			#ifdef DEBUG_VOTTING
-			std::cout << "Deleted coordinate " << i << std::endl;
-			#endif
-
-			coordinates3D.erase(coordinates3D.begin()+i);
-			coord3DVotes_V.erase(coord3DVotes_V.begin()+i);
-			deletedIndexes++;
-			i--;
-		}
-	}
-	
-	// Generate output labeled and filtered series
-	#ifdef DEBUG_OUTPUT_FILES
-	MultidimArray<int> filteredLabeledTS;
-	filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
-
-	std::vector<Point2D<double>> cis;
-
-	for (size_t n = 0; n < nSize; n++)
-	{
-		cis = getCoordinatesInSlice(n);
-
-		MultidimArray<int> filteredLabeledTS_Image;
-		filteredLabeledTS_Image.initZeros(ySize, xSize);
-
-		for(size_t i = 0; i < cis.size(); i++)
-		{
-			fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
-		}
-
-		for (size_t i = 0; i < ySize; ++i)
-		{
-			for (size_t j = 0; j < xSize; ++j)
-			{
-				DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
-			}
-		}
-	}
-
-	size_t lastindexBis = fnOut.find_last_of("\\/");
-	std::string rawnameBis = fnOut.substr(0, lastindexBis);
-	std::string outputFileNameFilteredVolumeBis;
-    outputFileNameFilteredVolumeBis = rawnameBis + "/ts_labeled_filtered.mrcs";
-
-	Image<int> saveImageBis;
-	saveImageBis() = filteredLabeledTS;
-	saveImageBis.write(outputFileNameFilteredVolumeBis);
-	#endif
-
-	if (deletedIndexes != 0)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-
-
 void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 {
 	// ***TODO: homogeneizar PointXD y MatrixXD
@@ -1351,10 +203,10 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 	goldBead3d.initZeros(3);
 
 	// Iterate through every tilt-image
-	for(size_t n = 0; n<tiltAngles.size(); n++)
+	for(size_t n = 0; n < tiltAngles.size(); n++)
 	{	
 		#ifdef DEBUG_RESID
-		std::cout << "Analyzing coorinates in image "<< n<<std::endl;
+		std::cout << "Analyzing coorinates in image "<< n <<std::endl;
 		#endif
 
 		tiltAngle = tiltAngles[n];
@@ -2752,7 +1604,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 
 
 // --------------------------- MAIN ----------------------------------
-
 void ProgTomoDetectMisalignmentTrajectory::run()
 {
 	using std::chrono::high_resolution_clock;
@@ -2805,13 +1656,11 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	generateSideInfo();
 
-	
+	// FileName fnTSimg;
+	// size_t objId, objId_ts;
+	// Image<double> imgTS;
 
-	FileName fnTSimg;
-	size_t objId, objId_ts;
-	Image<double> imgTS;
-
-	MultidimArray<double> &ptrImg = imgTS();
+	// MultidimArray<double> &ptrImg = imgTS();
     // MultidimArray<double> projImgTS;
     // MultidimArray<double> filteredImg;
     // MultidimArray<double> freqMap;
@@ -2824,29 +1673,29 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	// MultidimArray<double> filteredTiltSeries;
 	// filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
 
-	for(size_t objId : tiltseriesmd.ids())
-	{
-		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
+	// for(size_t objId : tiltseriesmd.ids())
+	// {
+	// 	tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
-		#ifdef DEBUG_PREPROCESS
-        std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
-		#endif
+	// 	#ifdef DEBUG_PREPROCESS
+    //     std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
+	// 	#endif
 
-        imgTS.read(fnTSimg);
+    //     imgTS.read(fnTSimg);
 
-		// Comment for phantom
-        detectInterpolationEdges(ptrImg);
+	// 	// Comment for phantom
+    //     // detectInterpolationEdges(ptrImg);
 
-        // for (size_t i = 0; i < Ydim; ++i)
-        // {
-        //     for (size_t j = 0; j < Xdim; ++j)
-        //     {
-		// 		DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
-		// 	}
-		// }
+    //     // for (size_t i = 0; i < Ydim; ++i)
+    //     // {
+    //     //     for (size_t j = 0; j < Xdim; ++j)
+    //     //     {
+	// 	// 		DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+	// 	// 	}
+	// 	// }
 
-		// counter++;
-	}
+	// 	// counter++;
+	// }
 	
 	// #ifdef DEBUG_OUTPUT_FILES
 	// size_t lastindex = fnOut.find_last_of("\\/");
@@ -3430,7 +2279,7 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 
 bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice)
 {
-	std::vector<Point2D<int>> interpolationLimits = interpolationLimitsVector[slice];
+	std::vector<Point2D<int>> interpolationLimits = lmDetector.interpolationLimitsVector[slice];
 
 	int x = (int)(XX(projectedCoordinate));
 	int y = (int)(YY(projectedCoordinate));
@@ -5463,3 +4312,1150 @@ void ProgTomoDetectMisalignmentTrajectory::getCMbyImage(size_t tiltImageNumber, 
 // 	return false;
 // }
 
+// void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage, int imageNumber) // *** remove imageNumber only for debugging purposes
+// {
+// 	// Detect interpolation region
+// 	MultidimArray<double> tmpImage = tiltImage;
+
+// 	for (size_t i = 1; i < xSize-1; i++)
+// 	{
+// 		for (size_t j = 1; j < ySize-1; j++)
+// 		{
+// 			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
+// 											   -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
+// 											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
+// 											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
+// 									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
+// 		}
+// 	}
+
+// 	// if (imageNumber == 10)
+// 	// {
+	
+// 	// #ifdef DEBUG_OUTPUT_FILES
+// 	// size_t lastindex = fnOut.find_last_of("\\/");
+// 	// std::string rawname = fnOut.substr(0, lastindex);
+// 	// std::string outputFileNameFilteredVolume;
+//     // outputFileNameFilteredVolume = rawname + "/ts_laplace.mrcs";
+
+// 	// Image<double> saveImage;
+// 	// saveImage() = tmpImage;
+// 	// saveImage.write(outputFileNameFilteredVolume);
+// 	// #endif
+// 	// }
+
+
+// 	// int x1 = 0;  			// (x1, 0)
+// 	// int x2 = xSize - 1;  	// (x2, 0)
+// 	// int x3 = 0;  			// (x3, ySize)
+// 	// int x4 = xSize - 1;  	// (x4, ySize)
+// 	// int y1 = 0;  			// (y1, 0)
+// 	// int y2 = ySize - 1;  	// (xSize, y2)
+// 	// int y3 = 0;  			// (0, y3)
+// 	// int y4 = ySize -1;  	// (xSize, y4)
+	
+// 	// Background value as the median of the corners
+// 	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
+// 								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
+// 								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
+// 								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
+
+// 	sort(corners.begin(), corners.end(), std::greater<double>());
+
+// 	double backgroundValue = (corners[1]+corners[2])/2;
+
+// 	// Margin thickness
+// 	int marginThickness = (int)(fiducialSizePx * 0.5);
+
+// 	auto epsilon = MINDOUBLE;
+
+// 	std::vector<Point2D<int>> interpolationLimits;
+
+// 	bool firstLimitFound;
+
+// 	int xMin;
+// 	int xMax;
+
+// 	for (size_t j = 1; j < ySize-2; j++)
+// 	{
+// 		for (size_t i = 1; i < xSize-1; i++)
+// 		{
+// 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+// 			{
+// 				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
+
+// 				// Fill margin thickness with background value
+// 				for (size_t a = i; a < i + marginThickness; a++)
+// 				{
+// 					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+// 				}
+				
+// 				break;
+// 			}
+// 		}
+
+
+// 		for (size_t i = xSize-1; i > 1; i--)
+// 		{
+// 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+// 			{
+// 				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
+
+// 				// Fill margin thickness with background value
+// 				for (size_t a = i - marginThickness; a < i; a++)
+// 				{
+// 					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+// 				}
+
+// 				break;
+// 			}
+// 		}
+
+// 		if (xMin >= xMax)
+// 		{
+// 			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
+// 			xMax = value;
+// 			xMin = value;
+// 		}
+		
+// 		Point2D<int> limit (xMin, xMax);
+// 		interpolationLimits.push_back(limit);
+// 	}
+
+// 	interpolationLimitsVector.push_back(interpolationLimits);
+
+// 	// for (size_t i = 1; i < xSize-2; i++)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
+// 	// 	{
+// 	// 		x1=i;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t i = xSize-2; i > x1; i--)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, 1, i)) > epsilon)
+// 	// 	{
+// 	// 		x2=i;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t i = 1; i < xSize-2; i++)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
+// 	// 	{
+// 	// 		x3=i;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t i = xSize-2; i > x3; i--)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, ySize-2, i)) > epsilon)
+// 	// 	{
+// 	// 		x4=i;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t j = 1; j < ySize-2; j++)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
+// 	// 	{
+// 	// 		y1=j;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t j = 1; j < ySize-2; j++)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
+// 	// 	{
+// 	// 		y2=j;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t j = ySize-2; j > y1; j--)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, 1)) > epsilon)
+// 	// 	{
+// 	// 		y3=j;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// for (size_t j = ySize-2; j > y2; j--)
+// 	// {
+// 	// 	if(abs(DIRECT_A2D_ELEM(tmpImage, j, xSize-2)) > epsilon)
+// 	// 	{
+// 	// 		y4=j;
+// 	// 		break;
+// 	// 	}
+// 	// }
+
+// 	// #ifdef DEBUG_PREPROCESS
+// 	// std::cout<< "x1: " << x1<<std::endl;
+// 	// std::cout<< "x2: " << x2<<std::endl;
+// 	// std::cout<< "x3: " << x3<<std::endl;
+// 	// std::cout<< "x4: " << x4<<std::endl;
+// 	// std::cout<< "y1: " << y1<<std::endl;
+// 	// std::cout<< "y2: " << y2<<std::endl;
+// 	// std::cout<< "y3: " << y3<<std::endl;
+// 	// std::cout<< "y4: " << y4<<std::endl;
+// 	// # endif 
+
+// 	// // Remove interpolation edges
+// 	// int jmin;
+// 	// int jmax;
+
+// 	// double m1 = (double)(-y1)/(x1);
+// 	// double m2 = (double)(-y2)/(x2-(double)xSize);
+// 	// double m3 = (double)(y3-(double)ySize)/(-x3);
+// 	// double m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+// 	// #ifdef DEBUG_PREPROCESS
+// 	// std::cout<< "m1: " << m1<<std::endl;
+// 	// std::cout<< "m2: " << m2<<std::endl;
+// 	// std::cout<< "m3: " << m3<<std::endl;
+// 	// std::cout<< "m4: " << m4<<std::endl;
+// 	// #endif
+
+// 	// x1 += marginThickness * cos(abs(atan(m1)));  // (x1, 0)
+// 	// x2 -= marginThickness * cos(abs(atan(m2)));  // (x2, 0)
+// 	// x3 += marginThickness * cos(abs(atan(m3)));  // (x3, ySize)
+// 	// x4 -= marginThickness * cos(abs(atan(m4)));  // (x4, ySize)
+// 	// y1 += marginThickness * sin(abs(atan(m1)));  // (y1, 0)
+// 	// y2 += marginThickness * sin(abs(atan(m2)));  // (xSize, y2)
+// 	// y3 -= marginThickness * sin(abs(atan(m3)));  // (0, y3)
+// 	// y4 -= marginThickness * sin(abs(atan(m4)));  // (xSize, y4)
+
+// 	// m1 = (double)(-y1)/(x1);
+// 	// m2 = (double)(-y2)/(x2-(double)xSize);
+// 	// m3 = (double)(y3-(double)ySize)/(-x3);
+// 	// m4 = (double)(y4-(double)ySize)/((double)xSize-x4);
+
+// 	// #ifdef DEBUG_PREPROCESS
+// 	// std::cout<< "x1: " << x1<<std::endl;
+// 	// std::cout<< "x2: " << x2<<std::endl;
+// 	// std::cout<< "x3: " << x3<<std::endl;
+// 	// std::cout<< "x4: " << x4<<std::endl;
+// 	// std::cout<< "y1: " << y1<<std::endl;
+// 	// std::cout<< "y2: " << y2<<std::endl;
+// 	// std::cout<< "y3: " << y3<<std::endl;
+// 	// std::cout<< "y4: " << y4<<std::endl;
+// 	// # endif 
+	
+// 	// #ifdef DEBUG_PREPROCESS
+// 	// std::cout<< "m1: " << m1<<std::endl;
+// 	// std::cout<< "m2: " << m2<<std::endl;
+// 	// std::cout<< "m3: " << m3<<std::endl;
+// 	// std::cout<< "m4: " << m4<<std::endl;
+// 	// #endif
+
+// 	#ifdef DEBUG_PREPROCESS
+// 	std::cout  << "backgroundValue " << backgroundValue << std::endl;
+// 	std::cout  << "marginThickness " << marginThickness << std::endl;
+// 	// std::cout  << "marginThickness * cos(abs(atan(m1))) " << marginThickness * cos(abs(atan(m1))) << std::endl;
+// 	// std::cout  << "marginThickness * sin(abs(atan(m1))) " << marginThickness * sin(abs(atan(m1))) << std::endl;
+// 	#endif
+
+// 	// IC ic={x1, x2, x3, x4, y1, y2, y3, y4, m1, m2, m3, m4};
+// 	// vIC.push_back(ic);
+
+// 	// for (int i = 0; i < xSize; i++)
+// 	// {
+// 	// 	// minimum y index for interation
+// 	// 	if(i < x1)
+// 	// 	{
+// 	// 		jmin = (int)(m1*i+y1);
+// 	// 	}
+// 	// 	else if (i > x2)
+// 	// 	{
+// 	// 		jmin = (int)(m2*(i-(int)xSize)+y2);
+// 	// 	}
+// 	// 	else
+// 	// 	{
+// 	// 		jmin = 1;
+// 	// 	}
+		
+// 	// 	// maximum y index for interation
+// 	// 	if(i < x3)
+// 	// 	{
+// 	// 		jmax = (int)(m3*(i-x3)+(int)ySize);
+// 	// 	}
+// 	// 	else if (i > x4)
+// 	// 	{
+// 	// 		jmax = (int)(m4*(i-x4)+(int)ySize);
+// 	// 	}
+// 	// 	else
+// 	// 	{
+// 	// 		jmax = (int)(ySize-2);
+// 	// 	}
+
+// 	// 	// check range in image size
+// 	// 	if(jmin < 1)
+// 	// 	{
+// 	// 		jmin = 1;
+// 	// 	}
+
+// 	// 	if(jmax > (int)(ySize-2))
+// 	// 	{
+// 	// 		jmax = (int)(ySize-2);
+// 	// 	}
+		
+// 	// 	// Remove edges
+// 	// 	for (int j = 0; j <= jmin; j++)
+// 	// 	{
+// 	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
+// 	// 	}
+
+// 	// 	for (int j = jmax; j < ySize; j++)
+// 	// 	{
+// 	// 		DIRECT_A2D_ELEM(tiltImage, j ,i) = backgroundValue;
+// 	// 	}
+// 	// }
+
+// 	// Bandpass filter image
+// 	FourierTransformer transformer1(FFTW_BACKWARD);
+// 	MultidimArray<std::complex<double>> fftImg;
+// 	transformer1.FourierTransform(tiltImage, fftImg, true);
+
+// 	normDim = (xSize>ySize) ? xSize : ySize;
+
+// 	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+// 	double w = 43.2 / normDim;
+
+//     double lowFreqFilt = samplingRate/(1.05*fiducialSize);
+// 	double highFreqFilt = samplingRate/(0.95*fiducialSize);
+
+// 	double tail_high = highFreqFilt + w;
+//     double tail_low = lowFreqFilt - w;
+
+// 	double delta = PI / w;
+
+//     double uy;
+// 	double ux;
+// 	double u;
+// 	double uy2;
+
+// 	#ifdef DEBUG_PREPROCESS
+// 	std::cout << "Filter params: " << std::endl;
+// 	std::cout << "samplingRate: " << samplingRate << std::endl;
+// 	std::cout << "normDim: " << normDim << std::endl;
+// 	std::cout << "w: " << w << std::endl;
+// 	std::cout << "lowFreqFilt: " << lowFreqFilt << std::endl;
+// 	std::cout << "highFreqFilt: " << highFreqFilt << std::endl;
+// 	std::cout << "tail_low: " << tail_low << std::endl;
+// 	std::cout << "tail_high: " << tail_high << std::endl;
+// 	std::cout << "delta: " << delta << std::endl;
+// 	#endif
+
+// 	long n=0;
+
+// 	for(size_t i=0; i<YSIZE(fftImg); ++i)
+// 	{
+// 		FFT_IDX2DIGFREQ(i, ySize, uy);
+// 		uy2=uy*uy;
+
+// 		for(size_t j=0; j<XSIZE(fftImg); ++j)
+// 		{
+// 			FFT_IDX2DIGFREQ(j, xSize, ux);
+// 			u=sqrt(uy2+ux*ux);
+
+// 			if (u > tail_high || u < tail_low)
+// 			{
+// 				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
+// 			}
+// 			else
+// 			{
+// 				if (u >= highFreqFilt && u <=tail_high)
+// 				{
+// 					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
+// 				}
+
+// 				if (u <= lowFreqFilt && u >= tail_low)
+// 				{
+// 					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
+// 				}
+// 			}
+
+// 			++n;
+// 		}
+// 	}
+
+// 	transformer1.inverseFourierTransform(fftImg, tiltImage);
+
+//     // Apply Laplacian to tilt-image with kernel:
+// 	//     0 -1 0
+// 	// k = -1 4 -1
+// 	//     0 -1 0
+
+// 	tmpImage = tiltImage;
+// 	tiltImage.initZeros(ySize, xSize);
+
+// 	#ifdef DEBUG_PREPROCESS
+// 	std::cout << "Laplacian in interpolation limits" << std::endl;
+// 	std::cout << "interpolationLimits.size() " << interpolationLimits.size() << std::endl;
+// 	#endif
+
+// 	for (size_t j = 1; j < ySize-2; j++)
+// 	{
+// 		Point2D<int> il = interpolationLimits[j-1];
+// 		xMin = il.x;
+// 		xMax = il.y;
+
+// 		#ifdef DEBUG_PREPROCESS
+// 		std::cout << "j " << j << ", xMax " << xMax << ", xMin " << xMin << std::endl;
+// 		#endif
+
+// 		for (size_t i = xMin; i < xMax; i++)
+// 		{
+// 			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+// 												-1 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+// 												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+// 												-1 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+// 												4 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+// 		}
+// 	}
+
+// // 	for (int i = 1; i < xSize-2; i++)
+// // 	{
+// // 		// minimum y index for interation
+// // 		if(i < x1)
+// // 		{
+// // 			jmin = (int)(m1*i+y1);
+// // 		}
+// // 		else if (i > x2)
+// // 		{
+// // 			jmin = (int)(m2*(i-(int)xSize)+y2);
+// // 		}
+// // 		else
+// // 		{
+// // 			jmin = 1;
+// // 		}
+		
+// // 		// maximum y index for interation
+// // 		if(i < x3)
+// // 		{
+// // 			jmax = (int)(m3*(i-x3)+(int)ySize);
+// // 		}
+// // 		else if (i > x4)
+// // 		{
+// // 			jmax = (int)(m4*(i-x4)+(int)ySize);
+// // 		}
+// // 		else
+// // 		{
+// // 			jmax = (int)(ySize-2);
+// // 		}
+
+// // 		// check range in image size
+// // 		if(jmin < 1)
+// // 		{
+// // 			jmin = 1;
+// // 		}
+
+// // 		if(jmax > (int)(ySize-2))
+// // 		{
+// // 			jmax = (int)(ySize-2);
+// // 		}
+		
+// // 		// Apply laplacian in when y belongs to (jmin, jmax)
+// // 		for (int j = jmin; j <= jmax; j++)
+// // 		{
+// // 			DIRECT_A2D_ELEM(tiltImage, j ,i) = (-2 * DIRECT_A2D_ELEM(tmpImage, j-1 ,i) +
+// // 											    -2 * DIRECT_A2D_ELEM(tmpImage, j+1 ,i) +
+// // 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i-1) +
+// // 												-2 * DIRECT_A2D_ELEM(tmpImage, j ,i+1) +
+// // 									 			8 * DIRECT_A2D_ELEM(tmpImage, j ,i));
+// // 		}	
+// // 	}
+
+// }
+
+
+
+
+// void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Picking high contrast coordinates..." << std::endl;
+// 	#endif
+
+// 	// *** reutilizar binaryCoordinatesMapSlice slice a slice y descartar labelCoordiantesMap
+// 	// OJO perdería mos el debug de la serie con el labelling
+//     MultidimArray<double> binaryCoordinatesMapSlice;
+//     MultidimArray<double> labelCoordiantesMapSlice;
+//     MultidimArray<double> labelCoordiantesMap;
+
+// 	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
+
+// 	for(size_t k = 0; k < nSize; ++k)
+// 	{
+// 		#ifdef VERBOSE_OUTPUT
+// 		std::cout <<  "Searching for high contrast coordinates in tilt-image " << k << std::endl;
+// 		#endif
+// 		std::vector<int> sliceVector;
+
+// 		// Calculate threshold value for each image of the series
+// 		// IC ic = vIC[k];
+// 		// int jmin;
+// 		// int jmax;
+
+//         // for(size_t i = 0; i < xSize; ++i)
+//         // {
+// 		// 	// Search inside the interpolation edges
+// 		// 	if(i < ic.x1)
+// 		// 	{
+// 		// 		jmin = (int)(ic.m1*i+ic.y1);
+// 		// 	}
+// 		// 	else if (i > ic.x2)
+// 		// 	{
+// 		// 		jmin = (int)(ic.m2*(i-(int)xSize)+ic.y2);
+// 		// 	}
+// 		// 	else
+// 		// 	{
+// 		// 		jmin = 0;
+// 		// 	}
+			
+// 		// 	if(i < ic.x3)
+// 		// 	{
+// 		// 		jmax = (int)(ic.m3*(i-ic.x3)+(int)ySize);
+// 		// 	}
+// 		// 	else if (i > ic.x4)
+// 		// 	{
+// 		// 		jmax = (int)(ic.m4*(i-ic.x4)+(int)ySize);
+// 		// 	}
+// 		// 	else
+// 		// 	{
+// 		// 		jmax = (int)(ySize-1);
+// 		// 	}
+
+// 		// 	if(jmin < 0)
+// 		// 	{
+// 		// 		jmin = 0;
+// 		// 	}
+
+// 		// 	if(jmax > (int)(ySize))
+// 		// 	{
+// 		// 		jmax = (int)(ySize);
+// 		// 	}
+			
+// 		// 	for (int j = jmin; j < jmax; j++)
+// 		// 	{
+// 		// 			/// *** enhance performance: do not use slice vector, sum directly from image
+// 		// 			sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+// 		// 	}	
+//         // }
+
+// 		std::vector<Point2D<int>> interpolationLimits = interpolationLimitsVector[k];
+// 		int xMin;
+// 		int xMax;
+
+// 		for (size_t j = 1; j < ySize-2; j++)
+// 		{
+// 			Point2D<int> il = interpolationLimits[j-1];
+// 			xMin = il.x;
+// 			xMax = il.y;
+
+// 			for (size_t i = xMin; i < xMax; i++)
+// 			{
+// 				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+// 			}
+// 		}
+
+//         double sum = 0;
+// 		double sum2 = 0;
+//         int Nelems = 0;
+//         double average = 0;
+//         double standardDeviation = 0;
+//         double sliceVectorSize = sliceVector.size();
+
+// 		// ***TODO: value = (value-min)^2 aplicar no linearidad
+
+// 		// int maximum = *max_element(sliceVector.begin(), sliceVector.end());
+// 		// #ifdef DEBUG_HCC
+// 		// std::cout << "maximum: " <<  maximum << std::endl;
+//         // #endif
+
+// 		// for (size_t i = 0; i < sliceVectorSize; i++)
+// 		// {
+// 		// 	sliceVector[i] = (sliceVector[i]-maximum)*(sliceVector[i]-maximum);
+// 		// }
+
+//         for(size_t e = 0; e < sliceVectorSize; e++)
+//         {
+//             int value = sliceVector[e];
+//             sum += value;
+//             sum2 += value*value;
+//             ++Nelems;
+//         }
+
+//         average = sum / sliceVectorSize;
+//         standardDeviation = sqrt(sum2/Nelems - average*average);
+
+//         double thresholdL = average - thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
+//         double thresholdU = average + thrSDHCC * standardDeviation;  // THRESHOLD FOR FILTERING PIXELS
+
+//         #ifdef DEBUG_HCC
+// 		std::cout << "------------------------------------------------------" << std::endl;
+// 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+//         #endif
+
+// 		int numberOfPointsAddedBinaryMap;
+// 		bool firstExecution = true;
+// 		int numberOfNewPeakedCoordinates;
+// 		std::vector<Point3D<double>> newCoordinates3D;
+
+// 		size_t iteration = 0;
+
+// 		while(true)
+// 		{
+// 			numberOfPointsAddedBinaryMap = 0;
+// 			numberOfNewPeakedCoordinates = 0;
+// 			newCoordinates3D.clear();
+// 			binaryCoordinatesMapSlice.initZeros(ySize, xSize);
+// 			labelCoordiantesMapSlice.initZeros(ySize, xSize);
+
+// 			if (!firstExecution)
+// 			{
+// 				thresholdL -= 0.05 * standardDeviation;
+// 				std::cout << "New thresholdL " << thresholdL << std::endl;
+
+// 				thresholdU += 0.05 * standardDeviation;
+// 				std::cout << "New thresholdU " << thresholdU << std::endl;
+// 			}
+			
+
+// 			for(size_t i = 0; i < ySize; i++)
+// 			{
+// 				for(size_t j = 0; j < xSize; ++j)
+// 				{
+// 					double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
+				
+// 					if (value < thresholdL | value > thresholdU)
+// 					{
+// 						DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+						
+// 						numberOfPointsAddedBinaryMap += 1;
+// 					}
+// 				}
+// 			}
+
+// 			#ifdef DEBUG_HCC
+// 			std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
+// 			#endif
+
+// 			iteration +=1;
+// 			std::cout << " iteration " <<  iteration << std::endl;
+// 			std::cout << " numberOfPointsAddedBinaryMap " <<  numberOfPointsAddedBinaryMap << std::endl;
+// 			std::cout << " ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) " <<  ((double)numberOfPointsAddedBinaryMap/ (xSize*ySize)) << std::endl;
+
+// 			int colour;
+
+// 			closing2D(binaryCoordinatesMapSlice, 5, 2, 8);
+			
+// 			colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);  // The value 8 is the neighbourhood
+
+// 			#ifdef DEBUG_HCC
+// 			std::cout << "Colour: " << colour << std::endl;
+// 			#endif
+
+// 			std::vector<std::vector<int>> coordinatesPerLabelX (colour);
+// 			std::vector<std::vector<int>> coordinatesPerLabelY (colour);
+
+// 			for(size_t i = 0; i < ySize; i++)
+// 			{
+// 				for(size_t j = 0; j < xSize; ++j)
+// 				{
+// 					int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+// 					if(value!=0)
+// 					{
+// 						coordinatesPerLabelX[value-1].push_back(j);
+// 						coordinatesPerLabelY[value-1].push_back(i);
+// 					}
+// 				}
+// 			}
+
+// 			size_t numberOfCoordinatesPerValue;
+
+
+// 			// std::vector<double> occupancyV;
+
+// 			// Trim coordinates based on the characteristics of the labeled region
+// 			for(size_t value = 0; value < colour; value++)
+// 			{
+// 				numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+// 				int xCoor = 0;
+// 				int yCoor = 0;
+
+// 				for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+// 				{
+// 					xCoor += coordinatesPerLabelX[value][coordinate];
+// 					yCoor += coordinatesPerLabelY[value][coordinate];
+// 				}
+
+// 				double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+// 				double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+// 				bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			
+// 				// double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+// 				// occupancyV.push_back(occupancy);
+
+// 				if(keep)
+// 				{
+// 					Point3D<double> point3D(xCoorCM, yCoorCM, k);
+// 					newCoordinates3D.push_back(point3D);
+
+// 					numberOfNewPeakedCoordinates += 1;
+// 				}
+// 			}
+
+// 			std::cout << " numberOfNewPeakedCoordinates " <<  numberOfNewPeakedCoordinates << std::endl;
+// 			std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
+
+// 			if (newCoordinates3D.size() < inputCoords.size()*5)
+// 			{
+// 				for (size_t i = 0; i < newCoordinates3D.size(); i++)
+// 				{
+// 					coordinates3D.push_back(newCoordinates3D[i]);
+// 				}
+
+// 				for(size_t i = 0; i < ySize; i++)
+// 				{
+// 					for(size_t j = 0; j < xSize; ++j)
+// 					{
+// 						double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+// 						if (value > 0)
+// 						{
+// 							DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
+// 						}
+// 					}
+// 				}
+
+// 				std::cout << " newCoordinates3D.size() " <<  newCoordinates3D.size() << std::endl;
+// 				std::cout << " coordinates3D.size() " <<  coordinates3D.size() << std::endl;
+
+// 				break;
+// 			}
+
+
+// 			firstExecution = false;
+// 		}
+
+// 		// } while(!(numberOfNewPeakedCoordinates < 1));
+	
+// 		// std::cout << "Occupancy vector=";
+// 		// for (size_t i = 0; i < occupancyV.size(); i++)
+// 		// {
+// 		// 	std::cout << occupancyV[i] << " ";
+// 		// }
+// 		// std::cout << "" << std::endl;
+		
+
+// 		// sort(occupancyV.begin(), occupancyV.end(), std::greater<double>());
+
+// 		// std::cout << "Occupancy vector sorted=";
+// 		// for (size_t i = 0; i < occupancyV.size(); i++)
+// 		// {
+// 		// 	std::cout << occupancyV[i] << " ";
+// 		// }
+// 		// std::cout << "" << std::endl;
+
+// 		// double occupancyThr = occupancyV[20];
+
+// 		// std::cout << occupancyThr << std::endl;
+
+
+// 		// // Add coordinates if occupancy > occupancyThr
+// 		// for(size_t value = 0; value < colour; value++)
+// 		// {
+// 		// 	numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+// 		// 	int xCoor = 0;
+// 		// 	int yCoor = 0;
+
+// 		// 	for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
+// 		// 	{
+// 		// 		xCoor += coordinatesPerLabelX[value][coordinate];
+// 		// 		yCoor += coordinatesPerLabelY[value][coordinate];
+// 		// 	}
+
+// 		// 	double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+// 		// 	double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+// 		// 	// bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			
+// 		// 	double occupancy = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+
+// 		// 	if(occupancy>occupancyThr)
+// 		// 	{
+// 		// 		Point3D<double> point3D(xCoorCM, yCoorCM, k);
+// 		// 		coordinates3D.push_back(point3D);
+
+// 		// 		#ifdef DEBUG_HCC
+// 		// 		numberOfNewPeakedCoordinates += 1;
+// 		// 		#endif
+			
+// 		// 	}
+// 		// }
+		
+
+// 		#ifdef DEBUG_HCC
+// 		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
+// 		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
+// 		#endif
+
+//     }
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
+// 	#endif
+
+// 	#ifdef DEBUG_OUTPUT_FILES
+// 	size_t lastindex = fnOut.find_last_of("\\/");
+// 	std::string rawname = fnOut.substr(0, lastindex);
+// 	std::string outputFileNameLabeledVolume;
+//     outputFileNameLabeledVolume = rawname + "/ts_labeled.mrcs";
+
+// 	Image<double> saveImage;
+// 	saveImage() = labelCoordiantesMap; 
+// 	saveImage.write(outputFileNameLabeledVolume);
+// 	#endif
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "High contrast coordinates picked succesfully!" << std::endl;
+// 	#endif
+// }
+
+
+
+// void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<double> tiltSeriesFiltered)
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Centering coordinates..." << std::endl;
+// 	#endif
+
+// 	size_t numberOfFeatures = coordinates3D.size();
+
+// 	MultidimArray<double> feature;
+// 	MultidimArray<double> mirrorFeature;
+// 	MultidimArray<double> correlationVolumeR;
+
+// 	int coordHalfX;
+// 	int coordHalfY;
+// 	int ti;
+
+// 	int boxSize = int(fiducialSizePx);
+// 	int doubleBoxSize = fiducialSizePx * 2;
+
+// 	for(size_t n = 0; n < numberOfFeatures; n++)
+// 	{
+// 		#ifdef DEBUG_CENTER_COORDINATES
+// 		std::cout << "-------------------- coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+// 		#endif
+
+// 		// Construct feature and its mirror symmetric. We quadruple the size to include a feature two times
+// 		// the box size plus padding to avoid incoherences in the shift sign
+// 		feature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
+// 		mirrorFeature.initZeros(2 * doubleBoxSize, 2 * doubleBoxSize);
+
+// 		coordHalfX = coordinates3D[n].x - boxSize;
+// 		coordHalfY = coordinates3D[n].y - boxSize;
+// 		ti = coordinates3D[n].z;
+
+// 		for(int j = 0; j < doubleBoxSize; j++) // xDim
+// 		{
+// 			for(int i = 0; i < doubleBoxSize; i++) // yDim
+// 			{
+// 				// Check coordinate is not out of volume
+// 				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+// 					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+// 				{
+// 					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = 0;
+
+// 					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 0;
+// 				}
+// 				else
+// 				{
+// 					DIRECT_A2D_ELEM(feature, i + boxSize, j + boxSize) = DIRECT_A3D_ELEM(tiltSeriesFiltered, 
+// 																		ti, 
+// 																		coordHalfY + i, 
+// 																		coordHalfX + j);
+
+// 					DIRECT_A2D_ELEM(mirrorFeature, doubleBoxSize + boxSize -1 - i, doubleBoxSize + boxSize -1 - j) = 
+// 					DIRECT_A3D_ELEM(tiltSeriesFiltered, 
+// 									ti, 
+// 									coordHalfY + i,
+// 									coordHalfX + j);
+// 				}
+// 			}
+// 		}
+
+// 		#ifdef DEBUG_CENTER_COORDINATES
+// 		Image<double> image;
+
+// 		std::cout << "Feature dimensions (" << XSIZE(feature) << ", " << YSIZE(feature) << ", " << ZSIZE(feature) << ")" << std::endl;
+// 		image() = feature;
+// 		size_t lastindex = fnOut.find_last_of(".");
+// 		std::string rawname = fnOut.substr(0, lastindex);
+// 		std::string outputFileName;
+// 		outputFileName = rawname + "_" + std::to_string(n) + "_feature.mrc";
+// 		image.write(outputFileName);
+
+// 		std::cout << "Mirror feature dimensions (" << XSIZE(mirrorFeature) << ", " << YSIZE(mirrorFeature) << ", " << ZSIZE(mirrorFeature) << ")" << std::endl;
+// 		image() = mirrorFeature;
+// 		outputFileName = rawname + "_" + std::to_string(n) + "_mirrorFeature.mrc";
+// 		image.write(outputFileName);
+// 		#endif
+
+// 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+// 		CorrelationAux aux;
+// 		correlation_matrix(feature, mirrorFeature, correlationVolumeR, aux, true);
+
+// 		auto maximumCorrelation = MINDOUBLE;
+// 		double xDisplacement = 0;
+// 		double yDisplacement = 0;
+
+// 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(correlationVolumeR)
+// 		{
+// 			double value = DIRECT_A2D_ELEM(correlationVolumeR, i, j);
+
+// 			if (value > maximumCorrelation)
+// 			{
+// 				maximumCorrelation = value;
+// 				xDisplacement = j;
+// 				yDisplacement = i;
+// 			}
+// 		}
+
+// 		#ifdef DEBUG_CENTER_COORDINATES
+// 		std::cout << "maximumCorrelation " << maximumCorrelation << std::endl;
+// 		std::cout << "xDisplacement " << ((int) xDisplacement - doubleBoxSize) / 2 << std::endl;
+// 		std::cout << "yDisplacement " << ((int) yDisplacement - doubleBoxSize) / 2 << std::endl;
+
+// 		std::cout << "Correlation volume dimensions (" << XSIZE(correlationVolumeR) << ", " << YSIZE(correlationVolumeR) << ")" << std::endl;
+// 		#endif
+
+
+// 		// Update coordinate and remove if it is moved out of the volume
+// 		double updatedCoordinateX = coordinates3D[n].x + ((int) xDisplacement - doubleBoxSize) / 2;
+// 		double updatedCoordinateY = coordinates3D[n].y + ((int) yDisplacement - doubleBoxSize) / 2;
+
+// 		int deletedCoordinates = 0;
+
+// 		if (updatedCoordinateY < 0 || updatedCoordinateY > ySize ||
+// 			updatedCoordinateX < 0 || updatedCoordinateX > xSize)
+// 		{
+// 			coordinates3D.erase(coordinates3D.begin()+n-deletedCoordinates);
+// 			deletedCoordinates++;
+// 		}
+// 		else
+// 		{
+// 			coordinates3D[n].x = updatedCoordinateX;
+// 			coordinates3D[n].y = updatedCoordinateY;
+// 		}
+
+// 		#ifdef DEBUG_CENTER_COORDINATES
+// 		// Construct and save the centered feature
+// 		MultidimArray<double> centerFeature;
+
+// 		centerFeature.initZeros(doubleBoxSize, doubleBoxSize);
+
+// 		coordHalfX = coordinates3D[n].x - boxSize;
+// 		coordHalfY = coordinates3D[n].y - boxSize;
+
+// 		for(int j = 0; j < doubleBoxSize; j++) // xDim
+// 		{
+// 			for(int i = 0; i < doubleBoxSize; i++) // yDim
+// 			{
+// 				// Check coordinate is not out of volume
+// 				if ((coordHalfY + i) < 0 || (coordHalfY + i) > ySize ||
+// 					(coordHalfX + j) < 0 || (coordHalfX + j) > xSize)
+// 				{
+// 					DIRECT_A2D_ELEM(centerFeature, i, j) = 0;
+// 				}
+// 				else
+// 				{
+// 					DIRECT_A2D_ELEM(centerFeature, i, j) = DIRECT_A3D_ELEM(tiltSeriesFiltered,
+// 																				ti,
+// 																				coordHalfY + i,
+// 																				coordHalfX + j);
+// 				}
+// 			}
+// 		}
+
+// 		std::cout << "Centered feature dimensions (" << XSIZE(centerFeature) << ", " << YSIZE(centerFeature) << ")" << std::endl;
+
+// 		image() = centerFeature;
+// 		outputFileName = rawname + "_" + std::to_string(n) + "_centerFeature.mrc";
+// 		image.write(outputFileName);
+// 		#endif
+// 	}
+
+// 	#ifdef DEBUG_CENTER_COORDINATES
+// 	std::cout << "3D coordinates after centering: " << std::endl;
+
+// 	for(size_t n = 0; n < numberOfFeatures; n++)
+// 	{
+// 		std::cout << "Coordinate " << n << " (" << coordinates3D[n].x << ", " << coordinates3D[n].y << ", " << coordinates3D[n].z << ")" << std::endl;
+
+// 	}
+// 	#endif
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Centering of coordinates finished successfully!" << std::endl;
+// 	#endif
+// }
+
+
+// bool ProgTomoDetectMisalignmentTrajectory::votingHCC()
+// {
+// 	std::vector<size_t> coordinatesInSlice;
+// 	std::vector<size_t> coordinatesInSlice_left;
+// 	std::vector<size_t> coordinatesInSlice_right;
+
+// 	std::vector<size_t> coord3DVotes_V(coordinates3D.size(), 0);
+
+// 	float thrVottingDistance2 = (fiducialSizePx)*(fiducialSizePx);
+
+// 	#ifdef DEBUG_VOTTING
+// 	std::cout << "thrVottingDistance2 " << thrVottingDistance2 << std::endl;
+// 	#endif
+
+// 	// Votting step	
+// 	for (int n = 0; n < nSize; n++)
+// 	{
+// 		#ifdef DEBUG_VOTTING
+// 		std::cout << "votting image " << n << std::endl;
+// 		#endif
+
+// 		coordinatesInSlice = getCoordinatesInSliceIndex(n);
+		
+// 		// Skip for first image in the series
+// 		if (n != 0)
+// 		{
+// 			coordinatesInSlice_left = getCoordinatesInSliceIndex(n-1);
+// 		}
+
+// 		// Skip for last image in the series
+// 		if (n != (nSize-1))
+// 		{		
+// 			coordinatesInSlice_right = getCoordinatesInSliceIndex(n+1);
+// 		}
+
+// 		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+// 		{
+// 			Point3D<double> c = coordinates3D[coordinatesInSlice[i]];
+
+// 			// Skip for first image in the series
+// 			if (n != 0)
+// 			{
+// 				for (size_t j = 0; j < coordinatesInSlice_left.size(); j++)
+// 				{
+// 					Point3D<double> cl = coordinates3D[coordinatesInSlice_left[j]];
+// 					float distance2 = (c.x-cl.x)*(c.x-cl.x)+(c.y-cl.y)*(c.y-cl.y);
+
+// 					if(distance2 < thrVottingDistance2)
+// 					{
+// 						coord3DVotes_V[coordinatesInSlice[i]] += 1;
+// 					}
+// 				}
+// 			}
+
+// 			// Skip for last image in the series
+// 			if (n != (nSize-1))
+// 			{		
+// 				for (size_t j = 0; j < coordinatesInSlice_right.size(); j++)
+// 				{
+// 					Point3D<double> cr = coordinates3D[coordinatesInSlice_right[j]];
+// 					float distance2 = (c.x-cr.x)*(c.x-cr.x)+(c.y-cr.y)*(c.y-cr.y);
+
+// 					if(distance2 < thrVottingDistance2)
+// 					{
+// 						coord3DVotes_V[coordinatesInSlice[i]] += 1;
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		#ifdef VERBOSE_OUTPUT
+// 		if (coordinatesInSlice.size() == 0)
+// 		{
+// 			std::cout << "No matching coordinates for slice " << n << std::endl;
+// 		}
+// 		#endif
+		
+// 	}
+
+// 	// Trimming step
+// 	size_t deletedIndexes = 0;
+
+// 	for (size_t i = 0; i < coord3DVotes_V.size(); i++)
+// 	{
+// 		if (coord3DVotes_V[i] == 0)
+// 		{
+// 			#ifdef DEBUG_VOTTING
+// 			std::cout << "Deleted coordinate " << i << std::endl;
+// 			#endif
+
+// 			coordinates3D.erase(coordinates3D.begin()+i);
+// 			coord3DVotes_V.erase(coord3DVotes_V.begin()+i);
+// 			deletedIndexes++;
+// 			i--;
+// 		}
+// 	}
+	
+// 	// Generate output labeled and filtered series
+// 	#ifdef DEBUG_OUTPUT_FILES
+// 	MultidimArray<int> filteredLabeledTS;
+// 	filteredLabeledTS.initZeros(nSize, 1, ySize, xSize);
+
+// 	std::vector<Point2D<double>> cis;
+
+// 	for (size_t n = 0; n < nSize; n++)
+// 	{
+// 		cis = getCoordinatesInSlice(n);
+
+// 		MultidimArray<int> filteredLabeledTS_Image;
+// 		filteredLabeledTS_Image.initZeros(ySize, xSize);
+
+// 		for(size_t i = 0; i < cis.size(); i++)
+// 		{
+// 			fillImageLandmark(filteredLabeledTS_Image, (int)cis[i].x, (int)cis[i].y, 1);
+// 		}
+
+// 		for (size_t i = 0; i < ySize; ++i)
+// 		{
+// 			for (size_t j = 0; j < xSize; ++j)
+// 			{
+// 				DIRECT_NZYX_ELEM(filteredLabeledTS, n, 0, i, j) = DIRECT_A2D_ELEM(filteredLabeledTS_Image, i, j);
+// 			}
+// 		}
+// 	}
+
+// 	size_t lastindexBis = fnOut.find_last_of("\\/");
+// 	std::string rawnameBis = fnOut.substr(0, lastindexBis);
+// 	std::string outputFileNameFilteredVolumeBis;
+//     outputFileNameFilteredVolumeBis = rawnameBis + "/ts_labeled_filtered.mrcs";
+
+// 	Image<int> saveImageBis;
+// 	saveImageBis() = filteredLabeledTS;
+// 	saveImageBis.write(outputFileNameFilteredVolumeBis);
+// 	#endif
+
+// 	if (deletedIndexes != 0)
+// 	{
+// 		return true;
+// 	}
+// 	else
+// 	{
+// 		return false;
+// 	}
+// }

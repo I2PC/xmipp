@@ -218,11 +218,11 @@ public:
      * @return
      *
     */
-    void bandPassFilter(MultidimArray<double> &inputTiltSeries, int imageNumber);
+    // void bandPassFilter(MultidimArray<double> &inputTiltSeries, int imageNumber);
 
-    void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
+    // void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
 
-    bool votingHCC();
+    // bool votingHCC();
 
 
     /**
@@ -232,10 +232,10 @@ public:
      * @return
      *
     */
-    void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
+    // void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
 
-    void centerCoordinates(MultidimArray<double> tiltSeriesFiltered);
+    // void centerCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
 
     /**
@@ -285,9 +285,9 @@ public:
      * @return
      *
     */
-    void writeOutputResidualVectors();
+    // void writeOutputResidualVectors();
 
-        /**
+    /**
      * Write obtained coordinates in output file.
      *
      * @param
@@ -325,9 +325,9 @@ public:
      * @return
      *
     */
-    bool detectGlobalMisalignment();
+    // bool detectGlobalMisalignment();
 
-    std::vector<std::vector<Point2D<double>>> splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords);
+    // std::vector<std::vector<Point2D<double>>> splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords);
 
 
 
@@ -348,7 +348,7 @@ public:
      * @return
      *
     */
-    int calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2);
+    // int calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2);
 
 
     /**
@@ -379,7 +379,7 @@ public:
      * @return
      *
     */
-    std::vector<size_t> getRandomIndexes(size_t size);
+    // std::vector<size_t> getRandomIndexes(size_t size);
 
 
     /**
