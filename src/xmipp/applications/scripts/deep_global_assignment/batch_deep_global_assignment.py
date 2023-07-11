@@ -8,7 +8,6 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -25,9 +24,8 @@ if __name__ == "__main__":
     learning_rate = float(sys.argv[8])
     patience = int(sys.argv[9])
     pretrained = sys.argv[10]
-    symmetry = int(sys.argv[11])
     if pretrained == 'yes':
-        fnPreModel = sys.argv[12]
+        fnPreModel = sys.argv[11]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -37,13 +35,12 @@ if __name__ == "__main__":
     from keras.models import Model
     from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
         Activation, GlobalAveragePooling2D, Add
-    from keras.optimizers import *
     import keras
     from keras.models import load_model
     import tensorflow as tf
 
 
-    class DataGenerator(keras.utils.Sequence):
+    class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
@@ -212,19 +209,14 @@ if __name__ == "__main__":
         return Model(inputLayer, x)
 
 
-    def get_labels(fnImages, sym):
+    def get_labels(fnImages):
         """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
         fnImg = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
         shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
         shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
-        transf_rots = [i * sym - 180 for i in mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)]
-
-        def equiv_in_interval(angle):
-            return (angle + 180) % 360 - 180
-
-        rots = np.vectorize(equiv_in_interval)(transf_rots)
+        rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
         tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
         psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
@@ -257,7 +249,7 @@ if __name__ == "__main__":
 
         return Xdim, fnImg, label, zone, img_shift
 
-    Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp, symmetry)
+    Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
     start_time = time()
 
     # Train-Validation sets
@@ -286,7 +278,7 @@ if __name__ == "__main__":
         else:
             model = constructModel(Xdims)
 
-        adam_opt = Adam(lr=learning_rate)
+        adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
         model.summary()
 
         model.compile(loss='mean_squared_error', optimizer=adam_opt)

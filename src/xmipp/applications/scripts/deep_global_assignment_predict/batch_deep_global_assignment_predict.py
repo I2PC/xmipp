@@ -24,7 +24,6 @@ if __name__ == "__main__":
     numAngModels = int(sys.argv[6])
     tolerance = int(sys.argv[7])
     maxModels = int(sys.argv[8])
-    symmetry = int(sys.argv[9])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -190,15 +189,12 @@ if __name__ == "__main__":
         return angles
 
 
-    def produce_output(mdExp, Y, distance, fnImages, sym):
+    def produce_output(mdExp, Y, distance, fnImages):
         ID = 0
-        correction = 0
-        if sym >= 2:
-            correction = 180/sym
         for objId in mdExp:
             angles = Y[ID] * 180 / math.pi
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
-            mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0]/sym + correction, objId)
+            mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
             mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             if distance[ID] > tolerance:
@@ -329,7 +325,7 @@ if __name__ == "__main__":
             predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
 
     Y, distance = compute_ang_averages(predictions)
-    produce_output(mdExp, Y, distance, fnImages, symmetry)
+    produce_output(mdExp, Y, distance, fnImages)
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
 
     elapsed_time = time() - start_time

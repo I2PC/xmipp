@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
 
 
-    class DataGenerator(keras.utils.Sequence):
+    class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, maxSize, dim, readInMemory):

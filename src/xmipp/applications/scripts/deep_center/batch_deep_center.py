@@ -8,7 +8,6 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -41,7 +40,7 @@ if __name__ == "__main__":
     import tensorflow as tf
 
 
-    class DataGenerator(keras.utils.Sequence):
+    class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, readInMemory):
@@ -176,7 +175,7 @@ if __name__ == "__main__":
             model = load_model(fnPreModel, compile=False)
         else:
             model = constructModel(Xdim)
-        adam_opt = Adam(lr=learning_rate)
+        adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
         model.summary()
 
         model.compile(loss='mean_absolute_error', optimizer='adam')
@@ -194,13 +193,6 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
-        #plt.plot(history.history['loss'])
-        #plt.plot(history.history['val_loss'])
-        #plt.title('model loss')
-        #plt.ylabel('loss')
-        #plt.xlabel('epoch')
-        #plt.legend(['train', 'test'], loc='upper left')
-        #plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
