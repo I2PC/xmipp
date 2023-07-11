@@ -1,3 +1,69 @@
+   ## Release 3.23.07 - voting
+   ### Xmipp Programs 
+   - New programs: angular_resolution_alignment, image_peak_high_contrast(for detecting high contrast regions in tomographic reconstruction), misaligment_detection (to detect misalignment in tomographic reconstructions from high-contrast regions), deep_global_assignment, deep_center
+
+   - Deprecated programs: classify_kmeans_2D, rotational_spectra, particle_boxsize. (For more details [visit](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols)) 
+   - xmipp_angular_distance: new features
+   - tomo_extract_particles: new features
+   - subtract_projection: parallelization with mpi
+   - angular_project_library: Removed deterministic behaviour (mpi)
+   - volumen_subtraction: fixed bug
+   - tomo_extract_subtomograms: allow downsampling of features
+   - angular_resolution_alignment:  Detect misalignment with resolution
+   - align_volume_and_particles: Fixed error
+
+
+
+   ### Protocols scipion-em-xmipp
+   - New protocols: Movie Dose analysis, consensus_classes (Efficient p-value calculation, 
+Updated intersection merging process, generalized protocol for other set of classes), deep_center, deep_global_assignment, deep_center_predict, deep_global_assignment_predict
+   - Tilt analysis: Close correctly the output sets once finished
+   - Deep micrograph cleaner: fix two bugs that occured during streaming implementation bug 
+   - volume_adjust_sub: fix with :mrc
+   - Picking consensus: define correctly the possibleOutputs bug 
+   - Center particles: streaming bug when definining the outputs bug 
+   - subtract_projection: change pad validation error for warning
+   - Movie Gain: changed _stepsCheckSecs and fixed inputMovies calling, np.asscalar discontinued in numpy 1.16
+   - convert_pdb: dont allow set size if template volume, to convert a set of pdbs to volumes, generates an mrc file
+   - CTF_consensus: add 4 threads by default
+   - particle_pick_automatic: Improved conditions
+   - process: Better instantiation of Scipion subclasses
+   - create_mask3d: Addding a validate in 3dmask
+   - consensus_local_ctf: save defocus in proper fields,  compute consensus for local defocus U and V separately, add consensus angle
+   - create3dMaks: add :mrc to input filename
+   - align_volume: Included the label in the volumes, change the label for each volume, Do not wrap
+   - volume_subtraction: bug fixed in filename
+   - compare_reprojections: fix update subtract projection output
+   - deep_micrograph_screen: Bug fix that prevents using small GPUs
+   - crop_resize: Add mask as input. Mask resize is now possible
+   - consensus_classes:Fixed manual output generation
+   - reconstruct_significant: new test
+   - Protocols deprecated: apply_deformation_zernike3d, classify_kmeans2d, kmeans_clustering, particle_boxSize, rotational_spectra, split_volume_hierarchical_cluster (For more details visit [this](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols))
+   - viewer_resolution_fs: fixing 0.1 threshold not found
+   - viewer_projmatch, viewer_metaprotocol_golden_highres: Fixing viewers, change removed ChimeraClientView to ChimeraView
+   - monores_viewer: fix histogram
+   
+   
+   
+   ### Installation and user guide
+   - New clearer, more intuitive and informative installer. It also creates a file to facilitate user support.
+   - Refactored the deep learning toolkit, more robust and new environment with updated tensorflow.
+   - Updated requirement.
+     
+   ### More Xmipp 
+   - Added half precission suport to numpy
+   - Added the ability to read and write CIF files
+   - Modular design of winner filter
+   - Decoupling XmippTomo from XmippSPA
+   - Fix Zernike equation
+   - Removed all occurrences of non base-class default destructors
+   - Improved MultidimArray performance
+   - Added support for half precision floating point numbers in MRCs
+   - Assign tiff to gain files
+   - adding half maps labels  
+
+
+   
    ## Release 3.23.03 - Kratos
    ### Xmipp Programs 
    
