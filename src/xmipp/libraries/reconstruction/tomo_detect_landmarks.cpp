@@ -567,12 +567,14 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
+		#ifdef DEBUG_FILTERLABEL
         std::cout << "--- cis at image " << n << std::endl;
         for (size_t i = 0; i < cis.size(); i++)
         {
             std::cout << "(" << cis[i].x << ", " << 
                                 cis[i].y << ")"  << std::endl;
         }
+		#endif
 
         // Paint dots in tilt-image
 		MultidimArray<int> filteredLabeledTS_Image;
@@ -1097,14 +1099,14 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 	#endif
 
 
-	if (relativeArea > 4 || relativeArea < 0.25)
-	{
-		#ifdef DEBUG_FILTERLABEL
-		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
-		std::cout << "-------------------------------------------"  << std::endl;
-		#endif
-		return false;
-	}
+	// if (relativeArea > 4 || relativeArea < 0.25)
+	// {
+	// 	#ifdef DEBUG_FILTERLABEL
+	// 	std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
+	// 	std::cout << "-------------------------------------------"  << std::endl;
+	// 	#endif
+	// 	return false;
+	// }
 	#ifdef DEBUG_FILTERLABEL
 	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
 	std::cout << "-------------------------------------------"  << std::endl;
