@@ -2,7 +2,7 @@
    ### Xmipp Programs 
    - New programs: angular_resolution_alignment, image_peak_high_contrast(for detecting high contrast regions in tomographic reconstruction), misaligment_detection (to detect misalignment in tomographic reconstructions from high-contrast regions), deep_global_assignment, deep_center
 
-   - Deprecated programs: classify_kmeans_2D, rotational_spectra, particle_boxsize. (For more details visit [this]([url](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols)) 
+   - Deprecated programs: classify_kmeans_2D, rotational_spectra, particle_boxsize. (For more details [visit](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols)) 
    - xmipp_angular_distance: new features
    - tomo_extract_particles: new features
    - subtract_projection: parallelization with mpi
@@ -38,7 +38,7 @@ Updated intersection merging process, generalized protocol for other set of clas
    - crop_resize: Add mask as input. Mask resize is now possible
    - consensus_classes:Fixed manual output generation
    - reconstruct_significant: new test
-   - Protocols deprecated: apply_deformation_zernike3d, classify_kmeans2d, kmeans_clustering, particle_boxSize, rotational_spectra, split_volume_hierarchical_cluster (For more details visit [this]([url](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols))
+   - Protocols deprecated: apply_deformation_zernike3d, classify_kmeans2d, kmeans_clustering, particle_boxSize, rotational_spectra, split_volume_hierarchical_cluster (For more details visit [this](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols))
    - viewer_resolution_fs: fixing 0.1 threshold not found
    - viewer_projmatch, viewer_metaprotocol_golden_highres: Fixing viewers, change removed ChimeraClientView to ChimeraView
    - monores_viewer: fix histogram
