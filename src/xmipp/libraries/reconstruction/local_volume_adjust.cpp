@@ -117,7 +117,11 @@ void ProgLocalVolumeAdjust::run() {
 			}
 		}
 
-		c = sumV_Vref/sumVref2;
+		if (sumVref2 == 0)
+			c = 0;
+		else
+			c = sumV_Vref/sumVref2;
+
 		std::cout << "-------" << std::endl;
 		std::cout << "c = "<< c << std::endl;
 
