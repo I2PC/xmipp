@@ -561,13 +561,13 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         {
             if(n == coordinates3D[k].z)
             {
-                coordinate.x = coordinates3D[k].x;
-                coordinate.y = coordinates3D[k].y;
+                coordinate.x = coordinates3D[k].x * ds_factor;
+                coordinate.y = coordinates3D[k].y * ds_factor;
                 cis.push_back(coordinate);
             }
         }
 
-		#ifdef DEBUG_FILTERLABEL
+		#ifdef DEBUG_HCC
         std::cout << "--- cis at image " << n << std::endl;
         for (size_t i = 0; i < cis.size(); i++)
         {
