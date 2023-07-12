@@ -281,7 +281,7 @@ def cloneOrCheckout(repo, branch):
         if branch not in getAllBranchesAndTags(repo):
             branchName = 'HEAD'
             branch = None
-        print('Clonning repository: {}/{}'.format(repo, branchName))
+        print('Cloning repository: {}/{}'.format(repo, branchName))
         print(yellow('Working...'), end='\r')
         # If the repo doesn't exist, just clone the whole repo
         log = []
