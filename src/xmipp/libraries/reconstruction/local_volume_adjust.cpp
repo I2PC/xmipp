@@ -54,7 +54,7 @@ void ProgLocalVolumeAdjust::readParams() {
 		fnOutVol = "output_volume.mrc";
 	performSubtraction = checkParam("--sub");
 	fnMask = getParam("--mask");
-	neighborhood = getIntParam("--neighborhood"); //TODO: ask in A and convert to pixels (ask sampling rate)
+	neighborhood = getIntParam("--neighborhood"); // TODO: ask in A and convert to pixels (ask sampling rate)?
 }
 
 // Show ====================================================================
@@ -84,7 +84,6 @@ void ProgLocalVolumeAdjust::run() {
 	int cubic_neighborhood;
 	cubic_neighborhood = neighborhood*neighborhood*neighborhood;
 	iters = floor(ZYXSIZE(mV)/cubic_neighborhood);
-	std::cout << "iters: "<< iters << std::endl;
 	int xsize = XSIZE(mV);
 	int ysize = YSIZE(mV);
 	int zsize = ZSIZE(mV);
@@ -95,8 +94,7 @@ void ProgLocalVolumeAdjust::run() {
 	{
 		sumV_Vref = 0;
 		sumVref2 = 0;
-		
-		// go over each subvolume
+		// Go over each subvolume
 		for (k=0; k < neighborhood; ++k)
 		{
 			for (i=0; i < neighborhood; ++i)
@@ -116,15 +114,12 @@ void ProgLocalVolumeAdjust::run() {
 				}     
 			}
 		}
-
+		// Compute constant (c)
 		if (sumVref2 == 0)
 			c = 0;
 		else
 			c = sumV_Vref/sumVref2;
-
-		std::cout << "-------" << std::endl;
 		std::cout << "c = "<< c << std::endl;
-
 		// Apply adjustment TODO: per regions
 		for (k=0; k < neighborhood; ++k)
 		{
@@ -139,17 +134,11 @@ void ProgLocalVolumeAdjust::run() {
 				}
 			}
 		}
-
-		std::cout << "ki+k = "<< ki+k << std::endl;
-		std::cout << "ii+i = "<< ii+i << std::endl;
-		std::cout << "ji+j = "<< ji+j << std::endl;
-
 		// Take the index to start in next subvolume
 		if (ji < (xsize-neighborhood))
 			ji += neighborhood;
 		else
 			ji = 0;
-
 		if (ji == 0)
 		{
 			if (ii < (ysize-neighborhood))
@@ -157,7 +146,6 @@ void ProgLocalVolumeAdjust::run() {
 			else
 				ii = 0;
 		}
-
 		if (ii == 0 && ji == 0)
 		{
 			if (ki < (zsize-neighborhood))
@@ -165,14 +153,11 @@ void ProgLocalVolumeAdjust::run() {
 			else
 				ki = 0;
 		}
-
 	}
-
 	// The output of this program is a modified version of V (V')
 	if (performSubtraction) // Or the output is the subtraction V = Vref - V
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mV)
-			//DIRECT_MULTIDIM_ELEM(mV,n) = (DIRECT_MULTIDIM_ELEM(mV,n)-DIRECT_MULTIDIM_ELEM(mVref,n))*DIRECT_MULTIDIM_ELEM(mM,n);
 			DIRECT_MULTIDIM_ELEM(mV, n) = DIRECT_MULTIDIM_ELEM(mVref, n) * (1 - DIRECT_MULTIDIM_ELEM(mM, n)) 
 				+ (DIRECT_MULTIDIM_ELEM(mVref, n) - std::min(DIRECT_MULTIDIM_ELEM(mV, n), DIRECT_MULTIDIM_ELEM(mVref, n))) 
 				* DIRECT_MULTIDIM_ELEM(mM, n);
