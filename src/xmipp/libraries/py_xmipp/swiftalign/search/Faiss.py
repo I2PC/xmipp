@@ -97,10 +97,10 @@ class FaissDatabase(Database):
                   use_precomputed = False ):
         if device.type == 'cuda':
             resources = faiss.StandardGpuResources()
-            #resources.setDefaultNullStreamAllDevices() # To interop with torch
+            resources.setDefaultNullStreamAllDevices() # To interop with torch
             co = faiss.GpuClonerOptions()
             co.useFloat16 = use_f16
-            #co.useFloat16CoarseQuantizer = use_f16
+            co.useFloat16CoarseQuantizer = use_f16
             co.usePrecomputed = use_precomputed
             co.reserveVecs = reserve_vecs
             
@@ -140,4 +140,6 @@ class FaissDatabase(Database):
     
     def _sync(self, vectors: torch.Tensor):
         if vectors.device.type == 'cuda':
+            stream = torch.cuda.current_stream(vectors.device)
+            event = stream.record_event()
             raise NotImplementedError('We should sync here')
