@@ -1,16 +1,24 @@
    ## Release 3.23.07 - voting
    ### Xmipp Programs 
-   - New programs: angular_resolution_alignment, image_peak_high_contrast(for detecting high contrast regions in tomographic reconstruction), misaligment_detection (to detect misalignment in tomographic reconstructions from high-contrast regions), deep_global_assignment, deep_center
-
-   - Deprecated programs: classify_kmeans_2D, rotational_spectra, particle_boxsize. (For more details [visit](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols)) 
-   - xmipp_angular_distance: new features
-   - tomo_extract_particles: new features
-   - subtract_projection: parallelization with mpi
-   - angular_project_library: Removed deterministic behaviour (mpi)
-   - volumen_subtraction: fixed bug
-   - tomo_extract_subtomograms: allow downsampling of features
-   - angular_resolution_alignment:  Detect misalignment with resolution
-   - align_volume_and_particles: Fixed error   
+   - New programs
+      - image_peak_high_contrast(for detecting high contrast regions in tomographic reconstruction)
+      - misaligment_detection (to detect misalignment in tomographic reconstructions from high-contrast regions)
+      - deep_global_assignment
+      - deep_center
+   - Programs updated
+      - xmipp_angular_distance: new features
+      - tomo_extract_particles: new features
+      - subtract_projection: parallelization with mpi
+      - tomo_extract_subtomograms: allow downsampling of features
+      - angular_resolution_alignment:  Detect misalignment with resolution
+   - Programs fixed
+      - align_volume_and_particles: Fixed error  
+      - angular_project_library: Removed deterministic behaviour (mpi)
+      - volumen_subtraction: fixed bug
+   - Deprecated programs (For more details [visit](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols)) 
+      - classify_kmeans_2D
+      - rotational_spectra
+      - particle_boxsize
    
    ### Installation and user guide
    - New clearer, more intuitive and informative installer. It also creates a file to facilitate user support.
