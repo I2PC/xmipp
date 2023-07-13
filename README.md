@@ -26,7 +26,7 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 
 ### Software dependencies
 #### Compiler
-Xmipp requires C++17 compatible compiler. We recommend GCC, we have good experience with GCC-8.3 in any case a version > 8 is required. If use GCC-10.3 and CUDA=11 and experience issues, [please change the compiler version](https://github.com/NVIDIA/nccl/issues/494). If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
+Xmipp requires C++17 compatible compiler. We recommend GCC, we have good experience with GCC-8.3 in any case a version >= 8 is required. If use GCC-10.3 and CUDA=11 and experience issues, [please change the compiler version](https://github.com/NVIDIA/nccl/issues/494). If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
 
 #### Cmake
 Xmipp requires Cmake 3.16 or above. To update it please [visit](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install)
