@@ -850,7 +850,7 @@ def downloadDeepLearningModels(dest, dedicatedMode=False):
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 
-    if not os.path.exists('bin/xmipp_sync_data'):
+    if not os.path.exists('build/bin/xmipp_sync_data'):
         print(red('Xmipp has not been installed. Please, first install it '))
         return False
     if dest == 'build':
