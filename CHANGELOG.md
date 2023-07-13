@@ -1,4 +1,4 @@
-   ## Release 3.23.07 - voting
+   ## Release 3.23.07 - Morpheus
    ### Xmipp Programs 
    - New programs
       - image_peak_high_contrast(for detecting high contrast regions in tomographic reconstruction)
