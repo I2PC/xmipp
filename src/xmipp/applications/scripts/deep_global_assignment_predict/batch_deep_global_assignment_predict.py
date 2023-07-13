@@ -253,8 +253,9 @@ if __name__ == "__main__":
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
-        pred6d = calculate_r6d(p6d_redundant)
-        matrix = convert_to_matrix(pred6d)
+        #pred6d = calculate_r6d(p6d_redundant)
+        #matrix = convert_to_matrix(pred6d)
+        matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
@@ -307,7 +308,7 @@ if __name__ == "__main__":
         models.append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 42))
+    predictions = np.zeros((numImgs, numAngModels, 6))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1

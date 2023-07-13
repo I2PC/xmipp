@@ -24,6 +24,7 @@ if __name__ == "__main__":
     learning_rate = float(sys.argv[8])
     patience = int(sys.argv[9])
     pretrained = sys.argv[10]
+    symmetry = sys.argv[12]
     if pretrained == 'yes':
         fnPreModel = sys.argv[11]
 
@@ -134,23 +135,23 @@ if __name__ == "__main__":
                 return matrix_to_rotation6d(mat)
 
             def make_redundant(rep_6d):
-                rep_6d = np.append(rep_6d, 2*rep_6d)
-                for i in range(6):
-                    j = (i+1) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
-                for i in range(6):
-                    j = (i + 3) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
-                for i in range(6):
-                    j = (i + 2) % 6
-                    k = (i + 4) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
-                for i in range(6):
-                    j = (i + 5) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
-                for i in range(6):
-                    j = (i + 4) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                #rep_6d = np.append(rep_6d, 2*rep_6d)
+                #for i in range(6):
+                #    j = (i+1) % 6
+                #    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
+                #for i in range(6):
+                #    j = (i + 3) % 6
+                #    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
+                #for i in range(6):
+                #    j = (i + 2) % 6
+                #    k = (i + 4) % 6
+                #    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
+                #for i in range(6):
+                #    j = (i + 5) % 6
+                #    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                #for i in range(6):
+                #    j = (i + 4) % 6
+                #    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
                 return rep_6d
 
             if self.readInMemory:
@@ -204,12 +205,13 @@ if __name__ == "__main__":
 
         x = GlobalAveragePooling2D()(x)
 
-        x = Dense(42, name="output", activation="linear")(x)
+        #x = Dense(42, name="output", activation="linear")(x)
+        x = Dense(6, name="output", activation="linear")(x)
 
         return Model(inputLayer, x)
 
 
-    def get_labels(fnImages):
+    def get_labels(fnImages, symMatrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])):
         """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
@@ -249,6 +251,73 @@ if __name__ == "__main__":
 
         return Xdim, fnImg, label, zone, img_shift
 
+
+    import tensorflow as tf
+    import keras.backend as K
+
+    SL = xmippLib.SymList()
+    Matrices = SL.getSymmetryMatrices(symmetry)
+    print(Matrices, flush=True)
+
+    def rotation6d_to_matrix(rot):
+        a1 = rot[:, slice(0, 6, 2)]
+        a2 = rot[:, slice(1, 6, 2)]
+        a1 = K.reshape(a1, (-1, 3))
+        a2 = K.reshape(a2, (-1, 3))
+        b1 = tf.linalg.normalize(a1, axis=1)[0]
+        b3 = tf.linalg.cross(b1, a2)
+        b3 = tf.linalg.normalize(b3, axis=1)[0]
+        b2 = tf.linalg.cross(b3, b1)
+        b1 = K.expand_dims(b1, axis=2)
+        b2 = K.expand_dims(b2, axis=2)
+        b3 = K.expand_dims(b3, axis=2)
+        return K.concatenate((b1, b2, b3), axis=2)
+
+    def eq_matrices(y_true, R):
+        tfR = tf.constant(R)
+        tfR = tf.transpose(tfR, perm=[1, 0, 2])
+        # I could have a number and pass it...
+        # Reshape the tensor to (3, ?)
+        matrices = tf.reshape(tfR, (3, -1))
+
+        eq_rotations = tf.matmul(y_true, matrices)
+
+        shape = tf.shape(eq_rotations)
+        eq_rotations = tf.reshape(eq_rotations, [shape[0], -1, shape[1]])
+        eq_rotations6d = eq_rotations[:, :, :-1]
+        return tf.reshape(eq_rotations6d, [shape[0], shape[1], -1])
+
+    def compute_distances(y_pred, eq_y_true):
+        a1 = y_pred[:, slice(0, 6, 2)]
+        a2 = y_pred[:, slice(1, 6, 2)]
+        a1 = tf.linalg.normalize(a1, axis=1)[0]
+        a2 = tf.linalg.normalize(a2, axis=1)[0]
+        a1 = tf.expand_dims(a1, axis=-1)
+        a2 = tf.expand_dims(a2, axis=-1)
+
+        mat_pred = tf.concat([a1, a2], axis=-1)
+
+        odd_columns = eq_y_true[:, :, ::2]
+        even_columns = eq_y_true[:, :, 1::2]
+        odd_columns_expanded = tf.expand_dims(odd_columns, axis=0)
+        even_columns_expanded = tf.expand_dims(even_columns, axis=0)
+
+        # Perform dot multiplication between columns
+        dot_product = tf.multiply(mat_pred[:, :, 0:1], odd_columns_expanded) + tf.multiply(mat_pred[:, :, 1:2],
+                                                                                           even_columns_expanded)
+        #return dot_product
+        # Reduce the result along the second dimension
+        distances = -tf.reduce_sum(dot_product, axis=2)
+
+        return distances
+    def geodesic_distance_symmetries(y_true, y_pred):
+        mat_true = rotation6d_to_matrix(y_true)
+        eq_true = eq_matrices(mat_true, Matrices)
+        ds = compute_distances(y_pred, eq_true)
+        d = tf.reduce_min(ds, axis=2, keepdims=True)
+
+        return K.mean(d)
+
     Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
     start_time = time()
 
@@ -281,7 +350,8 @@ if __name__ == "__main__":
         adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
         model.summary()
 
-        model.compile(loss='mean_squared_error', optimizer=adam_opt)
+        #model.compile(loss='mean_squared_error', optimizer=adam_opt)
+        model.compile(loss=geodesic_distance_symmetries, optimizer=adam_opt)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
         patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
