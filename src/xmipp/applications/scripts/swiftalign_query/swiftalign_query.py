@@ -111,9 +111,9 @@ def run(experimental_md_path: str,
         cutoff: float,
         batch_size: int,
         max_size: int,
-        method: str,
         norm: Optional[str],
         local: bool,
+        local_shift: bool,
         drop_na: bool,
         reference_labels: Sequence[str],
         k: int,
@@ -126,7 +126,7 @@ def run(experimental_md_path: str,
     else:
         devices = [torch.device('cpu')]
     
-    transform_device = devices[0]
+    transform_device = torch.device('cpu')
     db_device = devices[0]
     
     # Read input files
@@ -196,7 +196,12 @@ def run(experimental_md_path: str,
     
     alignment_md = None
     n_batches_per_iteration = max(1, max_size // min(batch_size, len(reference_dataset)))
-    local_columns = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y] if local else []
+    if local:
+        local_columns = [md.ANGLE_PSI, md.SHIFT_X, md.SHIFT_Y]
+    elif local_shift:
+        local_columns = [md.SHIFT_X, md.SHIFT_Y]
+    else:
+        local_columns = []
     local_transform_md = experimental_md[local_columns]
     populate_time = 0.0
     alignment_time = 0.0
@@ -271,9 +276,9 @@ if __name__ == '__main__':
     parser.add_argument('--max_psi', type=float, default=180.0)
     parser.add_argument('--max_frequency', type=float, required=True)
     parser.add_argument('--batch', type=int, default=1024)
-    parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
     parser.add_argument('--local', action='store_true')
+    parser.add_argument('--local_shift', action='store_true')
     parser.add_argument('--dropna', action='store_true')
     parser.add_argument('--reference_labels', type=str, nargs='*')
     parser.add_argument('-k', type=int, default=1)
@@ -299,8 +304,8 @@ if __name__ == '__main__':
         cutoff = args.max_frequency,
         batch_size = args.batch,
         max_size = args.max_size,
-        method = args.method,
         local = args.local,
+        local_shift = args.local_shift,
         norm = args.norm,
         drop_na = args.dropna,
         reference_labels = args.reference_labels,

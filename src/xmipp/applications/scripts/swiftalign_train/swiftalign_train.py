@@ -70,7 +70,6 @@ def run(reference_md_path: str,
         max_shift : float,
         max_psi: float,
         cutoff: float,
-        method: str,
         norm: Optional[str],
         n_training: int,
         n_batch: int,
@@ -171,7 +170,6 @@ if __name__ == '__main__':
     parser.add_argument('--max_shift', type=float, required=True)
     parser.add_argument('--max_psi', type=float, default=180.0)
     parser.add_argument('--max_frequency', type=float, required=True)
-    parser.add_argument('--method', type=str, default='fourier')
     parser.add_argument('--norm', type=str)
     parser.add_argument('--training', type=int, default=int(4e6))
     parser.add_argument('--batch', type=int, default=int(1024))
@@ -192,7 +190,6 @@ if __name__ == '__main__':
         max_shift = args.max_shift,
         max_psi = args.max_psi,
         cutoff = args.max_frequency,
-        method = args.method,
         norm = args.norm,
         n_training = args.training,
         n_batch = args.batch,
