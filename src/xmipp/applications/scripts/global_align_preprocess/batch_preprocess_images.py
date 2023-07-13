@@ -45,11 +45,7 @@ def signal_to_noise_statistic(images, radius):
 
     mask = dist <= radius
     mask = mask.float()    
-        
-    # y, x = torch.meshgrid(torch.arange(dim), torch.arange(dim), indexing='ij')
-    # dist = torch.sqrt((x - radius)**2 + (y - radius)**2)
-    # mask = dist <= radius        
-    # mask = mask.float()       
+      
     inv_mask = torch.logical_not(mask)
     
     mask = mask.bool()#.to(cuda)
@@ -74,8 +70,8 @@ def apply_scale(prjImages, expImages, radius):
     expMeanSignal, expStdSignal, expMeanNoise, expStdNoise = signal_to_noise_statistic(expImages, radius)
     # print(expMeanSignal, expStdSignal, expMeanNoise, expStdNoise)
     
-    a = prjStdSignal*prjStdSignal
-    denom = torch.abs(expStdSignal*expStdSignal - expStdNoise*expStdNoise)
+    a = prjStdSignal**2
+    denom = torch.abs(expStdSignal**2 - expStdNoise**2)
     if denom == 0:
         denom = 0.000000001
     a = torch.sqrt(a/denom)
@@ -104,17 +100,19 @@ if __name__=="__main__":
                                      " when they are generated from a volume that has not been reconstructed using Xmipp.",
                                      epilog = examples, formatter_class=argparse.RawDescriptionHelpFormatter)
     
-    # Agregar grupo de acciones para los argumentos obligatorios
+    # common arguments
     required_args_group = parser.add_argument_group('required arguments')
     required_args_group.add_argument("-o", "--output", help="File output", required=True)
     
-    # Agregar grupo de acciones para el subcomando scale_leveling
+    # scale_leveling
     scale_leveling_group = parser.add_argument_group('scale_leveling', 'Arguments for scale leveling')
     scale_leveling_group.add_argument("-i", "--exp", help="input mrcs file for experimental images. It is necessary for scale leveling")
     scale_leveling_group.add_argument("-r", "--ref", help="input mrcs file for reference images")
     scale_leveling_group.add_argument("-rad", "--radius", type=float, help="Radius of the circular mask that will be used to define the background area (in pixels)")
+    scale_leveling_group.add_argument("-b", "--batch", type=int, default=5000, help="Number of experimental images for the statistics. (default = 5000)")
+
     
-    # Agregar grupo de acciones para el subcomando convert_star
+    # convert_star
     convert_star_group = parser.add_argument_group('convert_star or create_stack', 'Arguments for converting star to xmd or create mrcs stack')
     convert_star_group.add_argument("-s", "--star", help="input star file")
     convert_star_group.add_argument("--convert", action="store_true", help="Convert Relion star to Xmipp xmd")
@@ -126,6 +124,7 @@ if __name__=="__main__":
     prjFile = args.ref
     output = args.output
     radius =  args.radius
+    batch = args.batch
     star = args.star
     create_stack = args.create_stack
     convert = args.convert
@@ -138,16 +137,12 @@ if __name__=="__main__":
         
         #convert ref images to tensor 
         tref= torch.from_numpy(prjImages).float().to("cpu")
-        # tref= torch.from_numpy(prjImages).float().to(cuda)
         del(prjImages)
     
-        num = 20000
-        if nExp < num:
-            num =  nExp
+        batch = min(batch, nExp)
         
         print("Scaling particles")
-        Texp = torch.from_numpy(mmap.data[:num].astype(np.float32)).to("cpu")
-        # Texp = torch.from_numpy(mmap.data[:num].astype(np.float32)).to(cuda)
+        Texp = torch.from_numpy(mmap.data[:batch].astype(np.float32)).to("cpu")
         tref = apply_scale(tref, Texp, radius)
         del(Texp)
         
@@ -162,7 +157,6 @@ if __name__=="__main__":
         assess = evaluation()
         print("Creating mrc stack")
         assess.createStack(star, output)
-  
 
 
 
