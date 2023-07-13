@@ -40,8 +40,6 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	fiducialSize = getDoubleParam("--fiducialSize");
 
 	thrSDHCC = getIntParam("--thrSDHCC");
-	thrNumberCoords = getIntParam("--thrNumberCoords");
-	thrChainDistanceAng = getDoubleParam("--thrChainDistanceAng");
 
  	fnInputCoord = getParam("--inputCoord");
 
@@ -67,9 +65,6 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 
 	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
-  	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]				: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
-	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
-
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 	addParamsLine("  [--avgResidPercentile_LocalAlignment <avgResidPercentile_LocalAlignment=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 
@@ -112,17 +107,10 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	localAlignment.resize(nSize, true);
 
 	// Update thresholds depending on input tilt-series sampling rate
-	minDistancePx = minDistanceAng / samplingRate;
-	thrChainDistancePx = thrChainDistanceAng / samplingRate;
 	fiducialSizePx = fiducialSize / samplingRate; 
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Thresholds:" << std::endl;
-	std::cout << "thrChainDistancePx: "<< thrChainDistancePx << std::endl;
-	std::cout << "minDistancePx: "<< minDistancePx << std::endl;
-	std::cout << "thrTop10Chain: "<< thrTop10Chain << std::endl;
-	std::cout << "thrLMChain: "<< thrLMChain << std::endl;
-	std::cout << "numberOfElementsInChainThreshold: "<< numberOfElementsInChainThreshold << std::endl;
 	std::cout << "fiducialSizePx: "<< fiducialSizePx << std::endl;
 	#endif
 
@@ -985,509 +973,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Detecting landmark chains..." << std::endl;
-	#endif
-
-	std::vector<int> counterLinesOfLandmarkAppearance(ySize);
-
-	// Calculate the number of landmarks per row (y index)
-	for(size_t i = 0; i < ySize; i++)
-	{
-		for(int j = 0; j < coordinates3D.size(); j++)
-		{
-			if(coordinates3D[j].y == i)
-			{
-				counterLinesOfLandmarkAppearance[i] += 1;
-			}
-
-			else if (coordinates3D[j-1].y == i && j-1 > 0)
-			{
-				counterLinesOfLandmarkAppearance[i] += 1;
-			}
-
-			else if (coordinates3D[j+1].y == i && j+1 < coordinates3D.size())
-			{
-				counterLinesOfLandmarkAppearance[i] += 1;
-			}
-		}
-	}
-
-	// Calculate poisson lambda
-	int numberEmptyRows = std::count(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), 0);
-	std::vector<int> histogramOfLandmarkAppearanceSorted (counterLinesOfLandmarkAppearance.size()-numberEmptyRows); 
-
-	size_t sideIndex = 0;
-	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
-	{
-		if(counterLinesOfLandmarkAppearance[i]!=0)
-		{
-			histogramOfLandmarkAppearanceSorted[sideIndex] = counterLinesOfLandmarkAppearance[i];
-			sideIndex += 1;
-		}
-	}
-	
-	// *** TODO: optimize, get n maxima elements without sorting
-	sort(histogramOfLandmarkAppearanceSorted.begin(), histogramOfLandmarkAppearanceSorted.end(), std::greater<int>());
-
-	// Poisson lambda
-	// for (size_t p = 0; p < counterLinesOfLandmarkAppearance.size(); p++)
-	// {
-	// 	std::cout <<  counterLinesOfLandmarkAppearance[p] <<std::endl;
-	// }
-
-
-	// for (size_t p = 0; p < histogramOfLandmarkAppearanceSorted.size(); p++)
-	// {
-	// 	std::cout <<  histogramOfLandmarkAppearanceSorted[p] <<std::endl;
-	// }
-
-	float absolutePossionPercetile = histogramOfLandmarkAppearanceSorted.size()*poissonLandmarkPercentile;
-
-	float poissonAverage = histogramOfLandmarkAppearanceSorted[(int)absolutePossionPercetile];
-	
-	std::vector<size_t> chainIndexesY;
-
-	// Test possion probability
-	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
-	{
-		// Normalize the input values (make lambda=100 and make k=100(k'/lambda)) to fix a threshold value for the distribution.
-		if (testPoissonDistribution(100*(poissonAverage/poissonAverage), 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) > 0.001)
-		{
-			#ifdef DEBUG_POISSON
-			std::cout << "Index " << i << " added with testPoissonDistribution=" << testPoissonDistribution(100*(poissonAverage/poissonAverage), 
-						 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) << std::endl;
-			#endif
-
-			chainIndexesY.push_back(i);
-		}
-	}
-
-	// globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
-
-	#ifdef DEBUG_CHAINS
-	std::cout << "chainIndexesY.size()=" << chainIndexesY.size() << std::endl;
-	#endif
-
-	// Compose and cluster chains
-	chain2dMap.initZeros(ySize, xSize);
-
-	#ifdef DEBUG_OUTPUT_FILES
-	MultidimArray<int> clustered2dMap;
-	clustered2dMap.initZeros(ySize, xSize);
-	#endif
-
-	for (size_t i = 0; i < chainIndexesY.size(); i++)
-	{
-		// Compose chains
-		size_t chainIndexY = chainIndexesY[i];
-
-		#ifdef DEBUG_CHAINS
-		std::cout << "-----------------COMPOSING LINE " << i << "-----------------" << std::endl;
-		#endif
-
-		// Binary vector with one's in the x coordinates belonging to each y coordinate
-		std::vector<size_t> chainLineY(xSize, 0);
-
-		// Vector containing the angles of the selected coordinates
-		std::vector<float> chainLineYAngles(xSize, 0);
-		
-		for (size_t j = 0; j < chainLineY.size() ; j++)
-		{
-			for(int x = 0; x < coordinates3D.size(); x++)
-			{
-				Point3D<double> coordinate3D = coordinates3D[x];
-
-				if(coordinate3D.y == chainIndexY)
-				{
-					chainLineY[coordinate3D.x] = 1;
-					
-					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
-					{
-						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
-					}
-				}
-
-				else if(coordinate3D.y == chainIndexY-1 && x-1 > 0)
-				{
-					chainLineY[coordinate3D.x] = 1;
-					
-					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
-					{
-						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
-					}
-				}
-
-				else if(coordinate3D.y == chainIndexY+1 && x+1 < coordinates3D.size())
-				{
-					chainLineY[coordinate3D.x] = 1;
-
-					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
-					{
-						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
-					}
-				}	
-			}
-		}
-
-		// Cluser chains
-		std::vector<size_t> clusteredChainLineY(xSize, 0);
-		size_t clusterId = 2;
-		size_t clusterIdSize = 0;
-		std::vector<size_t> clusterSizeVector;
-		int landmarkDisplacementThreshold;
-
-		#ifdef DEBUG_CHAINS
-		std::cout << "-----------------CLUSTERING LINE " << i << "-----------------" << std::endl;
-		#endif
-
-		for (size_t j = 0; j < chainLineY.size(); j++)
-		{
-			if(chainLineY[j] != 0){
-
-				// Check angle range to calculate landmarkDisplacementThreshold does not go further that the size of the image
-				if (chainLineYAngles[j]+thrNumberDistanceAngleChain*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
-				{
-					#ifdef DEBUG_CHAINS
-					std::cout << chainLineYAngles[j] << "calculateLandmarkProjectionDiplacement DEFAULT"<< std::endl;
-					#endif
-					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], tiltAngles[tiltAngles.size()-1], j); 
-				}
-				else
-				{
-					#ifdef DEBUG_CHAINS
-					std::cout << chainLineYAngles[j] << "calculateLandmarkProjectionDiplacement CALCULATED"<< std::endl;
-					#endif
-					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+thrNumberDistanceAngleChain*tiltAngleStep, j);
-				}
-
-				#ifdef DEBUG_CHAINS
-				std::cout << "landmarkDisplacementThreshold=" << landmarkDisplacementThreshold << std::endl;
-				#endif
-
-				if(chainLineY[j]==1)
-				{
-					if(clusterIdSize > 0)
-					{
-						#ifdef DEBUG_CHAINS
-						std::cout << "CASE: chainLineY[j]==1 --> clusterSizeVector.push_back " <<  clusterIdSize << std::endl;
-						#endif
-
-						clusterSizeVector.push_back(clusterIdSize);
-						clusterIdSize = 0;
-						clusterId += 1;
-					}
-
-					chainLineY[j] = clusterId;
-					clusterIdSize += 1;
-
-					for (size_t k = 1; k <= landmarkDisplacementThreshold; k++)
-					{
-						if(chainLineY[j+k]==1)
-						{
-							chainLineY[j+k] = clusterId;
-							clusterIdSize += 1;
-						}
-					}
-				}
-
-				else
-				{
-					bool found = false;
-
-					for (size_t k = 1; k <= landmarkDisplacementThreshold; k++)
-					{
-						// Check for new points added to the clusted
-						if(chainLineY[j+k]==1)
-						{
-							chainLineY[j+k] = clusterId;
-							clusterIdSize += 1;
-							found = true;
-						} 
-						
-						// Check for forward points already belonging to the cluster
-						else if (chainLineY[j+k]!=0)
-						{
-							found = true;
-						}
-					}
-
-					if (!found)
-					{
-						#ifdef DEBUG_CHAINS
-						std::cout << "CASE: chainLineY[j]!=1 --> claverageusterSizeVector.push_back " <<  clusterIdSize << std::endl;
-						#endif
-
-						clusterSizeVector.push_back(clusterIdSize);
-						clusterIdSize = 0;
-						clusterId += 1;
-					}
-				}
-			}
-		}
-
-		if(clusterIdSize>0)
-		{
-			#ifdef DEBUG_CHAINS
-			std::cout << "CASE: clusterIdSize>0 --> clusterSizeVector.push_back " <<  clusterIdSize << std::endl;
-			#endif
-
-			clusterSizeVector.push_back(clusterIdSize);
-			clusterIdSize = 0;
-		}
-
-		// Complete the overall 2D chain map
-		#ifdef DEBUG_CHAINS
-		std::cout << "clusterSizeVector.size()=" << clusterSizeVector.size() << std::endl; 
-
-		for (size_t x = 0; x < clusterSizeVector.size(); x++)
-		{
-			std::cout << "clusterSizeVector[" << x << "]=" << clusterSizeVector[x] << std::endl;
-		}
-		#endif
-		
-		size_t lastClusterId=0, lastIndex=0, firstIndex=0;
-
-		for (size_t j = 0; j < chainLineY.size(); j++)
-		{	
-			size_t clusterValue=chainLineY[j];
-
-			if (clusterSizeVector[clusterValue-2] > numberOfElementsInChainThreshold && clusterValue != 0)
-			{
-				#ifdef DEBUG_CHAINS
-				std::cout << "clusterValue=" << clusterValue << std::endl;
-				std::cout << "lastClusterId=" << lastClusterId << std::endl;
-				std::cout << "firstIndex=" << firstIndex << std::endl;
-				std::cout << "lastIndex=" << lastIndex << std::endl;
-				std::cout << "-----------------" << std::endl;
-				#endif
-
-				#ifdef DEBUG_OUTPUT_FILES
-				DIRECT_A2D_ELEM(clustered2dMap, chainIndexY, j) = chainLineY[j];
-				#endif
-				
-				// New label
-				if (clusterValue != lastClusterId && lastClusterId != 0)
-				{
-					#ifdef DEBUG_CHAINS
-					std::cout << "Chain with label " << chainLineY[j] << " and label size " << clusterSizeVector[chainLineY[j]-2] << " ADDED" << std::endl;
-					std::cout << "First index: " << firstIndex << std::endl;
-					std::cout << "Last index: " << lastIndex << std::endl;
-					#endif
-
-					for (size_t k = firstIndex; k < lastIndex+1; k++)
-					{
-						DIRECT_A2D_ELEM(chain2dMap, chainIndexY, k) = 1;
-					}
-					
-
-					lastClusterId=clusterValue;
-					firstIndex = j;
-					lastIndex = j;
-				}
-
-				// Find first cluster
-				else if (clusterValue != lastClusterId && lastClusterId == 0)
-				{
-					lastClusterId=clusterValue;
-					firstIndex = j;
-					lastIndex = j;
-				}
-				
-
-				// Add elements to cluster
-				else if (clusterValue==lastClusterId)
-				{
-					lastIndex = j;
-				}
-			}
-
-			// Add last cluster
-			if (firstIndex != lastIndex)
-			{
-				for (size_t k = firstIndex; k < lastIndex+1; k++)
-				{
-					DIRECT_A2D_ELEM(chain2dMap, chainIndexY, k) = 1;
-				}
-			}
-			
-		}
-		
-		clusterSizeVector.clear();
-	}
-
-	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-
-	std::string outputFileNameChain2dMap;
-	std::string outputFileNameClustered2dMap;
-
-    outputFileNameChain2dMap = rawname + "/ts_filteredChains.mrc";
-    outputFileNameClustered2dMap = rawname + "/ts_clusteredChains.mrc";
-
-	Image<int> saveImageBis;
-	saveImageBis() = clustered2dMap;
-	saveImageBis.write(outputFileNameClustered2dMap);
-	
-	Image<int> saveImage;
-	saveImage() = chain2dMap;
-	saveImage.write(outputFileNameChain2dMap);
-	#endif
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Landmark chains detected succesfully!" << std::endl;
-	#endif
-}
-
-
-
-void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Detecting misaligned tilt-images..." << std::endl;
-	#endif
-
-	std::vector<Point2D<double>> coordinatesInSlice;
-	std::vector<size_t> lmOutRange(nSize, 0);
-
-	for (size_t n = 0; n < nSize; n++)
-	{
-		// Calculate distances
-		coordinatesInSlice = getCoordinatesInSlice(n);
-
-		if(coordinatesInSlice.size() > 0)
-		{
-
-			#ifdef DEBUG_LOCAL_MISALI
-			// Vector holding the distance of each landmark to its closest chain
-			std::vector<double> vectorDistance;
-			#endif
-
-			for (size_t coord = 0; coord < coordinatesInSlice.size(); coord++)
-			{
-				Point2D<double> coord2D = coordinatesInSlice[coord];
-				size_t matchCoordX = (size_t)-1; // Maximum possible size_t datatype
-				size_t matchCoordY = (size_t)-1; // Maximum possible size_t datatype
-
-				bool found = false;
-
-				// Find distance to closest neighbour
-				// *** optimizar: cada vez que se aumenta la distancia se revisitan los pixeles ya comprobados en distancias menores
-				for (int distance = 1; distance < thrChainDistancePx; distance++)
-				{
-					for (int i = -distance; i <= distance; i++)
-					{
-						for (int j = -distance; j <= distance; j++)
-						{
-							if (j + coord2D.y > 0 && i + coord2D.x  > 0 && j + coord2D.y < ySize && i + coord2D.x < xSize && i*i+j*j <= distance*distance)
-							{
-								if (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0)
-								{
-									if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
-									{
-										#ifdef DEBUG_LOCAL_MISALI
-										//std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
-										#endif
-
-										found = true;
-										matchCoordX = i;
-										matchCoordX = j;
-
-										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)***
-										// *** Tal vez sería mas interesante medir la distancia media de la coordenadas y no cuantas están más alla de una distancia, nos
-										// ahorraríamos un threshold.
-										// break;
-									}
-								}
-							}
-						}
-					}
-					
-					if(found)
-					{
-						break;
-					}
-				}
-
-				if(!found)
-				{
-					#ifdef DEBUG_LOCAL_MISALI
-					//std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
-					vectorDistance.push_back(0);
-					#endif
-
-					lmOutRange[n] += 1;
-				}
-				#ifdef DEBUG_LOCAL_MISALI
-				else
-				{
-					vectorDistance.push_back(sqrt(matchCoordX*matchCoordX + matchCoordY*matchCoordY));
-				}
-				#endif
-					}
-
-			#ifdef DEBUG_LOCAL_MISALI
-			for (size_t i = 0; i < vectorDistance.size(); i++)
-			{
-				std::cout << vectorDistance[i] << "  ";
-			}
-			
-			std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
-			float(lmOutRange[n])/float(coordinatesInSlice.size()) << "\n"<< std::endl;
-			#endif
-		}
-		else
-		{
-			#ifdef VERBOSE_OUTPUT
-			std::cout << "No landmarks detected in slice " << n << ". IMPOSSIBLE TO DETECT POTENTIAL MISALIGNMENT IN THIS IMAGE." << std::endl;
-			#endif
-
-			lmOutRange[n] = 0;
-			#ifdef DEBUG_LOCAL_MISALI
-			std::cout << "lmOutRange[" << n << "]=" << lmOutRange[n] << "\n"<< std::endl;
-			#endif
-		}
-	}
-
-	// Detect misalignment
-	double sum = 0, sum2 = 0;
-	int Nelems = 0;
-	double m = 0;
-	double sd = 0;
-
-	for(size_t n = 0; n < nSize; n++)
-	{
-		int value = lmOutRange[n];
-		sum += value;
-		sum2 += value*value;
-		++Nelems;
-	}
-
-	m = sum / nSize;
-	sd = sqrt(sum2/Nelems - m*m);
-
-	for(size_t n = 0; n < nSize; n++)
-	{
-		if(lmOutRange[n] > (m + 3*sd))
-		{
-			localAlignment[n] = false;
-
-			#ifdef VERBOSE_OUTPUT
-			std::cout << "MISALIGNMENT DETECTED IN IMAGE " << n << std::endl;
-			#endif
-		}
-	}
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Misalignment in tilt-images succesfully detected!" << std::endl;
-	#endif
-}
-
-
-
 // --------------------------- I/O functions ----------------------------
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
@@ -1536,35 +1021,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Alignment report saved at: " << fnOut << std::endl;
 	#endif
-}
-
-
-
-void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
-{
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameLandmarkCoordinates;
-    outputFileNameLandmarkCoordinates = rawname + "/ts_landmarkCoordinates.xmd";
-
-	MetaDataVec md;
-	size_t id;
-
-	for(size_t i = 0; i < coordinates3D.size(); i++)
-	{
-		id = md.addObject();
-		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
-		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
-		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
-	}
-
-
-	md.write(outputFileNameLandmarkCoordinates);
-	
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Output coordinates metadata saved at: " << outputFileNameLandmarkCoordinates << std::endl;
-	#endif
-
 }
 
 
@@ -1655,77 +1111,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	generateSideInfo();
-
-	// FileName fnTSimg;
-	// size_t objId, objId_ts;
-	// Image<double> imgTS;
-
-	// MultidimArray<double> &ptrImg = imgTS();
-    // MultidimArray<double> projImgTS;
-    // MultidimArray<double> filteredImg;
-    // MultidimArray<double> freqMap;
-
-	// projImgTS.initZeros(Ydim, Xdim);
-
-	// size_t Ndim, counter = 0;
-	// Ndim = tiltseriesmd.size();
-
-	// MultidimArray<double> filteredTiltSeries;
-	// filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
-
-	// for(size_t objId : tiltseriesmd.ids())
-	// {
-	// 	tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
-
-	// 	#ifdef DEBUG_PREPROCESS
-    //     std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
-	// 	#endif
-
-    //     imgTS.read(fnTSimg);
-
-	// 	// Comment for phantom
-    //     // detectInterpolationEdges(ptrImg);
-
-    //     // for (size_t i = 0; i < Ydim; ++i)
-    //     // {
-    //     //     for (size_t j = 0; j < Xdim; ++j)
-    //     //     {
-	// 	// 		DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
-	// 	// 	}
-	// 	// }
-
-	// 	// counter++;
-	// }
-	
-	// #ifdef DEBUG_OUTPUT_FILES
-	// size_t lastindex = fnOut.find_last_of("\\/");
-	// std::string rawname = fnOut.substr(0, lastindex);
-	// std::string outputFileNameFilteredVolume;
-    // outputFileNameFilteredVolume = rawname + "/ts_filtered.mrcs";
-
-	// Image<double> saveImage;
-	// saveImage() = filteredTiltSeries;
-	// saveImage.write(outputFileNameFilteredVolume);
-	// #endif
-
-	// #ifdef DEBUG_DIM
-	// std::cout << "Filtered tilt-series dimensions:" << std::endl;
-	// std::cout << "x " << xSize << std::endl;
-	// std::cout << "y " << ySize << std::endl;
-	// std::cout << "z " << zSize << std::endl;
-	// std::cout << "n " << nSize << std::endl;
-	// #endif
-
-	// getHighContrastCoordinates(filteredTiltSeries);
-
-	// centerCoordinates(filteredTiltSeries);
-
-	// bool continueVotting = true;
-	// while (continueVotting)
-	// {
-	// 	continueVotting = votingHCC();
-	// }
-	
 	coordinates3D = lmDetector.coordinates3D;
 
 	MultidimArray<int> proyectedCoordinates;
@@ -1747,16 +1132,11 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 	#endif
 
-	// #ifdef DEBUG_OUTPUT_FILES
-	// writeOutputCoordinates();
-	// #endif
-
 	calculateResidualVectors();
 	writeOutputVCM();
 
 	adjustCoordinatesCosineStreching();
 
-	// DETECT GLOBAL MISALIGNMENT
 	detectMisalignmentFromResiduals();			
 
 	writeOutputAlignmentReport();
@@ -1768,271 +1148,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 
 // --------------------------- UTILS functions ----------------------------
-
-void ProgTomoDetectMisalignmentTrajectory::detectInterpolationEdges(MultidimArray<double> &tiltImage)
-{
-	// Detect interpolation region
-	MultidimArray<double> tmpImage = tiltImage;
-
-	for (size_t i = 1; i < xSize-1; i++)
-	{
-		for (size_t j = 1; j < ySize-1; j++)
-		{
-			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
-											   -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
-											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
-											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
-									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
-		}
-	}
-
-	
-	// Background value as the median of the corners
-	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
-								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
-								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
-								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
-
-	sort(corners.begin(), corners.end(), std::greater<double>());
-
-	double backgroundValue = (corners[1]+corners[2])/2;
-
-	// Margin thickness
-	int marginThickness = (int)(fiducialSizePx * 0.5);
-
-	auto epsilon = MINDOUBLE;
-
-	std::vector<Point2D<int>> interpolationLimits;
-
-	bool firstLimitFound;
-
-	int xMin;
-	int xMax;
-
-	for (size_t j = 1; j < ySize-2; j++)
-	{
-		for (size_t i = 1; i < xSize-1; i++)
-		{
-			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
-			{
-				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
-
-				// Fill margin thickness with background value
-				for (size_t a = i; a < i + marginThickness; a++)
-				{
-					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
-				}
-				
-				break;
-			}
-		}
-
-
-		for (size_t i = xSize-1; i > 1; i--)
-		{
-			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
-			{
-				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
-
-				// Fill margin thickness with background value
-				for (size_t a = i - marginThickness; a < i; a++)
-				{
-					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
-				}
-
-				break;
-			}
-		}
-
-		if (xMin >= xMax)
-		{
-			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
-			xMax = value;
-			xMin = value;
-		}
-		
-		Point2D<int> limit (xMin, xMax);
-		interpolationLimits.push_back(limit);
-	}
-
-	interpolationLimitsVector.push_back(interpolationLimits);
-}
-
-
-void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binaryImage, int size, int count, int neig)
-{
-	MultidimArray<double> tmp;
-    int i;
-
-	//dilate
-    tmp = binaryImage;
-	binaryImage.initZeros(ySize, xSize);
-
-	size = 1;
-
-    for (i = 0;i < size;i++)
-    {
-		double sum = 0;
-		double dcount=count;
-		
-		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
-			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
-			{
-				if (A2D_ELEM(tmp,i, j) == 0)
-				{
-					// 4-environment
-					A2D_ELEM(binaryImage, i, j) = 0;
-					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
-					if (sum > dcount)
-					{ //change the value to foreground
-						A2D_ELEM(binaryImage, i, j) = 1;
-					}
-					else if (neig == 8)
-					{ //8-environment
-						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
-						if (sum > dcount)
-						{ //change the value to foreground
-							A2D_ELEM(binaryImage, i, j) = 1;
-						}
-					}
-				}
-				else
-				{
-					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
-				}
-        	}
-    }
-
-	// erode
-	tmp = binaryImage;
-	binaryImage.initZeros(ySize, xSize);
-
-    for (i = 0;i < size;i++)
-    {
-		double sum = 0;
-		double dcount=count;
-
-		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
-			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
-			{
-				if (A2D_ELEM(tmp,i, j) == 1)
-				{
-					// 4-environment
-					A2D_ELEM(binaryImage, i, j) = 1;
-					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
-						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
-					if ((4 - sum) > dcount)
-					{ //change the value to foreground
-						A2D_ELEM(binaryImage, i, j) = 0;
-					}
-					else if (neig == 8)
-					{ //8-environment
-						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
-							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
-						if ((neig - sum) > dcount)
-						{ //change the value to foreground
-							A2D_ELEM(binaryImage, i, j) = 0;
-						}
-					}
-				}
-				else
-				{
-					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
-				}
-			}
-    }
-}
-
-bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
-{
-	// Uncomment for phantom
-	// return true;
-
-	// *** TODO: filtering by number of coordinates might not be the best method, i could be better just filter by occupancy and max distance (radius)
-
-	// Check number of elements of the label <----------------------------*** ESTO NO HACE NADA CON EL THR ACTUAL
-	// if(coordinatesPerLabelX.size() < thrNumberCoords)
-	// {
-	// 	return false;
-	// }
-
-	// Calculate the furthest point of the region from the centroid
-	double maxSquareDistance = 0;
-	double distance;
-
-	#ifdef DEBUG_FILTERLABEL
-	size_t debugN;
-	#endif
-
-	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
-	{
-		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
-
-		if(distance >= maxSquareDistance)
-		{
-			#ifdef DEBUG_FILTERLABEL
-			debugN = n;
-			#endif
-
-			maxSquareDistance = distance;
-		}
-	}
-
-	double maxDistace;
-	maxDistace = sqrt(maxSquareDistance);
-
-	// Check sphericity of the labeled region
-	double circumscribedArea = PI * (maxDistace * maxDistace);;
-	double area = 0.0 + (double)coordinatesPerLabelX.size();
-	double ocupation;
-
-	ocupation = area / circumscribedArea;
-
-	#ifdef DEBUG_FILTERLABEL
-	std::cout << "debugN " << debugN << std::endl;
-	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
-	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
-	std::cout << "centroX " << centroX << std::endl;
-	std::cout << "centroY " << centroY << std::endl;
-	std::cout << "area " << area << std::endl;
-	std::cout << "circumscribedArea " << circumscribedArea << std::endl;
-	std::cout << "maxDistace " << maxDistace << std::endl;
-	std::cout << "ocupation " << ocupation << std::endl;
-	#endif
-
-	if(ocupation < 0.5)
-	{
-		#ifdef DEBUG_FILTERLABEL
-		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF OCCUPATION"<< std::endl;
-		#endif
-		return false;
-	}
-
-	// Check the relative area compared with the expected goldbead
-	double expectedArea = PI * ((fiducialSizePx/2) * fiducialSizePx/2);
-	double relativeArea = (4*area)/expectedArea;  // Due to filtering and labelling processes labeled gold beads tend to reduce its radius in half
-
-	#ifdef DEBUG_FILTERLABEL
-	std::cout << "expectedArea " << expectedArea << std::endl;
-	std::cout << "relativeArea " << relativeArea << std::endl;
-	std::cout << "-------------------------------------------"  << std::endl;
-	#endif
-
-
-	if (relativeArea > 4 || relativeArea < 0.1)
-	{
-		#ifdef DEBUG_FILTERLABEL
-		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
-		#endif
-		return false;
-	}
-	#ifdef DEBUG_FILTERLABEL
-	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
-	#endif
-	return true;
-}
 
 void ProgTomoDetectMisalignmentTrajectory::fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value)
 {
@@ -2190,22 +1305,6 @@ std::vector<Point2D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinate
 }
 
 
-std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSliceIndex(size_t slice)
-{
-	std::vector<size_t> coordinatesInSlice;
-
-	for(size_t n = 0; n < coordinates3D.size(); n++)
-	{
-		if(slice == coordinates3D[n].z)
-		{
-			coordinatesInSlice.push_back(n);
-		}
-	}
-
-	return coordinatesInSlice;
-}
-
-
 void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCMc)
 {
 	for (size_t i = 0; i < vCM.size(); i++)
@@ -2228,55 +1327,6 @@ void ProgTomoDetectMisalignmentTrajectory::getCMFromCoordinate(int x, int y, int
 }
 
 
-float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda, size_t k)
-{
-	double quotient=1;
-
-	#ifdef DEBUG_POISSON
-	std::cout << "k="<< k <<std::endl;
-	std::cout << "lambda="<< lambda <<std::endl;
-	#endif
-
-	// Since k! can not be holded we calculate the quotient lambda^k/k!= (lambda/k) * (lambda/(k-1)) * ... * (lambda/1)
-	for (size_t i = 1; i < k+1; i++)
-	{
-		quotient *= lambda / i;
-	}
-
-	#ifdef DEBUG_POISSON
-	std::cout << "quotient="<< quotient <<std::endl;
-	std::cout << "quotient*exp(-lambda)="<< quotient*exp(-lambda) <<std::endl;
-	#endif
-	
-	return quotient*exp(-lambda);
-
-}
-
-
-float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX)
-{
-	float xCoor = coordinateProjX - xSize/2;
-
-	#ifdef DEBUG_CHAINS
-	std::cout << "coordinateProjX=" << coordinateProjX << std::endl;
-	std::cout << "xCoor=" << xCoor << std::endl;
-	std::cout << "theta1=" << theta1 << std::endl;
-	std::cout << "theta2=" << theta2 << std::endl;	
-	std::cout << "theta1 * PI/180.0=" << theta1 * PI/180.0 << std::endl;
-	std::cout << "theta2 * PI/180.0=" << theta2 * PI/180.0 << std::endl;
-	#endif
-
-	float distance = abs(((cos(theta2 * PI/180.0)/cos(theta1 * PI/180.0))-1)*xCoor);
-
-	if (distance<minDistancePx)
-	{
-		return (int)minDistancePx;
-	}
-	
-	return (int)distance;
-}
-
-
 bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice)
 {
 	std::vector<Point2D<int>> interpolationLimits = lmDetector.interpolationLimitsVector[slice];
@@ -2292,97 +1342,7 @@ bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolati
 	{
 		return false;
 	}
-	
-
-	// for (size_t j = 1; j < ySize-2; j++)
-	// {
-	// 	Point2D<int> il = interpolationLimits[j-1];
-	// 	xMin = il.x;
-	// 	xMax = il.y;
-
-	// 	for (size_t i = xMin; i < xMax; i++)
-	// 	{
-	// 		sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
-	// 	}
-	// }
-
-
-	// IC ic = vIC[slice];
-
-	// int x = (int)(XX(projectedCoordinate));
-	// int y = (int)(YY(projectedCoordinate));
-	// int jmin;
-	// int jmax;
-
-	// if(x < ic.x1)
-	// {
-	// 	jmin = (int)(ic.m1*x+ic.y1);
-	// }
-	// else if (x > ic.x2)
-	// {
-	// 	jmin = (int)(ic.m2*(x-(int)xSize)+ic.y2);
-	// }
-	// else
-	// {
-	// 	jmin = 0;
-	// }
-	
-	// if(x < ic.x3)
-	// {
-	// 	jmax = (int)(ic.m3*(x-ic.x3)+(int)ySize);
-	// }
-	// else if (x > ic.x4)
-	// {
-	// 	jmax = (int)(ic.m4*(x-ic.x4)+(int)ySize);
-	// }
-	// else
-	// {
-	// 	jmax = (int)(ySize);
-	// }
-
-	// if(jmin < 0)
-	// {
-	// 	jmin = 0;
-	// }
-
-	// if(jmax > (int)(ySize))
-	// {
-	// 	jmax = (int)(ySize);
-	// }
-
-	// if (y > jmax || y < jmin)
-	// {
-	// 	return false;
-	// }
-	// else
-	// {
-	// 	return true;
-	// }
 }
-
-
-
-double ProgTomoDetectMisalignmentTrajectory::binomialTest(int x, int n, float p)
-{
-	double fact = 1;
-
-	// fact = n! / x!
-	for (size_t i = n; i < x; i--)
-	{
-		fact *= i;
-	}
-
-	// fact = fact / (n-x)!
-	for (size_t i = n-x; i < 0; i--)
-	{
-		fact /= i;
-	}
-
-	// return: fact * p^x * (1-p)^(n-x)
-	return fact * pow(p, x) * pow((1-p), (n-x));
-}
-
-
 
 void ProgTomoDetectMisalignmentTrajectory::getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial)
 {
@@ -5459,3 +4419,968 @@ void ProgTomoDetectMisalignmentTrajectory::getCMbyImage(size_t tiltImageNumber, 
 // 		return false;
 // 	}
 // }
+
+
+// bool ProgTomoDetectMisalignmentTrajectory::checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice)
+// {
+// 	std::vector<Point2D<int>> interpolationLimits = lmDetector.interpolationLimitsVector[slice];
+
+// 	int x = (int)(XX(projectedCoordinate));
+// 	int y = (int)(YY(projectedCoordinate));
+
+// 	if (x >= interpolationLimits[y].x || x <= interpolationLimits[y].y)
+// 	{
+// 		return true;
+// 	}
+// 	else
+// 	{
+// 		return false;
+// 	}
+	
+
+// 	// for (size_t j = 1; j < ySize-2; j++)
+// 	// {
+// 	// 	Point2D<int> il = interpolationLimits[j-1];
+// 	// 	xMin = il.x;
+// 	// 	xMax = il.y;
+
+// 	// 	for (size_t i = xMin; i < xMax; i++)
+// 	// 	{
+// 	// 		sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+// 	// 	}
+// 	// }
+
+
+// 	// IC ic = vIC[slice];
+
+// 	// int x = (int)(XX(projectedCoordinate));
+// 	// int y = (int)(YY(projectedCoordinate));
+// 	// int jmin;
+// 	// int jmax;
+
+// 	// if(x < ic.x1)
+// 	// {
+// 	// 	jmin = (int)(ic.m1*x+ic.y1);
+// 	// }
+// 	// else if (x > ic.x2)
+// 	// {
+// 	// 	jmin = (int)(ic.m2*(x-(int)xSize)+ic.y2);
+// 	// }
+// 	// else
+// 	// {
+// 	// 	jmin = 0;
+// 	// }
+	
+// 	// if(x < ic.x3)
+// 	// {
+// 	// 	jmax = (int)(ic.m3*(x-ic.x3)+(int)ySize);
+// 	// }
+// 	// else if (x > ic.x4)
+// 	// {
+// 	// 	jmax = (int)(ic.m4*(x-ic.x4)+(int)ySize);
+// 	// }
+// 	// else
+// 	// {
+// 	// 	jmax = (int)(ySize);
+// 	// }
+
+// 	// if(jmin < 0)
+// 	// {
+// 	// 	jmin = 0;
+// 	// }
+
+// 	// if(jmax > (int)(ySize))
+// 	// {
+// 	// 	jmax = (int)(ySize);
+// 	// }
+
+// 	// if (y > jmax || y < jmin)
+// 	// {
+// 	// 	return false;
+// 	// }
+// 	// else
+// 	// {
+// 	// 	return true;
+// 	// }
+// }
+
+// double ProgTomoDetectMisalignmentTrajectory::binomialTest(int x, int n, float p)
+// {
+// 	double fact = 1;
+
+// 	// fact = n! / x!
+// 	for (size_t i = n; i < x; i--)
+// 	{
+// 		fact *= i;
+// 	}
+
+// 	// fact = fact / (n-x)!
+// 	for (size_t i = n-x; i < 0; i--)
+// 	{
+// 		fact /= i;
+// 	}
+
+// 	// return: fact * p^x * (1-p)^(n-x)
+// 	return fact * pow(p, x) * pow((1-p), (n-x));
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::closing2D(MultidimArray<double> binaryImage, int size, int count, int neig)
+// {
+// 	MultidimArray<double> tmp;
+//     int i;
+
+// 	//dilate
+//     tmp = binaryImage;
+// 	binaryImage.initZeros(ySize, xSize);
+
+// 	size = 1;
+
+//     for (i = 0;i < size;i++)
+//     {
+// 		double sum = 0;
+// 		double dcount=count;
+		
+// 		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+// 			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+// 			{
+// 				if (A2D_ELEM(tmp,i, j) == 0)
+// 				{
+// 					// 4-environment
+// 					A2D_ELEM(binaryImage, i, j) = 0;
+// 					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+// 						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+// 					if (sum > dcount)
+// 					{ //change the value to foreground
+// 						A2D_ELEM(binaryImage, i, j) = 1;
+// 					}
+// 					else if (neig == 8)
+// 					{ //8-environment
+// 						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+// 							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+// 						if (sum > dcount)
+// 						{ //change the value to foreground
+// 							A2D_ELEM(binaryImage, i, j) = 1;
+// 						}
+// 					}
+// 				}
+// 				else
+// 				{
+// 					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+// 				}
+//         	}
+//     }
+
+// 	// erode
+// 	tmp = binaryImage;
+// 	binaryImage.initZeros(ySize, xSize);
+
+//     for (i = 0;i < size;i++)
+//     {
+// 		double sum = 0;
+// 		double dcount=count;
+
+// 		for (int i = STARTINGY(tmp) + 1;i < FINISHINGY(tmp); i++)
+// 			for (int j = STARTINGX(tmp) + 1;j < FINISHINGX(tmp); j++)
+// 			{
+// 				if (A2D_ELEM(tmp,i, j) == 1)
+// 				{
+// 					// 4-environment
+// 					A2D_ELEM(binaryImage, i, j) = 1;
+// 					sum = A2D_ELEM(tmp,i - 1, j) + A2D_ELEM(tmp,i + 1, j) +
+// 						  A2D_ELEM(tmp,i, j - 1) + A2D_ELEM(tmp,i, j + 1);
+// 					if ((4 - sum) > dcount)
+// 					{ //change the value to foreground
+// 						A2D_ELEM(binaryImage, i, j) = 0;
+// 					}
+// 					else if (neig == 8)
+// 					{ //8-environment
+// 						sum +=A2D_ELEM(tmp,i - 1, j - 1) + A2D_ELEM(tmp,i - 1, j + 1) +
+// 							  A2D_ELEM(tmp,i + 1, j - 1) + A2D_ELEM(tmp,i + 1, j + 1);
+// 						if ((neig - sum) > dcount)
+// 						{ //change the value to foreground
+// 							A2D_ELEM(binaryImage, i, j) = 0;
+// 						}
+// 					}
+// 				}
+// 				else
+// 				{
+// 					A2D_ELEM(binaryImage, i, j) = A2D_ELEM(tmp,i, j);
+// 				}
+// 			}
+//     }
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Detecting landmark chains..." << std::endl;
+// 	#endif
+
+// 	std::vector<int> counterLinesOfLandmarkAppearance(ySize);
+
+// 	// Calculate the number of landmarks per row (y index)
+// 	for(size_t i = 0; i < ySize; i++)
+// 	{
+// 		for(int j = 0; j < coordinates3D.size(); j++)
+// 		{
+// 			if(coordinates3D[j].y == i)
+// 			{
+// 				counterLinesOfLandmarkAppearance[i] += 1;
+// 			}
+
+// 			else if (coordinates3D[j-1].y == i && j-1 > 0)
+// 			{
+// 				counterLinesOfLandmarkAppearance[i] += 1;
+// 			}
+
+// 			else if (coordinates3D[j+1].y == i && j+1 < coordinates3D.size())
+// 			{
+// 				counterLinesOfLandmarkAppearance[i] += 1;
+// 			}
+// 		}
+// 	}
+
+// 	// Calculate poisson lambda
+// 	int numberEmptyRows = std::count(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), 0);
+// 	std::vector<int> histogramOfLandmarkAppearanceSorted (counterLinesOfLandmarkAppearance.size()-numberEmptyRows); 
+
+// 	size_t sideIndex = 0;
+// 	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
+// 	{
+// 		if(counterLinesOfLandmarkAppearance[i]!=0)
+// 		{
+// 			histogramOfLandmarkAppearanceSorted[sideIndex] = counterLinesOfLandmarkAppearance[i];
+// 			sideIndex += 1;
+// 		}
+// 	}
+	
+// 	// *** TODO: optimize, get n maxima elements without sorting
+// 	sort(histogramOfLandmarkAppearanceSorted.begin(), histogramOfLandmarkAppearanceSorted.end(), std::greater<int>());
+
+// 	// Poisson lambda
+// 	// for (size_t p = 0; p < counterLinesOfLandmarkAppearance.size(); p++)
+// 	// {
+// 	// 	std::cout <<  counterLinesOfLandmarkAppearance[p] <<std::endl;
+// 	// }
+
+
+// 	// for (size_t p = 0; p < histogramOfLandmarkAppearanceSorted.size(); p++)
+// 	// {
+// 	// 	std::cout <<  histogramOfLandmarkAppearanceSorted[p] <<std::endl;
+// 	// }
+
+// 	float absolutePossionPercetile = histogramOfLandmarkAppearanceSorted.size()*poissonLandmarkPercentile;
+
+// 	float poissonAverage = histogramOfLandmarkAppearanceSorted[(int)absolutePossionPercetile];
+	
+// 	std::vector<size_t> chainIndexesY;
+
+// 	// Test possion probability
+// 	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
+// 	{
+// 		// Normalize the input values (make lambda=100 and make k=100(k'/lambda)) to fix a threshold value for the distribution.
+// 		if (testPoissonDistribution(100*(poissonAverage/poissonAverage), 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) > 0.001)
+// 		{
+// 			#ifdef DEBUG_POISSON
+// 			std::cout << "Index " << i << " added with testPoissonDistribution=" << testPoissonDistribution(100*(poissonAverage/poissonAverage), 
+// 						 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) << std::endl;
+// 			#endif
+
+// 			chainIndexesY.push_back(i);
+// 		}
+// 	}
+
+// 	// globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
+
+// 	#ifdef DEBUG_CHAINS
+// 	std::cout << "chainIndexesY.size()=" << chainIndexesY.size() << std::endl;
+// 	#endif
+
+// 	// Compose and cluster chains
+// 	chain2dMap.initZeros(ySize, xSize);
+
+// 	#ifdef DEBUG_OUTPUT_FILES
+// 	MultidimArray<int> clustered2dMap;
+// 	clustered2dMap.initZeros(ySize, xSize);
+// 	#endif
+
+// 	for (size_t i = 0; i < chainIndexesY.size(); i++)
+// 	{
+// 		// Compose chains
+// 		size_t chainIndexY = chainIndexesY[i];
+
+// 		#ifdef DEBUG_CHAINS
+// 		std::cout << "-----------------COMPOSING LINE " << i << "-----------------" << std::endl;
+// 		#endif
+
+// 		// Binary vector with one's in the x coordinates belonging to each y coordinate
+// 		std::vector<size_t> chainLineY(xSize, 0);
+
+// 		// Vector containing the angles of the selected coordinates
+// 		std::vector<float> chainLineYAngles(xSize, 0);
+		
+// 		for (size_t j = 0; j < chainLineY.size() ; j++)
+// 		{
+// 			for(int x = 0; x < coordinates3D.size(); x++)
+// 			{
+// 				Point3D<double> coordinate3D = coordinates3D[x];
+
+// 				if(coordinate3D.y == chainIndexY)
+// 				{
+// 					chainLineY[coordinate3D.x] = 1;
+					
+// 					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
+// 					{
+// 						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
+// 					}
+// 				}
+
+// 				else if(coordinate3D.y == chainIndexY-1 && x-1 > 0)
+// 				{
+// 					chainLineY[coordinate3D.x] = 1;
+					
+// 					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
+// 					{
+// 						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
+// 					}
+// 				}
+
+// 				else if(coordinate3D.y == chainIndexY+1 && x+1 < coordinates3D.size())
+// 				{
+// 					chainLineY[coordinate3D.x] = 1;
+
+// 					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
+// 					{
+// 						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
+// 					}
+// 				}	
+// 			}
+// 		}
+
+// 		// Cluser chains
+// 		std::vector<size_t> clusteredChainLineY(xSize, 0);
+// 		size_t clusterId = 2;
+// 		size_t clusterIdSize = 0;
+// 		std::vector<size_t> clusterSizeVector;
+// 		int landmarkDisplacementThreshold;
+
+// 		#ifdef DEBUG_CHAINS
+// 		std::cout << "-----------------CLUSTERING LINE " << i << "-----------------" << std::endl;
+// 		#endif
+
+// 		for (size_t j = 0; j < chainLineY.size(); j++)
+// 		{
+// 			if(chainLineY[j] != 0){
+
+// 				// Check angle range to calculate landmarkDisplacementThreshold does not go further that the size of the image
+// 				if (chainLineYAngles[j]+thrNumberDistanceAngleChain*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
+// 				{
+// 					#ifdef DEBUG_CHAINS
+// 					std::cout << chainLineYAngles[j] << "calculateLandmarkProjectionDiplacement DEFAULT"<< std::endl;
+// 					#endif
+// 					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], tiltAngles[tiltAngles.size()-1], j); 
+// 				}
+// 				else
+// 				{
+// 					#ifdef DEBUG_CHAINS
+// 					std::cout << chainLineYAngles[j] << "calculateLandmarkProjectionDiplacement CALCULATED"<< std::endl;
+// 					#endif
+// 					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+thrNumberDistanceAngleChain*tiltAngleStep, j);
+// 				}
+
+// 				#ifdef DEBUG_CHAINS
+// 				std::cout << "landmarkDisplacementThreshold=" << landmarkDisplacementThreshold << std::endl;
+// 				#endif
+
+// 				if(chainLineY[j]==1)
+// 				{
+// 					if(clusterIdSize > 0)
+// 					{
+// 						#ifdef DEBUG_CHAINS
+// 						std::cout << "CASE: chainLineY[j]==1 --> clusterSizeVector.push_back " <<  clusterIdSize << std::endl;
+// 						#endif
+
+// 						clusterSizeVector.push_back(clusterIdSize);
+// 						clusterIdSize = 0;
+// 						clusterId += 1;
+// 					}
+
+// 					chainLineY[j] = clusterId;
+// 					clusterIdSize += 1;
+
+// 					for (size_t k = 1; k <= landmarkDisplacementThreshold; k++)
+// 					{
+// 						if(chainLineY[j+k]==1)
+// 						{
+// 							chainLineY[j+k] = clusterId;
+// 							clusterIdSize += 1;
+// 						}
+// 					}
+// 				}
+
+// 				else
+// 				{
+// 					bool found = false;
+
+// 					for (size_t k = 1; k <= landmarkDisplacementThreshold; k++)
+// 					{
+// 						// Check for new points added to the clusted
+// 						if(chainLineY[j+k]==1)
+// 						{
+// 							chainLineY[j+k] = clusterId;
+// 							clusterIdSize += 1;
+// 							found = true;
+// 						} 
+						
+// 						// Check for forward points already belonging to the cluster
+// 						else if (chainLineY[j+k]!=0)
+// 						{
+// 							found = true;
+// 						}
+// 					}
+
+// 					if (!found)
+// 					{
+// 						#ifdef DEBUG_CHAINS
+// 						std::cout << "CASE: chainLineY[j]!=1 --> claverageusterSizeVector.push_back " <<  clusterIdSize << std::endl;
+// 						#endif
+
+// 						clusterSizeVector.push_back(clusterIdSize);
+// 						clusterIdSize = 0;
+// 						clusterId += 1;
+// 					}
+// 				}
+// 			}
+// 		}
+
+// 		if(clusterIdSize>0)
+// 		{
+// 			#ifdef DEBUG_CHAINS
+// 			std::cout << "CASE: clusterIdSize>0 --> clusterSizeVector.push_back " <<  clusterIdSize << std::endl;
+// 			#endif
+
+// 			clusterSizeVector.push_back(clusterIdSize);
+// 			clusterIdSize = 0;
+// 		}
+
+// 		// Complete the overall 2D chain map
+// 		#ifdef DEBUG_CHAINS
+// 		std::cout << "clusterSizeVector.size()=" << clusterSizeVector.size() << std::endl; 
+
+// 		for (size_t x = 0; x < clusterSizeVector.size(); x++)
+// 		{
+// 			std::cout << "clusterSizeVector[" << x << "]=" << clusterSizeVector[x] << std::endl;
+// 		}
+// 		#endif
+		
+// 		size_t lastClusterId=0, lastIndex=0, firstIndex=0;
+
+// 		for (size_t j = 0; j < chainLineY.size(); j++)
+// 		{	
+// 			size_t clusterValue=chainLineY[j];
+
+// 			if (clusterSizeVector[clusterValue-2] > numberOfElementsInChainThreshold && clusterValue != 0)
+// 			{
+// 				#ifdef DEBUG_CHAINS
+// 				std::cout << "clusterValue=" << clusterValue << std::endl;
+// 				std::cout << "lastClusterId=" << lastClusterId << std::endl;
+// 				std::cout << "firstIndex=" << firstIndex << std::endl;
+// 				std::cout << "lastIndex=" << lastIndex << std::endl;
+// 				std::cout << "-----------------" << std::endl;
+// 				#endif
+
+// 				#ifdef DEBUG_OUTPUT_FILES
+// 				DIRECT_A2D_ELEM(clustered2dMap, chainIndexY, j) = chainLineY[j];
+// 				#endif
+				
+// 				// New label
+// 				if (clusterValue != lastClusterId && lastClusterId != 0)
+// 				{
+// 					#ifdef DEBUG_CHAINS
+// 					std::cout << "Chain with label " << chainLineY[j] << " and label size " << clusterSizeVector[chainLineY[j]-2] << " ADDED" << std::endl;
+// 					std::cout << "First index: " << firstIndex << std::endl;
+// 					std::cout << "Last index: " << lastIndex << std::endl;
+// 					#endif
+
+// 					for (size_t k = firstIndex; k < lastIndex+1; k++)
+// 					{
+// 						DIRECT_A2D_ELEM(chain2dMap, chainIndexY, k) = 1;
+// 					}
+					
+
+// 					lastClusterId=clusterValue;
+// 					firstIndex = j;
+// 					lastIndex = j;
+// 				}
+
+// 				// Find first cluster
+// 				else if (clusterValue != lastClusterId && lastClusterId == 0)
+// 				{
+// 					lastClusterId=clusterValue;
+// 					firstIndex = j;
+// 					lastIndex = j;
+// 				}
+				
+
+// 				// Add elements to cluster
+// 				else if (clusterValue==lastClusterId)
+// 				{
+// 					lastIndex = j;
+// 				}
+// 			}
+
+// 			// Add last cluster
+// 			if (firstIndex != lastIndex)
+// 			{
+// 				for (size_t k = firstIndex; k < lastIndex+1; k++)
+// 				{
+// 					DIRECT_A2D_ELEM(chain2dMap, chainIndexY, k) = 1;
+// 				}
+// 			}
+			
+// 		}
+		
+// 		clusterSizeVector.clear();
+// 	}
+
+// 	#ifdef DEBUG_OUTPUT_FILES
+// 	size_t lastindex = fnOut.find_last_of("\\/");
+// 	std::string rawname = fnOut.substr(0, lastindex);
+
+// 	std::string outputFileNameChain2dMap;
+// 	std::string outputFileNameClustered2dMap;
+
+//     outputFileNameChain2dMap = rawname + "/ts_filteredChains.mrc";
+//     outputFileNameClustered2dMap = rawname + "/ts_clusteredChains.mrc";
+
+// 	Image<int> saveImageBis;
+// 	saveImageBis() = clustered2dMap;
+// 	saveImageBis.write(outputFileNameClustered2dMap);
+	
+// 	Image<int> saveImage;
+// 	saveImage() = chain2dMap;
+// 	saveImage.write(outputFileNameChain2dMap);
+// 	#endif
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Landmark chains detected succesfully!" << std::endl;
+// 	#endif
+// }
+
+
+// void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
+// {
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Detecting misaligned tilt-images..." << std::endl;
+// 	#endif
+
+// 	std::vector<Point2D<double>> coordinatesInSlice;
+// 	std::vector<size_t> lmOutRange(nSize, 0);
+
+// 	for (size_t n = 0; n < nSize; n++)
+// 	{
+// 		// Calculate distances
+// 		coordinatesInSlice = getCoordinatesInSlice(n);
+
+// 		if(coordinatesInSlice.size() > 0)
+// 		{
+
+// 			#ifdef DEBUG_LOCAL_MISALI
+// 			// Vector holding the distance of each landmark to its closest chain
+// 			std::vector<double> vectorDistance;
+// 			#endif
+
+// 			for (size_t coord = 0; coord < coordinatesInSlice.size(); coord++)
+// 			{
+// 				Point2D<double> coord2D = coordinatesInSlice[coord];
+// 				size_t matchCoordX = (size_t)-1; // Maximum possible size_t datatype
+// 				size_t matchCoordY = (size_t)-1; // Maximum possible size_t datatype
+
+// 				bool found = false;
+
+// 				// Find distance to closest neighbour
+// 				// *** optimizar: cada vez que se aumenta la distancia se revisitan los pixeles ya comprobados en distancias menores
+// 				for (int distance = 1; distance < thrChainDistancePx; distance++)
+// 				{
+// 					for (int i = -distance; i <= distance; i++)
+// 					{
+// 						for (int j = -distance; j <= distance; j++)
+// 						{
+// 							if (j + coord2D.y > 0 && i + coord2D.x  > 0 && j + coord2D.y < ySize && i + coord2D.x < xSize && i*i+j*j <= distance*distance)
+// 							{
+// 								if (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0)
+// 								{
+// 									if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
+// 									{
+// 										#ifdef DEBUG_LOCAL_MISALI
+// 										//std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
+// 										#endif
+
+// 										found = true;
+// 										matchCoordX = i;
+// 										matchCoordX = j;
+
+// 										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)***
+// 										// *** Tal vez sería mas interesante medir la distancia media de la coordenadas y no cuantas están más alla de una distancia, nos
+// 										// ahorraríamos un threshold.
+// 										// break;
+// 									}
+// 								}
+// 							}
+// 						}
+// 					}
+					
+// 					if(found)
+// 					{
+// 						break;
+// 					}
+// 				}
+
+// 				if(!found)
+// 				{
+// 					#ifdef DEBUG_LOCAL_MISALI
+// 					//std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
+// 					vectorDistance.push_back(0);
+// 					#endif
+
+// 					lmOutRange[n] += 1;
+// 				}
+// 				#ifdef DEBUG_LOCAL_MISALI
+// 				else
+// 				{
+// 					vectorDistance.push_back(sqrt(matchCoordX*matchCoordX + matchCoordY*matchCoordY));
+// 				}
+// 				#endif
+// 					}
+
+// 			#ifdef DEBUG_LOCAL_MISALI
+// 			for (size_t i = 0; i < vectorDistance.size(); i++)
+// 			{
+// 				std::cout << vectorDistance[i] << "  ";
+// 			}
+			
+// 			std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
+// 			float(lmOutRange[n])/float(coordinatesInSlice.size()) << "\n"<< std::endl;
+// 			#endif
+// 		}
+// 		else
+// 		{
+// 			#ifdef VERBOSE_OUTPUT
+// 			std::cout << "No landmarks detected in slice " << n << ". IMPOSSIBLE TO DETECT POTENTIAL MISALIGNMENT IN THIS IMAGE." << std::endl;
+// 			#endif
+
+// 			lmOutRange[n] = 0;
+// 			#ifdef DEBUG_LOCAL_MISALI
+// 			std::cout << "lmOutRange[" << n << "]=" << lmOutRange[n] << "\n"<< std::endl;
+// 			#endif
+// 		}
+// 	}
+
+// 	// Detect misalignment
+// 	double sum = 0, sum2 = 0;
+// 	int Nelems = 0;
+// 	double m = 0;
+// 	double sd = 0;
+
+// 	for(size_t n = 0; n < nSize; n++)
+// 	{
+// 		int value = lmOutRange[n];
+// 		sum += value;
+// 		sum2 += value*value;
+// 		++Nelems;
+// 	}
+
+// 	m = sum / nSize;
+// 	sd = sqrt(sum2/Nelems - m*m);
+
+// 	for(size_t n = 0; n < nSize; n++)
+// 	{
+// 		if(lmOutRange[n] > (m + 3*sd))
+// 		{
+// 			localAlignment[n] = false;
+
+// 			#ifdef VERBOSE_OUTPUT
+// 			std::cout << "MISALIGNMENT DETECTED IN IMAGE " << n << std::endl;
+// 			#endif
+// 		}
+// 	}
+
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Misalignment in tilt-images succesfully detected!" << std::endl;
+// 	#endif
+// }
+
+// void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
+// {
+// 	size_t lastindex = fnOut.find_last_of("\\/");
+// 	std::string rawname = fnOut.substr(0, lastindex);
+// 	std::string outputFileNameLandmarkCoordinates;
+//     outputFileNameLandmarkCoordinates = rawname + "/ts_landmarkCoordinates.xmd";
+
+// 	MetaDataVec md;
+// 	size_t id;
+
+// 	for(size_t i = 0; i < coordinates3D.size(); i++)
+// 	{
+// 		id = md.addObject();
+// 		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+// 		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
+// 		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
+// 	}
+
+
+// 	md.write(outputFileNameLandmarkCoordinates);
+	
+// 	#ifdef VERBOSE_OUTPUT
+// 	std::cout << "Output coordinates metadata saved at: " << outputFileNameLandmarkCoordinates << std::endl;
+// 	#endif
+// }
+
+
+
+// void ProgTomoDetectMisalignmentTrajectory::detectInterpolationEdges(MultidimArray<double> &tiltImage)
+// {
+// 	// Detect interpolation region
+// 	MultidimArray<double> tmpImage = tiltImage;
+
+// 	for (size_t i = 1; i < xSize-1; i++)
+// 	{
+// 		for (size_t j = 1; j < ySize-1; j++)
+// 		{
+// 			DIRECT_A2D_ELEM(tmpImage, j ,i) = (-1 * DIRECT_A2D_ELEM(tiltImage, j-1 ,i) +
+// 											   -1 * DIRECT_A2D_ELEM(tiltImage, j+1 ,i) +
+// 											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i-1) +
+// 											   -1 * DIRECT_A2D_ELEM(tiltImage, j ,i+1) +
+// 									 		    4 * DIRECT_A2D_ELEM(tiltImage, j ,i));
+// 		}
+// 	}
+
+	
+// 	// Background value as the median of the corners
+// 	std::vector<double> corners{DIRECT_A2D_ELEM(tiltImage, 0, 0),
+// 								DIRECT_A2D_ELEM(tiltImage, 0, xSize-1),
+// 								DIRECT_A2D_ELEM(tiltImage, ySize-1, 0),
+// 								DIRECT_A2D_ELEM(tiltImage, ySize-1, xSize-1)};
+
+// 	sort(corners.begin(), corners.end(), std::greater<double>());
+
+// 	double backgroundValue = (corners[1]+corners[2])/2;
+
+// 	// Margin thickness
+// 	int marginThickness = (int)(fiducialSizePx * 0.5);
+
+// 	auto epsilon = MINDOUBLE;
+
+// 	std::vector<Point2D<int>> interpolationLimits;
+
+// 	bool firstLimitFound;
+
+// 	int xMin;
+// 	int xMax;
+
+// 	for (size_t j = 1; j < ySize-2; j++)
+// 	{
+// 		for (size_t i = 1; i < xSize-1; i++)
+// 		{
+// 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+// 			{
+// 				xMin = ((i + marginThickness)>(xSize-1)) ? (xSize-1) : (i + marginThickness);
+
+// 				// Fill margin thickness with background value
+// 				for (size_t a = i; a < i + marginThickness; a++)
+// 				{
+// 					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+// 				}
+				
+// 				break;
+// 			}
+// 		}
+
+
+// 		for (size_t i = xSize-1; i > 1; i--)
+// 		{
+// 			if(abs(DIRECT_A2D_ELEM(tmpImage, j, i)) > epsilon)
+// 			{
+// 				xMax = ((i - marginThickness)<0) ? 0 : (i - marginThickness);
+
+// 				// Fill margin thickness with background value
+// 				for (size_t a = i - marginThickness; a < i; a++)
+// 				{
+// 					DIRECT_A2D_ELEM(tiltImage, j, a) = backgroundValue;
+// 				}
+
+// 				break;
+// 			}
+// 		}
+
+// 		if (xMin >= xMax)
+// 		{
+// 			int value = (int) (((xMax+marginThickness)+(xMin-marginThickness))/2);
+// 			xMax = value;
+// 			xMin = value;
+// 		}
+		
+// 		Point2D<int> limit (xMin, xMax);
+// 		interpolationLimits.push_back(limit);
+// 	}
+
+// 	interpolationLimitsVector.push_back(interpolationLimits);
+// }
+
+
+// bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+// {
+// 	// Uncomment for phantom
+// 	// return true;
+
+// 	// *** TODO: filtering by number of coordinates might not be the best method, i could be better just filter by occupancy and max distance (radius)
+
+// 	// Check number of elements of the label <----------------------------*** ESTO NO HACE NADA CON EL THR ACTUAL
+// 	// if(coordinatesPerLabelX.size() < thrNumberCoords)
+// 	// {
+// 	// 	return false;
+// 	// }
+
+// 	// Calculate the furthest point of the region from the centroid
+// 	double maxSquareDistance = 0;
+// 	double distance;
+
+// 	#ifdef DEBUG_FILTERLABEL
+// 	size_t debugN;
+// 	#endif
+
+// 	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
+// 	{
+// 		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
+
+// 		if(distance >= maxSquareDistance)
+// 		{
+// 			#ifdef DEBUG_FILTERLABEL
+// 			debugN = n;
+// 			#endif
+
+// 			maxSquareDistance = distance;
+// 		}
+// 	}
+
+// 	double maxDistace;
+// 	maxDistace = sqrt(maxSquareDistance);
+
+// 	// Check sphericity of the labeled region
+// 	double circumscribedArea = PI * (maxDistace * maxDistace);;
+// 	double area = 0.0 + (double)coordinatesPerLabelX.size();
+// 	double ocupation;
+
+// 	ocupation = area / circumscribedArea;
+
+// 	#ifdef DEBUG_FILTERLABEL
+// 	std::cout << "debugN " << debugN << std::endl;
+// 	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+// 	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+// 	std::cout << "centroX " << centroX << std::endl;
+// 	std::cout << "centroY " << centroY << std::endl;
+// 	std::cout << "area " << area << std::endl;
+// 	std::cout << "circumscribedArea " << circumscribedArea << std::endl;
+// 	std::cout << "maxDistace " << maxDistace << std::endl;
+// 	std::cout << "ocupation " << ocupation << std::endl;
+// 	#endif
+
+// 	if(ocupation < 0.5)
+// 	{
+// 		#ifdef DEBUG_FILTERLABEL
+// 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF OCCUPATION"<< std::endl;
+// 		#endif
+// 		return false;
+// 	}
+
+// 	// Check the relative area compared with the expected goldbead
+// 	double expectedArea = PI * ((fiducialSizePx/2) * fiducialSizePx/2);
+// 	double relativeArea = (4*area)/expectedArea;  // Due to filtering and labelling processes labeled gold beads tend to reduce its radius in half
+
+// 	#ifdef DEBUG_FILTERLABEL
+// 	std::cout << "expectedArea " << expectedArea << std::endl;
+// 	std::cout << "relativeArea " << relativeArea << std::endl;
+// 	std::cout << "-------------------------------------------"  << std::endl;
+// 	#endif
+
+
+// 	if (relativeArea > 4 || relativeArea < 0.1)
+// 	{
+// 		#ifdef DEBUG_FILTERLABEL
+// 		std::cout << "COORDINATE REMOVED AT " << centroX << " , " << centroY << " BECAUSE OF RELATIVE AREA"<< std::endl;
+// 		#endif
+// 		return false;
+// 	}
+// 	#ifdef DEBUG_FILTERLABEL
+// 	std::cout << "COORDINATE NO REMOVED AT " << centroX << " , " << centroY << std::endl;
+// 	#endif
+// 	return true;
+// }
+
+
+// std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSliceIndex(size_t slice)
+// {
+// 	std::vector<size_t> coordinatesInSlice;
+
+// 	for(size_t n = 0; n < coordinates3D.size(); n++)
+// 	{
+// 		if(slice == coordinates3D[n].z)
+// 		{
+// 			coordinatesInSlice.push_back(n);
+// 		}
+// 	}
+
+// 	return coordinatesInSlice;
+// }
+
+
+// float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda, size_t k)
+// {
+// 	double quotient=1;
+
+// 	#ifdef DEBUG_POISSON
+// 	std::cout << "k="<< k <<std::endl;
+// 	std::cout << "lambda="<< lambda <<std::endl;
+// 	#endif
+
+// 	// Since k! can not be holded we calculate the quotient lambda^k/k!= (lambda/k) * (lambda/(k-1)) * ... * (lambda/1)
+// 	for (size_t i = 1; i < k+1; i++)
+// 	{
+// 		quotient *= lambda / i;
+// 	}
+
+// 	#ifdef DEBUG_POISSON
+// 	std::cout << "quotient="<< quotient <<std::endl;
+// 	std::cout << "quotient*exp(-lambda)="<< quotient*exp(-lambda) <<std::endl;
+// 	#endif
+	
+// 	return quotient*exp(-lambda);
+
+// }
+
+
+// float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX)
+// {
+// 	float xCoor = coordinateProjX - xSize/2;
+
+// 	#ifdef DEBUG_CHAINS
+// 	std::cout << "coordinateProjX=" << coordinateProjX << std::endl;
+// 	std::cout << "xCoor=" << xCoor << std::endl;
+// 	std::cout << "theta1=" << theta1 << std::endl;
+// 	std::cout << "theta2=" << theta2 << std::endl;	
+// 	std::cout << "theta1 * PI/180.0=" << theta1 * PI/180.0 << std::endl;
+// 	std::cout << "theta2 * PI/180.0=" << theta2 * PI/180.0 << std::endl;
+// 	#endif
+
+// 	float distance = abs(((cos(theta2 * PI/180.0)/cos(theta1 * PI/180.0))-1)*xCoor);
+
+// 	if (distance<minDistancePx)
+// 	{
+// 		return (int)minDistancePx;
+// 	}
+	
+// 	return (int)distance;
+// }
+

@@ -83,15 +83,12 @@ public:
     FileName fnInputCoord;
 
     /** Input info */
-    double fiducialSize;
+    double fiducialSize;    // Fiducial size in Angstroms
+    float fiducialSizePx;   // Fiducial size in pixels
     double samplingRate;
 
-    bool checkInputCoord;
-
     /** Thresholds */
-    int thrNumberCoords;         // Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.
     float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
-    float thrChainDistanceAng;   // Maximum distance of a detected landmark to consider it belongs to a chain
     float thrFiducialDistance;   // Maximum distance of a detected landmark to consider it belongs to a chain
 
 
@@ -102,32 +99,6 @@ public:
         Point2D<double> residuals;              // Residual vector from detected to projected
         size_t id;                              // ID common for all the CM belonging to the same coordinate 3D
     };
-
-
-    // Vector of points saving the interpolation limits for each tilt-image
-    std::vector<std::vector<Point2D<int>>> interpolationLimitsVector;
-
-
-    // Interpolation corners structure for each tilt-image
-    // struct IC {
-    //     int x1;  // Top-left corner (x1, 0)
-    //     int x2;  // Top-right corner (x2, 0)
-    //     int x3;  // Bottom-left corner (x3, ySize)
-    //     int x4;  // Bottom-right corner (x4, ySize)
-    //     int y1;  // Top-left corner (0, y1)
-    //     int y2;  // Top-right corner (xSize, y2)
-    //     int y3;  // Bottom-left corner (0, y3)
-    //     int y4;  // Bottom-right corner (xSize, y4)
-    //     double m1;   // Slope of top-left edge
-	//     double m2;   // Slope of top-right edge
-	//     double m3;   // Slope of bottom-left edge
-	//     double m4;   // Slope of bottom-right edge
-    // };
-
-    /** Array of interpolation corner structures */
-    // std::vector<IC> vIC;
-
-
     
     /** Input tilt-series dimensions */
     size_t xSize;
@@ -152,46 +123,14 @@ public:
     /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;
 
-    /** Map of clustered and filtered chains */
-    MultidimArray<int> chain2dMap;
-
-    /** Vectors for calculated residuals components */
-    std::vector<double> residualX;
-    std::vector<double> residualY;
-    std::vector<int> residualCoordinateX;
-    std::vector<int> residualCoordinateY;
-    std::vector<int> residualCoordinateZ;
-
     /** Thresholds */
-    float poissonLandmarkPercentile = 0.2;          // Percentencile of the number of landmarks per row among the populated rows (exclude empty rows), taken as the lambda for poisson probability calculation
-    size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
-    size_t thrNumberDistanceAngleChain = 3;         // Angular distance (number of angular steps) for two coordinates to belong to the same chain, multiplied by the distance to the tilt axis
     float avgResidPercentile_LocalAlignment;
-
-    // Distance thresholds are saved in angstroms in order to be independent of the sampling rate and image size
-    float minDistanceAng = 20;                      // Minimum distance to consider that 2 landmarks belong to the same chain
-    
-    // Thresholds measured in pixels updated in generateSideInfo function
-    float minDistancePx;                          
-    double thrChainDistancePx;
-    float fiducialSizePx;
-
-    // Global alignment thresholds
-    float thrTop10Chain = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
-    float thrLMChain = 30;                          // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
     /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment = true;
     std::vector<bool> localAlignment;
 
 public:
-
-    bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
-    void writeOutputAlignmentReport();
-
-    void detectInterpolationEdges(MultidimArray<double> &tiltImage);
-
-
 
     // --------------------------- INFO functions ----------------------------
 
@@ -212,51 +151,6 @@ public:
     void generateSideInfo();
 
     /**
-     * Bandpass filtering the input tilt-series.
-     *
-     * @param
-     * @return
-     *
-    */
-    // void bandPassFilter(MultidimArray<double> &inputTiltSeries, int imageNumber);
-
-    // void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
-
-    // bool votingHCC();
-
-
-    /**
-     * Peaks high contrast regions in a volume.
-     *
-     * @param
-     * @return
-     *
-    */
-    // void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
-
-
-    // void centerCoordinates(MultidimArray<double> tiltSeriesFiltered);
-
-
-    /**
-     * Detect landmark chains from landmark coordinates.
-     *
-     * @param
-     * @return
-     *
-    */
-    void detectLandmarkChains();
-
-    /**
-     * Detect images from the tilt-series misaligned from the detected landmark chains.
-     *
-     * @param
-     * @return
-     *
-    */
-    void detectMisalignedTiltImages();
-
-    /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
      *
      * @param
@@ -264,6 +158,8 @@ public:
      *
     */
     void calculateResidualVectors();
+
+    void detectMisalignmentFromResiduals();
 
 
     // --------------------------- I/O functions ----------------------------
@@ -275,26 +171,9 @@ public:
      * @return
      *
     */
-    void writeOutputCoordinates();
-
-
-    /**
-     * Write obtained coordinates in output file.
-     *
-     * @param
-     * @return
-     *
-    */
-    // void writeOutputResidualVectors();
-
-    /**
-     * Write obtained coordinates in output file.
-     *
-     * @param
-     * @return
-     *
-    */
    void writeOutputVCM();
+
+   void writeOutputAlignmentReport(); 
 
 
     // --------------------------- UTILS functions ----------------------------
@@ -306,30 +185,7 @@ public:
      * @return
      *
     */
-    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
-    void closing2D(MultidimArray<double> binaryImage, int size, int count, int neig);
-
-    /**
-     * Filter labeled regions.
-     *
-     * @param
-     * @return
-     *
-    */
     void fillImageLandmark(MultidimArray<int> &proyectedImage, int x, int y, int value);
-
-    /**
-     * Filter labeled regions.
-     *
-     * @param
-     * @return
-     *
-    */
-    // bool detectGlobalMisalignment();
-
-    // std::vector<std::vector<Point2D<double>>> splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords);
-
-
 
     /**
      * Bandpass filtering the input tilt-series.
@@ -339,17 +195,6 @@ public:
      *
     */
     void adjustCoordinatesCosineStreching();
-
-
-    /**
-     * Filter labeled regions.
-     *
-     * @param
-     * @return
-     *
-    */
-    // int calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2);
-
 
     /**
      * Calculation of the projection matrix given the projection angle.
@@ -369,70 +214,70 @@ public:
     */
     std::vector<Point2D<double>> getCoordinatesInSlice(size_t slice);
 
-
-    std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
-
-    /**
-     * Retrieve a vector contaiing 3 different indexes as i > 0 && i > size.
-     *
-     * @param
-     * @return
-     *
-    */
-    // std::vector<size_t> getRandomIndexes(size_t size);
-
-
-    /**
-     * Description ***
-     *
-     * @param 
-     * @return
-     *
-    */
-    float testPoissonDistribution(float poissonAverage, size_t numberOfOcccurrences);
-
-
-    /**
-     * Description ***
-     *
-     * @param 
-     * @return
-     *
-    */
-    float calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX);
-
-    /**
-     * Description ***
-     *
-     * @param 
-     * @return
-     *
-    */
-
-    // std::vector<CM> getCMFromCoordinate(int x, int y, int z);
-
     void getCMFromCoordinate(int x, int y, int z, std::vector<CM> &vCM);
 
-    void detectMisalignmentFromResiduals();
-
     bool checkProjectedCoordinateInInterpolationEdges(Matrix1D<double> projectedCoordinate, size_t slice);
-
-
-    // void factorial(size_t base, size_t fact);
-
-    double binomialTest(int x, int n, float p);
 
     void getCMbyFiducial(size_t fiducialNumber, std::vector<CM> &vCM_fiducial);
 
     void getCMbyImage(size_t tiltImageNumber, std::vector<CM> &vCM_image);
 
-    // void localAmplitude(MultidimArray<double> &tiltImage, MultidimArray<double> &amplitude);
-
-
 
     // --------------------------- MAIN ----------------------------------
 
     void run();
+
+
+    // --------------------------- UNUSED FUNCTIONS ----------------------------------
+
+    // void bandPassFilter(MultidimArray<double> &inputTiltSeries, int imageNumber);
+
+    // void bandPassFilterBis(MultidimArray<double> &tiltImage, MultidimArray<double> &tiltImageBis);
+
+    // bool votingHCC();
+
+    // void localAmplitude(MultidimArray<double> &tiltImage, MultidimArray<double> &amplitude);
+
+    // void factorial(size_t base, size_t fact);
+
+    // double binomialTest(int x, int n, float p);
+
+    // std::vector<CM> getCMFromCoordinate(int x, int y, int z);
+
+    // float calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX);
+
+    // float testPoissonDistribution(float poissonAverage, size_t numberOfOcccurrences);
+
+    // std::vector<size_t> getRandomIndexes(size_t size);
+
+    // std::vector<size_t> getCoordinatesInSliceIndex(size_t slice);
+
+    // int calculateTiltAxisIntersection(Point2D<double> p1, Point2D<double> p2);
+
+    // bool detectGlobalMisalignment();
+
+    // std::vector<std::vector<Point2D<double>>> splitCoordinatesInHalfImage(std::vector<Point2D<double>> inCoords);
+
+    // bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+    
+    // void closing2D(MultidimArray<double> binaryImage, int size, int count, int neig);
+
+    // void detectInterpolationEdges(MultidimArray<double> &tiltImage);
+
+    // void writeOutputResidualVectors();
+
+    // void writeOutputCoordinates();
+
+    // void detectMisalignedTiltImages();
+
+    // void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
+
+    // void centerCoordinates(MultidimArray<double> tiltSeriesFiltered);
+
+    // void detectLandmarkChains();
+
+    // bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
+
 };
 
 #endif
