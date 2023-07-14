@@ -23,18 +23,37 @@
 from typing import Optional
 import torch
 import itertools
-import scipy.stats
 
 from geometry import *
 from sinogram import *
 
-def _random_orthogonal_matrix(d: int, size: torch.Size) -> torch.Tensor:
+
+
+def _random_rotation_matrix(d: int,
+                            shape: torch.Size = torch.Size(), 
+                            dtype: Optional[torch.dtype] = None,
+                            device: Optional[torch.device] = None,
+                            out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    # Create random orthonormal matrices
-    matrices = scipy.stats.ortho_group.rvs(d, math.prod(size)).reshape(size + (3, 3))
+    # Allocate the output with the RVs
+    out = torch.randn(shape + (d, d), dtype=dtype, device=device, out=out)
     
-    # Convert them to torch
-    return torch.as_tensor(matrices)
+    # Select vectors at random and apply Gram-Schmidt
+    for i in range(d):
+        # Alias for the current column
+        vi = out[...,:,i]
+        
+        # Apply Gram-Schmidt
+        # TODO optimize this code
+        for j in range(i):
+            vj = out[...,:,j]
+            proj = torch.matmul(vi[...,None,:], vj[...,:,None])[...,0]
+            vi -= proj * vj
+            
+        # Make sure the vector is orthogonal
+        torch.nn.functional.normalize(vi, dim=-1, out=vi)
+    
+    return out
 
 def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
                                       n_iterations: int,
@@ -43,6 +62,7 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
     best_error = None
     best_matrices = None
     
+    matrices = None
     common_lines = None
     lines = torch.empty((batch, 2, 2), dtype=sinograms.dtype, device=sinograms.device)
     indices = torch.empty((batch, 2), dtype=sinograms.dtype, device=sinograms.device)
@@ -51,7 +71,12 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
     error = None
     for _ in range(n_iterations):
         # Compute random 3x3 matrices of shape [B, N, 3, 3]
-        matrices = _random_orthogonal_matrix(3, (batch, len(sinograms))).to(sinograms)
+        matrices = _random_rotation_matrix(
+            3, (batch, len(sinograms)), 
+            dtype=sinograms.dtype,
+            device=sinograms.device,
+            out=matrices
+        )
         
         # Iterate over all pairs of images
         error = torch.zeros((batch, ), dtype=sinograms.dtype, device=sinograms.device, out=error)
