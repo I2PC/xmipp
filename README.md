@@ -8,7 +8,7 @@
 Xmipp is a suite of image processing programs, primarily aimed at single-particle 3D electron microscopy, designed and managed by the [Biocomputing Unit](http://biocomputingunit.es/) located in Madrid, Spain.
 
 The Xmipp project is divided into four repositories. 
-This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the compilation/installation process.
+This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the installation process.
 
 
 ## Getting started
@@ -26,8 +26,10 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 
 ### Software dependencies
 #### Compiler
-Xmipp requires C++17 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7, in any case a version > 6 is required. If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
+Xmipp requires C++17 compatible compiler. We recommend GCC, we have good experience with GCC-8.3 in any case a version > 8 is required. If use GCC-10.3 and CUDA=11 and experience issues, [please change the compiler version](https://github.com/NVIDIA/nccl/issues/494). If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
 
+#### Cmake
+Xmipp requires Cmake 3.16 or above. To update it please [visit](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install)
 #### Cuda
 Xmipp supports Cuda 8 through 11.7. CUDA is optional but highly recommended. We recommend you to use the newest version available for your operating system, though Cuda 10.2 has the widest support among other Scipion plugins. Pay attemption to the [compiler - CUDA](https://gist.github.com/ax3l/9489132) compatibility.
 To install CUDA for your operating system, follow the [official install guide](https://developer.nvidia.com/cuda-toolkit-archive).
@@ -43,7 +45,7 @@ We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Tr
 
 `sudo apt install -y libfftw3-dev libopenmpi-dev libhdf5-dev python3-numpy python3-dev libtiff5-dev libsqlite3-dev default-jdk git cmake`
 
-`pip install scons numpy`
+`pip install scons` in the enviroment that xmipp will be compiled (scipion3 if you will run Xmipp within Scipion)
 
 Also a compiler will be required (`sudo apt install gcc-8 g++-8`)
 
@@ -76,7 +78,7 @@ Xmipp is installed in the build directory located in the same directory where th
 `source build/xmipp.bashrc`
 
 
-# That's all
+## That's all
 
 If you miss some feature or find a bug, please [create an issue](https://github.com/I2PC/xmipp/issues/new) and we will have a look at it, you can also contact us by xmipp@cnb.csic.es. For more details, troubleshootings and information visit the [wikip page.](https://github.com/I2PC/xmipp/wiki)
 

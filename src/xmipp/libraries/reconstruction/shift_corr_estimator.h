@@ -27,9 +27,10 @@
 #define LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 
 #include <typeinfo>
+
+#include "data/fftwT.h"
 #include "ashift_corr_estimator.h"
 #include "data/cpu.h"
-#include "fftwT.h"
 #include "single_extrema_finder.h"
 
 /**@defgroup ShiftCorrEstimator Shift Correlation Estimator

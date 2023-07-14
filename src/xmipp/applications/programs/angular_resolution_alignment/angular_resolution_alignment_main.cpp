@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
+ * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,44 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_TOMO_EXTRACT_PARTICLESTACKS
-#define _PROG_TOMO_EXTRACT_PARTICLESTACKS
+#include <reconstruction/angular_resolution_alignment.h>
 
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <limits>
-#include <complex>
-#include <string>
-
-
-class ProgTomoExtractParticleStacks : public XmippProgram
+int main(int argc, char **argv)
 {
-public:
-	 /** Filenames */
-	FileName fnOut;
-    FileName fnTs;
-    FileName fnCoor;
-
-    size_t Xdim;
-    size_t Ydim;
-    size_t Zdim;
-
-    bool invertContrast;
-
-    double scaleFactor;
-
-	/** Is the volume previously masked?*/
-	int  boxsize; 
-    int nthrs;
-
-public:
-
-    void defineParams();
-    void readParams();
-    //void coord2DfromCoord3D();
-    void run();
-};
-//@}
-#endif
-
+	ProgAngResAlign program;
+    program.read(argc, argv);
+    return program.tryRun();
+}

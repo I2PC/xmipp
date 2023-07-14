@@ -59,6 +59,12 @@ public:
     String idLabel;
     /// Set of angular difference
     int set;
+    /// The set of angles to be used for output
+    int ang;
+    /// Compute angle mean
+    bool compute_average_angle;
+    /// Compute shift mean
+    bool compute_average_shift;
 public:
     // DocFile 1
     MetaDataVec DF1;
@@ -86,6 +92,20 @@ public:
 
     /** computeWeights */
     void computeWeights();
+
+    static void euler2quat( double rot, double tilt, double psi,
+                            double q[4] );
+    static void quat2Euler( const double q[4],
+                            double& rot, double& tilt, double& psi );
+
+    static void computeAverageAngles(double rot1, double tilt1, double psi1,
+                                     double rot2, double tilt2, double psi2,
+                                     double& rot, double& tilt, double& psi );
+
+    static void computeAverageShifts(double shiftX1, double shiftY1,
+                                     double shiftX2, double shiftY2,
+                                     double& shiftX, double& shiftY );
+
 };
 //@}
 #endif

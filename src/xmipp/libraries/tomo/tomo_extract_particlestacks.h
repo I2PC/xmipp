@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas (jlvilas@cnb.csic.es)
+ * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,11 +23,46 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_confidence_map.h>
+#ifndef _PROG_TOMO_EXTRACT_PARTICLESTACKS
+#define _PROG_TOMO_EXTRACT_PARTICLESTACKS
 
-int main(int argc, char **argv)
+#include <iostream>
+#include <core/xmipp_program.h>
+#include <core/xmipp_image.h>
+#include <limits>
+#include <complex>
+#include <string>
+
+
+class ProgTomoExtractParticleStacks : public XmippProgram
 {
-	ProgTomoConfidecenceMap program;
-    program.read(argc, argv);
-    return program.tryRun();
-}
+public:
+	 /** Filenames */
+	FileName fnOut;
+    FileName fnTs;
+    FileName fnCoor;
+
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
+
+    bool invertContrast, normalize;
+
+    double scaleFactor;
+
+	/** Is the volume previously masked?*/
+	int  boxsize; 
+    int nthrs;
+
+public:
+
+    void defineParams();
+
+    void createCircle(MultidimArray<double> &maskNormalize);
+
+    void readParams();
+
+    void run();
+};
+//@}
+#endif
