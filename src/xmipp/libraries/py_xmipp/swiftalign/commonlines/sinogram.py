@@ -23,11 +23,23 @@
 from typing import Optional
 import torch
 import kornia
+import math
+
+"""
+TODO: Compute only half of the sinogram and for the other half use a 
+reflection of it.
+"""
 
 def compute_sinogram_2d(images: torch.Tensor,
-                        angles: torch.Tensor,
+                        n_angles: int,
                         interpolation: str = 'bilinear',
                         out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    if len(images.shape) != 3:
+        raise RuntimeError('Input images must have [B, H, W] shape')
+    
+    # Compute the angle grid
+    angles = torch.linspace(0.0, 360.0, n_angles+1)[:-1]
     
     # Create a gallery of rotated images
     transformed = kornia.geometry.transform.rotate(
@@ -37,10 +49,34 @@ def compute_sinogram_2d(images: torch.Tensor,
         padding_mode='zeros'
     )
     
-    # Project
+    # Project in the X direction. TODO maybe in Y?
     out = torch.sum(transformed, dim=-1, out=out)
     
-    # Swap the axes
+    # Swap the axes so that batch dimension comes first
     out = torch.transpose(out, 0, 1)
     
+    assert(out.shape[0] == images.shape[0])
+    assert(out.shape[1] == n_angles)
     return out
+
+def angle_from_line_2d(lines: torch.Tensor,
+                       out: Optional[torch.Tensor] = None):
+    if lines.shape[-1] != 2:
+        raise RuntimeError('lines2d parameter must have 2 elements in the last dim')
+
+    # According to the prior sinogram, 0deg is (0, 1)
+    return torch.atan2(lines[...,0], lines[...,1], out=out)
+
+def index_from_line_2d(lines: torch.Tensor,
+                       n_angles: float,
+                       out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    # TODO check the sign
+    out = angle_from_line_2d(lines, out=out)
+    out *= n_angles / 2*torch.pi
+    return out
+
+def extract_projection_2d(sinogram: torch.Tensor,
+                          indices: torch.Tensor,
+                          interpolation: str = 'linear',
+                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    raise NotImplementedError('Jeje')
