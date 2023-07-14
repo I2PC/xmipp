@@ -36,9 +36,9 @@ from scripts.utils import checkCMakeVersion
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.23.03.0'        #
+XMIPP_VERSION = '3.23.07.0'        #
 XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '09/03/2023'        #
+RELEASE_DATE = '14/07/2023'        #
 CMAKE_VERSION_REQUIRED = '3.16'
 ####################################
 
