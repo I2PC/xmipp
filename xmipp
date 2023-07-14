@@ -36,9 +36,9 @@ from scripts.utils import checkCMakeVersion
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.23.03.0'        #
+XMIPP_VERSION = '3.23.07.0'        #
 XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '09/03/2023'        #
+RELEASE_DATE = '14/07/2023'        #
 CMAKE_VERSION_REQUIRED = '3.16'
 ####################################
 
@@ -281,7 +281,7 @@ def cloneOrCheckout(repo, branch):
         if branch not in getAllBranchesAndTags(repo):
             branchName = 'HEAD'
             branch = None
-        print('Clonning repository: {}/{}'.format(repo, branchName))
+        print('Cloning repository: {}/{}'.format(repo, branchName))
         print(yellow('Working...'), end='\r')
         # If the repo doesn't exist, just clone the whole repo
         log = []
@@ -850,7 +850,7 @@ def downloadDeepLearningModels(dest, dedicatedMode=False):
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 
-    if not os.path.exists('bin/xmipp_sync_data'):
+    if not os.path.exists('build/bin/xmipp_sync_data'):
         print(red('Xmipp has not been installed. Please, first install it '))
         return False
     if dest == 'build':
@@ -1124,6 +1124,7 @@ def exitProgram(error=0, status=None):
     if error:
         errorEndMessage(XMIPP_VERNAME, error, status)
         printVersion()
+        sys.exit(1)
     sys.exit(0)
 
 
