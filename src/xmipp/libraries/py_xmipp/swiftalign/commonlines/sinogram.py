@@ -75,8 +75,41 @@ def index_from_line_2d(lines: torch.Tensor,
     out *= n_angles / 2*torch.pi
     return out
 
+def _extract_projection_2d_nearest(sinogram: torch.Tensor,
+                                   indices: torch.Tensor,
+                                   out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    indices = torch.round(indices).to(torch.int32)
+    indices %= len(sinogram)
+    assert(torch.all(torch.abs(indices) < len(sinogram)))
+    return torch.index_select(sinogram, dim=0, index=indices, out=out)
+
+def _extract_projection_2d_linear(sinogram: torch.Tensor,
+                                  indices: float,
+                                  out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    # TODO optimize this function
+    prev_indices = torch.floor(indices)
+    prev_indices %= len(sinogram)
+    assert(torch.all(torch.abs(prev_indices) < len(sinogram)))
+    next_indices = (prev_indices + 1)
+    next_indices %= len(sinogram)
+    assert(torch.all(torch.abs(next_indices) < len(sinogram)))
+    frac_indices = indices - prev_indices
+    assert(torch.all(frac_indices >= 0.0))
+    assert(torch.all(frac_indices < 1.0))
+
+    return torch.lerp(sinogram[prev_indices], sinogram[next_indices], frac_indices, out=out)
+
+
+
 def extract_projection_2d(sinogram: torch.Tensor,
                           indices: torch.Tensor,
                           interpolation: str = 'linear',
                           out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-    raise NotImplementedError('Jeje')
+
+    if interpolation == 'nearest':
+        return _extract_projection_2d_nearest(sinogram=sinogram, indices=indices, out=out)   
+    elif interpolation == 'linear':
+        return _extract_projection_2d_linear(sinogram=sinogram, indices=indices, out=out)   
+    else:
+        raise RuntimeError('Interpolation must be nearest or linear')
