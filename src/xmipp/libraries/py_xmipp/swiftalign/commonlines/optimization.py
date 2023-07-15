@@ -24,8 +24,8 @@ from typing import Optional
 import torch
 import itertools
 
-from geometry import *
-from sinogram import *
+from .geometry import *
+from .sinogram import *
 
 def _gram_schmidt(matrix: torch.Tensor):
     for i in range(matrix.shape[-1]):
