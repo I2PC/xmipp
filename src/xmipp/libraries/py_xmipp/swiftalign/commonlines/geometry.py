@@ -50,7 +50,7 @@ def find_common_lines(planes0: torch.Tensor,
 def unproject_to_image_plane(matrices: torch.Tensor,
                              vectors: torch.Tensor,
                              out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-    if matrices.shape[:-2] != (3, 3):
+    if matrices.shape[-2:] != (3, 3):
         raise RuntimeError('Matrices must be 3x3')
 
     if vectors.shape[-1] != 3:
@@ -61,4 +61,6 @@ def unproject_to_image_plane(matrices: torch.Tensor,
     matrices_t = torch.transpose(matrices[...,:2], -2, -1)
     
     # Perform the unprojection
+    if out is not None:
+        out = out[...,None]
     return torch.matmul(matrices_t, vectors[...,None], out=out)[...,0]

@@ -122,8 +122,8 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
             indices1 = index_from_line_2d(lines1, sinograms.shape[-2], out=indices[...,1])
             
             # Project the image in the direction
-            projections0 = extract_projection_2d(sinogram0, indices=indices0, out=projections[...,0,:])
-            projections1 = extract_projection_2d(sinogram1, indices=indices1, out=projections[...,1,:])
+            projections0 = extract_projection_2d(sinogram0, indices=indices0, interpolation='nearest', out=projections[...,0,:]) #TODO
+            projections1 = extract_projection_2d(sinogram1, indices=indices1, interpolation='nearest', out=projections[...,1,:]) #TODO
 
             # Accumulate the error for each try
             delta = torch.sub(projections0, projections1, out=delta)
