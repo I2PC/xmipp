@@ -79,7 +79,7 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
     projections = torch.empty((batch, 2, sinograms.shape[-1]), dtype=sinograms.dtype, device=sinograms.device)
     delta = None
     error = None
-    for _ in range(n_iterations):
+    for i in range(n_iterations):
         # Compute random 3x3 matrices of shape [B, N, 3, 3]
         matrices = _random_rotation_matrix_3d(
             (batch, len(sinograms)), 
@@ -135,6 +135,8 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
         if best_error is None or batch_best_error < best_error:
             best_error = error[batch_best]
             best_matrices = matrices[batch_best].clone()
+    
+        print(f'{i}/{n_iterations}')
     
     return best_matrices, best_error
             

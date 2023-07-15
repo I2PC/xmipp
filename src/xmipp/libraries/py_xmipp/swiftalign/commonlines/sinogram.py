@@ -39,7 +39,7 @@ def compute_sinogram_2d(images: torch.Tensor,
         raise RuntimeError('Input images must have [B, H, W] shape')
     
     # Compute the angle grid
-    angles = torch.linspace(0.0, 360.0, n_angles+1)[:-1]
+    angles = torch.linspace(0.0, 360.0, n_angles+1, dtype=images.dtype, device=images.device)[:-1]
     
     # Create a gallery of rotated images
     transformed = kornia.geometry.transform.rotate(

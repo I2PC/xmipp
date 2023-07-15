@@ -37,6 +37,7 @@ def run(images_md_path: str,
     images_paths = list(map(image.parse_path, images_md[md.IMAGE]))
     images_dataset = image.torch_utils.Dataset(images_paths)
     images = torch.utils.data.default_collate(list(images_dataset))
+    images = images.to('cuda:0')
     
     sinogram = commonlines.compute_sinogram_2d(images, n_angles, 'bilinear')
     matrices, error = commonlines.optimize_common_lines_monte_carlo(sinogram, n_iter, batch)
