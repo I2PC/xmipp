@@ -114,7 +114,7 @@ if __name__ == "__main__":
             [0.0, 0.0, 0.0, 1.0]])
 
 
-    def euler_from_matrix(matrix, axes='sxyz'):
+    def euler_from_matrix(matrix, axes='szyz'):
         """Return Euler angles from rotation matrix for specified axis sequence.
 
         axes : One of 24 axis sequences as string or encoded tuple
@@ -159,7 +159,10 @@ if __name__ == "__main__":
         return ax, ay, az
 
 
-    def euler_from_quaternion(quaternion, axes='sxyz'):
+    matrzz = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    print('euler', euler_from_matrix(matrzz), flush=True)
+
+    def euler_from_quaternion(quaternion, axes='szyz'):
         """Return Euler angles from quaternion for specified axis sequence."""
         return euler_from_matrix(quaternion_matrix(quaternion), axes)
 
@@ -181,21 +184,13 @@ if __name__ == "__main__":
         b3 = np.cross(b1, b2, axis=0)
         return np.concatenate((b1, b2, b3), axis=1)
 
-
-    def matrix_to_euler(mat):
-        """Return Euler angles from rotation matrix"""
-        r = Rotation.from_matrix(mat)
-        angles = r.as_euler("xyz", degrees=True)
-        return angles
-
-
     def produce_output(mdExp, Y, distance, fnImages):
         ID = 0
         for objId in mdExp:
             angles = Y[ID] * 180 / math.pi
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
-            mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+            mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1], objId)
             mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             if distance[ID] > tolerance:
                 mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
@@ -253,9 +248,8 @@ if __name__ == "__main__":
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
-        #pred6d = calculate_r6d(p6d_redundant)
-        #matrix = convert_to_matrix(pred6d)
-        matrix = convert_to_matrix(p6d_redundant)
+        pred6d = calculate_r6d(p6d_redundant)
+        matrix = convert_to_matrix(pred6d)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
@@ -308,7 +302,7 @@ if __name__ == "__main__":
         models.append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 6))
+    predictions = np.zeros((numImgs, numAngModels, 42))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1

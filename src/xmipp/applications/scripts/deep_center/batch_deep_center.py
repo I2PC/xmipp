@@ -105,11 +105,9 @@ if __name__ == "__main__":
                 fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
                 Iexp = list(map(get_image, fnIexp))
             # Data augmentation
-            rX = self.sigma * np.random.normal(0, 1, size=self.batch_size)
-            rY = self.sigma * np.random.normal(0, 1, size=self.batch_size)
-            rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-                        # Shift image a random amount of px in each direction
+            rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+            rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+            # Shift image a random amount of px in each direction
             Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
             y = yvalues + np.vstack((rX, rY)).T
             return Xexp, y

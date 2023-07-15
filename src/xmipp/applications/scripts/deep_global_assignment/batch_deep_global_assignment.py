@@ -44,7 +44,7 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
-        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
+        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory, matrices):
             """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
@@ -56,7 +56,13 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
             self.shifts = shifts
+            self.matrices = np.array(matrices)
+            self.num_matrices = self.matrices.shape[0]
+            self.inverse_matrices = np.zeros_like(self.matrices)
+            for i in range(self.num_matrices):
+                self.inverse_matrices[i] = np.linalg.inv(matrices[i])
 
+            print(self.inverse_matrices, flush=True)
 
             # Read all data in memory
             if self.readInMemory:
@@ -99,30 +105,30 @@ if __name__ == "__main__":
                 return (img - np.mean(img)) / np.std(img)
 
             def shift_image(img, shiftx, shifty, yshift):
-                return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='wrap')
+                return shift(img, (shiftx - yshift[0], shifty - yshift[1], 0), order=1, mode='wrap')
 
             def rotate_image(img, angle):
                 # angle in degrees
                 return rotate(img, angle, order=1, mode='reflect', reshape=False)
 
             def R_rot(theta):
-                return np.array([[1, 0, 0],
-                                  [0, math.cos(theta), -math.sin(theta)],
-                                  [0, math.sin(theta), math.cos(theta)]])
+                return np.array([[math.cos(theta), -math.sin(theta), 0],
+                                 [math.sin(theta), math.cos(theta), 0],
+                                 [0, 0, 1]])
 
             def R_tilt(theta):
-                return np.array([[math.cos(theta), 0, math.sin(theta)],
-                                  [0, 1, 0],
-                                  [-math.sin(theta), 0, math.cos(theta)]])
+                return np.array([[math.cos(theta), 0, -math.sin(theta)],
+                                 [0, 1, 0],
+                                 [math.sin(theta), 0, math.cos(theta)]])
 
             def R_psi(theta):
                 return np.array([[math.cos(theta), -math.sin(theta), 0],
-                                  [math.sin(theta), math.cos(theta), 0],
-                                  [0, 0, 1]])
+                                 [math.sin(theta), math.cos(theta), 0],
+                                 [0, 0, 1]])
 
             def euler_angles_to_matrix(angles, psi_rotation):
                 Rx = R_rot(angles[0])
-                Ry = R_tilt(angles[1] - math.pi / 2)
+                Ry = R_tilt(angles[1])
                 Rz = R_psi(angles[2] + psi_rotation)
                 return np.matmul(np.matmul(Rz, Ry), Rx)
 
@@ -134,24 +140,35 @@ if __name__ == "__main__":
                 mat = euler_angles_to_matrix(angles, psi_rotation)
                 return matrix_to_rotation6d(mat)
 
+            def frobenius_norm(matrix):
+                return np.linalg.norm(matrix, ord='fro')
+
+            def map_symmetries(matrix):
+                # print('matrix', matrix)
+                reshaped_matrix = np.tile(matrix, (self.num_matrices, 1, 1))
+                candidates = np.matmul(self.inverse_matrices, reshaped_matrix)
+                norms = np.array(list((map(frobenius_norm, candidates - np.eye(3)))))
+                index_min = np.argmin(norms)
+                return candidates[index_min]
+
             def make_redundant(rep_6d):
-                #rep_6d = np.append(rep_6d, 2*rep_6d)
-                #for i in range(6):
-                #    j = (i+1) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
-                #for i in range(6):
-                #    j = (i + 3) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
-                #for i in range(6):
-                #    j = (i + 2) % 6
-                #    k = (i + 4) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
-                #for i in range(6):
-                #    j = (i + 5) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
-                #for i in range(6):
-                #    j = (i + 4) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                rep_6d = np.append(rep_6d, 2 * rep_6d)
+                for i in range(6):
+                    j = (i + 1) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 3) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i + 6] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 2) % 6
+                    k = (i + 4) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] + rep_6d[j] - rep_6d[k])
+                for i in range(6):
+                    j = (i + 5) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
+                for i in range(6):
+                    j = (i + 4) % 6
+                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
                 return rep_6d
 
             if self.readInMemory:
@@ -169,10 +186,12 @@ if __name__ == "__main__":
             Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
             rAngle = rAngle * math.pi / 180
             yvalues = yvalues * math.pi / 180
-            y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+            y_matrices = np.array(list((map(euler_angles_to_matrix, yvalues, rAngle))))
+            map_matrices = np.array(list(map(map_symmetries, y_matrices)))
+            y_6d = np.array(list((map(matrix_to_rotation6d, map_matrices))))
             y = np.array(list((map(make_redundant, y_6d))))
-
             return Xexp, y
+
 
     def conv_block(tensor, filters):
         # Convolutional block of RESNET
@@ -188,6 +207,7 @@ if __name__ == "__main__":
         x = Add()([x, x_res])
         x = Activation('relu')(x)
         return x
+
 
     def constructModel(Xdim):
         """RESNET architecture"""
@@ -205,13 +225,31 @@ if __name__ == "__main__":
 
         x = GlobalAveragePooling2D()(x)
 
-        #x = Dense(42, name="output", activation="linear")(x)
-        x = Dense(6, name="output", activation="linear")(x)
+        x = Dense(42, name="output", activation="linear")(x)
 
         return Model(inputLayer, x)
 
+    def constructClassifier(Xdim):
+        """RESNET architecture"""
+        inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-    def get_labels(fnImages, symMatrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])):
+        x = conv_block(inputLayer, filters=64)
+
+        x = conv_block(x, filters=128)
+
+        x = conv_block(x, filters=256)
+
+        x = conv_block(x, filters=512)
+
+        x = conv_block(x, filters=1024)
+
+        x = GlobalAveragePooling2D()(x)
+
+        x = Dense(2, name="output", activation="softmax")(x)
+
+        return Model(inputLayer, x)
+
+    def get_labels(fnImages):
         """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
@@ -229,15 +267,15 @@ if __name__ == "__main__":
         # 50 divisions with equal area
         numTiltDivs = 5
         numRotDivs = 10
-        limits_rot = np.linspace(-180.01, 180, num=(numRotDivs+1))
-        limits_tilt = np.zeros(numTiltDivs+1)
+        limits_rot = np.linspace(-180.01, 180, num=(numRotDivs + 1))
+        limits_tilt = np.zeros(numTiltDivs + 1)
         limits_tilt[0] = -0.01
-        for i in range(1, numTiltDivs+1):
-            limits_tilt[i] = math.acos(1-2*(i/numTiltDivs))
-        limits_tilt = limits_tilt*180/math.pi
+        for i in range(1, numTiltDivs + 1):
+            limits_tilt[i] = math.acos(1 - 2 * (i / numTiltDivs))
+        limits_tilt = limits_tilt * 180 / math.pi
 
         # Each particle is assigned to a division
-        zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
+        zone = [[] for _ in range((len(limits_tilt) - 1) * (len(limits_rot) - 1))]
         i = 0
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             label.append(np.array((r, t, p)))
@@ -245,7 +283,7 @@ if __name__ == "__main__":
             region_rot = np.digitize(r, limits_rot, right=True) - 1
             region_tilt = np.digitize(t, limits_tilt, right=True) - 1
             # Region index
-            region_idx = region_rot * (len(limits_tilt)-1) + region_tilt
+            region_idx = region_rot * (len(limits_tilt) - 1) + region_tilt
             zone[region_idx].append(i)
             i += 1
 
@@ -255,9 +293,6 @@ if __name__ == "__main__":
     import tensorflow as tf
     import keras.backend as K
 
-    SL = xmippLib.SymList()
-    Matrices = SL.getSymmetryMatrices(symmetry)
-    print(Matrices, flush=True)
 
     def rotation6d_to_matrix(rot):
         a1 = rot[:, slice(0, 6, 2)]
@@ -273,6 +308,7 @@ if __name__ == "__main__":
         b3 = K.expand_dims(b3, axis=2)
         return K.concatenate((b1, b2, b3), axis=2)
 
+
     def eq_matrices(y_true, R):
         tfR = tf.constant(R)
         tfR = tf.transpose(tfR, perm=[1, 0, 2])
@@ -286,6 +322,7 @@ if __name__ == "__main__":
         eq_rotations = tf.reshape(eq_rotations, [shape[0], -1, shape[1]])
         eq_rotations6d = eq_rotations[:, :, :-1]
         return tf.reshape(eq_rotations6d, [shape[0], shape[1], -1])
+
 
     def compute_distances(y_pred, eq_y_true):
         a1 = y_pred[:, slice(0, 6, 2)]
@@ -305,11 +342,13 @@ if __name__ == "__main__":
         # Perform dot multiplication between columns
         dot_product = tf.multiply(mat_pred[:, :, 0:1], odd_columns_expanded) + tf.multiply(mat_pred[:, :, 1:2],
                                                                                            even_columns_expanded)
-        #return dot_product
+        # return dot_product
         # Reduce the result along the second dimension
         distances = -tf.reduce_sum(dot_product, axis=2)
 
         return distances
+
+
     def geodesic_distance_symmetries(y_true, y_pred):
         mat_true = rotation6d_to_matrix(y_true)
         eq_true = eq_matrices(mat_true, Matrices)
@@ -318,29 +357,35 @@ if __name__ == "__main__":
 
         return K.mean(d)
 
+
     Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
     start_time = time()
 
     # Train-Validation sets
     if numModels == 1:
-        lenTrain = int(len(fnImgs)*0.8)
-        lenVal = len(fnImgs)-lenTrain
+        lenTrain = int(len(fnImgs) * 0.8)
+        lenVal = len(fnImgs) - lenTrain
     else:
         lenTrain = int(len(fnImgs) / 3)
         lenVal = int(len(fnImgs) / 12)
 
-    elements_zone = int((lenVal+lenTrain)/len(zones))
+    elements_zone = int((lenVal + lenTrain) / len(zones))
+
+    SL = xmippLib.SymList()
+    Matrices = SL.getSymmetryMatrices(symmetry)
+
+    print(Matrices, flush=True)
 
     for index in range(numModels):
         # chooses equal number of particles for each division
-        random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
+        random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain + lenVal, replace=False)
 
         training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
                                            [labels[i] for i in random_sample[0:lenTrain]],
-                                           sigma, batch_size, Xdims, shifts, readInMemory=False)
-        validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             sigma, batch_size, Xdims, shifts, readInMemory=False)
+                                           sigma, batch_size, Xdims, shifts, matrices=Matrices, readInMemory=False)
+        validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                             [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                             sigma, batch_size, Xdims, shifts, readInMemory=False, matrices=Matrices)
 
         if pretrained == 'yes':
             model = load_model(fnPreModel, compile=False)
@@ -350,15 +395,14 @@ if __name__ == "__main__":
         adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
         model.summary()
 
-        #model.compile(loss='mean_squared_error', optimizer=adam_opt)
-        model.compile(loss=geodesic_distance_symmetries, optimizer=adam_opt)
+        model.compile(loss='mean_squared_error', optimizer=adam_opt)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
         patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
-
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
+                                      validation_data=validation_generator,
+                                      callbacks=[save_best_model, patienceCallBack])
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
