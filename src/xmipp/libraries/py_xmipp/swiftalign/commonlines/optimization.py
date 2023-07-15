@@ -27,31 +27,41 @@ import itertools
 from geometry import *
 from sinogram import *
 
-
-
-def _random_rotation_matrix(d: int,
-                            shape: torch.Size = torch.Size(), 
-                            dtype: Optional[torch.dtype] = None,
-                            device: Optional[torch.device] = None,
-                            out: Optional[torch.Tensor] = None ) -> torch.Tensor:
-    
-    # Allocate the output with the RVs
-    out = torch.randn(shape + (d, d), dtype=dtype, device=device, out=out)
-    
-    # Select vectors at random and apply Gram-Schmidt
-    for i in range(d):
+def _gram_schmidt(matrix: torch.Tensor):
+    for i in range(matrix.shape[-1]):
         # Alias for the current column
-        vi = out[...,:,i]
+        current_columns = matrix[...,:,i]
         
-        # Apply Gram-Schmidt
-        # TODO optimize this code
-        for j in range(i):
-            vj = out[...,:,j]
-            proj = torch.matmul(vi[...,None,:], vj[...,:,None])[...,0]
-            vi -= proj * vj
+        if i > 0:
+            # Alias the previous columns
+            previous_columns = matrix[...,:,:i]
+            
+            # Project the current column into the previous columns
+            coefficients = torch.matmul(previous_columns.mT, current_columns[...,None]).mT
+            projections = coefficients * previous_columns
+            
+            # Subtract the projection of the previous columns
+            current_columns -= torch.sum(projections, axis=-1)
             
         # Make sure the vector is orthogonal
-        torch.nn.functional.normalize(vi, dim=-1, out=vi)
+        torch.nn.functional.normalize(current_columns, dim=-1, out=current_columns)
+
+def _random_rotation_matrix_3d(batch_shape: torch.Size = torch.Size(), 
+                               dtype: Optional[torch.dtype] = None,
+                               device: Optional[torch.device] = None,
+                               out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    # Allocate the output
+    out = torch.empty(batch_shape + (3, 3), dtype=dtype, device=device, out=out)
+    
+    # Fill everything except the last column with normal RVs
+    torch.randn(batch_shape + (3, 2), dtype=dtype, device=device, out=out[...,:2])
+    
+    # Apply Gram-Schmidt to the first two columns
+    _gram_schmidt(out[...,:2])
+    
+    # Calculate the last column with the cross product of the former ones
+    torch.cross(out[...,0], out[...,1], dim=-1, out=out[...,2])
     
     return out
 
@@ -71,8 +81,8 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
     error = None
     for _ in range(n_iterations):
         # Compute random 3x3 matrices of shape [B, N, 3, 3]
-        matrices = _random_rotation_matrix(
-            3, (batch, len(sinograms)), 
+        matrices = _random_rotation_matrix_3d(
+            (batch, len(sinograms)), 
             dtype=sinograms.dtype,
             device=sinograms.device,
             out=matrices
