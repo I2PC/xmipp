@@ -20,7 +20,4 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .geometry import (complete_orthogonal_matrix, image_plane_vector_from_matrix, 
-                       find_common_lines, unproject_to_image_plane)
-from .optimization import optimize_common_lines_monte_carlo, optimize_common_lines_genetic
-from .sinogram import compute_sinogram_2d, extract_projection_2d
+from .euler_from_matrix import euler_from_matrix

@@ -20,7 +20,18 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .geometry import (complete_orthogonal_matrix, image_plane_vector_from_matrix, 
-                       find_common_lines, unproject_to_image_plane)
-from .optimization import optimize_common_lines_monte_carlo, optimize_common_lines_genetic
-from .sinogram import compute_sinogram_2d, extract_projection_2d
+from typing import Optional
+import torch
+
+def euler_from_matrix(matrices: torch.Tensor,
+                      out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    # Allocate the output
+    out = torch.empty(matrices.shape[:-2] + (3, ), dtype=matrices.dtype, device=matrices.device, out=out)
+
+    sy = torch.norm(matrices[...,2,0:2], dim=-1)
+    torch.atan2(matrices[...,2,1], matrices[...,2,0], out=out[...,0])
+    torch.atan2(sy, matrices[...,2,2], out=out[...,1])
+    torch.atan2(matrices[...,1,2], -matrices[...,0,2], out=out[...,2])
+    
+    out *= -1
+    return out
