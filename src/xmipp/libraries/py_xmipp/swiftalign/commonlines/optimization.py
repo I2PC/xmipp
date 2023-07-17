@@ -133,10 +133,10 @@ def optimize_common_lines_monte_carlo(sinograms: torch.Tensor,
         batch_best = torch.argmin(error)
         batch_best_error = error[batch_best]
         if best_error is None or batch_best_error < best_error:
-            best_error = error[batch_best]
+            best_error = float(error[batch_best])
             best_matrices = matrices[batch_best].clone()
     
-        print(f'{i}/{n_iterations}')
+        print(f'{i+1}/{n_iterations}: {best_error}')
     
     return best_matrices, best_error
             
