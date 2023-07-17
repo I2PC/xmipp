@@ -47,7 +47,7 @@ We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Tr
 
 `pip install scons` in the enviroment that xmipp will be compiled (scipion3 if you will run Xmipp within Scipion)
 
-Also a compiler will be required (`sudo apt install gcc-8 g++-8`)
+Also a compiler will be required (`sudo apt install gcc-10 g++-10`)
 
 ## Standalone installation
 Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion, however, in the next section it is explained how to link it with Scipion. Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
