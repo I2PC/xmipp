@@ -53,7 +53,7 @@
 
 // #define DEBUG_DIM
 // #define DEBUG_PREPROCESS
-#define DEBUG_HCC
+// #define DEBUG_HCC
 // #define DEBUG_CENTER_COORDINATES
 // #define DEBUG_VOTTING
 // #define DEBUG_FILTERLABEL

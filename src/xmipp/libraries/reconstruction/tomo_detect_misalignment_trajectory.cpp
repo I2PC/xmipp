@@ -213,7 +213,16 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 		std::cout << MAT_ELEM(projectionMatrix, 1, 0) << " " << MAT_ELEM(projectionMatrix, 1, 1) << " " << MAT_ELEM(projectionMatrix, 1, 2) << std::endl;
 		std::cout << MAT_ELEM(projectionMatrix, 2, 0) << " " << MAT_ELEM(projectionMatrix, 2, 1) << " " << MAT_ELEM(projectionMatrix, 2, 2) << std::endl;
 		std::cout << "------------------------------------"<<std::endl;
-		#endif 
+
+		std::cout << "---------------- Coordinates in slice " << n << "------------------------------------" << std::endl;
+		for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+		{
+			std::cout << coordinatesInSlice[i].x << ", " << coordinatesInSlice[i].y << std::endl;
+		}
+		
+		std::cout << "=============================================================================================================" << std::endl;
+		#endif
+		
 
 		if (coordinatesInSlice.size() != 0)
 		{
@@ -261,13 +270,6 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 					std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
 					std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
 					std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
-
-					for(size_t i = 0; i < coordinatesInSlice.size(); i++)
-					{
-						std::cout << coordinatesInSlice[i].x << ", " << coordinatesInSlice[i].y << std::endl;
-					}
-					
-					std::cout << "=============================================================================================================" << std::endl;
 					#endif
 
 					// Iterate though every coordinate in the tilt-image and calculate the minimum distance
@@ -276,27 +278,27 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 						distance = (XX(projectedGoldBead) - coordinatesInSlice[i].x)*(XX(projectedGoldBead) - coordinatesInSlice[i].x) + (YY(projectedGoldBead) - coordinatesInSlice[i].y)*(YY(projectedGoldBead) - coordinatesInSlice[i].y);
 
 						#ifdef DEBUG_RESID
-						std::cout << "------------------------------------------------------------------------------------" << std::endl;
-						std::cout << "i/i_total " << i << "/" << coordinatesInSlice.size()-1 << std::endl;
+						// std::cout << "------------------------------------------------------------------------------------" << std::endl;
+						// std::cout << "i/i_total " << i << "/" << coordinatesInSlice.size()-1 << std::endl;
 						
-						std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
-						std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
-						std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
-						std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
+						// std::cout << "tiltAngles[n] " << tiltAngles[n] << std::endl;
+						// std::cout << "XX(projectedGoldBead) " << XX(projectedGoldBead) << std::endl;
+						// std::cout << "YY(projectedGoldBead) " << YY(projectedGoldBead) << std::endl;
+						// std::cout << "ZZ(projectedGoldBead) " << ZZ(projectedGoldBead) << std::endl;
 						
-						std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
-						std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
-						std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
+						// std::cout << "XX(goldBead3d) " << XX(goldBead3d) << std::endl;
+						// std::cout << "YY(goldBead3d) " << YY(goldBead3d) << std::endl;
+						// std::cout << "ZZ(goldBead3d) " << ZZ(goldBead3d) << std::endl;
 
-						std::cout << "coordinatesInSlice[i].x " << coordinatesInSlice[i].x << std::endl;
-						std::cout << "coordinatesInSlice[i].y " << coordinatesInSlice[i].y << std::endl;
+						// std::cout << "coordinatesInSlice[i].x " << coordinatesInSlice[i].x << std::endl;
+						// std::cout << "coordinatesInSlice[i].y " << coordinatesInSlice[i].y << std::endl;
 
-						std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
-						std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
+						// std::cout << "coordinatesInSlice[i].x - XX(projectedGoldBead) " << coordinatesInSlice[i].x - XX(projectedGoldBead) << std::endl;
+						// std::cout << "coordinatesInSlice[i].y - YY(projectedGoldBead) " << coordinatesInSlice[i].y - YY(projectedGoldBead) << std::endl;
 
-						std::cout << "minDistance " << minDistance << std::endl;
-						std::cout << "distance " << distance << std::endl;
-						std::cout << "------------------------------------------------------------------------------------" << std::endl;					
+						// std::cout << "minDistance " << minDistance << std::endl;
+						// std::cout << "distance " << distance << std::endl;
+						// std::cout << "------------------------------------------------------------------------------------" << std::endl;					
 						#endif
 
 						if(distance < minDistance)
@@ -311,7 +313,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 					Point3D<double> cis(coordinatesInSlice[minIndex].x, coordinatesInSlice[minIndex].y, n);
 					Point3D<double> c3d(XX(goldBead3d), YY(goldBead3d), ZZ(goldBead3d));
-					Point2D<double> res(coordinatesInSlice[minIndex].x - XX(projectedGoldBead), coordinatesInSlice[minIndex].y - YY(projectedGoldBead)); 
+					Point2D<double> res(XX(projectedGoldBead)-coordinatesInSlice[minIndex].x, YY(projectedGoldBead) - coordinatesInSlice[minIndex].y); 
 
 					#ifdef DEBUG_RESID
 					std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
@@ -330,6 +332,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 					std::cout << "coordinatesInSlice[minIndex].y - YY(projectedGoldBead) " << coordinatesInSlice[minIndex].y - YY(projectedGoldBead) << std::endl;
 
 					std::cout << "minDistance " << minDistance << std::endl;
+					std::cout << "sqrt(minDistance) " << sqrt(minDistance) << std::endl;
 					std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 					#endif
 
