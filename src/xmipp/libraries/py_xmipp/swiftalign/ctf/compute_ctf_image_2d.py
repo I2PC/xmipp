@@ -23,32 +23,44 @@
 from typing import Optional
 import torch
 
-def compute_ctf_image_2d(   frequency_grid: torch.Tensor,
-                            defocus: torch.Tensor,
-                            wavelength: float,
-                            spherical_aberration: float,
-                            phase_shift: float,
-                            out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
+                             defocus_average: torch.Tensor,
+                             defocus_difference: torch.Tensor,
+                             astigmatism_angle: torch.Tensor,
+                             out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    # Compute the first term of the phase
-    frequency2_grid = torch.square(frequency_grid)
-    out = torch.tensordot(frequency2_grid, defocus, dims=((0, ), (-1, )), out=out)
+    out = torch.sub(frequency_angle_grid, astigmatism_angle[...,None], out=out)
+    out *= 2
+    out.cos_()    
+    out *= defocus_difference[...,None]
+    out += defocus_average[...,None]
     
-    # Compute the squared frequency
-    frequency2_grid = torch.sum(torch.square(frequency_grid), dim=0)
+    return out
+
+def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
+                         frequency_angle_grid: torch.Tensor,
+                         defocus_average: torch.Tensor,
+                         defocus_difference: torch.Tensor,
+                         astigmatism_angle: torch.Tensor,
+                         wavelength: float,
+                         spherical_aberration: float,
+                         phase_shift: float,
+                         out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    # Compute defocus*frequency
+    k = 0.5 * spherical_aberration * wavelength * wavelength
+
+    out = _compute_defocus_grid_2d(
+        frequency_angle_grid=frequency_angle_grid,
+        defocus_average=defocus_average,
+        defocus_difference=defocus_difference,
+        astigmatism_angle=astigmatism_angle,
+        out=out
+    )
     
-    frequency2_grid = torch.tensordot(frequency_grid, frequency_grid, dim=(0, 0))
+    out -= k*frequency_magnitude2_grid
+    out *= (torch.pi * wavelength) * frequency_magnitude2_grid
+    out += torch.pi + phase_shift
+    out.cos_()
     
-    out += (0.5*wavelength*wavelength*spherical_aberration)*frequency2_grid
+    return out
     
-    # TODO add the defocus term
-    
-    out *= frequency2
-    out *= torch.pi * wavelength
-    
-    # Add the phase_shift. Also add pi to introduce the - sign
-    out += phase_shift + torch.pi
-    
-    pass

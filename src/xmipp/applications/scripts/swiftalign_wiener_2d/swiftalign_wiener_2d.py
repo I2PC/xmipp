@@ -81,8 +81,18 @@ def run(images_md_path: str,
         # Perform the FFT of the images
         batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
         
-        # Compute the CTF image
-        # TODO
+        # Compute the CTF image TODO
+        ctf_images = ctf.compute_ctf_image_2d(
+            frequency_magnitude2_grid=None,
+            frequency_angle_grid=None,
+            defocus_average=None,
+            defocus_difference=None,
+            astigmatism_angle=None,
+            wavelength=None,
+            spherical_aberration=None,
+            phase_shift=None,
+            out=ctf_images
+        )
         
         # Compute the wiener filter
         wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters)
