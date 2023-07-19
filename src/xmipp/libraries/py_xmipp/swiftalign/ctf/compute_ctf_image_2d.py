@@ -57,10 +57,11 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
         out=out
     )
     
+    # Compute the phase
     out -= k*frequency_magnitude2_grid
     out *= (torch.pi * wavelength) * frequency_magnitude2_grid
-    out += torch.pi + phase_shift
-    out.cos_()
+    out += phase_shift
+    out.sin_()
     
     return out
     

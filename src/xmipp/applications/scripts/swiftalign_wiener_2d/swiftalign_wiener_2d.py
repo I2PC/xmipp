@@ -63,6 +63,7 @@ def run(images_md_path: str,
         pixel_size: float,
         spherical_aberration: float,
         voltage: float,
+        phase_flipped: bool,
         batch_size: int,
         device_names: list ):
     
@@ -125,7 +126,7 @@ def run(images_md_path: str,
         defocus = defocus.to(transform_device, non_blocking=True)
         
         # Perform the FFT of the images
-        batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier.resize_(0))
+        batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
         
         # Compute the CTF image TODO
         ctf_images = ctf.compute_ctf_image_2d(
@@ -136,18 +137,18 @@ def run(images_md_path: str,
             astigmatism_angle=defocus[:,2],
             wavelength=wavelength,
             spherical_aberration=spherical_aberration,
-            phase_shift=math.pi/2,
-            out=ctf_images.resize_(0)
+            phase_shift=0.0,
+            out=ctf_images
         )
         
-        #plt.imshow(ctf_images[0].cpu())
-        #plt.show()
+        if phase_flipped:
+            ctf_images.abs_()
+        
+        plt.imshow(ctf_images[0].cpu())
+        plt.show()
 
         # Compute the wiener filter
-        wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters.resize_(0))
-        
-        #plt.imshow(wiener_filters[0].cpu())
-        #plt.show()
+        wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters)
         
         # Apply the filter to the images
         batch_images_fourier *= wiener_filters
@@ -180,6 +181,7 @@ if __name__ == '__main__':
     parser.add_argument('--pixel_size', type=float, required=True)
     parser.add_argument('--spherical_aberration', type=float, required=True)
     parser.add_argument('--voltage', type=float, required=True)
+    parser.add_argument('--phase_flipped', action='store_true')
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--device', nargs='*')
 
@@ -193,6 +195,7 @@ if __name__ == '__main__':
         pixel_size=args.pixel_size,
         spherical_aberration=args.spherical_aberration,
         voltage=args.voltage,
+        phase_flipped=args.phase_flipped,
         batch_size = args.batch,
         device_names = args.device
     )
