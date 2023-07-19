@@ -44,7 +44,7 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
                          astigmatism_angle: torch.Tensor,
                          wavelength: float,
                          spherical_aberration: float,
-                         phase_shift: float,
+                         phase_shift: Optional[float] = None,
                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
     k = 0.5 * spherical_aberration * wavelength * wavelength
@@ -60,7 +60,8 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
     # Compute the phase
     out -= k*frequency_magnitude2_grid
     out *= (torch.pi * wavelength) * frequency_magnitude2_grid
-    out += phase_shift
+    if phase_shift is not None: 
+        out += phase_shift
     out.sin_()
     
     return out

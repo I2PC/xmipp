@@ -63,6 +63,7 @@ def run(images_md_path: str,
         spherical_aberration: float,
         voltage: float,
         phase_flipped: bool,
+        q0: float,
         batch_size: int,
         device_names: list ):
     
@@ -98,6 +99,8 @@ def run(images_md_path: str,
     voltage *= 1e3 # kV to V
     wavelength = 1e10*_compute_wavelength(voltage)
     spherical_aberration *= 1e7 # mm to A
+    phase_shift = 0.0
+    phase_shift += math.asin(q0) #Inelastic distorsion induces a phase shift
     
     # Compute frequency grid
     cartesian_frequency_grid = fourier.rfftnfreq(
@@ -136,7 +139,7 @@ def run(images_md_path: str,
             astigmatism_angle=defocus[:,2],
             wavelength=wavelength,
             spherical_aberration=spherical_aberration,
-            phase_shift=0.0,
+            phase_shift=phase_shift,
             out=ctf_images
         )
         
@@ -177,6 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--pixel_size', type=float, required=True)
     parser.add_argument('--spherical_aberration', type=float, required=True)
     parser.add_argument('--voltage', type=float, required=True)
+    parser.add_argument('--q0', type=float, default=0.1)
     parser.add_argument('--phase_flipped', action='store_true')
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--device', nargs='*')
@@ -192,6 +196,7 @@ if __name__ == '__main__':
         spherical_aberration=args.spherical_aberration,
         voltage=args.voltage,
         phase_flipped=args.phase_flipped,
+        q0=args.q0,
         batch_size = args.batch,
         device_names = args.device
     )
