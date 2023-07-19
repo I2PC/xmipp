@@ -1,3 +1,44 @@
+   ## Release 3.23.07 - Morpheus
+   ### Xmipp Programs 
+   - New programs
+      - image_peak_high_contrast(for detecting high contrast regions in tomographic reconstruction)
+      - misaligment_detection (to detect misalignment in tomographic reconstructions from high-contrast regions)
+      - deep_global_assignment
+      - deep_center
+   - Programs updated
+      - xmipp_angular_distance: new features
+      - tomo_extract_particles: new features
+      - subtract_projection: parallelization with mpi
+      - tomo_extract_subtomograms: allow downsampling of features
+      - angular_resolution_alignment:  Detect misalignment with resolution
+   - Programs fixed
+      - align_volume_and_particles: Fixed error  
+      - angular_project_library: Removed deterministic behaviour (mpi)
+      - volumen_subtraction: fixed bug
+   - Deprecated programs (For more details [visit](https://github.com/I2PC/xmipp/wiki/Deprecating-programs-and-protocols)) 
+      - classify_kmeans_2D
+      - rotational_spectra
+      - particle_boxsize
+   
+   ### Installation and user guide
+   - New clearer, more intuitive and informative installer. It also creates a file to facilitate user support.
+   - Refactored the deep learning toolkit, more robust and new environment with updated tensorflow.
+   - Updated requirement.
+     
+   ### More Xmipp 
+   - Added half precission suport to numpy
+   - Added the ability to read and write CIF files
+   - Modular design of winner filter
+   - Decoupling XmippTomo from XmippSPA
+   - Fix Zernike equation
+   - Removed all occurrences of non base-class default destructors
+   - Improved MultidimArray performance
+   - Added support for half precision floating point numbers in MRCs
+   - Assign tiff to gain files
+   - adding half maps labels  
+
+
+   
    ## Release 3.23.03 - Kratos
    ### Xmipp Programs 
    
@@ -13,17 +54,6 @@
   - xmipp_matrix_dimred: Program help improved. Exception is now thrown when the number of output dimensions is larger than the input dimensions
   - xmipp_angular_distance: Added itemId column to the output
 
-
-   ### Protocols scipion-em-xmipp
-  - New protocol status: beta, new, production and updated. Will appear in the left pannel of Scipion 
-  - Protocol subtract_projection: user experience improvements, no final mask by default, apply ciruclar mask in adjustment image to avoid edge artifacts, validate same sampling rate with tolerance in third decimal
-  - Protocol convert_pdb: Allowed to save centered PDB used for conversion. 
-  - Protocol align_volume_and_particles: add alingment validation
-  - Protocol FlexAlign: updating protocol to reflect changes in the executable, fixed test, removing unused protocol (Movie average)
-  - Protocol align_volume_and_particles:Align volume and particles adapted to tomography and works in the absence of tomo plugin.
-  - Protocol volume_consensus: validate same sampling rate with tolerance in third decimal
-  - Protocols deprecated (for more details visit the [wiki](https://github.com/I2PC/xmipp/wiki/Deprecating-programs)): protocol_deep _align, reconstruct_heterogeneous, protocol_metaprotocol_create_output, protocol_metaprotocol_discrete_heterogeneity_scheduler
-  
    ### Installation and user guide
    - Refactor and simplified Readme page.
    - Updating CUDA version compatibility
@@ -60,23 +90,6 @@
   -  xmipp_micrograph_automatic_picking: Fixing memory leak
   -  subtract_projection: Fixed several bugs (improved results), added circular mask to avoid edge artifacts, added option to boost particles instead of subtract
 
-
-  ### Protocols scipion-em-xmipp
-  - Protocol_cl2d_align: The input can now be a set of averages or a set of 2D classes 
-  - Protocol_local_ctf: Default value are now changed for maxDefocusChange
-  - Protocol_apply_zernike3d: Now accepts either a Volume or SetOfVolumes and applies the coefficients in a loop in the deform step
-  - Protocol_postProcessing_deepPostProcessing: Managed GPU memory to avoid errors
-  - Protocol_resolution_deepres: Mandatory mask
-  - Protocol center particles and Gl2d (all options): Fix streaming
-  - Protocol_create_3d_mask: Allows volume Null=True
-  - Protocol_reconstruct_fourier: Set pixel size
-  - GL2D static: Bug fixing
-  - Protocol_trigger_data: Bug fixing
-  - Protocol_crop_resize: Set sampling rate of mrc files when cropping resizing volumes or particles
-  - subtract_projection: New protocol for boosting particles. Add protocol to wizard XmippParticleMaskRadiusWizard as now the protocol uses it
-
-  - **New tests:** deep_hand, pick_noise, screen_deep_learning, resolution_B_factor
-  - Fixed TestHighres test
   
   ### Installation and user guide
   - Various bug fixing
@@ -102,26 +115,6 @@
 - **angular_continuous_assign2**: Bug fixed
 - **volume_consensus**: Bug fixed
 - **ctf.h and angular_continuous_assign_2**: Changes for local defocus estimation #578
-
-### Protocols scipion-em-xmipp
-- **rotate_volume**: New protocol
-- **subtract_projection**: New implementation based on adjustment by regression instead of POCS and improved performance
-- **local_ctf**: Add new sameDefocus option + formatting
-- **compare_reprojections & protocol_align_volume**: Fast Fourier by default
-- **crop_resize**: Allows input pointers
-- **resolution_deepres**: Resize output to original size
-- **denoise_particles**: Added setOfAverages as input option
-- **process**: Change output from stk (spider) to mrcs (mrc)
-- **trigger_data**: Bug fixed
-- **screen_deeplearning**:  Added descriptive help" 
-- **center_particles**: Added summary info
-- **align_volume_and_particles**: Summary error fixed
-- **cl2d**: Summary errors solved 
-
-- **New tests:** test_protocol_reconstruct_fourier, test_protocols_local_defocus, test_protocols_local_defocus, TestXmippAlignVolumeAndParticles,  TestXmippRotateVolume
-- **Improved tests:** test_protocols_deepVolPostprocessing, test_protocols_xmipp_3d, Test ProjSubtracion
-- **Excluded tests:** test_protocols_zernike3d, test_protocols_metaprotocol_heterogeneity
-
 
 ### Installation and user guide
 - Version info printed at the end of the installation
