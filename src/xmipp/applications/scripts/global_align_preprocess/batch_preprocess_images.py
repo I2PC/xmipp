@@ -131,20 +131,22 @@ if __name__=="__main__":
 
     if prjFile:
         #Read Images
-        mmap = mrcfile.mmap(expFile, permissive=True)
-        nExp = mmap.data.shape[0]
+        # mmap = mrcfile.mmap(expFile, permissive=True)
+        # nExp = mmap.data.shape[0]
         prjImages = read_images(prjFile) 
         
         #convert ref images to tensor 
         tref= torch.from_numpy(prjImages).float().to("cpu")
         del(prjImages)
     
-        batch = min(batch, nExp)
+        # batch = min(batch, nExp)
         
         print("Scaling particles")
-        Texp = torch.from_numpy(mmap.data[:batch].astype(np.float32)).to("cpu")
+        Texp_numpy = np.load(expFile)
+        Texp = torch.from_numpy(Texp_numpy)
+        # Texp = torch.from_numpy(mmap.data[:batch].astype(np.float32)).to("cpu")
         tref = apply_scale(tref, Texp, radius)
-        del(Texp)
+        # del(Texp)
         
             #save preprocess images
         save_images(tref.numpy(), output)
