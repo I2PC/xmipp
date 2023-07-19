@@ -27,16 +27,42 @@ import torch
 import argparse
 import pathlib
 import mrcfile
+import matplotlib.pyplot as plt
+import math
 
 import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.fourier as fourier
 import xmippPyModules.swiftalign.ctf as ctf
 import xmippPyModules.swiftalign.metadata as md
 
+def _compute_polar_frequency_grid_2d(cartesian: torch.Tensor) -> torch.Tensor:
+    result = torch.empty_like(cartesian)
 
+    torch.sum(torch.square(cartesian), axis=0, out=result[0])
+    torch.atan2(cartesian[1], cartesian[0], out=result[1])
+    
+    return result
 
+def _compute_differential_defocus_inplace(defocus: torch.Tensor) -> torch.Tensor:
+    # Compute the mean in the first column
+    # (x1 + x2) / 2
+    defocus[:,0] += defocus[:,1]
+    defocus[:,0] *= 0.5
+    
+    # Compute the halved difference in the second column
+    # (x1 + x2) / 2 - x2 = (x1 - x2) / 2
+    torch.sub(defocus[:,0], defocus[:,1], out=defocus[:,1])
+    
+    return defocus
+    
+def _compute_wavelength(voltage: float) -> float:
+    return 1.23e-9 / math.sqrt(voltage + 1e-6*voltage*voltage)
+    
 def run(images_md_path: str, 
         output_md_path: str, 
+        pixel_size: float,
+        spherical_aberration: float,
+        voltage: float,
         batch_size: int,
         device_names: list ):
     
@@ -64,8 +90,22 @@ def run(images_md_path: str,
     output_images = mrcfile.new_mmap(
         output_images_path, 
         shape=(len(images_md), 1) + image_size, 
-        mrc_mode=2
+        mrc_mode=2,
+        overwrite=True
     )
+    
+    # Convert units
+    voltage *= 1e3 # kV to V
+    wavelength = 1e10*_compute_wavelength(voltage)
+    spherical_aberration *= 1e7 # mm to A
+    
+    # Compute frequency grid
+    cartesian_frequency_grid = fourier.rfftnfreq(
+        image_size,
+        d=pixel_size,
+        device=transform_device
+    )
+    polar_frequency_grid = _compute_polar_frequency_grid_2d(cartesian_frequency_grid)
 
     # Process
     start = 0
@@ -78,24 +118,36 @@ def run(images_md_path: str,
         batch_slice = slice(start, end)
         batch_images_md = images_md.iloc[batch_slice]
         
+        # Obtain defocus
+        defocus = torch.as_tensor(batch_images_md[[md.CTF_DEFOCUS_U, md.CTF_DEFOCUS_V, md.CTF_DEFOCUS_ANGLE]].to_numpy())
+        _compute_differential_defocus_inplace(defocus[:,:2])
+        defocus[:,2].deg2rad_()
+        defocus = defocus.to(transform_device, non_blocking=True)
+        
         # Perform the FFT of the images
         batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
         
         # Compute the CTF image TODO
         ctf_images = ctf.compute_ctf_image_2d(
-            frequency_magnitude2_grid=None,
-            frequency_angle_grid=None,
-            defocus_average=None,
-            defocus_difference=None,
-            astigmatism_angle=None,
-            wavelength=None,
-            spherical_aberration=None,
-            phase_shift=None,
+            frequency_magnitude2_grid=polar_frequency_grid[0],
+            frequency_angle_grid=polar_frequency_grid[1],
+            defocus_average=defocus[:,0],
+            defocus_difference=defocus[:,1],
+            astigmatism_angle=defocus[:,2],
+            wavelength=wavelength,
+            spherical_aberration=spherical_aberration,
+            phase_shift=math.pi/2,
             out=ctf_images
         )
         
+        #plt.imshow(ctf_images[0].cpu())
+        #plt.show()
+
         # Compute the wiener filter
         wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters)
+        
+        #plt.imshow(wiener_filters[0].cpu())
+        #plt.show()
         
         # Apply the filter to the images
         batch_images_fourier *= wiener_filters
@@ -125,6 +177,9 @@ if __name__ == '__main__':
                         description = 'Align Cryo-EM images using a fast Nearest Neighbor approach')
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
+    parser.add_argument('--pixel_size', type=float, required=True)
+    parser.add_argument('--spherical_aberration', type=float, required=True)
+    parser.add_argument('--voltage', type=float, required=True)
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--device', nargs='*')
 
@@ -135,6 +190,9 @@ if __name__ == '__main__':
     run(
         images_md_path = args.i,
         output_md_path = args.o,
+        pixel_size=args.pixel_size,
+        spherical_aberration=args.spherical_aberration,
+        voltage=args.voltage,
         batch_size = args.batch,
         device_names = args.device
     )

@@ -23,6 +23,7 @@
 from typing import Sequence
 import torch
 import mrcfile
+import numpy as np
 
 from ..Path import Path
 from ...utils import LruCache
@@ -38,7 +39,7 @@ class Dataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self._paths)
     
-    def __getitem__(self, index) -> torch.Tensor:
+    def __getitem__(self, index) -> np.ndarray:
         path: Path = self._paths[index]
         
         # Get referenced data
@@ -49,4 +50,4 @@ class Dataset(torch.utils.data.Dataset):
         if mrc.is_image_stack() or mrc.is_volume_stack():
             data = data[path.position_in_stack-1]
             
-        return torch.tensor(data)
+        return data

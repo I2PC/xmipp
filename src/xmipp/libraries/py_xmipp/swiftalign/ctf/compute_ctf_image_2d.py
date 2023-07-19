@@ -29,11 +29,11 @@ def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
                              astigmatism_angle: torch.Tensor,
                              out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
-    out = torch.sub(frequency_angle_grid, astigmatism_angle[...,None], out=out)
+    out = torch.sub(frequency_angle_grid, astigmatism_angle[...,None,None], out=out)
     out *= 2
     out.cos_()    
-    out *= defocus_difference[...,None]
-    out += defocus_average[...,None]
+    out *= defocus_difference[...,None,None]
+    out += defocus_average[...,None,None]
     
     return out
 

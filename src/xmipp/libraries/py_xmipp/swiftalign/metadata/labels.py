@@ -47,3 +47,4 @@ ITEM_ID = 'itemId'
 
 CTF_DEFOCUS_U = 'ctfDefocusU'
 CTF_DEFOCUS_V = 'ctfDefocusV'
+CTF_DEFOCUS_ANGLE = 'ctfDefocusAngle'
