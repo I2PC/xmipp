@@ -27,7 +27,6 @@ import torch
 import argparse
 import pathlib
 import mrcfile
-import matplotlib.pyplot as plt
 import math
 
 import xmippPyModules.swiftalign.image as image
@@ -144,9 +143,6 @@ def run(images_md_path: str,
         if phase_flipped:
             ctf_images.abs_()
         
-        plt.imshow(ctf_images[0].cpu())
-        plt.show()
-
         # Compute the wiener filter
         wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters)
         
