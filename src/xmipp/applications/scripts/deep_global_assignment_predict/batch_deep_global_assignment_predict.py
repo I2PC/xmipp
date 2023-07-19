@@ -114,6 +114,83 @@ if __name__ == "__main__":
             [0.0, 0.0, 0.0, 1.0]])
 
 
+    def euler_matrix(ai, aj, ak, axes='szyz'):
+        """Return homogeneous rotation matrix from Euler angles and axis sequence.
+
+        ai, aj, ak : Euler's roll, pitch and yaw angles
+        axes : One of 24 axis sequences as string or encoded tuple
+        """
+        try:
+            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes]
+        except (AttributeError, KeyError):
+            _TUPLE2AXES[axes]  # validation
+            firstaxis, parity, repetition, frame = axes
+
+        i = firstaxis
+        j = _NEXT_AXIS[i + parity]
+        k = _NEXT_AXIS[i - parity + 1]
+
+        if frame:
+            ai, ak = ak, ai
+        if parity:
+            ai, aj, ak = -ai, -aj, -ak
+
+        si, sj, sk = math.sin(ai), math.sin(aj), math.sin(ak)
+        ci, cj, ck = math.cos(ai), math.cos(aj), math.cos(ak)
+        cc, cs = ci * ck, ci * sk
+        sc, ss = si * ck, si * sk
+
+        M = np.identity(4)
+        if repetition:
+            M[i, i] = cj
+            M[i, j] = sj * si
+            M[i, k] = sj * ci
+            M[j, i] = sj * sk
+            M[j, j] = -cj * ss + cc
+            M[j, k] = -cj * cs - sc
+            M[k, i] = -sj * ck
+            M[k, j] = cj * sc + cs
+            M[k, k] = cj * cc - ss
+        else:
+            M[i, i] = cj * ck
+            M[i, j] = sj * sc - cs
+            M[i, k] = sj * cc + ss
+            M[j, i] = cj * sk
+            M[j, j] = sj * ss + cc
+            M[j, k] = sj * cs - sc
+            M[k, i] = -sj
+            M[k, j] = cj * si
+            M[k, k] = cj * ci
+        return M
+
+
+    ###########################################
+    def R_rot(theta):
+        return np.array([[math.cos(theta), math.sin(theta), 0],
+                         [-math.sin(theta), math.cos(theta), 0],
+                         [0, 0, 1]])
+
+
+    def R_tilt(theta):
+        return np.array([[math.cos(theta), 0, math.sin(theta)],
+                         [0, 1, 0],
+                         [-math.sin(theta), 0, math.cos(theta)]])
+
+
+    def R_psi(theta):
+        return np.array([[math.cos(theta), math.sin(theta), 0],
+                         [-math.sin(theta), math.cos(theta), 0],
+                         [0, 0, 1]])
+
+
+    def euler_angles_to_matrix(angles, psi_rotation):
+        Rx = R_rot(angles[0])
+        Ry = R_tilt(angles[1])
+        Rz = R_psi(angles[2] + psi_rotation)
+        return np.matmul(np.matmul(Rz, Ry), Rx)
+
+#######################################################################################
+
     def euler_from_matrix(matrix, axes='szyz'):
         """Return Euler angles from rotation matrix for specified axis sequence.
 
@@ -159,10 +236,28 @@ if __name__ == "__main__":
         return ax, ay, az
 
 
-    matrzz = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    print('euler', euler_from_matrix(matrzz), flush=True)
+    Euler_angles = [4, 0.01, 0.01]
+    Euler_angles2 = [1.9, 0.02, 2]
+    print('Euler angles', Euler_angles)
+    print('Euler angles2', Euler_angles2)
 
-    def euler_from_quaternion(quaternion, axes='szyz'):
+    Matrix_angles = euler_angles_to_matrix(Euler_angles, 0)
+    print('Matrix', Matrix_angles)
+    Matrix_with_xmipp = euler_matrix(Euler_angles[0], Euler_angles[1], Euler_angles[2], 'szyz')
+    print('Matrix with xmipp', Matrix_with_xmipp)
+    Matrix_angles2 = euler_angles_to_matrix(Euler_angles2, 0)
+    print('Matrix2', Matrix_angles2)
+
+    Recovered_Euler_angles = euler_from_matrix(Matrix_angles)
+    print('Recovered', Recovered_Euler_angles)
+
+    Recovered_Euler_angles_Xmipp = euler_from_matrix(Matrix_with_xmipp, axes='szyz')
+    print('Recovered Xmipp', Recovered_Euler_angles_Xmipp)
+
+    Recovered_Euler_angles2 = euler_from_matrix(Matrix_angles2)
+    print('Recovered2', Recovered_Euler_angles2)
+
+    def euler_from_quaternion(quaternion: object, axes: object = 'szyz') -> object:
         """Return Euler angles from quaternion for specified axis sequence."""
         return euler_from_matrix(quaternion_matrix(quaternion), axes)
 
@@ -248,8 +343,9 @@ if __name__ == "__main__":
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
-        pred6d = calculate_r6d(p6d_redundant)
-        matrix = convert_to_matrix(pred6d)
+        #pred6d = calculate_r6d(p6d_redundant)
+        #matrix = convert_to_matrix(pred6d)
+        matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
@@ -302,7 +398,7 @@ if __name__ == "__main__":
         models.append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 42))
+    predictions = np.zeros((numImgs, numAngModels, 6))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
