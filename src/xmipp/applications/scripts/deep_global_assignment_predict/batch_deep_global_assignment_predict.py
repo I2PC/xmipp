@@ -235,28 +235,6 @@ if __name__ == "__main__":
             ax, az = az, ax
         return ax, ay, az
 
-
-    Euler_angles = [4, 0.01, 0.01]
-    Euler_angles2 = [1.9, 0.02, 2]
-    print('Euler angles', Euler_angles)
-    print('Euler angles2', Euler_angles2)
-
-    Matrix_angles = euler_angles_to_matrix(Euler_angles, 0)
-    print('Matrix', Matrix_angles)
-    Matrix_with_xmipp = euler_matrix(Euler_angles[0], Euler_angles[1], Euler_angles[2], 'szyz')
-    print('Matrix with xmipp', Matrix_with_xmipp)
-    Matrix_angles2 = euler_angles_to_matrix(Euler_angles2, 0)
-    print('Matrix2', Matrix_angles2)
-
-    Recovered_Euler_angles = euler_from_matrix(Matrix_angles)
-    print('Recovered', Recovered_Euler_angles)
-
-    Recovered_Euler_angles_Xmipp = euler_from_matrix(Matrix_with_xmipp, axes='szyz')
-    print('Recovered Xmipp', Recovered_Euler_angles_Xmipp)
-
-    Recovered_Euler_angles2 = euler_from_matrix(Matrix_angles2)
-    print('Recovered2', Recovered_Euler_angles2)
-
     def euler_from_quaternion(quaternion: object, axes: object = 'szyz') -> object:
         """Return Euler angles from quaternion for specified axis sequence."""
         return euler_from_matrix(quaternion_matrix(quaternion), axes)
