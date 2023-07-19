@@ -125,7 +125,7 @@ def run(images_md_path: str,
         defocus = defocus.to(transform_device, non_blocking=True)
         
         # Perform the FFT of the images
-        batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
+        batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier.resize_(0))
         
         # Compute the CTF image TODO
         ctf_images = ctf.compute_ctf_image_2d(
@@ -137,14 +137,14 @@ def run(images_md_path: str,
             wavelength=wavelength,
             spherical_aberration=spherical_aberration,
             phase_shift=math.pi/2,
-            out=ctf_images
+            out=ctf_images.resize_(0)
         )
         
         #plt.imshow(ctf_images[0].cpu())
         #plt.show()
 
         # Compute the wiener filter
-        wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters)
+        wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters.resize_(0))
         
         #plt.imshow(wiener_filters[0].cpu())
         #plt.show()
