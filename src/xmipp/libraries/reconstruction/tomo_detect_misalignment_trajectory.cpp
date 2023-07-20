@@ -355,7 +355,160 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 }
 
 
+void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
+{
+	double mod2Thr = (fiducialSizePx * thrFiducialDistance) * (fiducialSizePx * thrFiducialDistance);
 
+	// Global alignment analysis
+	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, true);  // Vector saving status of (mis)aligned chains
+	float vottingRatio;
+
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		std::vector<CM> CM_fid;
+		getCMbyFiducial(n, CM_fid);
+
+		size_t numberCM = CM_fid.size();
+
+		double avg;
+		double std;
+		size_t imagesOutOfRange = 0;
+
+		double sumResid = 0;
+		double sumResid2 = 0;
+
+		for (size_t i = 0; i < numberCM; i++)
+		{
+			double sum2 = CM_fid[i].residuals.x*CM_fid[i].residuals.x + CM_fid[i].residuals.y*CM_fid[i].residuals.y;
+			sumResid2 += sum2;
+			sumResid += sqrt(sum2);
+
+			if (sum2 > mod2Thr)
+			{
+				imagesOutOfRange += 1;
+			}
+		}
+
+		avg = sumResid / numberCM;
+		std = sqrt(sumResid2 / numberCM - avg * avg);
+
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << "n " << n << std::endl;
+		std::cout << "numberCM " << numberCM << std::endl;
+		std::cout << "sumResid " << sumResid << std::endl;
+		std::cout << "sumResid2 " << sumResid2 << std::endl;
+		std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
+		std::cout << "avg " << avg << std::endl;
+		std::cout << "std " << std << std::endl;
+		#endif
+
+		if (imagesOutOfRange > 4.5 && std > 43.5)
+		{
+			globalMialingmentVotting[n] = false;
+			
+			#ifdef DEBUG_RESIDUAL_ANALYSIS
+			std::cout << "Chain number " << n << " present global misalignment with std=" << std << " and imagesOutOfRange=" << imagesOutOfRange << std::endl;
+			#endif			
+		}
+		else if (imagesOutOfRange > 6.5)
+		{
+			globalMialingmentVotting[n] = false;
+
+			#ifdef DEBUG_RESIDUAL_ANALYSIS
+			std::cout << "Chain number " << n << " present global misalignment with imagesOutOfRange=" << imagesOutOfRange << std::endl;
+			#endif
+		}	
+	}
+
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << globalMialingmentVotting[n] << " ";
+		#endif
+
+		if (globalMialingmentVotting[n])
+		{
+			vottingRatio += 1;
+		}
+		
+	}
+
+	vottingRatio /= numberOfInputCoords;
+
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
+	std::cout  << "\n votting ratio " << vottingRatio << std::endl;
+	#endif
+
+	if (vottingRatio < 0.5)
+	{
+		globalAlignment = false;
+
+		#ifdef VERBOSE_OUTPUT
+		std::cout << "GLOBAL MISLAIGNMENT DETECTED" << std::endl;
+		#endif
+
+		return;
+	}
+
+	#ifdef DEBUG_RESIDUAL_ANALYSIS
+	std::cout << "Output global (chain) alingmnet vector" << std::endl;
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		std::cout << globalMialingmentVotting[n] << ", ";
+	}
+	std::cout << std::endl;
+	#endif
+
+	// Local alignment analysis
+	for (size_t n = 0; n < nSize; n++)
+	{
+		std::vector<CM> CM_image;
+		getCMbyImage(n, CM_image);
+
+		size_t numberCM = CM_image.size();
+		double vottingRatio = 0;
+
+		#ifdef DEBUG_RESIDUAL_ANALYSIS
+		std::cout << "------------ Analyzing image " << n << ". Presenting " << numberCM << " coordinates." <<  std::endl;
+		#endif
+
+		if (numberCM > 0)
+		{
+			for (size_t i = 0; i < numberCM; i++)
+			{
+				double resid2 = CM_image[i].residuals.x*CM_image[i].residuals.x + CM_image[i].residuals.y*CM_image[i].residuals.y;
+
+				if(resid2 > mod2Thr)
+				{
+					vottingRatio += 1;
+				}
+				
+			}
+
+			vottingRatio /= float(numberCM);
+			
+			#ifdef DEBUG_RESIDUAL_ANALYSIS
+			std::cout << "-------- For image " << n << " votting ratio=" << vottingRatio << " out of " << numberCM << std::endl;
+			#endif
+
+			if (vottingRatio > 0.5)
+			{
+				localAlignment[n] = false;
+
+				#ifdef VERBOSE_OUTPUT
+				std::cout << "LOCAL MISLAIGNMENT DETECTED AT TILT-IMAGE " << n << ". Failed residuals ratio: " << vottingRatio << " out of " << numberCM << std::endl;
+				#endif
+			}
+		}
+
+		else
+		{
+			#ifdef VERBOSE_OUTPUT
+			std::cout << "UNDETECTED COORDINATES IN TILT-IMAGE " << n << ". IMPOSSIBLE TO STUDY MIALIGNMENT" << std::endl;
+			#endif
+		}
+	}
+}
 
 
 void ProgTomoDetectMisalignmentTrajectory::generateResidualStatiscticsFile()
