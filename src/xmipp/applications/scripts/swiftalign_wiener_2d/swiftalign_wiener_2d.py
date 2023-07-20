@@ -82,18 +82,20 @@ def run(images_md_path: str,
     images_loader = torch.utils.data.DataLoader(
         images_dataset,
         batch_size=batch_size,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        num_workers=1
     )
     image_size = md.get_image2d_size(images_md)
     
     # Create a MMAPed output file
     output_images_path = str(pathlib.Path(output_md_path).with_suffix('.mrc'))
-    output_images = mrcfile.new_mmap(
+    output_mrc = mrcfile.new_mmap(
         output_images_path, 
         shape=(len(images_md), 1) + image_size, 
-        mrc_mode=2,
+        mrc_mode=4,
         overwrite=True
     )
+    output_images = torch.as_tensor(output_mrc.data)
     
     # Convert units
     voltage *= 1e3 # kV to V
@@ -122,7 +124,7 @@ def run(images_md_path: str,
         batch_images_md = images_md.iloc[batch_slice]
         
         # Obtain defocus
-        defocus = torch.as_tensor(batch_images_md[[md.CTF_DEFOCUS_U, md.CTF_DEFOCUS_V, md.CTF_DEFOCUS_ANGLE]].to_numpy())
+        defocus = torch.from_numpy(batch_images_md[[md.CTF_DEFOCUS_U, md.CTF_DEFOCUS_V, md.CTF_DEFOCUS_ANGLE]].to_numpy())
         _compute_differential_defocus_inplace(defocus[:,:2])
         defocus[:,2].deg2rad_()
         defocus = defocus.to(transform_device, non_blocking=True)
@@ -156,7 +158,7 @@ def run(images_md_path: str,
         torch.fft.irfft2(batch_images_fourier, out=batch_images)
 
         # Store the result
-        output_images.data[batch_slice,0] = batch_images.cpu().numpy()
+        output_images[batch_slice,0] = batch_images.to('cpu', non_blocking=True)
         
         # Prepare for the next batch
         start = end
