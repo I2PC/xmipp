@@ -222,7 +222,7 @@ void ProgPdbConverter::readParams()
     }
     else
     {
-    	origGiven=0;
+    	origGiven=false;
     	orig_x=orig_y=orig_z=0;
     }
     useBlobs = checkParam("--blobs");
