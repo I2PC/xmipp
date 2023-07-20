@@ -83,7 +83,7 @@ def run(images_md_path: str,
         images_dataset,
         batch_size=batch_size,
         pin_memory=pin_memory,
-        num_workers=1
+        num_workers=4
     )
     image_size = md.get_image2d_size(images_md)
     
