@@ -125,7 +125,7 @@ public:
     std::vector<Point3D<double>> coordinates3D;
 
     /** Thresholds */
-    float avgResidPercentile_LocalAlignment;
+    // float avgResidPercentile_LocalAlignment;
 
     /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment = true;

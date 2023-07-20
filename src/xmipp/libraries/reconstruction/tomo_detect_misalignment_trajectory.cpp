@@ -44,7 +44,7 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
  	fnInputCoord = getParam("--inputCoord");
 
 	thrFiducialDistance = getDoubleParam("--thrFiducialDistance");
-	avgResidPercentile_LocalAlignment = getDoubleParam("--avgResidPercentile_LocalAlignment");
+	// avgResidPercentile_LocalAlignment = getDoubleParam("--avgResidPercentile_LocalAlignment");
 
 	targetFS = getDoubleParam("--targetLMsize");
 }
@@ -66,7 +66,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
 	addParamsLine("  [--thrFiducialDistance <thrFiducialDistance=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
-	addParamsLine("  [--avgResidPercentile_LocalAlignment <avgResidPercentile_LocalAlignment=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
+	// addParamsLine("  [--avgResidPercentile_LocalAlignment <avgResidPercentile_LocalAlignment=0.5>]		: Threshold times of fiducial size as maximum distance to consider a match between the 3d coordinate projection and the detected fiducial.");
 
 	addParamsLine("  [--targetLMsize <targetLMsize=8>]		    : Targer size of landmark when downsampling (px).");
 }
