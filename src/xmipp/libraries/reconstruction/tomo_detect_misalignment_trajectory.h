@@ -64,6 +64,7 @@
 // #define DEBUG_RESID
 // #define DEBUG_COORDS_CS
 #define DEBUG_RESIDUAL_ANALYSIS
+// #define DEBUG_RESIDUAL_STATISTICS_FILE
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
@@ -160,6 +161,8 @@ public:
     void calculateResidualVectors();
 
     void detectMisalignmentFromResiduals();
+
+    void generateResidualStatiscticsFile();
 
 
     // --------------------------- I/O functions ----------------------------
@@ -277,6 +280,8 @@ public:
     // void detectLandmarkChains();
 
     // bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
+
+    // void detectMisalignmentFromResidualsBis();
 
 };
 
