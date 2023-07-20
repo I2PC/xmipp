@@ -144,14 +144,15 @@ if __name__ == "__main__":
             def check_angle(euler_angles, angle, previous_map):
                 j = 0
                 index_map = 124
+
                 while index_map != previous_map:
+                    angle = (angle / (2 ** j))
+                    j = j+1
                     matrix = euler_angles_to_matrix(euler_angles, angle)
                     S_inv = map_symmetries(matrix, self.inv_matrices, np.eye(3))
                     index_map = 1
                     if map_symmetries_index(S_inv, self.inv_sqrt_matrices, np.eye(3)) == 0:
                         index_map = 0
-                    j = j+1
-                    angle = (math.pi/(2**j)) * np.random.uniform(-1, 1)
                 return angle
 
             def compute_yvalues(euler_angles, angle):
@@ -224,7 +225,12 @@ if __name__ == "__main__":
         """RESNET architecture"""
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
-        L = Conv2D(8, (3, 3), padding='same')(inputLayer)
+        L = Conv2D(4, (3, 3), padding='same')(inputLayer)
+        L = BatchNormalization()(L)
+        L = Activation(activation='relu')(L)
+        L = MaxPooling2D()(L)
+
+        L = Conv2D(8, (3, 3), padding='same')(L)
         L = BatchNormalization()(L)
         L = Activation(activation='relu')(L)
         L = MaxPooling2D()(L)
@@ -235,11 +241,6 @@ if __name__ == "__main__":
         L = MaxPooling2D()(L)
 
         L = Conv2D(32, (3, 3), padding='same')(L)
-        L = BatchNormalization()(L)
-        L = Activation(activation='relu')(L)
-        L = MaxPooling2D()(L)
-
-        L = Conv2D(64, (3, 3), padding='same')(L)
         L = BatchNormalization()(L)
         L = Activation(activation='relu')(L)
         L = MaxPooling2D()(L)
@@ -257,6 +258,7 @@ if __name__ == "__main__":
     sqrt_matrices = []
     sqrt_matrices.append(np.eye(3))
     gen_matrix = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+
     for i in range(3):
         sqrt_matrices.append(np.matmul(gen_matrix, sqrt_matrices[i]))
     num_sqrt_matrices = np.shape(sqrt_matrices)[0]
@@ -270,7 +272,6 @@ if __name__ == "__main__":
         inverse_matrices[i] = np.linalg.inv(Matrices[i])
 
     target_matrices = sqrt_matrices[0:2]
-    print('target_matrices', target_matrices)
 
 
     def frobenius_norm(matrix):
@@ -280,15 +281,21 @@ if __name__ == "__main__":
     def map_symmetries_index(input_matrix, inv_group_matrices, target):
         n = np.shape(inv_group_matrices)[0]
         reshaped_matrix = np.tile(input_matrix, (n, 1, 1))
-        candidates = np.matmul(inv_group_matrices, reshaped_matrix)
+        candidates = np.matmul(reshaped_matrix, inv_group_matrices)
         norms = np.array(list((map(frobenius_norm, candidates - target))))
         index_min = np.argmin(norms)
         return index_min
 
 
+
     def map_symmetries(input_matrix, inv_group_matrices, target):
-        return np.matmul(
-            inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)], input_matrix)
+        #print('input_matrix', input_matrix)
+        #print('input_euler', 180 * np.array(euler_from_matrix(input_matrix)) / math.pi)
+        #print('output_matrix', np.matmul(
+        #    inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)], input_matrix))
+        #print('output_euler', 180 * np.array(euler_from_matrix(np.matmul(
+        #    input_matrix, inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)]))) / math.pi)
+        return np.matmul(input_matrix, inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)])
 
         # def R_rot(theta):
         #    return np.array([[math.cos(theta), -math.sin(theta), 0],
@@ -325,6 +332,51 @@ if __name__ == "__main__":
     # axis sequences for Euler angles
     _NEXT_AXIS = [1, 2, 0, 1]
 
+    _EPS = np.finfo(float).eps * 4.0
+
+    def euler_from_matrix(matrix, axes='szyz'):
+        """Return Euler angles from rotation matrix for specified axis sequence.
+
+        axes : One of 24 axis sequences as string or encoded tuple
+
+        Note that many Euler angle triplets can describe one matrix."""
+        try:
+            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
+        except (AttributeError, KeyError):
+            _TUPLE2AXES[axes]
+            firstaxis, parity, repetition, frame = axes
+
+        i = firstaxis
+        j = _NEXT_AXIS[i + parity]
+        k = _NEXT_AXIS[i - parity + 1]
+
+        M = np.array(matrix, dtype=np.float64, copy=False)[:3, :3]
+        if repetition:
+            sy = math.sqrt(M[i, j] * M[i, j] + M[i, k] * M[i, k])
+            if sy > _EPS:
+                ax = math.atan2(M[i, j], M[i, k])
+                ay = math.atan2(sy, M[i, i])
+                az = math.atan2(M[j, i], -M[k, i])
+            else:
+                ax = math.atan2(-M[j, k], M[j, j])
+                ay = math.atan2(sy, M[i, i])
+                az = 0.0
+        else:
+            cy = math.sqrt(M[i, i] * M[i, i] + M[j, i] * M[j, i])
+            if cy > _EPS:
+                ax = math.atan2(M[k, j], M[k, k])
+                ay = math.atan2(-M[k, i], cy)
+                az = math.atan2(M[j, i], M[i, i])
+            else:
+                ax = math.atan2(-M[j, k], M[j, j])
+                ay = math.atan2(-M[k, i], cy)
+                az = 0.0
+
+        if parity:
+            ax, ay, az = -ax, -ay, -az
+        if frame:
+            ax, az = az, ax
+        return ax, ay, az
     def euler_matrix(ai, aj, ak, axes='szyz'):
         """Return homogeneous rotation matrix from Euler angles and axis sequence.
         ai, aj, ak : Euler's roll, pitch and yaw angles
@@ -372,6 +424,7 @@ if __name__ == "__main__":
 
     def euler_angles_to_matrix(angles, psi_rotation):
         return euler_matrix(angles[0], angles[1], angles[2] + psi_rotation, axes='szyz')
+
     def get_labels(fnImages):
         """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
@@ -533,7 +586,7 @@ if __name__ == "__main__":
                                                inv_sqrt_matrices=inverse_sqrt_matrices)
             validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
                                                  [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 sigma, batch_size, Xdims, [shifts[i] for i in random_sample[0:lenTrain]],
+                                                 sigma, batch_size, Xdims, [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
                                                  readInMemory=False,
                                                  bool_classifier=classifier,
                                                  map_domains=[map_regions[i] for i in random_sample[lenTrain:lenTrain + lenVal]],

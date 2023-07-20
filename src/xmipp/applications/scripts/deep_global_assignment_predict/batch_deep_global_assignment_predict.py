@@ -163,34 +163,6 @@ if __name__ == "__main__":
             M[k, k] = cj * ci
         return M
 
-
-    ###########################################
-    def R_rot(theta):
-        return np.array([[math.cos(theta), math.sin(theta), 0],
-                         [-math.sin(theta), math.cos(theta), 0],
-                         [0, 0, 1]])
-
-
-    def R_tilt(theta):
-        return np.array([[math.cos(theta), 0, math.sin(theta)],
-                         [0, 1, 0],
-                         [-math.sin(theta), 0, math.cos(theta)]])
-
-
-    def R_psi(theta):
-        return np.array([[math.cos(theta), math.sin(theta), 0],
-                         [-math.sin(theta), math.cos(theta), 0],
-                         [0, 0, 1]])
-
-
-    def euler_angles_to_matrix(angles, psi_rotation):
-        Rx = R_rot(angles[0])
-        Ry = R_tilt(angles[1])
-        Rz = R_psi(angles[2] + psi_rotation)
-        return np.matmul(np.matmul(Rz, Ry), Rx)
-
-#######################################################################################
-
     def euler_from_matrix(matrix, axes='szyz'):
         """Return Euler angles from rotation matrix for specified axis sequence.
 
@@ -321,9 +293,9 @@ if __name__ == "__main__":
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
-        #pred6d = calculate_r6d(p6d_redundant)
-        #matrix = convert_to_matrix(pred6d)
-        matrix = convert_to_matrix(p6d_redundant)
+        pred6d = calculate_r6d(p6d_redundant)
+        matrix = convert_to_matrix(pred6d)
+        #matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
@@ -369,18 +341,26 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
-    models = []
+    models = [[], []]
     for index in range(numAngModels):
-        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
+        path_to_model = fnAngModel + '/model' + str(index)
+        AngModel = load_model(path_to_model + '/classifier' + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
-        models.append(AngModel)
+        models[index].append(AngModel)
+        for i in range(2):
+            AngModel = load_model(path_to_model + '/modelAng' + str(i) + ".h5", compile=False)
+            AngModel.compile(loss="mean_squared_error", optimizer='adam')
+            models[index].append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 6))
+    predictions = np.zeros((numImgs, numAngModels, 42))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
     k = 0
+    mdExp = xmippLib.MetaData(fnXmdExp)
+    rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
+    print('rots', rots)
     # perform batch predictions for each model
     for i in range(numBatches):
         numPredictions = min(maxSize, numImgs-i*maxSize)
@@ -391,7 +371,17 @@ if __name__ == "__main__":
             Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
             k += 1
         for index in range(numAngModels):
-            predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
+            classes_predictions = models[index][0].predict(Xexp)
+            classes = np.argmax(classes_predictions, axis=1)
+            numClasses = len(models[index]) - 1
+            print('clases', classes)
+            print('rots', rots[i*maxSize: (i+1)*maxSize])
+            for class_index in range(numClasses):
+                indices = np.where(classes == class_index)[0]
+                Xexp_class = Xexp[indices]
+                indices += i * maxSize
+                if len(indices) >= 1:
+                    predictions[indices, index, :] = models[index][class_index + 1].predict(Xexp_class)
 
     Y, distance = compute_ang_averages(predictions)
     produce_output(mdExp, Y, distance, fnImages)
