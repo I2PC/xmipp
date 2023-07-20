@@ -64,6 +64,7 @@ void ProgTomoDetectLandmarks::generateSideInfo()
     xSize_d = xSize * ds_factor;
     ySize_d = ySize * ds_factor;
 
+	#ifdef VERBOSE_OUTPUT
     std::cout << "Generating side info: " << std::endl;
     std::cout << "fiducialSizePx: " << fiducialSizePx << std::endl;
     std::cout << "ds_factor: " << ds_factor << std::endl;
@@ -74,6 +75,7 @@ void ProgTomoDetectLandmarks::generateSideInfo()
     std::cout << "fiducialSize: " << fiducialSize << std::endl;
     std::cout << "targetFS: " << targetFS << std::endl;
     std::cout << "thrSD: " << thrSD << std::endl;
+	#endif
 }
 
 
@@ -132,7 +134,7 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	backgroundValue = (corners[1]+corners[2])/2;
 
 	// Margin thickness
-	marginThickness = (int)(fiducialSizePx * 0.5);
+	marginThickness = (int)(fiducialSizePx);
 
 	// Fill borders (1 px) with backgound value (no affected by Laplacian)
 	for (size_t j = 0; j < xSize; j++)
