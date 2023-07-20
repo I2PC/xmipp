@@ -92,7 +92,7 @@ def run(images_md_path: str,
     output_mrc = mrcfile.new_mmap(
         output_images_path, 
         shape=(len(images_md), 1) + image_size, 
-        mrc_mode=4,
+        mrc_mode=2,
         overwrite=True
     )
     output_images = torch.as_tensor(output_mrc.data)
