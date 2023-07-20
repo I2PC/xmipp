@@ -161,6 +161,8 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	auto epsilon = MINDOUBLE;
 
 	std::vector<Point2D<int>> interpolationLimits;
+	Point2D<int> limitIgnoreRow (0, 0);
+	interpolationLimits.push_back(limitIgnoreRow); // Limit to ignore first row
 
 	int xMin;
 	int xMax;
@@ -170,7 +172,7 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 	std::cout << "Margin thickness: " << marginThickness << std::endl;
 	#endif
 
-	for (size_t j = 0; j < ySize; j++)
+	for (size_t j = 1; j < ySize-1; j++)
 	{
 		for (size_t i = 0; i < xSize; i++)
 		{		
@@ -215,6 +217,7 @@ void ProgTomoDetectLandmarks::detectInterpolationEdges(MultidimArray<double> &ti
 		interpolationLimits.push_back(limit);
 	}
 
+	interpolationLimits.push_back(limitIgnoreRow); // Limit to ignore last row
 	interpolationLimitsVector.push_back(interpolationLimits);
 
 	// // Apply DS factor to interpolation limits
