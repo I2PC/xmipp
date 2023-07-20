@@ -41,6 +41,7 @@ void ProgTomoExtractParticleStacks::readParams()
 	invertContrast = checkParam("--invertContrast");
 	scaleFactor = getDoubleParam("--downsample");
 	normalize = checkParam("--normalize");
+        swapXY = checkParam("--swapXY");
 	fnOut = getParam("-o");
 	nthrs = getIntParam("--threads");
 }
@@ -53,6 +54,7 @@ void ProgTomoExtractParticleStacks::defineParams()
 	addParamsLine("  --coordinates <xmd_file=\"\">      : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
 	addParamsLine("  [--invertContrast]                 : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
+        addParamsLine("  [--swapXY]                         : Put this flag if the tomogram and the tilt series have the same dimensions but the X and Y coordinates are swaped");
 	addParamsLine("  [--normalize]                      : Put this flag to normalize the background of the particle (zero mean and unit std)");
 	addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
 	addParamsLine("  -o <mrc_file=\"\">                 : path to the output directory. ");
@@ -100,10 +102,10 @@ void ProgTomoExtractParticleStacks::run()
 	// The tilt series is stored as a stack of images;
 	std::vector<MultidimArray<double> > tsImages(0);
 	MultidimArray<double> tsImg;
-	std::vector<double> tsTiltAngles(0), tsRotAngles(0);
+	std::vector<double> tsTiltAngles(0), tsRotAngles(0), tsShiftX(0), tsShiftY(0);
 	std::vector<FileName> tsNames(0);
 
-	double tilt, rot;
+	double tilt, rot, tx, ty;
 
 	size_t Nimages = 0;
 
@@ -114,6 +116,8 @@ void ProgTomoExtractParticleStacks::run()
 		row.getValue(MDL_IMAGE, fnImg);
 		row.getValue(MDL_ANGLE_TILT, tilt);
 		row.getValue(MDL_ANGLE_ROT, rot);
+		row.getValue(MDL_SHIFT_X, tx);
+		row.getValue(MDL_SHIFT_Y, ty);
 		row.getValue(MDL_TSID, tsid);
 
 		tiltImg.read(fnImg);
@@ -122,6 +126,8 @@ void ProgTomoExtractParticleStacks::run()
 
 		tsTiltAngles.push_back(tilt);
 		tsRotAngles.push_back(rot);
+		tsShiftX.push_back(tx);
+		tsShiftY.push_back(ty);
 		tsNames.push_back(fnImg);
 		Nimages +=1;
 	}
@@ -158,21 +164,66 @@ void ProgTomoExtractParticleStacks::run()
 
 		fnMrc = tsid + formatString("-%i.mrcs", elem);
 		
-
+		std::vector<MultidimArray<double>> imgVec;
+		
 		particlestack.initZeros(Nimages, 1, boxsize, boxsize);
 
 		for (size_t idx = 0; idx<Nimages; idx++)
 		{
 			tsImg = tsImages[idx];
 			tilt = tsTiltAngles[idx]*PI/180;
+			rot = tsRotAngles[idx]*PI/180;
 
 			double ct = cos(tilt);
 			double st = sin(tilt);
+
+			double cr = cos(rot);
+			double sr = sin(rot);
+
+			tx = tsShiftX[idx];
+			ty = tsShiftY[idx];
 	
+			/*
+			First the piced coordinate, r, is projected on the aligned tilt sreies
+			r' = Pr  Where r is the coordinates to be projected by the matrix P
+			[x']   [ct   0   st][x]
+			[y'] = [0    1    0][y]
+			[z']   [0    0    0][z]
+			Next is to undo the transformation This is Aligned->Unaligned
+			If T is the transformation matrix unaligned->algined, we need T^-{1}
+			Let us define a rotation matrix
+			R=[cos(rot) -sin(rot)]
+			  [ sin(rot) cos(rot)];
+
+			The inverse of T is given by
+			T^{-1} = [R' -R'*t;
+			         0  0 1]);
+			         
+			 Where t are the shifts of T
+			*/
+
 			int x_2d, y_2d;
-	
-			x_2d = (int) (xcoor * ct + zcoor* st) + 0.5*Xts;
-			y_2d = (int) (ycoor+ 0.5*Yts);
+
+			// Projection
+                        x_2d = (int) (xcoor * ct + zcoor* st);
+                        y_2d = (int) (ycoor);
+                        
+                        std::cout << tilt*180/PI << "    " << x_2d << "   " << y_2d << "   " << rot*180/PI << std::endl;
+                        
+                        //Inverse transformation
+                        double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
+			double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
+                        
+                        if (swapXY)              
+			{
+			    x_2d = -x_2d_prime+0.5*Xts;
+			    y_2d = -y_2d_prime+0.5*Yts;
+			}
+			else
+			{
+			    x_2d = -x_2d_prime+0.5*Yts;;
+                            y_2d = -y_2d_prime+0.5*Xts;;
+			}
 
 			int xlim = x_2d + halfboxsize;
 			int ylim = y_2d + halfboxsize;
@@ -180,14 +231,15 @@ void ProgTomoExtractParticleStacks::run()
 			xinit = x_2d - halfboxsize;
 			yinit = y_2d - halfboxsize;
 
-
 			if ((xlim>Xts) || (ylim>Yts) || (xinit<0) || (yinit<0))
 			{
 				std::cout << "skipping " << std::endl;
 				continue;
 			}
-				
-
+			else
+			{
+			
+			}
 
 			if (invertContrast)
 			{

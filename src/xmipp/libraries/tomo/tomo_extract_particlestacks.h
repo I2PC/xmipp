@@ -46,7 +46,7 @@ public:
     size_t Ydim;
     size_t Zdim;
 
-    bool invertContrast, normalize;
+    bool invertContrast, normalize, swapXY;
 
     double scaleFactor;
 
