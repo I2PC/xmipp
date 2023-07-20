@@ -83,6 +83,57 @@ void ProgTomoExtractParticleStacks::createCircle(MultidimArray<double> &maskNorm
 	}
 }
 
+void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int ycoor, int zcoor, double &rot, double &tilt, double &tx, double &ty, int &x_2d, int &y_2d)
+{
+	double ct = cos(tilt);
+	double st = sin(tilt);
+
+	double cr = cos(rot);
+	double sr = sin(rot);
+
+
+	/*
+	First the piced coordinate, r, is projected on the aligned tilt sreies
+	r' = Pr  Where r is the coordinates to be projected by the matrix P
+	[x']   [ct   0   st][x]
+	[y'] = [0    1    0][y]
+	[z']   [0    0    0][z]
+	Next is to undo the transformation This is Aligned->Unaligned
+	If T is the transformation matrix unaligned->algined, we need T^-{1}
+	Let us define a rotation matrix
+	R=[cos(rot) -sin(rot)]
+	  [ sin(rot) cos(rot)];
+
+	The inverse of T is given by
+	T^{-1} = [R' -R'*t;
+	         0  0 1]);
+	         
+	 Where t are the shifts of T
+	*/
+
+	// Projection
+	x_2d = (int) (xcoor * ct + zcoor* st);
+	y_2d = (int) (ycoor);
+
+	std::cout << tilt*180/PI << "    " << x_2d << "   " << y_2d << "   " << rot*180/PI << std::endl;
+        
+        //Inverse transformation
+    double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
+	double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
+        
+    if (swapXY)
+	{
+	    x_2d = -x_2d_prime+0.5*Xts;
+	    y_2d = -y_2d_prime+0.5*Yts;
+	}
+	else
+	{
+	    x_2d = -x_2d_prime+0.5*Yts;
+        y_2d = -y_2d_prime+0.5*Xts;
+	}
+}
+
+
 void ProgTomoExtractParticleStacks::run()
 {
 	std::cout << "Starting ... "<< std::endl;
@@ -132,7 +183,7 @@ void ProgTomoExtractParticleStacks::run()
 		Nimages +=1;
 	}
 
-	size_t Xts, Yts;
+
 	Xts = XSIZE(ptrtiltImg);
 	Yts = YSIZE(ptrtiltImg);
 
@@ -173,9 +224,14 @@ void ProgTomoExtractParticleStacks::run()
 			tsImg = tsImages[idx];
 			tilt = tsTiltAngles[idx]*PI/180;
 			rot = tsRotAngles[idx]*PI/180;
+			tx = tsShiftX[idx];
+			ty = tsShiftY[idx];
+			int x_2d, y_2d;
+			//getCoordinateOnTiltSeries(xcoor, ycoor, zcoor, rot, tilt, tx, ty, x_2d, y_2d);
 
 			double ct = cos(tilt);
 			double st = sin(tilt);
+
 
 			double cr = cos(rot);
 			double sr = sin(rot);
@@ -183,38 +239,38 @@ void ProgTomoExtractParticleStacks::run()
 			tx = tsShiftX[idx];
 			ty = tsShiftY[idx];
 	
-			/*
-			First the piced coordinate, r, is projected on the aligned tilt sreies
-			r' = Pr  Where r is the coordinates to be projected by the matrix P
-			[x']   [ct   0   st][x]
-			[y'] = [0    1    0][y]
-			[z']   [0    0    0][z]
-			Next is to undo the transformation This is Aligned->Unaligned
-			If T is the transformation matrix unaligned->algined, we need T^-{1}
-			Let us define a rotation matrix
-			R=[cos(rot) -sin(rot)]
-			  [ sin(rot) cos(rot)];
+			//
+			// First the piced coordinate, r, is projected on the aligned tilt sreies
+			// r' = Pr  Where r is the coordinates to be projected by the matrix P
+			// [x']   [ct   0   st][x]
+			// [y'] = [0    1    0][y]
+			// [z']   [0    0    0][z]
+			// Next is to undo the transformation This is Aligned->Unaligned
+			// If T is the transformation matrix unaligned->algined, we need T^-{1}
+			// Let us define a rotation matrix
+			// R=[cos(rot) -sin(rot)]
+			// [ sin(rot) cos(rot)];
 
-			The inverse of T is given by
-			T^{-1} = [R' -R'*t;
-			         0  0 1]);
+			// The inverse of T is given by
+			// T^{-1} = [R' -R'*t;
+			//           0  0 1]);
 			         
-			 Where t are the shifts of T
-			*/
+			// Where t are the shifts of T
+			//
 
-			int x_2d, y_2d;
+			//int x_2d, y_2d;
 
 			// Projection
-                        x_2d = (int) (xcoor * ct + zcoor* st);
-                        y_2d = (int) (ycoor);
-                        
-                        std::cout << tilt*180/PI << "    " << x_2d << "   " << y_2d << "   " << rot*180/PI << std::endl;
-                        
-                        //Inverse transformation
-                        double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
+			x_2d = (int) (xcoor * ct + zcoor* st);
+			y_2d = (int) (ycoor);
+
+			std::cout << tilt*180/PI << "    " << x_2d << "   " << y_2d << "   " << rot*180/PI << std::endl;
+
+			//Inverse transformation
+			double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
 			double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
                         
-                        if (swapXY)              
+            if (swapXY)
 			{
 			    x_2d = -x_2d_prime+0.5*Xts;
 			    y_2d = -y_2d_prime+0.5*Yts;
@@ -222,7 +278,7 @@ void ProgTomoExtractParticleStacks::run()
 			else
 			{
 			    x_2d = -x_2d_prime+0.5*Yts;;
-                            y_2d = -y_2d_prime+0.5*Xts;;
+                y_2d = -y_2d_prime+0.5*Xts;;
 			}
 
 			int xlim = x_2d + halfboxsize;
@@ -236,10 +292,7 @@ void ProgTomoExtractParticleStacks::run()
 				std::cout << "skipping " << std::endl;
 				continue;
 			}
-			else
-			{
-			
-			}
+
 
 			if (invertContrast)
 			{
@@ -329,4 +382,3 @@ void ProgTomoExtractParticleStacks::run()
 
 
 }
-

@@ -45,6 +45,7 @@ public:
     size_t Xdim;
     size_t Ydim;
     size_t Zdim;
+    size_t Xts, Yts;
 
     bool invertContrast, normalize, swapXY;
 
@@ -59,6 +60,8 @@ public:
     void defineParams();
 
     void createCircle(MultidimArray<double> &maskNormalize);
+    
+    void getCoordinateOnTiltSeries(int xcoor, int ycoor, int zcoor, double &rot, double &tilt, double &tx, double &ty, int &x_2d, int &y_2d);
 
     void readParams();
 
