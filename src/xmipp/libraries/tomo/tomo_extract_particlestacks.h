@@ -46,8 +46,11 @@ public:
     size_t Ydim;
     size_t Zdim;
     size_t Xts, Yts;
+    double tilt, rot, tx, ty;
 
     bool invertContrast, normalize, swapXY;
+    std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY;
+    std::vector<MultidimArray<double> > tsImages;
 
     double scaleFactor;
 
@@ -61,6 +64,8 @@ public:
 
     void createCircle(MultidimArray<double> &maskNormalize);
     
+    void readTiltSeriesInfo(std::string &tsid);
+
     void getCoordinateOnTiltSeries(int xcoor, int ycoor, int zcoor, double &rot, double &tilt, double &tx, double &ty, int &x_2d, int &y_2d);
 
     void readParams();

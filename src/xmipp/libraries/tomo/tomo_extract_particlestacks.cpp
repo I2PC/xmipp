@@ -133,34 +133,22 @@ void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int yco
 	}
 }
 
-
-void ProgTomoExtractParticleStacks::run()
+void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 {
-	std::cout << "Starting ... "<< std::endl;
-
-	MetaDataVec mdts, mdcoords, mdparticlestack;
+	MetaDataVec mdts;
 	mdts.read(fnTs);
-	mdcoords.read(fnCoor);
-
-	int xcoor, ycoor, zcoor, xinit, yinit;
-	size_t idx=1;
-
-	FileName fnImg;
 
 	Image<double> tiltImg;
 	auto &ptrtiltImg = tiltImg();
 
 	// The tilt series is stored as a stack of images;
-	std::vector<MultidimArray<double> > tsImages(0);
+
 	MultidimArray<double> tsImg;
-	std::vector<double> tsTiltAngles(0), tsRotAngles(0), tsShiftX(0), tsShiftY(0);
 	std::vector<FileName> tsNames(0);
 
-	double tilt, rot, tx, ty;
+	FileName fnImg;
 
 	size_t Nimages = 0;
-
-	std::string tsid;
 
 	for (const auto& row : mdts)
 	{
@@ -183,10 +171,36 @@ void ProgTomoExtractParticleStacks::run()
 		Nimages +=1;
 	}
 
-
 	Xts = XSIZE(ptrtiltImg);
 	Yts = YSIZE(ptrtiltImg);
+}
 
+
+
+void ProgTomoExtractParticleStacks::run()
+{
+	std::cout << "Starting ... "<< std::endl;
+	double signValue = 1;
+	if (invertContrast)
+	{
+		signValue = -1;
+	}
+
+	MetaDataVec mdcoords, mdparticlestack;
+	mdcoords.read(fnCoor);
+	MetaDataVec mdts;
+
+	int xcoor, ycoor, zcoor, xinit, yinit;
+	size_t idx=1;
+
+	mdts.read(fnTs);
+
+	std::string tsid;
+	readTiltSeriesInfo(tsid);
+
+	double tilt, rot, tx, ty;
+
+	size_t Nimages = 0;
 
 	int halfboxsize = floor(0.5*boxsize);
 	Image<double> finalStack;
@@ -216,70 +230,20 @@ void ProgTomoExtractParticleStacks::run()
 		fnMrc = tsid + formatString("-%i.mrcs", elem);
 		
 		std::vector<MultidimArray<double>> imgVec;
+		MultidimArray<double> singleImage;
+		singleImage.initZeros(1,1,boxsize, boxsize);
 		
 		particlestack.initZeros(Nimages, 1, boxsize, boxsize);
 
-		for (size_t idx = 0; idx<Nimages; idx++)
+		for (size_t idx = 0; idx<tsImages.size(); idx++)
 		{
-			tsImg = tsImages[idx];
+			auto tsImg = tsImages[idx];
 			tilt = tsTiltAngles[idx]*PI/180;
 			rot = tsRotAngles[idx]*PI/180;
 			tx = tsShiftX[idx];
 			ty = tsShiftY[idx];
 			int x_2d, y_2d;
-			//getCoordinateOnTiltSeries(xcoor, ycoor, zcoor, rot, tilt, tx, ty, x_2d, y_2d);
-
-			double ct = cos(tilt);
-			double st = sin(tilt);
-
-
-			double cr = cos(rot);
-			double sr = sin(rot);
-
-			tx = tsShiftX[idx];
-			ty = tsShiftY[idx];
-	
-			//
-			// First the piced coordinate, r, is projected on the aligned tilt sreies
-			// r' = Pr  Where r is the coordinates to be projected by the matrix P
-			// [x']   [ct   0   st][x]
-			// [y'] = [0    1    0][y]
-			// [z']   [0    0    0][z]
-			// Next is to undo the transformation This is Aligned->Unaligned
-			// If T is the transformation matrix unaligned->algined, we need T^-{1}
-			// Let us define a rotation matrix
-			// R=[cos(rot) -sin(rot)]
-			// [ sin(rot) cos(rot)];
-
-			// The inverse of T is given by
-			// T^{-1} = [R' -R'*t;
-			//           0  0 1]);
-			         
-			// Where t are the shifts of T
-			//
-
-			//int x_2d, y_2d;
-
-			// Projection
-			x_2d = (int) (xcoor * ct + zcoor* st);
-			y_2d = (int) (ycoor);
-
-			std::cout << tilt*180/PI << "    " << x_2d << "   " << y_2d << "   " << rot*180/PI << std::endl;
-
-			//Inverse transformation
-			double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
-			double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
-                        
-            if (swapXY)
-			{
-			    x_2d = -x_2d_prime+0.5*Xts;
-			    y_2d = -y_2d_prime+0.5*Yts;
-			}
-			else
-			{
-			    x_2d = -x_2d_prime+0.5*Yts;;
-                y_2d = -y_2d_prime+0.5*Xts;;
-			}
+			getCoordinateOnTiltSeries(xcoor, ycoor, zcoor, rot, tilt, tx, ty, x_2d, y_2d);
 
 			int xlim = x_2d + halfboxsize;
 			int ylim = y_2d + halfboxsize;
@@ -293,70 +257,51 @@ void ProgTomoExtractParticleStacks::run()
 				continue;
 			}
 
-
-			if (invertContrast)
+			for (int i=yinit; i<ylim; i++)
 			{
-				for (int i=yinit; i<ylim; i++)
+				int ii = i-y_2d;
+				for (int j=xinit; j<xlim; j++)
 				{
-					int ii = i-y_2d;
-					for (int j=xinit; j<xlim; j++)
-					{
-						DIRECT_N_YX_ELEM(particlestack, idx, ii+halfboxsize, j+halfboxsize-x_2d) = -A2D_ELEM(tsImages[idx], i, j);
-					}
-				}
-			}
-			else
-			{
-				for (int i=yinit; i<ylim; i++)
-				{
-					int ii = i-y_2d;
-					for (int j=xinit; j<xlim; j++)
-					{
-						DIRECT_N_YX_ELEM(particlestack, idx, ii+halfboxsize, j+halfboxsize-x_2d) = A2D_ELEM(tsImages[idx], i, j);
-					}
+					A2D_ELEM(singleImage, ii+halfboxsize, j+halfboxsize-x_2d) = signValue*A2D_ELEM(tsImages[idx], i, j);
 				}
 			}
 
 			if (normalize)
 			{
-				for (size_t ti = 0; ti<Nimages; ti++)
+				double sumVal = 0, sumVal2 = 0, counter = 0;
+
+				long n = 0;
+				for (int i=0; i<boxsize; i++)
 				{
-					double sumVal = 0, sumVal2 = 0;
-				 	double counter = 0;
-
-						long n = 0;
-						for (int i=0; i<boxsize; i++)
-						{
-							for (int j=0; j<boxsize; j++)
-							{
-								if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
-								{
-									double val = DIRECT_N_YX_ELEM(particlestack, ti, i, j);
-									sumVal += val;
-									sumVal2 += val*val;
-									counter = counter + 1;
-								}
-								n++;			
-								
-							}
-						}
-
-
-					double mean, sigma2;
-					mean = sumVal/counter;
-					sigma2 = sqrt(sumVal2/counter - mean*mean);
-
-					for (int i=0; i<boxsize; i++)
+					for (int j=0; j<boxsize; j++)
 					{
-						for (int j=0; j<boxsize; j++)
+						if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
 						{
-							DIRECT_N_YX_ELEM(particlestack, ti, i, j) -= mean;
-							DIRECT_N_YX_ELEM(particlestack, ti, i, j) /= sigma2;
+							double val = A2D_ELEM(singleImage, i, j);
+							sumVal += val;
+							sumVal2 += val*val;
+							counter = counter + 1;
 						}
+						n++;
+
+					}
+				}
+
+				double mean, sigma2;
+				mean = sumVal/counter;
+				sigma2 = sqrt(sumVal2/counter - mean*mean);
+
+				for (int i=0; i<boxsize; i++)
+				{
+					for (int j=0; j<boxsize; j++)
+					{
+						A2D_ELEM(singleImage, i, j) -= mean;
+						A2D_ELEM(singleImage, i, j) /= sigma2;
 					}
 				}
 			}
 
+			imgVec.push_back(singleImage);
 			MDRowVec rowParticleStack;
 			rowParticleStack.setValue(MDL_TSID, tsid);
 			FileName idxstr;
@@ -369,16 +314,30 @@ void ProgTomoExtractParticleStacks::run()
 			rowParticleStack.setValue(MDL_YCOOR, y_2d);
 
 			mdparticlestack.addRow(rowParticleStack);
-			mdparticlestack.write(fnOut+"/"+fnXmd);
+		}
+		mdparticlestack.write(fnOut+"/"+fnXmd);
+		Nimages = imgVec.size();
+		particlestack.initZeros(Nimages, 1, boxsize, boxsize);
+		for (int k=0; k<Nimages; k++)
+		{
+			singleImage = imgVec[k];
+			for (int i=0; i<boxsize; i++)
+			{
+				for (int j=0; j<boxsize; j++)
+				{
+					NZYX_ELEM(particlestack, k, 0, i, j) = A2D_ELEM(singleImage, i, j);
+				}
+			}
 		}
 
-
+		std::cout << "XSIZE=" << XSIZE(particlestack) << "  " << "YSIZE=" << YSIZE(particlestack) << "  " << "ZSIZE=" << ZSIZE(particlestack) << "  " << "NSIZE=" << NSIZE(particlestack) << std::endl;
 
 		finalStack.write(fnOut+"/"+fnMrc);
 
 		elem += 1;
+
 	}
 
 
-
 }
+
