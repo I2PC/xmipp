@@ -22,7 +22,6 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional, Tuple, Sequence
 import torch
 import argparse
 import pathlib
@@ -81,7 +80,9 @@ def run(images_md_path: str,
     images_dataset = image.torch_utils.Dataset(images_paths)
     images_loader = torch.utils.data.DataLoader(
         images_dataset,
-        batch_size=batch_size,
+        sampler=torch.utils.data.BatchSampler(
+            torch.utils.data.SequentialSampler(images_dataset), batch_size=batch_size, drop_last=False
+        ),
         pin_memory=pin_memory,
         num_workers=4
     )
@@ -118,6 +119,7 @@ def run(images_md_path: str,
     ctf_images = None
     wiener_filters = None
     for batch_images in images_loader:
+        batch_images = batch_images[0] # Due to the batch_sampler
         end = start + len(batch_images)
         batch_images: torch.Tensor = batch_images.to(transform_device, non_blocking=True)
         batch_slice = slice(start, end)
