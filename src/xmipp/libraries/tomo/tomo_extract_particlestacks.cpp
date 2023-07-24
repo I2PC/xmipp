@@ -38,10 +38,12 @@ void ProgTomoExtractParticleStacks::readParams()
 	fnTs = getParam("--tiltseries");
 	fnCoor = getParam("--coordinates");
 	boxsize = getIntParam("--boxsize");
+	sampling = getIntParam("--sampling");
 	invertContrast = checkParam("--invertContrast");
-	scaleFactor = getDoubleParam("--downsample");
+	// scaleFactor = getDoubleParam("--downsample");
 	normalize = checkParam("--normalize");
-        swapXY = checkParam("--swapXY");
+    swapXY = checkParam("--swapXY");
+    setCTF = checkParam("--setCTF");
 	fnOut = getParam("-o");
 	nthrs = getIntParam("--threads");
 }
@@ -53,11 +55,12 @@ void ProgTomoExtractParticleStacks::defineParams()
 	addParamsLine("  --tiltseries <xmd_file=\"\">       : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --coordinates <xmd_file=\"\">      : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
+	addParamsLine("  --sampling <s=1>                   : Sampling rate in (A).");
 	addParamsLine("  [--invertContrast]                 : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
     addParamsLine("  [--swapXY]                         : Put this flag if the tomogram and the tilt series have the same dimensions but the X and Y coordinates are swaped");
-    addParamsLine("  [--setCFT]                         : Put this flag if the tilt series ");
+    addParamsLine("  [--setCTF]                         : Put this flag if the tilt series metadata has CTF parameters. The CTF per particle will be calculated and set in the final set of particles");
 	addParamsLine("  [--normalize]                      : Put this flag to normalize the background of the particle (zero mean and unit std)");
-	addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
+	// addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
 	addParamsLine("  -o <mrc_file=\"\">                 : path to the output directory. ");
 	addParamsLine("  [--threads <s=4>]                  : Number of threads");
 }
@@ -133,6 +136,7 @@ void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int yco
 
 void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 {
+	//TODO: Ensure there is only a single TSId
 	MetaDataVec mdts;
 	mdts.read(fnTs);
 
@@ -146,15 +150,28 @@ void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 	FileName fnImg;
 
 	size_t Nimages = 0;
+	double defU=0, defV=0, defAng=0;
 
 	for (const auto& row : mdts)
 	{
 		row.getValue(MDL_IMAGE, fnImg);
 		row.getValue(MDL_ANGLE_TILT, tilt);
 		row.getValue(MDL_ANGLE_ROT, rot);
+
+		if (setCTF)
+		{
+			row.getValue(MDL_CTF_DEFOCUSU, defU);
+			row.getValue(MDL_CTF_DEFOCUSV, defV);
+			row.getValue(MDL_CTF_DEFOCUS_ANGLE, defAng);
+		}
+
+
 		row.getValue(MDL_SHIFT_X, tx);
 		row.getValue(MDL_SHIFT_Y, ty);
 		row.getValue(MDL_TSID, tsid);
+		tsDefU.push_back(defU);
+		tsDefV.push_back(defV);
+		tsDefAng.push_back(defAng);
 
 		tiltImg.read(fnImg);
 
@@ -214,22 +231,18 @@ void ProgTomoExtractParticleStacks::run()
 	FileName fnXmd;
 	fnXmd = tsid + formatString(".xmd");
 
-	std::cout << tsid << std::endl;
-
 	for (const auto& row : mdcoords)
 	{
 		row.getValue(MDL_XCOOR, xcoor);
 		row.getValue(MDL_YCOOR, ycoor);
 		row.getValue(MDL_ZCOOR, zcoor);
-
-		FileName fnMrc;
-
-		fnMrc = tsid + formatString("-%i.mrcs", elem);
 		
 		std::vector<MultidimArray<double>> imgVec;
 		MultidimArray<double> singleImage;
 		singleImage.initZeros(1,1,boxsize, boxsize);
-		
+
+		FileName fnMrc;
+		fnMrc = tsid + formatString("-%i.mrcs", elem);
 
 		size_t imgNumber = 0;
 		for (size_t idx = 0; idx<tsImages.size(); idx++)
@@ -250,7 +263,6 @@ void ProgTomoExtractParticleStacks::run()
 
 			if ((xlim>Xts) || (ylim>Yts) || (xinit<0) || (yinit<0))
 			{
-				std::cout << "skipping " << std::endl;
 				continue;
 			}
 
@@ -306,6 +318,20 @@ void ProgTomoExtractParticleStacks::run()
 			rowParticleStack.setValue(MDL_IMAGE, idxstr+fnMrc);
 			rowParticleStack.setValue(MDL_ANGLE_TILT, tsTiltAngles[idx]);
 			rowParticleStack.setValue(MDL_ANGLE_ROT, tsRotAngles[idx]);
+			rowParticleStack.setValue(MDL_SHIFT_X, tsShiftX[idx]);
+			rowParticleStack.setValue(MDL_SHIFT_Y, tsShiftY[idx]);
+
+			double defU=0, defV=0, defAng=0;
+			if (setCTF)
+			{
+				double Df = (xcoor * cos(tilt) + zcoor* sin(tilt))*sampling*sin(tilt);
+				defU = tsDefU[idx]  - Df;
+				defV = tsDefV[idx]  - Df;
+			}
+
+			rowParticleStack.setValue(MDL_CTF_DEFOCUSU, defU);
+			rowParticleStack.setValue(MDL_CTF_DEFOCUSV, defV);
+			rowParticleStack.setValue(MDL_CTF_DEFOCUS_ANGLE, tsRotAngles[idx]);
 			rowParticleStack.setValue(MDL_XCOOR, x_2d);
 			rowParticleStack.setValue(MDL_YCOOR, y_2d);
 
@@ -326,6 +352,8 @@ void ProgTomoExtractParticleStacks::run()
 				}
 			}
 		}
+
+
 
 		finalStack.write(fnOut+"/"+fnMrc);
 

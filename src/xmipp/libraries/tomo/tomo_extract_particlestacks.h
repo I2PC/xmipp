@@ -48,11 +48,11 @@ public:
     size_t Xts, Yts;
     double tilt, rot, tx, ty;
 
-    bool invertContrast, normalize, swapXY;
-    std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY;
+    bool invertContrast, normalize, swapXY, setCTF;
+    std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY, tsDefU, tsDefV, tsDefAng;
     std::vector<MultidimArray<double> > tsImages;
 
-    double scaleFactor;
+    double scaleFactor, sampling;
 
 	/** Is the volume previously masked?*/
 	int  boxsize; 
