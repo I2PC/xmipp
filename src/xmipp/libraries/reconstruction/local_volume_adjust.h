@@ -41,6 +41,7 @@ private:
 	FileName fnMask;
 	bool performSubtraction;
 	int neighborhood;
+	float sampling;
 	double c;
 	double sumV_Vref;
 	double sumVref2;

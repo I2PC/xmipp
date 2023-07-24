@@ -41,7 +41,8 @@ void ProgLocalVolumeAdjust::defineParams() {
 	addParamsLine("[-o <structure=\"\">]\t: Volume 2 modified or volume difference");
 	addParamsLine("\t: If no name is given, then output_volume.mrc");
 	addParamsLine("--mask <mask=\"\">		: Mask for volume 1");
-	addParamsLine("[--neighborhood <n=5>]\t: side length (in pixels) of a square which will define the region of adjustment");
+	addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
+	addParamsLine("[--neighborhood <n=5>]\t: side length (in Angstroms) of a square which will define the region of adjustment");
 	addParamsLine("[--sub]\t: Perform the subtraction of the volumes. Output will be the difference");
 }
 
@@ -54,7 +55,8 @@ void ProgLocalVolumeAdjust::readParams() {
 		fnOutVol = "output_volume.mrc";
 	performSubtraction = checkParam("--sub");
 	fnMask = getParam("--mask");
-	neighborhood = getIntParam("--neighborhood"); // TODO: ask in A and convert to pixels (ask sampling rate)?
+	sampling = getDoubleParam("--sampling");
+	neighborhood = getIntParam("--neighborhood"); 
 }
 
 // Show ====================================================================
@@ -81,8 +83,11 @@ void ProgLocalVolumeAdjust::run() {
 	MultidimArray<double> &mM=M();
 	mM.setXmippOrigin();
 	int iters;
+	int neighborhood_px;
+	neighborhood_px = round(neighborhood/sampling);
+	std::cout << "neighborhood_px = "<< neighborhood_px << std::endl;
 	int cubic_neighborhood;
-	cubic_neighborhood = neighborhood*neighborhood*neighborhood;
+	cubic_neighborhood = neighborhood_px*neighborhood_px*neighborhood_px;
 	iters = floor(ZYXSIZE(mV)/cubic_neighborhood);
 	int xsize = XSIZE(mV);
 	int ysize = YSIZE(mV);
@@ -95,11 +100,11 @@ void ProgLocalVolumeAdjust::run() {
 		sumV_Vref = 0;
 		sumVref2 = 0;
 		// Go over each subvolume
-		for (k=0; k < neighborhood; ++k)
+		for (k=0; k < neighborhood_px; ++k)
 		{
-			for (i=0; i < neighborhood; ++i)
+			for (i=0; i < neighborhood_px; ++i)
 			{
-				for (j=0; j < neighborhood; ++j)
+				for (j=0; j < neighborhood_px; ++j)
 				{
 					if (DIRECT_A3D_ELEM(mM,ki+k,ii+i,ji+j) == 1) // Condition to check if we are inside mask
 					{
@@ -119,13 +124,16 @@ void ProgLocalVolumeAdjust::run() {
 			c = 0;
 		else
 			c = sumV_Vref/sumVref2;
-		std::cout << "c = "<< c << std::endl;
+		
+		if (c!=0)
+			std::cout << "c = "<< c << std::endl;
+
 		// Apply adjustment TODO: per regions
-		for (k=0; k < neighborhood; ++k)
+		for (k=0; k < neighborhood_px; ++k)
 		{
-			for (i=0; i < neighborhood; ++i)
+			for (i=0; i < neighborhood_px; ++i)
 			{
-				for (j=0; j < neighborhood; ++j)
+				for (j=0; j < neighborhood_px; ++j)
 				{
 					if (DIRECT_A3D_ELEM(mM,ki+k,ii+i,ji+j) == 1) // Condition to check if we are inside mask
 					{
@@ -135,21 +143,21 @@ void ProgLocalVolumeAdjust::run() {
 			}
 		}
 		// Take the index to start in next subvolume
-		if (ji < (xsize-neighborhood))
-			ji += neighborhood;
+		if (ji < (xsize-neighborhood_px))
+			ji += neighborhood_px;
 		else
 			ji = 0;
 		if (ji == 0)
 		{
-			if (ii < (ysize-neighborhood))
-				ii += neighborhood;
+			if (ii < (ysize-neighborhood_px))
+				ii += neighborhood_px;
 			else
 				ii = 0;
 		}
 		if (ii == 0 && ji == 0)
 		{
-			if (ki < (zsize-neighborhood))
-				ki += neighborhood;
+			if (ki < (zsize-neighborhood_px))
+				ki += neighborhood_px;
 			else
 				ki = 0;
 		}
