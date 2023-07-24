@@ -97,5 +97,9 @@ class Dataset(torch.utils.data.Dataset):
         finish_run()
 
         # Concatenate the arrays
-        result = np.concatenate(output_stacks, axis=0)
+        if len(output_stacks) == 1:
+            result = output_stacks[0]
+        else:
+            result = np.concatenate(output_stacks, axis=0)
+
         return result

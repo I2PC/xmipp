@@ -119,7 +119,7 @@ def run(images_md_path: str,
     ctf_images = None
     wiener_filters = None
     for batch_images in images_loader:
-        batch_images = batch_images[0] # Due to the batch_sampler
+        batch_images = batch_images[0] # Due to the BatchSampler
         end = start + len(batch_images)
         batch_images: torch.Tensor = batch_images.to(transform_device, non_blocking=True)
         batch_slice = slice(start, end)
