@@ -54,7 +54,8 @@ void ProgTomoExtractParticleStacks::defineParams()
 	addParamsLine("  --coordinates <xmd_file=\"\">      : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
 	addParamsLine("  [--invertContrast]                 : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
-        addParamsLine("  [--swapXY]                         : Put this flag if the tomogram and the tilt series have the same dimensions but the X and Y coordinates are swaped");
+    addParamsLine("  [--swapXY]                         : Put this flag if the tomogram and the tilt series have the same dimensions but the X and Y coordinates are swaped");
+    addParamsLine("  [--setCFT]                         : Put this flag if the tilt series ");
 	addParamsLine("  [--normalize]                      : Put this flag to normalize the background of the particle (zero mean and unit std)");
 	addParamsLine("  [--downsample <scaleFactor=0.5>]   : Scale factor of the extracted subtomograms");
 	addParamsLine("  -o <mrc_file=\"\">                 : path to the output directory. ");
@@ -91,15 +92,14 @@ void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int yco
 	double cr = cos(rot);
 	double sr = sin(rot);
 
-
 	/*
-	First the piced coordinate, r, is projected on the aligned tilt sreies
+	First the picked coordinate, r, is projected on the aligned tilt series
 	r' = Pr  Where r is the coordinates to be projected by the matrix P
 	[x']   [ct   0   st][x]
 	[y'] = [0    1    0][y]
 	[z']   [0    0    0][z]
 	Next is to undo the transformation This is Aligned->Unaligned
-	If T is the transformation matrix unaligned->algined, we need T^-{1}
+	If T is the transformation matrix unaligned->aligned, we need T^-{1}
 	Let us define a rotation matrix
 	R=[cos(rot) -sin(rot)]
 	  [ sin(rot) cos(rot)];
@@ -115,9 +115,7 @@ void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int yco
 	x_2d = (int) (xcoor * ct + zcoor* st);
 	y_2d = (int) (ycoor);
 
-	std::cout << tilt*180/PI << "    " << x_2d << "   " << y_2d << "   " << rot*180/PI << std::endl;
-        
-        //Inverse transformation
+    //Inverse transformation
     double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
 	double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
         
@@ -142,7 +140,6 @@ void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 	auto &ptrtiltImg = tiltImg();
 
 	// The tilt series is stored as a stack of images;
-
 	MultidimArray<double> tsImg;
 	std::vector<FileName> tsNames(0);
 
@@ -233,8 +230,8 @@ void ProgTomoExtractParticleStacks::run()
 		MultidimArray<double> singleImage;
 		singleImage.initZeros(1,1,boxsize, boxsize);
 		
-		particlestack.initZeros(Nimages, 1, boxsize, boxsize);
 
+		size_t imgNumber = 0;
 		for (size_t idx = 0; idx<tsImages.size(); idx++)
 		{
 			auto tsImg = tsImages[idx];
@@ -305,8 +302,7 @@ void ProgTomoExtractParticleStacks::run()
 			MDRowVec rowParticleStack;
 			rowParticleStack.setValue(MDL_TSID, tsid);
 			FileName idxstr;
-			idxstr = formatString("%i@",idx+1);
-
+			idxstr = formatString("%i@",imgNumber+1);
 			rowParticleStack.setValue(MDL_IMAGE, idxstr+fnMrc);
 			rowParticleStack.setValue(MDL_ANGLE_TILT, tsTiltAngles[idx]);
 			rowParticleStack.setValue(MDL_ANGLE_ROT, tsRotAngles[idx]);
@@ -314,6 +310,7 @@ void ProgTomoExtractParticleStacks::run()
 			rowParticleStack.setValue(MDL_YCOOR, y_2d);
 
 			mdparticlestack.addRow(rowParticleStack);
+			imgNumber++;
 		}
 		mdparticlestack.write(fnOut+"/"+fnXmd);
 		Nimages = imgVec.size();
@@ -329,8 +326,6 @@ void ProgTomoExtractParticleStacks::run()
 				}
 			}
 		}
-
-		std::cout << "XSIZE=" << XSIZE(particlestack) << "  " << "YSIZE=" << YSIZE(particlestack) << "  " << "ZSIZE=" << ZSIZE(particlestack) << "  " << "NSIZE=" << NSIZE(particlestack) << std::endl;
 
 		finalStack.write(fnOut+"/"+fnMrc);
 
