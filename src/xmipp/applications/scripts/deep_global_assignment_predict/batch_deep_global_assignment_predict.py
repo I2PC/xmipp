@@ -50,6 +50,7 @@ if __name__ == "__main__":
 
 
     def quaternion_from_matrix(matrix, isprecise=False):
+        print('matrix', matrix, flush=True)
         """Return quaternion from rotation matrix.
 
         If isprecise is True, the input matrix is assumed to be a precise rotation
@@ -293,8 +294,11 @@ if __name__ == "__main__":
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
+        print('p6d_redundant', p6d_redundant)
         pred6d = calculate_r6d(p6d_redundant)
+        print('pred6d', pred6d)
         matrix = convert_to_matrix(pred6d)
+        print('matrix', matrix)
         #matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
@@ -347,13 +351,13 @@ if __name__ == "__main__":
         AngModel = load_model(path_to_model + '/classifier' + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
         models[index].append(AngModel)
-        for i in range(2):
+        for i in [0, 1, 2, 3, 4, 6, 7]:
             AngModel = load_model(path_to_model + '/modelAng' + str(i) + ".h5", compile=False)
             AngModel.compile(loss="mean_squared_error", optimizer='adam')
             models[index].append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 42))
+    predictions = np.random.uniform(size=(numImgs, numAngModels, 42))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
