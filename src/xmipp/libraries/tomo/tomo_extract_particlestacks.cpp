@@ -38,7 +38,7 @@ void ProgTomoExtractParticleStacks::readParams()
 	fnTs = getParam("--tiltseries");
 	fnCoor = getParam("--coordinates");
 	boxsize = getIntParam("--boxsize");
-	sampling = getIntParam("--sampling");
+	sampling = getDoubleParam("--sampling");
 	defocusPositive = checkParam("--defocusPositive");
 	invertContrast = checkParam("--invertContrast");
 	// scaleFactor = getDoubleParam("--downsample");
