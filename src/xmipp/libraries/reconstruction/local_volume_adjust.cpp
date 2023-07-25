@@ -125,9 +125,6 @@ void ProgLocalVolumeAdjust::run() {
 		else
 			c = sumV_Vref/sumVref2;
 		
-		if (c!=0)
-			std::cout << "c = "<< c << std::endl;
-
 		// Apply adjustment TODO: per regions
 		for (k=0; k < neighborhood_px; ++k)
 		{
