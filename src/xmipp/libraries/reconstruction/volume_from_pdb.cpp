@@ -213,9 +213,18 @@ void ProgPdbConverter::readParams()
     output_dim_x = getIntParam("--size", 0);
     output_dim_y = getIntParam("--size", 1);
     output_dim_z = getIntParam("--size", 2);
-    orig_x = getIntParam("--orig", 0);
-    orig_y = getIntParam("--orig", 1);
-    orig_z = getIntParam("--orig", 2);
+    if (checkParam("--orig"))
+    {
+    	orig_x = getIntParam("--orig", 0);
+        orig_y = getIntParam("--orig", 1);
+        orig_z = getIntParam("--orig", 2);
+        origGiven=true;
+    }
+    else
+    {
+    	origGiven=false;
+    	orig_x=orig_y=orig_z=0;
+    }
     useBlobs = checkParam("--blobs");
     usePoorGaussian = checkParam("--poor_Gaussian");
     useFixedGaussian = checkParam("--fixed_Gaussian");
@@ -309,10 +318,18 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         finalDim_z=output_dim_z;
     }
     Vhigh().initZeros(finalDim_x,finalDim_y,finalDim_z);
-    Vhigh().setXmippOrigin();
+    if (!origGiven)
+	    Vhigh().setXmippOrigin();
+    else
+    {
+		STARTINGX(Vhigh()) = orig_x;
+		STARTINGY(Vhigh()) = orig_y;
+		STARTINGZ(Vhigh()) = orig_z;
+    }
     if (verbose)
     	std::cout << "The highly sampled volume is of size " << XSIZE(Vhigh())
     	<< std::endl;
+    std::cout << "Size: "; Vhigh().printShape(); std::cout << std::endl;
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
@@ -452,7 +469,8 @@ void ProgPdbConverter::createProteinAtLowSamplingRate()
     scaleToSize(xmipp_transformation::BSPLINE3, Vhigh(), Vlow(),
                 new_output_dim, new_output_dim, new_output_dim);
     Vlow() = Vhigh();
-    Vlow().setXmippOrigin();
+    if (!origGiven)
+    	Vlow().setXmippOrigin();
 
     // Return to the desired size
     Vlow().selfWindow(FIRST_XMIPP_INDEX(output_dim_x), FIRST_XMIPP_INDEX(output_dim_y),
@@ -484,8 +502,9 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
 {
     // Create an empty volume to hold the protein
     Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
-    Vlow().setXmippOrigin();
-    if (orig_x!=0)
+    if (!origGiven)
+    	Vlow().setXmippOrigin();
+    else
     {
 		STARTINGX(Vlow()) = orig_x;
 		STARTINGY(Vlow()) = orig_y;
