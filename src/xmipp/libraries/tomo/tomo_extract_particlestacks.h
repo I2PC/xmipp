@@ -48,7 +48,7 @@ public:
     size_t Xts, Yts;
     double tilt, rot, tx, ty;
 
-    bool invertContrast, normalize, swapXY, setCTF;
+    bool invertContrast, normalize, swapXY, setCTF, defocusPositive;
     std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY, tsDefU, tsDefV, tsDefAng;
     std::vector<MultidimArray<double> > tsImages;
 

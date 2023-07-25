@@ -39,6 +39,7 @@ void ProgTomoExtractParticleStacks::readParams()
 	fnCoor = getParam("--coordinates");
 	boxsize = getIntParam("--boxsize");
 	sampling = getIntParam("--sampling");
+	defocusPositive = checkParam("--defocusPositive");
 	invertContrast = checkParam("--invertContrast");
 	// scaleFactor = getDoubleParam("--downsample");
 	normalize = checkParam("--normalize");
@@ -56,6 +57,7 @@ void ProgTomoExtractParticleStacks::defineParams()
 	addParamsLine("  --coordinates <xmd_file=\"\">      : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
 	addParamsLine("  --sampling <s=1>                   : Sampling rate in (A).");
+	addParamsLine("  [--defocusPositive]                : This flag must be put if the defocus increases or decreases along the z-axis. This is requires to set the local CTF");
 	addParamsLine("  [--invertContrast]                 : Put this flag if the particles to be extracted are 3D particles (subtvolumes)");
     addParamsLine("  [--swapXY]                         : Put this flag if the tomogram and the tilt series have the same dimensions but the X and Y coordinates are swaped");
     addParamsLine("  [--setCTF]                         : Put this flag if the tilt series metadata has CTF parameters. The CTF per particle will be calculated and set in the final set of particles");
@@ -226,7 +228,8 @@ void ProgTomoExtractParticleStacks::run()
 		createCircle(maskNormalize);
 	}
 
-	size_t elem = 0; 
+	size_t elem = 0;
+	double signDef = -1;
 
 	FileName fnXmd;
 	fnXmd = tsid + formatString(".xmd");
@@ -324,9 +327,15 @@ void ProgTomoExtractParticleStacks::run()
 			double defU=0, defV=0, defAng=0;
 			if (setCTF)
 			{
+				if (defocusPositive)
+				{
+					signDef = 1;
+				}
+
 				double Df = (xcoor * cos(tilt) + zcoor* sin(tilt))*sampling*sin(tilt);
-				defU = tsDefU[idx]  - Df;
-				defV = tsDefV[idx]  - Df;
+
+				defU = tsDefU[idx]  + signDef*Df;
+				defV = tsDefV[idx]  + signDef*Df;
 			}
 
 			rowParticleStack.setValue(MDL_CTF_DEFOCUSU, defU);
