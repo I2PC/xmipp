@@ -85,7 +85,6 @@ void ProgLocalVolumeAdjust::run() {
 	int iters;
 	int neighborhood_px;
 	neighborhood_px = round(neighborhood/sampling);
-	std::cout << "neighborhood_px = "<< neighborhood_px << std::endl;
 	int cubic_neighborhood;
 	cubic_neighborhood = neighborhood_px*neighborhood_px*neighborhood_px;
 	iters = floor(ZYXSIZE(mV)/cubic_neighborhood);
