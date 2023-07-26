@@ -63,7 +63,8 @@
 // #define DEBUG_LOCAL_MISALI
 // #define DEBUG_RESID
 // #define DEBUG_COORDS_CS
-#define DEBUG_RESIDUAL_ANALYSIS
+// #define DEBUG_RESIDUAL_ANALYSIS
+#define DEBUG_PRUNE_RESIDUALS
 // #define DEBUG_RESIDUAL_STATISTICS_FILE
 #define DEBUG_OUTPUT_FILES
 
@@ -163,6 +164,8 @@ public:
     void detectMisalignmentFromResiduals();
 
     void generateResidualStatiscticsFile();
+
+    void pruneResidualVectors();
 
 
     // --------------------------- I/O functions ----------------------------

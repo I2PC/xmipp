@@ -160,7 +160,15 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	lmDetector.targetFS = targetFS;
 	lmDetector.thrSD = thrSDHCC;
 
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "----- Run landmark detector" << std::endl;
+	#endif
+
 	lmDetector.run();
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "----- Landmark detector execution finished!" << std::endl;
+	#endif
 }
 
 
@@ -351,6 +359,155 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Residual vectors calculated: " << vCM.size() << std::endl;
+	#endif
+}
+
+
+void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
+{
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Pruning resudial vectors..." << std::endl;
+	#endif
+
+	MultidimArray<double> fiducial_origin;
+	MultidimArray<double> fiducial_end;
+
+	std::vector<CM> vCM_pruned;
+
+	std::vector<Point3D<double>> newCoordinates3D;
+
+	int deletedCoordinates = 0;
+
+	int boxSize = 2 * int(fiducialSizePx);
+	int halfBoxSize = boxSize / 2;
+
+	int numberOfCM = vCM.size();
+
+	for(size_t n = 0; n < numberOfCM ; n++)
+	{
+		CM cm = vCM[n];
+
+		Point3D<double> detectedCoordinate = cm.detectedCoordinate;
+        Point2D<double> residuals = cm.residuals;
+
+		int fiducialOriginX = detectedCoordinate.x - halfBoxSize;
+		int fiducialOriginY = detectedCoordinate.y - halfBoxSize;
+		int fiducialEndX = fiducialOriginX + residuals.x;
+		int fiducialEndY = fiducialOriginY + residuals.y;
+		int tiltImage = detectedCoordinate.z;
+
+		#ifdef DEBUG_PRUNE_RESIDUALS
+		std::cout << "--- Analyzing residual number " << n << std::endl;
+		std::cout << "tiltImage " << tiltImage << std::endl;
+		std::cout << "fiducialOriginX " << fiducialOriginX << std::endl;
+		std::cout << "fiducialOriginY " << fiducialOriginY << std::endl;
+		std::cout << "fiducialEndX " << fiducialEndX << std::endl;
+		std::cout << "fiducialEndY " << fiducialEndY << std::endl;
+		std::cout << "residuals.x " << residuals.x << std::endl;
+		std::cout << "residuals.y " << residuals.y << std::endl;
+		std::cout << "residual module ^2 " << (residuals.x*residuals.x + residuals.y*residuals.y) << std::endl;
+		#endif
+
+		// Check that residual do not point to the fiducial itself
+		// (only run test for non-matching vectors)
+		if ((residuals.x*residuals.x + residuals.y*residuals.y) > (fiducialSizePx * fiducialSizePx / 4))
+		{
+
+			// Construct cropped fiducial at origin and end of the resildual vector
+			fiducial_origin.initZeros(boxSize, boxSize);
+			fiducial_end.initZeros(boxSize, boxSize);
+
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					// Origin
+					if ((fiducialOriginY + i) < 0 || (fiducialOriginY + i) > ySize ||
+						(fiducialOriginX + j) < 0 || (fiducialOriginX + j) > xSize)
+					{
+						DIRECT_A2D_ELEM(fiducial_origin, i, j) = 0;
+					}
+					else
+					{
+						DIRECT_A2D_ELEM(fiducial_origin, i, j) = DIRECT_A3D_ELEM(lmDetector.tiltSeries,
+																				 tiltImage,
+																				 fiducialOriginY + i, 
+																				 fiducialOriginX + j);
+					}
+
+					// End
+					if ((fiducialEndY + i) < 0 || (fiducialEndY + i) > ySize ||
+						(fiducialEndX + j) < 0 || (fiducialEndX + j) > xSize)
+					{
+						DIRECT_A2D_ELEM(fiducial_end, i, j) = 0;
+					}
+					else
+					{
+						DIRECT_A2D_ELEM(fiducial_end, i, j) = DIRECT_A3D_ELEM(lmDetector.tiltSeries,
+																			  tiltImage,
+																			  fiducialEndY + i, 
+																			  fiducialEndX + j);
+					}
+				}
+			}
+
+			fiducial_origin.statisticsAdjust(0.0, 1.0);
+			fiducial_end.statisticsAdjust(0.0, 1.0);
+
+			#ifdef DEBUG_PRUNE_RESIDUALS
+			Image<double> fiducial;
+
+			std::cout << "Origin fiducial dimensions (" << XSIZE(fiducial_origin) << ", " << YSIZE(fiducial_origin) << ")" << std::endl;
+			fiducial() = fiducial_origin;
+			size_t lastindex = fnOut.find_last_of(".");
+			std::string rawname = fnOut.substr(0, lastindex);
+			std::string outputFileNameSubtomo;
+			outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_fid_origin.mrc";
+			fiducial.write(outputFileNameSubtomo);
+
+			std::cout << "End fiducial dimensions (" << XSIZE(fiducial_end) << ", " << YSIZE(fiducial_end) << ")" << std::endl;
+			fiducial() = fiducial_end;
+			outputFileNameSubtomo = rawname + "_" + std::to_string(n) + "_fid_end.mrc";
+			fiducial.write(outputFileNameSubtomo);
+			#endif
+
+			double dotProduct = 0;
+
+			// Calculate scalar product
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					dotProduct += DIRECT_A2D_ELEM(fiducial_origin, i, j) * DIRECT_A2D_ELEM(fiducial_end, i, j);
+				}
+			}
+
+			dotProduct = dotProduct /(boxSize * boxSize);
+
+			#ifdef DEBUG_PRUNE_RESIDUALS
+			std::cout << "Dot product: " << dotProduct << std::endl;
+			#endif
+
+			if (dotProduct > 0.3)
+			{
+				vCM.erase(vCM.begin()+n);
+				numberOfCM--;
+				n--;
+				deletedCoordinates++;
+
+				#ifdef DEBUG_PRUNE_RESIDUALS
+				std::cout << "Residual " << n << " removed. Origin-end correlation: " << dotProduct << std::endl;
+				#endif
+			}
+		}
+	}
+
+	#ifdef DEBUG_PRUNE_RESIDUALS
+	std::cout << "Number of residuals removed by origin-end correlation: " << deletedCoordinates << std::endl;
+	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Pruning resudial vectors finished succesfully!" << std::endl;
 	#endif
 }
 
@@ -1038,6 +1195,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	calculateResidualVectors();
+	pruneResidualVectors();
+
 	writeOutputVCM();
 
 	adjustCoordinatesCosineStreching();
