@@ -10,7 +10,7 @@ from time import time
 from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift
 
-maxSize = 32
+maxSize = 512
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -50,7 +50,6 @@ if __name__ == "__main__":
 
 
     def quaternion_from_matrix(matrix, isprecise=False):
-        print('matrix', matrix, flush=True)
         """Return quaternion from rotation matrix.
 
         If isprecise is True, the input matrix is assumed to be a precise rotation
@@ -294,11 +293,8 @@ if __name__ == "__main__":
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
-        print('p6d_redundant', p6d_redundant)
         pred6d = calculate_r6d(p6d_redundant)
-        print('pred6d', pred6d)
         matrix = convert_to_matrix(pred6d)
-        print('matrix', matrix)
         #matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
@@ -345,17 +341,17 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
-    models = [[], []]
+    models = [[] for _ in range(numAngModels)]
     for index in range(numAngModels):
         path_to_model = fnAngModel + '/model' + str(index)
         AngModel = load_model(path_to_model + '/classifier' + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
         models[index].append(AngModel)
-        for i in [0, 1, 2, 3, 4, 6, 7]:
+        for i in [0, 1, 2, 3]:
             AngModel = load_model(path_to_model + '/modelAng' + str(i) + ".h5", compile=False)
             AngModel.compile(loss="mean_squared_error", optimizer='adam')
             models[index].append(AngModel)
-
+    print('models loaded')
     numImgs = len(fnImgs)
     predictions = np.random.uniform(size=(numImgs, numAngModels, 42))
     numBatches = numImgs // maxSize
@@ -364,22 +360,24 @@ if __name__ == "__main__":
     k = 0
     mdExp = xmippLib.MetaData(fnXmdExp)
     rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
-    print('rots', rots)
     # perform batch predictions for each model
+    numClasses = len(models[index]) - 1
     for i in range(numBatches):
         numPredictions = min(maxSize, numImgs-i*maxSize)
+        print('predicting %', 100 * (maxSize * i + numPredictions) / numImgs, flush=True)
         Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
         for j in range(numPredictions):
             Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
             Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
             Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
             k += 1
+        classes_predictions = np.zeros(shape=(numPredictions, numClasses))
+
         for index in range(numAngModels):
-            classes_predictions = models[index][0].predict(Xexp)
+            classes_predictions += models[index][0].predict(Xexp)
             classes = np.argmax(classes_predictions, axis=1)
-            numClasses = len(models[index]) - 1
-            print('clases', classes)
-            print('rots', rots[i*maxSize: (i+1)*maxSize])
+
+        for index in range(numAngModels):
             for class_index in range(numClasses):
                 indices = np.where(classes == class_index)[0]
                 Xexp_class = Xexp[indices]

@@ -22,6 +22,7 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     gpuId = sys.argv[6]
     numModels = int(sys.argv[7])
+    print('numModels', numModels)
     learning_rate = float(sys.argv[8])
     patience = int(sys.argv[9])
     pretrained = sys.argv[10]
@@ -154,8 +155,8 @@ if __name__ == "__main__":
                     matrix = euler_angles_to_matrix(euler_angles, angle)
                     S_inv = map_symmetries(matrix, self.inv_matrices, np.eye(3))
                     index_map = map_symmetries_index(S_inv, inverse_sqrt_matrices, np.eye(3))
-                    if index_map > 7:
-                        index_map = 7
+                    if index_map > 3:
+                        index_map = 3
                 return angle
 
             def compute_yvalues(euler_angles, angle):
@@ -181,7 +182,7 @@ if __name__ == "__main__":
             rAngle = np.array(list(map(check_angle, yvalues, rAngle, domains)))
             Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
             if self.bool_classifier:
-                y = to_categorical(domains, num_classes=8)
+                y = to_categorical(domains, num_classes=4)
             else:
                 y = np.array(list(map(compute_yvalues, yvalues, rAngle)))
             return Xexp, y
@@ -254,13 +255,14 @@ if __name__ == "__main__":
 
         return Model(inputLayer, L)
 
+
     SL = xmippLib.SymList()
     Matrices = np.array(SL.getSymmetryMatrices(symmetry))
 
 
     def rodrigues_formula(axis, angle):
         K = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
-        return np.eye(3) + math.sin(-angle) * K + (1 - math.cos(-angle)) * np.matmul(K, K)
+        return np.eye(3) + math.sin(angle) * K + (1 - math.cos(angle)) * np.matmul(K, K)
 
 
     def sqrt_matrix(sym_matrix):
@@ -274,44 +276,51 @@ if __name__ == "__main__":
         return rodrigues_formula(eigenvector, angle / 2)
 
 
-    matrix_1 = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
+    matrix_1 = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]])
     gen_matrix1 = sqrt_matrix(matrix_1)
-    matrix_2 = np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
+    matrix_2 = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
     gen_matrix2 = sqrt_matrix(matrix_2)
-    matrix_3 = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]])
-    gen_matrix3 = sqrt_matrix(matrix_3)
     sqrt_matrices = []
 
     sqrt_matrices.append(np.eye(3))
     sqrt_matrices.append(gen_matrix1)
     sqrt_matrices.append(gen_matrix2)
-    sqrt_matrices.append(gen_matrix3)
     sqrt_matrices.append(np.matmul(gen_matrix1, gen_matrix2))
-    sqrt_matrices.append(np.matmul(gen_matrix1, gen_matrix3))
-    sqrt_matrices.append(np.matmul(gen_matrix2, gen_matrix3))
-    sqrt_matrices.append(np.matmul(np.matmul(gen_matrix1, gen_matrix2), gen_matrix3))
 
-    #for i in range(2, 8):
+    print('sqrt_matrices', sqrt_matrices)
+
+    for i in range(3):
+        for j in range(7):
+            new_matrix = np.matmul(np.linalg.matrix_power(gen_matrix1, i), np.linalg.matrix_power(gen_matrix2, j))
+            print('i', i)
+            print('j', j)
+            if not any(np.allclose(new_matrix, m) for m in sqrt_matrices):
+                print('new matrix', new_matrix)
+                sqrt_matrices.append(new_matrix)
+
+    print('sqrt_matrices', sqrt_matrices)
+
+    # for i in range(2, 8):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[1], i))
-#
+    #
     print('Matrices', Matrices)
 
-    #for i in range(2, 6):
+    # for i in range(2, 6):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[2], i))
-#
-    #for i in range(2, 4):
+    #
+    # for i in range(2, 4):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[3], i))
-#
-    #for i in range(2, 24):
+    #
+    # for i in range(2, 24):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[4], i))
-#
-    #for i in range(2, 8):
+    #
+    # for i in range(2, 8):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[5], i))
-#
-    #for i in range(2, 12):
+    #
+    # for i in range(2, 12):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[6], i))
-#
-    #for i in range(2, 24):
+    #
+    # for i in range(2, 24):
     #    sqrt_matrices.append(np.linalg.matrix_power(sqrt_matrices[7], i))
     sqrt_matrices = np.squeeze(sqrt_matrices)
     print('sqrt_matrices', sqrt_matrices)
@@ -325,7 +334,7 @@ if __name__ == "__main__":
     for i in range(num_matrices):
         inverse_matrices[i] = np.linalg.inv(Matrices[i])
 
-    target_matrices = sqrt_matrices[0:8]
+    target_matrices = sqrt_matrices[0:4]
 
 
     def frobenius_norm(matrix):
@@ -439,7 +448,7 @@ if __name__ == "__main__":
         zone = [[] for _ in range((len(limits_tilt) - 1) * (len(limits_rot) - 1))]
         i = 0
         map_region = []
-        regions_map = [[] for _ in range(8)]
+        regions_map = [[] for _ in range(4)]
 
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             img_shift.append(np.array((sX, sY)))
@@ -452,8 +461,8 @@ if __name__ == "__main__":
             matrix = euler_angles_to_matrix([r * math.pi / 180, t * math.pi / 180, p * math.pi / 180], 0.)
             S_inv = map_symmetries(matrix, inverse_matrices, np.eye(3))
             index_map = map_symmetries_index(S_inv, inverse_sqrt_matrices, np.eye(3))
-            if index_map > 7:
-                index_map = 7
+            if index_map > 3:
+                index_map = 3
             map_region.append(index_map)
             regions_map[index_map].append(i)
             label.append(np.array((r, t, p)))
@@ -469,12 +478,12 @@ if __name__ == "__main__":
 
     non_void_regions = []
 
-
     for index, sublist in enumerate(regions_map):
         if len(sublist) > 0:
             non_void_regions.append(index)
 
     num_non_void_regions = len(non_void_regions)
+
 
     def fill_regions_map(regions_list):
         max_num_elements = max(len(sublist) for sublist in regions_list if sublist)
@@ -487,71 +496,76 @@ if __name__ == "__main__":
                     sublist.append(random.choice(sublist))
         return regions_list
 
-    regions_map = fill_regions_map(regions_map)
 
-    flat_regions_map = [item for sublist in regions_map for item in sublist]
-
-    # Train-Validation sets
-    if numModels == 1:
-        lenTrain = int(len(fnImgs) * 0.8)
-        lenVal = len(fnImgs) - lenTrain
-    else:
-        lenTrain = int(len(fnImgs) / 3)
-        lenVal = int(len(fnImgs) / 12)
-
-    elements_zone = int((lenVal + lenTrain) / len(zones))
 
 
     for index in range(numModels):
+
+        if numModels == 1:
+            lenTrain = int(len(fnImgs) * 0.8)
+            lenVal = len(fnImgs) - lenTrain
+        else:
+            lenTrain = int(len(fnImgs) / 3)
+            lenVal = int(len(fnImgs) / 12)
+
+        regions_map_train = []
+        regions_map_val = []
+        for sublist in regions_map:
+            lenValList = int((len(sublist) / len(fnImgs)) * lenVal)
+            random.shuffle(sublist)
+            regions_map_val.append(sublist[0: lenValList])
+            regions_map_train.append(sublist[lenValList: len(sublist)])
+
+        regions_map_train_filled = fill_regions_map(regions_map_train)
+
+        flat_regions_map_train = [item for sublist in regions_map_train_filled for item in sublist]
+        flat_regions_map_val = [item for sublist in regions_map_val for item in sublist]
+
+        elements_zone = int((lenVal + lenTrain) / len(zones))
+
         folder_path = fnModel + '/model' + str(index)
         # chooses equal number of particles for each division
         classifier = False
         if symmetry != 'C1':
             classifier = True
-            # Train-Validation sets
-            if numModels == 1:
-                lenTrain = int(len(fnImgs) * 0.8)
-                lenVal = len(fnImgs) - lenTrain
-            else:
-                lenTrain = int(len(fnImgs) / 3)
-                lenVal = int(len(fnImgs) / 12)
 
-            random_sample = np.random.choice(flat_regions_map, size=lenTrain + lenVal, replace=False)
+            random_sample_train = np.random.choice(flat_regions_map_train, size=lenTrain, replace=False)
+            random_sample_val = flat_regions_map_val
 
-            training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
-                                               [labels[i] for i in random_sample[0:lenTrain]],
-                                               sigma, batch_size, Xdims, [shifts[i] for i in random_sample[0:lenTrain]],
+            training_generator = DataGenerator([fnImgs[i] for i in random_sample_train],
+                                               [labels[i] for i in random_sample_train],
+                                               sigma, batch_size, Xdims, [shifts[i] for i in random_sample_train],
                                                readInMemory=False,
                                                bool_classifier=classifier,
-                                               map_domains=[map_regions[i] for i in random_sample[0:lenTrain]],
+                                               map_domains=[map_regions[i] for i in random_sample_train],
                                                target_domain_matrices=target_matrices, inv_matrices=inverse_matrices,
                                                inv_sqrt_matrices=inverse_sqrt_matrices)
-            validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+            validation_generator = DataGenerator([fnImgs[i] for i in random_sample_val],
+                                                 [labels[i] for i in random_sample_val],
                                                  sigma, batch_size, Xdims,
-                                                 [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                 [shifts[i] for i in random_sample_val],
                                                  readInMemory=False,
                                                  bool_classifier=classifier,
                                                  map_domains=[map_regions[i] for i in
-                                                              random_sample[lenTrain:lenTrain + lenVal]],
+                                                              random_sample_val],
                                                  target_domain_matrices=target_matrices, inv_matrices=inverse_matrices,
                                                  inv_sqrt_matrices=inverse_sqrt_matrices)
 
-            model = constructClassifier(Xdims, classes=8)
+            model = constructClassifier(Xdims, classes=4)
             adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
             model.summary()
 
             model.compile(loss='categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
             save_best_model = ModelCheckpoint(folder_path + '/classifier' + '.h5', monitor='val_loss',
                                               save_best_only=True)
-            patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
+            patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2 * patience)
 
             history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                           validation_data=validation_generator,
                                           callbacks=[save_best_model, patienceCallBack])
 
         classifier = False
-        for j in range(8):
+        for j in range(4):
             if numModels == 1:
                 lenTrain = int(len(regions_map[j]) * 0.8)
                 lenVal = len(regions_map[j]) - lenTrain
@@ -565,22 +579,24 @@ if __name__ == "__main__":
                 random_sample = np.random.choice(regions_map[j], size=lenTrain + lenVal, replace=False)
 
                 training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
-                                               [labels[i] for i in random_sample[0:lenTrain]],
-                                               sigma, batch_size, Xdims, [shifts[i] for i in random_sample[0:lenTrain]],
-                                               readInMemory=False, bool_classifier=classifier,
-                                               map_domains=[map_regions[i] for i in random_sample[0:lenTrain]],
-                                               target_domain_matrices=target_matrices[j], inv_matrices=inverse_matrices,
-                                               inv_sqrt_matrices=inverse_sqrt_matrices)
+                                                   [labels[i] for i in random_sample[0:lenTrain]],
+                                                   sigma, batch_size, Xdims,
+                                                   [shifts[i] for i in random_sample[0:lenTrain]],
+                                                   readInMemory=False, bool_classifier=classifier,
+                                                   map_domains=[map_regions[i] for i in random_sample[0:lenTrain]],
+                                                   target_domain_matrices=target_matrices[j],
+                                                   inv_matrices=inverse_matrices,
+                                                   inv_sqrt_matrices=inverse_sqrt_matrices)
                 validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 sigma, batch_size, Xdims,
-                                                 [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 readInMemory=False, bool_classifier=classifier,
-                                                 map_domains=[map_regions[i] for i in
-                                                              random_sample[lenTrain:lenTrain + lenVal]],
-                                                 target_domain_matrices=target_matrices[j],
-                                                 inv_matrices=inverse_matrices,
-                                                 inv_sqrt_matrices=inverse_sqrt_matrices)
+                                                     [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                     sigma, batch_size, Xdims,
+                                                     [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                     readInMemory=False, bool_classifier=classifier,
+                                                     map_domains=[map_regions[i] for i in
+                                                                  random_sample[lenTrain:lenTrain + lenVal]],
+                                                     target_domain_matrices=target_matrices[j],
+                                                     inv_matrices=inverse_matrices,
+                                                     inv_sqrt_matrices=inverse_sqrt_matrices)
 
                 # if pretrained == 'yes':
                 #    model = load_model(fnPreModel, compile=False)
@@ -597,8 +613,8 @@ if __name__ == "__main__":
                 patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
                 history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                          validation_data=validation_generator,
-                                          callbacks=[save_best_model, patienceCallBack])
+                                              validation_data=validation_generator,
+                                              callbacks=[save_best_model, patienceCallBack])
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
