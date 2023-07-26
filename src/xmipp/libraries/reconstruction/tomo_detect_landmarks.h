@@ -70,6 +70,9 @@ public:
     FileName fnTiltAngles;
     FileName fnInputCoord;
 
+    /** Tilt series images */
+    MultidimArray<double> tiltSeries;
+
     /** Input info */
     double fiducialSize;
     double samplingRate;

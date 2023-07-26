@@ -915,7 +915,6 @@ void ProgTomoDetectLandmarks::run()
 	MultidimArray<double> filteredTiltSeries;
 	filteredTiltSeries.initZeros(Ndim, 1, ySize_d, xSize_d);
 
-	MultidimArray<double> tiltSeries;
 	tiltSeries.initZeros(Ndim, 1, ySize, xSize);
 
     #ifdef DEBUG_DIM
