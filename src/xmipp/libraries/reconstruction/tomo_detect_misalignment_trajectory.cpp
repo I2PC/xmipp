@@ -413,6 +413,8 @@ void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
 		if ((residuals.x*residuals.x + residuals.y*residuals.y) > (fiducialSizePx * fiducialSizePx / 4))
 		{
 
+			std::cout << "A " << std::endl;
+
 			// Construct cropped fiducial at origin and end of the resildual vector
 			fiducial_origin.initZeros(boxSize, boxSize);
 			fiducial_end.initZeros(boxSize, boxSize);
@@ -421,9 +423,13 @@ void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
 			{
 				for(int i = 0; i < boxSize; i++) // yDim
 				{
+										std::cout << "i " << fiducialOriginY + i << " j " << fiducialOriginX + j<< std::endl;
+
+					std::cout << "B " << std::endl;
+
 					// Origin
-					if ((fiducialOriginY + i) < 0 || (fiducialOriginY + i) > ySize ||
-						(fiducialOriginX + j) < 0 || (fiducialOriginX + j) > xSize)
+					if ((fiducialOriginY + i) < 0 || (fiducialOriginY + i) >= ySize ||
+						(fiducialOriginX + j) < 0 || (fiducialOriginX + j) >= xSize)
 					{
 						DIRECT_A2D_ELEM(fiducial_origin, i, j) = 0;
 					}
@@ -435,9 +441,11 @@ void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
 																				 fiducialOriginX + j);
 					}
 
+			std::cout << "c " << std::endl;
+
 					// End
-					if ((fiducialEndY + i) < 0 || (fiducialEndY + i) > ySize ||
-						(fiducialEndX + j) < 0 || (fiducialEndX + j) > xSize)
+					if ((fiducialEndY + i) < 0 || (fiducialEndY + i) >= ySize ||
+						(fiducialEndX + j) < 0 || (fiducialEndX + j) >= xSize)
 					{
 						DIRECT_A2D_ELEM(fiducial_end, i, j) = 0;
 					}
@@ -450,6 +458,8 @@ void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
 					}
 				}
 			}
+
+			std::cout << "d " << std::endl;
 
 			fiducial_origin.statisticsAdjust(0.0, 1.0);
 			fiducial_end.statisticsAdjust(0.0, 1.0);
