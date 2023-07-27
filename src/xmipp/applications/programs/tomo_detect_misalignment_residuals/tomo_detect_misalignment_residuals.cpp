@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors: Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
+ * Authors: Sjors Scheres (scheres@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_detect_misalignment_trajectory.h>
+#include <reconstruction/tomo_detect_misalignment_residuals.h>
 
-RUN_XMIPP_PROGRAM(ProgTomoDetectMisalignmentTrajectory)
+RUN_XMIPP_PROGRAM(ProgTomoDetectMisalignmentResiduals)
