@@ -643,18 +643,30 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 
 	size_t id;
 
-	resMod rm;
+	double lmX;
+	double lmY;
+	double lmZ;
+
+	double resX;
+	double resY;
+
+	size_t idLM;
 
 	for(size_t id : md.ids())
 	{
 		id = md.addObject();
-		md.getValue(MDL_X, rm.detectedCoordinate.x, id);
-		md.getValue(MDL_Y, rm.detectedCoordinate.y, id);
-		md.getValue(MDL_Z, rm.detectedCoordinate.z, id);
-		md.getValue(MDL_SHIFT_X, rm.residuals.x, id);
-		md.getValue(MDL_SHIFT_Y, rm.residuals.y, id);
-		md.getValue(MDL_FRAME_ID, rm.id, id);
+		md.getValue(MDL_X, lmX, id);
+		md.getValue(MDL_Y, lmY, id);
+		md.getValue(MDL_Z, lmZ, id);
+		md.getValue(MDL_SHIFT_X, resX, id);
+		md.getValue(MDL_SHIFT_Y, resY, id);
+		md.getValue(MDL_FRAME_ID, idLM, id);
 
+		Point3D<double> lm(lmX, lmY, lmZ);
+		Point2D<double> res(resX, resY); 
+
+		resMod rm {lm, res, idLM};
+		vResMod.push_back(rm);
 	}
 
 	#ifdef VERBOSE_OUTPUT
@@ -795,11 +807,11 @@ void ProgTomoDetectMisalignmentResiduals::getResModByFiducial(size_t fiducialNum
 }
 
 
-void ProgTomoDetectMisalignmentResiduals::getResModbyImage(size_t tiltImageNumber, std::vector<resMod> &vResMod_image)
+void ProgTomoDetectMisalignmentResiduals::getResModByImage(size_t tiltImageNumber, std::vector<resMod> &vResMod_image)
 {
 	for (size_t i = 0; i < vResMod.size(); i++)
 	{
-		if ((size_t)(vResMod[i].detectedCoordinate.z) == tiltImageNumber)
+		if ((size_t)(vResMod[i].landmarkCoord.z) == tiltImageNumber)
 		{
 			vResMod_image.push_back(vResMod[i]);
 		}
