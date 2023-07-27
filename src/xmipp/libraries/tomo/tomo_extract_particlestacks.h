@@ -49,7 +49,7 @@ public:
     double tilt, rot, tx, ty;
 
     bool invertContrast, normalize, swapXY, setCTF, defocusPositive;
-    std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY, tsDefU, tsDefV, tsDefAng;
+    std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY, tsDefU, tsDefV, tsDefAng, tsDose;
     std::vector<MultidimArray<double> > tsImages;
 
     double scaleFactor, sampling;
