@@ -33,7 +33,7 @@
 void ProgTomoDetectMisalignmentResiduals::readParams()
 {
 	fnInputTS = getParam("-i");
-	fnResidualInfo = getParam("--inputCoord");
+	fnResidualInfo = getParam("--inputResInfo");
     fnOut = getParam("-o");
 
 	samplingRate = getDoubleParam("--samplingRate");
@@ -48,7 +48,7 @@ void ProgTomoDetectMisalignmentResiduals::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
-	addParamsLine("  --inputCoord <input=\"\">								: Input file containing residual information of the detected landmarks.");
+	addParamsLine("  --inputResInfo <input=\"\">								: Input file containing residual information of the detected landmarks.");
 
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 
