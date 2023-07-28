@@ -27,11 +27,6 @@
 #include <core/bilib/kernel.h>
 #include <core/metadata_extension.h>
 #include <numeric>
-//#define DEBUG
-//#define DEBUG_MASK
-//#define TEST_FRINGES
-
-
 
 void ProgTomoExtractParticleStacks::readParams()
 {
@@ -53,7 +48,7 @@ void ProgTomoExtractParticleStacks::readParams()
 void ProgTomoExtractParticleStacks::defineParams()
 {
 	addUsageLine("This function takes a tomogram an extract a set of subtomogram from it. The coordinates of the subtomograms are speciffied in the metadata given by coordinates.");
-	addParamsLine("  --tiltseries <xmd_file=\"\">       : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
+	addParamsLine("  --tiltseries <xmd_file=\"\">       : Metadata (.xmd file) with the tilt series");
 	addParamsLine("  --coordinates <xmd_file=\"\">      : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>            : Particle box size in voxels.");
 	addParamsLine("  --sampling <s=1>                   : Sampling rate in (A).");
@@ -152,7 +147,7 @@ void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 	FileName fnImg;
 
 	size_t Nimages = 0;
-	double defU=0, defV=0, defAng=0;
+	double defU=0, defV=0, defAng=0, dose = 0;
 
 	for (const auto& row : mdts)
 	{
@@ -165,15 +160,18 @@ void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 			row.getValue(MDL_CTF_DEFOCUSU, defU);
 			row.getValue(MDL_CTF_DEFOCUSV, defV);
 			row.getValue(MDL_CTF_DEFOCUS_ANGLE, defAng);
+			row.getValue(MDL_CTF_DEFOCUS_ANGLE, dose);
+			tsDefU.push_back(defU);
+			tsDefV.push_back(defV);
+			tsDefAng.push_back(defAng);
+
+			tsDose.push_back(dose);
 		}
 
 
 		row.getValue(MDL_SHIFT_X, tx);
 		row.getValue(MDL_SHIFT_Y, ty);
 		row.getValue(MDL_TSID, tsid);
-		tsDefU.push_back(defU);
-		tsDefV.push_back(defV);
-		tsDefAng.push_back(defAng);
 
 		tiltImg.read(fnImg);
 
@@ -229,7 +227,7 @@ void ProgTomoExtractParticleStacks::run()
 	}
 
 	size_t elem = 0;
-	double signDef = -1;
+	double signDef = -1.0;
 
 	FileName fnXmd;
 	fnXmd = tsid + formatString(".xmd");
@@ -323,21 +321,21 @@ void ProgTomoExtractParticleStacks::run()
 			rowParticleStack.setValue(MDL_ANGLE_ROT, tsRotAngles[idx]);
 			rowParticleStack.setValue(MDL_SHIFT_X, tsShiftX[idx]);
 			rowParticleStack.setValue(MDL_SHIFT_Y, tsShiftY[idx]);
+			rowParticleStack.setValue(MDL_DOSE, tsDose[idx]);
 
 			double defU=0, defV=0, defAng=0;
 			if (setCTF)
 			{
-				if (defocusPositive)
-				{
-					signDef = 1;
-				}
+//				if (defocusPositive)
+//				{
+//					signDef = 1.0;
+//				}
 
 				double Df = (xcoor * cos(tilt) + zcoor* sin(tilt))*sampling*sin(tilt);
 
 				defU = tsDefU[idx]  + signDef*Df;
 				defV = tsDefV[idx]  + signDef*Df;
 			}
-
 			rowParticleStack.setValue(MDL_CTF_DEFOCUSU, defU);
 			rowParticleStack.setValue(MDL_CTF_DEFOCUSV, defV);
 			rowParticleStack.setValue(MDL_CTF_DEFOCUS_ANGLE, tsRotAngles[idx]);
