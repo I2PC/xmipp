@@ -84,7 +84,7 @@ def run(images_md_path: str,
             torch.utils.data.SequentialSampler(images_dataset), batch_size=batch_size, drop_last=False
         ),
         pin_memory=pin_memory,
-        num_workers=4
+        num_workers=1
     )
     image_size = md.get_image2d_size(images_md)
     
