@@ -22,6 +22,7 @@
 
 from typing import Optional
 import torch
+import math
 
 def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
                              defocus_average: torch.Tensor,
@@ -37,6 +38,25 @@ def _compute_defocus_grid_2d(frequency_angle_grid: torch.Tensor,
     
     return out
 
+def _compute_beam_energy_spread(frequency_magnitude2_grid: torch.Tensor,
+                                chromatic_aberration: torch.Tensor,
+                                wavelength: float, 
+                                energy_spread_coefficient: float,
+                                lens_inestability_coefficient: float,
+                                out: Optional[torch.Tensor] = None ) -> torch.Tensor:
+    
+    # http://i2pc.es/coss/Articulos/Sorzano2007a.pdf
+    # Equation 10
+    k = torch.pi / 4 * wavelength * (energy_spread_coefficient + 2*lens_inestability_coefficient)
+    x = chromatic_aberration * k
+    x.square_()
+    x *= -1.0 / math.log(2)
+    
+    out = torch.mul(x[...,None,None], frequency_magnitude2_grid.square())
+    out.exp_()
+    
+    return out
+    
 def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
                          frequency_angle_grid: torch.Tensor,
                          defocus_average: torch.Tensor,
@@ -44,6 +64,10 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
                          astigmatism_angle: torch.Tensor,
                          wavelength: float,
                          spherical_aberration: float,
+                         q0: Optional[float] = None,
+                         chromatic_aberration: Optional[torch.Tensor] = None,
+                         energy_spread_coefficient: Optional[float] = None,
+                         lens_inestability_coefficient: Optional[float] = None,
                          phase_shift: Optional[float] = None,
                          out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     
@@ -60,9 +84,33 @@ def compute_ctf_image_2d(frequency_magnitude2_grid: torch.Tensor,
     # Compute the phase
     out -= k*frequency_magnitude2_grid
     out *= (torch.pi * wavelength) * frequency_magnitude2_grid
+    
+    # Apply the phase shift if provided
     if phase_shift is not None: 
         out += phase_shift
-    out.sin_()
+    
+    # Compute the sin, also considering the inelastic
+    # difraction factor if provided
+    if q0 is not None:
+        out = out.sin() + q0*out.cos()
+    else:
+        out.sin_()
+    
+    # Apply energy spread envelope
+    if (chromatic_aberration is not None) and \
+       (energy_spread_coefficient is not None) and \
+       (lens_inestability_coefficient is not None):
+           
+        beam_energy_spread = _compute_beam_energy_spread(
+            frequency_magnitude2_grid=frequency_magnitude2_grid,
+            chromatic_aberration=chromatic_aberration,
+            wavelength=wavelength,
+            energy_spread_coefficient=energy_spread_coefficient,
+            lens_inestability_coefficient=lens_inestability_coefficient
+        )
+        out *= beam_energy_spread
+        
+    
     
     return out
     

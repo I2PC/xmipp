@@ -102,8 +102,6 @@ def run(images_md_path: str,
     voltage *= 1e3 # kV to V
     wavelength = 1e10*_compute_wavelength(voltage)
     spherical_aberration *= 1e7 # mm to A
-    phase_shift = 0.0
-    phase_shift += math.asin(q0) #Inelastic distorsion induces a phase shift
     
     # Compute frequency grid
     cartesian_frequency_grid = fourier.rfftnfreq(
@@ -132,9 +130,13 @@ def run(images_md_path: str,
         defocus = defocus.to(transform_device, non_blocking=True)
         
         # Perform the FFT of the images
+        if batch_images_fourier is not None:
+            batch_images_fourier.resize_(0) # Force explicit reuse
         batch_images_fourier = torch.fft.rfft2(batch_images, out=batch_images_fourier)
         
-        # Compute the CTF image TODO
+        # Compute the CTF image
+        if ctf_images is not None:
+            ctf_images.resize_(0) # Force explicit reuse
         ctf_images = ctf.compute_ctf_image_2d(
             frequency_magnitude2_grid=polar_frequency_grid[0],
             frequency_angle_grid=polar_frequency_grid[1],
@@ -143,7 +145,7 @@ def run(images_md_path: str,
             astigmatism_angle=defocus[:,2],
             wavelength=wavelength,
             spherical_aberration=spherical_aberration,
-            phase_shift=phase_shift,
+            q0=q0,
             out=ctf_images
         )
         
@@ -151,6 +153,8 @@ def run(images_md_path: str,
             ctf_images.abs_()
         
         # Compute the wiener filter
+        if wiener_filters is not None:
+            wiener_filters.resize_(0) # Force explicit reuse
         wiener_filters = ctf.wiener_2d(ctf_images, out=wiener_filters)
         
         # Apply the filter to the images
