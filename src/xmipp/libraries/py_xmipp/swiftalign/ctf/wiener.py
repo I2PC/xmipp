@@ -20,31 +20,29 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-IMAGE = 'image'
-REFERENCE_IMAGE = 'imageRef'
+from typing import Optional, Sequence
+import torch
 
-REF = 'ref'
-REF3D = 'ref3d'
+def wiener_2d( direct_filter: torch.Tensor,
+               inverse_ssnr: Optional[torch.Tensor] = None,
+               out: Optional[torch.Tensor] = None) -> torch.Tensor:
+    
+    # Compute the filter power (|H|²) at the output
+    if torch.is_complex(direct_filter):
+        out = torch.abs(direct_filter, out=out)
+        out.square_()
+    else:
+        out = torch.square(direct_filter, out=out)
+    
+    # Compute the default value for inverse SSNR if not
+    # provided
+    if inverse_ssnr is None:
+        inverse_ssnr = torch.mean(out, dim=(-2, -1))
+        inverse_ssnr *= 0.1
+        inverse_ssnr = inverse_ssnr[...,None,None]
+    
+    # H* / (|H|² + N/S)
+    out.add_(inverse_ssnr)
+    torch.div(torch.conj(direct_filter), out, out=out)
 
-RESOLUTION_FREQ = 'resolutionFreq'
-SIGMANOISE = 'sigmaNoise'
-
-COST = 'cost'
-
-ANGLE_PSI = 'anglePsi'
-ANGLE_PSI2 = 'anglePsi2'
-ANGLE_ROT = 'angleRot'
-ANGLE_ROT2 = 'angleRot2'
-ANGLE_TILT = 'angleTilt'
-ANGLE_TILT2 = 'angleTilt2'
-
-SHIFT_X = 'shiftX'
-SHIFT_X2 = 'shiftX2'
-SHIFT_Y = 'shiftY'
-SHIFT_Y2 = 'shiftY2'
-
-ITEM_ID = 'itemId'
-
-CTF_DEFOCUS_U = 'ctfDefocusU'
-CTF_DEFOCUS_V = 'ctfDefocusV'
-CTF_DEFOCUS_ANGLE = 'ctfDefocusAngle'
+    return out

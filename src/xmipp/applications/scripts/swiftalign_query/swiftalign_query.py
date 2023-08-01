@@ -190,7 +190,8 @@ def run(experimental_md_path: str,
     reference_loader = torch.utils.data.DataLoader(
         reference_dataset,
         batch_size=batch_size,
-        pin_memory=pin_memory
+        pin_memory=pin_memory,
+        num_workers=1
     )
     reference_batch_iterator = iter(reference_transformer(reference_loader))
     
@@ -223,7 +224,8 @@ def run(experimental_md_path: str,
         experimental_loader = torch.utils.data.DataLoader(
             experimental_dataset,
             batch_size=batch_size,
-            pin_memory=pin_memory
+            pin_memory=pin_memory,
+            num_workers=1
         )
 
         print('Aligning')
