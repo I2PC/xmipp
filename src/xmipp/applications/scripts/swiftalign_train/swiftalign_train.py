@@ -120,7 +120,8 @@ def run(reference_md_path: str,
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=n_batch,
-        pin_memory=transform_device.type=='cuda'
+        pin_memory=transform_device.type=='cuda',
+        num_workers=1
     )
     
     # Create the image transformer

@@ -191,7 +191,7 @@ def run(experimental_md_path: str,
         reference_dataset,
         batch_size=batch_size,
         pin_memory=pin_memory,
-        num_workers=4
+        num_workers=1
     )
     reference_batch_iterator = iter(reference_transformer(reference_loader))
     
@@ -225,7 +225,7 @@ def run(experimental_md_path: str,
             experimental_dataset,
             batch_size=batch_size,
             pin_memory=pin_memory,
-            num_workers=4
+            num_workers=1
         )
 
         print('Aligning')
