@@ -100,8 +100,6 @@ def _extract_projection_2d_linear(sinogram: torch.Tensor,
 
     return torch.lerp(sinogram[prev_indices], sinogram[next_indices], frac_indices, out=out)
 
-
-
 def extract_projection_2d(sinogram: torch.Tensor,
                           indices: torch.Tensor,
                           interpolation: str = 'linear',

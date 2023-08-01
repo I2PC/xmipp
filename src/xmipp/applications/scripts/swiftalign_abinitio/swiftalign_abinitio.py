@@ -36,6 +36,7 @@ def run(images_md_path: str,
         batch: int,
         n_iter: int):
     images_md = md.sort_by_image_filename(md.read(images_md_path))
+    images_md = images_md.iloc[[0,3,9]]
     images_paths = list(map(image.parse_path, images_md[md.IMAGE]))
     images_dataset = image.torch_utils.Dataset(images_paths)
     images = torch.utils.data.default_collate(list(images_dataset))
@@ -43,7 +44,6 @@ def run(images_md_path: str,
     
     sinogram = commonlines.compute_sinogram_2d(images, n_angles, 'bilinear')
     matrices, _ = commonlines.optimize_common_lines_genetic(sinogram, n_iter, batch)
-    #matrices, _ = commonlines.optimize_common_lines_monte_carlo(sinogram, n_iter, batch)
     
     print(matrices)
     euler_angles = euler.euler_from_matrix(matrices)

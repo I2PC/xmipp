@@ -49,6 +49,7 @@ def find_common_lines(planes0: torch.Tensor,
     
 def unproject_to_image_plane(matrices: torch.Tensor,
                              vectors: torch.Tensor,
+                             ignore_3d: bool = True,
                              out: Optional[torch.Tensor] = None ) -> torch.Tensor:
     if matrices.shape[-2:] != (3, 3):
         raise RuntimeError('Matrices must be 3x3')
@@ -57,7 +58,8 @@ def unproject_to_image_plane(matrices: torch.Tensor,
         raise RuntimeError('Lines parameter must have 3 elements in the last dimension')
     
     # Skip the last column of the matrix, as we are not interested in the Z component
-    matrices = matrices[...,:2]
+    if ignore_3d:
+        matrices = matrices[...,:2]
     
     # Perform the unprojection
     if out is not None:

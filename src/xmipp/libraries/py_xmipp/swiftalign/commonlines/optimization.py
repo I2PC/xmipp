@@ -56,12 +56,13 @@ def _random_rotation_matrix_3d(batch_shape: torch.Size = torch.Size(),
     out = torch.empty(batch_shape + (3, 3), dtype=dtype, device=device, out=out)
     
     # Fill everything except the last column with normal RVs
+    # and apply Gram Schidt to them to obtain a orthogonal basis
+    # of 3x2
     torch.randn(batch_shape + (3, 2), dtype=dtype, device=device, out=out[...,:2])
-    
-    # Apply Gram-Schmidt to the first two columns
     _gram_schmidt(out[...,:2])
     
     # Calculate the last column with the cross product of the former ones
+    # so that the result a non-mirroring 3x3 orthonormal basis
     torch.cross(out[...,0], out[...,1], dim=-1, out=out[...,2])
     
     return out
@@ -136,7 +137,7 @@ def optimize_common_lines_genetic(sinograms: torch.Tensor,
             # Project the image in the direction
             projections0 = extract_projection_2d(sinogram0, indices=indices0, interpolation='nearest', out=projections[...,0,:]) #TODO
             projections1 = extract_projection_2d(sinogram1, indices=indices1, interpolation='nearest', out=projections[...,1,:]) #TODO
-
+            
             # Accumulate the error for each try
             delta = torch.sub(projections0, projections1, out=delta)
             error += torch.bmm(delta[...,None,:], delta[...,:,None])[...,0,0]
