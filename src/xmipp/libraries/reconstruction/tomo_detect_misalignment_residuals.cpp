@@ -73,7 +73,6 @@ void ProgTomoDetectMisalignmentResiduals::generateSideInfo()
 	fiducialSizePx = fiducialSize / samplingRate; 
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Thresholds:" << std::endl;
 	std::cout << "fiducialSizePx: "<< fiducialSizePx << std::endl;
 	#endif
 
@@ -636,6 +635,10 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 
 void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Reading input residuals from " << fnResidualInfo  << std::endl;
+	#endif
+
 	MetaDataVec md;
 	md.read(fnResidualInfo);
 
@@ -652,7 +655,6 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 
 	for(size_t id : md.ids())
 	{
-		id = md.addObject();
 		md.getValue(MDL_X, lmX, id);
 		md.getValue(MDL_Y, lmY, id);
 		md.getValue(MDL_Z, lmZ, id);
@@ -668,7 +670,7 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 	}
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Input residuals vectors read from: " << fnResidualInfo << std::endl;
+	std::cout << "Input residuals vectors read successfully!" << std::endl;
 	#endif
 }
 
