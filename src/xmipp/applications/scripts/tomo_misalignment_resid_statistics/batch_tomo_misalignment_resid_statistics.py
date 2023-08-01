@@ -62,9 +62,6 @@ class ScriptTomoResidualStatistics(XmippScript):
     self.nResidPosX = {}
     self.nResidPosY = {}
 
-    self.coordsByLandmark = {}
-
-
     # Save image residuals
     self.imageSize = {}
 
@@ -77,10 +74,6 @@ class ScriptTomoResidualStatistics(XmippScript):
 
     self.nImagePosX = {}
     self.nImagePosY = {}
-
-    self.coordsByImage = {}
-
-
 
   def defineParams(self):
     """
@@ -116,9 +109,6 @@ class ScriptTomoResidualStatistics(XmippScript):
         self.residY[id].append(mData.getValue(xmippLib.MDL_SHIFT_Y, objId))
 
       else:
-        self.coordsByLandmark[id] = [mData.getValue(xmippLib.MDL_XCOOR, objId),
-                           mData.getValue(xmippLib.MDL_YCOOR, objId),
-                           mData.getValue(xmippLib.MDL_ZCOOR, objId)]
         self.residX[id] = [mData.getValue(xmippLib.MDL_SHIFT_X, objId)]
         self.residY[id] = [mData.getValue(xmippLib.MDL_SHIFT_Y, objId)]
 
@@ -130,9 +120,6 @@ class ScriptTomoResidualStatistics(XmippScript):
         self.imageY[id].append(mData.getValue(xmippLib.MDL_SHIFT_Y, objId))
 
       else:
-        self.coordsByImage[id] = [mData.getValue(xmippLib.MDL_XCOOR, objId),
-                           mData.getValue(xmippLib.MDL_YCOOR, objId),
-                           mData.getValue(xmippLib.MDL_ZCOOR, objId)]
         self.imageX[id] = [mData.getValue(xmippLib.MDL_SHIFT_X, objId)]
         self.imageY[id] = [mData.getValue(xmippLib.MDL_SHIFT_Y, objId)]
       
@@ -158,9 +145,6 @@ class ScriptTomoResidualStatistics(XmippScript):
       mData.setValue(xmippLib.MDL_MIN, residualStats[i][1], id)
       mData.setValue(xmippLib.MDL_MAX, residualStats[i][2], id)
       mData.setValue(xmippLib.MDL_IMAGE, residualStats[i][3], id)
-      mData.setValue(xmippLib.MDL_XCOOR, residualStats[i][4], id)
-      mData.setValue(xmippLib.MDL_YCOOR, residualStats[i][5], id)
-      mData.setValue(xmippLib.MDL_ZCOOR, residualStats[i][6], id)
 
     mData.write(filePath)
 
@@ -364,8 +348,8 @@ class ScriptTomoResidualStatistics(XmippScript):
       # Convex hull
       convexHullArea, convexHullPerimeter = self.convexHull(vX=self.residX[key], vY=self.residY[key])
 
-      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
-      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
+      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea"])
+      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim"])
 
 
       # Variance distribution matrix
@@ -417,10 +401,10 @@ class ScriptTomoResidualStatistics(XmippScript):
         print("self.nResidPosX[key]" + str(self.nResidPosX[key]))
         print("self.nResidPosY[key]" + str(self.nResidPosY[key]))
 
-      pValues.append([pvBinX, str(key) + "_pvBinX", self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
-      pValues.append([pvBinY, str(key) + "_pvBinY", self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
-      pValues.append([pvF,    str(key) + "_pvF",    self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
-      pValues.append([pvADF,  str(key) + "_pvADF",  self.coordsByLandmark[key][0], self.coordsByLandmark[key][1], self.coordsByLandmark[key][2]])
+      pValues.append([pvBinX, str(key) + "_pvBinX"])
+      pValues.append([pvBinY, str(key) + "_pvBinY"])
+      pValues.append([pvF,    str(key) + "_pvF"])
+      pValues.append([pvADF,  str(key) + "_pvADF"])
 
     pValues.sort()
  
@@ -436,14 +420,14 @@ class ScriptTomoResidualStatistics(XmippScript):
       i = j + 1
 
       if pv[0] > self.alpha:
-        residualStats.append([-1, pv[0], pv[0], pv[1], pv[2], pv[3], pv[4]])
+        residualStats.append([-1, pv[0], pv[0], pv[1]])
         
         if firstFail:
           print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
           firstFail = False
       
       else:
-        residualStats.append([1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
+        residualStats.append([1, pv[0], pv[0]*i, pv[1]])
 
 
     mdFilePath = self.getParam('-o')
@@ -469,8 +453,8 @@ class ScriptTomoResidualStatistics(XmippScript):
       # Convex hull
       convexHullArea, convexHullPerimeter = self.convexHull(vX=self.imageX[key], vY=self.imageY[key])
 
-      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea",  self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
-      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+      ch.append([1, convexHullArea,      convexHullArea,       str(key) + "_chArea"])
+      ch.append([1, convexHullPerimeter, convexHullPerimeter,  str(key) + "_chPerim"])
 
       # Variance distribution matrix
       sumRadius = 0
@@ -521,9 +505,9 @@ class ScriptTomoResidualStatistics(XmippScript):
       pvBinY = self.binomialTest(self.nImagePosY[key], rs)
       pvF = self.fTestVar(fTestStat, rs)
 
-      pValues.append([pvBinX, str(key) + "_pvBinX", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
-      pValues.append([pvBinY, str(key) + "_pvBinY", self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
-      pValues.append([pvF,    str(key) + "_pvF",    self.coordsByImage[key][0], self.coordsByImage[key][1], self.coordsByImage[key][2]])
+      pValues.append([pvBinX, str(key) + "_pvBinX"])
+      pValues.append([pvBinY, str(key) + "_pvBinY"])
+      pValues.append([pvF,    str(key) + "_pvF"])
 
     pValues.sort()
  
@@ -539,14 +523,14 @@ class ScriptTomoResidualStatistics(XmippScript):
       i = j + 1
 
       if pv[0] > self.alpha:
-        residualStats.append([-1, pv[0], pv[0], pv[1], pv[2], pv[3], pv[4]])
+        residualStats.append([-1, pv[0], pv[0], pv[1]])
         
         if firstFail:
           print("Failed test "+ str(pv[1]) + " with value " + str(pv[0]) + ". Test " + str(i) + "/" + str(len(pValues)))
           firstFail = False
       
       else:
-        residualStats.append([1, pv[0], pv[0]*i, pv[1], pv[2], pv[3], pv[4]])
+        residualStats.append([1, pv[0], pv[0]*i, pv[1]])
 
     mdFilePath = self.getParam('-o')
     mdFileName, mdFileExt = os.path.splitext(mdFilePath)
