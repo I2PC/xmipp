@@ -71,8 +71,9 @@ class Dataset(torch.utils.data.Dataset):
                 mrc = self._cache(current_filename)
                 data = mrc.data
                 
-                if current_start is not None:
-                    assert(current_end is not None)
+                if mrc.is_image_stack() or mrc.is_volume_stack():
+                    if current_start is None or current_end is None:
+                        raise RuntimeError('Image index should be provided for image stacks')
                     output_stacks.append(data[current_start:current_end])
                 else:
                     output_stacks.append(data[None])
