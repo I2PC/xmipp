@@ -75,7 +75,8 @@ def run(reference_md_path: str,
         n_batch: int,
         device_names: list,
         scratch_path: Optional[str],
-        use_f16: bool ):
+        use_f16: bool,
+        use_precomputed: bool ):
    
     # Devices
     if device_names:
@@ -132,7 +133,7 @@ def run(reference_md_path: str,
     dim = flattener.get_length()*2
     print(f'Data dimensions: {dim}')
     db = search.FaissDatabase(dim, recipe)
-    db.to_device(db_device, use_f16=use_f16)
+    db.to_device(db_device, use_f16=use_f16, use_precomputed=use_precomputed)
     
     # Create the storage for the training set.
     # This will be LARGE. Therefore provide a MMAP path
@@ -177,6 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', nargs='*')
     parser.add_argument('--scratch', type=str)
     parser.add_argument('--fp16', action='store_true')
+    parser.add_argument('--use_precomputed', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -196,5 +198,6 @@ if __name__ == '__main__':
         n_batch = args.batch,
         device_names = args.device,
         scratch_path=args.scratch,
-        use_f16=args.fp16
+        use_f16=args.fp16,
+        use_precomputed=args.use_precomputed
     )

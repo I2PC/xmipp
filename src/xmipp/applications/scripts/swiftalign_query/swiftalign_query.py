@@ -118,7 +118,8 @@ def run(experimental_md_path: str,
         reference_labels: Sequence[str],
         k: int,
         device_names: list,
-        use_f16: bool ):
+        use_f16: bool,
+        use_precomputed: bool ):
     
     # Devices
     if device_names:
@@ -137,7 +138,7 @@ def run(experimental_md_path: str,
     # Read the database
     db = search.FaissDatabase()
     db.read(index_path)
-    db.to_device(db_device, use_f16=use_f16, reserve_vecs=max_size)
+    db.to_device(db_device, use_f16=use_f16, reserve_vecs=max_size, use_precomputed=use_precomputed)
     
     # Create the in-plane transforms
     angles = _calculate_rotations(max_psi=max_psi, n_rotations=n_rotations)   
@@ -287,6 +288,7 @@ if __name__ == '__main__':
     parser.add_argument('--devices', nargs='*')
     parser.add_argument('--max_size', type=int, default=int(2e6))
     parser.add_argument('--fp16', action='store_true')
+    parser.add_argument('--use_precomputed', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -313,5 +315,6 @@ if __name__ == '__main__':
         reference_labels = args.reference_labels,
         k = args.k,
         device_names = args.devices,
-        use_f16 = args.fp16
+        use_f16 = args.fp16,
+        use_precomputed=args.use_precomputed
     )
