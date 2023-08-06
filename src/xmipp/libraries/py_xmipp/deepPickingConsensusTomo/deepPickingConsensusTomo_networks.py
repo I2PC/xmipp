@@ -41,8 +41,12 @@ from keras.models import Sequential
 
 import os
 
+# Structural globals
 CONV_LAYERS = 2
 PREF_SIDE = 64
+BATCHSIZE = 64
+
+# Configuration globals
 PROB_DROPOUT = 0.3
 CHECK_POINT_AT= 50 #In batches
 

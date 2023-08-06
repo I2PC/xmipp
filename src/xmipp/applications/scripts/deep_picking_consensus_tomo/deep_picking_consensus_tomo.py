@@ -39,11 +39,10 @@ import xmippLib
 from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_networks import DeepPickingConsensusTomoNetworkManager as NM
 from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_dataman import DataMan
 
-MODEL_TRAIN_NEW=0
-MODEL_TRAIN_PRETRAIN=1
-MODEL_TRAIN_PREVRUN=2
-MODEL_TRAIN_TYPELIST=["From scratch", "Existing model", "Previous run"]
-BATCHSIZE = 128
+MODEL_TRAIN_NEW         = 0
+MODEL_TRAIN_PRETRAIN    = 1
+MODEL_TRAIN_PREVRUN     = 2
+MODEL_TRAIN_TYPELIST    = ["From scratch", "Existing model", "Previous run"]
 
 
 class ScriptDeepConsensus3D(XmippScript):
