@@ -65,8 +65,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--outputDoubt <path> : output path for doubtful subtomos')
         self.addParamsLine('--outputAll <path> : output path for all subtomos')
         self.addParamsLine('--boxsize <int> : boxsize')
+        self.addParamsLine('--samplingrate <double> : sampling rate')
         self.addParamsLine('--radius <double> : radius')
         self.addParamsLine('--number <int> : number')
+        self.addParamsLine('--constype <int> : type of consensus (0 for first, 1 for centroid)')
 
     def run(self):
         # Aux class
@@ -80,8 +82,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.outputFilePos = self.getParam('--outputPos')
         self.outputFileDoubt = self.getParam('--outputDoubt')
         self.boxSize = self.getIntParam('--boxsize')
+        self.samplingrate = self.getDoubleParam('--samplingrate')
         self.consensusRadius = self.getDoubleParam('--radius')
         self.consensusThreshold = self.getIntParam('--number')
+        self.consensusType = self.getIntParam('--constype')
         distancethreshold = self.boxSize * self.consensusRadius
 
         # Initialize as empty list
