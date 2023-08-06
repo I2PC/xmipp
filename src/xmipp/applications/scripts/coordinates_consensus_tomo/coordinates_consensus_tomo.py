@@ -86,7 +86,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.consensusRadius = self.getDoubleParam('--radius')
         self.consensusThreshold = self.getIntParam('--number')
         self.consensusType = self.getIntParam('--constype')
-        distancethreshold = self.boxSize * self.consensusRadius
+        self.distancethreshold = self.boxSize * self.consensusRadius
 
         # Initialize as empty list
         consensus = []
@@ -104,7 +104,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
             
             item : Coordinate
             for item in consensus:
-                if distance(coords, item.xyz) < distancethreshold and picker_id not in item.pickers:
+                if distance(coords, item.xyz) < self.distancethreshold and picker_id not in item.pickers:
                     item.pickers.add(picker_id)
                     break
             else:
