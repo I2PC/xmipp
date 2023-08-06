@@ -25,7 +25,7 @@
 *  All comments concerning this program package may be sent to the
 *  e-mail address 'scipion@cnb.csic.es'
 *
-* Initial version: nov 2022
+* Initial version: sept 2023
 **************************************************************************
 """
 import multiprocessing
