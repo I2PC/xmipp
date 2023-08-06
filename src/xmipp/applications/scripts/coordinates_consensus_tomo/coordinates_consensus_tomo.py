@@ -94,8 +94,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         # Read from Xmipp MD
         print("Starting 3D coordinates consensus")
         md = xmippLib.MetaData(self.inputFile)
+        # Do a check for each existing coordinate (cost n^2)
         for row_id in md:
 
+            # Load the coordinates from the XMD into an ndarray
             coords = np.empty(3, dtype=int)
             coords[0] = md.getValue(xmippLib.MDL_XCOOR, row_id)
             coords[1] = md.getValue(xmippLib.MDL_YCOOR, row_id)
@@ -104,10 +106,12 @@ class ScriptCoordsConsensusTomo(XmippScript):
             
             item : Coordinate
             for item in consensus:
+                # Check the distance between this and all other coordinates
                 if distance(coords, item.xyz) < self.distancethreshold and picker_id not in item.pickers:
                     item.pickers.add(picker_id)
                     break
             else:
+                # If item does not match any other, make it be its own new structure
                 consensus.append(Coordinate(coords, {picker_id}))
 
         
