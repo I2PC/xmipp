@@ -27,7 +27,7 @@
 # * Neural Network utils for the deep picking consensus protocol found in
 # * scipion-em-xmipptomo
 # *
-# * Initial release: june 2023
+# * Initial release: september 2023
 # **************************************************************************
 
 import tensorflow as tf
