@@ -122,16 +122,16 @@ class ScriptCoordsConsensusTomo(XmippScript):
 
         for item in consensus:
             if len(item.pickers) >= self.consensusThreshold:
-                nun = outMdPos
+                variableMdPointer = outMdPos
             else:
-                nun = outMdDoubt
+                variableMdPointer = outMdDoubt
 
             # Write to specific
-            row_id = nun.addObject()
-            nun.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_id)
-            nun.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_id)
-            nun.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_id)
-            nun.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
+            row_id = variableMdPointer.addObject()
+            variableMdPointer.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
             
             # Write to general
             row_idg = outMd.addObject()
