@@ -60,7 +60,7 @@ class DataMan(object):
     train : bool # To see if training or testing
     
 
-    def __init__(self, boxSize: int, valFrac=0.15, posath: str = None, negpath: str = None, doubtpath:str = None):
+    def __init__(self, boxSize: int, valFrac=0.15, posPath: str = None, negPath: str = None, doubtPath:str = None):
         """
         boxSize: consensuated box size
         samplingRate: consensuated sampling rate
@@ -70,22 +70,22 @@ class DataMan(object):
         doubtpath: doubtful pickings path - If None, training is assumed
         """
 
-        self.train = (pospath is not None) and (negpath is not None)
+        self.train = (posPath is not None) and (negPath is not None)
 
         if self.train:
             # TRAIN
             print("DataMan: training selected, loading pos+neg examples")
             # MD Loading
-            self.posVolsFns = self.getFolderContent(pospath, ".mrc")
+            self.posVolsFns = self.getFolderContent(posPath, ".mrc")
             self.nPos = len(self.posVolsFns)
-            self.negVolsFns = self.getFolderContent(negpath, ".mrc")
+            self.negVolsFns = self.getFolderContent(negPath, ".mrc")
             self.nNeg = len(self.negVolsFns)
             
         else:
             # SCORE
             print("DataMan: scoring selected, loading doubt examples")
             # MD Loading
-            self.doubtVolsFns = self.getFolderContent(doubtpath, ".mrc")
+            self.doubtVolsFns = self.getFolderContent(doubtPath, ".mrc")
             self.nDoubt = len(self.doubtVolsFns)
 
 
