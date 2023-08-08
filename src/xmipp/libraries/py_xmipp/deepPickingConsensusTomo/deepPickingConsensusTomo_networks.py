@@ -50,7 +50,7 @@ BATCHSIZE = 64
 PROB_DROPOUT = 0.3
 CHECK_POINT_AT= 50 #In batches
 
-class DeepPickingConsensusTomoNetworkManager():
+class NetMan():
     def __init__(self, nThreads:int, gpuIDs:list, rootPath:str):
         """
         rootPath: str. Root directory for the NN data to be saved.
