@@ -46,6 +46,7 @@ MODEL_TRAIN_TYPELIST    = ["From scratch", "Existing model", "Previous run"]
 
 NN_TRAINWORDS           = ["train", "training", "t"]
 NN_SCOREWORDS           = ["score", "scoring", "s", "predict"]
+NN_DUMMYNAME            = "QLO"
 
 DEFAULT_MP              = 8
 
@@ -95,6 +96,7 @@ class ScriptDeepConsensus3D(XmippScript):
         self.addParamsLine(' --mode <execMode> : training or scoring')
         self.addParamsLine(' --netpath <netpath> : path for network models read/write (needed in any case)')
         self.addParamsLine(' --batchsize <size=16> : amount of images that will be fed each time to the network.')
+        self.addParamsLine(' [ --netname <filename> ]: filename of the network to load, only for train-pretrain or score-pretrain')
 
         # Tomo
         self.addParamsLine('==== Tomo ====')
@@ -154,6 +156,15 @@ class ScriptDeepConsensus3D(XmippScript):
         if not os.path.isdir(self.netPath):
             print("Network path is not a valid path")
             sys.exit(-1)
+        # Netname
+        if self.checkParam('--netname'):
+            self.netName = self.getParam('--netname')
+            self.netPointer = os.path.join(self.netPath, self.netName)
+            if not os.path.isfile(self.netPath+self.netName):
+                print("NN file does not exist inside path")
+                sys.exit(-1)
+        else:
+            self.netName = NN_DUMMYNAME
         # Consensuated boxsize and sampling ratesize
         self.consBoxSize : int = self.getIntParam('--consboxsize')
         self.consSampRate : float = self.getDoubleParam('--conssamprate')
@@ -261,9 +272,18 @@ class ScriptDeepConsensus3D(XmippScript):
 
     def doTrain(self, dataMan):
         
-        netMan = NetMan(self.numThreads, self.gpus, self.netpath)
-        netMan.createNetwork(self.consBoxSize, self.consBoxSize, self.consBoxSize, 1)
-        netMan.compiledNetwork.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        netMan = NetMan(self.numThreads, self.gpus, self.netPath, self.netName)
+
+        # Generate or load a model, depending on what is wanted
+        if self.trainType == MODEL_TRAIN_NEW:
+            netMan.createNetwork(self.consBoxSize, self.consBoxSize, self.consBoxSize, 1)
+        elif self.trainType == MODEL_TRAIN_PRETRAIN:
+            netMan.loadNetwork(modelFile = self.netPointer, keepTraining = True)
+        else:
+            print("Specified NN training mode yet implemented, use new or pretrained")
+            exit(-1)
+        
+        netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy']) 
         netMan.trainNetwork(self.nepochs, dataMan, self.learningrate, autoStop=True)
 
     def doScore():
