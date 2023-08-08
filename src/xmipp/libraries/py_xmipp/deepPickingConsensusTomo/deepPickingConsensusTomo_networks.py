@@ -112,9 +112,6 @@ class NetMan():
             aux : keras.Model = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
             self.net = aux.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-        if keepTraining:
-            pass
-
     def trainNetwork(self, nEpochs, dataman, learningRate, autoStop=True):
         """
         nEpochs: int. Number of epochs to be run in training stage
