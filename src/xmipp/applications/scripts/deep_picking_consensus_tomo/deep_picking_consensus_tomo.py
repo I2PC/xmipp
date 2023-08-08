@@ -170,6 +170,7 @@ class ScriptDeepConsensus3D(XmippScript):
             # Read paths
             self.posPath : str = self.getParam('--truevolpath')
             self.negPath : str = self.getParam('--falsevolpath')
+            self.doubtPath = None
             # Learning rate
             if self.checkParam('-l'):
                 self.learningRate = float(self.getDoubleParam('-l'))
@@ -229,34 +230,33 @@ class ScriptDeepConsensus3D(XmippScript):
             self.execMode = "score"
 
             # Input/Output
-            self.inputVolPath = str(self.getParam('--inputvolpath'))
-            if not os.path.exists(self.inputVolPath):
+            self.doubtPath = str(self.getParam('--inputvolpath'))
+            self.posPath = None
+            self.negPath = None
+            if not os.path.exists(self.doubtPath):
                 print("Path to input subtomograms does not exist. Exiting.")
                 sys.exit(-1)
             self.outputFile = str(self.getParam('--outputfile'))
                 
     def run(self):
-
+        '''
+        Instantiates the data managing class object (DataMan) and then launches the appropriate
+        program to train or score with the neural network.
+        '''
         print("deep_picking_consensus_tomo.py is launched\nParsing input...")
         self.parseParams()
         print("Execution will be done using %d threads." % self.numThreads)
         gpustring = str(self.gpus)
         print("Execution will use GPUS with ID: " + gpustring)
 
-        dataMan : DataMan
+        # Always create DataMan the same way, it will evaluate None variables to determine
+        # if it is train or test
+        dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, self.doubtPath)
+
         if self.mode == "train":
-            dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, None)
             self.doTrain(dataMan)
-
         elif self.mode == "score":
-            pass
-            dataMan = DataMan()
-            self.doScore()
-        else:
-            print("Execution mode not specified, exiting...")
-            sys.exit(-1)
-
-
+            self.doScore(dataMan)
         sys.exit(0)
 
     def doTrain(self, dataMan):
