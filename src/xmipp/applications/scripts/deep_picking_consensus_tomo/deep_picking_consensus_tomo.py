@@ -51,7 +51,7 @@ DEFAULT_MP              = 8
 
 class ScriptDeepConsensus3D(XmippScript):
     
-    _conda_env = 'xmipp_DLTK_v1.0'
+    _conda_env = 'scipion3'
 
     # Type the parameters
     gpus : list # List of GPUs containing the ID of the ones to be used
@@ -254,7 +254,7 @@ class ScriptDeepConsensus3D(XmippScript):
 
     def doTrain(self, dataMan):
         
-        netMan : netMan = netMan(self.numThreads, self.gpus, self.netpath)
+        netMan = NetMan(self.numThreads, self.gpus, self.netpath)
         netMan.createNetwork(self.consBoxSize, self.consBoxSize, self.consBoxSize, 1)
         netMan.compiledNetwork.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         netMan.trainNetwork(self.nepochs, dataMan, self.learningrate, autoStop=True)
