@@ -100,17 +100,21 @@ class NetMan():
         #atexit.register(self.mirrored_strategy._extended._collective_ops._pool.close)  
     
     def createNetwork(self, size, nData=2**12):      
-
         print("Compiling the model into a network")
         # Get the model structure
         self.net = self.getNetwork(dataset_size=nData, input_shape=(size,size,size,1))
 
     def loadNetwork(self, modelFile, size):
         if not os.path.isfile(modelFile):
-            raise ValueError("Model file %s not found",modelFile)
-        with self.strategy.scope():
-            aux : keras.Model = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
-            self.net = aux.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            raise ValueError("Model file %s not found", modelFile)
+        else:
+            with self.strategy.scope():
+                self.net = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
+                # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    def compileNetwork(self, pLoss, pOptimizer, pMetrics):
+        if self.net is not None:
+            self.net = self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
 
     def trainNetwork(self, nEpochs, dataman, learningRate, autoStop=True):
         """
@@ -220,5 +224,5 @@ class NetMan():
             model.add(l.Dense(units=2, activation='softmax'))
             print(model.summary())
             #model.build((None,PREF_SIDE))
-            model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+            # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
         return model
