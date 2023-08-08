@@ -54,25 +54,40 @@ class DataMan(object):
     valFrac : float # Fraction for validation steps
     nNeg : int # Total number of negative examples
     nPos : int # Total number of positive examples
+    nDoubt : int # Total number of doubt files
     splitPoint : int # Where to split the set
     batchSize : int # Batch size for NN
+    train : bool # To see if training or testing
     
 
-    def __init__(self, pospath: str, negpath: str, boxSize: int, valFrac=0.15, doubtpath:str = None):
+    def __init__(self, boxSize: int, valFrac=0.15, posath: str = None, negpath: str = None, doubtpath:str = None):
         """
-        posfn: positive pickings path
-        negfn: negative pickings path
-        valFrac: fraction to use in the validation step
+        boxSize: consensuated box size
+        samplingRate: consensuated sampling rate
+        valFrac: fraction of the total used for validation - Default 0.15
+        pospath: positive pickings path - If None, scoring is assumed
+        negpath: negative pickings path - If None, scoring is assumed
+        doubtpath: doubtful pickings path - If None, training is assumed
         """
 
-        # MD Loading
-        self.posVolsFns = self.getFolderContent(pospath, ".mrc")
-        self.nPos = len(self.posVolsFns)
-        self.negVolsFns = self.getFolderContent(negpath, ".mrc")
-        self.nNeg = len(self.negVolsFns)
+        self.train = (pospath is not None) and (negpath is not None)
 
-        if doubtpath is not None:
-            self.doubtVolsFn = self.getFolderContent(doubtpath, ".mrc")
+        if self.train:
+            # TRAIN
+            print("DataMan: training selected, loading pos+neg examples")
+            # MD Loading
+            self.posVolsFns = self.getFolderContent(pospath, ".mrc")
+            self.nPos = len(self.posVolsFns)
+            self.negVolsFns = self.getFolderContent(negpath, ".mrc")
+            self.nNeg = len(self.negVolsFns)
+            
+        else:
+            # SCORE
+            print("DataMan: scoring selected, loading doubt examples")
+            # MD Loading
+            self.doubtVolsFns = self.getFolderContent(doubtpath, ".mrc")
+            self.nDoubt = len(self.doubtVolsFns)
+
 
         self.boxSize = boxSize
         self.batchSize = BATCH_SIZE
