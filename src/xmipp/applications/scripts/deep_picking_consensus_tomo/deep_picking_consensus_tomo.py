@@ -94,6 +94,7 @@ class ScriptDeepConsensus3D(XmippScript):
         self.addParamsLine(' -g <gpuId> : comma separated GPU Ids. Set to -1 to use all CUDA_VISIBLE_DEVICES') 
         self.addParamsLine(' --mode <execMode> : training or scoring')
         self.addParamsLine(' --netpath <netpath> : path for network models read/write (needed in any case)')
+        self.addParamsLine(' --batchsize <size=16> : amount of images that will be fed each time to the network.')
 
         # Tomo
         self.addParamsLine('==== Tomo ====')
@@ -108,6 +109,7 @@ class ScriptDeepConsensus3D(XmippScript):
         # Train parameters
         self.addParamsLine('==== Training mode ====')
         self.addParamsLine(' --ttype <traintype=0> : train mode')
+        self.addParamsLine(' --valfrac <fraction=0.15> : fraction of the labeled dataset to use in validation.')
         self.addParamsLine(' --truevolpath <truevolpath> : path to the positive subtomos (mrc)')
         self.addParamsLine(' --falsevolpath <falsevolpath> : path to the negative subtomos (mrc)')
         self.addParamsLine('[ -e <numberOfEpochs=5> ]  : Number of training epochs (int).')
@@ -155,6 +157,8 @@ class ScriptDeepConsensus3D(XmippScript):
         # Consensuated boxsize and sampling ratesize
         self.consBoxSize : int = self.getIntParam('--consboxsize')
         self.consSampRate : float = self.getDoubleParam('--conssamprate')
+        # Desired batch size
+        self.batchSize : int = self.getIntParam('--batchsize')
        
         # The desired running mode is training
         if self.execMode.strip() in NN_TRAINWORDS:
@@ -194,6 +198,8 @@ class ScriptDeepConsensus3D(XmippScript):
                 self.traintype = MODEL_TRAIN_NEW
             else:
                 print("Training in mode: " +  MODEL_TRAIN_TYPELIST[self.traintype])
+            # Validation fraction
+            self.valFrac = self.getDoubleParam('--valfrac')
                           
             # # Assign weights to items if variable is set
             # if self.checkParam('--trueweights'):
@@ -237,8 +243,9 @@ class ScriptDeepConsensus3D(XmippScript):
         gpustring = str(self.gpus)
         print("Execution will use GPUS with ID: " + gpustring)
 
+        dataMan : DataMan
         if self.mode == "train":
-            dataMan = DataMan(self.posPath, self.negPath, self.consBoxSize)
+            dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, None)
             self.doTrain(dataMan)
 
         elif self.mode == "score":
