@@ -99,13 +99,13 @@ class NetMan():
         # self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)      
         #atexit.register(self.mirrored_strategy._extended._collective_ops._pool.close)  
     
-    def createNetwork(self, xdim, ydim, zdim, nData=2**12):      
+    def createNetwork(self, size, nData=2**12):      
 
         print("Compiling the model into a network")
         # Get the model structure
-        self.net = self.getNetwork(dataset_size=nData, input_shape=(zdim,ydim,xdim,1))
+        self.net = self.getNetwork(dataset_size=nData, input_shape=(size,size,size,1))
 
-    def loadNetwork(self, modelFile):
+    def loadNetwork(self, modelFile, size):
         if not os.path.isfile(modelFile):
             raise ValueError("Model file %s not found",modelFile)
         with self.strategy.scope():
