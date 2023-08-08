@@ -36,7 +36,7 @@ import numpy as np
 from xmipp_base import XmippScript
 import xmippLib
 
-from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_networks import DeepPickingConsensusTomoNetworkManager as NM
+from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_networks import NetMan
 from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_dataman import DataMan
 
 MODEL_TRAIN_NEW         = 0
