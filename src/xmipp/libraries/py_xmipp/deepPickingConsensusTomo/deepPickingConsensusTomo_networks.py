@@ -105,7 +105,7 @@ class NetMan():
         # Get the model structure
         self.net = self.getNetwork(dataset_size=nData, input_shape=(zdim,ydim,xdim,1))
 
-    def loadNetwork(self, modelFile, keepTraining=True):
+    def loadNetwork(self, modelFile):
         if not os.path.isfile(modelFile):
             raise ValueError("Model file %s not found",modelFile)
         with self.strategy.scope():
