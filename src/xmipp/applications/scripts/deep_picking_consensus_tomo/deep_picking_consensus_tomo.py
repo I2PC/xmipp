@@ -153,7 +153,7 @@ class ScriptDeepConsensus3D(XmippScript):
             print("Network path is not a valid path")
             sys.exit(-1)
         # Consensuated boxsize and sampling ratesize
-        self.consboxsize : int = self.getIntParam('--consboxsize')
+        self.consBoxSize : int = self.getIntParam('--consboxsize')
         self.consSampRate : float = self.getDoubleParam('--conssamprate')
        
         # The desired running mode is training
@@ -238,19 +238,13 @@ class ScriptDeepConsensus3D(XmippScript):
         print("Execution will use GPUS with ID: " + gpustring)
 
         if self.mode == "train":
-            # if self.traintype == MODEL_TRAIN_NEW:
-            #     pass
-            # elif self.traintype == MODEL_TRAIN_PRETRAIN:
-            #     pass
-            # elif self.traintype == MODEL_TRAIN_PREVRUN:
-            #     pass
-
-            # splits
-            dataMan = DataMan(self.posPath, self.negPath, self.consboxsize)
+            dataMan = DataMan(self.posPath, self.negPath, self.consBoxSize)
             self.doTrain(dataMan)
 
         elif self.mode == "score":
             pass
+            dataMan = DataMan()
+            self.doScore()
         else:
             print("Execution mode not specified, exiting...")
             sys.exit(-1)
@@ -260,8 +254,8 @@ class ScriptDeepConsensus3D(XmippScript):
 
     def doTrain(self, dataMan):
         
-        netMan = NM(self.numThreads, self.gpus, self.netpath)
-        netMan.createNetwork(self.consboxsize, self.consboxsize, self.consboxsize, 1)
+        netMan : netMan = netMan(self.numThreads, self.gpus, self.netpath)
+        netMan.createNetwork(self.consBoxSize, self.consBoxSize, self.consBoxSize, 1)
         netMan.compiledNetwork.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         netMan.trainNetwork(self.nepochs, dataMan, self.learningrate, autoStop=True)
 
