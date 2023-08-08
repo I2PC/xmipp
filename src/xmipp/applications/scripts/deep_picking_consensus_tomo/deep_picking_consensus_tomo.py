@@ -54,28 +54,6 @@ class ScriptDeepConsensus3D(XmippScript):
     
     _conda_env = 'scipion3'
 
-    # Type the parameters
-    gpus : list # List of GPUs containing the ID of the ones to be used
-    numThreads : int # Number of threads for parallel execution
-
-    mode : str # Execution mode - train, score
-    traintype : str # Type of training, for when mode is train
-    truevolpaths : list # path/s to volumes deemed as  ground true
-    falsevolpaths : list # path/s to volumes deemed as ground false
-    trueweights : list # Weights for each of the files given as input
-    falseweights : list # Weights for each of the files given as input
-    posTrainDict : dict # Joining of file + weight
-    negTrainDict : dict # Joining of file + weight
-
-    inputfname : str # path for the MD file describing the volumes to be scored
-    outputfname : str # desired output MD file name
-
-    nepochs : int # Number of epoch for trainings
-    learningrate : float # Learning rate for NN training
-    regstrength : float # L2 regularisation
-    autostop : bool # autostop flag for convergency stops
-    ensemble : int # number of parallel models to run
-
 
     def __init__(self):
         XmippScript.__init__(self)
@@ -267,7 +245,8 @@ class ScriptDeepConsensus3D(XmippScript):
         if self.mode == "train":
             self.doTrain(dataMan)
         elif self.mode == "score":
-            self.doScore(dataMan)
+            res = self.doScore(dataMan)
+            self.writeResults(res, self.outputFile)
         sys.exit(0)
 
     def doTrain(self, dataMan):
@@ -288,6 +267,28 @@ class ScriptDeepConsensus3D(XmippScript):
 
     def doScore():
         pass
+        netMan = None
+        # Probablemente algun tipo de compile sea necesario
+        rawResults = netMan.predictNetwork()
+        # Aqui quizas algo de procesado - O no, offload al step siguiente en xmipptomo
+        return rawResults
+    
+    def writeResults(results, file):
+        # Probablemente recibir un dataframe y escribirlo en XMD y listo.
+        md = xmippLib.MetaData()
+        for item in results:
+            row_id = md.addObject()
+            # Save the coordinates of the representative
+            md.setValue(xmippLib.MDL_XCOOR, int(), row_id)
+            md.setValue(xmippLib.MDL_YCOOR, int(), row_id)
+            md.setValue(xmippLib.MDL_ZCOOR, int(), row_id)
+            # Save the probability
+            # TODO: QUE XXXXXX ES ESE XXXX? MIRAR PROBABILIDADES
+            md.setValue(xmippLib.XXXXXXXXXX, float(), row_id)
+            # A futuro: interesante guardar cuantas representa
+        
+        md.write(file)
+        print("Written predictions to " + file)
 
 if __name__ == '__main__':
     exitCode = ScriptDeepConsensus3D().tryRun()
