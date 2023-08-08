@@ -143,9 +143,6 @@ class NetMan():
                                 validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
                                 use_multiprocessing=True, verbose=2)
 
-    def evalNetwork():
-        pass
-
     def predictNetwork():
         pass
 
