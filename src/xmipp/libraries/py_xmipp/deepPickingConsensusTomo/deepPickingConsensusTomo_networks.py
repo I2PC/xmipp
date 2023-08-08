@@ -33,6 +33,7 @@
 import tensorflow as tf
 
 from tensorflow.python.client import device_lib
+import keras
 from keras import layers as l
 from keras import callbacks as cb
 from keras import backend
@@ -44,7 +45,6 @@ import os
 # Structural globals
 CONV_LAYERS = 2
 PREF_SIDE = 64
-BATCHSIZE = 64
 
 # Configuration globals
 PROB_DROPOUT = 0.3
