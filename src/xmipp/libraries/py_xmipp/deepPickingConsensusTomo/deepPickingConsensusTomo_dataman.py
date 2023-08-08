@@ -55,12 +55,11 @@ class DataMan(object):
     nNeg : int # Total number of negative examples
     nPos : int # Total number of positive examples
     nDoubt : int # Total number of doubt files
-    splitPoint : int # Where to split the set
     batchSize : int # Batch size for NN
     train : bool # To see if training or testing
     
 
-    def __init__(self, boxSize: int, valFrac=0.15, posPath: str = None, negPath: str = None, doubtPath:str = None):
+    def __init__(self, boxSize: int, valFrac=0.15, batchSize = BATCH_SIZE, posPath: str = None, negPath: str = None, doubtPath:str = None):
         """
         boxSize: consensuated box size
         samplingRate: consensuated sampling rate
@@ -72,6 +71,10 @@ class DataMan(object):
 
         self.train = (posPath is not None) and (negPath is not None)
 
+        # Variables that are always needed
+        self.boxSize = boxSize
+        self.batchSize = batchSize
+
         if self.train:
             # TRAIN
             print("DataMan: training selected, loading pos+neg examples")
@@ -80,6 +83,21 @@ class DataMan(object):
             self.nPos = len(self.posVolsFns)
             self.negVolsFns = self.getFolderContent(negPath, ".mrc")
             self.nNeg = len(self.negVolsFns)
+            # Only interested in validation fraction if training
+            self.valFrac = valFrac
+
+            # Shuffle the input files and create separate sets with the filenames for later use
+            if valFrac > 0:
+                self.trainingFnsPos= random.choices(self.posVolsFns, k=int((1-valFrac)*self.nPos))
+                self.validationFnsPos= list(set(self.posVolsFns).difference(self.trainingFnsPos))
+
+                self.trainingFnsNeg = random.choices(self.negVolsFns, k=int((1-valFrac)*self.nNeg))
+                self.validationFnsNeg = list(set(self.negVolsFns).difference(self.trainingFnsNeg))
+            else:
+                self.trainingFnsPos = self.posVolsFns
+                self.validationFnsPos = None
+                self.trainingFnsNeg = self.negVolsFns
+                self.validationFnsPos = None
             
         else:
             # SCORE
@@ -87,24 +105,6 @@ class DataMan(object):
             # MD Loading
             self.doubtVolsFns = self.getFolderContent(doubtPath, ".mrc")
             self.nDoubt = len(self.doubtVolsFns)
-
-
-        self.boxSize = boxSize
-        self.batchSize = BATCH_SIZE
-        self.splitPoint = self.batchSize // 2
-        self.valFrac = valFrac
-
-        if valFrac > 0:
-            self.trainingFnsPos= random.choices(self.posVolsFns, k=int((1-valFrac)*self.nPos))
-            self.validationFnsPos= list(set(self.posVolsFns).difference(self.trainingFnsPos))
-
-            self.trainingFnsNeg = random.choices(self.negVolsFns, k=int((1-valFrac)*self.nNeg))
-            self.validationFnsNeg = list(set(self.negVolsFns).difference(self.trainingFnsNeg))
-        else:
-            self.trainingFnsPos = self.posVolsFns
-            self.validationFnsPos = None
-            self.trainingFnsNeg = self.negVolsFns
-            self.validationFnsPos = None
 
     def getNBatchesPerEpoch(self):
         return (int((1-self.valFrac)*self.nPos*2./self.batchSize),
