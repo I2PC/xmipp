@@ -148,8 +148,8 @@ class ScriptDeepConsensus3D(XmippScript):
         # Execution mode
         self.execMode = str(self.getParam('--mode'))
         # Netpath
-        self.netpath = self.getParam('--netpath')
-        if not os.path.isdir(self.netpath):
+        self.netPath = self.getParam('--netpath')
+        if not os.path.isdir(self.netPath):
             print("Network path is not a valid path")
             sys.exit(-1)
         # Consensuated boxsize and sampling ratesize
