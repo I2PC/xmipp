@@ -278,7 +278,7 @@ class ScriptDeepConsensus3D(XmippScript):
         if self.trainType == MODEL_TRAIN_NEW:
             netMan.createNetwork(self.consBoxSize, self.consBoxSize, self.consBoxSize, 1)
         elif self.trainType == MODEL_TRAIN_PRETRAIN:
-            netMan.loadNetwork(modelFile = self.netPointer, keepTraining = True)
+            netMan.loadNetwork(modelFile = self.netPointer)
         else:
             print("Specified NN training mode yet implemented, use new or pretrained")
             exit(-1)
