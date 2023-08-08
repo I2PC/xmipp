@@ -114,7 +114,8 @@ class NetMan():
 
     def compileNetwork(self, pLoss, pOptimizer, pMetrics):
         if self.net is not None:
-            self.net = self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
+            # self.net = self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
+            self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
 
     def trainNetwork(self, nEpochs, dataman, learningRate, autoStop=True):
         """
