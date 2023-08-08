@@ -71,7 +71,7 @@ class NetMan():
 
         self.optimizer = None
         self.model = None
-        self.compiledNetwork = None
+        self.net = None
         self.wantedGPUs = gpuIDs
 
         if gpuIDs is not None:
@@ -95,7 +95,7 @@ class NetMan():
         self.gpustrings = ["GPU:%d" % id for id in self.wantedGPUs]
         print(self.gpustrings)
         gpustring = self.gpustrings[0]
-        self.mirrored_strategy = tf.distribute.OneDeviceStrategy(device=gpustring)
+        self.strategy = tf.distribute.OneDeviceStrategy(device=gpustring)
         # self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)      
         #atexit.register(self.mirrored_strategy._extended._collective_ops._pool.close)  
     
@@ -103,14 +103,14 @@ class NetMan():
 
         print("Compiling the model into a network")
         # Get the model structure
-        self.compiledNetwork = self.getNetwork(dataset_size=nData, input_shape=(zdim,ydim,xdim,1))
+        self.net = self.getNetwork(dataset_size=nData, input_shape=(zdim,ydim,xdim,1))
 
     def loadNetwork(self, modelFile, keepTraining=True):
         if not os.path.isfile(modelFile):
             raise ValueError("Model file %s not found",modelFile)
-        with self.mirrored_strategy.scope():
+        with self.strategy.scope():
             aux : keras.Model = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
-            self.compiledNetwork = aux.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            self.net = aux.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         if keepTraining:
             pass
@@ -122,6 +122,7 @@ class NetMan():
         """
 
         # Print the input information
+        print("NN train stage started")
         print("Max epochs: ", nEpochs)
         print("Learning rate: %.1e"%(learningRate))
         print("Auto stop feature: ", autoStop)
@@ -135,7 +136,7 @@ class NetMan():
         if autoStop:
             cBacks += [cb.EarlyStopping()]
 
-        self.compiledNetwork.fit(dataman.getDataIterator(stage="train"), steps_per_epoch=CHECK_POINT_AT,
+        self.net.fit(dataman.getDataIterator(stage="train"), steps_per_epoch=CHECK_POINT_AT,
                                 validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
                                 validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
                                 use_multiprocessing=True, verbose=2)
@@ -166,7 +167,7 @@ class NetMan():
         print("Intermediate layer count: %d" % (CONV_LAYERS))
         print("Input shape %d,%d,%d"% (input_shape[0], input_shape[1], input_shape[2]))
 
-        with self.mirrored_strategy.scope():
+        with self.strategy.scope():
             # Input size different than NN desired side
             model = Sequential()
         
