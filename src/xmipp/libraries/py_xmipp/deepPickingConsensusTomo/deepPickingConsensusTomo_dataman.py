@@ -38,9 +38,8 @@ import sys, os
 
 import xmippLib
 
-from .deepPickingConsensusTomo_networks import PREF_SIDE
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 N_BATCHES = 5
 SAVE_AFTER = 25
 
