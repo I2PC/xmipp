@@ -83,9 +83,9 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.outputFileDoubt = self.getParam('--outputDoubt')
         self.boxSize = self.getIntParam('--boxsize')
         self.samplingrate = self.getDoubleParam('--samplingrate')
-        self.consensusRadius = self.getDoubleParam('--radius')
-        self.consensusThreshold = self.getIntParam('--number')
-        self.consensusType = self.getIntParam('--constype')
+        self.consensusRadius = float(self.getDoubleParam('--radius'))
+        self.consensusThreshold = int(self.getIntParam('--number'))
+        self.consensusType = int(self.getIntParam('--constype'))
         self.distancethreshold = self.boxSize * self.consensusRadius
 
         # Initialize as empty list
