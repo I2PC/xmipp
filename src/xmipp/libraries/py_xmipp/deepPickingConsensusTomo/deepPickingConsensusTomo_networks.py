@@ -37,7 +37,6 @@ import keras
 from keras import layers as l
 from keras import callbacks as cb
 from keras import backend
-from keras import Model
 from keras.models import Sequential
 
 import os
@@ -49,6 +48,7 @@ PREF_SIDE = 64
 # Configuration globals
 PROB_DROPOUT = 0.3
 CHECK_POINT_AT= 50 #In batches
+
 
 class NetMan():
     def __init__(self, nThreads:int, gpuIDs:list, rootPath:str):
@@ -146,21 +146,12 @@ class NetMan():
     def predictNetwork():
         pass
 
-    def getNetwork(self, dataset_size, input_shape):
+    def getNetwork(self, dataset_size: int, input_shape: tuple):
         """
         Generate the structure of the Neural Network.
         dataset_size: int Expected number of picked subtomos
         input_shape: tuple<int,int,int,int> height,width,depth and nChannels
         """
-        UMBRAL_1 = 500
-        UMBRAL_2 = 2000
-        # Filters assignment
-        if dataset_size < UMBRAL_1:
-            filtermult = 2
-        elif UMBRAL_1 <= dataset_size < UMBRAL_2:
-            filtermult = 3
-        else:
-            filtermult = 4
 
         # PRINT PARAMETERS
         print("Intermediate layer count: %d" % (CONV_LAYERS))
@@ -186,36 +177,34 @@ class NetMan():
             print(input_shape)
 
             # DNN PART
+            filters = 32
             for i in range(1, CONV_LAYERS + 1):
                 # Convolve with an increasing number of filters
                 # Several convolutions before pooling assure a better grasp of 
                 # the features are taken before shrinking the image
-                model.add(l.Conv3D(filters=2**(filtermult), kernel_size=(4,4,4),
-                                activation='relu', padding='same',kernel_regularizer='l1_l2'))
+                model.add(l.Conv3D(filters=filters*i, kernel_size=(3,3,3),
+                                activation='relu', padding='same', kernel_regularizer='l1_l2'))
                 
-                # filtermult += 1
-                # model = l.Conv3D(filters = 2**(filtermult), kernel_size = (8,8,8),
-                #                 activation='relu', padding='same', kernel_regularizer='l1_l2')(model)
-                # filtermult += 1
                 # Normalize
                 model.add(l.BatchNormalization())
+                
                 # Activate
-                model.add(l.Activation('relu'))
+                # model.add(l.Activation('relu'))
 
                 if i != CONV_LAYERS:
-                    model.add(l.MaxPooling3D(pool_size=(2,2,2), padding='same'))
+                    model.add(l.MaxPooling3D(pool_size=(3,3,3), padding='same'))
                 
 
             # Final touches
             # Desharpen edges
-            model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
+            # model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
             # Compact and drop
             model.add(l.Flatten())
-            model.add(l.Dense(units=128, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=512, activation='relu', kernel_regularizer='l2'))
             model.add(l.Dropout(PROB_DROPOUT))
-            model.add(l.Dense(units=64, activation='sigmoid'))
-            model.add(l.Dropout(PROB_DROPOUT))
-            model.add(l.Dense(units=32, activation='relu', kernel_regularizer='l2'))
+            # model.add(l.Dense(units=64, activation='sigmoid'))
+            # model.add(l.Dropout(PROB_DROPOUT))
+            model.add(l.Dense(units=16, activation='gelu', kernel_regularizer='l2'))
             model.add(l.Dropout(PROB_DROPOUT))
 
             # Final predictions - 2 classes probabilities (p(GOOD),p(BAD))
