@@ -183,11 +183,11 @@ class ScriptDeepConsensus3D(XmippScript):
             else:
                 self.ensemble = 1
             # Check if it's in the correct range and set to default if needed
-            if self.traintype not in [0, 1, 2]:
-                print("Training mode %d not recognized. Running a new model instead." % self.traintype)
-                self.traintype = MODEL_TRAIN_NEW
+            if self.trainType not in [0, 1, 2]:
+                print("Training mode %d not recognized. Running a new model instead." % self.trainType)
+                self.trainType = MODEL_TRAIN_NEW
             else:
-                print("Training in mode: " +  MODEL_TRAIN_TYPELIST[self.traintype])
+                print("Training in mode: " +  MODEL_TRAIN_TYPELIST[self.trainType])
             # Validation fraction
             self.valFrac = self.getDoubleParam('--valfrac')
                           
