@@ -9,15 +9,20 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
+      # Prepare the enviroment for Sonar scanner
       - name: Prepare Sonar scanner
-        run: |
-          wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
-          unzip -q sonar-scanner-cli-4.6.0.2311-linux.zip
-          echo "${PWD}/sonar-scanner-4.6.0.2311-linux/bin/" >> $GITHUB_PATH
         working-directory: ${{ env.BUILD_DIR }}
-      - name: SonarCloud Scan
-        run: |
-          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=Xmipp
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR-VERSION: 5.0.1.3006
+        run: |
+          wget -nv -O sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR-VERSION }}-linux.zip
+          unzip -q sonar-scanner-cli.zip -d sonar-scanner-cli
+          mv sonar-scanner-cli/*/* sonar-scanner-cli/
+          echo "${PWD}/sonar-scanner-cli/bin/" >> $GITHUB_PATH
+      # Run the SonarCloud Scan
+      - name: SonarCloud Scan
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=XmippCore
