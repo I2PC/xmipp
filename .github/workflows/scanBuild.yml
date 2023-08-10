@@ -7,7 +7,7 @@ on:
     branches: [devel, master]
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       # Prepare the enviroment for Sonar scanner
       - name: Prepare Sonar scanner
