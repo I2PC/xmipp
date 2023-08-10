@@ -3,6 +3,8 @@ name: SonarCloud scan
 
 # Specify when the Action should be triggered: when a pull request is opened against the 'devel' or 'master' branch
 on:
+  push:
+    branches: [devel, master]
   pull_request:
     branches: [devel, master]
 jobs:
