@@ -265,9 +265,9 @@ class ScriptDeepConsensus3D(XmippScript):
             exit(-1)
         
         netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy']) 
-        netMan.trainNetwork(self.nepochs, dataMan, self.learningrate, autoStop=True)
+        netMan.trainNetwork(self.nEpochs, dataMan, self.learningRate, autoStop=True)
 
-    def doScore():
+    def doScore(self, dataMan):
         pass
         netMan = None
         # Probablemente algun tipo de compile sea necesario
@@ -275,7 +275,7 @@ class ScriptDeepConsensus3D(XmippScript):
         # Aqui quizas algo de procesado - O no, offload al step siguiente en xmipptomo
         return rawResults
     
-    def writeResults(results, file):
+    def writeResults(self, results, file):
         # Probablemente recibir un dataframe y escribirlo en XMD y listo.
         md = xmippLib.MetaData()
         for item in results:
