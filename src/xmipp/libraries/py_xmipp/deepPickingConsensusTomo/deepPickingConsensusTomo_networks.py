@@ -42,7 +42,7 @@ from keras.models import Sequential
 import os
 
 # Structural globals
-CONV_LAYERS = 2
+CONV_LAYERS = 3
 PREF_SIDE = 64
 
 # Configuration globals
@@ -200,7 +200,7 @@ class NetMan():
             # model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
             # Compact and drop
             model.add(l.Flatten())
-            model.add(l.Dense(units=512, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=128, activation='relu', kernel_regularizer='l2'))
             model.add(l.Dropout(PROB_DROPOUT))
             # model.add(l.Dense(units=64, activation='sigmoid'))
             # model.add(l.Dropout(PROB_DROPOUT))
