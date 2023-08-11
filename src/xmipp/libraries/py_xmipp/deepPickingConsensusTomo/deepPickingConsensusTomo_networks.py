@@ -132,7 +132,7 @@ class NetMan():
         n_batches_per_epoch_train : int
         n_batches_per_epoch_val : int
         n_batches_per_epoch_train, n_batches_per_epoch_val = dataman.getNBatchesPerEpoch()
-        epochN = max(1, nEpochs * float(n_batches_per_epoch_train/CHECK_POINT_AT))
+        epochN = int(max(1, nEpochs * float(n_batches_per_epoch_train/CHECK_POINT_AT)))
 
         currentChkName = self.checkPointsName
         cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False)]
@@ -140,10 +140,23 @@ class NetMan():
         if autoStop:
             cBacks += [cb.EarlyStopping()]
 
-        self.net.fit(dataman.getDataIterator(stage="train"), nEpochs= epochN, steps_per_epoch=CHECK_POINT_AT,
-                                validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
-                                validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
-                                use_multiprocessing=True, verbose=2)
+        # self.net.fit(dataman.getDataIterator(stage="train"), nEpochs= epochN, steps_per_epoch=CHECK_POINT_AT,
+        #                         validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
+        #                         validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
+        #                         use_multiprocessing=True, verbose=2)
+        self.net.fit(x = dataman.getDataIterator(stage="train"), 
+                     epochs = epochN, 
+                     verbose=2,
+                     callbacks = cBacks, 
+                     validation_data = dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
+                     steps_per_epoch = 16,
+                     validation_steps = n_batches_per_epoch_val,
+                     use_multiprocessing=True
+                     )
+                    #  nEpochs= epochN, steps_per_epoch=CHECK_POINT_AT,
+                    #             validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
+                    #             validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
+                    #             use_multiprocessing=True, verbose=2)
 
     def predictNetwork():
         pass

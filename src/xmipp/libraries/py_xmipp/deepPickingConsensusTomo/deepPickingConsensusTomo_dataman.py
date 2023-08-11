@@ -40,7 +40,7 @@ import xmippLib
 
 
 BATCH_SIZE = 32
-N_BATCHES = 5
+N_BATCHES = 16
 SAVE_AFTER = 25
 
 class DataMan(object):
