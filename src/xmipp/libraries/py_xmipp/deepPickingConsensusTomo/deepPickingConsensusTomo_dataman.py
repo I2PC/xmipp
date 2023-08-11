@@ -111,8 +111,9 @@ class DataMan(object):
 
     def getFolderContent(self, path: str, filter: str) -> list :
         # TODO: implement filter
+        # TODO: check if filter is working
         fns = os.listdir(path)
-        return [ path + "/" + fn for fn in fns ] 
+        return [ path + "/" + fn for fn in fns if fn.endswith(filter)] 
     
     def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
         if nEpochs < 0:
