@@ -255,7 +255,9 @@ class ScriptDeepConsensus3D(XmippScript):
 
         # Generate or load a model, depending on what is wanted
         if self.trainType == MODEL_TRAIN_NEW:
-            netMan.createNetwork(self.consBoxSize, self.consBoxSize, self.consBoxSize, 1)
+            amount_of_data = 1
+            netMan.createNetwork(self.consBoxSize, amount_of_data)
+            # TODO: use amount_of_data correctly here and in netman
         elif self.trainType == MODEL_TRAIN_PRETRAIN:
             netMan.loadNetwork(modelFile = self.netPointer)
         else:
