@@ -129,7 +129,9 @@ class NetMan():
         print("Learning rate: %.1e"%(learningRate))
         print("Auto stop feature: ", autoStop)
 
-        n_batches_per_epoch_train, n_batches_per_epoch_val= dataman.getNBatchesPerEpoch()
+        n_batches_per_epoch_train : int
+        n_batches_per_epoch_val : int
+        n_batches_per_epoch_train, n_batches_per_epoch_val = dataman.getNBatchesPerEpoch()
         epochN = max(1, nEpochs * float(n_batches_per_epoch_train/CHECK_POINT_AT))
 
         currentChkName = self.checkPointsName
@@ -138,7 +140,7 @@ class NetMan():
         if autoStop:
             cBacks += [cb.EarlyStopping()]
 
-        self.net.fit(dataman.getDataIterator(stage="train"), steps_per_epoch=CHECK_POINT_AT,
+        self.net.fit(dataman.getDataIterator(stage="train"), nEpochs= epochN, steps_per_epoch=CHECK_POINT_AT,
                                 validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
                                 validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
                                 use_multiprocessing=True, verbose=2)
