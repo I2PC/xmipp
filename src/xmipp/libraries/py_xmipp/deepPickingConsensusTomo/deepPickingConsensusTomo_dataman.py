@@ -39,7 +39,7 @@ import sys, os
 import xmippLib
 
 
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 N_BATCHES = 100
 SAVE_AFTER = 25
 
@@ -113,7 +113,9 @@ class DataMan(object):
         fns = os.listdir(path)
         return [ path + "/" + fn for fn in fns if filter in fn] 
     
-    def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
+    # def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
+    def getDataIterator(self, stage, nEpochs=-1, nBatches=getNBatchesPerEpoch):
+
         if nEpochs < 0:
             nEpochs = sys.maxsize
         for i in range(nEpochs):
