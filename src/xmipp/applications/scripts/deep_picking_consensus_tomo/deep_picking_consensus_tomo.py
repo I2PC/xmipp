@@ -155,7 +155,7 @@ class ScriptDeepConsensus3D(XmippScript):
             print("Execution mode is: TRAINING")
 
             # Training type
-            self.trainType = str(self.getParam('--ttype'))
+            self.trainType = int(self.getParam('--ttype'))
             # Read paths
             self.posPath : str = self.getParam('--truevolpath')
             self.negPath : str = self.getParam('--falsevolpath')
@@ -242,9 +242,9 @@ class ScriptDeepConsensus3D(XmippScript):
         # if it is train or test
         dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, self.doubtPath)
 
-        if self.mode == "train":
+        if self.execMode == "train":
             self.doTrain(dataMan)
-        elif self.mode == "score":
+        elif self.execMode == "score":
             res = self.doScore(dataMan)
             self.writeResults(res, self.outputFile)
         sys.exit(0)
