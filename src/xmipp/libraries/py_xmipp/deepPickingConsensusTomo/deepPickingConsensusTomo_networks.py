@@ -51,7 +51,7 @@ CHECK_POINT_AT= 50 #In batches
 
 
 class NetMan():
-    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str):
+    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, netName:str = "mimodelo.h5"):
         """
         rootPath: str. Root directory for the NN data to be saved.
                                 Normally: "extra/nnetData/"
@@ -67,7 +67,7 @@ class NetMan():
         self.gpustrings : list
 
         checkpointsName = os.path.join(rootPath, "checkpoint")
-        self.checkpointsNameTemplate = os.path.join(checkpointsName, "model.hdf5")
+        self.checkpointsNameTemplate = os.path.join(checkpointsName, netName)
 
         self.optimizer = None
         self.model = None
