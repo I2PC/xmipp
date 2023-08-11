@@ -44,7 +44,7 @@ import os
 # Structural globals
 CONV_LAYERS = 3
 PREF_SIDE = 64
-STEPS_PER_EPOCH = 500
+STEPS_PER_EPOCH = 256
 
 # Configuration globals
 PROB_DROPOUT = 0.3
