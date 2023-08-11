@@ -113,7 +113,7 @@ class DataMan(object):
         # TODO: implement filter
         # TODO: check if filter is working
         fns = os.listdir(path)
-        return [ path + "/" + fn for fn in fns if fn.endswith(filter)] 
+        return [ path + "/" + fn for fn in fns if filter in fn] 
     
     def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
         if nEpochs < 0:
