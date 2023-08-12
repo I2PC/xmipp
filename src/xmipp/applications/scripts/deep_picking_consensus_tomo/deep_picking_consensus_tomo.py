@@ -28,10 +28,8 @@
 * Initial version: sept 2023
 **************************************************************************
 """
-import multiprocessing
 import sys
 import os
-import numpy as np
 
 from xmipp_base import XmippScript
 import xmippLib
@@ -52,11 +50,10 @@ DEFAULT_MP              = 8
 
 class ScriptDeepConsensus3D(XmippScript):
     
-    _conda_env = 'scipion3'
+    _conda_env = "xmipp_DLTK_v1.0"
 
-
-    def __init__(self):
-        XmippScript.__init__(self)
+    # def __init__(self):
+        # XmippScript.__init__(self)
 
     def defineParams(self):
         self.addUsageLine('DeepConsensus3D. Launches a CNN to process cryoET (tomo) subvolumes.\n'
