@@ -100,8 +100,7 @@ class ScriptDeepConsensus3D(XmippScript):
         This function does the reading of input flags and parameters. It sanity-checks all
         inputs to make sure the program does not unnecesarily crash later.
         """
-        print("start parseparams", flush=True)
-        
+
         # Default for CPU threads
         if self.checkParam('-t'):
             self.numThreads = self.getIntParam('-t')
@@ -226,10 +225,8 @@ class ScriptDeepConsensus3D(XmippScript):
 
         # Always create DataMan the same way, it will evaluate None variables to determine
         # if it is train or test
-        print("Creating dataman", flush=True)
         dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, self.doubtPath)
 
-        print("Execmode switch", flush=True)
         if self.execMode == "train":
             self.doTrain(dataMan)
         elif self.execMode == "score":
