@@ -51,7 +51,7 @@ CHECK_POINT_AT= 50 #In batches
 
 
 class NetMan():
-    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, netName:str = "mimodelo.h5"):
+    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int, netName:str = "mimodelo.h5"):
         """
         rootPath: str. Root directory for the NN data to be saved.
                                 Normally: "extra/nnetData/"
@@ -64,6 +64,7 @@ class NetMan():
 
         self.nnPath = rootPath
         self.nThreads = nThreads
+        self.batchSize = batchSize
         self.gpustrings : list
 
         checkpointsName = os.path.join(rootPath, "checkpoint")
@@ -79,6 +80,7 @@ class NetMan():
             self.gpusConfig()
 
         self.checkPointsName = os.path.join(rootPath,"tfchkpoint.hdf5")
+        
 
     def gpusConfig(self):
         """
@@ -115,7 +117,8 @@ class NetMan():
     def compileNetwork(self, pLoss, pOptimizer, pMetrics):
         if self.net is not None:
             # self.net = self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
-            self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
+            with self.strategy.scope():
+                self.net.compile(loss=pLoss, optimizer=pOptimizer, metrics=pMetrics)
 
     def trainNetwork(self, nEpochs, dataman, learningRate, autoStop=True):
         """
@@ -132,31 +135,30 @@ class NetMan():
         n_batches_per_epoch_train : int
         n_batches_per_epoch_val : int
         n_batches_per_epoch_train, n_batches_per_epoch_val = dataman.getNBatchesPerEpoch()
-        # epochN = int(max(1, nEpochs * float(n_batches_per_epoch_train/CHECK_POINT_AT)))
-        epochN = nEpochs
+        epochN = max(1, int(nEpochs * float(n_batches_per_epoch_train/CHECK_POINT_AT)))
+        # epochN = nEpochs
 
         currentChkName = self.checkPointsName
         cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=2, save_best_only=True, save_weights_only=False)]
 
         if autoStop:
             cBacks += [cb.EarlyStopping()]
-
         # self.net.fit(dataman.getDataIterator(stage="train"), nEpochs= epochN, steps_per_epoch=CHECK_POINT_AT,
         #                         validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
         #                         validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
         #                         use_multiprocessing=True, verbose=2)
-        self.net.fit(x = dataman.getDataIterator(stage="train", nBatches=n_batches_per_epoch_train), 
-                     epochs = epochN, 
+        with self.strategy.scope():
+            self.net.fit_generator(dataman.getDataIterator(stage="train", nBatches=n_batches_per_epoch_train), 
+                     epochs = epochN,
+                     steps_per_epoch= n_batches_per_epoch_train,
                      verbose=2,
                      callbacks = cBacks, 
                      validation_data = dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
                      validation_steps = n_batches_per_epoch_val,
-                     use_multiprocessing=True
+                     workers=1
+                    #  use_multiprocessing=True
                      )
-                    #  nEpochs= epochN, steps_per_epoch=CHECK_POINT_AT,
-                    #             validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
-                    #             validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
-                    #             use_multiprocessing=True, verbose=2)
+ 
 
     def predictNetwork():
         pass
@@ -215,7 +217,7 @@ class NetMan():
             # model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
             # Compact and drop
             model.add(l.Flatten())
-            model.add(l.Dense(units=128, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=64, activation='relu', kernel_regularizer='l2'))
             model.add(l.Dropout(PROB_DROPOUT))
             # model.add(l.Dense(units=64, activation='sigmoid'))
             # model.add(l.Dropout(PROB_DROPOUT))
