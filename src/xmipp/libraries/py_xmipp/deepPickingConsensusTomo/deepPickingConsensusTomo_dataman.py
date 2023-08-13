@@ -102,8 +102,9 @@ class DataMan(object):
             self.nDoubt = len(self.doubtVolsFns)
 
     def getNBatchesPerEpoch(self):
-        return (int((1-self.valFrac)*self.nPos*2./self.batchSize),
-             int(self.valFrac*self.nPos*2./self.batchSize))
+        # return (int((1-self.valFrac)*self.nPos*2./self.batchSize),
+        #      int(self.valFrac*self.nPos*2./self.batchSize))
+        return (100,100)
 
     def getFolderContent(self, path: str, filter: str) -> list :
         fns = os.listdir(path)
@@ -118,9 +119,8 @@ class DataMan(object):
                 yield batch
 
     def _getOneEpochTrainOrValidate(self, stage, nBatches):
-        print("Start getting one epoch for " + stage, flush=True)
-
         # Volumes and labels for this batch
+        nCh = 1 # channel hardcoding
         x = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize))
         y = np.empty((self.batchSize, 2))
 
@@ -147,7 +147,6 @@ class DataMan(object):
                 y[i,0] = label
                 y[i,1] = 1 - label
             yield x,y
-        print("Provided one epoch for " + stage, flush=True)
 
     # DATA AUGMENTATION METHODS
 
