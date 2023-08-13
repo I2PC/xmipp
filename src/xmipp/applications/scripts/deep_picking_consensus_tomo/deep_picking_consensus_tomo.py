@@ -225,7 +225,8 @@ class ScriptDeepConsensus3D(XmippScript):
 
         # Always create DataMan the same way, it will evaluate None variables to determine
         # if it is train or test
-        dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, self.doubtPath)
+        dataMan = DataMan(boxSize = self.consBoxSize, batchSize = self.batchSize, valFrac = self.valFrac,
+                          posPath = self.posPath, negPath = self.negPath, doubtPath = self.doubtPath)
 
         if self.execMode == "train":
             self.doTrain(dataMan)
@@ -236,7 +237,7 @@ class ScriptDeepConsensus3D(XmippScript):
 
     def doTrain(self, dataMan):
         
-        netMan = NetMan(self.numThreads, self.gpus, self.netPath, self.netName)
+        netMan = NetMan(nThreads = self.numThreads, gpuIDs = self.gpus, rootPath = self.netPath, netName = self.netName)
 
         # Generate or load a model, depending on what is wanted
         if self.trainType == MODEL_TRAIN_NEW:
@@ -250,7 +251,7 @@ class ScriptDeepConsensus3D(XmippScript):
             exit(-1)
         
         netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy']) 
-        netMan.trainNetwork(self.nEpochs, dataMan, self.learningRate, autoStop=True)
+        netMan.trainNetwork(nEpochs = self.nEpochs, dataman = dataMan, learningRate = self.learningRate, autoStop=True)
 
     def doScore(self, dataMan):
         pass
