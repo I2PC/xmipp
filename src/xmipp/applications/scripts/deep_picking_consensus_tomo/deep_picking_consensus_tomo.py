@@ -52,8 +52,8 @@ class ScriptDeepConsensus3D(XmippScript):
     
     _conda_env = "xmipp_DLTK_v1.0"
 
-    # def __init__(self):
-        # XmippScript.__init__(self)
+    def __init__(self):
+        XmippScript.__init__(self)
 
     def defineParams(self):
         self.addUsageLine('DeepConsensus3D. Launches a CNN to process cryoET (tomo) subvolumes.\n'
@@ -71,7 +71,7 @@ class ScriptDeepConsensus3D(XmippScript):
         self.addParamsLine(' --mode <execMode> : training or scoring')
         self.addParamsLine(' --netpath <netpath> : path for network models read/write (needed in any case)')
         self.addParamsLine(' --batchsize <size=16> : amount of images that will be fed each time to the network.')
-        self.addParamsLine(' [ --netname <filename> ]: filename of the network to load, only for train-pretrain or score-pretrain')
+        self.addParamsLine('[ --netname <filename> ] : filename of the network to load, only for train-pretrain or score-pretrain')
 
         # Tomo
         self.addParamsLine('==== Tomo ====')
@@ -80,36 +80,27 @@ class ScriptDeepConsensus3D(XmippScript):
 
         # Score parameters
         self.addParamsLine('==== Scoring mode ====')
-        self.addParamsLine('[ --inputvolpath <path> ]   : path to the metadata files of the input doubtful subtomos (mrc)')
-        self.addParamsLine('[ --outputfile <path> ]   : path for the program to write the scored coordinates (xmd)')
+        self.addParamsLine('[ --inputvolpath <path> ] : path to the metadata files of the input doubtful subtomos (mrc)')
+        self.addParamsLine('[ --outputfile <path> ] : path for the program to write the scored coordinates (xmd)')
 
         # Train parameters
         self.addParamsLine('==== Training mode ====')
-        self.addParamsLine(' --ttype <traintype=0> : train mode')
-        self.addParamsLine(' --valfrac <fraction=0.15> : fraction of the labeled dataset to use in validation.')
-        self.addParamsLine(' --truevolpath <truevolpath> : path to the positive subtomos (mrc)')
-        self.addParamsLine(' --falsevolpath <falsevolpath> : path to the negative subtomos (mrc)')
+        self.addParamsLine('[ --ttype <traintype=0> ] : train mode')
+        self.addParamsLine('[ --valfrac <fraction=0.15> ] : fraction of the labeled dataset to use in validation.')
+        self.addParamsLine('[ --truevolpath <truevolpath> ] : path to the positive subtomos (mrc)')
+        self.addParamsLine('[ --falsevolpath <falsevolpath> ] : path to the negative subtomos (mrc)')
         self.addParamsLine('[ -e <numberOfEpochs=5> ]  : Number of training epochs (int).')
         self.addParamsLine('[ -l <learningRate=0.0001> ] : Learning rate (float).')
         self.addParamsLine('[ -r <regStrength=0.00001> ] : L2 regularization level (float).')
-        self.addParamsLine('[ -s <AutoStop>] : Autostop on convergency detection.')
+        self.addParamsLine('[ -s ] : Autostop on convergency detection.')
         self.addParamsLine('[ --ensemble <numberOfModels=1> ] : If set, an ensemble of models will be used in a voting instead one.')
-
-        # Use examples
-        self.addExampleLine('Training the network from scratch\n'
-                            'xmipp_deep_picking_consensus_tomo')
-        
-        self.addExampleLine('Keep training the network from previous run\n'
-                            'xmipp_deep_picking_consensus_tomo')
-        
-        self.addExampleLine('Training the network from scratch\n'
-                            'xmipp_deep_picking_consensus_tomo -')
 
     def parseParams(self):
         """
         This function does the reading of input flags and parameters. It sanity-checks all
         inputs to make sure the program does not unnecesarily crash later.
         """
+        print("start parseparams", flush=True)
         
         # Default for CPU threads
         if self.checkParam('-t'):
@@ -130,14 +121,12 @@ class ScriptDeepConsensus3D(XmippScript):
         self.netPath = self.getParam('--netpath')
         if not os.path.isdir(self.netPath):
             print("Network path is not a valid path")
-            sys.exit(-1)
         # Netname
         if self.checkParam('--netname'):
             self.netName = self.getParam('--netname')
             self.netPointer = os.path.join(self.netPath, self.netName)
             if not os.path.isfile(self.netPath+self.netName):
                 print("NN file does not exist inside path")
-                sys.exit(-1)
         else:
             self.netName = NN_DUMMYNAME
         # Consensuated boxsize and sampling ratesize
@@ -149,7 +138,7 @@ class ScriptDeepConsensus3D(XmippScript):
         # The desired running mode is training
         if self.execMode.strip() in NN_TRAINWORDS:
             self.execMode = "train"
-            print("Execution mode is: TRAINING")
+            print("Execution mode is: TRAINING", flush=True)
 
             # Training type
             self.trainType = int(self.getParam('--ttype'))
@@ -212,7 +201,7 @@ class ScriptDeepConsensus3D(XmippScript):
 
         # The desired mode is scoring
         elif self.execMode.strip() in NN_SCOREWORDS:
-            print("Execution mode is: SCORING")
+            print("Execution mode is: SCORING", flush=True)
             self.execMode = "score"
 
             # Input/Output
@@ -229,16 +218,18 @@ class ScriptDeepConsensus3D(XmippScript):
         Instantiates the data managing class object (DataMan) and then launches the appropriate
         program to train or score with the neural network.
         '''
-        print("deep_picking_consensus_tomo.py is launched\nParsing input...")
+        print("deep_picking_consensus_tomo.py is launched\nParsing input...", flush=True)
         self.parseParams()
-        print("Execution will be done using %d threads." % self.numThreads)
+        print("Execution will be done using %d threads." % self.numThreads, flush = True)
         gpustring = str(self.gpus)
-        print("Execution will use GPUS with ID: " + gpustring)
+        print("Execution will use GPUS with ID: " + gpustring, flush=True)
 
         # Always create DataMan the same way, it will evaluate None variables to determine
         # if it is train or test
+        print("Creating dataman", flush=True)
         dataMan = DataMan(self.consBoxSize, self.valFrac, self.batchSize, self.posPath, self.negPath, self.doubtPath)
 
+        print("Execmode switch", flush=True)
         if self.execMode == "train":
             self.doTrain(dataMan)
         elif self.execMode == "score":
@@ -283,12 +274,11 @@ class ScriptDeepConsensus3D(XmippScript):
             md.setValue(xmippLib.MDL_ZCOOR, int(), row_id)
             # Save the probability
             # TODO: QUE XXXXXX ES ESE XXXX? MIRAR PROBABILIDADES
-            md.setValue(xmippLib.XXXXXXXXXX, float(), row_id)
+            # md.setValue(xmippLib.XXXXXXXXXX, float(), row_id)
             # A futuro: interesante guardar cuantas representa
         
         md.write(file)
         print("Written predictions to " + file)
 
 if __name__ == '__main__':
-    exitCode = ScriptDeepConsensus3D().tryRun()
-    sys.exit(exitCode)
+    ScriptDeepConsensus3D().tryRun()
