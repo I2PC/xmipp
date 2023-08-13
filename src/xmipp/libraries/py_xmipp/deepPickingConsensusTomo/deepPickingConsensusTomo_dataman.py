@@ -113,8 +113,8 @@ class DataMan(object):
         return [ path + "/" + fn for fn in fns if filter in fn] 
     
     # def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
-    def getDataIterator(self, stage, nEpochs=-1, nBatches=getNBatchesPerEpoch):
-
+    def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
+        
         if nEpochs < 0:
             nEpochs = sys.maxsize
         for i in range(nEpochs):
