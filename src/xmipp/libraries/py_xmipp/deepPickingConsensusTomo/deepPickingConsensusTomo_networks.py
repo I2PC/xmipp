@@ -44,7 +44,6 @@ import os
 # Structural globals
 CONV_LAYERS = 3
 PREF_SIDE = 64
-STEPS_PER_EPOCH = 256
 
 # Configuration globals
 PROB_DROPOUT = 0.3
@@ -137,7 +136,7 @@ class NetMan():
         epochN = nEpochs
 
         currentChkName = self.checkPointsName
-        cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False)]
+        cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=2, save_best_only=True, save_weights_only=False)]
 
         if autoStop:
             cBacks += [cb.EarlyStopping()]
@@ -151,7 +150,6 @@ class NetMan():
                      verbose=2,
                      callbacks = cBacks, 
                      validation_data = dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
-                     steps_per_epoch = STEPS_PER_EPOCH,
                      validation_steps = n_batches_per_epoch_val,
                      use_multiprocessing=True
                      )
