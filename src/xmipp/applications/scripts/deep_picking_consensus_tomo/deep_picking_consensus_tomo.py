@@ -237,7 +237,7 @@ class ScriptDeepConsensus3D(XmippScript):
 
     def doTrain(self, dataMan):
         
-        netMan = NetMan(nThreads = self.numThreads, gpuIDs = self.gpus, rootPath = self.netPath, netName = self.netName)
+        netMan = NetMan(nThreads = self.numThreads, batchSize = self.batchSize, gpuIDs = self.gpus, rootPath = self.netPath, netName = self.netName)
 
         # Generate or load a model, depending on what is wanted
         if self.trainType == MODEL_TRAIN_NEW:
@@ -250,7 +250,8 @@ class ScriptDeepConsensus3D(XmippScript):
             print("Specified NN training mode yet implemented, use new or pretrained")
             exit(-1)
         
-        netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy']) 
+        # netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        netMan.compileNetwork(pLoss='categorical_crossentropy', pOptimizer='adam', pMetrics=['accuracy'])
         netMan.trainNetwork(nEpochs = self.nEpochs, dataman = dataMan, learningRate = self.learningRate, autoStop=True)
 
     def doScore(self, dataMan):
