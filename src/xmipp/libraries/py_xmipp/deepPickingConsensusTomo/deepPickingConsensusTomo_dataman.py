@@ -111,7 +111,6 @@ class DataMan(object):
         return [ path + "/" + fn for fn in fns if filter in fn] 
     
     def getDataIterator(self, stage, nBatches, nEpochs=-1):
-        
         if nEpochs < 0:
             nEpochs = sys.maxsize
         for i in range(nEpochs):
@@ -120,7 +119,6 @@ class DataMan(object):
 
     def _getOneEpochTrainOrValidate(self, stage, nBatches):
         # Volumes and labels for this batch
-        nCh = 1 # channel hardcoding
         x = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize))
         y = np.empty((self.batchSize, 2))
 
