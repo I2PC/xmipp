@@ -37,9 +37,6 @@ import sys, os
 
 import xmippLib
 
-
-BATCH_SIZE = 128
-N_BATCHES = 100
 SAVE_AFTER = 25
 
 class DataMan(object):
@@ -57,7 +54,7 @@ class DataMan(object):
     train : bool # To see if training or testing
     
 
-    def __init__(self, boxSize: int, valFrac=0.15, batchSize = BATCH_SIZE, posPath: str = None, negPath: str = None, doubtPath:str = None):
+    def __init__(self, boxSize: int, batchSize: int, valFrac=0.15, posPath: str = None, negPath: str = None, doubtPath:str = None):
         """
         boxSize: consensuated box size
         samplingRate: consensuated sampling rate
@@ -112,8 +109,7 @@ class DataMan(object):
         fns = os.listdir(path)
         return [ path + "/" + fn for fn in fns if filter in fn] 
     
-    # def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
-    def getDataIterator(self, stage, nEpochs=-1, nBatches=N_BATCHES):
+    def getDataIterator(self, stage, nBatches, nEpochs=-1):
         
         if nEpochs < 0:
             nEpochs = sys.maxsize
@@ -122,6 +118,7 @@ class DataMan(object):
                 yield batch
 
     def _getOneEpochTrainOrValidate(self, stage, nBatches):
+        print("Start getting one epoch for " + stage, flush=True)
 
         # Volumes and labels for this batch
         x = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize))
@@ -150,6 +147,7 @@ class DataMan(object):
                 y[i,0] = label
                 y[i,1] = 1 - label
             yield x,y
+        print("Provided one epoch for " + stage, flush=True)
 
     # DATA AUGMENTATION METHODS
 
