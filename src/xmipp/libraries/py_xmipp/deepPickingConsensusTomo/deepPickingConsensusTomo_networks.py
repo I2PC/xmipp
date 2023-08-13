@@ -146,7 +146,7 @@ class NetMan():
         #                         validation_data=dataman.getDataIterator(stage="validate", nBatches=n_batches_per_epoch_val),
         #                         validation_steps=n_batches_per_epoch_val, callbacks= cBacks, epochs=epochN,
         #                         use_multiprocessing=True, verbose=2)
-        self.net.fit(x = dataman.getDataIterator(stage="train"), 
+        self.net.fit(x = dataman.getDataIterator(stage="train", nBatches=n_batches_per_epoch_train), 
                      epochs = epochN, 
                      verbose=2,
                      callbacks = cBacks, 
