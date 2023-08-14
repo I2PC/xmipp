@@ -332,11 +332,15 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
     std::cout << "Size: "; Vhigh().printShape(); std::cout << std::endl;
 
     // Fill the volume with the different atoms
-    std::ifstream fh_pdb;
+    //std::ifstream fh_pdb;
 
     //Save centered PDB
     PDBRichPhantom centered_pdb;
 
+    // Read pdb
+    centered_pdb.read(fn_pdb.c_str(), true);
+
+    /*
     fh_pdb.open(fn_pdb.c_str());
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
@@ -443,6 +447,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Close file
     fh_pdb.close();
+    */
 
     // Save centered PDB
     if (doCenter && !fn_outPDB.empty())
