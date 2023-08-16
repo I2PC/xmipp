@@ -177,20 +177,13 @@ class NetMan():
             opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
             dataset : tf.data.Dataset
             dataset = tf.data.Dataset.from_generator(self.data_generation, output_types=(tf.float32, tf.int32), output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
-            dataset = dataset.repeat()
             dataset = dataset.with_options(opt)
-            # dataset = dataset.batch(self.batchSize)#map(self._fixup_shape)
-            # dataset = dataset.prefetch(PREFECTH_N)
+            dataset = dataset.repeat()
             stepsInEpoch = getStepsInEpoch(nEpochs)
             self.net.fit(dataset,
                          steps_per_epoch = stepsInEpoch,
                          epochs = nEpochs,
                          verbose=2)
-            
-    def _fixup_shape(self, x, y):
-        x.set_shape([self.boxSize,self.boxSize,self.boxSize, 1])
-        y.set_shape([1])
-        return x, y
     
     def data_generation(self):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
@@ -232,15 +225,14 @@ class NetMan():
         
             # model.add(l.InputLayer(shape = input_shape))
             model.add(l.InputLayer(input_shape=input_shape))
-            # srcDim = input_shape[0]
-            # destDim = PREF_SIDE
-            # Cube modifications
-            # if srcDim < destDim: # Need to increase cube sizes
-            #     factor = round(destDim / srcDim)
-            #     model.add(l.Lambda(lambda img: backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
-            # elif srcDim > destDim: # Need to decrease cube sizes
-            #     factor = round(srcDim / destDim)
-            #     model.add(l.AveragePooling3D(pool_size=(factor,)*3))
+            srcDim = input_shape[0]
+            destDim = PREF_SIDE
+            if srcDim < destDim: # Need to increase cube sizes
+                factor = round(destDim / srcDim)
+                model.add(l.Lambda(lambda img: backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
+            elif srcDim > destDim: # Need to decrease cube sizes
+                factor = round(srcDim / destDim)
+                model.add(l.AveragePooling3D(pool_size=(factor,)*3))
             
 
             # DNN PART
