@@ -46,7 +46,7 @@ import random
 
 
 # Structural globals
-CONV_LAYERS = 3
+CONV_LAYERS = 4
 PREF_SIDE = 64
 
 # Configuration globals
@@ -90,7 +90,7 @@ class NetMan():
             # Set TF so it only sees the desired GPUs
             self.gpusConfig()
 
-        self.checkPointsName = os.path.join(rootPath,"tfchkpoint.hdf5")
+        self.checkPointsName = os.path.join(rootPath,"tfchkpoint_.h5")
 
         # Dataset preparation
         if self.train:
@@ -255,7 +255,7 @@ class NetMan():
         return input
     def _do_180_x(self, input : np.ndarray) -> np.ndarray:
         return input
- 
+    
     def predictNetwork():
         pass
 
@@ -294,6 +294,13 @@ class NetMan():
                 # the features are taken before shrinking the image
                 model.add(l.Conv3D(filters=filters*i, kernel_size=(3,3,3),
                                 activation='relu', padding='same', kernel_regularizer='l1_l2'))
+                model.add(l.Dropout(PROB_DROPOUT/2))
+                
+                # Normalize
+                model.add(l.BatchNormalization())
+                model.add(l.Conv3D(filters=filters*i, kernel_size=(5,5,5),
+                                activation='relu', padding='same', kernel_regularizer='l1_l2'))
+                model.add(l.Dropout(PROB_DROPOUT/2))
                 
                 # Normalize
                 model.add(l.BatchNormalization())
@@ -307,11 +314,11 @@ class NetMan():
             # model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
             # Compact and drop
             model.add(l.Flatten())
-            model.add(l.Dense(units=32, activation='gelu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=32, activation='gelu', kernel_regularizer='l1_l2'))
             model.add(l.Dropout(PROB_DROPOUT))
             # model.add(l.Dense(units=64, activation='sigmoid'))
             # model.add(l.Dropout(PROB_DROPOUT))
-            model.add(l.Dense(units=16, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=16, activation='relu', kernel_regularizer='l1_l2'))
             model.add(l.Dropout(PROB_DROPOUT))
 
             # Final predictions - 2 classes probabilities (p(GOOD),p(BAD))
@@ -329,10 +336,9 @@ def getFolderContent(path: str, filter: str) -> list :
 def getStepsInEpoch(nEpochs : int) -> int:
     res : int
     if nEpochs < 5:
-        res = 75
+        res = 100
     elif nEpochs < 10:
-        res = 50
+        res = 75
     else:
-        res = 25
+        res = 50
     return res
-
