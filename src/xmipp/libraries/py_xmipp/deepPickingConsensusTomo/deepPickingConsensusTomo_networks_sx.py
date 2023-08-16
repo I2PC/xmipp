@@ -167,12 +167,10 @@ class NetMan():
         cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=2, save_best_only=True, save_weights_only=False)]
 
         if autoStop:
-            cBacks += [cb.EarlyStopping()]
+            cBacks += [cb.EarlyStopping(monitor='val_acc', min_delta=0.001, patience=10, verbose=1)]
 
         with self.strategy.scope():
-            # Index for each row of the whole dataset: pos + neg + augpos + augneg
-            # z = list(range(self.nTotal))
-            # Do a TF dataset from the list of integer indices
+            # Create the dataset object from a generator: USEFUL FOR MULTIPROCESSING-MULTIGPU PURPOSES
             opt = tf.data.Options()
             opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
             dataset : tf.data.Dataset
@@ -180,11 +178,15 @@ class NetMan():
             dataset = dataset.with_options(opt)
             dataset = dataset.repeat()
             stepsInEpoch = getStepsInEpoch(nEpochs)
-            self.net.fit(dataset,
+            history = self.net.fit(dataset,
                          steps_per_epoch = stepsInEpoch,
                          epochs = nEpochs,
-                         verbose=2)
-    
+                         verbose=2,
+                         callbacks=cBacks)
+            
+            last_val_acc = history.history['val_acc'][-1]
+            print("Finished training with last validation accuracy %s" % str(last_val_acc))  
+              
     def data_generation(self):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
         Y = np.empty((self.batchSize, 1), dtype=int)
