@@ -252,9 +252,9 @@ class NetMan():
         yield X, Y
 
     def _do_180_z(self, input : np.ndarray) -> np.ndarray:
-        return input
+        return np.rot90(input, k=2, axes=(0,1))
     def _do_180_x(self, input : np.ndarray) -> np.ndarray:
-        return input
+        return np.rot90(input, k=2, axes=(1,2))
     
     def predictNetwork():
         pass
