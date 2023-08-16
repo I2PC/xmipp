@@ -210,7 +210,7 @@ class ScriptDeepConsensus3D(XmippScript):
     def doTrain(self):
         
         netMan = NetMan(nThreads = self.numThreads, gpuIDs = self.gpus, rootPath = self.netPath,
-                        batchSize = self.batchSize, posPath = self.posPath, negPath = self.negPath,
+                        batchSize = self.batchSize, boxSize = self.consBoxSize, posPath = self.posPath, negPath = self.negPath,
                         doubtPath = self.doubtPath, netName = self.netName)
 
         # Generate or load a model, depending on what is wanted
@@ -225,7 +225,7 @@ class ScriptDeepConsensus3D(XmippScript):
             exit(-1)
         
         # netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-        netMan.compileNetwork(pLoss='categorical_crossentropy', pOptimizer='adam', pMetrics=['accuracy'])
+        netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer='adam', pMetrics=['accuracy'])
         netMan.trainNetwork(nEpochs = self.nEpochs, learningRate = self.learningRate, autoStop=True)
 
     def doScore(self):
