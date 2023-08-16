@@ -55,7 +55,7 @@ CHECK_POINT_AT= 50 #In batches
 PREFECTH_N = 128 # in subtomograms
 
 class NetMan():
-    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int, boxSize : int,
+    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int, boxSize : int, doAugment : bool = True,
                  posPath: str = None, negPath: str = None, doubtPath : str = None, valFrac : int = 0.15, 
                  netName:str = "mimodelo.h5"):
         """
@@ -75,6 +75,7 @@ class NetMan():
         self.batchSize = batchSize
         self.valFrac = valFrac
         self.boxSize = boxSize
+        self.doAugment = doAugment
         self.gpustrings : list
 
         checkpointsName = os.path.join(rootPath, "checkpoint")
@@ -237,6 +238,10 @@ class NetMan():
                 filename = random.choice(posNames)
             image.read(filename)
             xmippIm : np.ndarray = image.getData()
+            # Data augment here
+            if self.doAugment:
+                pass
+    
             X[i] = np.expand_dims(xmippIm, -1)
             Y[i] = label
 
@@ -271,7 +276,6 @@ class NetMan():
             elif srcDim > destDim: # Need to decrease cube sizes
                 factor = round(srcDim / destDim)
                 model.add(l.AveragePooling3D(pool_size=(factor,)*3))
-            
 
             # DNN PART
             filters = 16
@@ -309,9 +313,6 @@ class NetMan():
             # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
         return model
     
-
-
-
 def getFolderContent(path: str, filter: str) -> list :
         fns = os.listdir(path)
         return [ path + "/" + fn for fn in fns if filter in fn] 
