@@ -42,6 +42,7 @@ from keras.models import Sequential
 
 import os
 import xmippLib
+import random
 
 
 # Structural globals
@@ -54,7 +55,7 @@ CHECK_POINT_AT= 50 #In batches
 PREFECTH_N = 128 # in subtomograms
 
 class NetMan():
-    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int,
+    def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int, boxSize : int,
                  posPath: str = None, negPath: str = None, doubtPath : str = None,   
                  netName:str = "mimodelo.h5"):
         """
@@ -72,6 +73,7 @@ class NetMan():
         self.nnPath = rootPath
         self.nThreads = nThreads
         self.batchSize = batchSize
+        self.boxSize = boxSize
         self.gpustrings : list
 
         checkpointsName = os.path.join(rootPath, "checkpoint")
@@ -91,19 +93,25 @@ class NetMan():
         # Dataset preparation
         if self.train:
             # TRAINING
+            # POS
             print("NetMan will train, load pos+neg")
             self.posVolsFns = getFolderContent(posPath, ".mrc")
             self.nPos = len(self.posVolsFns)
+            self.posLabeled = None
+            # NEG
             self.negVolsFns = getFolderContent(negPath, ".mrc")
             self.nNeg = len(self.negVolsFns)
+            self.negLabeled = zip(self.negVolsFns, [0]*self.nNeg)
             # All MD with label
-            self.allLabeled = zip(self.posVolsFns, [1]*len(self.nPos)) + zip(self.negVolsFns, [0]*len(self.nNeg))
+            
+            self.allLabeled = list(zip(self.posVolsFns, [1]*self.nPos)) + list(zip(self.negVolsFns, [0]*self.nNeg))
+            # Augmentation, if needed, should be launched here according to number of neg, pos...
             self.nTotal = len(self.allLabeled)
 
         else:
             # SCORING
             print("NetMan will score, load doubt")
-            self.doubtVolsFns = self.getFolderContent(doubtPath, ".mrc")
+            self.doubtVolsFns = getFolderContent(doubtPath, ".mrc")
             self.nDoubt = len(self.doubtVolsFns)
         
     def gpusConfig(self):
@@ -113,11 +121,11 @@ class NetMan():
         """
 
         # Check GPUs in system
-        availGPUs = tf.config.list_physical_devices('GPU')
-        print("Found this many GPUs in the system: ", availGPUs)
+        # availGPUs = tf.config.list_physical_devices('GPU')
+        # print("Found this many GPUs in the system: ", availGPUs)
         # Compare with the asked amount
-        assert len(self.wantedGPUs) <= len(availGPUs), "Not enough GPUs in the system for the asked amount"
-        print("Trying to lock GPUs with id: ", self.wantedGPUs)
+        # assert len(self.wantedGPUs) <= len(availGPUs), "Not enough GPUs in the system for the asked amount"
+        # print("Trying to lock GPUs with id: ", self.wantedGPUs)
         self.gpustrings = ["GPU:%d" % id for id in self.wantedGPUs]
         print(self.gpustrings)
         gpustring = self.gpustrings[0]
@@ -161,41 +169,47 @@ class NetMan():
         if autoStop:
             cBacks += [cb.EarlyStopping()]
 
-        # Index for each row of the whole dataset: pos + neg + augpos + augneg
-        z = list(range(len(self.allLabeled)))
-        # Do a TF dataset from the list of integer indices
-        dataset : tf.data.Dataset
-        dataset = tf.data.Dataset.from_generator(lambda : z, tf.uint8)
-        dataset = dataset.shuffle(buffer_size = len(z), seed = 0, reshuffle_each_iteration = True)
-        dataset = dataset.map(lambda i: tf.py_function(func = self.getRow,
-                                                       inp = [i],
-                                                       Tout = [tf.uint8, tf.float32]
-                                        ), num_parallel_calls = self.nThreads)
-
-        dataset = dataset.prefetch(PREFECTH_N)
-        stepsInEpoch = self.getStepsInEpoch(nEpochs)
-       
         with self.strategy.scope():
+            # Index for each row of the whole dataset: pos + neg + augpos + augneg
+            # z = list(range(self.nTotal))
+            # Do a TF dataset from the list of integer indices
+            opt = tf.data.Options()
+            opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+            dataset : tf.data.Dataset
+            dataset = tf.data.Dataset.from_generator(self.data_generation, output_types=(tf.float32, tf.int32), output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
+            dataset = dataset.repeat()
+            dataset = dataset.with_options(opt)
+            # dataset = dataset.batch(self.batchSize)#map(self._fixup_shape)
+            # dataset = dataset.prefetch(PREFECTH_N)
+            stepsInEpoch = getStepsInEpoch(nEpochs)
             self.net.fit(dataset,
                          steps_per_epoch = stepsInEpoch,
-                         epochs = nEpochs)
+                         epochs = nEpochs,
+                         verbose=2)
+            
+    def _fixup_shape(self, x, y):
+        x.set_shape([self.boxSize,self.boxSize,self.boxSize, 1])
+        y.set_shape([1])
+        return x, y
+    
+    def data_generation(self):
+        X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
+        Y = np.empty((self.batchSize, 1), dtype=int)
 
-    def getRow(self, i):
-        ind = i.numpy()
-        fname = self.allLabeled[ind][0]
-        label = self.allLabeled[ind][1]
-        data = loadXmippImage(fname)
-        return data, label
+        image = xmippLib.Image()
 
-    def getStepsInEpoch(nEpochs : int) -> int:
-        res : int
-        if nEpochs < 5:
-            res = 50
-        elif nEpochs < 10:
-            res = 30
-        else:
-            res = 10
-        return res
+        for i in range(self.batchSize):
+            label = random.randrange(2)
+            if label == 0:
+                filename = random.choice(self.negVolsFns)
+            else:
+                filename = random.choice(self.posVolsFns)
+            image.read(filename)
+            xmippIm : np.ndarray = image.getData()
+            X[i] = np.expand_dims(xmippIm, -1)
+            Y[i] = label
+
+        yield X, Y
  
     def predictNetwork():
         pass
@@ -209,23 +223,24 @@ class NetMan():
 
         # PRINT PARAMETERS
         print("Intermediate layer count: %d" % (CONV_LAYERS))
-        print("Input shape %d,%d,%d"% (input_shape[0], input_shape[1], input_shape[2]))
+        print("Input shape:")
+        print(input_shape)
 
         with self.strategy.scope():
             # Input size different than NN desired side
             model = Sequential()
         
-            model.add(l.Input(shape = input_shape))
-            srcDim = input_shape[0]
-            destDim = PREF_SIDE
+            # model.add(l.InputLayer(shape = input_shape))
+            model.add(l.InputLayer(input_shape=input_shape))
+            # srcDim = input_shape[0]
+            # destDim = PREF_SIDE
             # Cube modifications
-            if srcDim < destDim: # Need to increase cube sizes
-                factor = round(destDim / srcDim)
-                model.add(l.Lambda(lambda img: backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
-            elif srcDim > destDim: # Need to decrease cube sizes
-                factor = round(srcDim / destDim)
-                model.add(l.AveragePooling3D(pool_size=(factor,)*3))
-
+            # if srcDim < destDim: # Need to increase cube sizes
+            #     factor = round(destDim / srcDim)
+            #     model.add(l.Lambda(lambda img: backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
+            # elif srcDim > destDim: # Need to decrease cube sizes
+            #     factor = round(srcDim / destDim)
+            #     model.add(l.AveragePooling3D(pool_size=(factor,)*3))
             
 
             # DNN PART
@@ -256,25 +271,31 @@ class NetMan():
             model.add(l.Dropout(PROB_DROPOUT))
             # model.add(l.Dense(units=64, activation='sigmoid'))
             # model.add(l.Dropout(PROB_DROPOUT))
-            model.add(l.Dense(units=16, activation='gelu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=16, activation='relu', kernel_regularizer='l2'))
             model.add(l.Dropout(PROB_DROPOUT))
 
             # Final predictions - 2 classes probabilities (p(GOOD),p(BAD))
-            model.add(l.Dense(units=2, activation='softmax'))
+            # model.add(l.Dense(units=2, activation='softmax'))
+            model.add(l.Dense(units=1, activation='sigmoid'))
             print(model.summary())
             #model.build((None,PREF_SIDE))
             # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-            print(model.output_shape)
-            print(input_shape)
         return model
     
 
-def loadXmippImage(fn) -> np.ndarray:
-    image = xmippLib.Image()
-    image.read(fn)
-    img : np.ndarray = image.getData()
-    return img
 
-def getFolderContent(self, path: str, filter: str) -> list :
+
+def getFolderContent(path: str, filter: str) -> list :
         fns = os.listdir(path)
         return [ path + "/" + fn for fn in fns if filter in fn] 
+
+def getStepsInEpoch(nEpochs : int) -> int:
+    res : int
+    if nEpochs < 5:
+        res = 50
+    elif nEpochs < 10:
+        res = 30
+    else:
+        res = 10
+    return res
+
