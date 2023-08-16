@@ -46,7 +46,7 @@ import random
 
 
 # Structural globals
-CONV_LAYERS = 4
+CONV_LAYERS = 3
 PREF_SIDE = 64
 
 # Configuration globals
@@ -287,26 +287,26 @@ class NetMan():
                 model.add(l.AveragePooling3D(pool_size=(factor,)*3))
 
             # DNN PART
-            filters = 16
+            filters = 32
             for i in range(1, CONV_LAYERS + 1):
                 # Convolve with an increasing number of filters
                 # Several convolutions before pooling assure a better grasp of 
                 # the features are taken before shrinking the image
-                model.add(l.Conv3D(filters=filters*i, kernel_size=(3,3,3),
+                model.add(l.Conv3D(filters=filters*i, kernel_size=(5,5,5), strides=(2,2,2),
                                 activation='relu', padding='same', kernel_regularizer='l1_l2'))
                 model.add(l.Dropout(PROB_DROPOUT/2))
                 
                 # Normalize
                 model.add(l.BatchNormalization())
-                model.add(l.Conv3D(filters=filters*i, kernel_size=(5,5,5),
-                                activation='relu', padding='same', kernel_regularizer='l1_l2'))
+                model.add(l.Conv3D(filters=filters*i, kernel_size=(3,3,3),
+                                activation='relu', padding='valid', kernel_regularizer='l1_l2'))
                 model.add(l.Dropout(PROB_DROPOUT/2))
                 
                 # Normalize
                 model.add(l.BatchNormalization())
 
                 if i != CONV_LAYERS:
-                    model.add(l.MaxPooling3D(pool_size=(3,3,3), padding='same'))
+                    model.add(l.MaxPooling3D(pool_size=(2,2,2), padding='valid'))
                 
 
             # Final touches
@@ -323,7 +323,7 @@ class NetMan():
 
             # Final predictions - 2 classes probabilities (p(GOOD),p(BAD))
             # model.add(l.Dense(units=2, activation='softmax'))
-            model.add(l.Dense(units=1, activation='sigmoid'))
+            model.add(l.Dense(units=1, activation='softmax'))
             print(model.summary())
             #model.build((None,PREF_SIDE))
             # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
