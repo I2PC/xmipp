@@ -238,14 +238,23 @@ class NetMan():
                 filename = random.choice(posNames)
             image.read(filename)
             xmippIm : np.ndarray = image.getData()
+            
             # Data augment here
             if self.doAugment:
-                pass
-    
+                if bool(random.getrandbits(1)):
+                    xmippIm = self._do_180_z(xmippIm)
+                if bool(random.getrandbits(1)):
+                    xmippIm = self._do_180_x(xmippIm)
+
             X[i] = np.expand_dims(xmippIm, -1)
             Y[i] = label
 
         yield X, Y
+
+    def _do_180_z(input : np.ndarray) -> np.ndarray:
+        return input
+    def _do_180_x(input : np.ndarray) -> np.ndarray:
+        return input
  
     def predictNetwork():
         pass
