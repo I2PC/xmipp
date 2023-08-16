@@ -50,13 +50,13 @@ CONV_LAYERS = 3
 PREF_SIDE = 64
 
 # Configuration globals
-PROB_DROPOUT = 0.3
+PROB_DROPOUT = 0.4
 CHECK_POINT_AT= 50 #In batches
 PREFECTH_N = 128 # in subtomograms
 
 class NetMan():
     def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int, boxSize : int,
-                 posPath: str = None, negPath: str = None, doubtPath : str = None,   
+                 posPath: str = None, negPath: str = None, doubtPath : str = None, valFrac : int = 0.15, 
                  netName:str = "mimodelo.h5"):
         """
         rootPath: str. Root directory for the NN data to be saved.
@@ -73,6 +73,7 @@ class NetMan():
         self.nnPath = rootPath
         self.nThreads = nThreads
         self.batchSize = batchSize
+        self.valFrac = valFrac
         self.boxSize = boxSize
         self.gpustrings : list
 
@@ -97,12 +98,22 @@ class NetMan():
             print("NetMan will train, load pos+neg")
             self.posVolsFns = getFolderContent(posPath, ".mrc")
             self.nPos = len(self.posVolsFns)
-            self.posLabeled = None
             # NEG
             self.negVolsFns = getFolderContent(negPath, ".mrc")
             self.nNeg = len(self.negVolsFns)
-            self.negLabeled = zip(self.negVolsFns, [0]*self.nNeg)
-            # All MD with label
+            # Separate into train and validate
+
+            if self.valFrac > 0:
+                # Separate into train/val
+                self.posVolsFnsTrain= random.choices(self.posVolsFns, k=int((1-valFrac)*self.nPos))
+                self.posVolsFnsVal= list(set(self.posVolsFns).difference(self.posVolsFnsTrain))
+
+                self.negVolsFnsTrain = random.choices(self.negVolsFns, k=int((1-valFrac)*self.nNeg))
+                self.negVolsFnsVal = list(set(self.negVolsFns).difference(self.negVolsFnsTrain))
+            else:
+                # Don't separate, all goes to train si tu lo quiere asin
+                self.posVolsFnsTrain = self.posVolsFns
+                self.negVolsFnsTrain = self.negVolsFns
             
             self.allLabeled = list(zip(self.posVolsFns, [1]*self.nPos)) + list(zip(self.negVolsFns, [0]*self.nNeg))
             # Augmentation, if needed, should be launched here according to number of neg, pos...
@@ -164,41 +175,66 @@ class NetMan():
         print("Auto stop feature: ", autoStop)
 
         currentChkName = self.checkPointsName
-        cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_acc', verbose=2, save_best_only=True, save_weights_only=False)]
+        cBacks = [cb.ModelCheckpoint(currentChkName, monitor='val_accuracy', verbose=2, save_best_only=True, save_weights_only=False)]
 
         if autoStop:
-            cBacks += [cb.EarlyStopping(monitor='val_acc', min_delta=0.001, patience=10, verbose=1)]
+            cBacks += [cb.EarlyStopping(monitor='val_accuracy', min_delta=0.001, patience=10, verbose=1)]
 
         with self.strategy.scope():
             # Create the dataset object from a generator: USEFUL FOR MULTIPROCESSING-MULTIGPU PURPOSES
             opt = tf.data.Options()
             opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+            # TRAIN DATASET OBJECT
             dataset : tf.data.Dataset
-            dataset = tf.data.Dataset.from_generator(self.data_generation, output_types=(tf.float32, tf.int32), output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
+            dataset = tf.data.Dataset.from_generator(self.data_generation_trainval, args=["train"], 
+                                                     output_types=(tf.float32, tf.int32), 
+                                                     output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
             dataset = dataset.with_options(opt)
             dataset = dataset.repeat()
+            # VALIDATION DATASET OBJECT
+            datasetVal = None
+            if self.valFrac > 0:
+                datasetVal : tf.data.Dataset
+                datasetVal = tf.data.Dataset.from_generator(self.data_generation_trainval, args=["validate"],
+                                                             output_types=(tf.float32, tf.int32),
+                                                             output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
+                datasetVal = datasetVal.with_options(opt)
+                datasetVal = datasetVal.repeat()
+
             stepsInEpoch = getStepsInEpoch(nEpochs)
             history = self.net.fit(dataset,
                          steps_per_epoch = stepsInEpoch,
                          epochs = nEpochs,
-                         verbose=2,
-                         callbacks=cBacks)
+                         verbose=1,
+                         validation_data= datasetVal,
+                         validation_steps = int(stepsInEpoch/2),
+                         callbacks=cBacks,
+                         use_multiprocessing=self.nThreads)
             
-            last_val_acc = history.history['val_acc'][-1]
+            last_val_acc = history.history['val_accuracy'][-1]
             print("Finished training with last validation accuracy %s" % str(last_val_acc))  
-              
-    def data_generation(self):
+
+    def data_generation_trainval(self, mode: str):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
         Y = np.empty((self.batchSize, 1), dtype=int)
+
+        # Choose from the different data sets
+        
+        if mode == "train":
+            negNames = self.negVolsFnsTrain
+            posNames = self.posVolsFnsTrain
+        else:
+            negNames = self.negVolsFnsVal
+            posNames = self.posVolsFnsVal
 
         image = xmippLib.Image()
 
         for i in range(self.batchSize):
             label = random.randrange(2)
             if label == 0:
-                filename = random.choice(self.negVolsFns)
+                filename = random.choice(negNames)
             else:
-                filename = random.choice(self.posVolsFns)
+                filename = random.choice(posNames)
             image.read(filename)
             xmippIm : np.ndarray = image.getData()
             X[i] = np.expand_dims(xmippIm, -1)
@@ -238,7 +274,7 @@ class NetMan():
             
 
             # DNN PART
-            filters = 32
+            filters = 16
             for i in range(1, CONV_LAYERS + 1):
                 # Convolve with an increasing number of filters
                 # Several convolutions before pooling assure a better grasp of 
@@ -248,9 +284,6 @@ class NetMan():
                 
                 # Normalize
                 model.add(l.BatchNormalization())
-                
-                # Activate
-                # model.add(l.Activation('relu'))
 
                 if i != CONV_LAYERS:
                     model.add(l.MaxPooling3D(pool_size=(3,3,3), padding='same'))
@@ -261,7 +294,7 @@ class NetMan():
             # model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
             # Compact and drop
             model.add(l.Flatten())
-            model.add(l.Dense(units=64, activation='relu', kernel_regularizer='l2'))
+            model.add(l.Dense(units=32, activation='gelu', kernel_regularizer='l2'))
             model.add(l.Dropout(PROB_DROPOUT))
             # model.add(l.Dense(units=64, activation='sigmoid'))
             # model.add(l.Dropout(PROB_DROPOUT))
@@ -286,10 +319,10 @@ def getFolderContent(path: str, filter: str) -> list :
 def getStepsInEpoch(nEpochs : int) -> int:
     res : int
     if nEpochs < 5:
-        res = 50
+        res = 75
     elif nEpochs < 10:
-        res = 30
+        res = 50
     else:
-        res = 10
+        res = 25
     return res
 
