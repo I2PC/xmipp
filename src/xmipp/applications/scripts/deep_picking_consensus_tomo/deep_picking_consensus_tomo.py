@@ -34,8 +34,7 @@ import os
 from xmipp_base import XmippScript
 import xmippLib
 
-from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_networks import NetMan
-from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_dataman import DataMan
+from xmippPyModules.deepPickingConsensusTomo.deepPickingConsensusTomo_networks_sx import NetMan
 
 MODEL_TRAIN_NEW         = 0
 MODEL_TRAIN_PRETRAIN    = 1
@@ -175,28 +174,6 @@ class ScriptDeepConsensus3D(XmippScript):
                 print("Training in mode: " +  MODEL_TRAIN_TYPELIST[self.trainType])
             # Validation fraction
             self.valFrac = self.getDoubleParam('--valfrac')
-                          
-            # # Assign weights to items if variable is set
-            # if self.checkParam('--trueweights'):
-            #     tw : str = self.getParam('--trueweights')
-            #     self.trueweights = np.array(tw.split(":"), dtype=int).tolist()
-            # else:
-            #     self.trueweights = [-1] * len(self.truevolpaths)
-            # if self.checkParam('--falseweights'):
-            #     tw : str = self.getParam('--falseweights')
-            #     self.falseweights = np.array(tw.split(":"), dtype=int).tolist()
-            # else:
-            #     self.falseweights = [-1] * len(self.falsevolpaths)
-            
-            # Check size
-            # msg_weights = "Error, the number of weights provided does not match the amount of files provided."+\
-            #            "Check --trueweights and --falseweights"
-            # assert len(self.falseweights) == len(self.truevolpaths), msg_weights
-            # assert len(self.trueweights) == len(self.falsevolpaths), msg_weights
-
-            # Create the dictionaries
-            # self.posTrainDict = {path: weight for path, weight in zip(self.truevolpaths, self.trueweights)}
-            # self.negTrainDict = {path: weight for path, weight in zip(self.falsevolpaths, self.falseweights)}
 
         # The desired mode is scoring
         elif self.execMode.strip() in NN_SCOREWORDS:
@@ -223,21 +200,18 @@ class ScriptDeepConsensus3D(XmippScript):
         gpustring = str(self.gpus)
         print("Execution will use GPUS with ID: " + gpustring, flush=True)
 
-        # Always create DataMan the same way, it will evaluate None variables to determine
-        # if it is train or test
-        dataMan = DataMan(boxSize = self.consBoxSize, batchSize = self.batchSize, valFrac = self.valFrac,
-                          posPath = self.posPath, negPath = self.negPath, doubtPath = self.doubtPath)
-
         if self.execMode == "train":
-            self.doTrain(dataMan)
+            self.doTrain()
         elif self.execMode == "score":
-            res = self.doScore(dataMan)
+            res = self.doScore()
             self.writeResults(res, self.outputFile)
         sys.exit(0)
 
     def doTrain(self, dataMan):
         
-        netMan = NetMan(nThreads = self.numThreads, batchSize = self.batchSize, gpuIDs = self.gpus, rootPath = self.netPath, netName = self.netName)
+        netMan = NetMan(nThreads = self.numThreads, gpuIDs = self.gpus, rootPath = self.netPath,
+                        batchSize = self.batchSize, posPath = self.posPath, negPath = self.negPath,
+                        doubtPath = self.doubtPath, netName = self.netName)
 
         # Generate or load a model, depending on what is wanted
         if self.trainType == MODEL_TRAIN_NEW:
