@@ -226,7 +226,7 @@ class ScriptDeepConsensus3D(XmippScript):
         
         # netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         netMan.compileNetwork(pLoss='categorical_crossentropy', pOptimizer='adam', pMetrics=['accuracy'])
-        netMan.trainNetwork(nEpochs = self.nEpochs, dataman = dataMan, learningRate = self.learningRate, autoStop=True)
+        netMan.trainNetwork(nEpochs = self.nEpochs, learningRate = self.learningRate, autoStop=True)
 
     def doScore(self, dataMan):
         pass
