@@ -31,7 +31,6 @@
 # **************************************************************************
 
 import tensorflow as tf
-from tensorflow.python.framework.ops import EagerTensor
 import numpy as np
 
 from tensorflow.python.client import device_lib
