@@ -140,9 +140,11 @@ class NetMan():
         # print("Trying to lock GPUs with id: ", self.wantedGPUs)
         self.gpustrings = ["GPU:%d" % id for id in self.wantedGPUs]
         print(self.gpustrings)
-        gpustring = self.gpustrings[0]
-        self.strategy = tf.distribute.OneDeviceStrategy(device=gpustring)
-        # self.mirrored_strategy = tf.distribute.MirroredStrategy(devices=self.gpustrings)      
+        # gpustring = self.gpustrings[0]
+        if len(self.gpustrings) == 1:
+            self.strategy = tf.distribute.OneDeviceStrategy(device = self.gpustrings[0])
+        else:
+            self.strategy = tf.distribute.MirroredStrategy(devices = self.gpustrings)
         #atexit.register(self.mirrored_strategy._extended._collective_ops._pool.close)  
     
     def createNetwork(self, size, nData=2**12):      
@@ -299,7 +301,7 @@ class NetMan():
                 # Normalize
                 model.add(l.BatchNormalization())
                 model.add(l.Conv3D(filters=filters*i, kernel_size=(3,3,3),
-                                activation='relu', padding='valid', kernel_regularizer='l1_l2'))
+                                activation='relu', padding='same', kernel_regularizer='l1_l2'))
                 model.add(l.Dropout(PROB_DROPOUT/2))
                 
                 # Normalize
