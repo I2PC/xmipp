@@ -92,13 +92,13 @@ class NetMan():
         if self.train:
             # TRAINING
             print("NetMan will train, load pos+neg")
-            self.posVolsFns = self.getFolderContent(posPath, ".mrc")
+            self.posVolsFns = getFolderContent(posPath, ".mrc")
             self.nPos = len(self.posVolsFns)
-            self.negVolsFns = self.getFolderContent(negPath, ".mrc")
+            self.negVolsFns = getFolderContent(negPath, ".mrc")
             self.nNeg = len(self.negVolsFns)
             # All MD with label
             self.allLabeled = zip(self.posVolsFns, [1]*len(self.nPos)) + zip(self.negVolsFns, [0]*len(self.nNeg))
-            self.nTotal = len(self.allVolsFns)
+            self.nTotal = len(self.allLabeled)
 
         else:
             # SCORING
@@ -274,3 +274,7 @@ def loadXmippImage(fn) -> np.ndarray:
     image.read(fn)
     img : np.ndarray = image.getData()
     return img
+
+def getFolderContent(self, path: str, filter: str) -> list :
+        fns = os.listdir(path)
+        return [ path + "/" + fn for fn in fns if filter in fn] 
