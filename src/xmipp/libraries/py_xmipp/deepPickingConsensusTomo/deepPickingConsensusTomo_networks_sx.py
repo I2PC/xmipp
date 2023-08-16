@@ -123,7 +123,7 @@ class NetMan():
         else:
             # SCORING
             print("NetMan will score, load doubt")
-            self.doubtVolsFns = getFolderContent(doubtPath, ".mrc")
+            self.doubtVolsFns = getFolderContent(doubtPath, ".mrc") + getFolderContent(posPath, ".mrc")
             self.nDoubt = len(self.doubtVolsFns)
         
     def gpusConfig(self):
@@ -258,8 +258,19 @@ class NetMan():
     def _do_180_x(self, input : np.ndarray) -> np.ndarray:
         return np.rot90(input, k=2, axes=(1,2))
     
-    def predictNetwork():
-        pass
+    def predictNetwork(self, nEpochs: int):
+        """
+        """
+        print("NN score stage started")
+        
+        stepsInEpoch = getStepsInEpoch(nEpochs)
+        dataset : tf.data.Dataset
+        opt = tf.data.Options()
+        opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+        dataset = tf.data.Dataset.from_generator()
+        dataset = dataset.with_options(opt)
+        self.net.predict(dataset, use_multiprocessing=self.nThreads)
+        print("NN predictions finished")
 
     def getNetwork(self, dataset_size: int, input_shape: tuple):
         """
