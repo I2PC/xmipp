@@ -207,7 +207,7 @@ class ScriptDeepConsensus3D(XmippScript):
             self.writeResults(res, self.outputFile)
         sys.exit(0)
 
-    def doTrain(self, dataMan):
+    def doTrain(self):
         
         netMan = NetMan(nThreads = self.numThreads, gpuIDs = self.gpus, rootPath = self.netPath,
                         batchSize = self.batchSize, posPath = self.posPath, negPath = self.negPath,
