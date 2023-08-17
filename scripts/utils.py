@@ -232,7 +232,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 log.append(l)
     if in_parallel:
         return p
-    elif 0 == p.poll():
+    elif 0 == p.wait():
         return True
     else:
         if show_output is False and log is None:
