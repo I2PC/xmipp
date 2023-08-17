@@ -209,7 +209,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
         if not line:
-            if p.poll() == 0:
+            if p.wait() == 0:
                 if printProgress:
                     print(printProgressBar(100))
                 return True
