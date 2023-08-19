@@ -30,6 +30,7 @@
 """
 import sys
 import os
+import numpy as np
 
 from xmipp_base import XmippScript
 import xmippLib
@@ -43,7 +44,7 @@ MODEL_TRAIN_TYPELIST    = ["From scratch", "Existing model", "Previous run"]
 
 NN_TRAINWORDS           = ["train", "training", "t"]
 NN_SCOREWORDS           = ["score", "scoring", "s", "predict"]
-NN_DUMMYNAME            = "QLO"
+NN_NAME            = "dpc_nn.h5"
 
 DEFAULT_MP              = 8
 
@@ -80,7 +81,7 @@ class ScriptDeepConsensus3D(XmippScript):
         # Score parameters
         self.addParamsLine('==== Scoring mode ====')
         self.addParamsLine('[ --inputvolpath <path> ] : path to the metadata files of the input doubtful subtomos (mrc)')
-        self.addParamsLine('[ --outputfile <path> ] : path for the program to write the scored coordinates (xmd)')
+        self.addParamsLine('[ --outputpath <path> ] : path for the program to write the scored coordinates (xmd)')
 
         # Train parameters
         self.addParamsLine('==== Training mode ====')
@@ -126,7 +127,7 @@ class ScriptDeepConsensus3D(XmippScript):
             if not os.path.isfile(self.netPath+self.netName):
                 print("NN file does not exist inside path")
         else:
-            self.netName = NN_DUMMYNAME
+            self.netName = NN_NAME
         # Consensuated boxsize and sampling ratesize
         self.consBoxSize : int = self.getIntParam('--consboxsize')
         self.consSampRate : float = self.getDoubleParam('--conssamprate')
@@ -187,7 +188,8 @@ class ScriptDeepConsensus3D(XmippScript):
             if not os.path.exists(self.doubtPath):
                 print("Path to input subtomograms does not exist. Exiting.")
                 sys.exit(-1)
-            self.outputFile = str(self.getParam('--outputfile'))
+            self.outputFile = str(self.getParam('--outputpath'))
+            self.posPath : str = self.getParam('--truevolpath')
                 
     def run(self):
         '''
@@ -229,15 +231,19 @@ class ScriptDeepConsensus3D(XmippScript):
         netMan.trainNetwork(nEpochs = self.nEpochs, learningRate = self.learningRate, autoStop=True)
 
     def doScore(self):
-        pass
-        netMan = None
-        # Probablemente algun tipo de compile sea necesario
+        netMan = NetMan(nThreads = self.numThreads, gpuIDs = self.gpus, rootPath = self.netPath,
+                        batchSize = self.batchSize, boxSize = self.consBoxSize, posPath = self.posPath, negPath = None,
+                        doubtPath = self.doubtPath, netName = self.netName)
+        netMan.loadNetwork(modelFile = self.netPointer)
+        netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer='adam', pMetrics=['accuracy'])
         rawResults = netMan.predictNetwork()
-        # Aqui quizas algo de procesado - O no, offload al step siguiente en xmipptomo
         return rawResults
     
     def writeResults(self, results, file):
-        # Probablemente recibir un dataframe y escribirlo en XMD y listo.
+        # Write results vector in numpy format TXT
+        txtname = file + ".txt"
+        np.savetxt(txtname, results)
+
         md = xmippLib.MetaData()
         for item in results:
             row_id = md.addObject()
