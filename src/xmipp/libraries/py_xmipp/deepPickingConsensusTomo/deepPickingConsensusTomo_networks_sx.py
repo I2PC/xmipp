@@ -39,6 +39,8 @@ from keras import layers as l
 from keras import callbacks as cb
 from keras import backend
 from keras.models import Sequential
+# from keras.utils.vis_utils import plot_model
+# import graphviz, pydot
 
 import os
 import xmippLib
@@ -54,6 +56,8 @@ PROB_DROPOUT = 0.4
 CHECK_POINT_AT= 50 #In batches
 PREFECTH_N = 128 # in subtomograms
 
+NN_NAME = "dpc_nn.h5"
+
 class NetMan():
     def __init__(self, nThreads:int, gpuIDs:list, rootPath:str, batchSize:int, boxSize : int, doAugment : bool = True,
                  posPath: str = None, negPath: str = None, doubtPath : str = None, valFrac : int = 0.15, 
@@ -68,7 +72,7 @@ class NetMan():
         gpuIDs: list<int>. GPUs to use
         """
 
-        self.train = (posPath is not None) and (negPath is not None)
+        self.train = negPath is not None
 
         self.nnPath = rootPath
         self.nThreads = nThreads
@@ -119,12 +123,16 @@ class NetMan():
             self.allLabeled = list(zip(self.posVolsFns, [1]*self.nPos)) + list(zip(self.negVolsFns, [0]*self.nNeg))
             # Augmentation, if needed, should be launched here according to number of neg, pos...
             self.nTotal = len(self.allLabeled)
+            self.doubtVolsFns = None
+            self.mode = "train"
 
         else:
             # SCORING
             print("NetMan will score, load doubt")
             self.doubtVolsFns = getFolderContent(doubtPath, ".mrc") + getFolderContent(posPath, ".mrc")
+            self.doubtVolsFnsConsum = self.doubtVolsFns.copy()
             self.nDoubt = len(self.doubtVolsFns)
+            self.mode = ""
         
     def gpusConfig(self):
         """
@@ -157,7 +165,7 @@ class NetMan():
             raise ValueError("Model file %s not found", modelFile)
         else:
             with self.strategy.scope():
-                self.net = keras.models.load_model(modelFile, custom_objects={"PREF_SIDE":PREF_SIDE})
+                self.net = keras.models.load_model(modelFile)
                 # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     def compileNetwork(self, pLoss, pOptimizer, pMetrics):
@@ -189,7 +197,7 @@ class NetMan():
             opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
             # TRAIN DATASET OBJECT
             dataset : tf.data.Dataset
-            dataset = tf.data.Dataset.from_generator(self.data_generation_trainval, args=["train"], 
+            dataset = tf.data.Dataset.from_generator(self.data_generation_train, 
                                                      output_types=(tf.float32, tf.int32), 
                                                      output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
             dataset = dataset.with_options(opt)
@@ -198,7 +206,7 @@ class NetMan():
             datasetVal = None
             if self.valFrac > 0:
                 datasetVal : tf.data.Dataset
-                datasetVal = tf.data.Dataset.from_generator(self.data_generation_trainval, args=["validate"],
+                datasetVal = tf.data.Dataset.from_generator(self.data_generation_val,
                                                              output_types=(tf.float32, tf.int32),
                                                              output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
                 datasetVal = datasetVal.with_options(opt)
@@ -215,29 +223,21 @@ class NetMan():
                          use_multiprocessing=self.nThreads)
             
             last_val_acc = history.history['val_accuracy'][-1]
-            print("Finished training with last validation accuracy %s" % str(last_val_acc))  
+            print("Finished training with last validation accuracy %s" % str(last_val_acc))
+            self.net.save(self.nnPath + NN_NAME)
 
-    def data_generation_trainval(self, mode: str):
+    def data_generation_train(self):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
         Y = np.empty((self.batchSize, 1), dtype=int)
-
-        # Choose from the different data sets
-        
-        if mode == "train":
-            negNames = self.negVolsFnsTrain
-            posNames = self.posVolsFnsTrain
-        else:
-            negNames = self.negVolsFnsVal
-            posNames = self.posVolsFnsVal
 
         image = xmippLib.Image()
 
         for i in range(self.batchSize):
             label = random.randrange(2)
             if label == 0:
-                filename = random.choice(negNames)
+                filename = random.choice(self.negVolsFnsTrain)
             else:
-                filename = random.choice(posNames)
+                filename = random.choice(self.posVolsFnsTrain)
             image.read(filename)
             xmippIm : np.ndarray = image.getData()
 
@@ -253,24 +253,66 @@ class NetMan():
 
         yield X, Y
 
+    def data_generation_val(self):
+        X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
+        Y = np.empty((self.batchSize, 1), dtype=int)
+
+        image = xmippLib.Image()
+
+        for i in range(self.batchSize):
+            label = random.randrange(2)
+            if label == 0:
+                filename = random.choice(self.negVolsFnsVal)
+            else:
+                filename = random.choice(self.posVolsFnsVal)
+            image.read(filename)
+            xmippIm : np.ndarray = image.getData()
+
+            # Data augment here
+            if self.doAugment:
+                if bool(random.getrandbits(1)):
+                    xmippIm = self._do_180_z(xmippIm)
+                if bool(random.getrandbits(1)):
+                    xmippIm = self._do_180_x(xmippIm)
+
+            X[i] = np.expand_dims(xmippIm, -1)
+            Y[i] = label
+
+        yield X, Y
+
+    def data_generation_score(self):
+        X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
+
+        image = xmippLib.Image()
+
+        for i in range(self.batchSize):
+            filename = self.doubtVolsFnsConsum.pop()
+
+            image.read(filename)
+            xmippIm : np.ndarray = image.getData()
+            X[i] = np.expand_dims(xmippIm, -1)
+        yield X
+
     def _do_180_z(self, input : np.ndarray) -> np.ndarray:
         return np.rot90(input, k=2, axes=(0,1))
     def _do_180_x(self, input : np.ndarray) -> np.ndarray:
         return np.rot90(input, k=2, axes=(1,2))
     
-    def predictNetwork(self, nEpochs: int):
+    def predictNetwork(self):
         """
         """
         print("NN score stage started")
         
-        stepsInEpoch = getStepsInEpoch(nEpochs)
         dataset : tf.data.Dataset
         opt = tf.data.Options()
         opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-        dataset = tf.data.Dataset.from_generator()
+        dataset = tf.data.Dataset.from_generator(self.data_generation_score,
+                                                 output_types=(tf.float32, tf.int32),
+                                                 output_shapes=((self.batchSize, self.boxSize, self.boxSize, self.boxSize,1),(self.batchSize,1)))
         dataset = dataset.with_options(opt)
-        self.net.predict(dataset, use_multiprocessing=self.nThreads)
+        predicts = self.net.predict(dataset, use_multiprocessing=self.nThreads)
         print("NN predictions finished")
+        return predicts
 
     def getNetwork(self, dataset_size: int, input_shape: tuple):
         """
@@ -292,12 +334,12 @@ class NetMan():
             model.add(l.InputLayer(input_shape=input_shape))
             srcDim = input_shape[0]
             destDim = PREF_SIDE
-            if srcDim < destDim: # Need to increase cube sizes
-                factor = round(destDim / srcDim)
-                model.add(l.Lambda(lambda img: backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
-            elif srcDim > destDim: # Need to decrease cube sizes
-                factor = round(srcDim / destDim)
-                model.add(l.AveragePooling3D(pool_size=(factor,)*3))
+            # if srcDim < destDim: # Need to increase cube sizes
+            #     factor = round(destDim / srcDim)
+            #     model.add(l.Lambda(lambda img: keras.backend.resize_volumes(img, factor, factor, factor, 'channels_last'), name="resize_tf"))
+            # elif srcDim > destDim: # Need to decrease cube sizes
+            #     factor = round(srcDim / destDim)
+            #     model.add(l.AveragePooling3D(pool_size=(factor,)*3))
 
             # DNN PART
             filters = 32
