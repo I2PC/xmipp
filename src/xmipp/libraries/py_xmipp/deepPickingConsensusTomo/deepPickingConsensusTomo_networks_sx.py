@@ -340,13 +340,13 @@ class NetMan():
             #     factor = round(srcDim / destDim)
             #     model.add(l.AveragePooling3D(pool_size=(factor,)*3))
 
-            # Convolution layer #1
-            model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu'))
-            model.add(l.MaxPool3D(pool_size=2))
-            model.add(l.BatchNormalization())
+            # # Convolution layer #1
+            # model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu'))
+            # model.add(l.MaxPool3D(pool_size=2))
+            # model.add(l.BatchNormalization())
 
             # Convolution layer #2
-            model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu', padding='same'))
+            model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu'))
             model.add(l.MaxPool3D(pool_size=2))
             model.add(l.BatchNormalization())
 
@@ -364,7 +364,7 @@ class NetMan():
             model.add(l.GlobalAveragePooling3D())
 
             # Compact and drop
-            model.add(l.Dense(units=256, activation='relu'))
+            model.add(l.Dense(units=512, activation='relu'))
             model.add(l.Dropout(PROB_DROPOUT))
             model.add(l.Dense(units=128, activation='relu'))
             model.add(l.Dropout(PROB_DROPOUT))
@@ -380,9 +380,9 @@ def getFolderContent(path: str, filter: str) -> list :
 def getStepsInEpoch(nEpochs : int) -> int:
     res : int
     if nEpochs < 5:
-        res = 100
+        res = 200
     elif nEpochs < 10:
-        res = 75
+        res = 150
     else:
-        res = 50
+        res = 100
     return res
