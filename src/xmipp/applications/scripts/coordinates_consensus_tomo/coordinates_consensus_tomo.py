@@ -153,7 +153,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
 
         # Manage if truth file was present
         if self.hasPositive:
-            mdTrue = xmippLib.MetaData(self.inputFile)
+            mdTrue = xmippLib.MetaData(self.inputTruthFile)
             truthsize = 0
             for mdtrue_id in mdTrue:
                 coords = np.empty(3, dtype=int)
@@ -177,6 +177,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
                 outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
                 outMd.setValue(xmippLib.MDL_COUNT, 0, row_idg)
+                truthsize += 1
             print("Writing %d items from TRUTH to disk" % truthsize)
 
         # Write everything to XMD files
