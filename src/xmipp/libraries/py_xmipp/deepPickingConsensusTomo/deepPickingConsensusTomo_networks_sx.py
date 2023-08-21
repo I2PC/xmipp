@@ -166,7 +166,6 @@ class NetMan():
         else:
             with self.strategy.scope():
                 self.net = keras.models.load_model(modelFile)
-                # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     def compileNetwork(self, pLoss, pOptimizer, pMetrics):
         if self.net is not None and self.strategy is not None:
