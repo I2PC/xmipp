@@ -227,7 +227,7 @@ class ScriptDeepConsensus3D(XmippScript):
             exit(-1)
         
         # netMan.net.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-        netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer=adam_v2(learning_rate=self.learningRate), pMetrics=['accuracy'])
+        netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer=adam_v2.Adam(learning_rate=self.learningRate), pMetrics=['accuracy'])
         netMan.trainNetwork(nEpochs = self.nEpochs, learningRate = self.learningRate, autoStop=True)
 
     def doScore(self):
@@ -235,7 +235,7 @@ class ScriptDeepConsensus3D(XmippScript):
                         batchSize = self.batchSize, boxSize = self.consBoxSize, posPath = self.posPath, negPath = None,
                         doubtPath = self.doubtPath, netName = self.netName)
         netMan.loadNetwork(modelFile = self.netPointer)
-        netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer=adam_v2(learning_rate=self.learningRate), pMetrics=['accuracy'])
+        netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer=adam_v2.Adam(learning_rate=self.learningRate), pMetrics=['accuracy'])
         rawResults = netMan.predictNetwork()
         return rawResults
     
