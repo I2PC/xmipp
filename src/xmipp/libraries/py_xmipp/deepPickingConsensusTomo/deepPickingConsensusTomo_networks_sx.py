@@ -341,47 +341,37 @@ class NetMan():
             #     factor = round(srcDim / destDim)
             #     model.add(l.AveragePooling3D(pool_size=(factor,)*3))
 
-            # DNN PART
-            filters = 32
-            for i in range(1, CONV_LAYERS + 1):
-                # Convolve with an increasing number of filters
-                # Several convolutions before pooling assure a better grasp of 
-                # the features are taken before shrinking the image
-                model.add(l.Conv3D(filters=filters*i, kernel_size=(5,5,5), strides=(2,2,2),
-                                activation='relu', padding='same', kernel_regularizer='l1_l2'))
-                model.add(l.Dropout(PROB_DROPOUT/2))
-                
-                # Normalize
-                model.add(l.BatchNormalization())
-                model.add(l.Conv3D(filters=filters*i, kernel_size=(3,3,3),
-                                activation='relu', padding='same', kernel_regularizer='l1_l2'))
-                model.add(l.Dropout(PROB_DROPOUT/2))
-                
-                # Normalize
-                model.add(l.BatchNormalization())
+            # Convolution layer #1
+            model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu'))
+            model.add(l.MaxPool3D(pool_size=2))
+            model.add(l.BatchNormalization())
 
-                if i != CONV_LAYERS:
-                    model.add(l.MaxPooling3D(pool_size=(2,2,2), padding='valid'))
-                
+            # Convolution layer #2
+            model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu', padding='same'))
+            model.add(l.MaxPool3D(pool_size=2))
+            model.add(l.BatchNormalization())
 
-            # Final touches
+            # Convolution layer #3
+            model.add(l.Conv3D(filters=128, kernel_size=3, activation='relu'))
+            model.add(l.MaxPool3D(pool_size=2))
+            model.add(l.BatchNormalization())
+
+            # Convolution layer #4
+            model.add(l.Conv3D(filters=256, kernel_size=3, activation='relu'))
+            model.add(l.MaxPool3D(pool_size=2))
+            model.add(l.BatchNormalization())
+            
             # Desharpen edges
-            # model.add(l.AveragePooling3D(pool_size=(2,2,2), padding='same'))
+            model.add(l.GlobalAveragePooling3D())
+
             # Compact and drop
-            model.add(l.Flatten())
-            model.add(l.Dense(units=32, activation='gelu', kernel_regularizer='l1_l2'))
+            model.add(l.Dense(units=256, activation='relu'))
             model.add(l.Dropout(PROB_DROPOUT))
-            # model.add(l.Dense(units=64, activation='sigmoid'))
-            # model.add(l.Dropout(PROB_DROPOUT))
-            model.add(l.Dense(units=16, activation='relu', kernel_regularizer='l1_l2'))
+            model.add(l.Dense(units=128, activation='relu'))
             model.add(l.Dropout(PROB_DROPOUT))
 
-            # Final predictions - 2 classes probabilities (p(GOOD),p(BAD))
-            # model.add(l.Dense(units=2, activation='softmax'))
-            model.add(l.Dense(units=1, activation='softmax'))
+            model.add(l.Dense(units=1, activation='sigmoid'))
             print(model.summary())
-            #model.build((None,PREF_SIDE))
-            # model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
         return model
     
 def getFolderContent(path: str, filter: str) -> list :
