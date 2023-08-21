@@ -189,8 +189,7 @@ class ScriptDeepConsensus3D(XmippScript):
                 print("Path to input subtomograms does not exist. Exiting.")
                 sys.exit(-1)
             self.outputFile = str(self.getParam('--outputpath'))
-            self.posPath : str = self.getParam('--truevolpath')
-                
+            
     def run(self):
         '''
         Instantiates the data managing class object (DataMan) and then launches the appropriate
