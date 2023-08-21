@@ -67,8 +67,9 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--boxsize <int> : boxsize')
         self.addParamsLine('--samplingrate <double> : sampling rate')
         self.addParamsLine('--radius <double> : radius')
-        self.addParamsLine('--number <int> : number')
+        self.addParamsLine('--number <int> : number of pickers that need to reference a coordinate for it to be POS')
         self.addParamsLine('--constype <int> : type of consensus (0 for first, 1 for centroid)')
+        self.addParamsLine('[ --inputTruth <path> ] : Optional path to XMD file containing truthful coordinates. Added to POS automatically.')
 
     def run(self):
         # Aux class
@@ -81,6 +82,9 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.outputFile = self.getParam('--outputAll')
         self.outputFilePos = self.getParam('--outputPos')
         self.outputFileDoubt = self.getParam('--outputDoubt')
+        if self.checkParam('--inputTruth'):
+            self.inputTruthFile = self.getParam('--inputTruth')
+            self.hasPositive = True
         self.boxSize = self.getIntParam('--boxsize')
         self.samplingrate = self.getDoubleParam('--samplingrate')
         self.consensusRadius = float(self.getDoubleParam('--radius'))
@@ -118,9 +122,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         outMd = xmippLib.MetaData() # MD handle for all
         outMdDoubt = xmippLib.MetaData() # MD handle for unsure = all - {positive}
         outMdPos = xmippLib.MetaData() # MD handle for positive
-        
 
+        consize = 0
         for item in consensus:
+            consize += 1
             if len(item.pickers) >= self.consensusThreshold:
                 variableMdPointer = outMdPos
             else:
@@ -131,6 +136,8 @@ class ScriptCoordsConsensusTomo(XmippScript):
             variableMdPointer.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_id)
             variableMdPointer.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_id)
             variableMdPointer.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
+            variableMdPointer.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
             variableMdPointer.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
             
             # Write to general
@@ -138,7 +145,39 @@ class ScriptCoordsConsensusTomo(XmippScript):
             outMd.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_idg)
             outMd.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_idg)
             outMd.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_idg)
+            outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
+            outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
             outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
+
+        print("Writing %d items from consensus to disk" % consize)
+
+        # Manage if truth file was present
+        if self.hasPositive:
+            mdTrue = xmippLib.MetaData(self.inputFile)
+            truthsize = 0
+            for mdtrue_id in mdTrue:
+                coords = np.empty(3, dtype=int)
+                coords[0] = md.getValue(xmippLib.MDL_XCOOR, mdtrue_id)
+                coords[1] = md.getValue(xmippLib.MDL_YCOOR, mdtrue_id)
+                coords[2] = md.getValue(xmippLib.MDL_ZCOOR, mdtrue_id)
+            
+                # Always write to positive list
+                row_id = outMdPos.addObject()
+                outMdPos.setValue(xmippLib.MDL_XCOOR, int(coords[0]), row_id)
+                outMdPos.setValue(xmippLib.MDL_YCOOR, int(coords[1]), row_id)
+                outMdPos.setValue(xmippLib.MDL_ZCOOR, int(coords[2]), row_id)
+                outMdPos.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
+                outMdPos.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
+                outMdPos.setValue(xmippLib.MDL_COUNT, 0, row_id)
+                # Write to general
+                row_idg = outMd.addObject()
+                outMd.setValue(xmippLib.MDL_XCOOR, int(coords[0]), row_idg)
+                outMd.setValue(xmippLib.MDL_YCOOR, int(coords[1]), row_idg)
+                outMd.setValue(xmippLib.MDL_ZCOOR, int(coords[2]), row_idg)
+                outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
+                outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
+                outMd.setValue(xmippLib.MDL_COUNT, 0, row_idg)
+            print("Writing %d items from TRUTH to disk" % truthsize)
 
         # Write everything to XMD files
         outMd.write(self.outputFile) 
