@@ -121,7 +121,7 @@ class ScriptPickNoiseTomo(XmippScript):
         indizeak = ['xyz', 'tomo_id']
         self.allCoords = pd.DataFrame(index=range(total),columns=indizeak)
 
-        self.tomoReference = tomoMd.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, 0)
+        self.tomoReference = tomoMd.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, 1)
 
         for row_id in tomoMd:
             coords = np.empty(3, dtype=int)
