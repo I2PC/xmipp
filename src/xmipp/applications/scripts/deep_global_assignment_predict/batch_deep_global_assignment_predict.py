@@ -341,14 +341,12 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
-    classifiers = [[] for _ in range(numAngModels)]
     models = [[] for _ in range(numAngModels)]
     for index in range(numAngModels):
         path_to_model = fnAngModel + '/model' + str(index)
-        for i in [0, 1]:
-            AngModel = load_model(path_to_model + '/classifier' + str(i) + ".h5", compile=False)
-            AngModel.compile(loss="mean_squared_error", optimizer='adam')
-            classifiers[index].append(AngModel)
+        AngModel = load_model(path_to_model + '/classifier' + ".h5", compile=False)
+        AngModel.compile(loss="mean_squared_error", optimizer='adam')
+        models[index].append(AngModel)
         for i in [0, 1, 2, 3]:
             AngModel = load_model(path_to_model + '/modelAng' + str(i) + ".h5", compile=False)
             AngModel.compile(loss="mean_squared_error", optimizer='adam')
@@ -363,7 +361,7 @@ if __name__ == "__main__":
     mdExp = xmippLib.MetaData(fnXmdExp)
     rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
     # perform batch predictions for each model
-    numClasses = len(models[index])
+    numClasses = len(models[index]) - 1
     for i in range(numBatches):
         numPredictions = min(maxSize, numImgs-i*maxSize)
         print('predicting %', 100 * (maxSize * i + numPredictions) / numImgs, flush=True)
@@ -373,36 +371,19 @@ if __name__ == "__main__":
             Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
             Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
             k += 1
+        classes_predictions = np.zeros(shape=(numPredictions, numClasses))
 
-        deltas = np.zeros(shape=(numPredictions, 2))
-        for axis_index in range(2):
-            classes_predictions = np.zeros(shape=(numPredictions, 2))
-            for index in range(numAngModels):
-                classes_predictions += classifiers[index][axis_index].predict(Xexp)
-            deltas[:, axis_index] = np.argmax(classes_predictions, axis=1)
-
-        def get_classes(d):
-            if d[0] == 0:
-                if d[1] == 0:
-                    return 0
-                else:
-                    return 2
-            else:
-                if d[1] == 0:
-                    return 1
-                else:
-                    return 3
-        # Convert from deltas [[][]] to the 4 regression regions
-        classes = np.array(list(map(get_classes, deltas)))
+        for index in range(numAngModels):
+            classes_predictions += models[index][0].predict(Xexp)
+            classes = np.argmax(classes_predictions, axis=1)
 
         for index in range(numAngModels):
             for class_index in range(numClasses):
                 indices = np.where(classes == class_index)[0]
-                print('len indices', len(indices))
                 Xexp_class = Xexp[indices]
                 indices += i * maxSize
                 if len(indices) >= 1:
-                    predictions[indices, index, :] = models[index][class_index].predict(Xexp_class)
+                    predictions[indices, index, :] = models[index][class_index + 1].predict(Xexp_class)
 
     Y, distance = compute_ang_averages(predictions)
     produce_output(mdExp, Y, distance, fnImages)
