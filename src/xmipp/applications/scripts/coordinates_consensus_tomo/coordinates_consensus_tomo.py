@@ -72,7 +72,8 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--constype <int> : type of consensus (0 for first, 1 for centroid)')
         self.addParamsLine('[ --inputTruth <path> ] : Optional path to XMD file containing truthful coordinates. Added to POS automatically.')
         self.addParamsLine('[ --inputLie <path> ] : Optional path to XMD file containing lie(negative) coordinates. Added to NEG automatically.')
-        self.addParamsLine('[ --outputNeg <path> ] : output path for negative subtomos')
+        self.addParamsLine('[ --outputNeg <path> ] : Output path for negative subtomos')
+        self.addParamsLine('--startingId <int> : Initial number to use for MDL_PARTICLE_ID field in XMD.')
 
     def run(self):
         # Aux class
@@ -101,6 +102,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.consensusRadius = float(self.getDoubleParam('--radius'))
         self.consensusThreshold = int(self.getIntParam('--number'))
         self.consensusType = int(self.getIntParam('--constype'))
+        self.startingSubtomoId = int(self.getIntParam('--startingId'))
         self.distancethreshold = self.boxSize * self.consensusRadius
 
         # Initialize as empty list
@@ -109,6 +111,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         # Read from Xmipp MD
         print("Starting 3D coordinates consensus")
         md = xmippLib.MetaData(self.inputFile)
+
+        # Interested in the tomogram of origin for later
+        self.tomoReference = md.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, 1)
+
         # Do a check for each existing coordinate (cost n^2)
         for row_id in md:
 
@@ -134,10 +140,12 @@ class ScriptCoordsConsensusTomo(XmippScript):
         outMdDoubt = xmippLib.MetaData() # MD handle for unsure = all - {positive}
         outMdPos = xmippLib.MetaData() # MD handle for positive
 
+        partId = self.startingSubtomoId
         consize = 0
         for item in consensus:
             consize += 1
-            if len(item.pickers) >= self.consensusThreshold:
+            goodEnough = len(item.pickers) >= self.consensusThreshold
+            if goodEnough:
                 variableMdPointer = outMdPos
             else:
                 variableMdPointer = outMdDoubt
@@ -150,6 +158,8 @@ class ScriptCoordsConsensusTomo(XmippScript):
             variableMdPointer.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
             variableMdPointer.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
             variableMdPointer.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
             
             # Write to general
             row_idg = outMd.addObject()
@@ -159,6 +169,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
             outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
             outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
             outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
+            outMd.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_idg)
+            outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_idg)
+
+            partId += 1
 
         print("Writing %d consensus items to disk" % consize)
 
@@ -180,6 +194,8 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 outMdPos.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
                 outMdPos.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
                 outMdPos.setValue(xmippLib.MDL_COUNT, 0, row_id)
+                outMdPos.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_id)
+                outMdPos.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
                 # Write to general
                 row_idg = outMd.addObject()
                 outMd.setValue(xmippLib.MDL_XCOOR, int(coords[0]), row_idg)
@@ -188,7 +204,11 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
                 outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
                 outMd.setValue(xmippLib.MDL_COUNT, 0, row_idg)
+                outMd.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_idg)
+                outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_idg)
+
                 truthsize += 1
+                partId += 1
             print("Writing %d items from TRUTH to disk" % truthsize)
         
         if self.hasNegative:
