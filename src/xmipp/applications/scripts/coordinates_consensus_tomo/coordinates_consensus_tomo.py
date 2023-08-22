@@ -228,6 +228,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 outMdNeg.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
                 outMdNeg.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
                 outMdNeg.setValue(xmippLib.MDL_COUNT, 0, row_id)
+                outMdNeg.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
                 falsesize += 1
             print("Writing %d items from NOISE to disk" % falsesize)
         
