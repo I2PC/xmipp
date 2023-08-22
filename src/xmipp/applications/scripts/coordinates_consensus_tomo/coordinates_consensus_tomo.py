@@ -160,7 +160,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
             outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
             outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
 
-        print("Writing %d items from consensus to disk" % consize)
+        print("Writing %d consensus items to disk" % consize)
 
         # Manage if truth file was present
         if self.hasPositive:
