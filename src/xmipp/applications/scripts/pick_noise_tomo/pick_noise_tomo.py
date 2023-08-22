@@ -121,14 +121,15 @@ class ScriptPickNoiseTomo(XmippScript):
         indizeak = ['xyz', 'tomo_id']
         self.allCoords = pd.DataFrame(index=range(total),columns=indizeak)
 
+        self.tomoReference = tomoMd.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, 0)
+
         for row_id in tomoMd:
             coords = np.empty(3, dtype=int)
             coords[0] = tomoMd.getValue(xmippLib.MDL_XCOOR, row_id)
             coords[1] = tomoMd.getValue(xmippLib.MDL_YCOOR, row_id)
             coords[2] = tomoMd.getValue(xmippLib.MDL_ZCOOR, row_id)
-            tomoid = tomoMd.getValue(xmippLib.MDL_TOMOGRAM_VOLUME, row_id)
             self.allCoords.loc[row_id, 'xyz'] = coords
-            self.allCoords.loc[row_id, 'tomo_id'] = tomoid            
+            self.allCoords.loc[row_id, 'tomo_id'] = self.tomoReference      
 
         # Generate iterspace for MP
         self.limitPerThread = int(len(self.allCoords) * self.limit / self.nThreads)
@@ -164,6 +165,9 @@ class ScriptPickNoiseTomo(XmippScript):
             outMd.setValue(xmippLib.MDL_XCOOR, int(elem[0]), row_id)
             outMd.setValue(xmippLib.MDL_YCOOR, int(elem[1]), row_id)
             outMd.setValue(xmippLib.MDL_ZCOOR, int(elem[2]), row_id)
+            outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
+            outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingRate, row_id)
+            outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
         outMd.write(self.outputFn)
 
     def pickFun(self) -> list:
