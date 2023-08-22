@@ -129,23 +129,18 @@ class NetMan():
         else:
             # SCORING
             print("NetMan will score, load doubt")
-            self.doubtVolsFns = getFolderContent(doubtPath, ".mrc") + getFolderContent(posPath, ".mrc")
+            self.doubtVolsFns = [getFolderContent(doubtPath, ".mrc") + getFolderContent(posPath, ".mrc")]
             self.doubtVolsFnsConsum = self.doubtVolsFns.copy()
             self.nDoubt = len(self.doubtVolsFns)
-            self.mode = ""
+            self.mode = "score"
+            print("Loaded %d elements" % str(self.nDoubt))
         
     def gpusConfig(self):
         """
         This function allows TF only to see the GPUs wanted for the processing,
         thus avoiding the use of unwanted GPUs on multi-user systems.
         """
-
-        # Check GPUs in system
-        # availGPUs = tf.config.list_physical_devices('GPU')
-        # print("Found this many GPUs in the system: ", availGPUs)
-        # Compare with the asked amount
-        # assert len(self.wantedGPUs) <= len(availGPUs), "Not enough GPUs in the system for the asked amount"
-        # print("Trying to lock GPUs with id: ", self.wantedGPUs)
+        # Set up the GPU string in TF syntax
         self.gpustrings = ["GPU:%d" % id for id in self.wantedGPUs]
         print(self.gpustrings)
         # gpustring = self.gpustrings[0]
@@ -160,7 +155,7 @@ class NetMan():
         # Get the model structure
         self.net = self.getNetwork(dataset_size=nData, input_shape=(size,size,size,1))
 
-    def loadNetwork(self, modelFile, size):
+    def loadNetwork(self, modelFile):
         if not os.path.isfile(modelFile):
             raise ValueError("Model file %s not found", modelFile)
         else:
