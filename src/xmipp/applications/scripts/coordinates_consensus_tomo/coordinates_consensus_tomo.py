@@ -45,6 +45,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
     outputFile : str
     outputFileDoubt : str
     outputFilePos : str
+    outputFileNeg : str
     boxSize : int
     consensusRadius : float
     consensusThreshold : float
@@ -70,12 +71,18 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--number <int> : number of pickers that need to reference a coordinate for it to be POS')
         self.addParamsLine('--constype <int> : type of consensus (0 for first, 1 for centroid)')
         self.addParamsLine('[ --inputTruth <path> ] : Optional path to XMD file containing truthful coordinates. Added to POS automatically.')
+        self.addParamsLine('[ --inputLie <path> ] : Optional path to XMD file containing lie(negative) coordinates. Added to NEG automatically.')
+        self.addParamsLine('[ --outputNeg <path> ] : output path for negative subtomos')
 
     def run(self):
         # Aux class
         class Coordinate(NamedTuple):
             xyz : np.ndarray
             pickers : set
+
+        # Preassign to false optional input flags
+        self.hasPositive = False
+        self.hasNegative = False
 
         # Read args
         self.inputFile = self.getParam('--input')
@@ -85,6 +92,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
         if self.checkParam('--inputTruth'):
             self.inputTruthFile = self.getParam('--inputTruth')
             self.hasPositive = True
+        if self.checkParam('--inputLie'):
+            self.inputLieFile = self.getParam('--inputLie')
+            self.hasNegative = True
+            self.outputFileNeg = self.getParam('--outputNeg')
         self.boxSize = self.getIntParam('--boxsize')
         self.samplingrate = self.getDoubleParam('--samplingrate')
         self.consensusRadius = float(self.getDoubleParam('--radius'))
@@ -179,14 +190,38 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 outMd.setValue(xmippLib.MDL_COUNT, 0, row_idg)
                 truthsize += 1
             print("Writing %d items from TRUTH to disk" % truthsize)
+        
+        if self.hasNegative:
+            outMdNeg = xmippLib.MetaData(self.inputLieFile)
+            falsesize = 0
+            for mdfalse_id in mdTrue:
+                coords = np.empty(3, dtype=int)
+                coords[0] = md.getValue(xmippLib.MDL_XCOOR, mdfalse_id)
+                coords[1] = md.getValue(xmippLib.MDL_YCOOR, mdfalse_id)
+                coords[2] = md.getValue(xmippLib.MDL_ZCOOR, mdfalse_id)
+            
+                # Only write to negative list
+                row_id = outMdNeg.addObject()
+                outMdNeg.setValue(xmippLib.MDL_XCOOR, int(coords[0]), row_id)
+                outMdNeg.setValue(xmippLib.MDL_YCOOR, int(coords[1]), row_id)
+                outMdNeg.setValue(xmippLib.MDL_ZCOOR, int(coords[2]), row_id)
+                outMdNeg.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
+                outMdNeg.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
+                outMdNeg.setValue(xmippLib.MDL_COUNT, 0, row_id)
+                falsesize += 1
+            print("Writing %d items from NOISE to disk" % falsesize)
+        
 
         # Write everything to XMD files
         outMd.write(self.outputFile) 
         print("Written all subtomos to " + self.outputFile)   
         outMdDoubt.write(self.outputFileDoubt)
-        print("Written doubtful subtomos to " + self.outputFileDoubt)
+        print("Written doubtful subtomo coords to " + self.outputFileDoubt)
         outMdPos.write(self.outputFilePos)
-        print("Written positive subtomos to " + self.outputFilePos)
+        print("Written positive subtomo coords to " + self.outputFilePos)
+        if self.hasNegative:
+            outMdNeg.write(self.outputFileNeg)
+            print("Written negative subtomo coords to " + self.outputFileNeg)
 
 
 if __name__ == '__main__':
