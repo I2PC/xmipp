@@ -607,8 +607,14 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
         {
             continue;
         }
+
+        // Reading and storing type of atom
         kind = line.substr(0,4);
-        if (kind == "ATOM" || kind == "HETA")
+        atom.heta = false;
+        if (kind == "HETA")
+            atom.heta = true;
+
+        if (kind == "ATOM" || atom.heta)
         {
 			line.resize (80,' ');
 
@@ -618,7 +624,8 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = line.substr(0,6);
 			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom.serial);
-			atom.name = line.substr(12,4);
+			atom.name = line.substr(13,3);
+            atom.name.erase(atom.name.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
 			atom.altloc = line[16];
 			atom.resname = line.substr(17,3);
 			atom.chainid = line[21];
@@ -630,8 +637,9 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			atom.occupancy = textToFloat(line.substr(54,6));
 			atom.bfactor = textToFloat(line.substr(60,6));
 			atom.segment = line.substr(72,4);
-			atom.atomType = line.substr(76,2);
-			atom.charge = line.substr(78,2);
+			atom.atomType = line.substr(77,1);
+			atom.charge = line.substr(79,1);
+            atom.charge.erase(atom.charge.find_last_not_of(' ') + 1); // Converting into empty string if it is a space
 
 			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
