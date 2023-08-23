@@ -142,11 +142,13 @@ class ScriptCoordsConsensusTomo(XmippScript):
 
         partId = self.startingSubtomoId
         consize = 0
+        truthsize = 0
         for item in consensus:
             consize += 1
             goodEnough = len(item.pickers) >= self.consensusThreshold
             if goodEnough:
                 variableMdPointer = outMdPos
+                truthsize += 1
             else:
                 variableMdPointer = outMdDoubt
 
@@ -179,7 +181,6 @@ class ScriptCoordsConsensusTomo(XmippScript):
         # Manage if truth file was present
         if self.hasPositive:
             mdTrue = xmippLib.MetaData(self.inputTruthFile)
-            truthsize = 0
             for mdtrue_id in mdTrue:
                 coords = np.empty(3, dtype=int)
                 coords[0] = md.getValue(xmippLib.MDL_XCOOR, mdtrue_id)
@@ -214,7 +215,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         if self.hasNegative:
             outMdNeg = xmippLib.MetaData(self.inputLieFile)
             falsesize = 0
-            for mdfalse_id in mdTrue:
+            for mdfalse_id in outMdNeg:
                 coords = np.empty(3, dtype=int)
                 coords[0] = md.getValue(xmippLib.MDL_XCOOR, mdfalse_id)
                 coords[1] = md.getValue(xmippLib.MDL_YCOOR, mdfalse_id)
