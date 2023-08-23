@@ -219,6 +219,9 @@ public:
     /// 2-char charge with sign 2nd (e.g. 1- or 2+)
     std::string charge;
 
+    // Is this an heteroatom?
+    bool heta;
+
     /* PDB Specific values */
     /// segment name
     std::string segment;
@@ -244,9 +247,6 @@ public:
 
     // PDB model number
     int pdbNum;
-
-    // Is this an heteroatom?
-    bool heta;
 };
 
 /** Phantom description using atoms. */
