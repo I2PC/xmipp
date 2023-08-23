@@ -244,6 +244,9 @@ public:
 
     // PDB model number
     int pdbNum;
+
+    // Is this an heteroatom?
+    bool heta;
 };
 
 /** Phantom description using atoms. */
