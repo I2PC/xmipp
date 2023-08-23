@@ -76,6 +76,7 @@ class ScriptPickNoiseTomo(XmippScript):
         self.addParamsLine('[ --limit <limit=0.7> ] : Amount (in fraction of total input coords) of pickings to do. Default=0.7')
         self.addParamsLine('[ --threads <int=4> ] : Number of threads to parallelize the search. Default=4')
         self.addParamsLine('[ --static ] : flag to stop the algorithm from reducing the radius')
+        self.addParamsLine('--nrPositive <int> : amount of positive inputs found in the XMD, for the ')
 
         self.addExampleLine('xmipp_pick_noise_tomo --input tomo05_coords.xmd --boxsize 200 --samplingrate 2.17')
 
@@ -92,6 +93,7 @@ class ScriptPickNoiseTomo(XmippScript):
         self.tomoSize[0] = self.getIntParam('--size', 0)
         self.tomoSize[1] = self.getIntParam('--size', 1)
         self.tomoSize[2] = self.getIntParam('--size', 2)
+        self.nrPositive = self.getIntParam('--nrPositive')
         print ("Picking noise for %d X %d X %d tomogram" %(self.tomoSize[0],self.tomoSize[1],self.tomoSize[2]))
         
         # Default limit if not specified
@@ -188,7 +190,7 @@ class ScriptPickNoiseTomo(XmippScript):
                 # print("Found OK candidate: " + str(candidate))
                 res.append(candidate)
             
-            if len(res) >= self.limitPerThread:
+            if (len(res) >= self.limitPerThread) or (len(res) >= self.nrPositive):
                 # The goal is achieved, no more needed
                 break
 
