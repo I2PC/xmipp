@@ -72,7 +72,7 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
     PDBRichPhantom pdbFile;
 
     // Read centered pdb
-    pdbFile.read(fn_pdb.c_str(), true);
+    pdbFile.read(fn_pdb.c_str());
 
     // For each atom, store necessary info if type matches
     for (auto& atom : pdbFile.atomList) {
@@ -251,26 +251,22 @@ void computePDBgeometry(const std::string &fnPDB,
     PDBRichPhantom pdbFile;
 
     // Read centered pdb
-    pdbFile.read(fnPDB.c_str(), true);
+    pdbFile.read(fnPDB);
 
     // For each atom, correct necessary info
     bool useBFactor = intensityColumn=="Bfactor";
     for (auto& atom : pdbFile.atomList) {
         // Update center of mass and limits
-        if (atom.x < XX(limit0))
-            XX(limit0) = atom.x;
-        else if (atom.x > XX(limitF))
-            XX(limitF) = atom.x;
-        if (atom.y < YY(limit0))
-            YY(limit0) = atom.y;
-        else if (atom.y > YY(limitF))
-            YY(limitF) = atom.y;
-        if (atom.z < ZZ(limit0))
-            ZZ(limit0) = atom.z;
-        else if (atom.z > ZZ(limitF))
-            ZZ(limitF) = atom.z;
+        XX(limit0) = std::min(XX(limit0), atom.x);
+        YY(limit0) = std::min(YY(limit0), atom.y);
+        ZZ(limit0) = std::min(ZZ(limit0), atom.z);
+
+        XX(limitF) = std::max(XX(limitF), atom.x);
+        YY(limitF) = std::max(YY(limitF), atom.y);
+        ZZ(limitF) = std::max(ZZ(limitF), atom.z);
+
         double weight;
-        if (atom.atomType == "EN")
+        if (atom.name == "EN")
         {
             if (useBFactor)
                 weight = atom.bfactor;
@@ -281,7 +277,7 @@ void computePDBgeometry(const std::string &fnPDB,
         {
             if (atom.heta)
                 continue;
-            weight = (double) atomCharge(atom.atomType);
+            weight = (double) atomCharge(atom.name);
         }
         total_mass += weight;
         XX(centerOfMass) += weight * atom.x;
