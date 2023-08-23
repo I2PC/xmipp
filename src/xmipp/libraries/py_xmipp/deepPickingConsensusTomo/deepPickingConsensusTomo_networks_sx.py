@@ -31,6 +31,8 @@
 # **************************************************************************
 
 import tensorflow as tf
+tf.autograph.set_verbosity(3)
+tf.get_logger().setLevel('ERROR')
 import numpy as np
 
 from tensorflow.python.client import device_lib
@@ -43,6 +45,7 @@ from keras.models import Sequential
 # import graphviz, pydot
 
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import xmippLib
 import random
 
@@ -98,6 +101,7 @@ class NetMan():
 
         self.checkPointsName = os.path.join(rootPath,"tfchkpoint_.h5")
 
+
         # Dataset preparation
         if self.train:
             # TRAINING
@@ -141,7 +145,7 @@ class NetMan():
             for _ in self.combinedMD:
                 self.nDoubt += 1
 
-            self.globalDoubtPointer = 0
+            self.globalDoubtPointer = 1
             
             print("Will score %d elements" % self.nDoubt)
         
@@ -228,7 +232,7 @@ class NetMan():
             
             last_val_acc = history.history['val_accuracy'][-1]
             print("Finished training with last validation accuracy %s" % str(last_val_acc))
-            self.net.save(self.nnPath + NN_NAME)
+            self.net.save(self.nnPath + "/" + NN_NAME)
 
     def data_generation_train(self):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
@@ -284,18 +288,20 @@ class NetMan():
 
         yield X, Y
 
-    def data_generation_score(self):
-        X = np.empty((1, self.boxSize, self.boxSize, self.boxSize, 1))
+    def data_generation_score(self, bSize):
+        X = np.empty((bSize, self.boxSize, self.boxSize, self.boxSize, 1))
 
         # Get the subtomogram filename from the XMD
-        filename = self.combinedMD.getValue(xmippLib.MDL_IMAGE, self.globalDoubtPointer)
-        self.globalDoubtPointer += 1
+        for i in range(bSize):
+            filename = self.combinedMD.getValue(xmippLib.MDL_IMAGE, self.globalDoubtPointer)
+            self.globalDoubtPointer += 1
+           
+            image = xmippLib.Image()
+            image.read(filename)
+            xmippIm : np.ndarray = image.getData()
+            X[i] = np.expand_dims(xmippIm, -1)
+        return X
 
-        image = xmippLib.Image()
-        image.read(filename)
-        xmippIm : np.ndarray = image.getData()
-        X = np.expand_dims(xmippIm, -1)
-        yield X
 
     def _do_180_z(self, input : np.ndarray) -> np.ndarray:
         return np.rot90(input, k=2, axes=(0,1))
@@ -310,22 +316,41 @@ class NetMan():
         dataset : tf.data.Dataset
         opt = tf.data.Options()
         opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-        dataset = tf.data.Dataset.from_generator(self.data_generation_score,
-                                                 output_types=(tf.float32),
-                                                 output_shapes=((self.boxSize, self.boxSize, self.boxSize,1)))
-        dataset = dataset.with_options(opt)
-        self.predicts = self.net.predict(dataset)
+        # self.scoreBatchSize = calculateBatchSizeScore(self.nDoubt, self.batchSize)
+        # dataset = tf.data.Dataset.from_generator(self.data_generation_score,
+        #                                          output_types=(tf.float32),
+        #                                          output_shapes=((self.boxSize, self.boxSize, self.boxSize,1)))
+        # dataset = dataset.with_options(opt)
+        # dataset = dataset.batch(self.batchSize)
+        
+        howManyBatches = int(self.nDoubt/self.batchSize)
+        howManyLeft = self.nDoubt - (howManyBatches * self.batchSize)
+        # First do by batches for opt
+        # print("nDoubts: %d, howManyBatches: %d, En esos batches: %d, ")
+        
+        self.predicts = []
+        for _ in range(howManyBatches):
+            batch = self.data_generation_score(self.batchSize)
+            vaina : np.ndarray = self.net.predict_on_batch(batch)
+            self.predicts += vaina.flatten().tolist()
+        
+        if howManyLeft > 0:
+            batch = self.data_generation_score(howManyLeft)
+            vaina : np.ndarray = self.net.predict_on_batch(batch)
+            self.predicts += vaina.flatten().tolist()
+        
+        # self.predicts = self.net.predict(dataset, verbose = 1)#, batch_size=self.batchSize)
         print("NN predictions finished")
-        print(self.predicts.shape)
         print(self.predicts)
 
     def writeScoresXMD(self, outFn):
         """
         """
         outMd = xmippLib.MetaData(self.doubtFile)
-        for i in range (self.globalDoubtPointer):
-            outMd.setValue(xmippLib.MDL_ZSCORE, float(self.predicts[i]), i)
+        for i in range (self.globalDoubtPointer-1):
+            outMd.setValue(xmippLib.MDL_ZSCORE, float(self.predicts[i]), i+1)
         outMd.write(outFn)
+        print("Written scored results to " + outFn)
 
     def getNetwork(self, dataset_size: int, input_shape: tuple):
         """
@@ -354,22 +379,17 @@ class NetMan():
             #     factor = round(srcDim / destDim)
             #     model.add(l.AveragePooling3D(pool_size=(factor,)*3))
 
-            # # Convolution layer #1
-            # model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu'))
-            # model.add(l.MaxPool3D(pool_size=2))
-            # model.add(l.BatchNormalization())
-
-            # Convolution layer #2
+            # Convolution layer #1
             model.add(l.Conv3D(filters=64, kernel_size=3, activation='relu'))
             model.add(l.MaxPool3D(pool_size=2))
             model.add(l.BatchNormalization())
 
-            # Convolution layer #3
+            # Convolution layer #2
             model.add(l.Conv3D(filters=128, kernel_size=3, activation='relu'))
             model.add(l.MaxPool3D(pool_size=2))
             model.add(l.BatchNormalization())
 
-            # Convolution layer #4
+            # Convolution layer #3
             model.add(l.Conv3D(filters=256, kernel_size=3, activation='relu'))
             model.add(l.MaxPool3D(pool_size=2))
             model.add(l.BatchNormalization())
@@ -399,4 +419,22 @@ def getStepsInEpoch(nEpochs : int) -> int:
         res = 150
     else:
         res = 100
+    return res
+
+def calculateBatchSizeScore(totalElems : int, divNum : int) -> int:
+    print ("Original batch size... %d." % divNum)
+    if totalElems % divNum == 0:
+        # Hubo suerte jaja
+        res = divNum
+    else:
+        # Look for it! Bruteforce...
+        dif = totalElems % divNum
+        if dif > 100:
+            # Too many for a batch, memory might collapse!
+            res = divNum - dif
+        else:
+            # OK
+            res = divNum + dif
+
+    print ("After calculating, batch size... %d." % res)
     return res

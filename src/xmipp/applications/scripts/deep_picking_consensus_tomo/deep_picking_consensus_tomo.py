@@ -146,10 +146,8 @@ class ScriptDeepConsensus3D(XmippScript):
             self.negPath : str = self.getParam('--falsevolpath')
             self.doubtPath = None
             # Learning rate
-            if self.checkParam('-l'):
-                self.learningRate = float(self.getDoubleParam('-l'))
-            else:
-                self.learningRate = 1.0e-4
+            self.learningRate = float(self.getDoubleParam('-l'))
+            
             # Epochs for training
             if self.checkParam('-e'):
                 self.nEpochs = int(self.getIntParam('-e'))
@@ -180,6 +178,11 @@ class ScriptDeepConsensus3D(XmippScript):
         elif self.execMode.strip() in NN_SCOREWORDS:
             print("Execution mode is: SCORING", flush=True)
             self.execMode = "score"
+
+            if self.checkParam('-l'):
+                self.learningRate = float(self.getDoubleParam('-l'))
+            else:
+                self.learningRate = 1.0e-5
 
             # Input/Output
             self.doubtPath = str(self.getParam('--inputvolpath'))
