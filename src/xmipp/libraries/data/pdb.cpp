@@ -253,6 +253,8 @@ void computePDBgeometry(const std::string &fnPDB,
     // Read centered pdb
     pdbFile.read(fnPDB);
 
+    printf("FILE: %s  ----  SIZE: %ld\n", fnPDB.c_str(), pdbFile.getNumberOfAtoms());
+
     // For each atom, correct necessary info
     bool useBFactor = intensityColumn=="Bfactor";
     for (auto& atom : pdbFile.atomList) {

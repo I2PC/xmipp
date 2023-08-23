@@ -260,22 +260,18 @@ void ProgPdbConverter::show()
 /* Compute protein geometry ------------------------------------------------ */
 void ProgPdbConverter::computeProteinGeometry()
 {
-    printf("ENTRA: computeProteinGeometry\n");
     Matrix1D<double> limit0(3), limitF(3);
-    printf("BEFORE: computeProteinGeometry\n");
     computePDBgeometry(fn_pdb, centerOfMass, limit0, limitF, intensityColumn);
-    printf("AFTER: computeProteinGeometry\n");
     if (doCenter)
     {
         limit0-=centerOfMass;
         limitF-=centerOfMass;
     }
-    printf("2: computeProteinGeometry\n");
     limit.resize(3);
     XX(limit) = XMIPP_MAX(ABS(XX(limit0)), ABS(XX(limitF)));
     YY(limit) = XMIPP_MAX(ABS(YY(limit0)), ABS(YY(limitF)));
     ZZ(limit) = XMIPP_MAX(ABS(ZZ(limit0)), ABS(ZZ(limitF)));
-    printf("3: computeProteinGeometry\n");
+    printf("3: computeProteinGeometry -- XX(limit) : %lf -- YY(limit) : %lf -- ZZ(limit) : %lf\n", XX(limit), YY(limit), ZZ(limit));
 
     // Update output size if necessary
     if (output_dim_x == -1)
@@ -303,7 +299,6 @@ void ProgPdbConverter::computeProteinGeometry()
     		output_dim_z = output_dim_x;
     	}
     }
-    printf("SALE: computeProteinGeometry\n");
 }
 
 /* Create protein at a high sampling rate ---------------------------------- */
@@ -461,33 +456,24 @@ void ProgPdbConverter::blobProperties() const
 /* Create protein using scattering profiles -------------------------------- */
 void ProgPdbConverter::createProteinUsingScatteringProfiles()
 {
-    printf("ENTRA: createProteinUsingScatteringProfiles\n");
     printf("PREVIOUS:\noutput_dim_x: %d\noutput_dim_y: %d\noutput_dim_z: %d\n", output_dim_x, output_dim_y, output_dim_z);
     // Create an empty volume to hold the protein
     Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
-    printf("0: createProteinUsingScatteringProfiles\n");
     if (!origGiven) {
-        printf("0.5: createProteinUsingScatteringProfiles\n");
     	Vlow().setXmippOrigin();
-        printf("0.75: createProteinUsingScatteringProfiles\n");
     }
     else
     {
-        printf("0.5: createProteinUsingScatteringProfiles\n");
 		STARTINGX(Vlow()) = orig_x;
 		STARTINGY(Vlow()) = orig_y;
 		STARTINGZ(Vlow()) = orig_z;
-        printf("0.75: createProteinUsingScatteringProfiles\n");
     }
-    printf("1: createProteinUsingScatteringProfiles\n");
 
     //Save centered PDB
     PDBRichPhantom centered_pdb;
 
     // Read centered pdb
     centered_pdb.read(fn_pdb.c_str(), true);
-
-    printf("2: createProteinUsingScatteringProfiles\n");
 
     Matrix1D<double> r(3);
     bool useBFactor = intensityColumn=="Bfactor";
@@ -549,20 +535,17 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         		std::cerr << "Ignoring atom of type *" << atom.atomType << "*" << std::endl;
         }
     }
-    printf("4: createProteinUsingScatteringProfiles\n");
 
     // Save centered PDB
     if (doCenter && !fn_outPDB.empty())
     {
         centered_pdb.write(fn_outPDB);
     }
-    printf("SALE: createProteinUsingScatteringProfiles\n");
 }
 
 /* Run --------------------------------------------------------------------- */
 void ProgPdbConverter::run()
 {
-    printf("ENTRA: run\n");
     produceSideInfo();
     show();
     computeProteinGeometry();
@@ -585,5 +568,4 @@ void ProgPdbConverter::run()
     }
     if (fn_out!="")
         Vlow.write(fn_out + ".vol");
-    printf("SALE: run\n");
 }
