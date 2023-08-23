@@ -331,85 +331,39 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
     	<< std::endl;
     std::cout << "Size: "; Vhigh().printShape(); std::cout << std::endl;
 
-    // Fill the volume with the different atoms
-    //std::ifstream fh_pdb;
-
-    //Save centered PDB
+    // Declare centered PDB
     PDBRichPhantom centered_pdb;
 
-    // Read pdb
+    // Read centered pdb
     centered_pdb.read(fn_pdb.c_str(), true);
 
-    /*
-    fh_pdb.open(fn_pdb.c_str());
-    if (!fh_pdb)
-        REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
-
-    // Process all lines of the file
-    int col=1;
-    if (intensityColumn=="Bfactor")
-        col=2;
-    while (!fh_pdb.eof())
-    {
-        // Read an ATOM line
-        std::string line;
-        getline(fh_pdb, line);
-        if (line == "")
-            continue;
-        std::string kind = line.substr(0,4);
-        if (kind != "ATOM" && kind !="HETA")
-            continue;
-
-        // Save centered PDB
-        RichAtom atom_i;
-
-        // Extract atom type and position
-        // Typical line:
-        // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        std::string atom_type = line.substr(13,2);
-        double x = textToFloat(line.substr(30,8));
-        double y = textToFloat(line.substr(38,8));
-        double z = textToFloat(line.substr(46,8));
-
-        // Correct position
-        Matrix1D<double> r(3);
-        VECTOR_R3(r, x, y, z);
-        if (doCenter)
-        {
-            atom_i.record = line.substr(0,6);
-            hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom_i.serial);
-            r -= centerOfMass;
-            atom_i.x = x - XX(centerOfMass);
-            atom_i.y = y - YY(centerOfMass);
-            atom_i.z = z - ZZ(centerOfMass);
-            atom_i.name=line.substr(12,4);
-			atom_i.atomType = line[13];
-			atom_i.altloc=line[16];
-			atom_i.resname=line.substr(17,3);
-			atom_i.chainid=line[21];
-			atom_i.resseq = textToInteger(line.substr(22,4));
-			atom_i.icode = line[26];
-            atom_i.occupancy = textToFloat(line.substr(54,6));
-			atom_i.bfactor = textToFloat(line.substr(60,6));
-            centered_pdb.addAtom(atom_i);
+    Matrix1D<double> r(3);
+    bool useBFactor = intensityColumn=="Bfactor";
+    // Iterate the list of atoms modifying data if needed
+    for (auto& atom : centered_pdb.atomList) {
+        if (doCenter) {
+            atom.x -= XX(centerOfMass);
+            atom.y -= YY(centerOfMass);
+            atom.z -= ZZ(centerOfMass);
         }
+        VECTOR_R3(r, atom.x, atom.y, atom.z);
         r /= highTs;
 
         // Characterize atom
         double weight, radius;
         if (!useFixedGaussian)
         {
-            if (noHet && kind=="HETA")
+            if (noHet && atom.heta)
                 continue;
-            atomBlobDescription(atom_type, weight, radius);
+            atomBlobDescription(atom.atomType, weight, radius);
         }
         else
         {
             radius=4.5*sigmaGaussian;
-            if (col==1)
-                weight=textToFloat(line.substr(54,6));
+            if (useBFactor)
+                weight=atom.bfactor;
             else
-                weight=textToFloat(line.substr(60,6));
+                weight=atom.occupancy;
         }
         blob.radius = radius;
         if (usePoorGaussian)
@@ -444,11 +398,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
                                           GaussianNormalization;
                 }
     }
-
-    // Close file
-    fh_pdb.close();
-    */
-
+    
     // Save centered PDB
     if (doCenter && !fn_outPDB.empty())
     {
@@ -516,78 +466,32 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
 		STARTINGZ(Vlow()) = orig_z;
     }
 
-    // Fill the volume with the different atoms
-    std::ifstream fh_pdb;
-    fh_pdb.open(fn_pdb.c_str());
-    if (!fh_pdb)
-        REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
-
     //Save centered PDB
     PDBRichPhantom centered_pdb;
 
-    // Process all lines of the file
-    std::string line, kind, atom_type;
-    double iTs=1.0/Ts;
-    Matrix1D<double> r(3), rdiff(3);
-    while (!fh_pdb.eof())
-    {
-        // Read an ATOM line
-        getline(fh_pdb, line);
-        if (line == "")
+    // Read centered pdb
+    centered_pdb.read(fn_pdb.c_str(), true);
+
+    Matrix1D<double> r(3);
+    bool useBFactor = intensityColumn=="Bfactor";
+    // Iterate the list of atoms modifying data if needed
+    for (auto& atom : centered_pdb.atomList) {
+        // Check if heteroatoms are allowed and current atom is one of them
+        if (noHet && atom.heta)
             continue;
-        kind =line.substr(0,4);
 
-        if (noHet)
-        {
-            if (kind != "ATOM")
-                continue;
+        if (doCenter) {
+            atom.x -= XX(centerOfMass);
+            atom.y -= YY(centerOfMass);
+            atom.z -= ZZ(centerOfMass);
         }
-        else
-        {
-            if (kind != "ATOM" and kind != "HETA")
-                continue;
-        }
-
-        // Extract atom type and position
-        // Typical line:
-        // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-
-        atom_type = line.substr(13,2);
-        char atom_type0=atom_type[0];
-        double x = textToFloat(line.substr(30,8));
-        double y = textToFloat(line.substr(38,8));
-        double z = textToFloat(line.substr(46,8));
-
-        // Save centered PDB
-        RichAtom atom_i;
-
-        // Correct position
-        VECTOR_R3(r, x, y, z);
-        if (doCenter)
-        {
-            atom_i.record = line.substr(0,6);
-            hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom_i.serial);
-            r -= centerOfMass;
-            atom_i.x = x-XX(centerOfMass);
-            atom_i.y = y-YY(centerOfMass);
-            atom_i.z = z-ZZ(centerOfMass);
-            atom_i.name=line.substr(12,4);
-			atom_i.atomType = line[13];
-			atom_i.altloc=line[16];
-			atom_i.resname=line.substr(17,3);
-			atom_i.chainid=line[21];
-			atom_i.resseq = textToInteger(line.substr(22,4));
-			atom_i.icode = line[26];
-            atom_i.occupancy = textToFloat(line.substr(54,6));
-			atom_i.bfactor = textToFloat(line.substr(60,6));
-            centered_pdb.addAtom(atom_i);
-        }
-        r *= iTs;
+        VECTOR_R3(r, atom.x, atom.y, atom.z);
+        r /= Ts;
 
         // Characterize atom
         try
         {
-            double radius=atomProfiles.atomRadius(atom_type[0]);
+            double radius=atomProfiles.atomRadius(atom.atomType[0]);
             double radius2=radius*radius;
 
             // Find the part of the volume that must be updated
@@ -616,7 +520,7 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
                         {
                             double rdiffModule=sqrt(rdiffModule2);
                             A3D_ELEM(mVlow,k, i, j) += atomProfiles.volumeAtDistance(
-                                                 atom_type0,rdiffModule);
+                                                 atom.atomType[0],rdiffModule);
                         }
                     }
                 }
@@ -625,12 +529,9 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         catch (XmippError XE)
         {
         	if (verbose)
-        		std::cerr << "Ignoring atom of type *" << atom_type << "*" << std::endl;
+        		std::cerr << "Ignoring atom of type *" << atom.atomType << "*" << std::endl;
         }
     }
-
-    // Close file
-    fh_pdb.close();
 
     // Save centered PDB
     if (doCenter && !fn_outPDB.empty())
