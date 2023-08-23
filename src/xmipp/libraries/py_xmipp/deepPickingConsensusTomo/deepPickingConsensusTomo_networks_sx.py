@@ -81,6 +81,8 @@ class NetMan():
         self.boxSize = boxSize
         self.doAugment = doAugment
         self.gpustrings : list
+        self.globalDoubtPointer : int
+        self.predicts = None
 
         checkpointsName = os.path.join(rootPath, "checkpoint")
         self.checkpointsNameTemplate = os.path.join(checkpointsName, netName)
@@ -128,12 +130,20 @@ class NetMan():
 
         else:
             # SCORING
-            print("NetMan will score, load doubt")
-            self.doubtVolsFns = [getFolderContent(doubtPath, ".mrc") + getFolderContent(posPath, ".mrc")]
-            self.doubtVolsFnsConsum = self.doubtVolsFns.copy()
-            self.nDoubt = len(self.doubtVolsFns)
+            print("NetMan will score, loading combined input dataset XMD...")
+            # self.doubtVolsFns = [getFolderContent(doubtPath, ".mrc") + getFolderContent(posPath, ".mrc")]
+            # self.doubtVolsFnsConsum = self.doubtVolsFns.copy()
+            # self.nDoubt = len(self.doubtVolsFns)
+            self.doubtFile = doubtPath
             self.mode = "score"
-            print("Loaded %d elements" % str(self.nDoubt))
+            self.combinedMD = xmippLib.MetaData(doubtPath)
+            self.nDoubt = 0
+            for _ in self.combinedMD:
+                self.nDoubt += 1
+
+            self.globalDoubtPointer = 0
+            
+            print("Will score %d elements" % self.nDoubt)
         
     def gpusConfig(self):
         """
@@ -275,16 +285,16 @@ class NetMan():
         yield X, Y
 
     def data_generation_score(self):
-        X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
+        X = np.empty((1, self.boxSize, self.boxSize, self.boxSize, 1))
+
+        # Get the subtomogram filename from the XMD
+        filename = self.combinedMD.getValue(xmippLib.MDL_IMAGE, self.globalDoubtPointer)
+        self.globalDoubtPointer += 1
 
         image = xmippLib.Image()
-
-        for i in range(self.batchSize):
-            filename = self.doubtVolsFnsConsum.pop()
-
-            image.read(filename)
-            xmippIm : np.ndarray = image.getData()
-            X[i] = np.expand_dims(xmippIm, -1)
+        image.read(filename)
+        xmippIm : np.ndarray = image.getData()
+        X = np.expand_dims(xmippIm, -1)
         yield X
 
     def _do_180_z(self, input : np.ndarray) -> np.ndarray:
@@ -301,12 +311,21 @@ class NetMan():
         opt = tf.data.Options()
         opt.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
         dataset = tf.data.Dataset.from_generator(self.data_generation_score,
-                                                 output_types=(tf.float32, tf.int32),
-                                                 output_shapes=((self.batchSize, self.boxSize, self.boxSize, self.boxSize,1),(self.batchSize,1)))
+                                                 output_types=(tf.float32),
+                                                 output_shapes=((self.boxSize, self.boxSize, self.boxSize,1)))
         dataset = dataset.with_options(opt)
-        predicts = self.net.predict(dataset, use_multiprocessing=self.nThreads)
+        self.predicts = self.net.predict(dataset)
         print("NN predictions finished")
-        return predicts
+        print(self.predicts.shape)
+        print(self.predicts)
+
+    def writeScoresXMD(self, outFn):
+        """
+        """
+        outMd = xmippLib.MetaData(self.doubtFile)
+        for i in range (self.globalDoubtPointer):
+            outMd.setValue(xmippLib.MDL_ZSCORE, float(self.predicts[i]), i)
+        outMd.write(outFn)
 
     def getNetwork(self, dataset_size: int, input_shape: tuple):
         """

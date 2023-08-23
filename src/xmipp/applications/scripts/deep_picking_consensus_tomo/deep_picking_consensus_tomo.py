@@ -204,8 +204,7 @@ class ScriptDeepConsensus3D(XmippScript):
         if self.execMode == "train":
             self.doTrain()
         elif self.execMode == "score":
-            res = self.doScore()
-            self.writeResults(res, self.outputFile)
+            self.doScore()
         sys.exit(0)
 
     def doTrain(self):
@@ -235,8 +234,8 @@ class ScriptDeepConsensus3D(XmippScript):
                         doubtPath = self.doubtPath, netName = self.netName)
         netMan.loadNetwork(modelFile = self.netPointer)
         netMan.compileNetwork(pLoss='binary_crossentropy', pOptimizer=adam_v2.Adam(learning_rate=self.learningRate), pMetrics=['accuracy'])
-        rawResults = netMan.predictNetwork()
-        return rawResults
+        netMan.predictNetwork()
+        netMan.writeScoresXMD(self.outputFile)
     
     def writeResults(self, results, file):
         # Write results vector in numpy format TXT
