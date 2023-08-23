@@ -94,7 +94,6 @@ class ScriptPickNoiseTomo(XmippScript):
         self.tomoSize[1] = self.getIntParam('--size', 1)
         self.tomoSize[2] = self.getIntParam('--size', 2)
         self.nrPositive = self.getIntParam('--nrPositive')
-        print ("Picking noise for %d X %d X %d tomogram" %(self.tomoSize[0],self.tomoSize[1],self.tomoSize[2]))
         
         # Default limit if not specified
         if self.checkParam('--limit'):
@@ -135,9 +134,11 @@ class ScriptPickNoiseTomo(XmippScript):
 
         # Generate iterspace for MP
         self.limitPerThread = int(len(self.allCoords) * self.limit / self.nThreads)
+        self.nrPositivePerThread = int(self.nrPositive/ self.nThreads)
 
         # Launch the search in parallel
-        print("Launching search for %d coordinates on %d cores" % (self.limitPerThread*self.nThreads, self.nThreads))
+        # print("Launching search for %d coordinates on %d cores" % (self.limitPerThread*self.nThreads, self.nThreads))
+        print("Launching search for coordinates. Balance: %d, Max: %d." % (self.nrPositive, self.limitPerThread*self.nThreads))
         
         # Generate a queue to queue the output data from the worker threads
         # queue = mp.Queue()
@@ -190,7 +191,7 @@ class ScriptPickNoiseTomo(XmippScript):
                 # print("Found OK candidate: " + str(candidate))
                 res.append(candidate)
             
-            if (len(res) >= self.limitPerThread) or (len(res) >= self.nrPositive):
+            if (len(res) >= self.limitPerThread) or (len(res) >= self.nrPositivePerThread):
                 # The goal is achieved, no more needed
                 break
 
