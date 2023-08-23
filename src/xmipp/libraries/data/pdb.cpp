@@ -76,22 +76,24 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 
     // For each atom, store necessary info
     for (auto& atom : pdbFile.atomList) {
-        numberOfAtoms++;
+        if (atom.name == typeOfAtom) {
+            numberOfAtoms++;
 
-        // Storing coordinates
-        at_pos.x.push_back(atom.x);
-        at_pos.y.push_back(atom.y);
-        at_pos.z.push_back(atom.z);
-        at_pos.chain.push_back(std::string(1, atom.chainid));
+            // Storing coordinates
+            at_pos.x.push_back(atom.x);
+            at_pos.y.push_back(atom.y);
+            at_pos.z.push_back(atom.z);
+            at_pos.chain.push_back(std::string(1, atom.chainid));
 
-        // Residue Number
-        at_pos.residue.push_back(atom.resseq);
+            // Residue Number
+            at_pos.residue.push_back(atom.resseq);
 
-        // Getting the bfactor = 8pi^2*u
-        at_pos.b.push_back(atom.bfactor); //sqrt(atom.bfactor/(8*PI*PI));
+            // Getting the bfactor = 8pi^2*u
+            at_pos.b.push_back(atom.bfactor); //sqrt(atom.bfactor/(8*PI*PI));
 
-        // Covalent radius of the atom
-        at_pos.atomCovRad.push_back(atomCovalentRadius(atom.name));
+            // Covalent radius of the atom
+            at_pos.atomCovRad.push_back(atomCovalentRadius(atom.name));
+        }
     }
 }
 
