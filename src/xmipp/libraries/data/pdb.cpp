@@ -74,7 +74,7 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
     // Read centered pdb
     pdbFile.read(fn_pdb.c_str(), true);
 
-    // For each atom, store necessary info
+    // For each atom, store necessary info if type matches
     for (auto& atom : pdbFile.atomList) {
         if (atom.name == typeOfAtom) {
             numberOfAtoms++;
