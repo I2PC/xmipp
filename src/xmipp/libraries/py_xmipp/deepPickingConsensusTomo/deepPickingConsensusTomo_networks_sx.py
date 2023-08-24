@@ -341,8 +341,7 @@ class NetMan():
         
         # self.predicts = self.net.predict(dataset, verbose = 1)#, batch_size=self.batchSize)
         print("NN predictions finished")
-        print(self.predicts)
-
+        
     def writeScoresXMD(self, outFn):
         """
         """
