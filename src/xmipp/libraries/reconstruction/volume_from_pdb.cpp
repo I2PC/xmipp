@@ -335,7 +335,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
     PDBRichPhantom centered_pdb;
 
     // Read centered pdb
-    centered_pdb.read(fn_pdb.c_str(), true);
+    centered_pdb.read(fn_pdb.c_str());
 
     Matrix1D<double> r(3);
     bool useBFactor = intensityColumn=="Bfactor";
@@ -471,7 +471,7 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     PDBRichPhantom centered_pdb;
 
     // Read centered pdb
-    centered_pdb.read(fn_pdb.c_str(), true);
+    centered_pdb.read(fn_pdb.c_str());
 
     Matrix1D<double> r(3);
     bool useBFactor = intensityColumn=="Bfactor";
