@@ -249,22 +249,3 @@ class ScriptCoordsConsensusTomo(XmippScript):
 if __name__ == '__main__':
     exitCode = ScriptCoordsConsensusTomo().tryRun()
     sys.exit(exitCode)
-    
-    
-
-                    
-                    
-
-            
-
-
-            
-
-
-
-
-        
-
-
-
-
