@@ -253,8 +253,6 @@ void computePDBgeometry(const std::string &fnPDB,
     // Read centered pdb
     pdbFile.read(fnPDB);
 
-    printf("FILE: %s  ----  SIZE: %ld\n", fnPDB.c_str(), pdbFile.getNumberOfAtoms());
-
     // For each atom, correct necessary info
     bool useBFactor = intensityColumn=="Bfactor";
     for (auto& atom : pdbFile.atomList) {
@@ -277,9 +275,10 @@ void computePDBgeometry(const std::string &fnPDB,
         }
         else
         {
-            if (atom.heta)
+            if (atom.record == "HETATM")
                 continue;
             weight = (double) atomCharge(atom.name);
+            printf("NAME: %s --- NAME[0]: %c --- CHARGE: %d --- WEIGHT: %lf\n", atom.name.c_str(), atom.name[0], atomCharge(atom.name), weight);
         }
         total_mass += weight;
         XX(centerOfMass) += weight * atom.x;
@@ -287,6 +286,10 @@ void computePDBgeometry(const std::string &fnPDB,
         ZZ(centerOfMass) += weight * atom.z;
     }
 
+    if (total_mass == 0) {
+        printf("------------------- TOTAL MASS 0! ------------------- \n");
+        std::terminate();
+    }
     // Finish calculations
     centerOfMass /= total_mass;
 }
@@ -560,12 +563,10 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
         }
 
         // Reading and storing type of atom
-        kind = line.substr(0,4);
-        atom.heta = false;
-        if (kind == "HETA")
-            atom.heta = true;
+        kind = line.substr(0, 6);
+        kind.erase(kind.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
 
-        if (kind == "ATOM" || atom.heta)
+        if (kind == "ATOM" || kind == "HETATM")
         {
 			line.resize (80,' ');
 
@@ -573,23 +574,23 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
-			atom.record = line.substr(0,6);
-			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom.serial);
-			atom.name = line.substr(13,3);
+			atom.record = kind;
+			hy36decodeSafe(5, line.substr(6, 5).c_str(), 5, &atom.serial);
+			atom.name = line.substr(13, 3);
             atom.name.erase(atom.name.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
 			atom.altloc = line[16];
-			atom.resname = line.substr(17,3);
+			atom.resname = line.substr(17, 3);
 			atom.chainid = line[21];
-			hy36decodeSafe(4, line.substr(22,4).c_str(), 4, &atom.resseq);
+			hy36decodeSafe(4, line.substr(22, 4).c_str(), 4, &atom.resseq);
 			atom.icode = line[26];
-			atom.x = textToFloat(line.substr(30,8));
-			atom.y = textToFloat(line.substr(38,8));
-			atom.z = textToFloat(line.substr(46,8));
-			atom.occupancy = textToFloat(line.substr(54,6));
-			atom.bfactor = textToFloat(line.substr(60,6));
-			atom.segment = line.substr(72,4);
-			atom.atomType = line.substr(77,1);
-			atom.charge = line.substr(79,1);
+			atom.x = textToFloat(line.substr(30, 8));
+			atom.y = textToFloat(line.substr(38, 8));
+			atom.z = textToFloat(line.substr(46, 8));
+			atom.occupancy = textToFloat(line.substr(54, 6));
+			atom.bfactor = textToFloat(line.substr(60, 6));
+			atom.segment = line.substr(72, 4);
+			atom.atomType = line.substr(77, 1);
+			atom.charge = line.substr(79, 1);
             atom.charge.erase(atom.charge.find_last_not_of(' ') + 1); // Converting into empty string if it is a space
 
 			if(pseudoatoms)
@@ -598,7 +599,7 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			if(!pseudoatoms && atom.bfactor >= threshold)
 				addAtom(atom);
 
-		} else if (kind == "REMA")
+		} else if (kind == "REMARK")
 			remarks.push_back(line);
     }
 
