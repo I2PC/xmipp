@@ -278,7 +278,6 @@ void computePDBgeometry(const std::string &fnPDB,
             if (atom.record == "HETATM")
                 continue;
             weight = (double) atomCharge(atom.name);
-            printf("NAME: %s --- NAME[0]: %c --- CHARGE: %d --- WEIGHT: %lf\n", atom.name.c_str(), atom.name[0], atomCharge(atom.name), weight);
         }
         total_mass += weight;
         XX(centerOfMass) += weight * atom.x;
@@ -286,10 +285,6 @@ void computePDBgeometry(const std::string &fnPDB,
         ZZ(centerOfMass) += weight * atom.z;
     }
 
-    if (total_mass == 0) {
-        printf("------------------- TOTAL MASS 0! ------------------- \n");
-        std::terminate();
-    }
     // Finish calculations
     centerOfMass /= total_mass;
 }
@@ -436,7 +431,7 @@ void readPDB(const FileName &fnPDB, const callable &addAtom)
         getline(fh_in, line);
         if (line == "")
             continue;
-        kind = line.substr(0,4);
+        kind = line.substr(0, 4);
         if (kind != "ATOM" && kind != "HETA")
             continue;
 
@@ -444,9 +439,9 @@ void readPDB(const FileName &fnPDB, const callable &addAtom)
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
         atom.atomType = line[13];
-        atom.x = textToFloat(line.substr(30,8));
-        atom.y = textToFloat(line.substr(38,8));
-        atom.z = textToFloat(line.substr(46,8));
+        atom.x = textToFloat(line.substr(30, 8));
+        atom.y = textToFloat(line.substr(38, 8));
+        atom.z = textToFloat(line.substr(46, 8));
         addAtom(atom);
     }
 

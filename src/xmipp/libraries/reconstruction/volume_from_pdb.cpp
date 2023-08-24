@@ -262,7 +262,6 @@ void ProgPdbConverter::computeProteinGeometry()
 {
     Matrix1D<double> limit0(3), limitF(3);
     computePDBgeometry(fn_pdb, centerOfMass, limit0, limitF, intensityColumn);
-    printf("LIMITS OUT: XX(centerOfMass): %lf --- XX(limit0): %lf --- XX(limitF): %lf\n", XX(centerOfMass), XX(limit0), XX(limitF));
     if (doCenter)
     {
         limit0-=centerOfMass;
