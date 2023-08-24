@@ -262,6 +262,7 @@ void ProgPdbConverter::computeProteinGeometry()
 {
     Matrix1D<double> limit0(3), limitF(3);
     computePDBgeometry(fn_pdb, centerOfMass, limit0, limitF, intensityColumn);
+    printf("LIMITS OUT: XX(centerOfMass): %lf --- XX(limit0): %lf --- XX(limitF): %lf\n", XX(centerOfMass), XX(limit0), XX(limitF));
     if (doCenter)
     {
         limit0-=centerOfMass;
@@ -271,7 +272,6 @@ void ProgPdbConverter::computeProteinGeometry()
     XX(limit) = XMIPP_MAX(ABS(XX(limit0)), ABS(XX(limitF)));
     YY(limit) = XMIPP_MAX(ABS(YY(limit0)), ABS(YY(limitF)));
     ZZ(limit) = XMIPP_MAX(ABS(ZZ(limit0)), ABS(ZZ(limitF)));
-    printf("3: computeProteinGeometry -- XX(limit) : %lf -- YY(limit) : %lf -- ZZ(limit) : %lf\n", XX(limit), YY(limit), ZZ(limit));
 
     // Update output size if necessary
     if (output_dim_x == -1)
@@ -354,7 +354,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         double weight, radius;
         if (!useFixedGaussian)
         {
-            if (noHet && atom.heta)
+            if (noHet && atom.record == "HETATM")
                 continue;
             atomBlobDescription(atom.atomType, weight, radius);
         }
@@ -456,7 +456,6 @@ void ProgPdbConverter::blobProperties() const
 /* Create protein using scattering profiles -------------------------------- */
 void ProgPdbConverter::createProteinUsingScatteringProfiles()
 {
-    printf("PREVIOUS:\noutput_dim_x: %d\noutput_dim_y: %d\noutput_dim_z: %d\n", output_dim_x, output_dim_y, output_dim_z);
     // Create an empty volume to hold the protein
     Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
     if (!origGiven) {
@@ -480,7 +479,7 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     // Iterate the list of atoms modifying data if needed
     for (auto& atom : centered_pdb.atomList) {
         // Check if heteroatoms are allowed and current atom is one of them
-        if (noHet && atom.heta)
+        if (noHet && atom.record == "HETATM")
             continue;
 
         if (doCenter) {
