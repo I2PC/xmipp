@@ -8,6 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     import tensorflow as tf
 
 
-    class DataGenerator(keras.utils.all_utils.Sequence):
+    class DataGenerator(keras.utils.Sequence):
         """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, readInMemory):
@@ -105,9 +106,11 @@ if __name__ == "__main__":
                 fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
                 Iexp = list(map(get_image, fnIexp))
             # Data augmentation
-            rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            # Shift image a random amount of px in each direction
+            rX = self.sigma * np.random.normal(0, 1, size=self.batch_size)
+            rY = self.sigma * np.random.normal(0, 1, size=self.batch_size)
+            rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+            rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+                        # Shift image a random amount of px in each direction
             Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
             y = yvalues + np.vstack((rX, rY)).T
             return Xexp, y
@@ -170,10 +173,10 @@ if __name__ == "__main__":
     for index in range(numModels):
         random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
         if pretrained == 'yes':
-            model = load_model(fnPreModel, compile=False)
+            model = load_model(fnPreModel + str(index) + ".h5", compile=False)
         else:
             model = constructModel(Xdim)
-        adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
+        adam_opt = Adam(lr=learning_rate)
         model.summary()
 
         model.compile(loss='mean_absolute_error', optimizer='adam')
@@ -191,6 +194,13 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('Pérdida')
+    plt.xlabel('Época')
+    plt.legend(['Entrenamiento', 'Validación'], loc='upper left')
+    plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
