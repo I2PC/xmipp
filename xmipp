@@ -449,7 +449,8 @@ def printVersion():
     with open(VERSION_FILE, 'w') as f:
         f.write(str(log))
         f.write('\n  nvcc version:     ')
-        f.write(log3)
+        if log3 != []:
+            f.write(log3)
         f.write('\n  ')
         f.write(log2[0])
 
