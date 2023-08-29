@@ -14,10 +14,8 @@ jobs:
       # Prepare the enviroment for Sonar scanner
       - name: Prepare Sonar scanner
         working-directory: ${{ env.BUILD_DIR }}
-        env:
-          SONAR-VERSION: 5.0.1.3006
         run: |
-          wget -nv -O sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR-VERSION }}-linux.zip
+          wget -nv -O sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ vars.SONAR_VERSION }}-linux.zip
           unzip -q sonar-scanner-cli.zip -d sonar-scanner-cli
           mv sonar-scanner-cli/*/* sonar-scanner-cli/
           echo "${PWD}/sonar-scanner-cli/bin/" >> $GITHUB_PATH
