@@ -291,7 +291,10 @@ void ProgConvImg::preProcess()
     {
         if (depth.empty())
             depth = "%"+datatype2Str(datatypeOut);
-        imIn.read(fn_in, DATA, FIRST_IMAGE, true);
+        
+        FileName first_image;
+        getInputMd()->getValue(image_label, first_image, 1);
+        imIn.read(first_image, DATA, FIRST_IMAGE, true);
         createEmptyFile(fn_out+depth, xdimOut, ydimOut, zdimOut, mdInSize, true, WRITE_OVERWRITE, swap, &imIn.image->MDMainHeader);
     }
     create_empty_stackfile = false;
