@@ -192,7 +192,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         else:
             progresL = progresLines
         line = p.stdout.readline().decode("utf-8")
-        if line != '':
+        if line:
             log.append(line)
             write_compileLog(line, COMPILE_LOG)
 
@@ -208,8 +208,8 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 str2Print = line + "\n" + printProgressBar(prg)
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
-        if not line:
-            if p.poll() == 0:
+        else:
+            if p.wait() == 0:
                 if printProgress:
                     print(printProgressBar(100))
                 return True
@@ -232,7 +232,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 log.append(l)
     if in_parallel:
         return p
-    elif 0 == p.poll():
+    elif 0 == p.wait():
         return True
     else:
         if show_output is False and log is None:
