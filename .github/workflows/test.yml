@@ -50,6 +50,8 @@ jobs:
           CIBuild: 1
           BUILD_TESTS: True
         run: |
+          sudo apt-get install tree -y
+          tree
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}./xmipp -noAsk
           
       - name: Run sonar-scanner
