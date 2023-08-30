@@ -25,7 +25,6 @@
 from typing import Optional
 import torch
 import argparse
-import math
 
 import xmippPyModules.torch.image as image
 
