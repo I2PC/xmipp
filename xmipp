@@ -447,12 +447,14 @@ def printVersion():
         print('  nvcc version:     {}'.format(log3))
 
     with open(VERSION_FILE, 'w') as f:
-        f.write(str(log))
+        if log:
+            f.write(str(log))
         f.write('\n  nvcc version:     ')
         if log3:
             f.write(log3)
         f.write('\n  ')
-        f.write(log2[0])
+        if log2[0]:
+            f.write(log2[0])
 
 def getScipionHome():
     """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
