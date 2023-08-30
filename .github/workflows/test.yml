@@ -49,7 +49,7 @@ jobs:
           CIBuild: 1
           BUILD_TESTS: True
         run: |
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} ./xmipp -noAsk
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} ./xmipp noAsk
           
       - name: Run sonar-scanner
         env:
