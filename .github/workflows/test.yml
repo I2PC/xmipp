@@ -34,8 +34,9 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '11.8.0'
-          linux-local-args: '[ "--toolkit" ]'
           use-github-cache: false
+          method: network
+          sub-packages: '["nvcc"]'
           
       - uses: actions/checkout@v3
         with:
