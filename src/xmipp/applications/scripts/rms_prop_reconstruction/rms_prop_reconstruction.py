@@ -29,43 +29,50 @@ import math
 
 import xmippPyModules.torch.image as image
 
-
-
-def run(prev_volume_path: str,
+def run(map_volume_path: str,
         rec_volume_path: str,
-        output_path: str,
+        sigma2_volume_path: Optional[str],
+        output_map_volume_path: str,
+        output_sigma2_volume_path: str,
         gamma: float,
         nu: float,
         epsilon: float ):
     
     # Read input volumes
-    prev = image.read(prev_volume_path)
+    map = image.read(map_volume_path)
     rec = image.read(rec_volume_path)
+    if sigma2_volume_path is not None:
+        sigma2 = image.read(sigma2_volume_path)
+    else:
+        sigma2 = torch.zeros_like(rec)
     
     # Compute the gradient
-    grad = rec - prev
+    grad = rec - map
     
     # Compute the magnitude
-    sigma2 = gamma*torch.var(prev) + (1.0 - gamma)*torch.sum(grad**2)
+    sigma2 *= gamma
+    sigma2 += (1.0 - gamma)*torch.square(grad)
     
     # Compute the gradient gain
     gain = nu / (torch.sqrt(sigma2) + epsilon)
     
     # Compute the next volume
-    next = prev + gain*grad
+    map += gain*grad
     
     # Write
-    image.write(next, output_path)
-    
+    image.write(map, output_map_volume_path)
+    image.write(sigma2, output_sigma2_volume_path)
     
 
 if __name__ == '__main__':
     # Define the input
     parser = argparse.ArgumentParser(
                         prog = 'RMS Prop reconstruction' )
-    parser.add_argument('--prev', type=str, required=True)
+    parser.add_argument('--map', type=str, required=True)
     parser.add_argument('--rec', type=str, required=True)
-    parser.add_argument('-o', type=str, required=True)
+    parser.add_argument('--sigma2', type=str)
+    parser.add_argument('--omap', type=str, required=True)
+    parser.add_argument('--osigma2', type=str, required=True)
     parser.add_argument('--gamma', type=float, default=0.9)
     parser.add_argument('--nu', type=float, default=0.001)
     parser.add_argument('--eps', type=float, default=1e-8)
@@ -75,10 +82,12 @@ if __name__ == '__main__':
 
     # Run the program
     run(
-        prev_volume_path = args.prev,
+        map_volume_path = args.map,
         rec_volume_path = args.rec,
-        output_path = args.o,
+        sigma2_volume_path = args.sigma2,
+        output_map_volume_path = args.omap,
+        output_sigma2_volume_path = args.osigma2,
         gamma = args.gamma,
         nu = args.nu,
-        epsilon = args.eps  
+        epsilon = args.eps
     )
