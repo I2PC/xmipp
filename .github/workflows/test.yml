@@ -10,7 +10,7 @@ jobs:
     name: Build and analyze
     runs-on: ubuntu-latest
     env:
-      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+      BUILD_WRAPPER_OUT_DIR: ${{ github.workspace }}/../ # Directory where build-wrapper output will be placed
     steps:
       # Installing apt dependencies
       - name: Install dependencies
@@ -34,9 +34,8 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '11.8.0'
-          use-github-cache: false
           method: network
-          sub-packages: '["nvcc"]'
+          sub-packages: '["nvcc", "toolkit"]'
           
       - uses: actions/checkout@v3
         with:
@@ -50,9 +49,7 @@ jobs:
           CIBuild: 1
           BUILD_TESTS: True
         run: |
-          sudo apt-get install tree -y
-          tree
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }}./xmipp -noAsk
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} ./xmipp -noAsk
           
       - name: Run sonar-scanner
         env:
