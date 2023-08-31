@@ -103,7 +103,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.consensusThreshold = int(self.getIntParam('--number'))
         self.consensusType = int(self.getIntParam('--constype'))
         self.startingSubtomoId = int(self.getIntParam('--startingId'))
-        self.distancethreshold = self.boxSize * self.consensusRadius
+        self.distancethreshold = float(self.boxSize * self.consensusRadius)
 
         # Initialize as empty list
         consensus = []
@@ -123,60 +123,31 @@ class ScriptCoordsConsensusTomo(XmippScript):
             coords[0] = md.getValue(xmippLib.MDL_XCOOR, row_id)
             coords[1] = md.getValue(xmippLib.MDL_YCOOR, row_id)
             coords[2] = md.getValue(xmippLib.MDL_ZCOOR, row_id)
-            picker_id = md.getValue(xmippLib.MDL_REF, row_id)
+            picker_id = int(md.getValue(xmippLib.MDL_REF, row_id))
             
             item : Coordinate
             for item in consensus:
                 # Check the distance between this and all other coordinates
-                if distance(coords, item.xyz) < self.distancethreshold and picker_id not in item.pickers:
+                if float(distance(coords, item.xyz)) < self.distancethreshold and picker_id not in item.pickers:
+                    # print("Assimilated coords at distance %d" % distance(coords, item.xyz), flush=True)
                     item.pickers.add(picker_id)
                     break
             else:
                 # If item does not match any other, make it be its own new structure
+                # print("Distance not enough for threshold %s, creating new cluster" % str(self.distancethreshold), flush=True)
                 consensus.append(Coordinate(coords, {picker_id}))
+        
+        print("Went from %d to %d coordinates after consensus." % (md.size(), len(consensus)), flush=True)
 
         
         outMd = xmippLib.MetaData() # MD handle for all
         outMdDoubt = xmippLib.MetaData() # MD handle for unsure = all - {positive}
         outMdPos = xmippLib.MetaData() # MD handle for positive
 
+        # Set the initial particle id for this execution
         partId = self.startingSubtomoId
-        consize = 0
+        # Initial amount of true positions
         truthsize = 0
-        for item in consensus:
-            consize += 1
-            goodEnough = len(item.pickers) >= self.consensusThreshold
-            if goodEnough:
-                variableMdPointer = outMdPos
-                truthsize += 1
-            else:
-                variableMdPointer = outMdDoubt
-
-            # Write to specific
-            row_id = variableMdPointer.addObject()
-            variableMdPointer.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_id)
-            variableMdPointer.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_id)
-            variableMdPointer.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_id)
-            variableMdPointer.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
-            variableMdPointer.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
-            variableMdPointer.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
-            variableMdPointer.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_id)
-            variableMdPointer.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
-            
-            # Write to general
-            row_idg = outMd.addObject()
-            outMd.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_idg)
-            outMd.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_idg)
-            outMd.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_idg)
-            outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
-            outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
-            outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
-            outMd.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_idg)
-            outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_idg)
-
-            partId += 1
-
-        print("Writing %d consensus items to disk" % consize)
 
         # Manage if truth file was present
         if self.hasPositive:
@@ -186,6 +157,15 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 coords[0] = md.getValue(xmippLib.MDL_XCOOR, mdtrue_id)
                 coords[1] = md.getValue(xmippLib.MDL_YCOOR, mdtrue_id)
                 coords[2] = md.getValue(xmippLib.MDL_ZCOOR, mdtrue_id)
+                item : Coordinate
+                for item in consensus:
+                    # Check the distance between this and all other coordinates
+                    if distance(coords, item.xyz) < self.distancethreshold:
+                        item.pickers.add(99)
+                        break
+                else:
+                    # If item does not match any other, make it be its own new structure
+                    consensus.append(Coordinate(coords, {99}))
             
                 # Always write to positive list
                 row_id = outMdPos.addObject()
@@ -210,10 +190,10 @@ class ScriptCoordsConsensusTomo(XmippScript):
 
                 truthsize += 1
                 partId += 1
-            print("Writing %d items from TRUTH to disk" % truthsize)
+            # print("Writing %d items from TRUTH to disk" % truthsize)
         
-        if self.hasNegative:
-            outMdNeg = xmippLib.MetaData(self.inputLieFile)
+        outMdNeg = xmippLib.MetaData(self.inputLieFile)
+        if self.hasNegative: 
             falsesize = 0
             for mdfalse_id in outMdNeg:
                 coords = np.empty(3, dtype=int)
@@ -232,16 +212,62 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 outMdNeg.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
                 falsesize += 1
             print("Writing %d items from NOISE to disk" % falsesize)
+
+        consize = 0
+        doubtsize = 0
         
+        for item in consensus:
+            consize += 1
+            # goodEnough = len(item.pickers) > 1 # Per lo hablado con COSS # >= self.consensusThreshold
+            neg = False
+            if len(item.pickers) > 2:
+                variableMdPointer = outMdPos
+                truthsize += 1
+            elif len(item.pickers) == 2:
+                variableMdPointer = outMdDoubt
+                doubtsize += 1
+            else:
+                variableMdPointer = outMdNeg
+                falsesize += 1
+                neg = True
+
+            # Write to specific
+            row_id = variableMdPointer.addObject()
+            variableMdPointer.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_id)
+            variableMdPointer.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_id)
+            variableMdPointer.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_id)
+            variableMdPointer.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
+            
+            if not neg:
+                # Write to general
+                row_idg = outMd.addObject()
+                outMd.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_idg)
+                outMd.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_idg)
+                outMd.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_idg)
+                outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
+                outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
+                outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
+                outMd.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_idg)
+                outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_idg)
+
+            partId += 1
+        print("Writing %d items from CONS to disk" % consize)
+        print("Now there are %d positive, %d doubt and %d negative particles" % (truthsize, doubtsize, falsesize))
 
         # Write everything to XMD files
         outMd.write(self.outputFile) 
         print("Written all subtomos to " + self.outputFile)   
-        outMdDoubt.write(self.outputFileDoubt)
-        print("Written doubtful subtomo coords to " + self.outputFileDoubt)
-        outMdPos.write(self.outputFilePos)
-        print("Written positive subtomo coords to " + self.outputFilePos)
-        if self.hasNegative:
+        if outMdDoubt.size() > 0:
+            outMdDoubt.write(self.outputFileDoubt)
+            print("Written doubtful subtomo coords to " + self.outputFileDoubt)
+        if outMdPos.size() > 0:
+            outMdPos.write(self.outputFilePos)
+            print("Written positive subtomo coords to " + self.outputFilePos)
+        if outMdNeg.size() > 0:
             outMdNeg.write(self.outputFileNeg)
             print("Written negative subtomo coords to " + self.outputFileNeg)
 

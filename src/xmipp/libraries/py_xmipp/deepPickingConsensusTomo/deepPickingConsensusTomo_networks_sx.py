@@ -142,8 +142,7 @@ class NetMan():
             self.mode = "score"
             self.combinedMD = xmippLib.MetaData(doubtPath)
             self.nDoubt = 0
-            for _ in self.combinedMD:
-                self.nDoubt += 1
+            self.nDoubt = self.combinedMD.size()
 
             self.globalDoubtPointer = 1
             
@@ -207,7 +206,7 @@ class NetMan():
             dataset : tf.data.Dataset
             dataset = tf.data.Dataset.from_generator(self.data_generation_train, 
                                                      output_types=(tf.float32, tf.int32), 
-                                                     output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
+                                                     output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 2)))
             dataset = dataset.with_options(opt)
             dataset = dataset.repeat()
             # VALIDATION DATASET OBJECT
@@ -216,7 +215,7 @@ class NetMan():
                 datasetVal : tf.data.Dataset
                 datasetVal = tf.data.Dataset.from_generator(self.data_generation_val,
                                                              output_types=(tf.float32, tf.int32),
-                                                             output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 1)))
+                                                             output_shapes=((self.batchSize, self.boxSize,self.boxSize,self.boxSize,1),(self.batchSize, 2)))
                 datasetVal = datasetVal.with_options(opt)
                 datasetVal = datasetVal.repeat()
 
@@ -236,7 +235,7 @@ class NetMan():
 
     def data_generation_train(self):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
-        Y = np.empty((self.batchSize, 1), dtype=int)
+        Y = np.empty((self.batchSize, 2), dtype=int)
 
         image = xmippLib.Image()
 
@@ -257,13 +256,14 @@ class NetMan():
                     xmippIm = self._do_180_x(xmippIm)
 
             X[i] = np.expand_dims(xmippIm, -1)
-            Y[i] = label
+            Y[i,0] = 1 - label
+            Y[i,1] = label
 
         yield X, Y
 
     def data_generation_val(self):
         X = np.empty((self.batchSize, self.boxSize, self.boxSize, self.boxSize, 1))
-        Y = np.empty((self.batchSize, 1), dtype=int)
+        Y = np.empty((self.batchSize, 2), dtype=int)
 
         image = xmippLib.Image()
 
@@ -284,7 +284,8 @@ class NetMan():
                     xmippIm = self._do_180_x(xmippIm)
 
             X[i] = np.expand_dims(xmippIm, -1)
-            Y[i] = label
+            Y[i,0] = 1 - label
+            Y[i,1] = label
 
         yield X, Y
 
@@ -331,12 +332,12 @@ class NetMan():
         self.predicts = []
         for _ in range(howManyBatches):
             batch = self.data_generation_score(self.batchSize)
-            vaina : np.ndarray = self.net.predict_on_batch(batch)
+            vaina : np.ndarray = self.net.predict_on_batch(batch)[:,1]
             self.predicts += vaina.flatten().tolist()
         
         if howManyLeft > 0:
             batch = self.data_generation_score(howManyLeft)
-            vaina : np.ndarray = self.net.predict_on_batch(batch)
+            vaina : np.ndarray = self.net.predict_on_batch(batch)[:,1]
             self.predicts += vaina.flatten().tolist()
         
         # self.predicts = self.net.predict(dataset, verbose = 1)#, batch_size=self.batchSize)
@@ -402,7 +403,7 @@ class NetMan():
             model.add(l.Dense(units=128, activation='relu'))
             model.add(l.Dropout(PROB_DROPOUT))
 
-            model.add(l.Dense(units=1, activation='sigmoid'))
+            model.add(l.Dense(units=2, activation='softmax'))
             print(model.summary())
         return model
     
