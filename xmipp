@@ -439,7 +439,8 @@ def printVersion():
         log = log.replace('\x1b[0m', '')
     log2 = []
     runJob('cmake --version', log=log2, show_command=False, show_output=False)
-    print('  {}'.format(log2[0]))
+    if log2: 
+        print('  {}'.format(log2[0]))
     log3 = []
     if runJob('nvcc --version', log=log3, show_command=False, show_output=False):
         log3 = ''.join(log3)
@@ -453,8 +454,9 @@ def printVersion():
         if log3:
             f.write(log3)
         f.write('\n  ')
-        if log2[0]:
+        if log2:
             f.write(log2[0])
+       
 
 def getScipionHome():
     """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
