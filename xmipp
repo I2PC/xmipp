@@ -440,28 +440,31 @@ def printVersion():
             log = log.replace('\x1b[24m', '')
             log = log.replace('\x1b[1m', '')
             log = log.replace('\x1b[0m', '')
-    log2 = []
-    runJob('cmake --version', log=log2, show_command=False, show_output=False)
-    if not log2:
-        log2 = ['cmake information not available']
-    print('  {}'.format(log2[0]))
 
-    log3 = []
-    runJob('nvcc --version', log=log3, show_command=False, show_output=False)
-    if not log3:
-        log3 = 'nvcc information not available'
+    logCmake = []
+    runJob('cmake --version', log=logCmake, show_command=False, show_output=False)
+    if not logCmake:
+        logCmake = 'cmake information not available'
     else:
-        log3 = ''.join(log3)
-        log3 = log3[log3.find('release'):log3.find('release') + 12]
-    print('  nvcc version:     {}'.format(log3))
+        logCmake = logCmake[0]
+    print('  {}'.format(logCmake))
+
+    logNvcc = []
+    runJob('nvcc --version', log=logNvcc, show_command=False, show_output=False)
+    if not logNvcc:
+        logNvcc = 'nvcc information not available'
+    else:
+        logNvcc = ''.join(logNvcc)
+        logNvcc = logNvcc[logNvcc.find('release'):logNvcc.find('release') + 12]
+    print('  nvcc version:     {}'.format(logNvcc))
 
     with open(VERSION_FILE, 'w') as f:
         if log:
             f.write(log)
         f.write('\n  nvcc version:     ')
-        f.write(log3)
+        f.write(logNvcc)
         f.write('\n  ')
-        f.write(log2[0])
+        f.write(logCmake)
        
 
 def getScipionHome():
