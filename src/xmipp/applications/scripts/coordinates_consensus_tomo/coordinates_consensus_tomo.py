@@ -242,17 +242,17 @@ class ScriptCoordsConsensusTomo(XmippScript):
             variableMdPointer.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_id)
             variableMdPointer.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
             
-            if not neg:
-                # Write to general
-                row_idg = outMd.addObject()
-                outMd.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_idg)
-                outMd.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_idg)
-                outMd.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_idg)
-                outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
-                outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
-                outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
-                outMd.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_idg)
-                outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_idg)
+            # if not neg:
+            # Write to general
+            row_idg = outMd.addObject()
+            outMd.setValue(xmippLib.MDL_XCOOR, int(item.xyz[0]), row_idg)
+            outMd.setValue(xmippLib.MDL_YCOOR, int(item.xyz[1]), row_idg)
+            outMd.setValue(xmippLib.MDL_ZCOOR, int(item.xyz[2]), row_idg)
+            outMd.setValue(xmippLib.MDL_PICKING_PARTICLE_SIZE, self.boxSize, row_idg)
+            outMd.setValue(xmippLib.MDL_SAMPLINGRATE, self.samplingrate, row_idg)
+            outMd.setValue(xmippLib.MDL_COUNT, len(item.pickers), row_idg)
+            outMd.setValue(xmippLib.MDL_PARTICLE_ID, int(partId), row_idg)
+            outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_idg)
 
             partId += 1
         print("Writing %d items from CONS to disk" % consize)
