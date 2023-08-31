@@ -53,7 +53,7 @@
 // #define DEBUG_DIM
 // #define DEBUG_RESID
 // #define DEBUG_RESIDUAL_ANALYSIS
-#define DEBUG_RESIDUAL_STATISTICS_FILE
+// #define DEBUG_RESIDUAL_STATISTICS_FILE
 
 class ProgTomoDetectMisalignmentResiduals : public XmippProgram
 {

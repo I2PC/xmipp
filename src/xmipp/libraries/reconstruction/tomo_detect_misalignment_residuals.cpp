@@ -165,7 +165,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResiduals()
 			globalMialingmentVotting[n] = false;
 
 			#ifdef DEBUG_RESIDUAL_ANALYSIS
-			std::cout << "Chain number " << n << " present global misalignment with imagesOutOfRange=" << imagesOutOfRange << std::endl;
+			std::cout << "Chain number " << n << " ssent global misalignment with imagesOutOfRange=" << imagesOutOfRange << std::endl;
 			#endif
 		}	
 	}
@@ -381,9 +381,9 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		double avg;
 		double std;
 		size_t imagesOutOfRange = 0;
-		double imagesOutOfRangePrecentage;
+		double imagesOutOfRangePercentage;
 		size_t longestMisaliChain = 0;
-		double longestMisaliChainPrecentage;
+		double longestMisaliChainPercentage;
 		size_t misaliChain = 0;
 
 		double sumResid = 0;
@@ -408,8 +408,8 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 			}
 		}
 
-		imagesOutOfRangePrecentage = imagesOutOfRange / nSize;
-		longestMisaliChainPrecentage = longestMisaliChain / nSize;
+		imagesOutOfRangePercentage = double(imagesOutOfRange) / nSize;
+		longestMisaliChainPercentage = double(longestMisaliChain) / nSize;
 
 		#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
 		std::cout << "n " << n << std::endl;
@@ -418,8 +418,8 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 		std::cout << "sumResid2 " << sumResid2 << std::endl;
 		std::cout << "imagesOutOfRange " << imagesOutOfRange << std::endl;
 		std::cout << "longestMisaliChain " << longestMisaliChain << std::endl;
-		std::cout << "imagesOutOfRangePrecentage " << imagesOutOfRangePrecentage << std::endl;
-		std::cout << "longestMisaliChainPrecentage " << longestMisaliChainPrecentage << std::endl;
+		std::cout << "imagesOutOfRangePercentage " << imagesOutOfRangePercentage << std::endl;
+		std::cout << "longestMisaliChainPercentage " << longestMisaliChainPercentage << std::endl;
 		#endif
 
 		avg = sumResid / numberResMod;
@@ -432,8 +432,8 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 
 		residualStatsTable[n][0] = avg;
 		residualStatsTable[n][1] = std;
-		residualStatsTable[n][8] = imagesOutOfRangePrecentage;
-		residualStatsTable[n][9] = longestMisaliChainPrecentage;
+		residualStatsTable[n][8] = imagesOutOfRangePercentage;
+		residualStatsTable[n][9] = longestMisaliChainPercentage;
 	}
 
 	std::cout << " ----------------------------------------------- residualStatsTable" << std::endl;
@@ -534,7 +534,7 @@ void ProgTomoDetectMisalignmentResiduals::generateResidualStatiscticsFile()
 				}
 			}
 
-			residOutOfRangePercentage = residOutOfRange / residOutOfRangePercentage;
+			residOutOfRangePercentage = double(residOutOfRange) / nSize;
 			
 			#ifdef DEBUG_RESIDUAL_STATISTICS_FILE	
 			std::cout << "n " << n << std::endl;
