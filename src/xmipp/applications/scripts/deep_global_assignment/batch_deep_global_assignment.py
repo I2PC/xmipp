@@ -8,6 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -35,12 +36,13 @@ if __name__ == "__main__":
     from keras.models import Model
     from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
         Activation, GlobalAveragePooling2D, Add
+    from keras.optimizers import *
     import keras
     from keras.models import load_model
     import tensorflow as tf
 
 
-    class DataGenerator(keras.utils.all_utils.Sequence):
+    class DataGenerator(keras.utils.Sequence):
         """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
@@ -255,21 +257,21 @@ if __name__ == "__main__":
     import keras.backend as K
 
     def geodesic_distance(y_true, y_pred):
-        a1 = tf.linalg.normalize(y_pred[:, slice(0, 6, 2)])[0]
-        a2 = tf.linalg.normalize(y_pred[:, slice(1, 6, 2)])[0]
-        d = K.mean(y_true[:, 0] * a1[:, 0])
-        d += K.mean(y_true[:, 2] * a1[:, 1])
-        d += K.mean(y_true[:, 4] * a1[:, 2])
-        d += K.mean(y_true[:, 1] * a2[:, 0])
-        d += K.mean(y_true[:, 3] * a2[:, 1])
-        d += K.mean(y_true[:, 5] * a2[:, 2])
+        a1 = tf.linalg.normalize(y_pred[:, slice(0, 6, 2)], axis=-1)[0]
+        a2 = tf.linalg.normalize(y_pred[:, slice(1, 6, 2)], axis=-1)[0]
+        d = y_true[:, 0] * a1[:, 0]
+        d += y_true[:, 2] * a1[:, 1]
+        d += y_true[:, 4] * a1[:, 2]
+        d += y_true[:, 1] * a2[:, 0]
+        d += y_true[:, 3] * a2[:, 1]
+        d += y_true[:, 5] * a2[:, 2]
 
         return -d
 
 
     def geodesic_loss(y_true, y_pred):
         d = geodesic_distance(y_true, y_pred)
-        return d
+        return K.mean(d)
 
 
     SL = xmippLib.SymList()
@@ -366,7 +368,7 @@ if __name__ == "__main__":
         else:
             model = constructModel(Xdims)
 
-        adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
+        adam_opt = Adam(lr=learning_rate)
         model.summary()
 
         model.compile(loss='mean_squared_error', optimizer=adam_opt)
@@ -377,6 +379,14 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('Pérdida')
+    plt.xlabel('Época')
+    plt.legend(['Entrenamiento', 'Validación'], loc='upper left')
+    plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
