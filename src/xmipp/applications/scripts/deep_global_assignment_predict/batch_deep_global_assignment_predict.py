@@ -10,7 +10,7 @@ from time import time
 from scipy.spatial.transform import Rotation
 from scipy.ndimage import shift
 
-maxSize = 32
+maxSize = 512
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -114,7 +114,56 @@ if __name__ == "__main__":
             [0.0, 0.0, 0.0, 1.0]])
 
 
-    def euler_from_matrix(matrix, axes='sxyz'):
+    def euler_matrix(ai, aj, ak, axes='szyz'):
+        """Return homogeneous rotation matrix from Euler angles and axis sequence.
+
+        ai, aj, ak : Euler's roll, pitch and yaw angles
+        axes : One of 24 axis sequences as string or encoded tuple
+        """
+        try:
+            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes]
+        except (AttributeError, KeyError):
+            _TUPLE2AXES[axes]  # validation
+            firstaxis, parity, repetition, frame = axes
+
+        i = firstaxis
+        j = _NEXT_AXIS[i + parity]
+        k = _NEXT_AXIS[i - parity + 1]
+
+        if frame:
+            ai, ak = ak, ai
+        if parity:
+            ai, aj, ak = -ai, -aj, -ak
+
+        si, sj, sk = math.sin(ai), math.sin(aj), math.sin(ak)
+        ci, cj, ck = math.cos(ai), math.cos(aj), math.cos(ak)
+        cc, cs = ci * ck, ci * sk
+        sc, ss = si * ck, si * sk
+
+        M = np.identity(4)
+        if repetition:
+            M[i, i] = cj
+            M[i, j] = sj * si
+            M[i, k] = sj * ci
+            M[j, i] = sj * sk
+            M[j, j] = -cj * ss + cc
+            M[j, k] = -cj * cs - sc
+            M[k, i] = -sj * ck
+            M[k, j] = cj * sc + cs
+            M[k, k] = cj * cc - ss
+        else:
+            M[i, i] = cj * ck
+            M[i, j] = sj * sc - cs
+            M[i, k] = sj * cc + ss
+            M[j, i] = cj * sk
+            M[j, j] = sj * ss + cc
+            M[j, k] = sj * cs - sc
+            M[k, i] = -sj
+            M[k, j] = cj * si
+            M[k, k] = cj * ci
+        return M
+
+    def euler_from_matrix(matrix, axes='szyz'):
         """Return Euler angles from rotation matrix for specified axis sequence.
 
         axes : One of 24 axis sequences as string or encoded tuple
@@ -158,8 +207,7 @@ if __name__ == "__main__":
             ax, az = az, ax
         return ax, ay, az
 
-
-    def euler_from_quaternion(quaternion, axes='sxyz'):
+    def euler_from_quaternion(quaternion: object, axes: object = 'szyz') -> object:
         """Return Euler angles from quaternion for specified axis sequence."""
         return euler_from_matrix(quaternion_matrix(quaternion), axes)
 
@@ -181,21 +229,13 @@ if __name__ == "__main__":
         b3 = np.cross(b1, b2, axis=0)
         return np.concatenate((b1, b2, b3), axis=1)
 
-
-    def matrix_to_euler(mat):
-        """Return Euler angles from rotation matrix"""
-        r = Rotation.from_matrix(mat)
-        angles = r.as_euler("xyz", degrees=True)
-        return angles
-
-
     def produce_output(mdExp, Y, distance, fnImages):
         ID = 0
         for objId in mdExp:
             angles = Y[ID] * 180 / math.pi
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
-            mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+            mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1], objId)
             mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             if distance[ID] > tolerance:
                 mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
@@ -225,6 +265,14 @@ if __name__ == "__main__":
         ang_Distances = np.arccos((d - 1) / 2)
         return np.max(ang_Distances), np.argmax(ang_Distances)
 
+    def minimum_distance(ref_mat, mat):
+        """argMin distance in angles from a set of rotation matrix"""
+        c = mat * ref_mat[np.newaxis, 0:3, 0:3]
+        d = np.sum(c, axis=(1, 2))
+        ang_Distances = np.arccos((d - 1) / 2)
+        if np.argmin(ang_Distances) != 0:
+            print('got it!')
+        return np.argmin(ang_Distances)
 
     def calculate_r6d(redundant):
         """Solves linear system to get 6D representation from 42 parameters output"""
@@ -250,6 +298,19 @@ if __name__ == "__main__":
         return np.array(X)
 
 
+    def equivalent_matrices(mat):
+        eqmatrices = []
+        for sym_mat in SymMatrices:
+            eqmatrices.append(np.matmul(mat, sym_mat))
+        return eqmatrices
+
+    def closest_to_first_matrix(matrices):
+        ref = matrices[0]
+        for i in range(1, len(matrices)):
+            eq_matrices = equivalent_matrices(matrices[i])
+            index_min = minimum_distance(ref, eq_matrices)
+            matrices[i] = eq_matrices[index_min]
+        return matrices
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
@@ -258,6 +319,8 @@ if __name__ == "__main__":
         matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         minModels = np.shape(matrix)[0] - maxModels
+        # First matrix as reference point
+        matrix = closest_to_first_matrix(matrix)
         quats = convert_to_quaternions(matrix)
         av_quats = average_quaternions(quats)
         av_matrix = quaternion_matrix(av_quats)
@@ -267,7 +330,8 @@ if __name__ == "__main__":
         while (np.shape(matrix)[0] > minModels) and (max_distance > tolerance):
             # deletes predictions from the max_dif_model and recalculates averages
             matrix = np.delete(matrix, max_dif_model, axis=0)
-            quats = np.delete(quats, max_dif_model, axis=0)
+            matrix = closest_to_first_matrix(matrix)
+            quats = convert_to_quaternions(matrix)
             av_quats = average_quaternions(quats)
             av_matrix = quaternion_matrix(av_quats)
             max_distance, max_dif_model = maximum_distance(av_matrix, matrix)
@@ -301,11 +365,16 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
-    models = []
+    models = [[] for _ in range(numAngModels)]
     for index in range(numAngModels):
-        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
+        path_to_model = fnAngModel + '/model' + str(index)
+        AngModel = load_model(path_to_model + '/classifier' + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
-        models.append(AngModel)
+        models[index].append(AngModel)
+        for i in range(2):
+            AngModel = load_model(path_to_model + '/modelAng' + str(i) + ".h5", compile=False)
+            AngModel.compile(loss="mean_squared_error", optimizer='adam')
+            models[index].append(AngModel)
 
     numImgs = len(fnImgs)
     predictions = np.zeros((numImgs, numAngModels, 6))
@@ -313,17 +382,36 @@ if __name__ == "__main__":
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
     k = 0
+    mdExp = xmippLib.MetaData(fnXmdExp)
+    rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
     # perform batch predictions for each model
+
+    symmetry = 'c4'
+    SL = xmippLib.SymList()
+    SymMatrices = np.array(SL.getSymmetryMatrices(symmetry))
+    numClasses = len(models[index]) - 1
     for i in range(numBatches):
         numPredictions = min(maxSize, numImgs-i*maxSize)
+        print('predicting %', 100 * (maxSize * i + numPredictions) / numImgs, flush=True)
         Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
         for j in range(numPredictions):
             Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
             Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
             Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
             k += 1
+        classes_predictions = np.zeros(shape=(numPredictions, numClasses))
+
         for index in range(numAngModels):
-            predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
+            classes_predictions += models[index][0].predict(Xexp)
+            classes = np.argmax(classes_predictions, axis=1)
+
+        for index in range(numAngModels):
+            for class_index in range(numClasses):
+                indices = np.where(classes == class_index)[0]
+                Xexp_class = Xexp[indices]
+                indices += i * maxSize
+                if len(indices) >= 1:
+                    predictions[indices, index, :] = models[index][class_index + 1].predict(Xexp_class)
 
     Y, distance = compute_ang_averages(predictions)
     produce_output(mdExp, Y, distance, fnImages)
