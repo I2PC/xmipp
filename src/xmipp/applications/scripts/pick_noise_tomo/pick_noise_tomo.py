@@ -37,11 +37,12 @@ import pandas as pd
 from typing import List
 
 import multiprocessing as mp
+from multiprocessing import Process, Queue
 
 from xmipp_base import XmippScript
 import xmippLib
 
-ITERS_PER_THREAD = 20000
+ITERS_PER_THREAD = 10000
 
 def distance(a: np.ndarray, b: np.ndarray) -> float:
     return np.linalg.norm(a-b)
@@ -140,24 +141,24 @@ class ScriptPickNoiseTomo(XmippScript):
         print("Launching search for coordinates on %d threads. Balance is with: %d (%d per thread)." % (self.nThreads, self.nrPositive, self.nrPositivePerThread))
         
         # Generate a queue to queue the output data from the worker threads
-        queue = mp.Queue()
-        workers = []
-        # Launch the worker
-        for _ in range(self.nThreads):
-            p = mp.Process(target=self.pickFun, args=(queue,))
-            p.start()
-            workers.append(p)
-        
-        res : list = []
-        process: mp.Process
-        for process in workers:
-            process.join() # Wait for completion
-            res += queue.get() # Add to final res
-
-        # # Lo mesmo pero en secoencial
-        # res = []
+        # queue = Queue(maxsize=self.nThreads)
+        # workers = []
+        # # Launch the worker
         # for _ in range(self.nThreads):
-        #     res += self.pickFun()
+        #     p = Process(target=self.pickFun, args=(queue,))
+        #     workers.append(p)
+        #     p.start()   
+        # queue.close()  
+            
+        # res : list = []
+        # while not queue.empty():
+        #     aux = queue.get()
+        #     res += aux # Add to final res
+
+        # Lo mesmo pero en secoencial
+        res = []
+        for _ in range(self.nThreads):
+            res += self.pickFun()
         # Write the results
         print("PickNoiseTomo found %d noise volumes" %(len(res)))
         outMd = xmippLib.MetaData()
@@ -172,12 +173,12 @@ class ScriptPickNoiseTomo(XmippScript):
             outMd.setValue(xmippLib.MDL_TOMOGRAM_VOLUME, self.tomoReference, row_id)
         outMd.write(self.outputFn)
 
-    def pickFun(self, q) -> list:
-        res = []
+    def pickFun(self):
+        lres = []
 
         maxDistance : float = self.radius * self.boxSize
 
-        for _ in range(ITERS_PER_THREAD):
+        for i in range(ITERS_PER_THREAD):
             # Generate a random coordinate
             candidate = (np.random.rand(3) * self.tomoSize).astype(int)
 
@@ -187,15 +188,20 @@ class ScriptPickNoiseTomo(XmippScript):
                     break
             else:
                 # No particle collides with this, adding to noise
-                # print("Found OK candidate: " + str(candidate))
-                res.append(candidate)
+                print("Found OK candidate: " + str(candidate))
+                lres.append(candidate)
             
-            if (len(res) >= self.nrPositivePerThread):
+            if (len(lres) >= self.nrPositivePerThread):
                 # The goal is achieved, no more needed
                 break
 
-        q.put(res)
-        return res
+            if i == (ITERS_PER_THREAD - 1):
+                print("Sera verdad no more iters", flush=True)
+
+        if lres == []:
+            print("NoisePick process ended with no results, perhaps too many random pickings in your input?", flush=True)
+        # q.put_nowait(lres)
+        return lres
 
 if __name__ == '__main__':
     exitCode = ScriptPickNoiseTomo().tryRun()
