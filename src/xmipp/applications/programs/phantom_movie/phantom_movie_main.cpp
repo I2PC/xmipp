@@ -30,12 +30,12 @@
 class PhantomMovieProgram final : public XmippProgram
 {
 private:
-    typedef PhantomMovie<double>::Content Content;
-    typedef PhantomMovie<double>::DisplacementParams DisplacementParams;
-    typedef PhantomMovie<double>::Params Params;
-    typedef PhantomMovie<double>::Options Options;
-    typedef PhantomMovie<double>::Ice Ice;
-    typedef PhantomMovie<double>::PhantomType PhantomType;
+    using Content = PhantomMovie<double>::Content;
+    using DisplacementParams = PhantomMovie<double>::DisplacementParams;
+    using Params = PhantomMovie<double>::Params;
+    using Options = PhantomMovie<double>::Options;
+    using Ice = PhantomMovie<double>::Ice;
+    using PhantomType = PhantomMovie<double>::PhantomType;
     void defineParams() override
     {
         addParamsLine("-size <x=4096> <y=4096> <n=40>                        :"
