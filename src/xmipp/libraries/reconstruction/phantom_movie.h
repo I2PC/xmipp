@@ -69,22 +69,15 @@ public:
         bool skipIce;
     };
 
-    struct Content
+    struct Ice
     {
-        size_t xstep;
-        size_t ystep;
-        size_t thickness;
-        float signal_val;
         int seed;
-        float ice_avg;
-        float ice_stddev;
-        float ice_min;
-        float ice_max;
-        float dose;
+        float avg;
+        float stddev;
+        float min;
+        float max;
         float low_w1;
         float low_raised_w;
-        static constexpr auto size_param = "-size";
-        static constexpr auto step_param = "-step";
     };
 
     struct Params
@@ -96,12 +89,36 @@ public:
         FileName fn_dark;
     };
 
-    PhantomMovie(DisplacementParams dp, Options o, Content c, Params p) : params(p), dispParams(dp), options(o), content(c) {}
+    enum class PhantomType 
+    {
+        grid,
+        particleCross,
+        particleCircle
+    };
+
+    struct Content
+    {
+        PhantomType type;
+        size_t xstep; // of the grid
+        size_t ystep; // of the grid
+        size_t thickness; // of the line
+        size_t minSize; // of the circle / cross
+        size_t maxSize; // of the circle / cross
+        size_t count; // of the circle / cross
+        float signal_val;
+        int seed;
+        float dose;
+    };
+
+    PhantomMovie(DisplacementParams dp, Options o, Ice i, Content c, Params p) : params(p), dispParams(dp), options(o), ice(i), content(c) {}
 
     void run() const;
 
 private:
-    void addGrid(MultidimArray<T> &movie) const;
+    void addContent(MultidimArray<T> &movie) const;
+    void addGrid(MultidimArray<T> &frame) const;
+    void addCircles(MultidimArray<T> &frame) const;
+    void addCrosses(MultidimArray<T> &frame) const;
     T bilinearInterpolation(const MultidimArray<T> &src, float x, float y) const;
     auto shiftX(size_t t) const;
     auto shiftY(size_t t) const;
@@ -115,5 +132,6 @@ private:
     const Params params;
     const DisplacementParams dispParams;
     const Options options;
+    const Ice ice;
     const Content content;
 };
