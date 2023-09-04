@@ -20,12 +20,33 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .align import align
-from .train import train
-from .populate import populate
-from .generate_alignment_metadata import generate_alignment_metadata
+from typing import Iterable
+import pandas as pd
+import torch
 
-from .FourierInPlaneTransformAugmenter import FourierInPlaneTransformAugmenter
-from .FourierInPlaneTransformGenerator import FourierInPlaneTransformGenerator
-from .FourierInPlaneTransformCorrector import FourierInPlaneTransformCorrector
-from .InPlaneTransformCorrector import InPlaneTransformCorrector
+import matplotlib as plt
+
+def aligned_2d_classification(dataset: Iterable[torch.Tensor],
+                              scratch: torch.Tensor ):
+    # Write
+    start = 0
+    for vectors in dataset:
+        end = start + len(vectors)
+        
+        # Write 
+        scratch[start:end,:] = vectors.to(scratch, non_blocking=True)
+
+        # Setup next iteration
+        start = end
+        
+    # Perform the PCA analysis
+    _, s, v = torch.pca_lowrank(scratch)
+    direction = v[:,0]
+    variance = s[0]
+    projections = torch.matmul(scratch, direction[None])
+    print(projections.shape)
+    
+    plt.hist(projections[:,0])
+    plt.show()
+
+    return variance, direction

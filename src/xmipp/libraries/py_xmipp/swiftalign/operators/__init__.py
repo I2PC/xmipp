@@ -23,6 +23,7 @@
 from .Transformer2D import Transformer2D
 from .FourierTransformer2D import FourierTransformer2D
 from .DctTransformer2D import DctTransformer2D
+from .MaskFlattener import MaskFlattener
 from .SpectraFlattener import SpectraFlattener
 from .FourierLowPassFlattener import FourierLowPassFlattener
 from .DctLowPassFlattener import DctLowPassFlattener

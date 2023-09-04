@@ -23,56 +23,11 @@
 from typing import Optional
 import torch
 
-class SpectraFlattener:
+from .MaskFlattener import MaskFlattener
+
+class SpectraFlattener(MaskFlattener):
     def __init__(   self, 
                     mask: torch.Tensor,
                     padded_length: Optional[int] = None,
                     device: Optional[torch.device] = None):
-        self._mask = mask
-        self._indices = self._calculate_indices(mask, device=device)
-        self._length = padded_length or len(self._indices)
-
-    def __call__(   self,
-                    input: torch.Tensor,
-                    out: Optional[torch.Tensor] = None) -> torch.Tensor:
-        
-        # Allocate the output
-        flatten_start_dim = -len(self.get_mask().shape)
-        batch_shape = input.shape[:flatten_start_dim]
-        output_shape = batch_shape + (self.get_length(), )
-        out = torch.empty(
-            output_shape, 
-            device=input.device, 
-            dtype=input.dtype,
-            out=out    
-        )
-        
-        if input.shape[flatten_start_dim:] != self.get_mask().shape:
-            raise IndexError('Input has incorrect size')
-        
-        # Flatten in the same dims as the mask
-        flat_input = torch.flatten(input, start_dim=flatten_start_dim)
-
-        # Write to the output
-        indices = self.get_indices()
-        k = len(indices)
-        out[...,:k] = flat_input[...,indices]
-        out[...,k:] = 0
-        
-        return out
-    
-    def get_mask(self) -> torch.BoolTensor:
-        return self._mask
-    
-    def get_indices(self) -> torch.IntTensor:
-        return self._indices
-    
-    def get_length(self) -> int:
-        return self._length
-
-    def _calculate_indices(self,
-                           mask: torch.BoolTensor, 
-                           device: Optional[torch.device] = None ) -> torch.IntTensor:
-        flat_mask = torch.flatten(mask)
-        indices = torch.argwhere(flat_mask)[:,0]
-        return indices.to(device)
+        super().__init__(mask, padded_length, device)
