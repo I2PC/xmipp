@@ -8,6 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
+import random
 
 if __name__ == "__main__":
 
@@ -21,10 +22,11 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     gpuId = sys.argv[6]
     numModels = int(sys.argv[7])
+    print('numModels', numModels)
     learning_rate = float(sys.argv[8])
     patience = int(sys.argv[9])
     pretrained = sys.argv[10]
-    symmetry = 'C4'
+    symmetry = sys.argv[12]
     if pretrained == 'yes':
         fnPreModel = sys.argv[11]
 
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     from tensorflow.keras.utils import to_categorical
 
     print('fnModel', fnModel)
+
 
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
@@ -100,6 +103,7 @@ if __name__ == "__main__":
             yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
             yshifts = np.array(itemgetter(*list_IDs_temp)(self.shifts))
             domains = np.array(itemgetter(*list_IDs_temp)(self.map_domains))
+
             # Functions to handle the data
             def get_image(fn_image):
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
@@ -110,7 +114,7 @@ if __name__ == "__main__":
 
             def rotate_image(img, angle):
                 # angle in degrees
-                angle = (180/math.pi)*angle
+                angle = (180 / math.pi) * angle
                 return rotate(img, angle, order=1, mode='reflect', reshape=False)
 
             def matrix_to_rotation6d(mat):
@@ -147,12 +151,15 @@ if __name__ == "__main__":
 
                 while index_map != previous_map:
                     angle = (angle / (2 ** j))
-                    j = j+1
+                    j = j + 1
                     matrix = euler_angles_to_matrix(euler_angles, angle)
                     S_inv = map_symmetries(matrix, self.inv_matrices, np.eye(3))
-                    index_map = 1
-                    if map_symmetries_index(S_inv, self.inv_sqrt_matrices, np.eye(3)) == 0:
-                        index_map = 0
+                    index_map = map_symmetries_index(S_inv, inverse_sqrt_matrices, np.eye(3))
+
+                    index_map = round(index_map / 1.99)
+
+                    if index_map > 3:
+                        index_map = 3
                 return angle
 
             def compute_yvalues(euler_angles, angle):
@@ -178,7 +185,7 @@ if __name__ == "__main__":
             rAngle = np.array(list(map(check_angle, yvalues, rAngle, domains)))
             Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
             if self.bool_classifier:
-                y = to_categorical(domains)
+                y = to_categorical(domains, num_classes=4)
             else:
                 y = np.array(list(map(compute_yvalues, yvalues, rAngle)))
             return Xexp, y
@@ -251,7 +258,7 @@ if __name__ == "__main__":
     #
     #    return Model(inputLayer, L)
 
-    def constructClassifier(Xdim):
+    def constructClassifier(Xdim, classes):
         """RESNET architecture"""
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
 
@@ -267,7 +274,7 @@ if __name__ == "__main__":
 
         x = GlobalAveragePooling2D()(x)
 
-        x = Dense(2, name="output", activation="softmax")(x)
+        x = Dense(classes, name="output", activation="softmax")(x)
 
         return Model(inputLayer, x)
 
@@ -298,13 +305,39 @@ if __name__ == "__main__":
             sm2 = rodrigues_formula(eigenvector, math.pi + (-angle / 2))
         return sm1, sm2
 
-    sqrt_matrices = []
-    sqrt_matrices.append(np.eye(3))
-    gen_matrix = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    gen_matrix = sqrt_matrix(gen_matrix)[0]
 
-    for i in range(7):
-        sqrt_matrices.append(np.matmul(gen_matrix, sqrt_matrices[i]))
+    matrix_1 = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]])
+    gen_matrix1 = sqrt_matrix(matrix_1)[0]
+    matrix_1a = np.transpose(matrix_1)
+    gen_matrix1a = sqrt_matrix(matrix_1a)[0]
+    matrix_2 = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    gen_matrix2 = sqrt_matrix(matrix_2)[0]
+    matrix_2a = np.transpose(matrix_2)
+    gen_matrix2a = sqrt_matrix(matrix_2a)[0]
+    sqrt_matrices = []
+
+    sqrt_matrices.append(np.eye(3))
+    sqrt_matrices.append(gen_matrix1)
+    sqrt_matrices.append(gen_matrix1a)
+    sqrt_matrices.append(gen_matrix2)
+    sqrt_matrices.append(gen_matrix2a)
+
+    for matrix in Matrices:
+        sqrt1, sqrt2 = sqrt_matrix(matrix)
+        print(len(sqrt_matrices))
+        if not any(np.allclose(sqrt1, m, atol=1e-5) for m in sqrt_matrices):
+            sqrt_matrices.append(sqrt1)
+        else:
+            print('sqrt1', sqrt1)
+            print(matrix)
+        if not any(np.allclose(sqrt2, m, atol=1e-5) for m in sqrt_matrices):
+            sqrt_matrices.append(sqrt2)
+        else:
+            print('sqrt2', sqrt2)
+            print(matrix)
+
+    print('sqrt_matrices', sqrt_matrices)
+
     num_sqrt_matrices = np.shape(sqrt_matrices)[0]
     num_matrices = np.shape(Matrices)[0]
     inverse_sqrt_matrices = np.zeros_like(sqrt_matrices)
@@ -313,9 +346,11 @@ if __name__ == "__main__":
 
     inverse_matrices = np.zeros_like(Matrices)
     for i in range(num_matrices):
-        inverse_matrices[i] = np.linalg.inv(Matrices[i])
+        inverse_matrices[i] = np.transpose(Matrices[i])
 
     target_matrices = sqrt_matrices[0:2]
+    target_matrices.append(sqrt_matrices[3])
+    target_matrices.append(sqrt_matrix(np.matmul(matrix_1, matrix_2))[0])
 
 
     def frobenius_norm(matrix):
@@ -331,36 +366,10 @@ if __name__ == "__main__":
         return index_min
 
 
-
     def map_symmetries(input_matrix, inv_group_matrices, target):
-        #print('input_matrix', input_matrix)
-        #print('input_euler', 180 * np.array(euler_from_matrix(input_matrix)) / math.pi)
-        #print('output_matrix', np.matmul(
-        #    inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)], input_matrix))
-        #print('output_euler', 180 * np.array(euler_from_matrix(np.matmul(
-        #    input_matrix, inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)]))) / math.pi)
-        return np.matmul(input_matrix, inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)])
+        return np.matmul(input_matrix,
+                         inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)])
 
-        # def R_rot(theta):
-        #    return np.array([[math.cos(theta), -math.sin(theta), 0],
-        #                     [math.sin(theta), math.cos(theta), 0],
-        #                     [0, 0, 1]])
-        #
-        # def R_tilt(theta):
-        #    return np.array([[math.cos(theta), 0, -math.sin(theta)],
-        #                     [0, 1, 0],
-        #                     [math.sin(theta), 0, math.cos(theta)]])
-        #
-        # def R_psi(theta):
-        #    return np.array([[math.cos(theta), math.sin(theta), 0],
-        #                     [-math.sin(theta), math.cos(theta), 0],
-        #                     [0, 0, 1]])
-        #
-        # def euler_angles_to_matrix(angles, psi_rotation):
-        #    Rx = R_rot(angles[0])
-        #    Ry = R_tilt(angles[1])
-        #    Rz = R_psi(angles[2] + psi_rotation)
-        #    return np.matmul(np.matmul(Rz, Ry), Rx)
 
     _AXES2TUPLE = {
         'sxyz': (0, 0, 0, 0), 'sxyx': (0, 0, 1, 0), 'sxzy': (0, 1, 0, 0),
@@ -376,51 +385,7 @@ if __name__ == "__main__":
     # axis sequences for Euler angles
     _NEXT_AXIS = [1, 2, 0, 1]
 
-    _EPS = np.finfo(float).eps * 4.0
 
-    def euler_from_matrix(matrix, axes='szyz'):
-        """Return Euler angles from rotation matrix for specified axis sequence.
-
-        axes : One of 24 axis sequences as string or encoded tuple
-
-        Note that many Euler angle triplets can describe one matrix."""
-        try:
-            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
-        except (AttributeError, KeyError):
-            _TUPLE2AXES[axes]
-            firstaxis, parity, repetition, frame = axes
-
-        i = firstaxis
-        j = _NEXT_AXIS[i + parity]
-        k = _NEXT_AXIS[i - parity + 1]
-
-        M = np.array(matrix, dtype=np.float64, copy=False)[:3, :3]
-        if repetition:
-            sy = math.sqrt(M[i, j] * M[i, j] + M[i, k] * M[i, k])
-            if sy > _EPS:
-                ax = math.atan2(M[i, j], M[i, k])
-                ay = math.atan2(sy, M[i, i])
-                az = math.atan2(M[j, i], -M[k, i])
-            else:
-                ax = math.atan2(-M[j, k], M[j, j])
-                ay = math.atan2(sy, M[i, i])
-                az = 0.0
-        else:
-            cy = math.sqrt(M[i, i] * M[i, i] + M[j, i] * M[j, i])
-            if cy > _EPS:
-                ax = math.atan2(M[k, j], M[k, k])
-                ay = math.atan2(-M[k, i], cy)
-                az = math.atan2(M[j, i], M[i, i])
-            else:
-                ax = math.atan2(-M[j, k], M[j, j])
-                ay = math.atan2(-M[k, i], cy)
-                az = 0.0
-
-        if parity:
-            ax, ay, az = -ax, -ay, -az
-        if frame:
-            ax, az = az, ax
-        return ax, ay, az
     def euler_matrix(ai, aj, ak, axes='szyz'):
         """Return homogeneous rotation matrix from Euler angles and axis sequence.
         ai, aj, ak : Euler's roll, pitch and yaw angles
@@ -499,7 +464,8 @@ if __name__ == "__main__":
         zone = [[] for _ in range((len(limits_tilt) - 1) * (len(limits_rot) - 1))]
         i = 0
         map_region = []
-        regions_map = [[] for _ in range(2)]
+        regions_map = [[] for _ in range(4)]
+
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             img_shift.append(np.array((sX, sY)))
             zone_rot = np.digitize(r, limits_rot, right=True) - 1
@@ -510,9 +476,10 @@ if __name__ == "__main__":
 
             matrix = euler_angles_to_matrix([r * math.pi / 180, t * math.pi / 180, p * math.pi / 180], 0.)
             S_inv = map_symmetries(matrix, inverse_matrices, np.eye(3))
-            index_map = 1
-            if map_symmetries_index(S_inv, inverse_sqrt_matrices, np.eye(3)) == 0:
-                index_map = 0
+            index_map = map_symmetries_index(S_inv, inverse_sqrt_matrices, np.eye(3))
+            index_map = round(index_map / 1.99)
+            if index_map > 3:
+                index_map = 3
             map_region.append(index_map)
             regions_map[index_map].append(i)
             label.append(np.array((r, t, p)))
@@ -523,182 +490,147 @@ if __name__ == "__main__":
     import tensorflow as tf
     import keras.backend as K
 
-
-    def rotation6d_to_matrix(rot):
-        a1 = rot[:, slice(0, 6, 2)]
-        a2 = rot[:, slice(1, 6, 2)]
-        a1 = K.reshape(a1, (-1, 3))
-        a2 = K.reshape(a2, (-1, 3))
-        b1 = tf.linalg.normalize(a1, axis=1)[0]
-        b3 = tf.linalg.cross(b1, a2)
-        b3 = tf.linalg.normalize(b3, axis=1)[0]
-        b2 = tf.linalg.cross(b3, b1)
-        b1 = K.expand_dims(b1, axis=2)
-        b2 = K.expand_dims(b2, axis=2)
-        b3 = K.expand_dims(b3, axis=2)
-        return K.concatenate((b1, b2, b3), axis=2)
-
-
-    def eq_matrices(y_true, R):
-        tfR = tf.constant(R)
-        tfR = tf.transpose(tfR, perm=[1, 0, 2])
-        # I could have a number and pass it...
-        # Reshape the tensor to (3, ?)
-        matrices = tf.reshape(tfR, (3, -1))
-
-        eq_rotations = tf.matmul(y_true, matrices)
-
-        shape = tf.shape(eq_rotations)
-        eq_rotations = tf.reshape(eq_rotations, [shape[0], -1, shape[1]])
-        eq_rotations6d = eq_rotations[:, :, :-1]
-        return tf.reshape(eq_rotations6d, [shape[0], shape[1], -1])
-
-
-    def compute_distances(y_pred, eq_y_true):
-        a1 = y_pred[:, slice(0, 6, 2)]
-        a2 = y_pred[:, slice(1, 6, 2)]
-        a1 = tf.linalg.normalize(a1, axis=1)[0]
-        a2 = tf.linalg.normalize(a2, axis=1)[0]
-        a1 = tf.expand_dims(a1, axis=-1)
-        a2 = tf.expand_dims(a2, axis=-1)
-
-        mat_pred = tf.concat([a1, a2], axis=-1)
-
-        odd_columns = eq_y_true[:, :, ::2]
-        even_columns = eq_y_true[:, :, 1::2]
-        odd_columns_expanded = tf.expand_dims(odd_columns, axis=0)
-        even_columns_expanded = tf.expand_dims(even_columns, axis=0)
-
-        # Perform dot multiplication between columns
-        dot_product = tf.multiply(mat_pred[:, :, 0:1], odd_columns_expanded) + tf.multiply(mat_pred[:, :, 1:2],
-                                                                                           even_columns_expanded)
-        # return dot_product
-        # Reduce the result along the second dimension
-        distances = -tf.reduce_sum(dot_product, axis=2)
-
-        return distances
-
-
-    def geodesic_distance_symmetries(y_true, y_pred):
-        mat_true = rotation6d_to_matrix(y_true)
-        eq_true = eq_matrices(mat_true, Matrices)
-        ds = compute_distances(y_pred, eq_true)
-        d = tf.reduce_min(ds, axis=2, keepdims=True)
-
-        return K.mean(d)
-
-
     Xdims, fnImgs, labels, zones, shifts, map_regions, regions_map = get_labels(fnXmdExp)
     start_time = time()
 
-    # Train-Validation sets
-    if numModels == 1:
-        lenTrain = int(len(fnImgs) * 0.8)
-        lenVal = len(fnImgs) - lenTrain
-    else:
-        lenTrain = int(len(fnImgs) / 3)
-        lenVal = int(len(fnImgs) / 12)
+    non_void_regions = []
 
-    elements_zone = int((lenVal + lenTrain) / len(zones))
+    for index, sublist in enumerate(regions_map):
+        if len(sublist) > 0:
+            non_void_regions.append(index)
 
-    histlabels0 = regions_map[0]
+    num_non_void_regions = len(non_void_regions)
 
-    histlabels1 = regions_map[1]
+
+    def fill_regions_map(regions_list):
+        max_num_elements = max(len(sublist) for sublist in regions_list if sublist)
+        print('max_num_elements', max_num_elements)
+
+        for sublist in regions_list:
+            print(len(sublist))
+            if sublist:
+                while len(sublist) < max_num_elements:
+                    sublist.append(random.choice(sublist))
+        return regions_list
+
 
     for index in range(numModels):
+
+        if numModels == 1:
+            lenTrain = int(len(fnImgs) * 0.8)
+            lenVal = len(fnImgs) - lenTrain
+        else:
+            lenTrain = int(len(fnImgs) / 20)
+            lenVal = int(len(fnImgs) / 80)
+
+        regions_map_train = []
+        regions_map_val = []
+        for sublist in regions_map:
+            lenValList = int((len(sublist) / len(fnImgs)) * lenVal)
+            random.shuffle(sublist)
+            regions_map_val.append(sublist[0: lenValList])
+            regions_map_train.append(sublist[lenValList: len(sublist)])
+
+        regions_map_train_filled = fill_regions_map(regions_map_train)
+
+        flat_regions_map_train = [item for sublist in regions_map_train_filled for item in sublist]
+        flat_regions_map_val = [item for sublist in regions_map_val for item in sublist]
+
+        elements_zone = int((lenVal + lenTrain) / len(zones))
+
         folder_path = fnModel + '/model' + str(index)
         # chooses equal number of particles for each division
         classifier = False
         if symmetry != 'C1':
             classifier = True
-            # Train-Validation sets
-            if numModels == 1:
-                lenTrain = int(len(fnImgs) * 0.8)
-                lenVal = len(fnImgs) - lenTrain
-            else:
-                lenTrain = int(len(fnImgs) / 5)
-                lenVal = int(len(fnImgs) / 20)
 
-            random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain + lenVal, replace=False)
+            random_sample_train = np.random.choice(flat_regions_map_train, size=lenTrain, replace=False)
+            random_sample_val = flat_regions_map_val
 
-            training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
-                                               [labels[i] for i in random_sample[0:lenTrain]],
-                                               sigma, batch_size, Xdims, [shifts[i] for i in random_sample[0:lenTrain]],
+            training_generator = DataGenerator([fnImgs[i] for i in random_sample_train],
+                                               [labels[i] for i in random_sample_train],
+                                               sigma, batch_size, Xdims, [shifts[i] for i in random_sample_train],
                                                readInMemory=False,
                                                bool_classifier=classifier,
-                                               map_domains=[map_regions[i] for i in random_sample[0:lenTrain]],
+                                               map_domains=[map_regions[i] for i in random_sample_train],
                                                target_domain_matrices=target_matrices, inv_matrices=inverse_matrices,
                                                inv_sqrt_matrices=inverse_sqrt_matrices)
-            validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                                 sigma, batch_size, Xdims, [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+            validation_generator = DataGenerator([fnImgs[i] for i in random_sample_val],
+                                                 [labels[i] for i in random_sample_val],
+                                                 sigma, batch_size, Xdims,
+                                                 [shifts[i] for i in random_sample_val],
                                                  readInMemory=False,
                                                  bool_classifier=classifier,
-                                                 map_domains=[map_regions[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                 map_domains=[map_regions[i] for i in
+                                                              random_sample_val],
                                                  target_domain_matrices=target_matrices, inv_matrices=inverse_matrices,
                                                  inv_sqrt_matrices=inverse_sqrt_matrices)
 
-            model = constructClassifier(Xdims)
+            model = constructClassifier(Xdims, classes=4)
             adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
             model.summary()
 
             model.compile(loss='categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
             save_best_model = ModelCheckpoint(folder_path + '/classifier' + '.h5', monitor='val_loss',
                                               save_best_only=True)
-            patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
+            patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2 * patience)
 
-            history = model.fit_generator(generator=training_generator, epochs=numEpochs,
+            history = model.fit_generator(generator=training_generator, epochs=10,
                                           validation_data=validation_generator,
                                           callbacks=[save_best_model, patienceCallBack])
 
         classifier = False
-        for j in range(2):
+        for j in range(4):
             print('len regions map', len(regions_map[j]))
             if numModels == 1:
                 lenTrain = int(len(regions_map[j]) * 0.8)
                 lenVal = len(regions_map[j]) - lenTrain
             else:
-                lenTrain = int(len(regions_map[j]) / 3)
-                lenVal = int(len(regions_map[j]) / 12)
+                lenTrain = int(len(regions_map[j]) / 5)
+                lenVal = int(len(regions_map[j]) / 20)
             print('lenTrain', lenTrain)
             print('lenVal', lenVal)
 
-            random_sample = np.random.choice(regions_map[j], size=lenTrain + lenVal, replace=False)
+            if lenVal > 0:
+                random_sample = np.random.choice(regions_map[j], size=lenTrain + lenVal, replace=False)
 
-            training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
-                                           [labels[i] for i in random_sample[0:lenTrain]],
-                                           sigma, batch_size, Xdims, [shifts[i] for i in random_sample[0:lenTrain]],
-                                           readInMemory=False, bool_classifier=classifier,
-                                           map_domains=[map_regions[i] for i in random_sample[0:lenTrain]],
-                                           target_domain_matrices=target_matrices[j], inv_matrices=inverse_matrices,
-                                           inv_sqrt_matrices=inverse_sqrt_matrices)
-            validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                             [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                             sigma, batch_size, Xdims, [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                             readInMemory=False, bool_classifier=classifier,
-                                             map_domains=[map_regions[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
-                                             target_domain_matrices=target_matrices[j], inv_matrices=inverse_matrices,
-                                             inv_sqrt_matrices=inverse_sqrt_matrices)
+                training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
+                                                   [labels[i] for i in random_sample[0:lenTrain]],
+                                                   sigma, batch_size, Xdims,
+                                                   [shifts[i] for i in random_sample[0:lenTrain]],
+                                                   readInMemory=False, bool_classifier=classifier,
+                                                   map_domains=[map_regions[i] for i in random_sample[0:lenTrain]],
+                                                   target_domain_matrices=target_matrices[j],
+                                                   inv_matrices=inverse_matrices,
+                                                   inv_sqrt_matrices=inverse_sqrt_matrices)
+                validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                     [labels[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                     sigma, batch_size, Xdims,
+                                                     [shifts[i] for i in random_sample[lenTrain:lenTrain + lenVal]],
+                                                     readInMemory=False, bool_classifier=classifier,
+                                                     map_domains=[map_regions[i] for i in
+                                                                  random_sample[lenTrain:lenTrain + lenVal]],
+                                                     target_domain_matrices=target_matrices[j],
+                                                     inv_matrices=inverse_matrices,
+                                                     inv_sqrt_matrices=inverse_sqrt_matrices)
 
+                # if pretrained == 'yes':
+                #    model = load_model(fnPreModel, compile=False)
+                # else:
+                #    model = constructModel(Xdims)
 
+                model = constructModel(Xdims)
+                adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
+                model.summary()
 
-            #if pretrained == 'yes':
-            #    model = load_model(fnPreModel, compile=False)
-            #else:
-            #    model = constructModel(Xdims)
+                model.compile(loss='mean_squared_error', optimizer=adam_opt)
+                save_best_model = ModelCheckpoint(folder_path + '/modelAng' + str(j) + '.h5', monitor='val_loss',
+                                                  save_best_only=True)
+                patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
-            model = constructModel(Xdims)
-            adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
-            model.summary()
-
-            model.compile(loss='mean_squared_error', optimizer=adam_opt)
-            save_best_model = ModelCheckpoint(folder_path + '/modelAng' + str(j) + '.h5', monitor='val_loss',
-                                              save_best_only=True)
-            patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
-
-            history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                          validation_data=validation_generator,
-                                          callbacks=[save_best_model, patienceCallBack])
+                history = model.fit_generator(generator=training_generator, epochs=numEpochs,
+                                              validation_data=validation_generator,
+                                              callbacks=[save_best_model, patienceCallBack])
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
