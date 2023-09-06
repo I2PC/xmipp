@@ -42,11 +42,13 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
         
     # Perform the PCA analysis
     avg = scratch.mean(dim=0)
+    scratch -= avg
+    _,_,v = torch.svd(scratch)
+
     
     plt.imshow(avg.view(256, 256))
     plt.show()
     
-    _, _, v = torch.pca_lowrank(scratch)
     direction = v[:,0]
 
     plt.imshow(direction.view(256, 256))

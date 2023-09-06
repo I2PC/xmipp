@@ -105,7 +105,9 @@ def run(images_md_path: str,
     )
     
     # Write classes
-    image.write(classes[:,None,:,:], output_classes_path)
+    output_images = torch.zeros((len(classes), ) + mask.shape, dtype=classes.dtype)
+    output_images[:,mask] = classes.to(output_images.device)
+    image.write(output_images[:,None,:,:].numpy(), output_classes_path)
 
 if __name__ == '__main__':
     # Define the input
