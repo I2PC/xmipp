@@ -52,7 +52,7 @@ def _compute_beam_energy_spread(frequency_magnitude2_grid: torch.Tensor,
     x.square_()
     x *= -1.0 / math.log(2)
     
-    out = torch.mul(x[...,None,None], frequency_magnitude2_grid.square())
+    out = torch.mul(x[...,None,None], frequency_magnitude2_grid.square(), out=out)
     out.exp_()
     
     return out
