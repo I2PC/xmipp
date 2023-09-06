@@ -125,10 +125,10 @@ void PhantomMovie<T>::addCircles(MultidimArray<T> &frame) const
                 if (d >= r - thickness / 2 && d <= r + thickness / 2)
                 {
                     // modify all 4 quadrants
-                    frame.data[(y - j) * xdim - i + x] = val;
-                    frame.data[(y - j) * xdim + i + x] = val;
-                    frame.data[(y + j) * xdim - i + x] = val;
-                    frame.data[(y + j) * xdim + i + x] = val;
+                    frame.data[(y - j) * xdim - i + x] += val;
+                    frame.data[(y - j) * xdim + i + x] += val;
+                    frame.data[(y + j) * xdim - i + x] += val;
+                    frame.data[(y + j) * xdim + i + x] += val;
                 }
             }
         }
@@ -156,10 +156,10 @@ void PhantomMovie<T>::addCrosses(MultidimArray<T> &frame) const
         const auto xdim = frame.xdim;
         for (int d = 0; d < s; ++d) 
         {
-            frame.data[(y - d) * xdim - d + x] = val;
-            frame.data[(y - d) * xdim + d + x] = val;
-            frame.data[(y + d) * xdim - d + x] = val;
-            frame.data[(y + d) * xdim + d + x] = val;
+            frame.data[(y - d) * xdim - d + x] += val;
+            frame.data[(y - d) * xdim + d + x] += val;
+            frame.data[(y + d) * xdim - d + x] += val;
+            frame.data[(y + d) * xdim + d + x] += val;
         }
     };
 
