@@ -71,7 +71,9 @@ def run(images_md_path: str,
     )
     image_size = md.get_image2d_size(images_md)
     
-    mask = torch.ones(image_size, dtype=bool) #TODO
+    #mask = torch.ones(image_size, dtype=bool) #TODO
+    mask = torch.zeros(image_size, dtype=bool) #TODO
+    mask[32:224,32:224] = True
     flattener = operators.MaskFlattener(
         mask=mask,
         device=transform_device
