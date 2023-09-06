@@ -1,4 +1,3 @@
-from . import alignment
 # ***************************************************************************
 # * Authors:     Oier Lauzirika Zarrabeitia (oierlauzi@bizkaia.eu)
 # *
