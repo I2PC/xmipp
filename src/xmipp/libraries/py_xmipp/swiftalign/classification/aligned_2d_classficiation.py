@@ -43,13 +43,13 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
     # Perform the PCA analysis
     avg = scratch.mean(dim=0)
     
-    plt.imshow(avg.view(192, 192))
+    plt.imshow(avg.view(256, 256))
     plt.show()
     
     _, _, v = torch.pca_lowrank(scratch)
     direction = v[:,0]
 
-    plt.imshow(direction.view(192, 192))
+    plt.imshow(direction.view(256, 256))
     plt.show()
 
     projections = torch.matmul(scratch, direction[...,None])[:,0]
@@ -66,8 +66,8 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
     fig, (ax1, ax2) = plt.subplots(1, 2)
     vmin = result.min()
     vmax = result.max()
-    ax1.imshow(result[0].view(192, 192), vmin=vmin, vmax=vmax)
-    ax2.imshow(result[1].view(192, 192), vmin=vmin, vmax=vmax)
+    ax1.imshow(result[0].view(256, 256), vmin=vmin, vmax=vmax)
+    ax2.imshow(result[1].view(256, 256), vmin=vmin, vmax=vmax)
     plt.show()
 
-    return None, None
+    return result
