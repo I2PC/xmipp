@@ -181,8 +181,8 @@ def run(images_md_path: str,
 if __name__ == '__main__':
     # Define the input
     parser = argparse.ArgumentParser(
-                        prog = 'Align Nearest Neighbor Training',
-                        description = 'Align Cryo-EM images using a fast Nearest Neighbor approach')
+                        prog = 'Wiener 2D',
+                        description = 'Correct particle CTF using a Wiener filter')
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
     parser.add_argument('--pixel_size', type=float, required=True)
