@@ -44,6 +44,7 @@ def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFram
 def run(images_md_path: str, 
         output_classes_path: str, 
         scratch_path: Optional[str],
+        mask_path: Optional[str],
         batch_size: int,
         device_names: list ):
     
@@ -71,8 +72,10 @@ def run(images_md_path: str,
     )
     image_size = md.get_image2d_size(images_md)
     
-    #mask = torch.ones(image_size, dtype=bool) #TODO
-    mask = torch.zeros(image_size, dtype=bool) #TODO
+    if mask_path is not None:
+        mask = image.read(mask_path)
+    else:
+        mask = torch.ones(image_size, dtype=bool) #TODO
     mask[32:224,32:224] = True
     flattener = operators.MaskFlattener(
         mask=mask,
