@@ -122,7 +122,7 @@ void PhantomMovie<T>::addCircles(MultidimArray<T> &frame) const
             {
                 // test top right quadrant
                 int d = sqrt(j * j + i * i);
-                if (d >= r - thickness && d <= r + thickness)
+                if (d >= r - thickness / 2 && d <= r + thickness / 2)
                 {
                     // modify all 4 quadrants
                     frame.data[(y - j) * xdim - i + x] = val;
@@ -135,8 +135,9 @@ void PhantomMovie<T>::addCircles(MultidimArray<T> &frame) const
     };
 
     std::mt19937 gen(content.seed);
-    std::uniform_int_distribution<size_t> distX(content.maxSize / 2 + content.thickness / 2, frame.xdim - 1 - content.maxSize / 2 - content.thickness / 2);
-    std::uniform_int_distribution<size_t> distY(content.maxSize / 2 + content.thickness / 2, frame.ydim - 1 - content.maxSize / 2 - content.thickness / 2);
+    const auto border = content.maxSize / 2 + content.thickness / 2 + 3; // + 3 for various rounding errors 
+    std::uniform_int_distribution<size_t> distX(border, frame.xdim - border);
+    std::uniform_int_distribution<size_t> distY(border, frame.ydim - border);
     std::uniform_int_distribution<> size(content.minSize, content.maxSize);
     for (auto i = 0; i < content.count; ++i) {
         auto r = size(gen) / 2;
