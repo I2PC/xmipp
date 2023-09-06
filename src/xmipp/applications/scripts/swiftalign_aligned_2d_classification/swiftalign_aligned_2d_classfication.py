@@ -115,6 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
     parser.add_argument('--scratch')
+    parser.add_argument('--mask')
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--device', nargs='*')
 
@@ -126,6 +127,7 @@ if __name__ == '__main__':
         images_md_path = args.i,
         output_classes_path = args.o,
         scratch_path = args.scratch,
+        mask_path = args.mask,
         batch_size = args.batch,
         device_names = args.device
     )
