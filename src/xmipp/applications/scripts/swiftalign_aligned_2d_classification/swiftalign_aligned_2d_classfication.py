@@ -33,7 +33,7 @@ import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.metadata as md
 import xmippPyModules.swiftalign.alignment as alignment
 import xmippPyModules.swiftalign.classification as classification
-import xmippPyModules.swiftalign.classification as operators
+import xmippPyModules.swiftalign.operators as operators
 
 def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFrame:
     for i in range(0, len(df), batch_size):
@@ -61,9 +61,11 @@ def run(images_md_path: str,
     images_dataset = image.torch_utils.Dataset(images_paths)
     images_loader = torch.utils.data.DataLoader(
         images_dataset,
-        sampler=torch.utils.data.BatchSampler(
-            torch.utils.data.SequentialSampler(images_dataset), batch_size=batch_size, drop_last=False
-        ),
+        #sampler=torch.utils.data.BatchSampler(
+        #    torch.utils.data.SequentialSampler(images_dataset), batch_size=batch_size, drop_last=False
+        #),
+        batch_size=batch_size,
+        drop_last=False,
         pin_memory=pin_memory,
         num_workers=1
     )
@@ -90,11 +92,10 @@ def run(images_md_path: str,
     else:
         scratch = torch.empty(training_set_shape, device=transform_device)
 
-    variance, direction = classification.aligned_2d_classification(
-        image_transformer(zip(images_loader, _dataframe_batch_generator(images_md))),
+    cls1, cls2 = classification.aligned_2d_classification(
+        image_transformer(zip(images_loader, _dataframe_batch_generator(images_md, batch_size))),
         scratch
     )
-
 
 if __name__ == '__main__':
     # Define the input

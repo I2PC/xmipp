@@ -36,9 +36,9 @@ class InPlaneTransformCorrector:
                  device: Optional[torch.device] = None ) -> None:
 
         # Operations
-        self.fourier = operators.FourierTransformer2D()
         self.flattener = flattener
         self.interpolation = interpolation
+        self.norm = None
         
         # Device
         self.device = device
@@ -75,7 +75,7 @@ class InPlaneTransformCorrector:
                 shift_first=True,
                 out=transform_matrix
             )
-        
+
             transformed_images = transform.affine_2d(
                 images=batch_images,
                 matrices=transform_matrix.to(batch_images, non_blocking=True),
