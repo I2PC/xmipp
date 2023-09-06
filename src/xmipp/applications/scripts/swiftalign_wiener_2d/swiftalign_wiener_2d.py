@@ -32,6 +32,8 @@ import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.fourier as fourier
 import xmippPyModules.swiftalign.ctf as ctf
 import xmippPyModules.swiftalign.metadata as md
+import xmippPyModules.swiftalign.utils as utils
+
 
 def _compute_polar_frequency_grid_2d(cartesian: torch.Tensor) -> torch.Tensor:
     result = torch.empty_like(cartesian)
@@ -167,9 +169,8 @@ def run(images_md_path: str,
         output_images[batch_slice,0] = batch_images.to('cpu', non_blocking=True)
         
         # Prepare for the next batch
+        utils.progress_bar(end, len(images_md))
         start = end
-        progress = end / len(images_md)
-        print('{:.2f}%'.format(100*progress))
         
     assert(end == len(images_md))
 
