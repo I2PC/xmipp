@@ -432,26 +432,40 @@ def printVersion():
     else:
         runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
                show_command=False, log=log)
-        log = '\n'.join(log)
-        log = log.replace('\x1b[4m', '')
-        log = log.replace('\x1b[24m', '')
-        log = log.replace('\x1b[1m', '')
-        log = log.replace('\x1b[0m', '')
-    log2 = []
-    runJob('cmake --version', log=log2, show_command=False, show_output=False)
-    print('  {}'.format(log2[0]))
-    log3 = []
-    if runJob('nvcc --version', log=log3, show_command=False, show_output=False):
-        log3 = ''.join(log3)
-        log3 = log3[log3.find('release'):log3.find('release') + 12]
-        print('  nvcc version:     {}'.format(log3))
+        if not log:
+            log = 'System information not available'
+        else:
+            log = '\n'.join(log)
+            log = log.replace('\x1b[4m', '')
+            log = log.replace('\x1b[24m', '')
+            log = log.replace('\x1b[1m', '')
+            log = log.replace('\x1b[0m', '')
+
+    logCmake = []
+    runJob('cmake --version', log=logCmake, show_command=False, show_output=False)
+    if not logCmake:
+        logCmake = 'cmake information not available'
+    else:
+        logCmake = logCmake[0]
+    print('  {}'.format(logCmake))
+
+    logNvcc = []
+    runJob('nvcc --version', log=logNvcc, show_command=False, show_output=False)
+    if not logNvcc:
+        logNvcc = 'nvcc information not available'
+    else:
+        logNvcc = ''.join(logNvcc)
+        logNvcc = logNvcc[logNvcc.find('release'):logNvcc.find('release') + 12]
+    print('  nvcc version:     {}'.format(logNvcc))
 
     with open(VERSION_FILE, 'w') as f:
-        f.write(str(log))
+        if log:
+            f.write(log)
         f.write('\n  nvcc version:     ')
-        f.write(log3)
+        f.write(logNvcc)
         f.write('\n  ')
-        f.write(log2[0])
+        f.write(logCmake)
+       
 
 def getScipionHome():
     """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
