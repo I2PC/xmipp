@@ -42,7 +42,7 @@ def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFram
         yield df[start:end]
         
 def run(images_md_path: str, 
-        output_md_path: str, 
+        output_classes_path: str, 
         scratch_path: Optional[str],
         batch_size: int,
         device_names: list ):
@@ -94,10 +94,13 @@ def run(images_md_path: str,
     else:
         scratch = torch.empty(training_set_shape, device=transform_device)
 
-    cls1, cls2 = classification.aligned_2d_classification(
+    classes = classification.aligned_2d_classification(
         image_transformer(zip(images_loader, _dataframe_batch_generator(images_md, batch_size))),
         scratch
     )
+    
+    # Write classes
+    image.write(classes[:,None,:,:], output_classes_path)
 
 if __name__ == '__main__':
     # Define the input
@@ -116,7 +119,7 @@ if __name__ == '__main__':
     # Run the program
     run(
         images_md_path = args.i,
-        output_md_path = args.o,
+        output_classes_path = args.o,
         scratch_path = args.scratch,
         batch_size = args.batch,
         device_names = args.device
