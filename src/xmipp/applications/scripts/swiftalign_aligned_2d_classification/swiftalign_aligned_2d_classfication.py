@@ -72,10 +72,13 @@ def run(images_md_path: str,
     )
     image_size = md.get_image2d_size(images_md)
     
+    # Read the mask
     if mask_path is not None:
         mask = image.read(mask_path)
     else:
         mask = torch.ones(image_size, dtype=bool)
+
+    # Create the flattener and transformer
     flattener = operators.MaskFlattener(
         mask=mask,
         device=transform_device
