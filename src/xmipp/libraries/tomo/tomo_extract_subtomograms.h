@@ -36,7 +36,7 @@
 #include <complex>
 #include <string>
 
-#define DEBUG
+// #define DEBUG
 
 
 class ProgTomoExtractSubtomograms : public XmippProgram
