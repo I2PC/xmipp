@@ -55,6 +55,7 @@ class InPlaneTransformCorrector:
         angles = None
         transoform_matrices = None
         transform_matrix = None
+        relative_matrix = None
         transformed_images = None
         flattened_images = None
         
@@ -83,7 +84,11 @@ class InPlaneTransformCorrector:
                     out=transoform_matrices
                 )
 
-                relative_matrix = torch.matmul(self.align_to_matrix.mT, transoform_matrices)
+                relative_matrix = torch.matmul(
+                    self.align_to_matrix.mT, 
+                    transoform_matrices,
+                    out=relative_matrix
+                )
                 
                 s = relative_matrix[...,1,0]
                 c = relative_matrix[...,1,1]
