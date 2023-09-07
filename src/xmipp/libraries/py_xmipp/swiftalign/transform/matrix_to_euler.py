@@ -30,13 +30,13 @@ def matrix_to_euler(m: torch.Tensor,
     sy = torch.norm(m[...,2,0:2], dim=-1)
     
     gimbal_lock = sy < eps
-    rot = -torch.where(
+    psi = -torch.where(
         gimbal_lock, 
         torch.atan2(-m[...,1,0], m[...,1,1]), 
         torch.atan2(m[...,2,1], m[...,2,0])
     )
     tilt = -torch.atan2(sy, m[...,2,2])
-    psi = -torch.where(
+    rot = -torch.where(
         gimbal_lock, 
         torch.zeros(tuple(), dtype=m.dtype, device=m.device),
         torch.atan2(m[...,1,2], -m[...,0,2])
