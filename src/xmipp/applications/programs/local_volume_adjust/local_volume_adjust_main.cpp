@@ -1,9 +1,7 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano                   coss@cnb.csic.es
- * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
- * 
+ * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,49 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_TOMO_EXTRACT_SUBTOMOS
-#define _PROG_TOMO_EXTRACT_SUBTOMOS
+#include <reconstruction/local_volume_adjust.cpp>
 
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fftw.h>
-#include <limits>
-#include <complex>
-#include <string>
-
-// #define DEBUG
-
-
-class ProgTomoExtractSubtomograms : public XmippProgram
-{
-public:
-	 /** Filenames */
-	FileName fnOut;
-    FileName fnTom;
-    FileName fnCoor;
-
-    size_t Xdim;
-    size_t Ydim;
-    size_t Zdim;
-
-    bool invertContrast;
-    bool normalize;
-    bool downsample;
-
-    double scaleFactor;
-    double downsampleFactor;
-
-	/** Is the volume previously masked?*/
-	int boxsize;
-    int nthrs;
-
-public:
-
-    void defineParams();
-    void readParams();
-    void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
-    void run();
-};
-//@}
-#endif
+RUN_XMIPP_PROGRAM(ProgLocalVolumeAdjust)

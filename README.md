@@ -8,7 +8,7 @@
 Xmipp is a suite of image processing programs, primarily aimed at single-particle 3D electron microscopy, designed and managed by the [Biocomputing Unit](http://biocomputingunit.es/) located in Madrid, Spain.
 
 The Xmipp project is divided into four repositories. 
-This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the compilation/installation process.
+This is the main repository, which contains the majority of the source code for the programs, additional scripts, and tests. Three remaining repositories, [XmippCore](https://github.com/I2PC/xmippCore/), [XmippViz](https://github.com/I2PC/xmippViz/), and [Scipion-em-xmipp](https://github.com/I2PC/scipion-em-xmipp), are automatically downloaded during the installation process.
 
 
 ## Getting started
@@ -17,7 +17,7 @@ The recommended way for users (not developers) to install and use Xmipp is via t
 ## Installation requirements
 ### Supported OS
 We have tested Xmipp compilation on the following operating systems:
-[Ubuntu 16.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-16.04), [Ubuntu 18.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-18.04), [Ubuntu 20.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-20.04), [Ubuntu 22.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-22.04), [Centos 7](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-CentOS-7-9.2009). Visit the OS wiki page for more details.
+[Ubuntu 18.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-18.04), [Ubuntu 20.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-20.04), [Ubuntu 22.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-22.04), [Centos 7](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-CentOS-7-9.2009). Visit the OS wiki page for more details.
 
 While compilation and execution might be possible on other systems, it might not be straightforward. If you encounter a problem, please refer to known and fixed [issues](https://github.com/I2PC/xmipp/issues?q=is%3Aissue). Let us know if something is not working.
 
@@ -26,7 +26,7 @@ At least 2 processors are required to run Xmipp. In some virtual machine tools o
 
 ### Software dependencies
 #### Compiler
-Xmipp requires C++17 compatible compiler. We recommend GCC, we have good experience with GCC-8.3 in any case a version > 8 is required. If use GCC-10.3 and CUDA=11 and experience issues, [please change the compiler version](https://github.com/NVIDIA/nccl/issues/494). If use GCC-11 and experience issues, [please visit this.](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
+Xmipp requires C++17 compatible compiler. We recommend GCC with G++, we have good experience with GCC/G++-8.4 in any case a version >= 8.4 is required. If use GCC/G++-10.3 and CUDA=11 and experience issues, [please change the compiler version](https://github.com/NVIDIA/nccl/issues/494). If use GCC-11 and experience issues, [please visit this](https://github.com/I2PC/xmipp/issues/583). For more details about the compilation proces and installation of gcc, please visit [compiler](https://github.com/I2PC/xmipp/wiki/Compiler)
 
 #### Cmake
 Xmipp requires Cmake 3.16 or above. To update it please [visit](https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install)
@@ -47,7 +47,7 @@ We sometimes see issues regarding the HDF5 dependency. Please visit the [HDF5 Tr
 
 `pip install scons` in the enviroment that xmipp will be compiled (scipion3 if you will run Xmipp within Scipion)
 
-Also a compiler will be required (`sudo apt install gcc-8 g++-8`)
+Also a compiler will be required (`sudo apt install gcc-10 g++-10`)
 
 ## Standalone installation
 Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion, however, in the next section it is explained how to link it with Scipion. Xmipp script automatically downloads several dependencies and then creates a configuration file that contains paths and flags used during the compilation. Please refer to the [Xmipp configuration](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration) guide for more info.
