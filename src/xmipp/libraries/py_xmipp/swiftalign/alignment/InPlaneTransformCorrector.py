@@ -53,9 +53,8 @@ class InPlaneTransformCorrector:
             raise NotImplementedError('Normalization is not implemented')
 
         angles = None
-        transoform_matrices = None
-        transform_matrix = None
-        relative_matrix = None
+        transform_matrices_3d = None
+        transform_matrices_2d = None
         transformed_images = None
         flattened_images = None
         
@@ -68,6 +67,7 @@ class InPlaneTransformCorrector:
             if self.device is not None:
                 batch_images = batch_images.to(self.device, non_blocking=True)
             
+            # Read necessary metadata
             transformations = torch.as_tensor(batch_md[TRANSFORM_LABELS].to_numpy(), dtype=torch.float32)
             angles = torch.deg2rad(transformations[:,0], out=angles)
             shifts = transformations[:,1:]
@@ -77,34 +77,36 @@ class InPlaneTransformCorrector:
                 rot_tilt = torch.as_tensor(batch_md[[md.ANGLE_ROT, md.ANGLE_TILT]].to_numpy(), dtype=torch.float32)
                 rot_tilt.deg2rad_()
                 
-                transoform_matrices = transform.euler_to_matrix(
+                # Compute the transformation relative to 
+                # the average
+                transform_matrices_3d = transform.euler_to_matrix(
                     rot_tilt[:,0],
                     rot_tilt[:,1],
                     angles,
-                    out=transoform_matrices
+                    out=transform_matrices_3d
                 )
-
-                relative_matrix = torch.matmul(
+                relative_transform = torch.matmul(
                     self.align_to_matrix.mT, 
-                    transoform_matrices,
-                    out=relative_matrix
+                    transform_matrices_3d,
                 )
                 
-                s = relative_matrix[...,1,0]
-                c = relative_matrix[...,1,1]
+                # Compute the in plane rotation difference relative to the 
+                # average
+                s = relative_transform[...,1,0]
+                c = relative_transform[...,1,1]
                 angles = torch.atan2(s, c, out=angles)
 
-            transform_matrix = transform.affine_matrix_2d(
+            transform_matrices_2d = transform.affine_matrix_2d(
                 angles=angles,
                 shifts=shifts,
                 centre=centre,
                 shift_first=True,
-                out=transform_matrix
+                out=transform_matrices_2d
             )
 
             transformed_images = transform.affine_2d(
                 images=batch_images,
-                matrices=transform_matrix.to(batch_images, non_blocking=True),
+                matrices=transform_matrices_2d.to(batch_images, non_blocking=True),
                 interpolation=self.interpolation,
                 padding='zeros',
                 out=transformed_images
