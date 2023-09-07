@@ -20,10 +20,26 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from .affine_2d import affine_2d
-from .affine_matrix_2d import affine_matrix_2d
-from .rotation_matrix_2d import rotation_matrix_2d
-from .euler_to_quaternion import euler_to_quaternion
-from .euler_to_matrix import euler_to_matrix
-from .quaternion_to_matrix import quaternion_to_matrix
-from .matrix_to_euler import matrix_to_euler
+from typing import Optional, Tuple
+
+import math
+import torch
+
+def matrix_to_euler(m: torch.Tensor,
+                    eps: float = 1e-6) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    sy = torch.norm(m[...,2,0:2], dim=-1)
+    
+    gimbal_lock = sy < eps
+    rot = -torch.where(
+        gimbal_lock, 
+        torch.atan2(-m[...,1,0], m[...,1,1]), 
+        torch.atan2(m[...,2,1], m[...,2,0])
+    )
+    tilt = -torch.atan2(sy, m[...,2,2])
+    psi = -torch.where(
+        gimbal_lock, 
+        torch.zeros(tuple(), dtype=m.dtype, device=m.device),
+        torch.atan2(m[...,1,2], -m[...,0,2])
+    )
+    
+    return rot, tilt, psi
