@@ -36,7 +36,7 @@
 #include <complex>
 #include <string>
 
-// #define DEBUG
+#define DEBUG
 
 
 class ProgTomoExtractSubtomograms : public XmippProgram
@@ -54,6 +54,7 @@ public:
     bool invertContrast;
     bool normalize;
     bool downsample;
+    bool fixedBoxSize;
 
     double scaleFactor;
     double downsampleFactor;
