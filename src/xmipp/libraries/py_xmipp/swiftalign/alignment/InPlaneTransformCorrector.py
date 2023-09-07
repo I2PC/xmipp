@@ -26,19 +26,22 @@ import torch
 
 from .. import operators
 from .. import transform
-from .. import math
 from .. import metadata as md
+
+import matplotlib.pyplot as plt
 
 class InPlaneTransformCorrector:
     def __init__(self,
                  flattener: operators.MaskFlattener,
                  interpolation: str = 'bilinear',
+                 align_to_matrix: Optional[torch.Tensor] = None,
                  device: Optional[torch.device] = None ) -> None:
 
         # Operations
         self.flattener = flattener
         self.interpolation = interpolation
         self.norm = None
+        self.align_to_matrix = align_to_matrix
         
         # Device
         self.device = device
@@ -50,6 +53,7 @@ class InPlaneTransformCorrector:
             raise NotImplementedError('Normalization is not implemented')
 
         angles = None
+        transoform_matrices = None
         transform_matrix = None
         transformed_images = None
         flattened_images = None
@@ -67,6 +71,23 @@ class InPlaneTransformCorrector:
             angles = torch.deg2rad(transformations[:,0], out=angles)
             shifts = transformations[:,1:]
             centre = torch.tensor(batch_images.shape[-2:]) / 2
+
+            if self.align_to_matrix is not None:
+                rot_tilt = torch.as_tensor(batch_md[[md.ANGLE_ROT, md.ANGLE_TILT]].to_numpy(), dtype=torch.float32)
+                rot_tilt.deg2rad_()
+                
+                transoform_matrices = transform.euler_to_matrix(
+                    rot_tilt[:,0],
+                    rot_tilt[:,1],
+                    angles,
+                    out=transoform_matrices
+                )
+
+                relative_matrix = torch.matmul(self.align_to_matrix.mT, transoform_matrices)
+                
+                s = relative_matrix[...,1,0]
+                c = relative_matrix[...,1,1]
+                angles = torch.atan2(s, c, out=angles)
 
             transform_matrix = transform.affine_matrix_2d(
                 angles=angles,

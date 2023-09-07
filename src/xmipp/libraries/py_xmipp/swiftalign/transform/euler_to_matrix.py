@@ -36,9 +36,9 @@ def euler_to_matrix(rot: torch.Tensor,
     device = rot.device
     out = torch.empty(result_shape, dtype=dtype, device=device, out=out)
 
-    ai = -rot
+    ai = -psi
     aj = -tilt
-    ak = -psi 
+    ak = -rot 
 
     # Obtain sin and cos of the half angles
     ci = torch.cos(ai)

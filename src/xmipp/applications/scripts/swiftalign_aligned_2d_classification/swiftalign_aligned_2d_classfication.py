@@ -22,7 +22,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Sequence
 
 import torch
 import argparse
@@ -34,6 +34,7 @@ import xmippPyModules.swiftalign.metadata as md
 import xmippPyModules.swiftalign.alignment as alignment
 import xmippPyModules.swiftalign.classification as classification
 import xmippPyModules.swiftalign.operators as operators
+import xmippPyModules.swiftalign.transform as transform
 
 def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFrame:
     for i in range(0, len(df), batch_size):
@@ -45,6 +46,7 @@ def run(images_md_path: str,
         output_classes_path: str, 
         scratch_path: Optional[str],
         mask_path: Optional[str],
+        align_to: Optional[Sequence[int]],
         batch_size: int,
         device_names: list ):
     
@@ -77,7 +79,16 @@ def run(images_md_path: str,
         mask = image.read(mask_path)
     else:
         mask = torch.ones(image_size, dtype=bool)
-
+    
+    # Compute the alignment matrix
+    align_to_matrix = None
+    if align_to is not None:
+        align_to_matrix = transform.euler_to_matrix(
+            torch.tensor(math.radians(float(align_to[0]))),
+            torch.tensor(math.radians(float(align_to[1]))),
+            torch.tensor(math.radians(float(align_to[2])))
+        )
+    
     # Create the flattener and transformer
     flattener = operators.MaskFlattener(
         mask=mask,
@@ -85,9 +96,10 @@ def run(images_md_path: str,
     )
     image_transformer = alignment.InPlaneTransformCorrector(
         flattener=flattener,
+        align_to_matrix=align_to_matrix,
         device=transform_device
     )
-    
+
     # Create the storage for the training set.
     # This will be LARGE. Therefore provide a MMAP path
     training_set_shape = (len(images_md), flattener.get_length())
@@ -118,6 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', required=True)
     parser.add_argument('--scratch')
     parser.add_argument('--mask')
+    parser.add_argument('--align_to', nargs=3)
     parser.add_argument('--batch', type=int, default=1024)
     parser.add_argument('--device', nargs='*')
 
@@ -130,6 +143,7 @@ if __name__ == '__main__':
         output_classes_path = args.o,
         scratch_path = args.scratch,
         mask_path = args.mask,
+        align_to = args.align_to,
         batch_size = args.batch,
         device_names = args.device
     )
