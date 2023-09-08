@@ -21,10 +21,7 @@
 # ***************************************************************************/
 
 from typing import Iterable
-import pandas as pd
 import torch
-
-import matplotlib.pyplot as plt
 
 def aligned_2d_classification(dataset: Iterable[torch.Tensor],
                               scratch: torch.Tensor,
@@ -42,34 +39,16 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
         
     # Perform the PCA analysis
     avg = scratch.mean(dim=0)
-    plt.imshow(avg.view(256, 256))
-    plt.show()
-    
     scratch -= avg
     _,_,v = torch.svd(scratch)
-
-    
     direction = v[:,0]
 
-    plt.imshow(direction.view(256, 256))
-    plt.show()
 
     projections = torch.matmul(scratch, direction[...,None])[:,0]
 
-    plt.hist(projections)
-    plt.show()
-
     quantiles = torch.tensor([q, 1-q], device=projections.device)
     scales = torch.quantile(projections, quantiles)
-    print(scales)
     result = torch.matmul(scales[:,None], direction[None,:])
     result += avg
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    vmin = result.min()
-    vmax = result.max()
-    ax1.imshow(result[0].view(256, 256), vmin=vmin, vmax=vmax)
-    ax2.imshow(result[1].view(256, 256), vmin=vmin, vmax=vmax)
-    plt.show()
 
     return result
