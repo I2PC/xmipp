@@ -23,8 +23,9 @@
 import mrcfile
 import numpy as np
 
-
-def write(data: np.ndarray, path: str):
+def write(data: np.ndarray, path: str, image_stack: bool = False):
     with mrcfile.new(path) as mrc:
         mrc.set_data(data)
+        if image_stack:
+            mrc.set_image_stack()
     
