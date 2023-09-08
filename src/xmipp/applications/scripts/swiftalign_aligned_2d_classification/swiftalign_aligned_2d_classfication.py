@@ -48,7 +48,7 @@ def run(images_md_path: str,
         mask_path: Optional[str],
         align_to: Optional[Sequence[int]],
         batch_size: int,
-        confidence: float,
+        q: float,
         device_names: list ):
     
     # Devices
@@ -115,7 +115,7 @@ def run(images_md_path: str,
     classes = classification.aligned_2d_classification(
         image_transformer(zip(images_loader, _dataframe_batch_generator(images_md, batch_size))),
         scratch,
-        q=confidence
+        q=q
     )
     
     # Write classes
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('--mask')
     parser.add_argument('--align_to', nargs=3)
     parser.add_argument('--batch', type=int, default=1024)
-    parser.add_argument('--confidence', type=float, default=0.1)
+    parser.add_argument('-q', type=float, default=0.1)
     parser.add_argument('--device', nargs='*')
 
     # Parse
@@ -148,6 +148,6 @@ if __name__ == '__main__':
         mask_path = args.mask,
         align_to = args.align_to,
         batch_size = args.batch,
-        confidence = args.confidence,
+        q = args.q,
         device_names = args.device
     )
