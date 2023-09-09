@@ -43,10 +43,12 @@ class ScriptDeepMisalignmentDetection(XmippScript):
                            'strong misalignment and those which do not. If this value is provided the second group of '
                            'tomograms is splitted into two, using this threshold to settle if the tomograms present'
                            'or not a weak misalignment.')
+        self.addParamsLine(' -g <gpuId> : comma separated GPU Ids. Set to -1 to use all CUDA_VISIBLE_DEVICES') 
         self.addParamsLine(' [--misalignmentCriteriaVotes]: Define criteria used for making a decision on the presence '
                            'of misalignment on the tomogram based on the individual scores of each subtomogram. If '
                            'this option is not provided (default) the mean of this scores is calculated. If '
                            'provided a votting system based on if each subtomo score is closer to 0 o 1 is implented. ')
+
         
         # Examples       
         self.addExampleLine('xmipp_deep_misalingment_detection -modelPick 0 --subtomoFilePath path/to/coords.xmd ' 
@@ -80,6 +82,13 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         self.outputSubtomoXmdFilePath = os.path.join(os.path.dirname(self.subtomoFilePath), "misalignmentSubtomoStatistics.xmd")
         self.outputTomoXmdFilePath = os.path.join(os.path.dirname(self.subtomoFilePath), "misalignmentTomoStatistics.xmd")
+
+        # Set CUDA devices
+        gpustr = self.getParam('-g')
+        gpus = [int(item) for item in gpustr.split(",")]
+
+        if not -1 in gpus:
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpustr
 
 
     def generateOutputXmd(self, overallPrediction, predictionAverage, firstPredictionArray, secondPredictionArray):
