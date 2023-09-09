@@ -98,6 +98,7 @@ def run(images_md_path: str,
         mrc_mode=2,
         overwrite=True
     )
+    output_mrc.set_image_stack()
     output_images = torch.as_tensor(output_mrc.data)
     
     # Convert units
