@@ -100,6 +100,8 @@ if __name__=="__main__":
     # nExp = 10000
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
+    translation_vector = torch.zeros(nExp, 2)
+    angles_deg = np.zeros(nExp)
     
     freqBn = torch.load(bands) 
     cvecs = torch.load(vecs)
@@ -263,12 +265,28 @@ if __name__=="__main__":
                 
                 if mode == "create_classes" and iter == 17:
                     refClas[:endBatch] = matches[:, 1]
+                    #extract final angular and shift transformations
+                    rotation_matrix = tMatrix[:, :, :2]
+                    translation_vector[:endBatch] = tMatrix[:, :, 2]
+                    angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
+                    angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
+                    
                 elif mode == "align_classes" and iter == 4:
                     refClas[initBatch:endBatch] = matches[:, 1]
+                    
+                    rotation_matrix = tMatrix[:, :, :2]
+                    translation_vector[initBatch:endBatch] = tMatrix[:, :, 2]
+                    angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
+                    angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())   
     
     
     # print(refClas)
     counts = torch.bincount(refClas.int(), minlength=classes)
+    dim = torch.tensor([dim], dtype=torch.float32, device=translation_vector.device)
+    translation_vector[:, 0] = translation_vector[:, 0] - ( dim * torch.trunc(translation_vector[:, 0]/dim) )
+    translation_vector[:, 1] = translation_vector[:, 1] - ( dim * torch.trunc(translation_vector[:, 1]/dim) )
+                    
+    
     
     # for number, count in enumerate(counts):
     #     if count > 0:
@@ -277,7 +295,7 @@ if __name__=="__main__":
     print(counts.int())
     
     assess = evaluation()
-    assess.updateExpStar(expStar, refClas, output)
+    assess.updateExpStar(expStar, refClas, angles_deg, translation_vector, output)
     assess.createClassesStar(classes, file, counts, output)
 
 
