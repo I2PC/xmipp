@@ -51,4 +51,4 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
     result = torch.matmul(scales[:,None], direction[None,:])
     result += avg
 
-    return result
+    return result, direction

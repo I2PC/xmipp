@@ -43,7 +43,7 @@ def _dataframe_batch_generator(df: pd.DataFrame, batch_size: int) -> pd.DataFram
         yield df[start:end]
         
 def run(images_md_path: str, 
-        output_classes_path: str, 
+        output_root: str, 
         scratch_path: Optional[str],
         mask_path: Optional[str],
         align_to: Optional[Sequence[int]],
@@ -112,16 +112,23 @@ def run(images_md_path: str,
     else:
         scratch = torch.empty(training_set_shape, device=transform_device)
 
-    classes = classification.aligned_2d_classification(
+    classes, direction = classification.aligned_2d_classification(
         image_transformer(zip(images_loader, _dataframe_batch_generator(images_md, batch_size))),
         scratch,
         q=q
     )
     
     # Write classes
+    output_classes_path = output_root + 'classes.mrc'
     output_images = torch.zeros((len(classes), ) + mask.shape, dtype=classes.dtype)
     output_images[:,mask] = classes.to(output_images.device)
-    image.write(output_images[:,:,:].numpy(), output_classes_path, image_stack=True)
+    image.write(output_images.numpy(), output_classes_path, image_stack=True)
+
+    # Write direction
+    output_direction_path = output_root + 'direction.mrc'
+    output_direction = torch.zeros(mask.shape, dtype=direction.dtype)
+    output_direction[mask] = direction.to(output_direction.device)
+    image.write(output_direction.numpy(), output_direction_path)
 
 if __name__ == '__main__':
     # Define the input
@@ -143,7 +150,7 @@ if __name__ == '__main__':
     # Run the program
     run(
         images_md_path = args.i,
-        output_classes_path = args.o,
+        output_root = args.o,
         scratch_path = args.scratch,
         mask_path = args.mask,
         align_to = args.align_to,
