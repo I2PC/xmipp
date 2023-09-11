@@ -119,7 +119,7 @@ def run(images_md_path: str,
     )
     
     # Write classes
-    output_classes_path = output_root + 'classes.mrc'
+    output_classes_path = output_root + 'classes.mrcs'
     output_images = torch.zeros((len(classes), ) + mask.shape, dtype=classes.dtype)
     output_images[:,mask] = classes.to(output_images.device)
     image.write(output_images.numpy(), output_classes_path, image_stack=True)
