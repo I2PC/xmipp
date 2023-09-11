@@ -116,30 +116,26 @@ void PhantomMovie<T>::addCircles(MultidimArray<T> &frame) const
     auto drawCircle = [&frame](const auto r, const auto x, const auto y, const int thickness, const auto val)
     {
         const auto xdim = frame.xdim;
-        for (int j = 0; j <= r + thickness; ++j)
+        for (int j = -r - thickness; j <= r + thickness; ++j)
         {
-            for (int i = 0; i <= r + thickness; ++i)
+            for (int i = -r- thickness; i <= r + thickness; ++i)
             {
-                // test top right quadrant
                 int d = sqrt(j * j + i * i);
                 if (d >= r - thickness / 2 && d <= r + thickness / 2)
                 {
-                    // modify all 4 quadrants
-                    frame.data[(y - j) * xdim - i + x] += val;
-                    frame.data[(y - j) * xdim + i + x] += val;
-                    frame.data[(y + j) * xdim - i + x] += val;
-                    frame.data[(y + j) * xdim + i + x] += val;
+                        frame.data[(y + j) * xdim + i + x] += val;
                 }
             }
         }
     };
 
     std::mt19937 gen(content.seed);
-    const auto border = content.maxSize / 2 + content.thickness / 2 + 3; // + 3 for various rounding errors 
+    const auto border = content.maxSize / 2 + content.thickness / 2 + 3; // + 3 for various rounding errors
     std::uniform_int_distribution<size_t> distX(border, frame.xdim - border);
     std::uniform_int_distribution<size_t> distY(border, frame.ydim - border);
     std::uniform_int_distribution<> size(content.minSize, content.maxSize);
-    for (auto i = 0; i < content.count; ++i) {
+    for (auto i = 0; i < content.count; ++i)
+    {
         auto r = size(gen) / 2;
         auto x = distX(gen);
         auto y = distY(gen);
@@ -154,7 +150,7 @@ void PhantomMovie<T>::addCrosses(MultidimArray<T> &frame) const
     auto drawCross = [&frame](const auto s, const auto x, const auto y, const auto val)
     {
         const auto xdim = frame.xdim;
-        for (int d = 0; d < s; ++d) 
+        for (int d = 0; d < s; ++d)
         {
             frame.data[(y - d) * xdim - d + x] += val;
             frame.data[(y - d) * xdim + d + x] += val;
@@ -169,7 +165,8 @@ void PhantomMovie<T>::addCrosses(MultidimArray<T> &frame) const
     std::uniform_int_distribution<> size(content.minSize, content.maxSize);
     const auto xdim = frame.xdim;
     const int thickness = content.thickness;
-    for (auto i = 0; i < content.count; ++i) {
+    for (auto i = 0; i < content.count; ++i)
+    {
         auto s = size(gen) / 2;
         auto x = distX(gen);
         auto y = distY(gen);
@@ -287,14 +284,17 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
         float x_center = static_cast<float>(frame.xdim) / 2.f;
         float y_center = static_cast<float>(frame.ydim) / 2.f;
         std::cout << "Processing frame " << n << std::endl;
-        for (size_t y = 0; y < params.req_size.y(); ++y) {
-            for (size_t x = 0; x < params.req_size.x(); ++x) {
+        for (size_t y = 0; y < params.req_size.y(); ++y)
+        {
+            for (size_t x = 0; x < params.req_size.x(); ++x)
+            {
                 auto x_tmp = static_cast<float>(x);
                 auto y_tmp = static_cast<float>(y);
                 displace(x_tmp, y_tmp, n);
                 // move coordinate system to center - [0, 0] will be in the center of the frame
                 auto val = bilinearInterpolation(refFrame, x_tmp - x_center, y_tmp - y_center);
-                if (!SKIP_DOSE) {
+                if (!SKIP_DOSE)
+                {
                     auto dist = std::poisson_distribution<int>(val * content.dose);
                     val = dist(gen);
                 }
