@@ -167,7 +167,7 @@ def run(images_md_path: str,
         torch.fft.irfft2(batch_images_fourier, out=batch_images)
 
         # Store the result
-        output_images[batch_slice,0] = batch_images.to('cpu', non_blocking=True)
+        output_images[batch_slice] = batch_images.to('cpu', non_blocking=True)
         
         # Prepare for the next batch
         utils.progress_bar(end, len(images_md))
