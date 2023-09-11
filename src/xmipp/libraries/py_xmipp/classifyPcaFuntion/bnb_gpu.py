@@ -328,7 +328,8 @@ class BnBgpu:
     
     def averages_increaseClas(self, mmap, iter, newCL, classes): 
         
-        newCL = sorted(newCL, key=len, reverse=True)    
+        if iter < 11:
+            newCL = sorted(newCL, key=len, reverse=True)    
         element = list(map(len, newCL))
         print(element)
         

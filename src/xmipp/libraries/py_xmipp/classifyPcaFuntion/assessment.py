@@ -27,8 +27,8 @@ class evaluation:
         
         columns = ["anglePsi", "angleRot", "angleTilt", "shiftX", "shiftY", "shiftZ"]
         for column in columns:
-            if column not in star.columns:
-                star[column] = 0.0
+            # if column not in star.columns:
+            star[column] = 0.0
     
         # Updating columns in the dataframe
         star.loc[:, "anglePsi"] = angle

@@ -283,9 +283,9 @@ if __name__=="__main__":
     # print(refClas)
     counts = torch.bincount(refClas.int(), minlength=classes)
     dim = torch.tensor([dim], dtype=torch.float32, device=translation_vector.device)
+    translation_vector = -translation_vector
     translation_vector[:, 0] = translation_vector[:, 0] - ( dim * torch.trunc(translation_vector[:, 0]/dim) )
-    translation_vector[:, 1] = translation_vector[:, 1] - ( dim * torch.trunc(translation_vector[:, 1]/dim) )
-                    
+    translation_vector[:, 1] = translation_vector[:, 1] - ( dim * torch.trunc(translation_vector[:, 1]/dim) )         
     
     
     # for number, count in enumerate(counts):
@@ -295,7 +295,7 @@ if __name__=="__main__":
     print(counts.int())
     
     assess = evaluation()
-    assess.updateExpStar(expStar, refClas, angles_deg, translation_vector, output)
+    assess.updateExpStar(expStar, refClas, -angles_deg, translation_vector, output)
     assess.createClassesStar(classes, file, counts, output)
 
 
