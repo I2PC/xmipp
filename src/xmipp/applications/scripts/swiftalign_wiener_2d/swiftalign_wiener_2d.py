@@ -94,7 +94,7 @@ def run(images_md_path: str,
     output_images_path = str(pathlib.Path(output_md_path).with_suffix('.mrc'))
     output_mrc = mrcfile.new_mmap(
         output_images_path, 
-        shape=(len(images_md), 1) + image_size, 
+        shape=(len(images_md), ) + image_size, 
         mrc_mode=2,
         overwrite=True
     )
@@ -167,7 +167,7 @@ def run(images_md_path: str,
         torch.fft.irfft2(batch_images_fourier, out=batch_images)
 
         # Store the result
-        output_images[batch_slice,0] = batch_images.to('cpu', non_blocking=True)
+        output_images[batch_slice] = batch_images.to('cpu', non_blocking=True)
         
         # Prepare for the next batch
         utils.progress_bar(end, len(images_md))
