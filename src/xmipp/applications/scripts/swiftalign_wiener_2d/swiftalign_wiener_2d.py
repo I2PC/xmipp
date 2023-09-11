@@ -94,7 +94,7 @@ def run(images_md_path: str,
     output_images_path = str(pathlib.Path(output_md_path).with_suffix('.mrc'))
     output_mrc = mrcfile.new_mmap(
         output_images_path, 
-        shape=(len(images_md), 1) + image_size, 
+        shape=(len(images_md), ) + image_size, 
         mrc_mode=2,
         overwrite=True
     )
