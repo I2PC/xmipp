@@ -32,6 +32,8 @@ import xmippPyModules.swiftalign.image as image
 import xmippPyModules.swiftalign.fourier as fourier
 import xmippPyModules.swiftalign.ctf as ctf
 import xmippPyModules.swiftalign.metadata as md
+import xmippPyModules.swiftalign.utils as utils
+
 
 def _compute_polar_frequency_grid_2d(cartesian: torch.Tensor) -> torch.Tensor:
     result = torch.empty_like(cartesian)
@@ -96,6 +98,7 @@ def run(images_md_path: str,
         mrc_mode=2,
         overwrite=True
     )
+    output_mrc.set_image_stack()
     output_images = torch.as_tensor(output_mrc.data)
     
     # Convert units
@@ -167,9 +170,8 @@ def run(images_md_path: str,
         output_images[batch_slice,0] = batch_images.to('cpu', non_blocking=True)
         
         # Prepare for the next batch
+        utils.progress_bar(end, len(images_md))
         start = end
-        progress = end / len(images_md)
-        print('{:.2f}%'.format(100*progress))
         
     assert(end == len(images_md))
 
@@ -181,8 +183,8 @@ def run(images_md_path: str,
 if __name__ == '__main__':
     # Define the input
     parser = argparse.ArgumentParser(
-                        prog = 'Align Nearest Neighbor Training',
-                        description = 'Align Cryo-EM images using a fast Nearest Neighbor approach')
+                        prog = 'Wiener 2D',
+                        description = 'Correct particle CTF using a Wiener filter')
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
     parser.add_argument('--pixel_size', type=float, required=True)
