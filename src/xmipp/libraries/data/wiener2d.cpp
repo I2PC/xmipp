@@ -154,3 +154,4 @@ void Wiener2D::applyWienerFilter(const FileName &fnImg, const FileName &fnImgOut
     img.write(fnImgOut);
     rowOut.setValue(MDL_IMAGE, fnImgOut);
 }
+
