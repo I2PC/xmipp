@@ -125,7 +125,7 @@ def run(images_md_path: str,
     image.write(output_images.numpy(), output_classes_path, image_stack=True)
 
     # Write direction
-    output_direction_path = output_root + 'direction.mrc'
+    output_direction_path = output_root + 'eigen_image.mrc'
     output_direction = torch.zeros(mask.shape, dtype=direction.dtype)
     output_direction[mask] = direction.to(output_direction.device)
     image.write(output_direction.numpy(), output_direction_path)
