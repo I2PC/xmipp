@@ -87,7 +87,6 @@ void ProgTomoAlignSubtomoStacks::alignAgainstGallery(MultidimArray<double> &img0
 		gallery.read(fn);
 
 		//TODO: Fourier transform
-
 		corr2(img0, imgGal, corrValue);
 
 		if (corrValue > MAT_ELEM(bestValues, 0, 0))
@@ -105,15 +104,14 @@ void ProgTomoAlignSubtomoStacks::alignAgainstGallery(MultidimArray<double> &img0
 					MAT_ELEM(bestValues, i-1, 1) = MAT_ELEM(bestValues, i, 1);
 				}
 			}
-			if (MAT_ELEM(bestValues, nbest-1, 0)<corrValue)
+			if (MAT_ELEM(bestValues, nbest-1, 0) < corrValue)
 			{
-				MAT_ELEM(bestValues, nbest-1, 0)=corrValue;
-				MAT_ELEM(bestValues, nbest-1, 0)=idx;
+				MAT_ELEM(bestValues, nbest-1, 0) = corrValue;
+				MAT_ELEM(bestValues, nbest-1, 0) = idx;
 			}
 		}
 		idx++;
 	}
-
 }
 
 
@@ -153,18 +151,32 @@ void ProgTomoAlignSubtomoStacks::corr2(MultidimArray<double> &img0, MultidimArra
 	corrVal = std::max(0.0, num/sqrt(den1*den2));
 }
 
-void createCTFImage(MultidimArray<double> &ctfImage)
+
+void ProgTomoAlignSubtomoStacks::listofParticles(MetaDataVec &md, std::vector<size_t> &listparticlesIds)
 {
+	size_t parId;
+	std::vector<size_t> targetparId;
+	bool addParticleId = false;
+	for (const auto& row : md)
+	{
+		row.getValue(MDL_PARTICLE_ID, parId);
+		row.getValue(MDL_ANGLE_TILT, tilt);
 
+		for (size_t i = 0; i<targetparId.size(); i++)
+		{
+			if (targetparId[i] != parId)
+			{
+
+			}
+		}
+	}
 }
-
 
 void ProgTomoAlignSubtomoStacks::run()
 {
 	std::cout << "Starting ... "<< std::endl;
 
-	int BSplinedegree = 3;
-
+	// Reading initial volume and prepare projector
 	Image<double> initVolImg;
 	initVolImg.read(fnIniVol);
 	auto &initVol = initVolImg();
@@ -172,35 +184,32 @@ void ProgTomoAlignSubtomoStacks::run()
 	int xdim = XSIZE(initVol);
 	int ydim = YSIZE(initVol);
 
+	double maxFreq = 0.5;
+	int BSplinedegree = 3;
 	projector = FourierProjector(initVol, 2.0, maxFreq, BSplinedegree);
-
-	Matrix2D<double> eulerMat;
-	eulerMat.initZeros(4,4);
-
-	double rot, tilt, psi;
-	Euler_matrix2angles(eulerMat, rot, tilt, psi, true);
-
 	Projection imgPrj;
-	MultidimArray<double> ctfImage;
-	ctfImage = nullptr;
 
-	projectVolume(projector, imgPrj, ydim, xdim, rot, tilt, psi, *ctfImage);
-
-	long Nsubtomos = 0;
-
+	//
 	MetaDataVec md, mdGallery;
 	md.read(fnIn);
 	mdGallery.read(fnGal);
+
 	FileName fn;
 	std::vector<FileName> fnStack;
 	std::vector<double> tiltStack;
 	std::string tsId;
 	size_t parId;
 
-	double tilt;
+	Matrix2D<double> eulerMat;
+	double rot, tilt, psi;
 
 	Image<double> image0;
 	auto &img0 = image0();
+
+
+
+
+
 
 	for (const auto& row : md)
 	{
@@ -209,12 +218,20 @@ void ProgTomoAlignSubtomoStacks::run()
 		row.getValue(MDL_PARTICLE_ID, parId);
 		row.getValue(MDL_ANGLE_TILT, tilt);
 
+		//
+		if (abs(tilt)<1)
+		{
+
+		}
+
 		image0.read(fn);
 
 		alignAgainstGallery(img0, mdGallery);
 
+		eulerMat.initZeros(4, 4);
 
-
+		Euler_matrix2angles(eulerMat, rot, tilt, psi, true);
+		projectVolume(projector, imgPrj, ydim, xdim, rot, tilt, psi);
 	}
 
 }

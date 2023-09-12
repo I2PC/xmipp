@@ -29,6 +29,7 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
+#include <core/metadata_vec.h>
 #include "data/fourier_projection.h"
 #include <limits>
 #include <complex>
@@ -56,7 +57,7 @@ public:
 
     double scaleFactor, sampling, maxFreq;
 
-    FourierProjector *projector;
+    FourierProjector projector;
 
 	int boxsize, nbest;
     int nthrs;
@@ -70,6 +71,8 @@ public:
     void corr2(MultidimArray<double> &img0, MultidimArray<double> &imgGal, double &corrVal);
 
     void createCTFImage(MultidimArray<double> &ctfImage);
+
+    void listofParticles(std::vector<size_t> &listparticlesIds);
 
     void readParams();
 
