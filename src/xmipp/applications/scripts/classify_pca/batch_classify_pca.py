@@ -265,27 +265,47 @@ if __name__=="__main__":
                 
                 if mode == "create_classes" and iter == 17:
                     refClas[:endBatch] = matches[:, 1]
-                    #extract final angular and shift transformations
-                    rotation_matrix = tMatrix[:, :, :2]
-                    translation_vector[:endBatch] = tMatrix[:, :, 2]
+                    
+                    initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
+                                                  [0.0, 1.0, -dim/2],
+                                                  [0.0, 0.0, 1.0]], device = tMatrix.device)
+                    initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
+
+                    tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
+                    tMatrix[:, 2, 2] = 1.0
+                    tMatrix = torch.matmul(initial_shift, tMatrix)
+                    tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
+                    
+                    rotation_matrix = tMatrix[:, :2, :2]
+                    translation_vector[:endBatch] = tMatrix[:, :2, 2]
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
                 elif mode == "align_classes" and iter == 4:
                     refClas[initBatch:endBatch] = matches[:, 1]
                     
-                    rotation_matrix = tMatrix[:, :, :2]
-                    translation_vector[initBatch:endBatch] = tMatrix[:, :, 2]
+                    initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
+                                                  [0.0, 1.0, -dim/2],
+                                                  [0.0, 0.0, 1.0]], device = tMatrix.device)
+                    initial_shift = initial_shift.unsqueeze(0).expand(tMatrix.size(0), -1, -1)
+
+                    tMatrix = torch.cat((tMatrix, torch.zeros((tMatrix.size(0), 1, 3), device=tMatrix.device)), dim=1)
+                    tMatrix[:, 2, 2] = 1.0
+                    tMatrix = torch.matmul(initial_shift, tMatrix)
+                    tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
+                    
+                    rotation_matrix = tMatrix[:, :2, :2]
+                    translation_vector[initBatch:endBatch] = tMatrix[:, :2, 2]
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())   
     
     
     # print(refClas)
     counts = torch.bincount(refClas.int(), minlength=classes)
-    dim = torch.tensor([dim], dtype=torch.float32, device=translation_vector.device)
-    translation_vector = -translation_vector
-    translation_vector[:, 0] = translation_vector[:, 0] - ( dim * torch.trunc(translation_vector[:, 0]/dim) )
-    translation_vector[:, 1] = translation_vector[:, 1] - ( dim * torch.trunc(translation_vector[:, 1]/dim) )         
+    # dim = torch.tensor([dim], dtype=torch.float32, device=translation_vector.device)
+    # translation_vector = -translation_vector
+    # translation_vector[:, 0] = translation_vector[:, 0] + dim/2 - ( dim * torch.trunc(translation_vector[:, 0]/dim) )
+    # translation_vector[:, 1] = translation_vector[:, 1] + dim/2 - ( dim * torch.trunc(translation_vector[:, 1]/dim) )         
     
     
     # for number, count in enumerate(counts):
