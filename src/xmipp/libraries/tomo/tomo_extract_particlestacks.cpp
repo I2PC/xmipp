@@ -116,7 +116,7 @@ void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int yco
 	y_2d = (int) (ycoor);
 
     //Inverse transformation
-    double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx  - sr*ty;
+    double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx - sr*ty;
 	double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
         
     if (swapXY)
@@ -226,8 +226,9 @@ void ProgTomoExtractParticleStacks::run()
 		createCircle(maskNormalize);
 	}
 
-	size_t elem = 0;
+	size_t particleId = 0;
 	double signDef = -1.0;
+
 
 	FileName fnXmd;
 	fnXmd = tsid + formatString(".xmd");
@@ -243,7 +244,7 @@ void ProgTomoExtractParticleStacks::run()
 		singleImage.initZeros(1,1,boxsize, boxsize);
 
 		FileName fnMrc;
-		fnMrc = tsid + formatString("-%i.mrcs", elem);
+		fnMrc = tsid + formatString("-%i.mrcs", particleId);
 
 		size_t imgNumber = 0;
 		for (size_t idx = 0; idx<tsImages.size(); idx++)
@@ -317,6 +318,7 @@ void ProgTomoExtractParticleStacks::run()
 			FileName idxstr;
 			idxstr = formatString("%i@",imgNumber+1);
 			rowParticleStack.setValue(MDL_IMAGE, idxstr+fnMrc);
+			rowParticleStack.setValue(MDL_PARTICLE_ID, particleId);
 			rowParticleStack.setValue(MDL_ANGLE_TILT, tsTiltAngles[idx]);
 			rowParticleStack.setValue(MDL_ANGLE_ROT, tsRotAngles[idx]);
 			rowParticleStack.setValue(MDL_SHIFT_X, tsShiftX[idx]);
@@ -364,7 +366,7 @@ void ProgTomoExtractParticleStacks::run()
 
 		finalStack.write(fnOut+"/"+fnMrc);
 
-		elem += 1;
+		particleId += 1;
 
 	}
 
