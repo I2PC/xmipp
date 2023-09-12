@@ -151,7 +151,7 @@ void ProgTomoAlignSubtomoStacks::corr2(MultidimArray<double> &img0, MultidimArra
 	corrVal = std::max(0.0, num/sqrt(den1*den2));
 }
 
-
+/*
 void ProgTomoAlignSubtomoStacks::listofParticles(MetaDataVec &md, std::vector<size_t> &listparticlesIds)
 {
 	size_t parId;
@@ -171,6 +171,7 @@ void ProgTomoAlignSubtomoStacks::listofParticles(MetaDataVec &md, std::vector<si
 		}
 	}
 }
+*/
 
 void ProgTomoAlignSubtomoStacks::run()
 {
@@ -219,10 +220,10 @@ void ProgTomoAlignSubtomoStacks::run()
 		row.getValue(MDL_ANGLE_TILT, tilt);
 
 		//
-		if (abs(tilt)<1)
-		{
+		//if (abs(tilt)<1)
+		//{
 
-		}
+		//}
 
 		image0.read(fn);
 
