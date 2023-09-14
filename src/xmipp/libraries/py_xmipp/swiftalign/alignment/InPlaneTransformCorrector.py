@@ -28,8 +28,6 @@ from .. import operators
 from .. import transform
 from .. import metadata as md
 
-import matplotlib.pyplot as plt
-
 class InPlaneTransformCorrector:
     def __init__(self,
                  flattener: operators.MaskFlattener,
@@ -90,19 +88,26 @@ class InPlaneTransformCorrector:
                     transform_matrices_3d,
                 )
                 
-                # Compute the in plane rotation difference relative to the 
-                # average
-                s = relative_transform[...,1,0]
-                c = relative_transform[...,1,1]
-                angles = torch.atan2(s, c, out=angles)
-
-            transform_matrices_2d = transform.affine_matrix_2d(
-                angles=angles,
-                shifts=shifts,
-                centre=centre,
-                shift_first=True,
-                out=transform_matrices_2d
-            )
+                # Normalize the relative transform
+                relative_transform_2d = relative_transform[...,:2,:2]
+                relative_transform_2d /= relative_transform_2d.norm(dim=-1, keepdim=True) # TODO check correctness
+                
+                transform_matrices_2d = transform.make_affine_matrix_2d(
+                    relative_transform_2d,
+                    shifts=shifts,
+                    centre=centre,
+                    shift_first=True,
+                    out=transform_matrices_2d
+                )
+            
+            else:
+                transform_matrices_2d = transform.affine_matrix_2d(
+                    angles=angles,
+                    shifts=shifts,
+                    centre=centre,
+                    shift_first=True,
+                    out=transform_matrices_2d
+                )
 
             transformed_images = transform.affine_2d(
                 images=batch_images,
