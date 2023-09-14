@@ -24,8 +24,7 @@ from typing import Iterable
 import torch
 
 def aligned_2d_classification(dataset: Iterable[torch.Tensor],
-                              scratch: torch.Tensor,
-                              q = 0.05):
+                              scratch: torch.Tensor ):
     # Write
     start = 0
     for vectors in dataset:
@@ -46,9 +45,4 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
 
     projections = torch.matmul(scratch, direction[...,None])[:,0]
 
-    quantiles = torch.tensor([q, 1-q], device=projections.device)
-    scales = torch.quantile(projections, quantiles)
-    result = torch.matmul(scales[:,None], direction[None,:])
-    result += avg
-
-    return result, direction
+    return avg, direction, projections
