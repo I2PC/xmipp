@@ -23,7 +23,7 @@ public:
         using std::complex;
         using Alignment::AlignType;
 
-        FFTSettingsNew<T> dims(30, 14, 1, n, batch, false, false); // only even sizes are supported
+        FFTSettings<T> dims(30, 14, 1, n, batch, false, false); // only even sizes are supported
 
         // allocate and prepare data
         auto inOut = new complex<T>[dims.fDim().size()];
@@ -80,10 +80,8 @@ std::vector<HW*> AShiftCorrEstimator_Test<T>::hw;
 
 TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToOne)
  {
-    XMIPP_TRY
      // test one reference vs one image
     AShiftCorrEstimator_Test<TypeParam>::correlate2DNoCenter(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToMany)

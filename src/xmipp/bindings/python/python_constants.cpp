@@ -31,6 +31,7 @@
 #include "core/xmipp_image_base.h"
 #include "core/axis_view.h"
 #include "core/xmipp_random_mode.h"
+#include "core/xmipp_macros.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */
@@ -233,6 +234,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_DM3_TAGNAME);
     ADD_CONST(MDL_DM3_SIZE);
     ADD_CONST(MDL_DM3_VALUE);
+    ADD_CONST(MDL_DOSE);
 
     ADD_CONST(MDL_ENABLED);
 
@@ -246,6 +248,9 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_GRAPH_DISTANCE2MAX_PREVIOUS);
     ADD_CONST(MDL_GRAPH_CC);
     ADD_CONST(MDL_GRAPH_CC_PREVIOUS);
+
+    ADD_CONST(MDL_HALF1);
+    ADD_CONST(MDL_HALF2);
 
     ADD_CONST(MDL_IDX);
     ADD_CONST(MDL_IMAGE);
@@ -424,6 +429,9 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_SPH_TSNE_COEFF2D);
 
     ADD_CONST(MDL_SUBTRACTION_R2);
+    ADD_CONST(MDL_SUBTRACTION_BETA0);
+    ADD_CONST(MDL_SUBTRACTION_BETA1);
+
     
     ADD_CONST(MDL_SUM);
     ADD_CONST(MDL_SUMWEIGHT);
@@ -432,6 +440,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_TIME);
 
     ADD_CONST(MDL_TRANSFORM_MATRIX);
+    ADD_CONST(MDL_TSID);
     ADD_CONST(MDL_TOMOGRAM_VOLUME);
     ADD_CONST(MDL_TOMOGRAMMD);
 
@@ -452,6 +461,8 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_WEIGHT_JUMPER0);
     ADD_CONST(MDL_WEIGHT_JUMPER);
     ADD_CONST(MDL_WEIGHT_JUMPER2);
+    ADD_CONST(MDL_WEIGHT_REALCORR);
+    ADD_CONST(MDL_WEIGHT_PHASECORR);
     ADD_CONST(MDL_WEIGHT_PRECISION_ALIGNABILITY);
     ADD_CONST(MDL_WEIGHT_ACCURACY_ALIGNABILITY);
     ADD_CONST(MDL_WEIGHT_ALIGNABILITY);
@@ -539,6 +550,7 @@ void addLabels(PyObject * dict)
     ADD_CONST2("DT_COMPLEXFLOAT", DT_CFloat);
     ADD_CONST2("DT_COMPLEXDOUBLE", DT_CDouble);
     ADD_CONST2("DT_BOOL", DT_Bool);
+    ADD_CONST2("DT_HALFFLOAT", DT_HalfFloat);
     ADD_CONST2("DT_LASTENTRY", DT_LastEntry);
 
     ADD_CONST(VIEW_Z_NEG);

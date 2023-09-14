@@ -28,7 +28,7 @@
 
 #include <type_traits>
 #include "reconstruction/ashift_corr_estimator.h"
-#include "data/fft_settings_new.h"
+#include "data/fft_settings.h"
 #include "cuda_fft.h"
 #include "gpu.h"
 #include <thread>
@@ -52,7 +52,7 @@ public:
         release();
     }
 
-    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettings<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT,
             bool allowDataOverwrite) override;
 
@@ -78,7 +78,7 @@ public:
         std::complex<T> *d_othersF,
         T *d_othersS,
         std::complex<T> *d_ref,
-        const FFTSettingsNew<T> &settings,
+        const FFTSettings<T> &settings,
         cufftHandle plan,
         T *h_centers,
         size_t maxShift);

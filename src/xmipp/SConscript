@@ -93,7 +93,7 @@ def getHdf5Name(libdirs):
     return "hdf5"
 
 ALL_LIBS = {'fftw3',
-    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3','libsvm',
+    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3','libsvm', 'libcifpp',
     getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
@@ -105,7 +105,8 @@ def addLib(name, **kwargs):
     # Add always the xmipp path as -I for include and also xmipp/libraries
     incs = kwargs.get('incs', []) + [join(XMIPP_PATH, 'external'),
         join(XMIPP_PATH, 'libraries'),
-        join(XMIPP_BUNDLE, 'xmippCore')]
+        join(XMIPP_BUNDLE, 'xmippCore'),
+        join(XMIPP_BUNDLE, 'libcifpp', 'include')]
     kwargs['incs'] = incs
 
     deps = kwargs.get('deps', [])
@@ -147,11 +148,11 @@ else:
     python_incdirs = []
 
 # Basic libraries
-dirs = ['external','external','libraries','libraries','libraries','libraries','libraries']
-patterns=['condor/*.cpp','delaunay/*.cpp','data/*.cpp','reconstruction/*.cpp',
+dirs = ['external','external','libraries','libraries','libraries','libraries','libraries', 'libraries']
+patterns=['condor/*.cpp','delaunay/*.cpp','data/*.cpp','reconstruction/*.cpp','tomo/*.cpp',
           'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
 addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs,
-       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads','svm'])
+       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads','svm', 'cifpp'])
 
 
 # FRM library
@@ -204,7 +205,7 @@ PROG_DEPS = XMIPP_LIBS
 PROG_LIBS = XMIPP_LIBS + [
     getHdf5Name(env['EXTERNAL_LIBDIRS']),
     'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f',
-    'fftw3f_threads', PYTHON_LIB, 'pthread','libsvm'
+    'fftw3f_threads', PYTHON_LIB, 'pthread', 'libsvm', 'libcifpp'
 ]
 TEST_LIBS = ['libgtest', 'libgtest_main']
 
@@ -220,6 +221,9 @@ def addProg(progName, **kwargs):
         src = kwargs.get('src', [join('applications', 'tests', 'function_tests', progName+".cpp")])
     else:
         src = kwargs.get('src', [join('applications', 'programs', progName)])
+        # ignore folders that do not contain any .cpp file (can happen when e.g. switching branches)
+        if not any(f.endswith(".cpp") for f in os.listdir(src[0])):
+            return
 
     kwargs['src'] = src
     # Add all xmipp libraries just in case
@@ -233,6 +237,7 @@ def addProg(progName, **kwargs):
         join(XMIPP_PATH, 'external'),
         join(XMIPP_PATH, 'libraries'),
         join(XMIPP_BUNDLE,'xmippCore'),
+        join(XMIPP_BUNDLE,'libcifpp', 'include')
     ]
     if progName.startswith('test_'):
         incs.append(join(XMIPP_BUNDLE, join('googletest', 'googletest', 'include')))

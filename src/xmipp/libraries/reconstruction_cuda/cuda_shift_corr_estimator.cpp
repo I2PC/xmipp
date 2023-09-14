@@ -32,7 +32,7 @@ namespace Alignment {
 
 template<typename T>
 void CudaShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
-        const FFTSettingsNew<T> &settings, size_t maxShift,
+        const FFTSettings<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT,
         bool allowDataOvewrite) {
     // FIXME DS consider tunning the size of the input (e.g. 436x436x50)
@@ -286,11 +286,14 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
-    if ( ! GPU::isMemoryPinned(others)) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
-    }
-    if (this->m_allowDataOverwrite && ( ! m_workStream->isGpuPointer(others))) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+    const auto isGpuPtr = m_workStream->isGpuPointer(others);
+    if(!isGpuPtr) {
+        if ( ! GPU::isMemoryPinned(others)) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
+        }
+        if (this->m_allowDataOverwrite) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+        }
     }
 
     m_workStream->set();
@@ -356,7 +359,7 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         std::complex<T> *d_othersF,
         T *d_othersS,
         std::complex<T> *d_ref,
-        const FFTSettingsNew<T> &settings,
+        const FFTSettings<T> &settings,
         cufftHandle plan,
         T *h_centers,
         size_t maxShift) {
