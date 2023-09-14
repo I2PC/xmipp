@@ -30,9 +30,10 @@ import numpy as np
 import scipy.sparse
 import scipy.linalg
 import cvxpy as cp
+import networkx as nx
 
-def maximum_cut(graph: scipy.sparse.csr_matrix,
-                solver: str = 'SCS' ) -> Tuple[float, Tuple[Set[int], Set[int]]]:
+def maximum_cut_sdp(graph: scipy.sparse.csr_matrix,
+                    solver: str = 'SCS' ) -> Tuple[float, Tuple[Set[int], Set[int]]]:
     n_vertices = graph.shape[0]
     
     # Remove the symmetric part of the graph so
@@ -46,8 +47,8 @@ def maximum_cut(graph: scipy.sparse.csr_matrix,
     # Define the objective function and constraints
     P = cp.Variable(graph.shape, symmetric=True)
     constraints = [P >> 0, cp.diag(P) == 1] # SDP and diagonal of 1s
-    #objective_function = cp.scalar_product(weights, 1-P[edges])
-    objective_function = cp.sum(1-P[edges])
+    objective_function = cp.scalar_product(weights, 1-P[edges])
+    #objective_function = cp.sum(1-P[edges])
     
     # Optimize
     problem = cp.Problem(cp.Maximize(objective_function), constraints)
@@ -65,15 +66,21 @@ def maximum_cut(graph: scipy.sparse.csr_matrix,
     
     return (value, (v0, v1))
 
-
+def maximum_cut_greedy(graph: scipy.sparse.csr_matrix):
+    g = nx.from_scipy_sparse_array(graph)
+    return nx.approximation.one_exchange(g, weight='weight')
 
 def main(input_graph_path: str,
-         output_partition_path: str  ):
+         output_partition_path: str,
+         use_sdp: bool ):
     # Read the graph from disk
-    graph = scipy.sparze.from_npz(input_graph_path)
+    graph = scipy.sparse.load_npz(input_graph_path)
 
     # Compute the cut
-    cut = maximum_cut(graph)
+    if use_sdp:
+        cut = maximum_cut_sdp(graph)
+    else:
+        cut = maximum_cut_greedy(graph)
     
     # Save the result
     with open(output_partition_path, 'wb') as f:
@@ -86,6 +93,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Maximum cut of a graph')
     parser.add_argument('-i', required=True)
     parser.add_argument('-o', required=True)
+    parser.add_argument('--sdp', action='store_true')
 
     # Parse
     args = parser.parse_args()
@@ -93,5 +101,6 @@ if __name__ == '__main__':
     # Run the program
     main(
         input_graph_path=args.i,
-        output_partition_path=args.o
+        output_partition_path=args.o,
+        use_sdp=args.sdp
     )
