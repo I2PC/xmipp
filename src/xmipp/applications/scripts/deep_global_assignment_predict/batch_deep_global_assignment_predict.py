@@ -342,7 +342,8 @@ if __name__ == "__main__":
 
     models = []
     for index in range(numAngModels):
-        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
+        print(fnAngModel + "/modelAngular" + str(index) + ".h5")
+        AngModel = load_model(fnAngModel + "/modelAngular" + str(index) + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
         models.append(AngModel)
 

@@ -5,6 +5,8 @@ import os
 import sys
 import xmippLib
 from time import time
+from xmipp_base import XmippScript
+import glob
 
 maxSize = 32
 
@@ -20,7 +22,6 @@ if __name__ == "__main__":
     numModels = int(sys.argv[6])
     tolerance = int(sys.argv[7])
     maxModels = int(sys.argv[8])
-    fnPreModel = sys.argv[9]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -145,9 +146,13 @@ if __name__ == "__main__":
 
     predictions = np.zeros((len(fnImgs), numModels, 2))
     ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
+    modelsNames = glob.glob(fnModel + '/modelCenter?.h5')
+    print('fnModel', fnModel)
+    print('modelsNames', modelsNames)
+    if numModels > len(modelsNames):
+        numModels = len(modelsNames)
     for index in range(numModels):
-        #ShiftModel = load_model(fnModel + str(index) + ".h5", compile=False)
-        ShiftModel = load_model(fnPreModel + "/modelCenter" + "/modelCenter" + str(index) + ".h5", compile=False)
+        ShiftModel = load_model(modelsNames[index], compile=False)
         ShiftModel.compile(loss="mean_squared_error", optimizer='adam')
         predictions[:, index, :] = ShiftModel.predict_generator(ShiftManager, ShiftManager.getNumberOfBlocks())
     Y, distance = compute_shift_averages(predictions)

@@ -27,6 +27,8 @@ if __name__ == "__main__":
     pretrained = sys.argv[10]
     if pretrained == 'yes':
         fnPreModel = sys.argv[11]
+    #rotational_order = int(sys.argv[12])
+    rotational_order = 4
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -135,26 +137,6 @@ if __name__ == "__main__":
                 mat = euler_angles_to_matrix(angles, psi_rotation)
                 return matrix_to_rotation6d(mat)
 
-            def make_redundant(rep_6d):
-                #rep_6d = np.append(rep_6d, 2*rep_6d)
-                #for i in range(6):
-                #    j = (i+1) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
-                #for i in range(6):
-                #    j = (i + 3) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
-                #for i in range(6):
-                #    j = (i + 2) % 6
-                #    k = (i + 4) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
-                #for i in range(6):
-                #    j = (i + 5) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
-                #for i in range(6):
-                #    j = (i + 4) % 6
-                #    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
-                return rep_6d
-
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
@@ -171,9 +153,8 @@ if __name__ == "__main__":
             rAngle = rAngle * math.pi / 180
             yvalues = yvalues * math.pi / 180
             y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-            y = np.array(list((map(make_redundant, y_6d))))
 
-            return Xexp, y
+            return Xexp, y_6d
 
     def conv_block(tensor, filters):
         # Convolutional block of RESNET
@@ -225,30 +206,13 @@ if __name__ == "__main__":
         label = []
         img_shift = []
 
-        # For better performance, images are selected to be 'homogeneously' distributed in the sphere
-        # 50 divisions with equal area
-        numTiltDivs = 5
-        numRotDivs = 10
-        limits_rot = np.linspace(-180.01, 180, num=(numRotDivs+1))
-        limits_tilt = np.zeros(numTiltDivs+1)
-        limits_tilt[0] = -0.01
-        for i in range(1, numTiltDivs+1):
-            limits_tilt[i] = math.acos(1-2*(i/numTiltDivs))
-        limits_tilt = limits_tilt*180/math.pi
-
-        # Each particle is assigned to a division
-
-        i = 0
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             # Simetrica C4:
-            r = r*4
+            r = r*rotational_order
             r = r % 360
             label.append(np.array((r, t, p)))
             img_shift.append(np.array((sX, sY)))
             # Region index
-
-
-            i += 1
 
         return Xdim, fnImg, label, img_shift
 
