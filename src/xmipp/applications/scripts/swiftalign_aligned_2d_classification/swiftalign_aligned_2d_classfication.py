@@ -48,7 +48,6 @@ def run(images_md_path: str,
         mask_path: Optional[str],
         align_to: Optional[Sequence[int]],
         batch_size: int,
-        q: float,
         device_names: list ):
     
     # Devices
@@ -77,7 +76,11 @@ def run(images_md_path: str,
     
     # Read the mask
     if mask_path is not None:
-        mask = image.read(mask_path)
+        mask_path = image.parse_path(mask_path)
+        mask = image.read(mask_path.filename)
+        if mask_path.position_in_stack is not None:
+            mask = mask[mask_path.position_in_stack-1]
+        mask = torch.as_tensor(mask, dtype=bool)
     else:
         mask = torch.ones(image_size, dtype=bool)
     
@@ -112,23 +115,21 @@ def run(images_md_path: str,
     else:
         scratch = torch.empty(training_set_shape, device=transform_device)
 
-    classes, direction = classification.aligned_2d_classification(
+    average, direction, projections = classification.aligned_2d_classification(
         image_transformer(zip(images_loader, _dataframe_batch_generator(images_md, batch_size))),
-        scratch,
-        q=q
+        scratch
     )
-    
-    # Write classes
-    output_classes_path = output_root + 'classes.mrcs'
-    output_images = torch.zeros((len(classes), ) + mask.shape, dtype=classes.dtype)
-    output_images[:,mask] = classes.to(output_images.device)
-    image.write(output_images.numpy(), output_classes_path, image_stack=True)
 
     # Write direction
     output_direction_path = output_root + 'eigen_image.mrc'
     output_direction = torch.zeros(mask.shape, dtype=direction.dtype)
     output_direction[mask] = direction.to(output_direction.device)
     image.write(output_direction.numpy(), output_direction_path)
+    
+    # Write metadata
+    output_particles_md_path = output_root + 'classification.xmd'
+    images_md[md.SCORE_BY_PCA_RESIDUAL] = projections.cpu().numpy()
+    md.write(images_md, output_particles_md_path)
 
 if __name__ == '__main__':
     # Define the input
@@ -141,7 +142,6 @@ if __name__ == '__main__':
     parser.add_argument('--mask')
     parser.add_argument('--align_to', nargs=3)
     parser.add_argument('--batch', type=int, default=1024)
-    parser.add_argument('-q', type=float, default=0.1)
     parser.add_argument('--device', nargs='*')
 
     # Parse
@@ -155,6 +155,5 @@ if __name__ == '__main__':
         mask_path = args.mask,
         align_to = args.align_to,
         batch_size = args.batch,
-        q = args.q,
         device_names = args.device
     )
