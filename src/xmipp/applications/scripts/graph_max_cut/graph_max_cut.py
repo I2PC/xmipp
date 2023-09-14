@@ -48,7 +48,6 @@ def maximum_cut_sdp(graph: scipy.sparse.csr_matrix,
     P = cp.Variable(graph.shape, symmetric=True)
     constraints = [P >> 0, cp.diag(P) == 1] # SDP and diagonal of 1s
     objective_function = cp.scalar_product(weights, 1.0-P[edges])
-    #objective_function = cp.sum(1-P[edges])
     
     # Optimize
     problem = cp.Problem(cp.Maximize(objective_function), constraints)
