@@ -20,8 +20,40 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Iterable
+from typing import Iterable, Tuple
 import torch
+
+def _mean_centered_pca(samples: torch.Tensor,
+                       k: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    if len(samples.shape) != 2:
+        raise RuntimeError('Sample matrix is expected to have 2 dimensions')
+    
+    # Perform the computations with the smallest
+    # covariance vector possible
+    transpose = samples.shape[0] < samples.shape[1]
+    
+    # Compute the covariance according to
+    # the transposition    
+    if transpose:
+        covariance = samples @ samples.T
+    else:
+        covariance = samples.T @ samples
+    covariance /= len(samples) - 1
+    assert(covariance.shape == (min(samples.shape), )*2)
+        
+    # Compute the largest eigenvalues of the covariance matrix
+    eigenvalues, eigenvectors = torch.lobpcg(
+        covariance,
+        k=k
+    )
+    
+    # Undo the transposition
+    if transpose:
+        eigenvectors = samples.T @ eigenvectors
+        eigenvectors /= torch.norm(eigenvectors, dim=0, keepdim=True)
+
+    return eigenvalues, eigenvectors
+    
 
 def aligned_2d_classification(dataset: Iterable[torch.Tensor],
                               scratch: torch.Tensor ):
@@ -39,7 +71,7 @@ def aligned_2d_classification(dataset: Iterable[torch.Tensor],
     # Perform the PCA analysis
     avg = scratch.mean(dim=0)
     scratch -= avg
-    _,_,v = torch.svd(scratch)
+    _, v = _mean_centered_pca(scratch, k=1)
     direction = v[:,0]
 
 
