@@ -22,28 +22,36 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef LIBRARIES_RECONSTRUCTION_VOLUME_SUBTRACTION_H_
-#define LIBRARIES_RECONSTRUCTION_VOLUME_SUBTRACTION_H_
+#ifndef _PROG_VOLUME_SUBTRACTION
+#define _PROG_VOLUME_SUBTRACTION
 
 #include "core/xmipp_program.h"
 #include <core/xmipp_fftw.h>
-#include <data/fourier_filter.h>
+#include "data/fourier_filter.h"
+#include "core/xmipp_metadata_program.h"
 
+/**@defgroup ProgVolumeSubtraction Volume subtraction
+   @ingroup ReconsLibrary */
+//@{
+/** Volume subtraction */
 
-class ProgVolumeSubtraction: public XmippProgram {
 /*This class contains methods that are use to adjust an input volume (V) to a another reference volume (V1) through the use
  of Projectors Onto Convex Sets (POCS) and to perform the subtraction between them. Other methods contained in this class
  are used to pre-process and operate with the volumes*/
 
-private:
-  FileName fnVol2;
-  FileName fnVol1;
-  FileName fnOutVol;
+class ProgVolumeSubtraction: public XmippMetadataProgram 
+{
+public:
+  // Input params
+  FileName fnVolMd; // Input metadata of volume(s)
+  FileName fnVolRef; // Input reference volume (V1)
+  FileName fnVol2; // Volume filename 
+  FileName fnOut; // Output metadata
   FileName fnMask1;
   FileName fnMask2;
   FileName fnMaskSub;
-  FileName fnVol1F;
-  FileName fnVol2A;
+  FileName fnVol1F; // save filtered reference
+  FileName fnVol2A; // save process volumes before subtraction
 
   bool computeE;
   size_t iter;
@@ -54,34 +62,58 @@ private:
   double cutFreq;
   double lambda;
   bool radavg;
+
+  // Data variables
+  Image<double> V; // volume to adjust
+  Image<double> V1; // reference volume
   double std1;
   size_t n;
   FourierTransformer transformer2;
   MultidimArray<std::complex<double>> V2Fourier;
+  MultidimArray<double> V1FourierMag;
+  MultidimArray<double> mask; 
   Image<double> Vdiff;
-
-	/// Read arguments
-	void readParams() override;
-
-	/// Show
-	void show() const override;
-
-	/// Define parameters
-	void defineParams() override;
+  FourierFilter filter2; 
+  int rank; // for MPI version
 
 	/// Processing methods
+  void POCSmask(const MultidimArray<double> &, MultidimArray<double> &);
+  void POCSnonnegative(MultidimArray<double> &);
+  void POCSFourierAmplitude(const MultidimArray<double> &, MultidimArray<std::complex<double>> &, double );
+  void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &, double , const MultidimArray<double> &, int, int, int);
+  void POCSMinMax(MultidimArray<double> &, double, double);
+  void POCSFourierPhase(const MultidimArray<std::complex<double>> &, MultidimArray<std::complex<double>> &);
 	void extractPhase(MultidimArray<std::complex<double>> &) const;
 	void computeEnergy(MultidimArray<double> &, const MultidimArray<double> &) const;
 	void centerFFTMagnitude(MultidimArray<double> &, MultidimArray<std::complex<double>> &,MultidimArray<double> &) const;
-	MultidimArray<double> createMask(const Image<double> &, const FileName &, const FileName &);
+  void radialAverage(const MultidimArray<double> &,	const MultidimArray<double> &, MultidimArray<double> &);
+	MultidimArray<double> computeRadQuotient(const MultidimArray<double> &,	const MultidimArray<double> &, const MultidimArray<double> &, 
+    const MultidimArray<double> &);
+  void createFilter(FourierFilter &, double);
+  Image<double> subtraction(Image<double>, Image<double> &, const MultidimArray<double> &, const FileName &,
+		const FileName &, FourierFilter &, double );
+  MultidimArray<double> computeMagnitude(MultidimArray<double> &);
+  MultidimArray<double> createMask(const Image<double> &, const FileName &, const FileName &);
 	void filterMask(MultidimArray<double> &) const;
 	MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &);
 	MultidimArray<double> getSubtractionMask(const FileName &, MultidimArray<double>);
-	void runIteration(Image<double> &,Image<double> &,const MultidimArray<double> &,const MultidimArray<double> &,
-			const MultidimArray<std::complex<double>> &,const MultidimArray<double> &,FourierFilter &);
 
-	/** Run */
-	void run() override;
+  /// Empty constructor
+  ProgVolumeSubtraction();
+
+  /// Read argument from command line
+  void readParams() override;
+  /// Show
+  void show() const override;
+  /// Define parameters
+  void defineParams() override;
+  /// Read and write methods
+  void readParticle(const MDRow &rowIn);
+  void writeParticle(MDRow &rowOut, FileName, Image<double> &);
+  /// MPI methods
+  void preProcess() override;
+  void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
+  void postProcess() override;
 
 };
 //@}
