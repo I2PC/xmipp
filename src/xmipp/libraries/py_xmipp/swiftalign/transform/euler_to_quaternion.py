@@ -38,7 +38,7 @@ def euler_to_quaternion(rot: torch.Tensor,
     
     # Use halves
     ai = rot / 2
-    aj = tilt / 2
+    aj = -tilt / 2
     ak = psi / 2
     
     # Obtain sin and cos of the half angles
