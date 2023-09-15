@@ -41,8 +41,6 @@ void Wiener2D::wienerFilter(MultidimArray<double> &Mwien, CTFDescription & ctf)
 
 	Mwien.resize(paddimY,paddimX);
 
-	ctf.Tm = sampling_rate;
-
 	if (isIsotropic)
 	{
 		double avgdef = (ctf.DeltafU + ctf.DeltafV)/2.;

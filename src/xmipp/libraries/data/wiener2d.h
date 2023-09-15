@@ -48,9 +48,6 @@ class Wiener2D
 		/// Wiener filter constant
 		double wiener_constant;
 
-		/// Sampling rate
-		double sampling_rate;
-
 	public:
 		void applyWienerFilter(MultidimArray<double> &ptrImg, CTFDescription &ctf);
 
