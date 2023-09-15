@@ -29,6 +29,8 @@
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_program.h>
 #include <data/fourier_filter.h>
+#include <core/geometry.h>
+
 
  // Empty constructor =======================================================
 ProgVolumeSubtraction::ProgVolumeSubtraction()
@@ -70,6 +72,7 @@ void ProgVolumeSubtraction::defineParams()
 			"--sub is passed, if not passed the input reference volume is not modified");
 	addParamsLine("[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file (vol2 adjusted) just when option "
 			"--sub is passed, if not passed the output of the program is this file");
+	addParamsLine("[--subtomos]\t: indicate that input is a set of subtomograms");
 }
 
 // Read arguments ==========================================================
@@ -93,6 +96,8 @@ void ProgVolumeSubtraction::readParams()
 		fnVol2A = "volume2_adjusted.mrc";
 	radavg = checkParam("--radavg");
 	computeE = checkParam("--computeEnergy");
+	subtomos = 	performSubtraction = checkParam("--subtomos");
+
 }
 
 // Show ====================================================================
@@ -104,7 +109,7 @@ void ProgVolumeSubtraction::show() const {
 	<< "Reference volume:\t" << fnVolRef << std::endl
 	<< "Input mask 1:\t" << fnMask1 << std::endl
 	<< "Input mask 2:\t" << fnMask2 << std::endl
-	<< "Input mask sub:\t" << fnMaskSub << std::endl
+	<< "Input mask subtract:\t" << fnMaskSub << std::endl
 	<< "Sigma:\t" << sigma << std::endl
 	<< "Iterations:\t" << iter << std::endl
 	<< "Cutoff frequency:\t" << cutFreq << std::endl
@@ -375,6 +380,33 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	readParticle(rowIn);
 	Image<double> V;
 	V.read(fnVol2);
+	if (subtomos)
+	{
+		// Window subtomo (padding) before apply alignment
+		MultidimArray <double> &mpad = padv();
+		mpad.setXmippOrigin();
+		MultidimArray<double> &mv = V();
+		mv.setXmippOrigin();
+		pad = 2 * XSIZE(mv);
+		mv.window(mpad,STARTINGY(mv)*(int)pad, STARTINGX(mv)*(int)pad, FINISHINGY(mv)*(int)pad, FINISHINGX(mv)*(int)pad);
+
+		// Read alignment
+		rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
+		rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
+		rowIn.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
+		roffset.initZeros(2);
+		rowIn.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
+		rowIn.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
+		roffset *= -1;
+		// Apply alignment
+		Euler_rotate(mv, part_angles.rot, part_angles.tilt, part_angles.psi, mv);
+		selfTranslate(xmipp_transformation::LINEAR, mv, roffset, xmipp_transformation::WRAP);
+
+		//Crop to restore original size
+		mpad.window(mv,STARTINGY(mv), STARTINGX(mv), FINISHINGY(mv), FINISHINGX(mv));
+	}
+
+
 	POCSmask(mask, V());
 	POCSnonnegative(V());
 	Vdiff = V;

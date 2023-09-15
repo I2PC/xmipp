@@ -62,10 +62,25 @@ public:
   double cutFreq;
   double lambda;
   bool radavg;
+  bool subtomos;
+
+  // Particle metadata
+  MetaDataVec mdParticles;
+  MDRowVec row;
+  Matrix1D<double> roffset; // particle shifts
+  struct Angles // particle angles for projection
+  {
+    double rot;
+    double tilt;
+    double psi;
+  };
+  struct Angles part_angles;
 
   // Data variables
   Image<double> V; // volume to adjust
   Image<double> V1; // reference volume
+  Image<double> padv; // padded image when applying aligment
+  double pad; // size of padding 
   double std1;
   size_t n;
   FourierTransformer transformer2;
