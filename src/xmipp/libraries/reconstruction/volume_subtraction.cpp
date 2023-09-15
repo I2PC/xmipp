@@ -380,13 +380,13 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	readParticle(rowIn);
 	Image<double> V;
 	V.read(fnVol2);
+	MultidimArray<double> &mv = V();
+	mv.setXmippOrigin();
 	if (subtomos)
 	{
 		// Window subtomo (padding) before apply alignment
 		MultidimArray <double> &mpad = padv();
 		mpad.setXmippOrigin();
-		MultidimArray<double> &mv = V();
-		mv.setXmippOrigin();
 		pad = 2 * XSIZE(mv);
 		mv.window(mpad,STARTINGY(mv)*(int)pad, STARTINGX(mv)*(int)pad, FINISHINGY(mv)*(int)pad, FINISHINGX(mv)*(int)pad);
 
@@ -406,16 +406,15 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		mpad.window(mv,STARTINGY(mv), STARTINGX(mv), FINISHINGY(mv), FINISHINGX(mv));
 	}
 
-
-	POCSmask(mask, V());
-	POCSnonnegative(V());
+	POCSmask(mask, mv);
+	POCSnonnegative(mv);
 	Vdiff = V;
-	auto V2FourierPhase = computePhase(V());
-	auto V2FourierMag = computeMagnitude(V());
-	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), V());
+	auto V2FourierPhase = computePhase(mv);
+	auto V2FourierMag = computeMagnitude(mv);
+	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mv);
 	for (n = 0; n < iter; ++n) 
 	{
-		transformer2.FourierTransform(V(), V2Fourier, false);
+		transformer2.FourierTransform(mv, V2Fourier, false);
 		if (radavg) {
 			auto V1size_x = (int)XSIZE(V1());
 			auto V1size_y = (int)YSIZE(V1());
@@ -427,44 +426,44 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		}
 		transformer2.inverseFourierTransform();
 		if (computeE) {
-			computeEnergy(Vdiff(), V());
+			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
-		POCSMinMax(V(), v1min, v1max);
+		POCSMinMax(mv, v1min, v1max);
 		if (computeE) {
-			computeEnergy(Vdiff(), V());
+			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
-		POCSmask(mask, V());
+		POCSmask(mask, mv);
 		if (computeE) {
-			computeEnergy(Vdiff(), V());
+			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
 		transformer2.FourierTransform();
 		POCSFourierPhase(V2FourierPhase, V2Fourier);
 		transformer2.inverseFourierTransform();
 		if (computeE) {
-			computeEnergy(Vdiff(), V());
+			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
-		POCSnonnegative(V());
+		POCSnonnegative(mv);
 		if (computeE) {
-			computeEnergy(Vdiff(), V());
+			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
-		double std2 = V().computeStddev();
-		V() *= std1 / std2;
+		double std2 = mv.computeStddev();
+		mv *= std1 / std2;
 		if (computeE) {
-			computeEnergy(Vdiff(), V());
+			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
 
 		if (cutFreq != 0) {
-			filter2.generateMask(V());
+			filter2.generateMask(mv);
 			filter2.do_generate_3dmask = true;
-			filter2.applyMaskSpace(V());
+			filter2.applyMaskSpace(mv);
 			if (computeE) {
-				computeEnergy(Vdiff(), V());
+				computeEnergy(Vdiff(), mv);
 				Vdiff = V;
 			}
 		}
@@ -474,6 +473,13 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		auto masksub = getSubtractionMask(fnMaskSub, mask);
 		V1.read(fnVolRef);
 		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
+	}
+
+	if (subtomos)
+	{
+		// Recover original alignment
+		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mv);
+		selfTranslate(xmipp_transformation::LINEAR, mv, -roffset, xmipp_transformation::WRAP);
 	}
 
 	writeParticle(rowOut, fnImgOut, V); 
