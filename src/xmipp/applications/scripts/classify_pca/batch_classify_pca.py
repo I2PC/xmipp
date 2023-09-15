@@ -10,12 +10,8 @@ import mrcfile
 import argparse
 import sys, os
 import numpy as np
-# from functions.bnb_gpu import *
-# from functions.assessment import *
 from xmippPyModules.classifyPcaFuntion.bnb_gpu import *
 from xmippPyModules.classifyPcaFuntion.assessment import *
-
-
 
 
 def read_images(mrcfilename):
@@ -97,7 +93,8 @@ if __name__=="__main__":
     if mask and sigma is None:
         sigma = dim/3
     
-    # nExp = 10000
+    expBatchSize = 5000 
+    numFirstBatch = 6
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
@@ -115,37 +112,36 @@ if __name__=="__main__":
 
     bnb = BnBgpu(nBand)
        
-    print("---Precomputing the projections of the experimental images---")  
+    # print("---Precomputing the projections of the experimental images---")  
 
     if refImages: 
+        initStep = -1
         clIm = read_images(refImages)
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
+        initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
         cl = torch.zeros((classes, mmap.data.shape[1], mmap.data.shape[2]), device = cuda) 
  
-    #create initial random classes 
-    div = int(initSubset/classes)
-    resto = int(initSubset%classes)
-
-    expBatchSizeClas = div+resto 
+        #create initial classes 
+        div = int(initSubset/classes)
+        resto = int(initSubset%classes)
     
-    count = 0
-    for initBatch in range(0, initSubset, expBatchSizeClas):
-        expImages = mmap.data[initBatch:initBatch+expBatchSizeClas].astype(np.float32)
-        Texp = torch.from_numpy(expImages).float().to(cuda)
-
-        #Averages classes
-        if not refImages:
-            cl[count] = torch.mean(Texp, 0)
-            count+=1
-        del(Texp)        
+        expBatchSizeClas = div+resto 
+        
+        count = 0
+        for initBatch in range(0, initSubset, expBatchSizeClas):
+            expImages = mmap.data[initBatch:initBatch+expBatchSizeClas].astype(np.float32)
+            Texp = torch.from_numpy(expImages).float().to(cuda)
+    
+            #Averages classes
+            if not refImages:
+                cl[count] = torch.mean(Texp, 0)
+                count+=1
+            del(Texp)        
     
     # file = output+"_0.mrcs"    
     # save_images(cl.cpu().numpy(), file)
     
-    # nExp = 30000
-    expBatchSize = 6000 
-    initStep = 5 
     num_batches = int(np.ceil(nExp / expBatchSize))
     mode = False
     
@@ -158,7 +154,7 @@ if __name__=="__main__":
         Texp = torch.from_numpy(expImages).float().to(cuda)
         del(expImages)  
               
-        if i < initStep:            
+        if i < initStep:          
             batch_projExp_cpu.append( bnb.batchExpToCpu(Texp, freqBn, coef, cvecs) )           
             if i == initStep-1:
                 mode = "create_classes"
@@ -169,34 +165,33 @@ if __name__=="__main__":
             mode = "align_classes"
         
         if mode:
-            print(initBatch, endBatch)
+            # print(initBatch, endBatch)
             print(mode)
 
       
             #Initialization Transformation Matrix
             if mode == "create_classes":
-                subset = expBatchSize * initStep
+                # subset = expBatchSize * initStep
+                subset = endBatch
             else:
-                # initSubset = expBatchSize
                 subset = endBatch - initBatch
-                # print("escribo subset")
-                # print(subset)
+
                  
             tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
             
             if mode == "align_classes":
-                niter = initStep #5
+                niter = 5
                 
             for iter in range(niter):
-                print("-----Iteration %s for updating classes-------"%(iter+1))
-                start = time.process_time()
-                
+                # print("-----Iteration %s for updating classes-------"%(iter+1))
+                           
                 matches = torch.full((subset, 5), float("Inf"), device = cuda)
                 
                 maxShift = round( (dim * 15)/100 )
                 maxShift = (maxShift//4)*4
  
                 if mode == "create_classes":
+                    print("---Iter %s for creating classes---"%(iter+1))
                     if iter < 4:
                         # ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
                         ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
@@ -209,6 +204,7 @@ if __name__=="__main__":
                     elif iter < 18: 
                         ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
                 else:
+                    print("---Iter %s for align to classes---"%(iter+1))
                     if iter < 1:
                         # ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
                         ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
@@ -247,25 +243,26 @@ if __name__=="__main__":
                         del(batch_projExp)
                         count+=1    
                 del(batch_projRef)    
-                      
-                print(time.process_time() - start)
                 
                 #update classes        
-                start = time.process_time()
                 classes = len(cl)
         
                 if mode == "create_classes":
                     cl, tMatrix, batch_projExp_cpu = bnb.create_classes(mmap, tMatrix, iter, subset, expBatchSize, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
-                print(time.process_time() - start)
-                #save classes
-                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                save_images(cl.cpu().detach().numpy(), file)
+
+                # #save classes
+                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                # save_images(cl.cpu().detach().numpy(), file)
+                
                 
                 if mode == "create_classes" and iter == 17:
-                    refClas[:endBatch] = matches[:, 1]
                     
+                    refClas[:endBatch] = matches[:, 1]
+                                                          
+                    #Applying TMT(inv). 
+                    #This is done because the rotation is performed from the center of the image.
                     initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
                                                   [0.0, 1.0, -dim/2],
                                                   [0.0, 0.0, 1.0]], device = tMatrix.device)
@@ -276,12 +273,14 @@ if __name__=="__main__":
                     tMatrix = torch.matmul(initial_shift, tMatrix)
                     tMatrix = torch.matmul(tMatrix, torch.inverse(initial_shift))
                     
+                    #extract final angular and shift transformations
                     rotation_matrix = tMatrix[:, :2, :2]
                     translation_vector[:endBatch] = tMatrix[:, :2, 2]
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
                 elif mode == "align_classes" and iter == 4:
+                    
                     refClas[initBatch:endBatch] = matches[:, 1]
                     
                     initial_shift = torch.tensor([[1.0, 0.0, -dim/2],
@@ -297,21 +296,19 @@ if __name__=="__main__":
                     rotation_matrix = tMatrix[:, :2, :2]
                     translation_vector[initBatch:endBatch] = tMatrix[:, :2, 2]
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
-                    angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())   
+                    angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
+                    
+
+    counts = torch.bincount(refClas.int(), minlength=classes) 
     
-    
-    # print(refClas)
-    counts = torch.bincount(refClas.int(), minlength=classes)
-    # dim = torch.tensor([dim], dtype=torch.float32, device=translation_vector.device)
-    # translation_vector = -translation_vector
-    # translation_vector[:, 0] = translation_vector[:, 0] + dim/2 - ( dim * torch.trunc(translation_vector[:, 0]/dim) )
-    # translation_vector[:, 1] = translation_vector[:, 1] + dim/2 - ( dim * torch.trunc(translation_vector[:, 1]/dim) )         
-    
+        #save classes
+    file = output+".mrcs"
+    save_images(cl.cpu().detach().numpy(), file)           
     
     # for number, count in enumerate(counts):
     #     if count > 0:
     #         print(number, count)
-    print(refClas.shape)
+
     print(counts.int())
     
     assess = evaluation()

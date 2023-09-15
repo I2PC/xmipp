@@ -12,7 +12,6 @@ import time
 import torchvision.transforms.functional as T
 import torch.nn.functional as F
 import kornia
-# import matplotlib.pyplot as plt
 import mrcfile
 
 
@@ -331,7 +330,7 @@ class BnBgpu:
         if iter < 11:
             newCL = sorted(newCL, key=len, reverse=True)    
         element = list(map(len, newCL))
-        print(element)
+        # print(element)
         
         # contador = len(element)    
         # if contador < 50:
@@ -380,7 +379,7 @@ class BnBgpu:
     def averages(self, data, newCL, classes): 
         
         element = list(map(len, newCL))
-        print(element)
+        # print(element)
         
         clk = []
         for n in range(classes):
@@ -413,25 +412,6 @@ class BnBgpu:
         images_filtered = torch.fft.ifftn(images_filtered_fft, dim=(1, 2)).real
     
         return images_filtered
-    
-    
-    def update_classes_rmsprop2(self, initial_classes, new_classes, learning_rate, decay_rate):
-        
-        initial_classes.requires_grad_()   
-        new_classes.requires_grad_()           
-    
-        optimizer = optim.RMSprop([initial_classes, new_classes], lr=learning_rate, alpha=decay_rate, eps = 1e-8)
-    
-        optimizer.zero_grad()
-        gradient = new_classes - initial_classes
-        gradient.sum().backward()  
-        optimizer.step()  
-    
-        updated_classes = initial_classes.detach()
-        del(optimizer)
-        del(gradient)
-    
-        return updated_classes
     
 
     def update_classes_rmsprop(self, cl, clk, learning_rate, decay_rate, epsilon, grad_squared):
