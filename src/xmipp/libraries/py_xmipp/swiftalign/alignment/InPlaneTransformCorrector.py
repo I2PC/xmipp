@@ -23,6 +23,7 @@
 from typing import Iterable, Optional, Tuple
 import pandas as pd
 import torch
+import math
 
 from .. import operators
 from .. import transform
@@ -53,8 +54,11 @@ class InPlaneTransformCorrector:
         inverse_align_to_quaternion = transform.quaternion_conj(self.align_to_quaternion)
         
         angles = None
-        quaternion = None
-        relative_quaternion = None
+        quaternions = None
+        relative_quaternions = None
+        twist_quaternions = None
+        swing_quaternions = None
+        mirror = None
         transform_matrices_2d = None
         transformed_images = None
         flattened_images = None
@@ -80,35 +84,45 @@ class InPlaneTransformCorrector:
                 
                 # Compute the transformation relative to 
                 # the average
-                quaternion = transform.euler_to_quaternion(
+                quaternions = transform.euler_to_quaternion(
                     rot_tilt[:,0],
                     rot_tilt[:,1],
                     angles,
-                    out=quaternion
+                    out=quaternions
                 )
-                relative_quaternion = transform.quaternion_product(
+                relative_quaternions = transform.quaternion_product(
                     inverse_align_to_quaternion[None],
-                    quaternion, 
-                    out=relative_quaternion
+                    quaternions, 
+                    out=relative_quaternions
                 )
 
-                # Compute the twist around the z component using the twist
-                # swing decomposition:
-                # https://stackoverflow.com/questions/3684269/component-of-a-quaternion-rotation-around-an-axis
-                w = relative_quaternion[...,0]
-                #x = 0
-                #y = 0
-                z = relative_quaternion[...,3]
-                # skip normalization
+                # Compute the twist and swing around the z axis using the
+                # twist-swing decomposition:
+                twist_quaternions = transform.twist_decomposition(
+                    relative_quaternions,
+                    2, # Z
+                    out=twist_quaternions
+                )
+                swing_quaternions = transform.swing_decomposition(
+                    relative_quaternions,
+                    twist_quaternions,
+                    out=swing_quaternions
+                )
                 
                 # Obtain the angle of the twist
-                torch.atan2(z, w, out=angles)
+                torch.atan2(twist_quaternions[...,3], twist_quaternions[...,0], out=angles)
                 angles *= 2
+                
+                # It is a mirror if the swing angle is larger
+                # than 90deg. Thus the half angle would be larger
+                # than 45deg
+                mirror = torch.lt(swing_quaternions[...,0].abs(), math.sqrt(0.5), out=mirror)
                 
             transform_matrices_2d = transform.affine_matrix_2d(
                 angles=angles,
                 shifts=shifts,
                 centre=centre,
+                mirror=mirror if mirror is not None else False,
                 shift_first=True,
                 out=transform_matrices_2d
             )

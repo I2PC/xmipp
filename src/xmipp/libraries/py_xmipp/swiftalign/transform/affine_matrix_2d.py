@@ -20,7 +20,7 @@
 # *  e-mail address 'xmipp@cnb.csic.es'
 # ***************************************************************************/
 
-from typing import Optional
+from typing import Optional, Union
 import torch
 
 from .rotation_matrix_2d import rotation_matrix_2d
@@ -47,6 +47,7 @@ def _apply_shifts(m23: torch.Tensor,
 def affine_matrix_2d(angles: torch.Tensor,
                      shifts: torch.Tensor,
                      centre: torch.Tensor,
+                     mirror: Union[torch.Tensor, bool] = False,
                      shift_first: bool = False,
                      out: Optional[torch.Tensor] = None ) -> torch.Tensor:
 
@@ -62,6 +63,14 @@ def affine_matrix_2d(angles: torch.Tensor,
         angles=angles, 
         out=out[...,:2,:2]
     )
+    
+    # Flip if necessary
+    if type(mirror) == bool:
+        if mirror:
+            out[...,1,1] = -out[...,1,1]
+    else:
+        out[mirror,1,1] = -out[mirror,1,1]
+    
     _apply_shifts(
         m23=out,
         shifts=shifts,
