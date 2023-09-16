@@ -32,14 +32,14 @@ class InPlaneTransformCorrector:
     def __init__(self,
                  flattener: operators.MaskFlattener,
                  interpolation: str = 'bilinear',
-                 align_to_matrix: Optional[torch.Tensor] = None,
+                 align_to_quaternion: Optional[torch.Tensor] = None,
                  device: Optional[torch.device] = None ) -> None:
 
         # Operations
         self.flattener = flattener
         self.interpolation = interpolation
         self.norm = None
-        self.align_to_matrix = align_to_matrix
+        self.align_to_quaternion = align_to_quaternion
         
         # Device
         self.device = device
@@ -50,8 +50,11 @@ class InPlaneTransformCorrector:
         if self.norm:
             raise NotImplementedError('Normalization is not implemented')
 
+        inverse_align_to_quaternion = transform.quaternion_conj(self.align_to_quaternion)
+        
         angles = None
-        transform_matrices_3d = None
+        quaternion = None
+        relative_quaternion = None
         transform_matrices_2d = None
         transformed_images = None
         flattened_images = None
@@ -71,43 +74,44 @@ class InPlaneTransformCorrector:
             shifts = transformations[:,1:]
             centre = torch.tensor(batch_images.shape[-2:]) / 2
 
-            if self.align_to_matrix is not None:
+            if self.align_to_quaternion is not None:
                 rot_tilt = torch.as_tensor(batch_md[[md.ANGLE_ROT, md.ANGLE_TILT]].to_numpy(), dtype=torch.float32)
                 rot_tilt.deg2rad_()
                 
                 # Compute the transformation relative to 
                 # the average
-                transform_matrices_3d = transform.euler_to_matrix(
+                quaternion = transform.euler_to_quaternion(
                     rot_tilt[:,0],
                     rot_tilt[:,1],
                     angles,
-                    out=transform_matrices_3d
+                    out=quaternion
                 )
-                relative_transform = torch.matmul(
-                    self.align_to_matrix.mT, 
-                    transform_matrices_3d,
+                relative_quaternion = transform.quaternion_product(
+                    inverse_align_to_quaternion[None],
+                    quaternion, 
+                    out=relative_quaternion
                 )
+
+                # Compute the twist around the z component using the twist
+                # swing decomposition:
+                # https://stackoverflow.com/questions/3684269/component-of-a-quaternion-rotation-around-an-axis
+                w = relative_quaternion[...,0]
+                #x = 0
+                #y = 0
+                z = relative_quaternion[...,3]
+                # skip normalization
                 
-                # Normalize the relative transform
-                relative_transform_2d = relative_transform[...,:2,:2]
-                relative_transform_2d /= relative_transform_2d.norm(dim=-1, keepdim=True) # TODO check correctness
+                # Obtain the angle of the twist
+                torch.atan2(z, w, out=angles)
+                angles *= 2
                 
-                transform_matrices_2d = transform.make_affine_matrix_2d(
-                    relative_transform_2d,
-                    shifts=shifts,
-                    centre=centre,
-                    shift_first=True,
-                    out=transform_matrices_2d
-                )
-            
-            else:
-                transform_matrices_2d = transform.affine_matrix_2d(
-                    angles=angles,
-                    shifts=shifts,
-                    centre=centre,
-                    shift_first=True,
-                    out=transform_matrices_2d
-                )
+            transform_matrices_2d = transform.affine_matrix_2d(
+                angles=angles,
+                shifts=shifts,
+                centre=centre,
+                shift_first=True,
+                out=transform_matrices_2d
+            )
 
             transformed_images = transform.affine_2d(
                 images=batch_images,

@@ -85,9 +85,9 @@ def run(images_md_path: str,
         mask = torch.ones(image_size, dtype=bool)
     
     # Compute the alignment matrix
-    align_to_matrix = None
+    align_to_quaternion = None
     if align_to is not None:
-        align_to_matrix = transform.euler_to_matrix(
+        align_to_quaternion = transform.euler_to_quaternion(
             torch.tensor(math.radians(float(align_to[0]))),
             torch.tensor(math.radians(float(align_to[1]))),
             torch.tensor(math.radians(float(align_to[2])))
@@ -100,7 +100,7 @@ def run(images_md_path: str,
     )
     image_transformer = alignment.InPlaneTransformCorrector(
         flattener=flattener,
-        align_to_matrix=align_to_matrix,
+        align_to_quaternion=align_to_quaternion,
         device=transform_device
     )
 
@@ -120,6 +120,12 @@ def run(images_md_path: str,
         scratch
     )
 
+    # Write average
+    output_average_path = output_root + 'average.mrc'
+    output_average = torch.zeros(mask.shape, dtype=average.dtype)
+    output_average[mask] = average.to(output_average.device)
+    image.write(output_average.numpy(), output_average_path)
+    
     # Write direction
     output_direction_path = output_root + 'eigen_image.mrc'
     output_direction = torch.zeros(mask.shape, dtype=direction.dtype)
