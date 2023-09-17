@@ -192,10 +192,10 @@ if __name__ == "__main__":
     def produce_output(mdExp, Y, distance, fnImages):
         ID = 0
         for objId in mdExp:
-            angles = Y[ID] * 180 / math.pi
+            angles = Y[ID]
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, angles[2], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
-            mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1] + 90, objId)
+            mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1], objId)
             mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             if distance[ID] > tolerance:
                 mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
@@ -267,34 +267,26 @@ if __name__ == "__main__":
                          [math.sin(theta), math.cos(theta), 0],
                          [0, 0, 1]])
 
+
     def euler_angles_to_matrix(angles):
         Rx = R_rot(angles[0])
         Ry = R_tilt(angles[1])
         Rz = R_psi(angles[2])
         return np.matmul(np.matmul(Rz, Ry), Rx)
 
+
     def average_of_rotations(p6d_redundant):
         """Consensus tool"""
         # Calculates average angle for each particle
-        #pred6d = calculate_r6d(p6d_redundant)
-        #matrix = convert_to_matrix(pred6d)
         matrix = convert_to_matrix(p6d_redundant)
-
-        print('matrix1', matrix)
         # min number of models
         euler_angles = np.array(list(map(euler_from_matrix, matrix)))
-        euler_angles[:, 0] = euler_angles[:, 0]/4
-
-        print('euler', euler_angles)
+        euler_angles[:, 0] = euler_angles[:, 0] / 4
 
         matrix = np.array(list(map(euler_angles_to_matrix, euler_angles)))
 
-        print('matrix2', matrix)
-
         euler_angles = np.array(list(map(euler_from_matrix, matrix)))
         euler_angles[:, 0] = euler_angles[:, 0]
-
-        print('euler', euler_angles)
 
         minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
@@ -314,12 +306,14 @@ if __name__ == "__main__":
         av_euler = euler_from_matrix(av_matrix)
         return np.append(av_euler, max_distance)
 
+
     def compute_ang_averages(pred6d):
         """Calls consensus tool"""
         averages_mdistance = np.array(list(map(average_of_rotations, pred6d)))
         average = averages_mdistance[:, 0:3]
         mdistance = averages_mdistance[:, 3]
         return average, mdistance
+
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
 
@@ -328,17 +322,26 @@ if __name__ == "__main__":
 
     mdExpImages = xmippLib.MetaData(fnXmdImages)
     fnImages = mdExpImages.getColumnValues(xmippLib.MDL_IMAGE)
-
     shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
     shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
+    rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
+    tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
+    psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
     shifts = []
+    euler_angles = []
+    for r, t, p in zip(rots, tilts, psis):
+        euler_angles.append(np.array([r, t, p]))
+
     for sX, sY in zip(shiftX, shiftY):
         shifts.append(np.array((sX, sY)))
 
     start_time = time()
+
+
     def shift_image(img, img_shifts):
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
+
 
     models = []
     for index in range(numAngModels):
@@ -355,18 +358,296 @@ if __name__ == "__main__":
     k = 0
     # perform batch predictions for each model
     for i in range(numBatches):
-        numPredictions = min(maxSize, numImgs-i*maxSize)
+        numPredictions = min(maxSize, numImgs - i * maxSize)
         Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
         for j in range(numPredictions):
             Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
-            Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-            Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
+            Xexp[j,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+            Xexp[j,] = shift_image(Xexp[j,], shifts[k])
             k += 1
         for index in range(numAngModels):
-            predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
+            predictions[i * maxSize:(i * maxSize + numPredictions), index, :] = models[index].predict(Xexp)
 
     Y, distance = compute_ang_averages(predictions)
+
+
+    def euler_matrix(ai, aj, ak, axes='sxyz'):
+        """Return homogeneous rotation matrix from Euler angles and axis sequence.
+
+        ai, aj, ak : Euler's roll, pitch and yaw angles
+        axes : One of 24 axis sequences as string or encoded tuple
+
+        >>> R = euler_matrix(1, 2, 3, 'syxz')
+        >>> np.allclose(np.sum(R[0]), -1.34786452)
+        True
+        >>> R = euler_matrix(1, 2, 3, (0, 1, 0, 1))
+        >>> np.allclose(np.sum(R[0]), -0.383436184)
+        True
+        >>> ai, aj, ak = (4*math.pi) * (np.random.random(3) - 0.5)
+        >>> for axes in _AXES2TUPLE.keys():
+        ...    R = euler_matrix(ai, aj, ak, axes)
+        >>> for axes in _TUPLE2AXES.keys():
+        ...    R = euler_matrix(ai, aj, ak, axes)
+
+        """
+        try:
+            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes]
+        except (AttributeError, KeyError):
+            _TUPLE2AXES[axes]  # validation
+            firstaxis, parity, repetition, frame = axes
+
+        i = firstaxis
+        j = _NEXT_AXIS[i + parity]
+        k = _NEXT_AXIS[i - parity + 1]
+
+        if frame:
+            ai, ak = ak, ai
+        if parity:
+            ai, aj, ak = -ai, -aj, -ak
+
+        si, sj, sk = math.sin(ai), math.sin(aj), math.sin(ak)
+        ci, cj, ck = math.cos(ai), math.cos(aj), math.cos(ak)
+        cc, cs = ci * ck, ci * sk
+        sc, ss = si * ck, si * sk
+
+        M = np.identity(4)
+        if repetition:
+            M[i, i] = cj
+            M[i, j] = sj * si
+            M[i, k] = sj * ci
+            M[j, i] = sj * sk
+            M[j, j] = -cj * ss + cc
+            M[j, k] = -cj * cs - sc
+            M[k, i] = -sj * ck
+            M[k, j] = cj * sc + cs
+            M[k, k] = cj * cc - ss
+        else:
+            M[i, i] = cj * ck
+            M[i, j] = sj * sc - cs
+            M[i, k] = sj * cc + ss
+            M[j, i] = cj * sk
+            M[j, j] = sj * ss + cc
+            M[j, k] = sj * cs - sc
+            M[k, i] = -sj
+            M[k, j] = cj * si
+            M[k, k] = cj * ci
+        return M
+
+
+    def euler_to_matrix(angles):
+        return euler_matrix(angles[0] * math.pi / 180, angles[1] * math.pi / 180, angles[2] * math.pi / 180,
+                            axes='szyz')[:3, :3]
+
+
+    def euler_from_matrix(matrix, axes='sxyz'):
+        """Return Euler angles from rotation matrix for specified axis sequence.
+
+        axes : One of 24 axis sequences as string or encoded tuple
+
+        Note that many Euler angle triplets can describe one matrix.
+
+        >>> R0 = euler_matrix(1, 2, 3, 'syxz')
+        >>> al, be, ga = euler_from_matrix(R0, 'syxz')
+        >>> R1 = euler_matrix(al, be, ga, 'syxz')
+        >>> np.allclose(R0, R1)
+        True
+        >>> angles = (4*math.pi) * (np.random.random(3) - 0.5)
+        >>> for axes in _AXES2TUPLE.keys():
+        ...    R0 = euler_matrix(axes=axes, *angles)
+        ...    R1 = euler_matrix(axes=axes, *euler_from_matrix(R0, axes))
+        ...    if not np.allclose(R0, R1): print(axes, "failed")
+
+        """
+        try:
+            firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
+        except (AttributeError, KeyError):
+            _TUPLE2AXES[axes]  # validation
+            firstaxis, parity, repetition, frame = axes
+
+        i = firstaxis
+        j = _NEXT_AXIS[i + parity]
+        k = _NEXT_AXIS[i - parity + 1]
+
+        M = np.array(matrix, dtype=np.float64, copy=False)[:3, :3]
+        if repetition:
+            sy = math.sqrt(M[i, j] * M[i, j] + M[i, k] * M[i, k])
+            if sy > _EPS:
+                ax = math.atan2(M[i, j], M[i, k])
+                ay = math.atan2(sy, M[i, i])
+                az = math.atan2(M[j, i], -M[k, i])
+            else:
+                ax = math.atan2(-M[j, k], M[j, j])
+                ay = math.atan2(sy, M[i, i])
+                az = 0.0
+        else:
+            cy = math.sqrt(M[i, i] * M[i, i] + M[j, i] * M[j, i])
+            if cy > _EPS:
+                ax = math.atan2(M[k, j], M[k, k])
+                ay = math.atan2(-M[k, i], cy)
+                az = math.atan2(M[j, i], M[i, i])
+            else:
+                ax = math.atan2(-M[j, k], M[j, j])
+                ay = math.atan2(-M[k, i], cy)
+                az = 0.0
+
+        if parity:
+            ax, ay, az = -ax, -ay, -az
+        if frame:
+            ax, az = az, ax
+        return ax, ay, az
+
+
+    def matrix_to_euler(mat):
+        return np.array(euler_from_matrix(mat, axes='szyz')) * 180 / math.pi
+
+
+    SL = xmippLib.SymList()
+    Matrices = np.array(SL.getSymmetryMatrices('o'))
+    inverse_matrices = np.zeros_like(Matrices)
+    for i in range(24):
+        inverse_matrices[i] = np.transpose(Matrices[i])
+
+
+    def frobenius_norm(matrix):
+        return np.linalg.norm(matrix, ord='fro')
+
+
+    def map_symmetries_index(input_matrix, inv_group_matrices, target):
+        n = np.shape(inv_group_matrices)[0]
+        reshaped_matrix = np.tile(input_matrix, (n, 1, 1))
+        candidates = np.matmul(reshaped_matrix, inv_group_matrices)
+        norms = np.array(list((map(frobenius_norm, candidates - target))))
+        index_min = np.argmin(norms)
+        return index_min
+
+
+    def map_symmetries(input_matrix, inv_group_matrices, target):
+        return np.matmul(input_matrix,
+                         inv_group_matrices[map_symmetries_index(input_matrix, inv_group_matrices, target)])
+
+
+    def move_to_fundamental_domain(input_matrix, inv_group_matrices):
+        candidates = [[378]]
+        max_tilt = -999
+        for sym_matrix in inv_group_matrices:
+            aux_mat = np.matmul(input_matrix, sym_matrix)
+            aux_euler_angles = matrix_to_euler(aux_mat)
+            aux_rot = aux_euler_angles[0]
+            aux_tilt = aux_euler_angles[1]
+            if (aux_rot >= 0) and (90 >= aux_rot):
+                if aux_tilt >= max_tilt:
+                    max_tilt = aux_tilt
+                    candidates = aux_mat
+        if candidates[0][0] == 378:
+            print('LIADA', flush=True)
+
+        return candidates
+
+
+    def transform_rot(input_matrix, order):
+        euler = matrix_to_euler(input_matrix)
+        euler[0] = order * euler[0]
+        output_matrix = euler_to_matrix(euler)
+        return output_matrix[:3, :3]
+
+
+    def rodrigues_formula(axis, angle):
+        K = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+        return np.eye(3) + math.sin(angle) * K + (1 - math.cos(angle)) * np.matmul(K, K)
+
+
+    def factor_rot(rot_angle, tilt_angle):
+        dist = 2.2300e-07 * tilt_angle**4 + 5.8474e-05 * tilt_angle**3 + 5.6207e-03 * tilt_angle**2 - 8.1743e-02 * tilt_angle
+        return rot_angle-np.sign(rot_angle)*dist*((180-np.abs(rot_angle))/(90-dist))
+
+    def inv_factor_rot(rot_f, tilt_angle):
+        dist = 2.2300e-07 * tilt_angle**4 + 5.8474e-05 * tilt_angle**3 + 5.6207e-03 * tilt_angle**2 - 8.1743e-02 * tilt_angle
+        return rot_f*((90-dist)/90) + np.sign(rot_f)*2*dist
+
+    print('factor', factor_rot(160, -60))
+    print('invfactor', inv_factor_rot(factor_rot(160, -60), -60))
+
+    y_matrices = np.array(list(map(euler_to_matrix, euler_angles)))
+    y_m = y_matrices[:, :3, :3]
+    S_inv = []
+
+    for matrix in y_m:
+        S_inv.append(move_to_fundamental_domain(matrix, inverse_matrices))
+
+    # Now rotations are in a fundamental domain
+    rot_order = 4
+    y_transformedRot1 = np.array(list(map(lambda input_matrix: transform_rot(input_matrix, rot_order), S_inv)))
+
+    angle = math.pi / 4
+    matrix_axis = rodrigues_formula([0, 1, 0], angle)
+    y_new_axis = []
+    # Ahora cambio de eje Z:
+    for matrix in y_transformedRot1:
+        y_new_axis.append(np.matmul(matrix, matrix_axis))
+
+    y_euler_new_axis = np.array(list(map(matrix_to_euler, y_new_axis)))
+    min_tilt = -99
+    print('min tilt', min_tilt)
+    factor_tilt = -180 / min_tilt
+    Y = y_euler_new_axis
+    Y[:, 1] = factor_tilt * y_euler_new_axis[:, 1]
+
+    Y[:, 0] = np.array(list(map(factor_rot, Y[:, 0], Y[:, 1])))
+
+    Y[:, 0] = 2*(180+Y[:, 0])
+
+    Y[:, 0] = Y[:, 0]/2 - 180
+
+    Y[:, 0] = np.array(list(map(inv_factor_rot, Y[:, 0], Y[:, 1])))
+
+    Y[:, 1] = Y[:, 1]/factor_tilt
+
+    Matrix_euler_new_axis = np.array(list(map(euler_to_matrix, Y)))
+
+    matrix_axis = rodrigues_formula([0, 1, 0], -angle)
+    Matrix_original_axis = []
+    # Ahora cambio de eje Z:
+    for matrix in Matrix_euler_new_axis:
+        Matrix_original_axis.append(np.matmul(matrix, matrix_axis))
+
+    Y = np.array(list(map(matrix_to_euler, Matrix_original_axis)))
+
+    Y[:, 0] = Y[:, 0]/4
+
+    #arr = Y
+#
+    ## Define the division ranges
+    #division_ranges = [(-5, 0), (-10, -5), (-15, -10), (-20, -15), (-25, -20), (-30, -25), (-35, -30), (-40, -35),
+    #                   (-45, -40), (-50, -45), (-55, -50), (-60, -55), (-65, -60), (-70, -65), (-75, -70), (-80, -75),
+    #                   (-85, -80), (-90, -85), (-95, -90), (-100, -95), (-105, -100), (-110, -105), (-115, -110),
+    #                   (-120, -115), (-125, -120), (-130, -125), (-135, -130), (-140, -135), (-145, -140), (-150, -145),
+    #                   (-155, -150), (-160, -155), (-165, -160), (-170, -165), (-175, -170), (-180, -175)]
+#
+    ## Calculate the minimum distances for each first element
+    #min_distances = []
+    #min_distances_args = []
+    #conteo_elementos = 0
+    #for division_range in division_ranges:
+    #    lower, upper = division_range
+    #    first_elements = arr[(arr[:, 1] >= lower) & (arr[:, 1] < upper)][:, 0]
+    #    second_elements = arr[(arr[:, 1] >= lower) & (arr[:, 1] < upper)][:, 1]
+    #    distances = np.min(np.array([abs(90 - first_elements), abs(-90 - first_elements)]), axis=0)
+    #    print(len(distances))
+    #    print('numero de elementos en la division', len(first_elements))
+    #    conteo_elementos += len(first_elements)
+    #    if len(first_elements) > 0:
+    #        min_distances.append(np.min(distances))
+    #        min_distances_args.append(second_elements[np.argmin(distances)])
+    #    else:
+    #        min_distances.append(np.inf)
+    #print('conteo final', conteo_elementos)
+#
+    #print('distances', min_distances)
+#
+    #print('tilts', min_distances_args)
+
     produce_output(mdExp, Y, distance, fnImages)
+
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
 
     elapsed_time = time() - start_time
