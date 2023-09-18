@@ -198,7 +198,7 @@ if __name__=="__main__":
                     elif iter < 8: 
                         ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
                     elif iter < 12: 
-                        ang, shiftMove = (-180, 180, 2), (-6, 8, 2)
+                        ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
                     elif iter < 16: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                     elif iter < 18: 
@@ -211,7 +211,7 @@ if __name__=="__main__":
                     elif iter < 2: 
                         ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
                     elif iter < 3: 
-                        ang, shiftMove = (-180, 180, 2), (-6, 8, 2)
+                        ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
                     elif iter < 4: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                     elif iter < 5: 
