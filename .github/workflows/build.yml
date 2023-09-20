@@ -54,4 +54,4 @@ jobs:
         env:
           CIBuild: 1
           BUILD_TESTS: True
-        run: ./xmipp noAsk || cat compileLOG.txt && false
+        run: ./xmipp noAsk || (cat compileLOG.txt && false)
