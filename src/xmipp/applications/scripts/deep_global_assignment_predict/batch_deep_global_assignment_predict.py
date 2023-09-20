@@ -8,7 +8,7 @@ import sys
 import xmippLib
 from time import time
 from scipy.spatial.transform import Rotation
-from scipy.ndimage import shift
+from scipy.ndimage import shift, rotate
 
 maxSize = 512
 
@@ -177,18 +177,20 @@ if __name__ == "__main__":
 
         return np.array(X)
 
-    def average_of_rotations(p6d_redundant):
+    def average_of_rotations(p6d_redundant, shifts=False):
         """Consensus tool"""
         # Calculates average angle for each particle
         matrix = convert_to_matrix(p6d_redundant)
         # min number of models
         euler_angles = np.array(list(map(matrix_to_euler, matrix)))
-        euler_angles[:, 0] = euler_angles[:, 0]
+
+        if shifts:
+            applied_shifts = [0, 360/5, 2 * 360/5, 3 * 360/5, 4 * 360/5]
+            #applied_shifts = [0]
+            euler_angles[:, 2] = euler_angles[:, 2] - applied_shifts
 
         matrix = np.array(list(map(euler_to_matrix, euler_angles)))
 
-        euler_angles = np.array(list(map(matrix_to_euler, matrix)))
-        euler_angles[:, 0] = euler_angles[:, 0]
 
         minModels = np.shape(matrix)[0] - maxModels
         quats = convert_to_quaternions(matrix)
@@ -208,10 +210,17 @@ if __name__ == "__main__":
         av_euler = matrix_to_euler(av_matrix)
         return np.append(av_euler, max_distance)
 
+    def matrix_to_rotation6d(mat):
+        r6d = np.delete(mat, -1, axis=1)
+        return np.array((r6d[0, 0], r6d[0, 1], r6d[1, 0], r6d[1, 1], r6d[2, 0], r6d[2, 1]))
 
-    def compute_ang_averages(pred6d):
+    def euler_to_rotation6d(angles):
+        mat = euler_to_matrix(angles)
+        return matrix_to_rotation6d(mat)
+
+    def compute_ang_averages(pred6d, sh=False):
         """Calls consensus tool"""
-        averages_mdistance = np.array(list(map(average_of_rotations, pred6d)))
+        averages_mdistance = np.array(list(map(lambda prediction: average_of_rotations(prediction, shifts=sh), pred6d)))
         average = averages_mdistance[:, 0:3]
         mdistance = averages_mdistance[:, 3]
         return average, mdistance
@@ -362,6 +371,7 @@ if __name__ == "__main__":
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, angles[0], objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_TILT, angles[1], objId)
             mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
+
             if distance[ID] > tolerance:
                 mdExp.setValue(xmippLib.MDL_ENABLED, -1, objId)
             ID += 1
@@ -393,6 +403,9 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
+    def rotate_image(img, angle):
+        return rotate(img, angle=angle, order=1, mode='reflect', reshape=False)
+
 
     models = []
     for index in range(numAngModels):
@@ -417,31 +430,38 @@ if __name__ == "__main__":
             Xexp[j,] = shift_image(Xexp[j,], shifts[k])
             k += 1
         for index in range(numAngModels):
-            predictions[i * maxSize:(i * maxSize + numPredictions), index, :] = models[index].predict(Xexp)
+            #predictions[i * maxSize:(i * maxSize + numPredictions), index, :] = models[index].predict(Xexp)
+            individual_predictions = np.zeros((numPredictions, 5, 6))
+            for ind in range(5):
+                rotated_Xexp = np.array(list(map(lambda image: rotate_image(image, ind*360/5), Xexp)))
+                individual_predictions[:, ind, :] = models[index].predict(rotated_Xexp)
+            euler_predictions, nothing = compute_ang_averages(individual_predictions, sh=True)
+
+            predictions[i * maxSize:(i * maxSize + numPredictions), index, :] = np.array(list(map(euler_to_rotation6d, euler_predictions)))
 
     Y, distance = compute_ang_averages(predictions)
 
-    angle = math.pi / 4
-    min_tilt = -99
-    factor_tilt = -180 / min_tilt
-
-    Y[:, 0] = Y[:, 0]/2 - 180
-
-    Y[:, 0] = np.array(list(map(inv_factor_rot, Y[:, 0], Y[:, 1])))
-
-    Y[:, 1] = Y[:, 1]/factor_tilt
-
-    Matrix_euler_new_axis = np.array(list(map(euler_to_matrix, Y)))
-
-    matrix_axis = rodrigues_formula([0, 1, 0], -angle)
-    Matrix_original_axis = []
-    # Ahora cambio de eje Z:
-    for matrix in Matrix_euler_new_axis:
-        Matrix_original_axis.append(np.matmul(matrix, matrix_axis))
-
-    Y = np.array(list(map(matrix_to_euler, Matrix_original_axis)))
-
-    Y[:, 0] = Y[:, 0]/4
+    #angle = math.pi / 4
+    #min_tilt = -99
+    #factor_tilt = -180 / min_tilt
+#
+    #Y[:, 0] = Y[:, 0]/2 - 180
+#
+    #Y[:, 0] = np.array(list(map(inv_factor_rot, Y[:, 0], Y[:, 1])))
+#
+    #Y[:, 1] = Y[:, 1]/factor_tilt
+#
+    #Matrix_euler_new_axis = np.array(list(map(euler_to_matrix, Y)))
+#
+    #matrix_axis = rodrigues_formula([0, 1, 0], -angle)
+    #Matrix_original_axis = []
+    ## Ahora cambio de eje Z:
+    #for matrix in Matrix_euler_new_axis:
+    #    Matrix_original_axis.append(np.matmul(matrix, matrix_axis))
+#
+    #Y = np.array(list(map(matrix_to_euler, Matrix_original_axis)))
+#
+    #Y[:, 0] = Y[:, 0]/4
 
     produce_output(mdExp, Y, distance, fnImages)
 
