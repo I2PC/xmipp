@@ -279,8 +279,8 @@ class BnBgpu:
             newCL = [torch.cat(class_images_list, dim=0) for class_images_list in newCL] 
             clk = self.averages(data, newCL, classes)
             # clk = self.apply_lowpass_filter(clk, 10, sampling)
-            # if mask:
-            #     clk = clk * self.create_gaussian_mask(clk, sigma)
+            if mask:
+                clk = clk * self.create_gaussian_mask(clk, sigma)
             
             if not hasattr(self, 'grad_squared'):
                 self.grad_squared = torch.zeros_like(cl)
