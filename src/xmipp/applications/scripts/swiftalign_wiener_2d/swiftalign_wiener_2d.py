@@ -78,6 +78,7 @@ def run(images_md_path: str,
     
     # Read input files
     images_md = md.sort_by_image_filename(md.read(images_md_path))
+    images_md.reset_index(drop=True, inplace=True)
     images_paths = list(map(image.parse_path, images_md[md.IMAGE]))
     images_dataset = image.torch_utils.Dataset(images_paths)
     images_loader = torch.utils.data.DataLoader(
