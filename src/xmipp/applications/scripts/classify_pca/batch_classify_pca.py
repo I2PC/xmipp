@@ -94,7 +94,7 @@ if __name__=="__main__":
         sigma = dim/3
     
     expBatchSize = 5000
-    numFirstBatch = 4
+    numFirstBatch = 6
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
