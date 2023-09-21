@@ -93,8 +93,8 @@ if __name__=="__main__":
     if mask and sigma is None:
         sigma = dim/3
     
-    expBatchSize = 2048 
-    numFirstBatch = 15
+    expBatchSize = 5000
+    numFirstBatch = 6
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
