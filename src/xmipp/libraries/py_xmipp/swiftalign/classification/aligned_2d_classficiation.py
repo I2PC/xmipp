@@ -28,29 +28,34 @@ def _mean_centered_pca(samples: torch.Tensor,
     if len(samples.shape) != 2:
         raise RuntimeError('Sample matrix is expected to have 2 dimensions')
     
-    # Perform the computations with the smallest
-    # covariance vector possible
-    transpose = samples.shape[0] < samples.shape[1]
-    
-    # Compute the covariance according to
-    # the transposition    
-    if transpose:
-        covariance = samples @ samples.T
-    else:
-        covariance = samples.T @ samples
-    covariance /= len(samples) - 1
-    assert(covariance.shape == (min(samples.shape), )*2)
+    if len(samples) >= 3*k:
+        # Perform the computations with the smallest
+        # covariance vector possible
+        transpose = samples.shape[0] < samples.shape[1]
         
-    # Compute the largest eigenvalues of the covariance matrix
-    eigenvalues, eigenvectors = torch.lobpcg(
-        covariance,
-        k=k
-    )
-    
-    # Undo the transposition
-    if transpose:
-        eigenvectors = samples.T @ eigenvectors
-        eigenvectors /= torch.norm(eigenvectors, dim=0, keepdim=True)
+        # Compute the covariance according to
+        # the transposition    
+        if transpose:
+            covariance = samples @ samples.T
+        else:
+            covariance = samples.T @ samples
+        covariance /= len(samples) - 1
+        assert(covariance.shape == (min(samples.shape), )*2)
+            
+        # Compute the largest eigenvalues of the covariance matrix
+        eigenvalues, eigenvectors = torch.lobpcg(
+            covariance,
+            k=k
+        )
+        
+        # Undo the transposition
+        if transpose:
+            eigenvectors = samples.T @ eigenvectors
+            eigenvectors /= torch.norm(eigenvectors, dim=0, keepdim=True)
+            
+    else:
+        eigenvalues = torch.zeros((k, ), dtype=samples.dtype, device=samples.device)
+        eigenvectors = torch.zeros((samples.shape[-1], k), dtype=samples.dtype, device=samples.device)
 
     return eigenvalues, eigenvectors
     
