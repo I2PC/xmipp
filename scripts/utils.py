@@ -173,7 +173,8 @@ def printProgressBar(value, sizeBar=40):#value 0 - 100
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            showWithReturn=True, in_parallel=False, sconsProgress=False,
-           progresLines=False, progresLinesPrecompiled=False, printProgress=False):
+           progresLines=False, progresLinesPrecompiled=False, printProgress=False,
+           COMPILE_LOG=''):
     str_out = []
     precompiled = False
     if show_command:
@@ -191,8 +192,10 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         else:
             progresL = progresLines
         line = p.stdout.readline().decode("utf-8")
-        if line != '':
+        if line:
             log.append(line)
+            write_compileLog(line, COMPILE_LOG)
+
             if printProgress == True:
                 if n == 30 and binariesPrecompiled(log):
                         precompiled=True
@@ -205,8 +208,8 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 str2Print = line + "\n" + printProgressBar(prg)
                 print(f"{yellow(str2Print)}", end=UP)
                 n += 1
-        if not line:
-            if p.poll() == 0:
+        else:
+            if p.wait() == 0:
                 if printProgress:
                     print(printProgressBar(100))
                 return True
@@ -229,7 +232,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
                 log.append(l)
     if in_parallel:
         return p
-    elif 0 == p.poll():
+    elif 0 == p.wait():
         return True
     else:
         if show_output is False and log is None:
@@ -250,7 +253,7 @@ def write_compileLog(log, COMPILE_LOG='', append=True):
         HTW = 'a'
     else:
         HTW = 'w'
-    with open(COMPILE_LOG, HTW) as logFile:#no imprime con salto de linea ni imprime todo
+    with open(COMPILE_LOG, HTW) as logFile:#no imprime con salto de linea ni imprime tod
         logFile.write(log)
 
 def whereis(program, findReal=False, env=None):

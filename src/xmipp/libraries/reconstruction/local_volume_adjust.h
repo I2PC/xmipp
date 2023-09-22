@@ -1,9 +1,7 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano                   coss@cnb.csic.es
- * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
- * 
+ * Authors:    Estrella Fernandez Gimenez         me.fernandez@cnb.csic.es (2023)
+ *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,50 +22,45 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#ifndef LIBRARIES_RECONSTRUCTION_LOCAL_VOLUME_ADJUST_H_
+#define LIBRARIES_RECONSTRUCTION_LOCAL_VOLUME_ADJUST_H_
 
-#ifndef _PROG_TOMO_EXTRACT_SUBTOMOS
-#define _PROG_TOMO_EXTRACT_SUBTOMOS
-
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_program.h"
 #include <core/xmipp_fftw.h>
-#include <limits>
-#include <complex>
-#include <string>
-
-// #define DEBUG
+#include <data/fourier_filter.h>
 
 
-class ProgTomoExtractSubtomograms : public XmippProgram
-{
-public:
-	 /** Filenames */
-	FileName fnOut;
-    FileName fnTom;
-    FileName fnCoor;
+class ProgLocalVolumeAdjust: public XmippProgram {
+/*This class contains methods that are use to adjust an input volume (V) to a another reference volume (V1) locally
+by using a least squares solution in a sliding window*/
 
-    size_t Xdim;
-    size_t Ydim;
-    size_t Zdim;
+private:
+	FileName fnVol2;
+	FileName fnVol1;
+	FileName fnOutVol;
+	FileName fnMask;
+	bool performSubtraction;
+	int neighborhood;
+	float sampling;
+	double c;
+	double sumV_Vref;
+	double sumVref2;
+	size_t k;
+	size_t j;
+	size_t i;
 
-    bool invertContrast;
-    bool normalize;
-    bool downsample;
+	/// Read arguments
+	void readParams() override;
 
-    double scaleFactor;
-    double downsampleFactor;
+	/// Show
+	void show() const override;
 
-	/** Is the volume previously masked?*/
-	int boxsize;
-    int nthrs;
+	/// Define parameters
+	void defineParams() override;
 
-public:
+	/** Run */
+	void run() override;
 
-    void defineParams();
-    void readParams();
-    void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
-    void run();
 };
 //@}
 #endif

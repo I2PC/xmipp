@@ -68,58 +68,34 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 
 	numberOfAtoms = 0;
 
-	while (!f2parse.eof())
-	{
-		std::string line;
-		getline(f2parse, line);
+    // Initializing and reading pdb file
+    PDBRichPhantom pdbFile;
 
-		// The type of record (line) is defined in the first 6 characters of the pdb
-		std::string typeOfline = line.substr(0,4);
+    // Read centered pdb
+    pdbFile.read(fn_pdb.c_str());
 
-		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
-		{
-			// Type of Atom
-			std::string at;
-			try
-			{
-				at = line.substr(13,2);
-			}catch (const std::out_of_range& oor)
-			{
-				std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
-			}
+    // For each atom, store necessary info if type matches
+    for (auto& atom : pdbFile.atomList) {
+        if (atom.name == typeOfAtom) {
+            numberOfAtoms++;
 
-			if (at == typeOfAtom)
-			{
-				// Atom positions
-				numberOfAtoms++;
-				double x = textToFloat(line.substr(30,8));
-				double y = textToFloat(line.substr(38,8));
-				double z = textToFloat(line.substr(46,8));
-				std::string ch = line.substr(21,1);
+            // Storing coordinates
+            at_pos.x.push_back(atom.x);
+            at_pos.y.push_back(atom.y);
+            at_pos.z.push_back(atom.z);
+            at_pos.chain.push_back(std::string(1, atom.chainid));
 
-				// storing coordinates
-				at_pos.x.push_back(x);
-				at_pos.y.push_back(y);
-				at_pos.z.push_back(z);
-				at_pos.chain.push_back(ch);
+            // Residue Number
+            at_pos.residue.push_back(atom.resseq);
 
-                // Residue Number
-				auto resi = (int) textToFloat(line.substr(23,5));
-				at_pos.residue.push_back(resi);
+            // Getting the bfactor = 8pi^2*u
+            at_pos.b.push_back(atom.bfactor); //sqrt(atom.bfactor/(8*PI*PI));
 
-				// Getting the bfactor = 8pi^2*u
-				double bfactorRad = textToFloat(line.substr(60,6));//sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
-				at_pos.b.push_back(bfactorRad);
-
-                                // Covalent radius of the atom
-				double rad = atomCovalentRadius(line.substr(13,2));
-				at_pos.atomCovRad.push_back(rad);
-			}
-		}
-	}
+            // Covalent radius of the atom
+            at_pos.atomCovRad.push_back(atomCovalentRadius(atom.name));
+        }
+    }
 }
-
-
 
 double AtomInterpolator::volumeAtDistance(char atom, double r) const
 {
@@ -271,73 +247,46 @@ void computePDBgeometry(const std::string &fnPDB,
     limitF.initConstant(-1e30);
     double total_mass = 0;
 
-    // Open the file
-    std::ifstream fh_pdb;
-    fh_pdb.open(fnPDB.c_str());
-    if (!fh_pdb)
-        REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
+    // Initialize PDBRichPhantom and read atom struct file
+    PDBRichPhantom pdbFile;
 
-    // Process all lines of the file
-    int col=1;
-    if (intensityColumn=="Bfactor")
-        col=2;
-    while (!fh_pdb.eof())
-    {
-        // Read a ATOM line
-        std::string line;
-        getline(fh_pdb, line);
-        if (line == "")
-            continue;
-        std::string kind = line.substr(0,4);
-        if (kind != "ATOM" && kind!="HETA")
-            continue;
+    // Read centered pdb
+    pdbFile.read(fnPDB);
 
-        // Extract atom type and position
-        // Typical line:
-        // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        std::string atom_type = line.substr(13,2);
-        double x = textToFloat(line.substr(30,8));
-        double y = textToFloat(line.substr(38,8));
-        double z = textToFloat(line.substr(46,8));
-
+    // For each atom, correct necessary info
+    bool useBFactor = intensityColumn=="Bfactor";
+    for (auto& atom : pdbFile.atomList) {
         // Update center of mass and limits
-        if (x < XX(limit0))
-            XX(limit0) = x;
-        else if (x > XX(limitF))
-            XX(limitF) = x;
-        if (y < YY(limit0))
-            YY(limit0) = y;
-        else if (y > YY(limitF))
-            YY(limitF) = y;
-        if (z < ZZ(limit0))
-            ZZ(limit0) = z;
-        else if (z > ZZ(limitF))
-            ZZ(limitF) = z;
+        XX(limit0) = std::min(XX(limit0), atom.x);
+        YY(limit0) = std::min(YY(limit0), atom.y);
+        ZZ(limit0) = std::min(ZZ(limit0), atom.z);
+
+        XX(limitF) = std::max(XX(limitF), atom.x);
+        YY(limitF) = std::max(YY(limitF), atom.y);
+        ZZ(limitF) = std::max(ZZ(limitF), atom.z);
+
         double weight;
-        if (atom_type=="EN")
+        if (atom.name == "EN")
         {
-            if      (col==1)
-                weight=textToFloat(line.substr(54,6));
-            else if (col==2)
-                weight=textToFloat(line.substr(60,6));
+            if (useBFactor)
+                weight = atom.bfactor;
+            else
+                weight = atom.occupancy;
         }
         else
         {
-            if (kind=="HETA")
+            if (atom.record == "HETATM")
                 continue;
-            weight=(double) atomCharge(atom_type);
+            weight = (double) atomCharge(atom.name);
         }
         total_mass += weight;
-        XX(centerOfMass) += weight * x;
-        YY(centerOfMass) += weight * y;
-        ZZ(centerOfMass) += weight * z;
+        XX(centerOfMass) += weight * atom.x;
+        YY(centerOfMass) += weight * atom.y;
+        ZZ(centerOfMass) += weight * atom.z;
     }
 
     // Finish calculations
     centerOfMass /= total_mass;
-
-    // Close file
-    fh_pdb.close();
 }
 
 /* Apply geometry ---------------------------------------------------------- */
@@ -482,7 +431,7 @@ void readPDB(const FileName &fnPDB, const callable &addAtom)
         getline(fh_in, line);
         if (line == "")
             continue;
-        kind = line.substr(0,4);
+        kind = line.substr(0, 4);
         if (kind != "ATOM" && kind != "HETA")
             continue;
 
@@ -490,9 +439,9 @@ void readPDB(const FileName &fnPDB, const callable &addAtom)
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
         atom.atomType = line[13];
-        atom.x = textToFloat(line.substr(30,8));
-        atom.y = textToFloat(line.substr(38,8));
-        atom.z = textToFloat(line.substr(46,8));
+        atom.x = textToFloat(line.substr(30, 8));
+        atom.y = textToFloat(line.substr(38, 8));
+        atom.z = textToFloat(line.substr(46, 8));
         addAtom(atom);
     }
 
@@ -607,8 +556,12 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
         {
             continue;
         }
-        kind = line.substr(0,4);
-        if (kind == "ATOM" || kind == "HETA")
+
+        // Reading and storing type of atom
+        kind = line.substr(0, 6);
+        kind.erase(kind.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
+
+        if (kind == "ATOM" || kind == "HETATM")
         {
 			line.resize (80,' ');
 
@@ -616,22 +569,24 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
-			atom.record = line.substr(0,6);
-			hy36decodeSafe(5, line.substr(6,5).c_str(), 5, &atom.serial);
-			atom.name = line.substr(12,4);
+			atom.record = kind;
+			hy36decodeSafe(5, line.substr(6, 5).c_str(), 5, &atom.serial);
+			atom.name = line.substr(13, 3);
+            atom.name.erase(atom.name.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
 			atom.altloc = line[16];
-			atom.resname = line.substr(17,3);
+			atom.resname = line.substr(17, 3);
 			atom.chainid = line[21];
-			hy36decodeSafe(4, line.substr(22,4).c_str(), 4, &atom.resseq);
+			hy36decodeSafe(4, line.substr(22, 4).c_str(), 4, &atom.resseq);
 			atom.icode = line[26];
-			atom.x = textToFloat(line.substr(30,8));
-			atom.y = textToFloat(line.substr(38,8));
-			atom.z = textToFloat(line.substr(46,8));
-			atom.occupancy = textToFloat(line.substr(54,6));
-			atom.bfactor = textToFloat(line.substr(60,6));
-			atom.segment = line.substr(72,4);
-			atom.atomType = line.substr(76,2);
-			atom.charge = line.substr(78,2);
+			atom.x = textToFloat(line.substr(30, 8));
+			atom.y = textToFloat(line.substr(38, 8));
+			atom.z = textToFloat(line.substr(46, 8));
+			atom.occupancy = textToFloat(line.substr(54, 6));
+			atom.bfactor = textToFloat(line.substr(60, 6));
+			atom.segment = line.substr(72, 4);
+			atom.atomType = line.substr(77, 1);
+			atom.charge = line.substr(79, 1);
+            atom.charge.erase(atom.charge.find_last_not_of(' ') + 1); // Converting into empty string if it is a space
 
 			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
@@ -639,7 +594,7 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			if(!pseudoatoms && atom.bfactor >= threshold)
 				addAtom(atom);
 
-		} else if (kind == "REMA")
+		} else if (kind == "REMARK")
 			remarks.push_back(line);
     }
 
