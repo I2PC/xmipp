@@ -98,7 +98,7 @@ void ProgAngularNeighbourhood::run()
             DF1.getValue(MDL_ANGLE_TILT,tilt1,objId2);
             DF1.getValue(MDL_ANGLE_PSI,psi1,objId2);
             double dist = SL.computeDistance(rot2, tilt2, 0., rot1, tilt1, psi1,
-                                             true, check_mirrors, false);
+                                             true, check_mirrors, false, false);
             if (dist <= maxdist)
             {
                 MDRowVec row;
