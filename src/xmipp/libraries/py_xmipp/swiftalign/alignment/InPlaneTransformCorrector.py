@@ -57,7 +57,6 @@ class InPlaneTransformCorrector:
         quaternions = None
         relative_quaternions = None
         twist_quaternions = None
-        swing_quaternions = None
         mirror = None
         transform_matrices_2d = None
         transformed_images = None
@@ -96,27 +95,24 @@ class InPlaneTransformCorrector:
                     out=relative_quaternions
                 )
 
-                # Compute the twist and swing around the z axis using the
-                # twist-swing decomposition:
+                # Determine if it is a mirror by computing the ZZ component
+                # of the transform matrix and checking its sign
+                zz = 1 - 2*(torch.square(relative_quaternions[...,1]) + torch.square(relative_quaternions[...,2]))
+                mirror = torch.lt(zz, 0.0, out=mirror)
+                
+                # Compute the twist decomposition around Z
                 twist_quaternions = transform.twist_decomposition(
                     relative_quaternions,
                     2, # Z
                     out=twist_quaternions
-                )
-                swing_quaternions = transform.swing_decomposition(
-                    relative_quaternions,
-                    twist_quaternions,
-                    out=swing_quaternions
                 )
                 
                 # Obtain the angle of the twist
                 torch.atan2(twist_quaternions[...,3], twist_quaternions[...,0], out=angles)
                 angles *= 2
                 
-                # It is a mirror if the swing angle is larger
-                # than 90deg. Thus the half angle would be larger
-                # than 45deg
-                mirror = torch.lt(swing_quaternions[...,0].abs(), math.sqrt(0.5), out=mirror)
+                # Invert angles where mirroring
+                angles[mirror] *= -1
                 
             transform_matrices_2d = transform.affine_matrix_2d(
                 angles=angles,

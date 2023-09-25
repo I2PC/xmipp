@@ -51,7 +51,7 @@ def twist_decomposition(quaternions: torch.Tensor,
         # Compute the xyz components by scaling the direction
         # with the dot product. This is equivalent to the 
         # projection of q.xyz onto the direction
-        torch.mul(direction, out[...,0], out=out[1:4])
+        torch.mul(direction, out[...,0,None], out=out[1:4])
     
     # Overwrite the w component with the w component of the
     # input quaternions
@@ -76,5 +76,4 @@ def swing_decomposition(quaternions: torch.Tensor,
         quaternion_conj(twists),
         out=out
     )
-    
     
