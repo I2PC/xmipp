@@ -23,7 +23,6 @@
 from typing import Iterable, Optional, Tuple
 import pandas as pd
 import torch
-import math
 
 from .. import operators
 from .. import transform
@@ -50,7 +49,7 @@ class InPlaneTransformCorrector:
         
         if self.norm:
             raise NotImplementedError('Normalization is not implemented')
-
+    
         inverse_align_to_quaternion = transform.quaternion_conj(self.align_to_quaternion)
         
         angles = None
@@ -77,7 +76,7 @@ class InPlaneTransformCorrector:
             shifts = transformations[:,1:]
             centre = torch.tensor(batch_images.shape[-2:]) / 2
 
-            if self.align_to_quaternion is not None:
+            if inverse_align_to_quaternion is not None:
                 rot_tilt = torch.as_tensor(batch_md[[md.ANGLE_ROT, md.ANGLE_TILT]].to_numpy(), dtype=torch.float32)
                 rot_tilt.deg2rad_()
                 
@@ -94,11 +93,14 @@ class InPlaneTransformCorrector:
                     quaternions, 
                     out=relative_quaternions
                 )
-
+                
                 # Determine if it is a mirror by computing the ZZ component
                 # of the transform matrix and checking its sign
                 zz = 1 - 2*(torch.square(relative_quaternions[...,1]) + torch.square(relative_quaternions[...,2]))
                 mirror = torch.lt(zz, 0.0, out=mirror)
+                
+                # Apply mirroring
+                relative_quaternions[mirror] = -torch.roll(relative_quaternions[mirror], 2, dims=-1)
                 
                 # Compute the twist decomposition around Z
                 twist_quaternions = transform.twist_decomposition(
@@ -108,12 +110,11 @@ class InPlaneTransformCorrector:
                     out=twist_quaternions
                 )
                 
+                
                 # Obtain the angle of the twist
                 torch.atan2(twist_quaternions[...,3], twist_quaternions[...,0], out=angles)
                 angles *= 2
                 
-                # Invert angles where mirroring
-                angles[mirror] *= -1
                 
             transform_matrices_2d = transform.affine_matrix_2d(
                 angles=angles,
