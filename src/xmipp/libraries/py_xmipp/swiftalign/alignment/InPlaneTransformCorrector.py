@@ -104,6 +104,7 @@ class InPlaneTransformCorrector:
                 twist_quaternions = transform.twist_decomposition(
                     relative_quaternions,
                     2, # Z
+                    normalize_output=False, # Not required for atan2
                     out=twist_quaternions
                 )
                 
