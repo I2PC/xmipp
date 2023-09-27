@@ -8,7 +8,6 @@ import sys
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate
-import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -27,8 +26,7 @@ if __name__ == "__main__":
     pretrained = sys.argv[10]
     if pretrained == 'yes':
         fnPreModel = sys.argv[11]
-    #rotational_order = int(sys.argv[12])
-    rotational_order = 4
+    order_symmetry = int(sys.argv[12])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -160,61 +158,22 @@ if __name__ == "__main__":
     for i in range(24):
         inverse_matrices[i] = np.transpose(Matrices[i])
 
-    def move_to_fundamental_domain(input_matrix):
-        candidates = [[378]]
-        max_tilt = -999
-        for sym_matrix in inverse_matrices:
-            aux_mat = np.matmul(input_matrix, sym_matrix)
-            aux_euler_angles = matrix_to_euler(aux_mat)
-            aux_rot = aux_euler_angles[0]
-            aux_tilt = aux_euler_angles[1]
-            if (aux_rot >= 0) and (90 >= aux_rot):
-                if aux_tilt >= max_tilt:
-                    max_tilt = aux_tilt
-                    candidates = aux_mat
-
-        return candidates
-
     def transform_rot(input_matrix, order):
         euler = matrix_to_euler(input_matrix)
         euler[0] = order * euler[0]
-        output_matrix = euler_to_matrix(euler)
-        return output_matrix[:3, :3]
-
-    def rodrigues_formula(axis, angle):
-        K = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
-        return np.eye(3) + math.sin(angle) * K + (1 - math.cos(angle)) * np.matmul(K, K)
-
-
-    def factor_rot(rot_angle, tilt_angle):
-        dist = 2.2300e-07 * tilt_angle**4 + 5.8474e-05 * tilt_angle**3 + 5.6207e-03 * tilt_angle**2 - 8.1743e-02 * tilt_angle
-        return rot_angle-np.sign(rot_angle)*dist*((180-np.abs(rot_angle))/(90-dist))
+        return euler
 
     def perform_symmetry_transformation(euler_angles, psi_rotation):
         euler_angles[2] += psi_rotation
         y_matrix = euler_to_matrix(euler_angles)
-        y_fundamental = move_to_fundamental_domain(y_matrix)
 
         rot_order = 4
-        y_transformedRot1 = transform_rot(y_fundamental, rot_order)
+        y_transformedRot1 = transform_rot(y_matrix, rot_order)
 
-        angle = math.pi / 4
-        matrix_axis = rodrigues_formula([0, 1, 0], angle)
-
-        y_new_axis = np.matmul(y_transformedRot1, matrix_axis)
-        y_euler_new_axis = matrix_to_euler(y_new_axis)
-
-        min_tilt = -99
-        factor_tilt = -180 / min_tilt
-
-        y_euler_new_axis[1] = factor_tilt * y_euler_new_axis[1]
-        y_euler_new_axis[0] = factor_rot(y_euler_new_axis[0],  y_euler_new_axis[1])
-        y_euler_new_axis[0] = 2 * (180 + y_euler_new_axis[0])
-
-        return y_euler_new_axis
+        return y_transformedRot1
 
 
-    class DataGenerator(keras.utils.Sequence):
+    class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
         def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
@@ -479,7 +438,7 @@ if __name__ == "__main__":
         else:
             model = constructModel(Xdims)
 
-        adam_opt = Adam(lr=learning_rate)
+        adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
         model.summary()
 
         model.compile(loss='mean_squared_error', optimizer=adam_opt)
@@ -490,14 +449,6 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
-
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('Pérdida')
-    plt.xlabel('Época')
-    plt.legend(['Entrenamiento', 'Validación'], loc='upper left')
-    plt.show()
 
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
