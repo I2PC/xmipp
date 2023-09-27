@@ -192,29 +192,26 @@ if __name__ == "__main__":
 
     def perform_symmetry_transformation(euler_angles, psi_rotation):
         euler_angles[2] += psi_rotation
-        #y_matrix = euler_to_matrix(euler_angles)
-        #y_fundamental = move_to_fundamental_domain(y_matrix)
-#
-        #rot_order = 4
-        #y_transformedRot1 = transform_rot(y_fundamental, rot_order)
-#
-        #angle = math.pi / 4
-        #matrix_axis = rodrigues_formula([0, 1, 0], angle)
-#
-        #y_new_axis = np.matmul(y_transformedRot1, matrix_axis)
-        #y_euler_new_axis = matrix_to_euler(y_new_axis)
-#
-        #min_tilt = -99
-        #factor_tilt = -180 / min_tilt
-#
-        #y_euler_new_axis[1] = factor_tilt * y_euler_new_axis[1]
-        #y_euler_new_axis[0] = factor_rot(y_euler_new_axis[0],  y_euler_new_axis[1])
-        #y_euler_new_axis[0] = 2 * (180 + y_euler_new_axis[0])
-        ##euler = matrix_to_euler(y_fundamental)
-        ##euler[0] = 4 * euler[0]
-        ##y_euler_new_axis = euler
-        #return y_euler_new_axis
-        return euler_angles
+        y_matrix = euler_to_matrix(euler_angles)
+        y_fundamental = move_to_fundamental_domain(y_matrix)
+
+        rot_order = 4
+        y_transformedRot1 = transform_rot(y_fundamental, rot_order)
+
+        angle = math.pi / 4
+        matrix_axis = rodrigues_formula([0, 1, 0], angle)
+
+        y_new_axis = np.matmul(y_transformedRot1, matrix_axis)
+        y_euler_new_axis = matrix_to_euler(y_new_axis)
+
+        min_tilt = -99
+        factor_tilt = -180 / min_tilt
+
+        y_euler_new_axis[1] = factor_tilt * y_euler_new_axis[1]
+        y_euler_new_axis[0] = factor_rot(y_euler_new_axis[0],  y_euler_new_axis[1])
+        y_euler_new_axis[0] = 2 * (180 + y_euler_new_axis[0])
+
+        return y_euler_new_axis
 
 
     class DataGenerator(keras.utils.Sequence):
@@ -361,8 +358,10 @@ if __name__ == "__main__":
         label = []
         img_shift = []
 
-
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
+            rotational_order = 1
+            r = r*rotational_order
+            r = r % 360
             label.append(np.array((r, t, p)))
             img_shift.append(np.array((sX, sY)))
             # Region index
@@ -390,6 +389,7 @@ if __name__ == "__main__":
     def geodesic_loss(y_true, y_pred):
         d = geodesic_distance(y_true, y_pred)
         return K.mean(d)
+
 
     def rotation6d_to_matrix(rot):
         a1 = rot[:, slice(0, 6, 2)]
