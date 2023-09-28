@@ -163,5 +163,3 @@ if __name__ == "__main__":
     print("Time in training model: %0.10f seconds." % elapsed_time)
 
 
-
-
