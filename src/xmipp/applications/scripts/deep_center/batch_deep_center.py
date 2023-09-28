@@ -24,9 +24,6 @@ if __name__ == "__main__":
     numModels = int(sys.argv[7])
     learning_rate = float(sys.argv[8])
     patience = int(sys.argv[9])
-    pretrained = sys.argv[10]
-    if pretrained == 'yes':
-        fnPreModel = sys.argv[11]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -172,15 +169,10 @@ if __name__ == "__main__":
         print('lenTrain', lenTrain, flush=True)
         lenVal = int(len(fnImgs) / 12)
 
-    modelsNames = glob.glob(fnPreModel + '/modelCenter?.h5')
-    print('fnModel', fnPreModel)
-    print('modelsNames', modelsNames)
+
     for index in range(numModels):
         random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain + lenVal, replace=False)
-        if pretrained == 'yes':
-            model = load_model(modelsNames[index % 5], compile=False)
-        else:
-            model = constructModel(Xdim)
+        model = constructModel(Xdim)
         adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         model.summary()
 
