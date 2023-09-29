@@ -146,7 +146,8 @@ if __name__ == "__main__":
 
     predictions = np.zeros((len(fnImgs), numModels, 2))
     ShiftManager = DataGenerator(fnImgs, maxSize, Xdim, readInMemory=False)
-    modelsNames = glob.glob(fnModel + '/modelCenter?.h5')
+    print('fnModel', fnModel)
+    modelsNames = glob.glob(fnModel + '?.h5')
 
     if numModels > len(modelsNames):
         numModels = len(modelsNames)

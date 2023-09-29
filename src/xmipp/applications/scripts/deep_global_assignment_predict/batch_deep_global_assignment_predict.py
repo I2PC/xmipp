@@ -132,10 +132,12 @@ if __name__ == "__main__":
         return np.concatenate((b1, b2, b3), axis=1)
 
     def convert_to_matrix(rep6d):
+        """Returns matrix from 6d representation"""
         return np.array(list(map(rotation6d_to_matrix, rep6d)))
 
 
     def convert_to_quaternions(mat):
+        """Returns quaternions from matrix"""
         return np.array(list(map(quaternion_from_matrix, mat)))
 
 
@@ -188,10 +190,12 @@ if __name__ == "__main__":
         return np.append(av_euler, max_distance)
 
     def matrix_to_rotation6d(mat):
+        """Returns 6d representation from matrix"""
         r6d = np.delete(mat, -1, axis=1)
         return np.array((r6d[0, 0], r6d[0, 1], r6d[1, 0], r6d[1, 1], r6d[2, 0], r6d[2, 1]))
 
     def euler_to_rotation6d(angles):
+        """Returns Euler angles from 6d representation"""
         mat = euler_to_matrix(angles)
         return matrix_to_rotation6d(mat)
 
@@ -248,6 +252,7 @@ if __name__ == "__main__":
 
 
     def euler_to_matrix(angles):
+        """Return matrix from Euler angles"""
         return euler_matrix(angles[0] * math.pi / 180, angles[1] * math.pi / 180, angles[2] * math.pi / 180,
                             axes='szyz')[:3, :3]
 
@@ -293,10 +298,12 @@ if __name__ == "__main__":
 
 
     def matrix_to_euler(mat):
+        """"Return Euler angles from matrix"""
         return np.array(euler_from_matrix(mat, axes='szyz')) * 180 / math.pi
 
 
     def produce_output(mdExp, Y, distance, fnImages):
+        """Set predicted values in images"""
         ID = 0
         for objId in mdExp:
             angles = Y[ID]
@@ -329,13 +336,13 @@ if __name__ == "__main__":
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
     def rotate_image(img, angle):
+        """Rotates an image"""
         return rotate(img, angle=angle, order=1, mode='reflect', reshape=False)
 
 
     models = []
     for index in range(numAngModels):
-        print(fnAngModel + "/modelAngular" + str(index) + ".h5")
-        AngModel = load_model(fnAngModel + "/modelAngular" + str(index) + ".h5", compile=False)
+        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
         AngModel.compile(loss="mean_squared_error", optimizer='adam')
         models.append(AngModel)
 
@@ -355,6 +362,7 @@ if __name__ == "__main__":
             Xexp[j,] = shift_image(Xexp[j,], shifts[k])
             k += 1
         for index in range(numAngModels):
+            # For each image and model 5 predictions are performed by rotating the image 360/5º
             individual_predictions = np.zeros((numPredictions, 5, 6))
             for ind in range(5):
                 rotated_Xexp = np.array(list(map(lambda image: rotate_image(image, ind*360/5), Xexp)))
