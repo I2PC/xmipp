@@ -559,8 +559,7 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
         }
 
         // Reading and storing type of atom
-        kind = line.substr(0, 6);
-        kind.erase(kind.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
+        kind = simplify(line.substr(0, 6)); // Removing extra spaces if there are any
 
         if (kind == "ATOM" || kind == "HETATM")
         {
