@@ -569,7 +569,7 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			// Extract atom type and position
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
+			// ATOM      2  CA  ALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = kind;
 			hy36decodeSafe(5, line.substr(6, 5).c_str(), 5, &atom.serial);
 			atom.name = simplify(line.substr(12, 4)); // Removing extra spaces if there are any
