@@ -268,11 +268,15 @@ MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimAr
 	// Compute the quotient of the radial mean of the volumes to use it in POCS amplitude
 	MultidimArray<double> radial_meanV1;
 	radialAverage(v1Mag, V1, radial_meanV1);
+	std::cout << "---41---" << radial_meanV1 << std::endl;
 	MultidimArray<double> radial_meanV;
 	radialAverage(vMag, V, radial_meanV);
+	std::cout << "---42---" << radial_meanV << std::endl;
 	MultidimArray<double> radQuotient = radial_meanV1 / radial_meanV;
+	std::cout << "---43---" << std::endl;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
-	radQuotient(i) = std::min(radQuotient(i), 1.0);
+		radQuotient(i) = std::min(radQuotient(i), 1.0);
+	std::cout << "---44---" << std::endl;
 	return radQuotient;
 }
 
@@ -361,15 +365,14 @@ MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &
 void ProgVolumeSubtraction::preProcess() {
 	// Read and preprocess reference volume (V1)
 	show();
-	Image<double> V1;
+	/*Image<double> V1;
 	V1.read(fnVolRef);
 	mask = createMask(V1, fnMask1, fnMask2);
 	POCSmask(mask, V1());
 	POCSnonnegative(V1());
 	V1().computeDoubleMinMax(v1min, v1max);
 	std1 = V1().computeStddev();
-	V1FourierMag = computeMagnitude(V1());
-	createFilter(filter2, cutFreq);
+	createFilter(filter2, cutFreq);*/
 
  }
 
@@ -377,11 +380,27 @@ void ProgVolumeSubtraction::preProcess() {
 Several iteration of this processing should be run. */
 
 void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
+	Image<double> V1;
+	V1.read(fnVolRef);
+	mask = createMask(V1, fnMask1, fnMask2);
+	POCSmask(mask, V1());
+	POCSnonnegative(V1());
+	V1().computeDoubleMinMax(v1min, v1max);
+	std1 = V1().computeStddev();
+	createFilter(filter2, cutFreq);
+	
 	readParticle(rowIn);
 	Image<double> V;
 	V.read(fnVol2);
 	MultidimArray<double> &mv = V();
 	mv.setXmippOrigin();
+
+	Image<double> Vf;
+	Vf = V;
+	MultidimArray<double> &mvf = Vf();
+	mvf.setXmippOrigin();
+	mvf.initZeros();
+
 	if (subtomos)
 	{
 		// Window subtomo (padding) before apply alignment
@@ -389,104 +408,133 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		mpad.setXmippOrigin();
 		pad = 2 * XSIZE(mv);
 		mv.window(mpad,STARTINGY(mv)*(int)pad, STARTINGX(mv)*(int)pad, FINISHINGY(mv)*(int)pad, FINISHINGX(mv)*(int)pad);
-
 		// Read alignment
 		rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 		rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
 		rowIn.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
-		roffset.initZeros(2);
+		roffset.initZeros(3);
 		rowIn.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 		rowIn.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
+		rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
 		roffset *= -1;
 		// Apply alignment
-		Euler_rotate(mv, part_angles.rot, part_angles.tilt, part_angles.psi, mv);
-		selfTranslate(xmipp_transformation::LINEAR, mv, roffset, xmipp_transformation::WRAP);
+		Euler_rotate(mv, part_angles.rot, part_angles.tilt, part_angles.psi, mvf);
+		selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
 
 		//Crop to restore original size
-		mpad.window(mv,STARTINGY(mv), STARTINGX(mv), FINISHINGY(mv), FINISHINGX(mv));
+		mpad.window(mvf,STARTINGY(mvf), STARTINGX(mvf), FINISHINGY(mvf), FINISHINGX(mvf));
 	}
 
-	POCSmask(mask, mv);
-	POCSnonnegative(mv);
-	Vdiff = V;
-	auto V2FourierPhase = computePhase(mv);
-	auto V2FourierMag = computeMagnitude(mv);
-	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mv);
+	POCSmask(mask, mvf);
+	POCSnonnegative(mvf);
+	Vdiff = Vf;
+	auto V2FourierPhase = computePhase(mvf);
+	auto V2FourierMag = computeMagnitude(mvf);
+	std::cout << "---4---" << std::endl;
+	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mvf);
+	std::cout << "---5---" << std::endl;
 	for (n = 0; n < iter; ++n) 
 	{
-		transformer2.FourierTransform(mv, V2Fourier, false);
+		transformer2.FourierTransform(mvf, V2Fourier, false);
+		std::cout << "---6---" << std::endl;
 		if (radavg) {
 			auto V1size_x = (int)XSIZE(V1());
 			auto V1size_y = (int)YSIZE(V1());
 			auto V1size_z = (int)ZSIZE(V1());
+			std::cout << "---7---" << std::endl;
 			POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
+			std::cout << "---8---" << std::endl;
 		}
 		else {
+			std::cout << "---9---" << std::endl;
 			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
+			std::cout << "---10---" << std::endl;
 		}
+		std::cout << "---11---" << std::endl;
 		transformer2.inverseFourierTransform();
 		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
+			std::cout << "---12---" << std::endl;
+			computeEnergy(Vdiff(), mvf);
+			Vdiff = Vf;
 		}
-		POCSMinMax(mv, v1min, v1max);
+		std::cout << "---13---" << std::endl;
+		POCSMinMax(mvf, v1min, v1max);
+		std::cout << "---14---" << std::endl;
 		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
+			computeEnergy(Vdiff(), mvf);
+			std::cout << "---15---" << std::endl;
+			Vdiff = Vf;
 		}
-		POCSmask(mask, mv);
+		POCSmask(mask, mvf);
+		std::cout << "---16---" << std::endl;
 		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
+			computeEnergy(Vdiff(), mvf);
+			std::cout << "---17---" << std::endl;
+			Vdiff = Vf;
 		}
 		transformer2.FourierTransform();
+		std::cout << "---18---" << std::endl;
 		POCSFourierPhase(V2FourierPhase, V2Fourier);
+		std::cout << "---19---" << std::endl;
 		transformer2.inverseFourierTransform();
 		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
+			computeEnergy(Vdiff(), mvf);
+			Vdiff = Vf;
 		}
-		POCSnonnegative(mv);
+		POCSnonnegative(mvf);
+		std::cout << "---20---" << std::endl;
 		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
+			computeEnergy(Vdiff(), mvf);
+			Vdiff = Vf;
 		}
-		double std2 = mv.computeStddev();
-		mv *= std1 / std2;
+		double std2 = mvf.computeStddev();
+		std::cout << "---21---" << std::endl;
+		mvf *= std1 / std2;
 		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
+			computeEnergy(Vdiff(), mvf);
+			Vdiff = Vf;
 		}
-
+		std::cout << "---22---" << std::endl;
 		if (cutFreq != 0) {
-			filter2.generateMask(mv);
+			filter2.generateMask(mvf);
+			std::cout << "---23---" << std::endl;
 			filter2.do_generate_3dmask = true;
-			filter2.applyMaskSpace(mv);
+			filter2.applyMaskSpace(mvf);
+			std::cout << "---24---" << std::endl;
 			if (computeE) {
-				computeEnergy(Vdiff(), mv);
-				Vdiff = V;
+				computeEnergy(Vdiff(), mvf);
+				Vdiff = Vf;
 			}
 		}
+		std::cout << "---25---" << std::endl;
 	}
+	std::cout << "---26---" << std::endl;
 
 	if (performSubtraction) {
+		std::cout << "---27---" << std::endl;
 		auto masksub = getSubtractionMask(fnMaskSub, mask);
+		std::cout << "---28---" << std::endl;
 		V1.read(fnVolRef);
-		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
+		std::cout << "---29---" << std::endl;
+		V = subtraction(V1, Vf, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
+		std::cout << "---30---" << std::endl;
 	}
 
 	if (subtomos)
 	{
 		// Recover original alignment
-		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mv);
-		selfTranslate(xmipp_transformation::LINEAR, mv, -roffset, xmipp_transformation::WRAP);
+		Euler_rotate(mvf, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
+		std::cout << "---31---" << std::endl;
+		selfTranslate(xmipp_transformation::LINEAR, mvf, -roffset, xmipp_transformation::WRAP);
+		std::cout << "---32---" << std::endl;
 	}
-
-	writeParticle(rowOut, fnImgOut, V); 
+	std::cout << "---33---" << std::endl;
+	writeParticle(rowOut, fnImgOut, Vf); 
 
 }
 
 void ProgVolumeSubtraction::postProcess()
 {
+	std::cout << "---34---" << std::endl;
 	getOutputMd().write(fn_out);
 }
