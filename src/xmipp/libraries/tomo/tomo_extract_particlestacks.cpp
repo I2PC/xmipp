@@ -115,24 +115,45 @@ void ProgTomoExtractParticleStacks::getCoordinateOnTiltSeries(int xcoor, int yco
 	x_2d = (int) (xcoor * ct + zcoor* st);
 	y_2d = (int) (ycoor);
 
+
     //Inverse transformation
     double x_2d_prime =   cr*x_2d  + sr*y_2d - cr*tx - sr*ty;
 	double y_2d_prime =  -sr*x_2d  + cr*y_2d + sr*tx - cr*ty;
+
+	/*
+	std::cout << "xcoor = " << xcoor << std::endl;
+	std::cout << "ycoor = " << ycoor << std::endl;
+	std::cout << "zcoor = " << zcoor << std::endl;
+	std::cout << "x_2d = " << x_2d << std::endl;
+	std::cout << "y_2d = " << y_2d << std::endl;
+	std::cout << "x_2d_prime = " << x_2d_prime << std::endl;
+	std::cout << "y_2d_prime = " << y_2d_prime << std::endl;
+	std::cout << "Xts = " << Xts << std::endl;
+	std::cout << "Yts = " << Yts << std::endl;
+	*/
         
     if (swapXY)
 	{
+    	//std::cout << "swapXY = true " << std::endl;
 	    x_2d = -x_2d_prime+0.5*Xts;
 	    y_2d = -y_2d_prime+0.5*Yts;
 	}
 	else
 	{
-	    x_2d = -x_2d_prime+0.5*Yts;
-        y_2d = -y_2d_prime+0.5*Xts;
+		//std::cout << "swapXY = false " << std::endl;
+		y_2d = y_2d_prime+0.5*Yts;
+		x_2d = x_2d_prime+0.5*Xts;
 	}
+    /*
+    std::cout << "x_2d = " << x_2d << std::endl;
+    std::cout << "y_2d = " << y_2d << std::endl;
+    std::cout << "===========" << std::endl;
+    */
 }
 
 void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 {
+	std::cout << "Reading Tilt Series ... "<< std::endl;
 	//TODO: Ensure there is only a single TSId
 	MetaDataVec mdts;
 	mdts.read(fnTs);
@@ -160,7 +181,7 @@ void ProgTomoExtractParticleStacks::readTiltSeriesInfo(std::string &tsid)
 			row.getValue(MDL_CTF_DEFOCUSU, defU);
 			row.getValue(MDL_CTF_DEFOCUSV, defV);
 			row.getValue(MDL_CTF_DEFOCUS_ANGLE, defAng);
-			row.getValue(MDL_CTF_DEFOCUS_ANGLE, dose);
+			row.getValue(MDL_DOSE, dose);
 			tsDefU.push_back(defU);
 			tsDefV.push_back(defV);
 			tsDefAng.push_back(defAng);
@@ -239,16 +260,20 @@ void ProgTomoExtractParticleStacks::run()
 		row.getValue(MDL_YCOOR, ycoor);
 		row.getValue(MDL_ZCOOR, zcoor);
 		
+		std::cout << "Coord ... "<< xcoor << " " << ycoor << " " << zcoor << std::endl;
+
 		std::vector<MultidimArray<double>> imgVec;
 		MultidimArray<double> singleImage;
-		singleImage.initZeros(1,1,boxsize, boxsize);
+		singleImage.initZeros(1,1, boxsize, boxsize);
 
 		FileName fnMrc;
 		fnMrc = tsid + formatString("-%i.mrcs", particleId);
-
+		//std::cout << "-..................................." << std::endl;
 		size_t imgNumber = 0;
 		for (size_t idx = 0; idx<tsImages.size(); idx++)
 		{
+			//std::cout << "tilt = " << tsTiltAngles[idx] << std::endl;
+			//std::cout << "tilt = " << tsTiltAngles[idx] << std::endl;
 			auto tsImg = tsImages[idx];
 			tilt = tsTiltAngles[idx]*PI/180;
 			rot = tsRotAngles[idx]*PI/180;
@@ -340,36 +365,34 @@ void ProgTomoExtractParticleStacks::run()
 			}
 			rowParticleStack.setValue(MDL_CTF_DEFOCUSU, defU);
 			rowParticleStack.setValue(MDL_CTF_DEFOCUSV, defV);
-			rowParticleStack.setValue(MDL_CTF_DEFOCUS_ANGLE, tsRotAngles[idx]);
+			rowParticleStack.setValue(MDL_CTF_DEFOCUS_ANGLE, tsDefAng[idx]);
 			rowParticleStack.setValue(MDL_XCOOR, x_2d);
 			rowParticleStack.setValue(MDL_YCOOR, y_2d);
 
 			mdparticlestack.addRow(rowParticleStack);
 			imgNumber++;
 		}
-		mdparticlestack.write(fnOut+"/"+fnXmd);
-		Nimages = imgVec.size();
-		particlestack.initZeros(Nimages, 1, boxsize, boxsize);
-		for (int k=0; k<Nimages; k++)
+		if (imgNumber>0)
 		{
-			singleImage = imgVec[k];
-			for (int i=0; i<boxsize; i++)
+			mdparticlestack.write(fnOut+"/"+fnXmd);
+			Nimages = imgVec.size();
+			particlestack.initZeros(Nimages, 1, boxsize, boxsize);
+			for (int k=0; k<Nimages; k++)
 			{
-				for (int j=0; j<boxsize; j++)
+				singleImage = imgVec[k];
+				for (int i=0; i<boxsize; i++)
 				{
-					NZYX_ELEM(particlestack, k, 0, i, j) = A2D_ELEM(singleImage, i, j);
+					for (int j=0; j<boxsize; j++)
+					{
+						NZYX_ELEM(particlestack, k, 0, i, j) = A2D_ELEM(singleImage, i, j);
+					}
 				}
 			}
+
+			finalStack.write(fnOut+"/"+fnMrc);
+
+			particleId += 1;
 		}
-
-
-
-		finalStack.write(fnOut+"/"+fnMrc);
-
-		particleId += 1;
-
 	}
-
-
 }
 

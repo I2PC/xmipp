@@ -254,6 +254,7 @@ def run(experimental_md_path: str,
     print('Alignment time (s): ' + str(alignment_time))
     print('Alignment time per particle (ms/part.): ' + str(alignment_time*1e3/len(experimental_dataset)))
     
+    print(alignment_md)
     if drop_na:
         alignment_md.dropna(inplace=True)
     

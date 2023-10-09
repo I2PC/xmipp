@@ -54,6 +54,7 @@ public:
     bool invertContrast, normalize, swapXY, setCTF, defocusPositive;
     std::vector<double> tsTiltAngles, tsRotAngles, tsShiftX, tsShiftY, tsDefU, tsDefV, tsDefAng, tsDose;
     std::vector<MultidimArray<double> > tsImages;
+    std::vector<size_t> freqIdx;
 
     double scaleFactor, sampling, maxFreq;
 
@@ -73,6 +74,17 @@ public:
     void createCTFImage(MultidimArray<double> &ctfImage);
 
     void listofParticles(std::vector<size_t> &listparticlesIds);
+
+    void validateAlignment(MultidimArray<double> &initVol, MultidimArray<double> &imgExp, double &rot, double &tilt, double &psi, int ydim, int xdim);
+
+    void fourierDistance(MultidimArray<double> &img0, MultidimArray<double> &imgGal, double &dist2);
+
+    void freqMask(const MultidimArray< std::complex<double> > &mapfftV, const MultidimArray<double> &inputVol, double &maxDigFreq);
+
+    void sortAndRemoveMdParticles(MetaDataVec &mdParticles);
+
+    template <typename T>
+    std::vector<size_t> sort_indexes(const std::vector<T> &v);
 
     void readParams();
 

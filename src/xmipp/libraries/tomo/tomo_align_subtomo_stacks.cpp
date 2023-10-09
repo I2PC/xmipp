@@ -114,6 +114,75 @@ void ProgTomoAlignSubtomoStacks::alignAgainstGallery(MultidimArray<double> &img0
 	}
 }
 
+void ProgTomoAlignSubtomoStacks::freqMask(const MultidimArray< std::complex<double> > &mapfftV, const MultidimArray<double> &inputVol, double &maxDigFreq)
+{
+	MultidimArray< double > freqElems;
+	size_t xvoldim;
+	size_t yvoldim;
+	Matrix1D<double> freq_fourier_x;
+	Matrix1D<double> freq_fourier_y;
+	// Initializing the frequency vectors
+	freq_fourier_y.initZeros(YSIZE(mapfftV));
+	freq_fourier_x.initZeros(XSIZE(mapfftV));
+
+	// u is the frequency
+	double u;
+
+	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
+	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<YSIZE(mapfftV); ++k){
+		FFT_IDX2DIGFREQ(k,YSIZE(inputVol), u);
+		VEC_ELEM(freq_fourier_y, k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
+	for(size_t k=1; k<XSIZE(mapfftV); ++k){
+		FFT_IDX2DIGFREQ(k,XSIZE(inputVol), u);
+		VEC_ELEM(freq_fourier_x, k) = u;
+	}
+
+	// Directional frequencies along each direction
+	double uy, ux, uz2y2;
+	long n=0;
+	int idx = 0;
+
+	for(size_t i=0; i<YSIZE(mapfftV); ++i)
+	{
+		uy = VEC_ELEM(freq_fourier_y, i);
+		uz2y2 = uy*uy;
+
+		for(size_t j=0; j<XSIZE(mapfftV); ++j)
+		{
+			ux = VEC_ELEM(freq_fourier_x, j);
+			ux = sqrt(uz2y2 + ux*ux);
+			if	(ux<=maxDigFreq)
+			{
+				freqIdx.push_back(n);
+			}
+			++n;
+		}
+	}
+}
+
+void ProgTomoAlignSubtomoStacks::fourierDistance(MultidimArray<double> &img0, MultidimArray<double> &imgGal, double &dist2)
+{
+	MultidimArray<std::complex<double>> FTimgGal, FTimg0;
+	FourierTransformer transformer1(FFTW_BACKWARD);
+	transformer1.FourierTransform(imgGal, FTimgGal);//, false);
+	FourierTransformer transformer2(FFTW_BACKWARD);
+	FTimg0.resizeNoCopy(FTimgGal);
+	transformer2.FourierTransform(img0, FTimg0);
+
+	double dist = 0;
+	for (size_t i=0; i<freqIdx.size(); ++i)
+	{
+		auto n = freqIdx[i];
+		dist = abs(DIRECT_MULTIDIM_ELEM(FTimgGal, n)-DIRECT_MULTIDIM_ELEM(FTimg0, n));
+		dist2 += dist*dist;
+	}
+}
+
+
 
 void ProgTomoAlignSubtomoStacks::corr2(MultidimArray<double> &img0, MultidimArray<double> &imgGal, double &corrVal)
 {
@@ -173,6 +242,75 @@ void ProgTomoAlignSubtomoStacks::listofParticles(MetaDataVec &md, std::vector<si
 }
 */
 
+void ProgTomoAlignSubtomoStacks::validateAlignment(MultidimArray<double> &initVol, MultidimArray<double> &imgExp, double &rot, double &tilt, double &psi, int ydim, int xdim)
+{
+	Projection imgPrj;
+	MultidimArray<double> &ptrImg = imgPrj();
+	projectVolume(projector, imgPrj, ydim, xdim, rot, tilt, psi);
+
+	double corrVal;
+	corr2(ptrImg, imgExp, corrVal);
+}
+
+template <typename T>
+std::vector<size_t> ProgTomoAlignSubtomoStacks::sort_indexes(const std::vector<T> &v) {
+
+  // initialize original index locations
+	std::vector<size_t> idx(v.size());
+  iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  // using std::stable_sort instead of std::sort
+  // to avoid unnecessary index re-orderings
+  // when v contains elements of equal values
+  stable_sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+
+  return idx;
+}
+
+void ProgTomoAlignSubtomoStacks::sortAndRemoveMdParticles(MetaDataVec &mdParticles)
+{
+	FileName fn;
+	size_t partId;
+
+	std::vector<size_t> listOfParticlesId;
+	std::vector<FileName> listOfFn;
+
+	// Getting filenames and values
+	for (const auto& row : mdParticles)
+	{
+		row.getValue(MDL_IMAGE, fn);
+		row.getValue(MDL_PARTICLE_ID, partId);
+
+		listOfFn.push_back(fn);
+		listOfParticlesId.push_back(partId);
+	}
+
+	// removing isolating particles
+	std::vector<size_t> sortedIds;
+	sortedIds = sort_indexes(listOfParticlesId);
+
+	size_t lastId  = SIZE_MAX;
+	int countCandidates = 1;
+	for (size_t i=0; i<sortedIds.size(); i++)
+	{
+		auto idx = sortedIds[i];
+		auto pId = listOfParticlesId[idx];
+
+		if (pId != lastId)
+		{
+			lastId = pId;
+			if (countCandidates ==1)
+			{
+				continue;
+			}
+			countCandidates = 1;
+		}
+
+	}
+}
+
 void ProgTomoAlignSubtomoStacks::run()
 {
 	std::cout << "Starting ... "<< std::endl;
@@ -185,15 +323,11 @@ void ProgTomoAlignSubtomoStacks::run()
 	int xdim = XSIZE(initVol);
 	int ydim = YSIZE(initVol);
 
-	double maxFreq = 0.5;
 	int BSplinedegree = 3;
 	projector = FourierProjector(initVol, 2.0, maxFreq, BSplinedegree);
 	Projection imgPrj;
 
-	//
-	MetaDataVec md, mdGallery;
-	md.read(fnIn);
-	mdGallery.read(fnGal);
+
 
 	FileName fn;
 	std::vector<FileName> fnStack;
@@ -208,10 +342,22 @@ void ProgTomoAlignSubtomoStacks::run()
 	auto &img0 = image0();
 
 
+	// This is only use for full alignment
+	/*
+	MetaDataVec md, mdGallery;
+	md.read(fnIn);
+	mdGallery.read(fnGal);
+	*/
+	MetaDataVec md, mdGallery;
+	md.read(fnIn);
+	mdGallery.read(fnGal);
 
+//	for (const auto& row : md)
+//	{
+//
+//	}
 
-
-
+	/*
 	for (const auto& row : md)
 	{
 		row.getValue(MDL_IMAGE, fn);
@@ -234,6 +380,7 @@ void ProgTomoAlignSubtomoStacks::run()
 		Euler_matrix2angles(eulerMat, rot, tilt, psi, true);
 		projectVolume(projector, imgPrj, ydim, xdim, rot, tilt, psi);
 	}
+	*/
 
 }
 

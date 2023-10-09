@@ -134,14 +134,21 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
     # them as a numpy array. Concatenate columns to match
     # the concatenation of experimental md
     k = matches.indices.shape[1]
+    
+    print('k = ', k )
+
     match_distances = matches.distances.numpy().flatten()
     match_indices = matches.indices.numpy().flatten()
+    print('matches.distances ', matches.distances.shape)
+    print('matches.distances ', matches.indices.shape)
     
+        
     # Update or generate depending on wether the output is provided
     if output_md is None:
         # Repeat each row of the experimental MD k times
         experimental_md = experimental_md.loc[experimental_md.index.repeat(k)].reset_index(drop=True)
-        
+        print('adios')
+        print('experimental_md ', experimental_md)
         output_md = _create_alignment_metadata(
             experimental_md=experimental_md,
             reference_md=reference_md,
@@ -152,6 +159,7 @@ def generate_alignment_metadata(experimental_md: pd.DataFrame,
             local_transform_md=local_transform_md
         )
     else:
+        print('hola')
         output_md = _update_alignment_metadata(
             output_md=output_md,
             reference_md=reference_md,
