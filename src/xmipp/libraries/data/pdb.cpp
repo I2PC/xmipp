@@ -34,6 +34,7 @@
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
+#include "core/xmipp_strings.h"
 #include "data/fourier_projection.h"
 #include "data/integration.h"
 #include "data/mask.h"
@@ -558,8 +559,7 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
         }
 
         // Reading and storing type of atom
-        kind = line.substr(0, 6);
-        kind.erase(kind.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
+        kind = simplify(line.substr(0, 6)); // Removing extra spaces if there are any
 
         if (kind == "ATOM" || kind == "HETATM")
         {
@@ -568,11 +568,10 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			// Extract atom type and position
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-			// ATOM      2  CA AALA A   1      73.796  56.531  56.644  0.50 84.78           C
+			// ATOM      2  CA  ALA A   1      73.796  56.531  56.644  0.50 84.78           C
 			atom.record = kind;
 			hy36decodeSafe(5, line.substr(6, 5).c_str(), 5, &atom.serial);
-			atom.name = line.substr(13, 3);
-            atom.name.erase(atom.name.find_last_not_of(' ') + 1); // Removing extra spaces if there are any
+			atom.name = simplify(line.substr(12, 4)); // Removing extra spaces if there are any
 			atom.altloc = line[16];
 			atom.resname = line.substr(17, 3);
 			atom.chainid = line[21];
@@ -585,8 +584,7 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			atom.bfactor = textToFloat(line.substr(60, 6));
 			atom.segment = line.substr(72, 4);
 			atom.atomType = line.substr(77, 1);
-			atom.charge = line.substr(79, 1);
-            atom.charge.erase(atom.charge.find_last_not_of(' ') + 1); // Converting into empty string if it is a space
+			atom.charge = simplify(line.substr(79, 1)); // Converting into empty string if it is a space
 
 			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
