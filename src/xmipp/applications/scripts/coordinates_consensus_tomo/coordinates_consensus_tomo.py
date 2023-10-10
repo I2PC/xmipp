@@ -82,7 +82,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         class Coordinate(NamedTuple):
             xyz : np.ndarray
             pickers : set
-            allcoords : set
+            allcoords : list
 
         # Preassign to false optional input flags
         self.hasPositive = False
@@ -135,12 +135,12 @@ class ScriptCoordsConsensusTomo(XmippScript):
                     # print("Assimilated coords at distance %d" % distance(coords, item.xyz), flush=True)
                     item.pickers.add(picker_id)
                     # Also add coordinates for later centroid calculation
-                    item.allcoords.add(coords)
+                    item.allcoords.append(coords)
                     break
             else:
                 # If item does not match any other, make it be its own new structure
                 # print("Distance not enough for threshold %s, creating new cluster" % str(self.distancethreshold), flush=True)
-                consensus.append(Coordinate(coords, {picker_id}, {coords}))
+                consensus.append(Coordinate(coords, {picker_id}, [coords]))
         
         print("Went from %d to %d coordinates after consensus." % (md.size(), len(consensus)), flush=True)
 
