@@ -122,6 +122,7 @@ void ProgVolumeSubtraction::readParticle(const MDRow &r) {
 	r.getValueOrDefault(MDL_IMAGE, fnVol2, "no_filename");
 	V.read(fnVol2);
 	V().setXmippOrigin();
+	V.write("V.mrc");
  }
 
  void ProgVolumeSubtraction::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img) {
@@ -273,7 +274,7 @@ MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimAr
 	radialAverage(vMag, V, radial_meanV);
 	std::cout << "---42---" << radial_meanV << std::endl;
 	MultidimArray<double> radQuotient = radial_meanV1 / radial_meanV;
-	std::cout << "---43---" << std::endl;
+	std::cout << "---43---" << radQuotient << std::endl;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 		radQuotient(i) = std::min(radQuotient(i), 1.0);
 	std::cout << "---44---" << std::endl;
@@ -326,7 +327,11 @@ MultidimArray<double> ProgVolumeSubtraction::createMask(const Image<double> &vol
 		Image<double> mask1;
 		Image<double> mask2;
 		mask1.read(fnM1);
+		std::cout << "---mask1---" << std::endl;
+		mask1.write("mask1.mrc");
 		mask2.read(fnM2);
+		std::cout << "---mask2---" << std::endl;
+		mask2.write("mask2.mrc");
 		mask = mask1() * mask2();
 	} else {
 		mask.resizeNoCopy(volume());
@@ -367,6 +372,7 @@ void ProgVolumeSubtraction::preProcess() {
 	show();
 	/*Image<double> V1;
 	V1.read(fnVolRef);
+	V1.write("V1.mrc");
 	mask = createMask(V1, fnMask1, fnMask2);
 	POCSmask(mask, V1());
 	POCSnonnegative(V1());
@@ -382,6 +388,7 @@ Several iteration of this processing should be run. */
 void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
 	Image<double> V1;
 	V1.read(fnVolRef);
+	V1().setXmippOrigin();
 	mask = createMask(V1, fnMask1, fnMask2);
 	POCSmask(mask, V1());
 	POCSnonnegative(V1());
@@ -390,8 +397,6 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	createFilter(filter2, cutFreq);
 	
 	readParticle(rowIn);
-	Image<double> V;
-	V.read(fnVol2);
 	MultidimArray<double> &mv = V();
 	mv.setXmippOrigin();
 
@@ -429,8 +434,8 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	POCSnonnegative(mvf);
 	Vdiff = Vf;
 	auto V2FourierPhase = computePhase(mvf);
+	auto V1FourierMag = computeMagnitude(V1());
 	auto V2FourierMag = computeMagnitude(mvf);
-	std::cout << "---4---" << std::endl;
 	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mvf);
 	std::cout << "---5---" << std::endl;
 	for (n = 0; n < iter; ++n) 
