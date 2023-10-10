@@ -37,6 +37,8 @@ from typing import NamedTuple
 import xmippLib
 from xmipp_base import XmippScript
 
+COORD_CONS_CENTROID = 1
+
 def distance(a: np.ndarray, b: np.ndarray) -> float:
     return np.linalg.norm(a-b)
 
@@ -80,6 +82,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         class Coordinate(NamedTuple):
             xyz : np.ndarray
             pickers : set
+            allcoords : set
 
         # Preassign to false optional input flags
         self.hasPositive = False
@@ -131,14 +134,32 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 if float(distance(coords, item.xyz)) < self.distancethreshold and picker_id not in item.pickers:
                     # print("Assimilated coords at distance %d" % distance(coords, item.xyz), flush=True)
                     item.pickers.add(picker_id)
+                    # Also add coordinates for later centroid calculation
+                    item.allcoords.add(coords)
                     break
             else:
                 # If item does not match any other, make it be its own new structure
                 # print("Distance not enough for threshold %s, creating new cluster" % str(self.distancethreshold), flush=True)
-                consensus.append(Coordinate(coords, {picker_id}))
+                consensus.append(Coordinate(coords, {picker_id}, {coords}))
         
         print("Went from %d to %d coordinates after consensus." % (md.size(), len(consensus)), flush=True)
 
+        # If centroid is the method, calculate it for every set thanks to the added allcoords field
+        if self.consensusType == COORD_CONS_CENTROID:
+            for item in consensus:
+                x = 0
+                y = 0
+                z = 0
+                for coordinates in item.allcoords:
+                    x += coordinates[0]
+                    y += coordinates[1]
+                    z += coordinates[2]
+                item.xyz[0] = x // len(item.allcoords)
+                item.xyz[1] = y // len(item.allcoords)
+                item.xyz[2] = z // len(item.allcoords)
+        else:
+            # The first entered particle already is representing the cluster, nothing else needed here
+            pass
         
         outMd = xmippLib.MetaData() # MD handle for all
         outMdDoubt = xmippLib.MetaData() # MD handle for unsure = all - {positive}
