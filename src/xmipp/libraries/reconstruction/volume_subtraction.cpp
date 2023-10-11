@@ -122,7 +122,6 @@ void ProgVolumeSubtraction::readParticle(const MDRow &r) {
 	r.getValueOrDefault(MDL_IMAGE, fnVol2, "no_filename");
 	V.read(fnVol2);
 	V().setXmippOrigin();
-	V.write("V.mrc");
  }
 
  void ProgVolumeSubtraction::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img) {
@@ -230,31 +229,42 @@ void ProgVolumeSubtraction::centerFFTMagnitude(MultidimArray<double> &VolRad,
 void ProgVolumeSubtraction::radialAverage(const MultidimArray<double> &VolFourierMag,
 		const MultidimArray<double> &V, MultidimArray<double> &radial_mean) {
 	MultidimArray<double> radial_count;
+	std::cout << "---XSIZE(V) " << XSIZE(V)<< std::endl;
+	std::cout << "---YSIZE(V) " << YSIZE(V)<< std::endl;
+	std::cout << "---ZSIZE(V) " << ZSIZE(V)<< std::endl;
 	int Vsize2_x = int(XSIZE(V))/2;
 	double Vsizei_x = 1.0/int(XSIZE(V));
+	std::cout << "---Vsizei_x " << Vsizei_x << std::endl;
 	int Vsize2_y = int(YSIZE(V))/2;
 	double Vsizei_y = 1.0/int(YSIZE(V));
+	std::cout << "---Vsizei_y " << Vsizei_y << std::endl;
 	int Vsize2_z = int(ZSIZE(V))/2;
 	double Vsizei_z = 1.0/int(ZSIZE(V));
+	std::cout << "---Vsizei_z " << Vsizei_z << std::endl;
 	double wx;
 	double wy;
 	double wz;
 	auto maxrad = int(floor(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z)));
+	std::cout << "---maxrad " << maxrad << std::endl;
 	radial_count.initZeros(maxrad);
 	radial_mean.initZeros(maxrad);
 	for (int k=0; k<Vsize2_z; ++k)
 		{
 			FFT_IDX2DIGFREQ_FAST(k,ZSIZE(V),Vsize2_z,Vsizei_z,wz)
+			std::cout << "---wz " << wz << std::endl;
 			double wz2 = wz*wz;
 			for (int i=0; i<Vsize2_y; ++i)
 			{
 				FFT_IDX2DIGFREQ_FAST(i,YSIZE(V),Vsize2_y,Vsizei_y,wy)
+				std::cout << "---wy " << wy << std::endl;
 				double wy2_wz2 = wy*wy + wz2;
 				for (int j=0; j<Vsize2_x; ++j)
 				{
 					FFT_IDX2DIGFREQ_FAST(j,XSIZE(V),Vsize2_x,Vsizei_x,wx)
+					std::cout << "---wx " << wx << std::endl;
 					double w = sqrt(wx*wx + wy2_wz2);
 					auto iw = (int)round(w*int(XSIZE(V)));
+					std::cout << "---iw " << iw << std::endl;
 					DIRECT_A1D_ELEM(radial_mean,iw)+=DIRECT_A3D_ELEM(VolFourierMag,k,i,j);
 					DIRECT_A1D_ELEM(radial_count,iw)+=1.0;
 				}
@@ -269,7 +279,7 @@ MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimAr
 	// Compute the quotient of the radial mean of the volumes to use it in POCS amplitude
 	MultidimArray<double> radial_meanV1;
 	radialAverage(v1Mag, V1, radial_meanV1);
-	std::cout << "---41---" << radial_meanV1 << std::endl;
+	std::cout << "---41---" << std::endl;
 	MultidimArray<double> radial_meanV;
 	radialAverage(vMag, V, radial_meanV);
 	std::cout << "---42---" << radial_meanV << std::endl;
@@ -402,9 +412,12 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 
 	Image<double> Vf;
 	Vf = V;
+	Vf.write("Vf0.mrc");
 	MultidimArray<double> &mvf = Vf();
 	mvf.setXmippOrigin();
 	mvf.initZeros();
+	Vf.write("Vf1.mrc");
+	V.write("V0.mrc");
 
 	if (subtomos)
 	{
@@ -412,7 +425,24 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		MultidimArray <double> &mpad = padv();
 		mpad.setXmippOrigin();
 		pad = 2 * XSIZE(mv);
-		mv.window(mpad,STARTINGY(mv)*(int)pad, STARTINGX(mv)*(int)pad, FINISHINGY(mv)*(int)pad, FINISHINGX(mv)*(int)pad);
+		std::cout << "--pad " << pad << std::endl;
+		std::cout << "--STARTINGZ(mv) " << STARTINGZ(mv) << std::endl;
+		std::cout << "--STARTINGZ(mv)*(int)pad " << STARTINGZ(mv)+(int)pad << std::endl;
+		std::cout << "--FINISHINGZ(mv) " << FINISHINGZ(mv) << std::endl;
+		std::cout << "--FINISHINGZ(mv)*(int)pad " << FINISHINGZ(mv)+(int)pad << std::endl;
+
+		std::cout << "--STARTINGY(mv) " << STARTINGY(mv) << std::endl;
+		std::cout << "--STARTINGY(mv)*(int)pad " << STARTINGY(mv)+(int)pad << std::endl;
+		std::cout << "--FINISHINGY(mv) " << FINISHINGY(mv) << std::endl;
+		std::cout << "--FINISHINGY(mv)*(int)pad " << FINISHINGY(mv)+(int)pad << std::endl;
+
+		std::cout << "--STARTINGX(mv) " << STARTINGX(mv) << std::endl;
+		std::cout << "--STARTINGX(mv)*(int)pad " << STARTINGX(mv)+(int)pad << std::endl;
+		std::cout << "--FINISHINGX(mv) " << FINISHINGX(mv) << std::endl;
+		std::cout << "--FINISHINGX(mv)*(int)pad " << FINISHINGX(mv)+(int)pad << std::endl;
+
+		mv.window(mpad, STARTINGZ(mv)*(int)pad, STARTINGY(mv)*(int)pad, STARTINGX(mv)*(int)pad, FINISHINGZ(mv)*(int)pad, FINISHINGY(mv)*(int)pad, FINISHINGX(mv)*(int)pad);
+
 		// Read alignment
 		rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 		rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
@@ -423,19 +453,27 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
 		roffset *= -1;
 		// Apply alignment
-		Euler_rotate(mv, part_angles.rot, part_angles.tilt, part_angles.psi, mvf);
+		Euler_rotate(mpad, part_angles.rot, part_angles.tilt, part_angles.psi, mvf);
+		Vf.write("Vf3.mrc");
 		selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
-
+		Vf.write("Vf4.mrc");
 		//Crop to restore original size
-		mpad.window(mvf,STARTINGY(mvf), STARTINGX(mvf), FINISHINGY(mvf), FINISHINGX(mvf));
+		mpad.window(mvf, STARTINGZ(mvf), STARTINGY(mvf), STARTINGX(mvf), FINISHINGZ(mvf), FINISHINGY(mvf), FINISHINGX(mvf));
+		Vf.write("Vf5.mrc");
 	}
 
 	POCSmask(mask, mvf);
+	Vf.write("Vf6.mrc");
 	POCSnonnegative(mvf);
+	Vf.write("Vf7.mrc");
 	Vdiff = Vf;
+	Vf.write("Vf8.mrc");
 	auto V2FourierPhase = computePhase(mvf);
+	Vf.write("Vf9.mrc");
 	auto V1FourierMag = computeMagnitude(V1());
+	Vf.write("Vf10.mrc");
 	auto V2FourierMag = computeMagnitude(mvf);
+	Vf.write("Vf11.mrc");
 	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mvf);
 	std::cout << "---5---" << std::endl;
 	for (n = 0; n < iter; ++n) 
