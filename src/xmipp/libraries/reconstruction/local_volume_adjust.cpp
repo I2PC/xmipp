@@ -44,6 +44,7 @@ void ProgLocalVolumeAdjust::defineParams() {
 	addParamsLine("[--sampling <sampling=1>]\t: Sampling rate (A/pixel)");
 	addParamsLine("[--neighborhood <n=5>]\t: side length (in Angstroms) of a square which will define the region of adjustment");
 	addParamsLine("[--sub]\t: Perform the subtraction of the volumes. Output will be the difference");
+	addParamsLine("--save <structure=\"\">\t: Path for saving occupancy volume"); 
 }
 
 // Read arguments ==========================================================
@@ -57,6 +58,7 @@ void ProgLocalVolumeAdjust::readParams() {
 	fnMask = getParam("--mask");
 	sampling = getDoubleParam("--sampling");
 	neighborhood = getIntParam("--neighborhood"); 
+	fnOccup = getParam("--save"); 
 }
 
 // Show ====================================================================
@@ -94,6 +96,12 @@ void ProgLocalVolumeAdjust::run() {
 	int ki = 0;
 	int ii = 0;
 	int ji = 0;
+	// Initialize occupancy volume
+	Image<double> Voccupancy;
+	Voccupancy = Vref;
+	MultidimArray<double> &mVoc=Voccupancy();
+	mVoc.initZeros();
+
 	for (size_t s=0; s < iters; s++) 
 	{
 		sumV_Vref = 0;
@@ -124,7 +132,7 @@ void ProgLocalVolumeAdjust::run() {
 		else
 			c = sumV_Vref/sumVref2;
 		
-		// Apply adjustment TODO: per regions
+		// Apply adjustment per regions 
 		for (k=0; k < neighborhood_px; ++k)
 		{
 			for (i=0; i < neighborhood_px; ++i)
@@ -134,6 +142,8 @@ void ProgLocalVolumeAdjust::run() {
 					if (DIRECT_A3D_ELEM(mM,ki+k,ii+i,ji+j) == 1) // Condition to check if we are inside mask
 					{
 						DIRECT_A3D_ELEM(mV,ki+k,ii+i,ji+j) /= c;
+						// construct occupancy volume
+						DIRECT_A3D_ELEM(mVoc,ki+k,ii+i,ji+j) = c;
 					}
 				}
 			}
@@ -158,6 +168,9 @@ void ProgLocalVolumeAdjust::run() {
 				ki = 0;
 		}
 	}
+	// Save occupancy volume
+	Voccupancy.write(formatString("%s/Occupancy.mrc", fnOccup.c_str()));
+
 	// The output of this program is a modified version of V (V')
 	if (performSubtraction) // Or the output is the subtraction V = Vref - V
 	{

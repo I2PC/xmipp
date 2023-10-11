@@ -12,6 +12,7 @@ dependencies:
   - cudatoolkit=11.6
   - tensorflow-gpu=2.7
   - keras=2.7
+  - cudatoolkit=11.6
   - pip
   - pip:
       - numpy==1.23

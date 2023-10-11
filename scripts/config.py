@@ -564,8 +564,8 @@ class Config:
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
         if not resultBool:
             print(yellow('CUDA version {} not compatible with Xmipp. Please '
-                         'install CUDA>={}'.format(Config.MINIMUM_CUDA_VERSION,
-                                        nvcc_version)), *candidates, sep=", ")
+                         'install CUDA>={} and not higher than the maximum version required by the compiler'.format(nvcc_version,
+                                                   Config.MINIMUM_CUDA_VERSION)), *candidates, sep=", ")
             print('gcc candidates based on nvcc version:', *candidates, sep=", ")
             return
 
