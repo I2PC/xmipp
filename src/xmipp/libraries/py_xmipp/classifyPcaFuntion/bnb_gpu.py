@@ -338,7 +338,7 @@ class BnBgpu:
         # else:
         #     numClas = 50
 
-        if iter > 0 and iter < 5:
+        if iter > 0 and iter < 4:
             numClas = int(classes/2)
         else:
             numClas = classes
@@ -346,7 +346,7 @@ class BnBgpu:
         clk_list = []
         for n in range(numClas):
             current_length = len(newCL[n])
-            if iter < 4 and current_length > 2:
+            if iter < 3 and current_length > 2:
                 split1, split2 = torch.split(newCL[n], current_length // 2 + 1, dim=0)
                 clk_list.append(torch.mean(split1, dim=0))
                 insert = torch.mean(split2, dim=0).view(mmap.data.shape[1], mmap.data.shape[2])

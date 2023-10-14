@@ -195,13 +195,13 @@ if __name__=="__main__":
                     if iter < 4:
                         # ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
                         ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-                    elif iter < 8: 
+                    elif iter < 7: 
                         ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-                    elif iter < 12: 
+                    elif iter < 10: 
                         ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    elif iter < 16: 
+                    elif iter < 13: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    elif iter < 18: 
+                    elif iter < 15: 
                         ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
                 else:
                     print("---Iter %s for align to classes---"%(iter+1))
@@ -257,7 +257,7 @@ if __name__=="__main__":
                 # save_images(cl.cpu().detach().numpy(), file)
                 
                 
-                if mode == "create_classes" and iter == 17:
+                if mode == "create_classes" and iter == 14:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
