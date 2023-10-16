@@ -63,6 +63,7 @@ void ProgTomoExtractSubtomograms::defineParams()
 	addParamsLine("  [--threads <s=4>]                        : Number of threads");
 }
 
+
 void ProgTomoExtractSubtomograms::createSphere(MultidimArray<double> &maskNormalize, int halfboxsize)
 {
 	maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
@@ -83,6 +84,36 @@ void ProgTomoExtractSubtomograms::createSphere(MultidimArray<double> &maskNormal
 			}
 		}
 	}
+}
+
+
+void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize)
+{
+				MultidimArray<double> maskNormalize;
+				createSphere(maskNormalize, halfboxsize);
+
+				double sumVal = 0, sumVal2 = 0;
+				double counter = 0;
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+				{
+					if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
+					{
+						double val = DIRECT_MULTIDIM_ELEM(subtomo, n);
+						sumVal += val;
+						sumVal2 += val*val;
+						counter = counter + 1;
+					}
+				}
+
+				double mean, sigma2;
+				mean = sumVal/counter;
+				sigma2 = sqrt(sumVal2/counter - mean*mean);
+
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+				{
+					DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
+					DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
+				}
 }
 
 
@@ -288,31 +319,7 @@ void ProgTomoExtractSubtomograms::run()
 			// Normalization
 			if (normalize)
 			{
-				MultidimArray<double> maskNormalize;
-				createSphere(maskNormalize, halfboxsize);
-
-				double sumVal = 0, sumVal2 = 0;
-				double counter = 0;
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-				{
-					if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
-					{
-						double val = DIRECT_MULTIDIM_ELEM(subtomo, n);
-						sumVal += val;
-						sumVal2 += val*val;
-						counter = counter + 1;
-					}
-				}
-
-				double mean, sigma2;
-				mean = sumVal/counter;
-				sigma2 = sqrt(sumVal2/counter - mean*mean);
-
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-				{
-					DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
-					DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
-				}
+				normalizeSubtomo(subtomo, halfboxsize);
 			}
 			
 			FileName fn;
@@ -381,31 +388,7 @@ void ProgTomoExtractSubtomograms::run()
 
 			if (normalize)
 			{
-				MultidimArray<double> maskNormalize;
-				createSphere(maskNormalize, halfboxsize);
-
-				double sumVal = 0, sumVal2 = 0;
-				double counter = 0;
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-				{
-					if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
-					{
-						double val = DIRECT_MULTIDIM_ELEM(subtomo, n);
-						sumVal += val;
-						sumVal2 += val*val;
-						counter = counter + 1;
-					}
-				}
-
-				double mean, sigma2;
-				mean = sumVal/counter;
-				sigma2 = sqrt(sumVal2/counter - mean*mean);
-
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-				{
-					DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
-					DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
-				}
+				normalizeSubtomo(subtomo, halfboxsize);
 			}
 			
 			if (downsampleFactor>1.0)

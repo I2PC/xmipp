@@ -68,6 +68,7 @@ public:
     void defineParams();
     void readParams();
     void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
+    void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
     void run();
 };
 //@}
