@@ -58,7 +58,7 @@ void ProgTomoExtractSubtomograms::defineParams()
 	addParamsLine("  [--invertContrast]	                      : Set this flag to invert the contrast of the extracted subtomograms");
 	addParamsLine("  [--normalize]                            : This flag will set the subtomograms to have zero mean and unit standard deviation.");
 	addParamsLine("  [--downsample <downsampleFactor=1.0>]    : Scale factor of the extracted subtomograms. It must be greater than 1. A downsampling 2 reduces in a factor 2 the size of the subtomos.");
-	addParamsLine("  [--fixedBoxSize]						  : If selected, programs calculates the extraction box to obtain a box size of the selected size when downsampling.");
+	addParamsLine("  [--fixedBoxSize]                         : If selected, programs calculates the extraction box to obtain a box size of the selected size when downsampling.");
 	addParamsLine("  -o <vol_file=\"\">                       : Path of the output directory. ");
 	addParamsLine("  [--threads <s=4>]                        : Number of threads");
 }
