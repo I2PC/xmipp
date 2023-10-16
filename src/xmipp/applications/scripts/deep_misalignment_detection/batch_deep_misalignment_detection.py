@@ -87,7 +87,9 @@ class ScriptDeepMisalignmentDetection(XmippScript):
         gpustr = self.getParam('-g')
         gpus = [int(item) for item in gpustr.split(",")]
 
-        if not -1 in gpus:
+        if -1 in gpus:
+            pass
+        else:
             os.environ["CUDA_VISIBLE_DEVICES"] = gpustr
 
 
