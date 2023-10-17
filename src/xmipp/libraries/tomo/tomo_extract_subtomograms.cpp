@@ -26,7 +26,6 @@
 
 #include "tomo_extract_subtomograms.h"
 #include <core/bilib/kernel.h>
-#include <core/metadata_extension.h>
 #include <numeric>
 //#define DEBUG
 //#define DEBUG_MASK
@@ -118,24 +117,49 @@ void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtom
 				}
 }
 
+void ProgTomoExtractSubtomograms::writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid)
+{
+	FileName fn;
+	fn = fnCoor.getBaseName() + formatString("-%i.mrc", idx);
+
+	#ifdef DEBUG
+	std::cout << fn << std::endl;
+	std::cout << fnOut << std::endl;
+	std::cout << fnOut+fn << std::endl;
+	#endif
+
+	subtomoImg.write(fnOut+"/"+fn);
+
+	if (particleid != -1)
+	{
+		rowout.setValue(MDL_PARTICLE_ID, particleid);
+	}
+
+	rowout.setValue(MDL_XCOOR, xcoor);
+	rowout.setValue(MDL_YCOOR, ycoor);
+	rowout.setValue(MDL_ZCOOR, zcoor);
+	rowout.setValue(MDL_IMAGE, fn);
+	mdout.addRow(rowout);
+
+	fn = fnCoor.getBaseName() + "_extracted.xmd";
+	mdout.write(fnOut+"/"+fn);
+}
 
 void ProgTomoExtractSubtomograms::run()
 {
 	std::cout << "Starting ... "<< std::endl;
 
-	MetaDataVec md;
 	md.read(fnCoor);
 
 	Image<double> tomImg;
 	auto &tom = tomImg();
 	tomImg.read(fnTom);
 
-	size_t Xtom, Ytom, Ztom, particleid;
+	size_t Xtom, Ytom, Ztom;
 	Xtom = XSIZE(tom);
 	Ytom = YSIZE(tom);
 	Ztom = ZSIZE(tom);
 
-	Image<double> subtomoImg;
 	auto &subtomo = subtomoImg();
 
 	MultidimArray<double> subtomoExtraction;
@@ -150,9 +174,6 @@ void ProgTomoExtractSubtomograms::run()
 	size_t idx=1;
 
 	int halfboxsize = floor(0.5*boxsize);
-
-	MetaDataVec mdout;
-	MDRowVec rowout;
 
 	double invertSign = 1.0;
 
@@ -211,36 +232,19 @@ void ProgTomoExtractSubtomograms::run()
 			subtomo.initZeros(1, boxsize, boxsize, boxsize);
 
 			// Contrast inversion
-			if (invertContrast)
+			for (int k=zinit; k<zlim; k++)
 			{
-				for (int k=zinit; k<zlim; k++)
+				int kk = k - zcoor;
+				for (int i=yinit; i<ylim; i++)
 				{
-					int kk = k - zcoor;
-					for (int i=yinit; i<ylim; i++)
+					int ii = i-ycoor;
+					for (int j=xinit; j<xlim; j++)
 					{
-						int ii = i-ycoor;
-						for (int j=xinit; j<xlim; j++)
-						{
-							A3D_ELEM(subtomoExtraction, kk+halfBoxSizeExtraction, ii+halfBoxSizeExtraction, j+halfBoxSizeExtraction-xcoor) = -1 * A3D_ELEM(tom, k, i, j);
-						}
+						A3D_ELEM(subtomoExtraction, kk+halfBoxSizeExtraction, ii+halfBoxSizeExtraction, j+halfBoxSizeExtraction-xcoor) = invertSign * A3D_ELEM(tom, k, i, j);
 					}
 				}
 			}
-			else
-			{
-				for (int k=zinit; k<zlim; k++)
-				{
-					int kk = k - zcoor;
-					for (int i=yinit; i<ylim; i++)
-					{
-						int ii = i-ycoor;
-						for (int j=xinit; j<xlim; j++)
-						{
-							A3D_ELEM(subtomoExtraction, kk+halfBoxSizeExtraction, ii+halfBoxSizeExtraction, j+halfBoxSizeExtraction-xcoor) = A3D_ELEM(tom, k, i, j);
-						}
-					}
-				}
-			}
+
 
 			// Downsampling
 			FourierTransformer transformer1;
@@ -324,31 +328,13 @@ void ProgTomoExtractSubtomograms::run()
 				normalizeSubtomo(subtomo, halfboxsize);
 			}
 			
-			FileName fn;
-			fn = fnCoor.getBaseName() + formatString("-%i.mrc", idx);
-
-			#ifdef DEBUG
-			std::cout << fn << std::endl;
-			std::cout << fnOut << std::endl;
-			std::cout << fnOut+fn << std::endl;
-			#endif
-
-			subtomoImg.write(fnOut+"/"+fn);
-
+			size_t particleid = -1;
 			if (row.containsLabel(MDL_PARTICLE_ID))
 			{
 				row.getValue(MDL_PARTICLE_ID, particleid);
-				rowout.setValue(MDL_PARTICLE_ID, particleid);
 			}
 
-			rowout.setValue(MDL_XCOOR, xcoor);
-			rowout.setValue(MDL_YCOOR, ycoor);
-			rowout.setValue(MDL_ZCOOR, zcoor);
-			rowout.setValue(MDL_IMAGE, fn);
-			mdout.addRow(rowout);
-
-			fn = fnCoor.getBaseName() + "_extracted.xmd";
-			mdout.write(fnOut+"/"+fn);
+			writeSubtomo(idx, xcoor, ycoor, zcoor, particleid);
 
 			++idx;
 		}
@@ -402,31 +388,14 @@ void ProgTomoExtractSubtomograms::run()
 				selfScaleToSizeFourier(zdimOut, ydimOut, xdimOut, subtomo, nthrs);
 			}
 
-			FileName fn;
-			fn = fnCoor.getBaseName() + formatString("-%i.mrc", idx);
-
-			#ifdef DEBUG
-			std::cout << fn << std::endl;
-			std::cout << fnOut << std::endl;
-			std::cout << fnOut+fn << std::endl;
-			#endif
-
-			subtomoImg.write(fnOut+"/"+fn);
-
+			size_t particleid = -1;
 			if (row.containsLabel(MDL_PARTICLE_ID))
 			{
 				row.getValue(MDL_PARTICLE_ID, particleid);
-				rowout.setValue(MDL_PARTICLE_ID, particleid);
 			}
+			
+			writeSubtomo(idx, xcoor, ycoor, zcoor, particleid);
 
-
-			rowout.setValue(MDL_XCOOR, xcoor);
-			rowout.setValue(MDL_YCOOR, ycoor);
-			rowout.setValue(MDL_ZCOOR, zcoor);
-			rowout.setValue(MDL_IMAGE, fn);
-			mdout.addRow(rowout);
-			fn = fnCoor.getBaseName() + "_extracted.xmd";
-			mdout.write(fnOut+"/"+fn);
 			++idx;
 
 		}

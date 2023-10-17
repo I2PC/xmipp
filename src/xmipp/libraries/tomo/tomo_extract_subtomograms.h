@@ -32,6 +32,7 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_fftw.h>
+#include <core/metadata_extension.h>
 #include <limits>
 #include <complex>
 #include <string>
@@ -51,6 +52,10 @@ public:
     size_t Ydim;
     size_t Zdim;
 
+    MetaDataVec md;
+    MetaDataVec mdout;
+	MDRowVec rowout;
+
     bool invertContrast;
     bool normalize;
     bool downsample;
@@ -63,12 +68,15 @@ public:
 	int boxsize;
     int nthrs;
 
+	Image<double> subtomoImg;
+
 public:
 
     void defineParams();
     void readParams();
     void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
     void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
+    void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid);
     void run();
 };
 //@}
