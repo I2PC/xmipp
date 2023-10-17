@@ -245,9 +245,9 @@ void FourierProjector::projectToFourier(double rot, double tilt, double psi, con
     }
 }
 
-void FourierProjector::projectToFourier(double rot, double tilt, double psi, double shiftX, double shiftY, const MultidimArray<double> *ctf)
+void FourierProjector::projectToFourier(double rot, double tilt, double psi, double shiftX, double shiftY, const MultidimArray<double> *ctf) {
     projectToFourier(rot, tilt, psi, ctf);
-    //TODO shift
+    shiftFourierProjection(shiftX, shiftY);
 }
 
 void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf) {
@@ -344,4 +344,29 @@ void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdi
 	projector.project(rot,tilt,psi,ctf);
     P() = projector.projection();
 }
+
+void FourierProjector::shiftFourierProjection(double shiftX, double shiftY) {
+    const int ny = YSIZE(projectionFourier);
+    const int ny_2 = ny / 2;
+    const auto ny_inv = 1.0 / ny;
+    const int nx_2 = (XSIZE(projectionFourier) - 1);
+    const int nx = nx_2 * 2;
+    const auto nx_inv = 1.0 / nx;
+
+    // Normalize the displacement
+    const auto dy = (-2 * M_PI) * shiftY;
+    const auto dx = (-2 * M_PI) * shiftX;
+
+    // Compute the Fourier Transform of delta[i-y, j-x]
+    double fy, fx;
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(projectionFourier) {
+        // Convert the indices to fourier coefficients
+        FFT_IDX2DIGFREQ_FAST(static_cast<int>(i), ny, ny_2, ny_inv, fy);
+        FFT_IDX2DIGFREQ_FAST(static_cast<int>(j), nx, nx_2, nx_inv, fx);
+
+        const auto theta = fy*dy + fx*dx; // Dot product of (dx, dy) and (j, i)
+        DIRECT_A2D_ELEM(projectionFourier, i, j) *= std::polar(1.0, theta); //e^(i*theta)
+    }
+}
+
 

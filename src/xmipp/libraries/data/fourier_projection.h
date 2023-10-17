@@ -162,7 +162,6 @@ public:
      */
     void projectToFourier(double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
 
-
     /**
      * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
      * to fourier space
@@ -181,6 +180,12 @@ public:
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
+
+    /**
+     * Apply a shift to the fourier spectra
+    */
+    void shiftFourierProjection(double shiftX, double shiftY);
+
 public:
     /// Prepare the Spline coefficients and projection space
     void produceSideInfo();
