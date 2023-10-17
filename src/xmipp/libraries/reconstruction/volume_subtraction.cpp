@@ -408,22 +408,6 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		MultidimArray <double> &mpad = padv();
 		mpad.setXmippOrigin();
 		pad = 2 * XSIZE(mv);
-		std::cout << "--pad " << pad << std::endl;
-		std::cout << "--STARTINGZ(mv) " << STARTINGZ(mv) << std::endl;
-		std::cout << "--STARTINGZ(mv)*(int)pad " << STARTINGZ(mv)+(int)pad << std::endl;
-		std::cout << "--FINISHINGZ(mv) " << FINISHINGZ(mv) << std::endl;
-		std::cout << "--FINISHINGZ(mv)*(int)pad " << FINISHINGZ(mv)+(int)pad << std::endl;
-
-		std::cout << "--STARTINGY(mv) " << STARTINGY(mv) << std::endl;
-		std::cout << "--STARTINGY(mv)*(int)pad " << STARTINGY(mv)+(int)pad << std::endl;
-		std::cout << "--FINISHINGY(mv) " << FINISHINGY(mv) << std::endl;
-		std::cout << "--FINISHINGY(mv)*(int)pad " << FINISHINGY(mv)+(int)pad << std::endl;
-
-		std::cout << "--STARTINGX(mv) " << STARTINGX(mv) << std::endl;
-		std::cout << "--STARTINGX(mv)*(int)pad " << STARTINGX(mv)+(int)pad << std::endl;
-		std::cout << "--FINISHINGX(mv) " << FINISHINGX(mv) << std::endl;
-		std::cout << "--FINISHINGX(mv)*(int)pad " << FINISHINGX(mv)+(int)pad << std::endl;
-
 		//mv.window(mpad, STARTINGZ(mv)+(int)pad, STARTINGY(mv)+(int)pad, STARTINGX(mv)+(int)pad, FINISHINGZ(mv)+(int)pad, FINISHINGY(mv)+(int)pad, FINISHINGX(mv)+(int)pad);
 		mv.window(mpad, STARTINGZ(mv)-(int)pad/2, STARTINGY(mv)-(int)pad/2, STARTINGX(mv)-(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2);
 		padv.write("Vpad.mrc");
@@ -435,7 +419,7 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		rowIn.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
 		rowIn.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
 		rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
-		roffset *= -1;
+		//roffset *= -1;
 		// Apply alignment
 		Image<double> Vaux;
 		Vaux = padv;
@@ -559,14 +543,21 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	if (subtomos)
 	{
 		// Recover original alignment
-		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mv);
+		Image<double> Vf;
+		Vf = V;
+		MultidimArray<double> &mvf = Vf();
+		mvf.setXmippOrigin();
+		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
 		std::cout << "---31---" << std::endl;
-		selfTranslate(xmipp_transformation::LINEAR, mv, -roffset, xmipp_transformation::WRAP);
+		selfTranslate(xmipp_transformation::LINEAR, mvf, -roffset, xmipp_transformation::WRAP);
 		std::cout << "---32---" << std::endl;
+		writeParticle(rowOut, fnImgOut, Vf); 
 	}
-	std::cout << "---33---" << std::endl;
-	writeParticle(rowOut, fnImgOut, V); 
-
+	else
+	{
+		std::cout << "---33---" << std::endl;
+		writeParticle(rowOut, fnImgOut, V); 
+	}
 }
 
 void ProgVolumeSubtraction::postProcess()
