@@ -33,6 +33,7 @@ void ProgAligned3dClassification::readParams()
 {
     XmippMetadataProgram::readParams();
 	ctfDescription.readParams(this);
+    addParamsLine("  [ -r <reference_metadata> ]: Metadata with all the reference volumes");
 }
 
 // Define parameters ==========================================================
@@ -41,7 +42,7 @@ void ProgAligned3dClassification::defineParams()
     addUsageLine("Perform a multireference 3D classification over a set of projection aligned images.");
     XmippMetadataProgram::defineParams();
 	ctfDescription.defineParams(this);
-	referenceMdFilename = getParam("-r")
+	referenceMdFilename = getParam("-r");
 }
 
 void ProgAligned3dClassification::preProcess() override
@@ -81,8 +82,8 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	rowIn.getValue(MDL_ROT, rot);
 	rowIn.getValue(MDL_TILT, tilt);
 	rowIn.getValue(MDL_PSI, psi);
-	rowIn.getValue(MDL_SHIFTX, shiftX);
-	rowIn.getValue(MDL_SHIFTY, shiftY);
+	rowIn.getValue(MDL_SHIFT_X, shiftX);
+	rowIn.getValue(MDL_SHIFT_Y, shiftY);
 	std::size_t best;
 	double bestDistance = std::numeric_limits<double>::max();
 	for (size_t i = 0; i < projectors.size(); ++i)
