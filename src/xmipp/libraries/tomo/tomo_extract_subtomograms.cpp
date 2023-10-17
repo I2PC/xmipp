@@ -155,7 +155,10 @@ void ProgTomoExtractSubtomograms::run()
 	auto &tom = tomImg();
 	tomImg.read(fnTom);
 
-	size_t Xtom, Ytom, Ztom;
+	size_t Xtom;
+	size_t Ytom;
+	size_t Ztom;
+	
 	Xtom = XSIZE(tom);
 	Ytom = YSIZE(tom);
 	Ztom = ZSIZE(tom);
