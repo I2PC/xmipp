@@ -95,7 +95,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 		projection -= inputImage();
 		const auto dist2 = projection.sum2();
 
-		// Update
+		// Update the best score
 		if (dist2 < bestDistance)
 		{
 			best = i;
