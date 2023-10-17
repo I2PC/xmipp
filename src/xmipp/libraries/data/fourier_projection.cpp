@@ -368,5 +368,3 @@ void FourierProjector::shiftFourierProjection(double shiftX, double shiftY) {
         DIRECT_A2D_ELEM(projectionFourier, i, j) *= std::polar(1.0, theta); //e^(i*theta)
     }
 }
-
-
