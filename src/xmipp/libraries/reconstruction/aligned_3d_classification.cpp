@@ -25,7 +25,6 @@
 
 #include "aligned_3d_classification.h"
 
-#include "core/metadata_vec.h"
 #include "core/metadata_label.h"
 
 // Read arguments ==========================================================
@@ -42,30 +41,14 @@ void ProgAligned3dClassification::defineParams()
     addUsageLine("Perform a multireference 3D classification over a set of projection aligned images.");
     XmippMetadataProgram::defineParams();
 	ctfDescription.defineParams(this);
-	referenceMdFilename = getParam("-r");
+	referenceVolumesMdFilename = getParam("-r");
 }
 
-void ProgAligned3dClassification::preProcess() override
+void ProgAligned3dClassification::preProcess()
 {
-	MetaDataVec referenceVolumesMd(referenceMdFilename);
-
-	// Read volumes
-	FileName referenceVolumeFn;
-	referenceVolumes.clear();
-	referenceVolumes.reserve(referenceVolumesMd.size());
-	for (auto objId : referenceVolumesMd)
-	{
-		referenceVolumesMd.getValue(MDL_IMAGE, referenceVolumeFn, objId);
-		referenceVolumes.emplace_back(referenceFn);
-	}
-
-	// Generate projectors from metadata
-	projectors.clear();
-	projectors.reserve(referenceVolumes.size());
-	for (auto& volume : referenceVolumes)
-	{
-		projectors.emplace_back(volume(), 1.0, 1.0, xmipp_transformation::BSPLINE3);
-	}
+	referenceVolumesMd.read(referenceVolumesMdFilename);
+	readVolumes();
+	createProjectors();
 }
 
 void ProgAligned3dClassification::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
@@ -75,13 +58,13 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 
 	// Generate CTF image
 	ctfDescription.readFromMdRow(rowIn);
-	ctfDescription.gereateCTF(inputImage(), ctfImage);
+	ctfDescription.generateCTF(inputImage(), ctfImage);
 
 	// Generate projections and evaluate
 	double rot, tilt, psi, shiftX, shiftY;
-	rowIn.getValue(MDL_ROT, rot);
-	rowIn.getValue(MDL_TILT, tilt);
-	rowIn.getValue(MDL_PSI, psi);
+	rowIn.getValue(MDL_ANGLE_ROT, rot);
+	rowIn.getValue(MDL_ANGLE_TILT, tilt);
+	rowIn.getValue(MDL_ANGLE_PSI, psi);
 	rowIn.getValue(MDL_SHIFT_X, shiftX);
 	rowIn.getValue(MDL_SHIFT_Y, shiftY);
 	std::size_t best;
@@ -92,7 +75,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 		projector.project(rot, tilt, psi, shiftX, shiftY, &ctfImage);
 
 		// Compute the squared euclidean distance
-		auto& projection = projector.projection;
+		auto& projection = projector.projection();
 		projection -= inputImage();
 		const auto dist2 = projection.sum2();
 
@@ -105,4 +88,26 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	}
 
 	rowOut.setValue(MDL_REF3D, best);
+}
+
+void ProgAligned3dClassification::readVolumes()
+{
+	FileName fn;
+	referenceVolumes.resize(referenceVolumesMd.size());
+	auto ite = referenceVolumes.begin();
+	for (const auto& row : referenceVolumesMd)
+	{
+		row.getValue(MDL_IMAGE, fn);
+		(ite++)->read(fn);
+	}
+}
+
+void ProgAligned3dClassification::createProjectors()
+{
+	projectors.clear();
+	projectors.reserve(referenceVolumes.size());
+	for (auto& volume : referenceVolumes)
+	{
+		projectors.emplace_back(volume(), 1.0, 1.0, xmipp_transformation::BSPLINE3);
+	}
 }

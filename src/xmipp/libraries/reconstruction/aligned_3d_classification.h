@@ -29,6 +29,7 @@
 #include "core/xmipp_metadata_program.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_filename.h"
+#include "core/metadata_vec.h"
 #include "data/ctf.h"
 #include "data/fourier_projection.h"
 
@@ -43,12 +44,17 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
 
 public:
-    FileName referenceMdFilename;
+    FileName referenceVolumesMdFilename;
+    MetaDataVec referenceVolumesMd;
     std::vector<Image<double>> referenceVolumes;
     std::vector<FourierProjector> projectors;
     CTFDescription ctfDescription;
     Image<double> inputImage;
     MultidimArray<double> ctfImage;
+
+private:
+    void readVolumes();
+    void createProjectors();
 
 };
 
