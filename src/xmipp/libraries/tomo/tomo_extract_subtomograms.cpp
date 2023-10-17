@@ -92,7 +92,8 @@ void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtom
 				MultidimArray<double> maskNormalize;
 				createSphere(maskNormalize, halfboxsize);
 
-				double sumVal = 0, sumVal2 = 0;
+				double sumVal = 0;
+				double sumVal2 = 0;
 				double counter = 0;
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
 				{
