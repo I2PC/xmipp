@@ -106,7 +106,8 @@ void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtom
 					}
 				}
 
-				double mean, sigma2;
+				double mean;
+				double sigma2;
 				mean = sumVal/counter;
 				sigma2 = sqrt(sumVal2/counter - mean*mean);
 
