@@ -62,7 +62,7 @@ void ProgTomoSimulateTiltseries::defineParams()
 	addParamsLine("[  --thickness <thickness=300>]        : Tomogram thickness in pixel");
 	addParamsLine("[  --fiducialSize <fidSize=60.0>]      : Fiducial diameter in (nm)");
 	addParamsLine("[  --sampling <s=1>]                   : Sampling rate in (A).");
-	addParamsLine("[  --signaNoise <sigmaNoise=1>]        : Sampling rate in (A).");
+	addParamsLine("[  --sigmaNoise <sigmaNoise=1>]        : Sampling rate in (A).");
 	addParamsLine("  -o <mrc_file=\"\">                   : path to the output directory. ");
 }
 
@@ -128,8 +128,8 @@ void ProgTomoSimulateTiltseries::run()
 
 	MetaDataVec mdCoords;
 	int xcoor, ycoor, zcoor;
-	double rot =0, tilt=0, psi=0, sx=0, sy=0;
-	Matrix2D<double> eulerMat;
+	double rot =0.0, tilt=0.0, psi=0, sx=0, sy=0;
+	Matrix2D<double> eulerMat_proj, eulerMat_VolRotation, eulerMat;
 	Projection imgPrj;
 
 	MultidimArray<double> &ptrProj = imgPrj();
@@ -162,6 +162,10 @@ void ProgTomoSimulateTiltseries::run()
 		row.getValue(MDL_YCOOR, ycoor);
 		row.getValue(MDL_ZCOOR, zcoor);
 
+		double theta, phi, xi;
+
+		//Euler_angles2matrix(theta, phi, xi, eulerMat_VolRotation, true);
+
 		xcoor = xcoor - 0.5*xdim;
 		ycoor = ycoor - 0.5*ydim;
 		zcoor = zcoor - 0.5*thickness;
@@ -170,18 +174,31 @@ void ProgTomoSimulateTiltseries::run()
 
 		if (row.containsLabel(MDL_ANGLE_ROT) && row.containsLabel(MDL_ANGLE_TILT) && row.containsLabel(MDL_ANGLE_PSI))
 		{
-			row.getValue(MDL_ANGLE_ROT, rot);
-			row.getValue(MDL_ANGLE_TILT, tilt);
-			row.getValue(MDL_ANGLE_PSI, psi);
+			row.getValue(MDL_ANGLE_ROT, theta);
+			row.getValue(MDL_ANGLE_TILT, phi);
+			row.getValue(MDL_ANGLE_PSI, xi);
+
 		}
 		else
 		{
-			eulerMat.initIdentity(4);
+			double u = (double) rand()/RAND_MAX;
+			double v = (double) rand()/RAND_MAX;
+			double w = (double) rand()/RAND_MAX;
+
+			theta = 360.0*u;
+			phi = acos(2*v - 1.0)*180.0/PI;
+			xi = 360*w;
+
+			//eulerMat_proj.initIdentity(4);
 		}
 
-		Euler_angles2matrix(rot, tilt, psi, eulerMat, true);
+		Euler_angles2matrix(theta, phi, xi, eulerMat_VolRotation, true);
 
-		applyGeometry(xmipp_transformation::BSPLINE3, rotatedVol, ptrVol, eulerMat, xmipp_transformation::IS_NOT_INV, true, 0.);
+//		eulerMat = eulerMat_VolRotation*eulerMat_proj;
+//		double alpha, beta, gamma;
+//		Euler_matrix2angles(eulerMat, alpha, beta, gamma, true);
+
+		applyGeometry(xmipp_transformation::BSPLINE3, rotatedVol, ptrVol, eulerMat_VolRotation, xmipp_transformation::IS_NOT_INV, true, 0.);
 		rotatedVol.setXmippOrigin();
 		//CenterFFT(rotatedVol,true);
 
@@ -269,6 +286,7 @@ void ProgTomoSimulateTiltseries::run()
 			}
 		}
 	}
+
 	tiltseriesImg() = tiltseriesOut;
 	tiltseriesImg.write(fnOut);
 	FileName fnOutXmd;
