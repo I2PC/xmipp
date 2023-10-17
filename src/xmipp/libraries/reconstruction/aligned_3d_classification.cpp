@@ -39,7 +39,6 @@ void ProgAligned3dClassification::readParams()
 void ProgAligned3dClassification::defineParams()
 {
     addUsageLine("Perform a multireference 3D classification over a set of projection aligned images.");
-    each_image_produces_an_output = true;
     XmippMetadataProgram::defineParams();
 	ctfDescription.defineParams(this);
 	referenceMdFilename = getParam("-r")
