@@ -407,7 +407,7 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		// Window subtomo (padding) before apply alignment
 		MultidimArray <double> &mpad = padv();
 		mpad.setXmippOrigin();
-		pad = 2 * XSIZE(mv);
+		pad = XSIZE(mv);
 		mv.window(mpad, STARTINGZ(mv)-(int)pad/2, STARTINGY(mv)-(int)pad/2, STARTINGX(mv)-(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2);
 		padv.write("Vpad.mrc");
 		// Read alignment
@@ -518,7 +518,7 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		MultidimArray<double> &mvf = Vf();
 		mvf.setXmippOrigin();
 		Vf.write("Vfsubtracted.mrc");
-		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
+		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, part_angles.psi, mvf);
 		Vf.write("Vfsubtracted_rotated.mrc");
 		selfTranslate(xmipp_transformation::LINEAR, mvf, -roffset, xmipp_transformation::WRAP);
 		Vf.write("Vfsubtracted_trans.mrc");
