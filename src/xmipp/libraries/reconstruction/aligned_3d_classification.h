@@ -30,10 +30,12 @@
 #include "core/xmipp_image.h"
 #include "core/xmipp_filename.h"
 #include "core/metadata_vec.h"
+#include "data/mask.h"
 #include "data/ctf.h"
 #include "data/fourier_projection.h"
 
 #include <vector>
+#include <memory>
 
 class ProgAligned3dClassification: public XmippMetadataProgram
 {
@@ -44,17 +46,26 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
 
 public:
+    bool useCtf;
+    double padding;
+    double maxFreq;
     FileName referenceVolumesMdFilename;
+
     MetaDataVec referenceVolumesMd;
+    Mask mask;
+    CTFDescription ctfDescription;
+
     std::vector<Image<double>> referenceVolumes;
     std::vector<FourierProjector> projectors;
-    CTFDescription ctfDescription;
+    std::unique_ptr<FourierProjector> maskProjector;
+
     Image<double> inputImage;
     MultidimArray<double> ctfImage;
 
 private:
     void readVolumes();
     void createProjectors();
+    void createMaskProjector();
 
 };
 

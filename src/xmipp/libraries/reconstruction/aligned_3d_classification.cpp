@@ -31,8 +31,13 @@
 void ProgAligned3dClassification::readParams()
 {
     XmippMetadataProgram::readParams();
-	ctfDescription.readParams(this);
-    addParamsLine("  [ -r <reference_metadata> ]: Metadata with all the reference volumes");
+	useCtf = checkParam("--useCtf");
+	padding = getDoubleParam("--padding");
+	maxFreq = getDoubleParam("--max_frequency");
+	referenceVolumesMdFilename = getParam("-r");
+	mask.readParams(this);
+	if (useCtf)
+		ctfDescription.readParams(this);
 }
 
 // Define parameters ==========================================================
@@ -40,8 +45,12 @@ void ProgAligned3dClassification::defineParams()
 {
     addUsageLine("Perform a multireference 3D classification over a set of projection aligned images.");
     XmippMetadataProgram::defineParams();
+    addParamsLine("   [--useCtf]		             : Consider CTF when projecting references");
+    addParamsLine("   [--padding <padding=1.0>]	     : Padding factor used in Fourier");
+    addParamsLine("   [--max_frequency <freq=1.0>]	 : Maximum digital frequency");
+    addParamsLine("    -r <reference_metadata>		 : Metadata with all the reference volumes");
+	mask.defineParams(this);
 	ctfDescription.defineParams(this);
-	referenceVolumesMdFilename = getParam("-r");
 }
 
 void ProgAligned3dClassification::preProcess()
@@ -49,6 +58,7 @@ void ProgAligned3dClassification::preProcess()
 	referenceVolumesMd.read(referenceVolumesMdFilename);
 	readVolumes();
 	createProjectors();
+	createMaskProjector();
 }
 
 void ProgAligned3dClassification::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
@@ -57,26 +67,38 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	inputImage.read(fnImg);
 
 	// Generate CTF image
-	ctfDescription.readFromMdRow(rowIn);
-	ctfDescription.generateCTF(inputImage(), ctfImage);
+	const MultidimArray<double>* ctf = nullptr;
+	if (useCtf)
+	{
+		ctfDescription.readFromMdRow(rowIn);
+		ctfDescription.generateCTF(inputImage(), ctfImage);
+		ctf = &ctfImage;
+	}
 
-	// Generate projections and evaluate
+	// Read alignment
 	double rot, tilt, psi, shiftX, shiftY;
 	rowIn.getValue(MDL_ANGLE_ROT, rot);
 	rowIn.getValue(MDL_ANGLE_TILT, tilt);
 	rowIn.getValue(MDL_ANGLE_PSI, psi);
 	rowIn.getValue(MDL_SHIFT_X, shiftX);
 	rowIn.getValue(MDL_SHIFT_Y, shiftY);
+
+	// Project the mask
+	if (maskProjector)
+		maskProjector->project(rot, tilt, psi, shiftX, shiftY);
+	
+	// Generate projections and evaluate
 	std::size_t best;
 	double bestDistance = std::numeric_limits<double>::max();
 	for (size_t i = 0; i < projectors.size(); ++i)
 	{	
 		auto& projector = projectors[i];
-		projector.project(rot, tilt, psi, shiftX, shiftY, &ctfImage);
+		projector.project(rot, tilt, psi, shiftX, shiftY, ctf);
 
 		// Compute the squared euclidean distance
 		auto& projection = projector.projection();
 		projection -= inputImage();
+		if(maskProjector) projection *= maskProjector->projection();
 		const auto dist2 = projection.sum2();
 
 		// Update the best score
@@ -108,6 +130,24 @@ void ProgAligned3dClassification::createProjectors()
 	projectors.reserve(referenceVolumes.size());
 	for (auto& volume : referenceVolumes)
 	{
-		projectors.emplace_back(volume(), 1.0, 1.0, xmipp_transformation::BSPLINE3);
+		projectors.emplace_back(
+			volume(), 
+			padding, maxFreq, 
+			xmipp_transformation::BSPLINE3
+		);
+	}
+}
+
+void ProgAligned3dClassification::createMaskProjector()
+{
+	if (mask.type)
+	{
+		mask.generate_mask(referenceVolumes.front()());
+		mask.force_to_be_continuous();
+		maskProjector = std::make_unique<FourierProjector>(
+			mask.get_cont_mask(), 
+			padding, maxFreq, 
+			xmipp_transformation::BSPLINE3
+		);
 	}
 }
