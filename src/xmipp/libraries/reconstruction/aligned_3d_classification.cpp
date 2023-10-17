@@ -86,8 +86,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	rowIn.getValue(MDL_SHIFTY, shiftY);
 	for(auto& projector : projectors)
 	{
-		projector.project(rot, tilt, psi, &ctfImage);
-		// TODO shift
+		projector.project(rot, tilt, psi, shiftX, shiftY, &ctfImage);
 
 		// Compute the squared euclidean distance
 		projector.projection -= inputImage();
