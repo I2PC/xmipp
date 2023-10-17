@@ -158,8 +158,26 @@ public:
 
     /**
      * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
+     * to fourier space
+     */
+    void projectToFourier(double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
+
+
+    /**
+     * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
+     * to fourier space
+     */
+    void projectToFourier(double rot, double tilt, double psi, double shiftX, double shiftY, const MultidimArray<double> *ctf=nullptr);
+
+    /**
+     * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
      */
     void project(double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
+
+    /**
+     * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
+     */
+    void project(double rot, double tilt, double psi, double shiftX, double shiftY, const MultidimArray<double> *ctf=nullptr);
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
