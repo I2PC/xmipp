@@ -84,15 +84,25 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	rowIn.getValue(MDL_PSI, psi);
 	rowIn.getValue(MDL_SHIFTX, shiftX);
 	rowIn.getValue(MDL_SHIFTY, shiftY);
-	for(auto& projector : projectors)
-	{
+	std::size_t best;
+	double bestDistance = std::numeric_limits<double>::max();
+	for (size_t i = 0; i < projectors.size(); ++i)
+	{	
+		auto& projector = projectors[i];
 		projector.project(rot, tilt, psi, shiftX, shiftY, &ctfImage);
 
 		// Compute the squared euclidean distance
-		projector.projection -= inputImage();
-		const auto dist2 = projector.projection.sum2();
+		auto& projection = projector.projection;
+		projection -= inputImage();
+		const auto dist2 = projection.sum2();
+
+		// Update
+		if (dist2 < bestDistance)
+		{
+			best = i;
+			bestDistance = dist2;
+		}
 	}
 
-	rowOut.setValue(MDL_REF3D, 1); //TODO
+	rowOut.setValue(MDL_REF3D, best);
 }
-
