@@ -268,7 +268,6 @@ MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimAr
 	// Compute the quotient of the radial mean of the volumes to use it in POCS amplitude
 	MultidimArray<double> radial_meanV1;
 	radialAverage(v1Mag, V1, radial_meanV1);
-	std::cout << "---41---" << std::endl;
 	MultidimArray<double> radial_meanV;
 	radialAverage(vMag, V, radial_meanV);
 	MultidimArray<double> radQuotient = radial_meanV1 / radial_meanV;
@@ -278,7 +277,6 @@ MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimAr
 			if (radQuotient(i) != radQuotient(i)) // Check if it is NaN and change it by 0
 				radQuotient(i) = 0; 
 		}
-	std::cout << "---44---" << std::endl;
 	return radQuotient;
 }
 
@@ -369,18 +367,7 @@ MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &
 }
 
 void ProgVolumeSubtraction::preProcess() {
-	// Read and preprocess reference volume (V1)
 	show();
-	/*Image<double> V1;
-	V1.read(fnVolRef);
-	V1.write("V1.mrc");
-	mask = createMask(V1, fnMask1, fnMask2);
-	POCSmask(mask, V1());
-	POCSnonnegative(V1());
-	V1().computeDoubleMinMax(v1min, v1max);
-	std1 = V1().computeStddev();
-	createFilter(filter2, cutFreq);*/
-
  }
 
 /* Core of the program: processing needed to adjust input volume V2 to reference volume V1. 
@@ -400,7 +387,6 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	readParticle(rowIn);
 	MultidimArray<double> &mv = V();
 	mv.setXmippOrigin();
-	V.write("V.mrc");
 
 	if (subtomos)
 	{
@@ -420,11 +406,10 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
 		// Apply alignment
 		Image<double> Vaux;
-		Vaux = padv;
 		MultidimArray<double> &mvaux = Vaux();
 		mvaux.setXmippOrigin();
+		Vaux = padv;
 		mvaux.initZeros();
-		Vaux.write("Vaux_pad_0.mrc");
 		Euler_rotate(mpad, part_angles.rot, part_angles.tilt, part_angles.psi, mvaux);
 		Vaux.write("Vaux_pad_rot.mrc");
 		selfTranslate(xmipp_transformation::LINEAR, mvaux, roffset, xmipp_transformation::WRAP);
@@ -433,15 +418,15 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		mvaux.window(mv, STARTINGZ(mv), STARTINGY(mv), STARTINGX(mv), FINISHINGZ(mv), FINISHINGY(mv), FINISHINGX(mv));
 		V.write("Vcrop.mrc");
 	}
+
 	POCSmask(mask, mv);
-	V.write("Vmask.mrc");
 	POCSnonnegative(mv);
-	V.write("Vnonnegative.mrc");
 	Vdiff = V;
 	auto V2FourierPhase = computePhase(mv);
 	auto V1FourierMag = computeMagnitude(V1());
 	auto V2FourierMag = computeMagnitude(mv);
 	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mv);
+
 	for (n = 0; n < iter; ++n) 
 	{
 		transformer2.FourierTransform(mv, V2Fourier, false);
@@ -455,19 +440,16 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
 		}
 		transformer2.inverseFourierTransform();
-		V.write("Vamplitude.mrc");
 		if (computeE) {
 			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
 		POCSMinMax(mv, v1min, v1max);
-		V.write("Vminmax.mrc");
 		if (computeE) {
 			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
 		POCSmask(mask, mv);
-		V.write("Vmask2.mrc");
 		if (computeE) {
 			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
@@ -475,13 +457,11 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		transformer2.FourierTransform();
 		POCSFourierPhase(V2FourierPhase, V2Fourier);
 		transformer2.inverseFourierTransform();
-		V.write("Vphase.mrc");
 		if (computeE) {
 			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
 		}
 		POCSnonnegative(mv);
-		V.write("Vphasenonnega.mrc");
 		if (computeE) {
 			computeEnergy(Vdiff(), mv);
 			Vdiff = V;
@@ -501,14 +481,12 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 				Vdiff = V;
 			}
 		}
-		V.write("Vfilter.mrc");
 	}
 
 	if (performSubtraction) {
 		auto masksub = getSubtractionMask(fnMaskSub, mask);
 		V1.read(fnVolRef);
 		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
-		V.write("Vsubtracted.mrc");
 	}
 
 	if (subtomos) {
@@ -520,7 +498,7 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 		Vf.write("Vfsubtracted.mrc");
 		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, part_angles.psi, mvf);
 		Vf.write("Vfsubtracted_rotated.mrc");
-		selfTranslate(xmipp_transformation::LINEAR, mvf, -roffset, xmipp_transformation::WRAP);
+		selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
 		Vf.write("Vfsubtracted_trans.mrc");
 		writeParticle(rowOut, fnImgOut, Vf); 
 	}
