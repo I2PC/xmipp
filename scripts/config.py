@@ -55,7 +55,7 @@ class Config:
         '11.0-11.0': vGCC[vGCC.index('9.4'):],
         '11.1-11.4': vGCC[vGCC.index('10.4'):],
         '11.5-11.8': vGCC[vGCC.index('11.2'):],
-        '12.0-12.1': vGCC[vGCC.index('12.2'):],
+        '12.0-12.2': vGCC[vGCC.index('12.2'):],
     }
     CMAKE_VERSION_REQUIRED = '3.16'
 
@@ -564,8 +564,8 @@ class Config:
         candidates, resultBool = self._get_compatible_GCC(nvcc_version)
         if not resultBool:
             print(yellow('CUDA version {} not compatible with Xmipp. Please '
-                         'install CUDA>={}'.format(Config.MINIMUM_CUDA_VERSION,
-                                        nvcc_version)), *candidates, sep=", ")
+                         'install CUDA>={} and not higher than the maximum version required by the compiler'.format(nvcc_version,
+                                                   Config.MINIMUM_CUDA_VERSION)), *candidates, sep=", ")
             print('gcc candidates based on nvcc version:', *candidates, sep=", ")
             return
 
