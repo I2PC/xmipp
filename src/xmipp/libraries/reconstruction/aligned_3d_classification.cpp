@@ -113,7 +113,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 		}
 	}
 
-	rowOut.setValue(MDL_REF3D, best);
+	rowOut.setValue(MDL_REF3D, best+1);
 }
 
 void ProgAligned3dClassification::readVolumes()
