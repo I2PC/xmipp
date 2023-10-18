@@ -85,7 +85,10 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 
 	// Project the mask
 	if (maskProjector)
+	{
 		maskProjector->project(rot, tilt, psi, shiftX, shiftY);
+		maskProjector->projection().binarize();
+	}
 	
 	// Generate projections and evaluate
 	std::size_t best;
@@ -98,7 +101,8 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 		// Compute the squared euclidean distance
 		auto& projection = projector.projection();
 		projection -= inputImage();
-		if(maskProjector) projection *= maskProjector->projection();
+		if(maskProjector) 
+			projection *= maskProjector->projection();
 		const auto dist2 = projection.sum2();
 
 		// Update the best score
