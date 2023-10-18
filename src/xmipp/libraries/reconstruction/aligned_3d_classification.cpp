@@ -68,6 +68,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 {
 	// Read the input image
 	inputImage.read(fnImg);
+	inputImage().setXmippOrigin();
 
 	// Generate CTF image
 	const MultidimArray<double>* ctf = nullptr;
@@ -116,7 +117,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 		}
 	}
 
-	rowOut.setValue(MDL_REF3D, best+1);
+	rowOut.setValue(MDL_REF3D, static_cast<int>(best+1));
 }
 
 void ProgAligned3dClassification::readVolumes()
