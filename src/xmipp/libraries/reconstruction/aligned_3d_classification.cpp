@@ -35,7 +35,8 @@ void ProgAligned3dClassification::readParams()
 	padding = getDoubleParam("--padding");
 	maxFreq = getDoubleParam("--max_frequency");
 	referenceVolumesMdFilename = getParam("-r");
-	mask.readParams(this);
+	if (checkParam("--mask"))
+		mask.readParams(this);
 	if (useCtf)
 		ctfDescription.readParams(this);
 }
