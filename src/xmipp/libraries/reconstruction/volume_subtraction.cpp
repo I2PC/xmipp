@@ -29,57 +29,67 @@
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_program.h>
 #include <data/fourier_filter.h>
-#include <core/geometry.h>
 
-
- // Empty constructor =======================================================
-ProgVolumeSubtraction::ProgVolumeSubtraction()
-{
-	produces_a_metadata = true;
-    each_image_produces_an_output = true;
-    keep_input_columns = true;
-	save_metadata_stack = true;
-    remove_disabled = false;
-	rank = 0;
-}
 
 // Usage ===================================================================
-void ProgVolumeSubtraction::defineParams() 
-{
+void ProgVolumeSubtraction::defineParams() {
 	// Usage
-	addUsageLine("This program modifies a volume as much as possible in order to assimilate it to another one,");
-	addUsageLine("without loosing the important information in it process. Then, the subtraction of the two volumes");
-	addUsageLine("can be optionally calculated. Sharpening: reference volume must be an atomic structure previously");
-	addUsageLine("converted into a density map of the same specimen than in input volume 2.");
+	addUsageLine("This program modifies a volume as much as possible in order "
+			"to assimilate it to another one, "
+			"without loosing the important information in it ('adjustment "
+			"process'). Then, the subtraction of "
+			"the two volumes can be optionally calculated. Sharpening: "
+			"reference volume must be an atomic "
+			"structure previously converted into a density map of the "
+			"same specimen than in input volume 2.");
 	// Parameters
-	XmippMetadataProgram::defineParams();
-	addParamsLine("--ref <volume>\t: Reference volume");
-	addParamsLine("[--sub]\t: Perform the subtraction of the volumes. Output will be the difference");
-	addParamsLine("[--sigma <s=3>]\t: Decay of the filter  (sigma) to smooth the mask transition");
-	addParamsLine("[--iter <n=5>]\t: Number of iterations for the adjustment process");
-	addParamsLine("[--mask1 <mask=\"\">]\t: Mask for volume 1");
-	addParamsLine("[--mask2 <mask=\"\">]\t: Mask for volume 2");
-	addParamsLine("[--maskSub <mask=\"\">]\t: Mask for subtraction region");
-	addParamsLine("[--cutFreq <f=0>]\t: Filter both volumes with a filter which specified cutoff frequency "
-			"(i.e. resolution inverse, <0.5)");
-	addParamsLine("[--lambda <l=1>]\t: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification "
-			"of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
-	addParamsLine("[--radavg]\t: Match the radially averaged Fourier amplitudes when adjusting the amplitudes instead "
-			"of taking directly them from the reference volume");
-	addParamsLine("[--computeEnergy]\t: Compute the energy difference between each step (energy difference gives "
-			"information about the convergence of the adjustment process, while it can slightly slow the performance)");
-	addParamsLine("[--saveV1 <structure=\"\"> ]\t: Save subtraction intermediate file (vol1 filtered) just when option "
-			"--sub is passed, if not passed the input reference volume is not modified");
-	addParamsLine("[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file (vol2 adjusted) just when option "
-			"--sub is passed, if not passed the output of the program is this file");
-	addParamsLine("[--subtomos]\t: indicate that input is a set of subtomograms");
+	addParamsLine("--i1 <volume>			: Reference volume");
+	addParamsLine("--i2 <volume>			: Volume to modify");
+	addParamsLine("[-o <structure=\"\">]\t: Volume 2 modified or "
+			"volume difference");
+	addParamsLine("\t: If no name is given, "
+			"then output_volume.mrc");
+	addParamsLine("[--sub]\t: Perform the "
+			"subtraction of the volumes. Output will be the difference");
+	addParamsLine("[--sigma <s=3>]\t: Decay of the filter "
+			"(sigma) to smooth the mask transition");
+	addParamsLine(
+			"[--iter <n=5>]\t: Number of iterations for the adjustment process");
+	addParamsLine("[--mask1 <mask=\"\">]		: Mask for volume 1");
+	addParamsLine("[--mask2 <mask=\"\">]		: Mask for volume 2");
+	addParamsLine(
+			"[--maskSub <mask=\"\">]\t: Mask for subtraction region");
+	addParamsLine(
+			"[--cutFreq <f=0>]\t: Filter both volumes with a filter which "
+			"specified cutoff frequency (i.e. resolution inverse, <0.5)");
+	addParamsLine(
+			"[--lambda <l=1>]\t: Relaxation factor for Fourier Amplitude POCS, "
+			"i.e. 'how much modification of volume Fourier amplitudes', between 1 "
+			"(full modification, recommended) and 0 (no modification)");
+	addParamsLine("[--radavg]\t: Match the radially averaged Fourier "
+			"amplitudes when adjusting the amplitudes instead of taking "
+			"directly them from the reference volume");
+	addParamsLine(
+			"[--computeEnergy]\t: Compute the energy difference between each step "
+			"(energy difference gives information about the convergence of the "
+			"adjustment process, while it can slightly slow the performance)");
+	addParamsLine(
+			"[--saveV1 <structure=\"\"> ]\t: Save subtraction intermediate file "
+			"(vol1 filtered) just when option --sub is passed, if not passed the "
+			"input reference volume is not modified");
+	addParamsLine(
+			"[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file "
+			"(vol2 adjusted) just when option --sub is passed, if not passed the "
+			"output of the program is this file");
 }
 
 // Read arguments ==========================================================
-void ProgVolumeSubtraction::readParams() 
-{
-	XmippMetadataProgram::readParams();
-	fnVolRef = getParam("--ref");
+void ProgVolumeSubtraction::readParams() {
+	fnVol1 = getParam("--i1");
+	fnVol2 = getParam("--i2");
+	fnOutVol = getParam("-o");
+	if (fnOutVol.isEmpty())
+		fnOutVol = "output_volume.mrc";
 	performSubtraction = checkParam("--sub");
 	iter = getIntParam("--iter");
 	sigma = getIntParam("--sigma");
@@ -96,52 +106,36 @@ void ProgVolumeSubtraction::readParams()
 		fnVol2A = "volume2_adjusted.mrc";
 	radavg = checkParam("--radavg");
 	computeE = checkParam("--computeEnergy");
-	subtomos = 	performSubtraction = checkParam("--subtomos");
-
 }
 
 // Show ====================================================================
 void ProgVolumeSubtraction::show() const {
-	if (!verbose)
-        return;
-	std::cout 
-	<< "Input volume(s):\t" << fnVolMd << std::endl
-	<< "Reference volume:\t" << fnVolRef << std::endl
-	<< "Input mask 1:\t" << fnMask1 << std::endl
-	<< "Input mask 2:\t" << fnMask2 << std::endl
-	<< "Input mask subtract:\t" << fnMaskSub << std::endl
-	<< "Sigma:\t" << sigma << std::endl
-	<< "Iterations:\t" << iter << std::endl
-	<< "Cutoff frequency:\t" << cutFreq << std::endl
-	<< "Relaxation factor:\t" << lambda << std::endl
-	<< "Match radial averages:\t" << radavg << std::endl
-	<< "Output:\t" << fnOut << std::endl;
+	std::cout << "Input volume 1:\t" << fnVol1 << std::endl
+			<< "Input volume 2:    	   	" << fnVol2 << std::endl
+			<< "Input mask 1:    	   	" << fnMask1 << std::endl
+			<< "Input mask 2:    	   	" << fnMask2 << std::endl
+			<< "Input mask sub:		" << fnMaskSub << std::endl
+			<< "Sigma:			" << sigma << std::endl
+			<< "Iterations:			" << iter << std::endl
+			<< "Cutoff frequency:		" << cutFreq << std::endl
+			<< "Relaxation factor:		" << lambda << std::endl
+			<< "Match radial averages:\t" << radavg << std::endl
+			<< "Output:\t" << fnOutVol << std::endl;
 }
-
-void ProgVolumeSubtraction::readParticle(const MDRow &r) {
-	r.getValueOrDefault(MDL_IMAGE, fnVol2, "no_filename");
-	V.read(fnVol2);
-	V().setXmippOrigin();
- }
-
- void ProgVolumeSubtraction::writeParticle(MDRow &rowOut, FileName fnImgOut, Image<double> &img) {
-	img.write(fnImgOut);
-	rowOut.setValue(MDL_IMAGE, fnImgOut);
- }
 
 /* Methods used to adjust an input volume (V) to a another reference volume (V1) through
 the use of Projectors Onto Convex Sets (POCS) */
-void ProgVolumeSubtraction::POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I) {
+void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
 		DIRECT_MULTIDIM_ELEM(I, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
 }
 
-void ProgVolumeSubtraction::POCSnonnegative(MultidimArray<double> &I) {
+void POCSnonnegative(MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
 		DIRECT_MULTIDIM_ELEM(I, n) = std::max(0.0, DIRECT_MULTIDIM_ELEM(I, n));
 }
 
-void ProgVolumeSubtraction::POCSFourierAmplitude(const MultidimArray<double> &V1FourierMag,
+void POCSFourierAmplitude(const MultidimArray<double> &V1FourierMag,
 		MultidimArray<std::complex<double>> &V2Fourier, double l) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1FourierMag) {
 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(V2Fourier, n));
@@ -152,8 +146,8 @@ void ProgVolumeSubtraction::POCSFourierAmplitude(const MultidimArray<double> &V1
 	}
 }
 
-void ProgVolumeSubtraction::POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
-		double l, const MultidimArray<double> &rQ, int V1size_x, int V1size_y, int V1size_z) {
+void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V, double l, const MultidimArray<double> &rQ, 
+int V1size_x, int V1size_y, int V1size_z) {
 	int V1size2_x = V1size_x/2;
 	double V1sizei_x = 1.0/V1size_x;
 	int V1size2_y = V1size_y/2;
@@ -182,7 +176,7 @@ void ProgVolumeSubtraction::POCSFourierAmplitudeRadAvg(MultidimArray<std::comple
 	}
 }
 
-void ProgVolumeSubtraction::POCSMinMax(MultidimArray<double> &V, double v1m, double v1M) {
+void POCSMinMax(MultidimArray<double> &V, double v1m, double v1M) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V) {
 		double val = DIRECT_MULTIDIM_ELEM(V, n);
 		if (val < v1m)
@@ -192,7 +186,7 @@ void ProgVolumeSubtraction::POCSMinMax(MultidimArray<double> &V, double v1m, dou
 	}
 }
 
-void ProgVolumeSubtraction::POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
+void POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
 		MultidimArray<std::complex<double>> &FI) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(phase)
     						DIRECT_MULTIDIM_ELEM(FI, n) =
@@ -226,7 +220,7 @@ void ProgVolumeSubtraction::centerFFTMagnitude(MultidimArray<double> &VolRad,
 	VolFourierMagRad.setXmippOrigin();
 }
 
-void ProgVolumeSubtraction::radialAverage(const MultidimArray<double> &VolFourierMag,
+void radialAverage(const MultidimArray<double> &VolFourierMag,
 		const MultidimArray<double> &V, MultidimArray<double> &radial_mean) {
 	MultidimArray<double> radial_count;
 	int Vsize2_x = int(XSIZE(V))/2;
@@ -262,7 +256,7 @@ void ProgVolumeSubtraction::radialAverage(const MultidimArray<double> &VolFourie
 	radial_mean/= radial_count;
 }
 
-MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimArray<double> &v1Mag,
+MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1Mag,
 		const MultidimArray<double> &vMag, const MultidimArray<double> &V1,
 		const MultidimArray<double> &V) {
 	// Compute the quotient of the radial mean of the volumes to use it in POCS amplitude
@@ -280,14 +274,14 @@ MultidimArray<double> ProgVolumeSubtraction::computeRadQuotient(const MultidimAr
 	return radQuotient;
 }
 
-void ProgVolumeSubtraction::createFilter(FourierFilter &filter2, double cutFreq) {
+void createFilter(FourierFilter &filter2, double cutFreq) {
 	filter2.FilterBand = LOWPASS;
 	filter2.FilterShape = RAISED_COSINE;
 	filter2.raised_w = 0.02;
 	filter2.w1 = cutFreq;
 }
 
-Image<double> ProgVolumeSubtraction::subtraction(Image<double> V1, Image<double> &V,
+Image<double> subtraction(Image<double> V1, Image<double> &V,
 		const MultidimArray<double> &mask, const FileName &fnVol1F,
 		const FileName &fnVol2A, FourierFilter &filter2, double cutFreq) {
 	Image<double> V1Filtered;
@@ -311,7 +305,7 @@ Image<double> ProgVolumeSubtraction::subtraction(Image<double> V1, Image<double>
 	return V1;
 }
 
-MultidimArray<double> ProgVolumeSubtraction::computeMagnitude(MultidimArray<double> &volume) {
+MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
 	FourierTransformer transformer;
 	MultidimArray<std::complex<double>> fourier;
 	MultidimArray<double> magnitude;
@@ -362,149 +356,97 @@ MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &
 	}
 }
 
-void ProgVolumeSubtraction::preProcess() {
-	show();
- }
-
-/* Core of the program: processing needed to adjust input volume V2 to reference volume V1. 
-Several iteration of this processing should be run. */
-
-void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
-	Image<double> V1;
-	V1.read(fnVolRef);
-	V1().setXmippOrigin();
-	mask = createMask(V1, fnMask1, fnMask2);
-	POCSmask(mask, V1());
-	POCSnonnegative(V1());
-	V1().computeDoubleMinMax(v1min, v1max);
-	std1 = V1().computeStddev();
-	createFilter(filter2, cutFreq);
-	
-	readParticle(rowIn);
-	MultidimArray<double> &mv = V();
-	mv.setXmippOrigin();
-
-	if (subtomos)
-	{
-		// Window subtomo (padding) before apply alignment
-		MultidimArray <double> &mpad = padv();
-		mpad.setXmippOrigin();
-		pad = XSIZE(mv);
-		mv.window(mpad, STARTINGZ(mv)-(int)pad/2, STARTINGY(mv)-(int)pad/2, STARTINGX(mv)-(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2);
-		padv.write("Vpad.mrc");
-		// Read alignment
-		rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
-		rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
-		rowIn.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
-		roffset.initZeros(3);
-		rowIn.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
-		rowIn.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
-		rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
-		// Apply alignment
-		Image<double> Vaux;
-		MultidimArray<double> &mvaux = Vaux();
-		mvaux.setXmippOrigin();
-		Vaux = padv;
-		mvaux.initZeros();
-		Euler_rotate(mpad, part_angles.rot, part_angles.tilt, part_angles.psi, mvaux);
-		Vaux.write("Vaux_pad_rot.mrc");
-		selfTranslate(xmipp_transformation::LINEAR, mvaux, roffset, xmipp_transformation::WRAP);
-		Vaux.write("Vaux_pad_trans.mrc");
-		//Crop to restore original size
-		mvaux.window(mv, STARTINGZ(mv), STARTINGY(mv), STARTINGX(mv), FINISHINGZ(mv), FINISHINGY(mv), FINISHINGX(mv));
-		V.write("Vcrop.mrc");
-	}
-
-	POCSmask(mask, mv);
-	POCSnonnegative(mv);
-	Vdiff = V;
-	auto V2FourierPhase = computePhase(mv);
-	auto V1FourierMag = computeMagnitude(V1());
-	auto V2FourierMag = computeMagnitude(mv);
-	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), mv);
-
-	for (n = 0; n < iter; ++n) 
-	{
-		transformer2.FourierTransform(mv, V2Fourier, false);
-		if (radavg) {
-			auto V1size_x = (int)XSIZE(V1());
-			auto V1size_y = (int)YSIZE(V1());
-			auto V1size_z = (int)ZSIZE(V1());
-			POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
-		}
-		else {
-			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
-		}
-		transformer2.inverseFourierTransform();
-		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
-		}
-		POCSMinMax(mv, v1min, v1max);
-		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
-		}
-		POCSmask(mask, mv);
-		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
-		}
-		transformer2.FourierTransform();
-		POCSFourierPhase(V2FourierPhase, V2Fourier);
-		transformer2.inverseFourierTransform();
-		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
-		}
-		POCSnonnegative(mv);
-		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
-		}
-		double std2 = mv.computeStddev();
-		mv *= std1 / std2;
-		if (computeE) {
-			computeEnergy(Vdiff(), mv);
-			Vdiff = V;
-		}
-		if (cutFreq != 0) {
-			filter2.generateMask(mv);
-			filter2.do_generate_3dmask = true;
-			filter2.applyMaskSpace(mv);
-			if (computeE) {
-				computeEnergy(Vdiff(), mv);
-				Vdiff = V;
-			}
-		}
-	}
-
-	if (performSubtraction) {
-		auto masksub = getSubtractionMask(fnMaskSub, mask);
-		V1.read(fnVolRef);
-		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
-	}
-
-	if (subtomos) {
-		// Recover original alignment
-		Image<double> Vf;
-		MultidimArray<double> &mvf = Vf();
-		mvf.setXmippOrigin();
-		Vf = V;
-		Vf.write("Vfsubtracted.mrc");
-		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
-		Vf.write("Vfsubtracted_rotated.mrc");
-		roffset *= -1;
-		selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
-		Vf.write("Vfsubtracted_trans.mrc");
-		writeParticle(rowOut, fnImgOut, Vf); 
+/* Core of the program: processing needed to adjust input
+ * volume V2 to reference volume V1. Several iteration of
+ * this processing should be run. */
+void ProgVolumeSubtraction::runIteration(Image<double> &V,Image<double> &V1,const MultidimArray<double> &radQuotient,
+		const MultidimArray<double> &V1FourierMag,const MultidimArray<std::complex<double>> &V2FourierPhase,
+		const MultidimArray<double> &mask, FourierFilter &filter2) {
+	transformer2.FourierTransform(V(), V2Fourier, false);
+	if (radavg) {
+		auto V1size_x = (int)XSIZE(V1());
+		auto V1size_y = (int)YSIZE(V1());
+		auto V1size_z = (int)ZSIZE(V1());
+		POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
 	}
 	else {
-		writeParticle(rowOut, fnImgOut, V); 
+		POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
+	}
+	transformer2.inverseFourierTransform();
+	if (computeE) {
+		computeEnergy(Vdiff(), V());
+		Vdiff = V;
+	}
+	POCSMinMax(V(), v1min, v1max);
+	if (computeE) {
+		computeEnergy(Vdiff(), V());
+		Vdiff = V;
+	}
+	POCSmask(mask, V());
+	if (computeE) {
+		computeEnergy(Vdiff(), V());
+		Vdiff = V;
+	}
+	transformer2.FourierTransform();
+	POCSFourierPhase(V2FourierPhase, V2Fourier);
+	transformer2.inverseFourierTransform();
+	if (computeE) {
+		computeEnergy(Vdiff(), V());
+		Vdiff = V;
+	}
+	POCSnonnegative(V());
+	if (computeE) {
+		computeEnergy(Vdiff(), V());
+		Vdiff = V;
+	}
+	double std2 = V().computeStddev();
+	V() *= std1 / std2;
+	if (computeE) {
+		computeEnergy(Vdiff(), V());
+		Vdiff = V;
+	}
+
+	if (cutFreq != 0) {
+		filter2.generateMask(V());
+		filter2.do_generate_3dmask = true;
+		filter2.applyMaskSpace(V());
+		if (computeE) {
+			computeEnergy(Vdiff(), V());
+			Vdiff = V;
+		}
 	}
 }
 
-void ProgVolumeSubtraction::postProcess()
-{
-	getOutputMd().write(fn_out);
+void ProgVolumeSubtraction::run() {
+	show();
+	Image<double> V1;
+	V1.read(fnVol1);
+	auto mask = createMask(V1, fnMask1, fnMask2);
+	POCSmask(mask, V1());
+	POCSnonnegative(V1());
+	V1().computeDoubleMinMax(v1min, v1max);
+	Image<double> V;
+	V.read(fnVol2);
+	POCSmask(mask, V());
+	POCSnonnegative(V());
+	std1 = V1().computeStddev();
+	Vdiff = V;
+	auto V2FourierPhase = computePhase(V());
+	auto V1FourierMag = computeMagnitude(V1());
+	auto V2FourierMag = computeMagnitude(V());
+	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), V());
+	FourierFilter filter2;
+	createFilter(filter2, cutFreq);
+	for (n = 0; n < iter; ++n) {
+		runIteration(V, V1, radQuotient, V1FourierMag, V2FourierPhase, mask, filter2);
+	}
+	if (performSubtraction) {
+		auto masksub = getSubtractionMask(fnMaskSub, mask);
+		V1.read(fnVol1);
+		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
+	}
+	/* The output of this program is either a modified
+	 * version of V (V') or the subtraction between
+	 * V1 and V' if performSubtraction flag is activated' */
+	V.write(fnOutVol);
 }
