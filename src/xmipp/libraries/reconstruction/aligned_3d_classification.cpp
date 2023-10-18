@@ -43,6 +43,8 @@ void ProgAligned3dClassification::readParams()
 // Define parameters ==========================================================
 void ProgAligned3dClassification::defineParams()
 {
+	produces_a_metadata = true;
+
     addUsageLine("Perform a multireference 3D classification over a set of projection aligned images.");
     XmippMetadataProgram::defineParams();
     addParamsLine("   [--useCtf]		             : Consider CTF when projecting references");
