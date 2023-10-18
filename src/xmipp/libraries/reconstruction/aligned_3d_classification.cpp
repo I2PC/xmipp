@@ -74,6 +74,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	const MultidimArray<double>* ctf = nullptr;
 	if (useCtf)
 	{
+		ctfImage.resetOrigin(); //HACK
 		ctfDescription.readFromMdRow(rowIn);
 		ctfDescription.generateCTF(inputImage(), ctfImage);
 		ctf = &ctfImage;
