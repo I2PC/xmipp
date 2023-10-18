@@ -326,11 +326,7 @@ MultidimArray<double> ProgVolumeSubtraction::createMask(const Image<double> &vol
 		Image<double> mask1;
 		Image<double> mask2;
 		mask1.read(fnM1);
-		std::cout << "---mask1---" << std::endl;
-		mask1.write("mask1.mrc");
 		mask2.read(fnM2);
-		std::cout << "---mask2---" << std::endl;
-		mask2.write("mask2.mrc");
 		mask = mask1() * mask2();
 	} else {
 		mask.resizeNoCopy(volume());
@@ -492,12 +488,13 @@ void ProgVolumeSubtraction::processImage(const FileName &fnImg, const FileName &
 	if (subtomos) {
 		// Recover original alignment
 		Image<double> Vf;
-		Vf = V;
 		MultidimArray<double> &mvf = Vf();
 		mvf.setXmippOrigin();
+		Vf = V;
 		Vf.write("Vfsubtracted.mrc");
-		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, part_angles.psi, mvf);
+		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
 		Vf.write("Vfsubtracted_rotated.mrc");
+		roffset *= -1;
 		selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
 		Vf.write("Vfsubtracted_trans.mrc");
 		writeParticle(rowOut, fnImgOut, Vf); 
