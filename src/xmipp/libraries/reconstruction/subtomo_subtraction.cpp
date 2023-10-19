@@ -72,7 +72,6 @@ void ProgSubtomoSubtraction::defineParams()
 			"--sub is passed, if not passed the input reference volume is not modified");
 	addParamsLine("[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file (vol2 adjusted) just when option "
 			"--sub is passed, if not passed the output of the program is this file");
-	addParamsLine("[--subtomos]\t: indicate that input is a set of subtomograms");
 }
 
 // Read arguments ==========================================================
@@ -96,8 +95,6 @@ void ProgSubtomoSubtraction::readParams()
 		fnVol2A = "volume2_adjusted.mrc";
 	radavg = checkParam("--radavg");
 	computeE = checkParam("--computeEnergy");
-	subtomos = 	performSubtraction = checkParam("--subtomos");
-
 }
 
 // Show ====================================================================
@@ -384,37 +381,34 @@ void ProgSubtomoSubtraction::processImage(const FileName &fnImg, const FileName 
 	MultidimArray<double> &mv = V();
 	mv.setXmippOrigin();
 
-	if (subtomos)
-	{
-		// Window subtomo (padding) before apply alignment
-		MultidimArray <double> &mpad = padv();
-		mpad.setXmippOrigin();
-		pad = XSIZE(mv);
-		mv.window(mpad, STARTINGZ(mv)-(int)pad/2, STARTINGY(mv)-(int)pad/2, STARTINGX(mv)-(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2);
-		padv.write("Vpad.mrc");
-		// Read alignment
-		rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
-		rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
-		rowIn.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
-		roffset.initZeros(3);
-		rowIn.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
-		rowIn.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
-		rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
-		// Apply alignment
-		Image<double> Vaux;
-		MultidimArray<double> &mvaux = Vaux();
-		mvaux.setXmippOrigin();
-		Vaux = padv;
-		mvaux.initZeros();
-		Euler_rotate(mpad, part_angles.rot, part_angles.tilt, part_angles.psi, mvaux);
-		Vaux.write("Vaux_pad_rot.mrc");
-		selfTranslate(xmipp_transformation::LINEAR, mvaux, roffset, xmipp_transformation::WRAP);
-		Vaux.write("Vaux_pad_trans.mrc");
-		//Crop to restore original size
-		mvaux.window(mv, STARTINGZ(mv), STARTINGY(mv), STARTINGX(mv), FINISHINGZ(mv), FINISHINGY(mv), FINISHINGX(mv));
-		V.write("Vcrop.mrc");
-	}
-
+	// Window subtomo (padding) before apply alignment
+	MultidimArray <double> &mpad = padv();
+	mpad.setXmippOrigin();
+	pad = XSIZE(mv);
+	mv.window(mpad, STARTINGZ(mv)-(int)pad/2, STARTINGY(mv)-(int)pad/2, STARTINGX(mv)-(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2);
+	padv.write("Vpad.mrc");
+	// Read alignment
+	rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
+	rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
+	rowIn.getValueOrDefault(MDL_ANGLE_PSI, part_angles.psi, 0);
+	roffset.initZeros(3);
+	rowIn.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
+	rowIn.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
+	rowIn.getValueOrDefault(MDL_SHIFT_Z, roffset(2), 0);
+	// Apply alignment
+	Image<double> Vaux;
+	MultidimArray<double> &mvaux = Vaux();
+	mvaux.setXmippOrigin();
+	Vaux = padv;
+	mvaux.initZeros();
+	Euler_rotate(mpad, part_angles.rot, part_angles.tilt, part_angles.psi, mvaux);
+	Vaux.write("Vaux_pad_rot.mrc");
+	selfTranslate(xmipp_transformation::LINEAR, mvaux, roffset, xmipp_transformation::WRAP);
+	Vaux.write("Vaux_pad_trans.mrc");
+	// Crop to restore original size
+	mvaux.window(mv, STARTINGZ(mv), STARTINGY(mv), STARTINGX(mv), FINISHINGZ(mv), FINISHINGY(mv), FINISHINGX(mv));
+	V.write("Vcrop.mrc");
+	// Preprocessing
 	POCSmask(mask, mv);
 	POCSnonnegative(mv);
 	Vdiff = V;
@@ -485,23 +479,18 @@ void ProgSubtomoSubtraction::processImage(const FileName &fnImg, const FileName 
 		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
 	}
 
-	if (subtomos) {
-		// Recover original alignment
-		Image<double> Vf;
-		MultidimArray<double> &mvf = Vf();
-		mvf.setXmippOrigin();
-		Vf = V;
-		Vf.write("Vfsubtracted.mrc");
-		Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
-		Vf.write("Vfsubtracted_rotated.mrc");
-		roffset *= -1;
-		selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
-		Vf.write("Vfsubtracted_trans.mrc");
-		writeParticle(rowOut, fnImgOut, Vf); 
-	}
-	else {
-		writeParticle(rowOut, fnImgOut, V); 
-	}
+	// Recover original alignment
+	Image<double> Vf;
+	MultidimArray<double> &mvf = Vf();
+	mvf.setXmippOrigin();
+	Vf = V;
+	Vf.write("Vfsubtracted.mrc");
+	Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
+	Vf.write("Vfsubtracted_rotated.mrc");
+	roffset *= -1;
+	selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
+	Vf.write("Vfsubtracted_trans.mrc");
+	writeParticle(rowOut, fnImgOut, Vf); 
 }
 
 void ProgSubtomoSubtraction::postProcess()
