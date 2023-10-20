@@ -1,7 +1,6 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "tomo_extract_subtomograms.h"
+#include "tomo_resolution_subtomo.h"
 #include <core/bilib/kernel.h>
 #include <core/metadata_extension.h>
 #include <numeric>
@@ -34,33 +33,30 @@
 
 
 
-void ProgTomoExtractSubtomograms::readParams()
+void ProgTomoResolutionSubtomos::readParams()
 {
-	fnTom = getParam("--tomogram");
+	fnOdd = getParam("--odd");
+	fnEven = getParam("--even");
 	fnCoor = getParam("--coordinates");
 	boxsize = getIntParam("--boxsize");
-	invertContrast = checkParam("--invertContrast");
-	normalize = checkParam("--normalize");
 	fnOut = getParam("-o");
-	downsampleFactor = getDoubleParam("--downsample");
 	nthrs = getIntParam("--threads");
 }
 
 
-void ProgTomoExtractSubtomograms::defineParams()
+void ProgTomoResolutionSubtomos::defineParams()
 {
 	addUsageLine("This function takes a tomogram an extract a set of subtomogram from it. The coordinates of the subtomograms are speciffied in the metadata given by coordinates.");
-	addParamsLine("  --tomogram <vol_file=\"\">               : Filename of the tomogram containing the subtomograms to be extracted");
+	addParamsLine("  --tomo <vol_file=\"\">                   : Filename of the full tomogram");
+	addParamsLine("  --odd <vol_file=\"\">                    : Filename of the odd tomogram");
+	addParamsLine("  --even <vol_file=\"\">                   : Filename of the even tomogram");
 	addParamsLine("  --coordinates <vol_file=\"\">	          : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
 	addParamsLine("  --boxsize <boxsize=100>                  : Particle box size in voxels, of the particle without downsampling.");
-	addParamsLine("  [--invertContrast]	                      : Set this flag to invert the contrast of the extracted subtomograms");
-	addParamsLine("  [--normalize]                            : This flag will set the subtomograms to have zero mean and unit standard deviation.");
-	addParamsLine("  [--downsample <downsampleFactor=1.0>]    : Scale factor of the extracted subtomograms. It must be greater than 1. A downsampling 2 reduces in a factor 2 the size of the subtomos.");
 	addParamsLine("  -o <vol_file=\"\">                       : Path of the output directory. ");
 	addParamsLine("  [--threads <s=4>]                        : Number of threads");
 }
 
-void ProgTomoExtractSubtomograms::createSphere(MultidimArray<double> &maskNormalize, int halfboxsize)
+void ProgTomoResolutionSubtomos::createSphere(MultidimArray<double> &maskNormalize, int halfboxsize)
 {
 	maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
 
@@ -82,7 +78,7 @@ void ProgTomoExtractSubtomograms::createSphere(MultidimArray<double> &maskNormal
 	}
 }
 
-void ProgTomoExtractSubtomograms::extractSubtomo(MultidimArray<double> &subtomo, int halfboxsize, const MultidimArray<double> &tom,
+void ProgTomoResolutionSubtomos::extractSubtomo(MultidimArray<double> &subtomo, int halfboxsize, const MultidimArray<double> &tom,
 													int xcoor, int ycoor, int zcoor, double &invertSign, bool &nextcoor)
 {
 
@@ -114,7 +110,7 @@ void ProgTomoExtractSubtomograms::extractSubtomo(MultidimArray<double> &subtomo,
 }
 
 
-void ProgTomoExtractSubtomograms::run()
+void ProgTomoResolutionSubtomos::run()
 {
 	std::cout << "Starting ... "<< std::endl;
 

@@ -25,8 +25,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_TOMO_EXTRACT_SUBTOMOS
-#define _PROG_TOMO_EXTRACT_SUBTOMOS
+#ifndef _PROG_TOMO_RESOLUTION_SUBTOMO
+#define _PROG_TOMO_RESOLUTION_SUBTOMO
 
 #include <iostream>
 #include <core/xmipp_program.h>
@@ -36,10 +36,7 @@
 #include <complex>
 #include <string>
 
-// #define DEBUG
-
-
-class ProgTomoExtractSubtomograms : public XmippProgram
+class ProgTomoResolutionSubtomos : public XmippProgram
 {
 public:
 	 /** Filenames */
@@ -50,13 +47,6 @@ public:
     size_t Xdim, Xtom;
     size_t Ydim, Ytom;
     size_t Zdim, Ztom;
-
-    bool invertContrast;
-    bool normalize;
-    bool downsample;
-
-    double scaleFactor;
-    double downsampleFactor;
 
 	/** Is the volume previously masked?*/
 	int boxsize;
