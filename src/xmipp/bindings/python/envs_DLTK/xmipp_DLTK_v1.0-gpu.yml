@@ -9,7 +9,6 @@ channels:
   - defaults
 dependencies:
   - python=3.8
-  - cudatoolkit=11.6
   - tensorflow-gpu=2.7
   - keras=2.7
   - cudatoolkit=11.6
