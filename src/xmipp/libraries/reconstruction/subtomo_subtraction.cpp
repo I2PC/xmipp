@@ -30,6 +30,7 @@
 #include <core/xmipp_program.h>
 #include <data/fourier_filter.h>
 #include <core/geometry.h>
+#include "core/transformations.h"
 
 
  // Empty constructor =======================================================
@@ -386,7 +387,6 @@ void ProgSubtomoSubtraction::processImage(const FileName &fnImg, const FileName 
 	mpad.setXmippOrigin();
 	pad = XSIZE(mv);
 	mv.window(mpad, STARTINGZ(mv)-(int)pad/2, STARTINGY(mv)-(int)pad/2, STARTINGX(mv)-(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2, FINISHINGZ(mv)+(int)pad/2);
-	padv.write("Vpad.mrc");
 	// Read alignment
 	rowIn.getValueOrDefault(MDL_ANGLE_ROT, part_angles.rot, 0);
 	rowIn.getValueOrDefault(MDL_ANGLE_TILT, part_angles.tilt, 0);
@@ -402,12 +402,9 @@ void ProgSubtomoSubtraction::processImage(const FileName &fnImg, const FileName 
 	Vaux = padv;
 	mvaux.initZeros();
 	Euler_rotate(mpad, part_angles.rot, part_angles.tilt, part_angles.psi, mvaux);
-	Vaux.write("Vaux_pad_rot.mrc");
 	selfTranslate(xmipp_transformation::LINEAR, mvaux, roffset, xmipp_transformation::WRAP);
-	Vaux.write("Vaux_pad_trans.mrc");
 	// Crop to restore original size
 	mvaux.window(mv, STARTINGZ(mv), STARTINGY(mv), STARTINGX(mv), FINISHINGZ(mv), FINISHINGY(mv), FINISHINGX(mv));
-	V.write("Vcrop.mrc");
 	// Preprocessing
 	POCSmask(mask, mv);
 	POCSnonnegative(mv);
@@ -484,12 +481,10 @@ void ProgSubtomoSubtraction::processImage(const FileName &fnImg, const FileName 
 	MultidimArray<double> &mvf = Vf();
 	mvf.setXmippOrigin();
 	Vf = V;
-	Vf.write("Vfsubtracted.mrc");
-	Euler_rotate(mv, -part_angles.rot, -part_angles.tilt, -part_angles.psi, mvf);
-	Vf.write("Vfsubtracted_rotated.mrc");
-	roffset *= -1;
-	selfTranslate(xmipp_transformation::LINEAR, mvf, roffset, xmipp_transformation::WRAP);
-	Vf.write("Vfsubtracted_trans.mrc");
+	Matrix2D<double> A;
+    A.initIdentity(4);
+	geo2TransformationMatrix(rowIn,A);
+	applyGeometry(xmipp_transformation::LINEAR, mvf, mv, A, xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP);
 	writeParticle(rowOut, fnImgOut, Vf); 
 }
 
