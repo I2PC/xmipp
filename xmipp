@@ -640,7 +640,7 @@ def compile_libcifpp(Nproc):
     os.chdir(libcifppDir)
     # Installing
     fullDir = os.path.join(currDir, libcifppDir, '')
-    if runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF",
+    if runJob("cmake -S . -B build -DCMAKE_INSTALL_PREFIX=" + fullDir + " -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCIFPP_DOWNLOAD_CCD=OFF -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF",
               show_output=False, show_command=False, log=log):
         log1 = []
         if runJob(f"cmake --build build -j {Nproc}", show_output=False, show_command=False, log=log1):
