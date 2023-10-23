@@ -334,15 +334,7 @@ void ProgAngularProjectLibrary::run()
     mysampling.createAsymUnitFile(output_file_root);
     //all nodes
     //If there is no reference available exit
-    try
-    {
-        inputVol.read(input_volume);
-    }
-    catch (XmippError XE)
-    {
-        std::cout << XE;
-        exit(0);
-    }
+    inputVol.read(input_volume);
     inputVol().setXmippOrigin();
     Xdim = XSIZE(inputVol());
     Ydim = YSIZE(inputVol());
@@ -401,7 +393,10 @@ void ProgAngularProjectLibrary::run()
         }
     }
     mySFout.setComment("x,y,z refer to the coordinates of the unitary vector at direction given by the euler angles");
-    mySFout.write(output_file_root+".doc");
+    if (mySFout.size()>0)
+	    mySFout.write(output_file_root+".doc");
+    else
+    	std::cout << "There are no projections within the specified angular range and sampling" << std::endl;
     unlink((output_file_root+"_angles.doc").c_str());
 
     if (fn_groups!="")

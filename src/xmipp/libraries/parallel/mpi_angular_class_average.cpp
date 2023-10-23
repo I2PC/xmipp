@@ -1453,7 +1453,8 @@ void MpiProgAngularClassAverage::mpi_postprocess()
             auto idIter1 = auxMds1.ids().begin();
             auto idIter2 = auxMds2.ids().begin();
 
-            for (; idIter1 != auxMds1.ids().end(); ++idIter1, ++idIter2)
+	        const auto totalSize = auxMds1.ids().end();
+            for (; idIter1 != totalSize; ++idIter1, ++idIter2)
             {
                 auxMds1.getValue(MDL_ORDER, order_number, *idIter1);
                 auxMds1.getValue(MDL_REF3D, ref3d, *idIter1);

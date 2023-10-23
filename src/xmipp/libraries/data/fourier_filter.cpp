@@ -72,6 +72,7 @@ void FourierFilter::defineParams(XmippProgram *program)
     program->addParamsLine("            ctfinv <ctfile> <minCTF=0.05>    : Apply the inverse of the CTF. Below the minCTF, the image is not corrected");
     program->addParamsLine("            ctfposinv <ctfile> <minCTF=0.05> : Apply the inverse of the abs(CTF). Below the minCTF, the image is not corrected");
     program->addParamsLine("            ctfdef <kV> <Cs> <Q0> <defocus>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), and defocus (A)");
+    program->addParamsLine("            ctfdefastig <kV> <Cs> <Q0> <defocusU> <defocusV> <defocusAngle>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A), and defocusAngle (degrees)");
     program->addParamsLine("                                             : The phase flip is not corrected");
     program->addParamsLine("            bfactor <B>                      : Exponential filter (positive values for decay) ");
     program->addParamsLine("               requires --sampling;                                                         ");
@@ -226,6 +227,19 @@ void FourierFilter::readParams(XmippProgram *program)
     	ctf.Q0 = program->getDoubleParam("--fourier", "ctfdef", 2);
     	ctf.DeltafU = program->getDoubleParam("--fourier", "ctfdef", 3);
     	ctf.DeltafV = ctf.DeltafU;
+    	ctf.Tm = sampling_rate;
+    	ctf.produceSideInfo();
+    }
+    else if (filter_type == "ctfdefastig")
+    {
+		FilterShape = FilterBand = CTFDEF;
+    	ctf.clear();
+    	ctf.kV = program->getDoubleParam("--fourier", "ctfdefastig");
+    	ctf.Cs = program->getDoubleParam("--fourier", "ctfdefastig", 1);
+    	ctf.Q0 = program->getDoubleParam("--fourier", "ctfdefastig", 2);
+    	ctf.DeltafU = program->getDoubleParam("--fourier", "ctfdefastig", 3);
+        ctf.DeltafV = program->getDoubleParam("--fourier", "ctfdefastig", 4);
+        ctf.azimuthal_angle = program->getDoubleParam("--fourier", "ctfdefastig", 5);   	
     	ctf.Tm = sampling_rate;
     	ctf.produceSideInfo();
     }
@@ -424,11 +438,9 @@ double FourierFilter::maskValue(const Matrix1D<double> &w)
             return exp(-PI*PI*absw*absw*w1*w1);  //? Should it be -2*
             break;
         case REALGAUSSIANZ:
-            // return (1./sqrt(2.*PI*w1*w1))*exp(-2.*PI*PI*absw*absw*w1*w1);
             return exp(-2.*PI*PI*absw*absw*w1*w1);
             break;
         case REALGAUSSIANZ2:
-            // return (1./(4.*PI*w1*w1*w1*sqrt(PI)))*exp(-PI*PI*absw*absw*w1*w1);
             return (1./(4*PI*w1*w1))*exp(-PI*PI*absw*absw*w1*w1);
             break;
         case WEDGE_RC:

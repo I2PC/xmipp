@@ -25,6 +25,12 @@
 
 #include "psd_estimator.h"
 
+#include "data/fftwT.h"
+#include "data/dimensions.h"
+#include "data/rectangle.h"
+#include "reconstruction/ctf_estimate_from_micrograph.h"
+#include "core/histogram.h"
+
 template<typename T>
 std::vector<Rectangle<Point2D<size_t>>> PSDEstimator<T>::getPatchesLocation(
         const std::pair<size_t, size_t> &borders,
@@ -67,7 +73,7 @@ std::vector<Rectangle<Point2D<size_t>>> PSDEstimator<T>::getPatchesLocation(
 template<typename T>
 void PSDEstimator<T>::estimatePSD(const MultidimArray<T> &micrograph,
         float overlap, const Dimensions &patchDim, MultidimArray<T> &psd,
-        unsigned fftThreads) {
+        unsigned fftThreads, bool normalize) {
     using transformer = FFTwT<T>;
     // get patch positions
     auto patches = getPatchesLocation({0, 0},
@@ -75,15 +81,11 @@ void PSDEstimator<T>::estimatePSD(const MultidimArray<T> &micrograph,
             patchDim,
             overlap);
 
-    auto settings = FFTSettingsNew<T>(patchDim);
+    auto settings = FFTSettings<T>(patchDim);
 
     // prepare data for FT - set proper sizes and allocate aligned dat for faster execution
-    // XXX HACK
-    MultidimArray<T> patchData;
-    patchData.destroyData = false;
-    patchData.setDimensions(patchDim.x(), patchDim.y(), 1, 1);
-    patchData.nzyxdimAlloc = patchData.nzyxdim;
-    patchData.data = (T*)transformer::allocateAligned(settings.sBytesSingle());
+    auto *data = reinterpret_cast<T*>(transformer::allocateAligned(settings.sBytesSingle()));
+    auto patchData = MultidimArray<T>(1, 1, patchDim.y(), patchDim.x(), data);
 
     MultidimArray<T> smoother;
     ProgCTFEstimateFromMicrograph::constructPieceSmoother(patchData, smoother);
@@ -118,10 +120,31 @@ void PSDEstimator<T>::estimatePSD(const MultidimArray<T> &micrograph,
     psd.resizeNoCopy(patchData);
     half2whole(magnitudes, psd.data, settings, [&](bool mirror, T val){return val;});
 
+    if (normalize) {
+        auto min_val = std::numeric_limits<T>::max();
+        FOR_ALL_ELEMENTS_IN_ARRAY2D(psd)
+        {
+            auto pixval=A2D_ELEM(psd,i,j);
+            if (pixval > 0 && pixval < min_val)
+                min_val = pixval;
+        }
+        min_val = 10 * log10(min_val);
+        FOR_ALL_ELEMENTS_IN_ARRAY2D(psd)
+        {
+            auto pixval=A2D_ELEM(psd,i,j);
+            if (pixval > 0)
+                A2D_ELEM(psd,i,j) = 10 * log10(pixval);
+            else
+                A2D_ELEM(psd,i,j) = min_val;
+        }
+        reject_outliers(psd);
+    }
+
     delete[] magnitudes;
     transformer::release(patchFS);
     transformer::release(plan);
-    transformer::release(patchData.data);
+    transformer::release(data);
+
 }
 
 // explicit instantiation

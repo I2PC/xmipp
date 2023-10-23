@@ -45,13 +45,11 @@ public:
      /** Filename of the reference volume */
     FileName fnVolR;
     /** Filename of the reference volume mask */
-    FileName fnMaskR, fnMaskRecR;
+    FileName fnMaskRF, fnMaskRB;
     /** Filename of the refined volume */
     FileName fnVolO;
     /// Output directory
     FileName fnOutDir;
-    // Metadata with already processed images
-    // FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
     int L1, L2;
     /** Zernike and SPH coefficients vectors */
@@ -91,7 +89,7 @@ public:
     // INput image
     Image<double> I;
     // Spherical mask
-    MultidimArray<int> Vmask, VRecMask, sphMask;
+    MultidimArray<int> VRecMaskF, VRecMaskB;
 	// Theoretical projection
 	std::vector<Image<double>> P;
     // Weight Image
@@ -168,13 +166,6 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    // virtual void createWorkFiles();
-
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
@@ -195,10 +186,6 @@ public:
     void recoverVol();
     virtual void finishProcessing();
 
-    // double bspline1(double x);
-
-    // void updateCTFImage(double defocusU, double defocusV, double angle);
-
   private:
     enum class Direction { Forward, Backward };
 
@@ -214,10 +201,6 @@ public:
     void splattingAtPos(std::array<double, 2> r, double weight, 
                         MultidimArray<double> &mP, MultidimArray<double> &mW, 
                         MultidimArray<double> &mV, double &sg);
-
-    // void updateVoxel(std::array<double, 3> r, double &voxel, MultidimArray<double> &mV);
-
-    // virtual void checkPoint();
 
     virtual void run();
 

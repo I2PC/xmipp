@@ -67,6 +67,8 @@ void ProgForwardZernikeSubtomos::readParams()
 	resume = checkParam("--resume");
 	Rerunable::setFileName(fnOutDir + "/sphDone.xmd");
 	blob_r = getDoubleParam("--blobr");
+	t1 = getDoubleParam("--t1");
+	t2 = getDoubleParam("--t2");
 	keep_input_columns = true;
 }
 
@@ -127,6 +129,8 @@ void ProgForwardZernikeSubtomos::defineParams()
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
+	addParamsLine("  [--t1 <t1=-60>]              : First tilt angle range");
+	addParamsLine("  [--t2 <t2=60>]               : Second tilt angle range");
 	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_forward_zernike_subtomos -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
@@ -176,7 +180,7 @@ void ProgForwardZernikeSubtomos::preProcess()
 	}
 
 	// Total Volume Mass (Inside Mask)
-	sumV = 0.0;
+	sumV = 0;
 	for (int k = STARTINGZ(V()); k <= FINISHINGZ(V()); k += loop_step)
 	{
 		for (int i = STARTINGY(V()); i <= FINISHINGY(V()); i += loop_step)
@@ -185,7 +189,7 @@ void ProgForwardZernikeSubtomos::preProcess()
 			{
 				if (A3D_ELEM(V_mask, k, i, j) == 1)
 				{
-					sumV += A3D_ELEM(V(), k, i, j);
+					sumV++;
 				}
 			}
 		}
@@ -203,6 +207,22 @@ void ProgForwardZernikeSubtomos::preProcess()
 	filter.do_generate_3dmask = true;
     filter.w1=Ts/maxResol;
     filter.raised_w=0.02;
+
+	// MW filter
+	// filterMW.FilterBand=WEDGE;
+	// filterMW.FilterShape=WEDGE;
+	// filterMW.do_generate_3dmask = true;
+	// filterMW.t1 = t1;
+	// filterMW.t2 = t2;
+	// filterMW.rot=filterMW.tilt=filterMW.psi=0.0;
+	filterMW.FilterBand=LOWPASS;
+	filterMW.FilterShape=WEDGE_RC;
+	filterMW.do_generate_3dmask = true;
+	filterMW.t1 = t1;
+	filterMW.t2 = t2;
+	filterMW.rot=filterMW.tilt=filterMW.psi=0.0;
+	filterMW.w1=Ts/maxResol;
+    filterMW.raised_w=0.02;
 
     // Transformation matrix
     A.initIdentity(4);
@@ -224,13 +244,6 @@ void ProgForwardZernikeSubtomos::preProcess()
 	blob.order  = 2;        // Order of the Bessel function
     blob.alpha  = 7.05;     // Smoothness parameter
 
-	sigma4 = 2 * blob_r;
-	gaussianProjectionTable.resize(CEIL(sigma4 * sqrt(2) * 1000));
-	FOR_ALL_ELEMENTS_IN_MATRIX1D(gaussianProjectionTable)
-	gaussianProjectionTable(i) = gaussian1D(i / 1000.0, blob_r);
-	gaussianProjectionTable *= gaussian1D(0, blob_r);
-	gaussianProjectionTable2 = gaussianProjectionTable;
-	gaussianProjectionTable2 *= gaussianProjectionTable;
 }
 
 void ProgForwardZernikeSubtomos::finishProcessing() {
@@ -242,8 +255,18 @@ void ProgForwardZernikeSubtomos::finishProcessing() {
 double ProgForwardZernikeSubtomos::transformImageSph(double *pclnm)
 {
 	const MultidimArray<double> &mV=V();
+	idx_z_clnm.clear();
+	z_clnm_diff.clear();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
+	{
 		VEC_ELEM(clnm,i)=pclnm[i+1];
+		if (VEC_ELEM(clnm,i) != VEC_ELEM(prev_clnm,i))
+		{
+			idx_z_clnm.push_back(i);
+			z_clnm_diff.push_back(VEC_ELEM(clnm, i) - VEC_ELEM(prev_clnm, i));
+			// std::cout << i << std::endl;
+		}
+	}
 	double deformation=0.0;
 	totalDeformation=0.0;
 
@@ -281,6 +304,9 @@ double ProgForwardZernikeSubtomos::transformImageSph(double *pclnm)
 	// std::cout << "Press any key" << std::endl;
 	// char c; std::cin >> c;
 
+	filterMW.generateMask(P());
+	filterMW.applyMaskSpace(P());
+
 	if (hasCTF)
     {
     	double defocusU=old_defocusU+deltaDefocusU;
@@ -295,7 +321,7 @@ double ProgForwardZernikeSubtomos::transformImageSph(double *pclnm)
 			FilterCTF.correctPhase();
 		FilterCTF.applyMaskSpace(P());
 	}
-	filter.applyMaskSpace(P());
+	// filter.applyMaskSpace(P());
 
 
 	const MultidimArray<double> &mP=P();
@@ -336,9 +362,10 @@ double ProgForwardZernikeSubtomos::transformImageSph(double *pclnm)
     }
 
     // double massDiff=std::abs(sumV-sumVd)/sumV;
-    double retval=cost+lambda*(deformation);
+	prev_clnm = clnm;
+    double retval=cost+lambda*abs(deformation - prior_deformation);
 	if (showOptimization)
-		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << sumVd << " " << retval << std::endl;
+		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << retval << std::endl;
 	return retval;
 }
 
@@ -393,6 +420,11 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
     int totalSize = 3*vecSize + 9;
 	p.initZeros(totalSize);
 	clnm.initZeros(totalSize);
+	prev_clnm.initZeros(totalSize);
+
+	// Init positions and deformation field
+	vpos.initZeros(sumV, 8);
+	df.initZeros(sumV, 3);
 
 	flagEnabled=1;
 
@@ -407,6 +439,7 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
 	I().setXmippOrigin();
 	Ifiltered() = I(); 
 	filter.applyMaskSpace(Ifiltered());
+	rotatePositions(old_rot, old_tilt, old_psi);
 	
 	if (verbose >= 2)
 		std::cout << "Processing Image (" << fnImage << ")" << std::endl;
@@ -416,10 +449,12 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
 	else
 		old_flip = false;
 
+	prior_deformation = 0.0;
 	if (rowIn.containsLabel(MDL_SPH_COEFFICIENTS))
 	{
 		std::vector<double> vectortemp;
 		rowIn.getValue(MDL_SPH_COEFFICIENTS, vectortemp);
+		rowIn.getValueOrDefault(MDL_SPH_DEFORMATION, prior_deformation, 0.0);
 		for (int i=0; i<3*vecSize; i++)
 		{
 			clnm[i] = vectortemp[i];
@@ -427,6 +462,8 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
 		// if (optimizeDeformation)
 		// 	rotateCoefficients<Direction::ROTATE>();
 		p = clnm;
+		prev_clnm = clnm;
+		preComputeDF();
 	}	
 	
 	// FIXME: Add defocus per image and make CTF correction available
@@ -448,8 +485,8 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
 	//? O dar solo una iteracion con todos los coeffs?
 	int h = 1;
 	// if (!optimizeDeformation)
-	if (rowIn.containsLabel(MDL_SPH_COEFFICIENTS))
-		h = L2;
+	// if (rowIn.containsLabel(MDL_SPH_COEFFICIENTS))
+	// 	h = L2;
 
 	for (;h<=L2;h++)
 	{
@@ -487,7 +524,7 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
 		        minimizepos(L1,h,steps);
 			}
 			steps_cp = steps;
-			powellOptimizer(p, 1, totalSize, &continuousZernikeSubtomoCost, this, 0.01, cost, iter, steps, verbose>=2);
+			powellOptimizer(p, 1, totalSize, &continuousZernikeSubtomoCost, this, 0.1, cost, iter, steps, verbose>=2);
 
 			if (verbose>=3)
 			{
@@ -536,9 +573,9 @@ void ProgForwardZernikeSubtomos::processImage(const FileName &fnImg, const FileN
 				std::cout<<std::endl;
 			}
 		}
-		catch (XmippError XE)
+		catch (XmippError &XE)
 		{
-			std::cerr << XE << std::endl;
+			std::cerr << XE.what() << std::endl;
 			std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
 			flagEnabled=-1;
 		}
@@ -609,13 +646,28 @@ void ProgForwardZernikeSubtomos::numCoefficients(int l1, int l2, int &vecSize)
 void ProgForwardZernikeSubtomos::minimizepos(int L1, int l2, Matrix1D<double> &steps)
 {
     int size = 0;
+	int prevSize = 0;
 	numCoefficients(L1,l2,size);
+	numCoefficients(L1,l2-1,prevSize);
     int totalSize = (steps.size()-9)/3;
-    for (int idx=0; idx<size; idx++) {
-        VEC_ELEM(steps,idx) = 1.;
-        VEC_ELEM(steps,idx+totalSize) = 1.;
-		VEC_ELEM(steps,idx+2*totalSize) = 1.;
-    }	
+	if (l2 > 1)
+	{
+		for (int idx = prevSize; idx < size; idx++)
+		{
+			VEC_ELEM(steps, idx) = 1.;
+			VEC_ELEM(steps, idx + totalSize) = 1.;
+			VEC_ELEM(steps, idx + 2 * totalSize) = 1.;
+		}
+	}
+	else
+	{
+		for (int idx = 0; idx < size; idx++)
+		{
+			VEC_ELEM(steps, idx) = 1.;
+			VEC_ELEM(steps, idx + totalSize) = 1.;
+			VEC_ELEM(steps, idx + 2 * totalSize) = 1.;
+		}
+	}
 }
 
 void ProgForwardZernikeSubtomos::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
@@ -684,108 +736,190 @@ void ProgForwardZernikeSubtomos::deformVol(MultidimArray<double> &mP, const Mult
 
 	def=0.0;
 	size_t idxZ0=2*idxY0;
-	sumVd=0.0;
+	// sumVd=0.0;
 	double RmaxF=RmaxDef;
 	double RmaxF2=RmaxF*RmaxF;
 	double iRmaxF=1.0/RmaxF;
     // Rotation Matrix
     // Matrix2D<double> R, R_inv;
-	Matrix2D<double> R;
-    R.initIdentity(3);
-    Euler_angles2matrix(rot, tilt, psi, R, false);
+	// Matrix2D<double> R;
+    // R.initIdentity(3);
+    // Euler_angles2matrix(rot, tilt, psi, R, false);
+	// Matrix2D<double> R_inv = R.inv();
     // R_inv = R.inv();
 
-	auto stepsMask = std::vector<size_t>();
-	if (optimizeDeformation)
+	// auto stepsMask = std::vector<size_t>();
+	// if (optimizeDeformation)
+	// {
+	// 	for (size_t idx = 0; idx < idxY0; idx++)
+	// 	{
+	// 		if (1 == VEC_ELEM(steps_cp, idx))
+	// 		{
+	// 			stepsMask.emplace_back(idx);
+	// 		}
+	// 	}
+	// }
+	// else {
+	// 	for (size_t idx = 0; idx < idxY0; idx++)
+	// 	{
+	// 		stepsMask.emplace_back(idx);
+	// 	}
+	// }
+
+	auto sz = idx_z_clnm.size();
+	Matrix1D<int> l1, l2, n, m, idx_v;
+
+	if (!idx_z_clnm.empty())
 	{
-		for (size_t idx = 0; idx < idxY0; idx++)
+		l1.initZeros(sz);
+		l2.initZeros(sz);
+		n.initZeros(sz);
+		m.initZeros(sz);
+		idx_v.initZeros(sz);
+		for (auto j=0; j<sz; j++)
 		{
-			if (1 == VEC_ELEM(steps_cp, idx))
-			{
-				stepsMask.emplace_back(idx);
-			}
-		}
-	}
-	else {
-		for (size_t idx = 0; idx < idxY0; idx++)
-		{
-			stepsMask.emplace_back(idx);
+			auto idx = idx_z_clnm[j];
+			if (idx >= idxY0 && idx < idxZ0)
+				idx -= idxY0;
+			else if (idx >= idxZ0)
+				idx -= idxZ0;
+
+			VEC_ELEM(idx_v,j) = idx;
+			VEC_ELEM(l1,j) = VEC_ELEM(vL1, idx);
+			VEC_ELEM(n,j) = VEC_ELEM(vN, idx);
+			VEC_ELEM(l2,j) = VEC_ELEM(vL2, idx);
+			VEC_ELEM(m,j) = VEC_ELEM(vM, idx);
 		}
 	}
 
-	// TODO: Poner primero i y j en el loop, acumular suma y guardar al final
-	const auto lastZ = FINISHINGZ(mV);
-	const auto lastY = FINISHINGY(mV);
-	const auto lastX = FINISHINGX(mV);
-	for (int k=STARTINGZ(mV); k<=lastZ; k+=loop_step)
-	{
-		for (int i=STARTINGY(mV); i<=lastY; i+=loop_step)
-		{
-			for (int j=STARTINGX(mV); j<=lastX; j+=loop_step)
-			{
-				if (A3D_ELEM(V_mask,k,i,j) == 1) {
-					// ZZ(p) = k; YY(p) = i; XX(p) = j;
-					// pos = R_inv * pos;
-					// pos = R * pos;
-					double gx=0.0, gy=0.0, gz=0.0;
-					double k2=k*k;
-					double kr=k*iRmaxF;
-					double k2i2=k2+i*i;
-					double ir=i*iRmaxF;
-					double r2=k2i2+j*j;
-					double jr=j*iRmaxF;
-					double rr=sqrt(r2)*iRmaxF;
-					for (auto idx : stepsMask) {
-						auto l1 = VEC_ELEM(vL1,idx);
-						auto n = VEC_ELEM(vN,idx);
-						auto l2 = VEC_ELEM(vL2,idx);
-						auto m = VEC_ELEM(vM,idx);
-						auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-						auto c = std::array<double, 3>{};
-						// XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
-						// if (num_images == 1 && optimizeDeformation)
-						// {
-						// 	//? Hacer algun check para ahorrarnos cuentas si no usamos priors (en ese 
-						// 	//? caso podemos usar las lineas comentadas)
-						// 	double c_x = VEC_ELEM(clnm,idx);
-						// 	double c_y = VEC_ELEM(clnm,idx+idxY0);
-						// 	// c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y;
-						// 	// c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y;
-						// 	// c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y;
-						// 	double c_z = VEC_ELEM(clnm, idx + idxZ0);
-						// 	c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
-						// 	c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
-						// 	c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
-						// }
-						// else {
-						c[0] = VEC_ELEM(clnm,idx);
-						c[1] = VEC_ELEM(clnm,idx+idxY0);
-						c[2] = VEC_ELEM(clnm,idx+idxZ0);
-						// }
-						if (rr>0 || l2==0) {
-							gx += c[0]  *(zsph);
-							gy += c[1]  *(zsph);
-							gz += c[2]  *(zsph);
-						}
-					}
+	// // TODO: Poner primero i y j en el loop, acumular suma y guardar al final
+	// const auto lastZ = FINISHINGZ(mV);
+	// const auto lastY = FINISHINGY(mV);
+	// const auto lastX = FINISHINGX(mV);
+	// for (int k=STARTINGZ(mV); k<=lastZ; k+=loop_step)
+	// {
+	// 	for (int i=STARTINGY(mV); i<=lastY; i+=loop_step)
+	// 	{
+	// 		for (int j=STARTINGX(mV); j<=lastX; j+=loop_step)
+	// 		{
+	// 			if (A3D_ELEM(V_mask,k,i,j) == 1) {
+	// 				// ZZ(p) = k; YY(p) = i; XX(p) = j;
+	// 				// pos = R_inv * pos;
+	// 				// pos = R * pos;
+	// 				double gx=0.0, gy=0.0, gz=0.0;
+	// 				double k2=k*k;
+	// 				double kr=k*iRmaxF;
+	// 				double k2i2=k2+i*i;
+	// 				double ir=i*iRmaxF;
+	// 				double r2=k2i2+j*j;
+	// 				double jr=j*iRmaxF;
+	// 				double rr=sqrt(r2)*iRmaxF;
+	// 				for (auto idx : stepsMask) {
+	// 					auto l1 = VEC_ELEM(vL1,idx);
+	// 					auto n = VEC_ELEM(vN,idx);
+	// 					auto l2 = VEC_ELEM(vL2,idx);
+	// 					auto m = VEC_ELEM(vM,idx);
+	// 					auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+	// 					auto c = std::array<double, 3>{};
+	// 					// XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
+	// 					// if (num_images == 1 && optimizeDeformation)
+	// 					// {
+	// 					// 	//? Hacer algun check para ahorrarnos cuentas si no usamos priors (en ese 
+	// 					// 	//? caso podemos usar las lineas comentadas)
+	// 					// 	double c_x = VEC_ELEM(clnm,idx);
+	// 					// 	double c_y = VEC_ELEM(clnm,idx+idxY0);
+	// 					// 	// c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y;
+	// 					// 	// c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y;
+	// 					// 	// c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y;
+	// 					// 	double c_z = VEC_ELEM(clnm, idx + idxZ0);
+	// 					// 	c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
+	// 					// 	c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
+	// 					// 	c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
+	// 					// }
+	// 					// else {
+	// 					c[0] = VEC_ELEM(clnm,idx);
+	// 					c[1] = VEC_ELEM(clnm,idx+idxY0);
+	// 					c[2] = VEC_ELEM(clnm,idx+idxZ0);
+	// 					// }
+	// 					if (rr>0 || l2==0) {
+	// 						gx += c[0]  *(zsph);
+	// 						gy += c[1]  *(zsph);
+	// 						gz += c[2]  *(zsph);
+	// 					}
+	// 				}
 
-					auto pos = std::array<double, 3>{};
-					double r_x = j + gx;
-					double r_y = i + gy;
-					double r_z = k + gz;
-					pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
-					pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
-					pos[2] = R.mdata[6] * r_x + R.mdata[7] * r_y + R.mdata[8] * r_z;
+	// 				auto pos = std::array<double, 3>{};
+	// 				double r_x = j + gx;
+	// 				double r_y = i + gy;
+	// 				double r_z = k + gz;
+	// 				pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
+	// 				pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
+	// 				pos[2] = R.mdata[6] * r_x + R.mdata[7] * r_y + R.mdata[8] * r_z;
 					
-					double voxel_mV = A3D_ELEM(mV,k,i,j);
-					splattingAtPos(pos, voxel_mV, mP, mV);
-					if (!mV.outside(pos[2], pos[1], pos[0]))
-						sumVd += voxel_mV;
-					modg += gx*gx+gy*gy+gz*gz;
-					Ncount++;
+	// 				double voxel_mV = A3D_ELEM(mV,k,i,j);
+	// 				splattingAtPos(pos, voxel_mV, mP, mV);
+	// 				if (!mV.outside(pos[2], pos[1], pos[0]))
+	// 					sumVd += voxel_mV;
+	// 				modg += gx*gx+gy*gy+gz*gz;
+	// 				Ncount++;
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	const auto &mVpos = vpos;
+	const auto lastY = FINISHINGY(mVpos);
+	for (int i=STARTINGY(mVpos); i<=lastY; i++)
+	{
+		double &gx = A2D_ELEM(df, i, 0);
+		double &gy = A2D_ELEM(df, i, 1);
+		double &gz = A2D_ELEM(df, i, 2);
+		double r_x = A2D_ELEM(mVpos, i, 0);
+		double r_y = A2D_ELEM(mVpos, i, 1);
+		double r_z = A2D_ELEM(mVpos, i, 2);
+		double xr = A2D_ELEM(mVpos, i, 3);
+		double yr = A2D_ELEM(mVpos, i, 4);
+		double zr = A2D_ELEM(mVpos, i, 5);
+		double rr = A2D_ELEM(mVpos, i, 6);
+
+		if (!idx_z_clnm.empty())
+		{
+			for (auto j = 0; j < sz; j++)
+			{	
+				auto idx = VEC_ELEM(idx_v, j);
+				auto aux_l2 = VEC_ELEM(l2, j);
+				auto zsph = ZernikeSphericalHarmonics(VEC_ELEM(l1, j), VEC_ELEM(n, j),
+													  aux_l2, VEC_ELEM(m, j), xr, yr, zr, rr);
+
+				auto diff_c_x = VEC_ELEM(clnm, idx) - VEC_ELEM(prev_clnm, idx);
+				auto diff_c_y = VEC_ELEM(clnm, idx + idxY0) - VEC_ELEM(prev_clnm, idx + idxY0);
+				auto diff_c_z = VEC_ELEM(clnm, idx + idxZ0) - VEC_ELEM(prev_clnm, idx + idxZ0);
+				// auto i_diff_c_x = R_inv.mdata[0] * diff_c_x + R_inv.mdata[1] * diff_c_y;
+				// auto i_diff_c_y = R_inv.mdata[3] * diff_c_x + R_inv.mdata[4] * diff_c_y;
+				// auto i_diff_c_z = R_inv.mdata[6] * diff_c_x + R_inv.mdata[7] * diff_c_y;
+				if (rr > 0 || aux_l2 == 0)
+				{
+					gx += diff_c_x * (zsph);
+					gy += diff_c_y * (zsph);
+					gz += diff_c_z * (zsph);
 				}
 			}
 		}
+
+		auto r_gx = R.mdata[0] * gx + R.mdata[1] * gy + R.mdata[2] * gz;
+		auto r_gy = R.mdata[3] * gx + R.mdata[4] * gy + R.mdata[5] * gz;
+		auto r_gz = R.mdata[6] * gx + R.mdata[7] * gy + R.mdata[8] * gz;
+
+		auto pos = std::array<double, 3>{};
+		pos[0] = r_x + r_gx;
+		pos[1] = r_y + r_gy;
+		pos[2] = r_z + r_gz;
+
+		double voxel_mV = A2D_ELEM(mVpos, i, 7);
+		splattingAtPos(pos, voxel_mV, mP, mV);
+
+		modg += gx * gx + gy * gy + gz * gz;
+		Ncount++;
 	}
 
     // def=sqrt(modg/Ncount);
@@ -826,42 +960,155 @@ Matrix1D<double> ProgForwardZernikeSubtomos::weightsInterpolation3D(double x, do
 
 void ProgForwardZernikeSubtomos::splattingAtPos(std::array<double, 3> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV) {
 	// Find the part of the volume that must be updated
+	// double x_pos = r[0];
+	// double y_pos = r[1];
+	// double z_pos = r[2];
+	// // int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
+	// // int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
+	// // int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
+	// // int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
+	// // int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
+	// // int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
+	// int k0 = XMIPP_MAX(FLOOR(z_pos - sigma4), STARTINGZ(mV));
+	// int kF = XMIPP_MIN(CEIL(z_pos + sigma4), FINISHINGZ(mV));
+	// int i0 = XMIPP_MAX(FLOOR(y_pos - sigma4), STARTINGY(mV));
+	// int iF = XMIPP_MIN(CEIL(y_pos + sigma4), FINISHINGY(mV));
+	// int j0 = XMIPP_MAX(FLOOR(x_pos - sigma4), STARTINGX(mV));
+	// int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
+	// int size = gaussianProjectionTable.size();
+	// for (int k = k0; k <= kF; k++)
+	// {
+	// 	double k2 = (z_pos - k) * (z_pos - k);
+	// 	for (int i = i0; i <= iF; i++)
+	// 	{
+	// 		double y2 = (y_pos - i) * (y_pos - i);
+	// 		for (int j = j0; j <= jF; j++)
+	// 		{
+	// 			// double mod = sqrt((x_pos - j) * (x_pos - j) + y2 + k2);
+	// 			// // A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
+	// 			// A3D_ELEM(mP, k, i, j) += weight * kaiser_value(mod, blob.radius, blob.alpha, blob.order);
+	// 			double mod = sqrt((x_pos - j) * (x_pos - j) + y2 + k2);
+	// 			double didx = mod * 1000;
+	// 			int idx = ROUND(didx);
+	// 			if (idx < size)
+	// 			{
+	// 				double gw = gaussianProjectionTable.vdata[idx];
+	// 				A3D_ELEM(mP, k, i, j) += weight * gw;
+	// 			}
+	// 		}
+	// 	}
+	// }
+
 	double x_pos = r[0];
 	double y_pos = r[1];
 	double z_pos = r[2];
-	// int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
-	// int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
-	// int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
-	// int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
-	// int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
-	// int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
-	int k0 = XMIPP_MAX(FLOOR(z_pos - sigma4), STARTINGZ(mV));
-	int kF = XMIPP_MIN(CEIL(z_pos + sigma4), FINISHINGZ(mV));
-	int i0 = XMIPP_MAX(FLOOR(y_pos - sigma4), STARTINGY(mV));
-	int iF = XMIPP_MIN(CEIL(y_pos + sigma4), FINISHINGY(mV));
-	int j0 = XMIPP_MAX(FLOOR(x_pos - sigma4), STARTINGX(mV));
-	int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
-	int size = gaussianProjectionTable.size();
+	int i0 = XMIPP_MAX(CEIL(y_pos - loop_step), STARTINGY(mV));
+	int iF = XMIPP_MIN(FLOOR(y_pos + loop_step), FINISHINGY(mV));
+	int j0 = XMIPP_MAX(CEIL(x_pos - loop_step), STARTINGX(mV));
+	int jF = XMIPP_MIN(FLOOR(x_pos + loop_step), FINISHINGX(mV));
+	int k0 = XMIPP_MAX(CEIL(z_pos - loop_step), STARTINGZ(mV));
+	int kF = XMIPP_MIN(FLOOR(z_pos + loop_step), FINISHINGZ(mV));
+
+	double m = 1. / loop_step;
 	for (int k = k0; k <= kF; k++)
 	{
-		double k2 = (z_pos - k) * (z_pos - k);
+		double z_val = 1. - m * ABS(k - z_pos);
 		for (int i = i0; i <= iF; i++)
 		{
-			double y2 = (y_pos - i) * (y_pos - i);
+			double y_val = 1. - m * ABS(i - y_pos);
 			for (int j = j0; j <= jF; j++)
 			{
-				// double mod = sqrt((x_pos - j) * (x_pos - j) + y2 + k2);
-				// // A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-				// A3D_ELEM(mP, k, i, j) += weight * kaiser_value(mod, blob.radius, blob.alpha, blob.order);
-				double mod = sqrt((x_pos - j) * (x_pos - j) + y2 + k2);
-				double didx = mod * 1000;
-				int idx = ROUND(didx);
-				if (idx < size)
-				{
-					double gw = gaussianProjectionTable.vdata[idx];
-					A3D_ELEM(mP, k, i, j) += weight * gw;
+				double x_val = 1. - m * ABS(j - x_pos);
+				A3D_ELEM(mP, k, i, j) += weight * x_val * y_val * z_val;
+			}
+		}
+	}
+}
+
+void ProgForwardZernikeSubtomos::rotatePositions(double rot, double tilt, double psi) 
+{
+	// Matrix2D<double> R;
+    R.initIdentity(3);
+    Euler_angles2matrix(rot, tilt, psi, R, false);
+
+	const MultidimArray<double> &mV=V();
+
+	const auto lastZ = FINISHINGZ(mV);
+	const auto lastY = FINISHINGY(mV);
+	const auto lastX = FINISHINGX(mV);
+	size_t count = 0;
+	double iRmaxF=1.0/RmaxDef;
+	for (int k=STARTINGZ(mV); k<=lastZ; k+=loop_step)
+	{
+		for (int i=STARTINGY(mV); i<=lastY; i+=loop_step)
+		{
+			for (int j=STARTINGX(mV); j<=lastX; j+=loop_step)
+			{
+				if (A3D_ELEM(V_mask,k,i,j) == 1) {
+					double x = j;
+					double y = i;
+					double z = k;
+					double r_x = R.mdata[0] * x + R.mdata[1] * y + R.mdata[2] * z;
+					double r_y = R.mdata[3] * x + R.mdata[4] * y + R.mdata[5] * z;
+					double r_z = R.mdata[6] * x + R.mdata[7] * y + R.mdata[8] * z;
+
+					A2D_ELEM(vpos, count, 0) = r_x;
+					A2D_ELEM(vpos, count, 1) = r_y;
+					A2D_ELEM(vpos, count, 2) = r_z;
+					A2D_ELEM(vpos, count, 3) = j * iRmaxF;
+					A2D_ELEM(vpos, count, 4) = i * iRmaxF;
+					A2D_ELEM(vpos, count, 5) = z * iRmaxF;
+					A2D_ELEM(vpos, count, 6) = sqrt(x*x + y*y + z*z) * iRmaxF;
+					A2D_ELEM(vpos, count, 7) = A3D_ELEM(mV, k, i, j);
+
+					count++;
 				}
 			}
 		}
 	}
+} 
+
+
+void ProgForwardZernikeSubtomos::preComputeDF()
+{	
+	size_t idxY0=(VEC_XSIZE(clnm)-9)/3;
+	size_t idxZ0=2*idxY0;
+	// Matrix2D<double> R_inv = R.inv();
+	const auto &mVpos = vpos;
+	const auto lastY = FINISHINGY(mVpos);
+	for (int i=STARTINGY(mVpos); i<=lastY; i++)
+	{
+		double &gx = A2D_ELEM(df, i, 0);
+		double &gy = A2D_ELEM(df, i, 1);
+		double &gz = A2D_ELEM(df, i, 2);
+		double r_x = A2D_ELEM(mVpos, i, 0);
+		double r_y = A2D_ELEM(mVpos, i, 1);
+		double r_z = A2D_ELEM(mVpos, i, 2);
+		double xr = A2D_ELEM(mVpos, i, 3);
+		double yr = A2D_ELEM(mVpos, i, 4);
+		double zr = A2D_ELEM(mVpos, i, 5);
+		double rr = A2D_ELEM(mVpos, i, 6);
+
+		if (!idx_z_clnm.empty())
+		{
+			for (int idx = 0; idx < idxY0; idx++)
+			{
+				auto aux_l2 = VEC_ELEM(vL2, idx);
+				auto zsph = ZernikeSphericalHarmonics(VEC_ELEM(vL1, idx), VEC_ELEM(vN, idx),
+													  aux_l2, VEC_ELEM(vM, idx), xr, yr, zr, rr);
+				auto c_x = VEC_ELEM(clnm, idx);
+				auto c_y = VEC_ELEM(clnm, idx + idxY0);
+				auto c_z = VEC_ELEM(clnm, idx + idxZ0);
+				// auto i_c_x = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
+				// auto i_c_y = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
+				// auto i_c_z = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
+				if (rr > 0 || aux_l2 == 0)
+				{
+					gx += c_x * (zsph);
+					gy += c_y * (zsph);
+					gz += c_z * (zsph);
+				}
+			}
+		}
+	}	
 }

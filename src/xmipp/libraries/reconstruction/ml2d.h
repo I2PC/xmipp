@@ -313,7 +313,7 @@ public:
     virtual void defineAdditionalParams(XmippProgram * prog, const char * sectionLine);
     virtual void defineHiddenParams(XmippProgram *prog);
 
-
+    int seed;
 }
 ;//end of class ML2DBaseProgram
 

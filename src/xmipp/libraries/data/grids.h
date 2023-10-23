@@ -1077,7 +1077,7 @@ public:
             arrayByArray((*this)(i)(),GV(i)(),(*Vol_aux)(),op); \
             result.LV.push_back(Vol_aux); \
         } catch (XmippError XE) {\
-            std::cout << XE; \
+            std::cout << XE.what(); \
             REPORT_ERROR(ERR_GRID_SIZE,(std::string)"GridVolume::"+op+": Different shape of volume " +\
                          integerToString(i)); \
         } \
@@ -1133,7 +1133,7 @@ public:
         try { \
             arrayByArray((*this)(i)(),GV(i)(),(*this)(i)(),op); \
         } catch (XmippError XE) {\
-            std::cout << XE; \
+            std::cout << XE.what(); \
             REPORT_ERROR(ERR_GRID_SIZE,(std::string)"GridVolume::"+op+"=: Different shape of volume " +\
                          integerToString(i)); \
         } \

@@ -90,14 +90,6 @@ public:
     int image_mode;
     bool useCTF;
 
-    // double sigma4;
-    // // Gaussian projection table
-    // Matrix1D<double> gaussianProjectionTable;
-
-    // // Gaussian projection2 table
-    // Matrix1D<double> gaussianProjectionTable2;
-
-
 public:
     /** Resume computations */
     bool resume;
@@ -213,8 +205,6 @@ public:
     //END AJ
 
     virtual void checkPoint();
-
-    // void removePixels();
 
     Matrix1D<double> weightsInterpolation3D(double x, double y, double z);
     

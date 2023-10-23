@@ -27,6 +27,7 @@
 #include "core/transformations.h"
 #include "program_extension.h"
 #include "condor/Solver.h"
+#include <sys/stat.h>
 
 // Empty constructor =======================================================
 ProgNmaAlignment::ProgNmaAlignment() : Rerunable("") {

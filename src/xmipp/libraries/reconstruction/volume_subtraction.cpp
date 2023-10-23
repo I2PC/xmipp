@@ -146,9 +146,8 @@ void POCSFourierAmplitude(const MultidimArray<double> &V1FourierMag,
 	}
 }
 
-void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
-		double l, const MultidimArray<double> &rQ,
-		int V1size_x, int V1size_y, int V1size_z) {
+void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V, double l, const MultidimArray<double> &rQ, 
+int V1size_x, int V1size_y, int V1size_z) {
 	int V1size2_x = V1size_x/2;
 	double V1sizei_x = 1.0/V1size_x;
 	int V1size2_y = V1size_y/2;
@@ -209,7 +208,6 @@ void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const Mul
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdif)
 	energy += DIRECT_MULTIDIM_ELEM(Vdif, n) * DIRECT_MULTIDIM_ELEM(Vdif, n);
 	energy = sqrt(energy / MULTIDIM_SIZE(Vdif));
-	std::cout << "Energy: " << energy << std::endl;
 }
 
 void ProgVolumeSubtraction::centerFFTMagnitude(MultidimArray<double> &VolRad,
@@ -268,7 +266,11 @@ MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1Mag,
 	radialAverage(vMag, V, radial_meanV);
 	MultidimArray<double> radQuotient = radial_meanV1 / radial_meanV;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
-	radQuotient(i) = std::min(radQuotient(i), 1.0);
+		{
+			radQuotient(i) = std::min(radQuotient(i), 1.0);
+			if (radQuotient(i) != radQuotient(i)) // Check if it is NaN and change it by 0
+				radQuotient(i) = 0; 
+		}
 	return radQuotient;
 }
 
@@ -360,9 +362,6 @@ MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &
 void ProgVolumeSubtraction::runIteration(Image<double> &V,Image<double> &V1,const MultidimArray<double> &radQuotient,
 		const MultidimArray<double> &V1FourierMag,const MultidimArray<std::complex<double>> &V2FourierPhase,
 		const MultidimArray<double> &mask, FourierFilter &filter2) {
-	if (computeE)
-		std::cout << "---Iter " << n << std::endl;
-
 	transformer2.FourierTransform(V(), V2Fourier, false);
 	if (radavg) {
 		auto V1size_x = (int)XSIZE(V1());
