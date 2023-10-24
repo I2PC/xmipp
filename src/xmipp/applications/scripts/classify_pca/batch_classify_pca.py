@@ -93,8 +93,9 @@ if __name__=="__main__":
     if mask and sigma is None:
         sigma = dim/3
     
-    expBatchSize = 5000
-    numFirstBatch = 6
+    expBatchSize = 6000
+    expBatchSize2 = 10000
+    numFirstBatch = 5
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
@@ -142,13 +143,31 @@ if __name__=="__main__":
     # file = output+"_0.mrcs"    
     # save_images(cl.cpu().numpy(), file)
     
-    num_batches = int(np.ceil(nExp / expBatchSize))
-    mode = False
+    # num_batches = int(np.ceil(nExp / expBatchSize))
+    # num_batches = np.ceil( (nExp - (numFirstBatch * expBatchSize))/(10000) )
+    # if num_batches >  0:
+    #     num_batches = int(numFirstBatch + num_batches)
+    # else:
+    #     num_batches = int(np.ceil(nExp / expBatchSize))
+        
+    num_batches = min(int(np.ceil(nExp / expBatchSize)), 
+                      int(numFirstBatch + np.ceil( (nExp - (numFirstBatch * expBatchSize))/(expBatchSize2) )))
+    print(num_batches)
+    # mode = False
     
     batch_projExp_cpu = []
     for i in range(num_batches):
-        initBatch = i * expBatchSize
-        endBatch =  min( (i+1) * expBatchSize, nExp)
+        mode = False
+        
+        if i < initStep:
+            initBatch = i * expBatchSize
+            endBatch =  min( (i+1) * expBatchSize, nExp)       
+        else:
+            initBatch = endBatch
+            endBatch = min( endBatch + expBatchSize2, nExp)
+        
+        # initBatch = i * expBatchSize
+        # endBatch =  min( (i+1) * expBatchSize, nExp)
         
         expImages = mmap.data[initBatch:endBatch].astype(np.float32)
         Texp = torch.from_numpy(expImages).float().to(cuda)
@@ -160,12 +179,11 @@ if __name__=="__main__":
                 mode = "create_classes"
         
         else:            
-            # batch_projExp_cpu = bnb.batchExpToCpu(Texp, freqBn, coef, cvecs)
             batch_projExp_cpu = bnb.create_batchExp(Texp, freqBn, coef, cvecs)
             mode = "align_classes"
         
         if mode:
-            # print(initBatch, endBatch)
+            print(initBatch, endBatch)
             print(mode)
 
       
