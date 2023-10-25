@@ -24,39 +24,45 @@
  ***************************************************************************/
 
 #include "tomo_resolution_subtomo.h"
+#include "reconstruction/resolution_monogenic_signal.h"
+#include <memory>
 #include <core/bilib/kernel.h>
 #include <core/metadata_extension.h>
 #include <numeric>
-//#define DEBUG
-//#define DEBUG_MASK
-//#define TEST_FRINGES
-
 
 
 void ProgTomoResolutionSubtomos::readParams()
 {
-	fnOdd = getParam("--odd");
-	fnEven = getParam("--even");
-	fnCoor = getParam("--coordinates");
+	fnTomo  = getParam("--tomo");
+	fnHalf   = getParam("--odd");
+	fnCoor  = getParam("--coordinates");
 	boxsize = getIntParam("--boxsize");
-	fnOut = getParam("-o");
-	nthrs = getIntParam("--threads");
+	lowRes = getDoubleParam("--minRes");
+	highRes = getDoubleParam("--maxRes");
+	resStep = getDoubleParam("--step");
+	sampling = getDoubleParam("--sampling");
+	fnOut   = getParam("-o");
+	nthrs   = getIntParam("--threads");
 }
 
 
 void ProgTomoResolutionSubtomos::defineParams()
 {
 	addUsageLine("This function takes a tomogram an extract a set of subtomogram from it. The coordinates of the subtomograms are speciffied in the metadata given by coordinates.");
-	addParamsLine("  --tomo <vol_file=\"\">                   : Filename of the full tomogram");
-	addParamsLine("  --odd <vol_file=\"\">                    : Filename of the odd tomogram");
-	addParamsLine("  --even <vol_file=\"\">                   : Filename of the even tomogram");
-	addParamsLine("  --coordinates <vol_file=\"\">	          : Metadata (.xmd file) with the coordidanates to be extracted from the tomogram");
+	addParamsLine("  --tomo <vol_file=\"\">                   : Filename of the full or the first half tomogram (odd or even tomogram)");
+	addParamsLine("  [--half2 <vol_file=\"\">]                : Filename of the second half tomogram (even or odd tomogram)");
+	addParamsLine("  --coordinates <vol_file=\"\">	          : Metadata (.xmd file) with the coordinates to be extracted from the tomogram");
+	addParamsLine("  --sampling <s=1>                         : Sampling rate (A/px)");
 	addParamsLine("  --boxsize <boxsize=100>                  : Particle box size in voxels, of the particle without downsampling.");
+	addParamsLine("  --lowRes <s=150>                         : Lowest resolution in (A) for the resolution range to be analyzed.");
+	addParamsLine("  --highRes <s=1>                          : Highest resolution in (A) for the resolution range to be analyzed.");
+	addParamsLine("  [--resStep <s=1>]                        : (Optional) The resolution is computed from low to high frequency in steps of this parameter in (A).");
+	addParamsLine("  [--significance <s=0.95>]                : (Optional) The level of confidence for the hypothesis test between signal and noise.");
 	addParamsLine("  -o <vol_file=\"\">                       : Path of the output directory. ");
 	addParamsLine("  [--threads <s=4>]                        : Number of threads");
 }
 
-void ProgTomoResolutionSubtomos::createSphere(MultidimArray<double> &maskNormalize, int halfboxsize)
+void ProgTomoResolutionSubtomos::createSphere(MultidimArray<int> &maskNormalize, int halfboxsize)
 {
 	maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
 
@@ -78,11 +84,10 @@ void ProgTomoResolutionSubtomos::createSphere(MultidimArray<double> &maskNormali
 	}
 }
 
-void ProgTomoResolutionSubtomos::extractSubtomo(MultidimArray<double> &subtomo, int halfboxsize, const MultidimArray<double> &tom,
-													int xcoor, int ycoor, int zcoor, double &invertSign, bool &nextcoor)
+void ProgTomoResolutionSubtomos::extractSubtomos(const MultidimArray<double> &oddTomo, const MultidimArray<double> *evenTomo,
+														MultidimArray<double> &subtomoOdd, const MultidimArray<double> &subtomoEven,
+														int halfboxsize, int xcoor, int ycoor, int zcoor, bool &nextcoor, bool &useHalves)
 {
-
-
 	int xlim = xcoor+halfboxsize;
 	int ylim = ycoor+halfboxsize;
 	int zlim = zcoor+halfboxsize;
@@ -94,6 +99,49 @@ void ProgTomoResolutionSubtomos::extractSubtomo(MultidimArray<double> &subtomo, 
 	if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
 		nextcoor = true;
 
+	if (useHalves)
+		for (int k=zinit; k<zlim; k++)
+		{
+			int kk = k - zcoor;
+			for (int i=yinit; i<ylim; i++)
+			{
+				int ii = i-ycoor;
+				for (int j=xinit; j<xlim; j++)
+				{
+					A3D_ELEM(subtomoOdd,  kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = A3D_ELEM(oddTomo, k, i, j);
+					A3D_ELEM(subtomoEven, kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = A3D_ELEM(*evenTomo, k, i, j);
+				}
+			}
+		}
+	else
+	{
+		subtomoOdd.initZeros(1, boxsize, boxsize, boxsize);
+		for (int k=zinit; k<zlim; k++)
+		{
+			int kk = k - zcoor;
+			for (int i=yinit; i<ylim; i++)
+			{
+				int ii = i-ycoor;
+				for (int j=xinit; j<xlim; j++)
+				{
+					A3D_ELEM(subtomoOdd,  kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = A3D_ELEM(oddTomo, k, i, j);
+				}
+			}
+		}
+	}
+}
+
+
+void ProgTomoResolutionSubtomos::setLocalResolutionSubtomo(const MultidimArray<double> &localResMap, const MultidimArray<double> &tomo,
+														int halfboxsize, int xcoor, int ycoor, int zcoor)
+{
+	int xlim = xcoor+halfboxsize;
+	int ylim = ycoor+halfboxsize;
+	int zlim = zcoor+halfboxsize;
+
+	auto xinit = xcoor - halfboxsize;
+	auto yinit = ycoor - halfboxsize;
+	auto zinit = zcoor - halfboxsize;
 
 	for (int k=zinit; k<zlim; k++)
 	{
@@ -103,7 +151,7 @@ void ProgTomoResolutionSubtomos::extractSubtomo(MultidimArray<double> &subtomo, 
 			int ii = i-ycoor;
 			for (int j=xinit; j<xlim; j++)
 			{
-				A3D_ELEM(subtomo, kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = invertSign*A3D_ELEM(tom, k, i, j);
+				A3D_ELEM(tomo, k, i, j) = A3D_ELEM(localResMap,  kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor);
 			}
 		}
 	}
@@ -113,50 +161,51 @@ void ProgTomoResolutionSubtomos::extractSubtomo(MultidimArray<double> &subtomo, 
 void ProgTomoResolutionSubtomos::run()
 {
 	std::cout << "Starting ... "<< std::endl;
+	Image<double> tomoImg, halfTomoImg;
+	auto &tomo = tomoImg();
+	//auto &halfTomo = halfTomoImg();
+	std::unique_ptr<MultidimArray<double>> halfTomo;
+
+	Image<double> subtomoImg, subtomoHalfImg;
+	auto &subtomo = subtomoImg();
+	auto &subtomoHalf = subtomoHalfImg();
+
+	tomoImg.read(fnTomo);
+	Xtom = XSIZE(tomo);
+	Ytom = YSIZE(tomo);
+	Ztom = ZSIZE(tomo);
+
+	if (fnHalf!="")
+	{
+		useHalves = true;
+		halfTomoImg.read(fnHalf);
+		halfTomo = std::make_unique<MultidimArray<double>>(halfTomoImg());
+	}
+
+	int halfboxsize = floor(0.5*boxsize);
+	MultidimArray<int> maskNormalize;
+	createSphere(maskNormalize, halfboxsize);
 
 	MetaDataVec md;
 	md.read(fnCoor);
 
-	Image<double> tomImg;
-	auto &tom = tomImg();
-	tomImg.read(fnTom);
-
 	size_t particleid;
-	Xtom = XSIZE(tom);
-	Ytom = YSIZE(tom);
-	Ztom = ZSIZE(tom);
-
-	Image<double> subtomoImg;
-	auto &subtomo = subtomoImg();
-
 	MultidimArray<double> subtomoExtraction;
 
 	int xcoor;
 	int ycoor;
 	int zcoor;
-	int xinit;
-	int yinit;
-	int zinit;
 
 	size_t idx=1;
 
-	int halfboxsize = floor(0.5*boxsize);
-
-	MultidimArray<double> maskNormalize;
-	if (normalize)
-	{
-		createSphere(maskNormalize, halfboxsize);
-	}
+	MultidimArray<double> localResMap, monoTomoMap;
+	monoTomoMap.resizeNoCopy(tomo);
+	monoTomoMap.initConstant(lowRes);
 
 	MetaDataVec mdout;
 	MDRowVec rowout;
 
-	double invertSign = 1.0;
-
-	if (invertContrast)
-	{
-		invertSign = -1;
-	}
+	ProgMonogenicSignalRes mono;
 
 	for (const auto& row : md)
 	{
@@ -164,89 +213,19 @@ void ProgTomoResolutionSubtomos::run()
 		row.getValue(MDL_YCOOR, ycoor);
 		row.getValue(MDL_ZCOOR, zcoor);
 
-		int xlim = xcoor+halfboxsize;
-		int ylim = ycoor+halfboxsize;
-		int zlim = zcoor+halfboxsize;
-
-		xinit = xcoor - halfboxsize;
-		yinit = ycoor - halfboxsize;
-		zinit = zcoor - halfboxsize;
-
-		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
-			continue;
-
 		subtomo.initZeros(1, boxsize, boxsize, boxsize);
 		bool nextcoor = false;
-		extractSubtomo(subtomo, halfboxsize, tom, xcoor, ycoor, zcoor, invertSign, nextcoor);
-		
+		extractSubtomos(tomo, halfTomo.get(), subtomo, subtomoHalf, halfboxsize, xcoor, ycoor, zcoor, nextcoor, useHalves);
+
 		if (nextcoor)
-		   continue;
+			continue;
 
+		localResMap.initZeros(1, boxsize, boxsize, boxsize);
+		mono.runMonoRes(tomo, halfTomo.get(), maskNormalize, lowRes, highRes, resStep, "", sampling, 0.95, fnOut, true, true, nthrs, localResMap);
 
-		if (normalize)
-		{
-			double sumVal = 0, sumVal2 = 0;
-			double counter = 0;
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-			{
-				if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
-				{
-					double val = DIRECT_MULTIDIM_ELEM(subtomo, n);
-					sumVal += val;
-					sumVal2 += val*val;
-					counter = counter + 1;
-				}
-			}
-
-			double mean, sigma2;
-			mean = sumVal/counter;
-			sigma2 = sqrt(sumVal2/counter - mean*mean);
-
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
-			{
-				DIRECT_MULTIDIM_ELEM(subtomo, n) -= mean;
-				DIRECT_MULTIDIM_ELEM(subtomo, n) /= sigma2;
-			}
-		}
-		
-		if (downsampleFactor>1.0)
-		{
-			int zdimOut, ydimOut, xdimOut;
-			zdimOut = (int) boxsize/downsampleFactor;
-			ydimOut = zdimOut;
-			xdimOut = zdimOut;
-			selfScaleToSizeFourier(zdimOut, ydimOut, xdimOut, subtomo, nthrs);
-		}
-
-		FileName fn;
-		fn = fnCoor.getBaseName() + formatString("-%i.mrc", idx);
-
-		#ifdef DEBUG
-		std::cout << fn << std::endl;
-		std::cout << fnOut << std::endl;
-		std::cout << fnOut+fn << std::endl;
-		#endif
-
-		subtomoImg.write(fnOut+"/"+fn);
-
-		if (row.containsLabel(MDL_PARTICLE_ID))
-		{
-			row.getValue(MDL_PARTICLE_ID, particleid);
-			rowout.setValue(MDL_PARTICLE_ID, particleid);
-		}
-
-
-		rowout.setValue(MDL_XCOOR, xcoor);
-		rowout.setValue(MDL_YCOOR, ycoor);
-		rowout.setValue(MDL_ZCOOR, zcoor);
-		rowout.setValue(MDL_IMAGE, fn);
-		mdout.addRow(rowout);
-		fn = fnCoor.getBaseName() + "_extracted.xmd";
-		mdout.write(fnOut+"/"+fn);
-		++idx;
-
+		setLocalResolutionSubtomo(localResMap, monoTomoMap, halfboxsize, xcoor, ycoor, zcoor);
 	}
 
-	std::cout << "Subtomo substraction finished succesfully!!" << std::endl;
+	std::cout << "Local Resolution estimation finished succesfully!!" << std::endl;
 }
 

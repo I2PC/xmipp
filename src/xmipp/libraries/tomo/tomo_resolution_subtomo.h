@@ -1,8 +1,6 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano                   coss@cnb.csic.es
- * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
  * 
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -41,8 +39,9 @@ class ProgTomoResolutionSubtomos : public XmippProgram
 public:
 	 /** Filenames */
 	FileName fnOut;
-    FileName fnTom;
+    FileName fnTomo;
     FileName fnCoor;
+    FileName fnHalf;
 
     size_t Xdim, Xtom;
     size_t Ydim, Ytom;
@@ -52,13 +51,20 @@ public:
 	int boxsize;
     int nthrs;
 
+    double sampling, lowRes, highRes, resStep;
+
+    bool useHalves;
+
 public:
 
     void defineParams();
     void readParams();
-    void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
-    void extractSubtomo(MultidimArray<double> &subtomo, int halfboxsize, const MultidimArray<double> &tom,
-						int xcoor, int ycoor, int zcoor, double &invertSign, bool &nextcoor);
+    void createSphere(MultidimArray<int> &maskNormalize, int halfboxsize);
+    void extractSubtomos(const MultidimArray<double> &oddTomo, const MultidimArray<double> *evenTomo,
+			MultidimArray<double> &subtomoOdd, const MultidimArray<double> &subtomoEven,
+			int halfboxsize, int xcoor, int ycoor, int zcoor, bool &nextcoor, bool &useHalves);
+    void setLocalResolutionSubtomo(const MultidimArray<double> &localResMap, const MultidimArray<double> &tomo,
+			int halfboxsize, int xcoor, int ycoor, int zcoor);
     void run();
 };
 //@}

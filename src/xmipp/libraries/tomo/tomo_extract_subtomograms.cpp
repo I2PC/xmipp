@@ -101,13 +101,13 @@ void ProgTomoExtractSubtomograms::extractSubtomo(MultidimArray<double> &subtomo,
 
 	for (int k=zinit; k<zlim; k++)
 	{
-		int kk = k - zcoor;
+		int kk = k - zcoor+halfboxsize;
 		for (int i=yinit; i<ylim; i++)
 		{
-			int ii = i-ycoor;
+			int ii = i-ycoor+halfboxsize;
 			for (int j=xinit; j<xlim; j++)
 			{
-				A3D_ELEM(subtomo, kk+halfboxsize, ii+halfboxsize, j+halfboxsize-xcoor) = invertSign*A3D_ELEM(tom, k, i, j);
+				A3D_ELEM(subtomo, kk, ii, j+halfboxsize-xcoor) = invertSign*A3D_ELEM(tom, k, i, j);
 			}
 		}
 	}
@@ -251,6 +251,6 @@ void ProgTomoExtractSubtomograms::run()
 
 	}
 
-	std::cout << "Subtomo substraction finished succesfully!!" << std::endl;
+	std::cout << "Subtomo extraction finished succesfully!!" << std::endl;
 }
 
