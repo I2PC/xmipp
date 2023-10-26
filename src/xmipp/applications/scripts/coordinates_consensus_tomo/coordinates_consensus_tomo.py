@@ -213,8 +213,8 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 partId += 1
             # print("Writing %d items from TRUTH to disk" % truthsize)
         
-        outMdNeg = xmippLib.MetaData(self.inputLieFile)
-        if self.hasNegative: 
+        if self.hasNegative:
+            outMdNeg = xmippLib.MetaData(self.inputLieFile)
             falsesize = 0
             for mdfalse_id in outMdNeg:
                 coords = np.empty(3, dtype=int)
