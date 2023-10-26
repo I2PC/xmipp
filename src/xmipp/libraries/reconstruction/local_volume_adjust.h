@@ -39,6 +39,7 @@ private:
 	FileName fnVol1;
 	FileName fnOutVol;
 	FileName fnMask;
+	FileName fnOccup; // Path to save intermediate files
 	bool performSubtraction;
 	int neighborhood;
 	float sampling;
