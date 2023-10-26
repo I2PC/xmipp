@@ -44,7 +44,7 @@ class Config:
     OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
     MINIMUM_GCC_VERSION = '8.4.0'
     MINIMUM_CUDA_VERSION = 10.1
-    vGCC = ['12.2', '12.1',
+    vGCC = ['12.3', '12.2', '12.1',
             '11.3', '11.2', '11.1', '11',
             '10.4', '10.3', '10.2', '10.1', '10',
             '9.4', '9.3', '9.2', '9.1', '9',
@@ -54,7 +54,7 @@ class Config:
         '11.0-11.0': vGCC[vGCC.index('9.4'):],
         '11.1-11.4': vGCC[vGCC.index('10.4'):],
         '11.5-11.8': vGCC[vGCC.index('11.2'):],
-        '12.0-12.3': vGCC[vGCC.index('12.2'):],
+        '12.0-12.3': vGCC[vGCC.index('12.3'):],
     }
     CMAKE_VERSION_REQUIRED = '3.16'
 
