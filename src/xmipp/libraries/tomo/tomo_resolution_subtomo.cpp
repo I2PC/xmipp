@@ -62,6 +62,7 @@ void ProgTomoResolutionSubtomos::defineParams()
 	addParamsLine("  [--threads <s=4>]                        : Number of threads");
 }
 
+
 void ProgTomoResolutionSubtomos::createSphere(MultidimArray<int> &maskNormalize, int halfboxsize)
 {
 	maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
@@ -83,6 +84,7 @@ void ProgTomoResolutionSubtomos::createSphere(MultidimArray<int> &maskNormalize,
 		}
 	}
 }
+
 
 void ProgTomoResolutionSubtomos::extractSubtomos(const MultidimArray<double> &oddTomo, const MultidimArray<double> *evenTomo,
 														MultidimArray<double> &subtomoOdd, const MultidimArray<double> &subtomoEven,
@@ -198,7 +200,9 @@ void ProgTomoResolutionSubtomos::run()
 
 	size_t idx=1;
 
-	MultidimArray<double> localResMap, monoTomoMap;
+	Image<double> tomoLocalResolution;
+	auto &monoTomoMap = tomoLocalResolution();
+	MultidimArray<double> localResMap;
 	monoTomoMap.resizeNoCopy(tomo);
 	monoTomoMap.initConstant(lowRes);
 
@@ -225,6 +229,9 @@ void ProgTomoResolutionSubtomos::run()
 
 		setLocalResolutionSubtomo(localResMap, monoTomoMap, halfboxsize, xcoor, ycoor, zcoor);
 	}
+
+	tomoLocalResolution.write(fnOut);
+
 
 	std::cout << "Local Resolution estimation finished succesfully!!" << std::endl;
 }

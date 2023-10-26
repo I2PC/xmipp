@@ -60,7 +60,8 @@ void ProgTomoExtractSubtomograms::defineParams()
 	addParamsLine("  [--threads <s=4>]                        : Number of threads");
 }
 
-void ProgTomoExtractSubtomograms::createSphere(MultidimArray<double> &maskNormalize, int halfboxsize)
+
+void ProgTomoExtractSubtomograms::createSphere(MultidimArray<int> &maskNormalize, int halfboxsize)
 {
 	maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
 
@@ -82,8 +83,9 @@ void ProgTomoExtractSubtomograms::createSphere(MultidimArray<double> &maskNormal
 	}
 }
 
-void ProgTomoExtractSubtomograms::extractSubtomo(MultidimArray<double> &subtomo, int halfboxsize, const MultidimArray<double> &tom,
-													int xcoor, int ycoor, int zcoor, double &invertSign, bool &nextcoor)
+template <typename T>
+void ProgTomoExtractSubtomograms::extractSubtomo(MultidimArray<T> &subtomo, int halfboxsize, const MultidimArray<T> &tom,
+													int xcoor, int ycoor, int zcoor, T &invertSign, bool &nextcoor)
 {
 
 
@@ -146,7 +148,7 @@ void ProgTomoExtractSubtomograms::run()
 
 	int halfboxsize = floor(0.5*boxsize);
 
-	MultidimArray<double> maskNormalize;
+	MultidimArray<int> maskNormalize;
 	if (normalize)
 	{
 		createSphere(maskNormalize, halfboxsize);

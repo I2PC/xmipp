@@ -27,6 +27,7 @@
 #include <core/bilib/kernel.h>
 #include <core/metadata_extension.h>
 #include <numeric>
+#include <math.h>
 
 void ProgTomoExtractParticleStacks::readParams()
 {
@@ -290,16 +291,28 @@ void ProgTomoExtractParticleStacks::run()
 
 			if ((xlim>Xts) || (ylim>Yts) || (xinit<0) || (yinit<0))
 			{
+				std::cout << "checki" << std::endl;
 				continue;
 			}
 
+			double checkingMean = 0;
 			for (int i=yinit; i<ylim; i++)
 			{
-				int ii = i-y_2d;
+				int ii = i-y_2d+halfboxsize;
 				for (int j=xinit; j<xlim; j++)
 				{
-					A2D_ELEM(singleImage, ii+halfboxsize, j+halfboxsize-x_2d) = signValue*A2D_ELEM(tsImages[idx], i, j);
+					double val = A2D_ELEM(tsImages[idx], i, j);
+					checkingMean += val;
+					A2D_ELEM(singleImage, ii, j+halfboxsize-x_2d) = signValue*val;
 				}
+			}
+
+
+			std::cout << "checkingMean = " << checkingMean << std::endl;
+			if (isnan(checkingMean))
+			{
+				std::cout << "checkingMean" << std::endl;
+				continue;
 			}
 
 			if (normalize)
@@ -307,6 +320,7 @@ void ProgTomoExtractParticleStacks::run()
 				double sumVal = 0, sumVal2 = 0, counter = 0;
 
 				long n = 0;
+
 				for (int i=0; i<boxsize; i++)
 				{
 					for (int j=0; j<boxsize; j++)
@@ -326,6 +340,9 @@ void ProgTomoExtractParticleStacks::run()
 				double mean, sigma2;
 				mean = sumVal/counter;
 				sigma2 = sqrt(sumVal2/counter - mean*mean);
+
+				if (sigma2 == 0)
+					continue;
 
 				for (int i=0; i<boxsize; i++)
 				{

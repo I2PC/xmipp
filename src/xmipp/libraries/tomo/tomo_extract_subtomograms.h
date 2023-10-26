@@ -65,10 +65,15 @@ public:
 public:
 
     void defineParams();
+
     void readParams();
-    void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
-    void extractSubtomo(MultidimArray<double> &subtomo, int halfboxsize, const MultidimArray<double> &tom,
-						int xcoor, int ycoor, int zcoor, double &invertSign, bool &nextcoor);
+
+    void createSphere(MultidimArray<int> &maskNormalize, int halfboxsize);
+
+    template<typename T>
+    void extractSubtomo(MultidimArray<T> &subtomo, int halfboxsize, const MultidimArray<T> &tom,
+						int xcoor, int ycoor, int zcoor, T &invertSign, bool &nextcoor);
+
     void run();
 };
 //@}
