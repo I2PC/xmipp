@@ -58,7 +58,6 @@ public:
 
     bool invertContrast;
     bool normalize;
-    bool downsample;
     bool fixedBoxSize;
 
     double scaleFactor;

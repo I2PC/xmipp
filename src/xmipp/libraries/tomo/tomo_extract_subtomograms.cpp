@@ -41,7 +41,6 @@ void ProgTomoExtractSubtomograms::readParams()
 	invertContrast = checkParam("--invertContrast");
 	normalize = checkParam("--normalize");
 	fnOut = getParam("-o");
-	downsample = checkParam("--downsample");
 	downsampleFactor = getDoubleParam("--downsample");
 	nthrs = getIntParam("--threads");
 	fixedBoxSize = checkParam("--fixedBoxSize");
@@ -185,7 +184,11 @@ void ProgTomoExtractSubtomograms::run()
 		invertSign = -1;
 	}
 
-	if (fixedBoxSize && downsample)
+
+	double dsFactorTolerance = 0.01;
+	double dsFactorDiff = abs(downsampleFactor - 1);
+
+	if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
 	{
 		#ifdef DEBUG
 		std::cout << "Entering fixed box size mode" << std::endl;
