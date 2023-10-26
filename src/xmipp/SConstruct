@@ -439,6 +439,14 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     appendUnique(libPathsCopy, external_libdirs) # This order is important, because if we should use Scipion libs, these will be before the system libs
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
     env2 = Environment()
+
+    # Compilation database for programs
+    env2.SetOption('warn', 'no-duplicate-environment')
+    env2.Tool('compilation_db')
+    xmipp_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    cdb = env2.CompilationDatabase(os.path.join(xmipp_path, 'compile_commands.json'))
+    Alias('cdb', cdb)
+
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
 
