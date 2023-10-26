@@ -582,9 +582,14 @@ void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<dou
 			atom.z = textToFloat(line.substr(46, 8));
 			atom.occupancy = textToFloat(line.substr(54, 6));
 			atom.bfactor = textToFloat(line.substr(60, 6));
-			atom.segment = line.substr(72, 4);
-			atom.atomType = line.substr(77, 1);
-			atom.charge = simplify(line.substr(79, 1)); // Converting into empty string if it is a space
+            if (line.length() >= 76)
+			    atom.segment = line.substr(72, 4);
+            if (line.length() >= 78)
+			    atom.atomType = line.substr(77, 1);
+            if (atom.atomType == "" || atom.atomType == " ")
+                atom.atomType = atom.name[0];
+            if (line.length() >= 80)
+			    atom.charge = simplify(line.substr(79, 1)); // Converting into empty string if it is a space
 
 			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
