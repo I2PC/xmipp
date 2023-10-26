@@ -29,7 +29,6 @@ import os
 import sys
 from .utils import *
 from.environment import Environment
-from packaging import version
 
 class Config:
     FILE_NAME = 'xmipp.conf'
@@ -306,7 +305,7 @@ class Config:
             self.configDict["DEBUG"] = "False"
         if self.configDict["CC"] == "" and checkProgram("gcc")[0]:
             self.configDict["CC"] = "gcc"
-            if version.parse(get_GCC_version("gcc")[1]) < version.parse(Config.MINIMUM_GCC_VERSION):
+            if versionToNumber(get_GCC_version("gcc")[1]) < versionToNumber(Config.MINIMUM_GCC_VERSION):
                 print(red("gcc version required >= {}, detected gcc {}".format(
                     Config.MINIMUM_GCC_VERSION, get_GCC_version("gcc")[0])))
             else:
@@ -441,7 +440,7 @@ class Config:
         if gccVersion == '':
             return False, 3
         print(green('Detected ' + compiler + " in version " + fullVersion + '.'))
-        if version.parse(fullVersion) < version.parse(Config.MINIMUM_GCC_VERSION):
+        if versionToNumber(fullVersion) < versionToNumber(Config.MINIMUM_GCC_VERSION):
             return False, 4
         return True, 0
 
