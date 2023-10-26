@@ -71,3 +71,6 @@ xmippEnv.json
 compileLOG.txt
 reportInstallation.tar.gz
 xmipp_version.txt
+
+# Compilation database
+compile_commands.json
