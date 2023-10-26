@@ -30,7 +30,6 @@ import sys
 from .utils import *
 from.environment import Environment
 
-
 class Config:
     FILE_NAME = 'xmipp.conf'
     KEY_USE_DL = 'USE_DL'
@@ -43,9 +42,9 @@ class Config:
     OPT_NVCC = 'NVCC'
     OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
     OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
-    MINIMUM_GCC_VERSION = 8
+    MINIMUM_GCC_VERSION = '8.4.0'
     MINIMUM_CUDA_VERSION = 10.1
-    vGCC = ['12.2', '12.1',
+    vGCC = ['12.3', '12.2', '12.1',
             '11.3', '11.2', '11.1', '11',
             '10.4', '10.3', '10.2', '10.1', '10',
             '9.4', '9.3', '9.2', '9.1', '9',
@@ -55,7 +54,7 @@ class Config:
         '11.0-11.0': vGCC[vGCC.index('9.4'):],
         '11.1-11.4': vGCC[vGCC.index('10.4'):],
         '11.5-11.8': vGCC[vGCC.index('11.2'):],
-        '12.0-12.2': vGCC[vGCC.index('12.2'):],
+        '12.0-12.3': vGCC[vGCC.index('12.3'):],
     }
     CMAKE_VERSION_REQUIRED = '3.16'
 
@@ -306,8 +305,9 @@ class Config:
             self.configDict["DEBUG"] = "False"
         if self.configDict["CC"] == "" and checkProgram("gcc")[0]:
             self.configDict["CC"] = "gcc"
-            if get_GCC_version("gcc")[0] < Config.MINIMUM_GCC_VERSION:
-                print(red("gcc version required >= 8, detected gcc {}".format(get_GCC_version("gcc")[0])))
+            if versionToNumber(get_GCC_version("gcc")[1]) < versionToNumber(Config.MINIMUM_GCC_VERSION):
+                print(red("gcc version required >= {}, detected gcc {}".format(
+                    Config.MINIMUM_GCC_VERSION, get_GCC_version("gcc")[0])))
             else:
                 print(green('gcc {} detected'.format(get_GCC_version("gcc")[0])))
         self._set_cxx()
@@ -440,7 +440,7 @@ class Config:
         if gccVersion == '':
             return False, 3
         print(green('Detected ' + compiler + " in version " + fullVersion + '.'))
-        if gccVersion < Config.MINIMUM_GCC_VERSION:
+        if versionToNumber(fullVersion) < versionToNumber(Config.MINIMUM_GCC_VERSION):
             return False, 4
         return True, 0
 
