@@ -55,7 +55,7 @@ class Config:
         '11.0-11.0': vGCC[vGCC.index('9.4'):],
         '11.1-11.4': vGCC[vGCC.index('10.4'):],
         '11.5-11.8': vGCC[vGCC.index('11.2'):],
-        '12.0-12.2': vGCC[vGCC.index('12.2'):],
+        '12.0-12.3': vGCC[vGCC.index('12.2'):],
     }
     CMAKE_VERSION_REQUIRED = '3.16'
 
