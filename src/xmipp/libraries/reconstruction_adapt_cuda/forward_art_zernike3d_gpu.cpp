@@ -61,10 +61,12 @@ void ProgForwardArtZernike3DGPU::readParams()
 	Ts = getDoubleParam("--sampling");
 	L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
+	dThr = getDoubleParam("--dThr");
 	loop_step = getIntParam("--step");
 	useZernike = checkParam("--useZernike");
 	lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
+	removeNegValues = checkParam("--onlyPositive");
 	niter = getIntParam("--niter");
 	debug_iter = checkParam("--debug_iter");
 	save_iter = getIntParam("--save_iter");
@@ -102,6 +104,7 @@ void ProgForwardArtZernike3DGPU::show() const
 			  << "Step:                      " << loop_step << std::endl
 			  << "Correct CTF:               " << useCTF << std::endl
 			  << "Correct heretogeneity:     " << useZernike << std::endl
+			  << "Remove negative values:    " << removeNegValues << std::endl
 			  << "Phase flipped:             " << phaseFlipped << std::endl
 			  << "Regularization:            " << lambda << std::endl
 			  << "Number of iterations:      " << niter << std::endl
@@ -128,12 +131,14 @@ void ProgForwardArtZernike3DGPU::defineParams()
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
 	addParamsLine("  [--step <step=1>]            : Voxel index step");
 	addParamsLine("  [--sigma <Matrix1D=\"2\">]   : Gaussian sigma");
+	addParamsLine("  [--dThr <dThr=1e-6>]         : Denoising threshold");
 	addParamsLine("  [--useZernike]               : Correct heterogeneity with Zernike3D coefficients");
 	addParamsLine("  [--useCTF]                   : Correct CTF during ART reconstruction");
 	addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
 	addParamsLine("  [--regularization <l=0.01>]  : ART regularization weight");
 	addParamsLine("  [--niter <n=1>]              : Number of ART iterations");
 	addParamsLine("  [--debug_iter]               : Save volume after each ART iteration");
+	addParamsLine("  [--onlyPositive]             : Remove negative values from generated volumes");
 	addParamsLine("  [--save_iter <s=0>]          : Save intermidiate volume after #save_iter iterations");
 	addParamsLine(
 		"  [--sort_last <N=2>]          : The algorithm sorts projections in the most orthogonally possible way. ");
@@ -404,6 +409,19 @@ void ProgForwardArtZernike3DGPU::recoverVol()
 	mVout.initZeros(mV);
 
 	mVout = mV;
+
+	// Remove negative values
+	if (removeNegValues)
+	{
+		for (int k=STARTINGZ(mVout); k<=FINISHINGZ(mVout); k++)
+			for (int i=STARTINGY(mVout); i<=FINISHINGY(mVout); i++)
+				for (int j=STARTINGX(mVout); j<=FINISHINGX(mVout); j++)
+				{
+					if (A3D_ELEM(mVout, k, i, j) < 0.0)
+						A3D_ELEM(mVout, k, i, j) = 0.0;
+				}
+	}
+
 }
 
 void ProgForwardArtZernike3DGPU::run()
@@ -693,6 +711,7 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 		.W = W,
 		.Idiff = Idiff,
 		.angles = angles,
+		.dThr = dThr,
 	};
 
 	try {

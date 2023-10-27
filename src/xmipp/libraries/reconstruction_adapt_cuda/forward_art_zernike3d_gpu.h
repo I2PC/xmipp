@@ -81,6 +81,10 @@ class ProgForwardArtZernike3DGPU : public XmippMetadataProgram {
 	bool useZernike;
 	// Flag for enable/disabled image
 	int flagEnabled;
+	// Denoising threshold
+	double dThr;
+	// Remove negative values
+	bool removeNegValues;
 
    public:
 	/** Resume computations */

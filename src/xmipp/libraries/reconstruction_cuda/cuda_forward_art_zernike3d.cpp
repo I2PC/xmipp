@@ -394,7 +394,9 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																			cudaVM,
 																			commonParameters.cudaClnm,
 																			cudaR);
-
+	
+	 softThreshold<PrecisionType>
+	 	<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, parameters.dThr);
 	cudaDeviceSynchronize();
 
 	cudaFree(cudaR);

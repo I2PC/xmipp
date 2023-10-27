@@ -67,6 +67,7 @@ class Program {
 		std::vector<Image<PrecisionType>> &W;
 		const Image<PrecisionType> &Idiff;
 		struct AngleParameters angles;
+		double dThr;
 	};
 
 	struct CommonKernelParameters {
