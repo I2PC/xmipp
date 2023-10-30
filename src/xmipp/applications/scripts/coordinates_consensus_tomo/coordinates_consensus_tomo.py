@@ -74,7 +74,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--constype <int> : type of consensus (0 for first, 1 for centroid)')
         self.addParamsLine('[ --inputTruth <path> ] : Optional path to XMD file containing truthful coordinates. Added to POS automatically.')
         self.addParamsLine('[ --inputLie <path> ] : Optional path to XMD file containing lie(negative) coordinates. Added to NEG automatically.')
-        self.addParamsLine('[ --outputNeg <path> ] : Output path for negative subtomos')
+        self.addParamsLine(' --outputNeg <path> : Output path for negative subtomos')
         self.addParamsLine('--startingId <int> : Initial number to use for MDL_PARTICLE_ID field in XMD.')
 
     def run(self):
@@ -93,13 +93,13 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.outputFile = self.getParam('--outputAll')
         self.outputFilePos = self.getParam('--outputPos')
         self.outputFileDoubt = self.getParam('--outputDoubt')
+        self.outputFileNeg = self.getParam('--outputNeg')
         if self.checkParam('--inputTruth'):
             self.inputTruthFile = self.getParam('--inputTruth')
             self.hasPositive = True
         if self.checkParam('--inputLie'):
             self.inputLieFile = self.getParam('--inputLie')
             self.hasNegative = True
-            self.outputFileNeg = self.getParam('--outputNeg')
         self.boxSize = self.getIntParam('--boxsize')
         self.samplingrate = self.getDoubleParam('--samplingrate')
         self.consensusRadius = float(self.getDoubleParam('--radius'))
@@ -164,6 +164,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         outMd = xmippLib.MetaData() # MD handle for all
         outMdDoubt = xmippLib.MetaData() # MD handle for unsure = all - {positive}
         outMdPos = xmippLib.MetaData() # MD handle for positive
+        outMdNeg = xmippLib.MetaData() # MD handle for negative
 
         # Set the initial particle id for this execution
         partId = self.startingSubtomoId
@@ -213,9 +214,9 @@ class ScriptCoordsConsensusTomo(XmippScript):
                 partId += 1
             # print("Writing %d items from TRUTH to disk" % truthsize)
         
+        falsesize = 0
         if self.hasNegative:
-            outMdNeg = xmippLib.MetaData(self.inputLieFile)
-            falsesize = 0
+            # outMdNeg = xmippLib.MetaData(self.inputLieFile)
             for mdfalse_id in outMdNeg:
                 coords = np.empty(3, dtype=int)
                 coords[0] = md.getValue(xmippLib.MDL_XCOOR, mdfalse_id)
@@ -239,7 +240,6 @@ class ScriptCoordsConsensusTomo(XmippScript):
         
         for item in consensus:
             consize += 1
-            # goodEnough = len(item.pickers) > 1 # Per lo hablado con COSS # >= self.consensusThreshold
             neg = False
             if len(item.pickers) > 2:
                 variableMdPointer = outMdPos
