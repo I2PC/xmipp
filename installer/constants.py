@@ -22,13 +22,23 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-# Version variables
-#	----K-E-E-P----U-P-D-A-T-E-D---- #
+# Xmipp's current version
 #####################################
-XMIPP_VERSION = '3.23.07.0'        	#
+XMIPP_VERSION = '3.23.07.0'					#
 XMIPP_VERNAME = 'devel'							#
-RELEASE_DATE = '14/07/2023'        	#
-CMAKE_VERSION_REQUIRED = '3.16'			#
+RELEASE_DATE = '14/07/2023'					#
+XMIPP_CORE_VERSION = '3.23.07.0'		#
+XMIPP_VIZ_VERSION = '3.23.07.0'			#
+XMIPP_PLUGIN_VERSION = '3.23.07.0'	#
+#####################################
+
+# Version requirements
+#####################################
+GCC_MINIMUM = '8.4'									#NEEDED? MAYBE ONLY G++, check with nvcc -- g++
+GPP_MINIMUM = GCC_MINIMUM						#
+CMAKE_MINIMUM = '3.16'							#
+SCONS_MINIMUM = 'Unknown'						#TODO: Find out Scons minimum version
+CUDA_MINIMUM = '10.2'								#
 #####################################
 
 # Mode list
@@ -60,4 +70,5 @@ MODES = {
 }
 
 # Other variables
+VALUE_UNKNOWN = 'Unkown'
 DEFAULT_JOBS = 8

@@ -27,7 +27,7 @@
 import argparse
 
 # Installer imports
-from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_CONFIG
+from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 
 def modeConfig(args: argparse.Namespace):
 	""" This function cheks the params for execution mode "config" and then runs it. """
@@ -49,8 +49,10 @@ def runSelectedMode(args: argparse.Namespace):
 	""" This function runs the selected execution mode """
 	if args.mode == MODE_ALL:
 		modeAll(args)
-	elif args.mode == MODE_CONFIG:
+	elif args.mode == MODE_COMPILE_AND_INSTALL:
 		modeConfig(args)
+	elif args.mode == MODE_CONFIG:
+		modeCompileAndInstall(args)
 
 if __name__ == "__main__":
 	""" Calls main function when executed. """
@@ -58,7 +60,7 @@ if __name__ == "__main__":
 	epilog = "Example 1: ./xmipp"
 	epilog += "\nExample 2: ./xmipp compileAndInstall -j 4"
 	parser = argparse.ArgumentParser(
-		description="Run xmipp's installer script",
+		description="Run Xmipp's installer script",
 		epilog=epilog,
 		formatter_class=argparse.RawDescriptionHelpFormatter
 	)
