@@ -36,7 +36,15 @@ MODES = {
 	'cleanAll': 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
 	'cleanBin': 'Removes all compiled binaries.',
 	'cleanDeprecated': 'Removes all deprecated binaries.',
-	'version': 'Prints '
+	'version': 'Prints important version information.',
+	'config': 'Generates config file based on system information.',
+	'checkConfig': 'Cheks if the values in the config file are ok.',
+	'compileAndInstall': 'Compiles and installs Xmipp based on already obtained sources.',
+	'getModesl': 'Shows available models.',
+	'test': 'Runs a given test.',
+	'all': 'Default param. Runs config, and compileAndInstall.',
+	'git': 'Runs the given git action for all source repositories.',
+	'addModel': 'Adds a model specified by the user.'
 } 
 
 # Other variables
