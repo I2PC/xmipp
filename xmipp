@@ -24,10 +24,10 @@
 # ***************************************************************************/
 
 # General imports
-import argparse
+import argparse, sys
 
 # Installer imports
-from .installer.constants import DEFAULT_JOBS
+from installer.constants import DEFAULT_JOBS
 
 if __name__ == "__main__":
 	""" Calls main function when executed. """
@@ -43,7 +43,8 @@ if __name__ == "__main__":
 	parser.add_argument("-j", "--jobs", type=int, help="Number of jobs. Defaults to max available")
 	parser.add_argument("-noGPU", action='store_true', help="If set, no tests that need a GPU will run. Use it in enviroments where a GPU cannot be accessed.")
 	parser.add_argument("-testData", help="Location of the test data JSON file.")
-	args = parser.parse_args()
+	args = parser.parse_args() if len(sys.argv) > 1 else None
+	print(args)
 
 	# Set the number of jobs
 	args.jobs = args.jobs if args.jobs else DEFAULT_JOBS
