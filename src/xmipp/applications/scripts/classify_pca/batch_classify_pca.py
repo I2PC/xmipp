@@ -94,7 +94,7 @@ if __name__=="__main__":
         sigma = dim/3
     
     expBatchSize = 6000
-    expBatchSize2 = 10000
+    expBatchSize2 = 9000
     numFirstBatch = 5
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
@@ -149,13 +149,17 @@ if __name__=="__main__":
     #     num_batches = int(numFirstBatch + num_batches)
     # else:
     #     num_batches = int(np.ceil(nExp / expBatchSize))
-        
-    num_batches = min(int(np.ceil(nExp / expBatchSize)), 
-                      int(numFirstBatch + np.ceil( (nExp - (numFirstBatch * expBatchSize))/(expBatchSize2) )))
+    
+    if refImages:
+        num_batches = int(np.ceil(nExp / expBatchSize2))
+    else:       
+        num_batches = min(int(np.ceil(nExp / expBatchSize)), 
+                          int(numFirstBatch + np.ceil( (nExp - (numFirstBatch * expBatchSize))/(expBatchSize2) )))
     print(num_batches)
     # mode = False
     
     batch_projExp_cpu = []
+    endBatch = 0
     for i in range(num_batches):
         mode = False
         
@@ -315,7 +319,6 @@ if __name__=="__main__":
                     translation_vector[initBatch:endBatch] = tMatrix[:, :2, 2]
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[initBatch:endBatch] = np.degrees(angles_rad.cpu().numpy())
-                    
 
     counts = torch.bincount(refClas.int(), minlength=classes) 
     
