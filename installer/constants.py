@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
 # *							Martín Salinas (martin.salinas@cnb.csic.es)
@@ -23,27 +22,13 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-# General imports
-import argparse
+# Version variables
+#	----K-E-E-P----U-P-D-A-T-E-D---- #
+#####################################
+XMIPP_VERSION = '3.23.07.0'        	#
+XMIPP_VERNAME = 'devel'							#
+RELEASE_DATE = '14/07/2023'        	#
+CMAKE_VERSION_REQUIRED = '3.16'			#
+#####################################
 
-# Installer imports
-from .installer.constants import DEFAULT_JOBS
-
-if __name__ == "__main__":
-	""" Calls main function when executed. """
-	# Parse the command-line arguments
-	epilog = "Example 1: python script.py /path/to/scipion pwchem -j 2"
-	epilog += "\nExample 2: python script.py /path/to/scipion pwchem -noGPU"
-	parser = argparse.ArgumentParser(
-		epilog=epilog,
-		formatter_class=argparse.RawDescriptionHelpFormatter
-	)
-	parser.add_argument("scipion", help="Path to Scipion executable, relative or absolute")
-	parser.add_argument("plugin", help="Name of the plugin's Python module")
-	parser.add_argument("-j", "--jobs", type=int, help="Number of jobs. Defaults to max available")
-	parser.add_argument("-noGPU", action='store_true', help="If set, no tests that need a GPU will run. Use it in enviroments where a GPU cannot be accessed.")
-	parser.add_argument("-testData", help="Location of the test data JSON file.")
-	args = parser.parse_args()
-
-	# Set the number of jobs
-	args.jobs = args.jobs if args.jobs else DEFAULT_JOBS
+DEFAULT_JOBS = 8
