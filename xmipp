@@ -27,7 +27,7 @@
 import argparse, sys
 
 # Installer imports
-from installer.constants import DEFAULT_JOBS
+from installer.constants import DEFAULT_JOBS, MODES
 
 if __name__ == "__main__":
 	""" Calls main function when executed. """
@@ -35,14 +35,16 @@ if __name__ == "__main__":
 	epilog = "Example 1: ./xmipp"
 	epilog += "\nExample 2: ./xmipp compileAndInstall -j 4"
 	parser = argparse.ArgumentParser(
+		description="Run xmipp's installer script",
 		epilog=epilog,
 		formatter_class=argparse.RawDescriptionHelpFormatter
 	)
-	parser.add_argument("mode", help="Path to Scipion executable, relative or absolute")
-	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}.")
-	parser.add_argument("-noGPU", action='store_true', help="If set, no tests that need a GPU will run. Use it in enviroments where a GPU cannot be accessed.")
-	parser.add_argument("-testData", help="Location of the test data JSON file.")
-	args = parser.parse_args() if len(sys.argv) > 1 else None
+
+	parser.add_argument("mode", type=str, choices=list(MODES.keys()), nargs='?', default="all", help="Execution mode.")
+	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}. Example: -j 4.")
+	args = parser.parse_args()
 
 	# Set the number of jobs
-	jobs = args.jobs if args and args.jobs else DEFAULT_JOBS
+	jobs = args.jobs if args.jobs else DEFAULT_JOBS
+
+	print("ARGS:", args)
