@@ -42,31 +42,31 @@ CUDA_MINIMUM = '10.2'								#
 #####################################
 
 # Mode list
+MODE_ADD_MODEL = 'addModel'
+MODE_ALL = 'all'
+MODE_CHECK_CONFIG = 'checkConfig'
 MODE_CLEAN_ALL = 'cleanAll'
 MODE_CLEAN_BIN = 'cleanBin'
 MODE_CLEAN_DEPRECATED = 'cleanDeprecated'
-MODE_VERSION = 'version'
-MODE_CONFIG = 'config'
-MODE_CHECK_CONFIG = 'checkConfig'
 MODE_COMPILE_AND_INSTALL = 'compileAndInstall'
+MODE_CONFIG = 'config'
 MODE_GET_MODELS = 'getModels'
-MODE_TEST = 'test'
-MODE_ALL = 'all'
 MODE_GIT = 'git'
-MODE_ADD_MODEL = 'addModel'
+MODE_TEST = 'test'
+MODE_VERSION = 'version'
 MODES = {
+	MODE_ALL: 'Default param. Runs config, and compileAndInstall.',
+	MODE_ADD_MODEL: 'Adds a model specified by the user.',
+	MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.',
+	MODE_CONFIG: 'Generates config file based on system information.',
 	MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
 	MODE_CLEAN_BIN: 'Removes all compiled binaries.',
 	MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries.',
-	MODE_VERSION: 'Prints important version information.',
-	MODE_CONFIG: 'Generates config file based on system information.',
-	MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.',
 	MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
 	MODE_GET_MODELS: 'Shows available models.',
-	MODE_TEST: 'Runs a given test.',
-	MODE_ALL: 'Default param. Runs config, and compileAndInstall.',
 	MODE_GIT: 'Runs the given git action for all source repositories.',
-	MODE_ADD_MODEL: 'Adds a model specified by the user.'
+	MODE_TEST: 'Runs a given test.',
+	MODE_VERSION: 'Prints important version information.'
 }
 
 # Other variables
