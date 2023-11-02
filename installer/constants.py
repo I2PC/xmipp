@@ -31,4 +31,13 @@ RELEASE_DATE = '14/07/2023'        	#
 CMAKE_VERSION_REQUIRED = '3.16'			#
 #####################################
 
+# Mode list
+MODES = {
+	'cleanAll': 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
+	'cleanBin': 'Removes all compiled binaries.',
+	'cleanDeprecated': 'Removes all deprecated binaries.',
+	'version': 'Prints '
+} 
+
+# Other variables
 DEFAULT_JOBS = 8

@@ -32,19 +32,17 @@ from installer.constants import DEFAULT_JOBS
 if __name__ == "__main__":
 	""" Calls main function when executed. """
 	# Parse the command-line arguments
-	epilog = "Example 1: python script.py /path/to/scipion pwchem -j 2"
-	epilog += "\nExample 2: python script.py /path/to/scipion pwchem -noGPU"
+	epilog = "Example 1: ./xmipp"
+	epilog += "\nExample 2: ./xmipp compileAndInstall -j 4"
 	parser = argparse.ArgumentParser(
 		epilog=epilog,
 		formatter_class=argparse.RawDescriptionHelpFormatter
 	)
-	parser.add_argument("scipion", help="Path to Scipion executable, relative or absolute")
-	parser.add_argument("plugin", help="Name of the plugin's Python module")
-	parser.add_argument("-j", "--jobs", type=int, help="Number of jobs. Defaults to max available")
+	parser.add_argument("mode", help="Path to Scipion executable, relative or absolute")
+	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}.")
 	parser.add_argument("-noGPU", action='store_true', help="If set, no tests that need a GPU will run. Use it in enviroments where a GPU cannot be accessed.")
 	parser.add_argument("-testData", help="Location of the test data JSON file.")
 	args = parser.parse_args() if len(sys.argv) > 1 else None
-	print(args)
 
 	# Set the number of jobs
-	args.jobs = args.jobs if args.jobs else DEFAULT_JOBS
+	jobs = args.jobs if args and args.jobs else DEFAULT_JOBS
