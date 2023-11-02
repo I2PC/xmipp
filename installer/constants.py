@@ -32,20 +32,32 @@ CMAKE_VERSION_REQUIRED = '3.16'			#
 #####################################
 
 # Mode list
+MODE_CLEAN_ALL = 'cleanAll'
+MODE_CLEAN_BIN = 'cleanBin'
+MODE_CLEAN_DEPRECATED = 'cleanDeprecated'
+MODE_VERSION = 'version'
+MODE_CONFIG = 'config'
+MODE_CHECK_CONFIG = 'checkConfig'
+MODE_COMPILE_AND_INSTALL = 'compileAndInstall'
+MODE_GET_MODELS = 'getModels'
+MODE_TEST = 'test'
+MODE_ALL = 'all'
+MODE_GIT = 'git'
+MODE_ADD_MODEL = 'addModel'
 MODES = {
-	'cleanAll': 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
-	'cleanBin': 'Removes all compiled binaries.',
-	'cleanDeprecated': 'Removes all deprecated binaries.',
-	'version': 'Prints important version information.',
-	'config': 'Generates config file based on system information.',
-	'checkConfig': 'Cheks if the values in the config file are ok.',
-	'compileAndInstall': 'Compiles and installs Xmipp based on already obtained sources.',
-	'getModesl': 'Shows available models.',
-	'test': 'Runs a given test.',
-	'all': 'Default param. Runs config, and compileAndInstall.',
-	'git': 'Runs the given git action for all source repositories.',
-	'addModel': 'Adds a model specified by the user.'
-} 
+	MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
+	MODE_CLEAN_BIN: 'Removes all compiled binaries.',
+	MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries.',
+	MODE_VERSION: 'Prints important version information.',
+	MODE_CONFIG: 'Generates config file based on system information.',
+	MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.',
+	MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
+	MODE_GET_MODELS: 'Shows available models.',
+	MODE_TEST: 'Runs a given test.',
+	MODE_ALL: 'Default param. Runs config, and compileAndInstall.',
+	MODE_GIT: 'Runs the given git action for all source repositories.',
+	MODE_ADD_MODEL: 'Adds a model specified by the user.'
+}
 
 # Other variables
 DEFAULT_JOBS = 8
