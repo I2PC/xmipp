@@ -41,7 +41,7 @@ SCONS_MINIMUM = 'Unknown'						#TODO: Find out Scons minimum version
 CUDA_MINIMUM = '10.2'								#
 #####################################
 
-# Mode list
+# Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
 MODE_ALL = 'all'
 MODE_CHECK_CONFIG = 'checkConfig'
