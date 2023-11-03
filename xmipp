@@ -939,7 +939,7 @@ def install(dirname):
     if XMIPP_VERNAME =='devel':  show_command = True
     else: show_command = False
     cleanDeprecated()
-    cpCmd = "rsync -LptgoD" if checkProgram("rsync") else "cp"
+    cpCmd = "rsync -LptgoD " if checkProgram("rsync") else "cp"
     ok = True
 
     createDir(dirname)
@@ -951,7 +951,14 @@ def install(dirname):
     if os.path.exists(dirname + "/bin"):
         shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
-    ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/", show_command=show_command)
+    dirBin = os.path.join(os.getcwd(), "src/xmipp/bin/")
+    filenames = [f for f in os.listdir(dirBin)]
+
+    for f in filenames:
+        if os.path.islink(os.path.join(dirBin, f)):
+            ok = ok and runJob('ln -s ' + os.path.join(dirBin, f) + ' ' + os.path.join(dirname, 'bin', f), show_command=show_command, show_output=False)
+        else:
+            ok = ok and runJob(cpCmd + os.path.join(dirBin, f) + ' ' + os.path.join(dirname, 'bin', f), show_command=show_command)
 
     destPathPyModule = os.path.expanduser(os.path.abspath(os.path.join(dirname, "pylib", "xmippPyModules")))
     createDir(destPathPyModule)
@@ -960,7 +967,16 @@ def install(dirname):
         with open(initFn, 'w') as f:
             pass  # just to create a init file to be able to import it as module
 
-    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule, show_command=show_command)
+
+    dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
+    folderNames = [x for x in os.walk(dirBin)]
+    for folder in folderNames[1:]:
+        folderName = os.path.basename(folder[0])
+        for file in folder[2]:
+            createDir(os.path.join(destPathPyModule, folderName))
+            runJob("ln -s " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file),
+                   show_output=False, show_command=show_command, log=[])
+
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
