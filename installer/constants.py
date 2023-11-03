@@ -1,6 +1,6 @@
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
-# *							Martín Salinas (martin.salinas@cnb.csic.es)
+# *					Martín Salinas (martin.salinas@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -34,11 +34,11 @@ XMIPP_PLUGIN_VERSION = '3.23.07.0'		#
 
 # Version requirements
 #####################################
-GCC_MINIMUM = '8.4'								#NEEDED? MAYBE ONLY G++, check with nvcc -- g++
-GPP_MINIMUM = GCC_MINIMUM						#
-CMAKE_MINIMUM = '3.16'							#
-SCONS_MINIMUM = '3.0'							#
-CUDA_MINIMUM = '10.2'							#
+GCC_MINIMUM = '8.4'						#NEEDED? MAYBE ONLY G++, check with nvcc -- g++
+GPP_MINIMUM = GCC_MINIMUM				#
+CMAKE_MINIMUM = '3.16'					#
+SCONS_MINIMUM = '3.0'					#
+CUDA_MINIMUM = '10.2'					#
 #####################################
 
 # Mode list (alphabetical order)

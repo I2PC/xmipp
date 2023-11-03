@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
-# *							Martín Salinas (martin.salinas@cnb.csic.es)
+# *					Martín Salinas (martin.salinas@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -30,6 +30,7 @@ import argparse
 from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL
+from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -83,6 +84,7 @@ def modeVersion(args: argparse.Namespace):
 def modeAll(args: argparse.Namespace):
 	""" Checks the params for execution mode "all" and then runs it. """
 	# Running config
+	sconsVersion()
 	modeConfig(args)
 
 	# Running compilation and installation
