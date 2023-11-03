@@ -16,6 +16,14 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: branch
+        run: echo ${{ steps.extract_branch.outputs.branch }}
+
       # Installing apt dependencies
       - name: Install dependencies
         run: |
@@ -27,8 +35,6 @@ jobs:
         with:
           python-version: '3.9.15' # Version range or exact version of a Python version to use, using SemVer's version range syntax
 
-      - name: Branch
-        run: echo "${GITHUB_REF##*/}"
 
       # Installing Python dependencies
       - name: Install python dependencies
