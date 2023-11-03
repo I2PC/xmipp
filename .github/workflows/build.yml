@@ -63,4 +63,4 @@ jobs:
         env:
           CIBuild: 1
           BUILD_TESTS: True
-        run: ./xmipp all br=echo ${{ steps.extract_branch.outputs.branch }} noAsk || (cat compileLOG.txt && false)
+        run: ./xmipp all br=${{ steps.extract_branch.outputs.branch }} noAsk || (cat compileLOG.txt && false)
