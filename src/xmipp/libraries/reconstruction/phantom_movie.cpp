@@ -94,6 +94,95 @@ void PhantomMovie<T>::displace(float &x, float &y, size_t n) const
 }
 
 template <typename T>
+void PhantomMovie<T>::addContent(MultidimArray<T> &frame) const
+{
+    switch (content.type)
+    {
+    case PhantomType::grid:
+        return addGrid(frame);
+    case PhantomType::particleCircle:
+        return addCircles(frame);
+    case PhantomType::particleCross:
+        return addCrosses(frame);
+    default:
+        throw std::logic_error("Unsupported PhantomType");
+    }
+}
+
+template <typename T>
+void PhantomMovie<T>::addCircles(MultidimArray<T> &frame) const
+{
+    std::cout << "Generating circles" << std::endl;
+    auto drawCircle = [&frame](const auto r, const auto x, const auto y, const int thickness, const auto val)
+    {
+        const auto xdim = frame.xdim;
+        for (int j = -r - thickness; j <= r + thickness; ++j)
+        {
+            for (int i = -r- thickness; i <= r + thickness; ++i)
+            {
+                int d = sqrt(j * j + i * i);
+                if (d >= r - thickness / 2 && d <= r + thickness / 2)
+                {
+                        frame.data[(y + j) * xdim + i + x] += val;
+                }
+            }
+        }
+    };
+
+    std::mt19937 gen(content.seed);
+    const auto border = content.maxSize / 2 + content.thickness / 2 + 3; // + 3 for various rounding errors
+    std::uniform_int_distribution<size_t> distX(border, frame.xdim - border);
+    std::uniform_int_distribution<size_t> distY(border, frame.ydim - border);
+    std::uniform_int_distribution<> size(content.minSize, content.maxSize);
+    for (auto i = 0; i < content.count; ++i)
+    {
+        auto r = size(gen) / 2;
+        auto x = distX(gen);
+        auto y = distY(gen);
+        drawCircle(r, x, y, content.thickness, content.signal_val);
+    }
+}
+
+template <typename T>
+void PhantomMovie<T>::addCrosses(MultidimArray<T> &frame) const
+{
+    std::cout << "Generating crosses" << std::endl;
+    auto drawCross = [&frame](const auto s, const auto x, const auto y, const auto val)
+    {
+        const auto xdim = frame.xdim;
+        for (int d = 0; d < s; ++d)
+        {
+            frame.data[(y - d) * xdim - d + x] += val;
+            frame.data[(y - d) * xdim + d + x] += val;
+            frame.data[(y + d) * xdim - d + x] += val;
+            frame.data[(y + d) * xdim + d + x] += val;
+        }
+    };
+
+    std::mt19937 gen(content.seed);
+    std::uniform_int_distribution<size_t> distX(content.maxSize / 2 + content.thickness / 2, frame.xdim - 1 - content.maxSize / 2 - content.thickness / 2);
+    std::uniform_int_distribution<size_t> distY(content.maxSize / 2 + content.thickness / 2, frame.ydim - 1 - content.maxSize / 2 - content.thickness / 2);
+    std::uniform_int_distribution<> size(content.minSize, content.maxSize);
+    const auto xdim = frame.xdim;
+    const int thickness = content.thickness;
+    for (auto i = 0; i < content.count; ++i)
+    {
+        auto s = size(gen) / 2;
+        auto x = distX(gen);
+        auto y = distY(gen);
+        // draw cross
+        for (int t = 0; t < thickness / 2; ++t)
+        {
+            // move the center to change the thickness
+            drawCross(s, x, y - t, content.signal_val);
+            drawCross(s, x - t, y, content.signal_val);
+            drawCross(s, x + t, y, content.signal_val);
+            drawCross(s, x, y + t, content.signal_val);
+        }
+    }
+}
+
+template <typename T>
 void PhantomMovie<T>::addGrid(MultidimArray<T> &frame) const
 {
     std::cout << "Generating grid" << std::endl;
@@ -162,8 +251,8 @@ void PhantomMovie<T>::applyLowPass(MultidimArray<T> &frame) const
 {
     std::cout << "Applying low-pass filter\n";
     auto filter = FourierFilter();
-    filter.w1 = content.low_w1;
-    filter.raised_w = content.low_raised_w;
+    filter.w1 = ice.low_w1;
+    filter.raised_w = ice.low_raised_w;
     filter.FilterBand = LOWPASS;
     filter.FilterShape = RAISED_COSINE;
     filter.apply(frame);
@@ -173,8 +262,8 @@ template <typename T>
 void PhantomMovie<T>::generateIce(MultidimArray<T> &frame) const
 {
     std::cout << "Generating ice\n";
-    std::mt19937 gen(content.seed);
-    std::normal_distribution<> d(content.ice_avg, content.ice_stddev);
+    std::mt19937 gen(ice.seed);
+    std::normal_distribution<> d(ice.avg, ice.stddev);
     const auto nzyxdim = frame.nzyxdim;
     for (size_t i = 0; i < nzyxdim; ++i)
     {
@@ -195,14 +284,17 @@ void PhantomMovie<T>::generateMovie(const MultidimArray<T> &refFrame) const
         float x_center = static_cast<float>(frame.xdim) / 2.f;
         float y_center = static_cast<float>(frame.ydim) / 2.f;
         std::cout << "Processing frame " << n << std::endl;
-        for (size_t y = 0; y < params.req_size.y(); ++y) {
-            for (size_t x = 0; x < params.req_size.x(); ++x) {
+        for (size_t y = 0; y < params.req_size.y(); ++y)
+        {
+            for (size_t x = 0; x < params.req_size.x(); ++x)
+            {
                 auto x_tmp = static_cast<float>(x);
                 auto y_tmp = static_cast<float>(y);
                 displace(x_tmp, y_tmp, n);
                 // move coordinate system to center - [0, 0] will be in the center of the frame
                 auto val = bilinearInterpolation(refFrame, x_tmp - x_center, y_tmp - y_center);
-                if (!SKIP_DOSE) {
+                if (!SKIP_DOSE)
+                {
                     auto dist = std::poisson_distribution<int>(val * content.dose);
                     val = dist(gen);
                 }
@@ -227,9 +319,9 @@ void PhantomMovie<T>::run() const
     {
         generateIce(refFrame);
         applyLowPass(refFrame);
-        refFrame.rangeAdjust(content.ice_min, content.ice_max);
+        refFrame.rangeAdjust(ice.min, ice.max);
     }
-    addGrid(refFrame);
+    addContent(refFrame);
     if (options.skipDose)
     {
         generateMovie<true>(refFrame);
