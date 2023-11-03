@@ -54,4 +54,4 @@ jobs:
         env:
           CIBuild: 1
           BUILD_TESTS: True
-        run: ./xmipp all br=echo ${GITHUB_REF##*/} noAsk || (cat compileLOG.txt && false)
+        run: ./xmipp all br=echo "${GITHUB_REF##*/}" noAsk || (cat compileLOG.txt && false)
