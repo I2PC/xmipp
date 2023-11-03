@@ -84,6 +84,13 @@ if __name__=="__main__":
     torch.cuda.is_available()
     torch.cuda.current_device()
     cuda = torch.device('cuda:0')
+    
+    #Determining GPU free memory
+    gpu = torch.cuda.get_device_properties(0)
+    total_memory = gpu.total_memory 
+    allocated_memory = torch.cuda.memory_allocated(0)
+    free_memory = (total_memory - allocated_memory) / (1024 ** 3)    # free memory GB
+    print("Free memory %s" %free_memory)
 
     #Read Images
     mmap = mrcfile.mmap(expFile, permissive=True)
@@ -93,9 +100,6 @@ if __name__=="__main__":
     if mask and sigma is None:
         sigma = dim/3
     
-    expBatchSize = 6000
-    expBatchSize2 = 9000
-    numFirstBatch = 5
     initSubset = min(30000, nExp)
     refClas = torch.zeros(nExp)
     translation_vector = torch.zeros(nExp, 2)
@@ -113,8 +117,11 @@ if __name__=="__main__":
 
     bnb = BnBgpu(nBand)
        
-    # print("---Precomputing the projections of the experimental images---")  
+    expBatchSize, expBatchSize2, numFirstBatch = bnb.determine_batches(free_memory, dim) 
+    print("batches: %s, %s, %s" %(expBatchSize, expBatchSize2, numFirstBatch))   
 
+
+    #Initial classes
     if refImages: 
         initStep = -1
         clIm = read_images(refImages)
@@ -155,7 +162,7 @@ if __name__=="__main__":
     else:       
         num_batches = min(int(np.ceil(nExp / expBatchSize)), 
                           int(numFirstBatch + np.ceil( (nExp - (numFirstBatch * expBatchSize))/(expBatchSize2) )))
-    print(num_batches)
+    # print(num_batches)
     # mode = False
     
     batch_projExp_cpu = []

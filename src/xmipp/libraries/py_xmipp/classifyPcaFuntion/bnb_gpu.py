@@ -445,7 +445,51 @@ class BnBgpu:
         return resized_images
 
 
-
+    def determine_batches(self, free_memory, dim):
+        
+        if free_memory <= 14: #test with 6Gb GPU
+            if dim <= 64:
+                expBatchSize = 30000 
+                expBatchSize2 = 30000
+                numFirstBatch = 1
+            elif dim <= 128:
+                expBatchSize = 6000 
+                expBatchSize2 = 9000
+                numFirstBatch = 5
+            elif dim <= 256:
+                expBatchSize = 1000 
+                expBatchSize2 = 2000
+                numFirstBatch = 5
+                
+        elif free_memory > 14 and free_memory < 22: #test with 15Gb GPU
+            if dim <= 64:
+                expBatchSize = 30000 
+                expBatchSize2 = 50000
+                numFirstBatch = 1
+            elif dim <= 128:
+                expBatchSize = 15000 
+                expBatchSize2 = 20000
+                numFirstBatch = 2
+            elif dim <= 256:
+                expBatchSize = 4000 
+                expBatchSize2 = 5000
+                numFirstBatch = 6  
+                
+        else: #test with 23Gb GPU
+            if dim <= 64:
+                expBatchSize = 30000 
+                expBatchSize2 = 60000
+                numFirstBatch = 1
+            elif dim <= 128:
+                expBatchSize = 30000 
+                expBatchSize2 = 30000
+                numFirstBatch = 1
+            elif dim <= 256:
+                expBatchSize = 6000 
+                expBatchSize2 = 9000
+                numFirstBatch = 5 
+                
+        return(expBatchSize, expBatchSize2, numFirstBatch)
     
     
 
