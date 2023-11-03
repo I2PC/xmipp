@@ -501,7 +501,7 @@ def errorList(errorNum):
         [12, 'JAVAC does not work', 'Check the JAVAC flag on xmipp.conf'],
         [13, 'JAVA fails. jni include fails', 'Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
         [14, 'Error git', 'Please review the conexion to the repository'],
-        [15, 'Scons package not found', 'Install it in the enviroment you install Xmipp (pip install SCons) or in the system'],
+        [15, 'Scons package not found or not version compability', 'Install it in the enviroment you install Xmipp (pip install scons) or in the system'],
         [16, 'Cannot build cuFFTAdvisor dependence', 'Review the documentation about CUDA and if the error persist \n'
             'you could disable CUDA functionalities with CUDA=False on the xmipp.conf file'],
         [17, 'Cannot build googletest dependence', 'Review the repository has been downloaded correctly. Run /xmipp cleanAll \nto remove all repositories (local changes will be removed) and compile Xmipp from scrach'
