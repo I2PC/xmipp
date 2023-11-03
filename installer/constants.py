@@ -24,21 +24,21 @@
 
 # Xmipp's current version
 #####################################
-XMIPP_VERSION = '3.23.07.0'					#
-XMIPP_VERNAME = 'devel'							#
-RELEASE_DATE = '14/07/2023'					#
+XMIPP_VERSION = '3.23.07.0'				#
+XMIPP_VERNAME = 'devel'					#
+RELEASE_DATE = '14/07/2023'				#
 XMIPP_CORE_VERSION = '3.23.07.0'		#
 XMIPP_VIZ_VERSION = '3.23.07.0'			#
-XMIPP_PLUGIN_VERSION = '3.23.07.0'	#
+XMIPP_PLUGIN_VERSION = '3.23.07.0'		#
 #####################################
 
 # Version requirements
 #####################################
-GCC_MINIMUM = '8.4'									#NEEDED? MAYBE ONLY G++, check with nvcc -- g++
+GCC_MINIMUM = '8.4'								#NEEDED? MAYBE ONLY G++, check with nvcc -- g++
 GPP_MINIMUM = GCC_MINIMUM						#
 CMAKE_MINIMUM = '3.16'							#
-SCONS_MINIMUM = 'Unknown'						#TODO: Find out Scons minimum version
-CUDA_MINIMUM = '10.2'								#
+SCONS_MINIMUM = '3.0'							#
+CUDA_MINIMUM = '10.2'							#
 #####################################
 
 # Mode list (alphabetical order)
@@ -55,15 +55,15 @@ MODE_GIT = 'git'
 MODE_TEST = 'test'
 MODE_VERSION = 'version'
 MODES = {
-	MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>',
+	MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>\naddModel login modelPath\nlogin = user@server',
 	MODE_ALL: 'Default param. Runs config, and compileAndInstall.',
 	MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.',
 	MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
 	MODE_CLEAN_BIN: 'Removes all compiled binaries.',
-	MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries.',
+	MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries from src/xmipp/bin.',
 	MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
 	MODE_CONFIG: 'Generates config file based on system information.',
-	MODE_GET_MODELS: 'Download the DeepLearning Models at dir/models (./build/models by default)',
+	MODE_GET_MODELS: 'Download the DeepLearning Models at dir/models (./build/models by default).',
 	MODE_GIT: 'Runs the given git action for all source repositories.',
 	MODE_TEST: 'Runs a given test.',
 	MODE_VERSION: 'Prints important version information.'
