@@ -23,10 +23,12 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+# General imports
 import subprocess
-from constants import SCONS_MINIMUM
 from os import environ
 
+# Installer imports
+from installer.constants import SCONS_MINIMUM
 
 def versionToNumber(strVersion):
     listVersion = strVersion.split('.')
@@ -37,21 +39,21 @@ def versionToNumber(strVersion):
         pass
     return numberVersion
 
-def runJob(cmd, cwd='./', show_output=True, logOut=None, logErr=None, show_error=True, show_command=True):
+def runJob(cmd, cwd='./', showOutput=True, logOut=None, logErr=None, showError=True, showCommand=True):
     p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, shell=True)
     output, err = p.communicate()
 
-    if show_command == True:
+    if showCommand == True:
         print(blue(cmd))
 
-    if show_output == True:
+    if showOutput == True:
         print('{}\n'.format(output.decode("utf-8")))
     if logOut != None:
         logOut.append(output.decode("utf-8"))
 
     if err:
-        if show_error == True:
+        if showError == True:
             print(red(err.decode("utf-8")))
         if logErr != None:
             logErr.append(err.decode("utf-8"))
@@ -81,7 +83,7 @@ def bold(text):
 def sconsVersion():
     scons = False
     sconsV = []
-    if runJob('scons -v', logOut=sconsV, show_error=True):
+    if runJob('scons -v', logOut=sconsV, showError=True):
         textVersion = sconsV[0]
         if textVersion.find('not found'):
             scons = False
@@ -98,7 +100,7 @@ def sconsVersion():
             return True
         else:
             if isScipionVersion():
-                if runJob('pip install scons', logOut=sconsV, show_error=True, show_command=True):
+                if runJob('pip install scons', logOut=sconsV, showError=True, showCommand=True):
                     return True
                 else:
                     return False
@@ -110,7 +112,7 @@ def sconsVersion():
 
 def isScipionVersion():
     condaEnv = []
-    if runJob('echo $CONDA_PREFIX', logOut=condaEnv, show_error=True):
+    if runJob('echo $CONDA_PREFIX', logOut=condaEnv, showError=True):
         if condaEnv[0].find('scipion3') != -1:
             return True
         else:
