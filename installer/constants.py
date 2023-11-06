@@ -72,3 +72,18 @@ MODES = {
 # Other variables
 VALUE_UNKNOWN = 'Unkown'
 DEFAULT_JOBS = 8
+
+# Error Code
+ERROR_CODE = {
+	0: ['No error', ''],
+	1: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
+	2: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
+	3: ['', ''],
+	4: ['', ''],
+	5: ['', ''],
+	6: ['', ''],
+	7: ['', ''],
+	8: ['', ''],
+	9: ['', ''],
+	10: ['', ''],
+}

@@ -96,10 +96,10 @@ def sconsVersion():
             return True
         else:
             print(red(errlog[0]))
-            return False
+            return 1, False
     else:
         print(blue('Scipion enviroment not found, please install manually scons library'))
-        return False
+        return 2, False
 
 
 def isScipionVersion():
