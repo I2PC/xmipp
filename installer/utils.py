@@ -24,8 +24,9 @@
 # ***************************************************************************/
 
 import subprocess
-from constants import SCONS_MINIMUM
+from .constants import SCONS_MINIMUM
 from os import environ
+import pkg_resources
 
 
 def versionToNumber(strVersion):
@@ -39,7 +40,7 @@ def versionToNumber(strVersion):
 
 def runJob(cmd, cwd='./', show_output=True, logOut=None, logErr=None, show_error=True, show_command=True):
     p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT, shell=True)
+                         stderr=subprocess.PIPE, shell=True)
     output, err = p.communicate()
 
     if show_command == True:
@@ -79,33 +80,25 @@ def bold(text):
 
 
 def sconsVersion():
-    scons = False
-    sconsV = []
-    if runJob('scons -v', logOut=sconsV, show_error=True):
-        textVersion = sconsV[0]
-        if textVersion.find('not found'):
-            scons = False
-        else:
-            idx = textVersion.find('SCons: v')
-            idx2 = textVersion[idx+8:].find('.')
-            mainVersion = textVersion[idx+8:idx+8+idx2]
-            idx3 = textVersion[idx+8+idx2+1:].find('.')
-            secondaryVersion = textVersion[idx+8+idx2+1:idx+8+idx2+1+idx3]
-            sconsVersion = mainVersion + '.' + secondaryVersion
-            if versionToNumber(sconsVersion) >= versionToNumber(SCONS_MINIMUM): #TODO no tested the parse of version
-                scons = True
-        if scons:
+    try:
+        textVersion = pkg_resources.get_distribution("scons").version
+        if versionToNumber(textVersion) >= versionToNumber(SCONS_MINIMUM):
+            return True
+    except Exception:
+        pass
+
+    if isScipionVersion():
+        outlog = []
+        errlog = []
+        if runJob('pip install scons', logOut=outlog, logErr=errlog, show_error=False, show_command=True):
             return True
         else:
-            if isScipionVersion():
-                if runJob('pip install scons', logOut=sconsV, show_error=True, show_command=True):
-                    return True
-                else:
-                    return False
-            else:
-                return False
+            print(red(errlog[0]))
+            return False
     else:
+        print(blue('Scipion enviroment not found, please install manually scons library'))
         return False
+
 
 
 def isScipionVersion():
