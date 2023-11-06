@@ -64,6 +64,7 @@ def modeCompileAndInstall(args: argparse.Namespace):
 def modeConfig(args: argparse.Namespace):
 	""" Checks the params for execution mode "config" and then runs it. """
 	# TODO: Implement
+	sconsVersion()
 
 def modeGetModels(args: argparse.Namespace):
 	""" Checks the params for execution mode "getModels" and then runs it. """
@@ -84,7 +85,6 @@ def modeVersion(args: argparse.Namespace):
 def modeAll(args: argparse.Namespace):
 	""" Checks the params for execution mode "all" and then runs it. """
 	# Running config
-	sconsVersion()
 	modeConfig(args)
 
 	# Running compilation and installation
@@ -117,8 +117,8 @@ def runSelectedMode(args: argparse.Namespace):
 	elif args.mode == MODE_VERSION:
 		modeVersion(args)
 	else:
-		# If method was none of the above, show error message
-		pass
+		# If method was none of the above, exit with error
+		showError(f"Mode \"{args.mode}\" not recognized. Run -h for usage help.")
 
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":

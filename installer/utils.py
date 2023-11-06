@@ -24,12 +24,18 @@
 # ***************************************************************************/
 
 # General imports
-import subprocess
+import subprocess, pkg_resources, sys
 from os import environ
-import pkg_resources
+from typing import Union
 
 # Installer imports
 from .constants import SCONS_MINIMUM
+
+def showError(errorMsg: str, retCode: int=1) -> Union[None, int]:
+	""" This function prints an error message and exits with the given return code. """
+	# Print the error message in red color
+	print(f"\033[91m{errorMsg}\033[0m")
+	sys.exit(retCode)
 
 def versionToNumber(strVersion):
     listVersion = strVersion.split('.')
