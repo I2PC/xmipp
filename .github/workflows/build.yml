@@ -13,14 +13,6 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
     steps:
-      - name: Extract branch name
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
-
-      - name: branch
-        run: echo ${{ steps.extract_branch.outputs.branch }}
-
       # Installing apt dependencies
       - name: Install dependencies
         run: |
