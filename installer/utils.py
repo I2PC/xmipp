@@ -23,11 +23,13 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+# General imports
 import subprocess
-from .constants import SCONS_MINIMUM
 from os import environ
 import pkg_resources
 
+# Installer imports
+from .constants import SCONS_MINIMUM
 
 def versionToNumber(strVersion):
     listVersion = strVersion.split('.')
@@ -38,21 +40,21 @@ def versionToNumber(strVersion):
         pass
     return numberVersion
 
-def runJob(cmd, cwd='./', show_output=True, logOut=None, logErr=None, show_error=True, show_command=True):
+def runJob(cmd, cwd='./', showOutput=True, logOut=None, logErr=None, showError=True, showCommand=True):
     p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, shell=True)
     output, err = p.communicate()
 
-    if show_command == True:
+    if showCommand == True:
         print(blue(cmd))
 
-    if show_output == True:
+    if showOutput == True:
         print('{}\n'.format(output.decode("utf-8")))
     if logOut != None:
         logOut.append(output.decode("utf-8"))
 
     if err:
-        if show_error == True:
+        if showError == True:
             print(red(err.decode("utf-8")))
         if logErr != None:
             logErr.append(err.decode("utf-8"))
@@ -98,7 +100,6 @@ def sconsVersion():
     else:
         print(blue('Scipion enviroment not found, please install manually scons library'))
         return False
-
 
 
 def isScipionVersion():
