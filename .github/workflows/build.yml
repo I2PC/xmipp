@@ -12,9 +12,6 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
       - name: Extract branch name
         shell: bash
@@ -63,4 +60,4 @@ jobs:
         env:
           CIBuild: 1
           BUILD_TESTS: True
-        run: ./xmipp all br=${{ steps.extract_branch.outputs.branch }} noAsk || (cat compileLOG.txt && false)
+        run: ./xmipp all br=$BRANCH_NAME noAsk || (cat compileLOG.txt && false)
