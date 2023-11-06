@@ -92,7 +92,7 @@ def sconsVersion():
     if isScipionVersion():
         outlog = []
         errlog = []
-        if runJob('pip install scons', logOut=outlog, logErr=errlog, show_error=False, show_command=True):
+        if runJob('pip install scons', logOut=outlog, logErr=errlog, showError=False, showCommand=True):
             return True
         else:
             print(red(errlog[0]))
@@ -104,7 +104,7 @@ def sconsVersion():
 
 def isScipionVersion():
     condaEnv = []
-    if runJob('echo $CONDA_PREFIX', logOut=condaEnv, show_error=True):
+    if runJob('echo $CONDA_PREFIX', logOut=condaEnv, showError=True):
         if condaEnv[0].find('scipion3') != -1:
             return True
         else:
