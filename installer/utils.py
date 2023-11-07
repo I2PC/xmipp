@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
-# *					Martín Salinas (martin.salinas@cnb.csic.es)
+# *							Martín Salinas (martin.salinas@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
