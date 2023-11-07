@@ -28,6 +28,7 @@ import subprocess, pkg_resources, sys
 from os import environ
 from typing import Union
 
+
 # Installer imports
 from .constants import SCONS_MINIMUM
 
