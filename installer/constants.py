@@ -73,6 +73,9 @@ MODES = {
 VALUE_UNKNOWN = 'Unkown'
 DEFAULT_JOBS = 8
 
+# Files names
+CONFIG_FILE = 'xmipp.conf'
+
 # Error Code
 ERROR_CODE = {
 	0: ['No error', ''],

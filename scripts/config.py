@@ -997,6 +997,6 @@ class Config:
             return notFound
 
     # def _config_tests(self):
-    #     if self.configDict[Config.KEY_BUILD_TESTS] == "":
+    #     if self.configDict[Config.KEY_BUILD _TESTS] == "":
     #         self.configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow(
     #             '\nDo you want to build tests [YES/no]'), default=True, actually_ask=self.ask)

@@ -64,7 +64,10 @@ def modeCompileAndInstall(args: argparse.Namespace):
 
 def modeConfig(args: argparse.Namespace):
 	""" Checks the params for execution mode "config" and then runs it. """
-	# TODO: Implement
+	if existConfig():
+		verifiedConfig()
+	else:
+		createConfig()
 	sconsVersion()
 
 def modeGetModels(args: argparse.Namespace):
