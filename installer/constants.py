@@ -22,6 +22,10 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+"""
+Module containing all constants needed for the installation of Xmipp.
+"""
+
 # Xmipp's current version
 #####################################
 XMIPP_VERSION = '3.23.07.0'					#

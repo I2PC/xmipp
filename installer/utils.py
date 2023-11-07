@@ -22,9 +22,14 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+"""
+Module containing useful functions used by the installation process.
+"""
+
 # General imports
 import subprocess, pkg_resources, sys
 from os import environ
+from typing import Union
 
 # Installer imports
 from .constants import SCONS_MINIMUM
@@ -103,27 +108,50 @@ def showError(errorMsg: str, retCode: int=1):
 	print(red(errorMsg))
 	sys.exit(retCode)
 
-def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut=None, logErr=None, showError: bool=True, showCommand: bool=True):
+def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, logErr: list=None, showError: bool=True, showCommand: bool=True) -> Union[bool, None]:
+	"""
+	### This function runs the given command.
+
+	#### Params:
+	cmd (str): Command to run.
+	cwd (str): Optional. Path to run the command from. Default is current directory.
+	showOutput (bool): Optional. If True, output is printed.
+	logOut (list): Optional. List to store the output into.
+	logErr (list): Optional. List to store the errors into.
+	showError (bool): Optional. If True, errors are printed.
+	showCommand (bool): Optional. If True, command is printed in blue.
+
+	#### Returns:
+	(bool): True if there were no errors. If there were errors, False if error string is not empty, None otherwise.
+	"""
+	# Running command
 	p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
 												stderr=subprocess.PIPE, shell=True)
 	output, err = p.communicate()
 
+	# Printing command if specified
 	if showCommand == True:
 		print(blue(cmd))
 
+	# Printing output if specified
 	if showOutput == True:
 		print('{}\n'.format(output.decode("utf-8")))
-	if logOut != None:
+	# Storing output in list if specified
+	if logOut is not None:
 		logOut.append(output.decode("utf-8"))
 
 	if err:
+		# Printing errors if specified
 		if showError == True:
 			print(red(err.decode("utf-8")))
-		if logErr != None:
+		# Storing errors in list if specified
+		if logErr is not None:
 			logErr.append(err.decode("utf-8"))
+		# If error string is not empty, return False
 		if err.decode("utf-8") != '':
 			return False
 	else:
+		# If there were no errors, return True
 		return True
 
 ####################### VERSION FUNCTIONS #######################
