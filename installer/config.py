@@ -27,15 +27,56 @@ from os import path
 
 from .constants import SCONS_MINIMUM, CONFIG_FILE
 
+
+def config():
+    """check the config if exist else create it and check it"""
+    if not existConfig():
+        getSystemValues()
+        writeConfig()
+
+    parseConfig()
+    checkConfig()
+
+
+def getSystemValues():
+    """Collect all the required package details of the system"""
+    pass
+
+def checkConfig():
+    """Check if valid all the flags of the config file"""
+    pass
+
+
+
 def existConfig():
+    """ Checks if the config file exist.Return True or False """
     if path.exists(CONFIG_FILE):
         return True
     else:
         return False
 
-def verifiedConfig():
+def writeConfig():
+    """Write the config file"""
     pass
 
-def createConfig():
+def parseConfig():
+    """Read and save on configDic all flags of config file"""
+    pass
+
+
+#UTILS
+def versionPackage(packageName):
+    """Return the version of the package if found, else return False"""
+    pass
+
+
+def existPackage(packageName):
+    """Return True if packageName exist, else False"""
 
     pass
+
+def existPath(path):
+    """Return True if path exist, else False"""
+    pass
+
+
