@@ -345,7 +345,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors()
 					#endif
 
 
-					CM cm {cis, c3d, res, coordinate3dId};
+					CM cm {cis, c3d, res, coordinate3dId, 0};  // 0 is for non-initialized mahalanobis distance
 					vCM.push_back(cm);
 
 					coordinate3dId += 1;
@@ -510,6 +510,79 @@ void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
 	#endif
 }
 
+void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResidualsMahalanobis()
+{
+	double sigma = (fiducialSize / samplingRate) / 3;	// Sigma for 99% of the points inside the fiducial radius
+	// double sigma2 = sigma * sigma;
+
+	// Matrix2D<double> covariance_inv;
+	// MAT_ELEM(covariance_inv, 0, 0) = 1/sigma2;
+	// MAT_ELEM(covariance_inv, 0, 1) = 0;
+	// MAT_ELEM(covariance_inv, 1, 0) = 0;
+	// MAT_ELEM(covariance_inv, 1, 1) = 1/sigma2;
+
+	// iterate residuals
+	for(size_t i = 0; i < vCM.size(); i++)
+	{
+		vCM[i].mahalanobisDistance = sqrt(vCM[i].residuals.x/sigma + vCM[i].residuals.y/sigma);
+	}
+
+	// Global alignment analysis
+	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
+
+	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, true);  // Vector saving status of (mis)aligned chains
+
+	for (size_t n = 0; n < numberOfInputCoords; n++)
+	{
+		std::vector<CM> CM_fid;
+		getCMbyFiducial(n, CM_fid);
+
+		size_t numberCM = CM_fid.size();
+
+		double sumMahaDist = 0;
+		double sumMahaDist2 = 0;
+
+		for (size_t i = 0; i < numberCM; i++)
+		{
+			sumMahaDist += CM_fid[i].mahalanobisDistance;
+			sumMahaDist2 += CM_fid[i].mahalanobisDistance * CM_fid[i].mahalanobisDistance; 
+		}
+
+		double avgMahaDist = sumMahaDist / numberCM;
+		double stdMahaDist = sqrt(sumMahaDist2 / numberCM - avgMahaDist * avgMahaDist);
+
+		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
+		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
+		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
+	}
+
+	// Local alignment analysis
+	std::cout << "---------------- Local misalignemnt analysis" << std::endl;
+	
+	for (size_t n = 0; n < nSize; n++)
+	{
+		std::vector<CM> CM_image;
+		getCMbyImage(n, CM_image);
+
+		size_t numberCM = CM_image.size();
+
+		double sumMahaDist = 0;
+		double sumMahaDist2 = 0;
+
+		for (size_t i = 0; i < numberCM; i++)
+		{
+			sumMahaDist += CM_image[i].mahalanobisDistance;
+			sumMahaDist2 += CM_image[i].mahalanobisDistance * CM_image[i].mahalanobisDistance; 
+		}
+
+		double avgMahaDist = sumMahaDist / numberCM;
+		double stdMahaDist = sqrt(sumMahaDist2 / numberCM - avgMahaDist * avgMahaDist);
+
+		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
+		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
+		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
+	}
+}
 
 void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResiduals()
 {

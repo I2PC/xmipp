@@ -100,6 +100,7 @@ public:
         Point3D<double> coordinate3d;           // 3D coordinate whose porjection is the closest
         Point2D<double> residuals;              // Residual vector from detected to projected
         size_t id;                              // ID common for all the CM belonging to the same coordinate 3D
+        double mahalanobisDistance;             // Mahalanobis distance to the expected residual distribution
     };
     
     /** Input tilt-series dimensions */
@@ -148,7 +149,6 @@ public:
      *
      * @param
      * @return
-     *
     */
     void generateSideInfo();
 
@@ -162,6 +162,7 @@ public:
     void calculateResidualVectors();
 
     void detectMisalignmentFromResiduals();
+    void detectMisalignmentFromResidualsMahalanobis();
 
     void generateResidualStatiscticsFile();
 
