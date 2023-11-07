@@ -31,6 +31,7 @@ from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_COMPILE_AND_
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
+from installer.parser import ComplexArgumentParser
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -126,7 +127,7 @@ if __name__ == "__main__":
 	# Parse the command-line arguments
 	epilog = "Example 1: ./xmipp"
 	epilog += "\nExample 2: ./xmipp compileAndInstall -j 4"
-	parser = argparse.ArgumentParser(
+	parser = ComplexArgumentParser(
 		description="Run Xmipp's installer script",
 		epilog=epilog,
 		formatter_class=argparse.RawDescriptionHelpFormatter
