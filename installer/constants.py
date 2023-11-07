@@ -76,6 +76,28 @@ DEFAULT_JOBS = 8
 # Files names
 CONFIG_FILE = 'xmipp.conf'
 
+# Packages
+PACKAGES_DICT = {'CC': 'gcc',
+				'CXX': 'g++',
+				'INCDIRFLAGS': '',
+				'PYTHONINCFLAGS': 'python',
+				'JAVA_HOME': '',
+				'LIBDIRFLAGS': '',
+				'MPI_CC': '',
+				'MPI_CXX': '',
+				'MPI_LINKERFORPROGRAMS': '',
+				'MPI_RUN': '',
+				'MATLAB': '',
+				'MATLAB_DIR': '',
+				'CUDA': '',
+				'CXX_CUDA': '',
+				'OPENCV': '',
+				'OPENCVSUPPORTSCUDA': '',
+				'STARPU': '',
+				'STARPU_HOME': '',
+				'STARPU_LIB': '',
+				'STARPU_LIBRARY': ''
+			}
 # Error Code
 ERROR_CODE = {
 	0: ['No error', ''],

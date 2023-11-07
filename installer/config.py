@@ -25,14 +25,14 @@
 
 from os import path
 
-from .constants import SCONS_MINIMUM, CONFIG_FILE
+from .constants import SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT
+from utils import red
 
 
 def config():
     """check the config if exist else create it and check it"""
     if not existConfig():
-        getSystemValues()
-        writeConfig()
+        writeConfig(getSystemValues())
 
     parseConfig()
     checkConfig()
@@ -40,12 +40,22 @@ def config():
 
 def getSystemValues():
     """Collect all the required package details of the system"""
-    pass
+    dictPackages = {}
+
+    getCC(dictPackages)
+
+    for package in PACKAGES.items():
+        print('Collecting {} info...'.format(package.key()))
+        status, path = existPackage(package.value())
+        if status == True:
+            dictPackages[package.key()] = path
+        else:
+            print(red('Package {} not found on the system'.format(package.value())))
+
 
 def checkConfig():
     """Check if valid all the flags of the config file"""
     pass
-
 
 
 def existConfig():
@@ -64,6 +74,20 @@ def parseConfig():
     pass
 
 
+#PACKAGES
+def getCC(dictPackages):
+    path = existPackage('gcc')
+    dictPackages['CC'] = path
+
+def getCXX(dictPackages):
+    path = existPackage('g++')
+    dictPackages['CXX'] = path
+
+def getPYTHONINCFLAGS(dictPackages):
+    pass
+
+def getLIBDIRFLAGS(dictPackages):
+    pass
 #UTILS
 def versionPackage(packageName):
     """Return the version of the package if found, else return False"""
