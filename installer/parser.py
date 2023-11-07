@@ -54,14 +54,14 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		customMessage = """Your custom help message goes here."""
 
 		for dest, condition in self.argument_conditions.items():
-				# Fetch the argument
-				argument = self._option_string_actions[dest]
+			# Fetch the argument
+			argument = self._option_string_actions[dest]
 
-				# Format the argument as a string
-				argumentStr = f"{argument.option_strings} {argument.metavar or argument.dest.upper()}"
+			# Format the argument as a string
+			argumentStr = f"{argument.option_strings} {argument.metavar or argument.dest.upper()}"
 
-				# Add the argument and its condition to the help message
-				customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
+			# Add the argument and its condition to the help message
+			customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
 
 		print(customMessage)
 	
