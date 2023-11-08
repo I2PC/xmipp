@@ -1167,14 +1167,24 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 	for(size_t i = 0; i < vCM.size(); i++)
 	{
 		id = md.addObject();
+		// Tilt-series coordinates
 		md.setValue(MDL_X, vCM[i].detectedCoordinate.x, id);
 		md.setValue(MDL_Y, vCM[i].detectedCoordinate.y, id);
 		md.setValue(MDL_Z, vCM[i].detectedCoordinate.z, id);
+
+		// 3D coordinates
 		md.setValue(MDL_XCOOR, (int)vCM[i].coordinate3d.x, id);
 		md.setValue(MDL_YCOOR, (int)vCM[i].coordinate3d.y, id);
 		md.setValue(MDL_ZCOOR, (int)vCM[i].coordinate3d.z, id);
+
+		// Residual vector
 		md.setValue(MDL_SHIFT_X, vCM[i].residuals.x, id);
 		md.setValue(MDL_SHIFT_Y, vCM[i].residuals.y, id);
+
+		// Mahalanobis distance
+		md.setValue(MDL_COST, vCM[i].mahalanobisDistance, id);
+
+		// ID
 		md.setValue(MDL_FRAME_ID, vCM[i].id, id);
 
 	}
