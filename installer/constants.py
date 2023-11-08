@@ -43,6 +43,7 @@ GPP_MINIMUM = GCC_MINIMUM						#
 CMAKE_MINIMUM = '3.16'							#
 SCONS_MINIMUM = '3.0'								#
 CUDA_MINIMUM = '10.2'								#
+MPI_MINIMUM = '2.0'
 #####################################
 
 # Mode list (alphabetical order)
@@ -89,7 +90,6 @@ PACKAGES_DICT = {'CC': 'gcc',
 				'LIBDIRFLAGS': '',
 				'MPI_CC': '',
 				'MPI_CXX': '',
-				'MPI_LINKERFORPROGRAMS': '',
 				'MPI_RUN': '',
 				'MATLAB': '',
 				'MATLAB_DIR': '',
@@ -108,8 +108,8 @@ ERROR_CODE = {
 	1: ['No error', ''],
 	2: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
 	3: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
-	4: ['', ''],
-	5: ['', ''],
+	4: ['gcc version not valid', 'The version of gcc is lower than minimum, please review the requirements'],
+  5: ['g++ version not valid', 'The version of g++ is lower than minimum, please review the requirements'],
 	6: ['', ''],
 	7: ['', ''],
 	8: ['', ''],

@@ -25,8 +25,8 @@
 
 from os import path
 
-from .constants import SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT
-from utils import red
+from .constants import SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT, GCC_MINIMUM, GPP_MINIMUM, MPI_MINIMUM
+from .utils import red, runJob, versionToNumber
 
 
 def config():
@@ -43,14 +43,6 @@ def getSystemValues():
     dictPackages = {}
 
     getCC(dictPackages)
-
-    for package in PACKAGES.items():
-        print('Collecting {} info...'.format(package.key()))
-        status, path = existPackage(package.value())
-        if status == True:
-            dictPackages[package.key()] = path
-        else:
-            print(red('Package {} not found on the system'.format(package.value())))
 
 
 def checkConfig():
@@ -76,12 +68,51 @@ def parseConfig():
 
 #PACKAGES
 def getCC(dictPackages):
-    path = existPackage('gcc')
-    dictPackages['CC'] = path
+    if existPackage('gcc'):
+        dictPackages['CC'] = 'gcc'
 
+def checkCC(packagePath):
+    if existPackage(packagePath):
+        strVersion = versionPackage(packagePath)
+        idx = strVersion.find('\n')
+        idx2 = strVersion[idx].rfind(' ')
+        version = strVersion[idx - idx2:idx]
+        if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
+            return 1
+        print(red('gcc {} lower than required ({})'.format(version, GCC_MINIMUM)))
+        return 4
 def getCXX(dictPackages):
-    path = existPackage('g++')
-    dictPackages['CXX'] = path
+    if existPackage('g++'):
+        dictPackages['CXX'] = 'g++'
+
+def checkCXX(packagePath):
+    if existPackage(packagePath):
+        strVersion = versionPackage(packagePath)
+        idx = strVersion.find('\n')
+        idx2 = strVersion[idx].rfind(' ')
+        version = strVersion[idx - idx2:idx]
+        if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
+            return 1
+        print(red('g++ {} lower than required ({})'.format(version, GPP_MINIMUM)))
+        return 5
+
+def getMPI(dictPackages):
+    if existPackage('MPI_CC'):
+        dictPackages['MPI_CC'] = 'mpicc'
+    if existPackage('MPI_CXX'):
+        dictPackages['MPI_CXX'] = 'mpicxx'
+    if existPackage('MPI_RUN'):
+        dictPackages['MPI_RUN'] = 'mpirun'
+
+def checkMPI(packagePath):
+    if existPackage(packagePath):
+        strVersion = versionPackage(packagePath)
+        idx = strVersion.find('\n')
+        idx2 = strVersion[idx].rfind(' ')
+        version = strVersion[idx - idx2:idx]
+
+        if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
+            return 1
 
 def getPYTHONINCFLAGS(dictPackages):
     pass
@@ -89,15 +120,24 @@ def getPYTHONINCFLAGS(dictPackages):
 def getLIBDIRFLAGS(dictPackages):
     pass
 #UTILS
-def versionPackage(packageName):
+def versionPackage(package):
     """Return the version of the package if found, else return False"""
-    pass
+    str = []
+    if runJob('{} --version'.format(package), showOutput=False, logOut=str):
+        if str[0].find('not found') != -1:
+            return str[0]
+    return ''
 
 
 def existPackage(packageName):
     """Return True if packageName exist, else False"""
+    path = []
+    if runJob('which {}'.format(packageName), showOutput=False, logOut=path):
+        if path[0] != '':
+            if versionPackage(path[0]) != '':
+                return True
+    return False
 
-    pass
 
 def existPath(path):
     """Return True if path exist, else False"""
