@@ -133,6 +133,10 @@ public:
     bool globalAlignment = true;
     std::vector<bool> localAlignment;
 
+    /** Avg and STD of Mahalanobis distance for each tilt image */
+    std::vector<double> avgMahalanobisDistance;
+    std::vector<double> stdMahalanobisDistance;
+
 public:
 
     // --------------------------- INFO functions ----------------------------

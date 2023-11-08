@@ -105,6 +105,8 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 	// Initialize local alignment vector (depends on the number of acquisition angles)
 	localAlignment.resize(nSize, true);
+	avgMahalanobisDistance.resize(nSize, 0.0);
+	stdMahalanobisDistance.resize(nSize, 0.0);
 
 	// Update thresholds depending on input tilt-series sampling rate
 	fiducialSizePx = fiducialSize / samplingRate; 
@@ -577,6 +579,9 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResidualsMahala
 
 		double avgMahaDist = sumMahaDist / numberCM;
 		double stdMahaDist = sqrt(sumMahaDist2 / numberCM - avgMahaDist * avgMahaDist);
+
+		avgMahaDist[n] = avgMahaDist;
+		stdMahaDist[n] = stdMahaDist;
 
 		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
@@ -1125,9 +1130,16 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 		{
 			fn.compose(i + FIRST_IMAGE, rawnameTS);
 			id = md.addObject();
-			
-			md.setValue(MDL_ENABLED, -1, id);
+
+			// Tilt-image			
 			md.setValue(MDL_IMAGE, fn, id);
+
+			// Alignment
+			md.setValue(MDL_ENABLED, -1, id);
+
+			// Avg and STD of Mahalanobis distance
+			md.setValue(MDL_COST, , id);
+			md.setValue(MDL_COST_PERCENTILE, , id);
 		}
 	}
 	else
@@ -1186,7 +1198,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputVCM()
 
 		// ID
 		md.setValue(MDL_FRAME_ID, vCM[i].id, id);
-
 	}
 
 	size_t lastindex = fnOut.find_last_of("\\/");
