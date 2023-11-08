@@ -134,8 +134,8 @@ public:
     std::vector<bool> localAlignment;
 
     /** Avg and STD of Mahalanobis distance for each tilt image */
-    std::vector<double> avgMahalanobisDistance;
-    std::vector<double> stdMahalanobisDistance;
+    std::vector<double> avgMahalanobisDistanceV;
+    std::vector<double> stdMahalanobisDistanceV;
 
 public:
 
