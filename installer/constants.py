@@ -105,9 +105,9 @@ PACKAGES_DICT = {'CC': 'gcc',
 # Error Code
 ERROR_CODE = {
 	0: ['No error', ''],
-	1: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
-	2: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
-	3: ['', ''],
+	1: ['No error', ''],
+	2: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
+	3: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
 	4: ['', ''],
 	5: ['', ''],
 	6: ['', ''],
