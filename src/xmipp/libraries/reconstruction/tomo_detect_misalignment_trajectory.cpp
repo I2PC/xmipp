@@ -105,8 +105,8 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 	// Initialize local alignment vector (depends on the number of acquisition angles)
 	localAlignment.resize(nSize, true);
-	avgMahalanobisDistance.resize(nSize, 0.0);
-	stdMahalanobisDistance.resize(nSize, 0.0);
+	avgMahalanobisDistanceV.resize(nSize, 0.0);
+	stdMahalanobisDistanceV.resize(nSize, 0.0);
 
 	// Update thresholds depending on input tilt-series sampling rate
 	fiducialSizePx = fiducialSize / samplingRate; 
