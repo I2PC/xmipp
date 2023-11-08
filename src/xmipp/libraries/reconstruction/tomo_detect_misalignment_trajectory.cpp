@@ -1138,8 +1138,8 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 			md.setValue(MDL_ENABLED, -1, id);
 
 			// Avg and STD of Mahalanobis distance
-			md.setValue(MDL_COST, , id);
-			md.setValue(MDL_COST_PERCENTILE, , id);
+			md.setValue(MDL_COST, avgMahalanobisDistance, id);
+			md.setValue(MDL_COST_PERCENTILE, stdMahalanobisDistance, id);
 		}
 	}
 	else
