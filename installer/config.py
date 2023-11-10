@@ -25,9 +25,10 @@
 
 from os import path
 
-from .constants import SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT, GCC_MINIMUM, GPP_MINIMUM, MPI_MINIMUM
+from .constants import (SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT, GCC_MINIMUM,
+                        GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
 from .utils import red, runJob, versionToNumber
-
+from sysconfig import get_paths
 
 def config():
     """check the config if exist else create it and check it"""
@@ -81,6 +82,9 @@ def checkCC(packagePath):
             return 1
         print(red('gcc {} lower than required ({})'.format(version, GCC_MINIMUM)))
         return 4
+    else:
+        print(red('GCC package path: {} does not exist'.format(packagePath)))
+        return 5
 def getCXX(dictPackages):
     if existPackage('g++'):
         dictPackages['CXX'] = 'g++'
@@ -94,14 +98,17 @@ def checkCXX(packagePath):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             return 1
         print(red('g++ {} lower than required ({})'.format(version, GPP_MINIMUM)))
-        return 5
+        return 7
+    else:
+        print(red('CXX package path: {} does not exist'.format(packagePath)))
+        return 6
 
 def getMPI(dictPackages):
-    if existPackage('MPI_CC'):
+    if existPackage('mpicc'):
         dictPackages['MPI_CC'] = 'mpicc'
-    if existPackage('MPI_CXX'):
+    if existPackage('mpicxx'):
         dictPackages['MPI_CXX'] = 'mpicxx'
-    if existPackage('MPI_RUN'):
+    if existPackage('mpirun'):
         dictPackages['MPI_RUN'] = 'mpirun'
 
 def checkMPI(packagePath):
@@ -110,15 +117,49 @@ def checkMPI(packagePath):
         idx = strVersion.find('\n')
         idx2 = strVersion[idx].rfind(' ')
         version = strVersion[idx - idx2:idx]
-
         if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
             return 1
+        print(red('mpi {} lower than required ({})'.format(version, GPP_MINIMUM)))
+        return 8
+    else:
+        print(red('MPI package: {} does not exist'.format(packagePath)))
+        return 9
 
-def getPYTHONINCFLAGS(dictPackages):
-    pass
+
+# def checkPYTHONINCFLAGS(incPath):
+#     includes = incPath.split(' ')
+#     pythonPath = includes[0].replace('-I', '')
+#     numpyPath = includes[1].replace('-I', '')
+#     if existPackage(pythonPath):
+#         strVersion = versionPackage(pythonPath)
+#         idx = strVersion.find('\n')
+#         idx2 = strVersion[idx].rfind(' ')
+#         version = strVersion[idx - idx2:idx]
+#         if versionToNumber(version) < versionToNumber(PYTHON_MINIMUM):
+#             print(red('python {} lower than required ({})'.format(version,
+#                                                                PYTHON_MINIMUM)))
+#             return 10
+#
+#     #NUMPY
+#     import sys
+#     sys.path.append('/path/to/directory')
+#     if existPackage(numpyPath):
+#         strVersion = versionPackage(pythonPath)
+#         idx = strVersion.find('\n')
+#         idx2 = strVersion[idx].rfind(' ')
+#         version = strVersion[idx - idx2:idx]
+#         if versionToNumber(version) < versionToNumber(PYTHON_MINIMUM):
+#             print(red('python {} lower than required ({})'.format(version,
+#                                                                PYTHON_MINIMUM)))
+#             return 10
+#
 
 def getLIBDIRFLAGS(dictPackages):
     pass
+
+
+
+
 #UTILS
 def versionPackage(package):
     """Return the version of the package if found, else return False"""
@@ -131,12 +172,15 @@ def versionPackage(package):
 
 def existPackage(packageName):
     """Return True if packageName exist, else False"""
-    path = []
-    if runJob('which {}'.format(packageName), showOutput=False, logOut=path):
-        if path[0] != '':
-            if versionPackage(path[0]) != '':
-                return True
+    path = pathPackage(packageName)
+    if path != '' and versionPackage(path) != '':
+        return True
     return False
+
+def pathPackage(packageName):
+    path = []
+    runJob('which {}'.format(packageName), showOutput=False, logOut=path)
+    return path[0]
 
 
 def existPath(path):
