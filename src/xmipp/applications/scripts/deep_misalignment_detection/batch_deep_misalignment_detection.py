@@ -47,8 +47,7 @@ class ScriptDeepMisalignmentDetection(XmippScript):
 
         
         # Examples       
-        self.addExampleLine('xmipp_deep_misalingment_detection --subtomoFilePath path/to/coords.xmd ' 
-                            '--misaliThr 0.45')
+        self.addExampleLine('xmipp_deep_misalingment_detection --subtomoFilePath path/to/coords.xmd --misaliThr 0.45 -g 0')
 
     
     #  --------------------- I/O FUNCTIONS -----------------------------
