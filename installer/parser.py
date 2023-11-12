@@ -24,6 +24,7 @@
 
 # General imports
 import argparse
+from argparse import Action, Namespace
 
 class ComplexArgumentParser(argparse.ArgumentParser):
 	"""
@@ -41,7 +42,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		super().__init__(*args, **kwargs)
 		self.argumentConditions = {}
 
-	def add_argument(self, *args, condition: str=None, **kwargs):
+	def add_argument(self, *args, condition: str=None, **kwargs) -> Action:
 		"""
 		### This method adds the given parameter to the argument list, while
 		### keeping track of its enforcement condition.
@@ -52,14 +53,14 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		- **kwargs: Keyword arguments passed to the parent class method.
 		
 		#### Returns:
-		- action: The action object created by the parent class add_argument method.
+		- (Action): The action object created by the parent class method.
 		"""
 		# Call the original add_argument method
 		action = super().add_argument(*args, **kwargs)
 
 		# Store the condition for this argument
 		if condition is not None:
-				self.argumentConditions[action.dest] = condition
+			self.argumentConditions[action.dest] = condition
 
 		return action
 
@@ -81,7 +82,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 
 		print(customMessage)
 
-	def parse_args(self, *args, **kwargs):
+	def parse_args(self, *args, **kwargs) -> Namespace:
 		"""
 		### This method parses the introduced args, only enforcing the ones that fulfill their condition.
 		
@@ -90,7 +91,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		- **kwargs: Keyword arguments passed to the parent class method.
 		
 		#### Returns:
-		- args: The parsed arguments.
+		- (Namespace): The Namespace object containing the parsed arguments.
 		"""
 		args = super().parse_args(*args, **kwargs)
 
