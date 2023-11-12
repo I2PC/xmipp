@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:		Alberto García (alberto.garcia@cnb.csic.es)
 # *					Martín Salinas (martin.salinas@cnb.csic.es)
