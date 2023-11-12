@@ -136,7 +136,6 @@ STARPU_INCLUDE=/include/starpu/1.3
 STARPU_LIB=/lib
 STARPU_LIBRARY=libstarpu-1.3
 
-
 # constants
 CCFLAGS=-std=c99
 CXXFLAGS=-mtune=native -march=native -flto -std=c++17 -O3
@@ -160,16 +159,8 @@ JNI_CPPPATH=/usr/lib/jvm/java-11-openjdk-amd64/include:/usr/lib/jvm/java-11-open
 NVCC_CXXFLAGS=--x cu -D_FORCE_INLINES -Xcompiler -fPIC -ccbin /usr/bin/g++-10 -std=c++14 --expt-extended-lambda -gencode=arch=compute_60,code=compute_60 -gencode=arch=compute_61,code=compute_61 -gencode=arch=compute_75,code=compute_75 -gencode=arch=compute_86,code=compute_86
 
 '''
-
-
 '''
 SYSTEM values to check
 
 PYTHONINCFLAGS=-I/home/agarcia/anaconda3/include/python3.8 -I/home/agarcia/anaconda3/lib/python3.8/site-packages/numpy/core/include
-
-
-
-
-
-
 '''
