@@ -22,6 +22,10 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+"""
+This module contains a class that extends the capabilities of standard argparser.
+"""
+
 # General imports
 import argparse
 from argparse import Action, Namespace
