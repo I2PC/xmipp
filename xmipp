@@ -32,6 +32,7 @@ from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_COMPILE_AND_
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
 from installer.parser import ComplexArgumentParser
+from installer.config import config
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -64,11 +65,7 @@ def modeCompileAndInstall(args: argparse.Namespace):
 
 def modeConfig(args: argparse.Namespace):
 	""" Checks the params for execution mode "config" and then runs it. """
-	if existConfig():
-		verifiedConfig()
-	else:
-		createConfig()
-	sconsVersion()
+	config()
 
 def modeGetModels(args: argparse.Namespace):
 	""" Checks the params for execution mode "getModels" and then runs it. """

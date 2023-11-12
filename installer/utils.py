@@ -201,10 +201,10 @@ def sconsVersion():
 			return True
 		else:
 			print(red(errlog[0]))
-			return 1, False
+			return 2, False
 	else:
 		print(blue('Scipion enviroment not found, please install manually scons library'))
-		return 2, False
+		return 3, False
 
 def isScipionVersion():
 	condaEnv = []

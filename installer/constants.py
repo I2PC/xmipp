@@ -43,6 +43,9 @@ GPP_MINIMUM = GCC_MINIMUM						#
 CMAKE_MINIMUM = '3.16'							#
 SCONS_MINIMUM = '3.0'								#
 CUDA_MINIMUM = '10.2'								#
+MPI_MINIMUM = '2.0'
+PYTHON_MINIMUM = '3.0'
+NUMPY_MINIMUM = '1.21'
 #####################################
 
 # Mode list (alphabetical order)
@@ -80,52 +83,34 @@ DEFAULT_JOBS = 8
 # Files names
 CONFIG_FILE = 'xmipp.conf'
 
-# Packages
-PACKAGES_DICT = {'CC': 'gcc',
-				'CXX': 'g++',
-				'INCDIRFLAGS': '',
-				'PYTHONINCFLAGS': 'python',
-				'JAVA_HOME': '',
-				'LIBDIRFLAGS': '',
-				'MPI_CC': '',
-				'MPI_CXX': '',
-				'MPI_LINKERFORPROGRAMS': '',
-				'MPI_RUN': '',
-				'MATLAB': '',
-				'MATLAB_DIR': '',
-				'CUDA': '',
-				'CXX_CUDA': '',
-				'OPENCV': '',
-				'OPENCVSUPPORTSCUDA': '',
-				'STARPU': '',
-				'STARPU_HOME': '',
-				'STARPU_LIB': '',
-				'STARPU_LIBRARY': ''
-			}
+
 # Error Code
 ERROR_CODE = {
 	0: ['No error', ''],
-	1: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
-	2: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
-	3: ['', ''],
-	4: ['', ''],
-	5: ['', ''],
-	6: ['', ''],
-	7: ['', ''],
-	8: ['', ''],
-	9: ['', ''],
-	10: ['', ''],
+	1: ['No error', ''],
+	2: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
+	3: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
+	4: ['gcc version not valid', 'The version of gcc is lower than minimum, please review the requirements'],
+  5: ['CC package does not exist','Please review the CC flag on your xmipp.conf'],
+  6: ['CXX package does not exist', 'Please review the CXX flag on your xmipp.conf'],
+  7: ['g++ version not valid', 'The version of g++ is lower than minimum, please review the requirements'],
+	8: ['mpi version not valid', 'The version of mpi is lower than minimum, please review the requirements'],
+	9: ['mpi package does not exist', 'Please review the MPI_RUN flag on your xmipp.conf'],
+  10: ['python version not valid', 'The version of python is lower than minimum, please review the requirements'],
+  11: ['python not found', 'Please install python on your system'],
+  12: ['numpy not found', 'Please install numpy'],
+
 }
 
 
 '''
+CONFIG CONSTANTS:
 DEBUG=False
 
 CC=gcc
 CXX=g++
 INCDIRFLAGS=-I../ -I/home/agarcia/anaconda3/include -I/usr/include/opencv4
 
-PYTHONINCFLAGS=-I/home/agarcia/anaconda3/include/python3.8 -I/home/agarcia/anaconda3/lib/python3.8/site-packages/numpy/core/include
 
 JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 LIBDIRFLAGS=-L/home/agarcia/anaconda3/lib
@@ -173,5 +158,18 @@ JNI_CPPPATH=/usr/lib/jvm/java-11-openjdk-amd64/include:/usr/lib/jvm/java-11-open
 
 #Not to save
 NVCC_CXXFLAGS=--x cu -D_FORCE_INLINES -Xcompiler -fPIC -ccbin /usr/bin/g++-10 -std=c++14 --expt-extended-lambda -gencode=arch=compute_60,code=compute_60 -gencode=arch=compute_61,code=compute_61 -gencode=arch=compute_75,code=compute_75 -gencode=arch=compute_86,code=compute_86
+
+'''
+
+
+'''
+SYSTEM values to check
+
+PYTHONINCFLAGS=-I/home/agarcia/anaconda3/include/python3.8 -I/home/agarcia/anaconda3/lib/python3.8/site-packages/numpy/core/include
+
+
+
+
+
 
 '''
