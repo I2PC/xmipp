@@ -31,29 +31,45 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 	to handle complex argument dependencies.
 	"""
 	def __init__(self, *args, **kwargs):
-		""" This constructor adds the ability to keep track of argument enforcement conditions. """
+		"""
+		### This constructor adds the ability to keep track of argument enforcement conditions.
+
+		#### Params:
+		- *args, **kwargs: Positional arguments passed to the parent class method.
+		- **kwargs: Keyword arguments passed to the parent class method.
+		"""
 		super().__init__(*args, **kwargs)
 		self.argumentConditions = {}
-	
+
 	def add_argument(self, *args, condition: str=None, **kwargs):
 		"""
-		This method adds the given parameter to the argument list, while
-		keeping track of its enforcement condition.
+		### This method adds the given parameter to the argument list, while
+		### keeping track of its enforcement condition.
+		
+		#### Params:
+		- *args, **kwargs: Positional rguments passed to the parent class method.
+		- condition (str): The enforcement condition for the argument.
+		- **kwargs: Keyword arguments passed to the parent class method.
+		
+		#### Returns:
+		- action: The action object created by the parent class add_argument method.
 		"""
 		# Call the original add_argument method
 		action = super().add_argument(*args, **kwargs)
 
 		# Store the condition for this argument
 		if condition is not None:
-			self.argumentConditions[action.dest] = condition
+				self.argumentConditions[action.dest] = condition
 
 		return action
 
 	def format_help(self):
-		""" This method prints the help message of the argument parser. """
+		"""
+		### This method prints the help message of the argument parser.
+		"""
 		customMessage = """Your custom help message goes here."""
 
-		for dest, condition in self.argument_conditions.items():
+		for dest, condition in self.argumentConditions.items():
 			# Fetch the argument
 			argument = self._option_string_actions[dest]
 
@@ -64,13 +80,22 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 			customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
 
 		print(customMessage)
-	
+
 	def parse_args(self, *args, **kwargs):
-		""" This method parses the introduced args, only enforcing the ones that fulfill their condition. """
+		"""
+		### This method parses the introduced args, only enforcing the ones that fulfill their condition.
+		
+		#### Params:
+		- *args, **kwargs: Positional arguments passed to the parent class method.
+		- **kwargs: Keyword arguments passed to the parent class method.
+		
+		#### Returns:
+		- args: The parsed arguments.
+		"""
 		args = super().parse_args(*args, **kwargs)
 
 		# Check conditions for all arguments
-		for dest, condition in self.argument_conditions.items():
+		for dest, condition in self.argumentConditions.items():
 			if not eval(condition, vars(args)):
 				raise argparse.ArgumentError(None, f"Condition not met for argument {dest}")
 
