@@ -36,19 +36,39 @@ from installer.config import config
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
-	""" Checks the params for execution mode "addModel" and then runs it. """
+	"""
+	### Checks the params for execution mode "addModel" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeCheckConfig(args: argparse.Namespace):
-	""" Checks the params for execution mode "checkConfig" and then runs it. """
+	"""
+	### Checks the params for execution mode "checkConfig" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeCleanBin(args: argparse.Namespace):
-	""" Checks the params for execution mode "cleanBin" and then runs it. """
+	"""
+	### Checks the params for execution mode "cleanBin" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeCleanAll(args: argparse.Namespace):
-	""" Checks the params for execution mode "cleanAll" and then runs it. """
+	"""
+	### Checks the params for execution mode "cleanAll" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# Clean binaries
 	modeCleanBin(args)
 
@@ -56,35 +76,75 @@ def modeCleanAll(args: argparse.Namespace):
 	# TODO: Implement
 
 def modeCleanDeprecated(args: argparse.Namespace):
-	""" Checks the params for execution mode "cleanDeprecated" and then runs it. """
+	"""
+	### Checks the params for execution mode "cleanDeprecated" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeCompileAndInstall(args: argparse.Namespace):
-	""" Checks the params for execution mode "compileAndInstall" and then runs it. """
+	"""
+	### Checks the params for execution mode "compileAndInstall" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeConfig(args: argparse.Namespace):
-	""" Checks the params for execution mode "config" and then runs it. """
+	"""
+	### Checks the params for execution mode "config" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	config()
 
 def modeGetModels(args: argparse.Namespace):
-	""" Checks the params for execution mode "getModels" and then runs it. """
+	"""
+	### Checks the params for execution mode "getModels" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeGit(args: argparse.Namespace):
-	""" Checks the params for execution mode "git" and then runs it. """
+	"""
+	### Checks the params for execution mode "git" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeTest(args: argparse.Namespace):
-	""" Checks the params for execution mode "test" and then runs it. """
+	"""
+	### Checks the params for execution mode "test" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeVersion(args: argparse.Namespace):
-	""" Checks the params for execution mode "version" and then runs it. """
+	"""
+	### Checks the params for execution mode "version" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# TODO: Implement
 
 def modeAll(args: argparse.Namespace):
-	""" Checks the params for execution mode "all" and then runs it. """
+	"""
+	### Checks the params for execution mode "all" and then runs it.
+	
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	# Running config
 	modeConfig(args)
 
