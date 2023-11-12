@@ -95,7 +95,12 @@ def modeAll(args: argparse.Namespace):
 	modeCompileAndInstall(args)
 
 def runSelectedMode(args: argparse.Namespace):
-	""" This function runs the selected execution mode. """
+	"""
+	### This function runs the selected execution mode.
+
+	#### Params:
+	args (Namespace): Command line arguments parsed by argparse library.
+	"""
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
