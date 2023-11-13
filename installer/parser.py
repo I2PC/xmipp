@@ -52,7 +52,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		### keeping track of its enforcement condition.
 		
 		#### Params:
-		- *args, **kwargs: Positional rguments passed to the parent class method.
+		- *args: Positional rguments passed to the parent class method.
 		- condition (str): The enforcement condition for the argument.
 		- **kwargs: Keyword arguments passed to the parent class method.
 		
@@ -91,7 +91,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		### This method parses the introduced args, only enforcing the ones that fulfill their condition.
 		
 		#### Params:
-		- *args, **kwargs: Positional arguments passed to the parent class method.
+		- *args: Positional arguments passed to the parent class method.
 		- **kwargs: Keyword arguments passed to the parent class method.
 		
 		#### Returns:
