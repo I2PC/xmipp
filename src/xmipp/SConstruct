@@ -71,6 +71,7 @@ env = Environment(ENV=os.environ,
                   BUILDERS=Environment()['BUILDERS'],
                   tools=['Make', 'AutoConfig'],
                   toolpath=[join('install', 'scons-tools')])
+env.SetOption('warn', 'no-duplicate-environment')  # Supress warnings for compilation database (due to the way we create the environments)
 # TODO: BUILDERS var added from the tricky creation of a new environment.
 # If not, they lose default builders like "Program", which are needed later
 # (by CheckLib and so on). See http://www.scons.org/doc/2.0.1/HTML/scons-user/x3516.html
@@ -296,6 +297,18 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
 
     env2.Alias(name, lastTarget)
 
+    # Compilation database for libraries and shared libraries
+    env2['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
+    env2.SetOption('warn', 'no-duplicate-environment')
+    env2.Tool('compilation_db')
+    xmipp_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    cdb = env2.CompilationDatabase(os.path.join(xmipp_path, 'compile_commands.json'))
+    Alias('cdb', cdb)
+    BUILD_TARGETS.append('cdb')
+    program = env2.Program(**libraryArgs)
+    env2.Depends(program, deps)
+
+
     return lastTarget
 
 
@@ -426,6 +439,14 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     appendUnique(libPathsCopy, external_libdirs) # This order is important, because if we should use Scipion libs, these will be before the system libs
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
     env2 = Environment()
+
+    # Compilation database for programs
+    env2.SetOption('warn', 'no-duplicate-environment')
+    env2.Tool('compilation_db')
+    xmipp_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    cdb = env2.CompilationDatabase(os.path.join(xmipp_path, 'compile_commands.json'))
+    Alias('cdb', cdb)
+
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
 

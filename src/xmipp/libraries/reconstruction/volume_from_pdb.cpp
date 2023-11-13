@@ -564,6 +564,8 @@ void ProgPdbConverter::run()
     {
         createProteinUsingScatteringProfiles();
     }
+    if (Vlow().sum()<0)
+    	REPORT_ERROR(ERR_NUMERICAL,"The output volume has a negative average. This could be caused by a too large voxel size.");
     if (fn_out!="")
         Vlow.write(fn_out + ".vol");
 }
