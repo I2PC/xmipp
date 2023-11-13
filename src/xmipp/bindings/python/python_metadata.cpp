@@ -445,7 +445,7 @@ PyMethodDef MetaData_methods[] =
 
 PyTypeObject MetaDataType =
     {
-        PyObject_HEAD_INIT(nullptr)
+        PyObject_HEAD_INIT(0)
         "xmipp.MetaData", /*tp_name*/
         sizeof(MetaDataObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
