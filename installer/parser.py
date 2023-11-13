@@ -28,8 +28,19 @@ This module contains a class that extends the capabilities of standard argparser
 
 # General imports
 import argparse
-from argparse import Action, Namespace
+from argparse import Namespace
 
+# Installer imports
+from .utils import yellow, red
+
+####################### AUXILIARY FUNCTIONS #######################
+def printHelpSeparator():
+	"""
+	### This method prints the line that separates sections inside the help message.
+	"""
+	print("\t----------------------------\n")
+
+####################### PARSER CLASS #######################
 class ComplexArgumentParser(argparse.ArgumentParser):
 	"""
 	This class extends the capabilities of the standard argument parser to be able
@@ -44,9 +55,9 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		- **kwargs: Keyword arguments passed to the parent class method.
 		"""
 		super().__init__(*args, **kwargs)
-		self.argumentConditions = {}
+		self.conditionalArgs = {}
 
-	def add_argument(self, *args, condition: str=None, **kwargs) -> Action:
+	def add_argument(self, *args, condition: str=None, **kwargs):
 		"""
 		### This method adds the given parameter to the argument list, while
 		### keeping track of its enforcement condition.
@@ -55,34 +66,30 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		- *args: Positional rguments passed to the parent class method.
 		- condition (str): The enforcement condition for the argument.
 		- **kwargs: Keyword arguments passed to the parent class method.
-		
-		#### Returns:
-		- (Action): The action object created by the parent class method.
 		"""
-		# Call the original add_argument method
-		action = super().add_argument(*args, **kwargs)
-
-		# Store the condition for this argument
-		if condition is not None:
-			self.argumentConditions[action.dest] = condition
-
-		return action
+		# Call the original add_argument method if no condition is provided
+		if condition is None:
+			super().add_argument(*args, **kwargs)
+		else:
+			# Store the condition for this argument
+			argName = args[0]
+			self.conditionalArgs[argName] = {'condition': condition, 'args': args, 'kwargs': kwargs}
 
 	def format_help(self):
 		"""
 		### This method prints the help message of the argument parser.
 		"""
-		customMessage = """Your custom help message goes here."""
+		customMessage = """HELP MESSAGE WIP."""
 
-		for dest, condition in self.argumentConditions.items():
-			# Fetch the argument
-			argument = self._option_string_actions[dest]
+		#for dest, condition in self.argumentConditions.items():
+		#	# Fetch the argument
+		#	argument = self._option_string_actions[dest]
 
-			# Format the argument as a string
-			argumentStr = f"{argument.option_strings} {argument.metavar or argument.dest.upper()}"
+		#	# Format the argument as a string
+		#	argumentStr = f"{argument.option_strings} {argument.metavar or argument.dest.upper()}"
 
-			# Add the argument and its condition to the help message
-			customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
+		#	# Add the argument and its condition to the help message
+		#	customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
 
 		print(customMessage)
 
@@ -97,14 +104,38 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		#### Returns:
 		- (Namespace): The Namespace object containing the parsed arguments.
 		"""
-		args = super().parse_args(*args, **kwargs)
+		# Keep iterating until conditional args dictionary is empty
+		while self.conditionalArgs:
+			# Parsing known args
+			knownArgs = self.parse_known_args(*args, **kwargs)[0]
 
-		# Check conditions for all arguments
-		for dest, condition in self.argumentConditions.items():
-			if not eval(condition, vars(args)):
-				raise argparse.ArgumentError(None, f"Condition not met for argument {dest}")
+			# Storing all param variables into local variables to allow eval comparison
+			if knownArgs:
+				for variable, value in knownArgs._get_kwargs():
+					locals()[variable] = value
 
-		return args
+			# Checking if current conditional arg must be added as an extra param due to the values of known args
+			paramName = list(self.conditionalArgs.keys())[0]
+			argList = self.conditionalArgs[paramName]
+			try:
+				if eval(argList['condition']):
+					# Adding extra param
+					self.add_argument(*argList['args'], **argList['kwargs'])
+
+				# Removing conditional param from dictionary and reparsing
+				# This is done to support conditions between conditional args
+				# For example, conditional arg1 might deppend on fixed arg, but conditional arg2 might
+				# deppend on value of conditional arg1, so, to be able to check arg2's condition, arg1 must have been parsed before 
+				self.conditionalArgs.pop(paramName)
+			except NameError as err:
+				warningStr = yellow("Did you define a conditional variable that deppends on a different conditional variable?\n"
+												"If so, the one that does not have such dependency must be defined before the one deppending on it.\n"
+												"Example: We have 3 args: fixed, cond1, cond2.\n"
+												"\tcond1 deppends on fixed, and cond2 deppends on cond1. Therefore, cond1 needs to be defined before cond2.")
+				raise NameError(f"{red('Error with condition ' + argList['condition'] + ': ' + str(err))}\n{warningStr}")
+
+		# Parse args
+		return super().parse_args(*args, **kwargs)
 
 """
 "Usage: xmipp [options]\n"

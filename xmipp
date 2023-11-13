@@ -198,11 +198,49 @@ if __name__ == "__main__":
 		epilog=epilog,
 		formatter_class=argparse.RawDescriptionHelpFormatter
 	)
-	
+
 	# Adding params
 	# Main param is execution mode. Gets options from a dictionary in constants
 	parser.add_argument("mode", type=str, choices=getAllModes(), nargs='?', default="all", help="Execution mode.")
 	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}. Example: -j 4.")
+
+	# Arguments for mode 'addModel'
+	condition = f"mode==\"{MODE_ADD_MODEL}\""
+	parser.add_argument("login", type=str, condition=condition, help="Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.")
+	parser.add_argument("modelPath", type=str, condition=condition, help="Path to the model to upload to Nolan.")
+	
+	# Arguments for mode 'all' and 'compileAndInstall'
+	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
+	parser.add_argument("-br", "--branch", type=str, condition=condition, help="Branch for the source repositories.")
+
+	# Arguments for mode 'config' and 'all'
+	condition = f"mode==\"{MODE_CONFIG}\" or mode==\"{MODE_ALL}\""
+	parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help="If set, Xmipp will try to automatically find necessary libraries and compilers.")
+
+	# Arguments for mode 'getModels'
+	condition = f"mode==\"{MODE_GET_MODELS}\""
+	defaultValue = './build/models'
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=defaultValue, help=f"Directory where the Deep Learning Models will be downloaded. Default is \"{defaultValue}\".")
+
+	# Arguments for mode 'git'
+	condition = f"mode==\"{MODE_GIT}\""
+	parser.add_argument("command", type=str, condition=condition, help="Git command to run on all source repositories.")
+
+	# Arguments for mode 'test'
+	condition = f"mode==\"{MODE_TEST}\""
+	parser.add_argument("-show", "--show", action='store_true', condition=condition, help="If set, shows the tests available. If combined with a test name, greps that test name within the test list.")
+	parser.add_argument("testName", type=str, condition=condition, help="Test to run. If combined with --show, greps the test name from the test list.")
+
+	# Arguments for mode 'version'
+	condition = f"mode==\"{MODE_VERSION}\""
+	parser.add_argument("-short", "--short", action='store_true', condition=condition, help="If set, only version number is shown.")
+
+	# Arguments for mode 'all', 'compileAndInstall', and 'version'
+	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\" or mode==\"{MODE_VERSION}\""
+	defaultValue = './build'
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=defaultValue,  help=f"Directory where the xmipp will be installed. Default is \"{defaultValue}\".")
+
+	# Parse arguments
 	args = parser.parse_args()
 
 	# Set the number of jobs
