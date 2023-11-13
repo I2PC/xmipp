@@ -25,10 +25,9 @@
 
 # General imports
 import argparse
-from typing import List
 
 # Installer imports
-from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
+from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
