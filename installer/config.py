@@ -28,7 +28,7 @@ This module contains the necessary functions to run the config command.
 
 from os import path
 
-from .constants import (SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT, GCC_MINIMUM,
+from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
 from .utils import red, runJob, versionToNumber
 from sysconfig import get_paths
