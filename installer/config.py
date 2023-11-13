@@ -27,11 +27,11 @@ This module contains the necessary functions to run the config command.
 """
 
 from os import path
+from os.path import isdir, join
 
-from .constants import (SCONS_MINIMUM, CONFIG_FILE, PACKAGES_DICT, GCC_MINIMUM,
+from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
-from .utils import red, runJob, versionToNumber
-from sysconfig import get_paths
+from .utils import red, runJob, versionToNumber, existPackage, versionPackage, whereIsPackage, findFileInDirList
 
 def config():
     """check the config if exist else create it and check it"""
@@ -74,6 +74,9 @@ def parseConfig():
 def getCC(dictPackages):
     if existPackage('gcc'):
         dictPackages['CC'] = 'gcc'
+    else:
+        dictPackages['CC'] = None
+
 
 def checkCC(packagePath):
     if existPackage(packagePath):
@@ -88,9 +91,12 @@ def checkCC(packagePath):
     else:
         print(red('GCC package path: {} does not exist'.format(packagePath)))
         return 5
+
 def getCXX(dictPackages):
     if existPackage('g++'):
         dictPackages['CXX'] = 'g++'
+    else:
+        dictPackages['CXX'] = None
 
 def checkCXX(packagePath):
     if existPackage(packagePath):
@@ -109,10 +115,16 @@ def checkCXX(packagePath):
 def getMPI(dictPackages):
     if existPackage('mpicc'):
         dictPackages['MPI_CC'] = 'mpicc'
+    else:
+        dictPackages['MPI_CC'] = None
     if existPackage('mpicxx'):
         dictPackages['MPI_CXX'] = 'mpicxx'
+    else:
+        dictPackages['MPI_CXX'] = None
     if existPackage('mpirun'):
         dictPackages['MPI_RUN'] = 'mpirun'
+    else:
+        dictPackages['MPI_RUN'] = None
 
 def checkMPI(packagePath):
     if existPackage(packagePath):
@@ -128,6 +140,63 @@ def checkMPI(packagePath):
         print(red('MPI package: {} does not exist'.format(packagePath)))
         return 9
 
+def getJava(dictPackages):
+    javaProgramPath = whereIsPackage('javac')
+    if not javaProgramPath:
+        javaProgramPath = findFileInDirList('javac', ['/usr/lib/jvm/java-*/bin'])
+        if javaProgramPath:
+            javaHomeDir = javaProgramPath.replace("/jre/bin", "")
+            javaHomeDir = javaHomeDir.replace("/bin", "")
+    if javaProgramPath:
+        dictPackages['JAVA_HOME'] = javaHomeDir
+    else:
+        dictPackages['JAVA_HOME'] = None
+
+
+def checkJava(packagePath):
+    if not existPackage('java'):
+        return 13
+    if isdir(join(packagePath, 'bin/jar')) and \
+        isdir(join(packagePath, 'bin/javac')) and \
+        isdir(join(packagePath, 'include')) and existPackage('java'):
+        return 1
+    else:
+        return 14
+
+def getMatlab(dictPackages):
+    matlabProgramPath = whereIsPackage('matlab')
+    if matlabProgramPath:
+        dictPackages['MATLAB'] = 'True'
+        dictPackages['MATLAB_HOME'] = matlabProgramPath.replace("/bin", "")
+    else:
+        dictPackages['MATLAB'] = 'False'
+        dictPackages['MATLAB_HOME'] = None
+
+def checkMatlab(packagePath):
+    if not existPackage('matlab'):
+        return 15
+    if not isdir(packagePath):
+        return 16
+    return 1
+
+
+def getCUDA(dictPackages):
+    pass
+
+def checkCUDA(packagePath):
+    pass
+
+def getOPENCV(dictPackages):
+    pass
+
+def checkOPENCV(packagePath):
+    pass
+
+def getSTARPU(dictPackages):
+    pass
+
+def checkSTARPU(packagePath):
+    pass
 
 # def checkPYTHONINCFLAGS(incPath):
 #     includes = incPath.split(' ')
@@ -157,37 +226,10 @@ def checkMPI(packagePath):
 #             return 10
 #
 
+
+
 def getLIBDIRFLAGS(dictPackages):
     pass
-
-
-
-
-#UTILS
-def versionPackage(package):
-    """Return the version of the package if found, else return False"""
-    str = []
-    if runJob('{} --version'.format(package), showOutput=False, logOut=str):
-        if str[0].find('not found') != -1:
-            return str[0]
-    return ''
-
-
-def existPackage(packageName):
-    """Return True if packageName exist, else False"""
-    path = pathPackage(packageName)
-    if path != '' and versionPackage(path) != '':
-        return True
-    return False
-
-def pathPackage(packageName):
-    path = []
-    runJob('which {}'.format(packageName), showOutput=False, logOut=path)
-    return path[0]
-
-
-def existPath(path):
-    """Return True if path exist, else False"""
+def getINCDIRFLAGS(dictPackages):
     pass
-
 

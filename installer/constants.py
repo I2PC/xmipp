@@ -99,7 +99,12 @@ ERROR_CODE = {
   10: ['python version not valid', 'The version of python is lower than minimum, please review the requirements'],
   11: ['python not found', 'Please install python on your system'],
   12: ['numpy not found', 'Please install numpy'],
-
+  13: ['java not found on the system', 'Please install java'],
+  14: ['JAVA_HOME path with errors', 'bin/jar, bin/javac or include not found but required'],
+  15: ['Matlab not found on system', 'Please install matlab or set MATLA as False on the xmipp.conf file'],
+  16: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
+	17: ['', ''],
+	18: ['', ''],
 }
 
 
@@ -109,11 +114,11 @@ DEBUG=False
 
 CC=gcc
 CXX=g++
-INCDIRFLAGS=-I../ -I/home/agarcia/anaconda3/include -I/usr/include/opencv4
 
+INCDIRFLAGS=-I../ -I/home/agarcia/anaconda3/include -I/usr/include/opencv4
+LIBDIRFLAGS=-L/home/agarcia/anaconda3/lib
 
 JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-LIBDIRFLAGS=-L/home/agarcia/anaconda3/lib
 
 MPI_CC=mpicc
 MPI_CXX=mpicxx
@@ -160,7 +165,8 @@ NVCC_CXXFLAGS=--x cu -D_FORCE_INLINES -Xcompiler -fPIC -ccbin /usr/bin/g++-10 -s
 
 '''
 '''
-SYSTEM values to check
+on the fly values to check
 
 PYTHONINCFLAGS=-I/home/agarcia/anaconda3/include/python3.8 -I/home/agarcia/anaconda3/lib/python3.8/site-packages/numpy/core/include
+
 '''

@@ -33,6 +33,9 @@ from typing import Union
 
 # Installer imports
 from .constants import SCONS_MINIMUM
+import glob
+import distutils.spawn
+from os import path
 
 ####################### COLORS #######################
 def green(text: str) -> str:
@@ -155,6 +158,60 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, lo
 		return True
 
 ####################### VERSION FUNCTIONS #######################
+
+# UTILS
+def findFileInDirList(fnH, dirlist):
+		""" :returns the dir where found or an empty string if not found.
+				dirs can contain *, then first found is returned.
+		"""
+		if isinstance(dirlist, str):
+				dirlist = [dirlist]
+
+		for dir in dirlist:
+				validDirs = glob.glob(path.join(dir, fnH))
+				if len(validDirs) > 0:
+						return path.dirname(validDirs[0])
+		return ''
+
+
+def versionPackage(package):
+		"""Return the version of the package if found, else return False"""
+		str = []
+		if runJob('{} --version'.format(package), showOutput=False, logOut=str):
+				if str[0].find('not found') != -1:
+						return str[0]
+		return ''
+
+
+def whereIsPackage(packageName):
+		programPath = distutils.spawn.find_executable(packageName)
+		if programPath:
+				programPath = path.realpath(programPath)
+				return path.dirname(programPath)
+		else:
+				return None
+
+
+def existPackage(packageName):
+		"""Return True if packageName exist, else False"""
+		path = pathPackage(packageName)
+		if path != '' and versionPackage(path) != '':
+				return True
+		return False
+
+
+def pathPackage(packageName):
+		path = []
+		runJob('which {}'.format(packageName), showOutput=False, logOut=path)
+		return path[0]
+
+
+def existPath(path):
+		"""Return True if path exist, else False"""
+		pass
+
+
+
 def versionToNumber(strVersion: str) -> float:
 	"""
 	### This function converts the version string into a version number that can be numerically compared.
@@ -215,3 +272,5 @@ def isScipionVersion():
 			return False
 	else:
 		return False
+
+
