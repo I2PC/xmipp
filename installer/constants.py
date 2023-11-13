@@ -62,18 +62,30 @@ MODE_GIT = 'git'
 MODE_TEST = 'test'
 MODE_VERSION = 'version'
 MODES = {
-	MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>\naddModel login modelPath\nlogin = user@server',
-	MODE_ALL: 'Default param. Runs config, and compileAndInstall.',
-	MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.',
-	MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
-	MODE_CLEAN_BIN: 'Removes all compiled binaries.',
-	MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries from src/xmipp/bin.',
-	MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
-	MODE_CONFIG: 'Generates config file based on system information.',
-	MODE_GET_MODELS: 'Download the DeepLearning Models at dir/models (./build/models by default).',
-	MODE_GIT: 'Runs the given git action for all source repositories.',
-	MODE_TEST: 'Runs a given test.',
-	MODE_VERSION: 'Prints important version information.'
+	'General': {
+		MODE_VERSION: 'Returns the version information. Add \'--short\' to print only the version number.',
+		MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
+		MODE_ALL: 'Default param. Runs config, and compileAndInstall.'
+	},
+	'Config': {
+		MODE_CONFIG: 'Generates config file based on system information.',
+		MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.'
+	},
+	'Downloads': {
+		MODE_GET_MODELS: 'Download the DeepLearning Models at dir/models (./build/models by default).'
+	},
+	'Clean': {
+		MODE_CLEAN_BIN: 'Removes all compiled binaries.',
+		MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries from src/xmipp/bin.',
+		MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).'
+	},
+	'Test': {
+		MODE_TEST: 'Runs a given test.'
+	},
+	'Developers': {
+		MODE_GIT: 'Runs the given git action for all source repositories.',
+		MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>\naddModel login modelPath\nlogin = user@server'
+	}
 }
 
 # Other variables

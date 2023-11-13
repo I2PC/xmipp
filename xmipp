@@ -25,6 +25,7 @@
 
 # General imports
 import argparse
+from typing import List
 
 # Installer imports
 from installer.constants import DEFAULT_JOBS, MODES, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
@@ -186,6 +187,25 @@ def runSelectedMode(args: argparse.Namespace):
 		# If method was none of the above, exit with error
 		showError(f"Mode \"{args.mode}\" not recognized. Run -h for usage help.")
 
+def getAllModes() -> List[str]:
+	"""
+	### Returns all the available execution modes.
+	
+	#### Returns:
+	(List[str]): List of all available modes.
+	"""
+	# Defining empty list to store modes
+	modes = []
+
+	# For each mode group, obtain mode names
+	for modeGroup in list(MODES.keys()):
+		for mode in list(MODES[modeGroup].keys()):
+			# Add mode to list
+			modes.append(mode)
+	
+	# Return full mode list
+	return modes
+
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
@@ -197,10 +217,10 @@ if __name__ == "__main__":
 		epilog=epilog,
 		formatter_class=argparse.RawDescriptionHelpFormatter
 	)
-
+	
 	# Adding params
 	# Main param is execution mode. Gets options from a dictionary in constants
-	parser.add_argument("mode", type=str, choices=list(MODES.keys()), nargs='?', default="all", help="Execution mode.")
+	parser.add_argument("mode", type=str, choices=getAllModes(), nargs='?', default="all", help="Execution mode.")
 	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}. Example: -j 4.")
 	args = parser.parse_args()
 
