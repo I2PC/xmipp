@@ -34,7 +34,7 @@
 
 PyTypeObject MDQueryType =
     {
-        PyObject_HEAD_INIT(nullptr)
+        PyObject_HEAD_INIT(NULL)
         "xmipp.MDQuery", /*tp_name*/
         sizeof(MDQueryObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
