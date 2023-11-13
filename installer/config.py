@@ -31,7 +31,8 @@ from os.path import isdir, join
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
-from .utils import red, runJob, versionToNumber, existPackage, versionPackage, whereIsPackage, findFileInDirList
+from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
+                    whereIsPackage, findFileInDirList, getINCDIRFLAG)
 
 def config():
     """check the config if exist else create it and check it"""
@@ -180,23 +181,183 @@ def checkMatlab(packagePath):
     return 1
 
 
+def getOPENCV(dictPackages):
+    cppProg = "#include <opencv2/core/core.hpp>\n"
+    cppProg += "int main(){}\n"
+    with open("xmipp_test_opencv.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
+        % (dictPackages['CXX']), ' -mtune=native -march=native -flto -std=c++17 -O3',
+        getINCDIRFLAG(), showCommand=False, showOutput=False):
+        dictPackages['OPENCV'] = False
+    else:
+        dictPackages['OPENCV'] = True
+        # Check version
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write('#include <opencv2/core/version.hpp>\n')
+            cppFile.write('#include <fstream>\n')
+            cppFile.write('int main()'
+                          '{std::ofstream fh;'
+                          ' fh.open("xmipp_test_opencv.txt");'
+                          ' fh << CV_MAJOR_VERSION << std::endl;'
+                          ' fh.close();'
+                          '}\n')
+        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
+                      % (dictPackages['CXX'], ' -mtune=native -march=native -flto -std=c++17 -O3',
+                         getINCDIRFLAG()), showCommand=False, showOutput=False):
+            openCV_Version = 2
+        else:
+            runJob("./xmipp_test_opencv", showCommand=False, showOutput=False)
+            f = open("xmipp_test_opencv.txt")
+            versionStr = f.readline()
+            f.close()
+            version = int(versionStr.split('.', 1)[0])
+            openCV_Version = version
+
+
+        # Check CUDA Support
+        cppProg = "#include <opencv2/core/version.hpp>\n"
+        if openCV_Version < 3:
+            cppProg += "#include <opencv2/core/cuda.hpp>\n"
+        else:
+            cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
+        cppProg += "int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+        if runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
+                  (dictPackages['CXX'], ' -mtune=native -march=native -flto -std=c++17 -O3',
+              getINCDIRFLAG()), showOutput=False, log=[], showCommand=False):
+            dictPackages["OPENCVSUPPORTSCUDA"] = True
+        else:
+            dictPackages["OPENCVSUPPORTSCUDA"] = False
+        print(green("OPENCV-%s detected %s CUDA support"
+                    % (version, 'with' if dictPackages["OPENCVSUPPORTSCUDA"] else 'without')))
+
+    runJob("rm -v xmipp_test_opencv*", showOutput=False, showCommand=False)
+
+
+def checkOPENCV(dictPackages):
+    log = []
+    cppProg = "#include <opencv2/core/core.hpp>\n"
+    cppProg += "int main(){}\n"
+    with open("xmipp_test_opencv.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
+                  % (dictPackages['CXX']),
+                  ' -mtune=native -march=native -flto -std=c++17 -O3',
+                  getINCDIRFLAG(), showCommand=False, showOutput=False, logErr=log):
+        print(red('OpenCV set as True but {}'.format(log)))
+        dictPackages['OPENCV'] = False
+
+    if dictPackages['OPENCVSUPPORTSCUDA'] == True:
+        # Check version
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write('#include <opencv2/core/version.hpp>\n')
+            cppFile.write('#include <fstream>\n')
+            cppFile.write('int main()'
+                          '{std::ofstream fh;'
+                          ' fh.open("xmipp_test_opencv.txt");'
+                          ' fh << CV_MAJOR_VERSION << std::endl;'
+                          ' fh.close();'
+                          '}\n')
+        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
+                      % (dictPackages['CXX'],
+                         ' -mtune=native -march=native -flto -std=c++17 -O3',
+                         getINCDIRFLAG()), showCommand=False,
+                      showOutput=False):
+            openCV_Version = 2
+        else:
+            runJob("./xmipp_test_opencv", showCommand=False, showOutput=False)
+            f = open("xmipp_test_opencv.txt")
+            versionStr = f.readline()
+            f.close()
+            version = int(versionStr.split('.', 1)[0])
+            openCV_Version = version
+
+        # Check CUDA Support
+        cppProg = "#include <opencv2/core/version.hpp>\n"
+        if openCV_Version < 3:
+            cppProg += "#include <opencv2/core/cuda.hpp>\n"
+        else:
+            cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
+        cppProg += "int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+        log = []
+        if runJob(
+                "%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
+                (dictPackages['CXX'],
+                 ' -mtune=native -march=native -flto -std=c++17 -O3',
+                 getINCDIRFLAG()), showOutput=False, logErr=log,
+                showCommand=False):
+            print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
+            dictPackages['OPENCVSUPPORTSCUDA'] = False
+
+    return 1
+
+
 def getCUDA(dictPackages):
     pass
 
 def checkCUDA(packagePath):
     pass
 
-def getOPENCV(dictPackages):
-    pass
-
-def checkOPENCV(packagePath):
-    pass
 
 def getSTARPU(dictPackages):
-    pass
+    if whereIsPackage("starpu_sched_display"):
+        dictPackages["STARPU"] = "True"
+        starpuBinDir = whereIsPackage("starpu_sched_display")
+        dictPackages["STARPU_HOME"] = starpuBinDir.replace("/bin", "")
+        dictPackages["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
+        dictPackages["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
+        dictPackages["STARPU_LIBRARY"] = "libstarpu-1.3"
+    else:
+        dictPackages["STARPU"] = False
+        dictPackages["STARPU_HOME"] = False
+        dictPackages["STARPU_INCLUDE"] = False
+        dictPackages["STARPU_LIB"] = False
+        dictPackages["STARPU_LIBRARY"] = False
 
-def checkSTARPU(packagePath):
-    pass
+def checkSTARPU(dictPackages):
+    if dictPackages["CUDA"] != "True":
+        ans = False
+        print(red("CUDA must be enabled together with STARPU"))
+    if dictPackages["STARPU_INCLUDE"] == "" or not isdir(
+            dictPackages["STARPU_INCLUDE"]):
+        ans = False
+        print(red("Check the STARPU_INCLUDE directory: " +
+                  dictPackages["STARPU_INCLUDE"]))
+    if dictPackages["STARPU_LIB"] == "" or not isdir(
+            dictPackages["STARPU_LIB"]):
+        ans = False
+        print(red("Check the STARPU_LIB directory: " +
+                  dictPackages["STARPU_LIB"]))
+    if dictPackages["STARPU_LIBRARY"] == "":
+        ans = False
+        print(red("STARPU_LIBRARY must be specified (link library name)"))
+
+    if ans:
+        with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
+            cppFile.write("""
+            #include <starpu.h>
+            int dummy(){return 0;}
+            """)
+
+        if not runJob(
+                "%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o" %
+                (dictPackages["NVCC"], dictPackages["NVCC_CXXFLAGS"],
+                 dictPackages["INCDIRFLAGS"],
+                 dictPackages["STARPU_INCLUDE"],
+                 dictPackages["STARPU_LIB"],
+                 dictPackages["STARPU_LIBRARY"])):
+            print(red("Check STARPU_* settings"))
+        runJob("rm xmipp_starpu_config_test*")
+
+    return 1
+
+
 
 # def checkPYTHONINCFLAGS(incPath):
 #     includes = incPath.split(' ')

@@ -36,6 +36,8 @@ from .constants import SCONS_MINIMUM, MODES
 import glob
 import distutils.spawn
 from os import path
+from sysconfig import get_paths
+
 
 ####################### COLORS #######################
 def green(text: str) -> str:
@@ -239,7 +241,9 @@ def existPath(path):
 		"""Return True if path exist, else False"""
 		pass
 
-
+def getINCDIRFLAG():
+		get_paths()
+		return " -I%s" % "%s/include" % get_paths()['data']
 
 def versionToNumber(strVersion: str) -> float:
 	"""
