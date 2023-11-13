@@ -161,7 +161,7 @@ PyMethodDef Image_methods[] =
 
 /*Image Type */
 PyTypeObject ImageType = {
-                             PyObject_HEAD_INIT(NULL)
+                             PyObject_HEAD_INIT(0)
                              "xmipp.Image", /*tp_name*/
                              sizeof(ImageObject), /*tp_basicsize*/
                              0, /*tp_itemsize*/

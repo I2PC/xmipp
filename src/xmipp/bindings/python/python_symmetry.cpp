@@ -294,7 +294,7 @@ PyMethodDef SymList_methods[] =
 /*SymList Type */
 PyTypeObject SymListType =
 {
-    PyObject_HEAD_INIT(NULL)
+    PyObject_HEAD_INIT(0)
     "xmipp.SymList", /*tp_name*/
     sizeof(SymListObject), /*tp_basicsize*/
     0, /*tp_itemsize*/
