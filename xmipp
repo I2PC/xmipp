@@ -187,25 +187,6 @@ def runSelectedMode(args: argparse.Namespace):
 		# If method was none of the above, exit with error
 		showError(f"Mode \"{args.mode}\" not recognized. Run -h for usage help.")
 
-def getAllModes() -> List[str]:
-	"""
-	### Returns all the available execution modes.
-	
-	#### Returns:
-	(List[str]): List of all available modes.
-	"""
-	# Defining empty list to store modes
-	modes = []
-
-	# For each mode group, obtain mode names
-	for modeGroup in list(MODES.keys()):
-		for mode in list(MODES[modeGroup].keys()):
-			# Add mode to list
-			modes.append(mode)
-	
-	# Return full mode list
-	return modes
-
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """

@@ -29,10 +29,10 @@ Module containing useful functions used by the installation process.
 # General imports
 import subprocess, pkg_resources, sys
 from os import environ
-from typing import Union
+from typing import Union, List
 
 # Installer imports
-from .constants import SCONS_MINIMUM
+from .constants import SCONS_MINIMUM, MODES
 import glob
 import distutils.spawn
 from os import path
@@ -156,6 +156,35 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, lo
 	else:
 		# If there were no errors, return True
 		return True
+
+####################### EXECUTION MODE FUNCTIONS #######################
+def getModeGroups():
+	"""
+	### Returns all the group names of all the available execution modes.
+	
+	#### Returns:
+	(List[str]): List of all mode groups.
+	"""
+	return list(MODES.keys())
+
+def getAllModes() -> List[str]:
+	"""
+	### Returns all the available execution modes.
+	
+	#### Returns:
+	(List[str]): List of all available modes.
+	"""
+	# Defining empty list to store modes
+	modes = []
+
+	# For each mode group, obtain mode names
+	for modeGroup in getModeGroups():
+		for mode in list(MODES[modeGroup].keys()):
+			# Add mode to list
+			modes.append(mode)
+	
+	# Return full mode list
+	return modes
 
 ####################### VERSION FUNCTIONS #######################
 
