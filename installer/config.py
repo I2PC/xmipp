@@ -248,7 +248,7 @@ def checkOPENCV(dictPackages):
                   % (dictPackages['CXX']),
                   ' -mtune=native -march=native -flto -std=c++17 -O3',
                   getINCDIRFLAG(), showCommand=False, showOutput=False, logErr=log):
-        print(yellow('OpenCV set as True but {}'.format(log)))
+        print(red('OpenCV set as True but {}'.format(log)))
         dictPackages['OPENCV'] = False
 
     if dictPackages['OPENCVSUPPORTSCUDA'] == True:
@@ -292,7 +292,7 @@ def checkOPENCV(dictPackages):
                  ' -mtune=native -march=native -flto -std=c++17 -O3',
                  getINCDIRFLAG()), showOutput=False, logErr=log,
                 showCommand=False):
-            print(yellow('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
+            print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
             dictPackages['OPENCVSUPPORTSCUDA'] = False
 
     return 1
@@ -306,10 +306,58 @@ def checkCUDA(packagePath):
 
 
 def getSTARPU(dictPackages):
-    pass
+    if whereIsPackage("starpu_sched_display"):
+        dictPackages["STARPU"] = "True"
+        starpuBinDir = whereIsPackage("starpu_sched_display")
+        dictPackages["STARPU_HOME"] = starpuBinDir.replace("/bin", "")
+        dictPackages["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
+        dictPackages["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
+        dictPackages["STARPU_LIBRARY"] = "libstarpu-1.3"
+    else:
+        dictPackages["STARPU"] = False
+        dictPackages["STARPU_HOME"] = False
+        dictPackages["STARPU_INCLUDE"] = False
+        dictPackages["STARPU_LIB"] = False
+        dictPackages["STARPU_LIBRARY"] = False
 
-def checkSTARPU(packagePath):
-    pass
+def checkSTARPU(dictPackages):
+    if dictPackages["CUDA"] != "True":
+        ans = False
+        print(red("CUDA must be enabled together with STARPU"))
+    if dictPackages["STARPU_INCLUDE"] == "" or not isdir(
+            dictPackages["STARPU_INCLUDE"]):
+        ans = False
+        print(red("Check the STARPU_INCLUDE directory: " +
+                  dictPackages["STARPU_INCLUDE"]))
+    if dictPackages["STARPU_LIB"] == "" or not isdir(
+            dictPackages["STARPU_LIB"]):
+        ans = False
+        print(red("Check the STARPU_LIB directory: " +
+                  dictPackages["STARPU_LIB"]))
+    if dictPackages["STARPU_LIBRARY"] == "":
+        ans = False
+        print(red("STARPU_LIBRARY must be specified (link library name)"))
+
+    if ans:
+        with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
+            cppFile.write("""
+            #include <starpu.h>
+            int dummy(){return 0;}
+            """)
+
+        if not runJob(
+                "%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o" %
+                (dictPackages["NVCC"], dictPackages["NVCC_CXXFLAGS"],
+                 dictPackages["INCDIRFLAGS"],
+                 dictPackages["STARPU_INCLUDE"],
+                 dictPackages["STARPU_LIB"],
+                 dictPackages["STARPU_LIBRARY"])):
+            print(red("Check STARPU_* settings"))
+        runJob("rm xmipp_starpu_config_test*")
+
+    return 1
+
+
 
 # def checkPYTHONINCFLAGS(incPath):
 #     includes = incPath.split(' ')
