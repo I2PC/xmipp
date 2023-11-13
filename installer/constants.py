@@ -73,7 +73,7 @@ MODES = {
 	MODE_GET_MODELS: 'Download the DeepLearning Models at dir/models (./build/models by default).',
 	MODE_GIT: 'Runs the given git action for all source repositories.',
 	MODE_TEST: 'Runs a given test.',
-	MODE_VERSION: 'Prints important version information.'
+	MODE_VERSION: 'Returns the version information. Add \'--short\' to print only the version number.'
 }
 
 # Other variables
