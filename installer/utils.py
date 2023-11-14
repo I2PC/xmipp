@@ -208,10 +208,12 @@ def findFileInDirList(fnH, dirlist):
 def versionPackage(package):
 		"""Return the version of the package if found, else return False"""
 		str = []
-		if runJob('{} --version'.format(package), showOutput=False, logOut=str):
-				if str[0].find('not found') != -1:
-						return str[0]
-		return ''
+		cmd = '{} --version'.format(package)
+		if runJob(cmd, showOutput=False, logOut=str, showCommand=False):
+				for line in str:
+						if line.find('not found') != -1:
+								return ''
+		return str[0]
 
 
 def whereIsPackage(packageName):
@@ -233,8 +235,10 @@ def existPackage(packageName):
 
 def pathPackage(packageName):
 		path = []
-		runJob('which {}'.format(packageName), showOutput=False, logOut=path)
-		return path[0]
+		runJob('which {}'.format(packageName), showCommand=False,
+					 showOutput=False, logOut=path)
+		path = path[0].replace('\n', '')
+		return path
 
 
 def existPath(path):

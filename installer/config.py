@@ -32,25 +32,32 @@ from os.path import isdir, join
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
 from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
-                    whereIsPackage, findFileInDirList, getINCDIRFLAG)
+                    whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage)
+from datetime import date
+
 
 def config():
     """check the config if exist else create it and check it"""
     if not existConfig():
         writeConfig(getSystemValues())
 
-    parseConfig()
-    checkConfig()
+    checkConfig(parseConfig())
 
 
 def getSystemValues():
     """Collect all the required package details of the system"""
     dictPackages = {}
-
     getCC(dictPackages)
+    getCXX(dictPackages)
+    getMPI(dictPackages)
+    getJava(dictPackages)
+    getMatlab(dictPackages)
+    getCUDA(dictPackages)
+    getSTARPU(dictPackages)
+    print('configDic = {}'.format(dictPackages))
+    return dictPackages
 
-
-def checkConfig():
+def checkConfig(dictPackages):
     """Check if valid all the flags of the config file"""
     pass
 
@@ -62,13 +69,23 @@ def existConfig():
     else:
         return False
 
-def writeConfig():
+def writeConfig(dictPackages):
     """Write the config file"""
-    pass
+
+    with open(CONFIG_FILE, 'a') as f:
+        for key, value in dictPackages.items():
+            f.write('{}={}\n'.format(key, value))
+
+        f.write('\n')
+        f.write('Date written: {}'.format(date.today()))
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""
-    pass
+    dictPackages = {}
+    with open(CONFIG_FILE, 'r'):
+        pass
+    return dictPackages
+
 
 
 #PACKAGES
@@ -145,10 +162,9 @@ def getJava(dictPackages):
     javaProgramPath = whereIsPackage('javac')
     if not javaProgramPath:
         javaProgramPath = findFileInDirList('javac', ['/usr/lib/jvm/java-*/bin'])
-        if javaProgramPath:
-            javaHomeDir = javaProgramPath.replace("/jre/bin", "")
-            javaHomeDir = javaHomeDir.replace("/bin", "")
     if javaProgramPath:
+        javaHomeDir = javaProgramPath.replace("/jre/bin", "")
+        javaHomeDir = javaHomeDir.replace("/bin", "")
         dictPackages['JAVA_HOME'] = javaHomeDir
     else:
         dictPackages['JAVA_HOME'] = None
@@ -299,10 +315,16 @@ def checkOPENCV(dictPackages):
 
 
 def getCUDA(dictPackages):
-    pass
+    if not existPackage('nvcc'):
+        dictPackages['CUDA'] = False
+        dictPackages['CUDA_HOME'] = None
+        return 1
+    dictPackages['CUDA'] = True
+    dictPackages['CUDA_HOME'] = pathPackage('nvcc')
 
-def checkCUDA(packagePath):
-    pass
+def checkCUDA(dictPackages):
+    if existPackage(dictPackages['CUDA_HOME']):
+        strVersion = versionPackage('nvcc')
 
 
 def getSTARPU(dictPackages):

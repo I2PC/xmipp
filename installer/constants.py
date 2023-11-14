@@ -115,7 +115,7 @@ ERROR_CODE = {
   14: ['JAVA_HOME path with errors', 'bin/jar, bin/javac or include not found but required'],
   15: ['Matlab not found on system', 'Please install matlab or set MATLA as False on the xmipp.conf file'],
   16: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
-	17: ['', ''],
+	17: ['nvcc CUDA not found', 'Please install CUDA on your system'],
 	18: ['', ''],
 }
 
