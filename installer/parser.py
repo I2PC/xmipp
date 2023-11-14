@@ -29,11 +29,12 @@ This module contains a class that extends the capabilities of standard argparser
 # General imports
 import argparse
 from argparse import Namespace
+from typing import Dict
 
 # Installer imports
 from .utils import yellow, red
 
-####################### AUXILIARY FUNCTIONS #######################
+####################### AUX FUNCTIONS #######################
 def printHelpSeparator():
 	"""
 	### This method prints the line that separates sections inside the help message.
@@ -56,6 +57,27 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		"""
 		super().__init__(*args, **kwargs)
 		self.conditionalArgs = {}
+
+	####################### AUX FUNCTIONS #######################
+	def _updateModeIfPositionalArg(self, paramName: str):
+		"""
+		### This method updates the mode param if it receives a different positional param.
+		### This is done to ensure value integrity for both params.
+		
+		#### Params:
+		- argList (str): Name of the parameter.
+		"""
+		# Checking if argument is positional (optionals start with '-')
+		if not paramName.startswith('-'):
+			# Update mode param so it cannot be blank now.
+			# Otherwise, it will aquire the default value and the value
+			# supposed to be for mode will end up in the positional param, as
+			# that one cannot be blank and mode can
+			for action in self._actions:
+				if action.dest == 'mode':
+					action.nargs = None
+					action.default = None
+					break
 
 	def add_argument(self, *args, condition: str=None, **kwargs):
 		"""
@@ -119,6 +141,9 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 			argList = self.conditionalArgs[paramName]
 			try:
 				if eval(argList['condition']):
+					# If argument is positional, make mode param a requirement
+					self._updateModeIfPositionalArg(argList['args'][0])
+
 					# Adding extra param
 					self.add_argument(*argList['args'], **argList['kwargs'])
 
