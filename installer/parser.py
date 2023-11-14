@@ -29,7 +29,6 @@ This module contains a class that extends the capabilities of standard argparser
 # General imports
 import argparse
 from argparse import Namespace
-from typing import Dict
 
 # Installer imports
 from .utils import yellow, red
@@ -47,7 +46,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 	This class extends the capabilities of the standard argument parser to be able
 	to handle complex argument dependencies.
 	"""
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, mainParamName='', **kwargs):
 		"""
 		### This constructor adds the ability to keep track of argument enforcement conditions.
 
@@ -57,11 +56,12 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		"""
 		super().__init__(*args, **kwargs)
 		self.conditionalArgs = {}
+		self.mainParamName = mainParamName
 
 	####################### AUX FUNCTIONS #######################
-	def _updateModeIfPositionalArg(self, paramName: str):
+	def _updateMainParamIfPositionalArg(self, paramName: str):
 		"""
-		### This method updates the mode param if it receives a different positional param.
+		### This method updates the main param if it receives a different positional param.
 		### This is done to ensure value integrity for both params.
 		
 		#### Params:
@@ -74,7 +74,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 			# supposed to be for mode will end up in the positional param, as
 			# that one cannot be blank and mode can
 			for action in self._actions:
-				if action.dest == 'mode':
+				if action.dest == self.mainParamName:
 					action.nargs = None
 					action.default = None
 					break
@@ -142,7 +142,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 			try:
 				if eval(argList['condition']):
 					# If argument is positional, make mode param a requirement
-					self._updateModeIfPositionalArg(argList['args'][0])
+					self._updateMainParamIfPositionalArg(argList['args'][0])
 
 					# Adding extra param
 					self.add_argument(*argList['args'], **argList['kwargs'])

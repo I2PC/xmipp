@@ -195,7 +195,8 @@ if __name__ == "__main__":
 	parser = ComplexArgumentParser(
 		description="Run Xmipp's installer script",
 		epilog=epilog,
-		formatter_class=argparse.RawDescriptionHelpFormatter
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+		mainParamName='mode'
 	)
 
 	# Adding params
