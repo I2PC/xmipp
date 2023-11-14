@@ -29,7 +29,8 @@ import argparse
 # Installer imports
 from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
-	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE
+	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, \
+	GROUP_GENERAL, GROUP_CONFIG, GROUP_DOWNLOADS, GROUP_DEVELOPERS, GROUP_TEST
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
 from installer.parser import ComplexArgumentParser
 from installer.config import config
@@ -40,7 +41,7 @@ def modeAddModel(args: argparse.Namespace):
 	### Checks the params for execution mode "addModel" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -49,7 +50,7 @@ def modeCheckConfig(args: argparse.Namespace):
 	### Checks the params for execution mode "checkConfig" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -58,7 +59,7 @@ def modeCleanBin(args: argparse.Namespace):
 	### Checks the params for execution mode "cleanBin" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -67,7 +68,7 @@ def modeCleanAll(args: argparse.Namespace):
 	### Checks the params for execution mode "cleanAll" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Clean binaries
 	modeCleanBin(args)
@@ -80,7 +81,7 @@ def modeCleanDeprecated(args: argparse.Namespace):
 	### Checks the params for execution mode "cleanDeprecated" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -89,7 +90,7 @@ def modeCompileAndInstall(args: argparse.Namespace):
 	### Checks the params for execution mode "compileAndInstall" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -98,7 +99,7 @@ def modeConfig(args: argparse.Namespace):
 	### Checks the params for execution mode "config" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	config()
 
@@ -107,7 +108,7 @@ def modeGetModels(args: argparse.Namespace):
 	### Checks the params for execution mode "getModels" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -116,20 +117,24 @@ def modeGit(args: argparse.Namespace):
 	### Checks the params for execution mode "git" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
-def modeTest(args: argparse.Namespace):
+def modeTest(parser: ComplexArgumentParser, args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "test" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- parser (ComplexArgumentParser): Parser object used to parse the arguments.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Check if at least either one of the two params has been used
 	if not args.show and not args.testName:
-		showError(f"Error for mode {MODE_TEST}: Either --show or a test name need to be provided.\n{COMMON_USAGE_HELP_MESSAGE}")
+		parser._updateRequiredParam('testName')
+
+		# Reparse to show error
+		parser.parse_args()
 	
 	# TODO: Implement
 
@@ -138,7 +143,7 @@ def modeVersion(args: argparse.Namespace):
 	### Checks the params for execution mode "version" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
 
@@ -147,7 +152,7 @@ def modeAll(args: argparse.Namespace):
 	### Checks the params for execution mode "all" and then runs it.
 	
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Running config
 	modeConfig(args)
@@ -155,12 +160,13 @@ def modeAll(args: argparse.Namespace):
 	# Running compilation and installation
 	modeCompileAndInstall(args)
 
-def runSelectedMode(args: argparse.Namespace):
+def runSelectedMode(parser: ComplexArgumentParser, args: argparse.Namespace):
 	"""
 	### This function runs the selected execution mode.
 
 	#### Params:
-	args (Namespace): Command line arguments parsed by argparse library.
+	- parser (ComplexArgumentParser): Parser object used to parse the arguments.
+	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	if args.mode == MODE_ADD_MODEL:
 		modeAddModel(args)
@@ -183,7 +189,7 @@ def runSelectedMode(args: argparse.Namespace):
 	elif args.mode == MODE_GIT:
 		modeGit(args)
 	elif args.mode == MODE_TEST:
-		modeTest(args)
+		modeTest(parser, args)
 	elif args.mode == MODE_VERSION:
 		modeVersion(args)
 	else:
@@ -206,51 +212,50 @@ if __name__ == "__main__":
 	# Adding params
 	# Main param is execution mode. Gets options from a dictionary in constants file
 	parser.add_argument("mode", type=str, choices=getAllModes(), nargs='?', default="all", help="Execution mode.")
-	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}. Example: -j 4.")
 
 	# Arguments for mode 'addModel'
 	condition = f"mode==\"{MODE_ADD_MODEL}\""
-	parser.add_argument("login", type=str, condition=condition, help="Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.")
-	parser.add_argument("modelPath", type=str, condition=condition, help="Path to the model to upload to Nolan.")
+	parser.add_argument("login", type=str, condition=condition, help=MODES[GROUP_DEVELOPERS][MODE_ADD_MODEL]['args']['login'])
+	parser.add_argument("modelPath", type=str, condition=condition, help=MODES[GROUP_DEVELOPERS][MODE_ADD_MODEL]['args']['modelPath'])
 	
 	# Arguments for mode 'all' and 'compileAndInstall'
 	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
-	parser.add_argument("-br", "--branch", type=str, condition=condition, help="Branch for the source repositories.")
+	parser.add_argument("-j", "--jobs", type=int, condition=condition, help=MODES[GROUP_GENERAL][MODE_COMPILE_AND_INSTALL]['args']['-j'])
+	parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODES[GROUP_GENERAL][MODE_COMPILE_AND_INSTALL]['args']['-br'])
 
 	# Arguments for mode 'config' and 'all'
 	condition = f"mode==\"{MODE_CONFIG}\" or mode==\"{MODE_ALL}\""
-	parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help="If set, Xmipp will try to automatically find necessary libraries and compilers.")
+	parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help=MODES[GROUP_CONFIG][MODE_CONFIG]['args']['-noAsk'])
 
 	# Arguments for mode 'getModels'
 	condition = f"mode==\"{MODE_GET_MODELS}\""
-	defaultValue = './build/models'
-	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=defaultValue, help=f"Directory where the Deep Learning Models will be downloaded. Default is \"{defaultValue}\".")
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_MODELS_DIR, help=MODES[GROUP_DOWNLOADS][MODE_GET_MODELS]['args']['-dir'])
 
 	# Arguments for mode 'git'
 	condition = f"mode==\"{MODE_GIT}\""
-	parser.add_argument("command", type=str, condition=condition, help="Git command to run on all source repositories.")
+	parser.add_argument("command", type=str, condition=condition, help=MODES[GROUP_DEVELOPERS][MODE_GIT]['args']['command'])
 
 	# Arguments for mode 'test'
 	condition = f"mode==\"{MODE_TEST}\""
-	parser.add_argument("-show", "--show", action='store_true', condition=condition, help="If set, shows the tests available. If combined with a test name, greps that test name within the test list.")
-	parser.add_argument("testName", type=str, condition=condition, nargs='?', help="Test to run. If combined with --show, greps the test name from the test list.")
+	parser.add_argument("testName", type=str, condition=condition, nargs='?', help=MODES[GROUP_TEST][MODE_TEST]['args']['testName'])
+	parser.add_argument("-show", "--show", action='store_true', condition=condition, help=MODES[GROUP_TEST][MODE_TEST]['args']['-show'])
 
 	# Arguments for mode 'version'
 	condition = f"mode==\"{MODE_VERSION}\""
-	parser.add_argument("-short", "--short", action='store_true', condition=condition, help="If set, only version number is shown.")
+	parser.add_argument("-short", "--short", action='store_true', condition=condition, help=MODES[GROUP_GENERAL][MODE_VERSION]['args']['-short'])
 
 	# Arguments for mode 'all', 'compileAndInstall', and 'version'
 	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\" or mode==\"{MODE_VERSION}\""
-	defaultValue = './build'
-	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=defaultValue,  help=f"Directory where the xmipp will be installed. Default is \"{defaultValue}\".")
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_BUILD_DIR,  help=MODES[GROUP_GENERAL][MODE_COMPILE_AND_INSTALL]['args']['-dir'])
 
 	# Parse arguments
 	args = parser.parse_args()
 
 	# Set the number of jobs
-	args.jobs = args.jobs if args.jobs else DEFAULT_JOBS
+	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
+		args.jobs = args.jobs if args.jobs else DEFAULT_JOBS
 
 	print("ARGS:", args)
 
 	# Running installer in selected mode
-	runSelectedMode(args)
+	runSelectedMode(parser, args)

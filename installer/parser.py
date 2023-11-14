@@ -28,15 +28,64 @@ This module contains a class that extends the capabilities of standard argparser
 
 # General imports
 import argparse
-from argparse import Namespace
 from typing import List
 
+# Installer imports
+from .constants import MODES, MODE_ADD_MODEL, MODE_ALL, MODE_CHECK_CONFIG, MODE_CLEAN_ALL, MODE_CLEAN_BIN, \
+	MODE_CLEAN_DEPRECATED, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_GET_MODELS, MODE_GIT, MODE_TEST, MODE_VERSION
+
+# Defining file specific constants
+N_TABS_MODE_TEXT = 5
+TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
+
 ####################### AUX FUNCTIONS #######################
-def printHelpSeparator():
+def helpSeparator() -> str:
 	"""
-	### This method prints the line that separates sections inside the help message.
+	### This method returns the line that separates sections inside the help message.
+
+	### Returns:
+	(str): Line that separates sections inside the help message.
 	"""
-	print("\t----------------------------\n")
+	return "\t----------------------------\n"
+
+####################### HELP FUNCTIONS #######################
+def getModeArgsAndHelp(mode: str) -> str:
+	"""
+	### This method returns the args and help text for a given mode.
+
+	### Params:
+	mode (str): Mode to get help text for.
+
+	### Returns:
+	(str): Args and help text for given mode.
+	"""
+	if mode == MODE_ADD_MODEL:
+		return ''
+	elif mode == MODE_ALL:
+		return ''
+	elif mode == MODE_CHECK_CONFIG:
+		return ''
+	elif mode == MODE_CLEAN_ALL:
+		return ''
+	elif mode == MODE_CLEAN_BIN:
+		return ''
+	elif mode == MODE_CLEAN_DEPRECATED:
+		return ''
+	elif mode == MODE_COMPILE_AND_INSTALL:
+		return ''
+	elif mode == MODE_CONFIG:
+		return ''
+	elif mode == MODE_GET_MODELS:
+		return ''
+	elif mode == MODE_GIT:
+		return ''
+	elif mode == MODE_TEST:
+		return ''
+	elif mode == MODE_VERSION:
+		return ''
+	else:
+		# If mode was not recognized, return an empty string
+		return ''
 
 ####################### PARSER CLASS #######################
 class ComplexArgumentParser(argparse.ArgumentParser):
@@ -58,7 +107,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		self.mainParamName = mainParamName
 
 	####################### AUX PRIVATE FUNCTIONS #######################
-	def _getArgsWithMetCondition(self, knownArgs: Namespace) -> List[str]:
+	def _getArgsWithMetCondition(self, knownArgs: argparse.Namespace) -> List[str]:
 		"""
 		### This method returns a list containing all the conditional param names that meet their condition.
 		
@@ -93,13 +142,27 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 
 		return metParamNames
 
+	def _updateRequiredParam(self, paramName: str):
+		"""
+		### This method updates the given param to make it a requirement if it wasn't already.
+		
+		#### Params:
+		- paramName (str): Name of the parameter.
+		"""
+		for action in self._actions:
+			if action.dest == paramName:
+				action.nargs = None
+				action.default = None
+				action.required = True
+				break
+		
 	def _updateMainParamIfPositionalArg(self, paramName: str):
 		"""
 		### This method updates the main param if it receives a different positional param.
 		### This is done to ensure value integrity for both params.
 		
 		#### Params:
-		- argList (str): Name of the parameter.
+		- paramName (str): Name of the parameter.
 		"""
 		# Checking if argument is positional (optionals start with '-')
 		if self.mainParamName is not None and not paramName.startswith('-'):
@@ -107,11 +170,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 			# Otherwise, it will aquire the default value and the value
 			# supposed to be for mode will end up in the positional param, as
 			# that one cannot be blank and mode can
-			for action in self._actions:
-				if action.dest == self.mainParamName:
-					action.nargs = None
-					action.default = None
-					break
+			self._updateRequiredParam(self.mainParamName)
 
 	####################### OVERRIDED PUBLIC FUNCTIONS #######################
 	def add_argument(self, *args, condition: str=None, **kwargs):
@@ -136,7 +195,17 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		"""
 		### This method prints the help message of the argument parser.
 		"""
-		customMessage = """HELP MESSAGE WIP."""
+		# Base message
+		helpMessage = self.description + '\n\nUsage: xmipp [options]\n'
+
+		# Add every section
+		for section in list(MODES.keys()):
+			# Adding section separator and section name
+			helpMessage += helpSeparator() + f"\t{section}\n\n"
+
+			# Adding help text for every mode in each section
+			for mode in list(MODES[section].keys()):
+				helpMessage += f"\t{mode} {1}\n"
 
 		#for dest, condition in self.argumentConditions.items():
 		#	# Fetch the argument
@@ -148,9 +217,11 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		#	# Add the argument and its condition to the help message
 		#	customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
 
-		print(customMessage)
+		# Adding epilog and printing
+		helpMessage += '\n' + self.epilog
+		print(helpMessage)
 
-	def parse_args(self, *args, **kwargs) -> Namespace:
+	def parse_args(self, *args, **kwargs) -> argparse.Namespace:
 		"""
 		### This method parses the introduced args, only enforcing the ones that fulfill their condition.
 		
