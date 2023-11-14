@@ -86,12 +86,15 @@ MODE_GIT = 'git'
 MODE_TEST = 'test'
 MODE_VERSION = 'version'
 
+# Group list
 GROUP_GENERAL = 'General'
 GROUP_CONFIG = 'Config'
 GROUP_DOWNLOADS = 'Downloads'
 GROUP_CLEAN = 'Clean'
 GROUP_TEST = 'Test'
 GROUP_DEVELOPERS = 'Developers'
+
+# Modes with help message
 MODES = {
 	GROUP_GENERAL: {
 		MODE_VERSION: 'Returns the version information. Add \'--short\' to print only the version number.',
@@ -119,7 +122,7 @@ MODES = {
 	}
 }
 
-# Arguments of each mode, sorted by group
+# Arguments of each mode, sorted by group, with their respective help message
 MODE_ARGS = {
 	MODE_VERSION: {
 		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
