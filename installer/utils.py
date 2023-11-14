@@ -32,7 +32,7 @@ from os import environ
 from typing import Union, List
 
 # Installer imports
-from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC
+from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC, TAB_SIZE
 import glob
 import distutils.spawn
 from os import path
@@ -101,6 +101,18 @@ def bold(text: str) -> str:
 	return "\033[1m" + text + "\033[0m"
 
 ####################### GENERAL FUNCTIONS #######################
+def getFormattingTabs(text: str) -> str:
+	"""
+	### This method returns the given text, formatted to expand tabs into a fixed tab size.
+
+	### Params:
+	- text (str): The text to be formatted.
+
+	### Returns:
+	(str): Formatted text.
+	"""
+	return text.expandtabs(TAB_SIZE)
+
 def showError(errorMsg: str, retCode: int=1):
 	"""
 	### This function prints an error message and exits with the given return code.
