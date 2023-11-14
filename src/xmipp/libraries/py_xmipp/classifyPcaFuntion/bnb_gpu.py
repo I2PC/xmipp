@@ -188,6 +188,44 @@ class BnBgpu:
         return(matches)
     
     
+    def match_batch_correlation(self, batchExp, batchRef, initBatch, matches, rot, nShift):
+        
+        nExp = batchExp[0].size(dim=0) 
+        nShift = torch.tensor(nShift, device=self.cuda)
+                                  
+        for n in range(self.nBand):
+            #L2            
+            # batchRef[n] = torch.nn.functional.normalize(batchRef[n], dim=1)
+            # batchExp[n] = torch.nn.functional.normalize(batchExp[n], dim=1)
+            # score = torch.matmul(batchRef[n], batchExp[n].conj().t())
+            
+                        #L2
+            batchRef = torch.nn.functional.normalize(batchRef[n], dim=1)
+            batchExp = torch.nn.functional.normalize(batchExp[n], dim=1)
+            # batchRef = batch1_norm.t()
+            # batchExp = batch2_norm.t()  
+            score = torch.mm(batchRef, batchExp.t()) / (batchRef.size(0) - 1)
+
+            # score = torch.mm(batchRef.t(), batchExp) / (batchRef.size(1) )
+           
+        min_score, ref = torch.min(-score, 0)
+        del(score)
+        
+        sel = (torch.floor(ref/nShift)).type(torch.int64)
+        shift_location = (ref - (sel*nShift)).type(torch.int64)
+        rotation = torch.full((nExp,1), rot, device = self.cuda)
+        exp = torch.arange(initBatch, initBatch+nExp, 1, device = self.cuda).view(nExp,1)
+        
+        iter_matches = torch.cat((exp, sel.reshape(nExp,1), min_score.reshape(nExp,1), 
+                                  rotation, shift_location.reshape(nExp,1)), dim=1)  
+
+        cond = iter_matches[:, 2] < matches[initBatch:initBatch + nExp, 2]
+        matches[initBatch:initBatch + nExp] = torch.where(cond.view(nExp, 1), iter_matches, matches[initBatch:initBatch + nExp])
+        
+        # torch.cuda.empty_cache()        
+        return(matches)
+    
+    
     def batchExpToCpu(self, Timage, freqBn, coef, cvecs):        
 
         self.create_batchExp(Timage, freqBn, coef, cvecs)        
