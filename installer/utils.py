@@ -32,7 +32,7 @@ from os import environ
 from typing import Union, List
 
 # Installer imports
-from .constants import SCONS_MINIMUM, MODES
+from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC
 import glob
 import distutils.spawn
 from os import path
@@ -310,4 +310,13 @@ def isScipionVersion():
 	else:
 		return False
 
+
+def get_compatible_GCC(nvcc_version):
+		# https://gist.github.com/ax3l/9489132
+		for key, value in CUDA_GCC_COMPATIBILITY.items():
+				list = key.split('-')
+				if float(nvcc_version) >= float(list[0]) and \
+								float(nvcc_version) <= float(list[1]):
+						return value, True
+		return vGCC, False
 

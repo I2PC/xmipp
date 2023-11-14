@@ -32,8 +32,9 @@ from os.path import isdir, join
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
 from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
-                    whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage)
-from datetime import date
+                    whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
+                    get_compatible_GCC)
+from datetime import datetime
 
 
 def config():
@@ -77,7 +78,7 @@ def writeConfig(dictPackages):
             f.write('{}={}\n'.format(key, value))
 
         f.write('\n')
-        f.write('Date written: {}'.format(date.today()))
+        f.write('Date written: {} '.format(datetime.today()))
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""
@@ -318,9 +319,32 @@ def getCUDA(dictPackages):
     if not existPackage('nvcc'):
         dictPackages['CUDA'] = False
         dictPackages['CUDA_HOME'] = None
+        dictPackages['CUDA_CXX'] = None
         return 1
-    dictPackages['CUDA'] = True
-    dictPackages['CUDA_HOME'] = pathPackage('nvcc')
+    else:
+        nvcc_version = versionPackage('nvcc')
+        if nvcc_version.find('release') != -1:
+            idx = nvcc_version.find('release ')
+            nvcc_version = nvcc_version[idx + len('release '):
+                                        idx + nvcc_version[idx:].find(',')]
+
+        gxx_version = versionPackage(dictPackages['CXX'])
+        idx = gxx_version.find('\n')
+        idx2 = gxx_version[:idx].rfind(' ')
+        gxx_version = gxx_version[idx2: idx]
+        gxx_version = gxx_version.replace(' ', '')
+        idx = gxx_version.rfind('.')
+        gxx_version = gxx_version[:idx]
+        candidates, resultBool = get_compatible_GCC(nvcc_version)
+        if resultBool == True and gxx_version in candidates:
+                dictPackages['CUDA'] = True
+                dictPackages['CUDA_HOME'] = pathPackage('nvcc')
+                dictPackages['CUDA_CXX'] = dictPackages['CXX']
+        else:
+            dictPackages['CUDA'] = False
+            dictPackages['CUDA_HOME'] = None
+            dictPackages['CUDA_CXX'] = None
+
 
 def checkCUDA(dictPackages):
     if existPackage(dictPackages['CUDA_HOME']):
