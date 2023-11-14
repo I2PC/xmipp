@@ -127,7 +127,7 @@ def modeTest(args: argparse.Namespace):
 	#### Params:
 	args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Check if at least either test or --show have been used
+	# Check if at least either one of the two params has been used
 	if not args.show and not args.testName:
 		showError(f"Error for mode {MODE_TEST}: Either --show or a test name need to be provided.\n{COMMON_USAGE_HELP_MESSAGE}")
 	
