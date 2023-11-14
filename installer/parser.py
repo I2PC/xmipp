@@ -31,9 +31,6 @@ import argparse
 from argparse import Namespace
 from typing import List
 
-# Installer imports
-from .utils import yellow, red
-
 ####################### AUX FUNCTIONS #######################
 def printHelpSeparator():
 	"""
@@ -169,8 +166,8 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 
 		# Iterate until dictionary is empty or max number of iterations has been reached (max = nParams)
 		# Max iterations is number of params because, worst case, only one new param fulfills its condition
-		# for every iteration in case every conditional param deppends on another conditional param except for
-		# one of them, (at least one needs to deppend on a fixed param)
+		# for every iteration, in case every conditional param deppends on another conditional param except for
+		# one of them (at least one needs to deppend on a fixed param).
 		for _ in range(nParams):
 			# If dictionary is empty, stop iterating
 			if not self.conditionalArgs:
