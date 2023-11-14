@@ -46,12 +46,13 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 	This class extends the capabilities of the standard argument parser to be able
 	to handle complex argument dependencies.
 	"""
-	def __init__(self, *args, mainParamName='', **kwargs):
+	def __init__(self, *args, mainParamName=None, **kwargs):
 		"""
 		### This constructor adds the ability to keep track of argument enforcement conditions.
 
 		#### Params:
-		- *args, **kwargs: Positional arguments passed to the parent class method.
+		- *args: Positional arguments passed to the parent class method.
+		- mainParamName (str): Name of the main param.
 		- **kwargs: Keyword arguments passed to the parent class method.
 		"""
 		super().__init__(*args, **kwargs)
@@ -68,7 +69,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		- argList (str): Name of the parameter.
 		"""
 		# Checking if argument is positional (optionals start with '-')
-		if not paramName.startswith('-'):
+		if self.mainParamName is not None and not paramName.startswith('-'):
 			# Update mode param so it cannot be blank now.
 			# Otherwise, it will aquire the default value and the value
 			# supposed to be for mode will end up in the positional param, as
