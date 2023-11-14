@@ -91,6 +91,7 @@ MODES = {
 # Other variables
 VALUE_UNKNOWN = 'Unkown'
 DEFAULT_JOBS = 8
+COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 
 # Files names
 CONFIG_FILE = 'xmipp.conf'

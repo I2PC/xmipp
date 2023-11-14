@@ -29,6 +29,7 @@ This module contains a class that extends the capabilities of standard argparser
 # General imports
 import argparse
 from argparse import Namespace
+from typing import List
 
 # Installer imports
 from .utils import yellow, red
@@ -59,7 +60,42 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		self.conditionalArgs = {}
 		self.mainParamName = mainParamName
 
-	####################### AUX FUNCTIONS #######################
+	####################### AUX PRIVATE FUNCTIONS #######################
+	def _getArgsWithMetCondition(self, knownArgs: Namespace) -> List[str]:
+		"""
+		### This method returns a list containing all the conditional param names that meet their condition.
+		
+		#### Params:
+		- knownArgs (Namespace): Namespace object composed of the already parsed and recognized arguments.
+
+		#### Returns:
+		(List[str]): List containing all the param names for all the params whose condition is fulfilled.
+		"""
+		# Initialize empty list to store param names
+		metParamNames = []
+
+		# Only makes sense processing if there are any known args
+		if not knownArgs:
+			return metParamNames
+
+		# Storing all param variables into local variables to allow eval comparison
+		for variable, value in knownArgs._get_kwargs():
+			locals()[variable] = value
+
+		# Iterate conditional params getting every param with a fulfilled condition
+		for paramName, argList in list(self.conditionalArgs.items()):
+			try:
+				# Checking if condition is met. Try-except is needed for params that might
+				# deppend on another conditional param. When evaluating, they will try to 
+				# compare with variables not yet defined.
+				if eval(argList['condition']):
+					# If param's condition is met, add to list
+					metParamNames.append(paramName)
+			except NameError:
+				continue
+
+		return metParamNames
+
 	def _updateMainParamIfPositionalArg(self, paramName: str):
 		"""
 		### This method updates the main param if it receives a different positional param.
@@ -80,6 +116,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 					action.default = None
 					break
 
+	####################### OVERRIDED PUBLIC FUNCTIONS #######################
 	def add_argument(self, *args, condition: str=None, **kwargs):
 		"""
 		### This method adds the given parameter to the argument list, while
@@ -127,38 +164,36 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		#### Returns:
 		- (Namespace): The Namespace object containing the parsed arguments.
 		"""
-		# Keep iterating until conditional args dictionary is empty
-		while self.conditionalArgs:
+		# Obtaining conditional args dicitionary's number of elements
+		nParams = len(self.conditionalArgs)
+
+		# Iterate until dictionary is empty or max number of iterations has been reached (max = nParams)
+		# Max iterations is number of params because, worst case, only one new param fulfills its condition
+		# for every iteration in case every conditional param deppends on another conditional param except for
+		# one of them, (at least one needs to deppend on a fixed param)
+		for _ in range(nParams):
+			# If dictionary is empty, stop iterating
+			if not self.conditionalArgs:
+				break
+
 			# Parsing known args
 			knownArgs = self.parse_known_args(*args, **kwargs)[0]
 
-			# Storing all param variables into local variables to allow eval comparison
-			if knownArgs:
-				for variable, value in knownArgs._get_kwargs():
-					locals()[variable] = value
+			# Obtaining all params that meet their condition
+			metParamNames = self._getArgsWithMetCondition(knownArgs)
 
-			# Checking if current conditional arg must be added as an extra param due to the values of known args
-			paramName = list(self.conditionalArgs.keys())[0]
-			argList = self.conditionalArgs[paramName]
-			try:
-				if eval(argList['condition']):
-					# If argument is positional, make mode param a requirement
-					self._updateMainParamIfPositionalArg(argList['args'][0])
+			# Adding all the params meeting their conditions and removing them from the dictionary
+			for paramName in metParamNames:
+				argList = self.conditionalArgs[paramName]
 
-					# Adding extra param
-					self.add_argument(*argList['args'], **argList['kwargs'])
+				# If argument is positional, make mode param a requirement
+				self._updateMainParamIfPositionalArg(argList['args'][0])
 
-				# Removing conditional param from dictionary and reparsing
-				# This is done to support conditions between conditional args
-				# For example, conditional arg1 might deppend on fixed arg, but conditional arg2 might
-				# deppend on value of conditional arg1, so, to be able to check arg2's condition, arg1 must have been parsed before 
+				# Adding extra param
+				self.add_argument(*argList['args'], **argList['kwargs'])
+
+				# Removing param from dictionary
 				self.conditionalArgs.pop(paramName)
-			except NameError as err:
-				warningStr = yellow("Did you define a conditional variable that deppends on a different conditional variable?\n"
-												"If so, the one that does not have such dependency must be defined before the one deppending on it.\n"
-												"Example: We have 3 args: fixed, cond1, cond2.\n"
-												"\tcond1 deppends on fixed, and cond2 deppends on cond1. Therefore, cond1 needs to be defined before cond2.")
-				raise NameError(f"{red('Error with condition ' + argList['condition'] + ': ' + str(err))}\n{warningStr}")
 
 		# Parse args
 		return super().parse_args(*args, **kwargs)

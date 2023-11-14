@@ -29,7 +29,7 @@ import argparse
 # Installer imports
 from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
-	MODE_TEST, MODE_GIT, MODE_ADD_MODEL
+	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
 from installer.parser import ComplexArgumentParser
 from installer.config import config
@@ -127,6 +127,10 @@ def modeTest(args: argparse.Namespace):
 	#### Params:
 	args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	# Check if at least either test or --show have been used
+	if not args.show and not args.testName:
+		showError(f"Error for mode {MODE_TEST}: Either --show or a test name need to be provided.\n{COMMON_USAGE_HELP_MESSAGE}")
+	
 	# TODO: Implement
 
 def modeVersion(args: argparse.Namespace):
@@ -184,7 +188,7 @@ def runSelectedMode(args: argparse.Namespace):
 		modeVersion(args)
 	else:
 		# If method was none of the above, exit with error
-		showError(f"Mode \"{args.mode}\" not recognized. Run -h for usage help.")
+		showError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
 
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
@@ -200,7 +204,7 @@ if __name__ == "__main__":
 	)
 
 	# Adding params
-	# Main param is execution mode. Gets options from a dictionary in constants
+	# Main param is execution mode. Gets options from a dictionary in constants file
 	parser.add_argument("mode", type=str, choices=getAllModes(), nargs='?', default="all", help="Execution mode.")
 	parser.add_argument("-j", "--jobs", type=int, help=f"Number of jobs. Defaults to {DEFAULT_JOBS}. Example: -j 4.")
 
@@ -229,7 +233,7 @@ if __name__ == "__main__":
 	# Arguments for mode 'test'
 	condition = f"mode==\"{MODE_TEST}\""
 	parser.add_argument("-show", "--show", action='store_true', condition=condition, help="If set, shows the tests available. If combined with a test name, greps that test name within the test list.")
-	parser.add_argument("testName", type=str, condition=condition, help="Test to run. If combined with --show, greps the test name from the test list.")
+	parser.add_argument("testName", type=str, condition=condition, nargs='?', help="Test to run. If combined with --show, greps the test name from the test list.")
 
 	# Arguments for mode 'version'
 	condition = f"mode==\"{MODE_VERSION}\""
