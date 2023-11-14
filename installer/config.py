@@ -32,25 +32,32 @@ from os.path import isdir, join
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
 from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
-                    whereIsPackage, findFileInDirList, getINCDIRFLAG)
+                    whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
+                    get_compatible_GCC)
+from datetime import datetime
+
 
 def config():
     """check the config if exist else create it and check it"""
     if not existConfig():
         writeConfig(getSystemValues())
 
-    parseConfig()
-    checkConfig()
+    checkConfig(parseConfig())
 
 
 def getSystemValues():
     """Collect all the required package details of the system"""
     dictPackages = {}
-
     getCC(dictPackages)
+    getCXX(dictPackages)
+    getMPI(dictPackages)
+    getJava(dictPackages)
+    getCUDA(dictPackages)
+    getSTARPU(dictPackages)
+    getMatlab(dictPackages)
+    return dictPackages
 
-
-def checkConfig():
+def checkConfig(dictPackages):
     """Check if valid all the flags of the config file"""
     pass
 
@@ -62,13 +69,23 @@ def existConfig():
     else:
         return False
 
-def writeConfig():
+def writeConfig(dictPackages):
     """Write the config file"""
-    pass
+
+    with open(CONFIG_FILE, 'a') as f:
+        for key, value in dictPackages.items():
+            f.write('{}={}\n'.format(key, value))
+
+        f.write('\n')
+        f.write('Date written: {} '.format(datetime.today()))
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""
-    pass
+    dictPackages = {}
+    with open(CONFIG_FILE, 'r'):
+        pass
+    return dictPackages
+
 
 
 #PACKAGES
@@ -76,7 +93,7 @@ def getCC(dictPackages):
     if existPackage('gcc'):
         dictPackages['CC'] = 'gcc'
     else:
-        dictPackages['CC'] = None
+        dictPackages['CC'] = ''
 
 
 def checkCC(packagePath):
@@ -97,7 +114,7 @@ def getCXX(dictPackages):
     if existPackage('g++'):
         dictPackages['CXX'] = 'g++'
     else:
-        dictPackages['CXX'] = None
+        dictPackages['CXX'] = ''
 
 def checkCXX(packagePath):
     if existPackage(packagePath):
@@ -117,15 +134,15 @@ def getMPI(dictPackages):
     if existPackage('mpicc'):
         dictPackages['MPI_CC'] = 'mpicc'
     else:
-        dictPackages['MPI_CC'] = None
+        dictPackages['MPI_CC'] = ''
     if existPackage('mpicxx'):
         dictPackages['MPI_CXX'] = 'mpicxx'
     else:
-        dictPackages['MPI_CXX'] = None
+        dictPackages['MPI_CXX'] = ''
     if existPackage('mpirun'):
         dictPackages['MPI_RUN'] = 'mpirun'
     else:
-        dictPackages['MPI_RUN'] = None
+        dictPackages['MPI_RUN'] = ''
 
 def checkMPI(packagePath):
     if existPackage(packagePath):
@@ -145,13 +162,12 @@ def getJava(dictPackages):
     javaProgramPath = whereIsPackage('javac')
     if not javaProgramPath:
         javaProgramPath = findFileInDirList('javac', ['/usr/lib/jvm/java-*/bin'])
-        if javaProgramPath:
-            javaHomeDir = javaProgramPath.replace("/jre/bin", "")
-            javaHomeDir = javaHomeDir.replace("/bin", "")
     if javaProgramPath:
+        javaHomeDir = javaProgramPath.replace("/jre/bin", "")
+        javaHomeDir = javaHomeDir.replace("/bin", "")
         dictPackages['JAVA_HOME'] = javaHomeDir
     else:
-        dictPackages['JAVA_HOME'] = None
+        dictPackages['JAVA_HOME'] = ''
 
 
 def checkJava(packagePath):
@@ -167,11 +183,11 @@ def checkJava(packagePath):
 def getMatlab(dictPackages):
     matlabProgramPath = whereIsPackage('matlab')
     if matlabProgramPath:
-        dictPackages['MATLAB'] = 'True'
+        dictPackages['MATLAB'] = True
         dictPackages['MATLAB_HOME'] = matlabProgramPath.replace("/bin", "")
     else:
-        dictPackages['MATLAB'] = 'False'
-        dictPackages['MATLAB_HOME'] = None
+        dictPackages['MATLAB'] = False
+        dictPackages['MATLAB_HOME'] = ''
 
 def checkMatlab(packagePath):
     if not existPackage('matlab'):
@@ -230,7 +246,7 @@ def getOPENCV(dictPackages):
               getINCDIRFLAG()), showOutput=False, log=[], showCommand=False):
             dictPackages["OPENCVSUPPORTSCUDA"] = True
         else:
-            dictPackages["OPENCVSUPPORTSCUDA"] = False
+            dictPackages["OPENCVSUPPORTSCUDA"] = ''
         print(green("OPENCV-%s detected %s CUDA support"
                     % (version, 'with' if dictPackages["OPENCVSUPPORTSCUDA"] else 'without')))
 
@@ -249,7 +265,7 @@ def checkOPENCV(dictPackages):
                   ' -mtune=native -march=native -flto -std=c++17 -O3',
                   getINCDIRFLAG(), showCommand=False, showOutput=False, logErr=log):
         print(red('OpenCV set as True but {}'.format(log)))
-        dictPackages['OPENCV'] = False
+        dictPackages['OPENCV'] = ''
 
     if dictPackages['OPENCVSUPPORTSCUDA'] == True:
         # Check version
@@ -293,21 +309,50 @@ def checkOPENCV(dictPackages):
                  getINCDIRFLAG()), showOutput=False, logErr=log,
                 showCommand=False):
             print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
-            dictPackages['OPENCVSUPPORTSCUDA'] = False
+            dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
     return 1
 
 
 def getCUDA(dictPackages):
-    pass
+    if not existPackage('nvcc'):
+        dictPackages['CUDA'] = False
+        dictPackages['CUDA_HOME'] = ''
+        dictPackages['CUDA_CXX'] = ''
+        return 1
+    else:
+        nvcc_version = versionPackage('nvcc')
+        if nvcc_version.find('release') != -1:
+            idx = nvcc_version.find('release ')
+            nvcc_version = nvcc_version[idx + len('release '):
+                                        idx + nvcc_version[idx:].find(',')]
 
-def checkCUDA(packagePath):
-    pass
+        gxx_version = versionPackage(dictPackages['CXX'])
+        idx = gxx_version.find('\n')
+        idx2 = gxx_version[:idx].rfind(' ')
+        gxx_version = gxx_version[idx2: idx]
+        gxx_version = gxx_version.replace(' ', '')
+        idx = gxx_version.rfind('.')
+        gxx_version = gxx_version[:idx]
+        candidates, resultBool = get_compatible_GCC(nvcc_version)
+        if resultBool == True and gxx_version in candidates:
+                dictPackages['CUDA'] = True
+                dictPackages['CUDA_HOME'] = pathPackage('nvcc')
+                dictPackages['CUDA_CXX'] = dictPackages['CXX']
+        else:
+            dictPackages['CUDA'] = False
+            dictPackages['CUDA_HOME'] = ''
+            dictPackages['CUDA_CXX'] = ''
+
+
+def checkCUDA(dictPackages):
+    if existPackage(dictPackages['CUDA_HOME']):
+        strVersion = versionPackage('nvcc')
 
 
 def getSTARPU(dictPackages):
     if whereIsPackage("starpu_sched_display"):
-        dictPackages["STARPU"] = "True"
+        dictPackages["STARPU"] = True
         starpuBinDir = whereIsPackage("starpu_sched_display")
         dictPackages["STARPU_HOME"] = starpuBinDir.replace("/bin", "")
         dictPackages["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
@@ -315,10 +360,10 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_LIBRARY"] = "libstarpu-1.3"
     else:
         dictPackages["STARPU"] = False
-        dictPackages["STARPU_HOME"] = False
-        dictPackages["STARPU_INCLUDE"] = False
-        dictPackages["STARPU_LIB"] = False
-        dictPackages["STARPU_LIBRARY"] = False
+        dictPackages["STARPU_HOME"] = ''
+        dictPackages["STARPU_INCLUDE"] = ''
+        dictPackages["STARPU_LIB"] = ''
+        dictPackages["STARPU_LIBRARY"] = ''
 
 def checkSTARPU(dictPackages):
     if dictPackages["CUDA"] != "True":

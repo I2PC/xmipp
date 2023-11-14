@@ -32,7 +32,7 @@ from os import environ
 from typing import Union, List
 
 # Installer imports
-from .constants import SCONS_MINIMUM, MODES
+from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC
 import glob
 import distutils.spawn
 from os import path
@@ -208,10 +208,12 @@ def findFileInDirList(fnH, dirlist):
 def versionPackage(package):
 		"""Return the version of the package if found, else return False"""
 		str = []
-		if runJob('{} --version'.format(package), showOutput=False, logOut=str):
-				if str[0].find('not found') != -1:
-						return str[0]
-		return ''
+		cmd = '{} --version'.format(package)
+		if runJob(cmd, showOutput=False, logOut=str, showCommand=False):
+				for line in str:
+						if line.find('not found') != -1:
+								return ''
+		return str[0]
 
 
 def whereIsPackage(packageName):
@@ -233,8 +235,10 @@ def existPackage(packageName):
 
 def pathPackage(packageName):
 		path = []
-		runJob('which {}'.format(packageName), showOutput=False, logOut=path)
-		return path[0]
+		runJob('which {}'.format(packageName), showCommand=False,
+					 showOutput=False, logOut=path)
+		path = path[0].replace('\n', '')
+		return path
 
 
 def existPath(path):
@@ -306,4 +310,13 @@ def isScipionVersion():
 	else:
 		return False
 
+
+def get_compatible_GCC(nvcc_version):
+		# https://gist.github.com/ax3l/9489132
+		for key, value in CUDA_GCC_COMPATIBILITY.items():
+				list = key.split('-')
+				if float(nvcc_version) >= float(list[0]) and \
+								float(nvcc_version) <= float(list[1]):
+						return value, True
+		return vGCC, False
 
