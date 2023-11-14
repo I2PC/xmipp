@@ -94,88 +94,68 @@ GROUP_TEST = 'Test'
 GROUP_DEVELOPERS = 'Developers'
 MODES = {
 	GROUP_GENERAL: {
-		MODE_VERSION: {
-			'help': 'Returns the version information. Add \'--short\' to print only the version number.',
-			'args': {
-				'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
-				'-short': "If set, only version number is shown."
-			}
-		},
-		MODE_COMPILE_AND_INSTALL: {
-			'help': 'Compiles and installs Xmipp based on already obtained sources.',
-			'args': {
-				'-j': f"Number of jobs. Defaults to {DEFAULT_JOBS}.",
-				'-br': "Branch for the source repositories.",
-				'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
-			}
-		},
-		MODE_ALL: {
-			'help': 'Default param. Runs config, and compileAndInstall.',
-			'args': {
-				'-j': f"Number of jobs. Defaults to {DEFAULT_JOBS}.",
-				'-br': "Branch for the source repositories.",
-				'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
-				'-noAsk': "If set, Xmipp will try to automatically find necessary libraries and compilers."
-			}
-		}
+		MODE_VERSION: 'Returns the version information. Add \'--short\' to print only the version number.',
+		MODE_COMPILE_AND_INSTALL: 'Compiles and installs Xmipp based on already obtained sources.',
+		MODE_ALL: 'Default param. Runs config, and compileAndInstall.'
 	},
 	GROUP_CONFIG: {
-		MODE_CONFIG: {
-			'help': 'Generates config file based on system information.',
-			'args': {
-				'-noAsk': "If set, Xmipp will try to automatically find necessary libraries and compilers."
-			}
-		},
-		MODE_CHECK_CONFIG: {
-			'help': 'Cheks if the values in the config file are ok.',
-			'args': {}
-		}
+		MODE_CONFIG: 'Generates config file based on system information.',
+		MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.'
 	},
 	GROUP_DOWNLOADS: {
-		MODE_GET_MODELS: {
-			'help': f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).',
-			'args': {
-				'-dir': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
-			}
-		}
+		MODE_GET_MODELS: f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).'
 	},
 	GROUP_CLEAN: {
-		MODE_CLEAN_BIN: {
-			'help': 'Removes all compiled binaries.',
-			'args': {}
-		},
-		MODE_CLEAN_DEPRECATED: {
-			'help': 'Removes all deprecated binaries from src/xmipp/bin.',
-			'args': {}
-		},
-		MODE_CLEAN_ALL: {
-			'help': 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).',
-			'args': {}
-		}
+		MODE_CLEAN_BIN: 'Removes all compiled binaries.',
+		MODE_CLEAN_DEPRECATED: 'Removes all deprecated binaries from src/xmipp/bin.',
+		MODE_CLEAN_ALL: 'Removes all compiled binaries and sources, leaves the repository as if freshly cloned (without pulling).'
 	},
 	GROUP_TEST: {
-		MODE_TEST: {
-			'help': 'Runs a given test.',
-			'args': {
-				'testName': "Test to run. If combined with --show, greps the test name from the test list.",
-				'-show': "If set, shows the tests available. If combined with a test name, greps that test name within the test list."
-			}
-		}
+		MODE_TEST: 'Runs a given test.'
 	},
 	GROUP_DEVELOPERS: {
-		MODE_GIT: {
-			'help': 'Runs the given git action for all source repositories.',
-			'args': {
-				'command': "Git command to run on all source repositories."
-			}
-		},
-		MODE_ADD_MODEL: {
-			'help': 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>\naddModel login modelPath\nlogin = user@server',
-			'args': {
-				'login': "Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.",
-				'modelPath': "Path to the model to upload to Nolan."
-			}
-		}
+		MODE_GIT: 'Runs the given git action for all source repositories.',
+		MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>\naddModel login modelPath\nlogin = user@server'
+	}
+}
+
+# Arguments of each mode, sorted by group
+MODE_ARGS = {
+	MODE_VERSION: {
+		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
+		'-short': "If set, only version number is shown."
+	},
+	MODE_COMPILE_AND_INSTALL: {
+		'-j': f"Number of jobs. Defaults to {DEFAULT_JOBS}.",
+		'-br': "Branch for the source repositories.",
+		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
+	},
+	MODE_ALL: {
+		'-j': f"Number of jobs. Defaults to {DEFAULT_JOBS}.",
+		'-br': "Branch for the source repositories.",
+		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
+		'-noAsk': "If set, Xmipp will try to automatically find necessary libraries and compilers."
+	},
+	MODE_CONFIG: {
+		'-noAsk': "If set, Xmipp will try to automatically find necessary libraries and compilers."
+	},
+	MODE_CHECK_CONFIG: {},
+	MODE_GET_MODELS: {
+		'-dir': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
+	},
+	MODE_CLEAN_BIN: {},
+	MODE_CLEAN_DEPRECATED: {},
+	MODE_CLEAN_ALL: {},
+	MODE_TEST: {
+		'testName': "Test to run. If combined with --show, greps the test name from the test list.",
+		'-show': "If set, shows the tests available. If combined with a test name, greps that test name within the test list."
+	},
+	MODE_GIT: {
+		'command': "Git command to run on all source repositories."
+	},
+	MODE_ADD_MODEL: {
+		'login': "Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.",
+		'modelPath': "Path to the model to upload to Nolan."
 	}
 }
 

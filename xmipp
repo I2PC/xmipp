@@ -29,8 +29,7 @@ import argparse
 # Installer imports
 from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
-	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, \
-	GROUP_GENERAL, GROUP_CONFIG, GROUP_DOWNLOADS, GROUP_DEVELOPERS, GROUP_TEST
+	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, MODE_ARGS
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
 from installer.parser import ComplexArgumentParser
 from installer.config import config
@@ -215,38 +214,38 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'addModel'
 	condition = f"mode==\"{MODE_ADD_MODEL}\""
-	parser.add_argument("login", type=str, condition=condition, help=MODES[GROUP_DEVELOPERS][MODE_ADD_MODEL]['args']['login'])
-	parser.add_argument("modelPath", type=str, condition=condition, help=MODES[GROUP_DEVELOPERS][MODE_ADD_MODEL]['args']['modelPath'])
+	parser.add_argument("login", type=str, condition=condition, help=MODE_ARGS[MODE_ADD_MODEL]['login'])
+	parser.add_argument("modelPath", type=str, condition=condition, help=MODE_ARGS[MODE_ADD_MODEL]['modelPath'])
 	
 	# Arguments for mode 'all' and 'compileAndInstall'
 	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
-	parser.add_argument("-j", "--jobs", type=int, condition=condition, help=MODES[GROUP_GENERAL][MODE_COMPILE_AND_INSTALL]['args']['-j'])
-	parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODES[GROUP_GENERAL][MODE_COMPILE_AND_INSTALL]['args']['-br'])
+	parser.add_argument("-j", "--jobs", type=int, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-j'])
+	parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-br'])
 
 	# Arguments for mode 'config' and 'all'
 	condition = f"mode==\"{MODE_CONFIG}\" or mode==\"{MODE_ALL}\""
-	parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help=MODES[GROUP_CONFIG][MODE_CONFIG]['args']['-noAsk'])
+	parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help=MODE_ARGS[MODE_CONFIG]['-noAsk'])
 
 	# Arguments for mode 'getModels'
 	condition = f"mode==\"{MODE_GET_MODELS}\""
-	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_MODELS_DIR, help=MODES[GROUP_DOWNLOADS][MODE_GET_MODELS]['args']['-dir'])
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_MODELS_DIR, help=MODE_ARGS[MODE_GET_MODELS]['-dir'])
 
 	# Arguments for mode 'git'
 	condition = f"mode==\"{MODE_GIT}\""
-	parser.add_argument("command", type=str, condition=condition, help=MODES[GROUP_DEVELOPERS][MODE_GIT]['args']['command'])
+	parser.add_argument("command", type=str, condition=condition, help=MODE_ARGS[MODE_GIT]['command'])
 
 	# Arguments for mode 'test'
 	condition = f"mode==\"{MODE_TEST}\""
-	parser.add_argument("testName", type=str, condition=condition, nargs='?', help=MODES[GROUP_TEST][MODE_TEST]['args']['testName'])
-	parser.add_argument("-show", "--show", action='store_true', condition=condition, help=MODES[GROUP_TEST][MODE_TEST]['args']['-show'])
+	parser.add_argument("testName", type=str, condition=condition, nargs='?', help=MODE_ARGS[MODE_TEST]['testName'])
+	parser.add_argument("-show", "--show", action='store_true', condition=condition, help=MODE_ARGS[MODE_TEST]['-show'])
 
 	# Arguments for mode 'version'
 	condition = f"mode==\"{MODE_VERSION}\""
-	parser.add_argument("-short", "--short", action='store_true', condition=condition, help=MODES[GROUP_GENERAL][MODE_VERSION]['args']['-short'])
+	parser.add_argument("-short", "--short", action='store_true', condition=condition, help=MODE_ARGS[MODE_VERSION]['-short'])
 
 	# Arguments for mode 'all', 'compileAndInstall', and 'version'
 	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\" or mode==\"{MODE_VERSION}\""
-	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_BUILD_DIR,  help=MODES[GROUP_GENERAL][MODE_COMPILE_AND_INSTALL]['args']['-dir'])
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_BUILD_DIR,  help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-dir'])
 
 	# Parse arguments
 	args = parser.parse_args()
