@@ -37,6 +37,7 @@ from .utils import getFormattingTabs
 # File specific constants
 N_TABS_MODE_TEXT = 6
 TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
+SECTION_N_DASH = 40
 
 ####################### AUX FUNCTIONS #######################
 def helpSeparator() -> str:
@@ -46,7 +47,8 @@ def helpSeparator() -> str:
 	### Returns:
 	(str): Line that separates sections inside the help message.
 	"""
-	return "\t----------------------------------------\n"
+	dashes = ['-' for _ in range(SECTION_N_DASH)]
+	return getFormattingTabs(f"\t{''.join(dashes)}\n")
 
 def textWithLimits(previousText: str, text: str) -> str:
 	"""
