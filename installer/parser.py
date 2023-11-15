@@ -28,7 +28,7 @@ This module contains a class that extends the capabilities of standard argparser
 
 # General imports
 import argparse
-from typing import List
+from typing import List, Tuple
 
 # Installer imports
 from .constants import MODES, MODE_ARGS, TAB_SIZE
@@ -53,6 +53,40 @@ def helpSeparator() -> str:
 	dashes = ['-' for _ in range(SECTION_N_DASH)]
 	return getFormattingTabs(f"\t{''.join(dashes)}\n")
 
+def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
+	"""
+	### This method returns a tuple containig a line with the words from the given list that could fit given the size limit, and the list with the remaining words.
+
+	### Params:
+	- words (List[str]): List of words to try to fit into a line.
+	- sizeLimit (int): Size limit for the text.
+
+	### Returns:
+	(str): Line with the words that were able to fit in it.
+	(List[str]): List containing the words that could not fit in the line.
+	"""
+	# Initializing line and creating copy of word list
+	# The copy is made because original list cannot be edited mid iteration
+	line = ''
+	remainingWords = words
+
+	# Check if each word fits in the line
+	for word in words:
+		# If the line is empty, len does not include extra space
+		if line:
+			# If the first word already exceeds the size limit,
+			# it means it is a huge word, but we need to print it
+			# anyways and move on to the next line
+			if len(word) >= sizeLimit:
+				return word, remainingWords[1:]
+			else:
+				# If word fits, add to line, and remove it from word list
+				line = word
+				remainingWords = remainingWords[1:]
+		else:
+			if len(line + ' ' + word) > sizeLimit:
+				pass
+
 def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 	"""
 	### This method returns the given text, formatted in several lines so that it does not exceed the given character limit.
@@ -70,6 +104,19 @@ def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 		formattedText = text
 	else:
 		# If size exceeds limits, split into lines
+		# We need to calculate each word size to not split the string in the
+		# middle of a word
+		textWords = text.split(' ')
+
+		# Initializing list to store lines
+		lines = []
+
+		# While there are still words outside of a line, parse them into one.
+		while textWords:
+			# Getting new line and removing fitted words in such line
+			textWords, line = fitWordsInLine(textWords, sizeLimit)
+
+		#print(textWords)
 		formattedText = ''
 	
 	# Return resulting text
@@ -342,7 +389,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 "   get_dependencies            Retrieve dependencies from github\n"
 "   get_devel_sources [branch]  Retrieve development sources from github for a given branch (devel branch by default)\n"
 "   get_models [dir]            Download the Deep Learning Models at dir/models (./build/models by default).\n"
-"   ----------------------------\n"
+"   ---------------- ------------\n"
 "   cleanBin                    Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
 "   cleanDeprecated             Clean all deprecated executables from src/xmipp/bin).\n"
 "   cleanAll                    Delete all (sources and build directories)\n"
