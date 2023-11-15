@@ -26,6 +26,7 @@
 #include "aligned_3d_classification.h"
 
 #include "core/metadata_label.h"
+#include "core/transformations.h"
 
 // Read arguments ==========================================================
 void ProgAligned3dClassification::readParams()
@@ -78,18 +79,20 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 		ctf = &ctfImage;
 	}
 
+	// Undo shift
+	inputImage.setGeo(rowIn);
+	inputImage.selfApplyGeometry(xmipp_transformation::NEAREST, true, true);
+
 	// Read alignment
 	double rot, tilt, psi, shiftX, shiftY;
 	rowIn.getValue(MDL_ANGLE_ROT, rot);
 	rowIn.getValue(MDL_ANGLE_TILT, tilt);
 	rowIn.getValue(MDL_ANGLE_PSI, psi);
-	rowIn.getValue(MDL_SHIFT_X, shiftX);
-	rowIn.getValue(MDL_SHIFT_Y, shiftY);
 
 	// Project the mask
 	if (maskProjector)
 	{
-		maskProjector->project(rot, tilt, psi, shiftX, shiftY);
+		maskProjector->project(rot, tilt, psi);
 		maskProjector->projection().binarize();
 	}
 	
@@ -99,7 +102,7 @@ void ProgAligned3dClassification::processImage(const FileName &fnImg, const File
 	for (size_t i = 0; i < projectors.size(); ++i)
 	{	
 		auto& projector = projectors[i];
-		projector.project(rot, tilt, psi, shiftX, shiftY, ctf);
+		projector.project(rot, tilt, psi, ctf);
 
 		// Compute the squared euclidean distance
 		auto& projection = projector.projection();
