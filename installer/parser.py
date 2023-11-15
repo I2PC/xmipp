@@ -31,13 +31,16 @@ import argparse
 from typing import List
 
 # Installer imports
-from .constants import MODES, MODE_ARGS
+from .constants import MODES, MODE_ARGS, TAB_SIZE
 from .utils import getFormattingTabs
 
 # File specific constants
 N_TABS_MODE_TEXT = 6
 TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
 SECTION_N_DASH = 40
+SECTION_SPACE_MODE_HELP = 2
+SECTION_HELP_START = TAB_SIZE + SECTION_N_DASH + SECTION_SPACE_MODE_HELP
+LINE_SIZE_LIMIT = SECTION_HELP_START * 2
 
 ####################### AUX FUNCTIONS #######################
 def helpSeparator() -> str:
@@ -50,6 +53,28 @@ def helpSeparator() -> str:
 	dashes = ['-' for _ in range(SECTION_N_DASH)]
 	return getFormattingTabs(f"\t{''.join(dashes)}\n")
 
+def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
+	"""
+	### This method returns the given text, formatted in several lines so that it does not exceed the given character limit.
+
+	### Params:
+	- text (str): The text to be formatted.
+	- sizeLimit (int): Size limit for the text.
+	- leftFill (str): String to add at the left of each new line.
+
+	### Returns:
+	(str): Formatted text.
+	"""
+	if len(text) <= sizeLimit:
+		# If its size is within the limits, return as is
+		formattedText = text
+	else:
+		# If size exceeds limits, split into lines
+		formattedText = ''
+	
+	# Return resulting text
+	return formattedText
+
 def textWithLimits(previousText: str, text: str) -> str:
 	"""
 	### This method returns the given text, formatted so that it does not exceed the character limit by line for the param help section.
@@ -61,8 +86,30 @@ def textWithLimits(previousText: str, text: str) -> str:
 	### Returns:
 	(str): Formatted text.
 	"""
-	#TODO: Implement
-	return previousText + '\n'
+	# Obtain previous text length
+	previousLength = len(getFormattingTabs(previousText))
+
+	# Check if such length exceeds the space reserved for modes and params
+	if previousLength >= SECTION_HELP_START:
+		# If so, it means that section space for modes and params 
+		# is too low and should be set to a higher number, but for now we need to print anyways, 
+		# so we reduce space from the one reserved for mode help
+		remainingSpace = LINE_SIZE_LIMIT - previousLength
+
+		# Add minimum fill in space possible
+		fillInSpace = ' '
+	else:
+		# If such section is within the expected size range, calculate remaining size
+		# based on the expected help section beginning
+		remainingSpace = LINE_SIZE_LIMIT - SECTION_HELP_START
+
+		# Add fill in space
+		fillInSpace = ''.join([' ' for _ in range(SECTION_HELP_START - previousLength)])
+	
+	# Format string so it does not exceed size limit
+	formattedHelp = multiLineHelpText(text, remainingSpace, ''.join([' ' for _ in range(SECTION_HELP_START)]))
+
+	return previousText + fillInSpace + formattedHelp + '\n'
 
 ####################### HELP FUNCTIONS #######################
 def getModeArgs(mode: str) -> str:
