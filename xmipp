@@ -219,7 +219,7 @@ if __name__ == "__main__":
 	
 	# Arguments for mode 'all' and 'compileAndInstall'
 	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
-	parser.add_argument("-j", "--jobs", type=int, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-j'])
+	parser.add_argument("-j", "--jobs", type=int, condition=condition, default=DEFAULT_JOBS, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-j'])
 	parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-br'])
 
 	# Arguments for mode 'config' and 'all'
@@ -249,10 +249,6 @@ if __name__ == "__main__":
 
 	# Parse arguments
 	args = parser.parse_args()
-
-	# Set the number of jobs
-	if args.mode == MODE_ALL or args.mode == MODE_COMPILE_AND_INSTALL:
-		args.jobs = args.jobs if args.jobs else DEFAULT_JOBS
 
 	print("ARGS:", args)
 
