@@ -32,10 +32,11 @@ from typing import List
 
 # Installer imports
 from .constants import MODES, MODE_ADD_MODEL, MODE_ALL, MODE_CHECK_CONFIG, MODE_CLEAN_ALL, MODE_CLEAN_BIN, \
-	MODE_CLEAN_DEPRECATED, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_GET_MODELS, MODE_GIT, MODE_TEST, MODE_VERSION
+	MODE_CLEAN_DEPRECATED, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_GET_MODELS, MODE_GIT, MODE_TEST, MODE_VERSION, MODE_ARGS
+from .utils import getFormattingTabs
 
-# Defining file specific constants
-N_TABS_MODE_TEXT = 5
+# File specific constants
+N_TABS_MODE_TEXT = 6
 TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
 
 ####################### AUX FUNCTIONS #######################
@@ -46,46 +47,65 @@ def helpSeparator() -> str:
 	### Returns:
 	(str): Line that separates sections inside the help message.
 	"""
-	return "\t----------------------------\n"
+	return "\t----------------------------------------\n"
+
+def textWithLimits(previousText: str, text: str) -> str:
+	"""
+	### This method returns the given text, formatted so that it does not exceed the character limit by line for the param help section.
+
+	### Params:
+	- previousText (str): Text inserted before the one to be returned.
+	- text (str): The text to be formatted.
+
+	### Returns:
+	(str): Formatted text.
+	"""
+	#TODO: Implement
+	return previousText + '\n'
 
 ####################### HELP FUNCTIONS #######################
-def getModeArgsAndHelp(mode: str) -> str:
+def getModeArgs(mode: str) -> str:
+	"""
+	### This method returns the args text for a given mode.
+
+	### Params:
+	- mode (str): Mode to get args text for.
+
+	### Returns:
+	(str): Args text for given mode.
+	"""
+	# Getting argument dictionary for the mode  
+	argDict = MODE_ARGS[mode]
+
+	# Formatting every element
+	paramNames = [f'[{paramName}]' for paramName in list(argDict.keys())]
+
+	# Returning all formatted param names as a string
+	return ' '.join(paramNames)
+
+def getModeArgsAndHelp(previousText: str, mode: str) -> str:
 	"""
 	### This method returns the args and help text for a given mode.
 
 	### Params:
-	mode (str): Mode to get help text for.
+	- previousText (str): Text inserted before the one to be returned.
+	- mode (str): Mode to get help text for.
 
 	### Returns:
 	(str): Args and help text for given mode.
 	"""
-	if mode == MODE_ADD_MODEL:
-		return ''
-	elif mode == MODE_ALL:
-		return ''
-	elif mode == MODE_CHECK_CONFIG:
-		return ''
-	elif mode == MODE_CLEAN_ALL:
-		return ''
-	elif mode == MODE_CLEAN_BIN:
-		return ''
-	elif mode == MODE_CLEAN_DEPRECATED:
-		return ''
-	elif mode == MODE_COMPILE_AND_INSTALL:
-		return ''
-	elif mode == MODE_CONFIG:
-		return ''
-	elif mode == MODE_GET_MODELS:
-		return ''
-	elif mode == MODE_GIT:
-		return ''
-	elif mode == MODE_TEST:
-		return ''
-	elif mode == MODE_VERSION:
-		return ''
-	else:
-		# If mode was not recognized, return an empty string
-		return ''
+	# Initializing help string to format
+	modeHelpStr = ''
+
+	# Find mode group containing current mode
+	for group in list(MODES.keys()):
+		if mode in list(MODES[group].keys()):
+			modeHelpStr = MODES[group][mode]
+			break
+
+	# Return formatted text formed by the previous text, 
+	# the args for the mode, and its help text
+	return textWithLimits(previousText + getModeArgs(mode), modeHelpStr)
 
 ####################### PARSER CLASS #######################
 class ComplexArgumentParser(argparse.ArgumentParser):
@@ -205,21 +225,11 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 
 			# Adding help text for every mode in each section
 			for mode in list(MODES[section].keys()):
-				helpMessage += f"\t{mode} {1}\n"
-
-		#for dest, condition in self.argumentConditions.items():
-		#	# Fetch the argument
-		#	argument = self._option_string_actions[dest]
-
-		#	# Format the argument as a string
-		#	argumentStr = f"{argument.option_strings} {argument.metavar or argument.dest.upper()}"
-
-		#	# Add the argument and its condition to the help message
-		#	customMessage += f"\n{argumentStr}: (only if {condition}) {argument.help}"
+				helpMessage += getModeArgsAndHelp(f"\t{mode} ", mode)
 
 		# Adding epilog and printing
 		helpMessage += '\n' + self.epilog
-		print(helpMessage)
+		print(getFormattingTabs(helpMessage))
 
 	def parse_args(self, *args, **kwargs) -> argparse.Namespace:
 		"""
