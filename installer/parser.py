@@ -31,8 +31,7 @@ import argparse
 from typing import List
 
 # Installer imports
-from .constants import MODES, MODE_ADD_MODEL, MODE_ALL, MODE_CHECK_CONFIG, MODE_CLEAN_ALL, MODE_CLEAN_BIN, \
-	MODE_CLEAN_DEPRECATED, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_GET_MODELS, MODE_GIT, MODE_TEST, MODE_VERSION, MODE_ARGS
+from .constants import MODES, MODE_ARGS
 from .utils import getFormattingTabs
 
 # File specific constants
