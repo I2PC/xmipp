@@ -40,7 +40,7 @@ TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
 SECTION_N_DASH = 40
 SECTION_SPACE_MODE_HELP = 2
 SECTION_HELP_START = TAB_SIZE + SECTION_N_DASH + SECTION_SPACE_MODE_HELP
-LINE_SIZE_LIMIT = SECTION_HELP_START * 2
+LINE_SIZE_LIMIT = SECTION_HELP_START * 2.25
 
 ####################### AUX FUNCTIONS #######################
 def helpSeparator() -> str:
@@ -72,8 +72,14 @@ def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 
 	# Check if each word fits in the line
 	for word in words:
-		# If the line is empty, len does not include extra space
+		# If the line is not empty, len includes extra space
 		if line:
+			if len(line + ' ' + word) > sizeLimit:
+				return line, remainingWords
+			else:
+				line += ' ' + word
+				remainingWords = remainingWords[1:]
+		else:
 			# If the first word already exceeds the size limit,
 			# it means it is a huge word, but we need to print it
 			# anyways and move on to the next line
@@ -83,9 +89,9 @@ def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 				# If word fits, add to line, and remove it from word list
 				line = word
 				remainingWords = remainingWords[1:]
-		else:
-			if len(line + ' ' + word) > sizeLimit:
-				pass
+	
+	# If we exited the loop, it means all words were introduced in the line
+	return line, []
 
 def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 	"""
@@ -114,10 +120,16 @@ def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 		# While there are still words outside of a line, parse them into one.
 		while textWords:
 			# Getting new line and removing fitted words in such line
-			textWords, line = fitWordsInLine(textWords, sizeLimit)
+			line, textWords = fitWordsInLine(textWords, sizeLimit)
 
-		#print(textWords)
-		formattedText = ''
+			# Add line to list
+			if line:
+				# If it's not the first line, add the left fill
+				line = leftFill + line if lines else line
+				lines.append(line)
+
+		# Join lines into a single string
+		formattedText = '\n'.join(lines)
 	
 	# Return resulting text
 	return formattedText

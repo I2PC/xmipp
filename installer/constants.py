@@ -119,7 +119,7 @@ MODES = {
 	},
 	GROUP_DEVELOPERS: {
 		MODE_GIT: 'Runs the given git action for all source repositories.',
-		MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>\naddModel login modelPath\nlogin = user@server'
+		MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>.'
 	}
 }
 
