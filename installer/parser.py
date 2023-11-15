@@ -328,7 +328,7 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		# Add every section
 		for section in list(MODES.keys()):
 			# Adding section separator and section name
-			helpMessage += helpSeparator() + f"\t{section}\n\n"
+			helpMessage += helpSeparator() + f"\t# {section} #\n\n"
 
 			# Adding help text for every mode in each section
 			for mode in list(MODES[section].keys()):
