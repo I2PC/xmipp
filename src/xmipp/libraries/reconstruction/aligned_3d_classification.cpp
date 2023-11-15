@@ -38,6 +38,8 @@ void ProgAligned3dClassification::readParams()
 	referenceVolumesMdFilename = getParam("-r");
 	if (checkParam("--mask"))
 		mask.readParams(this);
+	if (checkParam("--save_distances"))
+		distancesFilename = getParam("--save_distances")
 	if (useCtf)
 		ctfDescription.readParams(this);
 }
@@ -52,6 +54,7 @@ void ProgAligned3dClassification::defineParams()
     addParamsLine("   [--useCtf]		             : Consider CTF when projecting references");
     addParamsLine("   [--padding <padding=1.0>]	     : Padding factor used in Fourier");
     addParamsLine("   [--max_frequency <freq=1.0>]	 : Maximum digital frequency");
+    addParamsLine("   [--save_distances <csv_file>]	 : Save distance matrix in CSV format");
     addParamsLine("    -r <reference_metadata>		 : Metadata with all the reference volumes");
 	mask.defineParams(this);
 	ctfDescription.defineParams(this);

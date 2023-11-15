@@ -50,6 +50,7 @@ public:
     double padding;
     double maxFreq;
     FileName referenceVolumesMdFilename;
+    Filename distancesFilename;
 
     MetaDataVec referenceVolumesMd;
     Mask mask;
