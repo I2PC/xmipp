@@ -63,6 +63,7 @@ CUDA_GCC_COMPATIBILITY = {
 }
 
 # Other variables
+CXX_FLAGS = ' -mtune=native -march=native -flto -std=c++17 -O3'
 VALUE_UNKNOWN = 'Unkown'
 DEFAULT_JOBS = 8
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
@@ -182,8 +183,8 @@ ERROR_CODE = {
   14: ['JAVA_HOME path with errors', 'bin/jar, bin/javac or include not found but required'],
   15: ['Matlab not found on system', 'Please install matlab or set MATLA as False on the xmipp.conf file'],
   16: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
-	17: ['nvcc CUDA not found', 'Please install CUDA on your system'],
-	18: ['', ''],
+	17: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
+	18: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
 }
 
 
