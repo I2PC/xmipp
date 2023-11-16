@@ -263,36 +263,3 @@ if __name__ == "__main__":
 
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
-
-
-"""
-# Arguments for mode 'all' and 'compileAndInstall'
-	#condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
-	#parser.add_argument("-j", "--jobs", type=int, condition=condition, default=DEFAULT_JOBS, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-j'])
-	#parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-br'])
-
-	## Arguments for mode 'config' and 'all'
-	#condition = f"mode==\"{MODE_CONFIG}\" or mode==\"{MODE_ALL}\""
-	#parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help=MODE_ARGS[MODE_CONFIG]['-noAsk'])
-
-	## Arguments for mode 'getModels'
-	#condition = f"mode==\"{MODE_GET_MODELS}\""
-	#parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_MODELS_DIR, help=MODE_ARGS[MODE_GET_MODELS]['-dir'])
-
-	## Arguments for mode 'git'
-	#condition = f"mode==\"{MODE_GIT}\""
-	#parser.add_argument("command", type=str, condition=condition, help=MODE_ARGS[MODE_GIT]['command'])
-
-	## Arguments for mode 'test'
-	#condition = f"mode==\"{MODE_TEST}\""
-	#parser.add_argument("testName", type=str, condition=condition, nargs='?', help=MODE_ARGS[MODE_TEST]['testName'])
-	#parser.add_argument("-show", "--show", action='store_true', condition=condition, help=MODE_ARGS[MODE_TEST]['-show'])
-
-	## Arguments for mode 'version'
-	#condition = f"mode==\"{MODE_VERSION}\""
-	#parser.add_argument("-short", "--short", action='store_true', condition=condition, help=MODE_ARGS[MODE_VERSION]['-short'])
-
-	## Arguments for mode 'all', 'compileAndInstall', and 'version'
-	#condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\" or mode==\"{MODE_VERSION}\""
-	#parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_BUILD_DIR,  help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-dir'])
-"""
