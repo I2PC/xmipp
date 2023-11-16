@@ -31,8 +31,8 @@ from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, MODE_ARGS
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
+from installer.parser import ComplexArgumentParser
 from installer.config import config
-from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ComplexArgumentParser
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -129,11 +129,11 @@ def modeTest(parser: ComplexArgumentParser, args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Check if at least either one of the two params has been used
-	#if not args.show and not args.testName:
-	#	parser._updateRequiredParam('testName')
+	if not args.show and not args.testName:
+		parser._updateRequiredParam('testName')
 
-	#	# Reparse to show error
-	#	parser.parse_args()
+		# Reparse to show error
+		parser.parse_args()
 	
 	# TODO: Implement
 
@@ -198,104 +198,59 @@ def runSelectedMode(parser: ComplexArgumentParser, args: argparse.Namespace):
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
-	# Creating parser to parse the command-line arguments
-	parser = ComplexArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp", mainParamName="mode")
-
+	# Parse the command-line arguments
+	epilog = "Example 1: ./xmipp"
+	epilog += "\nExample 2: ./xmipp compileAndInstall -j 4"
+	parser = ComplexArgumentParser(
+		description="Run Xmipp's installer script",
+		epilog=epilog,
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+		mainParamName='mode'
+	)
+	
 	# Adding params
 	# Main param is execution mode. Gets options from a dictionary in constants file
-	parser.add_argument("mode", choices=getAllModes(), nargs='?', default="all")
-
-	# Adding subparsers to have other variables deppending on the value of the mode
-	subparsers = parser.add_subparsers(dest="mode")
+	parser.add_argument("mode", type=str, choices=getAllModes(), nargs='?', default="all", help="Execution mode.")
 
 	# Arguments for mode 'addModel'
-	addModelSubparser = subparsers.add_parser(MODE_ADD_MODEL, formatter_class=ModeHelpFormatter)
-	addModelSubparser.add_argument("login")
-	addModelSubparser.add_argument("modelPath")
+	condition = f"mode==\"{MODE_ADD_MODEL}\""
+	parser.add_argument("login", type=str, condition=condition, help=MODE_ARGS[MODE_ADD_MODEL]['login'])
+	parser.add_argument("modelPath", type=str, condition=condition, help=MODE_ARGS[MODE_ADD_MODEL]['modelPath'])
+	
+	# Arguments for mode 'all' and 'compileAndInstall'
+	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
+	parser.add_argument("-j", "--jobs", type=int, condition=condition, default=DEFAULT_JOBS, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-j'])
+	parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-br'])
 
-	# Arguments for mode 'all'
-	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
-	allSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
-	allSubparser.add_argument("-br", "--branch")
-	allSubparser.add_argument("-noAsk", "--noAsk", action='store_true')
-	allSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
-
-	# Arguments for mode 'checkConfig'
-	checkConfigSubparser = subparsers.add_parser(MODE_CHECK_CONFIG, formatter_class=ModeHelpFormatter)
-
-	# Arguments for mode 'cleanAll'
-	cleanAllSubparser = subparsers.add_parser(MODE_CLEAN_ALL, formatter_class=ModeHelpFormatter)
-
-	# Arguments for mode 'cleanBin'
-	cleanBinSubparser = subparsers.add_parser(MODE_CLEAN_BIN, formatter_class=ModeHelpFormatter)
-
-	# Arguments for mode 'cleanDeprecated'
-	cleanDeprecatedSubparser = subparsers.add_parser(MODE_CLEAN_DEPRECATED, formatter_class=ModeHelpFormatter)
-
-	# Arguments for mode 'compileAndInstall'
-	compileAndInstallSubparser = subparsers.add_parser(MODE_COMPILE_AND_INSTALL, formatter_class=ModeHelpFormatter)
-	compileAndInstallSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
-	compileAndInstallSubparser.add_argument("-br", "--branch")
-	compileAndInstallSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
-
-	# Arguments for mode 'config'
-	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
-	configSubparser.add_argument("-noAsk", "--noAsk", action='store_true')
+	# Arguments for mode 'config' and 'all'
+	condition = f"mode==\"{MODE_CONFIG}\" or mode==\"{MODE_ALL}\""
+	parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help=MODE_ARGS[MODE_CONFIG]['-noAsk'])
 
 	# Arguments for mode 'getModels'
-	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)
-	getModelsSubparser.add_argument("-dir", "--directory", default=DEFAULT_MODELS_DIR)
+	condition = f"mode==\"{MODE_GET_MODELS}\""
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_MODELS_DIR, help=MODE_ARGS[MODE_GET_MODELS]['-dir'])
 
 	# Arguments for mode 'git'
-	gitSubparser = subparsers.add_parser(MODE_GIT, formatter_class=ModeHelpFormatter)
-	gitSubparser.add_argument("command", nargs='+')
+	condition = f"mode==\"{MODE_GIT}\""
+	parser.add_argument("command", type=str, condition=condition, help=MODE_ARGS[MODE_GIT]['command'])
 
 	# Arguments for mode 'test'
-	testSubparser = subparsers.add_parser(MODE_TEST, formatter_class=ModeHelpFormatter)
-	testSubparser.add_argument("testName", nargs='?')
-	testSubparser.add_argument("-show", "--show", action='store_true')
+	condition = f"mode==\"{MODE_TEST}\""
+	parser.add_argument("testName", type=str, condition=condition, nargs='?', help=MODE_ARGS[MODE_TEST]['testName'])
+	parser.add_argument("-show", "--show", action='store_true', condition=condition, help=MODE_ARGS[MODE_TEST]['-show'])
 
 	# Arguments for mode 'version'
-	versionSubparser = subparsers.add_parser(MODE_VERSION, formatter_class=ModeHelpFormatter)
-	versionSubparser.add_argument("-short", "--short", action='store_true')
+	condition = f"mode==\"{MODE_VERSION}\""
+	parser.add_argument("-short", "--short", action='store_true', condition=condition, help=MODE_ARGS[MODE_VERSION]['-short'])
 
-	## Parse arguments
+	# Arguments for mode 'all', 'compileAndInstall', and 'version'
+	condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\" or mode==\"{MODE_VERSION}\""
+	parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_BUILD_DIR,  help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-dir'])
+
+	# Parse arguments
 	args = parser.parse_args()
 
 	print("ARGS:", args)
 
-	## Running installer in selected mode
-	#runSelectedMode(parser, args)
-
-
-"""
-# Arguments for mode 'all' and 'compileAndInstall'
-	#condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\""
-	#parser.add_argument("-j", "--jobs", type=int, condition=condition, default=DEFAULT_JOBS, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-j'])
-	#parser.add_argument("-br", "--branch", type=str, condition=condition, help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-br'])
-
-	## Arguments for mode 'config' and 'all'
-	#condition = f"mode==\"{MODE_CONFIG}\" or mode==\"{MODE_ALL}\""
-	#parser.add_argument("-noAsk", "--noAsk", action='store_true', condition=condition, help=MODE_ARGS[MODE_CONFIG]['-noAsk'])
-
-	## Arguments for mode 'getModels'
-	#condition = f"mode==\"{MODE_GET_MODELS}\""
-	#parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_MODELS_DIR, help=MODE_ARGS[MODE_GET_MODELS]['-dir'])
-
-	## Arguments for mode 'git'
-	#condition = f"mode==\"{MODE_GIT}\""
-	#parser.add_argument("command", type=str, condition=condition, help=MODE_ARGS[MODE_GIT]['command'])
-
-	## Arguments for mode 'test'
-	#condition = f"mode==\"{MODE_TEST}\""
-	#parser.add_argument("testName", type=str, condition=condition, nargs='?', help=MODE_ARGS[MODE_TEST]['testName'])
-	#parser.add_argument("-show", "--show", action='store_true', condition=condition, help=MODE_ARGS[MODE_TEST]['-show'])
-
-	## Arguments for mode 'version'
-	#condition = f"mode==\"{MODE_VERSION}\""
-	#parser.add_argument("-short", "--short", action='store_true', condition=condition, help=MODE_ARGS[MODE_VERSION]['-short'])
-
-	## Arguments for mode 'all', 'compileAndInstall', and 'version'
-	#condition = f"mode==\"{MODE_ALL}\" or mode==\"{MODE_COMPILE_AND_INSTALL}\" or mode==\"{MODE_VERSION}\""
-	#parser.add_argument("-dir", "--directory", type=str, condition=condition, default=DEFAULT_BUILD_DIR,  help=MODE_ARGS[MODE_COMPILE_AND_INSTALL]['-dir'])
-"""
+	# Running installer in selected mode
+	runSelectedMode(parser, args)
