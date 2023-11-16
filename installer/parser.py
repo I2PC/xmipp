@@ -28,6 +28,7 @@ This module contains a class that extends the capabilities of standard argparser
 
 # General imports
 import argparse, shutil
+from argparse import _SubParsersAction
 from typing import List, Tuple
 
 # Installer imports
@@ -261,60 +262,11 @@ def getModeArgsAndHelpStr(previousText: str, mode: str) -> str:
 	return textWithLimits(previousText + getModeArgsStr(mode), modeHelpStr)
 
 ####################### PARSER CLASS #######################
-class ComplexArgumentParser(argparse.ArgumentParser):
+class ErrorHandlerArgumentParser(argparse.ArgumentParser):
 	"""
-	This class extends the capabilities of the standard argument parser to be able
-	to handle complex argument dependencies.
+	This class overrides the error function of the standard argument parser
+	to display better error messages.
 	"""
-	def __init__(self, *args, mainParamName=None, **kwargs):
-		"""
-		### This constructor adds the ability to keep track of argument enforcement conditions.
-
-		#### Params:
-		- *args: Positional arguments passed to the parent class method.
-		- mainParamName (str): Name of the main param.
-		- **kwargs: Keyword arguments passed to the parent class method.
-		"""
-		super().__init__(*args, **kwargs)
-		self.mainParamName = mainParamName
-
-	####################### AUX PRIVATE FUNCTIONS #######################
-	def _updateRequiredParam(self, paramName: str):
-		"""
-		### This method updates the given param to make it a requirement if it wasn't already.
-		
-		#### Params:
-		- paramName (str): Name of the parameter.
-		"""
-		# Searching for the action we need
-		for action in self._actions:
-			if action.dest == paramName:
-				# If nargs was '?' (1 or 0), set to None (1)
-				if action.nargs == '?':
-					action.nargs = None
-				# If nargs was '*' (any number), set to '+' (at least 1)
-				elif action.nargs == '*':
-					action.nargs = '+'
-				action.default = None
-				action.required = True
-				break
-		
-	def _updateMainParamIfPositionalArg(self, paramName: str):
-		"""
-		### This method updates the main param if it receives a different positional param.
-		### This is done to ensure value integrity for both params.
-		
-		#### Params:
-		- paramName (str): Name of the parameter.
-		"""
-		# Checking if argument is positional (optionals start with '-')
-		if self.mainParamName is not None and not paramName.startswith('-'):
-			# Update mode param so it cannot be blank now.
-			# Otherwise, it will aquire the default value and the value
-			# supposed to be for mode will end up in the positional param, as
-			# that one cannot be blank and mode can
-			self._updateRequiredParam(self.mainParamName)
-
 	####################### OVERRIDED PUBLIC FUNCTIONS #######################
 	def error(self, message):
 		"""
@@ -339,73 +291,6 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 		# Exiting with message
 		errorMessage = red(f"{mode}: error: {message}\n")
 		self.exit(2, f"{textList}{extraLineBreak}{errorMessage}")
-
-	def parse_args(self, *args, **kwargs) -> argparse.Namespace:
-		"""
-		### This method parses the introduced args, making the main one a requirement if it is needed.
-		
-		#### Params:
-		- *args: Positional arguments passed to the parent class method.
-		- **kwargs: Keyword arguments passed to the parent class method.
-		
-		#### Returns:
-		- (Namespace): The Namespace object containing the parsed arguments.
-		"""
-		# Parsing known args
-		try:
-			knownArgs = self.parse_known_args(*args, **kwargs)[0]
-		except SystemExit:
-			self._updateRequiredParam(self.mainParamName)
-			# Parse the args again with the updated settings
-			knownArgs = super().parse_args(*args, **kwargs)
-
-		#print(knownArgs)
-		#return knownArgs
-
-	#def parse_args(self, *args, **kwargs) -> argparse.Namespace:
-	#	"""
-	#	### This method parses the introduced args, only enforcing the ones that fulfill their condition.
-	#	
-	#	#### Params:
-	#	- *args: Positional arguments passed to the parent class method.
-	#	- **kwargs: Keyword arguments passed to the parent class method.
-	#	
-	#	#### Returns:
-	#	- (Namespace): The Namespace object containing the parsed arguments.
-	#	"""
-	#	# Obtaining conditional args dicitionary's number of elements
-	#	nParams = len(self.conditionalArgs)
-#
-	#	# Iterate until dictionary is empty or max number of iterations has been reached (max = nParams)
-	#	# Max iterations is number of params because, worst case, only one new param fulfills its condition
-	#	# for every iteration, in case every conditional param deppends on another conditional param except for
-	#	# one of them (at least one needs to deppend on a fixed param).
-	#	for _ in range(nParams):
-	#		# If dictionary is empty, stop iterating
-	#		if not self.conditionalArgs:
-	#			break
-#
-	#		# Parsing known args
-	#		knownArgs = self.parse_known_args(*args, **kwargs)[0]
-#
-	#		# Obtaining all params that meet their condition
-	#		metParamNames = self._getArgsWithMetCondition(knownArgs)
-#
-	#		# Adding all the params meeting their conditions and removing them from the dictionary
-	#		for paramName in metParamNames:
-	#			argList = self.conditionalArgs[paramName]
-#
-	#			# If argument is positional, make mode param a requirement
-	#			self._updateMainParamIfPositionalArg(argList['args'][0])
-#
-	#			# Adding extra param
-	#			self.add_argument(*argList['args'], **argList['kwargs'])
-#
-	#			# Removing param from dictionary
-	#			self.conditionalArgs.pop(paramName)
-#
-	#	# Parse args
-	#	return super().parse_args(*args, **kwargs)
 
 class GeneralHelpFormatter(argparse.HelpFormatter):
 	"""

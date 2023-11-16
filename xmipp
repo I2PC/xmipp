@@ -32,7 +32,7 @@ from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, MODE_ARGS
 from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
 from installer.config import config
-from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ComplexArgumentParser
+from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -120,20 +120,17 @@ def modeGit(args: argparse.Namespace):
 	"""
 	# TODO: Implement
 
-def modeTest(parser: ComplexArgumentParser, args: argparse.Namespace):
+def modeTest(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "test" and then runs it.
 	
 	#### Params:
-	- parser (ComplexArgumentParser): Parser object used to parse the arguments.
+	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Check if at least either one of the two params has been used
-	#if not args.show and not args.testName:
-	#	parser._updateRequiredParam('testName')
-
-	#	# Reparse to show error
-	#	parser.parse_args()
+	if not args.show and not args.testName:
+		parser.error("Either a testName or \"--show\" must be used. Use \"./xmipp test -h\" for help.")
 	
 	# TODO: Implement
 
@@ -159,12 +156,12 @@ def modeAll(args: argparse.Namespace):
 	# Running compilation and installation
 	modeCompileAndInstall(args)
 
-def runSelectedMode(parser: ComplexArgumentParser, args: argparse.Namespace):
+def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
 	### This function runs the selected execution mode.
 
 	#### Params:
-	- parser (ComplexArgumentParser): Parser object used to parse the arguments.
+	- parser (ErrorHandlerArgumentParser): Parser object used to parse the arguments.
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	if args.mode == MODE_ADD_MODEL:
@@ -199,11 +196,7 @@ def runSelectedMode(parser: ComplexArgumentParser, args: argparse.Namespace):
 if __name__ == "__main__":
 	""" Calls main function when executed. """
 	# Creating parser to parse the command-line arguments
-	parser = ComplexArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp", mainParamName="mode")
-
-	# Adding params
-	# Main param is execution mode. Gets options from a dictionary in constants file
-	parser.add_argument("mode", choices=getAllModes(), nargs='?', default="all")
+	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 
 	# Adding subparsers to have other variables deppending on the value of the mode
 	subparsers = parser.add_subparsers(dest="mode")
@@ -259,13 +252,18 @@ if __name__ == "__main__":
 	versionSubparser = subparsers.add_parser(MODE_VERSION, formatter_class=ModeHelpFormatter)
 	versionSubparser.add_argument("-short", "--short", action='store_true')
 
-	## Parse arguments
+	# Parse arguments
 	args = parser.parse_args()
+
+	# Applying default value if needed
+	if args.mode is None:
+		sys.argv.insert(1, MODE_ALL)
+		args = parser.parse_args()
 
 	print("ARGS:", args)
 
-	## Running installer in selected mode
-	#runSelectedMode(parser, args)
+	# Running installer in selected mode
+	runSelectedMode(parser, args)
 
 
 """
