@@ -204,8 +204,15 @@ def getAllModes() -> List[str]:
 
 # UTILS
 def findFileInDirList(fnH, dirlist):
-		""" :returns the dir where found or an empty string if not found.
-				dirs can contain *, then first found is returned.
+		"""
+		Finds a file in a list of directories.
+
+		Params:
+		- fnH (str): File name or pattern to search for.
+		- dirlist (str or list of str): Single directory or list of directories to search in.
+
+		Returns:
+		- str: Directory containing the file if found, otherwise an empty string.
 		"""
 		if isinstance(dirlist, str):
 				dirlist = [dirlist]
@@ -218,7 +225,15 @@ def findFileInDirList(fnH, dirlist):
 
 
 def versionPackage(package):
-		"""Return the version of the package if found, else return False"""
+		"""
+		Retrieves the version of a package or program by executing '[package] --version' command.
+
+		Params:
+		- package (str): Name of the package or program.
+
+		Returns:
+		- str: Version information of the package or an empty string if not found.
+		"""
 		str = []
 		cmd = '{} --version'.format(package)
 		if runJob(cmd, showOutput=False, logOut=str, showCommand=False):
@@ -229,6 +244,15 @@ def versionPackage(package):
 
 
 def whereIsPackage(packageName):
+		"""
+		Finds the directory of a specific package or program in the system.
+
+		Params:
+		- packageName (str): Name of the package or program.
+
+		Returns:
+		- str or None: Directory containing the package or program, or None if not found.
+		"""
 		programPath = distutils.spawn.find_executable(packageName)
 		if programPath:
 				programPath = path.realpath(programPath)
@@ -246,6 +270,15 @@ def existPackage(packageName):
 
 
 def pathPackage(packageName):
+		"""
+		Finds the path of a specific package in the system.
+
+		Params:
+		- packageName (str): Name of the package.
+
+		Returns:
+		- str: Path to the package.
+		"""
 		path = []
 		runJob('which {}'.format(packageName), showCommand=False,
 					 showOutput=False, logOut=path)
@@ -293,37 +326,59 @@ def versionToNumber(strVersion: str) -> float:
 	return numberVersion
 
 def sconsVersion():
-	try:
-		textVersion = pkg_resources.get_distribution("scons").version
-		if versionToNumber(textVersion) >= versionToNumber(SCONS_MINIMUM):
-			return True
-	except Exception:
-		pass
+		"""
+		Checks if the installed version of SCons meets a minimum requirement.
 
-	if isScipionVersion():
-		outlog = []
-		errlog = []
-		if runJob('pip install scons', logOut=outlog, logErr=errlog, showError=False, showCommand=True):
-			return True
+		Returns:
+		- bool or tuple: If the installed SCons version meets the requirement, returns True.
+										 If not, and it's possible to install SCons in a Scipion environment, it attempts to do so.
+										 Returns a tuple (error_code, False) if installation fails.
+		"""
+		try:
+			textVersion = pkg_resources.get_distribution("scons").version
+			if versionToNumber(textVersion) >= versionToNumber(SCONS_MINIMUM):
+				return True
+		except Exception:
+			pass
+		if isScipionVersion():
+			outlog = []
+			errlog = []
+			if runJob('pip install scons', logOut=outlog, logErr=errlog, showError=False, showCommand=True):
+				return True
+			else:
+				print(red(errlog[0]))
+				return 2, False
 		else:
-			print(red(errlog[0]))
-			return 2, False
-	else:
-		print(blue('Scipion enviroment not found, please install manually scons library'))
-		return 3, False
+			print(blue('Scipion enviroment not found, please install manually scons library'))
+			return 3, False
 
 def isScipionVersion():
-	condaEnv = []
-	if runJob('echo $CONDA_PREFIX', logOut=condaEnv, showError=True):
-		if condaEnv[0].find('scipion3') != -1:
-			return True
+		"""
+		Checks if the current environment is a Scipion version.
+
+		Returns:
+		- bool: True if the environment is Scipion, False otherwise.
+		"""
+		condaEnv = []
+		if runJob('echo $CONDA_PREFIX', logOut=condaEnv, showError=True):
+			if condaEnv[0].find('scipion3') != -1:
+				return True
+			else:
+				return False
 		else:
 			return False
-	else:
-		return False
 
 
-def get_compatible_GCC(nvcc_version):
+def getCompatibleGCC(nvcc_version):
+		"""
+		Retrieves compatible versions of GCC based on a given NVCC (NVIDIA CUDA Compiler) version.
+
+		Params:
+		- nvcc_version (str): Version of NVCC.
+
+		Returns:
+		- tuple: A tuple containing compatible GCC versions and a boolean indicating compatibility.
+		"""
 		# https://gist.github.com/ax3l/9489132
 		for key, value in CUDA_GCC_COMPATIBILITY.items():
 				list = key.split('-')
@@ -332,3 +387,20 @@ def get_compatible_GCC(nvcc_version):
 						return value, True
 		return vGCC, False
 
+def CXXVersion(string):
+		"""
+		Extracts the version of a C++ compiler from a given string.
+
+		Params:
+		- string (str): Input string containing compiler version information.
+
+		Returns:
+		- str: Extracted C++ compiler version.
+		"""
+		idx = string.find('\n')
+		idx2 = string[idx].rfind(' ')
+		version = string[idx - idx2:idx]
+		gxx_version = version.replace(' ', '')
+		idx = gxx_version.rfind('.')
+		gxx_version = gxx_version[:idx]
+		return gxx_version

@@ -30,10 +30,11 @@ from os import path
 from os.path import isdir, join
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
-                        GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM)
+                        GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
+                        CXX_FLAGS)
 from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
-                    get_compatible_GCC)
+                    getCompatibleGCC, CXXVersion)
 from datetime import datetime
 
 
@@ -86,10 +87,17 @@ def parseConfig():
         pass
     return dictPackages
 
-
-
 #PACKAGES
 def getCC(dictPackages):
+    """
+    Retrieves information about the CC (GCC) package and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates the 'CC' key based on the availability of 'gcc'.
+    """
     if existPackage('gcc'):
         dictPackages['CC'] = 'gcc'
     else:
@@ -97,6 +105,18 @@ def getCC(dictPackages):
 
 
 def checkCC(packagePath):
+    """
+    Checks the GCC (CC) package at the specified path for version compatibility.
+
+    Params:
+    - packagePath (str): Path to the GCC (CC) package directory.
+
+    Returns:
+    - int: Error code.
+        - 1: Success.
+        - 4: gcc version is lower than the required version.
+        - 5: GCC package path does not exist.
+    """
     if existPackage(packagePath):
         strVersion = versionPackage(packagePath)
         idx = strVersion.find('\n')
@@ -111,17 +131,36 @@ def checkCC(packagePath):
         return 5
 
 def getCXX(dictPackages):
+    """
+    Retrieves information about the CXX package and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates the 'CXX' key based on the availability of 'g++'.
+    """
     if existPackage('g++'):
         dictPackages['CXX'] = 'g++'
     else:
         dictPackages['CXX'] = ''
 
 def checkCXX(packagePath):
+    """
+    Checks the CXX package at the specified path for version compatibility.
+
+    Params:
+    - packagePath (str): Path to the CXX package directory.
+
+    Returns:
+    - int: Error code.
+        - 1: Success.
+        - 6: CXX package path does not exist.
+        - 7: g++ version is lower than the required version.
+    """
     if existPackage(packagePath):
         strVersion = versionPackage(packagePath)
-        idx = strVersion.find('\n')
-        idx2 = strVersion[idx].rfind(' ')
-        version = strVersion[idx - idx2:idx]
+        version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             return 1
         print(red('g++ {} lower than required ({})'.format(version, GPP_MINIMUM)))
@@ -131,6 +170,15 @@ def checkCXX(packagePath):
         return 6
 
 def getMPI(dictPackages):
+    """
+    Retrieves information about the MPI package components and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates keys 'MPI_CC', 'MPI_CXX', and 'MPI_RUN' based on MPI component availability.
+    """
     if existPackage('mpicc'):
         dictPackages['MPI_CC'] = 'mpicc'
     else:
@@ -145,6 +193,18 @@ def getMPI(dictPackages):
         dictPackages['MPI_RUN'] = ''
 
 def checkMPI(packagePath):
+    """
+    Checks the MPI package at the specified path for version compatibility.
+
+    Params:
+    - packagePath (str): Path to the MPI package directory.
+
+    Returns:
+    - int: Error code.
+        - 1: Success.
+        - 8: MPI version is lower than the required version.
+        - 9: MPI package does not exist.
+    """
     if existPackage(packagePath):
         strVersion = versionPackage(packagePath)
         idx = strVersion.find('\n')
@@ -159,6 +219,15 @@ def checkMPI(packagePath):
         return 9
 
 def getJava(dictPackages):
+    """
+    Retrieves information about the Java package and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates the 'JAVA_HOME' key based on the Java installation path.
+    """
     javaProgramPath = whereIsPackage('javac')
     if not javaProgramPath:
         javaProgramPath = findFileInDirList('javac', ['/usr/lib/jvm/java-*/bin'])
@@ -171,6 +240,18 @@ def getJava(dictPackages):
 
 
 def checkJava(packagePath):
+    """
+    Checks the existence and structure of a Java package at a specified path.
+
+    Params:
+    - packagePath (str): Path to the Java package directory.
+
+    Returns:
+    - int: Error code.
+        - 13: Java package does not exist.
+        - 14: Java package structure is incorrect.
+        - 1: Success.
+    """
     if not existPackage('java'):
         return 13
     if isdir(join(packagePath, 'bin/jar')) and \
@@ -181,6 +262,15 @@ def checkJava(packagePath):
         return 14
 
 def getMatlab(dictPackages):
+    """
+    Retrieves information about the MATLAB package and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates keys 'MATLAB' and 'MATLAB_HOME' based on MATLAB availability.
+    """
     matlabProgramPath = whereIsPackage('matlab')
     if matlabProgramPath:
         dictPackages['MATLAB'] = True
@@ -190,6 +280,18 @@ def getMatlab(dictPackages):
         dictPackages['MATLAB_HOME'] = ''
 
 def checkMatlab(packagePath):
+    """
+    Checks for the existence of MATLAB package and verifies if a specified path is a directory.
+
+    Params:
+    - packagePath (str): Path to the package directory.
+
+    Returns:
+    - int: Error code.
+        - 15: MATLAB package does not exist.
+        - 16: Specified path is not a directory.
+        - 1: Success.
+    """
     if not existPackage('matlab'):
         return 15
     if not isdir(packagePath):
@@ -198,13 +300,22 @@ def checkMatlab(packagePath):
 
 
 def getOPENCV(dictPackages):
+    """
+    Retrieves information about the OpenCV package and its capabilities, and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates keys 'OPENCV', 'OPENCVSUPPORTSCUDA' based on OpenCV availability and CUDA support.
+    """
     cppProg = "#include <opencv2/core/core.hpp>\n"
     cppProg += "int main(){}\n"
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
     if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-        % (dictPackages['CXX']), ' -mtune=native -march=native -flto -std=c++17 -O3',
+        % (dictPackages['CXX']), CXX_FLAGS,
         getINCDIRFLAG(), showCommand=False, showOutput=False):
         dictPackages['OPENCV'] = False
     else:
@@ -220,7 +331,7 @@ def getOPENCV(dictPackages):
                           ' fh.close();'
                           '}\n')
         if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
-                      % (dictPackages['CXX'], ' -mtune=native -march=native -flto -std=c++17 -O3',
+                      % (dictPackages['CXX'], CXX_FLAGS,
                          getINCDIRFLAG()), showCommand=False, showOutput=False):
             openCV_Version = 2
         else:
@@ -242,7 +353,7 @@ def getOPENCV(dictPackages):
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
             cppFile.write(cppProg)
         if runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                  (dictPackages['CXX'], ' -mtune=native -march=native -flto -std=c++17 -O3',
+                  (dictPackages['CXX'], CXX_FLAGS,
               getINCDIRFLAG()), showOutput=False, log=[], showCommand=False):
             dictPackages["OPENCVSUPPORTSCUDA"] = True
         else:
@@ -254,6 +365,16 @@ def getOPENCV(dictPackages):
 
 
 def checkOPENCV(dictPackages):
+    """
+    Checks the OpenCV package and its CUDA support, updating the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Returns:
+    - int: Error code.
+        - 1: Success.
+    """
     log = []
     cppProg = "#include <opencv2/core/core.hpp>\n"
     cppProg += "int main(){}\n"
@@ -262,7 +383,7 @@ def checkOPENCV(dictPackages):
 
     if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
                   % (dictPackages['CXX']),
-                  ' -mtune=native -march=native -flto -std=c++17 -O3',
+                  CXX_FLAGS,
                   getINCDIRFLAG(), showCommand=False, showOutput=False, logErr=log):
         print(red('OpenCV set as True but {}'.format(log)))
         dictPackages['OPENCV'] = ''
@@ -280,7 +401,7 @@ def checkOPENCV(dictPackages):
                           '}\n')
         if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
                       % (dictPackages['CXX'],
-                         ' -mtune=native -march=native -flto -std=c++17 -O3',
+                         CXX_FLAGS,
                          getINCDIRFLAG()), showCommand=False,
                       showOutput=False):
             openCV_Version = 2
@@ -304,8 +425,7 @@ def checkOPENCV(dictPackages):
         log = []
         if runJob(
                 "%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                (dictPackages['CXX'],
-                 ' -mtune=native -march=native -flto -std=c++17 -O3',
+                (dictPackages['CXX'], CXX_FLAGS,
                  getINCDIRFLAG()), showOutput=False, logErr=log,
                 showCommand=False):
             print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
@@ -315,42 +435,68 @@ def checkOPENCV(dictPackages):
 
 
 def getCUDA(dictPackages):
+    """
+     Retrieves information about the CUDA package and updates the dictionary accordingly.
+
+     Params:
+     - dictPackages (dict): Dictionary containing package information.
+
+     Modifies:
+     - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDA_CXX' based on CUDA package availability.
+     """
     if not existPackage('nvcc'):
         dictPackages['CUDA'] = False
         dictPackages['CUDA_HOME'] = ''
         dictPackages['CUDA_CXX'] = ''
-        return 1
     else:
-        nvcc_version = versionPackage('nvcc')
+        dictPackages['CUDA'] = True
+        dictPackages['CUDA_HOME'] = pathPackage('nvcc')
+        dictPackages['CUDA_CXX'] = dictPackages['CXX']
+
+
+def checkCUDA(dictPackages):
+    """
+    Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Returns:
+    - int: Error code.
+        - 1: Success.
+        - 17: CUDA not compatible with the current g++ compiler version.
+        - 18: CUDA version information not available.
+    """
+    nvcc_version = versionPackage(dictPackages['CUDA_HOME'])
+    if nvcc_version != '':
         if nvcc_version.find('release') != -1:
             idx = nvcc_version.find('release ')
             nvcc_version = nvcc_version[idx + len('release '):
                                         idx + nvcc_version[idx:].find(',')]
-
         gxx_version = versionPackage(dictPackages['CXX'])
-        idx = gxx_version.find('\n')
-        idx2 = gxx_version[:idx].rfind(' ')
-        gxx_version = gxx_version[idx2: idx]
-        gxx_version = gxx_version.replace(' ', '')
-        idx = gxx_version.rfind('.')
-        gxx_version = gxx_version[:idx]
-        candidates, resultBool = get_compatible_GCC(nvcc_version)
+        gxx_version = CXXVersion(gxx_version)
+        candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
-                dictPackages['CUDA'] = True
-                dictPackages['CUDA_HOME'] = pathPackage('nvcc')
-                dictPackages['CUDA_CXX'] = dictPackages['CXX']
+            return 1
         else:
-            dictPackages['CUDA'] = False
-            dictPackages['CUDA_HOME'] = ''
-            dictPackages['CUDA_CXX'] = ''
+            print(red('CUDA {} not compatible with the current g++ compiler version {}\n'
+                      'Compilers candidates for your CUDA: {}'.format(nvcc_version, gxx_version, candidates)))
+            return 17
 
-
-def checkCUDA(dictPackages):
-    if existPackage(dictPackages['CUDA_HOME']):
-        strVersion = versionPackage('nvcc')
+    else:
+        return 18
 
 
 def getSTARPU(dictPackages):
+    """
+    Retrieves information about the STARPU package and updates the dictionary accordingly.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Modifies:
+    - dictPackages: Updates keys related to STARPU package information.
+    """
     if whereIsPackage("starpu_sched_display"):
         dictPackages["STARPU"] = True
         starpuBinDir = whereIsPackage("starpu_sched_display")
@@ -366,6 +512,16 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_LIBRARY"] = ''
 
 def checkSTARPU(dictPackages):
+    """
+    Checks the configuration of the STARPU package and CUDA compatibility, printing error messages if necessary.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    Returns:
+    - int: Error code.
+        - 1: Success.
+    """
     if dictPackages["CUDA"] != "True":
         ans = False
         print(red("CUDA must be enabled together with STARPU"))
