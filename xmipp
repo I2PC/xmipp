@@ -253,7 +253,7 @@ if __name__ == "__main__":
 	versionSubparser.add_argument("-short", "--short", action='store_true')
 
 	# Applying default mode value if needed
-	if len(sys.argv) > 1 and sys.argv[1].startswith('-'):
+	if len(sys.argv) == 1 or (len(sys.argv) > 1 and sys.argv[1].startswith('-')):
 		sys.argv.insert(1, MODE_ALL)
 
 	# Parse arguments
