@@ -24,13 +24,13 @@
 # ***************************************************************************/
 
 # General imports
-import argparse
+import argparse, sys
 
 # Installer imports
 from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR, MODE_ARGS
-from installer.utils import * #TODO Martin si existe en utils se va a usar no me bronquees por el *
+from installer.utils import showError
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 
