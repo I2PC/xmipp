@@ -252,13 +252,12 @@ if __name__ == "__main__":
 	versionSubparser = subparsers.add_parser(MODE_VERSION, formatter_class=ModeHelpFormatter)
 	versionSubparser.add_argument("-short", "--short", action='store_true')
 
+	# Applying default mode value if needed
+	if len(sys.argv) > 1 and sys.argv[1].startswith('-'):
+		sys.argv.insert(1, MODE_ALL)
+
 	# Parse arguments
 	args = parser.parse_args()
-
-	# Applying default value if needed
-	if args.mode is None:
-		sys.argv.insert(1, MODE_ALL)
-		args = parser.parse_args()
 
 	print("ARGS:", args)
 
