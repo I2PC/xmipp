@@ -28,7 +28,7 @@ Module containing useful functions used by the installation process.
 
 # General imports
 import subprocess, pkg_resources, sys
-from os import environ
+from os import environ, remove, path
 from typing import Union, List
 
 # Installer imports
@@ -291,8 +291,7 @@ def existPath(path):
 		pass
 
 def getINCDIRFLAG():
-		get_paths()
-		return " -I%s" % "%s/include" % get_paths()['data']
+		return path.join(' -I{}', get_paths()['data'].replace(' ', ''),  'include')
 
 def versionToNumber(strVersion: str) -> float:
 	"""
@@ -404,3 +403,27 @@ def CXXVersion(string):
 		idx = gxx_version.rfind('.')
 		gxx_version = gxx_version[:idx]
 		return gxx_version
+
+def findFileInDirList(fnH, dirlist):
+    """ :returns the dir where found or an empty string if not found.
+        dirs can contain *, then first found is returned.
+    """
+    if isinstance(dirlist, str):
+        dirlist = [dirlist]
+
+    for dir in dirlist:
+        validDirs = glob.glob(path.join(dir, fnH))
+        if len(validDirs) > 0:
+            return path.dirname(validDirs[0])
+    return ''
+
+def checkLib(gxx, libFlag):
+    """ Returns True if lib is found. """
+    logErr = []
+    logOut = []
+    result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
+            gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
+            showOutput=False, showCommand=False, logOut=logOut, logErr=logErr)
+    remove('xmipp_check_lib.cpp')
+    remove('a.out') if path.isfile('a.out') else None
+    return result

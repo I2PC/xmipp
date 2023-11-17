@@ -70,6 +70,9 @@ COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = './build'
 DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR + '/models'
 TAB_SIZE = 4
+PATH_TO_FIND_HDF5 = ["/usr/lib",
+								 "/usr/lib/x86_64-linux-gnu/hdf5/serial",
+								 "/usr/lib/x86_64-linux-gnu"]
 
 # Files names
 CONFIG_FILE = 'xmipp.conf'

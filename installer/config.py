@@ -26,16 +26,17 @@
 This module contains the necessary functions to run the config command.
 """
 
-from os import path
+from os import path, remove
 from os.path import isdir, join
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
-                        CXX_FLAGS)
+                        CXX_FLAGS, PATH_TO_FIND_HDF5)
 from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
-                    getCompatibleGCC, CXXVersion)
+                    getCompatibleGCC, CXXVersion, findFileInDirList, checkLib)
 from datetime import datetime
+from sysconfig import get_paths
 
 
 def config():
@@ -53,6 +54,7 @@ def getSystemValues():
     getCXX(dictPackages)
     getMPI(dictPackages)
     getJava(dictPackages)
+    getOPENCV(dictPackages)
     getCUDA(dictPackages)
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
@@ -275,6 +277,8 @@ def getMatlab(dictPackages):
     if matlabProgramPath:
         dictPackages['MATLAB'] = True
         dictPackages['MATLAB_HOME'] = matlabProgramPath.replace("/bin", "")
+        print(green('MATLAB_HOME detected at {}'.format(dictPackages['MATLAB_HOME'])))
+
     else:
         dictPackages['MATLAB'] = False
         dictPackages['MATLAB_HOME'] = ''
@@ -314,10 +318,11 @@ def getOPENCV(dictPackages):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-        % (dictPackages['CXX']), CXX_FLAGS,
-        getINCDIRFLAG(), showCommand=False, showOutput=False):
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"\
+        % (dictPackages['CXX'], CXX_FLAGS, getINCDIRFLAG()), showCommand=False,
+        showOutput=False, showError=False):
         dictPackages['OPENCV'] = False
+        dictPackages["OPENCVSUPPORTSCUDA"] = ''
     else:
         dictPackages['OPENCV'] = True
         # Check version
@@ -452,6 +457,8 @@ def getCUDA(dictPackages):
         dictPackages['CUDA'] = True
         dictPackages['CUDA_HOME'] = pathPackage('nvcc')
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
+        print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
+
 
 
 def checkCUDA(dictPackages):
@@ -504,6 +511,8 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
         dictPackages["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
         dictPackages["STARPU_LIBRARY"] = "libstarpu-1.3"
+        print(green('STARPU detected at {}'.format(dictPackages['STARPU_HOME'])))
+
     else:
         dictPackages["STARPU"] = False
         dictPackages["STARPU_HOME"] = ''
@@ -591,7 +600,35 @@ def checkSTARPU(dictPackages):
 
 
 def getLIBDIRFLAGS(dictPackages):
-    pass
-def getINCDIRFLAGS(dictPackages):
+    #get hdf5 libdir
+    PATH_TO_FIND_HDF5.append("%s/lib" % get_paths()['data'])#TODO review path con /lib
+    for path in PATH_TO_FIND_HDF5:
+        hdf5PathFound = findFileInDirList("libhdf5*", path)
+        if hdf5PathFound:
+            dictPackages["LIBDIRFLAGS"] += " -L%s" % hdf5PathFound
+            print(green('HDF5  detected at {}'.format(dictPackages['hdf5PathFound'])))
+            break
+    if hdf5PathFound == '':
+        print(red('HDF5 nod found'))
+
+    #get opencv libdir
+    if dictPackages['OPENCV']:
+        if findFileInDirList("opencv4/opencv2/core/core.hpp", ["/usr/include"]):
+            dictPackages["INCDIRFLAGS"] += " -I%s" % "/usr/include/opencv4"
+
+
+def getINCDIRFLAGS(dictPackages):#TODO
     pass
 
+
+# def check_hdf5(self):#TODO
+#     print("Checking hdf5 configuration")
+#     libhdf5 = get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
+#     if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
+#                   (self.get(Config.KEY_LINKERFORPROGRAMS), self.configDict["LINKFLAGS"],
+#                    self.configDict["LIBDIRFLAGS"], libhdf5),
+#                   show_command=False, show_output=False):
+#         return False, 6
+#     runJob("rm xmipp_test_main*", show_command=False, show_output=False)
+#     print(green('Done ' + (' ' * 70)))
+#     return True, 0
