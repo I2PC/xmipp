@@ -31,6 +31,7 @@
 #include "pdb_label_from_volume.h"
 #include "core/xmipp_image.h"
 #include "core/metadata_vec.h"
+#include "data/pdb.h"
 
 /* Usage ------------------------------------------------------------------- */
 
@@ -137,7 +138,12 @@ void ProgPdbValueToVol::computeProteinGeometry()
     double suma=0, sumaP=0;
     int numA=0;
 
+    // Reading PDB/CIF file
+    PDBPhantom pdb;
+    FileName fileName(fn_pdb.c_str());
+    pdb.read(fileName);
 
+    int i = 0;
     while (!fh_pdb.eof())
     {
         // Read an ATOM line
@@ -158,10 +164,10 @@ void ProgPdbValueToVol::computeProteinGeometry()
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        std::string atom_type = line.substr(13,2);
-        double x = textToFloat(line.substr(30,8));
-        double y = textToFloat(line.substr(38,8));
-        double z = textToFloat(line.substr(46,8));
+        char atom_type = pdb.atomList[i].atomType;
+        double x = pdb.atomList[i].x;
+        double y = pdb.atomList[i].y;
+        double z = pdb.atomList[i].z;
 
         // Correct position
         Matrix1D<double> r(3);
@@ -272,6 +278,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
 //		    std::cout << line << std::endl;
 
         fh_out << line << " \n";
+        i++;
     }
 
     double mean = suma/numA;
