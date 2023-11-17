@@ -167,6 +167,34 @@ MODE_ARGS = {
 	}
 }
 
+# Examples for the help message of each mode
+MODE_EXAMPLES = {
+	MODE_VERSION: [
+
+	],
+	MODE_COMPILE_AND_INSTALL: [
+
+	],
+	MODE_ALL: [
+
+	],
+	MODE_CONFIG: [
+
+	],
+	MODE_CHECK_CONFIG: [],
+	MODE_GET_MODELS: [
+
+	],
+	MODE_CLEAN_BIN: [],
+	MODE_CLEAN_DEPRECATED: [],
+	MODE_CLEAN_ALL: [],
+	MODE_TEST: [
+
+	],
+	MODE_GIT: ['./xmipp git pull'],
+	MODE_ADD_MODEL: ['./xmipp addModel myuser@127.0.0.1 /home/myuser/mymodel']
+}
+
 # Error Code
 ERROR_CODE = {
 	0: ['No error', ''],

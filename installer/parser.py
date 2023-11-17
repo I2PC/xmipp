@@ -27,12 +27,13 @@ This module contains a class that extends the capabilities of standard argparser
 """
 
 # General imports
-import argparse
+import argparse, shutil
+from argparse import _SubParsersAction
 from typing import List, Tuple
 
 # Installer imports
-from .constants import MODES, MODE_ARGS, TAB_SIZE
-from .utils import getFormattingTabs
+from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES
+from .utils import getFormattingTabs, yellow, red
 
 # File specific constants
 N_TABS_MODE_TEXT = 6
@@ -40,12 +41,25 @@ TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
 SECTION_N_DASH = 40
 SECTION_SPACE_MODE_HELP = 2
 SECTION_HELP_START = TAB_SIZE + SECTION_N_DASH + SECTION_SPACE_MODE_HELP
-LINE_SIZE_LIMIT = SECTION_HELP_START * 2.25
+LINE_SIZE_LOWER_LIMIT = int(SECTION_HELP_START * 1.5)
 
 ####################### AUX FUNCTIONS #######################
+def getLineSize() -> int:
+	"""
+	### This function returns the maximum size for a line.
+
+	### Returns:
+	(int): Maximum line size.
+	"""
+	# Getting column size in characters
+	size = shutil.get_terminal_size().columns
+
+	# Return size with lower limit
+	return LINE_SIZE_LOWER_LIMIT if size < LINE_SIZE_LOWER_LIMIT else size
+
 def helpSeparator() -> str:
 	"""
-	### This method returns the line that separates sections inside the help message.
+	### This function returns the line that separates sections inside the help message.
 
 	### Returns:
 	(str): Line that separates sections inside the help message.
@@ -55,7 +69,7 @@ def helpSeparator() -> str:
 
 def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 	"""
-	### This method returns a tuple containig a line with the words from the given list that could fit given the size limit, and the list with the remaining words.
+	### This function returns a tuple containig a line with the words from the given list that could fit given the size limit, and the list with the remaining words.
 
 	### Params:
 	- words (List[str]): List of words to try to fit into a line.
@@ -95,7 +109,7 @@ def fitWordsInLine(words: List[str], sizeLimit: int) -> Tuple[str, List[str]]:
 
 def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 	"""
-	### This method returns the given text, formatted in several lines so that it does not exceed the given character limit.
+	### This function returns the given text, formatted in several lines so that it does not exceed the given character limit.
 
 	### Params:
 	- text (str): The text to be formatted.
@@ -136,7 +150,7 @@ def multiLineHelpText(text: str, sizeLimit: int, leftFill: str) -> str:
 
 def textWithLimits(previousText: str, text: str) -> str:
 	"""
-	### This method returns the given text, formatted so that it does not exceed the character limit by line for the param help section.
+	### This function returns the given text, formatted so that it does not exceed the character limit by line for the param help section.
 
 	### Params:
 	- previousText (str): Text inserted before the one to be returned.
@@ -153,14 +167,14 @@ def textWithLimits(previousText: str, text: str) -> str:
 		# If so, it means that section space for modes and params 
 		# is too low and should be set to a higher number, but for now we need to print anyways, 
 		# so we reduce space from the one reserved for mode help
-		remainingSpace = LINE_SIZE_LIMIT - previousLength
+		remainingSpace = getLineSize() - previousLength
 
 		# Add minimum fill in space possible
 		fillInSpace = ' '
 	else:
 		# If such section is within the expected size range, calculate remaining size
 		# based on the expected help section beginning
-		remainingSpace = LINE_SIZE_LIMIT - SECTION_HELP_START
+		remainingSpace = getLineSize() - SECTION_HELP_START
 
 		# Add fill in space
 		fillInSpace = ''.join([' ' for _ in range(SECTION_HELP_START - previousLength)])
@@ -171,7 +185,43 @@ def textWithLimits(previousText: str, text: str) -> str:
 	return previousText + fillInSpace + formattedHelp + '\n'
 
 ####################### HELP FUNCTIONS #######################
-def getModeArgs(mode: str) -> str:
+def argsContainOptional(argNames: List[str]) -> bool:
+	"""
+	### This method returns True if the param name list contains at least one optional param.
+
+	### Params:
+	- argNames (List[str]): List containing the param names.
+
+	### Returns:
+	(bool): True if there is at least one optional param. False otherwise.
+	"""
+	# For every param name, check if starts with '-'
+	for name in argNames:
+		if name.startswith('-'):
+			return True
+	
+	# If execution gets here, there were no optional params
+	return False
+
+def getModeHelp(mode: str) -> str:
+	"""
+	### This method returns the help message of a given mode.
+
+	### Params:
+	- mode (str): Mode to get help text for.
+
+	### Returns:
+	(str): Help of the mode (empty if mode not found).
+	"""
+	# Find mode group containing current mode
+	for group in list(MODES.keys()):
+		if mode in list(MODES[group].keys()):
+			return MODES[group][mode]
+	
+	# If it was not found, return empty string
+	return ''
+
+def getModeArgsStr(mode: str) -> str:
 	"""
 	### This method returns the args text for a given mode.
 
@@ -190,7 +240,7 @@ def getModeArgs(mode: str) -> str:
 	# Returning all formatted param names as a string
 	return ' '.join(paramNames)
 
-def getModeArgsAndHelp(previousText: str, mode: str) -> str:
+def getModeArgsAndHelpStr(previousText: str, mode: str) -> str:
 	"""
 	### This method returns the args and help text for a given mode.
 
@@ -205,125 +255,53 @@ def getModeArgsAndHelp(previousText: str, mode: str) -> str:
 	modeHelpStr = ''
 
 	# Find mode group containing current mode
-	for group in list(MODES.keys()):
-		if mode in list(MODES[group].keys()):
-			modeHelpStr = MODES[group][mode]
-			break
+	modeHelpStr = getModeHelp(mode)
 
 	# Return formatted text formed by the previous text, 
 	# the args for the mode, and its help text
-	return textWithLimits(previousText + getModeArgs(mode), modeHelpStr)
+	return textWithLimits(previousText + getModeArgsStr(mode), modeHelpStr)
 
 ####################### PARSER CLASS #######################
-class ComplexArgumentParser(argparse.ArgumentParser):
+class ErrorHandlerArgumentParser(argparse.ArgumentParser):
 	"""
-	This class extends the capabilities of the standard argument parser to be able
-	to handle complex argument dependencies.
+	This class overrides the error function of the standard argument parser
+	to display better error messages.
 	"""
-	def __init__(self, *args, mainParamName=None, **kwargs):
-		"""
-		### This constructor adds the ability to keep track of argument enforcement conditions.
-
-		#### Params:
-		- *args: Positional arguments passed to the parent class method.
-		- mainParamName (str): Name of the main param.
-		- **kwargs: Keyword arguments passed to the parent class method.
-		"""
-		super().__init__(*args, **kwargs)
-		self.conditionalArgs = {}
-		self.mainParamName = mainParamName
-
-	####################### AUX PRIVATE FUNCTIONS #######################
-	def _getArgsWithMetCondition(self, knownArgs: argparse.Namespace) -> List[str]:
-		"""
-		### This method returns a list containing all the conditional param names that meet their condition.
-		
-		#### Params:
-		- knownArgs (Namespace): Namespace object composed of the already parsed and recognized arguments.
-
-		#### Returns:
-		(List[str]): List containing all the param names for all the params whose condition is fulfilled.
-		"""
-		# Initialize empty list to store param names
-		metParamNames = []
-
-		# Only makes sense processing if there are any known args
-		if not knownArgs:
-			return metParamNames
-
-		# Storing all param variables into local variables to allow eval comparison
-		for variable, value in knownArgs._get_kwargs():
-			locals()[variable] = value
-
-		# Iterate conditional params getting every param with a fulfilled condition
-		for paramName, argList in list(self.conditionalArgs.items()):
-			try:
-				# Checking if condition is met. Try-except is needed for params that might
-				# deppend on another conditional param. When evaluating, they will try to 
-				# compare with variables not yet defined.
-				if eval(argList['condition']):
-					# If param's condition is met, add to list
-					metParamNames.append(paramName)
-			except NameError:
-				continue
-
-		return metParamNames
-
-	def _updateRequiredParam(self, paramName: str):
-		"""
-		### This method updates the given param to make it a requirement if it wasn't already.
-		
-		#### Params:
-		- paramName (str): Name of the parameter.
-		"""
-		for action in self._actions:
-			if action.dest == paramName:
-				action.nargs = None
-				action.default = None
-				action.required = True
-				break
-		
-	def _updateMainParamIfPositionalArg(self, paramName: str):
-		"""
-		### This method updates the main param if it receives a different positional param.
-		### This is done to ensure value integrity for both params.
-		
-		#### Params:
-		- paramName (str): Name of the parameter.
-		"""
-		# Checking if argument is positional (optionals start with '-')
-		if self.mainParamName is not None and not paramName.startswith('-'):
-			# Update mode param so it cannot be blank now.
-			# Otherwise, it will aquire the default value and the value
-			# supposed to be for mode will end up in the positional param, as
-			# that one cannot be blank and mode can
-			self._updateRequiredParam(self.mainParamName)
-
 	####################### OVERRIDED PUBLIC FUNCTIONS #######################
-	def add_argument(self, *args, condition: str=None, **kwargs):
+	def error(self, message):
 		"""
-		### This method adds the given parameter to the argument list, while
-		### keeping track of its enforcement condition.
+		### This method prints through stderr the error message and exits with specific return code.
 		
 		#### Params:
-		- *args: Positional rguments passed to the parent class method.
-		- condition (str): The enforcement condition for the argument.
-		- **kwargs: Keyword arguments passed to the parent class method.
+		- message (str): Error message.
 		"""
-		# Call the original add_argument method if no condition is provided
-		if condition is None:
-			super().add_argument(*args, **kwargs)
-		else:
-			# Store the condition for this argument
-			argName = args[0]
-			self.conditionalArgs[argName] = {'condition': condition, 'args': args, 'kwargs': kwargs}
+		# Getting mode and usage help from text
+		textList = self.prog.split(' ')
+		mode = textList[-1]
 
+		# If text list only contains one item, mode is generic and
+		# we need to get the help text
+		if len(textList) > 1:
+			textList = ' '.join(textList[:-1])
+			extraLineBreak = '\n'
+		else:
+			textList = self.format_help()
+			extraLineBreak = ''
+
+		# Exiting with message
+		errorMessage = red(f"{mode}: error: {message}\n")
+		self.exit(2, f"{textList}{extraLineBreak}{errorMessage}")
+
+class GeneralHelpFormatter(argparse.HelpFormatter):
+	"""
+	This class overrides the default help formatter to display a custom help message.
+	"""
 	def format_help(self):
 		"""
 		### This method prints the help message of the argument parser.
 		"""
 		# Base message
-		helpMessage = self.description + '\n\nUsage: xmipp [options]\n'
+		helpMessage = "Run Xmipp's installer script\n\nUsage: xmipp [options]\n"
 
 		# Add every section
 		for section in list(MODES.keys()):
@@ -332,53 +310,56 @@ class ComplexArgumentParser(argparse.ArgumentParser):
 
 			# Adding help text for every mode in each section
 			for mode in list(MODES[section].keys()):
-				helpMessage += getModeArgsAndHelp(f"\t{mode} ", mode)
+				helpMessage += getModeArgsAndHelpStr(f"\t{mode} ", mode)
 
-		# Adding epilog and printing
-		helpMessage += '\n' + self.epilog
-		print(getFormattingTabs(helpMessage))
+		# Adding epilog and returning to print
+		epilog = "Example 1: ./xmipp\n"
+		epilog += "Example 2: ./xmipp compileAndInstall -j 4\n"
+		helpMessage += '\n' + epilog
+		return getFormattingTabs(helpMessage)
 
-	def parse_args(self, *args, **kwargs) -> argparse.Namespace:
+class ModeHelpFormatter(argparse.HelpFormatter):
+	"""
+	This class overrides the default help formatter to display a custom help message deppending on the mode selected.
+	"""
+	def format_help(self):
 		"""
-		### This method parses the introduced args, only enforcing the ones that fulfill their condition.
-		
-		#### Params:
-		- *args: Positional arguments passed to the parent class method.
-		- **kwargs: Keyword arguments passed to the parent class method.
-		
-		#### Returns:
-		- (Namespace): The Namespace object containing the parsed arguments.
+		### This method prints the help message of the argument parser.
 		"""
-		# Obtaining conditional args dicitionary's number of elements
-		nParams = len(self.conditionalArgs)
+		# Getting the selected mode from the parent help message
+		# Message received is the format_help of the main parser's
+		# formatter, adding the mode at the end
+		mode = self._prog.split(' ')[-1]
 
-		# Iterate until dictionary is empty or max number of iterations has been reached (max = nParams)
-		# Max iterations is number of params because, worst case, only one new param fulfills its condition
-		# for every iteration, in case every conditional param deppends on another conditional param except for
-		# one of them (at least one needs to deppend on a fixed param).
-		for _ in range(nParams):
-			# If dictionary is empty, stop iterating
-			if not self.conditionalArgs:
-				break
+		# Initialize the help message
+		helpMessage = getModeHelp(mode) + '\n\n'
 
-			# Parsing known args
-			knownArgs = self.parse_known_args(*args, **kwargs)[0]
+		# Get mode args
+		args = list(MODE_ARGS[mode].keys())
 
-			# Obtaining all params that meet their condition
-			metParamNames = self._getArgsWithMetCondition(knownArgs)
+		# Add extra messages deppending on if there are args
+		optionsStr = ''
+		separator = ''
+		if len(args) > 0:
+			if argsContainOptional(args):
+				helpMessage += yellow("Note: only params starting with '-' are optional. The rest are required.\n")
+			optionsStr = ' [options]'
+			separator = helpSeparator() + '\t# Options #\n\n'
+		helpMessage += f'Usage: xmipp {mode}{optionsStr}\n{separator}'
 
-			# Adding all the params meeting their conditions and removing them from the dictionary
-			for paramName in metParamNames:
-				argList = self.conditionalArgs[paramName]
+		# Adding arg info
+		for arg in args:
+			helpMessage += textWithLimits('\t' + arg, MODE_ARGS[mode][arg])
 
-				# If argument is positional, make mode param a requirement
-				self._updateMainParamIfPositionalArg(argList['args'][0])
+		# Adding a few examples
+		examples = MODE_EXAMPLES[mode]
+		for i in range(len(examples)):
+			numberStr = '' if len(examples) == 1 else f' {i}'	
+			helpMessage += f"\nExample{numberStr}: {examples[i]}"
+		
+		# If any test were added, add extra line break
+		if len(examples) > 0:
+			helpMessage += '\n'
 
-				# Adding extra param
-				self.add_argument(*argList['args'], **argList['kwargs'])
-
-				# Removing param from dictionary
-				self.conditionalArgs.pop(paramName)
-
-		# Parse args
-		return super().parse_args(*args, **kwargs)
+		return getFormattingTabs(helpMessage)
+	
