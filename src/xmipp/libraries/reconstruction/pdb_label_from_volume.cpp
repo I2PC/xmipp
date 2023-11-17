@@ -164,7 +164,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        const auto& atom = pdb.atomList[nAtom];
+        const auto& atom = pdb.atomList[nAtom++];
         char atom_type = atom.atomType;
         double x = atom.x;
         double y = atom.y;
@@ -279,7 +279,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
 //		    std::cout << line << std::endl;
 
         fh_out << line << " \n";
-        nAtom++;
     }
 
     double mean = suma/numA;

@@ -289,7 +289,7 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 		// Extract atom type and position
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-		const auto& atom = pdb.atomList[nAtom];
+		const auto& atom = pdb.atomList[nAtom++];
 		atom_type = atom.atomType;
 		double x = atom.x;
 		double y = atom.y;
@@ -321,7 +321,6 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 				}
 			}
 		}
-		nAtom++;
 	}
 
 	Image<double> test1;
@@ -447,7 +446,7 @@ int partialpfunction(Matrix1D<double> &Parameters,
 		// Extract atom type and position
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-		const auto& atom = pdb.atomList[nAtom];
+		const auto& atom = pdb.atomList[nAtom++];
 		char atom_type = atom.atomType;
 		double xPos = atom.x;
 		double yPos = atom.y;
@@ -522,7 +521,6 @@ int partialpfunction(Matrix1D<double> &Parameters,
 			}
 		}
 		k++;
-		nAtom++;
 	}
 	fh_deformedPDB.close();
 	return (!ERROR);
