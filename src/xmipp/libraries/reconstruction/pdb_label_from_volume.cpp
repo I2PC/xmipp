@@ -140,8 +140,8 @@ void ProgPdbValueToVol::computeProteinGeometry()
 
     // Reading PDB/CIF file
     PDBPhantom pdb;
-    FileName fileName(fn_pdb.c_str());
-    pdb.read(fileName);
+    FileName fileNamePdb(fn_pdb.c_str());
+    pdb.read(fileNamePdb);
 
     int nAtom = 0;
     while (!fh_pdb.eof())
