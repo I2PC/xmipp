@@ -289,10 +289,11 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 		// Extract atom type and position
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-		atom_type = pdb.atomList[nAtom].atomType;
-		double x = pdb.atomList[nAtom].x;
-		double y = pdb.atomList[nAtom].y;
-		double z = pdb.atomList[nAtom].z;
+		const auto& atom = pdb.atomList[nAtom];
+		atom_type = atom.atomType;
+		double x = atom.x;
+		double y = atom.y;
+		double z = atom.z;
 		coord_gaussian[0] = (x - centerOfMass(0))
 				/ (global_flexible_prog->sampling_rate);
 		coord_gaussian[1] = (y - centerOfMass(1))
@@ -446,10 +447,11 @@ int partialpfunction(Matrix1D<double> &Parameters,
 		// Extract atom type and position
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-		char atom_type = pdb.atomList[nAtom].atomType;
-		double xPos = pdb.atomList[nAtom].x;
-		double yPos = pdb.atomList[nAtom].y;
-		double zPos = pdb.atomList[nAtom].z;
+		const auto& atom = pdb.atomList[nAtom];
+		char atom_type = atom.atomType;
+		double xPos = atom.x;
+		double yPos = atom.y;
+		double zPos = atom.z;
 
 		// Correct position
 		coord_gaussian[0] = (xPos - centerOfMass(0))

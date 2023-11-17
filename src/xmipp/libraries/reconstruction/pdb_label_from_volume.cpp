@@ -164,10 +164,11 @@ void ProgPdbValueToVol::computeProteinGeometry()
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        char atom_type = pdb.atomList[nAtom].atomType;
-        double x = pdb.atomList[nAtom].x;
-        double y = pdb.atomList[nAtom].y;
-        double z = pdb.atomList[nAtom].z;
+        const auto& atom = pdb.atomList[nAtom];
+        char atom_type = atom.atomType;
+        double x = atom.x;
+        double y = atom.y;
+        double z = atom.z;
 
         // Correct position
         Matrix1D<double> r(3);
