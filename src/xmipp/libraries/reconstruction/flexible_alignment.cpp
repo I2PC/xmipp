@@ -290,14 +290,14 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 		atom_type = pdb.atomList[nAtom].atomType;
-		double xPos = pdb.atomList[nAtom].x;
-		double yPos = pdb.atomList[nAtom].y;
-		double zPos = pdb.atomList[nAtom].z;
-		coord_gaussian[0] = (xPos - centerOfMass(0))
+		double x = pdb.atomList[nAtom].x;
+		double y = pdb.atomList[nAtom].y;
+		double z = pdb.atomList[nAtom].z;
+		coord_gaussian[0] = (x - centerOfMass(0))
 				/ (global_flexible_prog->sampling_rate);
-		coord_gaussian[1] = (yPos - centerOfMass(1))
+		coord_gaussian[1] = (y - centerOfMass(1))
 				/ (global_flexible_prog->sampling_rate);
-		coord_gaussian[2] = (zPos - centerOfMass(2))
+		coord_gaussian[2] = (z - centerOfMass(2))
 				/ (global_flexible_prog->sampling_rate);
 
 		for (int ksi = -psi_max; ksi <= psi_max; ksi++) {
@@ -447,16 +447,16 @@ int partialpfunction(Matrix1D<double> &Parameters,
 		// Typical line:
 		// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
 		char atom_type = pdb.atomList[nAtom].atomType;
-		double x = pdb.atomList[nAtom].x;
-		double y = pdb.atomList[nAtom].y;
-		double z = pdb.atomList[nAtom].z;
+		double xPos = pdb.atomList[nAtom].x;
+		double yPos = pdb.atomList[nAtom].y;
+		double zPos = pdb.atomList[nAtom].z;
 
 		// Correct position
-		coord_gaussian[0] = (x - centerOfMass(0))
+		coord_gaussian[0] = (xPos - centerOfMass(0))
 				/ global_flexible_prog->sampling_rate;
-		coord_gaussian[1] = (y - centerOfMass(1))
+		coord_gaussian[1] = (yPos - centerOfMass(1))
 				/ global_flexible_prog->sampling_rate;
-		coord_gaussian[2] = (z - centerOfMass(2))
+		coord_gaussian[2] = (zPos - centerOfMass(2))
 				/ global_flexible_prog->sampling_rate;
 
 		//MatrixMultiply( Tr, coord_gaussian, coord_gaussian,4L, 4L, 1L);
