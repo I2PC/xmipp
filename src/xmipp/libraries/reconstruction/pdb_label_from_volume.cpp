@@ -143,7 +143,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
     FileName fileName(fn_pdb.c_str());
     pdb.read(fileName);
 
-    int i = 0;
+    int nAtom = 0;
     while (!fh_pdb.eof())
     {
         // Read an ATOM line
@@ -164,10 +164,10 @@ void ProgPdbValueToVol::computeProteinGeometry()
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        char atom_type = pdb.atomList[i].atomType;
-        double x = pdb.atomList[i].x;
-        double y = pdb.atomList[i].y;
-        double z = pdb.atomList[i].z;
+        char atom_type = pdb.atomList[nAtom].atomType;
+        double x = pdb.atomList[nAtom].x;
+        double y = pdb.atomList[nAtom].y;
+        double z = pdb.atomList[nAtom].z;
 
         // Correct position
         Matrix1D<double> r(3);
@@ -278,7 +278,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
 //		    std::cout << line << std::endl;
 
         fh_out << line << " \n";
-        i++;
+        nAtom++;
     }
 
     double mean = suma/numA;
