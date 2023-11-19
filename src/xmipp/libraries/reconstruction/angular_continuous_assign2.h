@@ -84,6 +84,8 @@ public:
     bool optimizeDefocus;
     // Ignore CTF
     bool ignoreCTF;
+    // Do not write stack
+    bool doNotWriteStack;
     // Apply transformation to this image
     String originalImageLabel;
     // Phase Flipped
