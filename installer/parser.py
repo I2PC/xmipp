@@ -31,7 +31,7 @@ import argparse, shutil
 from typing import List, Tuple
 
 # Installer imports
-from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES
+from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES, MODE_ALL
 from .utils import getFormattingTabs, yellow, red
 
 # File specific constants
@@ -313,6 +313,11 @@ class GeneralHelpFormatter(argparse.HelpFormatter):
 		epilog = "Example 1: ./xmipp\n"
 		epilog += "Example 2: ./xmipp compileAndInstall -j 4\n"
 		helpMessage += '\n' + epilog
+
+		# Adding note about mode specific help
+		noteMessage = "Note: You can also view a specific help message for each mode with \"./xmipp [mode] -h\".\n"
+		noteMessage += f"Example: ./xmipp {MODE_ALL} -h\n"
+		helpMessage += yellow(noteMessage)
 		return getFormattingTabs(helpMessage)
 
 class ModeHelpFormatter(argparse.HelpFormatter):
