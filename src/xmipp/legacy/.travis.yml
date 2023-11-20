@@ -21,6 +21,6 @@ before_install:
 script:
  - |
      export CXX='ccache g++' && \
-     build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk && \
+     build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp && \
      sonar-scanner && \
      ccache -s

@@ -210,7 +210,6 @@ if __name__ == "__main__":
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)
 	allSubparser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS)
 	allSubparser.add_argument("-br", "--branch")
-	allSubparser.add_argument("-noAsk", "--noAsk", action='store_true')
 	allSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
 
 	# Arguments for mode 'checkConfig'
@@ -233,7 +232,6 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
-	configSubparser.add_argument("-noAsk", "--noAsk", action='store_true')
 
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)

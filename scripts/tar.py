@@ -80,7 +80,7 @@ def run(label, version, branch, debug):
         getAndWriteCommitInfo('xmippViz')
         getAndWriteCommitInfo('scipion-em-xmipp')
         os.environ['CUDA'] = 'True'  # To include cuFFTAdvisor
-        os.system('./xmipp config noAsk')  # just to write the config file
+        os.system('./xmipp config')  # just to write the config file
         os.system('./xmipp get_dependencies')
         os.chdir(cwd)
 
