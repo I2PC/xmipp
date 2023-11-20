@@ -263,6 +263,10 @@ if __name__ == "__main__":
 	# Parse arguments
 	args = parser.parse_args()
 
+	# Error control for number of jobs
+	if args.jobs < 1:
+		parser.error("Number of jobs has to be 1 or greater.")
+
 	print("ARGS:", args)
 
 	# Running installer in selected mode
