@@ -262,7 +262,7 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# Error control for number of jobs
-	if args.jobs < 1:
+	if hasattr(args, 'jobs') and args.jobs < 1:
 		parser.error("Number of jobs has to be 1 or greater.")
 
 	print("ARGS:", args)
