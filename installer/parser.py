@@ -35,8 +35,6 @@ from .constants import MODES, MODE_ARGS, TAB_SIZE, MODE_EXAMPLES
 from .utils import getFormattingTabs, yellow, red
 
 # File specific constants
-N_TABS_MODE_TEXT = 6
-TABS_MODE_TEXT = ''.join(['\t' for _ in range(N_TABS_MODE_TEXT)])
 SECTION_N_DASH = 40
 SECTION_SPACE_MODE_HELP = 2
 SECTION_HELP_START = TAB_SIZE + SECTION_N_DASH + SECTION_SPACE_MODE_HELP
