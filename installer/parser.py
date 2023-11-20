@@ -354,7 +354,7 @@ class ModeHelpFormatter(argparse.HelpFormatter):
 		# Adding a few examples
 		examples = MODE_EXAMPLES[mode]
 		for i in range(len(examples)):
-			numberStr = '' if len(examples) == 1 else f' {i}'	
+			numberStr = '' if len(examples) == 1 else f' {i+1}'	
 			helpMessage += f"\nExample{numberStr}: {examples[i]}"
 		
 		# If any test were added, add extra line break
