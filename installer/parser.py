@@ -28,7 +28,6 @@ This module contains a class that extends the capabilities of standard argparser
 
 # General imports
 import argparse, shutil
-from argparse import _SubParsersAction
 from typing import List, Tuple
 
 # Installer imports
