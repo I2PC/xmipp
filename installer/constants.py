@@ -141,12 +141,9 @@ MODE_ARGS = {
 	MODE_ALL: {
 		'-j': f"Number of jobs. Defaults to {DEFAULT_JOBS}.",
 		'-br': "Branch for the source repositories.",
-		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\".",
-		'-noAsk': "If set, Xmipp will try to automatically find necessary libraries and compilers."
+		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
-	MODE_CONFIG: {
-		'-noAsk': "If set, Xmipp will try to automatically find necessary libraries and compilers."
-	},
+	MODE_CONFIG: {},
 	MODE_CHECK_CONFIG: {},
 	MODE_GET_MODELS: {
 		'-dir': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
@@ -170,29 +167,34 @@ MODE_ARGS = {
 # Examples for the help message of each mode
 MODE_EXAMPLES = {
 	MODE_VERSION: [
-
+		f'./xmipp {MODE_VERSION}',
+		f'./xmipp {MODE_VERSION} --short',
+		f'./xmipp {MODE_VERSION} -dir /path/to/my/build/dir'
 	],
 	MODE_COMPILE_AND_INSTALL: [
-
+		f'./xmipp {MODE_COMPILE_AND_INSTALL}',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} -j 20',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} -dir /path/to/my/build/dir',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} -br devel',
+		f'./xmipp {MODE_COMPILE_AND_INSTALL} -j 20 dir /path/to/my/build/dir -br devel'
 	],
 	MODE_ALL: [
-
+		'./xmipp',
+		f'./xmipp {MODE_ALL}',
+		'./xmipp -j 20',
+		'./xmipp -dir /path/to/my/build/dir',
+		'./xmipp -br devel',
+		f'./xmipp {MODE_ALL} -j 20 dir /path/to/my/build/dir -br devel]'
 	],
-	MODE_CONFIG: [
-
-	],
+	MODE_CONFIG: [],
 	MODE_CHECK_CONFIG: [],
-	MODE_GET_MODELS: [
-
-	],
+	MODE_GET_MODELS: [f'./xmipp {MODE_GET_MODELS}', f'./xmipp {MODE_GET_MODELS} -dir /path/to/my/model/directory'],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_DEPRECATED: [],
 	MODE_CLEAN_ALL: [],
-	MODE_TEST: [
-
-	],
-	MODE_GIT: ['./xmipp git pull'],
-	MODE_ADD_MODEL: ['./xmipp addModel myuser@127.0.0.1 /home/myuser/mymodel']
+	MODE_TEST: [f'./xmipp {MODE_TEST} testName', f'./xmipp {MODE_TEST} --show', f'./xmipp {MODE_TEST} testName --show'],
+	MODE_GIT: [f'./xmipp {MODE_GIT} pull', f'./xmipp {MODE_GIT} checkout devel'],
+	MODE_ADD_MODEL: [f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel']
 }
 
 # Error Code
