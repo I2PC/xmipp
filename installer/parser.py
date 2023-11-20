@@ -287,7 +287,7 @@ class ErrorHandlerArgumentParser(argparse.ArgumentParser):
 
 		# Exiting with message
 		errorMessage = red(f"{mode}: error: {message}\n")
-		self.exit(2, getFormattingTabs(f"{textList}{extraLineBreak}{errorMessage}"))
+		self.exit(1, getFormattingTabs(f"{textList}{extraLineBreak}{errorMessage}"))
 
 class GeneralHelpFormatter(argparse.HelpFormatter):
 	"""
