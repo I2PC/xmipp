@@ -24,7 +24,7 @@
 # ***************************************************************************/
 
 # General imports
-import argparse, sys
+import argparse, sys, os
 
 # Installer imports
 from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
@@ -33,6 +33,7 @@ from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL
 from installer.utils import showError
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
+from installer.main import getSources
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -91,6 +92,9 @@ def modeCompileAndInstall(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	# Get sources
+	getSources(branch=args.branch)
+
 	# TODO: Implement
 
 def modeConfig(args: argparse.Namespace):
@@ -266,6 +270,9 @@ if __name__ == "__main__":
 		parser.error(f"Wrong job number \"{args.jobs}\". Number of jobs has to be 1 or greater.")
 
 	print("ARGS:", args)
+
+	# Running always under this own directory.
+	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
