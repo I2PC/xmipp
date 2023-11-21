@@ -70,6 +70,11 @@ COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = './build'
 DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR + '/models'
 TAB_SIZE = 4
+INC_PATH = ['/usr/local/include/',
+						'/usr/include']
+INC_HDF5_PATH = INC_PATH +["/usr/include/hdf5/serial",
+														"/usr/local/include/hdf5/serial"]
+
 PATH_TO_FIND_HDF5 = ["/usr/lib",
 								 "/usr/lib/x86_64-linux-gnu/hdf5/serial",
 								 "/usr/lib/x86_64-linux-gnu"]
@@ -197,6 +202,29 @@ MODE_EXAMPLES = {
 	MODE_ADD_MODEL: [f'./xmipp {MODE_ADD_MODEL} myuser@127.0.0.1 /home/myuser/mymodel']
 }
 
+CONFIG_DICT = {'INCDIRFLAGS': '',
+								'CC': '',
+								'CXX': '',
+								'MPI_CC': '',
+								'MPI_CXX': '',
+								'MPI_RUN': '',
+								'JAVA_HOME': '',
+								'OPENCV': '',
+								'CUDA': '',
+								'CUDA_HOME': '',
+								'CUDA_CXX': '',
+								'STARPU': '',
+								'STARPU_HOME': '',
+								'STARPU_INCLUDE': '',
+								'STARPU_LIB': '',
+								'STARPU_LIBRARY': '',
+								'MATLAB': '',
+								'MATLAB_HOME': '',
+								'LIBDIRFLAGS': ''
+}
+
+
+
 # Error Code
 ERROR_CODE = {
 	0: ['No error', ''],
@@ -281,5 +309,7 @@ NVCC_CXXFLAGS=--x cu -D_FORCE_INLINES -Xcompiler -fPIC -ccbin /usr/bin/g++-10 -s
 on the fly values to check
 
 PYTHONINCFLAGS=-I/home/agarcia/anaconda3/include/python3.8 -I/home/agarcia/anaconda3/lib/python3.8/site-packages/numpy/core/include
+INCDIRFLAGS += python
+LIBDIRFLAGS += python
 
 '''

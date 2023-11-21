@@ -31,10 +31,13 @@ from os.path import isdir, join
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
-                        CXX_FLAGS, PATH_TO_FIND_HDF5)
-from .utils import (red, green, yellow, runJob, versionToNumber, existPackage, versionPackage,
+                        CXX_FLAGS, PATH_TO_FIND_HDF5, INC_PATH, INC_HDF5_PATH,
+                        CONFIG_DICT)
+from .utils import (red, green, yellow, runJob, versionToNumber, existPackage,
+                    versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
-                    getCompatibleGCC, CXXVersion, findFileInDirList, checkLib)
+                    getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
+                    get_Hdf5_name)
 from datetime import datetime
 from sysconfig import get_paths
 
@@ -44,12 +47,12 @@ def config():
     if not existConfig():
         writeConfig(getSystemValues())
 
-    checkConfig(parseConfig())
+    checkConfig(readConfig())
 
 
 def getSystemValues():
     """Collect all the required package details of the system"""
-    dictPackages = {}
+    dictPackages = {'INCDIRFLAGS': '-I../ '}
     getCC(dictPackages)
     getCXX(dictPackages)
     getMPI(dictPackages)
@@ -58,11 +61,32 @@ def getSystemValues():
     getCUDA(dictPackages)
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
+    getLIBDIRFLAGS(dictPackages)
+    getINCDIRFLAGS(dictPackages)
+    return dictPackages
+
+def readConfig():
+    """Check if valid all the flags of the config file"""
+    dictPackages = {}
+    with open(CONFIG_FILE, 'r') as f:
+        config = f.read()
+    for key, _ in CONFIG_DICT.items():
+        idx = config.find(key)
+        idx2 = config[idx:].find('=') + 1
+        value = config[idx2:config[idx:].find('\n')]
+        dictPackages[key] = value
     return dictPackages
 
 def checkConfig(dictPackages):
-    """Check if valid all the flags of the config file"""
-    pass
+    checkCC(dictPackages)
+    checkCXX(dictPackages)
+    checkMPI(dictPackages)
+    checkJava(dictPackages)
+    checkMatlab(dictPackages)
+    checkOPENCV(dictPackages)
+    checkCUDA(dictPackages)
+    checkSTARPU(dictPackages)
+    check_hdf5(dictPackages)
 
 
 def existConfig():
@@ -80,7 +104,7 @@ def writeConfig(dictPackages):
             f.write('{}={}\n'.format(key, value))
 
         f.write('\n')
-        f.write('Date written: {} '.format(datetime.today()))
+        f.write('Date written: {} \n'.format(datetime.today()))
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""
@@ -304,69 +328,19 @@ def checkMatlab(packagePath):
 
 
 def getOPENCV(dictPackages):
-    """
-    Retrieves information about the OpenCV package and its capabilities, and updates the dictionary accordingly.
-
-    Params:
-    - dictPackages (dict): Dictionary containing package information.
-
-    Modifies:
-    - dictPackages: Updates keys 'OPENCV', 'OPENCVSUPPORTSCUDA' based on OpenCV availability and CUDA support.
-    """
-    cppProg = "#include <opencv2/core/core.hpp>\n"
-    cppProg += "int main(){}\n"
-    with open("xmipp_test_opencv.cpp", "w") as cppFile:
-        cppFile.write(cppProg)
-
-    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"\
-        % (dictPackages['CXX'], CXX_FLAGS, getINCDIRFLAG()), showCommand=False,
-        showOutput=False, showError=False):
-        dictPackages['OPENCV'] = False
-        dictPackages["OPENCVSUPPORTSCUDA"] = ''
-    else:
-        dictPackages['OPENCV'] = True
-        # Check version
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write('#include <opencv2/core/version.hpp>\n')
-            cppFile.write('#include <fstream>\n')
-            cppFile.write('int main()'
-                          '{std::ofstream fh;'
-                          ' fh.open("xmipp_test_opencv.txt");'
-                          ' fh << CV_MAJOR_VERSION << std::endl;'
-                          ' fh.close();'
-                          '}\n')
-        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
-                      % (dictPackages['CXX'], CXX_FLAGS,
-                         getINCDIRFLAG()), showCommand=False, showOutput=False):
-            openCV_Version = 2
-        else:
-            runJob("./xmipp_test_opencv", showCommand=False, showOutput=False)
-            f = open("xmipp_test_opencv.txt")
-            versionStr = f.readline()
-            f.close()
-            version = int(versionStr.split('.', 1)[0])
-            openCV_Version = version
-
-
-        # Check CUDA Support
-        cppProg = "#include <opencv2/core/version.hpp>\n"
-        if openCV_Version < 3:
-            cppProg += "#include <opencv2/core/cuda.hpp>\n"
-        else:
-            cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
-        cppProg += "int main(){}\n"
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-        if runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                  (dictPackages['CXX'], CXX_FLAGS,
-              getINCDIRFLAG()), showOutput=False, log=[], showCommand=False):
-            dictPackages["OPENCVSUPPORTSCUDA"] = True
-        else:
-            dictPackages["OPENCVSUPPORTSCUDA"] = ''
-        print(green("OPENCV-%s detected %s CUDA support"
-                    % (version, 'with' if dictPackages["OPENCVSUPPORTSCUDA"] else 'without')))
-
-    runJob("rm -v xmipp_test_opencv*", showOutput=False, showCommand=False)
+    opencvPath = ['opencv2', 'opencv4/opencv2']
+    filePath = ['core.hpp', 'core/core.hpp']
+    for p in INC_PATH:
+        for oP in opencvPath:
+            for f in filePath:
+                if path.isfile(join(p, oP, f)):
+                    try:
+                        dictPackages['INCDIRFLAGS'] += ' -I' + p + '/' + oP.split('/')[0]
+                    except KeyError:
+                        dictPackages['INCDIRFLAGS'] = ' -I' + p + '/' + oP.split('/')[0]
+                    dictPackages['OPENCV'] = True
+                    print(green('OPENCV detected at {}'.format(join(p.split('/')[0]))))
+                    break
 
 
 def checkOPENCV(dictPackages):
@@ -387,54 +361,50 @@ def checkOPENCV(dictPackages):
         cppFile.write(cppProg)
 
     if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-                  % (dictPackages['CXX']),
-                  CXX_FLAGS,
-                  getINCDIRFLAG(), showCommand=False, showOutput=False, logErr=log):
+                  % (dictPackages['CXX']), CXX_FLAGS, dictPackages['INCDIRFLAGS'],
+                  showCommand=False, showOutput=False, logErr=log):
         print(red('OpenCV set as True but {}'.format(log)))
         dictPackages['OPENCV'] = ''
 
-    if dictPackages['OPENCVSUPPORTSCUDA'] == True:
-        # Check version
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write('#include <opencv2/core/version.hpp>\n')
-            cppFile.write('#include <fstream>\n')
-            cppFile.write('int main()'
-                          '{std::ofstream fh;'
-                          ' fh.open("xmipp_test_opencv.txt");'
-                          ' fh << CV_MAJOR_VERSION << std::endl;'
-                          ' fh.close();'
-                          '}\n')
-        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
-                      % (dictPackages['CXX'],
-                         CXX_FLAGS,
-                         getINCDIRFLAG()), showCommand=False,
-                      showOutput=False):
-            openCV_Version = 2
-        else:
-            runJob("./xmipp_test_opencv", showCommand=False, showOutput=False)
-            f = open("xmipp_test_opencv.txt")
-            versionStr = f.readline()
-            f.close()
-            version = int(versionStr.split('.', 1)[0])
-            openCV_Version = version
+    # Check version
+    with open("xmipp_test_opencv.cpp", "w") as cppFile:
+        cppFile.write('#include <opencv2/core/version.hpp>\n')
+        cppFile.write('#include <fstream>\n')
+        cppFile.write('int main()'
+                      '{std::ofstream fh;'
+                      ' fh.open("xmipp_test_opencv.txt");'
+                      ' fh << CV_MAJOR_VERSION << std::endl;'
+                      ' fh.close();'
+                      '}\n')
+    if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
+                  % (dictPackages['CXX'],
+                     CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+                  showCommand=False, showOutput=False):
+        openCV_Version = 2
+    else:
+        runJob("./xmipp_test_opencv", showCommand=False, showOutput=False)
+        f = open("xmipp_test_opencv.txt")
+        versionStr = f.readline()
+        f.close()
+        version = int(versionStr.split('.', 1)[0])
+        openCV_Version = version
 
-        # Check CUDA Support
-        cppProg = "#include <opencv2/core/version.hpp>\n"
-        if openCV_Version < 3:
-            cppProg += "#include <opencv2/core/cuda.hpp>\n"
-        else:
-            cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
-        cppProg += "int main(){}\n"
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-        log = []
-        if runJob(
-                "%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                (dictPackages['CXX'], CXX_FLAGS,
-                 getINCDIRFLAG()), showOutput=False, logErr=log,
-                showCommand=False):
-            print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
-            dictPackages['OPENCVSUPPORTSCUDA'] = ''
+    # Check CUDA Support
+    cppProg = "#include <opencv2/core/version.hpp>\n"
+    if openCV_Version < 3:
+        cppProg += "#include <opencv2/core/cuda.hpp>\n"
+    else:
+        cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
+    cppProg += "int main(){}\n"
+    with open("xmipp_test_opencv.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+    log = []
+    if runJob(
+            "%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
+            (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+            showOutput=False, logErr=log, showCommand=False):
+        print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
+        dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
     return 1
 
@@ -520,6 +490,7 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_LIB"] = ''
         dictPackages["STARPU_LIBRARY"] = ''
 
+
 def checkSTARPU(dictPackages):
     """
     Checks the configuration of the STARPU package and CUDA compatibility, printing error messages if necessary.
@@ -596,30 +567,41 @@ def checkSTARPU(dictPackages):
 #                                                                PYTHON_MINIMUM)))
 #             return 10
 #
-
-
-
 def getLIBDIRFLAGS(dictPackages):
     #get hdf5 libdir
-    PATH_TO_FIND_HDF5.append("%s/lib" % get_paths()['data'])#TODO review path con /lib
+    PATH_TO_FIND_HDF5.append(join(get_paths()['data'].replace(' ', ''), 'lib'))#TODO review path con /lib
     for path in PATH_TO_FIND_HDF5:
         hdf5PathFound = findFileInDirList("libhdf5*", path)
         if hdf5PathFound:
-            dictPackages["LIBDIRFLAGS"] += " -L%s" % hdf5PathFound
-            print(green('HDF5  detected at {}'.format(dictPackages['hdf5PathFound'])))
+            dictPackages['LIBDIRFLAGS'] = " -L%s" % hdf5PathFound
+            print(green('HDF5 detected at {}'.format(hdf5PathFound)))
             break
     if hdf5PathFound == '':
         print(red('HDF5 nod found'))
 
-    #get opencv libdir
-    if dictPackages['OPENCV']:
-        if findFileInDirList("opencv4/opencv2/core/core.hpp", ["/usr/include"]):
-            dictPackages["INCDIRFLAGS"] += " -I%s" % "/usr/include/opencv4"
 
+def getINCDIRFLAGS(dictPackages):
+    pathHdf5 = findFileInDirList('hdf5.h', INC_HDF5_PATH)
+    if pathHdf5:
+        try:
+            dictPackages['INCDIRFLAGS'] += ' -I' + pathHdf5
+        except KeyError:
+            dictPackages['INCDIRFLAGS'] = ' -I' + pathHdf5
+    else:
+        print(red('HDF5 not detected but required, please install it'))
 
-def getINCDIRFLAGS(dictPackages):#TODO
-    pass
-
+def check_hdf5(dictPackages):
+    print("Checking hdf5 configuration")
+    libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
+    if not runJob(
+            "%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
+            ('KEY_LINKERFORPROGRAMS', dictPackages["LINKFLAGS"],
+             dictPackages["LIBDIRFLAGS"], libhdf5),
+            show_command=False, show_output=False):
+        return False, 6
+    runJob("rm xmipp_test_main*", show_command=False, show_output=False)
+    print(green('Done ' + (' ' * 70)))
+    return True, 0
 
 # def check_hdf5(self):#TODO
 #     print("Checking hdf5 configuration")

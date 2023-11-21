@@ -291,7 +291,9 @@ def existPath(path):
 		pass
 
 def getINCDIRFLAG():
-		return path.join(' -I{}', get_paths()['data'].replace(' ', ''),  'include')
+		return ' -I ' + path.join(get_paths()['data'].replace(' ', ''),  'include')
+
+
 
 def versionToNumber(strVersion: str) -> float:
 	"""
@@ -427,3 +429,12 @@ def checkLib(gxx, libFlag):
     remove('xmipp_check_lib.cpp')
     remove('a.out') if path.isfile('a.out') else None
     return result
+
+def get_Hdf5_name(self, libdirflags):
+		libdirs = libdirflags.split("-L")
+		for dir in libdirs:
+				if path.exists(path.join(dir.strip(), "libhdf5.so")):
+						return "hdf5"
+				elif path.exists(path.join(dir.strip(), "libhdf5_serial.so")):
+						return "hdf5_serial"
+		return "hdf5"
