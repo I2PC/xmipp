@@ -29,7 +29,7 @@ Module containing useful functions used by the installation process.
 # General imports
 import subprocess, pkg_resources, sys
 from os import environ, remove, path
-from typing import Union, List
+from typing import Union, List, Tuple
 
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC, TAB_SIZE
@@ -170,6 +170,28 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, lo
 	else:
 		# If there were no errors, return True
 		return True
+
+def runBackgroundJob(cmd: str, cwd: str='./') -> Tuple[bool, str]:
+	"""
+	### This function runs the given command in the background and returns the results.
+
+	#### Params:
+	cmd (str): Command to run.
+	cwd (str): Optional. Path to run the command from. Default is current directory.
+
+	#### Returns:
+	(bool): True if the command worked or False if it did not.
+	(str): Output data from the command if it worked or error if it failed.
+	"""
+	# Running command and capturing output
+	process = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+	output, error = process.communicate()
+
+	# Returning output
+	if process.returncode == 0:
+		return True, output.decode('utf-8').strip()
+	else:
+		return False, error.decode('utf-8')
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups():
