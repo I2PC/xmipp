@@ -78,7 +78,7 @@ def readConfig():
     return dictPackages
 
 def checkConfig(dictPackages):
-    checkCC(dictPackages)
+    checkCC()
     checkCXX(dictPackages)
     checkMPI(dictPackages)
     checkJava(dictPackages)
@@ -86,7 +86,7 @@ def checkConfig(dictPackages):
     checkOPENCV(dictPackages)
     checkCUDA(dictPackages)
     checkSTARPU(dictPackages)
-    check_hdf5(dictPackages)
+    checkHDF5(dictPackages)
 
 
 def existConfig():
@@ -130,7 +130,7 @@ def getCC(dictPackages):
         dictPackages['CC'] = ''
 
 
-def checkCC(packagePath):
+def checkCC():
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
 
@@ -143,17 +143,16 @@ def checkCC(packagePath):
         - 4: gcc version is lower than the required version.
         - 5: GCC package path does not exist.
     """
-    if existPackage(packagePath):
-        strVersion = versionPackage(packagePath)
-        idx = strVersion.find('\n')
-        idx2 = strVersion[idx].rfind(' ')
-        version = strVersion[idx - idx2:idx]
+    if existPackage('gcc'):
+        strVersion = versionPackage('gcc')
+        version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
+            print(green('gcc {} found'.format(version)))
             return 1
         print(red('gcc {} lower than required ({})'.format(version, GCC_MINIMUM)))
         return 4
     else:
-        print(red('GCC package path: {} does not exist'.format(packagePath)))
+        print(red('GCC package path: {} does not exist'.format('gcc')))
         return 5
 
 def getCXX(dictPackages):
@@ -184,15 +183,16 @@ def checkCXX(packagePath):
         - 6: CXX package path does not exist.
         - 7: g++ version is lower than the required version.
     """
-    if existPackage(packagePath):
-        strVersion = versionPackage(packagePath)
+    if existPackage('g++'):
+        strVersion = versionPackage('g++')
         version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
+            print(green('g++ {} found'.format(version)))
             return 1
         print(red('g++ {} lower than required ({})'.format(version, GPP_MINIMUM)))
         return 7
     else:
-        print(red('CXX package path: {} does not exist'.format(packagePath)))
+        print(red('CXX package path: {} does not exist'.format('g++')))
         return 6
 
 def getMPI(dictPackages):
@@ -568,6 +568,16 @@ def checkSTARPU(dictPackages):
 #             return 10
 #
 def getLIBDIRFLAGS(dictPackages):
+    """
+    This function searches for HDF5 library ('libhdf5*') in specified directories.
+    If found, updates 'LIBDIRFLAGS' in 'dictPackages' with the HDF5 library path.
+    If not found, prints a message indicating HDF5 is not detected.
+    Updates 'LIBDIRFLAGS' in 'dictPackages' based on HDF5 library detection.
+
+    Params:
+    - dictPackages (dict): Dictionary with package information.
+        Expected keys: 'LIBDIRFLAGS'.
+    """
     #get hdf5 libdir
     PATH_TO_FIND_HDF5.append(join(get_paths()['data'].replace(' ', ''), 'lib'))#TODO review path con /lib
     for path in PATH_TO_FIND_HDF5:
@@ -581,6 +591,18 @@ def getLIBDIRFLAGS(dictPackages):
 
 
 def getINCDIRFLAGS(dictPackages):
+    """
+    This function checks for HDF5 ('hdf5.h') in a specified directory list.
+    If found, updates 'INCDIRFLAGS' in 'dictPackages' with the HDF5 include path.
+    If not found, prints a message indicating HDF5 installation is required.
+
+    Updates 'INCDIRFLAGS' in 'dictPackages' based on HDF5 presence.
+
+    Params:
+    - dictPackages (dict): Dictionary with package information.
+        Expected keys: 'INCDIRFLAGS'.
+
+    """
     pathHdf5 = findFileInDirList('hdf5.h', INC_HDF5_PATH)
     if pathHdf5:
         try:
@@ -590,8 +612,19 @@ def getINCDIRFLAGS(dictPackages):
     else:
         print(red('HDF5 not detected but required, please install it'))
 
-def check_hdf5(dictPackages):
-    print("Checking hdf5 configuration")
+def checkHDF5(dictPackages):
+    """"
+    Checks HDF5 library configuration based on provided package information.
+
+    Params:
+    - dictPackages (dict): Dictionary with package information.
+        Keys: "LIBDIRFLAGS", "LINKFLAGS".
+
+    Returns:
+    - tuple: Success status (bool) and error code (int).
+        False, 6: HDF5 configuration failed.
+        True, 0: HDF5 configuration successful.
+    """
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     if not runJob(
             "%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
@@ -602,15 +635,3 @@ def check_hdf5(dictPackages):
     runJob("rm xmipp_test_main*", show_command=False, show_output=False)
     print(green('Done ' + (' ' * 70)))
     return True, 0
-
-# def check_hdf5(self):#TODO
-#     print("Checking hdf5 configuration")
-#     libhdf5 = get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
-#     if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-#                   (self.get(Config.KEY_LINKERFORPROGRAMS), self.configDict["LINKFLAGS"],
-#                    self.configDict["LIBDIRFLAGS"], libhdf5),
-#                   show_command=False, show_output=False):
-#         return False, 6
-#     runJob("rm xmipp_test_main*", show_command=False, show_output=False)
-#     print(green('Done ' + (' ' * 70)))
-#     return True, 0

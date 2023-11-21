@@ -399,12 +399,14 @@ def CXXVersion(string):
 		- str: Extracted C++ compiler version.
 		"""
 		idx = string.find('\n')
-		idx2 = string[idx].rfind(' ')
-		version = string[idx - idx2:idx]
+		idx2 = string[:idx].rfind(' ')
+		version = string[idx2:idx]
 		gxx_version = version.replace(' ', '')
 		idx = gxx_version.rfind('.')
 		gxx_version = gxx_version[:idx]
 		return gxx_version
+
+
 
 def findFileInDirList(fnH, dirlist):
     """ :returns the dir where found or an empty string if not found.
