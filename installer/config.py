@@ -27,7 +27,7 @@ This module contains the necessary functions to run the config command.
 """
 
 from os import path, remove
-from os.path import isdir, join
+from os.path import isdir, join, isfile
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
@@ -71,16 +71,16 @@ def readConfig():
     with open(CONFIG_FILE, 'r') as f:
         config = f.read()
     for key, _ in CONFIG_DICT.items():
-        idx = config.find(key)
+        idx = config.find(key+'=')
         idx2 = config[idx:].find('=') + 1
-        value = config[idx2:config[idx:].find('\n')]
+        value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
         dictPackages[key] = value
     return dictPackages
 
 def checkConfig(dictPackages):
-    checkCC()
-    checkCXX(dictPackages)
-    checkMPI(dictPackages)
+    checkCC(dictPackages) #TODO extra check, run a compillation?
+    checkCXX(dictPackages) #TODO extra check, run a compillation?
+    checkMPI(dictPackages) #TODO extra check, run a compillation?
     checkJava(dictPackages)
     checkMatlab(dictPackages)
     checkOPENCV(dictPackages)
@@ -130,7 +130,7 @@ def getCC(dictPackages):
         dictPackages['CC'] = ''
 
 
-def checkCC():
+def checkCC(dictPackages):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
 
@@ -143,16 +143,16 @@ def checkCC():
         - 4: gcc version is lower than the required version.
         - 5: GCC package path does not exist.
     """
-    if existPackage('gcc'):
-        strVersion = versionPackage('gcc')
+    if existPackage(dictPackages['CC']):
+        strVersion = versionPackage(dictPackages['CC'])
         version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
-            return 1
+            return 0
         print(red('gcc {} lower than required ({})'.format(version, GCC_MINIMUM)))
         return 4
     else:
-        print(red('GCC package path: {} does not exist'.format('gcc')))
+        print(red('GCC package path: {} does not exist'.format(dictPackages['CC'])))
         return 5
 
 def getCXX(dictPackages):
@@ -170,7 +170,7 @@ def getCXX(dictPackages):
     else:
         dictPackages['CXX'] = ''
 
-def checkCXX(packagePath):
+def checkCXX(dictPackages):
     """
     Checks the CXX package at the specified path for version compatibility.
 
@@ -183,16 +183,16 @@ def checkCXX(packagePath):
         - 6: CXX package path does not exist.
         - 7: g++ version is lower than the required version.
     """
-    if existPackage('g++'):
-        strVersion = versionPackage('g++')
+    if existPackage(dictPackages['CXX']):
+        strVersion = versionPackage(dictPackages['CXX'])
         version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
-            return 1
+            return 0
         print(red('g++ {} lower than required ({})'.format(version, GPP_MINIMUM)))
         return 7
     else:
-        print(red('CXX package path: {} does not exist'.format('g++')))
+        print(red('CXX package path: {} does not exist'.format(dictPackages['CXX'])))
         return 6
 
 def getMPI(dictPackages):
@@ -231,18 +231,21 @@ def checkMPI(packagePath):
         - 8: MPI version is lower than the required version.
         - 9: MPI package does not exist.
     """
-    if existPackage(packagePath):
-        strVersion = versionPackage(packagePath)
-        idx = strVersion.find('\n')
-        idx2 = strVersion[idx].rfind(' ')
-        version = strVersion[idx - idx2:idx]
-        if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
-            return 1
-        print(red('mpi {} lower than required ({})'.format(version, GPP_MINIMUM)))
-        return 8
-    else:
-        print(red('MPI package: {} does not exist'.format(packagePath)))
-        return 9
+    for pack in [packagePath['MPI_CC'], packagePath['MPI_CXX'], packagePath['MPI_RUN']]:
+        if existPackage(pack):
+            strVersion = versionPackage(pack)
+            idx = strVersion.find('\n')
+            idx2 = strVersion[:idx].rfind(' ')
+            version = strVersion[idx2:idx].replace(' ', '')
+            if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
+                print(green('{} {} found'.format(pack, version)))
+            else:
+                print(red('mpi {} lower than required ({})'.format(version, GPP_MINIMUM)))
+                return 8
+        else:
+            print(red('MPI package: {} does not exist'.format(pack)))
+            return 9
+    return 0
 
 def getJava(dictPackages):
     """
@@ -278,12 +281,12 @@ def checkJava(packagePath):
         - 14: Java package structure is incorrect.
         - 1: Success.
     """
-    if not existPackage('java'):
+    if not existPackage(packagePath['JAVA_HOME']):
         return 13
-    if isdir(join(packagePath, 'bin/jar')) and \
-        isdir(join(packagePath, 'bin/javac')) and \
+    if isfile(join(packagePath, 'bin/jar')) and \
+        isfile(join(packagePath, 'bin/javac')) and \
         isdir(join(packagePath, 'include')) and existPackage('java'):
-        return 1
+        return 0
     else:
         return 14
 
@@ -324,7 +327,7 @@ def checkMatlab(packagePath):
         return 15
     if not isdir(packagePath):
         return 16
-    return 1
+    return 0
 
 
 def getOPENCV(dictPackages):
@@ -406,7 +409,7 @@ def checkOPENCV(dictPackages):
         print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
-    return 1
+    return 0
 
 
 def getCUDA(dictPackages):
@@ -454,7 +457,7 @@ def checkCUDA(dictPackages):
         gxx_version = CXXVersion(gxx_version)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
-            return 1
+            return 0
         else:
             print(red('CUDA {} not compatible with the current g++ compiler version {}\n'
                       'Compilers candidates for your CUDA: {}'.format(nvcc_version, gxx_version, candidates)))
@@ -536,7 +539,7 @@ def checkSTARPU(dictPackages):
             print(red("Check STARPU_* settings"))
         runJob("rm xmipp_starpu_config_test*")
 
-    return 1
+    return 0
 
 
 
