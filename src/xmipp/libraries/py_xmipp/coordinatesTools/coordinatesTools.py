@@ -18,7 +18,6 @@ loop_
   if not micId is None:
     s+=" _micrographId\n"
   baseName = os.path.splitext(os.path.basename(mic_fname))[0]
-  print("%d %s %s"%(len(list_x_y), mic_fname, os.path.join(outputRoot, baseName+".pos")))
 
   if len(list_x_y)>0:
     with open(os.path.join(outputRoot, baseName+".pos"), "w") as f:
@@ -40,7 +39,6 @@ def readPosCoordsFromFName(fname, returnAlsoMicId=False):
     x=  int( mData.getValue( xmippLib.MDL_XCOOR, mdId) )
     y=  int( mData.getValue( xmippLib.MDL_YCOOR, mdId) )
     coords.append((x,y) )
-  print("N coords: %d"%(len(coords) ))
   if returnAlsoMicId:
     if mdId:
       micId= mData.getValue( xmippLib.MDL_MICROGRAPH_ID, mdId)
