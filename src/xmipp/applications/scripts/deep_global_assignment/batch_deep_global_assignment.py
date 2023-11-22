@@ -7,7 +7,7 @@ import os
 import sys
 import xmippLib
 from time import time
-from scipy.ndimage import shift, rotate
+from scipy.ndimage import shift, rotate, affine_transform
 
 if __name__ == "__main__":
 
@@ -40,7 +40,6 @@ if __name__ == "__main__":
     from keras.models import load_model
     import tensorflow as tf
 
-
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
@@ -56,7 +55,6 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
             self.shifts = shifts
-
 
             # Read all data in memory
             if self.readInMemory:
@@ -97,13 +95,6 @@ if __name__ == "__main__":
             def get_image(fn_image):
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
                 return (img - np.mean(img)) / np.std(img)
-
-            def shift_image(img, shiftx, shifty, yshift):
-                return shift(img, (shiftx-yshift[0], shifty-yshift[1], 0), order=1, mode='wrap')
-
-            def rotate_image(img, angle):
-                # angle in degrees
-                return rotate(img, angle, order=1, mode='reflect', reshape=False)
 
             def R_rot(theta):
                 return np.array([[1, 0, 0],
@@ -160,13 +151,15 @@ if __name__ == "__main__":
                 fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
                 Iexp = list(map(get_image, fnIexp))
 
+            def shift_then_rotate_image(img, shiftx, shifty, angle):
+                imgShifted=shift(img, (shiftx, shifty, 0), order=1, mode='wrap')
+                imgRotated=rotate(imgShifted, angle, order=1, mode='reflect', reshape=False)
+                return imgRotated
+
             rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
             rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            # Shift image a random amount of px in each direction
-            Xexp = np.array(list((map(shift_image, Iexp, rX, rY, yshifts))))
-            # Rotates image a random angle. Psi must be updated
             rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
-            Xexp = np.array(list(map(rotate_image, Xexp, rAngle)))
+            Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
             rAngle = rAngle * math.pi / 180
             yvalues = yvalues * math.pi / 180
             y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
