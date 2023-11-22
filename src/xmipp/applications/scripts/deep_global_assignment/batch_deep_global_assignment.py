@@ -12,6 +12,7 @@ from scipy.ndimage import shift, rotate
 if __name__ == "__main__":
 
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
+    from xmippPyModules.xmipp_utils import applyTransformNP
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -235,22 +236,13 @@ if __name__ == "__main__":
         limits_tilt = limits_tilt*180/math.pi
 
         # Each particle is assigned to a division
-        zone = [[] for _ in range((len(limits_tilt)-1)*(len(limits_rot)-1))]
-        i = 0
         for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
             label.append(np.array((r, t, p)))
             img_shift.append(np.array((sX, sY)))
-            region_rot = np.digitize(r, limits_rot, right=True) - 1
-            region_tilt = np.digitize(t, limits_tilt, right=True) - 1
-            # Region index
-            region_idx = region_rot * (len(limits_tilt)-1) + region_tilt
-            zone[region_idx].append(i)
-            i += 1
 
-        return Xdim, fnImg, label, zone, img_shift
+        return Xdim, fnImg, label, img_shift
 
-    Xdims, fnImgs, labels, zones, shifts = get_labels(fnXmdExp)
-    start_time = time()
+    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
     # Train-Validation sets
     if numModels == 1:
@@ -259,8 +251,6 @@ if __name__ == "__main__":
     else:
         lenTrain = int(len(fnImgs) / 3)
         lenVal = int(len(fnImgs) / 12)
-
-    elements_zone = int((lenVal+lenTrain)/len(zones))
 
     for index in range(numModels):
         # chooses equal number of particles for each division
@@ -289,6 +279,3 @@ if __name__ == "__main__":
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
-
-    elapsed_time = time() - start_time
-    print("Time in training model: %0.10f seconds." % elapsed_time)
