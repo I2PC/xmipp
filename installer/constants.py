@@ -26,14 +26,43 @@
 Module containing all constants needed for the installation of Xmipp.
 """
 
-# Xmipp's current version
+# Source names
+XMIPP = 'xmipp'
+XMIPP_CORE = 'xmippCore'
+XMIPP_VIZ = 'xmippViz'
+XMIPP_PLUGIN = 'scipion-em-xmipp'
+CUFFTADVISOR = 'cuFFTAdvisor'
+CTPL = 'CTPL'
+GTEST = 'googletest'
+LIBSVM = 'libsvm'
+LIBCIFPP = 'libcifpp'
+
+#XMIPP_VERSION = '3.23.07.0'
+#XMIPP_VERNAME = 'Morpheus' 
+
+# Xmipp's current versions
 #####################################
-XMIPP_VERSION = '3.23.07.0'					#
-XMIPP_VERNAME = 'devel'							#
-RELEASE_DATE = '14/07/2023'					#
-XMIPP_CORE_VERSION = '3.23.07.0'		#
-XMIPP_VIZ_VERSION = '3.23.07.0'			#
-XMIPP_PLUGIN_VERSION = '3.23.07.0'	#
+VERSION_KEY = 'version'							#
+VERNAME_KEY = 'vername'							#
+XMIPP_VERSIONS = {									#
+	XMIPP: {													#
+		VERSION_KEY: '3.23.07.0',				#
+		VERNAME_KEY: 'v3.23.07-Morpheus'#
+	},																#
+	XMIPP_CORE: {											#
+		VERSION_KEY: '3.23.07.0',				#
+		VERNAME_KEY: 'v3.23.07-Morpheus'#
+	},																#
+	XMIPP_VIZ: {											#
+		VERSION_KEY: '3.23.07.0',				#
+		VERNAME_KEY: 'v3.23.07-Morpheus'#
+	},																#
+	XMIPP_PLUGIN: {										#
+		VERSION_KEY: '3.23.07.0',				#
+		VERNAME_KEY: 'v3.23.07-Morpheus'#
+	}																	#
+}																		#
+DEVEL_BRANCHNAME = 'devel'					#
 #####################################
 
 # Version requirements
@@ -48,18 +77,33 @@ PYTHON_MINIMUM = '3.0'							#
 NUMPY_MINIMUM = '1.21'							#
 MINIMUM_CUDA_VERSION = '10.1'				#
 #####################################
-vGCC = ['12.3', '12.2', '12.1',
-				'11.3', '11.2', '11.1', '11',
-				'10.5', '10.4', '10.3', '10.2', '10.1', '10',
-				'9.4', '9.3', '9.2', '9.1', '9',
-				'8.5', '8.4', '8.3', '8.2', '8.1', '8']
+
+# Source repositories
+ORGANIZATION_NAME = 'I2PC'
+REPOSITORIES = {
+	ORGANIZATION_NAME: 'https://github.com/I2PC/',
+	CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
+	CTPL: 'https://github.com/vit-vit/CTPL.git',
+	GTEST: 'https://github.com/google/googletest',
+	LIBSVM: 'https://github.com/cossorzano/libsvm.git',
+	LIBCIFPP: 'https://github.com/MartinSalinas98/libcifpp'
+}
+TAGS_SUBPAGE = 'archive/refs/tags/'
+
+vGCC = [
+	'12.3', '12.2', '12.1',
+	'11.3', '11.2', '11.1', '11',
+	'10.5', '10.4', '10.3', '10.2', '10.1', '10',
+	'9.4', '9.3', '9.2', '9.1', '9',
+	'8.5', '8.4', '8.3', '8.2', '8.1', '8'
+]
 
 CUDA_GCC_COMPATIBILITY = {
 	'10.1-10.2': vGCC[vGCC.index('8.5'):],
 	'11.0-11.0': vGCC[vGCC.index('9.4'):],
 	'11.1-11.3': vGCC[vGCC.index('10.5'):],
 	'11.4-11.8': vGCC[vGCC.index('11.3'):],
-	'12.0-12.3': vGCC[vGCC.index('12.3'):],
+	'12.0-12.3': vGCC[vGCC.index('12.3'):]
 }
 
 # Other variables
@@ -70,14 +114,19 @@ COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
 DEFAULT_BUILD_DIR = './build'
 DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR + '/models'
 TAB_SIZE = 4
-INC_PATH = ['/usr/local/include/',
-						'/usr/include']
-INC_HDF5_PATH = INC_PATH +["/usr/include/hdf5/serial",
-														"/usr/local/include/hdf5/serial"]
-
-PATH_TO_FIND_HDF5 = ["/usr/lib",
-								 "/usr/lib/x86_64-linux-gnu/hdf5/serial",
-								 "/usr/lib/x86_64-linux-gnu"]
+INC_PATH = [
+	'/usr/local/include/',
+	'/usr/include'
+]
+INC_HDF5_PATH = INC_PATH + [
+	"/usr/include/hdf5/serial",
+	"/usr/local/include/hdf5/serial"
+]
+PATH_TO_FIND_HDF5 = [
+	"/usr/lib",
+	"/usr/lib/x86_64-linux-gnu/hdf5/serial",
+	"/usr/lib/x86_64-linux-gnu"
+]
 
 # Files names
 CONFIG_FILE = 'xmipp.conf'
@@ -245,7 +294,7 @@ ERROR_CODE = {
   15: ['Matlab not found on system', 'Please install matlab or set MATLA as False on the xmipp.conf file'],
   16: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
 	17: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
-	18: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
+	18: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file']
 }
 
 
