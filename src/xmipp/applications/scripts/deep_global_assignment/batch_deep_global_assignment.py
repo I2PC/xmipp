@@ -96,21 +96,8 @@ if __name__ == "__main__":
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
                 return (img - np.mean(img)) / np.std(img)
 
-            def R_tilt(theta):
-                return np.array([[math.cos(theta), 0, math.sin(theta)],
-                                  [0, 1, 0],
-                                  [-math.sin(theta), 0, math.cos(theta)]])
-
-            def R_psi(theta):
-                return np.array([[math.cos(theta), -math.sin(theta), 0],
-                                  [math.sin(theta), math.cos(theta), 0],
-                                  [0, 0, 1]])
-
             def euler_to_rotation6d(angles, psi_rotation):
-                Rx = R_psi(angles[0])
-                Ry = R_tilt(angles[1])
-                Rz = R_psi(angles[2] + psi_rotation)
-                mat = np.matmul(np.matmul(Rz, Ry), Rx)
+                mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2] + psi_rotation)
                 return np.reshape(mat[0:2,:],(6))
 
             def make_redundant(rep_6d):
@@ -148,8 +135,6 @@ if __name__ == "__main__":
             rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
             rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
-            rAngle = rAngle * math.pi / 180
-            yvalues = yvalues * math.pi / 180
             y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
             y = np.array(list((map(make_redundant, y_6d))))
 
@@ -228,7 +213,6 @@ if __name__ == "__main__":
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
         patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
-
-
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
+                                      validation_data=validation_generator, callbacks=[save_best_model,
+                                                                                       patienceCallBack])
