@@ -9,6 +9,49 @@ import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate, affine_transform
 
+def getRotationMatrix(n):
+    theta = np.radians(360.0/n)  # Convert angle to radians
+    cos_theta, sin_theta = np.cos(theta), np.sin(theta)
+    rotation_matrix = np.array([[cos_theta, -sin_theta, 0],
+                                [sin_theta, cos_theta, 0],
+                                [0, 0, 1]])
+    return rotation_matrix
+
+def getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi):
+    [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi),ZdT))
+    rot = rot % 360
+    maxRot = 360.0 / n
+    while rot > maxRot or rot < 0:
+        [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), R))
+    return xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), ZdinvT))
+
+def getToAsymmetricUnitSymList(symList, rot, tilt, psi):
+    for _,_,_,n,R,ZdT,ZdinvT in symList:
+        rot, tilt, psi = getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi)
+    return (rot, tilt, psi)
+
+def symmetryOperator(ZdT,ZdinvT,n,rot,tilt,psi, dir):
+    E=np.matmul(xmippLib.Euler_angles2matrix(rot,tilt,psi),ZdT)
+    [rotp, tiltp, psip] = xmippLib.Euler_matrix2angles(E)
+    rotp=rotp%360
+    if dir>0:
+        rotp*=n
+    else:
+        rotp/=n
+    E=np.matmul(xmippLib.Euler_angles2matrix(rotp, tiltp, psip),ZdinvT)
+    return xmippLib.Euler_matrix2angles(E)
+
+def fillSymList(symmetry):
+    symList=[]
+    if symmetry[0]=="c":
+        n=int(symmetry[1:])
+        if n>1:
+            R=getRotationMatrix(n)
+            ZdT = np.identity(3)
+            ZdinvT = np.identity(3)
+            symList.append((0,0,1,n,R,ZdT,ZdinvT))
+    return symList
+
 if __name__ == "__main__":
 
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -25,8 +68,9 @@ if __name__ == "__main__":
     learning_rate = float(sys.argv[8])
     patience = int(sys.argv[9])
     pretrained = sys.argv[10]
+    symmetry = sys.argv[11]
     if pretrained == 'yes':
-        fnPreModel = sys.argv[11]
+        fnPreModel = sys.argv[12]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -43,7 +87,7 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
-        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
+        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, symList, readInMemory):
             """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
@@ -55,6 +99,7 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
             self.shifts = shifts
+            self.symList = symList
 
             # Read all data in memory
             if self.readInMemory:
@@ -164,7 +209,7 @@ if __name__ == "__main__":
         x = Dense(42, name="output", activation="linear")(x)
         return Model(inputLayer, x)
 
-    def get_labels(fnImages):
+    def get_labels(fnImages, symList):
         """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
@@ -175,12 +220,16 @@ if __name__ == "__main__":
         tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
         psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
-        label = [np.array((r,t,p)) for r, t, p in zip(rots, tilts, psis)]
+        label = []
+        for r, t, p in zip(rots, tilts, psis):
+            r, t, p = getToAsymmetricUnitSymList(symList, r, t, p)
+            label.append(np.array((r,t,p)))
         img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
         return Xdim, fnImg, label, img_shift
 
-    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
+    symList = fillSymList(symmetry)
+    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp, symList)
 
     # Train-Validation sets
     if numModels == 1:
@@ -196,10 +245,10 @@ if __name__ == "__main__":
 
         training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
                                            [labels[i] for i in random_sample[0:lenTrain]],
-                                           sigma, batch_size, Xdims, shifts, readInMemory=False)
+                                           sigma, batch_size, Xdims, shifts, symList, readInMemory=False)
         validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
                                              [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             sigma, batch_size, Xdims, shifts, readInMemory=False)
+                                             sigma, batch_size, Xdims, shifts, symList, readInMemory=False)
 
         if pretrained == 'yes':
             model = load_model(fnPreModel, compile=False)
