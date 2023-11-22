@@ -99,7 +99,7 @@ struct LoadThreadParams
 class ProgRecFourierAccel : public ProgReconsBase
 {
 public:
-	ProgRecFourierAccel() : tempVolume(nullptr), tempWeights(nullptr) {};
+	ProgRecFourierAccel() : tempVolume(NULL), tempWeights(NULL) {};
     /**
      * Run the image processing.
      * Method will load data, process them and store result to final destination.

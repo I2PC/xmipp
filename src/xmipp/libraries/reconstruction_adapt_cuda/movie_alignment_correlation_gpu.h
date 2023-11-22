@@ -23,280 +23,284 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef MOVIE_ALIGNMENT_CORRELATION_GPU
-#define MOVIE_ALIGNMENT_CORRELATION_GPU
+#pragma once
 
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "data/fft_settings.h"
 #include "reconstruction_cuda/gpu.h"
+#include "reconstruction_cuda/cuda_flexalign_scale.h"
+#include "reconstruction_cuda/cuda_flexalign_correlate.h"
 
 /**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
    @ingroup ReconsCUDALibrary */
 //@{
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
-public:
-    /// Read argument from command line
-    void readParams();
-
-    /// Show
-    void show();
-
-    /// Define parameters
+protected:
     void defineParams();
+    void show();
+    void readParams();
 
 private:
 
     /**
-     * Inherited, see parent
+     * Find good size for correlation of the frames
+     * @param ref size of the frames
+     * @return size of the frames such that FT is relatively fast
      */
-    void releaseAll() {
-        free(movieRawData);
-        movieRawData = nullptr;
+    auto findGoodCorrelationSize(const Dimensions &ref);
+
+    /**
+     * Find good size for patches of the movie
+     * @return size of the patch such that FT is relatively fast
+     */
+    auto findGoodPatchSize();
+
+    /**
+     * Find good size for cropping the movie frame
+     * @param ref size of the movie
+     * @return size of the movie such that FT is relatively fast
+     */
+    auto findGoodCropSize(const Dimensions &ref);
+        
+    /**
+     * Get optimized size of the dimension for correlation
+     * @param d full size of the signal
+     * @return optimal size
+     */
+    auto getCorrelationHint(const Dimensions &d);
+
+    /**
+     * Returns position of all local alignment patches within a single frame
+     * @param borders that should be left intact
+     * @param patch size
+     */
+    std::vector<FramePatchMeta<T>> getPatchesLocation(const std::pair<T, T> &borders,
+            const Dimensions &patch);
+
+    /**
+     * Returns a 'window' of all frames at specific position, taking into account the 
+     * global shift and summing of frames
+     * @param patch defining the portion of each frame to cut out
+     * @param globAlignment to compensate
+     * @param result where data are stored
+     */
+    void getPatchData(const Rectangle<Point2D<T>> &patch,
+            const AlignmentResult<T> &globAlignment,
+            T *result);
+
+    /**
+     * Returns the X and Y offset such that if you read from any frame after applying its global
+     * shift, you will always read valid data
+     * @param globAlignment to use
+     * @param verbose level
+     * @return no of pixels in X (Y) dimension where there might NOT be data from each frame
+     */
+    std::pair<T,T> getMovieBorders(const AlignmentResult<T> &globAlignment, int verbose);
+
+    /**
+     * This method optimizes and sets sizes and additional parameters for the local alignment
+    */
+    void LAOptimize();
+
+    AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
+            const Image<T> &dark,
+            const Image<T> &igain) override;
+
+    /**
+     * Prepare filter for given scale and dimension. 
+     * Filter is stored in CUDA managed memory
+     * @param scale of the filter
+     * @param dims of the filter
+    */
+    T* setFilter(float scale, const Dimensions &dims);
+
+    /** Helper structure to avoid passing a lot of parameters */
+    struct AlignmentContext
+    { 
+        int verbose;
+        float maxShift;
+        size_t N; // number of frames 
+        std::pair<T, T> scale;
+        core::optional<size_t> refFrame;
+        Dimensions out = Dimensions(0);
+        size_t alignmentBytes() const {
+            return (N * (N-1) / 2) * 2 * sizeof(float); // 2D position for each correlation
+        }
     };
 
     /**
-     * Estimates maximal size of the filter for given frame
-     * Might be use to estimate memory requirements
-     * @frame reference frame
-     * @return max bytes necessary for filter
+     * Create local alignment from global alignment (each patch is shifted by respective global alignment)
+     * @param globAlignment to use
+     * @return local alignment equivalent to global alignment
      */
-    size_t getMaxFilterBytes(const Image<T> &frame);
+    LocalAlignmentResult<T> localFromGlobal(const AlignmentResult<T> &globAlignment);
+
+    void applyShiftsComputeAverage(
+            const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain,
+            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+            size_t& N, const AlignmentResult<T> &globAlignment) override;
+
+    
+    /**
+     * @returns number of GPU streams that can be used for output generation without running out of memory
+     **/
+    auto getOutputStreamCount();
 
     /**
-     * Returns best settings for FFT on GPU. It is either
-     * loaded from permanent storage, or GPU benchmark is ru
-     * @param d dimension of the FFT
-     * @param extraBytes that should be left on GPU
-     * @param crop if true, FFT can be of smaller size
-     * @return best FFT setting
+     * Store setting for given dimensions to permanent storage
+     * @param orig size
+     * @param opt optimized size
+     * @param applyCrop flag
      */
-    FFTSettings<T> getSettingsOrBenchmark(const Dimensions &d, size_t extraBytes,
-            bool crop);
+    void storeSizes(const Dimensions &orig, const Dimensions &opt, bool applyCrop);
 
     /**
-     * Utility function for creating a key that can be used
-     * for permanent storage
+     * Loads setting for given dimensions from permanent storage
+     * @param dim to look for
+     * @param applyCrop flag
+     * @return stored size, if any
+     */
+    std::optional<Dimensions> getStoredSizes(const Dimensions &dim, bool applyCrop);
+
+    /**
+     * This method optimizes and sets sizes and additional parameters for the global alignment
+    */
+    void GAOptimize();
+
+    /**
+     * Report used settings
+     * @param scale of the correlation
+     * @param SP 
+     * @param CP
+     * @param streams
+     * @param threads
+    */
+    void report(float scale, 
+        typename CUDAFlexAlignScale<T>::Params &SP, 
+        typename CUDAFlexAlignCorrelate<T>::Params &CP, 
+        int streams, int threads);
+
+    /**
+     * Crops raw movie frame according to the settings
+     * @param settings new sizes of the frame
+     * @param output where 'windowed' movie should be copied
+     * @param src data
+     */
+    void getCroppedFrame(const Dimensions &settings, T *output, T *src);
+
+    /**
+     * Helper class holding movie data
+    */
+    class Movie final
+    {
+    public:
+        /** 
+         * Set dimension of the movie that will be stored during the runtime,
+         * This will not allocate data for the movie
+         * @see setFrameData()
+         * @param dim of the raw movie, or after the binning
+        */
+        auto set(const Dimensions &dim) {
+            mDim = dim;
+            mFrames.reserve(dim.n());
+            for (auto n = 0; n < dim.n(); ++n) {
+                // create multidim arrays, but without data 
+                mFrames.emplace_back(1, 1, dim.y(), dim.x(), nullptr);
+            }
+        }
+
+        /**
+         * @return dimension of the movie
+        */
+        auto &getDim() const {
+            return mDim;
+        }
+
+        /**
+         * @param index 0-based
+         * @return frame data in SP
+        */
+        auto &getFrame(size_t index) const {
+            return mFrames[index];
+        }
+
+        /**
+         * Set storage for the frame data
+         * @param index 0-based
+         * @param ptr where frame is to be stored. Expected to be allocated by memory manager
+        */
+        auto setFrameData(size_t index, T *ptr) {
+            mFrames[index].data = ptr;
+        }
+
+    private:
+        std::vector<MultidimArray<T>> mFrames;
+        Dimensions mDim = Dimensions(0);
+    };
+
+    /**
+     * Loads specific frame to main memory
+     * @param movieMD to use
+     * @param dark pixel correction
+     * @param igain correction
+     * @param index index to load (starting at 0)
+     * @return newly allocated memory (using memory manager) holding the frame
+     */
+    T* loadFrame(const MetaData& movieMD, const Image<T>& dark, const Image<T>& igain, size_t index);
+
+    /**
+     * Compute alignment from measured relative shifts
+     * @param positions of the maxima. Should be [X,Y] pairs around center
+     * @param context for of the alignment
+     * @return computed alignment
+    */
+    auto computeAlignment(float *positions, const AlignmentContext &context);
+
+    void releaseAll() override;
+
+    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
+        const Image<T> &dark, const Image<T> &igain,
+        const AlignmentResult<T> &globAlignment) override;
+
+    /**
+     * Utility function for creating a key that can be used for permanent storage
      * @param keyword to use
      * @param dim of the 'FFT problem'
      * @param crop the FFT?
      * @return a unique key
      */
-    std::string const getKey(const std::string &keyword,
-            const Dimensions &dim, bool crop) {
+    std::string getKey(const std::string &keyword, const Dimensions &dim, bool crop) const {
         std::stringstream ss;
-        ss << gpu.value().getUUID() << keyword << dim << crop;
+        ss << version << " " << mGpu.value().getUUID() << keyword << dim << " " << crop;
         return ss.str();
-    }
+    }        
 
-    /**
-     * Method for obtaining the best FFT setting for given movie
-     * @param movie to 'analyse'
-     * @param optimize the sizes?
-     * @return optimal FFT setting for the movie
-     */
-    FFTSettings<T> getMovieSettings(const MetaData &movie, bool optimize);
-
-    /**
-     * Method will align data of given size, using cross-correlation of
-     * data obtained after application of the filter.
-     * @param data where data (in spacial domain) are stored
-     * consecutively. This memory will be reused!
-     * @param in FFT setting of the input data.
-     * @param correlation FFT setting
-     * @param filter to be applied to each image
-     * @param refFrame reference frame, if any
-     * @param maxShift where the maximum correlation should be searched
-     * @param framesInCorrrelationBuffer max number of frames that can be stored
-     * in a single buffer on the GPU
-     * @param verbose level
-     * @return global alignment of each frame
-     */
-    AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
-            MultidimArray<T> &filter, core::optional<size_t> &refFrame,
-            size_t maxShift,
-            size_t framesInCorrelationBuffer, int verbose);
-
-    /**
-     * Method computes shifts of each frame in respect to some reference frame
-     * using cross-correlation on GPU
-     * @param verbose level
-     * @param maxShift where the maximum correlation should be searched
-     * @param data where data (in frequency domain) are stored
-     * consecutively. This memory will be reused!
-     * @param settings for the correlations.
-     * @param N original number of frames (notice that there are many more
-     * correlations than original frames)!
-     * @param scale between original frame size and correlation size
-     * @param framesInCorrrelationBuffer max number of frames that can be stored
-     * in a single buffer on the GPU
-     * @param refFrame reference frame, if any
-     * @return alignment of the data
-     */
-    AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
-            const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
-            size_t framesInCorrelationBuffer,
-            const core::optional<size_t>& refFrame);
-
-    /**
-     * Get best FFT settings for correlations of the original data
-     * @param s settings for the input data
-     * @return optimal FFT settings
-     */
-    FFTSettings<T> getCorrelationSettings(const FFTSettings<T> &orig);
-
-    /**
-     * Get FFT settings for each patch used for local alignment
-     * @param orig movie setting
-     * @return optimal setting for each patch
-     */
-    FFTSettings<T> getPatchSettings(const FFTSettings<T> &orig);
-
-    /**
-     * Inherited, see parent
-     */
-    AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
-            const Image<T> &dark,
-            const Image<T> &igain);
-
-    /**
-     * Inherited, see parent
-     */
-    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &igain,
-            const AlignmentResult<T> &globAlignment);
-
-    /**
-     * Store setting for given dimensions to permanent storage
-     * @param dim reference
-     * @param s setting to store
-     * @param applyCrop flag
-     */
-    void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
-            bool applyCrop);
-
-    /**
-     * Loads whole movie to the RAM
-     * @param movie to load
-     * @param dark pixel correction
-     * @param igain correction
-     */
-    T* loadMovie(const MetaData& movie,
-            const Image<T>& dark, const Image<T>& igain);
-
-    /**
-     * Loads setting for given dimensions from permanent storage
-     * @param dim reference
-     * @param applyCrop flag
-     * @return stored setting, if any
-     */
-    core::optional<FFTSettings<T>> getStoredSizes(const Dimensions &dim,
-            bool applyCrop);
-
-    /**
-     * Run benchmark to get the best FFT setting for given problem size
-     * @param d dimension of the problem
-     * @param extraBytes to leave on GPU
-     * @param crop flag
-     */
-    FFTSettings<T> runBenchmark(const Dimensions &d, size_t extraBytes,
-            bool crop);
-
-    /**
-     * Returns position of all 'local alignment patches' within a single frame
-     * @param borders that should be left intact
-     * @param movie size
-     * @param patch size
-     */
-    std::vector<FramePatchMeta<T>> getPatchesLocation(const std::pair<T, T> &borders,
-            const Dimensions &movie,
-            const Dimensions &patch);
-
-    /**
-     * Imagine you align frames of the movie using global alignment
-     * Some frames edges will overlap, i.e. there will be an are shared
-     * by all frames, and edge area where at least one frame does not contribute.
-     * This method computes the size of that area.
-     * @param globAlignment to use
-     * @param verbose level
-     * @return no of pixels in X (Y) dimension where there might NOT be data from each frame
-     */
-    std::pair<T,T> getMovieBorders(const AlignmentResult<T> &globAlignment,
-            int verbose);
-
-    /**
-     * Method returns a 'window'/'view' of each and all frames, aligned (to int positions)
-     * using global alignment
-     * @param allFrames, consecutive
-     * @param patch defining the portion of each frame to load
-     * @param globAlignment to compensate
-     * @param movie dimension
-     * @param result where data are stored
-     */
-    void getPatchData(const T *allFrames, const Rectangle<Point2D<T>> &patch,
-            const AlignmentResult<T> &globAlignment,
-            const Dimensions &movie, T *result);
-
-    /**
-     * Create local alignment from global alignment
-     * @param movie to use
-     * @param globAlignment to use
-     */
-    LocalAlignmentResult<T> localFromGlobal(
-            const MetaData& movie,
-            const AlignmentResult<T> &globAlignment);
-
-    /**
-     * Inherited, see parent
-     */
     void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
-            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
-            size_t& N, const AlignmentResult<T> &globAlignment);
+        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+        Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+        size_t& N, const LocalAlignmentResult<T> &alignment) override;
 
-    /**
-     * Inherited, see parent
-     * WARNING !!!
-     * As a side effect, raw movie data might get corrupted. See the implementation.
-     */
-    void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
-            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
-            size_t& N, const LocalAlignmentResult<T> &alignment);
+    // holding the loaded movie
+    Movie movie;
+    // number of GPU streams for global alignment
+    int GAStreams = 1;
+    // parameters for global alignment scaling
+    typename CUDAFlexAlignScale<T>::Params GASP;
+    // parameters for global alignment correlation
+    typename CUDAFlexAlignCorrelate<T>::Params GACP; 
+    // parameters for local alignment scaling
+    typename CUDAFlexAlignScale<T>::Params LASP;
+    // parameters for local alignment correlation
+    typename CUDAFlexAlignCorrelate<T>::Params LACP; 
 
-    /**
-     * Method copies raw movie data according to the settings
-     * @param settings new sizes of the movie
-     * @param output where 'windowed' movie should be copied
-     */
-    void getCroppedMovie(const FFTSettings<T> &settings,
-            T *output);
-
-    /**
-     * @param shift that we allow
-     * @returns size of the (square) window where we can search for shift
-     */
-    size_t getCenterSize(size_t shift) {
-        return std::ceil(shift * 2 + 1);
-    }
-
-private:
     /** No of frames used for averaging a single patch */
     int patchesAvg;
-
-    /** Skip autotuning of the cuFFT library */
-    bool skipAutotuning;
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
 
-    core::optional<GPU> gpu;
-
-    /** contains the loaded movie, with consecutive data padded for in-place FFT */
-    T *movieRawData = nullptr;
-
-    /** contains dimensions of the movie stored in movieRawData */
-    Dimensions rawMovieDim = Dimensions(0);
+    core::optional<GPU> mGpu;
 
     /**
      * Keywords representing optimal settings of the algorithm.
@@ -305,6 +309,8 @@ private:
     std::string optSizeXStr = std::string("optSizeX");
     std::string optSizeYStr = std::string("optSizeY");
     std::string optBatchSizeStr = std::string("optBatchSize");
+
+    static constexpr auto version = "2.0";
 };
+
 //@}
-#endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */

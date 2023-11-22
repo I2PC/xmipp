@@ -36,12 +36,8 @@
 class ProgMPIRecWbp: public ProgRecWbp, public MpiMetadataProgram
 {
 public:
-    //Empty constructor
-    ProgMPIRecWbp()
-    {
-    }
     ProgMPIRecWbp(int argc, char **argv);
-    ProgMPIRecWbp(MpiNode *node);
+    ProgMPIRecWbp(const std::shared_ptr<MpiNode> &node);
     void defineParams();
     void readParams();
     void read(int argc, char **argv);

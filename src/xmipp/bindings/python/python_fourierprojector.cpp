@@ -42,7 +42,7 @@
  /*FourierProjector Type */
  PyTypeObject FourierProjectorType =
  {
-     PyObject_HEAD_INIT(nullptr)
+     PyObject_HEAD_INIT(0)
      "xmipp.FourierProjector", /*tp_name*/
      sizeof(FourierProjectorObject), /*tp_basicsize*/
      0, /*tp_itemsize*/
@@ -89,8 +89,6 @@
  {
 
      auto *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
-     XMIPP_TRY
-
      if (self != nullptr)
      {
          PyObject *image = nullptr;
@@ -110,8 +108,6 @@
 
          }
      }
-     XMIPP_CATCH
-
      return (PyObject *)self;
  }
 
@@ -141,7 +137,7 @@ PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObje
           }
           catch (XmippError &xe)
           {
-              PyErr_SetString(PyXmippError, xe.msg.c_str());
+              PyErr_SetString(PyXmippError, xe.what());
           }
       }
       Py_RETURN_NONE;

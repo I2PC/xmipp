@@ -57,7 +57,9 @@ void GenerateData::generateNewDataset(const DatasetType &type, int N, double noi
 
 			// Generate X
 			double s,c;
-			sincos(localT,&s,&c);
+			//sincos(localT,&s,&c);
+            s = sin(localT);
+            c = cos(localT);
 			MAT_ELEM(X,i,0)=localT * c + noise * distGauss(g);
 			MAT_ELEM(X,i,1)=localHeight + noise * distGauss(g);
 			MAT_ELEM(X,i,2)=localT * s + noise * distGauss(g);
@@ -79,9 +81,13 @@ void GenerateData::generateNewDataset(const DatasetType &type, int N, double noi
 
 			// Generate X
 			double s,c;
-			sincos(localT,&s,&c);
+			//sincos(localT,&s,&c);
+			s = sin(localT);
+            c = cos(localT);
 			double s8,c8;
-			sincos(8*localT,&s8,&c8);
+			//sincos(8*localT,&s8,&c8);
+			s8 = sin(8*localT);
+            c8 = cos(8*localT);
 			MAT_ELEM(X,i,0)=(2 + c8)*c+noise*distGauss(g);
 			MAT_ELEM(X,i,1)=(2 + c8)*s+noise*distGauss(g);
 			MAT_ELEM(X,i,2)=s8+noise*distGauss(g);
@@ -171,7 +177,9 @@ void GenerateData::generateNewDataset(const DatasetType &type, int N, double noi
 
 			// Generate X
 			double s,c;
-			sincos(localT,&s,&c);
+			//sincos(localT,&s,&c);
+			s = sin(localT);
+            c = cos(localT);
 			MAT_ELEM(X,i,0)=c+noise*distGauss(g);
 			MAT_ELEM(X,i,1)=c*s+noise*distGauss(g);
 			MAT_ELEM(X,i,2)=height+noise*distGauss(g);
@@ -218,7 +226,7 @@ void kNearestNeighbours(const Matrix2D<double> &X, int K, Matrix2D<int> &idx, Ma
 		{
 			// Compute the distance between i1 and i2
 			double d=0;
-			if (f==nullptr)
+			if (f==NULL)
 				for (int j=0; j<MAT_XSIZE(X); ++j)
 				{
 					double diff=MAT_ELEM(X,i1,j)-MAT_ELEM(X,i2,j);
@@ -244,7 +252,7 @@ void computeRandomPointsDistance(const Matrix2D<double> &X, Matrix1D<double> &di
 	{
 		// Compute the distance between ind1[i] and ind2[i]
 		double d=0;
-		if (f==nullptr){
+		if (f==NULL){
 			for (size_t j=0; j<MAT_XSIZE(X); ++j)
 			{
 			double diff=MAT_ELEM(X,ind1(i1),j)-MAT_ELEM(X,ind2(i1),j);
@@ -271,7 +279,7 @@ void computeDistance(const Matrix2D<double> &X, Matrix2D<double> &distance, DimR
 		{
 			// Compute the distance between i1 and i2
 			double d=0;
-			if (f==nullptr)
+			if (f==NULL)
 				for (int j=0; j<MAT_XSIZE(X); ++j)
 				{
 					double diff=MAT_ELEM(X,i1,j)-MAT_ELEM(X,i2,j);
@@ -395,7 +403,7 @@ double intrinsicDimensionalityCorrDim(const Matrix2D<double> &X, DimRedDistance2
 		{
 			// Compute the distance between i1 and i2
 			double d=0;
-			if (f==nullptr)
+			if (f==NULL)
 				for (int j=0; j<MAT_XSIZE(X); ++j)
 				{
 					double diff=MAT_ELEM(X,i1,j)-MAT_ELEM(X,i2,j);
@@ -452,8 +460,8 @@ void extractNearestNeighbours(const Matrix2D<double> &X, Matrix2D<int> &idx, int
 
 DimRedAlgorithm::DimRedAlgorithm()
 {
-	X=nullptr;
-	distance=nullptr;
+	X=NULL;
+	distance=NULL;
 }
 
 void DimRedAlgorithm::setInputData(Matrix2D<double> &X)

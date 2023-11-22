@@ -130,11 +130,11 @@ public:
         if (rank == 0)
         {
             show();
-            //randon numbers must be the same in all nodes
-            std::random_device rd;
+            //random numbers must be the same in all nodes
             if(perturb_projection_vector!=0)
             {
-                my_seed=rd();
+                srand(getpid());
+                my_seed = rand();
             }
         }
 #ifdef  DEBUGTIME
@@ -238,15 +238,7 @@ public:
 
         if (rank != 0)
         {
-            try
-            {
-                inputVol.read(input_volume);
-            }
-            catch (XmippError &XE)
-            {
-                std::cout << XE;
-                error_exit("Error reading reference volume\n\n");
-            }
+            inputVol.read(input_volume);
             inputVol().setXmippOrigin();
             Xdim = XSIZE(inputVol());
             Ydim = YSIZE(inputVol());
@@ -510,7 +502,7 @@ public:
       catch (XmippError &XE)
       {
           std::cerr << "Error!" <<std::endl;
-          std::cerr << XE;
+          std::cerr << XE.what();
           MPI_Finalize();
           exit(1);
       }

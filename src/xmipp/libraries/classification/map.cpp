@@ -133,7 +133,7 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
  */
 ClassificationMap::ClassificationMap(std::istream& _is, bool _cv) : CodeBook(false)
 {
-    somLayout = nullptr;
+    somLayout = NULL;
     if (_cv)
         readSelf(_is);
     else
@@ -291,7 +291,7 @@ const Label& ClassificationMap::targetAtPos(const SomPos& _pos) const
 void ClassificationMap::clear()
 {
     CodeBook::clear();
-    somLayout = nullptr;
+    somLayout = NULL;
     if (somLayout)
         delete somLayout;
     somWidth = 0;
@@ -838,7 +838,7 @@ FuzzyMap::FuzzyMap(const std::string& _layout,  unsigned _width,
  */
 FuzzyMap::FuzzyMap(std::istream& _is, const unsigned _size, bool _cv) : FuzzyCodeBook(false)
 {
-    somLayout = nullptr;
+    somLayout = NULL;
     if (_cv)
         readSelf(_is, _size);
     else

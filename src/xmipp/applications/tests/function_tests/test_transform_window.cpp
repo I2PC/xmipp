@@ -111,15 +111,7 @@ sph  + 1.   0.000 -1.618 0.000 .10\n";
 
 
 class TransformWindowTest : public ::testing::Test
-{
-protected:
-    virtual void SetUp()
-    {
-        XMIPP_TRY
-        ;
-        XMIPP_CATCH
-    }
-};
+{};
 
 
 TEST_F( TransformWindowTest, unitcell)
@@ -143,12 +135,10 @@ TEST_F( TransformWindowTest, unitcell)
     Image<double>     vol;
     const char  inFn[] = "/tmp/inTransformWindowTest.mrc";
     const char  outFn[] ="/tmp/outTransformWindowTest.mrc";
-    XMIPP_TRY
-        phantom.read(filename);
-        phantom.draw_in(vol());
-        vol().addNoise(0,0.1,"gaussian");
-        vol.write(inFn);
-    XMIPP_CATCH
+    phantom.read(filename);
+    phantom.draw_in(vol());
+    vol().addNoise(0,0.1,"gaussian");
+    vol.write(inFn);
     //transform window is not in a library as it should be
     //so I need to make a system call
     char commandBuff[180];

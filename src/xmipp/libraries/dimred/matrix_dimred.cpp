@@ -28,7 +28,7 @@
 
 ProgDimRed::ProgDimRed()
 {
-	algorithm=nullptr;
+	algorithm=NULL;
 }
 
 void ProgDimRed::readParams()
@@ -177,6 +177,10 @@ void ProgMatrixDimRed::readParams()
 	ProgDimRed::readParams();
     inputDim  = getIntParam("--din");
     Nsamples  = getIntParam("--samples");
+
+    if (outputDim != -1 && outputDim > inputDim)
+        throw std::invalid_argument("Error, output dimension should be smaller or equal to input dimension");
+
 }
 
 void ProgMatrixDimRed::show()
@@ -194,7 +198,8 @@ void ProgMatrixDimRed::show()
 void ProgMatrixDimRed::defineParams()
 {
 	addUsageLine("This program takes an input matrix, whose rows are individual observations and ");
-	addUsageLine("projects each sample onto a lower dimensional space using the selected method");
+	addUsageLine("projects each sample onto a lower dimensional space using the selected method. Note: ");
+    addUsageLine("that each observation component in a row should be separated by white spaces.");
 	setDefaultComment("-i","Input matrix with data. Each observation is a row.");
 	setDefaultComment("-o","Output matrix with projected data");
 	ProgDimRed::defineParams();

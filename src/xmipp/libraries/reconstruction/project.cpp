@@ -92,7 +92,7 @@ void ProgProject::defineParams()
 {
     addUsageLine("This program is able to generate a set of projections from a volume. ");
     addUsageLine("++The projection is done using the information directly or from a file.");
-    addSeeAlsoLine("tomo_project, xray_project, phantom_create");
+    addSeeAlsoLine("tomo_project,phantom_create");
 
     addParamsLine("   -i <volume_file>                           : Voxel volume, PDB or description file");
     addParamsLine("   -o <image_file>                            : Output stack or image");
@@ -394,11 +394,11 @@ void ParametersProjection::read(const FileName &fn_proj_param)
         int     lineNo = 0;
         char    *auxstr;
 
-        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == nullptr)
+        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == NULL)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (String)"Prog_Project_Parameters::read: There is a problem "
                          "opening the file " + fn_proj_param);
-        while (fgets(line, 200, fh_param) != nullptr)
+        while (fgets(line, 200, fh_param) != NULL)
         {
             if (line[0] == 0)
                 continue;

@@ -122,7 +122,6 @@ void ProgCtfGroup::defineParams()
     addUsageLine("+absolute CTF differences smaller than 0.5 up to 15 Angstroms resolution).");
     addUsageLine("+A complementary manual mode allows to combine different groups or to split)");
     addUsageLine("+groups up even further.");
-    addSeeAlsoLine("ctf_create_ctfdat");
     addExampleLine("Example of use: Sample using automated mode (resolution = 15 Ang.)",false);
     addExampleLine("   xmipp_ctf_group --ctfdat all_images_new.ctfdat -o CtfGroupsNew/ctfAuto   --wiener --wc -1 --pad 2 --phase_flipped --error 0.5 --resol 15 ");
     addExampleLine("Example of use: Sample using manual mode (after manual editing of ctf_group_split.doc)",false);
@@ -328,8 +327,8 @@ void ProgCtfGroup::produceSideInfo()
             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
             {
                 //change DIRECT_N__X_ELEM by DIRECT_N_YX_ELEM if you want to process a 2D ctf
-                result =         dAij(diff, i,j)  * DIRECT_N__X_ELEM(mics_ctf2d, counter, 0, 0, dAij(dd,i,j)+1  ) +
-                                 (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, counter, 0, 0, dAij(dd,i,j));
+                result =         dAij(diff, i,j)  * DIRECT_N__X_ELEM(mics_ctf2d, counter, dAij(dd,i,j)+1) +
+                                 (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, counter, dAij(dd,i,j));
                 dAij(Mwien,i,j) += dCount * result *result;
 
             }
@@ -579,7 +578,8 @@ void ProgCtfGroup::writeOutputToDisc()
 
     id1 = *it;
     ++it;
-    while (it != ctfInfo.ids().end())
+    const auto totalSize = ctfInfo.ids().end();
+    while (it != totalSize)
     {
         id2 = *it;
         ctfInfo.getValue(MDL_MIN,minDef,id1);
@@ -689,8 +689,8 @@ void ProgCtfGroup::writeOutputToDisc()
             //interpolate ctf point from table
             //change DIRECT_N__X_ELEM by DIRECT_N_YX_ELEM if you want to process a 2D ctf
 
-            result =     dAij(diff, i,j)      * DIRECT_N__X_ELEM(mics_ctf2d, order, 0, 0, dAij(dd,i,j)+1  ) +
-                         (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, order, 0, 0, dAij(dd,i,j));
+            result =     dAij(diff, i,j)      * DIRECT_N__X_ELEM(mics_ctf2d, order, dAij(dd,i,j)+1) +
+                         (1.-dAij(diff, i,j)) * DIRECT_N__X_ELEM(mics_ctf2d, order, dAij(dd,i,j));
             dAij(ctf2D,i,j) += dCount * result ;
         }
     }

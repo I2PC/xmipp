@@ -139,11 +139,15 @@ void GPU::setDevice(int device) {
 
 bool GPU::isMemoryPinned(const void *h_mem) {
     cudaPointerAttributes attr;
-    if (cudaPointerGetAttributes(&attr, h_mem) == cudaErrorInvalidValue) {
+    if (cudaPointerGetAttributes(&attr, h_mem) != cudaSuccess) {
         cudaGetLastError(); // clear out the previous API error
         return false;
     }
-    return true;
+    #if defined(CUDART_VERSION) && CUDART_VERSION >= 10000
+        return (cudaMemoryTypeHost == attr.type) || (cudaMemoryTypeManaged == attr.type);
+    #else
+        return cudaMemoryTypeHost == attr.memoryType;
+    #endif
 }
 
 bool GPU::isGpuPointer(const void *p) {
@@ -153,7 +157,7 @@ bool GPU::isGpuPointer(const void *p) {
         return false;
     }
 #if defined(CUDART_VERSION) && CUDART_VERSION >= 10000
-    return cudaMemoryTypeDevice == attr.type;
+    return (cudaMemoryTypeDevice == attr.type) || (cudaMemoryTypeManaged == attr.type);
 #else
     return cudaMemoryTypeDevice == attr.memoryType;
 #endif
