@@ -179,12 +179,9 @@ if __name__ == "__main__":
         x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
         x = BatchNormalization(axis=3)(x)
         x = Activation('relu')(x)
-
         x = Conv2D(filters, (3, 3), padding='same')(x)
         x = BatchNormalization(axis=3)(x)
-
         x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
-
         x = Add()([x, x_res])
         x = Activation('relu')(x)
         return x
@@ -192,23 +189,14 @@ if __name__ == "__main__":
     def constructModel(Xdim):
         """RESNET architecture"""
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
-
         x = conv_block(inputLayer, filters=64)
-
         x = conv_block(x, filters=128)
-
         x = conv_block(x, filters=256)
-
         x = conv_block(x, filters=512)
-
         x = conv_block(x, filters=1024)
-
         x = GlobalAveragePooling2D()(x)
-
         x = Dense(42, name="output", activation="linear")(x)
-
         return Model(inputLayer, x)
-
 
     def get_labels(fnImages):
         """Returns dimensions, images, angles and shifts values from images files"""
@@ -221,24 +209,8 @@ if __name__ == "__main__":
         tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
         psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
-        label = []
-        img_shift = []
-
-        # For better performance, images are selected to be 'homogeneously' distributed in the sphere
-        # 50 divisions with equal area
-        numTiltDivs = 5
-        numRotDivs = 10
-        limits_rot = np.linspace(-180.01, 180, num=(numRotDivs+1))
-        limits_tilt = np.zeros(numTiltDivs+1)
-        limits_tilt[0] = -0.01
-        for i in range(1, numTiltDivs+1):
-            limits_tilt[i] = math.acos(1-2*(i/numTiltDivs))
-        limits_tilt = limits_tilt*180/math.pi
-
-        # Each particle is assigned to a division
-        for r, t, p, sX, sY in zip(rots, tilts, psis, shiftX, shiftY):
-            label.append(np.array((r, t, p)))
-            img_shift.append(np.array((sX, sY)))
+        label = [np.array((r,t,p)) for r, t, p in zip(rots, tilts, psis)]
+        img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
         return Xdim, fnImg, label, img_shift
 
