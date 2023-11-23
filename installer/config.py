@@ -26,18 +26,25 @@
 This module contains the necessary functions to run the config command.
 """
 
-from os import path, remove
+from os import path, remove, environ
 from os.path import isdir, join, isfile
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
                         CXX_FLAGS, PATH_TO_FIND_HDF5, INC_PATH, INC_HDF5_PATH,
-                        CONFIG_DICT)
-from .utils import (red, green, yellow, runJob, versionToNumber, existPackage,
+                        CONFIG_DICT,CXX_FLAGS,
+                        OK,UNKOW_ERROR,SCONS_INSTALLATION_ERROR,NO_SCONS_NO_SCIPION_ERROR,
+                        GCC_VERSION_ERROR,CC_NO_EXIST_ERROR,CXX_NO_EXIST_ERROR,CXX_VERSION_ERROR,
+                        MPI_VERSION_ERROR,MPI_NOT_FOUND_ERROR,PYTHON_VERSION_ERROR ,
+                        PYTHON_NOT_FOUND_ERROR ,NUMPY_NOT_FOUND_ERROR ,
+                        JAVA_HOME_PATH_ERROR, MATLAB_ERROR ,MATLAB_HOME_ERROR,
+                        CUDA_VERSION_ERROR ,CUDA_ERROR ,HDF5_ERROR, LINK_FLAGS,
+                        MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR)
+from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPackage,
                     versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
-                    get_Hdf5_name)
+                    get_Hdf5_name, showError, MPIVersion)
 from datetime import datetime
 from sysconfig import get_paths
 
@@ -82,10 +89,14 @@ def checkConfig(dictPackages):
     checkCXX(dictPackages) #TODO extra check, run a compillation?
     checkMPI(dictPackages) #TODO extra check, run a compillation?
     checkJava(dictPackages)
-    checkMatlab(dictPackages)
-    checkOPENCV(dictPackages)
-    checkCUDA(dictPackages)
-    checkSTARPU(dictPackages)
+    if dictPackages['MATLAB'] == True:
+        checkMatlab(dictPackages)
+    if dictPackages['OPENCV'] == True:
+        checkOPENCV(dictPackages)
+    if dictPackages['CUDA'] == True:
+        checkCUDA(dictPackages)
+    if dictPackages['STARPU'] == True:
+        checkSTARPU(dictPackages)
     checkHDF5(dictPackages)
 
 
@@ -148,12 +159,11 @@ def checkCC(dictPackages):
         version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
-            return 0
-        print(red('gcc {} lower than required ({})'.format(version, GCC_MINIMUM)))
-        return 4
+            return OK
+        showError('gcc {} lower than required ({})'.format(version, GCC_MINIMUM), GCC_VERSION_ERROR)
     else:
-        print(red('GCC package path: {} does not exist'.format(dictPackages['CC'])))
-        return 5
+        showError('GCC package path: {} does not exist'.format(dictPackages['CC'], CC_NO_EXIST_ERROR))
+
 
 def getCXX(dictPackages):
     """
@@ -188,12 +198,10 @@ def checkCXX(dictPackages):
         version = CXXVersion(strVersion)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
-            return 0
-        print(red('g++ {} lower than required ({})'.format(version, GPP_MINIMUM)))
-        return 7
+            return OK
+        showError('g++ {} lower than required ({})'.format(version, GPP_MINIMUM), CXX_VERSION_ERROR)
     else:
-        print(red('CXX package path: {} does not exist'.format(dictPackages['CXX'])))
-        return 6
+        showError('CXX package path: {} does not exist'.format(dictPackages['CXX']), CXX_NO_EXIST_ERROR)
 
 def getMPI(dictPackages):
     """
@@ -218,7 +226,7 @@ def getMPI(dictPackages):
     else:
         dictPackages['MPI_RUN'] = ''
 
-def checkMPI(packagePath):
+def checkMPI(dictPackages):
     """
     Checks the MPI package at the specified path for version compatibility.
 
@@ -231,21 +239,59 @@ def checkMPI(packagePath):
         - 8: MPI version is lower than the required version.
         - 9: MPI package does not exist.
     """
-    for pack in [packagePath['MPI_CC'], packagePath['MPI_CXX'], packagePath['MPI_RUN']]:
+    for pack in [dictPackages['MPI_CC'], dictPackages['MPI_CXX'], dictPackages['MPI_RUN']]:
         if existPackage(pack):
             strVersion = versionPackage(pack)
-            idx = strVersion.find('\n')
-            idx2 = strVersion[:idx].rfind(' ')
-            version = strVersion[idx2:idx].replace(' ', '')
+            version = MPIVersion(strVersion)
             if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
                 print(green('{} {} found'.format(pack, version)))
             else:
-                print(red('mpi {} lower than required ({})'.format(version, GPP_MINIMUM)))
-                return 8
+                showError('mpi {} lower than required ({})'.format(version, GPP_MINIMUM), MPI_VERSION_ERROR)
         else:
-            print(red('MPI package: {} does not exist'.format(pack)))
-            return 9
-    return 0
+            showError('MPI package: {} does not exist'.format(pack), MPI_NOT_FOUND_ERROR)
+
+    #More checks
+    MPI_CXXFLAGS = ''
+    mpiLib_env = environ.get('MPI_LIBDIR', '')
+    if mpiLib_env:
+        MPI_CXXFLAGS += ' -L'+mpiLib_env
+
+    mpiInc_env = environ.get('MPI_INCLUDE', '')
+    if mpiInc_env:
+        MPI_CXXFLAGS += ' -I'+mpiInc_env
+
+    cppProg = """
+    #include <mpi.h>
+    int main(){}
+    """
+    with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+    cmd = ("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
+           % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
+    if not runJob(cmd, showOutput=False, showCommand=False):
+        showError('Fails running this command: {}'.format(cmd), MPI_COMPILLATION_ERROR)
+
+    libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
+    cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
+           " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread")
+           % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
+    if not runJob(cmd, showOutput=False, showCommand=False):
+        showError('Fails running this command: {}'.format(cmd), MPI_COMPILLATION_ERROR)
+
+    runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
+
+    log = []
+    processors = 2
+    runJob('{} -np {} echo {}'.format(dictPackages['MPI_RUN'], processors, 'Running'),
+           showCommand=False, logOut=log, showOutput=False)
+    if log[0].count('Running') != processors:
+        log = []
+        runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'),
+               showCommand=False, logOut=log, showOutput=False)
+        if log[0].count('Running') != processors:
+            print(red("mpirun or mpiexec have failed."))
+            showError('', MPI_RUNNING_ERROR)
+    return OK
 
 def getJava(dictPackages):
     """
@@ -268,7 +314,7 @@ def getJava(dictPackages):
         dictPackages['JAVA_HOME'] = ''
 
 
-def checkJava(packagePath):
+def checkJava(dictPackages):
     """
     Checks the existence and structure of a Java package at a specified path.
 
@@ -281,14 +327,13 @@ def checkJava(packagePath):
         - 14: Java package structure is incorrect.
         - 1: Success.
     """
-    if not existPackage(packagePath['JAVA_HOME']):
-        return 13
-    if isfile(join(packagePath, 'bin/jar')) and \
-        isfile(join(packagePath, 'bin/javac')) and \
-        isdir(join(packagePath, 'include')) and existPackage('java'):
-        return 0
+    if isfile(join(dictPackages['JAVA_HOME'], 'bin/jar')) and \
+            isfile(join(dictPackages['JAVA_HOME'], 'bin/javac')) and \
+            isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
+        print(green('java installation found'))
+        return OK
     else:
-        return 14
+        showError('JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']), JAVA_HOME_PATH_ERROR)
 
 def getMatlab(dictPackages):
     """
@@ -305,7 +350,6 @@ def getMatlab(dictPackages):
         dictPackages['MATLAB'] = True
         dictPackages['MATLAB_HOME'] = matlabProgramPath.replace("/bin", "")
         print(green('MATLAB_HOME detected at {}'.format(dictPackages['MATLAB_HOME'])))
-
     else:
         dictPackages['MATLAB'] = False
         dictPackages['MATLAB_HOME'] = ''
@@ -324,10 +368,10 @@ def checkMatlab(packagePath):
         - 1: Success.
     """
     if not existPackage('matlab'):
-        return 15
+        return MATLAB_ERROR
     if not isdir(packagePath):
-        return 16
-    return 0
+        return MATLAB_HOME_ERROR
+    return OK
 
 
 def getOPENCV(dictPackages):
@@ -409,7 +453,7 @@ def checkOPENCV(dictPackages):
         print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
-    return 0
+    return OK
 
 
 def getCUDA(dictPackages):
@@ -457,14 +501,13 @@ def checkCUDA(dictPackages):
         gxx_version = CXXVersion(gxx_version)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
-            return 0
+            return OK
         else:
-            print(red('CUDA {} not compatible with the current g++ compiler version {}\n'
-                      'Compilers candidates for your CUDA: {}'.format(nvcc_version, gxx_version, candidates)))
-            return 17
-
+            showError('CUDA {} not compatible with the current g++ compiler version {}\n'
+                      'Compilers candidates for your CUDA: {}'.format(
+                nvcc_version, gxx_version, candidates), CUDA_VERSION_ERROR)
     else:
-        return 18
+        return CUDA_ERROR
 
 
 def getSTARPU(dictPackages):
@@ -539,7 +582,7 @@ def checkSTARPU(dictPackages):
             print(red("Check STARPU_* settings"))
         runJob("rm xmipp_starpu_config_test*")
 
-    return 0
+    return OK
 
 
 
@@ -616,7 +659,7 @@ def getINCDIRFLAGS(dictPackages):
         print(red('HDF5 not detected but required, please install it'))
 
 def checkHDF5(dictPackages):
-    """"
+    """
     Checks HDF5 library configuration based on provided package information.
 
     Params:
@@ -628,13 +671,13 @@ def checkHDF5(dictPackages):
         False, 6: HDF5 configuration failed.
         True, 0: HDF5 configuration successful.
     """
-    libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
+    libhdf5 = get_Hdf5_name(dictPackages['LIBDIRFLAGS'])#TODO review behave
     if not runJob(
             "%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-            ('KEY_LINKERFORPROGRAMS', dictPackages["LINKFLAGS"],
+            ('KEY_LINKERFORPROGRAMS', LINK_FLAGS,
              dictPackages["LIBDIRFLAGS"], libhdf5),
-            show_command=False, show_output=False):
-        return False, 6
-    runJob("rm xmipp_test_main*", show_command=False, show_output=False)
+            showCommand=False, showOutput=False):
+        showError('', 18)
+    runJob("rm xmipp_test_main*", showCommand=False, showutput=False)
     print(green('Done ' + (' ' * 70)))
     return True, 0
