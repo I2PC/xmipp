@@ -29,6 +29,7 @@ import math
 import numpy as np
 from scipy.ndimage import affine_transform
 from scipy.spatial.transform import Rotation
+import xmippLib
 
 def applyTransformNP(img, rot, x, y):
     "Transform a numpy array with rot, x and y"
@@ -189,3 +190,50 @@ class RotationHandler:
         ang_Distances = np.arccos((d - 1) / 2)
         return np.max(ang_Distances), np.argmax(ang_Distances)
 
+def getRotationMatrix(n):
+    theta = np.radians(360.0/n)  # Convert angle to radians
+    cos_theta, sin_theta = np.cos(theta), np.sin(theta)
+    rotation_matrix = np.array([[cos_theta, -sin_theta, 0],
+                                [sin_theta, cos_theta, 0],
+                                [0, 0, 1]])
+    return rotation_matrix
+
+def getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi):
+    [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi),ZdT))
+    rot = rot % 360
+    maxRot = 360.0 / n
+    while rot > maxRot or rot < 0:
+        [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), R))
+    return xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), ZdinvT))
+
+def getToAsymmetricUnitSymList(symList, rot, tilt, psi):
+    for _,_,_,n,R,ZdT,ZdinvT in symList:
+        rot, tilt, psi = getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi)
+    return (rot, tilt, psi)
+
+def symmetryOperator(ZdT,ZdinvT,n,rot,tilt,psi, dir):
+    E=np.matmul(xmippLib.Euler_angles2matrix(rot,tilt,psi),ZdT)
+    [rotp, tiltp, psip] = xmippLib.Euler_matrix2angles(E)
+    rotp=rotp%360
+    if dir>0:
+        rotp*=n
+    else:
+        rotp/=n
+    E=np.matmul(xmippLib.Euler_angles2matrix(rotp, tiltp, psip),ZdinvT)
+    return xmippLib.Euler_matrix2angles(E)
+
+def symmetryOperatorSymList(symList, rot,tilt,psi, dir):
+    for _,_,_,n,R,ZdT,ZdinvT in symList:
+        rot, tilt, psi = symmetryOperator(ZdT, ZdinvT, n, rot, tilt, psi, dir)
+    return (rot, tilt, psi)
+
+def fillSymList(symmetry):
+    symList=[]
+    if symmetry[0]=="c":
+        n=int(symmetry[1:])
+        if n>1:
+            R=getRotationMatrix(n)
+            ZdT = np.identity(3)
+            ZdinvT = np.identity(3)
+            symList.append((0,0,1,n,R,ZdT,ZdinvT))
+    return symList
