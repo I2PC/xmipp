@@ -9,53 +9,10 @@ import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate, affine_transform
 
-def getRotationMatrix(n):
-    theta = np.radians(360.0/n)  # Convert angle to radians
-    cos_theta, sin_theta = np.cos(theta), np.sin(theta)
-    rotation_matrix = np.array([[cos_theta, -sin_theta, 0],
-                                [sin_theta, cos_theta, 0],
-                                [0, 0, 1]])
-    return rotation_matrix
-
-def getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi):
-    [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi),ZdT))
-    rot = rot % 360
-    maxRot = 360.0 / n
-    while rot > maxRot or rot < 0:
-        [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), R))
-    return xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), ZdinvT))
-
-def getToAsymmetricUnitSymList(symList, rot, tilt, psi):
-    for _,_,_,n,R,ZdT,ZdinvT in symList:
-        rot, tilt, psi = getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi)
-    return (rot, tilt, psi)
-
-def symmetryOperator(ZdT,ZdinvT,n,rot,tilt,psi, dir):
-    E=np.matmul(xmippLib.Euler_angles2matrix(rot,tilt,psi),ZdT)
-    [rotp, tiltp, psip] = xmippLib.Euler_matrix2angles(E)
-    rotp=rotp%360
-    if dir>0:
-        rotp*=n
-    else:
-        rotp/=n
-    E=np.matmul(xmippLib.Euler_angles2matrix(rotp, tiltp, psip),ZdinvT)
-    return xmippLib.Euler_matrix2angles(E)
-
-def fillSymList(symmetry):
-    symList=[]
-    if symmetry[0]=="c":
-        n=int(symmetry[1:])
-        if n>1:
-            R=getRotationMatrix(n)
-            ZdT = np.identity(3)
-            ZdinvT = np.identity(3)
-            symList.append((0,0,1,n,R,ZdT,ZdinvT))
-    return symList
-
 if __name__ == "__main__":
 
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-    from xmippPyModules.xmipp_utils import applyTransformNP
+    from xmippPyModules.xmipp_utils import fillSymList, getToAsymmetricUnitSymList, symmetryOperatorSymList
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -87,7 +44,7 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
-        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, symList, readInMemory):
+        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
             """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
@@ -99,7 +56,6 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
             self.shifts = shifts
-            self.symList = symList
 
             # Read all data in memory
             if self.readInMemory:
@@ -223,6 +179,7 @@ if __name__ == "__main__":
         label = []
         for r, t, p in zip(rots, tilts, psis):
             r, t, p = getToAsymmetricUnitSymList(symList, r, t, p)
+            r, t, p = symmetryOperatorSymList(symList, r, t, p, 1)
             label.append(np.array((r,t,p)))
         img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
@@ -245,17 +202,17 @@ if __name__ == "__main__":
 
         training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
                                            [labels[i] for i in random_sample[0:lenTrain]],
-                                           sigma, batch_size, Xdims, shifts, symList, readInMemory=False)
+                                           sigma, batch_size, Xdims, shifts, readInMemory=True)
         validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
                                              [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             sigma, batch_size, Xdims, shifts, symList, readInMemory=False)
+                                             sigma, batch_size, Xdims, shifts, readInMemory=True)
 
         if pretrained == 'yes':
             model = load_model(fnPreModel, compile=False)
         else:
             model = constructModel(Xdims)
 
-        adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
+        adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         model.summary()
 
         model.compile(loss='mean_squared_error', optimizer=adam_opt)
