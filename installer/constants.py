@@ -108,6 +108,7 @@ CUDA_GCC_COMPATIBILITY = {
 
 # Other variables
 CXX_FLAGS = ' -mtune=native -march=native -flto -std=c++17 -O3'
+LINK_FLAGS = '-flto'
 VALUE_UNKNOWN = 'Unkown'
 DEFAULT_JOBS = 8
 COMMON_USAGE_HELP_MESSAGE = 'Run \"./xmipp -h\" for usage help.'
@@ -272,29 +273,51 @@ CONFIG_DICT = {'INCDIRFLAGS': '',
 								'LIBDIRFLAGS': ''
 }
 
-
+#Error Flags code
+OK = 0
+UNKOW_ERROR = 1
+SCONS_INSTALLATION_ERROR = 2
+NO_SCONS_NO_SCIPION_ERROR = 3
+GCC_VERSION_ERROR = 4
+CC_NO_EXIST_ERROR = 5
+CXX_NO_EXIST_ERROR = 6
+CXX_VERSION_ERROR = 7
+MPI_VERSION_ERROR = 8
+MPI_NOT_FOUND_ERROR = 9
+PYTHON_VERSION_ERROR = 10
+PYTHON_NOT_FOUND_ERROR = 11
+NUMPY_NOT_FOUND_ERROR = 12
+JAVA_HOME_PATH_ERROR = 13
+MATLAB_ERROR = 14
+MATLAB_HOME_ERROR = 15
+CUDA_VERSION_ERROR = 16
+CUDA_ERROR = 17
+HDF5_ERROR = 18
+MPI_COMPILLATION_ERROR = 19
+MPI_RUNNING_ERROR = 20
 
 # Error Code
 ERROR_CODE = {
-	0: ['No error', ''],
-	1: ['No error', ''],
-	2: ['scons not found', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
-	3: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
-	4: ['gcc version not valid', 'The version of gcc is lower than minimum, please review the requirements'],
-  5: ['CC package does not exist','Please review the CC flag on your xmipp.conf'],
-  6: ['CXX package does not exist', 'Please review the CXX flag on your xmipp.conf'],
-  7: ['g++ version not valid', 'The version of g++ is lower than minimum, please review the requirements'],
-	8: ['mpi version not valid', 'The version of mpi is lower than minimum, please review the requirements'],
-	9: ['mpi package does not exist', 'Please review the MPI_RUN flag on your xmipp.conf'],
-  10: ['python version not valid', 'The version of python is lower than minimum, please review the requirements'],
-  11: ['python not found', 'Please install python on your system'],
-  12: ['numpy not found', 'Please install numpy'],
-  13: ['java not found on the system', 'Please install java'],
-  14: ['JAVA_HOME path with errors', 'bin/jar, bin/javac or include not found but required'],
-  15: ['Matlab not found on system', 'Please install matlab or set MATLA as False on the xmipp.conf file'],
-  16: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
-	17: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
-	18: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file']
+	UNKOW_ERROR: ['Unkonw error', ''],
+	SCONS_INSTALLATION_ERROR: ['scons installation  error', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
+	NO_SCONS_NO_SCIPION_ERROR: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
+	GCC_VERSION_ERROR: ['gcc version not valid', 'The version of gcc is lower than minimum, please review the requirements'],
+  CC_NO_EXIST_ERROR: ['CC package does not exist','Please review the CC flag on your xmipp.conf'],
+  CXX_NO_EXIST_ERROR: ['CXX package does not exist', 'Please review the CXX flag on your xmipp.conf'],
+  CXX_VERSION_ERROR: ['g++ version not valid', 'The version of g++ is lower than minimum, please review the requirements'],
+	MPI_VERSION_ERROR: ['mpi version not valid', 'The version of mpi is lower than minimum, please review the requirements'],
+	MPI_NOT_FOUND_ERROR: ['mpi package does not exist', 'Please review the MPI_RUN flag on your xmipp.conf'],
+  PYTHON_VERSION_ERROR: ['python version not valid', 'The version of python is lower than minimum, please review the requirements'],
+  PYTHON_NOT_FOUND_ERROR: ['python not found', 'Please install python on your system'],
+  NUMPY_NOT_FOUND_ERROR: ['numpy not found', 'Please install numpy'],
+  JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed', 'bin/jar, bin/javac or include not found but required'],
+  MATLAB_ERROR: ['Matlab not found on system', 'Please install matlab or set MATLAB as False on the xmipp.conf file'],
+  MATLAB_HOME_ERROR: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
+	CUDA_VERSION_ERROR: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
+	CUDA_ERROR: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
+  HDF5_ERROR: ['hdf5 libs does not work', 'Please review the LIBDIRFLAGS flag on xmipp.conf'],
+  MPI_COMPILLATION_ERROR: ['', ''],
+	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one']
 }
 
 

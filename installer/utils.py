@@ -424,7 +424,10 @@ def CXXVersion(string):
 		gxx_version = gxx_version[:idx]
 		return gxx_version
 
-
+def MPIVersion(string):
+		idx = string.find('\n')
+		idx2 = string[:idx].rfind(' ')
+		return string[idx2:idx].replace(' ', '')
 
 def findFileInDirList(fnH, dirlist):
     """ :returns the dir where found or an empty string if not found.
@@ -450,7 +453,7 @@ def checkLib(gxx, libFlag):
     remove('a.out') if path.isfile('a.out') else None
     return result
 
-def get_Hdf5_name(self, libdirflags):
+def get_Hdf5_name(libdirflags):
 		libdirs = libdirflags.split("-L")
 		for dir in libdirs:
 				if path.exists(path.join(dir.strip(), "libhdf5.so")):
