@@ -404,6 +404,7 @@ def checkMatlab(dictPackages):
         - 16: Specified path is not a directory.
         - 1: Success.
     """
+    #TODO check behaviour in a system with matlab installed
     if not isdir(dictPackages['MATLAB_HOME']):
         showError('', MATLAB_HOME_ERROR)
     if not whereIsPackage('matlab'):
@@ -598,6 +599,7 @@ def checkSTARPU(dictPackages):
     - int: Error code.
         - 1: Success.
     """
+    #TODO check behaviour in a system with starpu installed
     if dictPackages["CUDA"] != "True":
         ans = False
         print(red("CUDA must be enabled together with STARPU"))
