@@ -27,17 +27,15 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import subprocess, pkg_resources, sys
+import subprocess, pkg_resources, sys, glob
 from os import environ, remove, path
-from typing import Union, List, Tuple
-
-# Installer imports
-from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC, TAB_SIZE
-import glob
+from typing import List, Tuple, Union
 import distutils.spawn
-from os import path
 from sysconfig import get_paths
 
+# Installer imports
+from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
+	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY
 
 ####################### COLORS #######################
 def green(text: str) -> str:
@@ -125,7 +123,7 @@ def showError(errorMsg: str, retCode: int=1):
 	print(red(errorMsg))
 	sys.exit(retCode)
 
-def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, logErr: list=None, showError: bool=True, showCommand: bool=True) -> Union[bool, None]:
+def runJob(cmd: str, cwd: str='./', showOutput: bool=True, showError: bool=True, showCommand: bool=True) -> Tuple[bool, str]:
 	"""
 	### This function runs the given command.
 
@@ -133,18 +131,16 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, lo
 	cmd (str): Command to run.
 	cwd (str): Optional. Path to run the command from. Default is current directory.
 	showOutput (bool): Optional. If True, output is printed.
-	logOut (list): Optional. List to store the output into.
-	logErr (list): Optional. List to store the errors into.
 	showError (bool): Optional. If True, errors are printed.
 	showCommand (bool): Optional. If True, command is printed in blue.
 
 	#### Returns:
-	(bool): True if there were no errors. If there were errors, False if error string is not empty, None otherwise.
+	(int): Return code.
+	(str): Output of the command, regardless of if it is an error or regular output.
 	"""
 	# Running command
-	p = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE,
-												stderr=subprocess.PIPE, shell=True)
-	output, err = p.communicate()
+	process = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+	output, err = process.communicate()
 
 	# Printing command if specified
 	if showCommand == True:
@@ -153,45 +149,18 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=True, logOut: list=None, lo
 	# Printing output if specified
 	if showOutput == True:
 		print('{}\n'.format(output.decode("utf-8")))
-	# Storing output in list if specified
-	if logOut is not None:
-		logOut.append(output.decode("utf-8"))
 
 	if err:
 		# Printing errors if specified
 		if showError == True:
 			print(red(err.decode("utf-8")))
-		# Storing errors in list if specified
-		if logErr is not None:
-			logErr.append(err.decode("utf-8"))
-		# If error string is not empty, return False
-		if err.decode("utf-8") != '':
-			return False
-	else:
-		# If there were no errors, return True
-		return True
 
-def runBackgroundJob(cmd: str, cwd: str='./') -> Tuple[bool, str]:
-	"""
-	### This function runs the given command in the background and returns the results.
+	# Defining output string
+	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
+	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 
-	#### Params:
-	cmd (str): Command to run.
-	cwd (str): Optional. Path to run the command from. Default is current directory.
-
-	#### Returns:
-	(bool): True if the command worked or False if it did not.
-	(str): Output data from the command if it worked or error if it failed.
-	"""
-	# Running command and capturing output
-	process = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-	output, error = process.communicate()
-
-	# Returning output
-	if process.returncode == 0:
-		return True, output.decode('utf-8').strip()
-	else:
-		return False, error.decode('utf-8')
+	# Returing return code
+	return process.returncode, outputStr
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups():
@@ -221,6 +190,33 @@ def getAllModes() -> List[str]:
 	
 	# Return full mode list
 	return modes
+
+####################### GIT FUNCTIONS #######################
+def getCurrentBranch(dir: str='./') -> Union[str, None]:
+	"""
+	### This function returns the current branch of the repository of the given directory or None if it is not a repository.
+	
+	#### Params:
+	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
+	
+	#### Returns:
+	(str | None): The name of the branch, or None if given directory is not a repository.
+	"""
+	# Getting current branch name
+	retcode, output = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir, showOutput=False, showError=False, showCommand=False)
+
+	# Return branch name or None if command failed
+	return output if retcode == 0 else None
+
+def isProductionMode() -> bool:
+	"""
+	### This function returns True if the current Xmipp repository is in production mode.
+	
+	#### Returns:
+	(bool): True if the repository is in production mode. False otherwise.
+	"""
+	currentBranch = getCurrentBranch()
+	return currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
 
 ####################### VERSION FUNCTIONS #######################
 
