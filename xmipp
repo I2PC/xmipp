@@ -30,7 +30,7 @@ import argparse, sys, os
 from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
 	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
-from installer.utils import showError
+from installer.utils import showError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import getSources
@@ -154,6 +154,12 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	# Check if Xmipp is in production mode
+	# If so, download precompiled binaries
+	if isProductionMode():
+		#TODO: Implement
+		pass
+
 	# Running config
 	modeConfig(args)
 
@@ -273,10 +279,14 @@ if __name__ == "__main__":
 	if hasattr(args, "branch") and args.branch is not None and len(args.branch.split(' ')) > 1:
 		parser.error(f"Incorrect branchname \"{args.branch}\". Branch names can only be one word long.")
 
-	print("ARGS:", args)
+	print("ARGS:", args)#TODO: Remove
 
 	# Running always under this own directory.
 	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
+
+#TODO: Add:
+# - cleanSources
+# - generateBinaries (-dir)

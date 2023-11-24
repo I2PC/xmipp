@@ -47,7 +47,7 @@ def config():
     if not existConfig():
         writeConfig(getSystemValues())
 
-    checkConfig(readConfig())
+    #checkConfig(readConfig())
 
 
 def getSystemValues():

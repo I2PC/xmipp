@@ -26,13 +26,13 @@
 This module contains the necessary functions to run most installer commands.
 """
 # General imports
-import os, sys
-from typing import Union, Tuple
+import os
+from typing import Tuple
 
 # Installer imports
 from .constants import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES, ORGANIZATION_NAME, \
 	DEVEL_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS
-from .utils import runBackgroundJob, red
+from .utils import runJob, getCurrentBranch, showError
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -51,7 +51,6 @@ def getSources(branch: str=None):
 	
 	# Define sources list
 	sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
-	os.chdir(os.path.expanduser("~/Documents/tmp")) # TODO:REMOVE. TEST PURPOSES
 
 	# For each source, download or clone
 	for source in sources:
@@ -65,37 +64,9 @@ def getSources(branch: str=None):
 		
 		# If download failed, return error
 		if not status:
-			print(red(output))
-			sys.exit(1) #TODO: CHECK CODE
+			showError(output, status=status) #TODO: CHECK CODE
 
 ####################### AUX FUNCTIONS #######################
-def getCurrentBranch(dir: str='./') -> Union[str, None]:
-	"""
-	### This function returns the current branch of the repository of the given directory or None if it is not a repository.
-	
-	#### Params:
-	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
-	
-	#### Returns:
-	(str | None): The name of the branch, or None if given directory is not a repository.
-	"""
-	# Getting current branch name
-	status, output = runBackgroundJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
-
-	# Return branch name or None if command failed
-	return output if status else None
-
-def getSourceTargetBranch() -> str:
-	"""
-	### This function returns the target branch for a given repository.
-	
-	#### Params:
-	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
-	
-	#### Returns:
-	(str): The name of the target branch.
-	"""
-
 def downloadSourceTag(source: str) -> Tuple[bool, str]:
 	"""
 	### This function downloads the given source as a tag.
@@ -104,29 +75,33 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 	- source (str): Source to download.
 	
 	#### Returns:
-	(bool): True if the command worked or False if it did not.
+	(int): Return code of the command.
 	(str): Output data from the command if it worked or error if it failed.
 	"""
+	# If souce already exists, skip
+	if os.path.isdir(source):
+		return 0, ''
+
 	# Download tag
 	zipName = XMIPP_VERSIONS[source][VERNAME_KEY]
-	status, output = runBackgroundJob(f"wget -O {REPOSITORIES[ORGANIZATION_NAME]}{source}/{TAGS_SUBPAGE}{zipName}.zip")
+	retcode, output = runJob(f"wget -O {REPOSITORIES[ORGANIZATION_NAME]}{source}/{TAGS_SUBPAGE}{zipName}.zip", showOutput=False, showError=False, showCommand=False)
 
 	# If download failed, return error
-	if not status:
-		return False, output
+	if retcode != 0:
+		return retcode, output
 	
 	# Unzip tag and change folder name to match repository name
-	runBackgroundJob(f"unzip {zipName}.zip")
+	runJob(f"unzip {zipName}.zip", showOutput=False, showError=False, showCommand=False)
 
 	# Check unzipped folder naming scheme
 	folderName = source + '-' + zipName[1:] # Old naming system
 	folderName = folderName if os.path.isdir(folderName) else source + '-' + zipName
 
 	# Change folder name to match repository name
-	runBackgroundJob(f"mv {folderName} {source} && rm {zipName}.zip")
+	retcode, output = runJob(f"mv {folderName} {source} && rm {zipName}.zip", showOutput=False, showError=False, showCommand=False)
 
-	# If everything went well, return True. No output text is needed.
-	return True, ''
+	# Return last command's code and output.
+	return retcode, output
 
 def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	"""
@@ -136,21 +111,21 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	- source (str): Source to clone.
 	
 	#### Returns:
-	(bool): True if the command worked or False if it did not.
+	(int): 0 if everything worked, or else the return code of the command that failed.
 	(str): Output data from the command if it worked or error if it failed.
 	"""
 	# If a branch was provided, check if exists in remote repository
 	output = ''
 	if branch is not None:
-		status, output = runBackgroundJob(f"git ls-remote --heads {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git {branch}")
+		retcode, output = runJob(f"git ls-remote --heads {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git {branch}", showOutput=False, showError=False, showCommand=False)
 		
 		# Check for errors
-		if not status:
-			return False, output
+		if retcode != 0:
+			return retcode, output
 		
 	# If output is empty, it means branch does not exist, default to devel
 	if not output:
 		branch = DEVEL_BRANCHNAME
 
 	# Clone repository
-	return runBackgroundJob(f"git clone --branch {branch} {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git")
+	return runJob(f"git clone --branch {branch} {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git", showOutput=False, showError=False, showCommand=False)
