@@ -295,6 +295,8 @@ CUDA_ERROR = 17
 HDF5_ERROR = 18
 MPI_COMPILLATION_ERROR = 19
 MPI_RUNNING_ERROR = 20
+JAVAC_DOESNT_WORK_ERROR = 21
+JAVA_INCLUDE_ERROR = 22
 
 # Error Code
 ERROR_CODE = {
@@ -317,7 +319,11 @@ ERROR_CODE = {
 	CUDA_ERROR: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
   HDF5_ERROR: ['hdf5 libs does not work', 'Please review the LIBDIRFLAGS flag on xmipp.conf'],
   MPI_COMPILLATION_ERROR: ['', ''],
-	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one']
+	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one'],
+	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work', 'Check the JAVA_HOME flag on xmipp.conf'],
+	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails','Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
+
+
 }
 
 
