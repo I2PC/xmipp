@@ -37,6 +37,100 @@ from sysconfig import get_paths
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY
 
+####################### GENERAL FUNCTIONS #######################
+def showError(errorMsg: str, retCode: int=1):
+	"""
+	### This function prints an error message and exits with the given return code.
+
+	#### Params:
+	errorMsg (str): Error message to show.
+	retCode (int): Optional. Return code to end the exection with.
+	"""
+	# Print the error message in red color
+	print(red(errorMsg))
+	sys.exit(retCode)
+
+def runJob(cmd: str, cwd: str='./', showOutput: bool=True, showError: bool=True, showCommand: bool=True) -> Tuple[bool, str]:
+	"""
+	### This function runs the given command.
+
+	#### Params:
+	cmd (str): Command to run.
+	cwd (str): Optional. Path to run the command from. Default is current directory.
+	showOutput (bool): Optional. If True, output is printed.
+	showError (bool): Optional. If True, errors are printed.
+	showCommand (bool): Optional. If True, command is printed in blue.
+
+	#### Returns:
+	(int): Return code.
+	(str): Output of the command, regardless of if it is an error or regular output.
+	"""
+	# Running command
+	process = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+	output, err = process.communicate()
+
+	# Printing command if specified
+	if showCommand == True:
+		print(blue(cmd))
+
+	# Printing output if specified
+	if showOutput == True:
+		print('{}\n'.format(output.decode("utf-8")))
+
+	if err:
+		# Printing errors if specified
+		if showError == True:
+			print(red(err.decode("utf-8")))
+
+	# Defining output string
+	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
+	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
+
+	# Returing return code
+	return process.returncode, outputStr
+
+####################### PRINT FUNCTIONS #######################
+def getFormattingTabs(text: str) -> str:
+	"""
+	### This method returns the given text, formatted to expand tabs into a fixed tab size.
+
+	### Params:
+	- text (str): The text to be formatted.
+
+	### Returns:
+	(str): Formatted text.
+	"""
+	return text.expandtabs(TAB_SIZE)
+
+####################### EXECUTION MODE FUNCTIONS #######################
+def getModeGroups():
+	"""
+	### Returns all the group names of all the available execution modes.
+	
+	#### Returns:
+	(List[str]): List of all mode groups.
+	"""
+	return list(MODES.keys())
+
+def getAllModes() -> List[str]:
+	"""
+	### Returns all the available execution modes.
+	
+	#### Returns:
+	(List[str]): List of all available modes.
+	"""
+	# Defining empty list to store modes
+	modes = []
+
+	# For each mode group, obtain mode names
+	for modeGroup in getModeGroups():
+		for mode in list(MODES[modeGroup].keys()):
+			# Add mode to list
+			modes.append(mode)
+	
+	# Return full mode list
+	return modes
+
 ####################### COLORS #######################
 def green(text: str) -> str:
 	"""
@@ -97,99 +191,6 @@ def bold(text: str) -> str:
 	(str): Text formatted in bold.
 	"""
 	return "\033[1m" + text + "\033[0m"
-
-####################### GENERAL FUNCTIONS #######################
-def getFormattingTabs(text: str) -> str:
-	"""
-	### This method returns the given text, formatted to expand tabs into a fixed tab size.
-
-	### Params:
-	- text (str): The text to be formatted.
-
-	### Returns:
-	(str): Formatted text.
-	"""
-	return text.expandtabs(TAB_SIZE)
-
-def showError(errorMsg: str, retCode: int=1):
-	"""
-	### This function prints an error message and exits with the given return code.
-
-	#### Params:
-	errorMsg (str): Error message to show.
-	retCode (int): Optional. Return code to end the exection with.
-	"""
-	# Print the error message in red color
-	print(red(errorMsg))
-	sys.exit(retCode)
-
-def runJob(cmd: str, cwd: str='./', showOutput: bool=True, showError: bool=True, showCommand: bool=True) -> Tuple[bool, str]:
-	"""
-	### This function runs the given command.
-
-	#### Params:
-	cmd (str): Command to run.
-	cwd (str): Optional. Path to run the command from. Default is current directory.
-	showOutput (bool): Optional. If True, output is printed.
-	showError (bool): Optional. If True, errors are printed.
-	showCommand (bool): Optional. If True, command is printed in blue.
-
-	#### Returns:
-	(int): Return code.
-	(str): Output of the command, regardless of if it is an error or regular output.
-	"""
-	# Running command
-	process = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-	output, err = process.communicate()
-
-	# Printing command if specified
-	if showCommand == True:
-		print(blue(cmd))
-
-	# Printing output if specified
-	if showOutput == True:
-		print('{}\n'.format(output.decode("utf-8")))
-
-	if err:
-		# Printing errors if specified
-		if showError == True:
-			print(red(err.decode("utf-8")))
-
-	# Defining output string
-	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
-	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
-
-	# Returing return code
-	return process.returncode, outputStr
-
-####################### EXECUTION MODE FUNCTIONS #######################
-def getModeGroups():
-	"""
-	### Returns all the group names of all the available execution modes.
-	
-	#### Returns:
-	(List[str]): List of all mode groups.
-	"""
-	return list(MODES.keys())
-
-def getAllModes() -> List[str]:
-	"""
-	### Returns all the available execution modes.
-	
-	#### Returns:
-	(List[str]): List of all available modes.
-	"""
-	# Defining empty list to store modes
-	modes = []
-
-	# For each mode group, obtain mode names
-	for modeGroup in getModeGroups():
-		for mode in list(MODES[modeGroup].keys()):
-			# Add mode to list
-			modes.append(mode)
-	
-	# Return full mode list
-	return modes
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> Union[str, None]:
