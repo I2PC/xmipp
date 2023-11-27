@@ -31,7 +31,7 @@ from typing import Tuple
 
 # Installer imports
 from .constants import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES, ORGANIZATION_NAME, \
-	DEVEL_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS
+	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS
 from .utils import runJob, getCurrentBranch, showError
 
 ####################### COMMAND FUNCTIONS #######################
@@ -54,8 +54,8 @@ def getSources(branch: str=None):
 
 	# For each source, download or clone
 	for source in sources:
-		# Non-git directories and production branch download from tags, the rest clone
-		if currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]:
+		# Non-git directories and production branch (master also counts) download from tags, the rest clone
+		if currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY] or currentBranch == MASTER_BRANCHNAME:
 			# Download source tag
 			status, output = downloadSourceTag(source)
 		else:

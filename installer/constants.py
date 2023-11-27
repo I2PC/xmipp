@@ -63,6 +63,7 @@ XMIPP_VERSIONS = {									#
 	}																	#
 }																		#
 DEVEL_BRANCHNAME = 'devel'					#
+MASTER_BRANCHNAME = 'master'				#
 #####################################
 
 # Version requirements
