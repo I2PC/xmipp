@@ -369,7 +369,18 @@ def sconsVersion():
 				return 2, False
 		else:
 			print(blue('Scipion enviroment not found, please install manually scons library'))
-			return 3, False
+			return False
+
+
+def CUDAVersion(strVersion):
+		nvcc_version = ''
+		if strVersion.find('release') != -1:
+				idx = strVersion.find('release ')
+				nvcc_version = strVersion[idx + len('release '):
+																		idx + strVersion[idx:].find(',')]
+		return nvcc_version
+
+
 
 def isScipionVersion():
 		"""

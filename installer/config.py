@@ -39,12 +39,13 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         PYTHON_NOT_FOUND_ERROR ,NUMPY_NOT_FOUND_ERROR ,
                         JAVA_HOME_PATH_ERROR, MATLAB_ERROR ,MATLAB_HOME_ERROR,
                         CUDA_VERSION_ERROR ,CUDA_ERROR ,HDF5_ERROR, LINK_FLAGS,
-                        MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR)
+                        MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR,
+                        JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR)
 from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPackage,
                     versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
-                    get_Hdf5_name, showError, MPIVersion)
+                    get_Hdf5_name, showError, MPIVersion,CUDAVersion)
 from datetime import datetime
 from sysconfig import get_paths
 
@@ -87,15 +88,15 @@ def readConfig():
 def checkConfig(dictPackages):
     checkCC(dictPackages) #TODO extra check, run a compillation?
     checkCXX(dictPackages) #TODO extra check, run a compillation?
-    checkMPI(dictPackages) #TODO extra check, run a compillation?
+    checkMPI(dictPackages)
     checkJava(dictPackages)
-    if dictPackages['MATLAB'] == True:
+    if dictPackages['MATLAB'] == 'True':
         checkMatlab(dictPackages)
-    if dictPackages['OPENCV'] == True:
+    if dictPackages['OPENCV'] == 'True':
         checkOPENCV(dictPackages)
-    if dictPackages['CUDA'] == True:
+    if dictPackages['CUDA'] == 'True':
         checkCUDA(dictPackages)
-    if dictPackages['STARPU'] == True:
+    if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages)
     checkHDF5(dictPackages)
 
@@ -328,12 +329,48 @@ def checkJava(dictPackages):
         - 1: Success.
     """
     if isfile(join(dictPackages['JAVA_HOME'], 'bin/jar')) and \
-            isfile(join(dictPackages['JAVA_HOME'], 'bin/javac')) and \
+            whereIsPackage(join(dictPackages['JAVA_HOME'], 'bin/javac')) and\
             isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
         print(green('java installation found'))
-        return OK
     else:
         showError('JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']), JAVA_HOME_PATH_ERROR)
+
+    #Other check
+    javaProg = """
+        public class Xmipp {
+        public static void main(String[] args) {}
+        }
+    """
+    with open("Xmipp.java", "w") as javaFile:
+        javaFile.write(javaProg)
+    cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
+    if not runJob(cmd, showCommand=False, showOutput=False):
+        showError(cmd, JAVAC_DOESNT_WORK_ERROR)
+    runJob("rm Xmipp.java Xmipp.class",showCommand=False,showOutput=False)
+
+    #Other check 2
+    if isdir(join(dictPackages['JAVA_HOME'], 'include')):
+        incJ = join(dictPackages['JAVA_HOME'], 'include')
+    if isdir(join(dictPackages['JAVA_HOME'], 'include', 'linux')):
+        if incJ != '':
+            incJ += ':' + join(dictPackages['JAVA_HOME'], 'include', 'linux')
+        else:
+            incJ = join(dictPackages['JAVA_HOME'], 'include', 'linux')
+    cppProg = """
+        #include <jni.h>
+        int dummy(){return 0;}
+        """
+    with open("xmipp_jni_test.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+    incs = ""
+    for x in incJ.split(':'):
+        incs += " -I"+x
+    cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
+    logE=[]
+    if not runJob(cmd, showCommand=False,showOutput=False, logErr=logE):
+        showError(logE[0], JAVA_INCLUDE_ERROR)
+    runJob("rm xmipp_jni_test*", showCommand=False,showOutput=False)
+    return OK
 
 def getMatlab(dictPackages):
     """
@@ -354,7 +391,7 @@ def getMatlab(dictPackages):
         dictPackages['MATLAB'] = False
         dictPackages['MATLAB_HOME'] = ''
 
-def checkMatlab(packagePath):
+def checkMatlab(dictPackages):
     """
     Checks for the existence of MATLAB package and verifies if a specified path is a directory.
 
@@ -367,10 +404,25 @@ def checkMatlab(packagePath):
         - 16: Specified path is not a directory.
         - 1: Success.
     """
-    if not existPackage('matlab'):
-        return MATLAB_ERROR
-    if not isdir(packagePath):
-        return MATLAB_HOME_ERROR
+    #TODO check behaviour in a system with matlab installed
+    if not isdir(dictPackages['MATLAB_HOME']):
+        showError('', MATLAB_HOME_ERROR)
+    if not whereIsPackage('matlab'):
+        showError('', MATLAB_ERROR)
+
+    cppProg = """
+    #include <mex.h>
+    int dummy(){return 0;}
+    """
+    with open("xmipp_mex.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+
+    cmd = " {} -silent xmipp_mex.cpp".format(join(dictPackages["MATLAB_HOME"], 'bin', 'mex'))
+    logE = []
+    if not runJob(cmd, showCommand=False,showOutput=False, logErr=logE):
+        showError(logE[0], MATLAB_HOME_ERROR)
+        runJob("rm xmipp_mex*")
+    runJob("rm xmipp_mex*")
     return OK
 
 
@@ -408,7 +460,7 @@ def checkOPENCV(dictPackages):
         cppFile.write(cppProg)
 
     if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-                  % (dictPackages['CXX']), CXX_FLAGS, dictPackages['INCDIRFLAGS'],
+                  % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
                   showCommand=False, showOutput=False, logErr=log):
         print(red('OpenCV set as True but {}'.format(log)))
         dictPackages['OPENCV'] = ''
@@ -446,12 +498,14 @@ def checkOPENCV(dictPackages):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
     log = []
-    if runJob(
+    if not runJob(
             "%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
             (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
-            showOutput=False, logErr=log, showCommand=False):
+            showOutput=False, logErr=log, showCommand=False, showError=False):
         print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
+
+    runJob("rm xmipp_test_opencv*", showCommand=False, showOutput=False)
 
     return OK
 
@@ -491,12 +545,9 @@ def checkCUDA(dictPackages):
         - 17: CUDA not compatible with the current g++ compiler version.
         - 18: CUDA version information not available.
     """
-    nvcc_version = versionPackage(dictPackages['CUDA_HOME'])
+    strversion = versionPackage(dictPackages['CUDA_HOME'])
+    nvcc_version = CUDAVersion(strversion)
     if nvcc_version != '':
-        if nvcc_version.find('release') != -1:
-            idx = nvcc_version.find('release ')
-            nvcc_version = nvcc_version[idx + len('release '):
-                                        idx + nvcc_version[idx:].find(',')]
         gxx_version = versionPackage(dictPackages['CXX'])
         gxx_version = CXXVersion(gxx_version)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
@@ -548,6 +599,7 @@ def checkSTARPU(dictPackages):
     - int: Error code.
         - 1: Success.
     """
+    #TODO check behaviour in a system with starpu installed
     if dictPackages["CUDA"] != "True":
         ans = False
         print(red("CUDA must be enabled together with STARPU"))
@@ -672,12 +724,17 @@ def checkHDF5(dictPackages):
         True, 0: HDF5 configuration successful.
     """
     libhdf5 = get_Hdf5_name(dictPackages['LIBDIRFLAGS'])#TODO review behave
-    if not runJob(
-            "%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-            ('KEY_LINKERFORPROGRAMS', LINK_FLAGS,
-             dictPackages["LIBDIRFLAGS"], libhdf5),
-            showCommand=False, showOutput=False):
-        showError('', 18)
-    runJob("rm xmipp_test_main*", showCommand=False, showutput=False)
-    print(green('Done ' + (' ' * 70)))
-    return True, 0
+    logE = []
+    cppProg = ("""
+               #include <hdf5.h>
+               \n int main(){}\n
+               """)
+    with open("xmipp_test_main.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+    cmd = ("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
+           (dictPackages['CXX'], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
+    if not runJob(cmd, showCommand=False, showOutput=False, showError=False, logErr=logE):
+        showError(logE[0], HDF5_ERROR)
+
+    runJob("rm xmipp_test_main*", showCommand=False, showOutput=False)
+    return OK
