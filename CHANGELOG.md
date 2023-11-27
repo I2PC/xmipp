@@ -1,4 +1,4 @@
-   ## Release 3.23.11 - Voting...
+   ## Release 3.23.11 - Nereus
    ### Xmipp Programs 
    
    - New programs
