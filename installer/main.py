@@ -64,7 +64,7 @@ def getSources(branch: str=None):
 		
 		# If download failed, return error
 		if not status:
-			showError(output, status=status) #TODO: CHECK CODE
+			showError(output, retCode=status) #TODO: CHECK CODE
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:
