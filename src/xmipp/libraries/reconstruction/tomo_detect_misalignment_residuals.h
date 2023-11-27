@@ -75,7 +75,7 @@ public:
 
     // Coordinate model structure
     struct resMod {
-        Point3D<double> detectedCoordinate;     // Coordinate detected in each tilt-image
+        Point3D<double> landmarkCoord;     // Coordinate detected in each tilt-image
         Point3D<double> coordinate3d;           // 3D coordinate whose porjection is the closest
         Point2D<double> residuals;              // Residual vector from detected to projected
         size_t id;                              // ID common for all the CM belonging to the same coordinate 3D

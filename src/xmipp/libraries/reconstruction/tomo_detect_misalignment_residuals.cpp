@@ -273,9 +273,9 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	// MAT_ELEM(covariance_inv, 1, 1) = 1/sigma2;
 
 	// iterate residuals
-	for(size_t i = 0; i < vCM.size(); i++)
+	for(size_t i = 0; i < vResMod.size(); i++)
 	{
-		vCM[i].mahalanobisDistance = sqrt(vCM[i].residuals.x/sigma + vCM[i].residuals.y/sigma);
+		vResMod[i].mahalanobisDistance = sqrt(vResMod[i].residuals.x/sigma + vResMod[i].residuals.y/sigma);
 	}
 
 	// Global alignment analysis
@@ -285,22 +285,22 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
-		std::vector<CM> CM_fid;
-		getCMbyFiducial(n, CM_fid);
+		std::vector<resMod> resMod_fid;
+		getResModByFiducial(n, resMod_fid);
 
-		size_t numberCM = CM_fid.size();
+		size_t numberResMod = resMod_fid.size();
 
 		double sumMahaDist = 0;
 		double sumMahaDist2 = 0;
 
-		for (size_t i = 0; i < numberCM; i++)
+		for (size_t i = 0; i < numberResMod; i++)
 		{
-			sumMahaDist += CM_fid[i].mahalanobisDistance;
-			sumMahaDist2 += CM_fid[i].mahalanobisDistance * CM_fid[i].mahalanobisDistance; 
+			sumMahaDist += resMod_fid[i].mahalanobisDistance;
+			sumMahaDist2 += resMod_fid[i].mahalanobisDistance * resMod_fid[i].mahalanobisDistance; 
 		}
 
-		double avgMahaDist = sumMahaDist / numberCM;
-		double stdMahaDist = sqrt(sumMahaDist2 / numberCM - avgMahaDist * avgMahaDist);
+		double avgMahaDist = sumMahaDist / numberResMod;
+		double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
 
 		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
@@ -312,22 +312,22 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	
 	for (size_t n = 0; n < nSize; n++)
 	{
-		std::vector<CM> CM_image;
-		getCMbyImage(n, CM_image);
+		std::vector<resMod> resMod_image;
+		getResModByImage(n, resMod_image);
 
-		size_t numberCM = CM_image.size();
+		size_t numberResMod = resMod_image.size();
 
 		double sumMahaDist = 0;
 		double sumMahaDist2 = 0;
 
-		for (size_t i = 0; i < numberCM; i++)
+		for (size_t i = 0; i < numberResMod; i++)
 		{
-			sumMahaDist += CM_image[i].mahalanobisDistance;
-			sumMahaDist2 += CM_image[i].mahalanobisDistance * CM_image[i].mahalanobisDistance; 
+			sumMahaDist += resMod_image[i].mahalanobisDistance;
+			sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance; 
 		}
 
-		double avgMahaDist = sumMahaDist / numberCM;
-		double stdMahaDist = sqrt(sumMahaDist2 / numberCM - avgMahaDist * avgMahaDist);
+		double avgMahaDist = sumMahaDist / numberResMod;
+		double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
 
 		avgMahalanobisDistanceV[n] = avgMahaDist;
 		stdMahalanobisDistanceV[n] = stdMahaDist;
@@ -738,6 +738,10 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 	double lmY;
 	double lmZ;
 
+	int coord3dx;
+	int coord3dy;
+	int coord3dz;
+
 	double resX;
 	double resY;
 
@@ -748,14 +752,19 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 		md.getValue(MDL_X, lmX, id);
 		md.getValue(MDL_Y, lmY, id);
 		md.getValue(MDL_Z, lmZ, id);
+		md.getValue(MDL_XCOOR, coord3dx, id);
+		md.getValue(MDL_YCOOR, coord3dy, id);
+		md.getValue(MDL_ZCOOR, coord3dz, id);
 		md.getValue(MDL_SHIFT_X, resX, id);
 		md.getValue(MDL_SHIFT_Y, resY, id);
 		md.getValue(MDL_FRAME_ID, idLM, id);
 
 		Point3D<double> lm(lmX, lmY, lmZ);
-		Point2D<double> res(resX, resY); 
+		Point3D<double> coord3d(coord3dx, coord3dy, coord3dz);
+		Point2D<double> res(resX, resY);
+		double mahalanobisDistance = 0;
 
-		resMod rm {lm, res, idLM};
+		resMod rm {lm, coord3d, res, idLM, mahalanobisDistance};
 		vResMod.push_back(rm);
 	}
 
@@ -767,8 +776,8 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 
 void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 {
-	size_t lastindexInputTS = fnVol.find_last_of(":");
-	std::string rawnameTS = fnVol.substr(0, lastindexInputTS);
+	size_t lastindexInputTS = fnInputTS.find_last_of(":");
+	std::string rawnameTS = fnInputTS.substr(0, lastindexInputTS);
 	
 	MetaDataVec md;
 	FileName fn;
@@ -827,7 +836,6 @@ void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 
 
 
-
 // --------------------------- MAIN ----------------------------------
 void ProgTomoDetectMisalignmentResiduals::run()
 {
@@ -881,7 +889,8 @@ void ProgTomoDetectMisalignmentResiduals::run()
 
 	generateSideInfo();
 
-	detectMisalignmentFromResiduals();
+	// detectMisalignmentFromResiduals();
+	detectMisalignmentFromResidualsMahalanobis();
 
 	#ifdef GENERATE_RESIDUAL_STATISTICS
 	generateResidualStatiscticsFile();
