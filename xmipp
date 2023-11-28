@@ -24,11 +24,11 @@
 # ***************************************************************************/
 
 # General imports
-import argparse, sys, os
+import argparse, sys, os, multiprocessing
 
 # Installer imports
-from installer.constants import DEFAULT_JOBS, MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,\
-	MODE_CLEAN_BIN, MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
+from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
+	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
 from installer.utils import showError, isProductionMode
 from installer.config import config
@@ -205,6 +205,9 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
+	# Defining default jobs
+	DEFAULT_JOBS = multiprocessing.cpu_count()
+
 	# Creating parser to parse the command-line arguments
 	parser = ErrorHandlerArgumentParser(formatter_class=GeneralHelpFormatter, prog="xmipp")
 
