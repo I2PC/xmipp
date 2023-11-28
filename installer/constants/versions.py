@@ -59,7 +59,7 @@ MASTER_BRANCHNAME = 'master'				#
 
 # Version requirements
 #####################################
-GCC_MINIMUM = '8.4'									#NEEDED? MAYBE ONLY G++, check with nvcc -- g++
+GCC_MINIMUM = '8.4'									#TODO: NEEDED? MAYBE ONLY G++, check with nvcc -- g++
 GPP_MINIMUM = GCC_MINIMUM						#
 CMAKE_MINIMUM = '3.16'							#
 SCONS_MINIMUM = '3.0'								#
