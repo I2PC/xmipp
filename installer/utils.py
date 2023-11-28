@@ -27,15 +27,13 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import subprocess, pkg_resources, sys, glob
-from os import environ, remove, path
+import subprocess, pkg_resources, sys, glob, distutils.spawn, os
 from typing import List, Tuple, Union
-import distutils.spawn
 from sysconfig import get_paths
 
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
-	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY
+	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE
 
 ####################### GENERAL FUNCTIONS #######################
 def showError(errorMsg: str, retCode: int=1):
@@ -66,7 +64,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=True, showError: bool=True,
 	(str): Output of the command, regardless of if it is an error or regular output.
 	"""
 	# Running command
-	process = subprocess.Popen(cmd, cwd=cwd, env=environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+	process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 	output, err = process.communicate()
 
 	# Printing command if specified
@@ -101,6 +99,20 @@ def getFormattingTabs(text: str) -> str:
 	(str): Formatted text.
 	"""
 	return text.expandtabs(TAB_SIZE)
+
+def printMessage(text: str, debug: bool=False):
+	"""
+	### This method prints the given text into the log file, and, if debug mode is active, also through terminal.
+
+	### Params:
+	- text (str): The text to be printed.
+	- debug (bool): Indicates if debug mode is active.
+	"""
+	# Create log file if it does not exist
+	if not os.path.exists(LOG_FILE):
+		runJob(f"touch {LOG_FILE}", showOutput=False, showError=False, showCommand=False)
+	
+	# Open the file
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups():
@@ -237,9 +249,9 @@ def findFileInDirList(fnH, dirlist):
 				dirlist = [dirlist]
 
 		for dir in dirlist:
-				validDirs = glob.glob(path.join(dir, fnH))
+				validDirs = glob.glob(os.path.join(dir, fnH))
 				if len(validDirs) > 0:
-						return path.dirname(validDirs[0])
+						return os.path.dirname(validDirs[0])
 		return ''
 
 
@@ -274,8 +286,8 @@ def whereIsPackage(packageName):
 		"""
 		programPath = distutils.spawn.find_executable(packageName)
 		if programPath:
-				programPath = path.realpath(programPath)
-				return path.dirname(programPath)
+				programPath = os.path.realpath(programPath)
+				return os.path.dirname(programPath)
 		else:
 				return None
 
@@ -310,7 +322,7 @@ def existPath(path):
 		pass
 
 def getINCDIRFLAG():
-		return ' -I ' + path.join(get_paths()['data'].replace(' ', ''),  'include')
+		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
 
 
 
@@ -449,9 +461,9 @@ def findFileInDirList(fnH, dirlist):
         dirlist = [dirlist]
 
     for dir in dirlist:
-        validDirs = glob.glob(path.join(dir, fnH))
+        validDirs = glob.glob(os.path.join(dir, fnH))
         if len(validDirs) > 0:
-            return path.dirname(validDirs[0])
+            return os.path.dirname(validDirs[0])
     return ''
 
 def checkLib(gxx, libFlag):
@@ -461,15 +473,15 @@ def checkLib(gxx, libFlag):
     result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
             gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
             showOutput=False, showCommand=False, logOut=logOut, logErr=logErr)
-    remove('xmipp_check_lib.cpp')
-    remove('a.out') if path.isfile('a.out') else None
+    os.remove('xmipp_check_lib.cpp')
+    os.remove('a.out') if os.path.isfile('a.out') else None
     return result
 
 def get_Hdf5_name(libdirflags):
 		libdirs = libdirflags.split("-L")
 		for dir in libdirs:
-				if path.exists(path.join(dir.strip(), "libhdf5.so")):
+				if os.path.exists(os.path.join(dir.strip(), "libhdf5.so")):
 						return "hdf5"
-				elif path.exists(path.join(dir.strip(), "libhdf5_serial.so")):
+				elif os.path.exists(os.path.join(dir.strip(), "libhdf5_serial.so")):
 						return "hdf5_serial"
 		return "hdf5"

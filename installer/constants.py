@@ -132,6 +132,7 @@ PATH_TO_FIND_HDF5 = [
 
 # Files names
 CONFIG_FILE = 'xmipp.conf'
+LOG_FILE = 'compileLog.txt'
 
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
