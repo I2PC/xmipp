@@ -84,21 +84,21 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 
 	# Download tag
 	zipName = XMIPP_VERSIONS[source][VERNAME_KEY]
-	retcode, output = runJob(f"wget -O {REPOSITORIES[ORGANIZATION_NAME]}{source}/{TAGS_SUBPAGE}{zipName}.zip", showOutput=False, showError=False, showCommand=False)
+	retcode, output = runJob(f"wget -O {REPOSITORIES[ORGANIZATION_NAME]}{source}/{TAGS_SUBPAGE}{zipName}.zip")
 
 	# If download failed, return error
 	if retcode != 0:
 		return retcode, output
 	
 	# Unzip tag and change folder name to match repository name
-	runJob(f"unzip {zipName}.zip", showOutput=False, showError=False, showCommand=False)
+	runJob(f"unzip {zipName}.zip")
 
 	# Check unzipped folder naming scheme
 	folderName = source + '-' + zipName[1:] # Old naming system
 	folderName = folderName if os.path.isdir(folderName) else source + '-' + zipName
 
 	# Change folder name to match repository name
-	retcode, output = runJob(f"mv {folderName} {source} && rm {zipName}.zip", showOutput=False, showError=False, showCommand=False)
+	retcode, output = runJob(f"mv {folderName} {source} && rm {zipName}.zip")
 
 	# Return last command's code and output.
 	return retcode, output
@@ -117,7 +117,7 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	# If a branch was provided, check if exists in remote repository
 	output = ''
 	if branch is not None:
-		retcode, output = runJob(f"git ls-remote --heads {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git {branch}", showOutput=False, showError=False, showCommand=False)
+		retcode, output = runJob(f"git ls-remote --heads {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git {branch}")
 		
 		# Check for errors
 		if retcode != 0:
@@ -128,4 +128,4 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 		branch = DEVEL_BRANCHNAME
 
 	# Clone repository
-	return runJob(f"git clone --branch {branch} {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git", showOutput=False, showError=False, showCommand=False)
+	return runJob(f"git clone --branch {branch} {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git")
