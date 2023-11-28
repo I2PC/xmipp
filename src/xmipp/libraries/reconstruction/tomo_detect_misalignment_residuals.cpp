@@ -68,7 +68,9 @@ void ProgTomoDetectMisalignmentResiduals::generateSideInfo()
 
 	// Initialize local alignment vector (depends on the number of acquisition angles)
 	localAlignment.resize(nSize, true);
-
+	avgMahalanobisDistanceV.resize(nSize, 0.0);
+	stdMahalanobisDistanceV.resize(nSize, 0.0);
+	
 	// Update thresholds depending on input tilt-series sampling rate
 	fiducialSizePx = fiducialSize / samplingRate; 
 
@@ -275,7 +277,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	// iterate residuals
 	for(size_t i = 0; i < vResMod.size(); i++)
 	{
-		vResMod[i].mahalanobisDistance = sqrt(vResMod[i].residuals.x/sigma + vResMod[i].residuals.y/sigma);
+		vResMod[i].mahalanobisDistance = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma + (vResMod[i].residuals.y*vResMod[i].residuals.y)/sigma);
 	}
 
 	// Global alignment analysis
@@ -316,6 +318,8 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 		getResModByImage(n, resMod_image);
 
 		size_t numberResMod = resMod_image.size();
+
+		std::cout << "numberResMod " << numberResMod << std::endl;
 
 		double sumMahaDist = 0;
 		double sumMahaDist2 = 0;
