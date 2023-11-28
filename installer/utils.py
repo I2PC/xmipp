@@ -41,27 +41,27 @@ def showError(errorMsg: str, retCode: int=1):
 	### This function prints an error message and exits with the given return code.
 
 	#### Params:
-	errorMsg (str): Error message to show.
-	retCode (int): Optional. Return code to end the exection with.
+	- errorMsg (str): Error message to show.
+	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
 	print(red(errorMsg))
 	sys.exit(retCode)
 
-def runJob(cmd: str, cwd: str='./', showOutput: bool=True, showError: bool=True, showCommand: bool=True) -> Tuple[bool, str]:
+def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
 
 	#### Params:
-	cmd (str): Command to run.
-	cwd (str): Optional. Path to run the command from. Default is current directory.
-	showOutput (bool): Optional. If True, output is printed.
-	showError (bool): Optional. If True, errors are printed.
-	showCommand (bool): Optional. If True, command is printed in blue.
+	- cmd (str): Command to run.
+	- cwd (str): Optional. Path to run the command from. Default is current directory.
+	- showOutput (bool): Optional. If True, output is printed.
+	- showError (bool): Optional. If True, errors are printed.
+	- showCommand (bool): Optional. If True, command is printed in blue.
 
 	#### Returns:
-	(int): Return code.
-	(str): Output of the command, regardless of if it is an error or regular output.
+	- (int): Return code.
+	- (str): Output of the command, regardless of if it is an error or regular output.
 	"""
 	# Running command
 	process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -96,7 +96,7 @@ def getFormattingTabs(text: str) -> str:
 	- text (str): The text to be formatted.
 
 	### Returns:
-	(str): Formatted text.
+	- (str): Formatted text.
 	"""
 	return text.expandtabs(TAB_SIZE)
 
@@ -110,17 +110,17 @@ def printMessage(text: str, debug: bool=False):
 	"""
 	# Create log file if it does not exist
 	if not os.path.exists(LOG_FILE):
-		runJob(f"touch {LOG_FILE}", showOutput=False, showError=False, showCommand=False)
+		runJob(f"touch {LOG_FILE}")
 	
 	# Open the file
 
 ####################### EXECUTION MODE FUNCTIONS #######################
-def getModeGroups():
+def getModeGroups() -> List[str]:
 	"""
 	### Returns all the group names of all the available execution modes.
 	
 	#### Returns:
-	(List[str]): List of all mode groups.
+	- (List[str]): List of all mode groups.
 	"""
 	return list(MODES.keys())
 
@@ -129,7 +129,7 @@ def getAllModes() -> List[str]:
 	### Returns all the available execution modes.
 	
 	#### Returns:
-	(List[str]): List of all available modes.
+	- (List[str]): List of all available modes.
 	"""
 	# Defining empty list to store modes
 	modes = []
@@ -149,10 +149,10 @@ def green(text: str) -> str:
 	### This function returns the given text formatted in green color.
 
 	#### Params:
-	text (str): Text to format.
+	- text (str): Text to format.
 
 	#### Returns:
-	(str): Text formatted in green color.
+	- (str): Text formatted in green color.
 	"""
 	return "\033[92m" + text + "\033[0m"
 
@@ -161,10 +161,10 @@ def yellow(text: str) -> str:
 	### This function returns the given text formatted in yellow color.
 
 	#### Params:
-	text (str): Text to format.
+	- text (str): Text to format.
 
 	#### Returns:
-	(str): Text formatted in yellow color.
+	- (str): Text formatted in yellow color.
 	"""
 	return "\033[93m" + text + "\033[0m"
 
@@ -173,10 +173,10 @@ def red(text: str) -> str:
 	### This function returns the given text formatted in red color.
 
 	#### Params:
-	text (str): Text to format.
+	- text (str): Text to format.
 
 	#### Returns:
-	(str): Text formatted in red color.
+	- (str): Text formatted in red color.
 	"""
 	return "\033[91m" + text + "\033[0m"
 
@@ -185,10 +185,10 @@ def blue(text: str) -> str:
 	### This function returns the given text formatted in blue color.
 
 	#### Params:
-	text (str): Text to format.
+	- text (str): Text to format.
 
 	#### Returns:
-	(str): Text formatted in blue color.
+	- (str): Text formatted in blue color.
 	"""
 	return "\033[34m" + text + "\033[0m"
 
@@ -197,10 +197,10 @@ def bold(text: str) -> str:
 	### This function returns the given text formatted in bold.
 
 	#### Params:
-	text (str): Text to format.
+	- text (str): Text to format.
 
 	#### Returns:
-	(str): Text formatted in bold.
+	- (str): Text formatted in bold.
 	"""
 	return "\033[1m" + text + "\033[0m"
 
@@ -213,10 +213,10 @@ def getCurrentBranch(dir: str='./') -> Union[str, None]:
 	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
 	
 	#### Returns:
-	(str | None): The name of the branch, or None if given directory is not a repository.
+	- (str | None): The name of the branch, or None if given directory is not a repository.
 	"""
 	# Getting current branch name
-	retcode, output = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir, showOutput=False, showError=False, showCommand=False)
+	retcode, output = runJob("git rev-parse --abbrev-ref HEAD", cwd=dir)
 
 	# Return branch name or None if command failed
 	return output if retcode == 0 else None
@@ -226,7 +226,7 @@ def isProductionMode() -> bool:
 	### This function returns True if the current Xmipp repository is in production mode.
 	
 	#### Returns:
-	(bool): True if the repository is in production mode. False otherwise.
+	- (bool): True if the repository is in production mode. False otherwise.
 	"""
 	currentBranch = getCurrentBranch()
 	return currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
@@ -235,44 +235,40 @@ def isProductionMode() -> bool:
 
 # UTILS
 def findFileInDirList(fnH, dirlist):
-		"""
-		Finds a file in a list of directories.
+	"""
+	Finds a file in a list of directories.
 
-		Params:
-		- fnH (str): File name or pattern to search for.
-		- dirlist (str or list of str): Single directory or list of directories to search in.
+	Params:
+	- fnH (str): File name or pattern to search for.
+	- dirlist (str or list of str): Single directory or list of directories to search in.
 
-		Returns:
-		- str: Directory containing the file if found, otherwise an empty string.
-		"""
-		if isinstance(dirlist, str):
-				dirlist = [dirlist]
+	Returns:
+	- str: Directory containing the file if found, otherwise an empty string.
+	"""
+	if isinstance(dirlist, str):
+			dirlist = [dirlist]
 
-		for dir in dirlist:
-				validDirs = glob.glob(os.path.join(dir, fnH))
-				if len(validDirs) > 0:
-						return os.path.dirname(validDirs[0])
-		return ''
-
+	for dir in dirlist:
+			validDirs = glob.glob(os.path.join(dir, fnH))
+			if len(validDirs) > 0:
+					return os.path.dirname(validDirs[0])
+	return ''
 
 def versionPackage(package):
-		"""
-		Retrieves the version of a package or program by executing '[package] --version' command.
+	"""
+	Retrieves the version of a package or program by executing '[package] --version' command.
 
-		Params:
-		- package (str): Name of the package or program.
+	Params:
+	- package (str): Name of the package or program.
 
-		Returns:
-		- str: Version information of the package or an empty string if not found.
-		"""
-		str = []
-		cmd = '{} --version'.format(package)
-		if runJob(cmd, showOutput=False, logOut=str, showCommand=False):
-				for line in str:
-						if line.find('not found') != -1:
-								return ''
-		return str[0]
-
+	Returns:
+	- str: Version information of the package or an empty string if not found.
+	"""
+	cmd = '{} --version'.format(package)
+	status, output = runJob(cmd, showError=True)
+	if status != 0 or output.find('not found') != -1:
+		return ''
+	return output
 
 def whereIsPackage(packageName):
 		"""
@@ -310,11 +306,7 @@ def pathPackage(packageName):
 		Returns:
 		- str: Path to the package.
 		"""
-		path = []
-		runJob('which {}'.format(packageName), showCommand=False,
-					 showOutput=False, logOut=path)
-		path = path[0].replace('\n', '')
-		return path
+		return runJob('which {}'.format(packageName), showError=True)[1]
 
 
 def existPath(path):
@@ -323,8 +315,6 @@ def existPath(path):
 
 def getINCDIRFLAG():
 		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
-
-
 
 def versionToNumber(strVersion: str) -> float:
 	"""
@@ -358,6 +348,8 @@ def versionToNumber(strVersion: str) -> float:
 	return numberVersion
 
 def sconsVersion():
+		# TODO: Revisar: no se "puede" devolver un número indeterminado de argumentos, tienes que devolver siempre el mismo numero, aunque a veces uno no sirva
+		# No se entiende muy bien qué hace (y creo que se puede optimizar)
 		"""
 		Checks if the installed version of SCons meets a minimum requirement.
 
@@ -373,25 +365,23 @@ def sconsVersion():
 		except Exception:
 			pass
 		if isScipionVersion():
-			outlog = []
-			errlog = []
-			if runJob('pip install scons', logOut=outlog, logErr=errlog, showError=False, showCommand=True):
+			status, output = runJob('pip install scons', showOutput=True, showCommand=True)
+			if status == 0:
 				return True
 			else:
-				print(red(errlog[0]))
-				return 2, False
+				showError(output, retCode=2)
 		else:
-			print(blue('Scipion enviroment not found, please install manually scons library'))
+			print(blue('Scons package not found, please install it  with \"pip install scons\".'))
 			return False
 
 
 def CUDAVersion(strVersion):
-		nvcc_version = ''
+		nvccVersion = ''
 		if strVersion.find('release') != -1:
 				idx = strVersion.find('release ')
-				nvcc_version = strVersion[idx + len('release '):
+				nvccVersion = strVersion[idx + len('release '):
 																		idx + strVersion[idx:].find(',')]
-		return nvcc_version
+		return nvccVersion
 
 
 
@@ -402,31 +392,27 @@ def isScipionVersion():
 		Returns:
 		- bool: True if the environment is Scipion, False otherwise.
 		"""
-		condaEnv = []
-		if runJob('echo $CONDA_PREFIX', logOut=condaEnv, showError=True):
-			if condaEnv[0].find('scipion3') != -1:
-				return True
-			else:
-				return False
-		else:
-			return False
+		status, output = runJob('echo $CONDA_PREFIX', showError=True)
+		if status == 0 and output.find('scipion3') != -1:
+			return True
+		return False
 
 
-def getCompatibleGCC(nvcc_version):
+def getCompatibleGCC(nvccVersion):
 		"""
 		Retrieves compatible versions of GCC based on a given NVCC (NVIDIA CUDA Compiler) version.
 
 		Params:
-		- nvcc_version (str): Version of NVCC.
+		- nvccVersion (str): Version of NVCC.
 
 		Returns:
 		- tuple: A tuple containing compatible GCC versions and a boolean indicating compatibility.
 		"""
 		# https://gist.github.com/ax3l/9489132
 		for key, value in CUDA_GCC_COMPATIBILITY.items():
-				list = key.split('-')
-				if float(nvcc_version) >= float(list[0]) and \
-								float(nvcc_version) <= float(list[1]):
+				versionList = key.split('-')
+				if float(nvccVersion) >= float(versionList[0]) and \
+								float(nvccVersion) <= float(versionList[1]):
 						return value, True
 		return vGCC, False
 
@@ -467,15 +453,12 @@ def findFileInDirList(fnH, dirlist):
     return ''
 
 def checkLib(gxx, libFlag):
-    """ Returns True if lib is found. """
-    logErr = []
-    logOut = []
-    result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
-            gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
-            showOutput=False, showCommand=False, logOut=logOut, logErr=logErr)
-    os.remove('xmipp_check_lib.cpp')
-    os.remove('a.out') if os.path.isfile('a.out') else None
-    return result
+	# TODO: Revisar: funciona como queremos?
+	""" Returns True if lib is found. """
+	status = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)[0]
+	os.remove('xmipp_check_lib.cpp')
+	os.remove('a.out') if os.path.isfile('a.out') else None
+	return status == 0
 
 def get_Hdf5_name(libdirflags):
 		libdirs = libdirflags.split("-L")

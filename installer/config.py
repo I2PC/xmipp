@@ -269,29 +269,26 @@ def checkMPI(dictPackages):
         cppFile.write(cppProg)
     cmd = ("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
            % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
-    if not runJob(cmd, showOutput=False, showCommand=False):
-        showError('Fails running this command: {}'.format(cmd), MPI_COMPILLATION_ERROR)
+    status, output = runJob(cmd, showError=True)
+    if status != 0:
+        showError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
            " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread")
            % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
-    if not runJob(cmd, showOutput=False, showCommand=False):
-        showError('Fails running this command: {}'.format(cmd), MPI_COMPILLATION_ERROR)
+    status, output = runJob(cmd, showError=True)
+    if status != 0:
+        showError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
-    log = []
     processors = 2
-    runJob('{} -np {} echo {}'.format(dictPackages['MPI_RUN'], processors, 'Running'),
-           showCommand=False, logOut=log, showOutput=False)
-    if log[0].count('Running') != processors:
-        log = []
-        runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'),
-               showCommand=False, logOut=log, showOutput=False)
-        if log[0].count('Running') != processors:
-            print(red("mpirun or mpiexec have failed."))
-            showError('', MPI_RUNNING_ERROR)
+    output = runJob('{} -np {} echo {}'.format(dictPackages['MPI_RUN'], processors, 'Running'), showError=True)[1]
+    if output.count('Running') != processors:
+        output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
+        if output.count('Running') != processors:
+            showError("mpirun or mpiexec have failed.", retCode=MPI_RUNNING_ERROR)
     return OK
 
 def getJava(dictPackages):
@@ -344,9 +341,9 @@ def checkJava(dictPackages):
     with open("Xmipp.java", "w") as javaFile:
         javaFile.write(javaProg)
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
-    if not runJob(cmd, showCommand=False, showOutput=False):
+    if runJob(cmd, showError=True)[0] != 0:
         showError(cmd, JAVAC_DOESNT_WORK_ERROR)
-    runJob("rm Xmipp.java Xmipp.class",showCommand=False,showOutput=False)
+    runJob("rm Xmipp.java Xmipp.class", showError=True)
 
     #Other check 2
     if isdir(join(dictPackages['JAVA_HOME'], 'include')):
@@ -366,10 +363,10 @@ def checkJava(dictPackages):
     for x in incJ.split(':'):
         incs += " -I"+x
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
-    logE=[]
-    if not runJob(cmd, showCommand=False,showOutput=False, logErr=logE):
-        showError(logE[0], JAVA_INCLUDE_ERROR)
-    runJob("rm xmipp_jni_test*", showCommand=False,showOutput=False)
+    status, output = runJob(cmd)
+    if status != 0:
+        showError(output, JAVA_INCLUDE_ERROR)
+    runJob("rm xmipp_jni_test*", showError=True)
     return OK
 
 def getMatlab(dictPackages):
@@ -418,9 +415,9 @@ def checkMatlab(dictPackages):
         cppFile.write(cppProg)
 
     cmd = " {} -silent xmipp_mex.cpp".format(join(dictPackages["MATLAB_HOME"], 'bin', 'mex'))
-    logE = []
-    if not runJob(cmd, showCommand=False,showOutput=False, logErr=logE):
-        showError(logE[0], MATLAB_HOME_ERROR)
+    status, output = runJob(cmd, showError=True)
+    if status != 0:
+        showError(output, MATLAB_HOME_ERROR)
         runJob("rm xmipp_mex*")
     runJob("rm xmipp_mex*")
     return OK
@@ -453,16 +450,14 @@ def checkOPENCV(dictPackages):
     - int: Error code.
         - 1: Success.
     """
-    log = []
     cppProg = "#include <opencv2/core/core.hpp>\n"
     cppProg += "int main(){}\n"
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-                  % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
-                  showCommand=False, showOutput=False, logErr=log):
-        print(red('OpenCV set as True but {}'.format(log)))
+    status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)
+    if status != 0:
+        showError('OpenCV set as True but {}'.format(output))
         dictPackages['OPENCV'] = ''
 
     # Check version
@@ -475,13 +470,10 @@ def checkOPENCV(dictPackages):
                       ' fh << CV_MAJOR_VERSION << std::endl;'
                       ' fh.close();'
                       '}\n')
-    if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
-                  % (dictPackages['CXX'],
-                     CXX_FLAGS, dictPackages['INCDIRFLAGS']),
-                  showCommand=False, showOutput=False):
+    if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)[0] != 0:
         openCV_Version = 2
     else:
-        runJob("./xmipp_test_opencv", showCommand=False, showOutput=False)
+        runJob("./xmipp_test_opencv", showError=True)
         f = open("xmipp_test_opencv.txt")
         versionStr = f.readline()
         f.close()
@@ -497,15 +489,12 @@ def checkOPENCV(dictPackages):
     cppProg += "int main(){}\n"
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
-    log = []
-    if not runJob(
-            "%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-            (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
-            showOutput=False, logErr=log, showCommand=False, showError=False):
-        print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(log)))
+    status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
+    if status != 0:
+        print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(output)))
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
-    runJob("rm xmipp_test_opencv*", showCommand=False, showOutput=False)
+    runJob("rm xmipp_test_opencv*", showError=True)
 
     return OK
 
@@ -624,15 +613,15 @@ def checkSTARPU(dictPackages):
             int dummy(){return 0;}
             """)
 
-        if not runJob(
+        if runJob(
                 "%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o" %
                 (dictPackages["NVCC"], dictPackages["NVCC_CXXFLAGS"],
                  dictPackages["INCDIRFLAGS"],
                  dictPackages["STARPU_INCLUDE"],
                  dictPackages["STARPU_LIB"],
-                 dictPackages["STARPU_LIBRARY"])):
+                 dictPackages["STARPU_LIBRARY"]))[0] != 0:
             print(red("Check STARPU_* settings"))
-        runJob("rm xmipp_starpu_config_test*")
+        runJob("rm -f xmipp_starpu_config_test*")
 
     return OK
 
@@ -724,7 +713,6 @@ def checkHDF5(dictPackages):
         True, 0: HDF5 configuration successful.
     """
     libhdf5 = get_Hdf5_name(dictPackages['LIBDIRFLAGS'])#TODO review behave
-    logE = []
     cppProg = ("""
                #include <hdf5.h>
                \n int main(){}\n
@@ -733,8 +721,9 @@ def checkHDF5(dictPackages):
         cppFile.write(cppProg)
     cmd = ("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
            (dictPackages['CXX'], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
-    if not runJob(cmd, showCommand=False, showOutput=False, showError=False, logErr=logE):
-        showError(logE[0], HDF5_ERROR)
+    status, output = runJob(cmd)
+    if status != 0:
+        showError(output, HDF5_ERROR)
 
-    runJob("rm xmipp_test_main*", showCommand=False, showOutput=False)
+    runJob("rm xmipp_test_main*", showError=True)
     return OK
