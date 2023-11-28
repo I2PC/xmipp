@@ -135,7 +135,7 @@ class ProgSubtractProjection: public XmippMetadataProgram
     /// Empty constructor
     ProgSubtractProjection();
     /// Destructor
-    ~ProgSubtractProjection() override;
+    ~ProgSubtractProjection();
     /// Read argument from command line
     void readParams() override;
     /// Show
