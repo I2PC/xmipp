@@ -22,33 +22,42 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+# General imports
 import json
+from typing import Dict
 
+# Self imports
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
+from .utils import runJob, showError
+from .constants import NETWORK_ERROR
 
-def postAPI(dictPackage):
-	osV = osVersion()
-	architectureV = architectureVersion()
-	CUDAV = CUDAVersion(dictPackage)
-	cmakeV = cmakeVersion()
-	gppV = gppVersion(dictPackage)
-	gccV = gccVersion(dictPackage)
-	sconsV = sconsVersion()
-	print(osV)
+def sendApiPost(dictPackage: Dict):
+	"""
+	"""
+	# Send API POST message. Retry up to N times (improves resistance to small network errors)
+	for _ in range(5):
+		status, output = runJob(getCurlStr('http://127.0.0.1:8000/web/attempts/', dictPackage))
+		# Break loop if success was achieved
+		if status:
+			break
+	
+	# Show error if it failed
+	# TODO: THIS IS FOR TESTING, IGNORE ERROR IN PRODUCTION VERSION
+	showError(output, retCode=NETWORK_ERROR)
 
-def getJSONString(dictPackage) -> str:
+def getJSONString(dictPackage: Dict) -> str:
 	"""
 	### Creates a JSON string with the necessary data for the APU POST message.
 	
 	#### Params:
-	- dictPackage (Namespace): Command line arguments parsed by argparse library.
+	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	
 	#### Return:
-	- (str): JSON string with the required info
+	- (str): JSON string with the required info.
 	"""
 	# Introducing data into a dictionary
-	jsonDict = {
+	jsonDict: Dict= {
 		"user": {
 			"userId": "hashMachine5" #TODO: get hash
 		},
@@ -72,24 +81,18 @@ def getJSONString(dictPackage) -> str:
 	# Return JSON object with all info
 	return json.dumps(jsonDict)
 
-"""
---data '{
-       "user": {
-         "userId": "hashMachine5"
-       },
-       "version": {
-         "os": "Centor",
-         "cuda": "NoSequeeseso",
-         "cmake": "3.5.6",
-         "gcc": "4.perocentos",
-         "gpp": "gepusplas",
-         "scons": "4.3.3"
-       },
-       "xmipp": {
-         "branch": "agm_API",
-         "updated": true
-       },
-       "returnCode": "0 con espacio",
-       "logTail": "muchas lines"
-     }'      http://127.0.0.1:8000/web/attempts/
-"""
+def getCurlStr(url: str, dictPackage: Dict) -> str:
+	"""
+	### Creates a curl command string to send a POST message to metrics's API.
+	
+	#### Params:
+	- url (str): Ulr to send the POST message to.
+	- dictPackage (Dict): Dictionary containing all discovered or config variables.
+	
+	#### Return:
+	- (str): Curl command string.
+	"""
+	# Creating and returning command string
+	cmd = "curl --header \"Content-Type: application/json\" -X POST"
+	cmd += f" --data \'{getJSONString(dictPackage)}\' --request POST {url}"
+	return cmd

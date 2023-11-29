@@ -52,6 +52,7 @@ JAVAC_DOESNT_WORK_ERROR = 21
 JAVA_INCLUDE_ERROR = 22
 CMAKE_VERSION_ERROR = 23
 CMAKE_ERROR = 24
+NETWORK_ERROR = 25
 
 # Error messages
 ERROR_CODE = {
@@ -79,5 +80,5 @@ ERROR_CODE = {
 	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails','Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
 	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	CMAKE_ERROR: [f'Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
-
+	NETWORK_ERROR: ['There was a network error running a command.', '']
 }
