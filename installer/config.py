@@ -33,29 +33,39 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
                         CXX_FLAGS, PATH_TO_FIND_HDF5, INC_PATH, INC_HDF5_PATH,
                         CONFIG_DICT,CXX_FLAGS,
-                        OK,UNKOW_ERROR,SCONS_INSTALLATION_ERROR,NO_SCONS_NO_SCIPION_ERROR,
+                        OK,UNKOW_ERROR,SCONS_VERSION_ERROR,SCONS_ERROR,
                         GCC_VERSION_ERROR,CC_NO_EXIST_ERROR,CXX_NO_EXIST_ERROR,CXX_VERSION_ERROR,
                         MPI_VERSION_ERROR,MPI_NOT_FOUND_ERROR,PYTHON_VERSION_ERROR ,
                         PYTHON_NOT_FOUND_ERROR ,NUMPY_NOT_FOUND_ERROR ,
                         JAVA_HOME_PATH_ERROR, MATLAB_ERROR ,MATLAB_HOME_ERROR,
                         CUDA_VERSION_ERROR ,CUDA_ERROR ,HDF5_ERROR, LINK_FLAGS,
                         MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR,
-                        JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR)
+                        JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
+                        CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM)
 from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPackage,
                     versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
-                    get_Hdf5_name, showError, MPIVersion,CUDAVersion)
+                    get_Hdf5_name, showError, MPIVersion, installScons)
+
+from .versionsCollector import (osVersion, architectureVersion, CUDAVersion,
+                                cmakeVersion, gppVersion, gccVersion, sconsVersion)
+from .versionsCollector import CUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
 
 
+
+
 def config():
     """check the config if exist else create it and check it"""
+    collectVersions(readConfig())
+
     if not existConfig():
+        print('Generating config file xmipp.conf')
         writeConfig(getSystemValues())
 
-    #checkConfig(readConfig())
+    checkConfig(readConfig())
 
 
 def getSystemValues():
@@ -110,7 +120,9 @@ def checkConfig(dictPackages):
         checkCUDA(dictPackages)
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages)
-    checkHDF5(dictPackages)
+    #checkHDF5(dictPackages)
+    checkScons()
+    checkCMake()
 
 
 def existConfig():
@@ -508,7 +520,7 @@ def checkOPENCV(dictPackages):
         cppFile.write(cppProg)
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
     if status != 0:
-        print(red('OPENCVSUPPORTSCUDA set as True but {}'.format(output)))
+        print(red('OPENCVSUPPORTSCUDA set as True but is not available'))
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
     runJob("rm xmipp_test_opencv*", showError=True)
@@ -551,9 +563,9 @@ def checkCUDA(dictPackages):
         - 17: CUDA not compatible with the current g++ compiler version.
         - 18: CUDA version information not available.
     """
-    strversion = versionPackage(dictPackages['CUDA_HOME'])
-    nvcc_version = CUDAVersion(strversion)
-    if nvcc_version != '':
+
+    nvcc_version = CUDAVersion(dictPackages)
+    if nvcc_version != 'Unknow':
         gxx_version = versionPackage(dictPackages['CXX'])
         gxx_version = CXXVersion(gxx_version)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
@@ -683,7 +695,7 @@ def getLIBDIRFLAGS(dictPackages):
         Expected keys: 'LIBDIRFLAGS'.
     """
     #get hdf5 libdir
-    PATH_TO_FIND_HDF5.append(join(get_paths()['data'].replace(' ', ''), 'lib'))#TODO review path con /lib
+    PATH_TO_FIND_HDF5.append(join(get_paths()['data'].replace(' ', ''), 'lib'))
     for path in PATH_TO_FIND_HDF5:
         hdf5PathFound = findFileInDirList("libhdf5*", path)
         if hdf5PathFound:
@@ -744,3 +756,59 @@ def checkHDF5(dictPackages):
 
     runJob("rm xmipp_test_main*", showError=True)
     return OK
+
+
+def checkCMake():
+    """
+    ### This function checks if the current installed version, if installed, is above the minimum required version.
+    ### If no version is provided it just checks if CMake is installed.
+
+    #### Params:
+    minimumRequired (str): Optional. Minimum required CMake version.
+
+    #### Returns:
+    An error message in color red in a string if there is a problem with CMake, None otherwise.
+    """
+    try:
+        cmakVersion = cmakeVersion()
+        # Checking if installed version is below minimum required
+        if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
+            showError(CMAKE_VERSION_ERROR, 'Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}')
+    except FileNotFoundError:
+        showError(CMAKE_ERROR,'CMake is not installed')
+    except Exception:
+        showError(CMAKE_ERROR,'Can not get the cmake version')
+
+def checkScons():
+    sconsV = sconsVersion()
+    installScons()
+    if sconsV != 'Unknow':
+        if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
+            status = installScons()
+            if status[0]:
+                sconsV = sconsVersion()
+                print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
+            else:
+                showError(SCONS_VERSION_ERROR, 'scons found {}, required {}\n{}'.
+                          format(sconsV, SCONS_MINIMUM, status[1]))
+        else:
+            print(green('SCons {} found'.format(sconsV)))
+    else:
+        status = installScons()
+        if status[0]:
+            sconsV = sconsVersion()
+            print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
+        else:
+            showError(SCONS_ERROR, 'Scons not found. {}'.format(status[1]))
+
+
+
+def collectVersions(dictPackage):
+    osV = osVersion()
+    architectureV = architectureVersion()
+    CUDAV = CUDAVersion(dictPackage)
+    cmakeV = cmakeVersion()
+    gppV = gppVersion(dictPackage)
+    gccV = gccVersion(dictPackage)
+    sconsV = sconsVersion()
+    #print(osV, architectureV, CUDAV, cmakeV, gppV, gccV, sconsV)

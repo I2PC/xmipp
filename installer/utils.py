@@ -35,6 +35,8 @@ from sysconfig import get_paths
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE
 
+
+
 ####################### GENERAL FUNCTIONS #######################
 def showError(errorMsg: str, retCode: int=1):
 	"""
@@ -375,22 +377,6 @@ def sconsVersion():
 			return False
 
 
-def CUDAVersion(strVersion):
-		"""
-		Extracts the NVCC (NVIDIA CUDA Compiler) version information from a given string.
-
-		Params:
-		- strVersion (str): Input string containing CUDA version details.
-
-		Returns:
-		- str: Extracted NVCC version information.
-		"""
-		nvccVersion = ''
-		if strVersion.find('release') != -1:
-				idx = strVersion.find('release ')
-				nvccVersion = strVersion[idx + len('release '):
-																		idx + strVersion[idx:].find(',')]
-		return nvccVersion
 
 
 
@@ -511,3 +497,25 @@ def get_Hdf5_name(libdirflags):
 				elif os.path.exists(os.path.join(dir.strip(), "libhdf5_serial.so")):
 						return "hdf5_serial"
 		return "hdf5"
+
+def isScipionEnviroment():
+		status = runJob('conda env list | grep "scipion3 "')
+		if status[0] == 0:
+				return True
+		else:
+				False
+
+def installScons():
+		if isScipionEnviroment():
+				status = runJob('conda activate scipion3')
+				if status[0] == 0:
+						status = runJob('pip install --upgrade scons')
+						if status[0] == 0 and status[1].find('Successfully installed scons') != -1:
+								print('Succesfully installed or updated Scons on scipion3 enviroment')
+								return True
+						else:
+								return False, 'conda could not be installed on scipion3 enviroment with pip'
+				else:
+						return False, 'scipion3 enviroment could not be activated'
+		else:
+				return False, 'scipion3 enviroment not found'

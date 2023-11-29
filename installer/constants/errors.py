@@ -21,7 +21,7 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-
+from .versions import cmakeInstallURL
 """
 Submodule containing all constants needed for handling errors during Xmipp's installation.
 """
@@ -29,8 +29,8 @@ Submodule containing all constants needed for handling errors during Xmipp's ins
 # Error codes
 OK = 0
 UNKOW_ERROR = 1
-SCONS_INSTALLATION_ERROR = 2
-NO_SCONS_NO_SCIPION_ERROR = 3
+SCONS_VERSION_ERROR = 2
+SCONS_ERROR = 3
 GCC_VERSION_ERROR = 4
 CC_NO_EXIST_ERROR = 5
 CXX_NO_EXIST_ERROR = 6
@@ -50,12 +50,14 @@ MPI_COMPILLATION_ERROR = 19
 MPI_RUNNING_ERROR = 20
 JAVAC_DOESNT_WORK_ERROR = 21
 JAVA_INCLUDE_ERROR = 22
+CMAKE_VERSION_ERROR = 23
+CMAKE_ERROR = 24
 
 # Error messages
 ERROR_CODE = {
 	UNKOW_ERROR: ['Unkonw error', ''],
-	SCONS_INSTALLATION_ERROR: ['scons installation  error', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
-	NO_SCONS_NO_SCIPION_ERROR: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
+	SCONS_VERSION_ERROR: ['scons installation  error', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
+	SCONS_ERROR: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
 	GCC_VERSION_ERROR: ['gcc version not valid', 'The version of gcc is lower than minimum, please review the requirements'],
   CC_NO_EXIST_ERROR: ['CC package does not exist','Please review the CC flag on your xmipp.conf'],
   CXX_NO_EXIST_ERROR: ['CXX package does not exist', 'Please review the CXX flag on your xmipp.conf'],
@@ -74,5 +76,8 @@ ERROR_CODE = {
   MPI_COMPILLATION_ERROR: ['', ''],
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one'],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work', 'Check the JAVA_HOME flag on xmipp.conf'],
-	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails','Check the JNI_CPPPATH, CXX and INCDIRFLAGS']
+	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails','Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
+	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
+	CMAKE_ERROR: [f'Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
+
 }

@@ -87,3 +87,6 @@ CUDA_GCC_COMPATIBILITY = {
 	'11.4-11.8': vGCC[vGCC.index('11.3'):],
 	'12.0-12.3': vGCC[vGCC.index('12.3'):]
 }
+
+#URL's repositoreis
+cmakeInstallURL = 'https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install'

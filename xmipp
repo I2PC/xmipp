@@ -52,7 +52,7 @@ def modeCheckConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# TODO: Implement
+	config()
 
 def modeCleanBin(args: argparse.Namespace):
 	"""
