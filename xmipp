@@ -34,6 +34,7 @@ from installer.utils import showError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import getSources
+from installer.api import postAPI
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -85,7 +86,7 @@ def modeCleanDeprecated(args: argparse.Namespace):
 	"""
 	# TODO: Implement
 
-def modeCompileAndInstall(args: argparse.Namespace):
+def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
 	### Checks the params for execution mode "compileAndInstall" and then runs it.
 	
@@ -96,6 +97,8 @@ def modeCompileAndInstall(args: argparse.Namespace):
 	getSources(branch=args.branch)
 
 	# TODO: Implement
+	postAPI(dictConfig)
+
 
 def modeConfig(args: argparse.Namespace):
 	"""
@@ -104,7 +107,7 @@ def modeConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	config()
+	return config()
 
 def modeGetModels(args: argparse.Namespace):
 	"""
@@ -161,10 +164,11 @@ def modeAll(args: argparse.Namespace):
 		pass
 
 	# Running config
-	modeConfig(args)
+	dictConfig = modeConfig(args)
 
 	# Running compilation and installation
-	modeCompileAndInstall(args)
+	modeCompileAndInstall(args, dictConfig=dictConfig)
+
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""

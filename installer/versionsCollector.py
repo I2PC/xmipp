@@ -42,7 +42,7 @@ def osVersion():
 
 def architectureVersion():
 		architectureV = 'Unknow'
-		out = runJob('cat /sys/devices/cpu/caps/pmu_name', showCommand=False)
+		out = runJob('cat /sys/devices/cpu/caps/pmu_name')
 		if out[0] == 0:
 				architectureV = out[1]
 		return architectureV

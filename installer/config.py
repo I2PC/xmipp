@@ -59,13 +59,12 @@ from sysconfig import get_paths
 
 def config():
     """check the config if exist else create it and check it"""
-    collectVersions(readConfig())
-
     if not existConfig():
         print('Generating config file xmipp.conf')
         writeConfig(getSystemValues())
-
-    checkConfig(readConfig())
+    dictConfig = readConfig()
+    checkConfig(dictConfig)
+    return dictConfig
 
 
 def getSystemValues():
@@ -544,7 +543,7 @@ def getCUDA(dictPackages):
         dictPackages['CUDA_CXX'] = ''
     else:
         dictPackages['CUDA'] = True
-        dictPackages['CUDA_HOME'] = pathPackage('nvcc')
+        dictPackages['CUDA_HOME'] = pathPackage('nvcc').replace('/bin/nvcc', '')
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
         print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
 
@@ -803,12 +802,4 @@ def checkScons():
 
 
 
-def collectVersions(dictPackage):
-    osV = osVersion()
-    architectureV = architectureVersion()
-    CUDAV = CUDAVersion(dictPackage)
-    cmakeV = cmakeVersion()
-    gppV = gppVersion(dictPackage)
-    gccV = gccVersion(dictPackage)
-    sconsV = sconsVersion()
-    #print(osV, architectureV, CUDAV, cmakeV, gppV, gccV, sconsV)
+
