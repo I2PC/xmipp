@@ -24,7 +24,6 @@
 from .versionsCollector import (osVersion, architectureVersion, CUDAVersion,
                                 cmakeVersion, gppVersion, gccVersion, sconsVersion)
 def postAPI(dictPackage):
-
 		osV = osVersion()
 		architectureV = architectureVersion()
 		CUDAV = CUDAVersion(dictPackage)
