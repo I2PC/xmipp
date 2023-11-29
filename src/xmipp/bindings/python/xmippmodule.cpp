@@ -768,6 +768,7 @@ xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return nullptr;
 }
+
 PyObject *
 xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
@@ -789,8 +790,6 @@ xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return nullptr;
 }
-
-
 
 PyObject *
 xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
@@ -845,6 +844,44 @@ xmipp_Euler_direction(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return nullptr;
 }
+
+PyObject *
+xmipp_alignWithZ(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    import_array();
+    double x;
+    double y;
+    double z;
+    bool homogeneous;
+	auto *pyHomogeneous = Py_False;
+    if (PyArg_ParseTuple(args, "ddd|O", &x,&y,&z,&pyHomogeneous))
+    {
+		if(PyBool_Check(pyHomogeneous))
+			homogeneous = pyHomogeneous == Py_True;
+
+		npy_intp dims[2];
+		if (!homogeneous)
+		{
+	        dims[0] = 3;
+	        dims[1] = 3; 			
+		}
+		else
+		{
+	        dims[0] = 4;
+	        dims[1] = 4; 			
+		}
+        auto * arr = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_DOUBLE);
+        void * data = PyArray_DATA(arr);
+        Matrix1D<double> u(3);
+        Matrix2D<double> R;
+        VECTOR_R3(u,x,y,z);
+        alignWithZ(u, R, homogeneous);
+        memcpy(data, (R.mdata), dims[0] * dims[1] * sizeof(double));
+        return (PyObject*)arr;
+    }
+    return nullptr;
+}
+
 /* activateMathExtensions */
 PyObject *
 xmipp_activateMathExtensions(PyObject *obj, PyObject *args, PyObject *kwargs)
@@ -1369,6 +1406,8 @@ xmipp_methods[] =
           "convert transformation matrix to euler angles" },
         { "Euler_direction", (PyCFunction) xmipp_Euler_direction, METH_VARARGS,
           "converts euler angles to direction" },
+		{ "alignWithZ", (PyCFunction) xmipp_alignWithZ, METH_VARARGS,
+		  "align vector with Z" },
         { "activateMathExtensions", (PyCFunction) xmipp_activateMathExtensions,
           METH_VARARGS, "activate math function in metadatas" },
         { "activateRegExtensions", (PyCFunction) xmipp_activateRegExtensions,

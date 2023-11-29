@@ -93,16 +93,23 @@ void ProgAngularNeighbourhood::run()
         for (size_t objId2 : DF1.ids())
         {
             // Read assigned angles from document file
-            double rot1, tilt1;
+            double rot1, tilt1, psi1;
             DF1.getValue(MDL_ANGLE_ROT,rot1,objId2);
             DF1.getValue(MDL_ANGLE_TILT,tilt1,objId2);
-            double psi1=0.;
+            DF1.getValue(MDL_ANGLE_PSI,psi1,objId2);
             double dist = SL.computeDistance(rot2, tilt2, 0., rot1, tilt1, psi1,
-                                             true, check_mirrors, false);
+                                             true, check_mirrors, false, false);
             if (dist <= maxdist)
             {
                 MDRowVec row;
                 DF1.getRow(row, objId2);
+                
+                // Use the symmetry closest to the projection angle
+                // which is provided by computeDistance
+                row.setValue(MDL_ANGLE_ROT, rot1);
+                row.setValue(MDL_ANGLE_TILT, tilt1);
+                row.setValue(MDL_ANGLE_PSI, psi1);
+
                 SF_out.addRow(row);
             }
         }
