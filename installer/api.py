@@ -21,15 +21,75 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-from .versionsCollector import (osVersion, architectureVersion, CUDAVersion,
-                                cmakeVersion, gppVersion, gccVersion, sconsVersion)
-def postAPI(dictPackage):
 
-		osV = osVersion()
-		architectureV = architectureVersion()
-		CUDAV = CUDAVersion(dictPackage)
-		cmakeV = cmakeVersion()
-		gppV = gppVersion(dictPackage)
-		gccV = gccVersion(dictPackage)
-		sconsV = sconsVersion()
-		print(osV)
+import json
+
+from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
+	cmakeVersion, gppVersion, gccVersion, sconsVersion
+
+def postAPI(dictPackage):
+	osV = osVersion()
+	architectureV = architectureVersion()
+	CUDAV = CUDAVersion(dictPackage)
+	cmakeV = cmakeVersion()
+	gppV = gppVersion(dictPackage)
+	gccV = gccVersion(dictPackage)
+	sconsV = sconsVersion()
+	print(osV)
+
+def getJSONString(dictPackage) -> str:
+	"""
+	### Creates a JSON string with the necessary data for the APU POST message.
+	
+	#### Params:
+	- dictPackage (Namespace): Command line arguments parsed by argparse library.
+	
+	#### Return:
+	- (str): JSON string with the required info
+	"""
+	# Introducing data into a dictionary
+	jsonDict = {
+		"user": {
+			"userId": "hashMachine5" #TODO: get hash
+		},
+		"version": {
+			"os": osVersion(),
+			"architecture": architectureVersion(),
+			"cuda": CUDAVersion(dictPackage),
+			"cmake": cmakeVersion(),
+			"gcc": gccVersion(dictPackage),
+			"gpp": gppVersion(dictPackage),
+			"scons": sconsVersion()
+		},
+		"xmipp": {
+			"branch": "agm_API",
+			"updated": True
+		},
+		"returnCode": "0 con espacio",
+		"logTail": "muchas lines"
+	}
+
+	# Return JSON object with all info
+	return json.dumps(jsonDict)
+
+"""
+--data '{
+       "user": {
+         "userId": "hashMachine5"
+       },
+       "version": {
+         "os": "Centor",
+         "cuda": "NoSequeeseso",
+         "cmake": "3.5.6",
+         "gcc": "4.perocentos",
+         "gpp": "gepusplas",
+         "scons": "4.3.3"
+       },
+       "xmipp": {
+         "branch": "agm_API",
+         "updated": true
+       },
+       "returnCode": "0 con espacio",
+       "logTail": "muchas lines"
+     }'      http://127.0.0.1:8000/web/attempts/
+"""
