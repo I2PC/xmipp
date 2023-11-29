@@ -30,14 +30,14 @@ from typing import Dict
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
 from .utils import runJob, showError
-from .constants import NETWORK_ERROR
+from .constants import NETWORK_ERROR, API_URL
 
 def sendApiPost(dictPackage: Dict):
 	"""
 	"""
 	# Send API POST message. Retry up to N times (improves resistance to small network errors)
 	for _ in range(5):
-		status, output = runJob(getCurlStr('http://127.0.0.1:8000/web/attempts/', dictPackage))
+		status, output = runJob(getCurlStr(API_URL, dictPackage))
 		# Break loop if success was achieved
 		if status:
 			break

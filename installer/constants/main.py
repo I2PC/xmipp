@@ -45,6 +45,9 @@ REPOSITORIES = {
 }
 TAGS_SUBPAGE = 'archive/refs/tags/'
 
+# API URL
+API_URL = 'http://127.0.0.1:8000/web/attempts/'
+
 # Other variables
 CXX_FLAGS = ' -mtune=native -march=native -flto -std=c++17 -O3'
 LINK_FLAGS = '-flto'
