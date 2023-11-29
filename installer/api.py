@@ -34,6 +34,10 @@ from .constants import NETWORK_ERROR, API_URL
 
 def sendApiPost(dictPackage: Dict):
 	"""
+	### Sends a POST request to Xmipp's metrics's API.
+	
+	#### Params:
+	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	"""
 	# Send API POST message. Retry up to N times (improves resistance to small network errors)
 	for _ in range(5):
