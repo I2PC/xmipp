@@ -969,12 +969,12 @@ def install(dirname):
 
 
     dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
-    folderNames = list(os.walk(dirBin))
-    for folder in folderNames[1:]:
-        folderName = os.path.relpath(folder[0], dirBin)
+    folders = list(os.walk(dirBin))
+    for folderPath, _, folderFiles in folders:
+        folderName = os.path.relpath(folderPath, dirBin)
         createDir(os.path.join(destPathPyModule, folderName))
-        for file in folder[2]:
-            runJob("ln -s " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file),
+        for file in folderFiles:
+            runJob("ln -s " + os.path.join(folderPath, file) + ' ' + os.path.join(destPathPyModule, folderName, file),
                    show_output=False, show_command=show_command, log=[])
 
 
