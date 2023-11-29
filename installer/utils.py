@@ -156,7 +156,7 @@ def green(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in green color.
 	"""
-	return "\033[92m" + text + "\033[0m"
+	return f"\033[92m{text}\033[0m"
 
 def yellow(text: str) -> str:
 	"""
@@ -168,7 +168,7 @@ def yellow(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in yellow color.
 	"""
-	return "\033[93m" + text + "\033[0m"
+	return f"\033[93m{text}\033[0m"
 
 def red(text: str) -> str:
 	"""
@@ -180,7 +180,7 @@ def red(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in red color.
 	"""
-	return "\033[91m" + text + "\033[0m"
+	return f"\033[91m{text}\033[0m"
 
 def blue(text: str) -> str:
 	"""
@@ -192,7 +192,7 @@ def blue(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in blue color.
 	"""
-	return "\033[34m" + text + "\033[0m"
+	return f"\033[34m{text}\033[0m"
 
 def bold(text: str) -> str:
 	"""
@@ -204,7 +204,7 @@ def bold(text: str) -> str:
 	#### Returns:
 	- (str): Text formatted in bold.
 	"""
-	return "\033[1m" + text + "\033[0m"
+	return f"\033[1m{text}\033[0m"
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> Union[str, None]:
