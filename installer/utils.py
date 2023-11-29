@@ -376,6 +376,15 @@ def sconsVersion():
 
 
 def CUDAVersion(strVersion):
+		"""
+		Extracts the NVCC (NVIDIA CUDA Compiler) version information from a given string.
+
+		Params:
+		- strVersion (str): Input string containing CUDA version details.
+
+		Returns:
+		- str: Extracted NVCC version information.
+		"""
 		nvccVersion = ''
 		if strVersion.find('release') != -1:
 				idx = strVersion.find('release ')
@@ -435,32 +444,66 @@ def CXXVersion(string):
 		return gxx_version
 
 def MPIVersion(string):
+		"""
+		Extracts the MPI version information from a given string.
+
+		Params:
+		- string (str): Input string containing MPI version details.
+
+		Returns:
+		- str: Extracted MPI version information.
+		"""
 		idx = string.find('\n')
 		idx2 = string[:idx].rfind(' ')
 		return string[idx2:idx].replace(' ', '')
 
 def findFileInDirList(fnH, dirlist):
-    """ :returns the dir where found or an empty string if not found.
-        dirs can contain *, then first found is returned.
-    """
-    if isinstance(dirlist, str):
-        dirlist = [dirlist]
+		"""
+    Searches for a specific file within a list of directories.
 
-    for dir in dirlist:
-        validDirs = glob.glob(os.path.join(dir, fnH))
-        if len(validDirs) > 0:
-            return os.path.dirname(validDirs[0])
-    return ''
+    Params:
+    - fnH (str): Name of the file to be found.
+    - dirlist (str or list): List of directories to search in.
+
+    Returns:
+    - str: Directory containing the specified file, or an empty string if not found.
+		"""
+		if isinstance(dirlist, str):
+				dirlist = [dirlist]
+
+		for dir in dirlist:
+				validDirs = glob.glob(os.path.join(dir, fnH))
+				if len(validDirs) > 0:
+						return os.path.dirname(validDirs[0])
+		return ''
 
 def checkLib(gxx, libFlag):
-	# TODO: Revisar: funciona como queremos?
-	""" Returns True if lib is found. """
-	status = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)[0]
-	os.remove('xmipp_check_lib.cpp')
-	os.remove('a.out') if os.path.isfile('a.out') else None
-	return status == 0
+		"""
+		Checks if a specific library can be linked by a given compiler.
+
+		Params:
+		- gxx (str): Compiler command.
+		- libFlag (str): Flag representing the library.
+
+		Returns:
+		- bool: True if the library can be linked, False otherwise.
+		"""
+		# TODO: Revisar: funciona como queremos?
+		status = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)[0]
+		os.remove('xmipp_check_lib.cpp')
+		os.remove('a.out') if os.path.isfile('a.out') else None
+		return status == 0
 
 def get_Hdf5_name(libdirflags):
+		"""
+		Identifies the HDF5 library name based on the given library directory flags.
+
+		Params:
+		- libdirflags (str): Flags specifying library directories.
+
+		Returns:
+		- str: Name of the HDF5 library ('hdf5', 'hdf5_serial', or 'hdf5' as default).
+		"""
 		libdirs = libdirflags.split("-L")
 		for dir in libdirs:
 				if os.path.exists(os.path.join(dir.strip(), "libhdf5.so")):

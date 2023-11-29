@@ -59,7 +59,12 @@ def config():
 
 
 def getSystemValues():
-    """Collect all the required package details of the system"""
+    """
+    Retrieves system information related to various packages and configurations.
+
+    Returns:
+    - dict: Dictionary containing system package information.
+    """
     dictPackages = {'INCDIRFLAGS': '-I../ '}
     getCC(dictPackages)
     getCXX(dictPackages)
@@ -86,6 +91,13 @@ def readConfig():
     return dictPackages
 
 def checkConfig(dictPackages):
+    """
+    Checks the configurations of various packages.
+
+    Params:
+    - dictPackages (dict): Dictionary containing package information.
+
+    """
     checkCC(dictPackages) #TODO extra check, run a compillation?
     checkCXX(dictPackages) #TODO extra check, run a compillation?
     checkMPI(dictPackages)
@@ -229,16 +241,18 @@ def getMPI(dictPackages):
 
 def checkMPI(dictPackages):
     """
-    Checks the MPI package at the specified path for version compatibility.
+    Checks the MPI packages for compatibility and performs additional checks.
 
     Params:
-    - packagePath (str): Path to the MPI package directory.
+    - dictPackages (dict): Dictionary containing MPI package information.
 
     Returns:
     - int: Error code.
         - 1: Success.
-        - 8: MPI version is lower than the required version.
-        - 9: MPI package does not exist.
+        - 6: MPI version lower than required.
+        - 7: MPI package not found.
+        - 8: Error during compilation.
+        - 9: Error while running MPI jobs.
     """
     for pack in [dictPackages['MPI_CC'], dictPackages['MPI_CXX'], dictPackages['MPI_RUN']]:
         if existPackage(pack):
@@ -314,17 +328,16 @@ def getJava(dictPackages):
 
 def checkJava(dictPackages):
     """
-    Checks the existence and structure of a Java package at a specified path.
+    Checks the Java installation and configuration.
 
     Params:
-    - packagePath (str): Path to the Java package directory.
+    - dictPackages (dict): Dictionary containing Java package information.
 
     Returns:
     - int: Error code.
-        - 13: Java package does not exist.
-        - 14: Java package structure is incorrect.
         - 1: Success.
     """
+
     if isfile(join(dictPackages['JAVA_HOME'], 'bin/jar')) and \
             whereIsPackage(join(dictPackages['JAVA_HOME'], 'bin/javac')) and\
             isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
@@ -400,6 +413,9 @@ def checkMatlab(dictPackages):
         - 15: MATLAB package does not exist.
         - 16: Specified path is not a directory.
         - 1: Success.
+        - 10: JAVA_HOME path is not configured correctly.
+        - 11: 'javac' compiler error.
+        - 12: Error in including Java libraries.
     """
     #TODO check behaviour in a system with matlab installed
     if not isdir(dictPackages['MATLAB_HOME']):
@@ -441,7 +457,7 @@ def getOPENCV(dictPackages):
 
 def checkOPENCV(dictPackages):
     """
-    Checks the OpenCV package and its CUDA support, updating the dictionary accordingly.
+    Checks OpenCV installation, version, and CUDA support.
 
     Params:
     - dictPackages (dict): Dictionary containing package information.
@@ -449,6 +465,7 @@ def checkOPENCV(dictPackages):
     Returns:
     - int: Error code.
         - 1: Success.
+        - [Potential custom error codes based on specific checks]
     """
     cppProg = "#include <opencv2/core/core.hpp>\n"
     cppProg += "int main(){}\n"
@@ -526,7 +543,7 @@ def checkCUDA(dictPackages):
     Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
 
     Params:
-    - dictPackages (dict): Dictionary containing package information.
+    - dictPackages (dict): Dictionary containing OpenCV package information.
 
     Returns:
     - int: Error code.
