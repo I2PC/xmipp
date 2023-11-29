@@ -952,7 +952,7 @@ def install(dirname):
         shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
     dirBin = os.path.join(os.getcwd(), "src/xmipp/bin/")
-    filenames = [f for f in os.listdir(dirBin)]
+    filenames = os.listdir(dirBin)
 
     for f in filenames:
         if os.path.islink(os.path.join(dirBin, f)):
@@ -969,11 +969,11 @@ def install(dirname):
 
 
     dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
-    folderNames = [x for x in os.walk(dirBin)]
+    folderNames = list(os.walk(dirBin))
     for folder in folderNames[1:]:
-        folderName = os.path.basename(folder[0])
+        folderName = os.path.relpath(folder[0], dirBin)
+        createDir(os.path.join(destPathPyModule, folderName))
         for file in folder[2]:
-            createDir(os.path.join(destPathPyModule, folderName))
             runJob("ln -s " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file),
                    show_output=False, show_command=show_command, log=[])
 
