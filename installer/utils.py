@@ -33,9 +33,7 @@ from sysconfig import get_paths
 
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
-	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE
-
-
+	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE
 
 ####################### GENERAL FUNCTIONS #######################
 def showError(errorMsg: str, retCode: int=1):
@@ -112,9 +110,24 @@ def printMessage(text: str, debug: bool=False):
 	"""
 	# Create log file if it does not exist
 	if not os.path.exists(LOG_FILE):
-		runJob(f"touch {LOG_FILE}")
+		status, output = runJob(f"touch {LOG_FILE}")
+
+		# Check if file was created successfully
+		if not status:
+			showError(f"{ERROR_CODE[IO_ERROR]}\nLog file could not be created. Check your directory permissions.\n{output}", retCode=IO_ERROR)
 	
-	# Open the file
+	# If debug mode is active, print through terminal
+	if debug:
+		print(text)
+		sys.stdout.flush()
+	
+	# Open the file to add text
+	try:
+		with open(LOG_FILE, mode="+a") as file:
+			file.write(f"{text}\n")
+	# If there was an error during the process, show error and exit
+	except Exception:
+		showError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:
