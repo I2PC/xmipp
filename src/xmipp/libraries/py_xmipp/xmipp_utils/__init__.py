@@ -220,11 +220,13 @@ def symmetryOperator(ZdT,ZdinvT,n,rot,tilt,psi, dir):
     else:
         rotp/=n
     E=np.matmul(xmippLib.Euler_angles2matrix(rotp, tiltp, psip),ZdinvT)
-    return xmippLib.Euler_matrix2angles(E)
+    rot, tilt, psi = xmippLib.Euler_matrix2angles(E)
+    return rot, tilt, psi
 
 def symmetryOperatorSymList(symList, rot,tilt,psi, dir):
     for _,_,_,n,R,ZdT,ZdinvT in symList:
         rot, tilt, psi = symmetryOperator(ZdT, ZdinvT, n, rot, tilt, psi, dir)
+    # dir=xmippLib.Euler_direction(rot, tilt, psi)
     return (rot, tilt, psi)
 
 def fillSymList(symmetry):
@@ -236,4 +238,15 @@ def fillSymList(symmetry):
             ZdT = np.identity(3)
             ZdinvT = np.identity(3)
             symList.append((0,0,1,n,R,ZdT,ZdinvT))
+    elif symmetry[0]=="d":
+        n=int(symmetry[1:])
+        if n>1:
+            R=getRotationMatrix(n)
+            ZdT = np.identity(3)
+            ZdinvT = np.identity(3)
+            symList.append((0,0,1,n,R,ZdT,ZdinvT))
+        R = getRotationMatrix(2)
+        ZdT = np.transpose(xmippLib.alignWithZ(1,0,0))
+        ZdinvT = np.linalg.inv(ZdT)
+        symList.append((1, 0, 0, 2, R, ZdT, ZdinvT))
     return symList
