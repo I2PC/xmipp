@@ -262,11 +262,16 @@ void ProgGrapheneAlignment::squareImageAndSmoothing(MultidimArray<double> &inIma
 		{
 			auto imageVal = A2D_ELEM(inImage, i, j);
 
-			if ((j-xinit<N_smoothing) || ((j-xinit)>(xend-N_smoothing)))
+			if ((j-xinit<N_smoothing))// || ((j-xinit)>(xend-N_smoothing)))
 			{
-				imageVal *= 0.5*(1+cos(PI*(xinit - j)/N_smoothing));
+				imageVal *= 0.5*(1+sin(PI*(xinit - j)/N_smoothing));
 			}
-			if ((i-yinit<N_smoothing) || ((i-yinit)>(yend-N_smoothing)))
+			else
+			{
+				if ((j-xinit)>(xend-N_smoothing))
+					imageVal *= 0.5*(1+sin(PI*(xend - j)/N_smoothing));
+			}
+			if ((i-yinit<N_smoothing))// || ((i-yinit)>(yend-N_smoothing)))
 			{
 				imageVal *= 0.5*(1+cos(PI*(yinit - i)/N_smoothing));
 			}
