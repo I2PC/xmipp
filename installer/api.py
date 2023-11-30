@@ -22,6 +22,10 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+"""
+Module containing all functions needed for the metric's API request.
+"""
+
 # General imports
 import json, re, hashlib
 from typing import Dict, Union
