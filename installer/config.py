@@ -148,6 +148,7 @@ def parseConfig():
         pass
     return dictPackages
 
+
 #PACKAGES
 def getCC(dictPackages):
     """
@@ -164,7 +165,6 @@ def getCC(dictPackages):
     else:
         dictPackages['CC'] = ''
 
-
 def checkCC(dictPackages):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
@@ -179,15 +179,13 @@ def checkCC(dictPackages):
         - 5: GCC package path does not exist.
     """
     if existPackage(dictPackages['CC']):
-        strVersion = versionPackage(dictPackages['CC'])
-        version = CXXVersion(strVersion)
+        version = gccVersion(dictPackages)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
             return OK
         showError('gcc {} lower than required ({})'.format(version, GCC_MINIMUM), GCC_VERSION_ERROR)
     else:
         showError('GCC package path: {} does not exist'.format(dictPackages['CC'], CC_NO_EXIST_ERROR))
-
 
 def getCXX(dictPackages):
     """
@@ -218,8 +216,7 @@ def checkCXX(dictPackages):
         - 7: g++ version is lower than the required version.
     """
     if existPackage(dictPackages['CXX']):
-        strVersion = versionPackage(dictPackages['CXX'])
-        version = CXXVersion(strVersion)
+        version = gppVersion(dictPackages)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
             return OK
@@ -336,7 +333,6 @@ def getJava(dictPackages):
     else:
         dictPackages['JAVA_HOME'] = ''
 
-
 def checkJava(dictPackages):
     """
     Checks the Java installation and configuration.
@@ -430,9 +426,7 @@ def checkMatlab(dictPackages):
     """
     #TODO check behaviour in a system with matlab installed
     if not isdir(dictPackages['MATLAB_HOME']):
-        showError('', MATLAB_HOME_ERROR)
-    if not whereIsPackage('matlab'):
-        showError('', MATLAB_ERROR)
+        showError('MATLAB_HOME={} does not exist'.format(dictPackages['MATLAB_HOME']), MATLAB_HOME_ERROR)
 
     cppProg = """
     #include <mex.h>
@@ -449,7 +443,6 @@ def checkMatlab(dictPackages):
     runJob("rm xmipp_mex*")
     return OK
 
-
 def getOPENCV(dictPackages):
     opencvPath = ['opencv2', 'opencv4/opencv2']
     filePath = ['core.hpp', 'core/core.hpp']
@@ -464,7 +457,6 @@ def getOPENCV(dictPackages):
                     dictPackages['OPENCV'] = True
                     print(green('OPENCV detected at {}'.format(join(p.split('/')[0]))))
                     break
-
 
 def checkOPENCV(dictPackages):
     """
@@ -526,7 +518,6 @@ def checkOPENCV(dictPackages):
 
     return OK
 
-
 def getCUDA(dictPackages):
     """
      Retrieves information about the CUDA package and updates the dictionary accordingly.
@@ -546,8 +537,6 @@ def getCUDA(dictPackages):
         dictPackages['CUDA_HOME'] = pathPackage('nvcc').replace('/bin/nvcc', '')
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
         print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
-
-
 
 def checkCUDA(dictPackages):
     """
@@ -577,7 +566,6 @@ def checkCUDA(dictPackages):
     else:
         return CUDA_ERROR
 
-
 def getSTARPU(dictPackages):
     """
     Retrieves information about the STARPU package and updates the dictionary accordingly.
@@ -603,7 +591,6 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_INCLUDE"] = ''
         dictPackages["STARPU_LIB"] = ''
         dictPackages["STARPU_LIBRARY"] = ''
-
 
 def checkSTARPU(dictPackages):
     """
