@@ -47,7 +47,7 @@ def sendApiPost(dictPackage: Dict, retCode: int=0):
 	if jsonStr is None:
 		return
 	
-	# Send API POST message. Retry up to N times (improves resistance to small network errors)
+	# Send API POST message
 	runNetworkJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################

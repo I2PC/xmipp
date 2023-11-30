@@ -103,7 +103,7 @@ def runNetworkJob(cmd: str, cwd: str='/.', showOutput: bool=False, showError: bo
 	- (int): Return code.
 	- (str): Output of the command, regardless of if it is an error or regular output.
 	"""
-	# Running command up to nRetries times
+	# Running command up to nRetries times (improves resistance to small network errors)
 	for _ in range(nRetries):
 		retCode, output = runJob(cmd, cwd=cwd)
 		# Break loop if success was achieved
