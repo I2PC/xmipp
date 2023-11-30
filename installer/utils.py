@@ -107,7 +107,7 @@ def runNetworkJob(cmd: str, cwd: str='/.', showOutput: bool=False, showError: bo
 	for _ in range(nRetries):
 		retCode, output = runJob(cmd, cwd=cwd)
 		# Break loop if success was achieved
-		if retCode:
+		if retCode == 0:
 			break
 	
 	# Enforce message showing deppending on value
@@ -119,7 +119,7 @@ def runNetworkJob(cmd: str, cwd: str='/.', showOutput: bool=False, showError: bo
 		print(red(output))
 	
 	# Returning output and return code
-	return retCode, showOutput
+	return retCode, output
 
 ####################### PRINT FUNCTIONS #######################
 def getFormattingTabs(text: str) -> str:
