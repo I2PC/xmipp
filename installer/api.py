@@ -33,7 +33,7 @@ from typing import Dict, Union
 # Self imports
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
-from .utils import runJob, runNetworkJob, getCurrentBranch
+from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate
 from .constants import API_URL, LOG_FILE
 
 def sendApiPost(dictPackage: Dict, retCode: int=0):
@@ -84,7 +84,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		},
 		"xmipp": {
 			"branch": getCurrentBranch(),
-			"updated": True
+			"updated": isBranchUpToDate()
 		},
 		"returnCode": retCode,
 		"logTail": getLogTail()
