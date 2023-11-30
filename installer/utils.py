@@ -516,7 +516,7 @@ def isScipionEnviroment():
 		if status[0] == 0:
 				return True
 		else:
-				False
+				return False
 
 def installScons():
 		if isScipionEnviroment():

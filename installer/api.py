@@ -69,7 +69,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> str:
 	- (str): JSON string with the required info.
 	"""
 	# Introducing data into a dictionary
-	jsonDict: Dict= {
+	jsonDict: Dict = {
 		"user": {
 			"userId": getUserId()
 		},

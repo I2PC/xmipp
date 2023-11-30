@@ -21,7 +21,7 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
-from .versions import cmakeInstallURL
+from .__init__ import cmakeInstallURL
 """
 Submodule containing all constants needed for handling errors during Xmipp's installation.
 """

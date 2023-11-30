@@ -119,7 +119,7 @@ def checkConfig(dictPackages):
         checkCUDA(dictPackages)
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages)
-    #checkHDF5(dictPackages)
+    checkHDF5(dictPackages)
     checkScons()
     checkCMake()
 
@@ -747,8 +747,8 @@ def checkHDF5(dictPackages):
                """)
     with open("xmipp_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
-    cmd = ("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-           (dictPackages['CXX'], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
+    cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
+           (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != 0:
         showError(output, HDF5_ERROR)
@@ -772,11 +772,11 @@ def checkCMake():
         cmakVersion = cmakeVersion()
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
-            showError(CMAKE_VERSION_ERROR, 'Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}')
+            showError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
     except FileNotFoundError:
-        showError(CMAKE_ERROR,'CMake is not installed')
+        showError('CMake is not installed', CMAKE_ERROR)
     except Exception:
-        showError(CMAKE_ERROR,'Can not get the cmake version')
+        showError('Can not get the cmake version', CMAKE_ERROR)
 
 def checkScons():
     sconsV = sconsVersion()
@@ -788,8 +788,8 @@ def checkScons():
                 sconsV = sconsVersion()
                 print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
             else:
-                showError(SCONS_VERSION_ERROR, 'scons found {}, required {}\n{}'.
-                          format(sconsV, SCONS_MINIMUM, status[1]))
+                showError('scons found {}, required {}\n{}'.
+                          format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
         else:
             print(green('SCons {} found'.format(sconsV)))
     else:
@@ -798,7 +798,7 @@ def checkScons():
             sconsV = sconsVersion()
             print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
         else:
-            showError(SCONS_ERROR, 'Scons not found. {}'.format(status[1]))
+            showError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
 
 
 

@@ -30,3 +30,6 @@ from .main import *
 from .parser import *
 from .errors import *
 from .versions import *
+
+#URL's repositoreis
+cmakeInstallURL = 'https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install'
