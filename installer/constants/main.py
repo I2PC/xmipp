@@ -68,7 +68,7 @@ PATH_TO_FIND_HDF5 = [
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
-LOG_FILE = 'compileLog.txt'
+LOG_FILE = 'compileLOG.txt'
 
 CONFIG_DICT = {'INCDIRFLAGS': '',
 								'CC': '',
