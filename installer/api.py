@@ -23,13 +23,13 @@
 # ***************************************************************************/
 
 # General imports
-import json
-from typing import Dict
+import json, re, hashlib
+from typing import Dict, Union
 
 # Self imports
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
-from .utils import runJob, showError
+from .utils import runJob, showError, getCurrentBranch
 from .constants import NETWORK_ERROR, API_URL
 
 def sendApiPost(dictPackage: Dict):
@@ -39,9 +39,16 @@ def sendApiPost(dictPackage: Dict):
 	#### Params:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	"""
+	# If there is no user id, don't send request
+	if getUserId() is None:
+		return
+	
+	# Get curl command string
+	curlCmd = getCurlStr(API_URL, dictPackage)
+
 	# Send API POST message. Retry up to N times (improves resistance to small network errors)
 	for _ in range(5):
-		status, output = runJob(getCurlStr(API_URL, dictPackage))
+		status, output = runJob(curlCmd)
 		# Break loop if success was achieved
 		if status:
 			break
@@ -50,7 +57,8 @@ def sendApiPost(dictPackage: Dict):
 	# TODO: THIS IS FOR TESTING, IGNORE ERROR IN PRODUCTION VERSION
 	showError(output, retCode=NETWORK_ERROR)
 
-def getJSONString(dictPackage: Dict) -> str:
+####################### UTILS FUNCTIONS #######################
+def getJSONString(dictPackage: Dict, retCode: int=0) -> str:
 	"""
 	### Creates a JSON string with the necessary data for the APU POST message.
 	
@@ -63,7 +71,7 @@ def getJSONString(dictPackage: Dict) -> str:
 	# Introducing data into a dictionary
 	jsonDict: Dict= {
 		"user": {
-			"userId": "hashMachine5" #TODO: get hash
+			"userId": getUserId()
 		},
 		"version": {
 			"os": osVersion(),
@@ -75,10 +83,10 @@ def getJSONString(dictPackage: Dict) -> str:
 			"scons": sconsVersion()
 		},
 		"xmipp": {
-			"branch": "agm_API",
+			"branch": getCurrentBranch(),
 			"updated": True
 		},
-		"returnCode": "0 con espacio",
+		"returnCode": retCode,
 		"logTail": "muchas lines"
 	}
 
@@ -100,3 +108,63 @@ def getCurlStr(url: str, dictPackage: Dict) -> str:
 	cmd = "curl --header \"Content-Type: application/json\" -X POST"
 	cmd += f" --data \'{getJSONString(dictPackage)}\' --request POST {url}"
 	return cmd
+
+def getMACAddress() -> Union[str, None]:
+	"""
+	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
+	
+	#### Returns:
+	- (str): MAC address, or None if there were any errors.
+	"""
+	# Run command to get network interfaces info
+	status, output = runJob("ip addr")
+
+	# If command failed, return None to avoid sending POST request
+	if status != 0:
+		return
+	
+	# Regular expression to match the MAC address and interface names
+	macRegex = r"link/ether ([0-9a-f:]{17})"
+	interfaceRegex = r"^\d+: (enp|wlp)\w+"
+
+	# Split the output into lines
+	lines = output.split('\n')
+
+	# Iterate over the lines looking for MAC address
+	macAddress = None
+	for line in lines:
+		# If this line contains an interface name
+		if re.match(interfaceRegex, line):
+			# Extract the interface name
+			interfaceName = re.match(interfaceRegex, line).group(1)
+			
+			# If the interface name starts with 'enp' or 'wlp'
+			if interfaceName.startswith(('enp', 'wlp')):
+				# Extract the MAC address from the next line and exit
+				macAddress = re.search(macRegex, lines[lines.index(line) + 1]).group(1)
+				break
+	
+	return macAddress
+
+def getUserId() -> Union[str, None]:
+	"""
+	### This function returns the unique user id for this machine.
+	
+	#### Returns:
+	- (str): User id, or None if there were any errors.
+	"""
+	# Obtaining user's MAC address
+	macAddress = getMACAddress()
+
+	# If no physical MAC address was found, user id cannot be created
+	if macAddress is None or not macAddress:
+		return
+	
+	# Create a new SHA-256 hash object
+	sha256 = hashlib.sha256()
+	
+	# Update the hash object with the bytes of the MAC address
+	sha256.update(macAddress.encode())
+	
+	# Return hexadecimal representation of the hash
+	return sha256.hexdigest()

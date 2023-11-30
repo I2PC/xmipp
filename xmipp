@@ -34,7 +34,7 @@ from installer.utils import showError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import getSources
-from installer.api import postAPI
+from installer.api import sendApiPost
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -97,7 +97,7 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	getSources(branch=args.branch)
 
 	# TODO: Implement
-	postAPI(dictConfig)
+	sendApiPost(dictConfig)
 
 
 def modeConfig(args: argparse.Namespace):
