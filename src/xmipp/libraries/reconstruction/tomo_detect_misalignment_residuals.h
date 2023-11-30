@@ -141,6 +141,8 @@ public:
    void readInputResiduals();
 
    void writeOutputAlignmentReport(); 
+   void writeWeightedResiduals();
+
 
 
     // --------------------------- UTILS functions ----------------------------

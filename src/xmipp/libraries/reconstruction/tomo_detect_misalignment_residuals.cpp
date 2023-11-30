@@ -778,6 +778,48 @@ void ProgTomoDetectMisalignmentResiduals::readInputResiduals()
 }
 
 
+void ProgTomoDetectMisalignmentResiduals::writeWeightedResiduals()
+{
+	auto outputResFilename = fnResidualInfo;
+    size_t lastDotPos = outputResFilename.find_last_of('.');
+
+    if (lastDotPos != std::string::npos) {
+        outputResFilename.erase(lastDotPos);
+    }
+
+	outputResFilename += "_weighted.xmd";
+
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Writting weighted output residuals at " << outputResFilename  << std::endl;
+	#endif
+
+	MetaDataVec md;
+	size_t id;
+
+	for(size_t i = 0; i < vResMod.size(); i++)
+	{
+		id = md.addObject();
+		md.setValue(MDL_X, vResMod[i].landmarkCoord.x, id);
+		md.setValue(MDL_Y, vResMod[i].landmarkCoord.y, id);
+		md.setValue(MDL_Z, vResMod[i].landmarkCoord.z, id);
+		md.setValue(MDL_XCOOR, (int)vResMod[i].coordinate3d.x, id);
+		md.setValue(MDL_YCOOR, (int)vResMod[i].coordinate3d.y, id);
+		md.setValue(MDL_ZCOOR, (int)vResMod[i].coordinate3d.z, id);
+		md.setValue(MDL_SHIFT_X, vResMod[i].residuals.x, id);
+		md.setValue(MDL_SHIFT_Y, vResMod[i].residuals.y, id);
+		md.setValue(MDL_FRAME_ID, vResMod[i].id, id);
+		md.setValue(MDL_COST, vResMod[i].mahalanobisDistance, id);
+	}
+
+	md.write(outputResFilename);
+	
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Weighted residuals metadata saved successfully" << std::endl;
+	#endif
+}
+
+
 void ProgTomoDetectMisalignmentResiduals::writeOutputAlignmentReport()
 {
 	size_t lastindexInputTS = fnInputTS.find_last_of(":");
@@ -901,6 +943,7 @@ void ProgTomoDetectMisalignmentResiduals::run()
 	#endif
 
 	writeOutputAlignmentReport();
+	writeWeightedResiduals();
 
 	auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(t2 - t1); 	// Getting number of milliseconds as an integer
