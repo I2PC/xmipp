@@ -29,7 +29,7 @@ from typing import Dict, Union
 # Self imports
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
-from .utils import runJob, showError, getCurrentBranch
+from .utils import runJob, runNetworkJob, showError, getCurrentBranch
 from .constants import NETWORK_ERROR, API_URL
 
 def sendApiPost(dictPackage: Dict):
@@ -39,26 +39,23 @@ def sendApiPost(dictPackage: Dict):
 	#### Params:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	"""
-	# If there is no user id, don't send request
-	if getUserId() is None:
-		return
-	
 	# Get curl command string
 	curlCmd = getCurlStr(API_URL, dictPackage)
 
+	# If there were any errors, don't send request
+	if curlCmd is None:
+		return
+
 	# Send API POST message. Retry up to N times (improves resistance to small network errors)
-	for _ in range(5):
-		status, output = runJob(curlCmd)
-		# Break loop if success was achieved
-		if status:
-			break
+	retCode, output = runNetworkJob(curlCmd)
 	
 	# Show error if it failed
-	# TODO: THIS IS FOR TESTING, IGNORE ERROR IN PRODUCTION VERSION
-	showError(output, retCode=NETWORK_ERROR)
+	if retCode != 0:
+		# TODO: THIS IS FOR TESTING, IGNORE ERROR IN PRODUCTION VERSION
+		showError(output, retCode=NETWORK_ERROR)
 
 ####################### UTILS FUNCTIONS #######################
-def getJSONString(dictPackage: Dict, retCode: int=0) -> str:
+def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	"""
 	### Creates a JSON string with the necessary data for the APU POST message.
 	
@@ -66,12 +63,17 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> str:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	
 	#### Return:
-	- (str): JSON string with the required info.
+	- (str): JSON string with the required info or None if user id could not be produced.
 	"""
+	# Getting user id and checking if it exists
+	userId = getUserId()
+	if userId is None:
+		return
+
 	# Introducing data into a dictionary
 	jsonDict: Dict= {
 		"user": {
-			"userId": getUserId()
+			"userId": userId
 		},
 		"version": {
 			"os": osVersion(),
@@ -93,7 +95,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> str:
 	# Return JSON object with all info
 	return json.dumps(jsonDict)
 
-def getCurlStr(url: str, dictPackage: Dict) -> str:
+def getCurlStr(url: str, dictPackage: Dict) -> Union[str, None]:
 	"""
 	### Creates a curl command string to send a POST message to metrics's API.
 	
@@ -102,11 +104,16 @@ def getCurlStr(url: str, dictPackage: Dict) -> str:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	
 	#### Return:
-	- (str): Curl command string.
+	- (str): Curl command string or None if there were any errors.
 	"""
+	# Getting JSON string and checking if it is valid
+	jsonStr = getJSONString(dictPackage)
+	if jsonStr is None:
+		return
+
 	# Creating and returning command string
 	cmd = "curl --header \"Content-Type: application/json\" -X POST"
-	cmd += f" --data \'{getJSONString(dictPackage)}\' --request POST {url}"
+	cmd += f" --data \'{jsonStr}\' --request POST {url}"
 	return cmd
 
 def getMACAddress() -> Union[str, None]:

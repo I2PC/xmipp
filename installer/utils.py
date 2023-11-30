@@ -67,25 +67,59 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 	output, err = process.communicate()
 
+	# Defining output string
+	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
+
 	# Printing command if specified
 	if showCommand == True:
 		print(blue(cmd))
 
 	# Printing output if specified
 	if showOutput == True:
-		print('{}\n'.format(output.decode("utf-8")))
+		print('{}\n'.format(outputStr))
 
 	if err:
 		# Printing errors if specified
 		if showError == True:
-			print(red(err.decode("utf-8")))
-
-	# Defining output string
-	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
-	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
+			print(red(outputStr))
 
 	# Returing return code
+	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 	return process.returncode, outputStr
+
+def runNetworkJob(cmd: str, cwd: str='/.', showOutput: bool=False, showError: bool=False, showCommand: bool=False, nRetries: int=5) -> Tuple[int, str]:
+	"""
+	### This function runs the given network command and retries it the number given of times until one of the succeeds or it fails for all the retries.
+
+	#### Params:
+	- cmd (str): Command to run.
+	- cwd (str): Optional. Path to run the command from. Default is current directory.
+	- showOutput (bool): Optional. If True, output is printed.
+	- showError (bool): Optional. If True, errors are printed.
+	- showCommand (bool): Optional. If True, command is printed in blue.
+	- nRetries (int): Optional. Maximum number of retries for the command.
+
+	#### Returns:
+	- (int): Return code.
+	- (str): Output of the command, regardless of if it is an error or regular output.
+	"""
+	# Running command up to nRetries times
+	for _ in range(nRetries):
+		retCode, output = runJob(cmd, cwd=cwd)
+		# Break loop if success was achieved
+		if retCode:
+			break
+	
+	# Enforce message showing deppending on value
+	if showCommand:
+		print(blue(cmd))
+	if showOutput:
+		print('{}\n'.format(output))
+	if showError:
+		print(red(output))
+	
+	# Returning output and return code
+	return retCode, showOutput
 
 ####################### PRINT FUNCTIONS #######################
 def getFormattingTabs(text: str) -> str:
