@@ -29,8 +29,8 @@ from typing import Dict, Union
 # Self imports
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
-from .utils import runJob, runNetworkJob, showError, getCurrentBranch
-from .constants import NETWORK_ERROR, API_URL, LOG_FILE
+from .utils import runJob, runNetworkJob, getCurrentBranch
+from .constants import API_URL, LOG_FILE
 
 def sendApiPost(dictPackage: Dict, retCode: int=0):
 	"""
@@ -40,21 +40,16 @@ def sendApiPost(dictPackage: Dict, retCode: int=0):
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	"""
-	# Get curl command string
-	curlCmd = getCurlStr(API_URL, dictPackage)
+	# Getting JSON data for curl command
+	jsonStr = getJSONString(dictPackage, retCode=retCode)
 
 	# If there were any errors, don't send request
-	if curlCmd is None:
+	if jsonStr is None:
 		return
-
-	# Send API POST message. Retry up to N times (improves resistance to small network errors)
-	retCode, output = runNetworkJob(curlCmd)
 	
-	# Show error if it failed
-	if retCode != 0:
-		# TODO: THIS IS FOR TESTING, IGNORE ERROR IN PRODUCTION VERSION
-		showError(output, retCode=NETWORK_ERROR)
-
+	# Send API POST message. Retry up to N times (improves resistance to small network errors)
+	runNetworkJob(getCurlStr(API_URL, jsonStr))
+	
 ####################### UTILS FUNCTIONS #######################
 def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	"""
@@ -97,22 +92,17 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	# Return JSON object with all info
 	return json.dumps(jsonDict)
 
-def getCurlStr(url: str, dictPackage: Dict) -> Union[str, None]:
+def getCurlStr(url: str, jsonStr: str) -> str:
 	"""
 	### Creates a curl command string to send a POST message to metrics's API.
 	
 	#### Params:
 	- url (str): Ulr to send the POST message to.
-	- dictPackage (Dict): Dictionary containing all discovered or config variables.
+	- jsonStr (str): JSON in a string format containing all the data for the curl command.
 	
 	#### Return:
-	- (str|None): Curl command string or None if there were any errors.
+	- (str): Curl command string.
 	"""
-	# Getting JSON string and checking if it is valid
-	jsonStr = getJSONString(dictPackage)
-	if jsonStr is None:
-		return
-
 	# Creating and returning command string
 	cmd = "curl --header \"Content-Type: application/json\" -X POST"
 	cmd += f" --data \'{jsonStr}\' --request POST {url}"
