@@ -286,8 +286,6 @@ if __name__ == "__main__":
 	if hasattr(args, "branch") and args.branch is not None and len(args.branch.split(' ')) > 1:
 		parser.error(f"Incorrect branchname \"{args.branch}\". Branch names can only be one word long.")
 
-	print("ARGS:", args)#TODO: Remove
-
 	# Running always under this own directory.
 	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
