@@ -38,15 +38,12 @@ def osVersion():
 				osV = out[1][len(strTarget):idx2]
 		return osV
 
-
-
 def architectureVersion():
 		architectureV = 'Unknow'
 		out = runJob('cat /sys/devices/cpu/caps/pmu_name')
 		if out[0] == 0:
 				architectureV = out[1]
 		return architectureV
-
 
 def CUDAVersion(dictPackages):
 		"""
@@ -66,7 +63,6 @@ def CUDAVersion(dictPackages):
 																 idx + strversion[idx:].find(',')]
 		return nvccVersion
 
-
 def cmakeVersion():
 		# Getting CMake version
 		cmakVersion = 'Unknow'
@@ -74,9 +70,6 @@ def cmakeVersion():
 		if cmakeV[0] == 0:
 			cmakVersion = cmakeV[1].split('\n')[0].split()[-1]
 		return cmakVersion
-
-
-
 
 def parsingCompilerVersion(str):
 		idx = str.find('\n')
@@ -86,7 +79,6 @@ def parsingCompilerVersion(str):
 		idx = gxx_version.rfind('.')
 		gxx_version = gxx_version[:idx]
 		return gxx_version
-
 
 def gppVersion(dictPackages):
 		strVersion = versionPackage(dictPackages['CXX'])

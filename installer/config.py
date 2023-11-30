@@ -299,9 +299,12 @@ def checkMPI(dictPackages):
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
            " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread")
            % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
-    status, output = runJob(cmd, showError=True)
+    print('{}\n{}'.format(cmd, libhdf5))
+
+    status, output = runJob(cmd)
     if status != 0:
         showError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
+    print('hello')
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -311,6 +314,8 @@ def checkMPI(dictPackages):
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
         if output.count('Running') != processors:
             showError("mpirun or mpiexec have failed.", retCode=MPI_RUNNING_ERROR)
+
+
     return OK
 
 def getJava(dictPackages):
@@ -344,7 +349,6 @@ def checkJava(dictPackages):
     - int: Error code.
         - 1: Success.
     """
-
     if isfile(join(dictPackages['JAVA_HOME'], 'bin/jar')) and \
             whereIsPackage(join(dictPackages['JAVA_HOME'], 'bin/javac')) and\
             isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
@@ -441,6 +445,7 @@ def checkMatlab(dictPackages):
         showError(output, MATLAB_HOME_ERROR)
         runJob("rm xmipp_mex*")
     runJob("rm xmipp_mex*")
+    print(green('Matlab installation found'))
     return OK
 
 def getOPENCV(dictPackages):
@@ -554,10 +559,10 @@ def checkCUDA(dictPackages):
 
     nvcc_version = CUDAVersion(dictPackages)
     if nvcc_version != 'Unknow':
-        gxx_version = versionPackage(dictPackages['CXX'])
-        gxx_version = CXXVersion(gxx_version)
+        gxx_version = gppVersion(dictPackages)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
+            print(green('CUDA {} found'.format(nvcc_version)))
             return OK
         else:
             showError('CUDA {} not compatible with the current g++ compiler version {}\n'
@@ -741,6 +746,7 @@ def checkHDF5(dictPackages):
         showError(output, HDF5_ERROR)
 
     runJob("rm xmipp_test_main*", showError=True)
+    print(green('HDF5 installation found'))
     return OK
 
 
@@ -764,6 +770,8 @@ def checkCMake():
         showError('CMake is not installed', CMAKE_ERROR)
     except Exception:
         showError('Can not get the cmake version', CMAKE_ERROR)
+
+    print(green('cmake {} found'.format(cmakVersion)))
 
 def checkScons():
     sconsV = sconsVersion()
