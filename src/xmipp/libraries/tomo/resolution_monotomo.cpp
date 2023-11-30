@@ -49,9 +49,6 @@ void ProgMonoTomo::readParams()
 	trimBound = getDoubleParam("--trimmed");
 	significance = getDoubleParam("--significance");
 	nthrs = getIntParam("--threads");
-
-
-
 }
 
 
@@ -919,7 +916,6 @@ void ProgMonoTomo::run()
 	lowestResolutionbyPercentile(FilteredResolution, list, cut_value, resolutionThreshold);
 
 
-
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredResolution)
 	{
 		if ( (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold) && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(pOutputResolution, n)) )
@@ -938,32 +934,10 @@ void ProgMonoTomo::run()
 		if ( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist)
 			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
 	}
-
 	Image<double> outputResolutionImage;
 	MultidimArray<double> resolutionFiltered, resolutionChimera;
 
 	postProcessingLocalResolutions(FilteredResolution, list);
-
 	outputResolutionImage() = FilteredResolution;
 	outputResolutionImage.write(fnOut);
-
-	if (fnmaskWedge != "")
-	{
-		Image<double> maskWedgeImg;
-		MultidimArray<double> maskWedge;
-		maskWedgeImg.read(fnmaskWedge);
-
-
-		FourierTransformer transformer;
-		transformer.FourierTransform(outputResolutionImage(), fftV, false);
-		maskWedgeImg().printShape();
-		fftV.printShape();
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftV)
-		{
-			DIRECT_MULTIDIM_ELEM(fftV, n) *= (1 - DIRECT_MULTIDIM_ELEM(maskWedgeImg(), n));
-		}
-		transformer.inverseFourierTransform();
-		outputResolutionImage.write(fnFilt);
-	}
 }
