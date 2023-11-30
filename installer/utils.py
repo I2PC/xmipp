@@ -87,7 +87,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
 	return process.returncode, outputStr
 
-def runNetworkJob(cmd: str, cwd: str='/.', showOutput: bool=False, showError: bool=False, showCommand: bool=False, nRetries: int=5) -> Tuple[int, str]:
+def runNetworkJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, nRetries: int=5) -> Tuple[int, str]:
 	"""
 	### This function runs the given network command and retries it the number given of times until one of the succeeds or it fails for all the retries.
 
@@ -279,6 +279,43 @@ def isProductionMode() -> bool:
 	"""
 	currentBranch = getCurrentBranch()
 	return currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+
+def isBranchUpToDate(dir: str='./') -> bool:
+	"""
+	### This function returns True if the current branch is up to date, or False otherwise or if some error happened.
+	
+	#### Params:
+	- dir (str): Optional. Directory of the repository to get current branch from. Default is current directory.
+	
+	#### Returns:
+	- (bool): True if the current branch is up to date, or False otherwise or if some error happened.
+	"""
+	# Getting current branch
+	currentBranch = getCurrentBranch(dir=dir)
+
+	# Check if previous command succeeded
+	if currentBranch is None:
+		return False
+	
+	# Update branch
+	retCode = runNetworkJob("git fetch")[0]
+
+	# Check if command succeeded
+	if retCode != 0:
+		return False
+
+	# Get latest local commit
+	localCommit = runJob(f"git rev-parse {currentBranch}")[1]
+
+	# Get latest remote commit
+	retCode, remoteCommit = runNetworkJob(f"git rev-parse origin/{currentBranch}")
+
+	# Check if command succeeded
+	if retCode != 0:
+		return False
+	
+	# Return commit comparison
+	return localCommit == remoteCommit
 
 ####################### VERSION FUNCTIONS #######################
 
