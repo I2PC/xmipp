@@ -43,12 +43,9 @@ def sendApiPost(dictPackage: Dict, retCode: int=0):
 	# Getting JSON data for curl command
 	jsonStr = getJSONString(dictPackage, retCode=retCode)
 
-	# If there were any errors, don't send request
-	if jsonStr is None:
-		return
-	
-	# Send API POST message
-	runNetworkJob(getCurlStr(API_URL, jsonStr))
+	# Send API POST request if there were no errors
+	if jsonStr is not None:
+		runNetworkJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################
 def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
