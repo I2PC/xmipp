@@ -32,14 +32,14 @@ def osVersion():
 		out = runJob('cat /etc/os-release', showCommand=False)
 		strTarget = 'PRETTY_NAME="'
 		idx = out[1].find(strTarget)
-		osV = 'Unknow'
+		osV = None
 		if idx != -1:
 				idx2 = out[1][idx:].find('"\n')
 				osV = out[1][len(strTarget):idx2]
 		return osV
 
 def architectureVersion():
-		architectureV = 'Unknow'
+		architectureV = None
 		out = runJob('cat /sys/devices/cpu/caps/pmu_name')
 		if out[0] == 0:
 				architectureV = out[1]
@@ -56,7 +56,7 @@ def CUDAVersion(dictPackages):
 		- str: Extracted NVCC version information.
 		"""
 		strversion = versionPackage(dictPackages['CUDA_HOME'])
-		nvccVersion = 'Unknow'
+		nvccVersion = None
 		if strversion.find('release') != -1:
 				idx = strversion.find('release ')
 				nvccVersion = strversion[idx + len('release '):
@@ -65,7 +65,7 @@ def CUDAVersion(dictPackages):
 
 def cmakeVersion():
 		# Getting CMake version
-		cmakVersion = 'Unknow'
+		cmakVersion = None
 		cmakeV = runJob('cmake --version')
 		if cmakeV[0] == 0:
 			cmakVersion = cmakeV[1].split('\n')[0].split()[-1]
@@ -91,7 +91,7 @@ def gccVersion(dictPackages):
 def sconsVersion():
 		strVersion = versionPackage('scons')
 		idx = strVersion.find('SCons: v')
-		sconsV = 'Unknow'
+		sconsV = None
 		if idx != -1:
 			idx2 = strVersion[idx:].find(', ')
 			version = strVersion[idx + len('SCons: v'):idx + idx2].split('.')
