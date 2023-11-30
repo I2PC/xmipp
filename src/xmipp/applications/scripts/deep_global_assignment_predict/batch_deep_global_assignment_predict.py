@@ -58,12 +58,16 @@ if __name__ == "__main__":
                       [0, 0, -1, 1, 0, 0], [0, 0, 0, -1, 1, 0], [0, 0, 0, 0, -1, 1],
                       [1, 0, 0, 0, -1, 0], [0, 1, 0, 0, 0, -1], [-1, 0, 1, 0, 0, 0],
                       [0, -1, 0, 1, 0, 0], [0, 0, -1, 0, 1, 0], [0, 0, 0, -1, 0, 1]])
-        X = np.zeros((redundant.shape[0], 6))
+        Apinv = np.linalg.pinv(A)
+        return np.matmul(Apinv,np.reshape(redundant,(42)))
 
-        for i in range(X.shape[0]):
-            X[i] = np.linalg.lstsq(A, redundant[i],rcond=-1)[0]
-
-        return np.reshape(X,(6))
+        #
+        # X = np.zeros((redundant.shape[0], 6))
+        #
+        # for i in range(X.shape[0]):
+        #     X[i] = np.linalg.lstsq(A, redundant[i],rcond=-1)[0]
+        #
+        # return np.reshape(X,(6))
 
     def rotation6d_to_matrixZYZ(rot):
         """Return rotation matrix from 6D representation."""
@@ -84,7 +88,7 @@ if __name__ == "__main__":
         pred6d = list(map(calculate_r6d,p6d_redundant))
         matrices = list(map(rotation6d_to_matrixZYZ, pred6d))
         angles = list(map(xmippLib.Euler_matrix2angles, matrices))
-        angles = list(map(lambda item: symmetryOperatorSymList(symList, item[0], item[1], item[2], -1), angles))
+#        angles = list(map(lambda item: symmetryOperatorSymList(symList, item[0], item[1], item[2], -1), angles))
         return angles
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
