@@ -37,10 +37,10 @@ from scripts.utils import checkCMakeVersion
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.23.07.0'        #
-XMIPP_VERNAME = 'devel'           #
-RELEASE_DATE = '14/07/2023'        #
-CMAKE_VERSION_REQUIRED = '3.16'
+XMIPP_VERSION = '3.23.11.0'        #
+XMIPP_VERNAME = 'devel'            #
+RELEASE_DATE = '28/11/2023'        #
+CMAKE_VERSION_REQUIRED = '3.16'    #
 ####################################
 
 
@@ -969,7 +969,7 @@ def install(dirname):
         shutil.rmtree(dirname + "/bin")
     createDir(dirname+"/bin")
     dirBin = os.path.join(os.getcwd(), "src/xmipp/bin/")
-    filenames = [f for f in os.listdir(dirBin)]
+    filenames = os.listdir(dirBin)
 
     for f in filenames:
         if os.path.islink(os.path.join(dirBin, f)):
@@ -986,12 +986,12 @@ def install(dirname):
 
 
     dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
-    folderNames = [x for x in os.walk(dirBin)]
-    for folder in folderNames[1:]:
-        folderName = os.path.basename(folder[0])
-        for file in folder[2]:
-            createDir(os.path.join(destPathPyModule, folderName))
-            runJob("ln -s " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file),
+    folders = list(os.walk(dirBin))
+    for folderPath, _, folderFiles in folders:
+        folderName = os.path.relpath(folderPath, dirBin)
+        createDir(os.path.join(destPathPyModule, folderName))
+        for file in folderFiles:
+            runJob("ln -s " + os.path.join(folderPath, file) + ' ' + os.path.join(destPathPyModule, folderName, file),
                    show_output=False, show_command=show_command, log=[])
 
 
