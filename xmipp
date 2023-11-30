@@ -95,9 +95,9 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
 	# Get sources
 	getSources(branch=args.branch)
-
+	pass
 	# TODO: Implement
-	sendApiPost(dictConfig)
+
 
 
 def modeConfig(args: argparse.Namespace):
@@ -168,7 +168,7 @@ def modeAll(args: argparse.Namespace):
 
 	# Running compilation and installation
 	modeCompileAndInstall(args, dictConfig=dictConfig)
-
+	sendApiPost(dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""

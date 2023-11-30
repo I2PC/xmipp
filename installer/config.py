@@ -119,7 +119,7 @@ def checkConfig(dictPackages):
         checkCUDA(dictPackages)
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages)
-    #checkHDF5(dictPackages)
+    checkHDF5(dictPackages)
     checkScons()
     checkCMake()
 
@@ -148,6 +148,7 @@ def parseConfig():
         pass
     return dictPackages
 
+
 #PACKAGES
 def getCC(dictPackages):
     """
@@ -164,7 +165,6 @@ def getCC(dictPackages):
     else:
         dictPackages['CC'] = ''
 
-
 def checkCC(dictPackages):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
@@ -179,15 +179,13 @@ def checkCC(dictPackages):
         - 5: GCC package path does not exist.
     """
     if existPackage(dictPackages['CC']):
-        strVersion = versionPackage(dictPackages['CC'])
-        version = CXXVersion(strVersion)
+        version = gccVersion(dictPackages)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
             return OK
         showError('gcc {} lower than required ({})'.format(version, GCC_MINIMUM), GCC_VERSION_ERROR)
     else:
         showError('GCC package path: {} does not exist'.format(dictPackages['CC'], CC_NO_EXIST_ERROR))
-
 
 def getCXX(dictPackages):
     """
@@ -218,8 +216,7 @@ def checkCXX(dictPackages):
         - 7: g++ version is lower than the required version.
     """
     if existPackage(dictPackages['CXX']):
-        strVersion = versionPackage(dictPackages['CXX'])
-        version = CXXVersion(strVersion)
+        version = gppVersion(dictPackages)
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
             return OK
@@ -302,9 +299,12 @@ def checkMPI(dictPackages):
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
            " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread")
            % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
-    status, output = runJob(cmd, showError=True)
+    print('{}\n{}'.format(cmd, libhdf5))
+
+    status, output = runJob(cmd)
     if status != 0:
         showError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
+    print('hello')
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -314,6 +314,8 @@ def checkMPI(dictPackages):
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
         if output.count('Running') != processors:
             showError("mpirun or mpiexec have failed.", retCode=MPI_RUNNING_ERROR)
+
+
     return OK
 
 def getJava(dictPackages):
@@ -336,7 +338,6 @@ def getJava(dictPackages):
     else:
         dictPackages['JAVA_HOME'] = ''
 
-
 def checkJava(dictPackages):
     """
     Checks the Java installation and configuration.
@@ -348,7 +349,6 @@ def checkJava(dictPackages):
     - int: Error code.
         - 1: Success.
     """
-
     if isfile(join(dictPackages['JAVA_HOME'], 'bin/jar')) and \
             whereIsPackage(join(dictPackages['JAVA_HOME'], 'bin/javac')) and\
             isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
@@ -430,9 +430,7 @@ def checkMatlab(dictPackages):
     """
     #TODO check behaviour in a system with matlab installed
     if not isdir(dictPackages['MATLAB_HOME']):
-        showError('', MATLAB_HOME_ERROR)
-    if not whereIsPackage('matlab'):
-        showError('', MATLAB_ERROR)
+        showError('MATLAB_HOME={} does not exist'.format(dictPackages['MATLAB_HOME']), MATLAB_HOME_ERROR)
 
     cppProg = """
     #include <mex.h>
@@ -447,8 +445,8 @@ def checkMatlab(dictPackages):
         showError(output, MATLAB_HOME_ERROR)
         runJob("rm xmipp_mex*")
     runJob("rm xmipp_mex*")
+    print(green('Matlab installation found'))
     return OK
-
 
 def getOPENCV(dictPackages):
     opencvPath = ['opencv2', 'opencv4/opencv2']
@@ -464,7 +462,6 @@ def getOPENCV(dictPackages):
                     dictPackages['OPENCV'] = True
                     print(green('OPENCV detected at {}'.format(join(p.split('/')[0]))))
                     break
-
 
 def checkOPENCV(dictPackages):
     """
@@ -526,7 +523,6 @@ def checkOPENCV(dictPackages):
 
     return OK
 
-
 def getCUDA(dictPackages):
     """
      Retrieves information about the CUDA package and updates the dictionary accordingly.
@@ -547,8 +543,6 @@ def getCUDA(dictPackages):
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
         print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
 
-
-
 def checkCUDA(dictPackages):
     """
     Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
@@ -565,10 +559,10 @@ def checkCUDA(dictPackages):
 
     nvcc_version = CUDAVersion(dictPackages)
     if nvcc_version != 'Unknow':
-        gxx_version = versionPackage(dictPackages['CXX'])
-        gxx_version = CXXVersion(gxx_version)
+        gxx_version = gppVersion(dictPackages)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
+            print(green('CUDA {} found'.format(nvcc_version)))
             return OK
         else:
             showError('CUDA {} not compatible with the current g++ compiler version {}\n'
@@ -576,7 +570,6 @@ def checkCUDA(dictPackages):
                 nvcc_version, gxx_version, candidates), CUDA_VERSION_ERROR)
     else:
         return CUDA_ERROR
-
 
 def getSTARPU(dictPackages):
     """
@@ -603,7 +596,6 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_INCLUDE"] = ''
         dictPackages["STARPU_LIB"] = ''
         dictPackages["STARPU_LIBRARY"] = ''
-
 
 def checkSTARPU(dictPackages):
     """
@@ -747,13 +739,14 @@ def checkHDF5(dictPackages):
                """)
     with open("xmipp_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
-    cmd = ("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-           (dictPackages['CXX'], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
+    cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
+           (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != 0:
         showError(output, HDF5_ERROR)
 
     runJob("rm xmipp_test_main*", showError=True)
+    print(green('HDF5 installation found'))
     return OK
 
 
@@ -772,11 +765,13 @@ def checkCMake():
         cmakVersion = cmakeVersion()
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
-            showError(CMAKE_VERSION_ERROR, 'Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}')
+            showError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
     except FileNotFoundError:
-        showError(CMAKE_ERROR,'CMake is not installed')
+        showError('CMake is not installed', CMAKE_ERROR)
     except Exception:
-        showError(CMAKE_ERROR,'Can not get the cmake version')
+        showError('Can not get the cmake version', CMAKE_ERROR)
+
+    print(green('cmake {} found'.format(cmakVersion)))
 
 def checkScons():
     sconsV = sconsVersion()
@@ -788,8 +783,8 @@ def checkScons():
                 sconsV = sconsVersion()
                 print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
             else:
-                showError(SCONS_VERSION_ERROR, 'scons found {}, required {}\n{}'.
-                          format(sconsV, SCONS_MINIMUM, status[1]))
+                showError('scons found {}, required {}\n{}'.
+                          format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
         else:
             print(green('SCons {} found'.format(sconsV)))
     else:
@@ -798,7 +793,7 @@ def checkScons():
             sconsV = sconsVersion()
             print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
         else:
-            showError(SCONS_ERROR, 'Scons not found. {}'.format(status[1]))
+            showError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
 
 
 

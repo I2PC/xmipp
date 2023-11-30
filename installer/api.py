@@ -71,7 +71,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 		return
 
 	# Introducing data into a dictionary
-	jsonDict: Dict= {
+	jsonDict: Dict = {
 		"user": {
 			"userId": userId
 		},
