@@ -12,7 +12,7 @@ from scipy.ndimage import shift, rotate, affine_transform
 if __name__ == "__main__":
 
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-    from xmippPyModules.xmipp_utils import fillSymList, getToAsymmetricUnitSymList, symmetryOperatorSymList
+    from xmippPyModules.deepGlobalAssignment import Redundancy
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -101,26 +101,6 @@ if __name__ == "__main__":
                 mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2] + psi_rotation)
                 return np.reshape(mat[0:2,:],(6))
 
-            def make_redundant(rep_6d):
-                rep_6d = np.append(rep_6d, 2*rep_6d)
-                for i in range(6):
-                    j = (i+1) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i]-rep_6d[j])
-                for i in range(6):
-                    j = (i + 3) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i+6] - rep_6d[j])
-                for i in range(6):
-                    j = (i + 2) % 6
-                    k = (i + 4) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i]+rep_6d[j]-rep_6d[k])
-                for i in range(6):
-                    j = (i + 5) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
-                for i in range(6):
-                    j = (i + 4) % 6
-                    rep_6d = np.append(rep_6d, rep_6d[i] - rep_6d[j])
-                return rep_6d
-
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
             else:
@@ -137,7 +117,7 @@ if __name__ == "__main__":
             rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
             y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-            y = np.array(list((map(make_redundant, y_6d))))
+            y = np.array(list((map(Redundancy().make_redundant, y_6d))))
 
             return Xexp, y
 
@@ -165,7 +145,7 @@ if __name__ == "__main__":
         x = Dense(42, name="output", activation="linear")(x)
         return Model(inputLayer, x)
 
-    def get_labels(fnImages, symList):
+    def get_labels(fnImages):
         """Returns dimensions, images, angles and shifts values from images files"""
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
         mdExp = xmippLib.MetaData(fnImages)
@@ -178,15 +158,12 @@ if __name__ == "__main__":
 
         label = []
         for r, t, p in zip(rots, tilts, psis):
-            r, t, p = getToAsymmetricUnitSymList(symList, r, t, p)
-            r, t, p = symmetryOperatorSymList(symList, r, t, p, 1)
             label.append(np.array((r,t,p)))
         img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
         return Xdim, fnImg, label, img_shift
 
-    symList = fillSymList(symmetry)
-    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp, symList)
+    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
     # Train-Validation sets
     if numModels == 1:

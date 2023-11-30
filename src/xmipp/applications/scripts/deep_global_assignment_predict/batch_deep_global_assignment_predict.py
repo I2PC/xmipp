@@ -12,7 +12,7 @@ maxSize = 32
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-    from xmippPyModules.xmipp_utils import fillSymList, symmetryOperatorSymList
+    from xmippPyModules.deepGlobalAssignment import Redundancy
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -42,33 +42,6 @@ if __name__ == "__main__":
             mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             ID += 1
 
-    def calculate_r6d(redundant):
-        """Solves linear system to get 6D representation from 42 parameters output"""
-        A = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
-                      [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
-                      [2, 0, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], [0, 0, 2, 0, 0, 0],
-                      [0, 0, 0, 2, 0, 0], [0, 0, 0, 0, 2, 0], [0, 0, 0, 0, 0, 2],
-                      [1, -1, 0, 0, 0, 0], [0, 1, -1, 0, 0, 0], [0, 0, 1, -1, 0, 0],
-                      [0, 0, 0, 1, -1, 0], [0, 0, 0, 0, 1, -1], [-1, 0, 0, 0, 0, 1],
-                      [2, 0, 0, -1, 0, 0], [0, 2, 0, 0, -1, 0], [0, 0, 2, 0, 0, -1],
-                      [-1, 0, 0, 2, 0, 0], [0, -1, 0, 0, 2, 0], [0, 0, -1, 0, 0, 2],
-                      [1, 0, 1, 0, -1, 0], [0, 1, 0, 1, 0, -1], [-1, 0, 1, 0, 1, 0],
-                      [0, -1, 0, 1, 0, 1], [1, 0, -1, 0, 1, 0], [0, 1, 0, -1, 0, 1],
-                      [1, 0, 0, 0, 0, -1], [-1, 1, 0, 0, 0, 0], [0, -1, 1, 0, 0, 0],
-                      [0, 0, -1, 1, 0, 0], [0, 0, 0, -1, 1, 0], [0, 0, 0, 0, -1, 1],
-                      [1, 0, 0, 0, -1, 0], [0, 1, 0, 0, 0, -1], [-1, 0, 1, 0, 0, 0],
-                      [0, -1, 0, 1, 0, 0], [0, 0, -1, 0, 1, 0], [0, 0, 0, -1, 0, 1]])
-        Apinv = np.linalg.pinv(A)
-        return np.matmul(Apinv,np.reshape(redundant,(42)))
-
-        #
-        # X = np.zeros((redundant.shape[0], 6))
-        #
-        # for i in range(X.shape[0]):
-        #     X[i] = np.linalg.lstsq(A, redundant[i],rcond=-1)[0]
-        #
-        # return np.reshape(X,(6))
-
     def rotation6d_to_matrixZYZ(rot):
         """Return rotation matrix from 6D representation."""
         a1 = np.array([rot[0], rot[1], rot[2]]).reshape(1, 3)
@@ -84,15 +57,13 @@ if __name__ == "__main__":
         b3 = np.cross(b1, b2, axis=1)
         return np.concatenate((b1, b2, b3), axis=0)
 
-    def decodePredictions(fnImages, p6d_redundant, symList):
-        pred6d = list(map(calculate_r6d,p6d_redundant))
+    def decodePredictions(p6d_redundant):
+        pred6d = list(map(Redundancy().make_nonredundant,p6d_redundant))
         matrices = list(map(rotation6d_to_matrixZYZ, pred6d))
         angles = list(map(xmippLib.Euler_matrix2angles, matrices))
-#        angles = list(map(lambda item: symmetryOperatorSymList(symList, item[0], item[1], item[2], -1), angles))
         return angles
 
     Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
-    symList = fillSymList(symmetry)
 
     mdExp = xmippLib.MetaData(fnXmdExp)
     fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
@@ -132,6 +103,6 @@ if __name__ == "__main__":
         for index in range(numAngModels):
             predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
 
-    Y = decodePredictions(fnImages, predictions, symList)
+    Y = decodePredictions(predictions)
     produce_output(mdExp, Y, fnImages)
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
