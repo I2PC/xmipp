@@ -30,14 +30,15 @@ from typing import Dict, Union
 from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
 from .utils import runJob, runNetworkJob, showError, getCurrentBranch
-from .constants import NETWORK_ERROR, API_URL
+from .constants import NETWORK_ERROR, API_URL, LOG_FILE
 
-def sendApiPost(dictPackage: Dict):
+def sendApiPost(dictPackage: Dict, retCode: int=0):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 	
 	#### Params:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
+	- retCode (int): Optional. Return code for the API request.
 	"""
 	# Get curl command string
 	curlCmd = getCurlStr(API_URL, dictPackage)
@@ -61,9 +62,10 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	
 	#### Params:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
+	- retCode (int): Optional. Return code for the API request.
 	
 	#### Return:
-	- (str): JSON string with the required info or None if user id could not be produced.
+	- (str|None): JSON string with the required info or None if user id could not be produced.
 	"""
 	# Getting user id and checking if it exists
 	userId = getUserId()
@@ -89,7 +91,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"updated": True
 		},
 		"returnCode": retCode,
-		"logTail": "muchas lines"
+		"logTail": getLogTail()
 	}
 
 	# Return JSON object with all info
@@ -104,7 +106,7 @@ def getCurlStr(url: str, dictPackage: Dict) -> Union[str, None]:
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	
 	#### Return:
-	- (str): Curl command string or None if there were any errors.
+	- (str|None): Curl command string or None if there were any errors.
 	"""
 	# Getting JSON string and checking if it is valid
 	jsonStr = getJSONString(dictPackage)
@@ -121,7 +123,7 @@ def getMACAddress() -> Union[str, None]:
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
 	
 	#### Returns:
-	- (str): MAC address, or None if there were any errors.
+	- (str|None): MAC address, or None if there were any errors.
 	"""
 	# Run command to get network interfaces info
 	status, output = runJob("ip addr")
@@ -158,7 +160,7 @@ def getUserId() -> Union[str, None]:
 	### This function returns the unique user id for this machine.
 	
 	#### Returns:
-	- (str): User id, or None if there were any errors.
+	- (str|None): User id, or None if there were any errors.
 	"""
 	# Obtaining user's MAC address
 	macAddress = getMACAddress()
@@ -175,3 +177,16 @@ def getUserId() -> Union[str, None]:
 	
 	# Return hexadecimal representation of the hash
 	return sha256.hexdigest()
+
+def getLogTail() -> Union[str, None]:
+	"""
+	### This function returns the last lines of the installation log.
+	
+	#### Returns:
+	- (str|None): Installation log's last lines, or None if there were any errors.
+	"""
+	# Obtaining log tail
+	retCode, output = runJob(f"tail {LOG_FILE}")
+
+	# Return content if it went right
+	return output if retCode == 0 else None
