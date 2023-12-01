@@ -532,15 +532,10 @@ void ProgTomoCalculateLandmarkResiduals::writeOutputVCM()
 
 	}
 
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-	std::string fnVCM;
-    fnVCM = rawname + "/vResMod.xmd";
-
-	md.write(fnVCM);
+	md.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Vector coordinates model metadata saved at: " << fnVCM << std::endl;
+	std::cout << "Vector coordinates model metadata saved at: " << fnOut << std::endl;
 	#endif
 }
 
