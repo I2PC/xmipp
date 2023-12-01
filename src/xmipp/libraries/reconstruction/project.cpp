@@ -730,7 +730,7 @@ void generate_even_angles(int ExtProjs, int Nrottilt, MetaDataVec &DF,
         int iterRot = static_cast<int>((prm.rot_range.angF - prm.rot_range.ang0) / rot_step);
         for (int irot = 0; irot <= iterRot; irot ++)
         {
-        	double rot = prm.rot_range.ang0+iRot*rot_step;
+        	double rot = prm.rot_range.ang0+irot*rot_step;
             // Copy this angle to those projections belonging to this group .....
             // If there is any group
             for (int k = 0; k < Npsi; k++)
