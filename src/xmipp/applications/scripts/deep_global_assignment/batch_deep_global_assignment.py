@@ -142,7 +142,7 @@ if __name__ == "__main__":
         x = conv_block(x, filters=512)
         x = conv_block(x, filters=1024)
         x = GlobalAveragePooling2D()(x)
-        x = Dense(42, name="output", activation="linear")(x)
+        x = Dense(64, name="output", activation="linear")(x)
         return Model(inputLayer, x)
 
     def get_labels(fnImages):

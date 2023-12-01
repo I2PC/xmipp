@@ -86,7 +86,7 @@ if __name__ == "__main__":
         models.append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 42))
+    predictions = np.zeros((numImgs, numAngModels, 64))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
