@@ -116,8 +116,9 @@ if __name__ == "__main__":
             rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
             rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
-            y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-            y = np.array(list((map(Redundancy().make_redundant, y_6d))))
+            # y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
+            # y = np.array(list((map(Redundancy().make_redundant, y_6d))))
+            y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
 
             return Xexp, y
 
@@ -163,6 +164,11 @@ if __name__ == "__main__":
 
         return Xdim, fnImg, label, img_shift
 
+    tfAt = tf.cast(tf.transpose(Redundancy().Apinv),tf.float32)
+    def custom_loss(y_true, y_pred):
+        y_6d = tf.matmul(y_pred, tfAt)
+        return tf.reduce_mean(tf.abs(y_true - y_6d))
+
     Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
     # Train-Validation sets
@@ -192,7 +198,7 @@ if __name__ == "__main__":
         adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         model.summary()
 
-        model.compile(loss='mean_squared_error', optimizer=adam_opt)
+        model.compile(loss=custom_loss, optimizer=adam_opt)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
         patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
