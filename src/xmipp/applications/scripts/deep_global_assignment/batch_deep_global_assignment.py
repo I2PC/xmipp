@@ -165,9 +165,32 @@ if __name__ == "__main__":
         return Xdim, fnImg, label, img_shift
 
     tfAt = tf.cast(tf.transpose(Redundancy().Apinv),tf.float32)
-    def custom_loss(y_true, y_pred):
+    def custom_lossAngles(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
-        return tf.reduce_mean(tf.abs(y_true - y_6d))
+
+        e1_true = y_true[:, :3] # First 3 components
+        e2_true = y_true[:, 3:] # Last 3 components
+
+        e1_pred = y_6d[:, :3] # First 3 components
+        e2_pred = y_6d[:, 3:] # Last 3 components
+
+        # Gram-Schmidt orthogonalization
+        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
+        e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)  # Normalize e1
+        projection = tf.reduce_sum(e2_pred * e1_pred, axis=-1, keepdims=True)
+        e2_pred = e2_pred - projection * e1_pred
+        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
+        e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
+
+        epsilon = 1e-7
+        angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+        angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+
+        return tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2))*0.5*(180.0 / np.pi)
+
+    def custom_lossVectors(y_true, y_pred):
+        y_6d = tf.matmul(y_pred, tfAt)
+        return tf.reduce_mean(tf.abs(y_true-y_6d))
 
     Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
@@ -196,12 +219,15 @@ if __name__ == "__main__":
             model = constructModel(Xdims)
 
         adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        model.summary()
-
-        model.compile(loss=custom_loss, optimizer=adam_opt)
-        save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
-                                          save_best_only=True)
+        save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss', save_best_only=True)
         patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
+
+        model.summary()
+        model.compile(loss=custom_lossVectors, optimizer=adam_opt)
+        history = model.fit_generator(generator=training_generator, epochs=numEpochs,
+                                      validation_data=validation_generator, callbacks=[save_best_model,
+                                                                                       patienceCallBack])
+        model.compile(loss=custom_lossAngles, optimizer=adam_opt)
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model,
                                                                                        patienceCallBack])
