@@ -202,12 +202,8 @@ if __name__ == "__main__":
     Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
     # Train-Validation sets
-    if numModels == 1:
-        lenTrain = int(len(fnImgs)*0.8)
-        lenVal = len(fnImgs)-lenTrain
-    else:
-        lenTrain = int(len(fnImgs) / 3)
-        lenVal = int(len(fnImgs) / 12)
+    lenTrain = int(len(fnImgs)*0.8)
+    lenVal = len(fnImgs)-lenTrain
 
     for index in range(numModels):
         # chooses equal number of particles for each division
