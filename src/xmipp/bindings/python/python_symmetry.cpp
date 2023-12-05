@@ -273,6 +273,39 @@ SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
+/* computeDistance */
+PyObject *
+SymList_computeClosestSymmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
+{
+    double rot1;
+    double tilt1;
+    double psi1;
+    double rot2;
+    double tilt2;
+    double psi2;
+
+    if (PyArg_ParseTuple(args, "dddddd", &rot1, &tilt1, &psi1, &rot2, &tilt2, &psi2))
+    {
+        try
+        {
+            auto *self = (SymListObject*) obj;
+            double dist=self->symlist->computeDistance(rot1,tilt1,psi1,rot2,tilt2,psi2,
+            		false, false, false);
+            PyObject * retval = PyList_New(3);
+            PyList_SetItem(retval, 0, PyFloat_FromDouble(rot2));
+            PyList_SetItem(retval, 1, PyFloat_FromDouble(tilt2));
+            PyList_SetItem(retval, 2, PyFloat_FromDouble(psi2));
+            return retval;
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.what());
+        }
+    }
+    return nullptr;
+}
+
+
 /* SymList methods */
 PyMethodDef SymList_methods[] =
 {
@@ -282,10 +315,12 @@ PyMethodDef SymList_methods[] =
        METH_VARARGS, "compute angular distance in a metadata" },
    { "computeDistanceAngles", (PyCFunction) SymList_computeDistanceAngles,
 	   METH_VARARGS, "compute angular distance between two sets of angles" },
+   { "computeClosestSymmetricAngles", (PyCFunction) SymList_computeClosestSymmetricAngles,
+	   METH_VARARGS, "compute a symmetric equivalent of the second set of angles that is the closest to the first set"},
    { "symmetricAngles", (PyCFunction) SymList_symmetricAngles,
 	   METH_VARARGS, "Returns the list of equivalent angles" },
    { "getTrueSymsNo", (PyCFunction) SymList_getTrueSymsNo,
-	   METH_VARARGS, "Get the number os symmetries" },
+	   METH_VARARGS, "Get the number of symmetries" },
    { "getSymmetryMatrices", (PyCFunction) SymList_getSymmetryMatrices,
 	   METH_VARARGS, "Return all the symmetry matrices for a given symmetry string" },
    { nullptr } /* Sentinel */
