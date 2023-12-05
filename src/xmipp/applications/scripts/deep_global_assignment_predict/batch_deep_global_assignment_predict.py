@@ -13,6 +13,7 @@ maxSize = 32
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
     from xmippPyModules.deepGlobalAssignment import Redundancy
+    from xmippPyModules.xmipp_utils import RotationAverager
 
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
@@ -79,30 +80,33 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
-    models = []
-    for index in range(numAngModels):
-        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
-        AngModel.compile(loss="mean_squared_error", optimizer='adam')
-        models.append(AngModel)
 
     numImgs = len(fnImgs)
-    predictions = np.zeros((numImgs, numAngModels, 64))
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
-    k = 0
-    # perform batch predictions for each model
-    for i in range(numBatches):
-        numPredictions = min(maxSize, numImgs-i*maxSize)
-        Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
-        for j in range(numPredictions):
-            Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
-            Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
-            Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
-            k += 1
-        for index in range(numAngModels):
-            predictions[i*maxSize:(i*maxSize + numPredictions), index, :] = models[index].predict(Xexp)
 
-    Y = decodePredictions(predictions)
+    Ylist = []
+    for index in range(numAngModels):
+        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
+        AngModel.compile(loss="mean_squared_error", optimizer='adam')
+
+        k = 0
+        predictions = np.zeros((numImgs, 64))
+        for i in range(numBatches):
+            numPredictions = min(maxSize, numImgs-i*maxSize)
+            Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
+            for j in range(numPredictions):
+                Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
+                Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
+                k += 1
+            predictions[i*maxSize:(i*maxSize + numPredictions), :] = AngModel.predict(Xexp)
+
+        Ylist.append(decodePredictions(predictions))
+
+    averager=RotationAverager(Ylist)
+    averager.bringToAsymmetricUnit(symmetry)
+    Y=averager.computeAverageAssignment()
     produce_output(mdExp, Y, fnImages)
     mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
