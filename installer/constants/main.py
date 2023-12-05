@@ -65,6 +65,7 @@ PATH_TO_FIND_HDF5 = [
 	"/usr/lib/x86_64-linux-gnu/hdf5/serial",
 	"/usr/lib/x86_64-linux-gnu"
 ]
+SCIPION_ENVNAME = 'scipion3'
 
 # File names
 CONFIG_FILE = 'xmipp.conf'

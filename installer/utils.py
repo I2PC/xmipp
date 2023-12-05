@@ -33,7 +33,8 @@ from sysconfig import get_paths
 
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
-	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE
+	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
+	SCIPION_ENVNAME
 
 ####################### GENERAL FUNCTIONS #######################
 def showError(errorMsg: str, retCode: int=1):
@@ -320,21 +321,21 @@ def isBranchUpToDate(dir: str='./') -> bool:
 ####################### ENV FUNCTIONS #######################
 def isScipionEnv():
 	"""
-	### This function returns True if the current active enviroment is scipion3, or False otherwise or if some error happened.
+	### This function returns True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
 	
 	#### Returns:
-	- (bool): True if the current active enviroment is scipion3, or False otherwise or if some error happened.
+	- (bool): True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
 	"""
 	# Getting conda prefix path
 	retCode, output = runJob("echo $CONDA_PREFIX")
 
-	# If command failed, we assume we are not in scipion3 env
+	# If command failed, we assume we are not in Scipion's env
 	# If output is empty, we are also in no env
 	if retCode != 0 or not output:
 		return False
 	
-	# Returning result. Output needs to be a valid path ending with "scipion3" 
-	return output.split('/')[-1] == "scipion3"
+	# Returning result. Output needs to be a valid path ending with Scipion's env name
+	return output.split('/')[-1] == SCIPION_ENVNAME
 
 ####################### VERSION FUNCTIONS #######################
 
