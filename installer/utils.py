@@ -317,6 +317,25 @@ def isBranchUpToDate(dir: str='./') -> bool:
 	# Return commit comparison
 	return localCommit == remoteCommit
 
+####################### ENV FUNCTIONS #######################
+def isScipionEnv():
+	"""
+	### This function returns True if the current active enviroment is scipion3, or False otherwise or if some error happened.
+	
+	#### Returns:
+	- (bool): True if the current active enviroment is scipion3, or False otherwise or if some error happened.
+	"""
+	# Getting conda prefix path
+	retCode, output = runJob("echo $CONDA_PREFIX")
+
+	# If command failed, we assume we are not in scipion3 env
+	# If output is empty, we are also in no env
+	if retCode != 0 or not output:
+		return False
+	
+	# Returning result. Output needs to be a valid path ending with "scipion3" 
+	return output.split('/')[-1] == "scipion3"
+
 ####################### VERSION FUNCTIONS #######################
 
 # UTILS
