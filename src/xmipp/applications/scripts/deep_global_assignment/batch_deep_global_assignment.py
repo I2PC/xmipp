@@ -165,6 +165,9 @@ if __name__ == "__main__":
         return Xdim, fnImg, label, img_shift
 
     tfAt = tf.cast(tf.transpose(Redundancy().Apinv),tf.float32)
+    SL = xmippLib.SymList()
+    listSymmetryMatrices = [tf.convert_to_tensor(np.kron(np.eye(2),np.transpose(np.array(R))), dtype=tf.float32)
+                            for R in SL.getSymmetryMatrices(symmetry)]
     def custom_lossAngles(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
 
@@ -190,7 +193,11 @@ if __name__ == "__main__":
 
     def custom_lossVectors(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
-        return tf.reduce_mean(tf.abs(y_true-y_6d))
+        # e=tf.reduce_mean(tf.abs(y_true-y_6d),axis=1)
+        # return tf.reduce_mean(e)
+        esym = tf.stack([tf.reduce_mean(tf.abs(y_true-tf.matmul(y_6d, tensor)),axis=1)
+                          for tensor in listSymmetryMatrices],axis=1)
+        return tf.reduce_mean(tf.reduce_min(esym, axis=1))
 
     Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
@@ -227,7 +234,7 @@ if __name__ == "__main__":
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
                                       validation_data=validation_generator, callbacks=[save_best_model,
                                                                                        patienceCallBack])
-        model.compile(loss=custom_lossAngles, optimizer=adam_opt)
-        history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model,
-                                                                                       patienceCallBack])
+        # model.compile(loss=custom_lossAngles, optimizer=adam_opt)
+        # history = model.fit_generator(generator=training_generator, epochs=numEpochs,
+        #                               validation_data=validation_generator, callbacks=[save_best_model,
+        #                                                                                patienceCallBack])
