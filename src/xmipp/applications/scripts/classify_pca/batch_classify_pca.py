@@ -222,7 +222,6 @@ if __name__=="__main__":
                 if mode == "create_classes":
                     print("---Iter %s for creating classes---"%(iter+1))
                     if iter < 4:
-                        # ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
                         ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
                     elif iter < 7: 
                         ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
@@ -235,7 +234,6 @@ if __name__=="__main__":
                 else:
                     print("---Iter %s for align to classes---"%(iter+1))
                     if iter < 1:
-                        # ang, shiftMove = (-180, 180, 6), (-12, 16, 4)
                         ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
                     elif iter < 2: 
                         ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
@@ -281,9 +279,9 @@ if __name__=="__main__":
                 else:
                     cl, tMatrix, batch_projExp_cpu = bnb.align_particles_to_classes(mmap.data[initBatch:endBatch], cl, tMatrix, iter, initBatch, subset, matches, vectorshift, classes, freqBn, coef, cvecs, sampling, mask, sigma)
 
-                # #save classes
-                # file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
-                # save_images(cl.cpu().detach().numpy(), file)
+                #save classes
+                file = output+"_%s_%s.mrcs"%(initBatch,iter+1)
+                save_images(cl.cpu().detach().numpy(), file)
                 
                 
                 if mode == "create_classes" and iter == 14:

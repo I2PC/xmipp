@@ -370,11 +370,7 @@ class BnBgpu:
         element = list(map(len, newCL))
         # print(element)
         
-        # contador = len(element)    
-        # if contador < 50:
-        #     numClas = contador
-        # else:
-        #     numClas = 50
+        trash_image = torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), dtype=torch.float32, device=self.cuda) 
 
         if iter > 0 and iter < 4:
             numClas = int(classes/2)
@@ -389,10 +385,13 @@ class BnBgpu:
                 clk_list.append(torch.mean(split1, dim=0))
                 insert = torch.mean(split2, dim=0).view(mmap.data.shape[1], mmap.data.shape[2])
                 clk_list.append(insert)
+            
             else:
                 if current_length:
                     clk_list.append(torch.mean(newCL[n], dim=0))
-
+        
+        if iter < 5:            
+            clk_list.append(trash_image)
         clk = torch.stack(clk_list)
                                
         return(clk)
