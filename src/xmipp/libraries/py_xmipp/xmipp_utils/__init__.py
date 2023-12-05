@@ -118,10 +118,9 @@ class RotationHandler:
         q *= math.sqrt(2.0 / n)
         q = np.outer(q, q)
         return np.array([
-            [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0], 0.0],
-            [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0], 0.0],
-            [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2], 0.0],
-            [0.0, 0.0, 0.0, 1.0]])
+            [1.0 - q[2, 2] - q[3, 3], q[1, 2] - q[3, 0], q[1, 3] + q[2, 0]],
+            [q[1, 2] + q[3, 0], 1.0 - q[1, 1] - q[3, 3], q[2, 3] - q[1, 0]],
+            [q[1, 3] - q[2, 0], q[2, 3] + q[1, 0], 1.0 - q[1, 1] - q[2, 2]]])
 
     @staticmethod
     def euler_from_matrix(matrix, axes='szyz'):
@@ -183,6 +182,12 @@ class RotationHandler:
         return np.real(eigenVectors[:, np.argmax(eigenValues)])
 
     @staticmethod
+    def quaternion_distance(quaternions: np.ndarray,
+                            quaternion: np.ndarray) -> np.ndarray:
+        dots = np.dot(quaternions, quaternion)
+        return np.arccos(2 * (dots ** 2) - 1)
+
+    @staticmethod
     def maximum_distance(av_mat, mat):
         """Max and argMax distance in angles from a set of rotation matrix"""
         c = mat * av_mat[np.newaxis, 0:3, 0:3]
@@ -198,55 +203,43 @@ def getRotationMatrix(n):
                                 [0, 0, 1]])
     return rotation_matrix
 
-def getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi):
-    [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi),ZdT))
-    rot = rot % 360
-    maxRot = 360.0 / n
-    while rot > maxRot or rot < 0:
-        [rot, tilt, psi] = xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), R))
-    return xmippLib.Euler_matrix2angles(np.matmul(xmippLib.Euler_angles2matrix(rot, tilt, psi), ZdinvT))
+class RotationAverager():
+    def __init__(self, angleList):
+        self.angleList = angleList # List of list of list of angles. axis=0: image number, axis=1 (rot, tilt, psi)
 
-def getToAsymmetricUnitSymList(symList, rot, tilt, psi):
-    for _,_,_,n,R,ZdT,ZdinvT in symList:
-        rot, tilt, psi = getToAsymmetricUnit(ZdT, ZdinvT, n, R, rot, tilt, psi)
-    return (rot, tilt, psi)
+    def bringToAsymmetricUnit(self, symmetry):
+        SL=xmippLib.SymList()
+        SL.readSymmetryFile(symmetry)
+        Nangles = len(self.angleList)
+        for i in range(len(self.angleList[0])): # Loop over images
+            rot1  = self.angleList[0][i][0]
+            tilt1 = self.angleList[0][i][1]
+            psi1  = self.angleList[0][i][2]
+            for j in range(1,Nangles):
+                rot2  = self.angleList[j][i][0]
+                tilt2 = self.angleList[j][i][1]
+                psi2  = self.angleList[j][i][2]
+                self.angleList[j][i] = SL.computeClosestSymmetricAngles(rot1, tilt1, psi1, rot2, tilt2, psi2)
 
-def symmetryOperator(ZdT,ZdinvT,n,rot,tilt,psi, dir):
-    E=np.matmul(xmippLib.Euler_angles2matrix(rot,tilt,psi),ZdT)
-    [rotp, tiltp, psip] = xmippLib.Euler_matrix2angles(E)
-    rotp=rotp%360
-    if dir>0:
-        rotp*=n
-    else:
-        rotp/=n
-    E=np.matmul(xmippLib.Euler_angles2matrix(rotp, tiltp, psip),ZdinvT)
-    rot, tilt, psi = xmippLib.Euler_matrix2angles(E)
-    return rot, tilt, psi
+    def computeAverageAssignment(self):
+        avgAngles = []
+        RH=RotationHandler()
+        Nangles = len(self.angleList)
+        mask_size = Nangles // 2 + 1
 
-def symmetryOperatorSymList(symList, rot,tilt,psi, dir):
-    for _,_,_,n,R,ZdT,ZdinvT in symList:
-        rot, tilt, psi = symmetryOperator(ZdT, ZdinvT, n, rot, tilt, psi, dir)
-    # dir=xmippLib.Euler_direction(rot, tilt, psi)
-    return (rot, tilt, psi)
+        for i in range(len(self.angleList[0])): # Loop over images
+            quaternions = np.empty((Nangles, 4))
+            for j in range(Nangles):
+                rot = self.angleList[j][i][0]
+                tilt = self.angleList[j][i][1]
+                psi = self.angleList[j][i][2]
+                quaternions[j, :] = RH.quaternion_from_matrix(xmippLib.Euler_angles2matrix(rot, tilt, psi))
+            avgQuaternion = RH.average_quaternions(quaternions)
+            angleDiff = RH.quaternion_distance(quaternions, avgQuaternion)
 
-def fillSymList(symmetry):
-    symList=[]
-    if symmetry[0]=="c":
-        n=int(symmetry[1:])
-        if n>1:
-            R=getRotationMatrix(n)
-            ZdT = np.identity(3)
-            ZdinvT = np.identity(3)
-            symList.append((0,0,1,n,R,ZdT,ZdinvT))
-    elif symmetry[0]=="d":
-        n=int(symmetry[1:])
-        if n>1:
-            R=getRotationMatrix(n)
-            ZdT = np.identity(3)
-            ZdinvT = np.identity(3)
-            symList.append((0,0,1,n,R,ZdT,ZdinvT))
-        R = getRotationMatrix(2)
-        ZdT = np.transpose(xmippLib.alignWithZ(1,0,0))
-        ZdinvT = np.linalg.inv(ZdT)
-        symList.append((1, 0, 0, 2, R, ZdT, ZdinvT))
-    return symList
+            sorted_indices = np.argsort(angleDiff)
+            selected_indices = sorted_indices[:mask_size]
+            avgQuaternion = RH.average_quaternions(quaternions[selected_indices,:])
+            rot, tilt, psi = xmippLib.Euler_matrix2angles(RH.quaternion_matrix(avgQuaternion))
+            avgAngles.append((rot,tilt,psi))
+        return avgAngles
