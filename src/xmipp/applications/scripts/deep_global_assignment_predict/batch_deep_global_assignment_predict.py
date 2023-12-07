@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import glob
 import math
 import numpy as np
 from numpy.linalg import norm
@@ -16,32 +17,29 @@ if __name__ == "__main__":
     from xmippPyModules.xmipp_utils import RotationAverager
 
     checkIf_tf_keras_installed()
-    fnXmdExp = sys.argv[1]
-    gpuId = sys.argv[2]
-    outputDir = sys.argv[3]
-    fnXmdImages = sys.argv[4]
-    fnAngModel = sys.argv[5]
-    numAngModels = int(sys.argv[6])
-    tolerance = int(sys.argv[7])
-    maxModels = int(sys.argv[8])
-    symmetry = sys.argv[9]
+    fnExp = sys.argv[1]
+    fnExpResized = sys.argv[2]
+    gpuId = sys.argv[3]
+    fnModelDir = sys.argv[4]
+    symmetry = sys.argv[5]
+    fnOut = sys.argv[6]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
 
     import keras
-    from keras.models import load_model
 
-    def produce_output(mdExp, Y, fnImages):
+    def produce_output(fnExp, Y, fnOut):
+        mdExp = xmippLib.MetaData(fnExp)
         ID = 0
         for objId in mdExp:
             rot, tilt, psi = Y[ID]
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rot, objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilt, objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psi, objId)
-            mdExp.setValue(xmippLib.MDL_IMAGE, fnImages[ID], objId)
             ID += 1
+        mdExp.write(fnOut)
 
     def rotation6d_to_matrixZYZ(rot):
         """Return rotation matrix from 6D representation."""
@@ -64,16 +62,12 @@ if __name__ == "__main__":
         angles = list(map(xmippLib.Euler_matrix2angles, matrices))
         return angles
 
-    Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnXmdExp)
+    mdResized = xmippLib.MetaData(fnExpResized)
+    XdimResized, _, _, _, _ = xmippLib.MetaDataInfo(fnExpResized)
+    fnImgs = mdResized.getColumnValues(xmippLib.MDL_IMAGE)
 
-    mdExp = xmippLib.MetaData(fnXmdExp)
-    fnImgs = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-
-    mdExpImages = xmippLib.MetaData(fnXmdImages)
-    fnImages = mdExpImages.getColumnValues(xmippLib.MDL_IMAGE)
-
-    shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
-    shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
+    shiftX = mdResized.getColumnValues(xmippLib.MDL_SHIFT_X)
+    shiftY = mdResized.getColumnValues(xmippLib.MDL_SHIFT_Y)
     shifts = [np.array((sX, sY)) for sX, sY in zip(shiftX, shiftY)]
 
     def shift_image(img, img_shifts):
@@ -87,17 +81,17 @@ if __name__ == "__main__":
         numBatches = numBatches + 1
 
     Ylist = []
+    numAngModels = len(glob.glob(os.path.join(fnModelDir,"model*.h5")))
     for index in range(numAngModels):
-        AngModel = load_model(fnAngModel + str(index) + ".h5", compile=False)
-        AngModel.compile(loss="mean_squared_error", optimizer='adam')
+        AngModel = keras.models.load_model(os.path.join(fnModelDir,"model%d.h5"%index), compile=False)
 
         k = 0
         predictions = np.zeros((numImgs, 64))
         for i in range(numBatches):
             numPredictions = min(maxSize, numImgs-i*maxSize)
-            Xexp = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
+            Xexp = np.zeros((numPredictions, XdimResized, XdimResized, 1), dtype=np.float64)
             for j in range(numPredictions):
-                Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
+                Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (XdimResized, XdimResized, 1))
                 Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
                 Xexp[j, ] = shift_image(Xexp[j, ], shifts[k])
                 k += 1
@@ -108,5 +102,4 @@ if __name__ == "__main__":
     averager=RotationAverager(Ylist)
     averager.bringToAsymmetricUnit(symmetry)
     Y=averager.computeAverageAssignment()
-    produce_output(mdExp, Y, fnImages)
-    mdExp.write(os.path.join(outputDir, "predict_results.xmd"))
+    produce_output(fnExp, Y, fnOut)

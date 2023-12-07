@@ -17,17 +17,13 @@ if __name__ == "__main__":
     checkIf_tf_keras_installed()
     fnXmdExp = sys.argv[1]
     fnModel = sys.argv[2]
-    sigma = float(sys.argv[3])
-    numEpochs = int(sys.argv[4])
+    maxShift = float(sys.argv[3])
+    numParticlesTraining = int(sys.argv[4])
     batch_size = int(sys.argv[5])
     gpuId = sys.argv[6]
     numModels = int(sys.argv[7])
     learning_rate = float(sys.argv[8])
-    patience = int(sys.argv[9])
-    pretrained = sys.argv[10]
-    symmetry = sys.argv[11]
-    if pretrained == 'yes':
-        fnPreModel = sys.argv[12]
+    symmetry = sys.argv[9]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -44,14 +40,12 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
-        def __init__(self, fnImgs, labels, sigma, batch_size, dim, shifts, readInMemory):
+        def __init__(self, fnImgs, labels, maxShift, batch_size, dim, shifts, readInMemory):
             """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
-            self.sigma = sigma
+            self.maxShift = maxShift
             self.batch_size = batch_size
-            if self.batch_size > len(self.fnImgs):
-                self.batch_size = len(self.fnImgs)
             self.dim = dim
             self.readInMemory = readInMemory
             self.on_epoch_end()
@@ -112,12 +106,10 @@ if __name__ == "__main__":
                 imgRotated=rotate(imgShifted, angle, order=1, mode='reflect', reshape=False)
                 return imgRotated
 
-            rX = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            rY = self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
+            rX = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
+            rY = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
             rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
-            # y_6d = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-            # y = np.array(list((map(Redundancy().make_redundant, y_6d))))
             y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
 
             return Xexp, y
@@ -193,8 +185,6 @@ if __name__ == "__main__":
 
     def custom_lossVectors(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
-        # e=tf.reduce_mean(tf.abs(y_true-y_6d),axis=1)
-        # return tf.reduce_mean(e)
         esym = tf.stack([tf.reduce_mean(tf.abs(y_true-tf.matmul(y_6d, tensor)),axis=1)
                           for tensor in listSymmetryMatrices],axis=1)
         return tf.reduce_mean(tf.reduce_min(esym, axis=1))
@@ -205,32 +195,28 @@ if __name__ == "__main__":
     lenTrain = int(len(fnImgs)*0.8)
     lenVal = len(fnImgs)-lenTrain
 
+    numEpochs = math.ceil(numParticlesTraining/lenTrain)
+
     for index in range(numModels):
         # chooses equal number of particles for each division
         random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
 
         training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
                                            [labels[i] for i in random_sample[0:lenTrain]],
-                                           sigma, batch_size, Xdims, shifts, readInMemory=True)
+                                           maxShift, batch_size, Xdims, shifts, readInMemory=True)
         validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
                                              [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             sigma, batch_size, Xdims, shifts, readInMemory=True)
+                                             maxShift, batch_size, Xdims, shifts, readInMemory=True)
 
-        if pretrained == 'yes':
-            model = load_model(fnPreModel, compile=False)
-        else:
-            model = constructModel(Xdims)
+        model = constructModel(Xdims)
 
         adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss', save_best_only=True)
-        patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
         model.summary()
         model.compile(loss=custom_lossVectors, optimizer=adam_opt)
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model,
-                                                                                       patienceCallBack])
+                                      validation_data=validation_generator, callbacks=[save_best_model])
         # model.compile(loss=custom_lossAngles, optimizer=adam_opt)
         # history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-        #                               validation_data=validation_generator, callbacks=[save_best_model,
-        #                                                                                patienceCallBack])
+        #                               validation_data=validation_generator, callbacks=[save_best_model])
