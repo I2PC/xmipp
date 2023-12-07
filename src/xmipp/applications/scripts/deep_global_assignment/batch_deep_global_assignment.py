@@ -24,6 +24,7 @@ if __name__ == "__main__":
     numModels = int(sys.argv[7])
     learning_rate = float(sys.argv[8])
     symmetry = sys.argv[9]
+    SNR = float(sys.argv[10])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -50,6 +51,7 @@ if __name__ == "__main__":
             self.readInMemory = readInMemory
             self.on_epoch_end()
             self.shifts = shifts
+            self.sigmaN = 0
 
             # Read all data in memory
             if self.readInMemory:
@@ -104,6 +106,8 @@ if __name__ == "__main__":
             def shift_then_rotate_image(img, shiftx, shifty, angle):
                 imgShifted=shift(img, (shiftx, shifty, 0), order=1, mode='wrap')
                 imgRotated=rotate(imgShifted, angle, order=1, mode='reflect', reshape=False)
+                if self.sigmaN>0:
+                    imgRotated+=np.random.normal(0, self.sigmaN, imgRotated.shape)
                 return imgRotated
 
             rX = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
@@ -220,3 +224,17 @@ if __name__ == "__main__":
         # model.compile(loss=custom_lossAngles, optimizer=adam_opt)
         # history = model.fit_generator(generator=training_generator, epochs=numEpochs,
         #                               validation_data=validation_generator, callbacks=[save_best_model])
+
+        if SNR>0:
+            S = np.mean(training_generator.Xexp**2)
+            numEpochs10 = math.ceil(numEpochs/10)
+            finalN = math.sqrt(S/SNR)
+            stepN = finalN/100
+            for i in range(100):
+                sigmaN=(i+1)*stepN
+                print("iteration=%d sigmaN=%f"%(i,sigmaN))
+                training_generator.sigmaN = sigmaN
+                validation_generator.sigmaN = sigmaN
+                history = model.fit_generator(generator=training_generator, epochs=numEpochs10,
+                                              validation_data=validation_generator, callbacks=[save_best_model])
+
