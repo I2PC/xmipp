@@ -64,16 +64,16 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	- (int): Return code.
 	- (str): Output of the command, regardless of if it is an error or regular output.
 	"""
+	# Printing command if specified
+	if showCommand == True:
+		print(blue(cmd))
+
 	# Running command
 	process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 	output, err = process.communicate()
 
 	# Defining output string
 	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
-
-	# Printing command if specified
-	if showCommand == True:
-		print(blue(cmd))
 
 	# Printing output if specified
 	if showOutput == True:
