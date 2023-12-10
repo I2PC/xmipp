@@ -76,13 +76,12 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	outputStr = output.decode("utf-8") if process.returncode == 0 else err.decode("utf-8")
 
 	# Printing output if specified
-	if showOutput == True:
+	if showOutput:
 		print('{}\n'.format(outputStr))
 
-	if err:
-		# Printing errors if specified
-		if showError == True:
-			print(red(outputStr))
+	# Printing errors if specified
+	if err and showError:
+		print(red(outputStr))
 
 	# Returing return code
 	outputStr = outputStr[:-1] if outputStr.endswith('\n') else outputStr
