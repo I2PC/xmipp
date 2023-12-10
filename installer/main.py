@@ -32,7 +32,7 @@ from typing import Tuple
 # Installer imports
 from .constants import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES, ORGANIZATION_NAME, \
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS
-from .utils import runJob, getCurrentBranch, showError
+from .utils import runJob, getCurrentBranch, printError
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -64,7 +64,7 @@ def getSources(branch: str=None):
 		
 		# If download failed, return error
 		if not status:
-			showError(output, retCode=status) #TODO: CHECK CODE
+			printError(output, retCode=status) #TODO: CHECK CODE
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:

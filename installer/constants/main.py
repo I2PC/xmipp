@@ -70,6 +70,9 @@ SCIPION_ENVNAME = 'scipion3'
 # File names
 CONFIG_FILE = 'xmipp.conf'
 LOG_FILE = 'compileLOG.txt'
+CMD_OUT_LOG_FILE = 'commandOutput.log'
+CMD_ERR_LOG_FILE = 'commandError.log'
+OUTPUT_POLL_TIME = 0.5
 
 CONFIG_DICT = {'INCDIRFLAGS': '',
 								'CC': '',

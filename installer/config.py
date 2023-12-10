@@ -46,7 +46,7 @@ from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPack
                     versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
-                    get_Hdf5_name, showError, MPIVersion, installScons)
+                    get_Hdf5_name, printError, MPIVersion, installScons)
 
 from .versionsCollector import (osVersion, architectureVersion, CUDAVersion,
                                 cmakeVersion, gppVersion, gccVersion, sconsVersion)
@@ -183,9 +183,9 @@ def checkCC(dictPackages):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
             return OK
-        showError('gcc {} lower than required ({})'.format(version, GCC_MINIMUM), GCC_VERSION_ERROR)
+        printError('gcc {} lower than required ({})'.format(version, GCC_MINIMUM), GCC_VERSION_ERROR)
     else:
-        showError('GCC package path: {} does not exist'.format(dictPackages['CC'], CC_NO_EXIST_ERROR))
+        printError('GCC package path: {} does not exist'.format(dictPackages['CC'], CC_NO_EXIST_ERROR))
 
 def getCXX(dictPackages):
     """
@@ -220,9 +220,9 @@ def checkCXX(dictPackages):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
             return OK
-        showError('g++ {} lower than required ({})'.format(version, GPP_MINIMUM), CXX_VERSION_ERROR)
+        printError('g++ {} lower than required ({})'.format(version, GPP_MINIMUM), CXX_VERSION_ERROR)
     else:
-        showError('CXX package path: {} does not exist'.format(dictPackages['CXX']), CXX_NO_EXIST_ERROR)
+        printError('CXX package path: {} does not exist'.format(dictPackages['CXX']), CXX_NO_EXIST_ERROR)
 
 def getMPI(dictPackages):
     """
@@ -269,9 +269,9 @@ def checkMPI(dictPackages):
             if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
                 print(green('{} {} found'.format(pack, version)))
             else:
-                showError('mpi {} lower than required ({})'.format(version, GPP_MINIMUM), MPI_VERSION_ERROR)
+                printError('mpi {} lower than required ({})'.format(version, GPP_MINIMUM), MPI_VERSION_ERROR)
         else:
-            showError('MPI package: {} does not exist'.format(pack), MPI_NOT_FOUND_ERROR)
+            printError('MPI package: {} does not exist'.format(pack), MPI_NOT_FOUND_ERROR)
 
     #More checks
     MPI_CXXFLAGS = ''
@@ -293,7 +293,7 @@ def checkMPI(dictPackages):
            % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
     status, output = runJob(cmd, showError=True)
     if status != 0:
-        showError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
+        printError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
@@ -303,7 +303,7 @@ def checkMPI(dictPackages):
 
     status, output = runJob(cmd)
     if status != 0:
-        showError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
+        printError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
     print('hello')
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
@@ -313,7 +313,7 @@ def checkMPI(dictPackages):
     if output.count('Running') != processors:
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
         if output.count('Running') != processors:
-            showError("mpirun or mpiexec have failed.", retCode=MPI_RUNNING_ERROR)
+            printError("mpirun or mpiexec have failed.", retCode=MPI_RUNNING_ERROR)
 
 
     return OK
@@ -354,7 +354,7 @@ def checkJava(dictPackages):
             isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
         print(green('java installation found'))
     else:
-        showError('JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']), JAVA_HOME_PATH_ERROR)
+        printError('JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']), JAVA_HOME_PATH_ERROR)
 
     #Other check
     javaProg = """
@@ -366,7 +366,7 @@ def checkJava(dictPackages):
         javaFile.write(javaProg)
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
     if runJob(cmd, showError=True)[0] != 0:
-        showError(cmd, JAVAC_DOESNT_WORK_ERROR)
+        printError(cmd, JAVAC_DOESNT_WORK_ERROR)
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
     #Other check 2
@@ -389,7 +389,7 @@ def checkJava(dictPackages):
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
     status, output = runJob(cmd)
     if status != 0:
-        showError(output, JAVA_INCLUDE_ERROR)
+        printError(output, JAVA_INCLUDE_ERROR)
     runJob("rm xmipp_jni_test*", showError=True)
     return OK
 
@@ -430,7 +430,7 @@ def checkMatlab(dictPackages):
     """
     #TODO check behaviour in a system with matlab installed
     if not isdir(dictPackages['MATLAB_HOME']):
-        showError('MATLAB_HOME={} does not exist'.format(dictPackages['MATLAB_HOME']), MATLAB_HOME_ERROR)
+        printError('MATLAB_HOME={} does not exist'.format(dictPackages['MATLAB_HOME']), MATLAB_HOME_ERROR)
 
     cppProg = """
     #include <mex.h>
@@ -442,7 +442,7 @@ def checkMatlab(dictPackages):
     cmd = " {} -silent xmipp_mex.cpp".format(join(dictPackages["MATLAB_HOME"], 'bin', 'mex'))
     status, output = runJob(cmd, showError=True)
     if status != 0:
-        showError(output, MATLAB_HOME_ERROR)
+        printError(output, MATLAB_HOME_ERROR)
         runJob("rm xmipp_mex*")
     runJob("rm xmipp_mex*")
     print(green('Matlab installation found'))
@@ -482,7 +482,7 @@ def checkOPENCV(dictPackages):
 
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)
     if status != 0:
-        showError('OpenCV set as True but {}'.format(output))
+        printError('OpenCV set as True but {}'.format(output))
         dictPackages['OPENCV'] = ''
 
     # Check version
@@ -565,7 +565,7 @@ def checkCUDA(dictPackages):
             print(green('CUDA {} found'.format(nvcc_version)))
             return OK
         else:
-            showError('CUDA {} not compatible with the current g++ compiler version {}\n'
+            printError('CUDA {} not compatible with the current g++ compiler version {}\n'
                       'Compilers candidates for your CUDA: {}'.format(
                 nvcc_version, gxx_version, candidates), CUDA_VERSION_ERROR)
     else:
@@ -743,7 +743,7 @@ def checkHDF5(dictPackages):
            (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != 0:
-        showError(output, HDF5_ERROR)
+        printError(output, HDF5_ERROR)
 
     runJob("rm xmipp_test_main*", showError=True)
     print(green('HDF5 installation found'))
@@ -765,11 +765,11 @@ def checkCMake():
         cmakVersion = cmakeVersion()
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
-            showError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
+            printError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
     except FileNotFoundError:
-        showError('CMake is not installed', CMAKE_ERROR)
+        printError('CMake is not installed', CMAKE_ERROR)
     except Exception:
-        showError('Can not get the cmake version', CMAKE_ERROR)
+        printError('Can not get the cmake version', CMAKE_ERROR)
 
     print(green('cmake {} found'.format(cmakVersion)))
 
@@ -783,7 +783,7 @@ def checkScons():
                 sconsV = sconsVersion()
                 print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
             else:
-                showError('scons found {}, required {}\n{}'.
+                printError('scons found {}, required {}\n{}'.
                           format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
         else:
             print(green('SCons {} found'.format(sconsV)))
@@ -793,7 +793,7 @@ def checkScons():
             sconsV = sconsVersion()
             print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
         else:
-            showError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
+            printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
 
 
 
