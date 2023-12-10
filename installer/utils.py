@@ -628,6 +628,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	- (str): Output of the command, regardless of if it is an error or regular output.
 	"""
 	# Creating writer and reader buffers in same tmp file
+	outputStr = ""
 	error = False
 	try:
 		with io.open(CMD_OUT_LOG_FILE, "wb") as writerOut, io.open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
@@ -638,7 +639,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 
 			# Run command and write output
 			process = Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
-			outputStr = writeProcessOutput(process, readerOut, readerErr, showOutput=showOutput, showError=showError)
+			outputStr += writeProcessOutput(process, readerOut, readerErr, showOutput=showOutput, showError=showError)
 	except (KeyboardInterrupt, OSError) as e:
 		error = True
 		errorText = str(e)
