@@ -662,7 +662,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	# Return result
 	return process.returncode, outputStr
 
-def writeProcessOutput(process: Popen, readerOut: FileIO=None, readerErr: FileIO=None, showOutput: bool=False, showError: bool=False):
+def writeProcessOutput(process: Popen, readerOut: FileIO, readerErr: FileIO, showOutput: bool=False, showError: bool=False):
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
