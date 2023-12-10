@@ -613,7 +613,7 @@ def installScons():
 				return False, 'scipion3 enviroment not found'
 		
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
-def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False):
+def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command and shows its output as it is being generated.
 
@@ -653,7 +653,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	# Return result
 	return process.returncode, outputStr
 
-def writeProcessOutput(process: Popen, readerOut: FileIO, readerErr: FileIO, showOutput: bool=False, showError: bool=False):
+def writeProcessOutput(process: Popen, readerOut: FileIO, readerErr: FileIO, showOutput: bool=False, showError: bool=False) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
@@ -684,7 +684,7 @@ def writeProcessOutput(process: Popen, readerOut: FileIO, readerErr: FileIO, sho
 
 	return outputStr
 
-def writeReaderLine(reader: FileIO, show: bool=False, err: bool=False):
+def writeReaderLine(reader: FileIO, show: bool=False, err: bool=False) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
