@@ -335,7 +335,6 @@ def isScipionEnv():
 	return output.split('/')[-1] == SCIPION_ENVNAME
 
 ####################### VERSION FUNCTIONS #######################
-
 # UTILS
 def findFileInDirList(fnH, dirlist):
 	"""
@@ -390,14 +389,12 @@ def whereIsPackage(packageName):
 		else:
 				return None
 
-
 def existPackage(packageName):
 		"""Return True if packageName exist, else False"""
 		path = pathPackage(packageName)
 		if path != '' and versionPackage(path) != '':
 				return True
 		return False
-
 
 def pathPackage(packageName):
 		"""
@@ -410,7 +407,6 @@ def pathPackage(packageName):
 		- str: Path to the package.
 		"""
 		return runJob('which {}'.format(packageName), showError=True)[1]
-
 
 def existPath(path):
 		"""Return True if path exist, else False"""
@@ -477,10 +473,6 @@ def sconsVersion():
 			print(blue('Scons package not found, please install it  with \"pip install scons\".'))
 			return False
 
-
-
-
-
 def isScipionVersion():
 		"""
 		Checks if the current environment is a Scipion version.
@@ -492,7 +484,6 @@ def isScipionVersion():
 		if status == 0 and output.find('scipion3') != -1:
 			return True
 		return False
-
 
 def getCompatibleGCC(nvccVersion):
 		"""
