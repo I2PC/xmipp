@@ -68,7 +68,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 		# Defining output string
 		retCode = process.returncode
 		output, err = process.communicate()
-		outputStr = output.decode() if retCode else err.decode()
+		outputStr = output.decode() if not retCode else err.decode()
 
 	# Printing output if specified
 	if not streaming and showOutput:
@@ -368,7 +368,7 @@ def versionPackage(package):
 	"""
 	cmd = '{} --version'.format(package)
 	status, output = runJob(cmd, showError=True)
-	if status != 0 or output.find('not found') != -1:
+	if status != 0 and status != None  or output.find('not found') != -1:
 		return ''
 	return output
 
@@ -498,8 +498,8 @@ def getCompatibleGCC(nvccVersion):
 		# https://gist.github.com/ax3l/9489132
 		for key, value in CUDA_GCC_COMPATIBILITY.items():
 				versionList = key.split('-')
-				if float(nvccVersion) >= float(versionList[0]) and \
-								float(nvccVersion) <= float(versionList[1]):
+				if versionToNumber(nvccVersion) >= versionToNumber(versionList[0]) and \
+								versionToNumber(nvccVersion) <= versionToNumber(versionList[1]):
 						return value, True
 		return vGCC, False
 

@@ -292,19 +292,17 @@ def checkMPI(dictPackages):
     cmd = ("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
            % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
     status, output = runJob(cmd, showError=True)
-    if status != 0:
-        printError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
+    if status != None:
+        printError('Fails running this command: {}\nError message: {}'.format(cmd, output))
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
            " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread")
            % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
-    print('{}\n{}'.format(cmd, libhdf5))
 
     status, output = runJob(cmd)
-    if status != 0:
+    if status != None:
         printError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
-    print('hello')
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -365,7 +363,8 @@ def checkJava(dictPackages):
     with open("Xmipp.java", "w") as javaFile:
         javaFile.write(javaProg)
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
-    if runJob(cmd, showError=True)[0] != 0:
+    retCode, outputStr = runJob(cmd, showError=True)
+    if retCode!= None:
         printError(cmd, JAVAC_DOESNT_WORK_ERROR)
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
@@ -388,7 +387,7 @@ def checkJava(dictPackages):
         incs += " -I"+x
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
     status, output = runJob(cmd)
-    if status != 0:
+    if status != None:
         printError(output, JAVA_INCLUDE_ERROR)
     runJob("rm xmipp_jni_test*", showError=True)
     return OK
@@ -441,7 +440,7 @@ def checkMatlab(dictPackages):
 
     cmd = " {} -silent xmipp_mex.cpp".format(join(dictPackages["MATLAB_HOME"], 'bin', 'mex'))
     status, output = runJob(cmd, showError=True)
-    if status != 0:
+    if status != None:
         printError(output, MATLAB_HOME_ERROR)
         runJob("rm xmipp_mex*")
     runJob("rm xmipp_mex*")
@@ -481,7 +480,7 @@ def checkOPENCV(dictPackages):
         cppFile.write(cppProg)
 
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)
-    if status != 0:
+    if status != None:
         printError('OpenCV set as True but {}'.format(output))
         dictPackages['OPENCV'] = ''
 
@@ -515,7 +514,7 @@ def checkOPENCV(dictPackages):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
-    if status != 0:
+    if status != None:
         print(red('OPENCVSUPPORTSCUDA set as True but is not available'))
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
@@ -742,7 +741,7 @@ def checkHDF5(dictPackages):
     cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
            (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
-    if status != 0:
+    if status != None:
         printError(output, HDF5_ERROR)
 
     runJob("rm xmipp_test_main*", showError=True)
@@ -775,7 +774,6 @@ def checkCMake():
 
 def checkScons():
     sconsV = sconsVersion()
-    installScons()
     if sconsV != 'Unknow':
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
             status = installScons()

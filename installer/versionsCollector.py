@@ -55,8 +55,7 @@ def CUDAVersion(dictPackages):
 		Returns:
 		- str: Extracted NVCC version information.
 		"""
-		strversion = versionPackage(dictPackages['CUDA_HOME'])
-		nvccVersion = None
+		strversion = versionPackage('nvcc')
 		if strversion.find('release') != -1:
 				idx = strversion.find('release ')
 				nvccVersion = strversion[idx + len('release '):
@@ -65,11 +64,11 @@ def CUDAVersion(dictPackages):
 
 def cmakeVersion():
 		# Getting CMake version
-		cmakVersion = None
-		cmakeV = runJob('cmake --version')
-		if cmakeV[0] == 0:
-			cmakVersion = cmakeV[1].split('\n')[0].split()[-1]
-		return cmakVersion
+		cmakeVersion = None
+		retCode, outputStr = runJob('cmake --version')
+		if retCode == None:
+			cmakeVersion = outputStr.split('\n')[0].split()[-1]
+		return cmakeVersion
 
 def parsingCompilerVersion(str):
 		idx = str.find('\n')
