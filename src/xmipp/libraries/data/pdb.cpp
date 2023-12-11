@@ -26,7 +26,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include "cif++.hpp"
@@ -375,8 +374,7 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
  * @brief Checks if the file uses a supported extension type.
  * 
  * This function checks if the given file path has one of the given supported extensions, with or without compression
- * in any of the accepted compressions. If the file is a symlink, the checks are made recursively from outside to inside
- * until one of the extensions is valid or the final non-symlink file is reached and it does not have an accepted extension.
+ * in any of the accepted compressions.
  * 
  * @param filePath File including path.
  * @param acceptedExtensions List of accepted extensions.
@@ -401,15 +399,6 @@ bool checkExtension(const std::filesystem::path &filePath, const std::list<std::
                 validExtension = true;
             }
         }
-    }
-
-    // If current extension is not supported, check if file is a symlink (check extension validity for real file)
-    if(!validExtension && std::filesystem::is_symlink(filePath)) {
-        // If it is a symlink, get real filename
-        std::filesystem::path realPath = std::filesystem::read_symlink(filePath);
-
-        // Return validity with real path
-        return checkExtension(realPath, acceptedExtensions, acceptedCompressions);
     }
 
     // Returning calculated validity
