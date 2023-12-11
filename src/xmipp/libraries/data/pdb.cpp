@@ -23,11 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <fstream>
-#include <string>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
+#include <string>
 #include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
@@ -399,6 +400,15 @@ bool checkExtension(const std::filesystem::path &filePath, const std::list<std::
                 validExtension = true;
             }
         }
+    }
+
+    // If current extension is not supported, check if file is a symlink (check extension validity for real file)
+    if(!validExtension && std::filesystem::is_symlink(filePath)) {
+        // If it is a symlink, get real filename
+        std::filesystem::path realPath = std::filesystem::read_symlink(filePath);
+
+        // Return validity with real path
+        return checkExtension(realPath, acceptedExtensions, acceptedCompressions);
     }
 
     // Returning calculated validity
