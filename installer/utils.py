@@ -316,7 +316,7 @@ def isBranchUpToDate(dir: str='./') -> bool:
 	return localCommit == remoteCommit
 
 ####################### ENV FUNCTIONS #######################
-def isScipionEnv():
+def isScipionEnv() -> bool:
 	"""
 	### This function returns True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
 	
@@ -463,7 +463,7 @@ def sconsVersion():
 				return True
 		except Exception:
 			pass
-		if isScipionVersion():
+		if isScipionEnv():
 			status, output = runJob('pip install scons', showOutput=True, showCommand=True)
 			if status == 0:
 				return True
@@ -472,18 +472,6 @@ def sconsVersion():
 		else:
 			print(blue('Scons package not found, please install it  with \"pip install scons\".'))
 			return False
-
-def isScipionVersion():
-		"""
-		Checks if the current environment is a Scipion version.
-
-		Returns:
-		- bool: True if the environment is Scipion, False otherwise.
-		"""
-		status, output = runJob('echo $CONDA_PREFIX', showError=True)
-		if status == 0 and output.find('scipion3') != -1:
-			return True
-		return False
 
 def getCompatibleGCC(nvccVersion):
 		"""
