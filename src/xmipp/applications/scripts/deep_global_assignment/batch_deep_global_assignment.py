@@ -25,6 +25,7 @@ if __name__ == "__main__":
     learning_rate = float(sys.argv[8])
     symmetry = sys.argv[9]
     SNR = float(sys.argv[10])
+    modelSize = int(sys.argv[11])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -130,14 +131,16 @@ if __name__ == "__main__":
         x = Activation('relu')(x)
         return x
 
-    def constructModel(Xdim):
+    def constructModel(Xdim, modelSize):
         """RESNET architecture"""
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
         x = conv_block(inputLayer, filters=64)
         x = conv_block(x, filters=128)
         x = conv_block(x, filters=256)
-        #x = conv_block(x, filters=512)
-        #x = conv_block(x, filters=1024)
+        if modelSize>=1:
+            x = conv_block(x, filters=512)
+        if modelSize>=2:
+            x = conv_block(x, filters=1024)
         x = GlobalAveragePooling2D()(x)
         x = Dense(64, name="output", activation="linear")(x)
         return Model(inputLayer, x)
@@ -216,7 +219,7 @@ if __name__ == "__main__":
                                              [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
                                              maxShift, batch_size, Xdims, shifts, finalN, readInMemory=True)
 
-        model = constructModel(Xdims)
+        model = constructModel(Xdims, modelSize)
 
         adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss', save_best_only=True)
