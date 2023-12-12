@@ -408,10 +408,6 @@ def pathPackage(packageName):
 		"""
 		return runJob('which {}'.format(packageName), showError=True)[1]
 
-def existPath(path):
-		"""Return True if path exist, else False"""
-		pass
-
 def getINCDIRFLAG():
 		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
 
