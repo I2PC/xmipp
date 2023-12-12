@@ -36,7 +36,7 @@ from io import FileIO
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	SCIPION_ENVNAME, CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME
 
 ####################### GENERAL FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -66,8 +66,8 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
 		
 		# Defining output string
-		retCode = process.returncode
 		output, err = process.communicate()
+		retCode = process.returncode
 		outputStr = output.decode() if not retCode else err.decode()
 
 	# Printing output if specified
@@ -324,15 +324,16 @@ def isScipionEnv() -> bool:
 	- (bool): True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
 	"""
 	# Getting conda prefix path
-	retCode, output = runJob("echo $CONDA_PREFIX")
+	retCode, envPath = runJob("echo $CONDA_PREFIX")
 
 	# If command failed, we assume we are not in Scipion's env
-	# If output is empty, we are also in no env
-	if retCode != 0 or not output:
+	# If enviroment's path is empty, we are also in no env
+	if retCode != 0 or not envPath:
 		return False
 	
-	# Returning result. Output needs to be a valid path ending with Scipion's env name
-	return output.split('/')[-1] == SCIPION_ENVNAME
+	# Returning result. Enviroment's path needs to be a valid path 
+	# containing binaries's directory with scipion executable inside
+	return os.path.exists(os.path.join(envPath, 'bin', 'scipion'))
 
 ####################### VERSION FUNCTIONS #######################
 # UTILS
