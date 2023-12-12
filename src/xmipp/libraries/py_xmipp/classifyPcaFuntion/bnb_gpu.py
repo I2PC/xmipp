@@ -194,19 +194,17 @@ class BnBgpu:
         nShift = torch.tensor(nShift, device=self.cuda)
                                   
         for n in range(self.nBand):
-            #L2            
-            # batchRef[n] = torch.nn.functional.normalize(batchRef[n], dim=1)
-            # batchExp[n] = torch.nn.functional.normalize(batchExp[n], dim=1)
-            # score = torch.matmul(batchRef[n], batchExp[n].conj().t())
+                      
+            Ref_bar = batchRef[n] - batchRef[n].mean(axis=1).view(batchRef[n].shape[0],1)
+            Exp_bar = batchExp[n] - batchExp[n].mean(axis=1).view(batchExp[n].shape[0],1)
+            N = Ref_bar.shape[1]
+            cov = (Ref_bar @ Exp_bar.t()) / (N - 1)
             
-                        #L2
-            batchRef = torch.nn.functional.normalize(batchRef[n], dim=1)
-            batchExp = torch.nn.functional.normalize(batchExp[n], dim=1)
-            # batchRef = batch1_norm.t()
-            # batchExp = batch2_norm.t()  
-            score = torch.mm(batchRef, batchExp.t()) / (batchRef.size(0) - 1)
-
-            # score = torch.mm(batchRef.t(), batchExp) / (batchRef.size(1) )
+            normRef = torch.std(batchRef[n], dim=1).view(batchRef[n].shape[0],1)
+            normExp = torch.std(batchExp[n], dim=1).view(batchExp[n].shape[0],1)
+            den = torch.matmul(normRef,normExp.T)
+        
+            score = cov/den
            
         min_score, ref = torch.min(-score, 0)
         del(score)
@@ -480,6 +478,25 @@ class BnBgpu:
         resized_images = resized_images.squeeze(1)
     
         return resized_images
+    
+
+    def gamma_contrast(self, images, gamma=0.5):
+        epsilon = 1e-8  #avoid div/0
+        normalized_images = (images + 1) / 2.0
+        normalized_images = torch.clamp(normalized_images, epsilon, 1.0 - epsilon) 
+        corrected_images = torch.pow(normalized_images, 1.0 / gamma)
+        corrected_images = corrected_images * 2.0 - 1.0
+        
+        return corrected_images
+    
+    def increase_contrast_sigmoid(self, images, alpha=10, beta=0.6):
+   
+        normalized_images = (images + 1) / 2.0  # Escalar de (-1, 1) a (0, 1)
+        # sigmoid function
+        adjusted_images = 1 / (1 + torch.exp(-alpha * (normalized_images - beta)))
+        adjusted_images = adjusted_images * 2.0 - 1.0
+
+        return adjusted_images
 
 
     def determine_batches(self, free_memory, dim):

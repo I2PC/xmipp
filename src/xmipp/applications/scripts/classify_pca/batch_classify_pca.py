@@ -328,6 +328,8 @@ if __name__=="__main__":
     counts = torch.bincount(refClas.int(), minlength=classes) 
     
         #save classes
+    # cl =  bnb.gamma_contrast(cl, 0.5)
+    cl = bnb.increase_contrast_sigmoid(cl, 10, 0.6)
     file = output+".mrcs"
     save_images(cl.cpu().detach().numpy(), file)           
     
