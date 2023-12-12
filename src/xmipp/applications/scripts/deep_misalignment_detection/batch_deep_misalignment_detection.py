@@ -53,8 +53,8 @@ class ScriptDeepMisalignmentDetection(XmippScript):
     #  --------------------- I/O FUNCTIONS -----------------------------
     def readInputParams(self):
         
-        self.inputModel1 = self.getModel("deepTomoMisalignment", "xmipp_FS_phc_model.06-0.01.h5")
-        self.inputModel2 = self.getModel("deepTomoMisalignment", 'xmipp_SS_phc_model.22-0.67.h5')
+        self.inputModel1 = self.getModel("deepTomoMisalignment", "xmipp_FS_phc_model.10-0.01.h5")
+        self.inputModel2 = self.getModel("deepTomoMisalignment", "xmipp_SS_phc_model.17-0.25.h5")
 
         self.subtomoFilePath = self.getParam('--subtomoFilePath')
 
