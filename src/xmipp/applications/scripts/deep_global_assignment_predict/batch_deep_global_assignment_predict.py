@@ -30,15 +30,15 @@ if __name__ == "__main__":
 
     import keras
 
-    def produce_output(fnExp, Y, fnOut):
+    def produce_output(fnExp, Y, itemIds, fnOut):
+        Ydict = {itemId: index for index, itemId in enumerate(itemIds)}
         mdExp = xmippLib.MetaData(fnExp)
-        ID = 0
         for objId in mdExp:
-            rot, tilt, psi = Y[ID]
+            itemId = mdExp.getValue(xmippLib.MDL_ITEM_ID, objId)
+            rot, tilt, psi = Y[Ydict[itemId]]
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rot, objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilt, objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psi, objId)
-            ID += 1
         mdExp.write(fnOut)
 
     def rotation6d_to_matrixZYZ(rot):
@@ -65,6 +65,7 @@ if __name__ == "__main__":
     mdResized = xmippLib.MetaData(fnExpResized)
     XdimResized, _, _, _, _ = xmippLib.MetaDataInfo(fnExpResized)
     fnImgs = mdResized.getColumnValues(xmippLib.MDL_IMAGE)
+    itemIds = mdResized.getColumnValues(xmippLib.MDL_ITEM_ID)
 
     shiftX = mdResized.getColumnValues(xmippLib.MDL_SHIFT_X)
     shiftY = mdResized.getColumnValues(xmippLib.MDL_SHIFT_Y)
@@ -74,13 +75,12 @@ if __name__ == "__main__":
         """Shift image to center particle"""
         return shift(img, (-img_shifts[0], -img_shifts[1], 0), order=1, mode='wrap')
 
-
     numImgs = len(fnImgs)
     numBatches = numImgs // maxSize
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
 
-    Ylist = []
+    Ylist=[]
     numAngModels = len(glob.glob(os.path.join(fnModelDir,"model*.h5")))
     for index in range(numAngModels):
         AngModel = keras.models.load_model(os.path.join(fnModelDir,"model%d.h5"%index), compile=False)
@@ -102,4 +102,4 @@ if __name__ == "__main__":
     averager=RotationAverager(Ylist)
     averager.bringToAsymmetricUnit(symmetry)
     Y=averager.computeAverageAssignment()
-    produce_output(fnExp, Y, fnOut)
+    produce_output(fnExp, Y, itemIds, fnOut)
