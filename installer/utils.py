@@ -457,22 +457,10 @@ def whereIsPackage(packageName):
 
 def existPackage(packageName):
 		"""Return True if packageName exist, else False"""
-		path = pathPackage(packageName)
+		path = shutil.which(packageName)
 		if path and getPackageVersionCmd(path) is not None:
 				return True
 		return False
-
-def pathPackage(packageName):
-		"""
-		Finds the path of a specific package in the system.
-
-		Params:
-		- packageName (str): Name of the package.
-
-		Returns:
-		- str: Path to the package.
-		"""
-		return runJob('which {}'.format(packageName), showError=True)[1]
 
 def getINCDIRFLAG():
 		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
