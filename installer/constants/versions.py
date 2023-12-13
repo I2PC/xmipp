@@ -68,6 +68,7 @@ MPI_MINIMUM = '3.0'									#
 PYTHON_MINIMUM = '3.0'							#
 NUMPY_MINIMUM = '1.21'							#
 MINIMUM_CUDA_VERSION = '10.1'				#
+HDF5_MINIMUM = '1.10'								#
 #####################################
 
 # Supported gcc versions

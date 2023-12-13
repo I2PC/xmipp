@@ -46,7 +46,8 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
                         OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE, OPENCV_CUDA_WARNING,
                         STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
-                        STARPU_RUN_WARNING, STARPU_CUDA_WARNING)
+                        STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
+                        HDF5_VERSION_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
@@ -736,7 +737,8 @@ def checkHDF5(dictPackages, checkPackagesStatus, versionsPackages):
     """
     version = HDF5Version(dictPackages['HDF5_HOME'])
     versionsPackages[HDF5] = version
-
+    if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
+        checkPackagesStatus.append([HDF5_VERSION_ERROR, 'HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM)])
     cppProg = ("""
                #include <hdf5.h>
                \n int main(){}\n
