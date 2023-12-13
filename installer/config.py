@@ -43,7 +43,9 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
                         VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
-                        OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE, OPENCV_CUDA_WARNING)
+                        OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE, OPENCV_CUDA_WARNING,
+                        STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
+                        STARPU_RUN_WARNING, STARPU_CUDA_WARNING)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
@@ -548,7 +550,7 @@ def getCUDA(dictPackages):
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
         print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
 
-def checkCUDA(dictPackages):
+def checkCUDA(dictPackages, checkPackagesStatus, versionsPackages):
     """
     Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
 
@@ -563,18 +565,16 @@ def checkCUDA(dictPackages):
     """
 
     nvcc_version = getCUDAVersion(dictPackages)
+    versionsPackages[CUDA] = versionsPackages
     if nvcc_version != 'Unknow':
         gxx_version = getGPPVersion(dictPackages)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
             print(green('CUDA {} found'.format(nvcc_version)))
-            return OK
         else:
-            printError('CUDA {} not compatible with the current g++ compiler version {}\n'
+            checkPackagesStatus.append([CUDA_VERSION_WARNING, 'CUDA {} not compatible with the current g++ compiler version {}\n'
                       'Compilers candidates for your CUDA: {}'.format(
-                nvcc_version, gxx_version, candidates), CUDA_VERSION_WARNING)
-    else:
-        return CUDA_WARNING
+                nvcc_version, gxx_version, candidates)])
 
 def getSTARPU(dictPackages):
     """
@@ -602,7 +602,7 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_LIB"] = ''
         dictPackages["STARPU_LIBRARY"] = ''
 
-def checkSTARPU(dictPackages):
+def checkSTARPU(dictPackages, checkPackagesStatus, versionsPackages):
     """
     Checks the configuration of the STARPU package and CUDA compatibility, printing error messages if necessary.
 
@@ -616,21 +616,20 @@ def checkSTARPU(dictPackages):
     #TODO check behaviour in a system with starpu installed
     if dictPackages["CUDA"] != "True":
         ans = False
-        print(red("CUDA must be enabled together with STARPU"))
+        checkPackagesStatus.append([STARPU_CUDA_WARNING, ''])
     if dictPackages["STARPU_INCLUDE"] == "" or not isdir(
             dictPackages["STARPU_INCLUDE"]):
         ans = False
-        print(red("Check the STARPU_INCLUDE directory: " +
-                  dictPackages["STARPU_INCLUDE"]))
+        checkPackagesStatus.append([STARPU_INCLUDE_WARNING, "Check the STARPU_INCLUDE directory: " +
+                  dictPackages["STARPU_INCLUDE"]])
     if dictPackages["STARPU_LIB"] == "" or not isdir(
             dictPackages["STARPU_LIB"]):
         ans = False
-        print(red("Check the STARPU_LIB directory: " +
-                  dictPackages["STARPU_LIB"]))
+        checkPackagesStatus.append([STARPU_LIB_WARNING, "Check the STARPU_LIB directory: " +
+                  dictPackages["STARPU_LIB"]])
     if dictPackages["STARPU_LIBRARY"] == "":
         ans = False
-        print(red("STARPU_LIBRARY must be specified (link library name)"))
-
+        checkPackagesStatus.append([STARPU_LIBRARY_WARNING])
     if ans:
         with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
             cppFile.write("""
@@ -645,12 +644,9 @@ def checkSTARPU(dictPackages):
                  dictPackages["STARPU_INCLUDE"],
                  dictPackages["STARPU_LIB"],
                  dictPackages["STARPU_LIBRARY"]))[0] != 0:
-            print(red("Check STARPU_* settings"))
+            checkPackagesStatus.append([])
+            checkPackagesStatus.append([STARPU_LIBRARY_WARNING])
         runJob("rm -f xmipp_starpu_config_test*")
-
-    return OK
-
-
 
 # def checkPYTHONINCFLAGS(incPath):
 #     includes = incPath.split(' ')

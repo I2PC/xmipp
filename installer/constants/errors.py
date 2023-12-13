@@ -58,8 +58,14 @@ CUDA_VERSION_WARNING = 3
 CUDA_WARNING = 4
 OPENCV_WARNING = 5
 OPENCV_CUDA_WARNING = 6
+STARPU_INCLUDE_WARNING = 7
+STARPU_LIB_WARNING = 8
+STARPU_LIBRARY_WARNING = 9
+STARPU_RUN_WARNING = 10
+STARPU_CUDA_WARNING = 11
 
 # Error messages
+#TODO review the messages spelling, maybe mor links to the documentation?
 ERROR_CODE = {
 	UNKOW_ERROR: ['Unkonw error', ''],
 	SCONS_VERSION_ERROR: ['scons installation  error', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
@@ -94,8 +100,13 @@ WARNING_CODE = {
 	OPENCV_WARNING: ['OpenCV does not work',
 									 'OPENCV flag was set to False and will not be used inside Xmipp',
 									 'Please review your Opencv installation'],
-		OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work',
+  OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work',
 													'OPENCVSUPPORTSCUDA flag was set to False and will not be used inside Xmipp',
 													'Please review your Opencv installation'],
+	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU'],
+	STARPU_INCLUDE_WARNING: [],
+	STARPU_LIB_WARNING: [],
+	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name)"],
+	STARPU_RUN_WARNING: ["Check STARPU_* settings"],
 
 }
