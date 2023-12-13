@@ -37,7 +37,7 @@ from io import FileIO
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
-from .versions import getPackageVersionCmd
+from .versions import getPackageVersionCmd, versionToNumber
 
 ####################### GENERAL FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -408,37 +408,6 @@ def pathPackage(packageName):
 
 def getINCDIRFLAG():
 		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
-
-def versionToNumber(strVersion: str) -> float:
-	"""
-	### This function converts the version string into a version number that can be numerically compared.
-	#### Supports any length of version numbers, but designed for three, in format X.Y.Z (mayor.minor.micro).
-
-	#### Params:
-	strVersion (str): String containing the version numbers.
-
-	#### Returns:
-	(float): Number representing the value of the version numbers combined.
-	"""
-	# Defining the most significant version number value
-	mayorMultiplier = 100
-
-	# Getting version numbers separated by dots
-	listVersion = strVersion.split('.')
-
-	# Getting the numeric version for each element
-	numberVersion = 0
-	for i in range(len(listVersion)):
-		try:
-			# Multiply each next number by the mayor multiplier divided by 10 in each iteration
-			# That way, mayor * 100, minor * 10, micro * 1, next * 0.1, ...
-			numberVersion += int(listVersion[i]) * (mayorMultiplier / (10 ** i))
-		except Exception:
-			# If there is some error, exit the loop
-			break
-	
-	# Returning result number
-	return numberVersion
 
 def sconsVersion():
 		# TODO: Revisar: no se "puede" devolver un número indeterminado de argumentos, tienes que devolver siempre el mismo numero, aunque a veces uno no sirva

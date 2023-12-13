@@ -44,7 +44,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
                         VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
                         OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE)
-from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPackage,
+from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
@@ -52,7 +52,7 @@ from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPack
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 cmakeVersion, gppVersion, gccVersion, sconsVersion)
-from .versions import getCUDAVersion
+from .versions import getCUDAVersion, versionToNumber
 from datetime import datetime
 from sysconfig import get_paths
 
