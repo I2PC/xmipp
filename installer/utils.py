@@ -36,7 +36,7 @@ from io import FileIO
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
 
 ####################### GENERAL FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -139,7 +139,7 @@ def printError(errorMsg: str, retCode: int=1):
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	print(red(errorMsg))
+	printMessage(red(errorMsg), debug=True)
 	sys.exit(retCode)
 
 def printMessage(text: str, debug: bool=False):
@@ -317,19 +317,31 @@ def isBranchUpToDate(dir: str='./') -> bool:
 	return localCommit == remoteCommit
 
 ####################### ENV FUNCTIONS #######################
-def isScipionEnv() -> bool:
-	"""
-	### This function returns True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
-	
-	#### Returns:
-	- (bool): True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
-	"""
+def getCurrentEnvName() -> str:
 	# Getting conda prefix path
 	retCode, envPath = runJob("echo $CONDA_PREFIX")
 
-	# If command failed, we assume we are not in Scipion's env
+	# If command failed, we assume we are not in an enviroment
 	# If enviroment's path is empty, we are also in no env
 	if retCode != 0 or not envPath:
+		return ''
+
+	# Return enviroment name, which is the last directory within the
+	# path contained in $CONDA_PREFIX
+	return envPath.split('/')[-1]
+
+def isScipionEnv() -> bool:
+	"""
+	### This function returns True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
+
+	#### Returns:
+	- (bool): True if the current active enviroment is Scipion's enviroment, or False otherwise or if some error happened.
+	"""
+	# Getting enviroment name
+	envPath = getCurrentEnvName()
+
+	# If enviroment's path is empty, we are in no env or an error happened
+	if not envPath:
 		return False
 	
 	# Returning result. Enviroment's path needs to be a valid path 
@@ -358,21 +370,45 @@ def findFileInDirList(fnH, dirlist):
 					return os.path.dirname(validDirs[0])
 	return ''
 
-def versionPackage(package):
+def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	"""
-	Retrieves the version of a package or program by executing '[package] --version' command.
+	### Retrieves the version of a package or program by executing '[packageName] --version' command.
 
 	Params:
-	- package (str): Name of the package or program.
+	- packageName (str): Name of the package or program.
 
 	Returns:
-	- str: Version information of the package or an empty string if not found.
+	- (str | None): Version information of the package or None if not found or errors happened.
 	"""
-	cmd = '{} --version'.format(package)
-	status, output = runJob(cmd)
-	if status != 0 and status != None  or output.find('not found') != -1:
-		return ''
-	return output
+	# Running command
+	retCode, output = runJob(f'{packageName} --version', showError=True)
+
+	# Check result if there were no errors
+	return output if retCode == 0 else None
+
+def getPythonPackageVersion(packageName: str) -> Union[str, None]:
+	"""
+	### Retrieves the version of a Python package.
+
+	Params:
+	- packageName (str): Name of the Python package.
+
+	Returns:
+	- (str | None): Version string of the Python package or None if not found or errors happened.
+	"""
+	# Running command
+	retCode, output = runJob(f'pip show {packageName}')
+
+	# Extract variable if there were no errors
+	if retCode == 0 and output:
+		# Split output into lines and select the one which starts with 'Version:'
+		output = output.splitlines()
+
+		for line in output:
+			if line.startswith('Version'):
+				# If that line was found, return last word of such line
+				return line.split()[-1]
+
 
 def whereIsPackage(packageName):
 		"""
@@ -394,7 +430,7 @@ def whereIsPackage(packageName):
 def existPackage(packageName):
 		"""Return True if packageName exist, else False"""
 		path = pathPackage(packageName)
-		if path != '' and versionPackage(path) != '':
+		if path and getPackageVersionCmd(path) is not None:
 				return True
 		return False
 
@@ -576,27 +612,22 @@ def get_Hdf5_name(libdirflags):
 						return "hdf5_serial"
 		return "hdf5"
 
-def isScipionEnviroment():
-		status = runJob('conda env list | grep "scipion3 "')
-		if status[0] == 0:
-				return True
-		else:
-				return False
-
 def installScons():
-		if isScipionEnviroment():
-				status = runJob('conda activate scipion3')
-				if status[0] == 0:
-						status = runJob('pip install --upgrade scons')
-						if status[0] == 0 and status[1].find('Successfully installed scons') != -1:
-								print('Succesfully installed or updated Scons on scipion3 enviroment')
-								return True
-						else:
-								return False, 'conda could not be installed on scipion3 enviroment with pip'
-				else:
-						return False, 'scipion3 enviroment could not be activated'
-		else:
-				return False, 'scipion3 enviroment not found'
+	"""
+	### This function attempts to install Scons.
+	"""
+	# Attempt installing/upgrading Scons
+	retCode = runJob('pip install --upgrade scons', streaming=True)[0]
+
+	# Obtain enviroment's name for log's message
+	envName = getCurrentEnvName()
+
+	# If command failed, show error message and exit
+	if retCode != 0:
+		printError(f'Scons could not be installed in enviroment "{envName}". Please, install it manually.', retCode=SCONS_VERSION_ERROR)
+
+	# If succeeded, log message
+	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.')
 		
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
 def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False) -> Tuple[int, str]:
