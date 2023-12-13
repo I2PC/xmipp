@@ -57,6 +57,7 @@ MATLAB_HOME_WARNING = 2
 CUDA_VERSION_WARNING = 3
 CUDA_WARNING = 4
 OPENCV_WARNING = 5
+OPENCV_CUDA_WARNING = 6
 
 # Error messages
 ERROR_CODE = {
@@ -90,5 +91,11 @@ WARNING_CODE = {
   MATLAB_HOME_WARNING: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
 	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
 	CUDA_WARNING: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
-  OPENCV_WARNING: ['OpenCV does not work', 'Please review your Opencv installation']
+	OPENCV_WARNING: ['OpenCV does not work',
+									 'OPENCV flag was set to False and will not be used inside Xmipp',
+									 'Please review your Opencv installation'],
+		OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work',
+													'OPENCVSUPPORTSCUDA flag was set to False and will not be used inside Xmipp',
+													'Please review your Opencv installation'],
+
 }

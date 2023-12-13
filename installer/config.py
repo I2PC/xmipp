@@ -43,7 +43,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
                         VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
-                        OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE)
+                        OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE, OPENCV_CUDA_WARNING)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
@@ -107,24 +107,24 @@ def checkConfig(dictPackages):
     - dictPackages (dict): Dictionary containing package information.
 
     """
-    checkErrors = []
+    checkPackagesStatus = []
     versionsPackages = VERSION_PACKAGES
 
-    checkCC(dictPackages, checkErrors, versionsPackages) #TODO extra check, run a compillation?
-    checkCXX(dictPackages, checkErrors, versionsPackages) #TODO extra check, run a compillation?
-    checkMPI(dictPackages, checkErrors, versionsPackages)
-    checkJava(dictPackages, checkErrors, versionsPackages)
+    checkCC(dictPackages, checkPackagesStatus, versionsPackages) #TODO extra check, run a compillation?
+    checkCXX(dictPackages, checkPackagesStatus, versionsPackages) #TODO extra check, run a compillation?
+    checkMPI(dictPackages, checkPackagesStatus, versionsPackages)
+    checkJava(dictPackages, checkPackagesStatus, versionsPackages)
     if dictPackages['MATLAB'] == 'True':
-        checkMatlab(dictPackages, checkErrors)
+        checkMatlab(dictPackages, checkPackagesStatus)
     if dictPackages['OPENCV'] == 'True':
-        checkOPENCV(dictPackages, checkErrors, versionsPackages)
+        checkOPENCV(dictPackages, checkPackagesStatus, versionsPackages)
     if dictPackages['CUDA'] == 'True':
-        checkCUDA(dictPackages, checkErrors, versionsPackages)
+        checkCUDA(dictPackages, checkPackagesStatus, versionsPackages)
     if dictPackages['STARPU'] == 'True':
-        checkSTARPU(dictPackages, checkErrors, versionsPackages)
-    checkHDF5(dictPackages, checkErrors, versionsPackages)
-    checkScons(checkErrors, versionsPackages)
-    checkCMake(checkErrors, versionsPackages)
+        checkSTARPU(dictPackages, checkPackagesStatus, versionsPackages)
+    checkHDF5(dictPackages, checkPackagesStatus, versionsPackages)
+    checkScons(checkPackagesStatus, versionsPackages)
+    checkCMake(checkPackagesStatus, versionsPackages)
 
 
 def existConfig():
@@ -523,12 +523,10 @@ def checkOPENCV(dictPackages, checkErrors, versionsPackages):
         cppFile.write(cppProg)
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
     if status != None:
-        print(red('OPENCVSUPPORTSCUDA set as True but is not available'))
+        checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
     runJob("rm xmipp_test_opencv*", showError=True)
-
-    return OK
 
 def getCUDA(dictPackages):
     """
