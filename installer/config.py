@@ -47,7 +47,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
-                    getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
+                    getCompatibleGCC, CXXVersion, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
