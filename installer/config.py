@@ -127,9 +127,9 @@ def checkConfig(dictPackages):
         checkCUDA(dictPackages, checkPackagesStatus, versionsPackages)
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages, checkPackagesStatus, versionsPackages)
-    checkHDF5(dictPackages, checkPackagesStatus, versionsPackages)
-    checkScons(checkPackagesStatus, versionsPackages)
-    checkCMake(checkPackagesStatus, versionsPackages)
+    checkHDF5(dictPackages, versionsPackages)
+    checkScons(versionsPackages)
+    checkCMake(versionsPackages)
 
 
 def existConfig():
@@ -722,7 +722,7 @@ def getINCDIRFLAGS(dictPackages):
     else:
         print(red('HDF5 not detected but required, please install it'))
 
-def checkHDF5(dictPackages, checkPackagesStatus, versionsPackages):
+def checkHDF5(dictPackages, versionsPackages):
     """
     Checks HDF5 library configuration based on provided package information.
 
@@ -738,7 +738,7 @@ def checkHDF5(dictPackages, checkPackagesStatus, versionsPackages):
     version = HDF5Version(dictPackages['HDF5_HOME'])
     versionsPackages[HDF5] = version
     if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
-        checkPackagesStatus.append([HDF5_VERSION_ERROR, 'HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM)])
+        printError('HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), HDF5_VERSION_ERROR)
     cppProg = ("""
                #include <hdf5.h>
                \n int main(){}\n
@@ -749,13 +749,13 @@ def checkHDF5(dictPackages, checkPackagesStatus, versionsPackages):
            (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != None:
-        checkPackagesStatus.append([HDF5_ERROR, output])
+        printError(retCode=HDF5_ERROR, errorMsg=output)
 
     runJob("rm xmipp_test_main*", showError=True)
     print(green('HDF5 installation found'))
 
 
-def checkCMake():
+def checkCMake(versionsPackages):
     """
     ### This function checks if the current installed version, if installed, is above the minimum required version.
     ### If no version is provided it just checks if CMake is installed.
@@ -768,6 +768,7 @@ def checkCMake():
     """
     try:
         cmakVersion = getCmakeVersion()
+        versionsPackages[CMAKE] =cmakVersion
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
             printError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
@@ -778,23 +779,24 @@ def checkCMake():
 
     print(green('cmake {} found'.format(cmakVersion)))
 
-def checkScons():
-	sconsV = getSconsVersion()
-	if sconsV is not None:
-		if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
-			status = installScons()
-			if status[0]:
-				sconsV = getSconsVersion()
-				print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
-			else:
-				printError('scons found {}, required {}\n{}'.
-					format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
-		else:
-			print(green('SCons {} found'.format(sconsV)))
-	else:
-		status = installScons()
-		if status[0]:
-			sconsV = getSconsVersion()
-			print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
-		else:
-			printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
+def checkScons(versionsPackages):
+    sconsV = getSconsVersion()
+    versionsPackages[SCONS] = sconsV
+    if sconsV is not None:
+        if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
+          status = installScons()
+          if status[0]:
+            sconsV = getSconsVersion()
+            print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
+          else:
+            printError('scons found {}, required {}\n{}'.
+              format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
+        else:
+          print(green('SCons {} found'.format(sconsV)))
+    else:
+        status = installScons()
+        if status[0]:
+          sconsV = getSconsVersion()
+          print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
+        else:
+          printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
