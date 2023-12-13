@@ -31,9 +31,50 @@ os, architecture, cuda, cmake, gpp, gcc and scons.
 from typing import Dict, Union
 
 # Installer imports
-from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
+from .utils import runJob
 from .constants import UNKNOWN_VALUE
 
+####################### GENERAL FUNCTIONS #######################
+def getPackageVersionCmd(packageName: str) -> Union[str, None]:
+	"""
+	### Retrieves the version of a package or program by executing '[packageName] --version' command.
+
+	Params:
+	- packageName (str): Name of the package or program.
+
+	Returns:
+	- (str | None): Version information of the package or None if not found or errors happened.
+	"""
+	# Running command
+	retCode, output = runJob(f'{packageName} --version', showError=True)
+
+	# Check result if there were no errors
+	return output if retCode == 0 else None
+
+def getPythonPackageVersion(packageName: str) -> Union[str, None]:
+	"""
+	### Retrieves the version of a Python package.
+
+	Params:
+	- packageName (str): Name of the Python package.
+
+	Returns:
+	- (str | None): Version string of the Python package or None if not found or errors happened.
+	"""
+	# Running command
+	retCode, output = runJob(f'pip show {packageName}')
+
+	# Extract variable if there were no errors
+	if retCode == 0 and output:
+		# Split output into lines and select the one which starts with 'Version:'
+		output = output.splitlines()
+
+		for line in output:
+			if line.startswith('Version'):
+				# If that line was found, return last word of such line
+				return line.split()[-1]
+
+####################### SPECIFIC FUNCTIONS #######################
 def getOSReleaseName() -> str:
 	"""
 	### This function returns the name of the current system OS release.

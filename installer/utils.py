@@ -37,6 +37,7 @@ from io import FileIO
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
+from .versions import getPackageVersionCmd
 
 ####################### GENERAL FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -128,7 +129,6 @@ def getFormattingTabs(text: str) -> str:
 	- (str): Formatted text.
 	"""
 	return text.expandtabs(TAB_SIZE)
-
 
 def printError(errorMsg: str, retCode: int=1):
 	"""
@@ -369,46 +369,6 @@ def findFileInDirList(fnH, dirlist):
 			if len(validDirs) > 0:
 					return os.path.dirname(validDirs[0])
 	return ''
-
-def getPackageVersionCmd(packageName: str) -> Union[str, None]:
-	"""
-	### Retrieves the version of a package or program by executing '[packageName] --version' command.
-
-	Params:
-	- packageName (str): Name of the package or program.
-
-	Returns:
-	- (str | None): Version information of the package or None if not found or errors happened.
-	"""
-	# Running command
-	retCode, output = runJob(f'{packageName} --version', showError=True)
-
-	# Check result if there were no errors
-	return output if retCode == 0 else None
-
-def getPythonPackageVersion(packageName: str) -> Union[str, None]:
-	"""
-	### Retrieves the version of a Python package.
-
-	Params:
-	- packageName (str): Name of the Python package.
-
-	Returns:
-	- (str | None): Version string of the Python package or None if not found or errors happened.
-	"""
-	# Running command
-	retCode, output = runJob(f'pip show {packageName}')
-
-	# Extract variable if there were no errors
-	if retCode == 0 and output:
-		# Split output into lines and select the one which starts with 'Version:'
-		output = output.splitlines()
-
-		for line in output:
-			if line.startswith('Version'):
-				# If that line was found, return last word of such line
-				return line.split()[-1]
-
 
 def whereIsPackage(packageName):
 		"""
