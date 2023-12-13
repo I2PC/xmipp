@@ -91,7 +91,8 @@ CONFIG_DICT = {'INCDIRFLAGS': '',
 								'STARPU_LIBRARY': '',
 								'MATLAB': '',
 								'MATLAB_HOME': '',
-								'LIBDIRFLAGS': ''
+								'LIBDIRFLAGS': '',
+							  'HDF5_HOME': ''
 }
 
 '''

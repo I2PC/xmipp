@@ -51,7 +51,8 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
                     getCompatibleGCC, CXXVersion, checkLib,
-                    get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber)
+                    get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
+                    HDF5Version)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
@@ -401,7 +402,6 @@ def checkJava(dictPackages, checkErrors, versionsPackages):
     if status != None:
         checkErrors.append([JAVA_INCLUDE_ERROR, output])
     runJob("rm xmipp_jni_test*", showError=True)
-    return OK
 
 def getMatlab(dictPackages):
     """
@@ -645,7 +645,6 @@ def checkSTARPU(dictPackages, checkPackagesStatus, versionsPackages):
                  dictPackages["STARPU_INCLUDE"],
                  dictPackages["STARPU_LIB"],
                  dictPackages["STARPU_LIBRARY"]))[0] != 0:
-            checkPackagesStatus.append([])
             checkPackagesStatus.append([STARPU_LIBRARY_WARNING])
         runJob("rm -f xmipp_starpu_config_test*")
 
@@ -693,6 +692,7 @@ def getLIBDIRFLAGS(dictPackages):
         hdf5PathFound = findFileInDirList("libhdf5*", path)
         if hdf5PathFound:
             dictPackages['LIBDIRFLAGS'] = " -L%s" % hdf5PathFound
+            dictPackages['HDF5_HOME'] = hdf5PathFound
             print(green('HDF5 detected at {}'.format(hdf5PathFound)))
             break
     if hdf5PathFound == '':
@@ -721,7 +721,7 @@ def getINCDIRFLAGS(dictPackages):
     else:
         print(red('HDF5 not detected but required, please install it'))
 
-def checkHDF5(dictPackages):
+def checkHDF5(dictPackages, checkPackagesStatus, versionsPackages):
     """
     Checks HDF5 library configuration based on provided package information.
 
@@ -734,7 +734,9 @@ def checkHDF5(dictPackages):
         False, 6: HDF5 configuration failed.
         True, 0: HDF5 configuration successful.
     """
-    libhdf5 = get_Hdf5_name(dictPackages['LIBDIRFLAGS'])#TODO review behave
+    version = HDF5Version(dictPackages['HDF5_HOME'])
+    versionsPackages[HDF5] = version
+
     cppProg = ("""
                #include <hdf5.h>
                \n int main(){}\n
@@ -745,11 +747,10 @@ def checkHDF5(dictPackages):
            (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != None:
-        printError(output, HDF5_ERROR)
+        checkPackagesStatus.append([HDF5_ERROR, output])
 
     runJob("rm xmipp_test_main*", showError=True)
     print(green('HDF5 installation found'))
-    return OK
 
 
 def checkCMake():

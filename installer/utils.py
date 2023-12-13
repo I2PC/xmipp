@@ -542,6 +542,23 @@ def MPIVersion(string):
 		idx2 = string[:idx].rfind(' ')
 		return string[idx2:idx].replace(' ', '')
 
+
+def HDF5Version(pathHDF5):
+		"""
+		Extracts the HDF5 version information from a given string.
+
+		Params:
+		- string (str): Input string containing HDF5 version details.
+
+		Returns:
+		- str: Extracted HDF5 version information.
+		"""
+		cmd = '''strings {}/libhdf5.so  | grep "HDF5 library version: "'''.format(pathHDF5)
+		status, output = runJob(cmd)
+		if status == 0:
+				version = output.split(' ')[-1]
+				return version
+
 def JAVAVersion(string):
 		"""
 		Extracts the JAVA version information from a given string.
