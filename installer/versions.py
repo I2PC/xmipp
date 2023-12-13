@@ -105,7 +105,32 @@ def versionToNumber(strVersion: str) -> float:
 	# Returning result number
 	return numberVersion
 
-####################### SPECIFIC FUNCTIONS #######################
+####################### AUX FUNCTIONS #######################
+def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
+	"""
+	### Parses the string output of the command that extracts the version of the given compiler.
+
+	#### Params:
+	- versionCmdStr (str): Output string of the --version command of the given compiler.
+
+	#### Returns:
+	- (str): Compiler's version.
+	"""
+	# Initialize default value
+	compilerVersion = None
+
+	# If the command string exists, get the first line
+	if versionCmdStr is not None:
+		versionStr = versionCmdStr.splitlines()[0]
+		
+		# From the first line, get the last word (version number string)
+		if versionStr:
+			compilerVersion = versionStr.split()[-1]
+
+	# Returning compiler version
+	return compilerVersion
+
+####################### PACKAGE SPECIFIC FUNCTIONS #######################
 def getOSReleaseName() -> str:
 	"""
 	### This function returns the name of the current system OS release.
@@ -199,7 +224,7 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Returning resulting version
 	return nvccVersion
 
-def cmakeVersion() -> str:
+def getCmakeVersion() -> str:
 	"""
 	### Extracts the CMake version.
 
@@ -219,30 +244,6 @@ def cmakeVersion() -> str:
 
 	# Return cmake version
 	return cmakeVersion
-
-def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
-	"""
-	### Parses the string output of the command that extracts the version of the given compiler.
-
-	#### Params:
-	- versionCmdStr (str): Output string of the --version command of the given compiler.
-
-	#### Returns:
-	- (str): Compiler's version.
-	"""
-	# Initialize default value
-	compilerVersion = None
-
-	# If the command string exists, get the first line
-	if versionCmdStr is not None:
-		versionStr = versionCmdStr.splitlines()[0]
-		
-		# From the first line, get the last word (version number string)
-		if versionStr:
-			compilerVersion = versionStr.split()[-1]
-
-	# Returning compiler version
-	return compilerVersion
 
 def getGPPVersion(dictPackages: Dict) -> Union[str, None]:
 	"""
@@ -268,7 +269,7 @@ def getGCCVersion(dictPackages: Dict) -> Union[str, None]:
 	"""
 	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CC']))
 
-def sconsVersion():
+def getSconsVersion():
 	"""
 	### Extracts scons's version string.
 

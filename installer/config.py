@@ -51,7 +51,7 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     get_Hdf5_name, printError, MPIVersion, installScons)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-                                cmakeVersion, getGPPVersion, getGCCVersion, sconsVersion)
+                                getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
 from .versions import getCUDAVersion, versionToNumber
 from datetime import datetime
 from sysconfig import get_paths
@@ -766,7 +766,7 @@ def checkCMake():
     An error message in color red in a string if there is a problem with CMake, None otherwise.
     """
     try:
-        cmakVersion = cmakeVersion()
+        cmakVersion = getCmakeVersion()
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
             printError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
@@ -778,12 +778,12 @@ def checkCMake():
     print(green('cmake {} found'.format(cmakVersion)))
 
 def checkScons():
-	sconsV = sconsVersion()
+	sconsV = getSconsVersion()
 	if sconsV is not None:
 		if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
 			status = installScons()
 			if status[0]:
-				sconsV = sconsVersion()
+				sconsV = getSconsVersion()
 				print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
 			else:
 				printError('scons found {}, required {}\n{}'.
@@ -793,7 +793,7 @@ def checkScons():
 	else:
 		status = installScons()
 		if status[0]:
-			sconsV = sconsVersion()
+			sconsV = getSconsVersion()
 			print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
 		else:
 			printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
