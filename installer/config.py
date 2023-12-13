@@ -48,9 +48,9 @@ from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPack
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons)
 
-from .versionsCollector import (osVersion, architectureVersion, CUDAVersion,
+from .versionsCollector import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 cmakeVersion, gppVersion, gccVersion, sconsVersion)
-from .versionsCollector import CUDAVersion
+from .versionsCollector import getCUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
 
@@ -556,7 +556,7 @@ def checkCUDA(dictPackages):
         - 18: CUDA version information not available.
     """
 
-    nvcc_version = CUDAVersion(dictPackages)
+    nvcc_version = getCUDAVersion(dictPackages)
     if nvcc_version != 'Unknow':
         gxx_version = gppVersion(dictPackages)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
@@ -773,26 +773,22 @@ def checkCMake():
     print(green('cmake {} found'.format(cmakVersion)))
 
 def checkScons():
-    sconsV = sconsVersion()
-    if sconsV != 'Unknow':
-        if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
-            status = installScons()
-            if status[0]:
-                sconsV = sconsVersion()
-                print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
-            else:
-                printError('scons found {}, required {}\n{}'.
-                          format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
-        else:
-            print(green('SCons {} found'.format(sconsV)))
-    else:
-        status = installScons()
-        if status[0]:
-            sconsV = sconsVersion()
-            print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
-        else:
-            printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
-
-
-
-
+	sconsV = sconsVersion()
+	if sconsV is not None:
+		if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
+			status = installScons()
+			if status[0]:
+				sconsV = sconsVersion()
+				print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
+			else:
+				printError('scons found {}, required {}\n{}'.
+					format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
+		else:
+			print(green('SCons {} found'.format(sconsV)))
+	else:
+		status = installScons()
+		if status[0]:
+			sconsV = sconsVersion()
+			print(green('Scons {} installed on scipion3 enviroment'.format(sconsV)))
+		else:
+			printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)

@@ -31,7 +31,7 @@ import json, re, hashlib
 from typing import Dict, Union
 
 # Self imports
-from .versionsCollector import osVersion, architectureVersion, CUDAVersion,\
+from .versionsCollector import getOSReleaseName, getArchitectureName, getCUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
 from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate
 from .constants import API_URL, LOG_FILE
@@ -74,9 +74,9 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"userId": userId
 		},
 		"version": {
-			"os": osVersion(),
-			"architecture": architectureVersion(),
-			"cuda": CUDAVersion(dictPackage),
+			"os": getOSReleaseName(),
+			"architecture": getArchitectureName(),
+			"cuda": getCUDAVersion(dictPackage),
 			"cmake": cmakeVersion(),
 			"gcc": gccVersion(dictPackage),
 			"gpp": gppVersion(dictPackage),

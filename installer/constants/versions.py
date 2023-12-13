@@ -88,4 +88,5 @@ CUDA_GCC_COMPATIBILITY = {
 	'12.0-12.3': vGCC[vGCC.index('12.3'):]
 }
 
-
+# Other variables
+UNKNOWN_VALUE = 'Unknown'

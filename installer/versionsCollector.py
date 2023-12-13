@@ -26,49 +26,119 @@
 This module contains functions to collect the versions of
 os, architecture, cuda, cmake, gpp, gcc and scons.
 """
+
 from .utils import runJob, versionPackage
+from .constants import UNKNOWN_VALUE
 
-def osVersion():
-		out = runJob('cat /etc/os-release', showCommand=False)
-		strTarget = 'PRETTY_NAME="'
-		idx = out[1].find(strTarget)
-		osV = None
-		if idx != -1:
-				idx2 = out[1][idx:].find('"\n')
-				osV = out[1][len(strTarget):idx2]
-		return osV
+def getOSReleaseName() -> str:
+	"""
+	### This function returns the name of the current system OS release.
 
-def architectureVersion():
-		architectureV = None
-		out = runJob('cat /sys/devices/cpu/caps/pmu_name')
-		if out[0] == 0:
-				architectureV = out[1]
-		return architectureV
+	#### Returns:
+	- (str): OS release name.
+	"""
+	# Initializing default release name 
+	releaseName = UNKNOWN_VALUE
+	
+	# Text around release name
+	textBefore = 'PRETTY_NAME="'
+	textAfter = '"\n'
 
-def CUDAVersion(dictPackages):
-		"""
-		Extracts the NVCC (NVIDIA CUDA Compiler) version information from a given string.
+	# Obtaining os release name
+	retCode, name = runJob('cat /etc/os-release')
 
-		Params:
-		- strVersion (str): Input string containing CUDA version details.
+	# Look for release name if command did not fail
+	if retCode == 0:
+		# Find release name's line in command output
+		targetStart = name.find(textBefore)
+		if targetStart != 1:
+			# Search end of release name's line
+			nameEnd = name[targetStart:].find(textAfter)
 
-		Returns:
-		- str: Extracted NVCC version information.
-		"""
-		strversion = versionPackage('nvcc')
-		if strversion.find('release') != -1:
-				idx = strversion.find('release ')
-				nvccVersion = strversion[idx + len('release '):
-																 idx + strversion[idx:].find(',')]
-		return nvccVersion
+			# Calculate release name's start index
+			nameStart = targetStart + len(textBefore)
+			if nameEnd != -1 and nameStart != nameEnd:
+				# If everything was correctly found and string is 
+				# not empty, extract release name
+				releaseName = name[nameStart:nameEnd]
 
-def cmakeVersion():
-		# Getting CMake version
-		cmakeVersion = None
-		retCode, outputStr = runJob('cmake --version')
-		if retCode == None:
-			cmakeVersion = outputStr.split('\n')[0].split()[-1]
-		return cmakeVersion
+	# Return release name
+	return releaseName
+
+def getArchitectureName() -> str:
+	"""
+	### This function returns the name of the system's architecture name.
+
+	#### Returns:
+	- (str): Architecture name.
+	"""
+	# Initializing to unknown value
+	archName = UNKNOWN_VALUE
+
+	# Obtaining architecture name
+	retCode, architecture = runJob('cat /sys/devices/cpu/caps/pmu_name')
+
+	# If command worked and returned info, extract it
+	if retCode == 0 and architecture:
+		archName = architecture
+	
+	# Returing architecture name
+	return archName
+
+def getCUDAVersion(dictPackages=None) -> str:
+	"""
+	### Extracts the NVCC (NVIDIA CUDA Compiler) version.
+
+	#### Returns:
+	- (str): CUDA version.
+	"""
+	# Initializing default version
+	nvccVersion = None
+
+	# Extracting version command string
+	versionCmdStr = versionPackage('nvcc')
+
+	# Defining text around version number
+	textBefore = 'release '
+	textAfter = ','
+
+	# Finding the text before the version to obtain its starting index
+	textBeforeStart = versionCmdStr.find(textBefore)
+	if textBeforeStart != -1:
+		# Calculating location of version string start
+		# if the text before was found
+		versionStart = textBeforeStart + len(textBefore)
+
+		# If exists, getting location of text after version
+		versionEnd = versionCmdStr[versionStart:].find(textAfter)
+
+		if versionEnd != -1 and versionStart != versionEnd:
+			# If everything was found and string is not empty, extracting version
+			nvccVersion = versionCmdStr[versionStart:versionStart + versionEnd]
+	
+	# Returning resulting version
+	return nvccVersion
+
+def cmakeVersion() -> str:
+	"""
+	### Extracts the CMake version.
+
+	#### Returns:
+	- (str): CMake version.
+	"""
+	# Initializing default version
+	cmakeVersion = None
+
+	# Extracting version command string
+	versionCmdStr = versionPackage('cmake')
+
+	# Version number is the last word of the first line of the output text
+	if versionCmdStr:
+		# Only extract if command output string is not empty
+		cmakeVersion = versionCmdStr.split('\n')[0].split()[-1]
+
+	# Return cmake version
+	return cmakeVersion
 
 def parsingCompilerVersion(str):
 		idx = str.find('\n')
@@ -81,6 +151,7 @@ def parsingCompilerVersion(str):
 
 def gppVersion(dictPackages):
 		strVersion = versionPackage(dictPackages['CXX'])
+		print(strVersion)
 		return parsingCompilerVersion(strVersion)
 
 def gccVersion(dictPackages):
@@ -96,4 +167,3 @@ def sconsVersion():
 			version = strVersion[idx + len('SCons: v'):idx + idx2].split('.')
 			sconsV = '.'.join(version[:3])
 		return sconsV
-
