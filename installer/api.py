@@ -31,7 +31,7 @@ import json, re, hashlib
 from typing import Dict, Union
 
 # Self imports
-from .versionsCollector import getOSReleaseName, getArchitectureName, getCUDAVersion,\
+from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
 	cmakeVersion, gppVersion, gccVersion, sconsVersion
 from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate
 from .constants import API_URL, LOG_FILE

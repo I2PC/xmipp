@@ -48,9 +48,9 @@ from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPack
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons)
 
-from .versionsCollector import (getOSReleaseName, getArchitectureName, getCUDAVersion,
+from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 cmakeVersion, gppVersion, gccVersion, sconsVersion)
-from .versionsCollector import getCUDAVersion
+from .versions import getCUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
 
