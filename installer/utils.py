@@ -27,7 +27,7 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess
+import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess, shutil
 from typing import List, Tuple, Union
 from sysconfig import get_paths
 
@@ -36,7 +36,7 @@ from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
 
-####################### GENERAL FUNCTIONS #######################
+####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
@@ -61,7 +61,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	if streaming:
 		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
-		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
+		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		
 		# Defining output string
 		output, err = process.communicate()
