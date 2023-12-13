@@ -27,18 +27,16 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import pkg_resources, sys, glob, distutils.spawn, os, io, time
+import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess, shutil
 from typing import List, Tuple, Union
 from sysconfig import get_paths
-from subprocess import Popen, PIPE
-from io import FileIO
 
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
 
-####################### GENERAL FUNCTIONS #######################
+####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
 	"""
 	### This function runs the given command.
@@ -63,7 +61,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	if streaming:
 		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
-		process = Popen(cmd, cwd=cwd, env=os.environ, stdout=PIPE, stderr=PIPE, shell=True)
+		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		
 		# Defining output string
 		output, err = process.communicate()
@@ -459,22 +457,10 @@ def whereIsPackage(packageName):
 
 def existPackage(packageName):
 		"""Return True if packageName exist, else False"""
-		path = pathPackage(packageName)
+		path = shutil.which(packageName)
 		if path and getPackageVersionCmd(path) is not None:
 				return True
 		return False
-
-def pathPackage(packageName):
-		"""
-		Finds the path of a specific package in the system.
-
-		Params:
-		- packageName (str): Name of the package.
-
-		Returns:
-		- str: Path to the package.
-		"""
-		return runJob('which {}'.format(packageName), showError=True)[1]
 
 def getINCDIRFLAG():
 		return ' -I ' + os.path.join(get_paths()['data'].replace(' ', ''),  'include')
@@ -569,25 +555,6 @@ def JAVAVersion(string):
 		idx = string.find('\n')
 		string[:idx].split(' ')[1]
 		return string[:idx].split(' ')[1]
-def findFileInDirList(fnH, dirlist):
-		"""
-    Searches for a specific file within a list of directories.
-
-    Params:
-    - fnH (str): Name of the file to be found.
-    - dirlist (str or list): List of directories to search in.
-
-    Returns:
-    - str: Directory containing the specified file, or an empty string if not found.
-		"""
-		if isinstance(dirlist, str):
-				dirlist = [dirlist]
-
-		for dir in dirlist:
-				validDirs = glob.glob(os.path.join(dir, fnH))
-				if len(validDirs) > 0:
-						return os.path.dirname(validDirs[0])
-		return ''
 
 def checkLib(gxx, libFlag):
 		"""
@@ -662,11 +629,11 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 		with io.open(CMD_OUT_LOG_FILE, "wb") as writerOut, io.open(CMD_OUT_LOG_FILE, "rb", 0) as readerOut,\
 			io.open(CMD_ERR_LOG_FILE, "wb") as writerErr, io.open(CMD_ERR_LOG_FILE, "rb", 0) as readerErr:
 			# Configure stdout and stderr deppending on param values
-			stdout = writerOut if showOutput else PIPE
-			stderr = writerErr if showError else PIPE
+			stdout = writerOut if showOutput else subprocess.PIPE
+			stderr = writerErr if showError else subprocess.PIPE
 
 			# Run command and write output
-			process = Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
+			process = subprocess.Popen(cmd, cwd=cwd, stdout=stdout, stderr=stderr, shell=True)
 			outputStr = writeProcessOutput(process, readerOut, readerErr, showOutput=showOutput, showError=showError)
 	except (KeyboardInterrupt, OSError) as e:
 		error = True
@@ -682,7 +649,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 	# Return result
 	return process.returncode, outputStr
 
-def writeProcessOutput(process: Popen, readerOut: FileIO, readerErr: FileIO, showOutput: bool=False, showError: bool=False) -> str:
+def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerErr: io.FileIO, showOutput: bool=False, showError: bool=False) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 
@@ -713,7 +680,7 @@ def writeProcessOutput(process: Popen, readerOut: FileIO, readerErr: FileIO, sho
 
 	return outputStr
 
-def writeReaderLine(reader: FileIO, show: bool=False, err: bool=False) -> str:
+def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str:
 	"""
 	### This function captures the output and errors of the given process as it runs.
 

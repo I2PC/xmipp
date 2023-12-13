@@ -26,6 +26,7 @@
 This module contains the necessary functions to run the config command.
 """
 
+import shutil
 from os import path, remove, environ
 from os.path import isdir, join, isfile
 
@@ -48,8 +49,8 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
-                    whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
-                    getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
+                    whereIsPackage, findFileInDirList, getINCDIRFLAG,
+                    getCompatibleGCC, CXXVersion, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
@@ -546,7 +547,7 @@ def getCUDA(dictPackages):
         dictPackages['CUDA_CXX'] = ''
     else:
         dictPackages['CUDA'] = True
-        dictPackages['CUDA_HOME'] = pathPackage('nvcc').replace('/bin/nvcc', '')
+        dictPackages['CUDA_HOME'] = shutil.which('nvcc').replace('/bin/nvcc', '')
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
         print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
 
