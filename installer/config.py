@@ -48,11 +48,11 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
-                    get_Hdf5_name, printError, MPIVersion, installScons)
+                    get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
-from .versions import getCUDAVersion, versionToNumber
+from .versions import getCUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
 

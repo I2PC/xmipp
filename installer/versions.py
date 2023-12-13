@@ -31,79 +31,8 @@ os, architecture, cuda, cmake, gpp, gcc and scons.
 from typing import Dict, Union
 
 # Installer imports
-from .utils import runJob
+from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
 from .constants import UNKNOWN_VALUE
-
-####################### GENERAL FUNCTIONS #######################
-def getPackageVersionCmd(packageName: str) -> Union[str, None]:
-	"""
-	### Retrieves the version of a package or program by executing '[packageName] --version' command.
-
-	Params:
-	- packageName (str): Name of the package or program.
-
-	Returns:
-	- (str | None): Version information of the package or None if not found or errors happened.
-	"""
-	# Running command
-	retCode, output = runJob(f'{packageName} --version', showError=True)
-
-	# Check result if there were no errors
-	return output if retCode == 0 else None
-
-def getPythonPackageVersion(packageName: str) -> Union[str, None]:
-	"""
-	### Retrieves the version of a Python package.
-
-	Params:
-	- packageName (str): Name of the Python package.
-
-	Returns:
-	- (str | None): Version string of the Python package or None if not found or errors happened.
-	"""
-	# Running command
-	retCode, output = runJob(f'pip show {packageName}')
-
-	# Extract variable if there were no errors
-	if retCode == 0 and output:
-		# Split output into lines and select the one which starts with 'Version:'
-		output = output.splitlines()
-
-		for line in output:
-			if line.startswith('Version'):
-				# If that line was found, return last word of such line
-				return line.split()[-1]
-
-def versionToNumber(strVersion: str) -> float:
-	"""
-	### This function converts the version string into a version number that can be numerically compared.
-	#### Supports any length of version numbers, but designed for three, in format X.Y.Z (mayor.minor.micro).
-
-	#### Params:
-	strVersion (str): String containing the version numbers.
-
-	#### Returns:
-	(float): Number representing the value of the version numbers combined.
-	"""
-	# Defining the most significant version number value
-	mayorMultiplier = 100
-
-	# Getting version numbers separated by dots
-	listVersion = strVersion.split('.')
-
-	# Getting the numeric version for each element
-	numberVersion = 0
-	for i in range(len(listVersion)):
-		try:
-			# Multiply each next number by the mayor multiplier divided by 10 in each iteration
-			# That way, mayor * 100, minor * 10, micro * 1, next * 0.1, ...
-			numberVersion += int(listVersion[i]) * (mayorMultiplier / (10 ** i))
-		except Exception:
-			# If there is some error, exit the loop
-			break
-	
-	# Returning result number
-	return numberVersion
 
 ####################### AUX FUNCTIONS #######################
 def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
