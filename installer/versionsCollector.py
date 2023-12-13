@@ -27,7 +27,7 @@ This module contains functions to collect the versions of
 os, architecture, cuda, cmake, gpp, gcc and scons.
 """
 
-from .utils import runJob, versionPackage
+from .utils import runJob, getPackageVersionCmd
 from .constants import UNKNOWN_VALUE
 
 def getOSReleaseName() -> str:
@@ -96,7 +96,7 @@ def getCUDAVersion(dictPackages=None) -> str:
 	nvccVersion = None
 
 	# Extracting version command string
-	versionCmdStr = versionPackage('nvcc')
+	versionCmdStr = getPackageVersionCmd('nvcc')
 
 	# Defining text around version number
 	textBefore = 'release '
@@ -130,7 +130,7 @@ def cmakeVersion() -> str:
 	cmakeVersion = None
 
 	# Extracting version command string
-	versionCmdStr = versionPackage('cmake')
+	versionCmdStr = getPackageVersionCmd('cmake')
 
 	# Version number is the last word of the first line of the output text
 	if versionCmdStr:
@@ -150,16 +150,16 @@ def parsingCompilerVersion(str):
 		return gxx_version
 
 def gppVersion(dictPackages):
-		strVersion = versionPackage(dictPackages['CXX'])
+		strVersion = getPackageVersionCmd(dictPackages['CXX'])
 		print(strVersion)
 		return parsingCompilerVersion(strVersion)
 
 def gccVersion(dictPackages):
-		strVersion = versionPackage(dictPackages['CC'])
+		strVersion = getPackageVersionCmd(dictPackages['CC'])
 		return parsingCompilerVersion(strVersion)
 
 def sconsVersion():
-		strVersion = versionPackage('scons')
+		strVersion = getPackageVersionCmd('scons')
 		idx = strVersion.find('SCons: v')
 		sconsV = None
 		if idx != -1:

@@ -43,7 +43,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM)
 from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPackage,
-                    versionPackage,
+                    getPackageVersionCmd,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons)
@@ -264,7 +264,7 @@ def checkMPI(dictPackages):
     """
     for pack in [dictPackages['MPI_CC'], dictPackages['MPI_CXX'], dictPackages['MPI_RUN']]:
         if existPackage(pack):
-            strVersion = versionPackage(pack)
+            strVersion = getPackageVersionCmd(pack)
             version = MPIVersion(strVersion)
             if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
                 print(green('{} {} found'.format(pack, version)))
@@ -651,7 +651,7 @@ def checkSTARPU(dictPackages):
 #     pythonPath = includes[0].replace('-I', '')
 #     numpyPath = includes[1].replace('-I', '')
 #     if existPackage(pythonPath):
-#         strVersion = versionPackage(pythonPath)
+#         strVersion = getPackageVersionCmd(pythonPath)
 #         idx = strVersion.find('\n')
 #         idx2 = strVersion[idx].rfind(' ')
 #         version = strVersion[idx - idx2:idx]
@@ -664,7 +664,7 @@ def checkSTARPU(dictPackages):
 #     import sys
 #     sys.path.append('/path/to/directory')
 #     if existPackage(numpyPath):
-#         strVersion = versionPackage(pythonPath)
+#         strVersion = getPackageVersionCmd(pythonPath)
 #         idx = strVersion.find('\n')
 #         idx2 = strVersion[idx].rfind(' ')
 #         version = strVersion[idx - idx2:idx]

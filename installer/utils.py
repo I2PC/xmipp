@@ -369,21 +369,21 @@ def findFileInDirList(fnH, dirlist):
 					return os.path.dirname(validDirs[0])
 	return ''
 
-def versionPackage(package):
+def getPackageVersionCmd(package: str) -> str:
 	"""
-	Retrieves the version of a package or program by executing '[package] --version' command.
+	### Retrieves the version of a package or program by executing '[package] --version' command.
 
 	Params:
 	- package (str): Name of the package or program.
 
 	Returns:
-	- str: Version information of the package or an empty string if not found.
+	- (str): Version information of the package or an empty string if not found or errors happened.
 	"""
-	cmd = '{} --version'.format(package)
-	status, output = runJob(cmd, showError=True)
-	if status != 0 and status != None  or output.find('not found') != -1:
-		return ''
-	return output
+	# Running command
+	retCode, output = runJob(f'{package} --version', showError=True)
+
+	# Check result if there were no errors
+	return output if retCode == 0 else ''
 
 def whereIsPackage(packageName):
 		"""
@@ -405,7 +405,7 @@ def whereIsPackage(packageName):
 def existPackage(packageName):
 		"""Return True if packageName exist, else False"""
 		path = pathPackage(packageName)
-		if path != '' and versionPackage(path) != '':
+		if path != '' and getPackageVersionCmd(path) != '':
 				return True
 		return False
 
