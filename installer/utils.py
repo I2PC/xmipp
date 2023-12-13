@@ -129,6 +129,7 @@ def getFormattingTabs(text: str) -> str:
 	"""
 	return text.expandtabs(TAB_SIZE)
 
+
 def printError(errorMsg: str, retCode: int=1):
 	"""
 	### This function prints an error message and exits with the given return code.
@@ -368,7 +369,7 @@ def versionPackage(package):
 	- str: Version information of the package or an empty string if not found.
 	"""
 	cmd = '{} --version'.format(package)
-	status, output = runJob(cmd, showError=True)
+	status, output = runJob(cmd)
 	if status != 0 and status != None  or output.find('not found') != -1:
 		return ''
 	return output

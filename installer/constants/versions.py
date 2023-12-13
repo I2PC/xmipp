@@ -64,7 +64,7 @@ GPP_MINIMUM = GCC_MINIMUM						#
 CMAKE_MINIMUM = '3.16'							#
 SCONS_MINIMUM = '3.0'								#
 CUDA_MINIMUM = '10.2'								#
-MPI_MINIMUM = '2.0'									#
+MPI_MINIMUM = '3.0'									#
 PYTHON_MINIMUM = '3.0'							#
 NUMPY_MINIMUM = '1.21'							#
 MINIMUM_CUDA_VERSION = '10.1'				#
@@ -88,4 +88,29 @@ CUDA_GCC_COMPATIBILITY = {
 	'12.0-12.3': vGCC[vGCC.index('12.3'):]
 }
 
+CC = 'CC'
+CXX = 'CXX'
+MPI_CC = 'MPI_CC'
+MPI_CXX = 'MPI_CXX'
+MPI_RUN = 'MPI_RUN'
+JAVA = 'JAVA'
+MATLAB = 'MATLAB'
+OPENCV = 'OPENCV'
+CUDA = 'CUDA'
+STARPU = 'STARPU'
+HDF5 = 'HDF5'
+SCONS = 'SCons'
+CMAKE = 'CMake'
 
+VERSION_PACKAGES = {CC: '',
+										CXX: '',
+										MPI_RUN: '',
+										JAVA: '',
+										MATLAB: '',
+										OPENCV: '',
+										CUDA: '',
+										STARPU: '',
+										HDF5: '',
+										SCONS: '',
+										CMAKE: '',
+										}

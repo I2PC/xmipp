@@ -41,7 +41,9 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         CUDA_VERSION_ERROR ,CUDA_ERROR ,HDF5_ERROR, LINK_FLAGS,
                         MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
-                        CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM)
+                        CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
+                        VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
+                        OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE)
 from .utils import (red, green, yellow, blue, runJob, versionToNumber, existPackage,
                     versionPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
@@ -53,8 +55,6 @@ from .versionsCollector import (osVersion, architectureVersion, CUDAVersion,
 from .versionsCollector import CUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
-
-
 
 
 def config():
@@ -107,21 +107,24 @@ def checkConfig(dictPackages):
     - dictPackages (dict): Dictionary containing package information.
 
     """
-    checkCC(dictPackages) #TODO extra check, run a compillation?
-    checkCXX(dictPackages) #TODO extra check, run a compillation?
-    checkMPI(dictPackages)
-    checkJava(dictPackages)
+    checkErrors = []
+    versionsPackages = VERSION_PACKAGES
+
+    checkCC(dictPackages, checkErrors, versionsPackages) #TODO extra check, run a compillation?
+    checkCXX(dictPackages, checkErrors, versionsPackages) #TODO extra check, run a compillation?
+    checkMPI(dictPackages, checkErrors, versionsPackages)
+    checkJava(dictPackages, checkErrors, versionsPackages)
     if dictPackages['MATLAB'] == 'True':
-        checkMatlab(dictPackages)
+        checkMatlab(dictPackages, checkErrors, versionsPackages)
     if dictPackages['OPENCV'] == 'True':
-        checkOPENCV(dictPackages)
+        checkOPENCV(dictPackages, checkErrors, versionsPackages)
     if dictPackages['CUDA'] == 'True':
-        checkCUDA(dictPackages)
+        checkCUDA(dictPackages, checkErrors, versionsPackages)
     if dictPackages['STARPU'] == 'True':
-        checkSTARPU(dictPackages)
-    checkHDF5(dictPackages)
-    checkScons()
-    checkCMake()
+        checkSTARPU(dictPackages, checkErrors, versionsPackages)
+    checkHDF5(dictPackages, checkErrors, versionsPackages)
+    checkScons(checkErrors, versionsPackages)
+    checkCMake(checkErrors, versionsPackages)
 
 
 def existConfig():
@@ -165,7 +168,7 @@ def getCC(dictPackages):
     else:
         dictPackages['CC'] = ''
 
-def checkCC(dictPackages):
+def checkCC(dictPackages, checkErrors, versionsPackages):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
 
@@ -178,14 +181,15 @@ def checkCC(dictPackages):
         - 4: gcc version is lower than the required version.
         - 5: GCC package path does not exist.
     """
-    if existPackage(dictPackages['CC']):
+    if existPackage(dictPackages[CC]):
         version = gccVersion(dictPackages)
+        versionsPackages[CC] = version
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
             return OK
-        printError('gcc {} lower than required ({})'.format(version, GCC_MINIMUM), GCC_VERSION_ERROR)
+        checkErrors.append([GCC_VERSION_ERROR, 'gcc {} lower than required ({})'.format(version, GCC_MINIMUM)])
     else:
-        printError('GCC package path: {} does not exist'.format(dictPackages['CC'], CC_NO_EXIST_ERROR))
+        checkErrors.append([CC_NO_EXIST_ERROR, 'GCC package path: {} does not exist'.format(dictPackages[CC])])
 
 def getCXX(dictPackages):
     """
@@ -202,7 +206,7 @@ def getCXX(dictPackages):
     else:
         dictPackages['CXX'] = ''
 
-def checkCXX(dictPackages):
+def checkCXX(dictPackages, checkErrors, versionsPackages):
     """
     Checks the CXX package at the specified path for version compatibility.
 
@@ -217,12 +221,13 @@ def checkCXX(dictPackages):
     """
     if existPackage(dictPackages['CXX']):
         version = gppVersion(dictPackages)
+        versionsPackages[CC] = version
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
             return OK
-        printError('g++ {} lower than required ({})'.format(version, GPP_MINIMUM), CXX_VERSION_ERROR)
+        checkErrors.append([CXX_VERSION_ERROR, 'g++ {} lower than required ({})'.format(version, GPP_MINIMUM)])
     else:
-        printError('CXX package path: {} does not exist'.format(dictPackages['CXX']), CXX_NO_EXIST_ERROR)
+        checkErrors.append([CXX_NO_EXIST_ERROR, 'CXX package path: {} does not exist'.format(dictPackages[CXX])])
 
 def getMPI(dictPackages):
     """
@@ -247,7 +252,7 @@ def getMPI(dictPackages):
     else:
         dictPackages['MPI_RUN'] = ''
 
-def checkMPI(dictPackages):
+def checkMPI(dictPackages, checkErrors, versionsPackages):
     """
     Checks the MPI packages for compatibility and performs additional checks.
 
@@ -262,16 +267,17 @@ def checkMPI(dictPackages):
         - 8: Error during compilation.
         - 9: Error while running MPI jobs.
     """
-    for pack in [dictPackages['MPI_CC'], dictPackages['MPI_CXX'], dictPackages['MPI_RUN']]:
-        if existPackage(pack):
-            strVersion = versionPackage(pack)
-            version = MPIVersion(strVersion)
-            if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
-                print(green('{} {} found'.format(pack, version)))
-            else:
-                printError('mpi {} lower than required ({})'.format(version, GPP_MINIMUM), MPI_VERSION_ERROR)
+    for pack in [MPI_CC, MPI_RUN, MPI_CXX]:
+        if existPackage(dictPackages[pack]):
+            if pack == MPI_RUN:
+                strVersion = versionPackage(dictPackages[pack])
+                version = MPIVersion(strVersion)
+                versionsPackages[pack] = version
+                if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
+                    print(green('{} {} found'.format(pack, version)))
+                checkErrors.append([MPI_VERSION_ERROR, 'mpi {} lower than required ({})'.format(version, GPP_MINIMUM)])
         else:
-            printError('MPI package: {} does not exist'.format(pack), MPI_NOT_FOUND_ERROR)
+            checkErrors.append([MPI_NOT_FOUND_ERROR,'MPI package: {} does not exist'.format(pack)])
 
     #More checks
     MPI_CXXFLAGS = ''
@@ -293,7 +299,7 @@ def checkMPI(dictPackages):
            % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
     status, output = runJob(cmd, showError=True)
     if status != None:
-        printError('Fails running this command: {}\nError message: {}'.format(cmd, output))
+        checkErrors.append([MPI_RUNNING_ERROR, 'Fails running this command: {}\nError message: {}'.format(cmd, output)])
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
@@ -302,7 +308,7 @@ def checkMPI(dictPackages):
 
     status, output = runJob(cmd)
     if status != None:
-        printError('Fails running this command: {}\nError message: {}'.format(cmd, output), MPI_COMPILLATION_ERROR)
+        checkErrors.append([MPI_COMPILLATION_ERROR, 'Fails running this command: {}\nError message: {}'.format(cmd, output)])
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -311,8 +317,7 @@ def checkMPI(dictPackages):
     if output.count('Running') != processors:
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
         if output.count('Running') != processors:
-            printError("mpirun or mpiexec have failed.", retCode=MPI_RUNNING_ERROR)
-
+            checkErrors.append([MPI_RUNNING_ERROR,  'mpirun or mpiexec have failed.'])
 
     return OK
 
@@ -336,7 +341,7 @@ def getJava(dictPackages):
     else:
         dictPackages['JAVA_HOME'] = ''
 
-def checkJava(dictPackages):
+def checkJava(dictPackages, checkErrors, versionsPackages):
     """
     Checks the Java installation and configuration.
 
@@ -365,7 +370,7 @@ def checkJava(dictPackages):
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
     retCode, outputStr = runJob(cmd, showError=True)
     if retCode!= None:
-        printError(cmd, JAVAC_DOESNT_WORK_ERROR)
+        checkErrors.append([JAVAC_DOESNT_WORK_ERROR, cmd])
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
     #Other check 2
@@ -388,7 +393,7 @@ def checkJava(dictPackages):
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
     status, output = runJob(cmd)
     if status != None:
-        printError(output, JAVA_INCLUDE_ERROR)
+        checkErrors.append([JAVA_INCLUDE_ERROR, output])
     runJob("rm xmipp_jni_test*", showError=True)
     return OK
 
