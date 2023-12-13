@@ -55,7 +55,7 @@
 // #define DEBUG_SOBEL
 // #define DEBUG_CLOSING
 // #define DEBUG_FILTERLABEL
-// #define DEBUG_HCC
+#define DEBUG_HCC
 // #define DEBUG_REFERENCE
 // #define DEBUG_CENTER_COORDINATES
 #define DEBUG_OUTPUT_FILES
