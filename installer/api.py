@@ -32,7 +32,7 @@ from typing import Dict, Union
 
 # Self imports
 from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
-	cmakeVersion, gppVersion, gccVersion, sconsVersion
+	cmakeVersion, getGPPVersion, getGCCVersion, sconsVersion
 from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate
 from .constants import API_URL, LOG_FILE
 
@@ -78,8 +78,8 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"architecture": getArchitectureName(),
 			"cuda": getCUDAVersion(dictPackage),
 			"cmake": cmakeVersion(),
-			"gcc": gccVersion(dictPackage),
-			"gpp": gppVersion(dictPackage),
+			"gcc": getGCCVersion(dictPackage),
+			"gpp": getGPPVersion(dictPackage),
 			"scons": sconsVersion()
 		},
 		"xmipp": {

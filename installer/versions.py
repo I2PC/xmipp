@@ -244,7 +244,7 @@ def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
 	# Returning compiler version
 	return compilerVersion
 
-def gppVersion(dictPackages: Dict) -> Union[str, None]:
+def getGPPVersion(dictPackages: Dict) -> Union[str, None]:
 	"""
 	### Extracts g++'s version string.
 
@@ -256,7 +256,7 @@ def gppVersion(dictPackages: Dict) -> Union[str, None]:
 	"""
 	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CXX']))
 
-def gccVersion(dictPackages: Dict) -> Union[str, None]:
+def getGCCVersion(dictPackages: Dict) -> Union[str, None]:
 	"""
 	### Extracts gcc's version string.
 

@@ -51,7 +51,7 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     get_Hdf5_name, printError, MPIVersion, installScons)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-                                cmakeVersion, gppVersion, gccVersion, sconsVersion)
+                                cmakeVersion, getGPPVersion, getGCCVersion, sconsVersion)
 from .versions import getCUDAVersion, versionToNumber
 from datetime import datetime
 from sysconfig import get_paths
@@ -182,7 +182,7 @@ def checkCC(dictPackages, checkErrors, versionsPackages):
         - 5: GCC package path does not exist.
     """
     if existPackage(dictPackages[CC]):
-        version = gccVersion(dictPackages)
+        version = getGCCVersion(dictPackages)
         versionsPackages[CC] = version
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
@@ -220,7 +220,7 @@ def checkCXX(dictPackages, checkErrors, versionsPackages):
         - 7: g++ version is lower than the required version.
     """
     if existPackage(dictPackages['CXX']):
-        version = gppVersion(dictPackages)
+        version = getGPPVersion(dictPackages)
         versionsPackages[CC] = version
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
@@ -563,7 +563,7 @@ def checkCUDA(dictPackages):
 
     nvcc_version = getCUDAVersion(dictPackages)
     if nvcc_version != 'Unknow':
-        gxx_version = gppVersion(dictPackages)
+        gxx_version = getGPPVersion(dictPackages)
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
             print(green('CUDA {} found'.format(nvcc_version)))
