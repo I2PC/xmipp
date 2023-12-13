@@ -27,7 +27,11 @@ This module contains functions to collect the versions of
 os, architecture, cuda, cmake, gpp, gcc and scons.
 """
 
-from .utils import runJob, getPackageVersionCmd
+# General imports
+from typing import Dict, Union
+
+# Installer imports
+from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
 from .constants import UNKNOWN_VALUE
 
 def getOSReleaseName() -> str:
@@ -85,18 +89,22 @@ def getArchitectureName() -> str:
 	# Returing architecture name
 	return archName
 
-def getCUDAVersion(dictPackages=None) -> str:
+def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
 	### Extracts the NVCC (NVIDIA CUDA Compiler) version.
 
 	#### Returns:
-	- (str): CUDA version.
+	- (str | None): CUDA version or None if there were any errors.
 	"""
 	# Initializing default version
 	nvccVersion = None
 
 	# Extracting version command string
 	versionCmdStr = getPackageVersionCmd('nvcc')
+
+	# Check if there were any errors
+	if versionCmdStr is None:
+		return None
 
 	# Defining text around version number
 	textBefore = 'release '
@@ -124,7 +132,7 @@ def cmakeVersion() -> str:
 	### Extracts the CMake version.
 
 	#### Returns:
-	- (str): CMake version.
+	- (str | None): CMake version, or None if there were any errors.
 	"""
 	# Initializing default version
 	cmakeVersion = None
@@ -133,37 +141,66 @@ def cmakeVersion() -> str:
 	versionCmdStr = getPackageVersionCmd('cmake')
 
 	# Version number is the last word of the first line of the output text
-	if versionCmdStr:
+	if versionCmdStr is not None:
 		# Only extract if command output string is not empty
-		cmakeVersion = versionCmdStr.split('\n')[0].split()[-1]
+		cmakeVersion = versionCmdStr.splitlines()[0].split()[-1]
 
 	# Return cmake version
 	return cmakeVersion
 
-def parsingCompilerVersion(str):
-		idx = str.find('\n')
-		idx2 = str[:idx].rfind(' ')
-		version = str[idx2:idx]
-		gxx_version = version.replace(' ', '')
-		idx = gxx_version.rfind('.')
-		gxx_version = gxx_version[:idx]
-		return gxx_version
+def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
+	"""
+	### Parses the string output of the command that extracts the version of the given compiler.
 
-def gppVersion(dictPackages):
-		strVersion = getPackageVersionCmd(dictPackages['CXX'])
-		print(strVersion)
-		return parsingCompilerVersion(strVersion)
+	#### Params:
+	- versionCmdStr (str): Output string of the --version command of the given compiler.
 
-def gccVersion(dictPackages):
-		strVersion = getPackageVersionCmd(dictPackages['CC'])
-		return parsingCompilerVersion(strVersion)
+	#### Returns:
+	- (str): Compiler's version.
+	"""
+	# Initialize default value
+	compilerVersion = None
+
+	# If the command string exists, get the first line
+	if versionCmdStr is not None:
+		versionStr = versionCmdStr.splitlines()[0]
+		
+		# From the first line, get the last word (version number string)
+		if versionStr:
+			compilerVersion = versionStr.split()[-1]
+
+	# Returning compiler version
+	return compilerVersion
+
+def gppVersion(dictPackages: Dict) -> Union[str, None]:
+	"""
+	### Extracts g++'s version string.
+
+	#### Params:
+	- dictPackages (dict): Dictionary containing all found packages.
+
+	#### Returns:
+	- (str | None): g++'s version or None if there were any errors.
+	"""
+	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CXX']))
+
+def gccVersion(dictPackages: Dict) -> Union[str, None]:
+	"""
+	### Extracts gcc's version string.
+
+	#### Params:
+	- dictPackages (dict): Dictionary containing all found packages.
+
+	#### Returns:
+	- (str | None): gcc's version or None if there were any errors.
+	"""
+	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CC']))
 
 def sconsVersion():
-		strVersion = getPackageVersionCmd('scons')
-		idx = strVersion.find('SCons: v')
-		sconsV = None
-		if idx != -1:
-			idx2 = strVersion[idx:].find(', ')
-			version = strVersion[idx + len('SCons: v'):idx + idx2].split('.')
-			sconsV = '.'.join(version[:3])
-		return sconsV
+	"""
+	### Extracts scons's version string.
+
+	#### Returns:
+	- (str | None): scons's version or None if there were any errors.
+	"""
+	return getPythonPackageVersion('scons')

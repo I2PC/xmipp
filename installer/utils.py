@@ -369,21 +369,45 @@ def findFileInDirList(fnH, dirlist):
 					return os.path.dirname(validDirs[0])
 	return ''
 
-def getPackageVersionCmd(package: str) -> str:
+def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	"""
-	### Retrieves the version of a package or program by executing '[package] --version' command.
+	### Retrieves the version of a package or program by executing '[packageName] --version' command.
 
 	Params:
-	- package (str): Name of the package or program.
+	- packageName (str): Name of the package or program.
 
 	Returns:
-	- (str): Version information of the package or an empty string if not found or errors happened.
+	- (str | None): Version information of the package or None if not found or errors happened.
 	"""
 	# Running command
-	retCode, output = runJob(f'{package} --version', showError=True)
+	retCode, output = runJob(f'{packageName} --version', showError=True)
 
 	# Check result if there were no errors
-	return output if retCode == 0 else ''
+	return output if retCode == 0 else None
+
+def getPythonPackageVersion(packageName: str) -> Union[str, None]:
+	"""
+	### Retrieves the version of a Python package.
+
+	Params:
+	- packageName (str): Name of the Python package.
+
+	Returns:
+	- (str | None): Version string of the Python package or None if not found or errors happened.
+	"""
+	# Running command
+	retCode, output = runJob(f'pip show {packageName}')
+
+	# Extract variable if there were no errors
+	if retCode == 0 and output:
+		# Split output into lines and select the one which starts with 'Version:'
+		output = output.splitlines()
+
+		for line in output:
+			if line.startswith('Version'):
+				# If that line was found, return last word of such line
+				return line.split()[-1]
+
 
 def whereIsPackage(packageName):
 		"""
@@ -405,7 +429,7 @@ def whereIsPackage(packageName):
 def existPackage(packageName):
 		"""Return True if packageName exist, else False"""
 		path = pathPackage(packageName)
-		if path != '' and getPackageVersionCmd(path) != '':
+		if path and getPackageVersionCmd(path) is not None:
 				return True
 		return False
 
