@@ -32,20 +32,20 @@ from os.path import isdir, join, isfile
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
                         CXX_FLAGS, PATH_TO_FIND_HDF5, INC_PATH, INC_HDF5_PATH,
-                        CONFIG_DICT,CXX_FLAGS,
-                        OK,UNKOW_ERROR,SCONS_VERSION_ERROR,SCONS_ERROR,
-                        GCC_VERSION_ERROR,CC_NO_EXIST_ERROR,CXX_NO_EXIST_ERROR,CXX_VERSION_ERROR,
-                        MPI_VERSION_ERROR,MPI_NOT_FOUND_ERROR,PYTHON_VERSION_ERROR ,
-                        PYTHON_NOT_FOUND_ERROR ,NUMPY_NOT_FOUND_ERROR ,
-                        JAVA_HOME_PATH_ERROR, MATLAB_ERROR ,MATLAB_HOME_ERROR,
-                        CUDA_VERSION_ERROR ,CUDA_ERROR ,HDF5_ERROR, LINK_FLAGS,
-                        MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR,
+                        CONFIG_DICT, CXX_FLAGS,
+                        OK, UNKOW_ERROR, SCONS_VERSION_ERROR, SCONS_ERROR,
+                        GCC_VERSION_ERROR, CC_NO_EXIST_ERROR, CXX_NO_EXIST_ERROR, CXX_VERSION_ERROR,
+                        MPI_VERSION_ERROR, MPI_NOT_FOUND_ERROR, PYTHON_VERSION_ERROR ,
+                        PYTHON_NOT_FOUND_ERROR , NUMPY_NOT_FOUND_ERROR ,
+                        JAVA_HOME_PATH_ERROR, MATLAB_WARNING , MATLAB_HOME_WARNING,
+                        CUDA_VERSION_WARNING , CUDA_WARNING , HDF5_ERROR, LINK_FLAGS,
+                        MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR, OPENCV_WARNING,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
                         VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
                         OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
-                    getPackageVersionCmd,
+                    getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG, pathPackage,
                     getCompatibleGCC, CXXVersion, findFileInDirList, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber)
@@ -115,7 +115,7 @@ def checkConfig(dictPackages):
     checkMPI(dictPackages, checkErrors, versionsPackages)
     checkJava(dictPackages, checkErrors, versionsPackages)
     if dictPackages['MATLAB'] == 'True':
-        checkMatlab(dictPackages, checkErrors, versionsPackages)
+        checkMatlab(dictPackages, checkErrors)
     if dictPackages['OPENCV'] == 'True':
         checkOPENCV(dictPackages, checkErrors, versionsPackages)
     if dictPackages['CUDA'] == 'True':
@@ -359,6 +359,9 @@ def checkJava(dictPackages, checkErrors, versionsPackages):
     else:
         printError('JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']), JAVA_HOME_PATH_ERROR)
 
+    #JAVA Version
+    version = JAVAVersion(getPackageVersionCmd('java'))
+    versionsPackages[JAVA] = version
     #Other check
     javaProg = """
         public class Xmipp {
@@ -416,7 +419,7 @@ def getMatlab(dictPackages):
         dictPackages['MATLAB'] = False
         dictPackages['MATLAB_HOME'] = ''
 
-def checkMatlab(dictPackages):
+def checkMatlab(dictPackages, checkErrors):
     """
     Checks for the existence of MATLAB package and verifies if a specified path is a directory.
 
@@ -432,9 +435,8 @@ def checkMatlab(dictPackages):
         - 11: 'javac' compiler error.
         - 12: Error in including Java libraries.
     """
-    #TODO check behaviour in a system with matlab installed
     if not isdir(dictPackages['MATLAB_HOME']):
-        printError('MATLAB_HOME={} does not exist'.format(dictPackages['MATLAB_HOME']), MATLAB_HOME_ERROR)
+        checkErrors.append([MATLAB_HOME_WARNING, 'MATLAB_HOME={} does not exist'.format(dictPackages['MATLAB_HOME'])])
 
     cppProg = """
     #include <mex.h>
@@ -446,11 +448,11 @@ def checkMatlab(dictPackages):
     cmd = " {} -silent xmipp_mex.cpp".format(join(dictPackages["MATLAB_HOME"], 'bin', 'mex'))
     status, output = runJob(cmd, showError=True)
     if status != None:
-        printError(output, MATLAB_HOME_ERROR)
-        runJob("rm xmipp_mex*")
+        checkErrors.append([MATLAB_HOME_WARNING, output])
+    else:
+        print(green('Matlab installation found'))
     runJob("rm xmipp_mex*")
-    print(green('Matlab installation found'))
-    return OK
+
 
 def getOPENCV(dictPackages):
     opencvPath = ['opencv2', 'opencv4/opencv2']
@@ -467,7 +469,7 @@ def getOPENCV(dictPackages):
                     print(green('OPENCV detected at {}'.format(join(p.split('/')[0]))))
                     break
 
-def checkOPENCV(dictPackages):
+def checkOPENCV(dictPackages, checkErrors, versionsPackages):
     """
     Checks OpenCV installation, version, and CUDA support.
 
@@ -486,7 +488,7 @@ def checkOPENCV(dictPackages):
 
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)
     if status != None:
-        printError('OpenCV set as True but {}'.format(output))
+        checkErrors.append([OPENCV_WARNING, 'OpenCV set as True but {}'.format(output)])
         dictPackages['OPENCV'] = ''
 
     # Check version
@@ -508,6 +510,7 @@ def checkOPENCV(dictPackages):
         f.close()
         version = int(versionStr.split('.', 1)[0])
         openCV_Version = version
+    versionsPackages[OPENCV] = openCV_Version
 
     # Check CUDA Support
     cppProg = "#include <opencv2/core/version.hpp>\n"
@@ -571,9 +574,9 @@ def checkCUDA(dictPackages):
         else:
             printError('CUDA {} not compatible with the current g++ compiler version {}\n'
                       'Compilers candidates for your CUDA: {}'.format(
-                nvcc_version, gxx_version, candidates), CUDA_VERSION_ERROR)
+                nvcc_version, gxx_version, candidates), CUDA_VERSION_WARNING)
     else:
-        return CUDA_ERROR
+        return CUDA_WARNING
 
 def getSTARPU(dictPackages):
     """

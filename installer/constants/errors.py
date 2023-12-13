@@ -41,10 +41,10 @@ PYTHON_VERSION_ERROR = 10
 PYTHON_NOT_FOUND_ERROR = 11
 NUMPY_NOT_FOUND_ERROR = 12
 JAVA_HOME_PATH_ERROR = 13
-MATLAB_ERROR = 14
-MATLAB_HOME_ERROR = 15
-CUDA_VERSION_ERROR = 16
-CUDA_ERROR = 17
+MATLAB_WARNING = 101
+MATLAB_HOME_WARNING = 102
+CUDA_VERSION_WARNING = 103
+CUDA_WARNING = 104
 HDF5_ERROR = 18
 MPI_COMPILLATION_ERROR = 19
 MPI_RUNNING_ERROR = 20
@@ -54,6 +54,7 @@ CMAKE_VERSION_ERROR = 23
 CMAKE_ERROR = 24
 NETWORK_ERROR = 25
 IO_ERROR = 26
+OPENCV_WARNING = 105
 
 # Error messages
 ERROR_CODE = {
@@ -70,10 +71,10 @@ ERROR_CODE = {
   PYTHON_NOT_FOUND_ERROR: ['python not found', 'Please install python on your system'],
   NUMPY_NOT_FOUND_ERROR: ['numpy not found', 'Please install numpy'],
   JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed', 'bin/jar, bin/javac or include not found but required'],
-  MATLAB_ERROR: ['Matlab not found on system', 'Please install matlab or set MATLAB as False on the xmipp.conf file'],
-  MATLAB_HOME_ERROR: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
-	CUDA_VERSION_ERROR: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
-	CUDA_ERROR: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
+  MATLAB_WARNING: ['Matlab not found on system', 'Please install matlab or set MATLAB as False on the xmipp.conf file'],
+  MATLAB_HOME_WARNING: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
+	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
+	CUDA_WARNING: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
   HDF5_ERROR: ['hdf5 libs does not work', 'Please review the LIBDIRFLAGS flag on xmipp.conf'],
   MPI_COMPILLATION_ERROR: ['', ''],
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one'],
@@ -82,5 +83,8 @@ ERROR_CODE = {
 	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	CMAKE_ERROR: [f'Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	NETWORK_ERROR: ['There was a network error running a command.', ''],
-	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.']
+	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
+  OPENCV_WARNING: ['OpenCV does not work', 'Please review your Opencv installation'],
+
+
 }

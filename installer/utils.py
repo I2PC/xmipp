@@ -556,6 +556,19 @@ def MPIVersion(string):
 		idx2 = string[:idx].rfind(' ')
 		return string[idx2:idx].replace(' ', '')
 
+def JAVAVersion(string):
+		"""
+		Extracts the JAVA version information from a given string.
+
+		Params:
+		- string (str): Input string containing JAVA version details.
+
+		Returns:
+		- str: Extracted JAVA version information.
+		"""
+		idx = string.find('\n')
+		string[:idx].split(' ')[1]
+		return string[:idx].split(' ')[1]
 def findFileInDirList(fnH, dirlist):
 		"""
     Searches for a specific file within a list of directories.
