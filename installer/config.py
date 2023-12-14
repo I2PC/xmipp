@@ -27,6 +27,7 @@ This module contains the necessary functions to run the config command.
 """
 
 import shutil
+import glob
 from os import path, remove, environ
 from os.path import isdir, join, isfile
 
@@ -47,7 +48,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, FFTW3_PATH_ERROR,
-                        TIFF_PATH_ERROR)
+                        TIFF_PATH_ERROR, PATH_TO_FIND_H, TIFF_H_ERROR, FFTW3_H_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
@@ -117,10 +118,10 @@ def checkConfig(dictPackages):
     """
     checkPackagesStatus = []
     printMessage(text='Checking libraries from config file...', debug=True)
-    checkCC(dictPackages, checkPackagesStatus) #TODO extra check, run a compillation?
-    checkCXX(dictPackages, checkPackagesStatus) #TODO extra check, run a compillation?
-    checkMPI(dictPackages, checkPackagesStatus)
-    checkJava(dictPackages, checkPackagesStatus)
+    checkCC(dictPackages) #TODO extra check, run a compillation?
+    checkCXX(dictPackages) #TODO extra check, run a compillation?
+    checkMPI(dictPackages)
+    checkJava(dictPackages)
     if dictPackages['MATLAB'] == 'True':
         checkMatlab(dictPackages, checkPackagesStatus)
     if dictPackages['OPENCV'] == 'True':
@@ -135,7 +136,8 @@ def checkConfig(dictPackages):
     checkScons()
     checkCMake()
     if checkPackagesStatus != []:
-        pass
+        for pack in checkPackagesStatus:
+            printMessage('')
 
 
 def existConfig():
@@ -179,7 +181,7 @@ def getCC(dictPackages):
     else:
         dictPackages['CC'] = ''
 
-def checkCC(dictPackages, checkErrors):
+def checkCC(dictPackages):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
 
@@ -197,9 +199,9 @@ def checkCC(dictPackages, checkErrors):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             printMessage(text=green('gcc {} found'.format(version)), debug=True)
             return OK
-        checkErrors.append([GCC_VERSION_ERROR, 'gcc {} lower than required ({})'.format(version, GCC_MINIMUM)])
+        printError(retCode=GCC_VERSION_ERROR, errorMsg='gcc {} lower than required ({})'.format(version, GCC_MINIMUM))
     else:
-        checkErrors.append([CC_NO_EXIST_ERROR, 'GCC package path: {} does not exist'.format(dictPackages[CC])])
+        printError(retCode=CC_NO_EXIST_ERROR, errorMsg='GCC package path: {} does not exist'.format(dictPackages[CC]))
 
 def getCXX(dictPackages):
     """
@@ -216,7 +218,7 @@ def getCXX(dictPackages):
     else:
         dictPackages['CXX'] = ''
 
-def checkCXX(dictPackages, checkErrors):
+def checkCXX(dictPackages):
     """
     Checks the CXX package at the specified path for version compatibility.
 
@@ -234,9 +236,9 @@ def checkCXX(dictPackages, checkErrors):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             printMessage(text=green('g++ {} found'.format(version)), debug=True)
             return OK
-        checkErrors.append([CXX_VERSION_ERROR, 'g++ {} lower than required ({})'.format(version, GPP_MINIMUM)])
+        printError(retCode=CXX_VERSION_ERROR, errorMsg='g++ {} lower than required ({})'.format(version, GPP_MINIMUM))
     else:
-        checkErrors.append([CXX_NO_EXIST_ERROR, 'CXX package path: {} does not exist'.format(dictPackages[CXX])])
+        printError(retCode=CXX_NO_EXIST_ERROR, errorMsg='CXX package path: {} does not exist'.format(dictPackages[CXX]))
 
 def getMPI(dictPackages):
     """
@@ -261,7 +263,7 @@ def getMPI(dictPackages):
     else:
         dictPackages['MPI_RUN'] = ''
 
-def checkMPI(dictPackages, checkErrors):
+def checkMPI(dictPackages):
     """
     Checks the MPI packages for compatibility and performs additional checks.
 
@@ -284,9 +286,9 @@ def checkMPI(dictPackages, checkErrors):
                 if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
                     printMessage(text=green('{} {} found'.format(pack, version)), debug=True)
                 else:
-                    checkErrors.append([MPI_VERSION_ERROR, 'mpi {} lower than required ({})'.format(version, GPP_MINIMUM)])
+                    printError(retCode=MPI_VERSION_ERROR, errorMsg='mpi {} lower than required ({})'.format(version, GPP_MINIMUM))
         else:
-            checkErrors.append([MPI_NOT_FOUND_ERROR,'MPI package: {} does not exist'.format(pack)])
+            printError(retCode=MPI_NOT_FOUND_ERROR, errorMsg='MPI package: {} does not exist'.format(dictPackages[pack]))
 
     #More checks
     MPI_CXXFLAGS = ''
@@ -308,7 +310,7 @@ def checkMPI(dictPackages, checkErrors):
            % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
     status, output = runJob(cmd, showError=True)
     if status != 0:
-        checkErrors.append([MPI_RUNNING_ERROR, 'Fails running this command: {}\nError message: {}'.format(cmd, output)])
+        printError(retCode=MPI_RUNNING_ERROR, errorMsg='Fails running this command: {}\nError message: {}'.format(cmd, output))
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
@@ -317,7 +319,7 @@ def checkMPI(dictPackages, checkErrors):
 
     status, output = runJob(cmd)
     if status != 0:
-        checkErrors.append([MPI_COMPILLATION_ERROR, 'Fails running this command: {}\nError message: {}'.format(cmd, output)])
+        printError(retCode=MPI_COMPILLATION_ERROR, errorMsg='Fails running this command: {}\nError message: {}'.format(cmd, output))
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -326,9 +328,7 @@ def checkMPI(dictPackages, checkErrors):
     if output.count('Running') != processors:
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
         if output.count('Running') != processors:
-            checkErrors.append([MPI_RUNNING_ERROR,  'mpirun or mpiexec have failed.'])
-
-    return OK
+            printError(retCode=MPI_RUNNING_ERROR,  errorMsg='mpirun or mpiexec have failed.')
 
 def getJava(dictPackages):
     """
@@ -350,7 +350,7 @@ def getJava(dictPackages):
     else:
         dictPackages['JAVA_HOME'] = ''
 
-def checkJava(dictPackages, checkErrors):
+def checkJava(dictPackages):
     """
     Checks the Java installation and configuration.
 
@@ -381,7 +381,7 @@ def checkJava(dictPackages, checkErrors):
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
     retCode, outputStr = runJob(cmd, showError=True)
     if retCode!= 0:
-        checkErrors.append([JAVAC_DOESNT_WORK_ERROR, cmd])
+        printError(retCode=JAVAC_DOESNT_WORK_ERROR, errorMsg=cmd)
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
     #Other check 2
@@ -404,7 +404,7 @@ def checkJava(dictPackages, checkErrors):
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
     status, output = runJob(cmd)
     if status != 0:
-        checkErrors.append([JAVA_INCLUDE_ERROR, output])
+        printError(retCode=JAVA_INCLUDE_ERROR, errorMsg=output)
     runJob("rm xmipp_jni_test*", showError=True)
 
 def getMatlab(dictPackages):
@@ -550,7 +550,8 @@ def checkCUDA(dictPackages, checkPackagesStatus):
 
     nvcc_version = getCUDAVersion(dictPackages)
     if nvcc_version != 'Unknow':
-        gxx_version = '.'.join(getGPPVersion(dictPackages).split('.')[:2])
+        gppVersion = getGPPVersion(dictPackages)
+        gxx_version = '.'.join(gppVersion.split('.')[:2])
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
             printMessage(text=green(
@@ -681,7 +682,6 @@ def getHDF5(dictPackages):
         printMessage(text=red('HDF5 nod found'), debug=True)
 
 def getTIFF(dictPackages):
-    #get libtiff
     for path in PATH_TO_FIND:
         libtiffPathFound = findFileInDirList("libtiff.so", path)
         if libtiffPathFound:
@@ -689,6 +689,14 @@ def getTIFF(dictPackages):
             break
     if libtiffPathFound == '':
         printError(errorMsg='TIFF library not found at {}'.format(PATH_TO_FIND), retCode=TIFF_ERROR)
+
+    patron = '/**/tiffio.h'
+    for path in PATH_TO_FIND_H:
+        pathTIFF_H = glob.glob(f'''{path}/{patron}''')
+        if pathTIFF_H:
+            dictPackages['TIFF_H'] = pathTIFF_H[0]
+    if dictPackages['TIFF_H'] == '':
+        printError(retCode=TIFF_H_ERROR, errorMsg='')
 
 def getFFTW3(dictPackages):
     for path in PATH_TO_FIND:
@@ -699,6 +707,13 @@ def getFFTW3(dictPackages):
     if libfftw3PathFound == '':
         printError(errorMsg='FFTW3 library not found at {}'.format(PATH_TO_FIND), retCode=FFTW3_ERROR)
 
+    patron = 'fftw3.h'
+    for path in PATH_TO_FIND_H:
+        pathFFTW3_H = glob.glob(join(path, patron))
+        if pathFFTW3_H:
+            dictPackages['FFTW3_H'] = pathFFTW3_H[0]
+    if dictPackages['FFTW3_H'] == '':
+        printError(retCode=FFTW3_H_ERROR, errorMsg='')
 
 def getINCDIRFLAGS(dictPackages):
     """
@@ -755,19 +770,19 @@ def checkHDF5(dictPackages):
 
 
 def checkTIFF(dictPackages):
-    if checkLib(dictPackages[CXX], '-L{}'.format(dictPackages['TIFF_SO'])):
+    if checkLib(dictPackages[CXX], '-I{} '.format(dictPackages['TIFF_H'])):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=True)
     else:
-        printError(retCode=TIFF_PATH_ERROR, errorMsg='{} file does not work'.format(dictPackages['TIFF_SO']))
+        printError(retCode=TIFF_PATH_ERROR, errorMsg='{} file does not work'.format(dictPackages['TIFF_H']))
 
 
 
 def checkFFTW3(dictPackages):
-    if checkLib(dictPackages[CXX], '-L{}'.format(dictPackages['FFTW3_SO'])):
+    if checkLib(dictPackages[CXX], '-I{}'.format(dictPackages['FFTW3_H'])):
         printMessage(text=green('FFTW3 found'), debug=True)
     else:
         printError(retCode=FFTW3_PATH_ERROR,
-                   errorMsg='{} file does not work'.format(dictPackages['FFTW3_SO']))
+                   errorMsg='{} file does not work'.format(dictPackages['FFTW3_H']))
 
 
 def checkCMake():

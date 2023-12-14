@@ -35,6 +35,7 @@ from sysconfig import get_paths
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
+from .constants.errors import ERROR_CODE
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -136,11 +137,10 @@ def printError(errorMsg: str, retCode: int=1):
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	printMessage(red(errorMsg), debug=True)
+	strError = 'ERROR ' + str(retCode) + ': ' + errorMsg + '\n' + ERROR_CODE[retCode][0] + ' ' +  ERROR_CODE[retCode][1]
+	printMessage(red(strError), debug=True)
 	sys.exit(retCode)
 
-def printWarning():
-		pass
 
 def printMessage(text: str, debug: bool=False):
 	"""
@@ -619,10 +619,10 @@ def checkLib(gxx, libFlag):
 		- bool: True if the library can be linked, False otherwise.
 		"""
 		# TODO: Revisar: funciona como queremos?
-		status = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)[0]
+		retCode, outputStr = runJob('echo "#include <tiffio.h>\nint main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)
 		os.remove('xmipp_check_lib.cpp')
 		os.remove('a.out') if os.path.isfile('a.out') else None
-		return status == 0
+		return retCode == 0
 
 def get_Hdf5_name(libdirflags):
 		"""

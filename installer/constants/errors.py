@@ -55,6 +55,8 @@ TIFF_ERROR = 28
 FFTW3_ERROR = 29
 TIFF_PATH_ERROR = 30
 FFTW3_PATH_ERROR = 31
+TIFF_H_ERROR = 32
+FFTW3_H_ERROR = 33
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -72,51 +74,53 @@ STARPU_CUDA_WARNING = 11
 # Error messages
 #TODO review the messages spelling, maybe mor links to the documentation?
 ERROR_CODE = {
-	UNKOW_ERROR: ['Unkonw error', ''],
-	SCONS_VERSION_ERROR: ['scons installation  error', 'We tried to install it on your scipion enviroment but was not posible, please install it manually'],
-	SCONS_ERROR: ['scons not found', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system'],
-	GCC_VERSION_ERROR: ['gcc version not valid', 'The version of gcc is lower than minimum, please review the requirements'],
-  CC_NO_EXIST_ERROR: ['CC package does not exist','Please review the CC flag on your xmipp.conf'],
-  CXX_NO_EXIST_ERROR: ['CXX package does not exist', 'Please review the CXX flag on your xmipp.conf'],
-  CXX_VERSION_ERROR: ['g++ version not valid', 'The version of g++ is lower than minimum, please review the requirements'],
-	MPI_VERSION_ERROR: ['mpi version not valid', 'The version of mpi is lower than minimum, please review the requirements'],
-	MPI_NOT_FOUND_ERROR: ['mpi package does not exist', 'Please review the MPI_RUN flag on your xmipp.conf'],
-  PYTHON_VERSION_ERROR: ['python version not valid', 'The version of python is lower than minimum, please review the requirements'],
-  PYTHON_NOT_FOUND_ERROR: ['python not found', 'Please install python on your system'],
-  NUMPY_NOT_FOUND_ERROR: ['numpy not found', 'Please install numpy'],
-  JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed', 'bin/jar, bin/javac or include not found but required'],
-  HDF5_ERROR: ['hdf5 libs does not work', 'Please review the LIBDIRFLAGS flag on xmipp.conf'],
-  MPI_COMPILLATION_ERROR: ['', ''],
-	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one'],
-	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work', 'Check the JAVA_HOME flag on xmipp.conf'],
-	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails','Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
-	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
+	UNKOW_ERROR: ['Unkonw error.', ''],
+	SCONS_VERSION_ERROR: ['scons installation  error.', 'We tried to install it on your scipion enviroment but was not posible, please install it manually.'],
+	SCONS_ERROR: ['scons not found.', 'We didnt find the scipion enviroment, please install scons manually on your conda env or in your system.'],
+	GCC_VERSION_ERROR: ['gcc version not valid.', 'The version of gcc is lower than minimum, please review the requirements.'],
+  CC_NO_EXIST_ERROR: ['CC package does not exist.','Please review the CC flag on your xmipp.conf.'],
+  CXX_NO_EXIST_ERROR: ['CXX package does not exist.', 'Please review the CXX flag on your xmipp.conf.'],
+  CXX_VERSION_ERROR: ['g++ version not valid.', 'The version of g++ is lower than minimum, please review the requirements.'],
+	MPI_VERSION_ERROR: ['mpi version not valid.', 'The version of mpi is lower than minimum, please review the requirements.'],
+	MPI_NOT_FOUND_ERROR: ['mpi package does not exist.', 'Please review the MPI_RUN flag on your xmipp.conf.'],
+  PYTHON_VERSION_ERROR: ['python version not valid.', 'The version of python is lower than minimum, please review the requirements.'],
+  PYTHON_NOT_FOUND_ERROR: ['python not found.', 'Please install python on your system.'],
+  NUMPY_NOT_FOUND_ERROR: ['numpy not found.', 'Please install numpy.'],
+  JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed.', 'bin/jar, bin/javac or include not found on the JAVA_HOME path but required.'],
+  HDF5_ERROR: ['hdf5 libs does not work.', 'Please review the LIBDIRFLAGS flag on xmipp.conf.'],
+  MPI_COMPILLATION_ERROR: ['', '.'],
+	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel.', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one.'],
+	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
+	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails.','Check the JNI_CPPPATH, CXX and INCDIRFLAGS.'],
+	CMAKE_VERSION_ERROR: ['.', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	CMAKE_ERROR: [f'Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	NETWORK_ERROR: ['There was a network error running a command.', ''],
 	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
-  TIFF_ERROR: ['TIFF library was not found on your system', 'Please install it or add the path in the flag TIFF_HOME of the xmipp.conf file'],
-  FFTW3_ERROR: ['FFTW3 library was not found on your system','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file'],
-  TIFF_PATH_ERROR: ['libtiff.so does not work on your system', 'Please, review the installation of libtiff or change the path of TIFF_SO in the xmipp.conf'],
-  FFTW3_PATH_ERROR	: ['libfftw3.so does not work on your system', 'Please, review the installation of libfftw3 or change the path of FFTW3_SO in the xmipp.conf'],
+  TIFF_ERROR: ['TIFF library was not found on your system.', 'Please install it or add the path in the flag TIFF_HOME of the xmipp.conf file.'],
+  FFTW3_ERROR: ['FFTW3 library was not found on your system.','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file.'],
+  TIFF_PATH_ERROR: ['libtiff.so does not work on your system.', 'Please, review the installation of libtiff or change the path of TIFF_SO in the xmipp.conf.'],
+  FFTW3_PATH_ERROR	: ['libfftw3.so does not work on your system.', 'Please, review the installation of libfftw3 or change the path of FFTW3_SO in the xmipp.conf.'],
+	TIFF_H_ERROR: ['tiffio.h header file was not found', 'Please install the package'],
+	FFTW3_H_ERROR: ['fftw3.h header file was not found', 'Please install the package'],
 
 }
 
 # Warning messages
 WARNING_CODE = {
-	MATLAB_WARNING: ['Matlab not found on system', 'Please install matlab or set MATLAB as False on the xmipp.conf file'],
-  MATLAB_HOME_WARNING: ['MATLAB_HOME path not found', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file'],
-	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False'],
-	CUDA_WARNING: ['CUDA not found', 'Please review the CUDA_HOME flag on your xmipp.conf file'],
-	OPENCV_WARNING: ['OpenCV does not work',
-									 'OPENCV flag was set to False and will not be used inside Xmipp',
-									 'Please review your Opencv installation'],
-  OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work',
-													'OPENCVSUPPORTSCUDA flag was set to False and will not be used inside Xmipp',
-													'Please review your Opencv installation'],
-	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU'],
+	MATLAB_WARNING: ['Matlab not found on system.', 'Please install matlab or set MATLAB as False on the xmipp.conf file.'],
+  MATLAB_HOME_WARNING: ['MATLAB_HOME path not found.', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file.'],
+	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler.', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False.'],
+	CUDA_WARNING: ['CUDA not found.', 'Please review the CUDA_HOME flag on your xmipp.conf file.'],
+	OPENCV_WARNING: ['OpenCV does not work.',
+									 'OPENCV flag was set to False and will not be used inside Xmipp.',
+									 'Please review your Opencv installation.'],
+  OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work.',
+													'OPENCVSUPPORTSCUDA flag was set to False and will not be used inside Xmipp.',
+													'Please review your Opencv installation.'],
+	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU.'],
 	STARPU_INCLUDE_WARNING: [],
 	STARPU_LIB_WARNING: [],
-	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name)"],
-	STARPU_RUN_WARNING: ["Check STARPU_* settings"],
+	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name)."],
+	STARPU_RUN_WARNING: ["Check STARPU_* settings."],
 
 }

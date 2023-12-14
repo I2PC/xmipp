@@ -68,6 +68,11 @@ PATH_TO_FIND = [
   "/lib"
 ]
 
+PATH_TO_FIND_H = ['/usr/include',
+									'/usr/local/include']
+
+
+
 # File names
 CONFIG_FILE = 'xmipp.conf'
 LOG_FILE = 'compileLOG.txt'
@@ -97,6 +102,8 @@ CONFIG_DICT = {'INCDIRFLAGS': '',
 							  'HDF5_HOME': '',
 							  'TIFF_SO': '',
 							 	'FFTW3_SO': '',
+							  'TIFF_H': '',
+							 	'FFTW3_H': '',
 }
 
 '''
