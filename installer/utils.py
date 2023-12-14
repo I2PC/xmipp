@@ -564,6 +564,7 @@ def opencvVersion(dictPackages, CXX_FLAGS):
 				version = int(versionStr.split('.', 1)[0])
 				openCV_Version = version
 		return openCV_Version
+
 def HDF5Version(pathHDF5):
 		"""
 		Extracts the HDF5 version information from a given string.
@@ -593,6 +594,16 @@ def JAVAVersion(string):
 		idx = string.find('\n')
 		string[:idx].split(' ')[1]
 		return string[:idx].split(' ')[1]
+
+def TIFFVersion(libtiffPathFound):
+		path = os.path.join(libtiffPathFound, 'libtiff.so')
+		retCode, outputStr = runJob('strings {} | grep "LIBTIFF"'.format(path))
+		if retCode == 0:
+				idx = outputStr.find('Version ')
+				if idx != -1:
+						version = outputStr[idx:].split(' ')[-1]
+				return outputStr.split(' ')[-1]
+
 
 def checkLib(gxx, libFlag):
 		"""

@@ -32,7 +32,7 @@ from os.path import isdir, join, isfile
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
-                        CXX_FLAGS, PATH_TO_FIND_HDF5, INC_PATH, INC_HDF5_PATH,
+                        CXX_FLAGS, PATH_TO_FIND, INC_PATH, INC_HDF5_PATH,
                         CONFIG_DICT, CXX_FLAGS,
                         OK, UNKOW_ERROR, SCONS_VERSION_ERROR, SCONS_ERROR,
                         GCC_VERSION_ERROR, CC_NO_EXIST_ERROR, CXX_NO_EXIST_ERROR, CXX_VERSION_ERROR,
@@ -43,17 +43,16 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR, OPENCV_WARNING,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
-                        VERSION_PACKAGES, CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, JAVA, MATLAB,
-                        OPENCV, CUDA, STARPU, HDF5, SCONS, CMAKE, OPENCV_CUDA_WARNING,
+                        CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, OPENCV_CUDA_WARNING,
                         STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
-                        HDF5_VERSION_ERROR)
+                        HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
                     getCompatibleGCC, CXXVersion, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
-                    HDF5Version, opencvVersion)
+                    HDF5Version, opencvVersion, TIFFVersion)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
@@ -88,7 +87,9 @@ def getSystemValues():
     getCUDA(dictPackages)
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
-    getLIBDIRFLAGS(dictPackages)
+    getTIFF(dictPackages)
+    getFFTW3(dictPackages)
+    getHDF5(dictPackages)
     getINCDIRFLAGS(dictPackages)
     return dictPackages
 
@@ -127,6 +128,8 @@ def checkConfig(dictPackages):
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages, checkPackagesStatus)
     checkHDF5(dictPackages)
+    checkTIFF(dictPackages)
+    checkFFTW3(dictPackages)
     checkScons()
     checkCMake()
     print(len(checkPackagesStatus))
@@ -651,7 +654,7 @@ def checkSTARPU(dictPackages, checkPackagesStatus):
 #                                                                PYTHON_MINIMUM)))
 #             return 10
 #
-def getLIBDIRFLAGS(dictPackages):
+def getHDF5(dictPackages):
     """
     This function searches for HDF5 library ('libhdf5*') in specified directories.
     If found, updates 'LIBDIRFLAGS' in 'dictPackages' with the HDF5 library path.
@@ -663,16 +666,37 @@ def getLIBDIRFLAGS(dictPackages):
         Expected keys: 'LIBDIRFLAGS'.
     """
     #get hdf5 libdir
-    PATH_TO_FIND_HDF5.append(join(get_paths()['data'].replace(' ', ''), 'lib'))
-    for path in PATH_TO_FIND_HDF5:
+    PATH_TO_FIND.append(join(get_paths()['data'].replace(' ', ''), 'lib'))
+    for path in PATH_TO_FIND:
         hdf5PathFound = findFileInDirList("libhdf5*", path)
         if hdf5PathFound:
             dictPackages['LIBDIRFLAGS'] = " -L%s" % hdf5PathFound
             dictPackages['HDF5_HOME'] = hdf5PathFound
-            print(green('HDF5 detected at {}'.format(hdf5PathFound)))
+            print(green('HDF5 {} detected at {}'.format(HDF5Version(dictPackages['HDF5_HOME']), hdf5PathFound)))
             break
     if hdf5PathFound == '':
         print(red('HDF5 nod found'))
+
+def getTIFF(dictPackages):
+    #get libtiff
+    for path in PATH_TO_FIND:
+        libtiffPathFound = findFileInDirList("libtiff*", path)
+        if libtiffPathFound:
+            dictPackages['TIFF_HOME'] = libtiffPathFound
+            print(green('TIFF {} detected at {}'.format(TIFFVersion(libtiffPathFound), libtiffPathFound)))
+            break
+    if libtiffPathFound == '':
+        printError(errorMsg='TIFF library not found at {}'.format(PATH_TO_FIND), retCode=TIFF_ERROR)
+
+def getFFTW3(dictPackages):
+    for path in PATH_TO_FIND:
+        libfftw3PathFound = findFileInDirList("libfftw3f*", path)
+        if libfftw3PathFound:
+            dictPackages['FFTW3_HOME'] = libfftw3PathFound
+            print(green('FFTW3 detected at {}'.format(libfftw3PathFound)))
+            break
+    if libfftw3PathFound == '':
+        printError(errorMsg='FFTW3 library not found at {}'.format(PATH_TO_FIND), retCode=FFTW3_ERROR)
 
 
 def getINCDIRFLAGS(dictPackages):
@@ -727,6 +751,15 @@ def checkHDF5(dictPackages):
 
     runJob("rm xmipp_test_main*", showError=True)
     print(green('HDF5 installation found'))
+
+
+def checkTIFF(dictPackages):
+    checkLib(dictPackages[CXX], '-ltiff')
+
+
+
+def checkFFTW3(dictPackages):
+    checkLib(dictPackages[CXX], '-lfftw3')
 
 
 def checkCMake():

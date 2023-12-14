@@ -60,10 +60,12 @@ INC_HDF5_PATH = INC_PATH + [
 	"/usr/include/hdf5/serial",
 	"/usr/local/include/hdf5/serial"
 ]
-PATH_TO_FIND_HDF5 = [
+PATH_TO_FIND = [
 	"/usr/lib",
 	"/usr/lib/x86_64-linux-gnu/hdf5/serial",
-	"/usr/lib/x86_64-linux-gnu"
+	"/usr/lib/x86_64-linux-gnu",
+  "/usr/local/lib",
+  "/lib"
 ]
 
 # File names

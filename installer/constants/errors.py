@@ -51,6 +51,8 @@ CMAKE_ERROR = 24
 NETWORK_ERROR = 25
 IO_ERROR = 26
 HDF5_VERSION_ERROR = 27
+TIFF_ERROR = 28
+FFTW3_ERROR = 29
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -89,7 +91,10 @@ ERROR_CODE = {
 	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	CMAKE_ERROR: [f'Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	NETWORK_ERROR: ['There was a network error running a command.', ''],
-	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.']
+	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
+  TIFF_ERROR: ['TIFF library was not found on your system', 'Please install it or add the path in the flag TIFF_HOME of the xmipp.conf file'],
+  FFTW3_ERROR: ['FFTW3 library was not found on your system','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file']
+
 }
 
 # Warning messages
