@@ -104,15 +104,6 @@ STARPU = 'STARPU'
 HDF5 = 'HDF5'
 SCONS = 'SCons'
 CMAKE = 'CMake'
+TIFF = 'TIFF'
 
-VERSION_PACKAGES = {CC: '',
-										CXX: '',
-										MPI_RUN: '',
-										JAVA: '',
-										OPENCV: '',
-										CUDA: '',
-										STARPU: '',
-										HDF5: '',
-										SCONS: '',
-										CMAKE: '',
-										}
+

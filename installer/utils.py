@@ -35,6 +35,7 @@ from sysconfig import get_paths
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
+from .constants.errors import ERROR_CODE
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -136,8 +137,10 @@ def printError(errorMsg: str, retCode: int=1):
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	printMessage(red(errorMsg), debug=True)
+	strError = 'ERROR ' + str(retCode) + ': ' + errorMsg + '\n' + ERROR_CODE[retCode][0] + ' ' +  ERROR_CODE[retCode][1]
+	printMessage(red(strError), debug=True)
 	sys.exit(retCode)
+
 
 def printMessage(text: str, debug: bool=False):
 	"""
@@ -542,6 +545,28 @@ def MPIVersion(string):
 		idx2 = string[:idx].rfind(' ')
 		return string[idx2:idx].replace(' ', '')
 
+def opencvVersion(dictPackages, CXX_FLAGS):
+		with open("xmipp_test_opencv.cpp", "w") as cppFile:
+				cppFile.write('#include <opencv2/core/version.hpp>\n')
+				cppFile.write('#include <fstream>\n')
+				cppFile.write('int main()'
+											'{std::ofstream fh;'
+											' fh.open("xmipp_test_opencv.txt");'
+											' fh << CV_MAJOR_VERSION << std::endl;'
+											' fh.close();'
+											'}\n')
+		if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
+		dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+							showError=True)[0] != 0:
+				openCV_Version = 2
+		else:
+				runJob("./xmipp_test_opencv", showError=True)
+				f = open("xmipp_test_opencv.txt")
+				versionStr = f.readline()
+				f.close()
+				version = int(versionStr.split('.', 1)[0])
+				openCV_Version = version
+		return openCV_Version
 
 def HDF5Version(pathHDF5):
 		"""
@@ -573,6 +598,15 @@ def JAVAVersion(string):
 		string[:idx].split(' ')[1]
 		return string[:idx].split(' ')[1]
 
+def TIFFVersion(libtiffPathFound):
+		retCode, outputStr = runJob('strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
+		if retCode == 0:
+				idx = outputStr.find('Version ')
+				if idx != -1:
+						version = outputStr[idx:].split(' ')[-1]
+				return outputStr.split(' ')[-1]
+
+
 def checkLib(gxx, libFlag):
 		"""
 		Checks if a specific library can be linked by a given compiler.
@@ -585,10 +619,10 @@ def checkLib(gxx, libFlag):
 		- bool: True if the library can be linked, False otherwise.
 		"""
 		# TODO: Revisar: funciona como queremos?
-		status = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)[0]
+		retCode, outputStr = runJob('echo "#include <tiffio.h>\nint main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)
 		os.remove('xmipp_check_lib.cpp')
 		os.remove('a.out') if os.path.isfile('a.out') else None
-		return status == 0
+		return retCode == 0
 
 def get_Hdf5_name(libdirflags):
 		"""
