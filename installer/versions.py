@@ -232,14 +232,3 @@ def getSconsVersion():
 				
 	# Returning extracted version
 	return version
-
-#def sconsVersion():
-#		strVersion = getPackageVersionCmd('scons')
-#		idx = strVersion.find('SCons: v')
-#		sconsV = None
-#		if idx != -1:
-#			idx2 = strVersion[idx:].find(', ')
-#			version = strVersion[idx + len('SCons: v'):idx + idx2].split('.')
-#			sconsV = '.'.join(version[:3])
-#		return sconsV
-#	return getPythonPackageVersion('scons')
