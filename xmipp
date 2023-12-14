@@ -653,7 +653,7 @@ def compile_libcifpp(Nproc):
                 libDir = "src/xmipp/lib"
                 createDir(libDir)
                 log3 = []
-                if runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp.so*") + " " + libDir, log=log3, show_output=False, show_command=False):
+                if runJob("cp " + os.path.join(libcifppDir, libcifppLibDir, "libcifpp*") + " " + libDir, log=log3, show_output=False, show_command=False):
                     print(green("Done" + (' ' * 70)))
                     return True, log + log1 + log2 + log3
                 else:
