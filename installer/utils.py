@@ -139,6 +139,9 @@ def printError(errorMsg: str, retCode: int=1):
 	printMessage(red(errorMsg), debug=True)
 	sys.exit(retCode)
 
+def printWarning():
+		pass
+
 def printMessage(text: str, debug: bool=False):
 	"""
 	### This method prints the given text into the log file, and, if debug mode is active, also through terminal.
@@ -596,8 +599,7 @@ def JAVAVersion(string):
 		return string[:idx].split(' ')[1]
 
 def TIFFVersion(libtiffPathFound):
-		path = os.path.join(libtiffPathFound, 'libtiff.so')
-		retCode, outputStr = runJob('strings {} | grep "LIBTIFF"'.format(path))
+		retCode, outputStr = runJob('strings {} | grep "LIBTIFF"'.format(libtiffPathFound))
 		if retCode == 0:
 				idx = outputStr.find('Version ')
 				if idx != -1:

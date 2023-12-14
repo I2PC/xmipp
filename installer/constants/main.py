@@ -94,7 +94,9 @@ CONFIG_DICT = {'INCDIRFLAGS': '',
 								'MATLAB': '',
 								'MATLAB_HOME': '',
 								'LIBDIRFLAGS': '',
-							  'HDF5_HOME': ''
+							  'HDF5_HOME': '',
+							  'TIFF_SO': '',
+							 	'FFTW3_SO': '',
 }
 
 '''
