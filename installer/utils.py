@@ -542,7 +542,28 @@ def MPIVersion(string):
 		idx2 = string[:idx].rfind(' ')
 		return string[idx2:idx].replace(' ', '')
 
-
+def opencvVersion(dictPackages, CXX_FLAGS):
+		with open("xmipp_test_opencv.cpp", "w") as cppFile:
+				cppFile.write('#include <opencv2/core/version.hpp>\n')
+				cppFile.write('#include <fstream>\n')
+				cppFile.write('int main()'
+											'{std::ofstream fh;'
+											' fh.open("xmipp_test_opencv.txt");'
+											' fh << CV_MAJOR_VERSION << std::endl;'
+											' fh.close();'
+											'}\n')
+		if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (
+		dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']),
+							showError=True)[0] != 0:
+				openCV_Version = 2
+		else:
+				runJob("./xmipp_test_opencv", showError=True)
+				f = open("xmipp_test_opencv.txt")
+				versionStr = f.readline()
+				f.close()
+				version = int(versionStr.split('.', 1)[0])
+				openCV_Version = version
+		return openCV_Version
 def HDF5Version(pathHDF5):
 		"""
 		Extracts the HDF5 version information from a given string.

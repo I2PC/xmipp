@@ -53,7 +53,7 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
                     getCompatibleGCC, CXXVersion, checkLib,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
-                    HDF5Version)
+                    HDF5Version, opencvVersion)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
@@ -113,23 +113,23 @@ def checkConfig(dictPackages):
 
     """
     checkPackagesStatus = []
-    versionsPackages = VERSION_PACKAGES
 
-    checkCC(dictPackages, checkPackagesStatus, versionsPackages) #TODO extra check, run a compillation?
-    checkCXX(dictPackages, checkPackagesStatus, versionsPackages) #TODO extra check, run a compillation?
-    checkMPI(dictPackages, checkPackagesStatus, versionsPackages)
-    checkJava(dictPackages, checkPackagesStatus, versionsPackages)
+    checkCC(dictPackages, checkPackagesStatus) #TODO extra check, run a compillation?
+    checkCXX(dictPackages, checkPackagesStatus) #TODO extra check, run a compillation?
+    checkMPI(dictPackages, checkPackagesStatus)
+    checkJava(dictPackages, checkPackagesStatus)
     if dictPackages['MATLAB'] == 'True':
         checkMatlab(dictPackages, checkPackagesStatus)
     if dictPackages['OPENCV'] == 'True':
-        checkOPENCV(dictPackages, checkPackagesStatus, versionsPackages)
+        checkOPENCV(dictPackages, checkPackagesStatus)
     if dictPackages['CUDA'] == 'True':
-        checkCUDA(dictPackages, checkPackagesStatus, versionsPackages)
+        checkCUDA(dictPackages, checkPackagesStatus)
     if dictPackages['STARPU'] == 'True':
-        checkSTARPU(dictPackages, checkPackagesStatus, versionsPackages)
-    checkHDF5(dictPackages, versionsPackages)
-    checkScons(versionsPackages)
-    checkCMake(versionsPackages)
+        checkSTARPU(dictPackages, checkPackagesStatus)
+    checkHDF5(dictPackages)
+    checkScons()
+    checkCMake()
+    print(len(checkPackagesStatus))
 
 
 def existConfig():
@@ -173,7 +173,7 @@ def getCC(dictPackages):
     else:
         dictPackages['CC'] = ''
 
-def checkCC(dictPackages, checkErrors, versionsPackages):
+def checkCC(dictPackages, checkErrors):
     """
     Checks the GCC (CC) package at the specified path for version compatibility.
 
@@ -188,7 +188,6 @@ def checkCC(dictPackages, checkErrors, versionsPackages):
     """
     if existPackage(dictPackages[CC]):
         version = getGCCVersion(dictPackages)
-        versionsPackages[CC] = version
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('gcc {} found'.format(version)))
             return OK
@@ -211,7 +210,7 @@ def getCXX(dictPackages):
     else:
         dictPackages['CXX'] = ''
 
-def checkCXX(dictPackages, checkErrors, versionsPackages):
+def checkCXX(dictPackages, checkErrors):
     """
     Checks the CXX package at the specified path for version compatibility.
 
@@ -226,7 +225,6 @@ def checkCXX(dictPackages, checkErrors, versionsPackages):
     """
     if existPackage(dictPackages['CXX']):
         version = getGPPVersion(dictPackages)
-        versionsPackages[CC] = version
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             print(green('g++ {} found'.format(version)))
             return OK
@@ -257,7 +255,7 @@ def getMPI(dictPackages):
     else:
         dictPackages['MPI_RUN'] = ''
 
-def checkMPI(dictPackages, checkErrors, versionsPackages):
+def checkMPI(dictPackages, checkErrors):
     """
     Checks the MPI packages for compatibility and performs additional checks.
 
@@ -277,10 +275,10 @@ def checkMPI(dictPackages, checkErrors, versionsPackages):
             if pack == MPI_RUN:
                 strVersion = getPackageVersionCmd(dictPackages[pack])
                 version = MPIVersion(strVersion)
-                versionsPackages[pack] = version
                 if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
                     print(green('{} {} found'.format(pack, version)))
-                checkErrors.append([MPI_VERSION_ERROR, 'mpi {} lower than required ({})'.format(version, GPP_MINIMUM)])
+                else:
+                    checkErrors.append([MPI_VERSION_ERROR, 'mpi {} lower than required ({})'.format(version, GPP_MINIMUM)])
         else:
             checkErrors.append([MPI_NOT_FOUND_ERROR,'MPI package: {} does not exist'.format(pack)])
 
@@ -303,7 +301,7 @@ def checkMPI(dictPackages, checkErrors, versionsPackages):
     cmd = ("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
            % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
     status, output = runJob(cmd, showError=True)
-    if status != None:
+    if status != 0:
         checkErrors.append([MPI_RUNNING_ERROR, 'Fails running this command: {}\nError message: {}'.format(cmd, output)])
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
@@ -312,7 +310,7 @@ def checkMPI(dictPackages, checkErrors, versionsPackages):
            % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
 
     status, output = runJob(cmd)
-    if status != None:
+    if status != 0:
         checkErrors.append([MPI_COMPILLATION_ERROR, 'Fails running this command: {}\nError message: {}'.format(cmd, output)])
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
@@ -346,7 +344,7 @@ def getJava(dictPackages):
     else:
         dictPackages['JAVA_HOME'] = ''
 
-def checkJava(dictPackages, checkErrors, versionsPackages):
+def checkJava(dictPackages, checkErrors):
     """
     Checks the Java installation and configuration.
 
@@ -366,7 +364,6 @@ def checkJava(dictPackages, checkErrors, versionsPackages):
 
     #JAVA Version
     version = JAVAVersion(getPackageVersionCmd('java'))
-    versionsPackages[JAVA] = version
     #Other check
     javaProg = """
         public class Xmipp {
@@ -377,7 +374,7 @@ def checkJava(dictPackages, checkErrors, versionsPackages):
         javaFile.write(javaProg)
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
     retCode, outputStr = runJob(cmd, showError=True)
-    if retCode!= None:
+    if retCode!= 0:
         checkErrors.append([JAVAC_DOESNT_WORK_ERROR, cmd])
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
@@ -400,7 +397,7 @@ def checkJava(dictPackages, checkErrors, versionsPackages):
         incs += " -I"+x
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
     status, output = runJob(cmd)
-    if status != None:
+    if status != 0:
         checkErrors.append([JAVA_INCLUDE_ERROR, output])
     runJob("rm xmipp_jni_test*", showError=True)
 
@@ -451,7 +448,7 @@ def checkMatlab(dictPackages, checkErrors):
 
     cmd = " {} -silent xmipp_mex.cpp".format(join(dictPackages["MATLAB_HOME"], 'bin', 'mex'))
     status, output = runJob(cmd, showError=True)
-    if status != None:
+    if status != 0:
         checkErrors.append([MATLAB_HOME_WARNING, output])
     else:
         print(green('Matlab installation found'))
@@ -473,7 +470,7 @@ def getOPENCV(dictPackages):
                     print(green('OPENCV detected at {}'.format(join(p.split('/')[0]))))
                     break
 
-def checkOPENCV(dictPackages, checkErrors, versionsPackages):
+def checkOPENCV(dictPackages, checkErrors):
     """
     Checks OpenCV installation, version, and CUDA support.
 
@@ -491,34 +488,13 @@ def checkOPENCV(dictPackages, checkErrors, versionsPackages):
         cppFile.write(cppProg)
 
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)
-    if status != None:
+    if status != 0:
         checkErrors.append([OPENCV_WARNING, 'OpenCV set as True but {}'.format(output)])
         dictPackages['OPENCV'] = ''
 
-    # Check version
-    with open("xmipp_test_opencv.cpp", "w") as cppFile:
-        cppFile.write('#include <opencv2/core/version.hpp>\n')
-        cppFile.write('#include <fstream>\n')
-        cppFile.write('int main()'
-                      '{std::ofstream fh;'
-                      ' fh.open("xmipp_test_opencv.txt");'
-                      ' fh << CV_MAJOR_VERSION << std::endl;'
-                      ' fh.close();'
-                      '}\n')
-    if runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s " % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']), showError=True)[0] != 0:
-        openCV_Version = 2
-    else:
-        runJob("./xmipp_test_opencv", showError=True)
-        f = open("xmipp_test_opencv.txt")
-        versionStr = f.readline()
-        f.close()
-        version = int(versionStr.split('.', 1)[0])
-        openCV_Version = version
-    versionsPackages[OPENCV] = openCV_Version
-
     # Check CUDA Support
     cppProg = "#include <opencv2/core/version.hpp>\n"
-    if openCV_Version < 3:
+    if opencvVersion(dictPackages, CXX_FLAGS) < 3:
         cppProg += "#include <opencv2/core/cuda.hpp>\n"
     else:
         cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
@@ -526,7 +502,7 @@ def checkOPENCV(dictPackages, checkErrors, versionsPackages):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
     status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
-    if status != None:
+    if status != 0:
         checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
         dictPackages['OPENCVSUPPORTSCUDA'] = ''
 
@@ -552,7 +528,7 @@ def getCUDA(dictPackages):
         dictPackages['CUDA_CXX'] = dictPackages['CXX']
         print(green('CUDA nvcc detected at {}'.format(dictPackages['CUDA_HOME'])))
 
-def checkCUDA(dictPackages, checkPackagesStatus, versionsPackages):
+def checkCUDA(dictPackages, checkPackagesStatus):
     """
     Checks the compatibility of CUDA with the current g++ compiler version and updates the dictionary accordingly.
 
@@ -567,9 +543,8 @@ def checkCUDA(dictPackages, checkPackagesStatus, versionsPackages):
     """
 
     nvcc_version = getCUDAVersion(dictPackages)
-    versionsPackages[CUDA] = versionsPackages
     if nvcc_version != 'Unknow':
-        gxx_version = getGPPVersion(dictPackages)
+        gxx_version = '.'.join(getGPPVersion(dictPackages).split('.')[:2])
         candidates, resultBool = getCompatibleGCC(nvcc_version)
         if resultBool == True and gxx_version in candidates:
             print(green('CUDA {} found'.format(nvcc_version)))
@@ -604,7 +579,7 @@ def getSTARPU(dictPackages):
         dictPackages["STARPU_LIB"] = ''
         dictPackages["STARPU_LIBRARY"] = ''
 
-def checkSTARPU(dictPackages, checkPackagesStatus, versionsPackages):
+def checkSTARPU(dictPackages, checkPackagesStatus):
     """
     Checks the configuration of the STARPU package and CUDA compatibility, printing error messages if necessary.
 
@@ -722,7 +697,7 @@ def getINCDIRFLAGS(dictPackages):
     else:
         print(red('HDF5 not detected but required, please install it'))
 
-def checkHDF5(dictPackages, versionsPackages):
+def checkHDF5(dictPackages):
     """
     Checks HDF5 library configuration based on provided package information.
 
@@ -736,7 +711,6 @@ def checkHDF5(dictPackages, versionsPackages):
         True, 0: HDF5 configuration successful.
     """
     version = HDF5Version(dictPackages['HDF5_HOME'])
-    versionsPackages[HDF5] = version
     if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
         printError('HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), HDF5_VERSION_ERROR)
     cppProg = ("""
@@ -748,14 +722,14 @@ def checkHDF5(dictPackages, versionsPackages):
     cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
            (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
-    if status != None:
+    if status != 0:
         printError(retCode=HDF5_ERROR, errorMsg=output)
 
     runJob("rm xmipp_test_main*", showError=True)
     print(green('HDF5 installation found'))
 
 
-def checkCMake(versionsPackages):
+def checkCMake():
     """
     ### This function checks if the current installed version, if installed, is above the minimum required version.
     ### If no version is provided it just checks if CMake is installed.
@@ -768,7 +742,6 @@ def checkCMake(versionsPackages):
     """
     try:
         cmakVersion = getCmakeVersion()
-        versionsPackages[CMAKE] =cmakVersion
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
             printError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
@@ -779,9 +752,8 @@ def checkCMake(versionsPackages):
 
     print(green('cmake {} found'.format(cmakVersion)))
 
-def checkScons(versionsPackages):
+def checkScons():
     sconsV = getSconsVersion()
-    versionsPackages[SCONS] = sconsV
     if sconsV is not None:
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
           status = installScons()
