@@ -205,4 +205,41 @@ def getSconsVersion():
 	#### Returns:
 	- (str | None): scons's version or None if there were any errors.
 	"""
-	return getPythonPackageVersion('scons')
+	# Attepmt to get Scons version through python package
+	version = getPythonPackageVersion('scons')
+
+	# If Scons is not installed via Python, try standalone method
+	if version is None:
+		version = getPackageVersionCmd('scons')
+
+		if version is not None:
+			# Defining text before version number
+			textBefore = 'SCons: v'
+
+			# Searching for text before version number
+			textBeforeStart = version.find(textBefore)
+
+			if textBeforeStart != -1:
+				# If text was found, we need to get the first 3 numbers
+				versionStart = textBeforeStart + len(textBefore)
+				numbers = version[versionStart:].splitlines()[0].split('.')
+
+				# Only extract macro, minor, and micro version numbers
+				if len(numbers) >= 3:
+					# Make sure last number stops when it shoulds
+					micro = numbers[2].split(',')[0]
+					version = f'{numbers[0]}.{numbers[1]}.{micro}'
+				
+	# Returning extracted version
+	return version
+
+#def sconsVersion():
+#		strVersion = getPackageVersionCmd('scons')
+#		idx = strVersion.find('SCons: v')
+#		sconsV = None
+#		if idx != -1:
+#			idx2 = strVersion[idx:].find(', ')
+#			version = strVersion[idx + len('SCons: v'):idx + idx2].split('.')
+#			sconsV = '.'.join(version[:3])
+#		return sconsV
+#	return getPythonPackageVersion('scons')

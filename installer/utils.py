@@ -388,7 +388,7 @@ def getPackageVersionCmd(packageName: str) -> Union[str, None]:
 	- (str | None): Version information of the package or None if not found or errors happened.
 	"""
 	# Running command
-	retCode, output = runJob(f'{packageName} --version', showError=True)
+	retCode, output = runJob(f'{packageName} --version')
 
 	# Check result if there were no errors
 	return output if retCode == 0 else None
