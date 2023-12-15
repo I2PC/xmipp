@@ -89,8 +89,7 @@ CUDA_GCC_COMPATIBILITY = {
 	'12.0-12.3': vGCC[vGCC.index('12.3'):]
 }
 
-# Other variables
-UNKNOWN_VALUE = 'Unknown'
+# Config variable names
 CC = 'CC'
 CXX = 'CXX'
 MPI_CC = 'MPI_CC'
@@ -106,4 +105,5 @@ SCONS = 'SCons'
 CMAKE = 'CMake'
 TIFF = 'TIFF'
 
-
+# Other variables
+UNKNOWN_VALUE = 'Unknown'

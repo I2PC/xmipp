@@ -32,7 +32,7 @@ from typing import Dict, Union
 
 # Installer imports
 from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
-from .constants import UNKNOWN_VALUE
+from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA
 
 ####################### AUX FUNCTIONS #######################
 def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
@@ -125,8 +125,11 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Initializing default version
 	nvccVersion = None
 
+	# Get the nvcc to extract
+	nvccExecutable = dictPackages[CUDA] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
+
 	# Extracting version command string
-	versionCmdStr = getPackageVersionCmd('nvcc')
+	versionCmdStr = getPackageVersionCmd(nvccExecutable)
 
 	# Check if there were any errors
 	if versionCmdStr is None:
@@ -153,7 +156,7 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Returning resulting version
 	return nvccVersion
 
-def getCmakeVersion() -> str:
+def getCmakeVersion(dictPackages: Dict=None) -> str:
 	"""
 	### Extracts the CMake version.
 
@@ -163,8 +166,11 @@ def getCmakeVersion() -> str:
 	# Initializing default version
 	cmakeVersion = None
 
+	# Get the cmake to extract
+	cmakeExecutable = dictPackages[CMAKE] if dictPackages is not None and CMAKE in dictPackages else 'cmake'
+
 	# Extracting version command string
-	versionCmdStr = getPackageVersionCmd('cmake')
+	versionCmdStr = getPackageVersionCmd(cmakeExecutable)
 
 	# Version number is the last word of the first line of the output text
 	if versionCmdStr is not None:
@@ -174,7 +180,7 @@ def getCmakeVersion() -> str:
 	# Return cmake version
 	return cmakeVersion
 
-def getGPPVersion(dictPackages: Dict) -> Union[str, None]:
+def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
 	### Extracts g++'s version string.
 
@@ -184,9 +190,13 @@ def getGPPVersion(dictPackages: Dict) -> Union[str, None]:
 	#### Returns:
 	- (str | None): g++'s version or None if there were any errors.
 	"""
-	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CXX']))
+	# Get the g++ to extract
+	gppExecutable = dictPackages[CXX] if dictPackages is not None and CXX in dictPackages else 'g++'
 
-def getGCCVersion(dictPackages: Dict) -> Union[str, None]:
+	# Return g++ version
+	return parseCompilerVersion(getPackageVersionCmd(gppExecutable))
+
+def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
 	### Extracts gcc's version string.
 
@@ -196,7 +206,12 @@ def getGCCVersion(dictPackages: Dict) -> Union[str, None]:
 	#### Returns:
 	- (str | None): gcc's version or None if there were any errors.
 	"""
-	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CC']))
+	
+	# Get the gcc to extract
+	gccExecutable = dictPackages[CC] if dictPackages is not None and CC in dictPackages else 'gcc'
+
+	# Return gcc version
+	return parseCompilerVersion(getPackageVersionCmd(gccExecutable))
 
 def getSconsVersion() -> Union[str, None]:
 	"""
