@@ -35,7 +35,6 @@ from sysconfig import get_paths
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
-from .constants.errors import ERROR_CODE
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -137,10 +136,9 @@ def printError(errorMsg: str, retCode: int=1):
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	strError = 'ERROR ' + str(retCode) + ': ' + errorMsg + '\n' + ERROR_CODE[retCode][0] + ' ' +  ERROR_CODE[retCode][1]
-	printMessage(red(strError), debug=True)
+	errorStr = f'ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
+	printMessage(red(errorStr), debug=True)
 	sys.exit(retCode)
-
 
 def printMessage(text: str, debug: bool=False):
 	"""
