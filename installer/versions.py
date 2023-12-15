@@ -117,7 +117,10 @@ def getArchitectureName() -> str:
 
 def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
-	### Extracts the NVCC (NVIDIA CUDA Compiler) version.
+	### Extracts the NVCC (NVIDIA CUDA Compiler) version from the PATH or the config file, the last one having a higher priority.
+
+	#### Params:
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
 
 	#### Returns:
 	- (str | None): CUDA version or None if there were any errors.
@@ -158,7 +161,10 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 
 def getCmakeVersion(dictPackages: Dict=None) -> str:
 	"""
-	### Extracts the CMake version.
+	### Extracts the CMake version from the PATH or the config file, the last one having a higher priority.
+
+	#### Params:
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
 
 	#### Returns:
 	- (str | None): CMake version, or None if there were any errors.
@@ -182,10 +188,10 @@ def getCmakeVersion(dictPackages: Dict=None) -> str:
 
 def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
-	### Extracts g++'s version string.
+	### Extracts g++'s version string from the PATH or the config file, the last one having a higher priority.
 
 	#### Params:
-	- dictPackages (dict): Dictionary containing all found packages.
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
 
 	#### Returns:
 	- (str | None): g++'s version or None if there were any errors.
@@ -198,10 +204,10 @@ def getGPPVersion(dictPackages: Dict=None) -> Union[str, None]:
 
 def getGCCVersion(dictPackages: Dict=None) -> Union[str, None]:
 	"""
-	### Extracts gcc's version string.
+	### Extracts gcc's version string from the PATH or the config file, the last one having a higher priority.
 
 	#### Params:
-	- dictPackages (dict): Dictionary containing all found packages.
+	- dictPackages (dict): Optional. Dictionary containing packages found in the config file.
 
 	#### Returns:
 	- (str | None): gcc's version or None if there were any errors.
