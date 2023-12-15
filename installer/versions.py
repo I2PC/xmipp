@@ -198,7 +198,7 @@ def getGCCVersion(dictPackages: Dict) -> Union[str, None]:
 	"""
 	return parseCompilerVersion(getPackageVersionCmd(dictPackages['CC']))
 
-def getSconsVersion():
+def getSconsVersion() -> Union[str, None]:
 	"""
 	### Extracts scons's version string.
 
