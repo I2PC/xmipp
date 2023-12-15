@@ -81,7 +81,8 @@ def getSystemValues():
     - dict: Dictionary containing system package information.
     """
     printMessage(text='Getting system libraries...', debug=True)
-    dictPackages = {'INCDIRFLAGS': '-I../ '}
+    dictPackages = {'INCDIRFLAGS': '-I../ ',
+                    'LIBDIRFLAGS': ''}
     getCC(dictPackages)
     getCXX(dictPackages)
     getMPI(dictPackages)
@@ -555,7 +556,7 @@ def checkCUDA(dictPackages, checkPackagesStatus):
     """
 
     nvcc_version = getCUDAVersion(dictPackages)
-    if nvcc_version != 'Unknow':
+    if nvcc_version != 'Unknow' or nvcc_version != None:
         gppVersion = getGPPVersion(dictPackages)
         gxx_version = '.'.join(gppVersion.split('.')[:2])
         candidates, resultBool = getCompatibleGCC(nvcc_version)
@@ -568,6 +569,10 @@ def checkCUDA(dictPackages, checkPackagesStatus):
                 nvcc_version, gxx_version, candidates)])
             dictPackages['CUDA'] = 'False'
             writeConfig(dictPackages)
+    else:
+        checkPackagesStatus.append([CUDA_VERSION_WARNING, 'CUDA version not found{}\n'])
+        dictPackages['CUDA'] = 'False'
+        writeConfig(dictPackages)
 
 def getSTARPU(dictPackages):
     """
@@ -686,7 +691,7 @@ def getHDF5(dictPackages):
     for path in PATH_TO_FIND:
         hdf5PathFound = findFileInDirList("libhdf5*", path)
         if hdf5PathFound:
-            dictPackages['LIBDIRFLAGS'] = " -L%s" % hdf5PathFound
+            dictPackages['LIBDIRFLAGS'] += " -L%s" % hdf5PathFound
             dictPackages['HDF5_HOME'] = hdf5PathFound
             break
     if hdf5PathFound == '':
@@ -697,6 +702,7 @@ def getTIFF(dictPackages):
         libtiffPathFound = findFileInDirList("libtiff.so", path)
         if libtiffPathFound:
             dictPackages['TIFF_SO'] = join(libtiffPathFound, 'libtiff.so')
+            dictPackages['LIBDIRFLAGS'] += " -L%s" % dictPackages['TIFF_SO']
             break
     if libtiffPathFound == '':
         printError(errorMsg='TIFF library not found at {}'.format(PATH_TO_FIND), retCode=TIFF_ERROR)
@@ -714,6 +720,7 @@ def getFFTW3(dictPackages):
         libfftw3PathFound = findFileInDirList("libfftw3f.so", path)
         if libfftw3PathFound:
             dictPackages['FFTW3_SO'] = join(libfftw3PathFound, 'libfftw3.so')
+            dictPackages['LIBDIRFLAGS'] += " -L%s" % dictPackages['FFTW3_SO']
             break
     if libfftw3PathFound == '':
         printError(errorMsg='FFTW3 library not found at {}'.format(PATH_TO_FIND), retCode=FFTW3_ERROR)
@@ -755,6 +762,8 @@ def getINCDIRFLAGS(dictPackages):
     #FFTW3
     if path.exists(dictPackages['FFTW3_H']):
         dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['FFTW3_H']
+
+
 def checkHDF5(dictPackages):
     """
     Checks HDF5 library configuration based on provided package information.

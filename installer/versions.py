@@ -29,7 +29,7 @@ os, architecture, cuda, cmake, gpp, gcc and scons.
 
 # General imports
 from typing import Dict, Union
-
+import os
 # Installer imports
 from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
 from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA
@@ -129,10 +129,10 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	nvccVersion = None
 
 	# Get the nvcc to extract
-	nvccExecutable = dictPackages[CUDA] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
+	nvccExecutable = dictPackages['CUDA_HOME'] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
 
 	# Extracting version command string
-	versionCmdStr = getPackageVersionCmd(nvccExecutable)
+	versionCmdStr = getPackageVersionCmd(os.path.join(nvccExecutable, 'bin/nvcc'))
 
 	# Check if there were any errors
 	if versionCmdStr is None:
