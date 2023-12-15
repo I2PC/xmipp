@@ -649,7 +649,7 @@ def get_Hdf5_name(libdirflags):
 
 def installScons():
 	"""
-	### This function attempts to install Scons.
+	### This function attempts to install Scons in the current enviroment.
 	"""
 	# Attempt installing/upgrading Scons
 	retCode = runJob('pip install --upgrade scons', streaming=True)[0]
