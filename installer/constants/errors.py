@@ -55,6 +55,7 @@ TIFF_ERROR = 28
 FFTW3_ERROR = 29
 TIFF_H_ERROR = 30
 FFTW3_H_ERROR = 31
+FFTW3_VERSION_ERROR = 32
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -98,25 +99,25 @@ ERROR_CODE = {
   FFTW3_ERROR: ['FFTW3 library was not found on your system.','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file.'],
 	TIFF_H_ERROR: ['tiffio.h header file was not found', 'Please install the package'],
 	FFTW3_H_ERROR: ['fftw3.h header file was not found', 'Please install the package'],
-
+	FFTW3_VERSION_ERROR: ['fftw version not valid.', 'The version is minor than require, please update it'],
 }
 
 # Warning messages
 WARNING_CODE = {
 	MATLAB_WARNING: ['Matlab not found on system.', 'Please install matlab or set MATLAB as False on the xmipp.conf file.'],
-  MATLAB_HOME_WARNING: ['MATLAB_HOME path not found.', 'Please review the MATLAB_HOME path or set MATLA as False on the xmipp.conf file.'],
-	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler.', 'Please update CUDA or update the compiler or set the CUDA flag on the xmipp.conf to False.'],
+  MATLAB_HOME_WARNING: ['MATLAB_HOME path not found.', 'Please review the MATLAB_HOME path.MATLAB flag set to False on the xmipp.conf file.'],
+	CUDA_VERSION_WARNING: ['CUDA version not compatible with your g++ compiler.', 'Please update CUDA or update the compiler. CUDA flag set to False on xmipp.conf.'],
 	CUDA_WARNING: ['CUDA not found.', 'Please review the CUDA_HOME flag on your xmipp.conf file.'],
 	OPENCV_WARNING: ['OpenCV does not work.',
 									 'OPENCV flag was set to False and will not be used inside Xmipp.',
 									 'Please review your Opencv installation.'],
   OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work.',
-													'OPENCVSUPPORTSCUDA flag was set to False and will not be used inside Xmipp.',
+													'OPENCVSUPPORTSCUDA flag set to False and will not be used inside Xmipp.',
 													'Please review your Opencv installation.'],
-	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU.'],
-	STARPU_INCLUDE_WARNING: [],
-	STARPU_LIB_WARNING: [],
-	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name)."],
-	STARPU_RUN_WARNING: ["Check STARPU_* settings."],
+	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU.', 'Set STARPU flag to False on xmipp.conf'],
+	STARPU_INCLUDE_WARNING: ['', 'Set STARPU flag to False on xmipp.conf'],
+	STARPU_LIB_WARNING: ['', 'Set STARPU flag to False on xmipp.conf'],
+	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name).", 'Set STARPU flag to False on xmipp.conf'],
+	STARPU_RUN_WARNING: ["Check STARPU_* settings.", 'Set STARPU flag to False on xmipp.conf'],
 
 }

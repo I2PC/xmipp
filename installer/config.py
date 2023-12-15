@@ -48,7 +48,8 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
-                        TIFF_H_ERROR, FFTW3_H_ERROR)
+                        TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
+                        WARNING_CODE)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
@@ -86,14 +87,14 @@ def getSystemValues():
     getCXX(dictPackages)
     getMPI(dictPackages)
     getJava(dictPackages)
-    getOPENCV(dictPackages)
-    getCUDA(dictPackages)
-    getSTARPU(dictPackages)
-    getMatlab(dictPackages)
     getTIFF(dictPackages)
     getFFTW3(dictPackages)
     getHDF5(dictPackages)
     getINCDIRFLAGS(dictPackages)
+    getOPENCV(dictPackages)
+    getCUDA(dictPackages)
+    getSTARPU(dictPackages)
+    getMatlab(dictPackages)
     return dictPackages
 
 def readConfig():
@@ -137,7 +138,8 @@ def checkConfig(dictPackages):
     checkCMake()
     if checkPackagesStatus != []:
         for pack in checkPackagesStatus:
-            printMessage('')
+            printMessage(yellow('- Warning code {} {}\n{}\n'.format(pack[0],
+                        WARNING_CODE[pack[0]][0], WARNING_CODE[pack[0]][1])), debug=True)
 
 
 def existConfig():
@@ -150,12 +152,12 @@ def existConfig():
 def writeConfig(dictPackages):
     """Write the config file"""
 
-    with open(CONFIG_FILE, 'a') as f:
+    with open(CONFIG_FILE, 'w') as f:
         for key, value in dictPackages.items():
             f.write('{}={}\n'.format(key, value))
 
         f.write('\n')
-        f.write('Date written: {} \n'.format(datetime.today()))
+        f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""
@@ -456,6 +458,8 @@ def checkMatlab(dictPackages, checkErrors):
     status, output = runJob(cmd, showError=True)
     if status != 0:
         checkErrors.append([MATLAB_HOME_WARNING, output])
+        dictPackages['MATLAB'] = 'False'
+        writeConfig(dictPackages)
     else:
         printMessage(text=green('Matlab installation found'), debug=True)
     runJob("rm xmipp_mex*")
@@ -473,6 +477,7 @@ def getOPENCV(dictPackages):
                     except KeyError:
                         dictPackages['INCDIRFLAGS'] = ' -I' + p + '/' + oP.split('/')[0]
                     dictPackages['OPENCV'] = True
+                    dictPackages['OPENCVSUPPORTSCUDA'] = True
                     break
 
 def checkOPENCV(dictPackages, checkErrors):
@@ -500,18 +505,20 @@ def checkOPENCV(dictPackages, checkErrors):
         printMessage(text=green('OPENCV {} found'.format(opencvVersion(dictPackages, CXX_FLAGS))), debug=True)
 
     # Check CUDA Support
-    cppProg = "#include <opencv2/core/version.hpp>\n"
-    if opencvVersion(dictPackages, CXX_FLAGS) < 3:
-        cppProg += "#include <opencv2/core/cuda.hpp>\n"
-    else:
-        cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
-    cppProg += "int main(){}\n"
-    with open("xmipp_test_opencv.cpp", "w") as cppFile:
-        cppFile.write(cppProg)
-    status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
-    if status != 0:
-        checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
-        dictPackages['OPENCVSUPPORTSCUDA'] = ''
+    if dictPackages['OPENCVSUPPORTSCUDA'] == 'True':
+        cppProg = "#include <opencv2/core/version.hpp>\n"
+        if opencvVersion(dictPackages, CXX_FLAGS) < 3:
+            cppProg += "#include <opencv2/core/cuda.hpp>\n"
+        else:
+            cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
+        cppProg += "int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+        status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
+        if status != 0:
+            checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
+            dictPackages['OPENCVSUPPORTSCUDA'] = False
+            writeConfig(dictPackages)
 
     runJob("rm xmipp_test_opencv*", showError=True)
 
@@ -560,6 +567,8 @@ def checkCUDA(dictPackages, checkPackagesStatus):
             checkPackagesStatus.append([CUDA_VERSION_WARNING, 'CUDA {} not compatible with the current g++ compiler version {}\n'
                       'Compilers candidates for your CUDA: {}'.format(
                 nvcc_version, gxx_version, candidates)])
+            dictPackages['CUDA'] = 'False'
+            writeConfig(dictPackages)
 
 def getSTARPU(dictPackages):
     """
@@ -630,7 +639,10 @@ def checkSTARPU(dictPackages, checkPackagesStatus):
                  dictPackages["STARPU_LIB"],
                  dictPackages["STARPU_LIBRARY"]))[0] != 0:
             checkPackagesStatus.append([STARPU_LIBRARY_WARNING])
-        runJob("rm -f xmipp_starpu_config_test*")
+    else:
+        dictPackages['STARPU'] = 'False'
+        writeConfig(dictPackages)
+    runJob("rm -f xmipp_starpu_config_test*")
 
 # def checkPYTHONINCFLAGS(incPath):
 #     includes = incPath.split(' ')
@@ -737,6 +749,13 @@ def getINCDIRFLAGS(dictPackages):
     else:
         printMessage(text=red('HDF5 not detected but required, please install it'), debug=True)
 
+    #TIFF
+    if path.exists(dictPackages['TIFF_H']):
+        dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['TIFF_H']
+
+    #FFTW3
+    if path.exists(dictPackages['FFTW3_H']):
+        dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['FFTW3_H']
 def checkHDF5(dictPackages):
     """
     Checks HDF5 library configuration based on provided package information.
@@ -777,7 +796,11 @@ def checkTIFF(dictPackages):
 
 def checkFFTW3(dictPackages):
     if path.exists(dictPackages['FFTW3_H']):
-        printMessage(text=green('FFTW3 {} found'.format(FFTW3Version(dictPackages['FFTW3_SO']))), debug=True)
+        version = FFTW3Version(dictPackages['FFTW3_SO'])
+        if versionToNumber(version) >= versionToNumber(FFTW_MINIMUM):
+            printMessage(text=green('FFTW3 {} found'.format(version)), debug=True)
+        else:
+            printError(retCode=FFTW3_VERSION_ERROR, errorMsg=green('FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM)))
     else:
         printError(retCode=TIFF_H_ERROR, errorMsg='{} file does not exist'.format(dictPackages['FFTW3_H']))
 
