@@ -374,10 +374,21 @@ class Config:
 
         if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
             print(red("'libfftw3' not found in the system"))
-            installDepConda('fftw', self.ask)
+            fftw3Lib = askPath('', self.ask)
+            if fftw3Lib == '':
+                installDepConda('fftw', self.ask)
+            else:
+                self.configDict["LIBDIRFLAGS"] += " -L%s" % fftw3Lib
+                self.environment.update(LD_LIBRARY_PATH=fftw3Lib)
+
         if not checkLib(self.get(Config.KEY_CXX), '-ltiff'):
             print(red("'libtiff' not found in the system"))
-            installDepConda('libtiff', self.ask)
+            tiffLib = askPath('', self.ask)
+            if tiffLib == '':
+                installDepConda('libtiff', self.ask)
+            else:
+                self.configDict["LIBDIRFLAGS"] += " -L%s" % tiffLib
+                self.environment.update(LD_LIBRARY_PATH=tiffLib)
 
         if self.configDict["INCDIRFLAGS"] == "":
             # /usr/local/include or /path/to/virtEnv/include
