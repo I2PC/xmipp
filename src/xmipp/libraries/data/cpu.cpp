@@ -26,6 +26,7 @@
 #include "cpu.h"
 #include <sstream>
 
+#if defined(__x86__)
 void CPU::native_cpuid(unsigned int *eax, unsigned int *ebx,
         unsigned int *ecx, unsigned int *edx)
 {
@@ -37,6 +38,14 @@ void CPU::native_cpuid(unsigned int *eax, unsigned int *ebx,
       "=d" (*edx)
     : "0" (*eax), "2" (*ecx));
 }
+#elif defined(__aarch64__)
+void CPU::native_cpuid(unsigned int *eax, unsigned int *ebx,
+        unsigned int *ecx, unsigned int *edx)
+{
+    asm volatile ("mrs %0, MIDR_EL1" : "=r"(*eax));
+}     
+#endif
+
 
 void CPU::updateMemoryInfo() {
     size_t pages = sysconf(_SC_PHYS_PAGES);
