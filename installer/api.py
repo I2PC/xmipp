@@ -61,7 +61,7 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	- retCode (int): Optional. Return code for the API request.
 	
 	#### Return:
-	- (str|None): JSON string with the required info or None if user id could not be produced.
+	- (str | None): JSON string with the required info or None if user id could not be produced.
 	"""
 	# Getting user id and checking if it exists
 	userId = getUserId()
@@ -114,7 +114,7 @@ def getMACAddress() -> Union[str, None]:
 	### This function returns a physical MAC address for this machine. It prioritizes ethernet over wireless.
 	
 	#### Returns:
-	- (str|None): MAC address, or None if there were any errors.
+	- (str | None): MAC address, or None if there were any errors.
 	"""
 	# Run command to get network interfaces info
 	status, output = runJob("ip addr")
@@ -151,7 +151,7 @@ def getUserId() -> Union[str, None]:
 	### This function returns the unique user id for this machine.
 	
 	#### Returns:
-	- (str|None): User id, or None if there were any errors.
+	- (str | None): User id, or None if there were any errors.
 	"""
 	# Obtaining user's MAC address
 	macAddress = getMACAddress()
@@ -174,7 +174,7 @@ def getLogTail() -> Union[str, None]:
 	### This function returns the last lines of the installation log.
 	
 	#### Returns:
-	- (str|None): Installation log's last lines, or None if there were any errors.
+	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
 	# Obtaining log tail
 	retCode, output = runJob(f"tail {LOG_FILE}")
