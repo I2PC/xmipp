@@ -26,9 +26,8 @@
 This module contains the necessary functions to run the config command.
 """
 
-import shutil
-import glob
-from os import path, remove, environ
+import shutil, glob
+from os import path, environ
 from os.path import isdir, join, isfile
 
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,

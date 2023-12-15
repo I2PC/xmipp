@@ -57,29 +57,28 @@ DEVEL_BRANCHNAME = 'devel'					#
 MASTER_BRANCHNAME = 'master'				#
 #####################################
 
-# Version requirements
-#####################################
-GCC_MINIMUM = '8.4'									#TODO: NEEDED? MAYBE ONLY G++, check with nvcc -- g++
-GPP_MINIMUM = GCC_MINIMUM						#
-CMAKE_MINIMUM = '3.16'							#
-SCONS_MINIMUM = '3.0'								#
-CUDA_MINIMUM = '10.2'								#
-MPI_MINIMUM = '3.0'									#
-PYTHON_MINIMUM = '3.0'							#
-NUMPY_MINIMUM = '1.21'							#
-MINIMUM_CUDA_VERSION = '10.1'				#
-HDF5_MINIMUM = '1.10'								#
-FFTW_MINIMUM = '3.0'								#
-#####################################
-
 # Supported gcc versions
 vGCC = [
 	'12.3', '12.2', '12.1',
 	'11.3', '11.2', '11.1', '11',
 	'10.5', '10.4', '10.3', '10.2', '10.1', '10',
 	'9.4', '9.3', '9.2', '9.1', '9',
-	'8.5', '8.4', '8.3', '8.2', '8.1', '8'
+	'8.5', '8.4'
 ]
+
+# Version requirements
+#####################################
+GCC_MINIMUM = vGCC[-1]							#TODO: NEEDED? MAYBE ONLY G++, check with nvcc -- g++
+GPP_MINIMUM = GCC_MINIMUM						#
+CMAKE_MINIMUM = '3.16'							#
+SCONS_MINIMUM = '3.0'								#
+CUDA_MINIMUM = '10.1'								#
+MPI_MINIMUM = '3.0'									#
+PYTHON_MINIMUM = '3.0'							#
+NUMPY_MINIMUM = '1.21'							#
+HDF5_MINIMUM = '1.10'								#
+FFTW_MINIMUM = '3.0'								#
+#####################################
 
 # CUDA-gcc compatibility table
 CUDA_GCC_COMPATIBILITY = {
