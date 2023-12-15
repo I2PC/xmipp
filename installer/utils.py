@@ -606,23 +606,30 @@ def TIFFVersion(libtiffPathFound):
 						version = outputStr[idx:].split(' ')[-1]
 				return outputStr.split(' ')[-1]
 
+def FFTW3Version(pathSO):
+		retCode, outputStr = runJob('readlink {}'.format(pathSO))
+		if retCode == 0:
+				return outputStr.split('so.')[-1]
 
-def checkLib(gxx, libFlag):
-		"""
-		Checks if a specific library can be linked by a given compiler.
 
-		Params:
-		- gxx (str): Compiler command.
-		- libFlag (str): Flag representing the library.
 
-		Returns:
-		- bool: True if the library can be linked, False otherwise.
-		"""
-		# TODO: Revisar: funciona como queremos?
-		retCode, outputStr = runJob('echo "#include <tiffio.h>\nint main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)
-		os.remove('xmipp_check_lib.cpp')
-		os.remove('a.out') if os.path.isfile('a.out') else None
-		return retCode == 0
+
+# def checkLib(gxx, libFlag):
+# 		"""
+# 		Checks if a specific library can be linked by a given compiler.
+#
+# 		Params:
+# 		- gxx (str): Compiler command.
+# 		- libFlag (str): Flag representing the library.
+#
+# 		Returns:
+# 		- bool: True if the library can be linked, False otherwise.
+# 		"""
+# 		# TODO: Revisar: funciona como queremos?
+# 		retCode, outputStr = runJob('echo "#include <tiffio.h>\nint main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)
+# 		os.remove('xmipp_check_lib.cpp')
+# 		os.remove('a.out') if os.path.isfile('a.out') else None
+# 		return retCode == 0
 
 def get_Hdf5_name(libdirflags):
 		"""

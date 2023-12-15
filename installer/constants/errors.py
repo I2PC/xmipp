@@ -53,10 +53,8 @@ IO_ERROR = 26
 HDF5_VERSION_ERROR = 27
 TIFF_ERROR = 28
 FFTW3_ERROR = 29
-TIFF_PATH_ERROR = 30
-FFTW3_PATH_ERROR = 31
-TIFF_H_ERROR = 32
-FFTW3_H_ERROR = 33
+TIFF_H_ERROR = 30
+FFTW3_H_ERROR = 31
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -98,8 +96,6 @@ ERROR_CODE = {
 	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
   TIFF_ERROR: ['TIFF library was not found on your system.', 'Please install it or add the path in the flag TIFF_HOME of the xmipp.conf file.'],
   FFTW3_ERROR: ['FFTW3 library was not found on your system.','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file.'],
-  TIFF_PATH_ERROR: ['libtiff.so does not work on your system.', 'Please, review the installation of libtiff or change the path of TIFF_SO in the xmipp.conf.'],
-  FFTW3_PATH_ERROR	: ['libfftw3.so does not work on your system.', 'Please, review the installation of libfftw3 or change the path of FFTW3_SO in the xmipp.conf.'],
 	TIFF_H_ERROR: ['tiffio.h header file was not found', 'Please install the package'],
 	FFTW3_H_ERROR: ['fftw3.h header file was not found', 'Please install the package'],
 

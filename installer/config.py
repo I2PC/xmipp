@@ -47,14 +47,14 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, OPENCV_CUDA_WARNING,
                         STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
-                        HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, FFTW3_PATH_ERROR,
-                        TIFF_PATH_ERROR, PATH_TO_FIND_H, TIFF_H_ERROR, FFTW3_H_ERROR)
+                        HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
+                        TIFF_H_ERROR, FFTW3_H_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
-                    getCompatibleGCC, CXXVersion, checkLib,
+                    getCompatibleGCC, CXXVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
-                    HDF5Version, opencvVersion, TIFFVersion, printMessage)
+                    HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
@@ -770,19 +770,16 @@ def checkHDF5(dictPackages):
 
 
 def checkTIFF(dictPackages):
-    if checkLib(dictPackages[CXX], '-I{} '.format(dictPackages['TIFF_H'])):
+    if path.exists(dictPackages['TIFF_H']):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=True)
     else:
-        printError(retCode=TIFF_PATH_ERROR, errorMsg='{} file does not work'.format(dictPackages['TIFF_H']))
-
-
+        printError(retCode=TIFF_H_ERROR, errorMsg='{} file does not exist'.format(dictPackages['TIFF_H']))
 
 def checkFFTW3(dictPackages):
-    if checkLib(dictPackages[CXX], '-I{}'.format(dictPackages['FFTW3_H'])):
-        printMessage(text=green('FFTW3 found'), debug=True)
+    if path.exists(dictPackages['FFTW3_H']):
+        printMessage(text=green('FFTW3 {} found'.format(FFTW3Version(dictPackages['FFTW3_SO']))), debug=True)
     else:
-        printError(retCode=FFTW3_PATH_ERROR,
-                   errorMsg='{} file does not work'.format(dictPackages['FFTW3_H']))
+        printError(retCode=TIFF_H_ERROR, errorMsg='{} file does not exist'.format(dictPackages['FFTW3_H']))
 
 
 def checkCMake():
