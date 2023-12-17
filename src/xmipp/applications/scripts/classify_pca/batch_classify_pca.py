@@ -209,7 +209,8 @@ if __name__=="__main__":
             tMatrix = torch.eye(2, 3, device = cuda).repeat(subset, 1, 1)
             
             if mode == "align_classes":
-                niter = 5
+                # niter = 5
+                niter = 4
                 
             for iter in range(niter):
                 # print("-----Iteration %s for updating classes-------"%(iter+1))
@@ -229,8 +230,8 @@ if __name__=="__main__":
                         ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
                     elif iter < 13: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    elif iter < 15: 
-                        ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
+                    # elif iter < 15: 
+                    #     ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
                 else:
                     print("---Iter %s for align to classes---"%(iter+1))
                     if iter < 1:
@@ -241,8 +242,8 @@ if __name__=="__main__":
                         ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
                     elif iter < 4: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    elif iter < 5: 
-                        ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
+                    # elif iter < 5: 
+                    #     ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
                     
                           
                 vectorRot, vectorshift = bnb.setRotAndShift(ang, shiftMove)
@@ -284,7 +285,8 @@ if __name__=="__main__":
                 save_images(cl.cpu().detach().numpy(), file)
                 
                 
-                if mode == "create_classes" and iter == 14:
+                # if mode == "create_classes" and iter == 14:
+                if mode == "create_classes" and iter == 12:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
@@ -306,7 +308,8 @@ if __name__=="__main__":
                     angles_rad = torch.atan2(rotation_matrix[:, 1, 0], rotation_matrix[:, 0, 0])
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
-                elif mode == "align_classes" and iter == 4:
+                # elif mode == "align_classes" and iter == 4:
+                elif mode == "align_classes" and iter == 3:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
                     
