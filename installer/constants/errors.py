@@ -60,6 +60,10 @@ CLONNING_EXTERNAL_SOURCE_ERROR = 33
 CLONNING_XMIPP_SOURCE_ERROR = 34
 DOWNLOADING_XMIPP_SOURCE_ERROR = 35
 GIT_VERSION_ERROR = 36
+CUFFTADVSOR_ERROR = 37
+GOOGLETEST_ERROR = 38
+LIBSVM_ERROR = 39
+LIBCIFPP_ERROR = 40
 
 
 # Warning codes
@@ -74,6 +78,7 @@ STARPU_LIB_WARNING = 8
 STARPU_LIBRARY_WARNING = 9
 STARPU_RUN_WARNING = 10
 STARPU_CUDA_WARNING = 11
+GIT_PULL_WARNING = 12
 
 # Error messages
 #TODO review the messages spelling, maybe mor links to the documentation?
@@ -96,7 +101,7 @@ ERROR_CODE = {
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel.', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one.'],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
 	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails.','Check the JNI_CPPPATH, CXX and INCDIRFLAGS.'],
-	CMAKE_VERSION_ERROR: ['.', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
+	CMAKE_VERSION_ERROR: ['', f'Please update your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	CMAKE_ERROR: [f'Please install your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	NETWORK_ERROR: ['There was a network error running a command.', ''],
 	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
@@ -108,8 +113,11 @@ ERROR_CODE = {
   CLONNING_EXTERNAL_SOURCE_ERROR: ['Error cloning external repository with git.', 'Please review the internet connection and the git package.'],
 	CLONNING_XMIPP_SOURCE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
 	DOWNLOADING_XMIPP_SOURCE_ERROR:['Error downloading (wget) xmipp repository.', 'Please review the internet connection.'],
-	GIT_VERSION_ERROR: [],
-
+	GIT_VERSION_ERROR: ['', 'Please update the version og git'],
+  CUFFTADVSOR_ERROR: ['Error compilling cuFFTAdvisor', 'Please, read the documentation of the package.'],
+  GOOGLETEST_ERROR: ['Error compilling googletest', 'Please, read the documentation of the package.'],
+	LIBSVM_ERROR: ['Error compilling libsvm', 'Please, read the documentation of the package.'],
+  LIBCIFPP_ERROR: ['Error compilling libcifpp', 'Please, read the documentation of the package.'],
 
 }
 
@@ -123,12 +131,12 @@ WARNING_CODE = {
 									 'OPENCV flag was set to False and will not be used inside Xmipp.',
 									 'Please review your Opencv installation.'],
   OPENCV_CUDA_WARNING: ['OpenCV CUDA support does not work.',
-													'OPENCVSUPPORTSCUDA flag set to False and will not be used inside Xmipp.',
+													'OPENCVCUDASUPPORTS flag set to False and will not be used inside Xmipp.',
 													'Please review your Opencv installation.'],
 	STARPU_CUDA_WARNING: ['CUDA must be enabled together with STARPU.', 'Set STARPU flag to False on xmipp.conf'],
 	STARPU_INCLUDE_WARNING: ['', 'Set STARPU flag to False on xmipp.conf'],
 	STARPU_LIB_WARNING: ['', 'Set STARPU flag to False on xmipp.conf'],
 	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name).", 'Set STARPU flag to False on xmipp.conf'],
 	STARPU_RUN_WARNING: ["Check STARPU_* settings.", 'Set STARPU flag to False on xmipp.conf'],
-
+  GIT_PULL_WARNING: ['git pull command fail, pull not runned.', 'Please review your internet connection and git package'],
 }

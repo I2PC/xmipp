@@ -93,7 +93,7 @@ CONFIG_DICT = {'INCDIRFLAGS': '',
 								'MPI_RUN': '',
 								'JAVA_HOME': '',
 								'OPENCV': '',
-								'OPENCVSUPPORTSCUDA': '',
+								'OPENCVCUDASUPPORTS': '',
 								'CUDA': '',
 								'CUDA_HOME': '',
 								'CUDA_CXX': '',
@@ -137,7 +137,7 @@ CXX_CUDA=/usr/bin/g++-10
 CUDA_HOME=
 
 OPENCV=False
-OPENCVSUPPORTSCUDA=False
+OPENCVCUDASUPPORTS=False
 
 STARPU=False
 STARPU_HOME=

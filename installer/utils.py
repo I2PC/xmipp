@@ -34,7 +34,7 @@ from sysconfig import get_paths
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR, WARNING_CODE
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -159,6 +159,11 @@ def printMessage(text: str, debug: bool=False):
 	# If there was an error during the process, show error and exit
 	except OSError:
 		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
+
+def printWarning(text: str, warningCode: int, debug: bool=True):
+	if debug:
+		print(yellow('- Warning code {} -  {}\n{}'.format(text,
+				WARNING_CODE[warningCode][0], WARNING_CODE[warningCode][1])), flush=True)
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:
