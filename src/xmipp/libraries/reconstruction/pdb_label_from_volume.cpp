@@ -124,7 +124,7 @@ void ProgPdbValueToVol::produceSideInfo()
 /* Compute protein geometry ------------------------------------------------ */
 void ProgPdbValueToVol::computeProteinGeometry()
 {
-    PDBRichPhantom pdbIn, pdbOut;
+    PDBRichPhantom pdbIn;
     PDBRichPhantom pdbOut;
     pdbIn.read(fn_pdb.c_str());
 
