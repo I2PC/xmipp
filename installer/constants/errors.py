@@ -56,6 +56,11 @@ FFTW3_ERROR = 29
 TIFF_H_ERROR = 30
 FFTW3_H_ERROR = 31
 FFTW3_VERSION_ERROR = 32
+CLONNING_EXTERNAL_SOURCE_ERROR = 33
+CLONNING_XMIPP_SOURCE_ERROR = 34
+DOWNLOADING_XMIPP_SOURCE_ERROR = 35
+GIT_VERSION_ERROR = 36
+
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -97,9 +102,15 @@ ERROR_CODE = {
 	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
   TIFF_ERROR: ['TIFF library was not found on your system.', 'Please install it or add the path in the flag TIFF_HOME of the xmipp.conf file.'],
   FFTW3_ERROR: ['FFTW3 library was not found on your system.','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file.'],
-	TIFF_H_ERROR: ['tiffio.h header file was not found', 'Please install the package'],
-	FFTW3_H_ERROR: ['fftw3.h header file was not found', 'Please install the package'],
-	FFTW3_VERSION_ERROR: ['fftw version not valid.', 'The version is minor than require, please update it'],
+	TIFF_H_ERROR: ['tiffio.h header file was not found.', 'Please install the package.'],
+	FFTW3_H_ERROR: ['fftw3.h header file was not found.', 'Please install the package.'],
+	FFTW3_VERSION_ERROR: ['fftw version not valid.', 'The version is minor than require, please update it.'],
+  CLONNING_EXTERNAL_SOURCE_ERROR: ['Error cloning external repository with git.', 'Please review the internet connection and the git package.'],
+	CLONNING_XMIPP_SOURCE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
+	DOWNLOADING_XMIPP_SOURCE_ERROR:['Error downloading (wget) xmipp repository.', 'Please review the internet connection.'],
+	GIT_VERSION_ERROR: [],
+
+
 }
 
 # Warning messages

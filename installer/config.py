@@ -48,11 +48,11 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
-                        WARNING_CODE)
+                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
-                    getCompatibleGCC, CXXVersion,
+                    getCompatibleGCC, CXXVersion, gitVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
                     HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version)
 
@@ -131,6 +131,7 @@ def checkConfig(dictPackages):
         checkCUDA(dictPackages, checkPackagesStatus)
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages, checkPackagesStatus)
+    checkGit()
     checkHDF5(dictPackages)
     checkTIFF(dictPackages)
     checkFFTW3(dictPackages)
@@ -762,6 +763,14 @@ def getINCDIRFLAGS(dictPackages):
     #FFTW3
     if path.exists(dictPackages['FFTW3_H']):
         dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['FFTW3_H']
+
+def checkGit():
+    version = gitVersion()
+    if versionToNumber(version) < versionToNumber(GIT_MINIMUM):
+        printError(retCode=GIT_VERSION_ERROR, errorMsg='GIT version {} lower than minimum: {}'.
+                   format(version, GIT_MINIMUM))
+    else:
+        printMessage(text=green('git {} found'.format(version)), debug=True)
 
 
 def checkHDF5(dictPackages):

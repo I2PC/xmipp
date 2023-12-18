@@ -74,6 +74,7 @@ PYTHON_MINIMUM = '3.0'							#
 NUMPY_MINIMUM = '1.21'							#
 HDF5_MINIMUM = '1.10'								#
 FFTW_MINIMUM = '3.0'								#
+GIT_MINIMUM = '2.0'									#
 #####################################
 
 # CUDA-gcc compatibility table

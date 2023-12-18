@@ -33,7 +33,8 @@ from typing import Tuple
 from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES,
 	ORGANIZATION_NAME, \
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS,
-  CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP)
+  CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP, CLONNING_EXTERNAL_SOURCE_ERROR,
+  CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR)
 from .utils import runJob, getCurrentBranch, printError, printMessage
 
 ####################### COMMAND FUNCTIONS #######################
@@ -59,7 +60,7 @@ def getSources(branch: str=None):
 			# Clone source repository
 			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
 			if status != 0:
-				printError(output, retCode=status)
+				printError(errorMsg=output, retCode=CLONNING_EXTERNAL_SOURCE_ERROR)
 
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
@@ -67,12 +68,14 @@ def getSources(branch: str=None):
 						or currentBranch == MASTER_BRANCHNAME):
 			# Download source tag
 			status, output = downloadSourceTag(source)
+			if status != 0:
+					printError(output, retCode=DOWNLOADING_XMIPP_SOURCE_ERROR)
 		else:
 			# Clone source repository
 			status, output = cloneSourceRepo(source, branch=branch)
 		# If download failed, return error
 		if status != 0:
-			printError(output, retCode=status)
+			printError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:

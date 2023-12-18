@@ -609,8 +609,11 @@ def FFTW3Version(pathSO):
 		if retCode == 0:
 				return outputStr.split('so.')[-1]
 
-
-
+def gitVersion():
+		version = getPackageVersionCmd('git')
+		if version != None:
+				version = version.split(' ')[-1]
+		return version
 
 # def checkLib(gxx, libFlag):
 # 		"""
