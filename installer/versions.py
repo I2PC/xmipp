@@ -128,11 +128,15 @@ def getCUDAVersion(dictPackages: Dict=None) -> Union[str, None]:
 	# Initializing default version
 	nvccVersion = None
 
+	# If CUDA is set to False, don't fetch version
+	if dictPackages is not None and CUDA in dictPackages and dictPackages[CUDA] == 'False':
+		return None
+
 	# Get the nvcc to extract
-	nvccExecutable = dictPackages['CUDA_HOME'] if dictPackages is not None and CUDA in dictPackages else 'nvcc'
+	nvccExecutable = os.path.join(dictPackages['CUDA_HOME'], 'bin/nvcc') if dictPackages is not None and CUDA in dictPackages else 'nvcc'
 
 	# Extracting version command string
-	versionCmdStr = getPackageVersionCmd(os.path.join(nvccExecutable, 'bin/nvcc'))
+	versionCmdStr = getPackageVersionCmd(nvccExecutable)
 
 	# Check if there were any errors
 	if versionCmdStr is None:
