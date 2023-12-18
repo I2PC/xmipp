@@ -160,7 +160,7 @@ def printError(errorMsg: str, retCode: int=1):
 
 def printMessage(text: str, debug: bool=False):
 	"""
-	### This method prints the given text into the log file, and, if debug mode is active, also through terminal.
+	### This function prints the given text into the log file, and, if debug mode is active, also through terminal.
 
 	### Params:
 	- text (str): The text to be printed.
@@ -179,9 +179,15 @@ def printMessage(text: str, debug: bool=False):
 		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
 
 def printWarning(text: str, warningCode: int, debug: bool=True):
-	if debug:
-		print(yellow('- Warning code {} -  {}\n{}'.format(text,
-				WARNING_CODE[warningCode][0], WARNING_CODE[warningCode][1])), flush=True)
+	"""
+	### This function logs the given text as a warning.
+
+	### Params:
+	- text (str): The text to be printed.
+	- warningCode (int): Code of the controlled warning.
+	- debug (bool): Indicates if debug mode is active.
+	"""
+	printMessage(yellow(f'- Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n{text}'), debug=debug)
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:
