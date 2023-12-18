@@ -24,12 +24,8 @@
 """
 Submodule containing all version info required for Xmipp's installation process.
 """
+from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 
-# Source names
-XMIPP = 'xmipp'
-XMIPP_CORE = 'xmippCore'
-XMIPP_VIZ = 'xmippViz'
-XMIPP_PLUGIN = 'scipion-em-xmipp'
 
 # Xmipp's current versions
 #####################################
@@ -37,20 +33,20 @@ VERSION_KEY = 'version'							#
 VERNAME_KEY = 'vername'							#
 XMIPP_VERSIONS = {									#
 	XMIPP: {													#
-		VERSION_KEY: '3.23.07.0',				#
-		VERNAME_KEY: 'v3.23.07-Morpheus'#
+		VERSION_KEY: '3.23.11.0',				#
+		VERNAME_KEY: 'v3.23.11-Nereus'#
 	},																#
 	XMIPP_CORE: {											#
-		VERSION_KEY: '3.23.07.0',				#
-		VERNAME_KEY: 'v3.23.07-Morpheus'#
+		VERSION_KEY: '3.23.11.0',				#
+		VERNAME_KEY: 'v3.23.11-Nereus'#
 	},																#
 	XMIPP_VIZ: {											#
-		VERSION_KEY: '3.23.07.0',				#
-		VERNAME_KEY: 'v3.23.07-Morpheus'#
+		VERSION_KEY: '3.23.11.0',				#
+		VERNAME_KEY: 'v3.23.11-Nereus'#
 	},																#
 	XMIPP_PLUGIN: {										#
-		VERSION_KEY: '3.23.07.0',				#
-		VERNAME_KEY: 'v3.23.07-Morpheus'#
+		VERSION_KEY: '3.23.11.0',				#
+		VERNAME_KEY: 'v3.23.11-Nereus'#
 	}																	#
 }																		#
 DEVEL_BRANCHNAME = 'devel'					#

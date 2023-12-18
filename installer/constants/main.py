@@ -25,24 +25,29 @@
 """
 Submodule containing all the general constants needed for Xmipp's installation.
 """
-
-# Dependency names
+XMIPP = 'xmipp'
+XMIPP_CORE = 'xmippCore'
+XMIPP_VIZ = 'xmippViz'
+XMIPP_PLUGIN = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
 GTEST = 'googletest'
 LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
 
+REPOSITORIES = {
+XMIPP: ['https://github.com/I2PC/xmipp.git', ''],
+XMIPP_CORE: ['https://github.com/I2PC/xmippCore.git', ''],
+XMIPP_VIZ: ['https://github.com/I2PC/xmippViz.git', ''],
+XMIPP_PLUGIN: ['https://github.com/I2PC/scipion-em-xmipp.git', ''],
+CUFFTADVISOR: ['https://github.com/DStrelak/cuFFTAdvisor.git', 'master'],
+CTPL: ['https://github.com/vit-vit/CTPL.git', 'master'],
+GTEST: ['https://github.com/google/googletest', 'v1.13.x'],
+LIBSVM: ['https://github.com/cossorzano/libsvm.git', 'master'],
+LIBCIFPP: ['https://github.com/MartinSalinas98/libcifpp', 'ms_feature_ciflibrary'],
+}
 # Source repositories
 ORGANIZATION_NAME = 'I2PC'
-REPOSITORIES = {
-	ORGANIZATION_NAME: 'https://github.com/I2PC/',
-	CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-	CTPL: 'https://github.com/vit-vit/CTPL.git',
-	GTEST: 'https://github.com/google/googletest',
-	LIBSVM: 'https://github.com/cossorzano/libsvm.git',
-	LIBCIFPP: 'https://github.com/MartinSalinas98/libcifpp'
-}
 TAGS_SUBPAGE = 'archive/refs/tags/'
 
 # API URL

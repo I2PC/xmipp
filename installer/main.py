@@ -30,9 +30,11 @@ import os
 from typing import Tuple
 
 # Installer imports
-from .constants import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES, ORGANIZATION_NAME, \
-	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS
-from .utils import runJob, getCurrentBranch, printError
+from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES,
+	ORGANIZATION_NAME, \
+	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS,
+  CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP)
+from .utils import runJob, getCurrentBranch, printError, printMessage
 
 ####################### COMMAND FUNCTIONS #######################
 def getSources(branch: str=None):
@@ -50,21 +52,27 @@ def getSources(branch: str=None):
 	currentBranch = getCurrentBranch()
 	
 	# Define sources list
+	external_sources = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
 	sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
 
-	# For each source, download or clone
+	for source in external_sources:
+			# Clone source repository
+			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
+			if status != 0:
+				printError(output, retCode=status)
+
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
-		if currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY] or currentBranch == MASTER_BRANCHNAME:
+		if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
+						or currentBranch == MASTER_BRANCHNAME):
 			# Download source tag
 			status, output = downloadSourceTag(source)
 		else:
 			# Clone source repository
 			status, output = cloneSourceRepo(source, branch=branch)
-		
 		# If download failed, return error
-		if not status:
-			printError(output, retCode=status) #TODO: CHECK CODE
+		if status != 0:
+			printError(output, retCode=status)
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:
@@ -84,7 +92,7 @@ def downloadSourceTag(source: str) -> Tuple[bool, str]:
 
 	# Download tag
 	zipName = XMIPP_VERSIONS[source][VERNAME_KEY]
-	retcode, output = runJob(f"wget -O {REPOSITORIES[ORGANIZATION_NAME]}{source}/{TAGS_SUBPAGE}{zipName}.zip")
+	retcode, output = runJob(f"wget -O {REPOSITORIES[source][0]}/{TAGS_SUBPAGE}{zipName}.zip")
 
 	# If download failed, return error
 	if retcode != 0:
@@ -117,7 +125,7 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	# If a branch was provided, check if exists in remote repository
 	output = ''
 	if branch is not None:
-		retcode, output = runJob(f"git ls-remote --heads {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git {branch}")
+		retcode, output = runJob(f"git ls-remote --heads {REPOSITORIES[repo][0]} {branch}")
 		
 		# Check for errors
 		if retcode != 0:
@@ -126,6 +134,20 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	# If output is empty, it means branch does not exist, default to devel
 	if not output:
 		branch = DEVEL_BRANCHNAME
+	# Clone or checkout repository
+	currentPath = os.getcwd()
+	srcPath = os.path.join(currentPath,'src')
+	os.chdir(srcPath)
+	destinyPath = os.path.join(srcPath,  repo)
+	if os.path.exists(destinyPath):
+			printMessage(text="The repository exists. Updating {}".format(repo), debug=True)
+			os.chdir(destinyPath)
+			retcode, output = runJob(f"git pull ")
+	else:
+			printMessage(text="Cloning repository {}".format(repo), debug=True)
+			retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
 
-	# Clone repository
-	return runJob(f"git clone --branch {branch} {REPOSITORIES[ORGANIZATION_NAME]}{repo}.git")
+	os.chdir(currentPath)
+	return retcode, output
+
+

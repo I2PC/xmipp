@@ -95,7 +95,6 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
 	# Get sources
 	getSources(branch=args.branch)
-	pass
 	# TODO: Implement
 
 
