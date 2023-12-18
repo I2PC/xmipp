@@ -33,7 +33,7 @@ from typing import Dict, Union
 # Self imports
 from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
 	getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion
-from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate
+from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
 from .constants import API_URL, LOG_FILE
 
 def sendApiPost(dictPackage: Dict, retCode: int=0):
@@ -67,6 +67,20 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 	userId = getUserId()
 	if userId is None:
 		return
+	
+	# Obtaining variables in parallel
+	jsonData = runParallelJobs([
+		(getOSReleaseName, ()),
+		(getArchitectureName, ()),
+		(getCUDAVersion, (dictPackage,)),
+		(getCmakeVersion, ()),
+		(getGCCVersion, (dictPackage,)),
+		(getGPPVersion, (dictPackage,)),
+		(getSconsVersion, ()),
+		(getCurrentBranch, ()),
+		(isBranchUpToDate, ()),
+		(getLogTail, ())
+	])
 
 	# Introducing data into a dictionary
 	jsonDict: Dict = {
@@ -74,20 +88,20 @@ def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
 			"userId": userId
 		},
 		"version": {
-			"os": getOSReleaseName(),
-			"architecture": getArchitectureName(),
-			"cuda": getCUDAVersion(dictPackage),
-			"cmake": getCmakeVersion(),
-			"gcc": getGCCVersion(dictPackage),
-			"gpp": getGPPVersion(dictPackage),
-			"scons": getSconsVersion()
+			"os": jsonData[0],
+			"architecture": jsonData[1],
+			"cuda": jsonData[2],
+			"cmake": jsonData[3],
+			"gcc": jsonData[4],
+			"gpp": jsonData[5],
+			"scons": jsonData[6]
 		},
 		"xmipp": {
-			"branch": getCurrentBranch(),
-			"updated": isBranchUpToDate()
+			"branch": jsonData[7],
+			"updated": jsonData[8]
 		},
 		"returnCode": retCode,
-		"logTail": getLogTail()
+		"logTail": jsonData[9]
 	}
 
 	# Return JSON object with all info

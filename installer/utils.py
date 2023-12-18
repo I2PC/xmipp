@@ -27,8 +27,8 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess, shutil
-from typing import List, Tuple, Union
+import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess, shutil, multiprocessing
+from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
 
 # Installer imports
@@ -113,6 +113,24 @@ def runNetworkJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bo
 	
 	# Returning output and return code
 	return retCode, output
+
+def runParallelJobs(funcs: List[Tuple[Callable, Tuple[Any]]], nJobs: int=multiprocessing.cpu_count()) -> List:
+	"""
+	### This function runs the given command list in parallel.
+
+	#### Params:
+	- funcs (list(tuple(callable, tuple(any)))): Functions to run with parameters, if there are any.
+
+	#### Returns:
+	- (list): List containing the return of each function.
+	"""
+	# Creating a pool of n concurrent jobs
+	with multiprocessing.Pool(nJobs) as p:
+		# Run each function and obtain results
+		results = p.starmap(runLambda, funcs)
+	
+	# Return obtained result list
+	return results
 
 ####################### PRINT FUNCTIONS #######################
 def getFormattingTabs(text: str) -> str:
@@ -609,9 +627,6 @@ def FFTW3Version(pathSO):
 		if retCode == 0:
 				return outputStr.split('so.')[-1]
 
-
-
-
 # def checkLib(gxx, libFlag):
 # 		"""
 # 		Checks if a specific library can be linked by a given compiler.
@@ -759,3 +774,16 @@ def writeReaderLine(reader: io.FileIO, show: bool=False, err: bool=False) -> str
 
 	# Return line
 	return red(line) if err else line
+
+def runLambda(function: Callable, args: Tuple[Any]=()):
+	"""
+	### This function is used to run other functions (intented for use inside a worker pool, so it can be picked).
+
+	#### Params:
+	- function (callable): Function to run.
+	- args (tuple(any)): Optional. Function arguments.
+
+	#### Returns:
+	- (Any): Return value/(s) of the called function.
+	"""
+	return function(*args)
