@@ -33,7 +33,7 @@ from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,
 from installer.utils import printError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-from installer.main import getSources
+from installer.main import getSources, compileExternalSources, compileSources
 from installer.api import sendApiPost
 
 ####################### EXECUTION MODES #######################
@@ -95,7 +95,13 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
 	# Get sources
 	getSources(branch=args.branch)
-	# TODO: Implement
+
+	# Compile external dependencies
+	compileExternalSources(jobs=args.jobs)
+
+	# Compile Xmipp
+	compileSources()
+
 
 
 
@@ -156,17 +162,11 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Check if Xmipp is in production mode
-	# If so, download precompiled binaries
-	if isProductionMode():
-		#TODO: Implement
-		pass
-
 	# Running config
 	dictConfig = modeConfig(args)
-
 	# Running compilation and installation
 	modeCompileAndInstall(args, dictConfig=dictConfig)
+
 	sendApiPost(dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
