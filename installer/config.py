@@ -48,11 +48,11 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
-                        WARNING_CODE)
+                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
-                    getPackageVersionCmd,JAVAVersion,
+                    getPackageVersionCmd,JAVAVersion, printWarning,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
-                    getCompatibleGCC, CXXVersion,
+                    getCompatibleGCC, CXXVersion, gitVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
                     HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version)
 
@@ -131,6 +131,7 @@ def checkConfig(dictPackages):
         checkCUDA(dictPackages, checkPackagesStatus)
     if dictPackages['STARPU'] == 'True':
         checkSTARPU(dictPackages, checkPackagesStatus)
+    checkGit()
     checkHDF5(dictPackages)
     checkTIFF(dictPackages)
     checkFFTW3(dictPackages)
@@ -138,8 +139,7 @@ def checkConfig(dictPackages):
     checkCMake()
     if checkPackagesStatus != []:
         for pack in checkPackagesStatus:
-            printMessage(yellow('- Warning code {} {}\n{}\n'.format(pack[0],
-                        WARNING_CODE[pack[0]][0], WARNING_CODE[pack[0]][1])), debug=True)
+            printWarning(text=pack[0],warningCode=pack[0], debug=True)
 
 
 def existConfig():
@@ -477,7 +477,7 @@ def getOPENCV(dictPackages):
                     except KeyError:
                         dictPackages['INCDIRFLAGS'] = ' -I' + p + '/' + oP.split('/')[0]
                     dictPackages['OPENCV'] = True
-                    dictPackages['OPENCVSUPPORTSCUDA'] = True
+                    dictPackages['OPENCVCUDASUPPORTS'] = True
                     break
 
 def checkOPENCV(dictPackages, checkErrors):
@@ -505,7 +505,7 @@ def checkOPENCV(dictPackages, checkErrors):
         printMessage(text=green('OPENCV {} found'.format(opencvVersion(dictPackages, CXX_FLAGS))), debug=True)
 
     # Check CUDA Support
-    if dictPackages['OPENCVSUPPORTSCUDA'] == 'True':
+    if dictPackages['OPENCVCUDASUPPORTS'] == 'True':
         cppProg = "#include <opencv2/core/version.hpp>\n"
         if opencvVersion(dictPackages, CXX_FLAGS) < 3:
             cppProg += "#include <opencv2/core/cuda.hpp>\n"
@@ -517,7 +517,7 @@ def checkOPENCV(dictPackages, checkErrors):
         status, output = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" % (dictPackages['CXX'], CXX_FLAGS, dictPackages['INCDIRFLAGS']))
         if status != 0:
             checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
-            dictPackages['OPENCVSUPPORTSCUDA'] = False
+            dictPackages['OPENCVCUDASUPPORTS'] = False
             writeConfig(dictPackages)
 
     runJob("rm xmipp_test_opencv*", showError=True)
@@ -762,6 +762,14 @@ def getINCDIRFLAGS(dictPackages):
     #FFTW3
     if path.exists(dictPackages['FFTW3_H']):
         dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['FFTW3_H']
+
+def checkGit():
+    version = gitVersion()
+    if versionToNumber(version) < versionToNumber(GIT_MINIMUM):
+        printError(retCode=GIT_VERSION_ERROR, errorMsg='GIT version {} lower than minimum: {}'.
+                   format(version, GIT_MINIMUM))
+    else:
+        printMessage(text=green('git {} found'.format(version)), debug=True)
 
 
 def checkHDF5(dictPackages):
