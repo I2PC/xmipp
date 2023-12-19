@@ -118,7 +118,7 @@ def checkConfig(dictPackages):
 
     """
     checkPackagesStatus = []
-    printMessage(text='Checking libraries from config file...', debug=True)
+    printMessage(text='\n- Checking libraries from config file...', debug=True)
     checkCC(dictPackages) #TODO extra check, run a compillation?
     checkCXX(dictPackages) #TODO extra check, run a compillation?
     checkMPI(dictPackages)
@@ -153,6 +153,7 @@ def writeConfig(dictPackages):
     """Write the config file"""
 
     with open(CONFIG_FILE, 'w') as f:
+        f.write('[USER CONFIG]\n')
         for key, value in dictPackages.items():
             f.write('{}={}\n'.format(key, value))
 
@@ -701,8 +702,8 @@ def getTIFF(dictPackages):
     for path in PATH_TO_FIND:
         libtiffPathFound = findFileInDirList("libtiff.so", path)
         if libtiffPathFound:
+            dictPackages['LIBDIRFLAGS'] += " -L%s" % libtiffPathFound
             dictPackages['TIFF_SO'] = join(libtiffPathFound, 'libtiff.so')
-            dictPackages['LIBDIRFLAGS'] += " -L%s" % dictPackages['TIFF_SO']
             break
     if libtiffPathFound == '':
         printError(errorMsg='TIFF library not found at {}'.format(PATH_TO_FIND), retCode=TIFF_ERROR)
@@ -719,8 +720,8 @@ def getFFTW3(dictPackages):
     for path in PATH_TO_FIND:
         libfftw3PathFound = findFileInDirList("libfftw3f.so", path)
         if libfftw3PathFound:
+            dictPackages['LIBDIRFLAGS'] += " -L%s" % libfftw3PathFound
             dictPackages['FFTW3_SO'] = join(libfftw3PathFound, 'libfftw3.so')
-            dictPackages['LIBDIRFLAGS'] += " -L%s" % dictPackages['FFTW3_SO']
             break
     if libfftw3PathFound == '':
         printError(errorMsg='FFTW3 library not found at {}'.format(PATH_TO_FIND), retCode=FFTW3_ERROR)
@@ -757,11 +758,11 @@ def getINCDIRFLAGS(dictPackages):
 
     #TIFF
     if path.exists(dictPackages['TIFF_H']):
-        dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['TIFF_H']
+        dictPackages['INCDIRFLAGS'] += ' -I' + path.dirname(dictPackages['TIFF_H'])
 
     #FFTW3
     if path.exists(dictPackages['FFTW3_H']):
-        dictPackages['INCDIRFLAGS'] += ' -I' + dictPackages['FFTW3_H']
+        dictPackages['INCDIRFLAGS'] += ' -I' + path.dirname(dictPackages['FFTW3_H'])
 
 def checkGit():
     version = gitVersion()

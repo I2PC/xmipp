@@ -81,7 +81,7 @@ STARPU_CUDA_WARNING = 11
 GIT_PULL_WARNING = 12
 
 # Error messages
-#TODO review the messages spelling, maybe mor links to the documentation?
+#TODO review the messages spelling, maybe more links to the documentation?
 ERROR_CODE = {
 	UNKOW_ERROR: ['Unkonw error.', ''],
 	SCONS_VERSION_ERROR: ['scons installation  error.', 'We tried to install it on your scipion enviroment but was not posible, please install it manually.'],

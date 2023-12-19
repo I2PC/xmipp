@@ -187,7 +187,7 @@ def printWarning(text: str, warningCode: int, debug: bool=True):
 	- warningCode (int): Code of the controlled warning.
 	- debug (bool): Indicates if debug mode is active.
 	"""
-	printMessage(yellow(f'- Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n{text}'), debug=debug)
+	printMessage(yellow(f'- Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'), debug=debug)
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:

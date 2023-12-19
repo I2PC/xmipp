@@ -100,7 +100,7 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	compileExternalSources(jobs=args.jobs)
 
 	# Compile Xmipp
-	compileSources()
+	compileSources(jobs=args.jobs)
 
 
 

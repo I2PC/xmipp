@@ -46,6 +46,7 @@ def getSources(branch: str=None):
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
+	printMessage(text='\n- Getting sources...', debug=True)
 	# Enclose multi-word branch names in quotes
 	if branch is not None and len(branch.split(' ')) > 1:
 		branch = f"\"{branch}\""
@@ -79,6 +80,7 @@ def getSources(branch: str=None):
 			printError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
 
 def compileExternalSources(jobs):
+		printMessage(text='\n- Compilling external sources...', debug=True)
 		dictPackage = readConfig()
 		if dictPackage['CUDA'] == 'True':
 			compile_cuFFTAdvisor()
@@ -193,9 +195,14 @@ def compile_libcifpp(jobs):
 				printError(retCode=LIBCIFPP_ERROR, errorMsg=outputStr)
 
 
-def compileSources():
-	pass
+def compileSources(jobs):
+		sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
+		dictPackage = readConfig()
 
+		for source in sources:
+			printMessage(text='\n- Compilling {}...'.format(source), debug=True)
+			retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source)
+			print(retCode, outputStr)
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:
@@ -259,19 +266,22 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 		branch = DEVEL_BRANCHNAME
 	# Clone or checkout repository
 	currentPath = os.getcwd()
-	srcPath = os.path.join(currentPath,'src')
+	srcPath = os.path.join(currentPath, 'src')
 	os.chdir(srcPath)
 	destinyPath = os.path.join(srcPath,  repo)
 	if os.path.exists(destinyPath):
-			printMessage(text="The {} repository exists. Updating...".format(repo), debug=True)
+			printMessage(text="The {} repository exists.".format(repo), debug=True)
 			os.chdir(destinyPath)
 			retcode, output = runJob(f"git pull ")
 			if retcode != 0:
 					printWarning(text=output, warningCode=GIT_PULL_WARNING)
 					retcode = 0
+			else:
+					printMessage(text=green("{} updated.".format(repo)), debug=True)
 	else:
-			printMessage(text="Cloning repository {}".format(repo), debug=True)
 			retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
+			if retcode == 0:
+					printMessage(green(text="Clonned repository {}".format(repo)), debug=True)
 
 	os.chdir(currentPath)
 	return retcode, output
