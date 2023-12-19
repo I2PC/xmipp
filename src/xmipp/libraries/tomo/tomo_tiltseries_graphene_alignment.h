@@ -64,9 +64,9 @@ public:
 
     void squareImageAndSmoothing(MultidimArray<double> &inImage, MultidimArray<double> &croppedImage, int N_smoothing);
 
-    void getFourierShell(MultidimArray<double> &tiltImage, MultidimArray<std::complex<double>> &extractedShell);
+    void getFourierShell(MultidimArray<std::complex<double>> &FTtiltImage, MultidimArray<std::complex<double>> &extractedShell, std::vector<long> &freqIdx, std::vector<double> &anglesVector);
 
-    void indicesFourierShell(MultidimArray<std::complex<double>> &FTimg, MultidimArray<double> &tiltImage);
+    void indicesFourierShell(MultidimArray<std::complex<double>> &FTimg, MultidimArray<double> &tiltImage, std::vector<long> &freqIdx, std::vector<double> &anglesVector);
 
     void smoothBorders(MultidimArray<double> &img, int N_smoothing);
 

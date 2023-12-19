@@ -62,19 +62,61 @@ void ProgGrapheneAlignment::readInputData(MetaDataVec &mdts)
 	}
 }
 
-void ProgGrapheneAlignment::getFourierShell(MultidimArray<double> &tiltImage, MultidimArray<std::complex<double>> &extractedShell)
+void ProgGrapheneAlignment::getFourierShell(MultidimArray<std::complex<double>> &FTtiltImage, MultidimArray<std::complex<double>> &extractedShell, std::vector<long> &freqIdx, std::vector<double> &anglesVector)
 {
 	std::cout << "getFourierShell" << std::endl;
+	extractedShell.initZeros(freqIdx.size());
+	std::cout << "------------------------------------------" << std::endl;
+	for (size_t i=0; i<freqIdx.size(); i++)
+	{
+		auto value = DIRECT_MULTIDIM_ELEM(FTtiltImage, freqIdx[i]);
+		DIRECT_MULTIDIM_ELEM(extractedShell, i) = log(real(value*conj(value)));
+		std::cout << anglesVector[i] << "," << log(real(value*conj(value))) << std::endl;
+	}
+	std::cout << "------------------------------------------" << std::endl;
+
+//	MultidimArray<double> psd;
+//	psd.resizeNoCopy(FTtiltImage);
+//	psd.initZeros();
+//
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FTtiltImage)
+//	{
+//		auto value = DIRECT_MULTIDIM_ELEM(FTtiltImage, n);
+//		DIRECT_MULTIDIM_ELEM(psd,n) = real(value*conj(value));
+//	}
+//
+//
+//	Image<double> img;
+//	img() = psd;
+//	img.write("psd.mrc");
+////
+//
+//	int angularSampling = 180;
+//	double minAngle = std::min(anglesVector);
+//	double maxAngle = std::max(anglesVector);
+//	double rangeAngle = maxAngle - minAngle;
+//
+//	std::vector<double> profile1d;
+//	std::vector<double> profile1dSize;
+//
+//	profile1d.initZeros(angularSampling);
+//	profile1dSize.initZeros(angularSampling);
+//
+//	for(i=0; i< anglesVector.size() ; i++)
+//	{
+//		int rangedAngle = int(angularSampling * (anglesVector[i] - minAngle) / rangeAngle);
+//		profile1d[rangedAngle] +=
+//	}
+
+
 }
 
-void ProgGrapheneAlignment::indicesFourierShell(MultidimArray<std::complex<double>> &FTimg, MultidimArray<double> &tiltImage)
+void ProgGrapheneAlignment::indicesFourierShell(MultidimArray<std::complex<double>> &FTimg, MultidimArray<double> &tiltImage, std::vector<long> &freqIdx, std::vector<double> &anglesVector)
 {
 	std::cout << "indicesFourierShell" << std::endl;
 
+
 	Matrix1D<double> freq_fourier_x, freq_fourier_y;
-	MultidimArray<int> freqElems;
-	MultidimArray<double> freqMap;
-	freqMap.initZeros(tiltImage);
 
 	// Initializing the frequency vectors
 	freq_fourier_x.initZeros(XSIZE(FTimg));
@@ -82,35 +124,44 @@ void ProgGrapheneAlignment::indicesFourierShell(MultidimArray<std::complex<doubl
 
 	// u is the frequency
 	double u;
+	size_t xvoldim, yvoldim;
+
+	xvoldim = XSIZE(tiltImage);
+	yvoldim = YSIZE(tiltImage);
+	std::cout << "xdim = " << xvoldim << "  ydim = " << yvoldim << std::endl;
 
 	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
 	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
 	for(size_t k=1; k<YSIZE(FTimg); ++k){
-		FFT_IDX2DIGFREQ(k,YSIZE(tiltImage), u);
+		FFT_IDX2DIGFREQ(k,yvoldim, u);
 		VEC_ELEM(freq_fourier_y, k) = u;
 	}
 
 	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
 	for(size_t k=1; k<XSIZE(FTimg); ++k){
-		FFT_IDX2DIGFREQ(k,XSIZE(tiltImage), u);
+		FFT_IDX2DIGFREQ(k,xvoldim, u);
 		VEC_ELEM(freq_fourier_x, k) = u;
 	}
 
-	size_t xvoldim, yvoldim;
 
-	xvoldim = XSIZE(tiltImage);
-	yvoldim = YSIZE(tiltImage);
-	freqElems.initZeros(xvoldim/2+1);
+	MultidimArray<double> freqMap;
+	freqMap.resizeNoCopy(FTimg);
+	freqMap.initZeros();
 
 	// Directional frequencies along each direction
 	double uy, ux, uy2;
 	long n=0;
 	int idx = 0;
 
-	// Ncomps is the number of frequencies lesser than Nyquist
-	long Ncomps = 0;
+	double tolerance = 0.1;
 
+	double lowLim = std::max(grapheneParam - tolerance, 2 *sampling);
+	double lowerBound = sampling/(grapheneParam + tolerance);
+	double upperBound = sampling/(lowLim);
 
+	std::cout << "lowLim = " << lowLim << "   lowerBound = " << lowerBound << "   upperBound = " << upperBound  << std::endl;
+
+	long count = 0;
 	for(size_t i=0; i<YSIZE(FTimg); ++i)
 	{
 		uy = VEC_ELEM(freq_fourier_y, i);
@@ -118,20 +169,31 @@ void ProgGrapheneAlignment::indicesFourierShell(MultidimArray<std::complex<doubl
 		for(size_t j=0; j<XSIZE(FTimg); ++j)
 		{
 			ux = VEC_ELEM(freq_fourier_x, j);
-			ux = sqrt(uy2 + ux*ux);
+			u = sqrt(uy2 + ux*ux);
 
-			if	(ux<=0.5)
+			if	((u<=upperBound) && (u>=lowerBound))
 			{
-				idx = (int) round(ux * xvoldim);
-				++Ncomps;
-				DIRECT_MULTIDIM_ELEM(freqElems, idx) += 1;
+				idx = (int) round(u * xvoldim);
+				freqIdx.push_back(n);//DIRECT_MULTIDIM_ELEM(freqElems, idx) += 1;
+				anglesVector.push_back(atan2(uy, ux) * 180.0 / PI);
 
-				DIRECT_MULTIDIM_ELEM(freqMap,n) = ux;
+				DIRECT_MULTIDIM_ELEM(freqMap,n) = u;
 			}
 			++n;
 		}
 	}
 
+//	std::cout << "aa " << YSIZE(FTimg) << std::endl;
+// 	for (size_t i = 0; i <YSIZE(FTimg); i++)
+//	{
+//		std::cout << VEC_ELEM(freq_fourier_y, i) << std::endl;
+//	}
+//
+//	std::cout << "-----------------------" << std::endl;
+//	for (size_t j = 0; j <XSIZE(FTimg); j++)
+//	{
+//		std::cout << VEC_ELEM(freq_fourier_x, j) << std::endl;
+//	}
 
 	 Image<double> img;
 	 img() = freqMap;
@@ -248,12 +310,6 @@ void ProgGrapheneAlignment::squareImageAndSmoothing(MultidimArray<double> &inIma
 		croppedImage.initZeros(ydim, ydim);
 	}
 
-//	int siz_y = (yend-yinit)*0.5;
-//	int siz_x = (xend-xinit)*0.5;
-//
-//	int limit_distance_x = (siz_x-N_smoothing);
-//	int limit_distance_y = (siz_y-N_smoothing);
-
 	std::cout << "xend = " << xend << "   yend = " <<yend << "     xinit = " << xinit << "   yinit = " << yinit <<std::endl;
 
 	for (int i=yinit; i<yend; i++)
@@ -262,23 +318,27 @@ void ProgGrapheneAlignment::squareImageAndSmoothing(MultidimArray<double> &inIma
 		{
 			auto imageVal = A2D_ELEM(inImage, i, j);
 
-			if ((j-xinit<N_smoothing))// || ((j-xinit)>(xend-N_smoothing)))
+			if ((j-xinit)<N_smoothing)
 			{
-				imageVal *= 0.5*(1+sin(PI*(xinit - j)/N_smoothing));
+				imageVal *= 0.5*(1+cos(PI*(xinit + N_smoothing - j)/(N_smoothing)));
 			}
-			else
+			else if ((xend -j) < N_smoothing)
 			{
-				if ((j-xinit)>(xend-N_smoothing))
-					imageVal *= 0.5*(1+sin(PI*(xend - j)/N_smoothing));
+					imageVal *= 0.5*(1+cos(PI*(xend +N_smoothing- j)/N_smoothing));
 			}
-			if ((i-yinit<N_smoothing))// || ((i-yinit)>(yend-N_smoothing)))
+			if ((i-yinit)<N_smoothing)
 			{
-				imageVal *= 0.5*(1+cos(PI*(yinit - i)/N_smoothing));
+				imageVal *= 0.5*(1+cos(PI*(yinit + N_smoothing - i)/N_smoothing));
+			}
+			else if ((yend - i)<(N_smoothing))
+			{
+				imageVal *= 0.5*(1+cos(PI*(yend + N_smoothing - i)/N_smoothing));
 			}
 			A2D_ELEM(croppedImage, i-yinit, j-xinit) = imageVal;
 		}
 	}
 }
+
 
 void ProgGrapheneAlignment::run()
 {
@@ -302,6 +362,8 @@ void ProgGrapheneAlignment::run()
 
 	bool firstImage = true;
 	MultidimArray<std::complex<double>> fftImg;
+	std::vector<long> freqIdx(0);
+	std::vector<double> anglesVector(0);
 
 	for (size_t objId : mdts.ids())
 	{
@@ -316,24 +378,34 @@ void ProgGrapheneAlignment::run()
 		saveImage() = croppedImage;
 		saveImage.write(fnOut);
 
-
-		exit(0);
-
 		// Now do the Fourier transform and filter
-		transformer.FourierTransform(ptrtiltImage, fftImg, false);
+		transformer.FourierTransform(croppedImage, fftImg, false);
+
+		MultidimArray<double> psd;
+		psd.resizeNoCopy(fftImg);
+		psd.initZeros();
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftImg)
+		{
+			auto value = DIRECT_MULTIDIM_ELEM(fftImg, n);
+			DIRECT_MULTIDIM_ELEM(psd,n) = log(real(value*conj(value)));
+		}
+
+
+		Image<double> img;
+		img() = psd;
+		img.write("psd.mrc");
 
 
 		if (firstImage)
 		{
 			firstImage = false;
-			indicesFourierShell(fftImg, ptrtiltImage);
+			indicesFourierShell(fftImg, croppedImage, freqIdx, anglesVector);
 			std::cout << " indicestFourierShell " << std::endl;
-			exit(0);
 		}
-		else
-		{
-			getFourierShell(ptrtiltImage, extractedShell);
-		}
+
+		getFourierShell(fftImg, extractedShell, freqIdx, anglesVector);
+
 
 		transformer.inverseFourierTransform();
 
