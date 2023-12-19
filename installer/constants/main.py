@@ -85,6 +85,15 @@ CMD_OUT_LOG_FILE = 'commandOutput.log'
 CMD_ERR_LOG_FILE = 'commandError.log'
 OUTPUT_POLL_TIME = 0.5
 
+INTERNAL_FLAGS = {'CCFLAGS': '',
+										 'CXXFLAGS': '',
+										 'PYTHONINCFLAGS': '',
+										 'LINKERFORPROGRAMS': '',
+										 'MPI_LINKERFORPROGRAMS': '',
+										 'NVCC_CXXFLAGS': '',
+										 'NVCC_LINKFLAGS': '',
+										 }
+
 CONFIG_DICT = {'INCDIRFLAGS': '',
 								'CC': '',
 								'CXX': '',

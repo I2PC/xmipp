@@ -64,6 +64,8 @@ CUFFTADVSOR_ERROR = 37
 GOOGLETEST_ERROR = 38
 LIBSVM_ERROR = 39
 LIBCIFPP_ERROR = 40
+PYTHONINCFLAGS_ERROR = 41
+NVCC_CXXFLAGS_ERROR = 42
 
 
 # Warning codes
@@ -118,7 +120,8 @@ ERROR_CODE = {
   GOOGLETEST_ERROR: ['Error compilling googletest', 'Please, read the documentation of the package.'],
 	LIBSVM_ERROR: ['Error compilling libsvm', 'Please, read the documentation of the package.'],
   LIBCIFPP_ERROR: ['Error compilling libcifpp', 'Please, read the documentation of the package.'],
-
+  PYTHONINCFLAGS_ERROR: ['Error collecting the pyton and numpy packages','Please, review your python executable and the numpy on your enviroment'],
+  NVCC_CXXFLAGS_ERROR: ['Error collecting the nvcc version', 'Please review your nvcc installation or set CUDA flag to False on xmipp.conf']
 }
 
 # Warning messages

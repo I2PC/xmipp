@@ -33,11 +33,11 @@ from os.path import isdir, join, isfile
 from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
                         CXX_FLAGS, PATH_TO_FIND, INC_PATH, INC_HDF5_PATH,
-                        CONFIG_DICT, CXX_FLAGS,
+                        CONFIG_DICT, CXX_FLAGS,INTERNAL_FLAGS,
                         OK, UNKOW_ERROR, SCONS_VERSION_ERROR, SCONS_ERROR,
                         GCC_VERSION_ERROR, CC_NO_EXIST_ERROR, CXX_NO_EXIST_ERROR, CXX_VERSION_ERROR,
                         MPI_VERSION_ERROR, MPI_NOT_FOUND_ERROR, PYTHON_VERSION_ERROR ,
-                        PYTHON_NOT_FOUND_ERROR , NUMPY_NOT_FOUND_ERROR ,
+                        PYTHON_NOT_FOUND_ERROR , NUMPY_NOT_FOUND_ERROR ,NVCC_CXXFLAGS_ERROR,
                         JAVA_HOME_PATH_ERROR, MATLAB_WARNING , MATLAB_HOME_WARNING,
                         CUDA_VERSION_WARNING , CUDA_WARNING , HDF5_ERROR, LINK_FLAGS,
                         MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR, OPENCV_WARNING,
@@ -48,7 +48,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
-                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR)
+                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion, printWarning,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
@@ -67,9 +67,13 @@ def config():
     """check the config if exist else create it and check it"""
     if not existConfig():
         printMessage(text='Generating config file xmipp.conf', debug=True)
-        writeConfig(getSystemValues())
+        dictPackages = getSystemValues()
+        writeConfig(dictPackages, getInternalFlags(dictPackages))
     dictConfig = readConfig()
-    checkConfig(dictConfig)
+    dictPackages = checkConfig(dictConfig)
+    dictInternalFlags = getInternalFlags(dictPackages)
+    writeConfig(dictP=dictPackages, dictInt=dictInternalFlags)
+
     return dictConfig
 
 
@@ -96,6 +100,78 @@ def getSystemValues():
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
     return dictPackages
+
+def getInternalFlags(dictPackages, debug: bool=False):
+    printMessage(text='\n- Getting internal flags for config file...', debug=True)
+    dictInternalFlags = INTERNAL_FLAGS
+    #CCFLAGS
+    dictInternalFlags['CCFLAGS'] = '-std=c99'
+    #CCXXFLAGS
+    dictInternalFlags['CXXFLAGS'] = '-mtune=native -march=native -flto -std=c++17 -Werror'
+    if debug:
+        dictInternalFlags['CXXFLAGS'] += ' -O0 -g'
+    else:
+        dictInternalFlags['CXXFLAGS'] += ' -O3 -g'
+    #PYTHONINCFLAGS
+    try:
+        from sysconfig import get_paths
+        import numpy
+        info = get_paths()
+        incDirs = [info['include'], numpy.get_include()]
+        dictInternalFlags['PYTHONINCFLAGS'] = ' '.join(["-I%s" % iDir for iDir in incDirs])
+    except Exception as e:
+        printError(errorMsg=str(e), retCode=PYTHONINCFLAGS_ERROR)
+    #LINKERFORPROGRAMS
+    dictInternalFlags['LINKERFORPROGRAMS'] = dictPackages['CXX']
+    #MPI_LINKERFORPROGRAMS
+    dictInternalFlags['MPI_LINKERFORPROGRAMS'] = dictPackages['MPI_CXX']
+    # NVCC_CXXFLAGS
+    if dictPackages['CUDA'] == 'True':
+        try:
+            if versionToNumber(getCUDAVersion(dictPackages)) < versionToNumber('11.0'):
+                dictInternalFlags['NVCC_CXXFLAGS'] = \
+                         "--x cu -D_FORCE_INLINES -Xcompiler -fPIC "\
+                         "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "\
+                         "-gencode=arch=compute_35,code=compute_35 "\
+                         "-gencode=arch=compute_50,code=compute_50 "\
+                         "-gencode=arch=compute_60,code=compute_60 "\
+                         "-gencode=arch=compute_61,code=compute_61"
+            else:
+                dictInternalFlags['NVCC_CXXFLAGS'] = \
+                         "--x cu -D_FORCE_INLINES -Xcompiler -fPIC "\
+                         "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "\
+                         "-gencode=arch=compute_60,code=compute_60 "\
+                         "-gencode=arch=compute_61,code=compute_61 "\
+                         "-gencode=arch=compute_75,code=compute_75 "\
+                         "-gencode=arch=compute_86,code=compute_86"
+        except Exception as e:
+            printError(errorMsg=str(e), retCode=NVCC_CXXFLAGS_ERROR)
+    # NVCC_LINKFLAGS
+    dirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
+             'lib/x86_64-linux-gnu']
+    # # assume cuda_dir/bin/nvcc
+    # locs = [path.dirname(path.dirname(get(OPT_NVCC))),
+    #         environ.get('XMIPP_CUDA_LIB', ''),
+    #         environ.get('CUDA_LIB', ''),
+    #         environ.get('LD_LIBRARY_PATH', ''),
+    #         '/usr'
+    #         ]
+    # def search():
+    #     for l in locs:
+    #         for d in dirs:
+    #             tmp = path.join(l, d, 'libcudart.so')
+    #             if path.isfile(tmp):
+    #                 return path.dirname(tmp)
+    #     return None
+    # def _join_with_prefix(self, collection, prefix):
+    #     return ' '.join([prefix + i for i in collection if i])
+    #
+    # dictInternalFlags['NVCC_LINKFLAGS'] =_join_with_prefix([path, path.join(path, 'stubs')], '-L')
+    #
+
+
+    return dictInternalFlags
+
 
 def readConfig():
     """Check if valid all the flags of the config file"""
@@ -137,10 +213,12 @@ def checkConfig(dictPackages):
     checkFFTW3(dictPackages)
     checkScons()
     checkCMake()
+
     if checkPackagesStatus != []:
         for pack in checkPackagesStatus:
             printWarning(text=pack[0],warningCode=pack[0], debug=True)
 
+    return dictPackages
 
 def existConfig():
     """ Checks if the config file exist.Return True or False """
@@ -149,15 +227,18 @@ def existConfig():
     else:
         return False
 
-def writeConfig(dictPackages):
+def writeConfig(dictP: dict, dictInt: dict):
     """Write the config file"""
 
     with open(CONFIG_FILE, 'w') as f:
         f.write('[USER CONFIG]\n')
-        for key, value in dictPackages.items():
+        for key, value in dictP.items():
             f.write('{}={}\n'.format(key, value))
-
+        f.write('\n[INTERNAL CONFIG]\n')
+        for key, value in dictInt.items():
+            f.write('{}={}\n'.format(key, value))
         f.write('\n')
+        f.write('\n[DATE]\n')
         f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
 def parseConfig():
@@ -460,7 +541,6 @@ def checkMatlab(dictPackages, checkErrors):
     if status != 0:
         checkErrors.append([MATLAB_HOME_WARNING, output])
         dictPackages['MATLAB'] = 'False'
-        writeConfig(dictPackages)
     else:
         printMessage(text=green('Matlab installation found'), debug=True)
     runJob("rm xmipp_mex*")
@@ -519,7 +599,6 @@ def checkOPENCV(dictPackages, checkErrors):
         if status != 0:
             checkErrors.append([OPENCV_CUDA_WARNING, 'OpenCV CUDA suport set as True but is not ready on your computer'])
             dictPackages['OPENCVCUDASUPPORTS'] = False
-            writeConfig(dictPackages)
 
     runJob("rm xmipp_test_opencv*", showError=True)
 
@@ -569,11 +648,9 @@ def checkCUDA(dictPackages, checkPackagesStatus):
                       'Compilers candidates for your CUDA: {}'.format(
                 nvcc_version, gxx_version, candidates)])
             dictPackages['CUDA'] = 'False'
-            writeConfig(dictPackages)
     else:
         checkPackagesStatus.append([CUDA_VERSION_WARNING, 'CUDA version not found{}\n'])
         dictPackages['CUDA'] = 'False'
-        writeConfig(dictPackages)
 
 def getSTARPU(dictPackages):
     """
@@ -646,7 +723,6 @@ def checkSTARPU(dictPackages, checkPackagesStatus):
             checkPackagesStatus.append([STARPU_LIBRARY_WARNING])
     else:
         dictPackages['STARPU'] = 'False'
-        writeConfig(dictPackages)
     runJob("rm -f xmipp_starpu_config_test*")
 
 # def checkPYTHONINCFLAGS(incPath):
