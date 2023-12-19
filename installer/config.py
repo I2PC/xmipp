@@ -68,13 +68,16 @@ def config():
     if not existConfig():
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
-        writeConfig(dictPackages, getInternalFlags(dictPackages))
-    dictPackages = readConfig()
-    dictPackagesCheck = checkConfig(dictPackages)
-    dictInternalFlags = getInternalFlags(dictPackages)
-    if dictPackages != dictPackagesCheck:
-        writeConfig(dictP=dictPackagesCheck, dictInt=dictInternalFlags)
-    return dictPackagesCheck
+        dictInternalFlags = getInternalFlags(dictPackages)
+        writeConfig(dictPackages, dictInternalFlags)
+    else:
+        dictPackages, dictInternalFlags = readConfig()
+    dictNoChecked = dictPackages.copy()
+    checkConfig(dictPackages)
+    dictInternalFlags2 = getInternalFlags(dictPackages)
+    if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
+        writeConfig(dictP=dictPackages, dictInt=dictInternalFlags)
+    return dictPackages
 
 
 def getSystemValues():
@@ -147,36 +150,24 @@ def getInternalFlags(dictPackages, debug: bool=False):
         except Exception as e:
             printError(errorMsg=str(e), retCode=NVCC_CXXFLAGS_ERROR)
     # NVCC_LINKFLAGS
-
-    dirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
-             'lib/x86_64-linux-gnu']
-    # # assume cuda_dir/bin/nvcc
-    # locs = [path.dirname(path.dirname(get(OPT_NVCC))),
-    #         environ.get('XMIPP_CUDA_LIB', ''),
-    #         environ.get('CUDA_LIB', ''),
-    #         environ.get('LD_LIBRARY_PATH', ''),
-    #         '/usr'
-    #         ]
-    # def search():
-    #     for l in locs:
-    #         for d in dirs:
-    #             tmp = path.join(l, d, 'libcudart.so')
-    #             if path.isfile(tmp):
-    #                 return path.dirname(tmp)
-    #     return None
-    # def _join_with_prefix(self, collection, prefix):
-    #     return ' '.join([prefix + i for i in collection if i])
-    #
-    # dictInternalFlags['NVCC_LINKFLAGS'] =_join_with_prefix([path, path.join(path, 'stubs')], '-L')
-    #
-    #Environment().update(LD_LIBRARY_PATH=LD) ¿?¿?
-
+    paths = [join(dictPackages['CUDA_HOME'], 'lib'),
+             join(dictPackages['CUDA_HOME'], 'lib64')]
+    for route in paths:
+        if isfile(join(route, 'libcudart.so')):
+            NVCC_LINKFLAGS = '-L{}'.format(route)
+            stubroute = join(route, 'stubs/')
+            if path.exists(stubroute):
+                NVCC_LINKFLAGS += ' -L{}'.format(stubroute)
+    dictInternalFlags['NVCC_LINKFLAGS'] = NVCC_LINKFLAGS
+    printMessage(text=green('Done'), debug=True)
     return dictInternalFlags
 
 
 def readConfig():
     """Check if valid all the flags of the config file"""
     dictPackages = {}
+    internalFlags = {}
+
     with open(CONFIG_FILE, 'r') as f:
         config = f.read()
     for key, _ in CONFIG_DICT.items():
@@ -184,7 +175,12 @@ def readConfig():
         idx2 = config[idx:].find('=') + 1
         value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
         dictPackages[key] = value
-    return dictPackages
+    for key, _ in INTERNAL_FLAGS.items():
+        idx = config.find(key+'=')
+        idx2 = config[idx:].find('=') + 1
+        value = config[idx+idx2:idx + idx2 + config[idx+idx2:].find('\n')]
+        internalFlags[key] = value
+    return dictPackages, internalFlags
 
 def checkConfig(dictPackages):
     """
@@ -219,7 +215,6 @@ def checkConfig(dictPackages):
         for pack in checkPackagesStatus:
             printWarning(text=pack[0],warningCode=pack[0], debug=True)
 
-    return dictPackages
 
 def existConfig():
     """ Checks if the config file exist.Return True or False """
@@ -230,17 +225,20 @@ def existConfig():
 
 def writeConfig(dictP: dict, dictInt: dict):
     """Write the config file"""
+    printMessage(text='\n- Writting config file...', debug=True)
 
     with open(CONFIG_FILE, 'w') as f:
-        f.write('[USER CONFIG]\n')
+        f.write('[USER FLAGS]\n')
         for key, value in dictP.items():
             f.write('{}={}\n'.format(key, value))
-        f.write('\n[INTERNAL CONFIG]\n')
+        f.write('\n[INTERNAL FLAGS]\n')
         for key, value in dictInt.items():
             f.write('{}={}\n'.format(key, value))
         f.write('\n')
         f.write('\n[DATE]\n')
         f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+    printMessage(text=green('Done'), debug=True)
 
 def parseConfig():
     """Read and save on configDic all flags of config file"""

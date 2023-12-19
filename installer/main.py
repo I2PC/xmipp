@@ -81,7 +81,7 @@ def getSources(branch: str=None):
 
 def compileExternalSources(jobs):
 		printMessage(text='\n- Compiling external sources...', debug=True)
-		dictPackage = readConfig()
+		dictPackage, _ = readConfig()
 		if dictPackage['CUDA'] == 'True':
 			compile_cuFFTAdvisor()
 		compile_googletest()
@@ -197,7 +197,7 @@ def compile_libcifpp(jobs):
 
 def compileSources(jobs):
 		sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP]
-		dictPackage = readConfig()
+		dictPackage, _ = readConfig()
 
 		for source in sources:
 			printMessage(text='\n- Compiling {}...'.format(source), debug=True)
