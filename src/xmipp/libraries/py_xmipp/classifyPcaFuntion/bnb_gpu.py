@@ -305,7 +305,8 @@ class BnBgpu:
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
         # if iter == 4:  
-        if iter == 3:
+        # if iter == 3:
+        if iter == 4:
             newCL = [[] for i in range(classes)]           
             for n in range(classes):
                 class_images = transforIm[matches[:, 1] == n]

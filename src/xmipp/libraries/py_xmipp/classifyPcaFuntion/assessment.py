@@ -32,8 +32,8 @@ class evaluation:
     
         # Updating columns in the dataframe
         star.loc[:, "anglePsi"] = angle
-        star.loc[:, "shiftX"] = shiftVec[:,0]
-        star.loc[:, "shiftY"] = shiftVec[:,1]
+        star.loc[:, "shiftX"] = shiftVec[:,0].cpu().detach().numpy()
+        star.loc[:, "shiftY"] = shiftVec[:,1].cpu().detach().numpy()
     
         starfile.write(star, new, overwrite=True)
         
