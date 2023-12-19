@@ -375,6 +375,23 @@ def isScipionEnv() -> bool:
 	# containing binaries's directory with scipion executable inside
 	return os.path.exists(os.path.join(envPath, 'bin', 'scipion'))
 
+
+def updateEnviron(pathenviron:str='', path2Add:str=''):
+		"""
+		 This function updates the environment variable by adding a new path to it if it's not already present.
+
+		 Params:
+		 pathenviron (str): Name of the environment variable to be updated.
+		 path2Add (str): Path to be added to the environment variable.
+
+		 Returns:
+		 None
+		 """
+		path_collected = os.environ.get(pathenviron, '')
+		if path2Add not in path_collected.split(':'):
+				path_collected += ':' + path2Add
+		os.environ[pathenviron] = path_collected
+
 ####################### VERSION FUNCTIONS #######################
 def versionToNumber(strVersion: str) -> float:
 	"""

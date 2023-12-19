@@ -54,7 +54,8 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
                     getCompatibleGCC, CXXVersion, gitVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
-                    HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version)
+                    HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version,
+                    updateEnviron)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
@@ -76,7 +77,7 @@ def config():
     checkConfig(dictPackages)
     dictInternalFlags2 = getInternalFlags(dictPackages)
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
-        writeConfig(dictP=dictPackages, dictInt=dictInternalFlags)
+        writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
     return dictPackages
 
 
@@ -160,6 +161,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
                 NVCC_LINKFLAGS += ' -L{}'.format(stubroute)
     dictInternalFlags['NVCC_LINKFLAGS'] = NVCC_LINKFLAGS
     printMessage(text=green('Done'), debug=True)
+    updateEnviron(pathenviron='LD_LIBRARY_PATH', path2Add=dictInternalFlags['NVCC_LINKFLAGS'])
     return dictInternalFlags
 
 
@@ -604,11 +606,11 @@ def getCUDA(dictPackages):
      - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDACXX' based on CUDA package availability.
      """
     if not existPackage('nvcc'):
-        dictPackages['CUDA'] = False
+        dictPackages['CUDA'] = 'False'
         dictPackages['CUDA_HOME'] = ''
         dictPackages['CUDACXX'] = ''
     else:
-        dictPackages['CUDA'] = True
+        dictPackages['CUDA'] = 'True'
         dictPackages['CUDA_HOME'] = shutil.which('nvcc').replace('/bin/nvcc', '')
         dictPackages['CUDACXX'] = dictPackages['CXX']
 
@@ -654,7 +656,7 @@ def getSTARPU(dictPackages):
     - dictPackages: Updates keys related to STARPU package information.
     """
     if whereIsPackage("starpu_sched_display"):
-        dictPackages["STARPU"] = True
+        dictPackages["STARPU"] = 'True'
         starpuBinDir = whereIsPackage("starpu_sched_display")
         dictPackages["STARPU_HOME"] = starpuBinDir.replace("/bin", "")
         dictPackages["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
@@ -761,6 +763,7 @@ def getHDF5(dictPackages):
         if hdf5PathFound:
             dictPackages['LIBDIRFLAGS'] += " -L%s" % hdf5PathFound
             dictPackages['HDF5_HOME'] = hdf5PathFound
+            updateEnviron(pathenviron='LD_LIBRARY_PATH', path2Add=hdf5PathFound)
             break
     if hdf5PathFound == '':
         printMessage(text=red('HDF5 nod found'), debug=True)
