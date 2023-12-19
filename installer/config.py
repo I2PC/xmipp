@@ -69,12 +69,12 @@ def config():
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
         writeConfig(dictPackages, getInternalFlags(dictPackages))
-    dictConfig = readConfig()
-    dictPackages = checkConfig(dictConfig)
+    dictPackages = readConfig()
+    dictPackagesCheck = checkConfig(dictPackages)
     dictInternalFlags = getInternalFlags(dictPackages)
-    writeConfig(dictP=dictPackages, dictInt=dictInternalFlags)
-
-    return dictConfig
+    if dictPackages != dictPackagesCheck:
+        writeConfig(dictP=dictPackagesCheck, dictInt=dictInternalFlags)
+    return dictPackagesCheck
 
 
 def getSystemValues():
@@ -131,22 +131,23 @@ def getInternalFlags(dictPackages, debug: bool=False):
             if versionToNumber(getCUDAVersion(dictPackages)) < versionToNumber('11.0'):
                 dictInternalFlags['NVCC_CXXFLAGS'] = \
                          "--x cu -D_FORCE_INLINES -Xcompiler -fPIC "\
-                         "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "\
+                         "-ccbin {} -std=c++11 --expt-extended-lambda "\
                          "-gencode=arch=compute_35,code=compute_35 "\
                          "-gencode=arch=compute_50,code=compute_50 "\
                          "-gencode=arch=compute_60,code=compute_60 "\
-                         "-gencode=arch=compute_61,code=compute_61"
+                         "-gencode=arch=compute_61,code=compute_61".format(dictPackages['CUDACXX'])
             else:
                 dictInternalFlags['NVCC_CXXFLAGS'] = \
                          "--x cu -D_FORCE_INLINES -Xcompiler -fPIC "\
-                         "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "\
+                         "-ccbin {} -std=c++14 --expt-extended-lambda "\
                          "-gencode=arch=compute_60,code=compute_60 "\
                          "-gencode=arch=compute_61,code=compute_61 "\
                          "-gencode=arch=compute_75,code=compute_75 "\
-                         "-gencode=arch=compute_86,code=compute_86"
+                         "-gencode=arch=compute_86,code=compute_86".format(dictPackages['CUDACXX'])
         except Exception as e:
             printError(errorMsg=str(e), retCode=NVCC_CXXFLAGS_ERROR)
     # NVCC_LINKFLAGS
+
     dirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
              'lib/x86_64-linux-gnu']
     # # assume cuda_dir/bin/nvcc
@@ -168,7 +169,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
     #
     # dictInternalFlags['NVCC_LINKFLAGS'] =_join_with_prefix([path, path.join(path, 'stubs')], '-L')
     #
-
+    #Environment().update(LD_LIBRARY_PATH=LD) ¿?¿?
 
     return dictInternalFlags
 
@@ -375,14 +376,6 @@ def checkMPI(dictPackages):
             printError(retCode=MPI_NOT_FOUND_ERROR, errorMsg='MPI package: {} does not exist'.format(dictPackages[pack]))
 
     #More checks
-    MPI_CXXFLAGS = ''
-    mpiLib_env = environ.get('MPI_LIBDIR', '')
-    if mpiLib_env:
-        MPI_CXXFLAGS += ' -L'+mpiLib_env
-
-    mpiInc_env = environ.get('MPI_INCLUDE', '')
-    if mpiInc_env:
-        MPI_CXXFLAGS += ' -I'+mpiInc_env
 
     cppProg = """
     #include <mpi.h>
@@ -390,8 +383,8 @@ def checkMPI(dictPackages):
     """
     with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
-    cmd = ("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
-           % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS, MPI_CXXFLAGS))
+    cmd = ("%s -c -w %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
+           % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS))
     status, output = runJob(cmd, showError=True)
     if status != 0:
         printError(retCode=MPI_RUNNING_ERROR, errorMsg='Fails running this command: {}\nError message: {}'.format(cmd, output))
@@ -610,16 +603,16 @@ def getCUDA(dictPackages):
      - dictPackages (dict): Dictionary containing package information.
 
      Modifies:
-     - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDA_CXX' based on CUDA package availability.
+     - dictPackages: Updates keys 'CUDA', 'CUDA_HOME', and 'CUDACXX' based on CUDA package availability.
      """
     if not existPackage('nvcc'):
         dictPackages['CUDA'] = False
         dictPackages['CUDA_HOME'] = ''
-        dictPackages['CUDA_CXX'] = ''
+        dictPackages['CUDACXX'] = ''
     else:
         dictPackages['CUDA'] = True
         dictPackages['CUDA_HOME'] = shutil.which('nvcc').replace('/bin/nvcc', '')
-        dictPackages['CUDA_CXX'] = dictPackages['CXX']
+        dictPackages['CUDACXX'] = dictPackages['CXX']
 
 def checkCUDA(dictPackages, checkPackagesStatus):
     """

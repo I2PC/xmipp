@@ -80,7 +80,7 @@ def getSources(branch: str=None):
 			printError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
 
 def compileExternalSources(jobs):
-		printMessage(text='\n- Compilling external sources...', debug=True)
+		printMessage(text='\n- Compiling external sources...', debug=True)
 		dictPackage = readConfig()
 		if dictPackage['CUDA'] == 'True':
 			compile_cuFFTAdvisor()
@@ -90,7 +90,7 @@ def compileExternalSources(jobs):
 
 
 def compile_cuFFTAdvisor():
-		printMessage('Compilling cuFFTAdvisor...', debug=True)
+		printMessage('Compiling cuFFTAdvisor...', debug=True)
 		advisorDir = "src/cuFFTAdvisor/"
 		currDir = os.getcwd()
 		libDir = "src/xmipp/lib/"
@@ -112,7 +112,7 @@ def compile_cuFFTAdvisor():
 				printError(retCode=CUFFTADVSOR_ERROR, errorMsg=outputStr)
 
 def compile_googletest():
-		printMessage(text="Compilling googletest...", debug=True)
+		printMessage(text="Compiling googletest...", debug=True)
 		currDir = os.getcwd()
 		buildDir = os.path.join("src", "googletest", "build")
 		if not os.path.exists(buildDir):
@@ -133,7 +133,7 @@ def compile_googletest():
 
 
 def compile_libsvm():
-		printMessage(text="Compilling libsvm...", debug=True)
+		printMessage(text="Compiling libsvm...", debug=True)
 		# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
 		currDir = os.getcwd()
 		libsvmDir = os.path.join("src", "libsvm")
@@ -157,7 +157,7 @@ def compile_libsvm():
 
 
 def compile_libcifpp(jobs):
-		printMessage(text="Compilling libcifpp..", debug=True)
+		printMessage(text="Compiling libcifpp..", debug=True)
 		currDir = os.getcwd()
 		# Moving to library directory
 		libcifppDir = os.path.join("src", "libcifpp")
@@ -196,11 +196,11 @@ def compile_libcifpp(jobs):
 
 
 def compileSources(jobs):
-		sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
+		sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP]
 		dictPackage = readConfig()
 
 		for source in sources:
-			printMessage(text='\n- Compilling {}...'.format(source), debug=True)
+			printMessage(text='\n- Compiling {}...'.format(source), debug=True)
 			retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source)
 			print(retCode, outputStr)
 

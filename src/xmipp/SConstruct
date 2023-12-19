@@ -138,9 +138,14 @@ except OSError:
     sys.exit("Config file not found.")
 except ParsingError:
     sys.exit("%s\nError while parsing the config file." % sys.exc_info()[1])
-if not 'BUILD' in cf.sections():
-    print("Cannot find section BUILD in the config file.")
-os.environ.update(dict(cf.items('BUILD')))
+if not 'USER CONFIG' in cf.sections():
+    print("Cannot find section USER CONFIG in the config file.")
+else:
+    os.environ.update(dict(cf.items('USER CONFIG')))
+if not 'INTERNAL CONFIG' in cf.sections():
+    print("Cannot find section INTERNAL CONFIG in the config file.")
+else:
+    os.environ.update(dict(cf.items('INTERNAL CONFIG')))
 
 env['CPPPATH'] = os.environ.get('CPPPATH', [])
 env['CC'] = os.environ.get('CC')
@@ -157,13 +162,10 @@ env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
 env['MPI_CC'] = os.environ.get('MPI_CC')
 env['MPI_CXX'] = os.environ.get('MPI_CXX')
 env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
-env['MPI_CXXFLAGS'] = os.environ.get('MPI_CXXFLAGS').split()
 env['MPI_LINKFLAGS'] = os.environ['MPI_LINKFLAGS'].split()
 env['MATLAB_DIR'] = os.environ.get('MATLAB_DIR')
 env['CUDA'] = os.environ.get('CUDA')
 env['NVCC'] = os.environ.get('NVCC')
-env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS').split()
-env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS').split()
 
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
@@ -251,7 +253,6 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
             env2['CXXFLAGS']=[]
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
-        env2['CXXFLAGS']+=env['MPI_CXXFLAGS']
         env2['LINKFLAGS']+=env['MPI_LINKFLAGS']
         extraArgs = {'CC': env['MPI_CC'], 'CXX': env['MPI_CXX'], 'LINK': env['MPI_LINKERFORPROGRAMS']}
     if nvcc:
@@ -416,7 +417,6 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         ccCopy = str(env['MPI_CC'])
         cxxCopy = str(env['MPI_CXX'])
         linkCopy = env['MPI_LINKERFORPROGRAMS']
-        cxxflagsCopy += env['MPI_CXXFLAGS']
         linkflagsCopy += env['MPI_LINKFLAGS']
     elif nvcc:
         ccCopy = str(env['NVCC'])
