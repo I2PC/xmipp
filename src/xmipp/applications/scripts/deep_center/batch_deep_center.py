@@ -22,10 +22,6 @@ if __name__ == "__main__":
     gpuId = sys.argv[6]
     numModels = int(sys.argv[7])
     learning_rate = float(sys.argv[8])
-    patience = int(sys.argv[9])
-    pretrained = sys.argv[10]
-    if pretrained == 'yes':
-        fnPreModel = sys.argv[11]
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -36,9 +32,7 @@ if __name__ == "__main__":
     from keras.layers import Input, Conv2D, MaxPooling2D, BatchNormalization, Flatten, Dense, concatenate, Activation
     from keras.optimizers import *
     import keras
-    from keras.models import load_model
     import tensorflow as tf
-
 
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
@@ -105,11 +99,9 @@ if __name__ == "__main__":
                 fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
                 Iexp = list(map(get_image, fnIexp))
             # Data augmentation
-            rX = self.sigma * np.random.normal(0, 1, size=self.batch_size)
-            rY = self.sigma * np.random.normal(0, 1, size=self.batch_size)
-            rX = rX + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-            rY = rY + self.sigma * np.random.uniform(-1, 1, size=self.batch_size)
-                        # Shift image a random amount of px in each direction
+            rX = np.random.normal(0, self.sigma, size=self.batch_size)
+            rY = np.random.normal(0, self.sigma, size=self.batch_size)
+            # Shift image a random amount of px in each direction
             Xexp = np.array(list((map(shift_image, Iexp, rX, rY))))
             y = yvalues + np.vstack((rX, rY)).T
             return Xexp, y
@@ -158,23 +150,14 @@ if __name__ == "__main__":
         return Xdim, fnImgs, labels
 
     Xdim, fnImgs, labels = get_labels(fnXmdExp)
-    start_time = time()
 
     # Train-Validation sets
-    if numModels == 1:
-        lenTrain = int(len(fnImgs)*0.8)
-        lenVal = len(fnImgs)-lenTrain
-    else:
-        lenTrain = int(len(fnImgs) / 3)
-        print('lenTrain', lenTrain, flush=True)
-        lenVal = int(len(fnImgs) / 12)
+    lenTrain = int(len(fnImgs)*0.8)
+    lenVal = len(fnImgs)-lenTrain
 
     for index in range(numModels):
         random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
-        if pretrained == 'yes':
-            model = load_model(fnPreModel, compile=False)
-        else:
-            model = constructModel(Xdim)
+        model = constructModel(Xdim)
         adam_opt = tf.keras.optimizers.Adam(lr=learning_rate)
         model.summary()
 
@@ -182,7 +165,6 @@ if __name__ == "__main__":
 
         save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss',
                                           save_best_only=True)
-        patienceCallBack = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience)
 
         training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
                                            [labels[i] for i in random_sample[0:lenTrain]],
@@ -192,7 +174,4 @@ if __name__ == "__main__":
                                              sigma, batch_size, Xdim, readInMemory=False)
 
         history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model, patienceCallBack])
-
-    elapsed_time = time() - start_time
-    print("Time in training model: %0.10f seconds." % elapsed_time)
+                                      validation_data=validation_generator, callbacks=[save_best_model])
