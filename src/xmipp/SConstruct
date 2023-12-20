@@ -156,6 +156,7 @@ cxxFlags = os.environ.get('CXXFLAGS', '')
 env['CXXFLAGS'] = cxxFlags.split()
 os.environ['CXXFLAGS'] = cxxFlags # FIXME use only env or os.environ in the rest of the code
 env['LINKFLAGS'] = os.environ.get('LINKFLAGS', '').split()
+env['INCDIRFLAGS'] = os.environ.get('INCDIRFLAGS')
 
 
 env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
@@ -165,6 +166,8 @@ env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
 env['MATLAB_DIR'] = os.environ.get('MATLAB_DIR')
 env['CUDA'] = os.environ.get('CUDA')
 env['NVCC'] = os.environ.get('NVCC')
+env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS')
+env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS')
 
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
@@ -252,7 +255,6 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
             env2['CXXFLAGS']=[]
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
-        env2['LINKFLAGS']+=env['MPI_LINKFLAGS']
         extraArgs = {'CC': env['MPI_CC'], 'CXX': env['MPI_CXX'], 'LINK': env['MPI_LINKERFORPROGRAMS']}
     if nvcc:
         if not 'CXXFLAGS' in env2:
@@ -274,7 +276,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         'LIBS':        _libs,
         'SHLIBPREFIX': prefix,
         'SHLIBSUFFIX': suffix,
-        'CXXFLAGS':    env2['CXXFLAGS']+env['INCDIRFLAGS'],
+        'CXXFLAGS':    ' '.join(env2['CXXFLAGS'])+ ' ' + os.environ.get('INCDIRFLAGS'),
         'LINKFLAGS':   env2['LINKFLAGS']+env['LIBDIRFLAGS']
     }
     libraryArgs.update(extraArgs)
@@ -416,7 +418,6 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         ccCopy = str(env['MPI_CC'])
         cxxCopy = str(env['MPI_CXX'])
         linkCopy = env['MPI_LINKERFORPROGRAMS']
-        linkflagsCopy += env['MPI_LINKFLAGS']
     elif nvcc:
         ccCopy = str(env['NVCC'])
         cxxCopy = str(env['NVCC'])

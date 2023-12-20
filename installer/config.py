@@ -26,7 +26,7 @@
 This module contains the necessary functions to run the config command.
 """
 
-import shutil, glob
+import shutil, glob, sys
 from os import path, environ
 from os.path import isdir, join, isfile
 
@@ -99,6 +99,7 @@ def getSystemValues():
     getFFTW3(dictPackages)
     getHDF5(dictPackages)
     getINCDIRFLAGS(dictPackages)
+    getLIBDIRFLAGS(dictPackages)
     getOPENCV(dictPackages)
     getCUDA(dictPackages)
     getSTARPU(dictPackages)
@@ -125,6 +126,9 @@ def getInternalFlags(dictPackages, debug: bool=False):
         dictInternalFlags['PYTHONINCFLAGS'] = ' '.join(["-I%s" % iDir for iDir in incDirs])
     except Exception as e:
         printError(errorMsg=str(e), retCode=PYTHONINCFLAGS_ERROR)
+    #PYTHON_LIB
+    malloc = "m" if sys.version_info.minor < 8 else ""
+    dictInternalFlags['PYTHON_LIB'] = 'python%s.%s%s' % (sys.version_info.major, sys.version_info.minor, malloc)
     #LINKERFORPROGRAMS
     dictInternalFlags['LINKERFORPROGRAMS'] = dictPackages['CXX']
     #MPI_LINKERFORPROGRAMS
@@ -156,12 +160,20 @@ def getInternalFlags(dictPackages, debug: bool=False):
     for route in paths:
         if isfile(join(route, 'libcudart.so')):
             NVCC_LINKFLAGS = '-L{}'.format(route)
-            stubroute = join(route, 'stubs/')
+            stubroute = join(route, 'stubs')
             if path.exists(stubroute):
                 NVCC_LINKFLAGS += ' -L{}'.format(stubroute)
     dictInternalFlags['NVCC_LINKFLAGS'] = NVCC_LINKFLAGS
     printMessage(text=green('Done'), debug=True)
     updateEnviron(pathenviron='LD_LIBRARY_PATH', path2Add=dictInternalFlags['NVCC_LINKFLAGS'])
+    #JAVAS
+    dictInternalFlags['JAVA_BINDIR'] = join(dictPackages['JAVA_HOME'], 'bin')
+    dictInternalFlags['JAVAC'] = join(dictInternalFlags['JAVA_BINDIR'], 'javac')
+    dictInternalFlags['JAR'] = join(dictInternalFlags['JAVA_BINDIR'], 'jar')
+    dictInternalFlags['JNI_CPPPATH'] = (join(dictPackages['JAVA_HOME'], 'include') +
+                        ':' + join(dictPackages['JAVA_HOME'], 'include/linux'))
+
+    dictInternalFlags['LINKFLAGS'] = '-flto'
     return dictInternalFlags
 
 
@@ -194,8 +206,8 @@ def checkConfig(dictPackages):
     """
     checkPackagesStatus = []
     printMessage(text='\n- Checking libraries from config file...', debug=True)
-    checkCC(dictPackages) #TODO extra check, run a compillation?
-    checkCXX(dictPackages) #TODO extra check, run a compillation?
+    checkCC(dictPackages)
+    checkCXX(dictPackages)
     checkMPI(dictPackages)
     checkJava(dictPackages)
     if dictPackages['MATLAB'] == 'True':
@@ -233,11 +245,10 @@ def writeConfig(dictP: dict, dictInt: dict):
         f.write('[USER FLAGS]\n')
         for key, value in dictP.items():
             f.write('{}={}\n'.format(key, value))
-        f.write('\n[INTERNAL FLAGS]\n')
+        f.write('\n\n[INTERNAL FLAGS]\n')
         for key, value in dictInt.items():
             f.write('{}={}\n'.format(key, value))
-        f.write('\n')
-        f.write('\n[DATE]\n')
+        f.write('\n\n[DATE]\n')
         f.write('Config file written: {} \n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     printMessage(text=green('Done'), debug=True)
@@ -833,6 +844,10 @@ def getINCDIRFLAGS(dictPackages):
     #FFTW3
     if path.exists(dictPackages['FFTW3_H']):
         dictPackages['INCDIRFLAGS'] += ' -I' + path.dirname(dictPackages['FFTW3_H'])
+
+def getLIBDIRFLAGS(dictPackages):
+    localLib = "%s/lib" % get_paths()['data']
+    dictPackages["LIBDIRFLAGS"] += " -L%s" % localLib
 
 def checkGit():
     version = gitVersion()
