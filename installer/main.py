@@ -34,7 +34,10 @@ from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES
 	ORGANIZATION_NAME, CUFFTADVSOR_ERROR, GOOGLETEST_ERROR,LIBSVM_ERROR, LIBCIFPP_ERROR, \
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE, VERNAME_KEY, XMIPP_VERSIONS,
   CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP, CLONNING_EXTERNAL_SOURCE_ERROR,
-  CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING)
+  CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
+	XMIPP_COMPILLATION_ERROR,XMIPPCORE_COMPILLATION_ERROR,
+  XMIPPVIZ_COMPILLATION_ERROR,
+)
 from .utils import runJob, getCurrentBranch, printError, printMessage, green, printWarning
 from .config import readConfig
 
@@ -196,13 +199,20 @@ def compile_libcifpp(jobs):
 
 
 def compileSources(jobs):
-		sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP]
+		sources = [XMIPP_CORE, XMIPP, XMIPP_VIZ]
 		dictPackage, _ = readConfig()
 
 		for source in sources:
-			printMessage(text='\n- Compiling {}...'.format(source), debug=True)
-			retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source)
-			print(retCode, outputStr)
+				printMessage(text='\n- Compiling {}...'.format(source), debug=True)
+				retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source,
+																	streaming=True, showOutput=True, showError=True)
+				if retCode != 0:
+						if source == XMIPP_CORE:
+									printError(retCode=XMIPPCORE_COMPILLATION_ERROR, errorMsg=outputStr)
+						elif source == XMIPP:
+									printError(retCode=XMIPP_COMPILLATION_ERROR, errorMsg=outputStr)
+						elif source == XMIPP_VIZ:
+									printError(retCode=XMIPPVIZ_COMPILLATION_ERROR, errorMsg=outputStr)
 
 ####################### AUX FUNCTIONS #######################
 def downloadSourceTag(source: str) -> Tuple[bool, str]:

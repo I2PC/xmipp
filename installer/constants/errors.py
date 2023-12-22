@@ -66,6 +66,9 @@ LIBSVM_ERROR = 39
 LIBCIFPP_ERROR = 40
 PYTHONINCFLAGS_ERROR = 41
 NVCC_CXXFLAGS_ERROR = 42
+XMIPP_COMPILLATION_ERROR = 43
+XMIPPCORE_COMPILLATION_ERROR = 44
+XMIPPVIZ_COMPILLATION_ERROR = 45
 
 
 # Warning codes
@@ -121,7 +124,11 @@ ERROR_CODE = {
 	LIBSVM_ERROR: ['Error compilling libsvm', 'Please, read the documentation of the package.'],
   LIBCIFPP_ERROR: ['Error compilling libcifpp', 'Please, read the documentation of the package.'],
   PYTHONINCFLAGS_ERROR: ['Error collecting the pyton and numpy packages','Please, review your python executable and the numpy on your enviroment'],
-  NVCC_CXXFLAGS_ERROR: ['Error collecting the nvcc version', 'Please review your nvcc installation or set CUDA flag to False on xmipp.conf']
+  NVCC_CXXFLAGS_ERROR: ['Error collecting the nvcc version', 'Please review your nvcc installation or set CUDA flag to False on xmipp.conf'],
+  XMIPP_COMPILLATION_ERROR: ['Error compilling scripts from xmipp', 'Please  review the compillationLog file for details'],
+  XMIPPCORE_COMPILLATION_ERROR: ['Error compilling scripts from xmippCore', 'Please  review the compillationLog file for details'],
+  XMIPPVIZ_COMPILLATION_ERROR: ['Error compilling scripts from xmippViz', 'Please  review the compillationLog file for details'],
+
 }
 
 # Warning messages

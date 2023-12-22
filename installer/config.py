@@ -622,7 +622,7 @@ def getCUDA(dictPackages):
         dictPackages['CUDACXX'] = ''
     else:
         dictPackages['CUDA'] = 'True'
-        dictPackages['CUDA_HOME'] = shutil.which('nvcc').replace('/bin/nvcc', '')
+        dictPackages['CUDA_HOME'] = shutil.which('nvcc')
         dictPackages['CUDACXX'] = dictPackages['CXX']
 
 def checkCUDA(dictPackages, checkPackagesStatus):
