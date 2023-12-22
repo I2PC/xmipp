@@ -205,7 +205,7 @@ def compileSources(jobs):
 		for source in sources:
 				printMessage(text='\n- Compiling {}...'.format(source), debug=True)
 				retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source,
-																	streaming=True, showOutput=True, showError=True)
+																	streaming=True, showOutput=False, showError=True)
 				if retCode != 0:
 						if source == XMIPP_CORE:
 									printError(retCode=XMIPPCORE_COMPILLATION_ERROR, errorMsg=outputStr)

@@ -155,8 +155,9 @@ def getInternalFlags(dictPackages, debug: bool=False):
         except Exception as e:
             printError(errorMsg=str(e), retCode=NVCC_CXXFLAGS_ERROR)
     # NVCC_LINKFLAGS
-    paths = [join(dictPackages['CUDA_HOME'], 'lib'),
-             join(dictPackages['CUDA_HOME'], 'lib64')]
+    dictHomeCUDA= dictPackages['CUDA_HOME'].split('bin/nvcc')[0]
+    paths = [join(dictHomeCUDA, 'lib'),
+             join(dictHomeCUDA, 'lib64')]
     for route in paths:
         if isfile(join(route, 'libcudart.so')):
             NVCC_LINKFLAGS = '-L{}'.format(route)
