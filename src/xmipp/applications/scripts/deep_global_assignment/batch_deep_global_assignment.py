@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import gc
 import math
 import numpy as np
 from operator import itemgetter
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     symmetry = sys.argv[9]
     SNR = float(sys.argv[10])
     modelSize = int(sys.argv[11])
+    angPrec = float(sys.argv[12])
 
     if not gpuId.startswith('-1'):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -42,7 +44,7 @@ if __name__ == "__main__":
     class DataGenerator(keras.utils.all_utils.Sequence):
         """Generates data for fnImgs"""
 
-        def __init__(self, fnImgs, labels, maxShift, batch_size, dim, shifts, maxSigmaN, readInMemory):
+        def __init__(self, fnImgs, labels, maxShift, batch_size, dim, shifts, maxSigmaN, maxAngle, readInMemory=True):
             """Initialization"""
             self.fnImgs = fnImgs
             self.labels = labels
@@ -53,6 +55,7 @@ if __name__ == "__main__":
             self.on_epoch_end()
             self.shifts = shifts
             self.maxSigmaN = maxSigmaN
+            self.maxAngle = maxAngle
 
             # Read all data in memory
             if self.readInMemory:
@@ -113,7 +116,7 @@ if __name__ == "__main__":
 
             rX = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
             rY = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
-            rAngle = 180 * np.random.uniform(-1, 1, size=self.batch_size)
+            rAngle = self.maxAngle * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
             y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
 
@@ -136,10 +139,11 @@ if __name__ == "__main__":
         inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
         x = conv_block(inputLayer, filters=64)
         x = conv_block(x, filters=128)
-        x = conv_block(x, filters=256)
         if modelSize>=1:
-            x = conv_block(x, filters=512)
+            x = conv_block(x, filters=256)
         if modelSize>=2:
+            x = conv_block(x, filters=512)
+        if modelSize>=3:
             x = conv_block(x, filters=1024)
         x = GlobalAveragePooling2D()(x)
         x = Dense(64, name="output", activation="linear")(x)
@@ -169,26 +173,46 @@ if __name__ == "__main__":
                             for R in SL.getSymmetryMatrices(symmetry)]
     def custom_lossAngles(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
+        # Take care of symmetry
+        num_rows = tf.shape(y_6d)[0]
+        min_errors = tf.fill([num_rows], float('inf'))
+        rotated_versions = tf.TensorArray(dtype=tf.float32, size=num_rows)
+        for i, symmetry_matrix in enumerate(listSymmetryMatrices):
+            transformed = tf.matmul(y_6d, symmetry_matrix)
+            errors = tf.reduce_mean(tf.abs(y_true - transformed), axis=1)
+
+            # Update minimum errors and rotated versions
+            for j in tf.range(num_rows):
+                if errors[j] < min_errors[j]:
+                    min_errors = tf.tensor_scatter_nd_update(min_errors, [[j]], [errors[j]])
+                    rotated_versions = rotated_versions.write(j, transformed[j])
+        y_6d = rotated_versions.stack()
 
         e1_true = y_true[:, :3] # First 3 components
         e2_true = y_true[:, 3:] # Last 3 components
+        e3_true = tf.linalg.cross(e1_true, e2_true)
 
         e1_pred = y_6d[:, :3] # First 3 components
         e2_pred = y_6d[:, 3:] # Last 3 components
 
         # Gram-Schmidt orthogonalization
-        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
+#        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
         e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)  # Normalize e1
         projection = tf.reduce_sum(e2_pred * e1_pred, axis=-1, keepdims=True)
         e2_pred = e2_pred - projection * e1_pred
-        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
+#        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
         e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
+        e3_pred = tf.linalg.cross(e1_pred, e2_pred)
+#        e3_pred = tf.clip_by_value(e3_pred, -1.0, 1.0)
+        e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)
 
         epsilon = 1e-7
         angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
         angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+        angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
 
-        return tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2))*0.5*(180.0 / np.pi)
+        return tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2)+tf.abs(angle3))/3.0*(180.0 / np.pi)
+        #return tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2))/2.0*(180.0 / np.pi)
 
     def custom_lossVectors(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
@@ -198,34 +222,95 @@ if __name__ == "__main__":
 
     Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
-    # Train-Validation sets
-    lenTrain = int(len(fnImgs)*0.8)
-    lenVal = len(fnImgs)-lenTrain
+    numEpochs = math.ceil(numParticlesTraining/len(fnImgs))
+    subEpochs=100
+    stepEpochs = math.ceil(numEpochs/subEpochs)
 
-    numEpochs = math.ceil(numParticlesTraining/lenTrain)
+    def cleanMemory():
+        global model
+        print("Cleaning memory")
+        fnModelTmp = fnModel + "_tmp.h5"
+        model.save(fnModelTmp)
+        tf.keras.backend.clear_session()
+        gc.collect()
+        model =  keras.models.load_model(fnModelTmp, custom_objects={'custom_lossAngles': custom_lossAngles})
+        os.remove(fnModelTmp)
 
+        from pympler import muppy, summary
+        all_objects = muppy.get_objects()
+        sum1 = summary.summarize(all_objects)
+        summary.print_(sum1)
+
+        return model
+
+    def train(maxAngle, maxShift, N, numEpochs, save_best_model):
+        global model
+        global training_generator
+        if not hasattr(train,"Ntrains"):
+            train.Ntrains=0
+        # train.Ntrains+=1
+        # if train.Ntrains==10:
+        #     model = cleanMemory()
+        #     train.Ntrains=0
+        training_generator.maxSigmaN = N
+        training_generator.maxShift = maxShift
+        training_generator.maxAngle = maxAngle
+        history = model.fit(training_generator, epochs=numEpochs, callbacks=[save_best_model])
+        return history.history['loss'][-1]
+
+
+    if SNR > 0:
+        finalN = math.sqrt(1.0 / SNR)
+    else:
+        finalN = 0
+    training_generator = DataGenerator(fnImgs, labels, 0.0, batch_size, Xdims, shifts, 0.0, 0.0)
     for index in range(numModels):
-        # chooses equal number of particles for each division
-        random_sample = np.random.choice(range(0, len(fnImgs)), size=lenTrain+lenVal, replace=False)
 
-        if SNR>0:
-            finalN = math.sqrt(1.0 / SNR)
+        fnModelIndex =  fnModel + str(index) + ".h5"
+        save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
+        if os.path.exists(fnModel):
+            model = load_model(fnModelIndex)
         else:
-            finalN = 0
-        training_generator = DataGenerator([fnImgs[i] for i in random_sample[0:lenTrain]],
-                                           [labels[i] for i in random_sample[0:lenTrain]],
-                                           maxShift, batch_size, Xdims, shifts, finalN, readInMemory=True)
-        validation_generator = DataGenerator([fnImgs[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             [labels[i] for i in random_sample[lenTrain:lenTrain+lenVal]],
-                                             maxShift, batch_size, Xdims, shifts, finalN, readInMemory=True)
-
-        model = constructModel(Xdims, modelSize)
-
+            model = constructModel(Xdims, modelSize)
         adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        save_best_model = ModelCheckpoint(fnModel + str(index) + ".h5", monitor='val_loss', save_best_only=True)
-
         model.summary()
-        model.compile(loss=custom_lossVectors, optimizer=adam_opt)
-        history = model.fit_generator(generator=training_generator, epochs=numEpochs,
-                                      validation_data=validation_generator, callbacks=[save_best_model])
+#        model.compile(loss=custom_lossVectors, optimizer=adam_opt)
+        model.compile(loss=custom_lossAngles, optimizer=adam_opt)
 
+        # Train without any perturbation
+        imax=subEpochs
+        for i in range(subEpochs):
+            print("Iteration %d no perturbation"%i)
+            loss=train(0.0, 0.0, 0.0, stepEpochs, save_best_model)
+            if loss<angPrec:
+                imax = subEpochs
+                break
+
+        # Train now with geometric perturbations
+        angStep=180.0/subEpochs
+        shiftStep=maxShift/subEpochs
+        for i in range(subEpochs):
+            print("Iteration %d"%i)
+            for j in range(imax):
+                print("Training %d with maxAngle=%f, maxShift=%f"%(j,(i+1)*angStep, (i+1)*shiftStep))
+                loss=train((i+1)*angStep, (i+1)*shiftStep, 0.0, stepEpochs, save_best_model)
+                if loss<angPrec:
+                    break
+
+        # Estabilize with geometric perturbations
+        for i in range(subEpochs):
+            print("Iteration %d estabilize geometric"%i)
+            loss=train(180, maxShift, 0.0, stepEpochs, save_best_model)
+            if loss<angPrec:
+                break
+
+        if finalN>0:
+            Nstep=finalN/subEpochs
+            # Now with noise
+            for i in range(subEpochs):
+                print("Iteration %d noise" % i)
+                for j in range(imax):
+                    print("Training %d with noise %f" % (j,(i + 1) * Nstep))
+                    loss=train(180, maxShift, (i+1)*Nstep, stepEpochs, save_best_model)
+                    if loss<angPrec:
+                        break
