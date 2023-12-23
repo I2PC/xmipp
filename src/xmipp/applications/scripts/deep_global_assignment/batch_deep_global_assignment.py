@@ -97,9 +97,11 @@ if __name__ == "__main__":
                 img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
                 return (img - np.mean(img)) / np.std(img)
 
-            def euler_to_rotation6d(angles, psi_rotation):
+            def euler_to_rotation6d(angles, psi_rotation, x, y):
                 mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2] + psi_rotation)
-                return np.reshape(mat[0:2,:],(6))
+                shift  = np.array([x, y])
+                angles = np.reshape(mat[0:2,:],(6))
+                return np.concatenate((angles, shift))
 
             if self.readInMemory:
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
@@ -118,8 +120,7 @@ if __name__ == "__main__":
             rY = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
             rAngle = self.maxAngle * np.random.uniform(-1, 1, size=self.batch_size)
             Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
-            y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle))))
-
+            y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle, rX-yshifts[:,0], rY-yshifts[:,1]))))
             return Xexp, y
 
     def conv_block(tensor, filters):
@@ -146,7 +147,8 @@ if __name__ == "__main__":
         if modelSize>=3:
             x = conv_block(x, filters=1024)
         x = GlobalAveragePooling2D()(x)
-        x = Dense(64, name="output", activation="linear")(x)
+        x = Dense(64)(x)
+        x = Dense(8, name="output", activation="linear")(x)
         return Model(inputLayer, x)
 
     def get_labels(fnImages):
@@ -171,15 +173,20 @@ if __name__ == "__main__":
     SL = xmippLib.SymList()
     listSymmetryMatrices = [tf.convert_to_tensor(np.kron(np.eye(2),np.transpose(np.array(R))), dtype=tf.float32)
                             for R in SL.getSymmetryMatrices(symmetry)]
+    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
+
+
     def custom_lossAngles(y_true, y_pred):
-        y_6d = tf.matmul(y_pred, tfAt)
+        # y_6d = tf.matmul(y_pred, tfAt)
+        y_6d = y_pred[:, :6]
+        y_6dtrue = y_true[:, :6]
         # Take care of symmetry
         num_rows = tf.shape(y_6d)[0]
         min_errors = tf.fill([num_rows], float('inf'))
         rotated_versions = tf.TensorArray(dtype=tf.float32, size=num_rows)
         for i, symmetry_matrix in enumerate(listSymmetryMatrices):
             transformed = tf.matmul(y_6d, symmetry_matrix)
-            errors = tf.reduce_mean(tf.abs(y_true - transformed), axis=1)
+            errors = tf.reduce_mean(tf.abs(y_6dtrue - transformed), axis=1)
 
             # Update minimum errors and rotated versions
             for j in tf.range(num_rows):
@@ -188,22 +195,24 @@ if __name__ == "__main__":
                     rotated_versions = rotated_versions.write(j, transformed[j])
         y_6d = rotated_versions.stack()
 
-        e1_true = y_true[:, :3] # First 3 components
-        e2_true = y_true[:, 3:] # Last 3 components
+        e1_true = y_6dtrue[:, :3]  # First 3 components
+        e2_true = y_6dtrue[:, 3:]  # Last 3 components
         e3_true = tf.linalg.cross(e1_true, e2_true)
+        shift_true = y_true[:, 6:]  # Last 2 components
 
-        e1_pred = y_6d[:, :3] # First 3 components
-        e2_pred = y_6d[:, 3:] # Last 3 components
+        e1_pred = y_6d[:, :3]  # First 3 components
+        e2_pred = y_6d[:, 3:]  # Last 3 components
+        shift_pred = y_pred[:, 6:]  # Last 2 components
 
         # Gram-Schmidt orthogonalization
-#        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
+        #        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
         e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)  # Normalize e1
         projection = tf.reduce_sum(e2_pred * e1_pred, axis=-1, keepdims=True)
         e2_pred = e2_pred - projection * e1_pred
-#        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
+        #        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
         e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
         e3_pred = tf.linalg.cross(e1_pred, e2_pred)
-#        e3_pred = tf.clip_by_value(e3_pred, -1.0, 1.0)
+        #        e3_pred = tf.clip_by_value(e3_pred, -1.0, 1.0)
         e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)
 
         epsilon = 1e-7
@@ -211,16 +220,16 @@ if __name__ == "__main__":
         angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
         angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
 
-        return tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2)+tf.abs(angle3))/3.0*(180.0 / np.pi)
-        #return tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2))/2.0*(180.0 / np.pi)
+        angular_error = tf.reduce_mean(tf.abs(angle1) + tf.abs(angle2) + tf.abs(angle3)) / 3.0
+        shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
+        return angular_error + shift_error/Xdims
+
 
     def custom_lossVectors(y_true, y_pred):
         y_6d = tf.matmul(y_pred, tfAt)
-        esym = tf.stack([tf.reduce_mean(tf.abs(y_true-tf.matmul(y_6d, tensor)),axis=1)
-                          for tensor in listSymmetryMatrices],axis=1)
+        esym = tf.stack([tf.reduce_mean(tf.abs(y_true - tf.matmul(y_6d, tensor)), axis=1)
+                         for tensor in listSymmetryMatrices], axis=1)
         return tf.reduce_mean(tf.reduce_min(esym, axis=1))
-
-    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
 
     numEpochs = math.ceil(numParticlesTraining/len(fnImgs))
     subEpochs=100
