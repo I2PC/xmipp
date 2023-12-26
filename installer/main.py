@@ -85,6 +85,20 @@ def getSources(branch: str=None):
 			printError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
 
 def compileExternalSources(jobs):
+		"""
+		Compiles external sources required by Xmipp.
+
+		This function orchestrates the compilation process for external sources necessary for Xmipp.
+		It compiles various components such as cuFFTAdvisor, googletest, libsvm, and libcifpp based on
+		configurations read from the package. The compilation is performed based on the provided job count.
+
+		Args:
+		- jobs (int): The number of jobs/threads to be used for compilation.
+
+		Raises:
+		- RuntimeError: If any error occurs during the compilation process of external sources,
+		  it raises a RuntimeError with error details.
+		"""
 		printMessage(text='\n- Compiling external sources...', debug=True)
 		dictPackage, _ = readConfig()
 		if dictPackage['CUDA'] == 'True':
@@ -94,6 +108,16 @@ def compileExternalSources(jobs):
 		compile_libcifpp(jobs)
 
 def compile_cuFFTAdvisor():
+		"""
+		Compiles the cuFFTAdvisor library for Xmipp.
+
+		This function compiles the cuFFTAdvisor library required by Xmipp by executing the necessary build commands.
+		Upon successful compilation, it copies the resulting library file to the Xmipp library directory.
+
+		Raises:
+		- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
+		  it raises a RuntimeError with error details.
+		"""
 		printMessage('Compiling cuFFTAdvisor...', debug=True)
 		advisorDir = "src/cuFFTAdvisor/"
 		currDir = os.getcwd()
@@ -116,6 +140,17 @@ def compile_cuFFTAdvisor():
 				printError(retCode=CUFFTADVSOR_ERROR, errorMsg=outputStr)
 
 def compile_googletest():
+		"""
+		Compiles the libsvm library for Xmipp.
+
+		This function compiles the libsvm library required by Xmipp by executing the 'make lib' command.
+		It copies the resulting library file to the Xmipp library directory upon successful compilation.
+
+		Raises:
+		- RuntimeError: If any error occurs during the compilation and copying process of libsvm,
+		  it raises a RuntimeError with error details.
+		"""
+
 		printMessage(text="Compiling googletest...", debug=True)
 		currDir = os.getcwd()
 		buildDir = os.path.join("src", "googletest", "build")
@@ -136,6 +171,7 @@ def compile_googletest():
 				printError(retCode=GOOGLETEST_ERROR, errorMsg=outputStr)
 
 def compile_libsvm():
+
 		printMessage(text="Compiling libsvm...", debug=True)
 		# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
 		currDir = os.getcwd()
@@ -159,6 +195,19 @@ def compile_libsvm():
 				printError(retCode=LIBSVM_ERROR, errorMsg=outputStr)
 
 def compile_libcifpp(jobs):
+		"""
+		Compiles the libcifpp library for Xmipp.
+
+		This function compiles the libcifpp library required by Xmipp using CMake. It sets up the build environment,
+		compiles the library, and installs it within the Xmipp directory.
+
+		Args:
+		- jobs (int): The number of jobs/threads to be used for compilation.
+
+		Raises:
+		- RuntimeError: If any error occurs during the compilation and installation process of libcifpp,
+		  it raises a RuntimeError with error details.
+		"""
 		printMessage(text="Compiling libcifpp..", debug=True)
 		currDir = os.getcwd()
 		# Moving to library directory
@@ -197,6 +246,19 @@ def compile_libcifpp(jobs):
 				printError(retCode=LIBCIFPP_ERROR, errorMsg=outputStr)
 
 def compileSources(jobs):
+		"""
+		Compiles Xmipp source code.
+
+		This function compiles the Xmipp core, Xmipp, and Xmipp Viz from their respective source directories.
+		It utilizes the SCons build system with specified job parallelism to compile the source code.
+
+		Args:
+		- jobs (int): The number of jobs/threads to be used for compilation.
+
+		Raises:
+		- RuntimeError: If any error occurs during the compilation process for Xmipp components,
+		  it raises an appropriate RuntimeError with error details.
+		"""
 		sources = [XMIPP_CORE, XMIPP, XMIPP_VIZ]
 		dictPackage, _ = readConfig()
 
@@ -213,6 +275,19 @@ def compileSources(jobs):
 									printError(retCode=XMIPPVIZ_COMPILLATION_ERROR, errorMsg=outputStr)
 
 def install(directory):
+		"""
+		Installs Xmipp components to the specified directory.
+
+		This function orchestrates the installation process of various Xmipp components to the given directory.
+		It copies libraries, scripts, bindings, resources, and configuration files from the source directories
+		to the specified installation directory.
+
+		Args:
+		- directory (str): The target directory where Xmipp components will be installed.
+
+		Raises:
+		- RuntimeError: If any error occurs during the installation process, a RuntimeError is raised.
+		"""
 
 		printMessage(text='\n- Installing...', debug=True)
 		currentBranch = getCurrentBranch()
@@ -372,7 +447,20 @@ def install(directory):
 
 
 def cleanDeprecated():
+		"""
+		Cleans deprecated Xmipp programs and scripts.
 
+		This function searches for deprecated Xmipp programs and scripts within the source directories
+		and removes them from the 'src/xmipp/bin/' directory. Deprecated programs are identified by their
+		absence from the current program listings and are removed to maintain an updated codebase.
+
+		Note:
+		The function relies on specific directory structures and filenames within the 'src/xmipp/'
+		directory. It identifies deprecated programs based on their absence in the current program listings.
+
+		Raises:
+		- RuntimeError: If an error occurs during the removal process, a RuntimeError is raised.
+		"""
 		listCurrentPrograms = []
 		retCode, outputStr = runJob('find src/xmipp/bin/*')
 		files = outputStr.split('\n')
@@ -476,50 +564,76 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	return retcode, output
 
 def linkToScipion(directory:str, verbose:bool=False):
-    scipionSoftware = os.environ.get('SCIPION_SOFTWARE', os.path.join(getScipionHome(), 'software'))
-    scipionLibs = os.path.join(scipionSoftware, 'lib')
-    scipionBindings = os.path.join(scipionSoftware, 'bindings')
-    scipionSoftwareEM = os.path.join(scipionSoftware, 'em')
-    xmippHomeLink = os.path.join(scipionSoftwareEM, 'xmipp')
-    currentDir = os.getcwd()
-    dirnameAbs = os.path.join(currentDir, directory)
-    if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
-        printMessage("\nLinking to Scipion ---------------------------------------", debug=True)
-        printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
-    if os.path.isdir(xmippHomeLink):
-        retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        retCode, outputStr = runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink), showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        xmippLink = os.readlink(xmippHomeLink)
-        coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
-        xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
-        SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
-        CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
-        bindings = os.path.join(xmippLink, "bindings", "python", "*")
+		"""
+		:param directory:
+		:param verbose:
+		:return:
 
-        os.chdir(scipionSoftwareEM)
-        retCode, outputStr = runJob("ln -srf %s %s" % (coreLib, scipionLibs), showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        retCode, outputStr = runJob("ln -srf %s %s" % (SVMLib, scipionLibs), showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        retCode, outputStr = runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs), showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        retCode, outputStr = runJob("ln -srf %s %s" % (xmippLib, scipionLibs), showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        retCode, outputStr = runJob("ln -srf %s %s" % (bindings, scipionBindings), showCommand=verbose)
-        if retCode != 0:
-            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-        os.chdir(currentDir)
-        printMessage(text=green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
-    else:
-        printWarning(text='', warningCode=SCIPION_LINK_WARNING)
+		Creates symbolic links to integrate Xmipp with Scipion.
+
+		This function creates symbolic links to integrate Xmipp with Scipion by linking specific libraries
+		and bindings required for their interaction.
+
+		Args:
+		- directory (str): The directory containing the necessary files for linking.
+		- verbose (bool, optional): Controls the verbosity of the function (default: False).
+
+		Returns:
+		None
+
+		Raises:
+		- RuntimeError: If linking encounters errors, it raises a RuntimeError with details.
+		- Warning: If the expected Xmipp directory is not found, it issues a warning.
+
+		Note:
+		This function assumes the presence of certain directories and files within the environment.
+		Specifically, it expects the directory structure to include paths required for the linking process.
+		"""
+
+		scipionSoftware = os.environ.get('SCIPION_SOFTWARE', os.path.join(getScipionHome(), 'software'))
+		scipionLibs = os.path.join(scipionSoftware, 'lib')
+		scipionBindings = os.path.join(scipionSoftware, 'bindings')
+		scipionSoftwareEM = os.path.join(scipionSoftware, 'em')
+		xmippHomeLink = os.path.join(scipionSoftwareEM, 'xmipp')
+		currentDir = os.getcwd()
+		dirnameAbs = os.path.join(currentDir, directory)
+		if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
+		    printMessage("\nLinking to Scipion ---------------------------------------", debug=True)
+		    printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
+		if os.path.isdir(xmippHomeLink):
+		    retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    retCode, outputStr = runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink), showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    xmippLink = os.readlink(xmippHomeLink)
+		    coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
+		    xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
+		    SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
+		    CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
+		    bindings = os.path.join(xmippLink, "bindings", "python", "*")
+
+		    os.chdir(scipionSoftwareEM)
+		    retCode, outputStr = runJob("ln -srf %s %s" % (coreLib, scipionLibs), showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    retCode, outputStr = runJob("ln -srf %s %s" % (SVMLib, scipionLibs), showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    retCode, outputStr = runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs), showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    retCode, outputStr = runJob("ln -srf %s %s" % (xmippLib, scipionLibs), showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    retCode, outputStr = runJob("ln -srf %s %s" % (bindings, scipionBindings), showCommand=verbose)
+		    if retCode != 0:
+		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+		    os.chdir(currentDir)
+		    printMessage(text=green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
+		else:
+		    printWarning(text='', warningCode=SCIPION_LINK_WARNING)
 
 
 
