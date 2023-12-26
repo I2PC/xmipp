@@ -37,7 +37,7 @@ from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES
   CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
 	XMIPP_COMPILLATION_ERROR,XMIPPCORE_COMPILLATION_ERROR,
   XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
-INSTALLATION_ERROR, LINKING2SCIPION
+INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING
 )
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
 										printWarning, createDir, getScipionHome, yellow)
@@ -224,7 +224,7 @@ def install(directory):
 		cpCmd = "rsync -LptgoD "
 		createDir(directory)
 		createDir(directory + "/lib")
-		retCode, outputStr = runJob(cpCmd + " src/*/lib/lib* " + directory + "/lib/", showCommand=verbose)
+		retCode, outputStr = runJob(cpCmd + " src/*/lib/lib* " + directory + "/lib/")
 		if retCode != 0:
 				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
 		if os.path.exists(directory + "/bin"):
@@ -235,12 +235,11 @@ def install(directory):
 		filenames = [f for f in os.listdir(dirBin)]
 		for f in filenames:
 				if os.path.islink(os.path.join(dirBin, f)):
-						retCode, outputStr = runJob(
-								'ln -s ' + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f), showCommand=verbose)
+						retCode, outputStr = runJob('ln -s ' + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f))
 						if retCode != 0:
 								printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
 				else:
-						retCode, outputStr = runJob(cpCmd + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f), showCommand=verbose)
+						retCode, outputStr = runJob(cpCmd + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f))
 						if retCode != 0:
 								printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
 
@@ -258,7 +257,7 @@ def install(directory):
 				folderName = os.path.basename(folder[0])
 				for file in folder[2]:
 						createDir(os.path.join(destPathPyModule, folderName))
-						retCode, outputStr = runJob("ln -sf " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file), showCommand=verbose)
+						retCode, outputStr = runJob("ln -sf " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file))
 						if retCode != 0:
 								printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
 
@@ -317,12 +316,12 @@ def install(directory):
 		if retCode != 0:
 				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
 
-		printMessage(text=green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory))), debug=True)
+		printMessage(text=green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', '')))), debug=True)
 
 		# Scipion connection
 		linkToScipion(directory, verbose)
 
-		runJob("touch %s/v%s" % (directory, XMIPP_VERSION), showCommand=verbose)  # version token
+		runJob("touch %s/v%s" % (directory, XMIPP_VERSIONS[XMIPP][VERSION_KEY]), showCommand=verbose)  # version token
 		fhBash = open(directory + "/xmipp.bashrc", "w")
 		fhFish = open(directory + "/xmipp.fish", "w")
 		fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -336,12 +335,6 @@ def install(directory):
 		fhBash.write("export XMIPP_SRC=%s\n" % XMIPP_SRC)
 		fhFish.write("set -x XMIPP_SRC %s\n" % XMIPP_SRC)
 
-		# SCIPION_HOME = getScipionHome()
-		# if SCIPION_HOME:
-		#     fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
-		#     fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
-		#     #fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
-		#     fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
 		virtEnvDir = os.environ.get('VIRTUAL_ENV', '')  # if virtualEnv is used
 		virtEnvLib = os.path.join(virtEnvDir, 'lib') if virtEnvDir else ''
 		condaDir = os.environ.get('CONDA_PREFIX', '')  # if conda is used
@@ -376,8 +369,6 @@ def install(directory):
 
 		fhBash.close()
 		fhFish.close()
-
-		endMessage(XMIPP_VERNAME)
 
 
 def cleanDeprecated():
@@ -494,13 +485,14 @@ def linkToScipion(directory:str, verbose:bool=False):
     dirnameAbs = os.path.join(currentDir, directory)
     if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
         printMessage("\nLinking to Scipion ---------------------------------------", debug=True)
-        if os.path.isdir(xmippHomeLink):
-            retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
-            if retCode != 0:
-            		printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+        printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
+    if os.path.isdir(xmippHomeLink):
+        retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
+        if retCode != 0:
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         retCode, outputStr = runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink), showCommand=verbose)
         if retCode != 0:
-        		printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         xmippLink = os.readlink(xmippHomeLink)
         coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
         xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
@@ -510,18 +502,24 @@ def linkToScipion(directory:str, verbose:bool=False):
 
         os.chdir(scipionSoftwareEM)
         retCode, outputStr = runJob("ln -srf %s %s" % (coreLib, scipionLibs), showCommand=verbose)
+        if retCode != 0:
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         retCode, outputStr = runJob("ln -srf %s %s" % (SVMLib, scipionLibs), showCommand=verbose)
+        if retCode != 0:
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         retCode, outputStr = runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs), showCommand=verbose)
+        if retCode != 0:
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         retCode, outputStr = runJob("ln -srf %s %s" % (xmippLib, scipionLibs), showCommand=verbose)
+        if retCode != 0:
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         retCode, outputStr = runJob("ln -srf %s %s" % (bindings, scipionBindings), showCommand=verbose)
+        if retCode != 0:
+            printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
         os.chdir(currentDir)
         printMessage(text=green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
-
     else:
-        printMessage(text=yellow("No scipion3 found. If you intended to use Xmipp in "
-                     "the Scipion framework:\ncompile Xmipp "
-                     "with Scipion './scipion3 run ./xmipp' or check the binding at "
-                     "SCIPION_HOME/software/bindings..."))
+        printWarning(text='', warningCode=SCIPION_LINK_WARNING)
 
 
 

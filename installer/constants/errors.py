@@ -87,6 +87,7 @@ STARPU_LIBRARY_WARNING = 9
 STARPU_RUN_WARNING = 10
 STARPU_CUDA_WARNING = 11
 GIT_PULL_WARNING = 12
+SCIPION_LINK_WARNING = 13
 
 # Error messages
 #TODO review the messages spelling, maybe more links to the documentation?
@@ -158,4 +159,5 @@ WARNING_CODE = {
 	STARPU_LIBRARY_WARNING: ["STARPU_LIBRARY must be specified (link library name).", 'Set STARPU flag to False on xmipp.conf'],
 	STARPU_RUN_WARNING: ["Check STARPU_* settings.", 'Set STARPU flag to False on xmipp.conf'],
   GIT_PULL_WARNING: ['git pull command fail, pull not runned.', 'Please review your internet connection and git package'],
+  SCIPION_LINK_WARNING: ['No scipion3 found. If you intended to use Xmipp in the Scipion framework. ', 'Compile Xmipp with Scipion ./scipion3 run ./xmipp or check the binding at SCIPION_HOME/software/bindings...'],
 }
