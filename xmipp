@@ -33,7 +33,7 @@ from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,
 from installer.utils import printError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-from installer.main import getSources, compileExternalSources, compileSources, install, cleanDeprecated
+from installer.main import getSources, compileExternalSources, compileSources, install, cleanDeprecated, cleanSources
 from installer.api import sendApiPost
 
 ####################### EXECUTION MODES #######################
@@ -46,14 +46,6 @@ def modeAddModel(args: argparse.Namespace):
 	"""
 	# TODO: Implement
 
-def modeCheckConfig(args: argparse.Namespace):
-	"""
-	### Checks the params for execution mode "checkConfig" and then runs it.
-	
-	#### Params:
-	- args (Namespace): Command line arguments parsed by argparse library.
-	"""
-	config()
 
 def modeCleanBin(args: argparse.Namespace):
 	"""
@@ -62,7 +54,8 @@ def modeCleanBin(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# TODO: Implement
+	modeCleanBin(args)
+
 
 def modeCleanAll(args: argparse.Namespace):
 	"""
@@ -71,11 +64,15 @@ def modeCleanAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Clean binaries
-	modeCleanBin(args)
+	print("WARNING: This will DELETE ALL content from src and build")
+	print("         Notice that if you have unpushed changes, \n"
+				"           they will be deleted.\n")
+	print("Are you sure you want to do this? (YeS/No) -case sensitive-")
+	yesno = input()
+	if yesno == "YeS":
+			cleanSources()
+			modeCleanBin(args)
 
-	# Clean sources
-	# TODO: Implement
 
 def modeCleanDeprecated(args: argparse.Namespace):
 	"""
@@ -94,19 +91,13 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Get sources
-	#getSources(branch=args.branch)
-
+	getSources(branch=args.branch)
 	# Compile external dependencies
-	#compileExternalSources(jobs=args.jobs)
-
+	compileExternalSources(jobs=args.jobs)
 	# Compile Xmipp
-	#compileSources(jobs=args.jobs)
-
+	compileSources(jobs=args.jobs)
 	#Install
 	install(directory=args.directory)
-
-
-
 
 def modeConfig(args: argparse.Namespace):
 	"""
@@ -165,11 +156,8 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Running config
 	dictConfig = modeConfig(args)
-	# Running compilation and installation
 	modeCompileAndInstall(args, dictConfig=dictConfig)
-
 	sendApiPost(dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
@@ -231,8 +219,6 @@ if __name__ == "__main__":
 	allSubparser.add_argument("-br", "--branch")
 	allSubparser.add_argument("-dir", "--directory", default=DEFAULT_BUILD_DIR)
 
-	# Arguments for mode 'checkConfig'
-	checkConfigSubparser = subparsers.add_parser(MODE_CHECK_CONFIG, formatter_class=ModeHelpFormatter)
 
 	# Arguments for mode 'cleanAll'
 	cleanAllSubparser = subparsers.add_parser(MODE_CLEAN_ALL, formatter_class=ModeHelpFormatter)
@@ -294,6 +280,3 @@ if __name__ == "__main__":
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
 
-#TODO: Add:
-# - cleanSources
-# - generateBinaries (-dir)
