@@ -30,7 +30,6 @@ Module containing useful functions used by the installation process.
 import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess, shutil, multiprocessing
 from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
-
 # Installer imports
 from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
@@ -464,7 +463,6 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 				return line.split()[-1]
 
 ####################### OTHER FUNCTIONS #######################
-# UTILS
 def findFileInDirList(fnH, dirlist):
 	"""
 	Finds a file in a list of directories.
@@ -661,23 +659,6 @@ def gitVersion():
 				version = version.split(' ')[-1]
 		return version
 
-# def checkLib(gxx, libFlag):
-# 		"""
-# 		Checks if a specific library can be linked by a given compiler.
-#
-# 		Params:
-# 		- gxx (str): Compiler command.
-# 		- libFlag (str): Flag representing the library.
-#
-# 		Returns:
-# 		- bool: True if the library can be linked, False otherwise.
-# 		"""
-# 		# TODO: Revisar: funciona como queremos?
-# 		retCode, outputStr = runJob('echo "#include <tiffio.h>\nint main(){}" > xmipp_check_lib.cpp ; ' + gxx + ' ' + libFlag + ' xmipp_check_lib.cpp', showError=True)
-# 		os.remove('xmipp_check_lib.cpp')
-# 		os.remove('a.out') if os.path.isfile('a.out') else None
-# 		return retCode == 0
-
 def get_Hdf5_name(libdirflags):
 		"""
 		Identifies the HDF5 library name based on the given library directory flags.
@@ -821,3 +802,20 @@ def runLambda(function: Callable, args: Tuple[Any]=()):
 	- (Any): Return value/(s) of the called function.
 	"""
 	return function(*args)
+
+def createDir(path):
+		if not os.path.exists(path):
+				os.makedirs(path)
+
+def getScipionHome():
+    """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
+    return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
+
+def whereis(program, findReal=False, env=None):
+    programPath = distutils.spawn.find_executable(program, path=env)
+    if programPath:
+        if findReal:
+            programPath = os.path.realpath(programPath)
+        return os.path.dirname(programPath)
+    else:
+        return None

@@ -69,7 +69,10 @@ NVCC_CXXFLAGS_ERROR = 42
 XMIPP_COMPILLATION_ERROR = 43
 XMIPPCORE_COMPILLATION_ERROR = 44
 XMIPPVIZ_COMPILLATION_ERROR = 45
-
+DEPRECATE_ERROR = 46
+INSTALLATION_ERROR = 47
+LINKING2SCIPION = 48
+RSYNC_VERSION_ERROR = 49
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -118,16 +121,22 @@ ERROR_CODE = {
   CLONNING_EXTERNAL_SOURCE_ERROR: ['Error cloning external repository with git.', 'Please review the internet connection and the git package.'],
 	CLONNING_XMIPP_SOURCE_ERROR: ['Error cloning xmipp repository with git.', 'Please review the internet connection and the git package.'],
 	DOWNLOADING_XMIPP_SOURCE_ERROR:['Error downloading (wget) xmipp repository.', 'Please review the internet connection.'],
-	GIT_VERSION_ERROR: ['', 'Please update the version og git'],
-  CUFFTADVSOR_ERROR: ['Error compilling cuFFTAdvisor', 'Please, read the documentation of the package.'],
-  GOOGLETEST_ERROR: ['Error compilling googletest', 'Please, read the documentation of the package.'],
-	LIBSVM_ERROR: ['Error compilling libsvm', 'Please, read the documentation of the package.'],
-  LIBCIFPP_ERROR: ['Error compilling libcifpp', 'Please, read the documentation of the package.'],
-  PYTHONINCFLAGS_ERROR: ['Error collecting the pyton and numpy packages','Please, review your python executable and the numpy on your enviroment'],
-  NVCC_CXXFLAGS_ERROR: ['Error collecting the nvcc version', 'Please review your nvcc installation or set CUDA flag to False on xmipp.conf'],
-  XMIPP_COMPILLATION_ERROR: ['Error compilling scripts from xmipp', 'Please  review the compillationLog file for details'],
-  XMIPPCORE_COMPILLATION_ERROR: ['Error compilling scripts from xmippCore', 'Please  review the compillationLog file for details'],
-  XMIPPVIZ_COMPILLATION_ERROR: ['Error compilling scripts from xmippViz', 'Please  review the compillationLog file for details'],
+	GIT_VERSION_ERROR: ['', 'Please update the version og git.'],
+  CUFFTADVSOR_ERROR: ['Error compilling cuFFTAdvisor.', 'Please, read the documentation of the package.'],
+  GOOGLETEST_ERROR: ['Error compilling googletest.', 'Please, read the documentation of the package.'],
+	LIBSVM_ERROR: ['Error compilling libsvm.', 'Please, read the documentation of the package.'],
+  LIBCIFPP_ERROR: ['Error compilling libcifpp.', 'Please, read the documentation of the package.'],
+  PYTHONINCFLAGS_ERROR: ['Error collecting the pyton and numpy packages.','Please, review your python executable and the numpy on your enviroment.'],
+  NVCC_CXXFLAGS_ERROR: ['Error collecting the nvcc version.', 'Please review your nvcc installation or set CUDA flag to False on xmipp.conf'],
+  XMIPP_COMPILLATION_ERROR: ['Error compilling scripts from xmipp.', 'Please  review the compillationLog file for details.'],
+  XMIPPCORE_COMPILLATION_ERROR: ['Error compilling scripts from xmippCore.', 'Please  review the compillationLog file for details.'],
+  XMIPPVIZ_COMPILLATION_ERROR: ['Error compilling scripts from xmippViz.', 'Please  review the compillationLog file for details.'],
+  DEPRECATE_ERROR: ['Deprecated programs were no deleted.', ''],
+  INSTALLATION_ERROR: ['Some error occurred during the installation.', ''],
+  LINKING2SCIPION: [],
+  RSYNC_VERSION_ERROR: ['rsync not abailable on your system', 'Please install or update it']
+
+
 
 }
 

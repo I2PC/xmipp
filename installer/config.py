@@ -48,7 +48,8 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
-                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR)
+                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
+                        RSYNC_MINIMUM, RSYNC_VERSION_ERROR)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion, printWarning,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
@@ -58,7 +59,8 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     updateEnviron)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-                                getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion)
+                                getCmakeVersion, getGPPVersion, getGCCVersion,
+                       getSconsVersion, getRsyncVersion)
 from .versions import getCUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
@@ -225,6 +227,7 @@ def checkConfig(dictPackages):
     checkFFTW3(dictPackages)
     checkScons()
     checkCMake()
+    checkRsync()
 
     if checkPackagesStatus != []:
         for pack in checkPackagesStatus:
@@ -951,3 +954,11 @@ def checkScons():
           printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=True)
         else:
           printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
+
+def checkRsync():
+    rsyncV = getRsyncVersion()
+    if rsyncV is None:
+        if versionToNumber(rsyncV) < versionToNumber(RSYNC_MINIMUM):
+            printError('rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM), RSYNC_VERSION_ERROR)
+    printMessage(text=green('rsync {} found'.format(rsyncV)), debug=True)
+

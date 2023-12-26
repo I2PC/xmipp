@@ -33,7 +33,7 @@ from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG,
 from installer.utils import printError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-from installer.main import getSources, compileExternalSources, compileSources
+from installer.main import getSources, compileExternalSources, compileSources, install, cleanDeprecated
 from installer.api import sendApiPost
 
 ####################### EXECUTION MODES #######################
@@ -84,7 +84,7 @@ def modeCleanDeprecated(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# TODO: Implement
+	cleanDeprecated()
 
 def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	"""
@@ -94,13 +94,16 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Get sources
-	getSources(branch=args.branch)
+	#getSources(branch=args.branch)
 
 	# Compile external dependencies
-	compileExternalSources(jobs=args.jobs)
+	#compileExternalSources(jobs=args.jobs)
 
 	# Compile Xmipp
-	compileSources(jobs=args.jobs)
+	#compileSources(jobs=args.jobs)
+
+	#Install
+	install(directory=args.directory)
 
 
 

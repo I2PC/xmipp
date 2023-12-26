@@ -28,29 +28,31 @@ from .main import XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN
 
 
 # Xmipp's current versions
+
 #####################################
+DEVEL_BRANCHNAME = 'devel'				  #
+MASTER_BRANCHNAME = 'master'				#
+
 VERSION_KEY = 'version'							#
 VERNAME_KEY = 'vername'							#
 XMIPP_VERSIONS = {									#
 	XMIPP: {													#
 		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'#
+		VERNAME_KEY: 'v3.23.11-Nereus'  #
 	},																#
 	XMIPP_CORE: {											#
 		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'#
+		VERNAME_KEY: 'v3.23.11-Nereus'  #
 	},																#
 	XMIPP_VIZ: {											#
 		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'#
+		VERNAME_KEY: 'v3.23.11-Nereus'  #
 	},																#
 	XMIPP_PLUGIN: {										#
 		VERSION_KEY: '3.23.11.0',				#
-		VERNAME_KEY: 'v3.23.11-Nereus'#
+		VERNAME_KEY: 'v3.23.11-Nereus'  #
 	}																	#
-}																		#
-DEVEL_BRANCHNAME = 'devel'					#
-MASTER_BRANCHNAME = 'master'				#
+}
 #####################################
 
 # Supported gcc versions
@@ -75,6 +77,7 @@ NUMPY_MINIMUM = '1.21'							#
 HDF5_MINIMUM = '1.10'								#
 FFTW_MINIMUM = '3.0'								#
 GIT_MINIMUM = '2.0'									#
+RSYNC_MINIMUM  = '3.0'
 #####################################
 
 # CUDA-gcc compatibility table

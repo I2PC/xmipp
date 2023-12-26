@@ -257,3 +257,22 @@ def getSconsVersion() -> Union[str, None]:
 				
 	# Returning extracted version
 	return version
+
+
+def getRsyncVersion():
+	"""
+	### Extracts rsync's version string.
+
+	#### Returns:
+	- (str | None): rsync's version or None if there were any errors.
+	"""
+	version = getPackageVersionCmd('rsync')
+	if version is not None:
+			textBefore = 'rsync  version '
+			textBeforeStart = version.find(textBefore)
+			if textBeforeStart != -1:
+				versionStart = textBeforeStart + len(textBefore)
+				numbers = version[versionStart:].splitlines()[0].split('.')
+				if len(numbers) >= 2:
+					version = f'{numbers[0]}.{numbers[1]}'
+	return version
