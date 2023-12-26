@@ -210,8 +210,7 @@ if __name__=="__main__":
             
             if mode == "align_classes":
                 # niter = 5
-                # niter = 4
-                niter = 5
+                niter = 4
                 
             for iter in range(niter):
                 # print("-----Iteration %s for updating classes-------"%(iter+1))
@@ -220,19 +219,17 @@ if __name__=="__main__":
                 
                 maxShift = round( (dim * 15)/100 )
                 # maxShift = (maxShift//4)*4
-                maxShift = (maxShift//6)*6
+                maxShift = (maxShift//5)*5
  
                 if mode == "create_classes":
                     print("---Iter %s for creating classes---"%(iter+1))
-                    if iter < 2:
-                        ang, shiftMove = (-180, 180, 8), (-maxShift, maxShift+6, 6)
-                    elif iter < 5:
-                        ang, shiftMove = (-180, 180, 6), (12, 16, 4)
-                    elif iter < 8: 
-                        ang, shiftMove = (-180, 180, 4), (-6, 8, 2)
-                    elif iter < 10: 
+                    if iter < 3:
+                        ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+5, 5)
+                    elif iter < 6: 
+                        ang, shiftMove = (-180, 180, 4), (-9, 12, 3)
+                    elif iter < 9: 
                         ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    elif iter < 13: 
+                    elif iter < 11: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                     
                     
@@ -249,14 +246,12 @@ if __name__=="__main__":
                 else:
                     print("---Iter %s for align to classes---"%(iter+1))
                     if iter < 1:
-                        ang, shiftMove = (-180, 180, 8), (-maxShift, maxShift+6, 6)
-                    elif iter < 2:
-                        ang, shiftMove = (-180, 180, 6), (12, 16, 4)
+                        ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+5, 5)
+                    elif iter < 2: 
+                        ang, shiftMove = (-180, 180, 4), (-9, 12, 3)
                     elif iter < 3: 
-                        ang, shiftMove = (-180, 180, 4), (-6, 8, 2)
-                    elif iter < 4: 
                         ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    elif iter < 5: 
+                    elif iter < 4: 
                         ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
                     # if iter < 1:
                     #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
@@ -310,7 +305,7 @@ if __name__=="__main__":
                 
                 
                 # if mode == "create_classes" and iter == 14:
-                if mode == "create_classes" and iter == 12:
+                if mode == "create_classes" and iter == 10:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
@@ -333,8 +328,7 @@ if __name__=="__main__":
                     angles_deg[:endBatch] = np.degrees(angles_rad.cpu().numpy())
                     
                 # elif mode == "align_classes" and iter == 4:
-                # elif mode == "align_classes" and iter == 3:
-                elif mode == "align_classes" and iter == 4:
+                elif mode == "align_classes" and iter == 3:
                     
                     refClas[initBatch:endBatch] = matches[:, 1]
                     

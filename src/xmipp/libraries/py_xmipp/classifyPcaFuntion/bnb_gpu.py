@@ -305,8 +305,7 @@ class BnBgpu:
         batch_projExp_cpu = self.create_batchExp(transforIm, freqBn, coef, cvecs)
         
         # if iter == 4:  
-        # if iter == 3:
-        if iter == 4:
+        if iter == 3:
             newCL = [[] for i in range(classes)]           
             for n in range(classes):
                 class_images = transforIm[matches[:, 1] == n]
@@ -365,7 +364,7 @@ class BnBgpu:
     
     def averages_increaseClas(self, mmap, iter, newCL, classes): 
         
-        if iter < 11:
+        if iter < 10:
             newCL = sorted(newCL, key=len, reverse=True)    
         element = list(map(len, newCL))
         # print(element)
@@ -373,6 +372,7 @@ class BnBgpu:
         trash_image = torch.zeros((mmap.data.shape[1], mmap.data.shape[2]), dtype=torch.float32, device=self.cuda) 
 
         if iter > 0 and iter < 4:
+        # if iter > 0 and iter < 3:
             numClas = int(classes/2)
         else:
             numClas = classes
