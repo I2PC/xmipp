@@ -96,10 +96,9 @@ class XmippScript:
         pass
 
     def tryRun(self):
-        """ This function should be overwrited by subclasses and
+        """ This function should be overwritten by subclasses and
         it the main body of the script """
         try:
-            print("WARNING: This is xmipp_base implementation for script")
             self.defineParams()
             doRun = self._prog.read(sys.argv)
             if doRun:
