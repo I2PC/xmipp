@@ -64,7 +64,9 @@ class ScriptCropResizeGPU(XmippScript):
         I = xmippLib.Image()
         for i in range(i0, iF):
             I.setData(transformed_images[j,:,:,0].numpy())
-            I.write("%d@%s"%(i+1,self.fnStack))
+            fnImgi = "%d@%s"%(i+1,self.fnStack)
+            I.write(fnImgi)
+            self.fnImgs[i]=fnImgi
             j+=1
 
     def processBlock(self, b):
@@ -110,6 +112,10 @@ class ScriptCropResizeGPU(XmippScript):
         self.Nblocks = self.Nimgs//self.blockSize
         for b in range(self.Nblocks):
             self.processBlock(b)
+        if self.Nblocks*self.blockSize<self.Nimgs:
+            self.processBlock(self.Nblocks)
+        self.mdIn.setColumnValues(xmippLib.MDL_IMAGE, self.fnImgs)
+        self.mdIn.write(self.fnRoot+".xmd")
 
 if __name__ == '__main__':
     ScriptCropResizeGPU().tryRun()
