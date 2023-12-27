@@ -426,7 +426,7 @@ class BnBgpu:
         element = list(map(len, newCL))
         # print(element)
         
-        class_split = int(classes/3)
+        class_split = int(100/3)
   
         clk_list = []
         for n in range(classes):
