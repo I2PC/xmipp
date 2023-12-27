@@ -89,6 +89,8 @@ STARPU_CUDA_WARNING = 11
 GIT_PULL_WARNING = 12
 SCIPION_LINK_WARNING = 13
 CLEANING_SOURCES_WARNING = 14
+CLEANING_BINARIES_WARNING = 15
+
 
 # Error messages
 #TODO review the messages spelling, maybe more links to the documentation?
@@ -161,6 +163,6 @@ WARNING_CODE = {
 	STARPU_RUN_WARNING: ["Check STARPU_* settings.", 'Set STARPU flag to False on xmipp.conf'],
   GIT_PULL_WARNING: ['git pull command fail, pull not runned.', 'Please review your internet connection and git package'],
   SCIPION_LINK_WARNING: ['No scipion3 found. If you intended to use Xmipp in the Scipion framework. ', 'Compile Xmipp with Scipion ./scipion3 run ./xmipp or check the binding at SCIPION_HOME/software/bindings...'],
-  CLEANING_SOURCES_WARNING: ['Cleaning source warning', '']
-
+  CLEANING_SOURCES_WARNING: ['Cleaning source warning', ''],
+  CLEANING_BINARIES_WARNING: ['Cleaning binaries warning.', ''],
 }

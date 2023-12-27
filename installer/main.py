@@ -37,9 +37,9 @@ from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES
   CLONNING_XMIPP_SOURCE_ERROR, DOWNLOADING_XMIPP_SOURCE_ERROR, GIT_PULL_WARNING,
 	XMIPP_COMPILLATION_ERROR,XMIPPCORE_COMPILLATION_ERROR,
   XMIPPVIZ_COMPILLATION_ERROR, XMIPP_VERSIONS, VERNAME_KEY, DEPRECATE_ERROR,
-CLEANING_SOURCES_WARNING,
-INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
-CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
+  CLEANING_SOURCES_WARNING,CONFIG_FILE,CLEANING_BINARIES_WARNING,
+  INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
+  CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
 										printWarning, createDir, getScipionHome, yellow)
 from .config import readConfig
@@ -446,7 +446,6 @@ def install(directory):
 		fhBash.close()
 		fhFish.close()
 
-
 def cleanDeprecated():
 		"""
 		Cleans deprecated Xmipp programs and scripts.
@@ -462,6 +461,7 @@ def cleanDeprecated():
 		Raises:
 		- RuntimeError: If an error occurs during the removal process, a RuntimeError is raised.
 		"""
+		printMessage(text='Cleaning deprecated programs...', debug=True)
 		listCurrentPrograms = []
 		retCode, outputStr = runJob('find src/xmipp/bin/*')
 		files = outputStr.split('\n')
@@ -480,6 +480,7 @@ def cleanDeprecated():
 				printError(errorMsg=outputStr, retCode=DEPRECATE_ERROR)
 		if len(list2RemoveXmipp) > 0:
 				 printMessage(text=green('Deprecated programs removed'), debug=True)
+		printMessage(green('Done'), debug=True)
 
 def cleanSources():
 		DEPENDENCIES = [CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
@@ -497,6 +498,23 @@ def cleanSources():
 		retCode, outputStr = runJob("git stash")  # to get exactly like in repo
 		if retCode != 0:
 				printWarning(text=outputStr, warningCode=CLEANING_SOURCES_WARNING)
+
+
+def cleanBin():
+		printMessage('Deleting binaries files...', debug=True)
+		for ext in ['so', 'os', 'o']:
+				runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
+		retCode, outputStr = runJob('find . -iname "*.pyc" -delete')
+		if retCode != 0:
+				printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
+		retCode, outputStr = runJob("rm -rf %s build" % CONFIG_FILE)
+		if retCode != 0:
+				printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
+		retCode, outputStr = runJob('find . -iname "*.dblite" -delete')
+		if retCode != 0:
+				printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
+		cleanEmptyFolders()
+		printMessage(green('Done'), debug=True)
 
 
 
@@ -655,5 +673,15 @@ def linkToScipion(directory:str, verbose:bool=False):
 		    printWarning(text='', warningCode=SCIPION_LINK_WARNING)
 
 
-
+def cleanEmptyFolders():
+    log = []
+    path = "src/xmipp/applications/programs/"
+    retCode, outputStr = runJob("find {} –type d -empty".format(path))
+    if retCode != 0:
+        printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
+    for folder in log:
+        if os.path.isdir(folder):
+            retCode, outputStr = runJob("rm -rf {}".format(folder))
+            if retCode != 0:
+                printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
 

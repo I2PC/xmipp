@@ -39,7 +39,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         MPI_VERSION_ERROR, MPI_NOT_FOUND_ERROR, PYTHON_VERSION_ERROR ,
                         PYTHON_NOT_FOUND_ERROR , NUMPY_NOT_FOUND_ERROR ,NVCC_CXXFLAGS_ERROR,
                         JAVA_HOME_PATH_ERROR, MATLAB_WARNING , MATLAB_HOME_WARNING,
-                        CUDA_VERSION_WARNING , CUDA_WARNING , HDF5_ERROR, LINK_FLAGS,
+                        CUDA_VERSION_WARNING , CUDA_WARNING , HDF5_ERROR, LINKFLAGS,
                         MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR, OPENCV_WARNING,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
                         CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
@@ -56,7 +56,7 @@ from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getCompatibleGCC, CXXVersion, gitVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
                     HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version,
-                    updateEnviron)
+                    updateXmippEnv)
 
 from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
                                 getCmakeVersion, getGPPVersion, getGCCVersion,
@@ -68,6 +68,8 @@ from sysconfig import get_paths
 
 def config():
     """check the config if exist else create it and check it"""
+    printMessage('LD_LIBRARY_PATH: ', debug=True)
+    runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     if not existConfig():
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
@@ -76,10 +78,13 @@ def config():
     else:
         dictPackages, dictInternalFlags = readConfig()
     dictNoChecked = dictPackages.copy()
-    checkConfig(dictPackages)
+    checkConfig(dictPackages, dictInternalFlags)
     dictInternalFlags2 = getInternalFlags(dictPackages)
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
         writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
+
+    printMessage('LD_LIBRARY_PATH: ', debug=True)
+    runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
 
 
@@ -156,19 +161,19 @@ def getInternalFlags(dictPackages, debug: bool=False):
                          "-gencode=arch=compute_86,code=compute_86".format(dictPackages['CUDACXX'])
         except Exception as e:
             printError(errorMsg=str(e), retCode=NVCC_CXXFLAGS_ERROR)
-    # NVCC_LINKFLAGS
+    # LINKFLAGS_NVCC
     dictHomeCUDA= dictPackages['CUDA_HOME'].split('bin/nvcc')[0]
     paths = [join(dictHomeCUDA, 'lib'),
              join(dictHomeCUDA, 'lib64')]
     for route in paths:
         if isfile(join(route, 'libcudart.so')):
-            NVCC_LINKFLAGS = '-L{}'.format(route)
+            LINKFLAGS_NVCC = '-L{}'.format(route)
             stubroute = join(route, 'stubs')
             if path.exists(stubroute):
-                NVCC_LINKFLAGS += ' -L{}'.format(stubroute)
-    dictInternalFlags['NVCC_LINKFLAGS'] = NVCC_LINKFLAGS
+                LINKFLAGS_NVCC += ' -L{}'.format(stubroute)
+    dictInternalFlags['LINKFLAGS_NVCC'] = LINKFLAGS_NVCC
     printMessage(text=green('Done'), debug=True)
-    updateEnviron(pathenviron='LD_LIBRARY_PATH', path2Add=dictInternalFlags['NVCC_LINKFLAGS'])
+    updateXmippEnv(LD_LIBRARY_PATH=stubroute)
     #JAVAS
     dictInternalFlags['JAVA_BINDIR'] = join(dictPackages['JAVA_HOME'], 'bin')
     dictInternalFlags['JAVAC'] = join(dictInternalFlags['JAVA_BINDIR'], 'javac')
@@ -199,7 +204,7 @@ def readConfig():
         internalFlags[key] = value
     return dictPackages, internalFlags
 
-def checkConfig(dictPackages):
+def checkConfig(dictPackages, dictInternalFlags):
     """
     Checks the configurations of various packages.
 
@@ -211,7 +216,7 @@ def checkConfig(dictPackages):
     printMessage(text='\n- Checking libraries from config file...', debug=True)
     checkCC(dictPackages)
     checkCXX(dictPackages)
-    checkMPI(dictPackages)
+    checkMPI(dictPackages, dictInternalFlags)
     checkJava(dictPackages)
     if dictPackages['MATLAB'] == 'True':
         checkMatlab(dictPackages, checkPackagesStatus)
@@ -360,10 +365,11 @@ def getMPI(dictPackages):
         dictPackages['MPI_CXX'] = ''
     if existPackage('mpirun'):
         dictPackages['MPI_RUN'] = 'mpirun'
+        updateXmippEnv(PATH=whereIsPackage('mpirun'))
     else:
         dictPackages['MPI_RUN'] = ''
 
-def checkMPI(dictPackages):
+def checkMPI(dictPackages, dictInternalFlags):
     """
     Checks the MPI packages for compatibility and performs additional checks.
 
@@ -399,26 +405,30 @@ def checkMPI(dictPackages):
     with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
     cmd = ("%s -c -w %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
-           % (dictPackages["MPI_CXX"], dictPackages["INCDIRFLAGS"],CXX_FLAGS))
-    status, output = runJob(cmd, showError=True)
+           % (dictPackages["MPI_CXX"], dictPackages["LIBDIRFLAGS"],CXX_FLAGS))
+    status, output = runJob(cmd)
     if status != 0:
-        printError(retCode=MPI_RUNNING_ERROR, errorMsg='Fails running this command: {}\nError message: {}'.format(cmd, output))
+        printError(retCode=MPI_RUNNING_ERROR, errorMsg='Fails running the command: \n{}\nError message: {}'.format(cmd, output))
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
-    cmd = (("%s %s  %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
-           " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread")
-           % (dictPackages["MPI_CXX"], LINK_FLAGS, dictPackages["LIBDIRFLAGS"], libhdf5))
+    cmd = (("%s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
+           " -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread ")
+           % (dictInternalFlags["MPI_LINKERFORPROGRAMS"],
+              dictInternalFlags["LINKFLAGS"],
+              dictPackages["LIBDIRFLAGS"],
+              libhdf5
+              ))
 
     status, output = runJob(cmd)
     if status != 0:
-        printError(retCode=MPI_COMPILLATION_ERROR, errorMsg='Fails running this command: {}\nError message: {}'.format(cmd, output))
+        printError(retCode=MPI_COMPILLATION_ERROR, errorMsg='Fails running the command: \n{}\n\nError message:\n{}'.format(cmd, output))
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
     processors = 2
-    output = runJob('{} -np {} echo {}'.format(dictPackages['MPI_RUN'], processors, 'Running'), showError=True)[1]
+    output = runJob('{} -np {} echo {}'.format(dictPackages['MPI_RUN'], processors, 'Running'))[1]
     if output.count('Running') != processors:
-        output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'), showError=True)[1]
+        output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'))[1]
         if output.count('Running') != processors:
             printError(retCode=MPI_RUNNING_ERROR,  errorMsg='mpirun or mpiexec have failed.')
 
@@ -439,6 +449,7 @@ def getJava(dictPackages):
         javaHomeDir = javaProgramPath.replace("/jre/bin", "")
         javaHomeDir = javaHomeDir.replace("/bin", "")
         dictPackages['JAVA_HOME'] = javaHomeDir
+        updateXmippEnv(PATH=javaProgramPath)
     else:
         dictPackages['JAVA_HOME'] = ''
 
@@ -514,6 +525,7 @@ def getMatlab(dictPackages):
         dictPackages['MATLAB'] = True
         dictPackages['MATLAB_HOME'] = matlabProgramPath.replace("/bin", "")
         printMessage(text=green('MATLAB_HOME detected at {}'.format(dictPackages['MATLAB_HOME'])), debug=True)
+        updateXmippEnv(MATLAB_BIN_DIR=matlabProgramPath)
     else:
         dictPackages['MATLAB'] = False
         dictPackages['MATLAB_HOME'] = ''
@@ -778,7 +790,7 @@ def getHDF5(dictPackages):
         if hdf5PathFound:
             dictPackages['LIBDIRFLAGS'] += " -L%s" % hdf5PathFound
             dictPackages['HDF5_HOME'] = hdf5PathFound
-            updateEnviron(pathenviron='LD_LIBRARY_PATH', path2Add=hdf5PathFound)
+            updateXmippEnv(LD_LIBRARY_PATH=hdf5PathFound)
             break
     if hdf5PathFound == '':
         printMessage(text=red('HDF5 nod found'), debug=True)
@@ -885,7 +897,7 @@ def checkHDF5(dictPackages):
     with open("xmipp_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
     cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
-           (dictPackages['CXX'], LINK_FLAGS, dictPackages["INCDIRFLAGS"]))
+           (dictPackages['CXX'], LINKFLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != 0:
         printError(retCode=HDF5_ERROR, errorMsg=output)

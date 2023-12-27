@@ -166,7 +166,7 @@ env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
 env['MATLAB_HOME'] = os.environ.get('MATLAB_HOME')
 env['CUDA'] = os.environ.get('CUDA')
 env['CUDA_HOME'] = os.environ.get('CUDA_HOME')
-env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS').split()
+env['LINKFLAGS_NVCC'] = os.environ.get('LINKFLAGS_NVCC').split()
 env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS').split()
 
 xmippPath = Dir('.').abspath
@@ -247,7 +247,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
     env2['LINKFLAGS']=list(env['LINKFLAGS'])
     env2['CXX'] = env['CXX']
     if "Cuda" in name or nvcc:
-        env2['LINKFLAGS']+=env['NVCC_LINKFLAGS']
+        env2['LINKFLAGS']+=env['LINKFLAGS_NVCC']
 
     extraArgs = {}
     if mpi:
@@ -423,7 +423,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         cxxCopy = str(env['CUDA_HOME'])
         linkCopy = env['CUDA_HOME']
         cxxflagsCopy += env['NVCC_CXXFLAGS']
-        linkflagsCopy += env['NVCC_LINKFLAGS']
+        linkflagsCopy += env['LINKFLAGS_NVCC']
     else:
         ccCopy = str(env['CC'])
         cxxCopy = str(env['CXX'])
@@ -431,7 +431,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         linkflagsCopy += env['LINKFLAGS']
 
     if cuda:
-        linkflagsCopy += env['NVCC_LINKFLAGS']
+        linkflagsCopy += env['LINKFLAGS_NVCC']
 
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs

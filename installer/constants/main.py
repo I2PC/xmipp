@@ -55,7 +55,7 @@ API_URL = 'http://127.0.0.1:8000/web/attempts/'
 
 # Other variables
 CXX_FLAGS = ' -mtune=native -march=native -flto -std=c++17 -O3'
-LINK_FLAGS = '-flto'
+LINKFLAGS = '-flto'
 TAB_SIZE = 4
 INC_PATH = [
 	'/usr/local/include/',
@@ -80,19 +80,26 @@ PATH_TO_FIND_H = ['/usr/include',
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
+XMIPPENV = 'xmippEnv.json'
 LOG_FILE = 'compileLOG.txt'
 CMD_OUT_LOG_FILE = 'commandOutput.log'
 CMD_ERR_LOG_FILE = 'commandError.log'
 OUTPUT_POLL_TIME = 0.5
 
 INTERNAL_FLAGS = {'CCFLAGS': '',
-										 'CXXFLAGS': '',
-										 'PYTHONINCFLAGS': '',
-										 'LINKERFORPROGRAMS': '',
-										 'MPI_LINKERFORPROGRAMS': '',
-										 'NVCC_CXXFLAGS': '',
-										 'NVCC_LINKFLAGS': '',
-										 }
+								  'CXXFLAGS': '',
+								  'PYTHONINCFLAGS': '',
+								  'LINKERFORPROGRAMS': '',
+								  'MPI_LINKERFORPROGRAMS': '',
+								  'NVCC_CXXFLAGS': '',
+								  'LINKFLAGS_NVCC': '',
+									'PYTHON_LIB': '',
+								  'JAVA_BINDIR': '',
+								  'JAVAC': '',
+								  'JAR': '',
+									'JNI_CPPPATH': '',
+									'LINKFLAGS': '',
+									}
 
 CONFIG_DICT = {'INCDIRFLAGS': '',
 								'CC': '',

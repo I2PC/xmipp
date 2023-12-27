@@ -28,12 +28,13 @@ import argparse, sys, os, multiprocessing
 
 # Installer imports
 from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
-	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_CHECK_CONFIG, MODE_GET_MODELS,\
+	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
 from installer.utils import printError, isProductionMode
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
-from installer.main import getSources, compileExternalSources, compileSources, install, cleanDeprecated, cleanSources
+from installer.main import (getSources, compileExternalSources, compileSources, install,
+														cleanDeprecated, cleanSources, cleanBin)
 from installer.api import sendApiPost
 
 ####################### EXECUTION MODES #######################
@@ -54,7 +55,7 @@ def modeCleanBin(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	modeCleanBin(args)
+	cleanBin(args)
 
 
 def modeCleanAll(args: argparse.Namespace):
@@ -64,10 +65,8 @@ def modeCleanAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	print("WARNING: This will DELETE ALL content from src and build")
-	print("         Notice that if you have unpushed changes, \n"
-				"           they will be deleted.\n")
-	print("Are you sure you want to do this? (YeS/No) -case sensitive-")
+	print("WARNING: This will DELETE ALL content from src and build Notice that if you have unpushed changes, \n"
+				" hey will be deleted.\nAre you sure you want to do this? (YeS/No) -case sensitive-")
 	yesno = input()
 	if yesno == "YeS":
 			cleanSources()
@@ -172,8 +171,6 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		modeAddModel(args)
 	elif args.mode == MODE_ALL:
 		modeAll(args)
-	elif args.mode == MODE_CHECK_CONFIG:
-		modeCheckConfig(args)
 	elif args.mode == MODE_CLEAN_ALL:
 		modeCleanAll(args)
 	elif args.mode == MODE_CLEAN_BIN:

@@ -27,13 +27,14 @@ Module containing useful functions used by the installation process.
 """
 
 # General imports
-import pkg_resources, sys, glob, distutils.spawn, os, io, time, subprocess, shutil, multiprocessing
+import pkg_resources, sys, glob, distutils.spawn, json, os, io, time, subprocess, shutil, multiprocessing
 from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
 # Installer imports
-from .constants import SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
+from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
-	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR, WARNING_CODE
+	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
+												WARNING_CODE, XMIPPENV)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -390,6 +391,41 @@ def updateEnviron(pathenviron:str='', path2Add:str=''):
 				path_collected += ':' + path2Add
 		os.environ[pathenviron] = path_collected
 
+
+def updateXmippEnv(pos='begin', realPath=True, **kwargs):
+		""" Add/update a variable in self.env dictionary
+				pos = {'begin', 'end', 'replace'}
+		"""
+		env = readXmippEnv()
+		for key, value in kwargs.items():
+				isString = isinstance(value, str)
+				if isString and realPath:
+						value = os.path.realpath(value)
+				if key in env:
+						if pos == 'begin' and isString:
+								env[key] = value + os.pathsep + env[key]
+						elif pos == 'end' and isString:
+								env[key] = env[key] + os.pathsep + value
+						elif pos == 'replace':
+								env[key] = str(value)
+				else:
+						env[key] = str(value)
+
+		writeXmippEnv(env)
+
+
+def readXmippEnv():
+		try:
+			with open(XMIPPENV, 'r') as f:
+					data = json.load(f)
+			return data
+		except FileNotFoundError:
+				return {}
+def writeXmippEnv(env):
+		with open(XMIPPENV, 'w') as f:
+				json.dump(env, f, indent=4)
+
+
 ####################### VERSION FUNCTIONS #######################
 def versionToNumber(strVersion: str) -> float:
 	"""
@@ -668,7 +704,10 @@ def get_Hdf5_name(libdirflags):
 		Returns:
 		- str: Name of the HDF5 library ('hdf5', 'hdf5_serial', or 'hdf5' as default).
 		"""
-		libdirs = libdirflags.split("-L")
+		libdirs = ['/usr/lib',
+		'/usr/lib64']
+
+		#libdirs = libdirflags.split("-L")
 		for dir in libdirs:
 				if os.path.exists(os.path.join(dir.strip(), "libhdf5.so")):
 						return "hdf5"

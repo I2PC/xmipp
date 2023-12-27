@@ -34,7 +34,6 @@ DEFAULT_MODELS_DIR = DEFAULT_BUILD_DIR + '/models'
 # Mode list (alphabetical order)
 MODE_ADD_MODEL = 'addModel'
 MODE_ALL = 'all'
-MODE_CHECK_CONFIG = 'checkConfig'
 MODE_CLEAN_ALL = 'cleanAll'
 MODE_CLEAN_BIN = 'cleanBin'
 MODE_CLEAN_DEPRECATED = 'cleanDeprecated'
@@ -61,8 +60,7 @@ MODES = {
 		MODE_ALL: 'Default param. Runs config, and compileAndInstall.'
 	},
 	GROUP_CONFIG: {
-		MODE_CONFIG: 'Generates config file based on system information.',
-		MODE_CHECK_CONFIG: 'Cheks if the values in the config file are ok.'
+		MODE_CONFIG: 'Generates and check the config file based on system information if not exist, else check it.',
 	},
 	GROUP_DOWNLOADS: {
 		MODE_GET_MODELS: f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).'
@@ -98,7 +96,6 @@ MODE_ARGS = {
 		'-dir': f"Directory where the xmipp will be installed. Default is \"{DEFAULT_BUILD_DIR}\"."
 	},
 	MODE_CONFIG: {},
-	MODE_CHECK_CONFIG: {},
 	MODE_GET_MODELS: {
 		'-dir': f"Directory where the Deep Learning Models will be downloaded. Default is \"{DEFAULT_MODELS_DIR}\"."
 	},
@@ -141,7 +138,6 @@ MODE_EXAMPLES = {
 		f'./xmipp {MODE_ALL} -j 20 dir /path/to/my/build/dir -br devel]'
 	],
 	MODE_CONFIG: [],
-	MODE_CHECK_CONFIG: [],
 	MODE_GET_MODELS: [f'./xmipp {MODE_GET_MODELS}', f'./xmipp {MODE_GET_MODELS} -dir /path/to/my/model/directory'],
 	MODE_CLEAN_BIN: [],
 	MODE_CLEAN_DEPRECATED: [],
