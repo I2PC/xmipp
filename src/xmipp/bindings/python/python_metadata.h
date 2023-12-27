@@ -230,6 +230,10 @@ MetaData_lastObject(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 MetaData_size(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* Get image size */
+PyObject *
+MetaData_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* size */
 PyObject *
 MetaData_getParsedLines(PyObject *obj, PyObject *args, PyObject *kwargs);

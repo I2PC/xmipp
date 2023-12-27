@@ -27,6 +27,7 @@
 #include "python_metadata.h"
 #include "python_filename.h"
 #include "core/metadata_sql.h"
+#include "core/metadata_extension.h"
 
 /***************************************************************/
 /*                            MDQuery                          */
@@ -294,6 +295,9 @@ PyMethodDef MetaData_methods[] =
           "Goto last metadata object, return its object id" },
         { "size", (PyCFunction) MetaData_size, METH_NOARGS,
           "Return number of objects in MetaData" },
+		{ "getImageSize", (PyCFunction) MetaData_getImageSize, 
+		  METH_NOARGS,
+		  "Get the image size from the first row"},
         { "getParsedLines", (PyCFunction) MetaData_getParsedLines, METH_NOARGS,
           "Return number of objects in MetaData file, even if read with maxRows > 0" },
         { "isEmpty", (PyCFunction) MetaData_isEmpty,
@@ -887,6 +891,27 @@ MetaData_size(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         const auto *self = reinterpret_cast<MetaDataObject*>(obj);
         return PyLong_FromUnsignedLong(self->metadata->size());
+    }
+    catch (XmippError &xe)
+    {
+        PyErr_SetString(PyXmippError, xe.what());
+    }
+    return nullptr;
+}
+
+/* size */
+PyObject *
+MetaData_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    try
+    {
+        auto *self = reinterpret_cast<MetaDataObject*>(obj);
+        size_t xdim;
+        size_t ydim;
+        size_t zdim;
+        size_t ndim;
+        getImageSize(MetaData_Value(self), xdim, ydim, zdim, ndim);
+        return Py_BuildValue("iiik", xdim, ydim, zdim, ndim);
     }
     catch (XmippError &xe)
     {
