@@ -402,12 +402,13 @@ def updateXmippEnv(pos='begin', realPath=True, **kwargs):
 				if isString and realPath:
 						value = os.path.realpath(value)
 				if key in env:
-						if pos == 'begin' and isString:
-								env[key] = value + os.pathsep + env[key]
-						elif pos == 'end' and isString:
-								env[key] = env[key] + os.pathsep + value
-						elif pos == 'replace':
-								env[key] = str(value)
+						if env[key].find(value) == -1:
+								if pos == 'begin' and isString:
+										env[key] = value + os.pathsep + env[key]
+								elif pos == 'end' and isString:
+										env[key] = env[key] + os.pathsep + value
+								elif pos == 'replace':
+										env[key] = str(value)
 				else:
 						env[key] = str(value)
 

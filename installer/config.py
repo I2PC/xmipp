@@ -168,12 +168,13 @@ def getInternalFlags(dictPackages, debug: bool=False):
     for route in paths:
         if isfile(join(route, 'libcudart.so')):
             LINKFLAGS_NVCC = '-L{}'.format(route)
+            updateXmippEnv(LD_LIBRARY_PATH=route)
             stubroute = join(route, 'stubs')
             if path.exists(stubroute):
                 LINKFLAGS_NVCC += ' -L{}'.format(stubroute)
+                updateXmippEnv(LD_LIBRARY_PATH=stubroute)
     dictInternalFlags['LINKFLAGS_NVCC'] = LINKFLAGS_NVCC
     printMessage(text=green('Done'), debug=True)
-    updateXmippEnv(LD_LIBRARY_PATH=stubroute)
     #JAVAS
     dictInternalFlags['JAVA_BINDIR'] = join(dictPackages['JAVA_HOME'], 'bin')
     dictInternalFlags['JAVAC'] = join(dictInternalFlags['JAVA_BINDIR'], 'javac')
@@ -636,10 +637,12 @@ def getCUDA(dictPackages):
         dictPackages['CUDA'] = 'False'
         dictPackages['CUDA_HOME'] = ''
         dictPackages['CUDACXX'] = ''
+        updateXmippEnv(CUDA=False)
     else:
         dictPackages['CUDA'] = 'True'
         dictPackages['CUDA_HOME'] = shutil.which('nvcc')
         dictPackages['CUDACXX'] = dictPackages['CXX']
+        updateXmippEnv(CUDA=True)
 
 def checkCUDA(dictPackages, checkPackagesStatus):
     """
@@ -668,9 +671,11 @@ def checkCUDA(dictPackages, checkPackagesStatus):
                       'Compilers candidates for your CUDA: {}'.format(
                 nvcc_version, gxx_version, candidates)])
             dictPackages['CUDA'] = 'False'
+            updateXmippEnv(CUDA=False)
     else:
         checkPackagesStatus.append([CUDA_VERSION_WARNING, 'CUDA version not found{}\n'])
         dictPackages['CUDA'] = 'False'
+        updateXmippEnv(CUDA=False)
 
 def getSTARPU(dictPackages):
     """
@@ -864,6 +869,7 @@ def getINCDIRFLAGS(dictPackages):
 def getLIBDIRFLAGS(dictPackages):
     localLib = "%s/lib" % get_paths()['data']
     dictPackages["LIBDIRFLAGS"] += " -L%s" % localLib
+    updateXmippEnv(LD_LIBRARY_PATH=localLib)
 
 def checkGit():
     version = gitVersion()
