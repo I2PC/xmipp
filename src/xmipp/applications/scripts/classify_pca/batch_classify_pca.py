@@ -57,7 +57,7 @@ if __name__=="__main__":
     parser.add_argument("-s", "--sampling", type=float, help="pixel size of the images", required=True)
     parser.add_argument("-c", "--classes", help="number of 2D classes", required=True)
     parser.add_argument("-r", "--ref", help="2D classes of external method")   
-    parser.add_argument("-n", "--niter", help="number of iterations", required=True)
+    # parser.add_argument("-n", "--niter", help="number of iterations", required=True)
     parser.add_argument("-b", "--bands", help="file with frequency bands", required=True)
     parser.add_argument("-v", "--vecs", help="file with pretrain eigenvectors", required=True)
     parser.add_argument("--mask",  action="store_true", help="A Gaussian mask is used.")
@@ -73,7 +73,8 @@ if __name__=="__main__":
     sampling = args.sampling
     classes = int(args.classes)  
     refImages = args.ref
-    niter = int(args.niter)
+    # niter = int(args.niter)
+    niter = 14
     bands = args.bands
     vecs = args.vecs
     mask = args.mask
@@ -128,34 +129,11 @@ if __name__=="__main__":
         cl = torch.from_numpy(clIm).float().to(cuda)
     else:
         initStep = int(min(numFirstBatch, np.ceil(nExp/expBatchSize)))
-        cl = torch.zeros((classes, mmap.data.shape[1], mmap.data.shape[2]), device = cuda) 
- 
-        #create initial classes 
-        div = int(initSubset/classes)
-        resto = int(initSubset%classes)
-    
-        expBatchSizeClas = div+resto 
-        
-        count = 0
-        for initBatch in range(0, initSubset, expBatchSizeClas):
-            expImages = mmap.data[initBatch:initBatch+expBatchSizeClas].astype(np.float32)
-            Texp = torch.from_numpy(expImages).float().to(cuda)
-    
-            #Averages classes
-            if not refImages:
-                cl[count] = torch.mean(Texp, 0)
-                count+=1
-            del(Texp)        
+        cl = bnb.init_ramdon_classes(int(classes/2), mmap, initSubset)    
     
     # file = output+"_0.mrcs"    
     # save_images(cl.cpu().numpy(), file)
     
-    # num_batches = int(np.ceil(nExp / expBatchSize))
-    # num_batches = np.ceil( (nExp - (numFirstBatch * expBatchSize))/(10000) )
-    # if num_batches >  0:
-    #     num_batches = int(numFirstBatch + num_batches)
-    # else:
-    #     num_batches = int(np.ceil(nExp / expBatchSize))
     
     if refImages:
         num_batches = int(np.ceil(nExp / expBatchSize2))
@@ -217,56 +195,7 @@ if __name__=="__main__":
                            
                 matches = torch.full((subset, 5), float("Inf"), device = cuda)
                 
-                maxShift = round( (dim * 15)/100 )
-                # maxShift = (maxShift//4)*4
-                maxShift = (maxShift//5)*5
- 
-                if mode == "create_classes":
-                    print("---Iter %s for creating classes---"%(iter+1))
-                    if iter < 3:
-                        ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+5, 5)
-                    elif iter < 6: 
-                        ang, shiftMove = (-180, 180, 4), (-9, 12, 3)
-                    elif iter < 9: 
-                        ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    elif iter < 11: 
-                        ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    
-                    
-                    # if iter < 4:
-                    #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-                    # elif iter < 7: 
-                    #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-                    # elif iter < 10: 
-                    #     ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    # elif iter < 13: 
-                    #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    # elif iter < 15: 
-                    #     ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
-                else:
-                    print("---Iter %s for align to classes---"%(iter+1))
-                    if iter < 1:
-                        ang, shiftMove = (-180, 180, 4), (-maxShift, maxShift+5, 5)
-                    elif iter < 2: 
-                        ang, shiftMove = (-180, 180, 4), (-9, 12, 3)
-                    elif iter < 3: 
-                        ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    elif iter < 4: 
-                        ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    # if iter < 1:
-                    #     ang, shiftMove = (-180, 180, 6), (-maxShift, maxShift+4, 4)
-                    # elif iter < 2: 
-                    #     ang, shiftMove = (-180, 180, 4), (-8, 10, 2)
-                    # elif iter < 3: 
-                    #     ang, shiftMove = (-90, 90, 2), (-6, 8, 2)
-                    # elif iter < 4: 
-                    #     ang, shiftMove = (-30, 31, 1), (-3, 4, 1)
-                    # elif iter < 5: 
-                    #     ang, shiftMove = (-8, 8.5, 0.5), (-1.5, 2, 0.5)
-                    
-                          
-                vectorRot, vectorshift = bnb.setRotAndShift(ang, shiftMove)
-                
+                vectorRot, vectorshift = bnb.determine_ROTandSHIFT(iter, mode, dim)                
                 nShift = len(vectorshift)  
         
                 for rot in vectorRot:            
@@ -305,7 +234,7 @@ if __name__=="__main__":
                 
                 
                 # if mode == "create_classes" and iter == 14:
-                if mode == "create_classes" and iter == 10:
+                if mode == "create_classes" and iter == 13:
                     
                     refClas[:endBatch] = matches[:, 1]
                                                           
