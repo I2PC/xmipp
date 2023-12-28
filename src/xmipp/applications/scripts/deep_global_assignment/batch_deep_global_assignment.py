@@ -159,7 +159,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             return Xdim, fnImg, angles, img_shift
 
-        def custom_lossFull(y_true, y_pred):
+        def custom_loss(y_true, y_pred):
             # y_6d = tf.matmul(y_pred, tfAt)
             y_6d = y_pred[:, :6]
             y_6dtrue = y_true[:, :6]
@@ -205,13 +205,10 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             angular_error = tf.reduce_mean(tf.abs(angle1) + tf.abs(angle2) + tf.abs(angle3)) / 3.0
             shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
-            return angular_error + shift_error/Xdim
-
-        def custom_lossShift(y_true, y_pred):
-            shift_true = y_true[:, 6:]  # Last 2 components
-            shift_pred = y_pred[:, 6:]  # Last 2 components
-            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
-            return shift_error/Xdim
+            if mode==SHIFT_MODE:
+                return shift_error/Xdim
+            else:
+                return angular_error + shift_error/Xdim
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = [tf.convert_to_tensor(np.kron(np.eye(2),np.transpose(np.array(R))), dtype=tf.float32)
@@ -236,10 +233,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     model = constructModel(Xdim, modelSize)
                 adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
                 model.summary()
-                if mode==SHIFT_MODE:
-                    model.compile(loss=custom_lossShift, optimizer=adam_opt)
-                else:
-                    model.compile(loss=custom_lossFull, optimizer=adam_opt)
+                model.compile(loss=custom_loss, optimizer=adam_opt)
 
                 epoch=0
                 for i in range(maxEpochs//2):
