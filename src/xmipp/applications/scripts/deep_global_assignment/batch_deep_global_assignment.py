@@ -247,27 +247,32 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
                 e3_true = y_6dtrue[:, 3:]  # Last 3 components
                 e3_pred = y_6d[:, 3:]  # Last 3 components
-
-                e2_true = y_6dtrue[:, :3]  # First 3 components
-                e2_pred = y_6d[:, :3]  # First 3 components
-
-                e1_true = tf.linalg.cross(e2_true, e3_true)
-
-                # Gram-Schmidt orthogonalization
-                e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
-                projection = tf.reduce_sum(e2_pred * e3_pred, axis=-1, keepdims=True)
-                e2_pred = e2_pred - projection * e3_pred
-                e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
-                e1_pred = tf.linalg.cross(e2_pred, e3_pred)
-                e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)
-
                 epsilon = 1e-7
-                angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-                angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                 angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+                angular_error = tf.reduce_mean(tf.abs(angle3))
+                Nangular=1
 
-                angular_error = tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2)+tf.abs(angle3))/3.0
-                error+=angular_error
+                if mode==FULL_MODE:
+                    e2_true = y_6dtrue[:, :3]  # First 3 components
+                    e2_pred = y_6d[:, :3]  # First 3 components
+
+                    e1_true = tf.linalg.cross(e2_true, e3_true)
+
+                    # Gram-Schmidt orthogonalization
+                    e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
+                    projection = tf.reduce_sum(e2_pred * e3_pred, axis=-1, keepdims=True)
+                    e2_pred = e2_pred - projection * e3_pred
+                    e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
+                    e1_pred = tf.linalg.cross(e2_pred, e3_pred)
+                    e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)
+
+                    angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+                    angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+
+                    angular_error += tf.reduce_mean(tf.abs(angle1))+tf.reduce_mean(tf.abs(angle2))
+                    Nangular+=2
+
+                error+=angular_error/Nangular
 
             return error
 
@@ -308,16 +313,16 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 continue
             save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
 
-            # Lear shift
+            # Learn shift
             mode = SHIFT_MODE
             modeprec = 2 / 5 * precision  # 2/5 because the shift are 2 out of 5 numbers in the cost function
             modelShift = constructShiftModel(Xdim, modelSize)
             trainModel(modelShift, saveModel=False)
             modelShift.trainable = False
 
-            # Learn full mode
-            mode=FULL_MODE
-            modeprec=precision
+            # Learn direction
+            mode = FULL_MODE
+            modeprec = precision
             model = constructAnglesModel(Xdim, modelSize, modelShift)
             trainModel(model, saveModel=True)
 
