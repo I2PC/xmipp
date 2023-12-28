@@ -161,46 +161,47 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = ConcatenateZerosLayer()(x)
             return Model(inputLayer, x)
 
-        def shift_image(images, shifts):
-            """
-            Shifts a batch of images using affine transformations.
-            :param images: A tensor representing a batch of images, shape (batchSize, height, width, channels).
-            :param shifts: A tensor of shape (batchSize, 8) containing shift values (x, y) for each image in the last
-                           two columns.
-            :return: A tensor of shifted images.
-            """
-            # Get image dimensions
-            batch_size, height, width, channels = images.shape
+        class ShiftImageLayer(Layer):
+            def __init__(self, **kwargs):
+                super(ShiftImageLayer, self).__init__(**kwargs)
 
-            # Create an individual transformation matrix for each image in the batch
-            ones = tf.ones((batch_size,))
-            zeros = tf.zeros((batch_size,))
-            transforms = tf.stack([
-                ones, zeros, -shifts[:, -2],  # First row of the affine transformation matrix
-                zeros, ones, -shifts[:, -1],  # Second row of the affine transformation matrix
-                zeros, zeros  # Third row of the affine transformation matrix (unused in affine transform)
-            ], axis=1)
+            def call(self, inputs, **kwargs):
+                images, shifts = inputs
+                image_shape = tf.shape(images)
+                batch_size, height, width, channels = image_shape[0], image_shape[1], image_shape[2], image_shape[3]
 
-            # Apply the transformation
-            transformed_images = tf.raw_ops.ImageProjectiveTransformV3(
-                images=images,
-                transforms=transforms,
-                output_shape=[height, width],
-                interpolation='BILINEAR'
-            )
+                # Create an individual transformation matrix for each image in the batch
+                ones = tf.ones((batch_size,))
+                zeros = tf.zeros((batch_size,))
+                transforms = tf.stack([
+                    ones, zeros, -shifts[:, -2],  # First row of the affine transformation matrix
+                    zeros, ones, -shifts[:, -1],  # Second row of the affine transformation matrix
+                    zeros, zeros  # Third row of the affine transformation matrix (unused in affine transform)
+                ], axis=1)
 
-            return transformed_images
+                # Apply the transformation
+                transformed_images = tf.raw_ops.ImageProjectiveTransformV3(
+                    images=images,
+                    transforms=transforms,
+                    output_shape=[height, width],
+                    fill_value=0,
+                    interpolation='BILINEAR'
+                )
+
+                return transformed_images
+
+            def get_config(self):
+                base_config = super(ShiftImageLayer, self).get_config()
+                return {**base_config}
 
         def constructAnglesModel(Xdim, modelSize, modelShift):
             """RESNET architecture"""
             inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
             predicted_shift = modelShift(inputLayer)
-
-            # Custom layer to apply the negative of the predicted shift
-            shifted_images = Lambda(lambda x: shift_image(x[0], x[1]))([input_image, predicted_shift])
-            x = constructRESNET(shifted_images, modelSize)
-            x = Add()([x, x_res])
-            return Model(inputLayer, predicted_shift)
+            shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
+            x = constructRESNET(shifted_images, 8, modelSize)
+            x = Add()([x, predicted_shift])
+            return Model(inputLayer, x)
 
         def get_labels(fnXmd):
             """Returns dimensions, images, angles and shifts values from images files"""
@@ -276,10 +277,12 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             epoch = 0
             for i in range(maxEpochs // 2):
-                print("Iteration %d, SubIteration %d (%d images)" % (epoch, i, len(training_generator.indexes)))
-                history = model.fit(training_generator, epochs=2, callbacks=[save_best_model])
+                start_time = time()
+                history = model.fit(training_generator, epochs=2, callbacks=[save_best_model], verbose=0)
+                end_time = time()
                 epoch += 1
                 loss = history.history['loss'][-1]
+                print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
                 if loss < modeprec:
                     break
 
@@ -305,20 +308,22 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 model = constructShiftModel(Xdim, modelSize)
             trainModel(model)
 
-        # # Learn angles
-        # mode=FULL_MODE
-        # modeprec=precision
-        # for index in range(numModels):
-        #     modelShift = load_model(fnModel + "_shift"+str(index) + ".h5")
-        #     modelShift.trainable = False
-        #
-        #     fnModelIndex = fnModel + "_angles"+str(index) + ".h5"
-        #     save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
-        #     if os.path.exists(fnModel):
-        #         model = load_model(fnModelIndex)
-        #     else:
-        #         model = constructAnglesModel(Xdim, modelSize, modelShift)
-        #     trainModel(model)
+        # Learn angles
+        mode=FULL_MODE
+        modeprec=precision
+        for index in range(numModels):
+            modelShift = load_model(fnModel + "_shift"+str(index) + ".h5",
+                                    custom_objects={'ConcatenateZerosLayer': ConcatenateZerosLayer,
+                                                    'custom_loss': custom_loss})
+            modelShift.trainable = False
+
+            fnModelIndex = fnModel + "_angles"+str(index) + ".h5"
+            save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
+            if os.path.exists(fnModel):
+                model = load_model(fnModelIndex)
+            else:
+                model = constructAnglesModel(Xdim, modelSize, modelShift)
+            trainModel(model)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignment().tryRun()
