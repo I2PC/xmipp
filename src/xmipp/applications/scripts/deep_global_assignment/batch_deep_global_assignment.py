@@ -53,7 +53,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         from keras.callbacks import TensorBoard, ModelCheckpoint
         from keras.models import Model
         from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
-            Activation, GlobalAveragePooling2D, Add
+            Activation, GlobalAveragePooling2D, Add, Lambda, Layer
         import keras
         from keras.models import load_model
         import tensorflow as tf
@@ -127,37 +127,80 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = Activation('relu')(x)
             return x
 
+        def constructRESNET(inputLayer, outputSize, modelSize):
+            x = conv_block(inputLayer, filters=64)
+            x = conv_block(x, filters=128)
+            if modelSize>=1:
+                x = conv_block(x, filters=256)
+            if modelSize>=2:
+                x = conv_block(x, filters=512)
+            if modelSize>=3:
+                x = conv_block(x, filters=1024)
+            x = GlobalAveragePooling2D()(x)
+            x = Dense(64)(x)
+            x = Dense(outputSize, name="output", activation="linear")(x)
+            return x
+
+        class ConcatenateZerosLayer(Layer):
+            def __init__(self, **kwargs):
+                super(ConcatenateZerosLayer, self).__init__(**kwargs)
+
+            def call(self, inputs, **kwargs):
+                batch_size = tf.shape(inputs)[0]
+                zeros = tf.zeros((batch_size, 6), dtype=inputs.dtype)
+                return tf.concat([zeros, inputs], axis=-1)
+
+            def get_config(self):
+                base_config = super(ConcatenateZerosLayer, self).get_config()
+                return {**base_config}
+
         def constructShiftModel(Xdim, modelSize):
             """RESNET architecture"""
             inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
-            x = conv_block(inputLayer, filters=64)
-            x = conv_block(x, filters=128)
-            if modelSize>=1:
-                x = conv_block(x, filters=256)
-            if modelSize>=2:
-                x = conv_block(x, filters=512)
-            if modelSize>=3:
-                x = conv_block(x, filters=1024)
-            x = GlobalAveragePooling2D()(x)
-            x = Dense(64)(x)
-            x = Dense(8, name="output", activation="linear")(x)
+            x = constructRESNET(inputLayer, 2, modelSize)
+            x = ConcatenateZerosLayer()(x)
             return Model(inputLayer, x)
 
-        def constructAngleModel(Xdim, modelSize):
+        def shift_image(images, shifts):
+            """
+            Shifts a batch of images using affine transformations.
+            :param images: A tensor representing a batch of images, shape (batchSize, height, width, channels).
+            :param shifts: A tensor of shape (batchSize, 8) containing shift values (x, y) for each image in the last
+                           two columns.
+            :return: A tensor of shifted images.
+            """
+            # Get image dimensions
+            batch_size, height, width, channels = images.shape
+
+            # Create an individual transformation matrix for each image in the batch
+            ones = tf.ones((batch_size,))
+            zeros = tf.zeros((batch_size,))
+            transforms = tf.stack([
+                ones, zeros, -shifts[:, -2],  # First row of the affine transformation matrix
+                zeros, ones, -shifts[:, -1],  # Second row of the affine transformation matrix
+                zeros, zeros  # Third row of the affine transformation matrix (unused in affine transform)
+            ], axis=1)
+
+            # Apply the transformation
+            transformed_images = tf.raw_ops.ImageProjectiveTransformV3(
+                images=images,
+                transforms=transforms,
+                output_shape=[height, width],
+                interpolation='BILINEAR'
+            )
+
+            return transformed_images
+
+        def constructAnglesModel(Xdim, modelSize, modelShift):
             """RESNET architecture"""
             inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
-            x = conv_block(inputLayer, filters=64)
-            x = conv_block(x, filters=128)
-            if modelSize>=1:
-                x = conv_block(x, filters=256)
-            if modelSize>=2:
-                x = conv_block(x, filters=512)
-            if modelSize>=3:
-                x = conv_block(x, filters=1024)
-            x = GlobalAveragePooling2D()(x)
-            x = Dense(64)(x)
-            x = Dense(8, name="output", activation="linear")(x)
-            return Model(inputLayer, x)
+            predicted_shift = modelShift(inputLayer)
+
+            # Custom layer to apply the negative of the predicted shift
+            shifted_images = Lambda(lambda x: shift_image(x[0], x[1]))([input_image, predicted_shift])
+            x = constructRESNET(shifted_images, modelSize)
+            x = Add()([x, x_res])
+            return Model(inputLayer, predicted_shift)
 
         def get_labels(fnXmd):
             """Returns dimensions, images, angles and shifts values from images files"""
@@ -261,6 +304,21 @@ class ScriptDeepGlobalAssignment(XmippScript):
             else:
                 model = constructShiftModel(Xdim, modelSize)
             trainModel(model)
+
+        # # Learn angles
+        # mode=FULL_MODE
+        # modeprec=precision
+        # for index in range(numModels):
+        #     modelShift = load_model(fnModel + "_shift"+str(index) + ".h5")
+        #     modelShift.trainable = False
+        #
+        #     fnModelIndex = fnModel + "_angles"+str(index) + ".h5"
+        #     save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
+        #     if os.path.exists(fnModel):
+        #         model = load_model(fnModelIndex)
+        #     else:
+        #         model = constructAnglesModel(Xdim, modelSize, modelShift)
+        #     trainModel(model)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignment().tryRun()
