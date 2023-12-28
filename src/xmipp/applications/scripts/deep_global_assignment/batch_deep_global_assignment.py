@@ -142,23 +142,25 @@ class ScriptDeepGlobalAssignment(XmippScript):
             return x
 
         class ConcatenateZerosLayer(Layer):
-            def __init__(self, **kwargs):
+            def __init__(self, num_zeros, **kwargs):
                 super(ConcatenateZerosLayer, self).__init__(**kwargs)
+                self.num_zeros = num_zeros
 
             def call(self, inputs, **kwargs):
                 batch_size = tf.shape(inputs)[0]
-                zeros = tf.zeros((batch_size, 6), dtype=inputs.dtype)
+                zeros = tf.zeros((batch_size, self.num_zeros), dtype=inputs.dtype)
                 return tf.concat([zeros, inputs], axis=-1)
 
             def get_config(self):
                 base_config = super(ConcatenateZerosLayer, self).get_config()
+                base_config.update({'num_zeros': self.num_zeros})
                 return {**base_config}
 
         def constructShiftModel(Xdim, modelSize):
             """RESNET architecture"""
             inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
             x = constructRESNET(inputLayer, 2, modelSize)
-            x = ConcatenateZerosLayer()(x)
+            x = ConcatenateZerosLayer(6)(x)
             return Model(inputLayer, x)
 
         class ShiftImageLayer(Layer):
@@ -270,15 +272,20 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 angular_error = tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2)+tf.abs(angle3))/3.0
                 return angular_error + shift_error / Xdim
 
-        def trainModel(model):
+        def trainModel(model, saveModel=False):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             model.summary()
+            sys.stdout.flush()
             model.compile(loss=custom_loss, optimizer=adam_opt)
 
+            callbacks = []
+            if saveModel:
+                callbacks.append(save_best_model)
+
             epoch = 0
-            for i in range(maxEpochs // 2):
+            for i in range(maxEpochs):
                 start_time = time()
-                history = model.fit(training_generator, epochs=2, callbacks=[save_best_model], verbose=0)
+                history = model.fit(training_generator, epochs=1, callbacks=callbacks, verbose=1)
                 end_time = time()
                 epoch += 1
                 loss = history.history['loss'][-1]
@@ -296,34 +303,24 @@ class ScriptDeepGlobalAssignment(XmippScript):
             fnImgsExp=[]
         training_generator = DataGenerator(fnImgsSim, fnImgsExp, angles, shifts, batch_size, Xdim)
 
-        # Learn shift
-        mode=SHIFT_MODE
-        modeprec=2/5*precision # 2/5 because the shift are 2 out of 5 numbers in the cost function
         for index in range(numModels):
-            fnModelIndex = fnModel + "_shift"+str(index) + ".h5"
+            fnModelIndex = fnModel + "_angles"+str(index) + ".h5"
+            if os.path.exists(fnModelIndex):
+                continue
             save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
-            if os.path.exists(fnModel):
-                model = load_model(fnModelIndex)
-            else:
-                model = constructShiftModel(Xdim, modelSize)
-            trainModel(model)
 
-        # Learn angles
-        mode=FULL_MODE
-        modeprec=precision
-        for index in range(numModels):
-            modelShift = load_model(fnModel + "_shift"+str(index) + ".h5",
-                                    custom_objects={'ConcatenateZerosLayer': ConcatenateZerosLayer,
-                                                    'custom_loss': custom_loss})
+            # Lear shift
+            mode = SHIFT_MODE
+            modeprec = 2 / 5 * precision  # 2/5 because the shift are 2 out of 5 numbers in the cost function
+            modelShift = constructShiftModel(Xdim, modelSize)
+            trainModel(modelShift, saveModel=False)
             modelShift.trainable = False
 
-            fnModelIndex = fnModel + "_angles"+str(index) + ".h5"
-            save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
-            if os.path.exists(fnModel):
-                model = load_model(fnModelIndex)
-            else:
-                model = constructAnglesModel(Xdim, modelSize, modelShift)
-            trainModel(model)
+            # Learn full mode
+            mode=FULL_MODE
+            modeprec=precision
+            model = constructAnglesModel(Xdim, modelSize, modelShift)
+            trainModel(model, saveModel=True)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignment().tryRun()
