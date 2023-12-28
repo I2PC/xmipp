@@ -81,8 +81,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             def loadData(self):
                 def euler_to_rotation6d(angles, shifts):
                     mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2])
-                    angles = np.reshape(mat[0:2,:],(6))
-                    return np.concatenate((angles, shifts))
+                    return np.concatenate((mat[1], mat[2], shifts))
 
                 # Read all data in memory
                 self.Xsim = np.zeros((len(self.angles), self.dim, self.dim, 1), dtype=np.float64)
@@ -222,55 +221,55 @@ class ScriptDeepGlobalAssignment(XmippScript):
             return Xdim, fnImg, angles, img_shift
 
         def custom_loss(y_true, y_pred):
-            # y_6d = tf.matmul(y_pred, tfAt)
-            y_6d = y_pred[:, :6]
-            y_6dtrue = y_true[:, :6]
-            # Take care of symmetry
-            num_rows = tf.shape(y_6d)[0]
-            min_errors = tf.fill([num_rows], float('inf'))
-            rotated_versions = tf.TensorArray(dtype=tf.float32, size=num_rows)
-            for i, symmetry_matrix in enumerate(listSymmetryMatrices):
-                transformed = tf.matmul(y_6d, symmetry_matrix)
-                errors = tf.reduce_mean(tf.abs(y_6dtrue - transformed), axis=1)
-
-                # Update minimum errors and rotated versions
-                for j in tf.range(num_rows):
-                    if errors[j] < min_errors[j]:
-                        min_errors = tf.tensor_scatter_nd_update(min_errors, [[j]], [errors[j]])
-                        rotated_versions = rotated_versions.write(j, transformed[j])
-            y_6d = rotated_versions.stack()
-
-            e1_true = y_6dtrue[:, :3]  # First 3 components
-            e2_true = y_6dtrue[:, 3:]  # Last 3 components
-            e3_true = tf.linalg.cross(e1_true, e2_true)
             shift_true = y_true[:, 6:]  # Last 2 components
-
-            e1_pred = y_6d[:, :3]  # First 3 components
-            e2_pred = y_6d[:, 3:]  # Last 3 components
             shift_pred = y_pred[:, 6:]  # Last 2 components
+            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))/Xdim
+            error = shift_error
 
-            # Gram-Schmidt orthogonalization
-            #        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
-            e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)  # Normalize e1
-            projection = tf.reduce_sum(e2_pred * e1_pred, axis=-1, keepdims=True)
-            e2_pred = e2_pred - projection * e1_pred
-            #        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
-            e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
-            e3_pred = tf.linalg.cross(e1_pred, e2_pred)
-            #        e3_pred = tf.clip_by_value(e3_pred, -1.0, 1.0)
-            e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)
+            if mode!=SHIFT_MODE:
+                y_6d = y_pred[:, :6]
+                y_6dtrue = y_true[:, :6]
 
-            epsilon = 1e-7
-            angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-            angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-            angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+                # Take care of symmetry
+                num_rows = tf.shape(y_6d)[0]
+                min_errors = tf.fill([num_rows], float('inf'))
+                rotated_versions = tf.TensorArray(dtype=tf.float32, size=num_rows)
+                for i, symmetry_matrix in enumerate(listSymmetryMatrices):
+                    transformed = tf.matmul(y_6d, symmetry_matrix)
+                    errors = tf.reduce_mean(tf.abs(y_6dtrue - transformed), axis=1)
 
-            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
-            if mode==SHIFT_MODE:
-                return shift_error/Xdim
-            else:
+                    # Update minimum errors and rotated versions
+                    for j in tf.range(num_rows):
+                        if errors[j] < min_errors[j]:
+                            min_errors = tf.tensor_scatter_nd_update(min_errors, [[j]], [errors[j]])
+                            rotated_versions = rotated_versions.write(j, transformed[j])
+                y_6d = rotated_versions.stack()
+
+                e3_true = y_6dtrue[:, 3:]  # Last 3 components
+                e3_pred = y_6d[:, 3:]  # Last 3 components
+
+                e2_true = y_6dtrue[:, :3]  # First 3 components
+                e2_pred = y_6d[:, :3]  # First 3 components
+
+                e1_true = tf.linalg.cross(e2_true, e3_true)
+
+                # Gram-Schmidt orthogonalization
+                e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
+                projection = tf.reduce_sum(e2_pred * e3_pred, axis=-1, keepdims=True)
+                e2_pred = e2_pred - projection * e3_pred
+                e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
+                e1_pred = tf.linalg.cross(e2_pred, e3_pred)
+                e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)
+
+                epsilon = 1e-7
+                angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+                angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+                angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+
                 angular_error = tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2)+tf.abs(angle3))/3.0
-                return angular_error + shift_error / Xdim
+                error+=angular_error
+
+            return error
 
         def trainModel(model, saveModel=False):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -285,7 +284,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             epoch = 0
             for i in range(maxEpochs):
                 start_time = time()
-                history = model.fit(training_generator, epochs=1, callbacks=callbacks, verbose=1)
+                history = model.fit(training_generator, epochs=1, callbacks=callbacks, verbose=0)
                 end_time = time()
                 epoch += 1
                 loss = history.history['loss'][-1]
