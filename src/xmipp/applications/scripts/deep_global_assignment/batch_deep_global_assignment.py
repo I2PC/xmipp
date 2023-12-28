@@ -127,7 +127,23 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = Activation('relu')(x)
             return x
 
-        def constructModel(Xdim, modelSize):
+        def constructShiftModel(Xdim, modelSize):
+            """RESNET architecture"""
+            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            x = conv_block(inputLayer, filters=64)
+            x = conv_block(x, filters=128)
+            if modelSize>=1:
+                x = conv_block(x, filters=256)
+            if modelSize>=2:
+                x = conv_block(x, filters=512)
+            if modelSize>=3:
+                x = conv_block(x, filters=1024)
+            x = GlobalAveragePooling2D()(x)
+            x = Dense(64)(x)
+            x = Dense(8, name="output", activation="linear")(x)
+            return Model(inputLayer, x)
+
+        def constructAngleModel(Xdim, modelSize):
             """RESNET architecture"""
             inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
             x = conv_block(inputLayer, filters=64)
@@ -203,12 +219,26 @@ class ScriptDeepGlobalAssignment(XmippScript):
             angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
             angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
 
-            angular_error = tf.reduce_mean(tf.abs(angle1) + tf.abs(angle2) + tf.abs(angle3)) / 3.0
             shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
             if mode==SHIFT_MODE:
                 return shift_error/Xdim
             else:
-                return angular_error + shift_error/Xdim
+                angular_error = tf.reduce_mean(tf.abs(angle1)+tf.abs(angle2)+tf.abs(angle3))/3.0
+                return angular_error + shift_error / Xdim
+
+        def trainModel(model):
+            adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+            model.summary()
+            model.compile(loss=custom_loss, optimizer=adam_opt)
+
+            epoch = 0
+            for i in range(maxEpochs // 2):
+                print("Iteration %d, SubIteration %d (%d images)" % (epoch, i, len(training_generator.indexes)))
+                history = model.fit(training_generator, epochs=2, callbacks=[save_best_model])
+                epoch += 1
+                loss = history.history['loss'][-1]
+                if loss < modeprec:
+                    break
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = [tf.convert_to_tensor(np.kron(np.eye(2),np.transpose(np.array(R))), dtype=tf.float32)
@@ -219,30 +249,18 @@ class ScriptDeepGlobalAssignment(XmippScript):
         else:
             fnImgsExp=[]
         training_generator = DataGenerator(fnImgsSim, fnImgsExp, angles, shifts, batch_size, Xdim)
-        for mode in range(1):
-            if mode==SHIFT_MODE:
-                modeprec=0.25*precision # 0.25 because the shift are 2 out of 8 numbers in the output vector
-            else:
-                modeprec=precision
-            for index in range(numModels):
-                fnModelIndex =  fnModel + str(index) + ".h5"
-                save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
-                if os.path.exists(fnModel):
-                    model = load_model(fnModelIndex)
-                else:
-                    model = constructModel(Xdim, modelSize)
-                adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-                model.summary()
-                model.compile(loss=custom_loss, optimizer=adam_opt)
 
-                epoch=0
-                for i in range(maxEpochs//2):
-                    print("Iteration %d, SubIteration %d (%d images)"%(epoch,i,len(training_generator.indexes)))
-                    history = model.fit(training_generator, epochs=2, callbacks=[save_best_model])
-                    epoch+=1
-                    loss=history.history['loss'][-1]
-                    if loss<modeprec:
-                        break
+        # Learn shift
+        mode=SHIFT_MODE
+        modeprec=2/5*precision # 2/5 because the shift are 2 out of 5 numbers in the cost function
+        for index in range(numModels):
+            fnModelIndex = fnModel + "_shift"+str(index) + ".h5"
+            save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
+            if os.path.exists(fnModel):
+                model = load_model(fnModelIndex)
+            else:
+                model = constructShiftModel(Xdim, modelSize)
+            trainModel(model)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignment().tryRun()
