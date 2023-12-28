@@ -76,8 +76,9 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 self.shifts = shifts
                 self.batch_size = batch_size
                 self.dim = dim
+                self.loadData()
 
-            def loadData(self, mode):
+            def loadData(self):
                 def euler_to_rotation6d(angles, shifts):
                     mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2])
                     angles = np.reshape(mat[0:2,:],(6))
@@ -91,10 +92,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 for i in range(len(self.angles)):
                     Isim = np.reshape(xmippLib.Image(self.fnImgsSim[i]).getData(), (self.dim, self.dim, 1))
                     self.Xsim[i] = (Isim - np.mean(Isim)) / np.std(Isim)
-                    if mode==SHIFT_MODE:
-                        self.ysim[i, -2:] = self.shifts[i]
-                    else:
-                        self.ysim[i] = euler_to_rotation6d(self.angles[i], self.shifts[i])
+                    self.ysim[i] = euler_to_rotation6d(self.angles[i], self.shifts[i])
                     if readExp:
                         Iexp = np.reshape(xmippLib.Image(self.fnImgsExp[i]).getData(), (self.dim, self.dim, 1))
                         self.Xexp[i] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
@@ -225,9 +223,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
             fnImgsExp=[]
         training_generator = DataGenerator(fnImgsSim, fnImgsExp, angles, shifts, batch_size, Xdim)
         for mode in range(1):
-            training_generator.loadData(mode)
             if mode==SHIFT_MODE:
-                modeprec=1.0/Xdim
+                modeprec=0.25*precision # 0.25 because the shift are 2 out of 8 numbers in the output vector
             else:
                 modeprec=precision
             for index in range(numModels):
