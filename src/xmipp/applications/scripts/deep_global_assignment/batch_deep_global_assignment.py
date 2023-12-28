@@ -1,325 +1,257 @@
 #!/usr/bin/env python3
 
-import gc
 import math
 import numpy as np
 from operator import itemgetter
 import os
 import sys
+import random
 import xmippLib
 from time import time
 from scipy.ndimage import shift, rotate, affine_transform
+from xmipp_base import *
 
-if __name__ == "__main__":
+SHIFT_MODE = 0
+FULL_MODE = 1
 
-    from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-    from xmippPyModules.deepGlobalAssignment import Redundancy
+class ScriptDeepGlobalAssignment(XmippScript):
 
-    checkIf_tf_keras_installed()
-    fnXmdExp = sys.argv[1]
-    fnModel = sys.argv[2]
-    maxShift = float(sys.argv[3])
-    numParticlesTraining = int(sys.argv[4])
-    batch_size = int(sys.argv[5])
-    gpuId = sys.argv[6]
-    numModels = int(sys.argv[7])
-    learning_rate = float(sys.argv[8])
-    symmetry = sys.argv[9]
-    SNR = float(sys.argv[10])
-    modelSize = int(sys.argv[11])
-    angPrec = float(sys.argv[12])
+    def __init__(self):
+        XmippScript.__init__(self)
 
-    if not gpuId.startswith('-1'):
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
+    def defineParams(self):
+        self.addUsageLine('Train a deep global assignment model')
+        ## params
+        self.addParamsLine(' --isim <metadata>            : xmd file with the list of simulated images,'
+                           'they must have a 3D alignment')
+        self.addParamsLine('[--iexp <metadata="">]        : xmd file with the list of experimental images,'
+                           'they must have a 3D alignment, the same angles and shifts as the simulated')
+        self.addParamsLine(' --oroot <root>               : Rootname for the models')
+        self.addParamsLine('[--maxEpochs <N=3000>]        : Max. number of epochs')
+        self.addParamsLine('[--batchSize <N=8>]           : Batch size')
+        self.addParamsLine('[--gpu <id=0>]                : GPU Id')
+        self.addParamsLine('[--Nmodels <N=5>]             : Number of models')
+        self.addParamsLine('[--learningRate <lr=0.0001>]  : Learning rate')
+        self.addParamsLine('[--sym <s=c1>]                : Symmetry')
+        self.addParamsLine('[--modelSize <s=0>]           : Model size (0=277k, 1=1M, 2=5M, 3=19M parameters)')
+        self.addParamsLine('[--precision <s=0.07>]        : Alignment precision measured in percentage of '
+                           'the image size')
 
-    from keras.callbacks import TensorBoard, ModelCheckpoint
-    from keras.models import Model
-    from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
-        Activation, GlobalAveragePooling2D, Add
-    import keras
-    from keras.models import load_model
-    import tensorflow as tf
+    def run(self):
+        fnXmdSim = self.getParam("--isim")
+        fnXmdExp = self.getParam("--iexp")
+        fnModel = self.getParam("--oroot")
+        maxEpochs = int(self.getParam("--maxEpochs"))
+        batch_size = int(self.getParam("--batchSize"))
+        gpuId = self.getParam("--gpu")
+        numModels = int(self.getParam("--Nmodels"))
+        learning_rate = float(self.getParam("--learningRate"))
+        symmetry = self.getParam("--sym")
+        modelSize = int(self.getParam("--modelSize"))
+        precision = float(self.getParam("--precision"))
 
-    class DataGenerator(keras.utils.all_utils.Sequence):
-        """Generates data for fnImgs"""
+        from keras.callbacks import TensorBoard, ModelCheckpoint
+        from keras.models import Model
+        from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
+            Activation, GlobalAveragePooling2D, Add
+        import keras
+        from keras.models import load_model
+        import tensorflow as tf
+        from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
-        def __init__(self, fnImgs, labels, maxShift, batch_size, dim, shifts, maxSigmaN, maxAngle, readInMemory=True):
-            """Initialization"""
-            self.fnImgs = fnImgs
-            self.labels = labels
-            self.maxShift = maxShift
-            self.batch_size = batch_size
-            self.dim = dim
-            self.readInMemory = readInMemory
-            self.on_epoch_end()
-            self.shifts = shifts
-            self.maxSigmaN = maxSigmaN
-            self.maxAngle = maxAngle
+        if not gpuId.startswith('-1'):
+            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+        checkIf_tf_keras_installed()
 
-            # Read all data in memory
-            if self.readInMemory:
-                self.Xexp = np.zeros((len(self.labels), self.dim, self.dim, 1), dtype=np.float64)
-                for i in range(len(self.labels)):
-                    Iexp = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(), (self.dim, self.dim, 1))
-                    self.Xexp[i,] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+        class DataGenerator(keras.utils.all_utils.Sequence):
+            """Generates data for fnImgs"""
 
-        def __len__(self):
-            """Denotes the number of batches per epoch"""
-            num_batches = int(np.floor((len(self.labels)) / self.batch_size))
-            return num_batches
+            def __init__(self, fnImgsSim, fnImgsExp, angles, shifts, batch_size, dim):
+                """Initialization"""
+                self.fnImgsSim = fnImgsSim
+                self.fnImgsExp = fnImgsExp
+                self.angles = angles
+                self.shifts = shifts
+                self.batch_size = batch_size
+                self.dim = dim
 
-        def __getitem__(self, index):
-            """Generate one batch of data"""
-            # Generate indexes of the batch
-            indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
-            # Find list of IDs
-            list_IDs_temp = []
-            for i in range(int(self.batch_size)):
-                list_IDs_temp.append(indexes[i])
-            # Generate data
-            Xexp, y = self.__data_generation(list_IDs_temp)
+            def loadData(self, mode):
+                def euler_to_rotation6d(angles, shifts):
+                    mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2])
+                    angles = np.reshape(mat[0:2,:],(6))
+                    return np.concatenate((angles, shifts))
 
-            return Xexp, y
+                # Read all data in memory
+                self.Xsim = np.zeros((len(self.angles), self.dim, self.dim, 1), dtype=np.float64)
+                self.Xexp = np.zeros((len(self.angles), self.dim, self.dim, 1), dtype=np.float64)
+                self.ysim = np.zeros((len(self.angles), 8), dtype=np.float64)
+                readExp = len(fnImgsExp)>0
+                for i in range(len(self.angles)):
+                    Isim = np.reshape(xmippLib.Image(self.fnImgsSim[i]).getData(), (self.dim, self.dim, 1))
+                    self.Xsim[i] = (Isim - np.mean(Isim)) / np.std(Isim)
+                    if mode==SHIFT_MODE:
+                        self.ysim[i, -2:] = self.shifts[i]
+                    else:
+                        self.ysim[i] = euler_to_rotation6d(self.angles[i], self.shifts[i])
+                    if readExp:
+                        Iexp = np.reshape(xmippLib.Image(self.fnImgsExp[i]).getData(), (self.dim, self.dim, 1))
+                        self.Xexp[i] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
 
-        def on_epoch_end(self):
-            """Updates indexes after each epoch"""
-            self.indexes = [i for i in range(len(self.labels))]
-            np.random.shuffle(self.indexes)
+                self.indexes = [i for i in range(len(self.fnImgsSim))]
 
-        def __data_generation(self, list_IDs_temp):
-            """Generates data containing batch_size samples"""
-            yvalues = np.array(itemgetter(*list_IDs_temp)(self.labels))
-            yshifts = np.array(itemgetter(*list_IDs_temp)(self.shifts))
+            def __len__(self):
+                """Denotes the number of batches per epoch"""
+                num_batches = int(np.floor((len(self.indexes)) / self.batch_size))
+                return num_batches
 
-            # Functions to handle the data
-            def get_image(fn_image):
-                img = np.reshape(xmippLib.Image(fn_image).getData(), (self.dim, self.dim, 1))
-                return (img - np.mean(img)) / np.std(img)
+            def __getitem__(self, index):
+                """Generate one batch of data"""
+                # Generate indexes of the batch
+                indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
 
-            def euler_to_rotation6d(angles, psi_rotation, x, y):
-                mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2] + psi_rotation)
-                shift  = np.array([x, y])
-                angles = np.reshape(mat[0:2,:],(6))
-                return np.concatenate((angles, shift))
+                # Generate data
+                X_batch = self.Xsim[indexes]
+                y_batch = self.ysim[indexes]
 
-            if self.readInMemory:
-                Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
-            else:
-                fnIexp = list(itemgetter(*list_IDs_temp)(self.fnImgs))
-                Iexp = list(map(get_image, fnIexp))
+                return X_batch, y_batch
 
-            def shift_then_rotate_image(img, shiftx, shifty, angle):
-                imgShifted=shift(img, (shiftx, shifty, 0), order=1, mode='wrap')
-                imgRotated=rotate(imgShifted, angle, order=1, mode='reflect', reshape=False)
-                sigmaN=np.random.uniform(0, self.maxSigmaN)
-                imgRotated+=np.random.normal(0,sigmaN,imgRotated.shape)
-                return imgRotated
+        def conv_block(tensor, filters):
+            # Convolutional block of RESNET
+            x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
+            x = BatchNormalization(axis=3)(x)
+            x = Activation('relu')(x)
+            x = Conv2D(filters, (3, 3), padding='same')(x)
+            x = BatchNormalization(axis=3)(x)
+            x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
+            x = Add()([x, x_res])
+            x = Activation('relu')(x)
+            return x
 
-            rX = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
-            rY = self.maxShift * np.random.uniform(-1, 1, size=self.batch_size)
-            rAngle = self.maxAngle * np.random.uniform(-1, 1, size=self.batch_size)
-            Xexp = np.array(list((map(shift_then_rotate_image, Iexp, rX-yshifts[:,0], rY-yshifts[:,1], rAngle))))
-            y = np.array(list((map(euler_to_rotation6d, yvalues, rAngle, rX-yshifts[:,0], rY-yshifts[:,1]))))
-            return Xexp, y
+        def constructModel(Xdim, modelSize):
+            """RESNET architecture"""
+            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            x = conv_block(inputLayer, filters=64)
+            x = conv_block(x, filters=128)
+            if modelSize>=1:
+                x = conv_block(x, filters=256)
+            if modelSize>=2:
+                x = conv_block(x, filters=512)
+            if modelSize>=3:
+                x = conv_block(x, filters=1024)
+            x = GlobalAveragePooling2D()(x)
+            x = Dense(64)(x)
+            x = Dense(8, name="output", activation="linear")(x)
+            return Model(inputLayer, x)
 
-    def conv_block(tensor, filters):
-        # Convolutional block of RESNET
-        x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
-        x = BatchNormalization(axis=3)(x)
-        x = Activation('relu')(x)
-        x = Conv2D(filters, (3, 3), padding='same')(x)
-        x = BatchNormalization(axis=3)(x)
-        x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
-        x = Add()([x, x_res])
-        x = Activation('relu')(x)
-        return x
+        def get_labels(fnXmd):
+            """Returns dimensions, images, angles and shifts values from images files"""
+            md = xmippLib.MetaData(fnXmd)
+            Xdim, _, _, _ = md.getImageSize()
+            fnImg = md.getColumnValues(xmippLib.MDL_IMAGE)
+            shiftX = md.getColumnValues(xmippLib.MDL_SHIFT_X)
+            shiftY = md.getColumnValues(xmippLib.MDL_SHIFT_Y)
+            rots = md.getColumnValues(xmippLib.MDL_ANGLE_ROT)
+            tilts = md.getColumnValues(xmippLib.MDL_ANGLE_TILT)
+            psis = md.getColumnValues(xmippLib.MDL_ANGLE_PSI)
 
-    def constructModel(Xdim, modelSize):
-        """RESNET architecture"""
-        inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
-        x = conv_block(inputLayer, filters=64)
-        x = conv_block(x, filters=128)
-        if modelSize>=1:
-            x = conv_block(x, filters=256)
-        if modelSize>=2:
-            x = conv_block(x, filters=512)
-        if modelSize>=3:
-            x = conv_block(x, filters=1024)
-        x = GlobalAveragePooling2D()(x)
-        x = Dense(64)(x)
-        x = Dense(8, name="output", activation="linear")(x)
-        return Model(inputLayer, x)
+            angles = [np.array((r,t,p)) for r, t, p in zip(rots, tilts, psis)]
+            img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
 
-    def get_labels(fnImages):
-        """Returns dimensions, images, angles and shifts values from images files"""
-        Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnImages)
-        mdExp = xmippLib.MetaData(fnImages)
-        fnImg = mdExp.getColumnValues(xmippLib.MDL_IMAGE)
-        shiftX = mdExp.getColumnValues(xmippLib.MDL_SHIFT_X)
-        shiftY = mdExp.getColumnValues(xmippLib.MDL_SHIFT_Y)
-        rots = mdExp.getColumnValues(xmippLib.MDL_ANGLE_ROT)
-        tilts = mdExp.getColumnValues(xmippLib.MDL_ANGLE_TILT)
-        psis = mdExp.getColumnValues(xmippLib.MDL_ANGLE_PSI)
+            return Xdim, fnImg, angles, img_shift
 
-        label = []
-        for r, t, p in zip(rots, tilts, psis):
-            label.append(np.array((r,t,p)))
-        img_shift = [np.array((sX,sY)) for sX, sY in zip(shiftX, shiftY)]
+        def custom_lossFull(y_true, y_pred):
+            # y_6d = tf.matmul(y_pred, tfAt)
+            y_6d = y_pred[:, :6]
+            y_6dtrue = y_true[:, :6]
+            # Take care of symmetry
+            num_rows = tf.shape(y_6d)[0]
+            min_errors = tf.fill([num_rows], float('inf'))
+            rotated_versions = tf.TensorArray(dtype=tf.float32, size=num_rows)
+            for i, symmetry_matrix in enumerate(listSymmetryMatrices):
+                transformed = tf.matmul(y_6d, symmetry_matrix)
+                errors = tf.reduce_mean(tf.abs(y_6dtrue - transformed), axis=1)
 
-        return Xdim, fnImg, label, img_shift
+                # Update minimum errors and rotated versions
+                for j in tf.range(num_rows):
+                    if errors[j] < min_errors[j]:
+                        min_errors = tf.tensor_scatter_nd_update(min_errors, [[j]], [errors[j]])
+                        rotated_versions = rotated_versions.write(j, transformed[j])
+            y_6d = rotated_versions.stack()
 
-    tfAt = tf.cast(tf.transpose(Redundancy().Apinv),tf.float32)
-    SL = xmippLib.SymList()
-    listSymmetryMatrices = [tf.convert_to_tensor(np.kron(np.eye(2),np.transpose(np.array(R))), dtype=tf.float32)
-                            for R in SL.getSymmetryMatrices(symmetry)]
-    Xdims, fnImgs, labels, shifts = get_labels(fnXmdExp)
+            e1_true = y_6dtrue[:, :3]  # First 3 components
+            e2_true = y_6dtrue[:, 3:]  # Last 3 components
+            e3_true = tf.linalg.cross(e1_true, e2_true)
+            shift_true = y_true[:, 6:]  # Last 2 components
 
+            e1_pred = y_6d[:, :3]  # First 3 components
+            e2_pred = y_6d[:, 3:]  # Last 3 components
+            shift_pred = y_pred[:, 6:]  # Last 2 components
 
-    def custom_lossAngles(y_true, y_pred):
-        # y_6d = tf.matmul(y_pred, tfAt)
-        y_6d = y_pred[:, :6]
-        y_6dtrue = y_true[:, :6]
-        # Take care of symmetry
-        num_rows = tf.shape(y_6d)[0]
-        min_errors = tf.fill([num_rows], float('inf'))
-        rotated_versions = tf.TensorArray(dtype=tf.float32, size=num_rows)
-        for i, symmetry_matrix in enumerate(listSymmetryMatrices):
-            transformed = tf.matmul(y_6d, symmetry_matrix)
-            errors = tf.reduce_mean(tf.abs(y_6dtrue - transformed), axis=1)
+            # Gram-Schmidt orthogonalization
+            #        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
+            e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)  # Normalize e1
+            projection = tf.reduce_sum(e2_pred * e1_pred, axis=-1, keepdims=True)
+            e2_pred = e2_pred - projection * e1_pred
+            #        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
+            e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
+            e3_pred = tf.linalg.cross(e1_pred, e2_pred)
+            #        e3_pred = tf.clip_by_value(e3_pred, -1.0, 1.0)
+            e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)
 
-            # Update minimum errors and rotated versions
-            for j in tf.range(num_rows):
-                if errors[j] < min_errors[j]:
-                    min_errors = tf.tensor_scatter_nd_update(min_errors, [[j]], [errors[j]])
-                    rotated_versions = rotated_versions.write(j, transformed[j])
-        y_6d = rotated_versions.stack()
+            epsilon = 1e-7
+            angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+            angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+            angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
 
-        e1_true = y_6dtrue[:, :3]  # First 3 components
-        e2_true = y_6dtrue[:, 3:]  # Last 3 components
-        e3_true = tf.linalg.cross(e1_true, e2_true)
-        shift_true = y_true[:, 6:]  # Last 2 components
+            angular_error = tf.reduce_mean(tf.abs(angle1) + tf.abs(angle2) + tf.abs(angle3)) / 3.0
+            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
+            return angular_error + shift_error/Xdim
 
-        e1_pred = y_6d[:, :3]  # First 3 components
-        e2_pred = y_6d[:, 3:]  # Last 3 components
-        shift_pred = y_pred[:, 6:]  # Last 2 components
+        def custom_lossShift(y_true, y_pred):
+            shift_true = y_true[:, 6:]  # Last 2 components
+            shift_pred = y_pred[:, 6:]  # Last 2 components
+            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
+            return shift_error/Xdim
 
-        # Gram-Schmidt orthogonalization
-        #        e1_pred = tf.clip_by_value(e1_pred, -1.0, 1.0)
-        e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)  # Normalize e1
-        projection = tf.reduce_sum(e2_pred * e1_pred, axis=-1, keepdims=True)
-        e2_pred = e2_pred - projection * e1_pred
-        #        e2_pred = tf.clip_by_value(e2_pred, -1.0, 1.0)
-        e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
-        e3_pred = tf.linalg.cross(e1_pred, e2_pred)
-        #        e3_pred = tf.clip_by_value(e3_pred, -1.0, 1.0)
-        e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)
-
-        epsilon = 1e-7
-        angle1 = tf.acos(tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-        angle2 = tf.acos(tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-        angle3 = tf.acos(tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-
-        angular_error = tf.reduce_mean(tf.abs(angle1) + tf.abs(angle2) + tf.abs(angle3)) / 3.0
-        shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
-        return angular_error + shift_error/Xdims
-
-
-    def custom_lossVectors(y_true, y_pred):
-        y_6d = tf.matmul(y_pred, tfAt)
-        esym = tf.stack([tf.reduce_mean(tf.abs(y_true - tf.matmul(y_6d, tensor)), axis=1)
-                         for tensor in listSymmetryMatrices], axis=1)
-        return tf.reduce_mean(tf.reduce_min(esym, axis=1))
-
-    numEpochs = math.ceil(numParticlesTraining/len(fnImgs))
-    subEpochs=100
-    stepEpochs = math.ceil(numEpochs/subEpochs)
-
-    def cleanMemory():
-        global model
-        print("Cleaning memory")
-        fnModelTmp = fnModel + "_tmp.h5"
-        model.save(fnModelTmp)
-        tf.keras.backend.clear_session()
-        gc.collect()
-        model =  keras.models.load_model(fnModelTmp, custom_objects={'custom_lossAngles': custom_lossAngles})
-        os.remove(fnModelTmp)
-
-        from pympler import muppy, summary
-        all_objects = muppy.get_objects()
-        sum1 = summary.summarize(all_objects)
-        summary.print_(sum1)
-
-        return model
-
-    def train(maxAngle, maxShift, N, numEpochs, save_best_model):
-        global model
-        global training_generator
-        if not hasattr(train,"Ntrains"):
-            train.Ntrains=0
-        # train.Ntrains+=1
-        # if train.Ntrains==10:
-        #     model = cleanMemory()
-        #     train.Ntrains=0
-        training_generator.maxSigmaN = N
-        training_generator.maxShift = maxShift
-        training_generator.maxAngle = maxAngle
-        history = model.fit(training_generator, epochs=numEpochs, callbacks=[save_best_model])
-        return history.history['loss'][-1]
-
-
-    if SNR > 0:
-        finalN = math.sqrt(1.0 / SNR)
-    else:
-        finalN = 0
-    training_generator = DataGenerator(fnImgs, labels, 0.0, batch_size, Xdims, shifts, 0.0, 0.0)
-    for index in range(numModels):
-
-        fnModelIndex =  fnModel + str(index) + ".h5"
-        save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
-        if os.path.exists(fnModel):
-            model = load_model(fnModelIndex)
+        SL = xmippLib.SymList()
+        listSymmetryMatrices = [tf.convert_to_tensor(np.kron(np.eye(2),np.transpose(np.array(R))), dtype=tf.float32)
+                                for R in SL.getSymmetryMatrices(symmetry)]
+        Xdim, fnImgsSim, angles, shifts = get_labels(fnXmdSim)
+        if fnXmdExp!="":
+            _, fnImgsExp, _, _ = get_labels(fnXmdExp)
         else:
-            model = constructModel(Xdims, modelSize)
-        adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        model.summary()
-#        model.compile(loss=custom_lossVectors, optimizer=adam_opt)
-        model.compile(loss=custom_lossAngles, optimizer=adam_opt)
+            fnImgsExp=[]
+        training_generator = DataGenerator(fnImgsSim, fnImgsExp, angles, shifts, batch_size, Xdim)
+        for mode in range(1):
+            training_generator.loadData(mode)
+            if mode==SHIFT_MODE:
+                modeprec=1.0/Xdim
+            else:
+                modeprec=precision
+            for index in range(numModels):
+                fnModelIndex =  fnModel + str(index) + ".h5"
+                save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
+                if os.path.exists(fnModel):
+                    model = load_model(fnModelIndex)
+                else:
+                    model = constructModel(Xdim, modelSize)
+                adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+                model.summary()
+                if mode==SHIFT_MODE:
+                    model.compile(loss=custom_lossShift, optimizer=adam_opt)
+                else:
+                    model.compile(loss=custom_lossFull, optimizer=adam_opt)
 
-        # Train without any perturbation
-        imax=subEpochs
-        for i in range(subEpochs):
-            print("Iteration %d no perturbation"%i)
-            loss=train(0.0, 0.0, 0.0, stepEpochs, save_best_model)
-            if loss<angPrec:
-                imax = subEpochs
-                break
-
-        # Train now with geometric perturbations
-        angStep=180.0/subEpochs
-        shiftStep=maxShift/subEpochs
-        for i in range(subEpochs):
-            print("Iteration %d"%i)
-            for j in range(imax):
-                print("Training %d with maxAngle=%f, maxShift=%f"%(j,(i+1)*angStep, (i+1)*shiftStep))
-                loss=train((i+1)*angStep, (i+1)*shiftStep, 0.0, stepEpochs, save_best_model)
-                if loss<angPrec:
-                    break
-
-        # Estabilize with geometric perturbations
-        for i in range(subEpochs):
-            print("Iteration %d estabilize geometric"%i)
-            loss=train(180, maxShift, 0.0, stepEpochs, save_best_model)
-            if loss<angPrec:
-                break
-
-        if finalN>0:
-            Nstep=finalN/subEpochs
-            # Now with noise
-            for i in range(subEpochs):
-                print("Iteration %d noise" % i)
-                for j in range(imax):
-                    print("Training %d with noise %f" % (j,(i + 1) * Nstep))
-                    loss=train(180, maxShift, (i+1)*Nstep, stepEpochs, save_best_model)
-                    if loss<angPrec:
+                epoch=0
+                for i in range(maxEpochs//2):
+                    print("Iteration %d, SubIteration %d (%d images)"%(epoch,i,len(training_generator.indexes)))
+                    history = model.fit(training_generator, epochs=2, callbacks=[save_best_model])
+                    epoch+=1
+                    loss=history.history['loss'][-1]
+                    if loss<modeprec:
                         break
+
+if __name__ == '__main__':
+    ScriptDeepGlobalAssignment().tryRun()
