@@ -30,15 +30,18 @@ if __name__ == "__main__":
 
     import keras
 
-    def produce_output(fnExp, Y, itemIds, fnOut):
+    def produce_output(fnExp, angles, shifts, itemIds, fnOut):
         Ydict = {itemId: index for index, itemId in enumerate(itemIds)}
         mdExp = xmippLib.MetaData(fnExp)
         for objId in mdExp:
             itemId = mdExp.getValue(xmippLib.MDL_ITEM_ID, objId)
-            rot, tilt, psi = Y[Ydict[itemId]]
+            rot, tilt, psi = angles[Ydict[itemId]]
+            x, y = shifts[Ydict[itemId]]
             mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rot, objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilt, objId)
             mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psi, objId)
+            mdExp.setValue(xmippLib.MDL_SHIFT_X, x, objId)
+            mdExp.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
         mdExp.write(fnOut)
 
     def rotation6d_to_matrixZYZ(rot):
@@ -56,9 +59,8 @@ if __name__ == "__main__":
         b3 = np.cross(b1, b2, axis=1)
         return np.concatenate((b1, b2, b3), axis=0)
 
-    def decodePredictions(p6d_redundant):
-        pred6d = list(map(Redundancy().make_nonredundant,p6d_redundant))
-        matrices = list(map(rotation6d_to_matrixZYZ, pred6d))
+    def decodePredictions(p6d):
+        matrices = list(map(rotation6d_to_matrixZYZ, p6d))
         angles = list(map(xmippLib.Euler_matrix2angles, matrices))
         return angles
 
@@ -80,13 +82,14 @@ if __name__ == "__main__":
     if numImgs % maxSize > 0:
         numBatches = numBatches + 1
 
-    Ylist=[]
+    angleList=[]
+    shiftList=[]
     numAngModels = len(glob.glob(os.path.join(fnModelDir,"model*.h5")))
     for index in range(numAngModels):
         AngModel = keras.models.load_model(os.path.join(fnModelDir,"model%d.h5"%index), compile=False)
 
         k = 0
-        predictions = np.zeros((numImgs, 64))
+        predictions = np.zeros((numImgs, 8))
         for i in range(numBatches):
             numPredictions = min(maxSize, numImgs-i*maxSize)
             Xexp = np.zeros((numPredictions, XdimResized, XdimResized, 1), dtype=np.float64)
@@ -97,9 +100,11 @@ if __name__ == "__main__":
                 k += 1
             predictions[i*maxSize:(i*maxSize + numPredictions), :] = AngModel.predict(Xexp)
 
-        Ylist.append(decodePredictions(predictions))
+        angleList.append(decodePredictions(predictions))
+        shiftList.append(predictions[:,-2:])
 
-    averager=RotationAverager(Ylist)
+    averager=RotationAverager(angleList)
     averager.bringToAsymmetricUnit(symmetry)
-    Y=averager.computeAverageAssignment()
-    produce_output(fnExp, Y, itemIds, fnOut)
+    angles=averager.computeAverageAssignment()
+    shift = np.mean(np.stack(shiftList),axis=0)
+    produce_output(fnExp, angles, shift, itemIds, fnOut)
