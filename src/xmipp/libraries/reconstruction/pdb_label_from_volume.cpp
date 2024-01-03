@@ -126,8 +126,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
 {
     PDBRichPhantom pdbIn;
     PDBRichPhantom pdbOut;
-    FileName fileNamePdbIn(fn_pdb.c_str());
-    pdbIn.read(fileNamePdbIn);
+    pdbIn.read(fn_pdb);
 
     MetaDataVec mdmean;
     size_t objId;
