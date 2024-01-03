@@ -124,51 +124,21 @@ void ProgPdbValueToVol::produceSideInfo()
 /* Compute protein geometry ------------------------------------------------ */
 void ProgPdbValueToVol::computeProteinGeometry()
 {
-    std::ifstream fh_pdb;
-    std::ofstream fh_out(fn_out);
-    fh_pdb.open(fn_pdb.c_str());
+    PDBRichPhantom pdbIn;
+    PDBRichPhantom pdbOut;
+    pdbIn.read(fn_pdb.c_str());
 
     MetaDataVec mdmean;
     size_t objId;
     objId = mdmean.addObject();
 
-    if (!fh_pdb)
-        REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
-
     double suma=0, sumaP=0;
     int numA=0;
-
-    // Reading PDB/CIF file
-    PDBPhantom pdb;
-    FileName fileNamePdb(fn_pdb.c_str());
-    pdb.read(fileNamePdb);
-
-    int nAtom = 0;
-    while (!fh_pdb.eof())
+    for (const auto& atomIn : pdbIn.atomList)
     {
-        // Read an ATOM line
-        std::string line;
-        getline(fh_pdb, line);
-        if (line == "")
-        {
-            fh_out << line << " \n";
-            continue;
-        }
-        std::string kind = line.substr(0,4);
-        if (kind != "ATOM" && kind !="HETA")
-        {
-            fh_out << line << " \n";
-            continue;
-        }
-
-        // Extract atom type and position
-        // Typical line:
-        // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        const auto& atom = pdb.atomList[nAtom];
-        char atom_type = atom.atomType;
-        double x = atom.x;
-        double y = atom.y;
-        double z = atom.z;
+        const auto& x = atomIn.x;
+        const auto& y = atomIn.y;
+        const auto& z = atomIn.z;
 
         // Correct position
         Matrix1D<double> r(3);
@@ -268,18 +238,9 @@ void ProgPdbValueToVol::computeProteinGeometry()
         suma+=atomS;
         sumaP+=atomP;
 
-        std::stringstream stream;
-        stream << std::fixed << std::setprecision(2) << atomS;
-        std::string s = stream.str();
-
-        if (atomS<0)
-            line.replace(55, 5, s, 0, 5);
-        else
-            line.replace(56, 4, s, 0, 4);
-//		    std::cout << line << std::endl;
-
-        fh_out << line << " \n";
-        nAtom++;
+        auto atomOut = atomIn;
+        atomOut.occupancy = atomS;
+        pdbOut.addAtom(atomOut);
     }
 
     double mean = suma/numA;
@@ -291,10 +252,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
     mdmean.setValue(MDL_VOLUME_SCORE2, meanA, objId);
     mdmean.write(fnMD);
 
-    // Close file
-    fh_pdb.close();
-    fh_out.close();
-
+    pdbOut.write(fn_out);
 }
 
 
