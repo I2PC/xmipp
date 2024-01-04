@@ -46,17 +46,16 @@ if __name__ == "__main__":
 
     def rotation6d_to_matrixZYZ(rot):
         """Return rotation matrix from 6D representation."""
-        a1 = np.array([rot[0], rot[1], rot[2]]).reshape(1, 3)
-        a2 = np.array([rot[3], rot[4], rot[5]]).reshape(1, 3)
+        a2 = np.array([rot[0], rot[1], rot[2]]).reshape(1, 3)
+        a3 = np.array([rot[3], rot[4], rot[5]]).reshape(1, 3)
 
-        b1 = a1 / np.linalg.norm(a1)
+        b2 = a2 / np.linalg.norm(a2)
 
-        c1 = np.multiply(b1, a2)
-        c2 = np.sum(c1)
+        c1 = np.dot(b2, a3)
 
-        b2 = a2 - c2 * b1
-        b2 = b2 / np.linalg.norm(b2)
-        b3 = np.cross(b1, b2, axis=1)
+        b3 = a3 - c1 * b2
+        b3 = b3 / np.linalg.norm(b3)
+        b1 = np.cross(b2, b3, axis=1)
         return np.concatenate((b1, b2, b3), axis=0)
 
     def decodePredictions(p6d):
@@ -84,9 +83,9 @@ if __name__ == "__main__":
 
     angleList=[]
     shiftList=[]
-    numAngModels = len(glob.glob(os.path.join(fnModelDir,"model*.h5")))
+    numAngModels = len(glob.glob(os.path.join(fnModelDir,"model_angles*.h5")))
     for index in range(numAngModels):
-        AngModel = keras.models.load_model(os.path.join(fnModelDir,"model%d.h5"%index), compile=False)
+        AngModel = keras.models.load_model(os.path.join(fnModelDir,"model_angles%d.h5"%index), compile=False)
 
         k = 0
         predictions = np.zeros((numImgs, 8))
