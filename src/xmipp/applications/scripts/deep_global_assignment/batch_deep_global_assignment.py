@@ -24,7 +24,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--iexp <metadata="">]        : xmd file with the list of experimental images,'
                            'they must have a 3D alignment, the same angles and shifts as the simulated')
         self.addParamsLine(' --oroot <root>               : Rootname for the models')
-        self.addParamsLine('[--maxEpochs <N=3000>]        : Max. number of epochs')
+        self.addParamsLine('[--maxEpochs <N=500>]         : Max. number of epochs')
         self.addParamsLine('[--batchSize <N=8>]           : Batch size')
         self.addParamsLine('[--gpu <id=0>]                : GPU Id')
         self.addParamsLine('[--Nmodels <N=5>]             : Number of models')
@@ -53,7 +53,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         from keras.models import Model
         from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
             Activation, GlobalAveragePooling2D, Add, Layer, Dropout, Lambda, Resizing, Flatten, Reshape, \
-            Conv2DTranspose
+            Conv2DTranspose, Concatenate
         from tensorflow.keras.losses import mean_absolute_error
         from tensorflow.keras import backend as K
         from sklearn.cluster import KMeans
@@ -200,13 +200,18 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             location = modelLocation(inputLayer)
             x2 = Dense(64)(location)
-            x2 = Dense(8, activation='linear')(x2)
+            x2 = Dense(8)(x2)
 
-            vae = vaeEncoder(inputLayer)[2]
+            vae_outputs = vaeEncoder(inputLayer)
+            z_mean, z_log_var, vae = vae_outputs
             x3 = Dense(64)(vae)
-            x3 = Dense(8, activation='linear')(x3)
+            x3 = Dense(8)(x3)
 
-            x = Add()([x, predicted_shift, x2, x3])
+            concat_layer = Concatenate(axis=-1)  # Change axis if needed
+            x = concat_layer([x, predicted_shift, x2, x3])
+            x = Dense(256, activation='relu')(x)
+            x = Dense(8, activation='linear')(x)
+
             return Model(inputLayer, x)
 
         def constructLocationModel(Xdim, ydim, modelSize, modelShift):
@@ -217,12 +222,18 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = constructRESNET(shifted_images, ydim, modelSize)
             return Model(inputLayer, x)
 
-        def VAEsampling(args):
-            z_mean, z_log_var = args
-            batch = K.shape(z_mean)[0]
-            dim = K.int_shape(z_mean)[1]
-            epsilon = K.random_normal(shape=(batch, dim))
-            return z_mean + K.exp(0.5 * z_log_var) * epsilon
+        class VAESampling(Layer):
+            """Sampling layer for VAE."""
+
+            def call(self, inputs):
+                z_mean, z_log_var = inputs
+                batch = K.shape(z_mean)[0]
+                dim = K.int_shape(z_mean)[1]
+                epsilon = K.random_normal(shape=(batch, dim))
+                return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
+            def get_config(self):
+                return super().get_config()
 
         def VAEencoder(inputLayer, latent_dim):
             x = Conv2D(32, 5, activation='relu', strides=2, padding='same')(inputLayer)
@@ -232,7 +243,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = Dense(16, activation='relu')(x)
             z_mean = Dense(latent_dim, name='z_mean')(x)
             z_log_var = Dense(latent_dim, name='z_log_var')(x)
-            z = Lambda(VAEsampling)([z_mean, z_log_var])
+            z = VAESampling()([z_mean, z_log_var])
             return Model(inputLayer, [z_mean, z_log_var, z])
 
         def VAEdecoder(latent_dim, Xdim):
@@ -424,7 +435,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             # VAE
             print("Learning VAE")
             vae, vaeEncoder = constructVAEModel(Xdim, modelShift, vae_loss)
-            trainModel(vae, training_generator.Xsim, training_generator.Xsim, 0.1, saveModel=False)
+            trainModel(vae, training_generator.Xsim, training_generator.Xsim, precision, saveModel=False)
             vaeEncoder.trainable = False
 
             # # Learn angles
