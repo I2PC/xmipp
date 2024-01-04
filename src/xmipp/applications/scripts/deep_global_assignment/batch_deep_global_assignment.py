@@ -2,13 +2,10 @@
 
 import math
 import numpy as np
-from operator import itemgetter
 import os
 import sys
-import random
 import xmippLib
 from time import time
-from scipy.ndimage import shift, rotate, affine_transform
 from xmipp_base import *
 
 SHIFT_MODE = 0
@@ -50,13 +47,17 @@ class ScriptDeepGlobalAssignment(XmippScript):
         modelSize = int(self.getParam("--modelSize"))
         precision = float(self.getParam("--precision"))
 
-        from keras.callbacks import TensorBoard, ModelCheckpoint
+        import tensorflow as tf
+        import keras
+        from keras.callbacks import ModelCheckpoint
         from keras.models import Model
         from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
-            Activation, GlobalAveragePooling2D, Add, Lambda, Layer
-        import keras
-        from keras.models import load_model
-        import tensorflow as tf
+            Activation, GlobalAveragePooling2D, Add, Layer, Dropout, Lambda, Resizing, Flatten, Reshape, \
+            Conv2DTranspose
+        from tensorflow.keras.losses import mean_absolute_error
+        from tensorflow.keras import backend as K
+        from sklearn.cluster import KMeans
+        from sklearn.preprocessing import normalize
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
         if not gpuId.startswith('-1'):
@@ -65,7 +66,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
         checkIf_tf_keras_installed()
 
-        class DataGenerator(keras.utils.all_utils.Sequence):
+        class DataGenerator():
             """Generates data for fnImgs"""
 
             def __init__(self, fnImgsSim, fnImgsExp, angles, shifts, batch_size, dim):
@@ -98,21 +99,10 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
                 self.indexes = [i for i in range(len(self.fnImgsSim))]
 
-            def __len__(self):
-                """Denotes the number of batches per epoch"""
-                num_batches = int(np.floor((len(self.indexes)) / self.batch_size))
-                return num_batches
-
-            def __getitem__(self, index):
-                """Generate one batch of data"""
-                # Generate indexes of the batch
-                indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
-
-                # Generate data
-                X_batch = self.Xsim[indexes]
-                y_batch = self.ysim[indexes]
-
-                return X_batch, y_batch
+                # K means of the projection directions
+                kmeans = KMeans(n_clusters=10, random_state=0).fit(self.ysim[:,3:6])
+                self.cluster_centers = normalize(kmeans.cluster_centers_)
+                self.ylocation = np.dot(self.ysim[:,3:6], self.cluster_centers.T)
 
         def conv_block(tensor, filters):
             # Convolutional block of RESNET
@@ -128,13 +118,18 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         def constructRESNET(inputLayer, outputSize, modelSize):
             x = conv_block(inputLayer, filters=64)
+            x = Dropout(0.5)(x)
             x = conv_block(x, filters=128)
+            x = Dropout(0.5)(x)
             if modelSize>=1:
                 x = conv_block(x, filters=256)
+                x = Dropout(0.5)(x)
             if modelSize>=2:
                 x = conv_block(x, filters=512)
+                x = Dropout(0.5)(x)
             if modelSize>=3:
                 x = conv_block(x, filters=1024)
+                x = Dropout(0.5)(x)
             x = GlobalAveragePooling2D()(x)
             x = Dense(64)(x)
             x = Dense(outputSize, name="output", activation="linear")(x)
@@ -203,6 +198,72 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = constructRESNET(shifted_images, 8, modelSize)
             x = Add()([x, predicted_shift])
             return Model(inputLayer, x)
+
+        def constructLocationModel(Xdim, ydim, modelSize, modelShift):
+            """RESNET architecture"""
+            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            predicted_shift = modelShift(inputLayer)
+            shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
+            x = constructRESNET(shifted_images, ydim, modelSize)
+            return Model(inputLayer, x)
+
+        def VAEsampling(args):
+            z_mean, z_log_var = args
+            batch = K.shape(z_mean)[0]
+            dim = K.int_shape(z_mean)[1]
+            epsilon = K.random_normal(shape=(batch, dim))
+            return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
+        def VAEencoder(inputLayer, latent_dim):
+            x = Conv2D(32, 5, activation='relu', strides=2, padding='same')(inputLayer)
+            x = Conv2D(64, 5, activation='relu', strides=2, padding='same')(x)
+            x = Flatten()(x)
+            x = Dense(16, activation='relu')(x)
+            z_mean = Dense(latent_dim, name='z_mean')(x)
+            z_log_var = Dense(latent_dim, name='z_log_var')(x)
+            z = Lambda(VAEsampling)([z_mean, z_log_var])
+            return Model(inputLayer, [z_mean, z_log_var, z])
+
+        def VAEdecoder(latent_dim, Xdim):
+            latent_inputs = Input(shape=(latent_dim,))
+            x = Dense(16 * 16 * 64, activation='relu')(latent_inputs)
+            x = Reshape((16, 16, 64))(x)
+            x = Conv2DTranspose(64, 3, activation='relu', strides=2, padding='same')(x)
+            x = Conv2DTranspose(32, 3, activation='relu', strides=2, padding='same')(x)
+            x = Conv2DTranspose(1, 3, activation='linear', padding='same')(x)
+            outputs = Resizing(Xdim, Xdim, interpolation='bilinear')(x)
+            decoder = Model(latent_inputs, outputs)
+            return decoder
+
+        def vae_loss(inputs, outputs, z_mean, z_log_var):
+            flattened_inputs = K.flatten(inputs)
+            flattened_outputs = K.flatten(inputs)
+            reconstruction_loss = mean_absolute_error(flattened_inputs, flattened_outputs)
+            std_dev = K.std(flattened_inputs)
+            return reconstruction_loss / (std_dev + K.epsilon())
+            # kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+            # kl_loss = z_log_var - K.square(z_mean) - K.exp(z_log_var)
+            # kl_loss = K.sum(kl_loss, axis=-1)
+            # kl_loss *= -0.5
+            # return K.mean(reconstruction_loss + kl_loss)
+
+        def constructVAEModel(Xdim, modelShift, vae_loss):
+            """VAE model"""
+            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            predicted_shift = modelShift(inputLayer)
+            shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
+            latent_dim = 10
+            encoder = VAEencoder(shifted_images, latent_dim)
+            encoder.summary()
+            decoder = VAEdecoder(latent_dim, Xdim)
+            decoder.summary()
+            output = decoder(encoder(inputLayer)[2])
+            vae = Model(inputLayer, output)
+            vae.add_loss(vae_loss(vae.inputs[0], vae.outputs[0],
+                                  encoder.get_layer('z_mean').output,
+                                  encoder.get_layer('z_log_var').output))
+            vae.compile(optimizer='adam')
+            return vae
 
         def get_labels(fnXmd):
             """Returns dimensions, images, angles and shifts values from images files"""
@@ -276,11 +337,10 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             return error
 
-        def trainModel(model, saveModel=False):
+        def trainModel(model, X, y, lossFunction, modeprec, saveModel=False):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-            model.summary()
             sys.stdout.flush()
-            model.compile(loss=custom_loss, optimizer=adam_opt)
+            model.compile(loss=lossFunction, optimizer=adam_opt)
 
             callbacks = []
             if saveModel:
@@ -289,7 +349,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             epoch = 0
             for i in range(maxEpochs):
                 start_time = time()
-                history = model.fit(training_generator, epochs=1, callbacks=callbacks, verbose=0)
+                history = model.fit(X, y, epochs=1, callbacks=callbacks, verbose=0)
                 end_time = time()
                 epoch += 1
                 loss = history.history['loss'][-1]
@@ -314,17 +374,32 @@ class ScriptDeepGlobalAssignment(XmippScript):
             save_best_model = ModelCheckpoint(fnModelIndex, monitor='loss', save_best_only=True)
 
             # Learn shift
+            print("Learning shift")
             mode = SHIFT_MODE
             modeprec = 2 / 5 * precision  # 2/5 because the shift are 2 out of 5 numbers in the cost function
             modelShift = constructShiftModel(Xdim, modelSize)
-            trainModel(modelShift, saveModel=False)
+            modelShift.summary()
+            trainModel(modelShift, training_generator.Xsim, training_generator.ysim,
+                       custom_loss, modeprec, saveModel=False)
             modelShift.trainable = False
 
-            # Learn direction
-            mode = FULL_MODE
-            modeprec = precision
-            model = constructAnglesModel(Xdim, modelSize, modelShift)
-            trainModel(model, saveModel=True)
+            # Location model
+            print("Learning approximate location")
+            modelLocation = constructLocationModel(Xdim, training_generator.cluster_centers.shape[1],
+                                                   modelSize, modelShift)
+            modelLocation.summary()
+            trainModel(modelLocation, training_generator.Xsim, training_generator.ylocation,
+                       'mae', precision, saveModel=False)
+
+            # VAE
+            # vae = constructVAEModel(Xdim, modelShift, vae_loss)
+            # trainModel(vae, training_generator.Xsim, vae_loss, 0.1, saveModel=False)
+
+            # # Learn angles
+            # mode = FULL_MODE
+            # modeprec = precision
+            # model = constructAnglesModel(Xdim, modelSize, modelShift)
+            # trainModel(model, custom_loss, modeprec, saveModel=True)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignment().tryRun()
