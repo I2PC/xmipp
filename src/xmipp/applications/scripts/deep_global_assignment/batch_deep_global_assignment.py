@@ -101,7 +101,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 self.indexes = [i for i in range(len(self.fnImgsSim))]
 
                 # K means of the projection directions
-                kmeans = KMeans(n_clusters=10, random_state=0).fit(self.ysim[:,3:6])
+                kmeans = KMeans(n_clusters=6, random_state=0).fit(self.ysim[:,3:6])
                 self.cluster_centers = normalize(kmeans.cluster_centers_)
                 self.ylocation = np.dot(self.ysim[:,3:6], self.cluster_centers.T)
 
@@ -133,7 +133,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 x = Dropout(0.5)(x)
             x = GlobalAveragePooling2D()(x)
             x = Dense(64)(x)
-            x = Dense(outputSize, name="output", activation="linear")(x)
+            x = Dense(outputSize, activation="linear")(x)
             return x
 
         class ConcatenateZerosLayer(Layer):
@@ -153,7 +153,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         def constructShiftModel(Xdim, modelSize):
             """RESNET architecture"""
-            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            inputLayer = Input(shape=(Xdim, Xdim, 1))
             x = constructRESNET(inputLayer, 2, modelSize)
             x = ConcatenateZerosLayer(6)(x)
             return Model(inputLayer, x)
@@ -191,18 +191,27 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 base_config = super(ShiftImageLayer, self).get_config()
                 return {**base_config}
 
-        def constructAnglesModel(Xdim, modelSize, modelShift):
+        def constructAnglesModel(Xdim, modelSize, modelShift, modelLocation, vaeEncoder):
             """RESNET architecture"""
-            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            inputLayer = Input(shape=(Xdim, Xdim, 1))
             predicted_shift = modelShift(inputLayer)
             shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
             x = constructRESNET(shifted_images, 8, modelSize)
-            x = Add()([x, predicted_shift])
+
+            location = modelLocation(inputLayer)
+            x2 = Dense(64)(location)
+            x2 = Dense(8, activation='linear')(x2)
+
+            vae = vaeEncoder(inputLayer)[2]
+            x3 = Dense(64)(vae)
+            x3 = Dense(8, activation='linear')(x3)
+
+            x = Add()([x, predicted_shift, x2, x3])
             return Model(inputLayer, x)
 
         def constructLocationModel(Xdim, ydim, modelSize, modelShift):
             """RESNET architecture"""
-            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            inputLayer = Input(shape=(Xdim, Xdim, 1))
             predicted_shift = modelShift(inputLayer)
             shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
             x = constructRESNET(shifted_images, ydim, modelSize)
@@ -218,6 +227,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         def VAEencoder(inputLayer, latent_dim):
             x = Conv2D(32, 5, activation='relu', strides=2, padding='same')(inputLayer)
             x = Conv2D(64, 5, activation='relu', strides=2, padding='same')(x)
+            x = Conv2D(64, 5, activation='relu', strides=2, padding='same')(x)
             x = Flatten()(x)
             x = Dense(16, activation='relu')(x)
             z_mean = Dense(latent_dim, name='z_mean')(x)
@@ -231,6 +241,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             x = Reshape((16, 16, 64))(x)
             x = Conv2DTranspose(64, 3, activation='relu', strides=2, padding='same')(x)
             x = Conv2DTranspose(32, 3, activation='relu', strides=2, padding='same')(x)
+            x = Conv2DTranspose(32, 3, activation='relu', strides=2, padding='same')(x)
             x = Conv2DTranspose(1, 3, activation='linear', padding='same')(x)
             outputs = Resizing(Xdim, Xdim, interpolation='bilinear')(x)
             decoder = Model(latent_inputs, outputs)
@@ -238,7 +249,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         def vae_loss(inputs, outputs, z_mean, z_log_var):
             flattened_inputs = K.flatten(inputs)
-            flattened_outputs = K.flatten(inputs)
+            flattened_outputs = K.flatten(outputs)
             reconstruction_loss = mean_absolute_error(flattened_inputs, flattened_outputs)
             std_dev = K.std(flattened_inputs)
             return reconstruction_loss / (std_dev + K.epsilon())
@@ -250,7 +261,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         def constructVAEModel(Xdim, modelShift, vae_loss):
             """VAE model"""
-            inputLayer = Input(shape=(Xdim, Xdim, 1), name="input")
+            inputLayer = Input(shape=(Xdim, Xdim, 1))
             predicted_shift = modelShift(inputLayer)
             shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
             latent_dim = 10
@@ -264,7 +275,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                                   encoder.get_layer('z_mean').output,
                                   encoder.get_layer('z_log_var').output))
             vae.compile(optimizer='adam')
-            return vae
+            return vae, encoder
 
         def get_labels(fnXmd):
             """Returns dimensions, images, angles and shifts values from images files"""
@@ -352,10 +363,11 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
                 return batch_x, batch_y
 
-        def trainModel(model, X, y, lossFunction, modeprec, saveModel=False):
+        def trainModel(model, X, y, modeprec, lossFunction=None, saveModel=False):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             sys.stdout.flush()
-            model.compile(loss=lossFunction, optimizer=adam_opt)
+            if lossFunction is not None:
+                model.compile(loss=lossFunction, optimizer=adam_opt)
 
             callbacks = []
             if saveModel:
@@ -397,7 +409,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             modelShift = constructShiftModel(Xdim, modelSize)
             modelShift.summary()
             trainModel(modelShift, training_generator.Xsim, training_generator.ysim,
-                       custom_loss, modeprec, saveModel=False)
+                       modeprec, custom_loss, saveModel=False)
             modelShift.trainable = False
 
             # Location model
@@ -406,17 +418,22 @@ class ScriptDeepGlobalAssignment(XmippScript):
                                                    modelSize, modelShift)
             modelLocation.summary()
             trainModel(modelLocation, training_generator.Xsim, training_generator.ylocation,
-                       'mae', precision, saveModel=False)
+                       precision, 'mae', saveModel=False)
+            modelLocation.trainable = False
 
             # VAE
-            # vae = constructVAEModel(Xdim, modelShift, vae_loss)
-            # trainModel(vae, training_generator.Xsim, vae_loss, 0.1, saveModel=False)
+            print("Learning VAE")
+            vae, vaeEncoder = constructVAEModel(Xdim, modelShift, vae_loss)
+            trainModel(vae, training_generator.Xsim, training_generator.Xsim, 0.1, saveModel=False)
+            vaeEncoder.trainable = False
 
             # # Learn angles
-            # mode = FULL_MODE
-            # modeprec = precision
-            # model = constructAnglesModel(Xdim, modelSize, modelShift)
-            # trainModel(model, custom_loss, modeprec, saveModel=True)
+            print("Learning angular assignment")
+            mode = FULL_MODE
+            modeprec = precision
+            model = constructAnglesModel(Xdim, modelSize, modelShift, modelLocation, vaeEncoder)
+            model.summary()
+            trainModel(model, training_generator.Xsim, training_generator.ysim, modeprec, custom_loss, saveModel=True)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignment().tryRun()
