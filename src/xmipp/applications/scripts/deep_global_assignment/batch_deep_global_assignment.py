@@ -64,6 +64,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+        os.environ['TF_GPU_ALLOCATOR']='cuda_malloc_async'
         checkIf_tf_keras_installed()
 
         class DataGenerator():
@@ -337,6 +338,20 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             return error
 
+        class MySequence(keras.utils.all_utils.Sequence):
+            def __init__(self, x_set, y_set, batch_size):
+                self.x, self.y = x_set, y_set
+                self.batch_size = batch_size
+
+            def __len__(self):
+                return int(np.ceil(len(self.x) / float(self.batch_size)))
+
+            def __getitem__(self, idx):
+                batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
+                batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+
+                return batch_x, batch_y
+
         def trainModel(model, X, y, lossFunction, modeprec, saveModel=False):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             sys.stdout.flush()
@@ -346,10 +361,12 @@ class ScriptDeepGlobalAssignment(XmippScript):
             if saveModel:
                 callbacks.append(save_best_model)
 
+            generator = MySequence(X, y, batch_size)
+
             epoch = 0
             for i in range(maxEpochs):
                 start_time = time()
-                history = model.fit(X, y, epochs=1, callbacks=callbacks, verbose=0)
+                history = model.fit(generator, epochs=1, callbacks=callbacks, verbose=0)
                 end_time = time()
                 epoch += 1
                 loss = history.history['loss'][-1]
@@ -385,7 +402,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             # Location model
             print("Learning approximate location")
-            modelLocation = constructLocationModel(Xdim, training_generator.cluster_centers.shape[1],
+            modelLocation = constructLocationModel(Xdim, training_generator.cluster_centers.shape[0],
                                                    modelSize, modelShift)
             modelLocation.summary()
             trainModel(modelLocation, training_generator.Xsim, training_generator.ylocation,
