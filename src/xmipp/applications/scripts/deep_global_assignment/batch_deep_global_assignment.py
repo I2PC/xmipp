@@ -30,7 +30,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--modelSize <s=0>]           : Model size (0=277k, 1=1M, 2=5M, 3=19M parameters)')
         self.addParamsLine('[--precision <s=0.07>]        : Alignment precision measured in percentage of '
                            'the image size')
-        self.addParamsLine('[--vae]                       : Include VAE')
+        self.addParamsLine('[--vae <vaePrec=0.1>]         : Include VAE, the VAE precision is a fraction of'
+                           '                              : the image standard deviation')
         self.addParamsLine('[--centerParticles]           : Learn a model to center particles')
         self.addParamsLine('[--approximateFirst]          : Learn a first approximation as a helper')
 
@@ -48,6 +49,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
         modelSize = int(self.getParam("--modelSize"))
         precision = float(self.getParam("--precision"))
         includeVae = self.checkParam("--vae")
+        if includeVae:
+            vaePrecision = float(self.getParam("--vae"))
         centerParticles = self.checkParam("--centerParticles")
         approximateFirst = self.checkParam("--approximateFirst")
 
@@ -190,7 +193,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             if includeVae:
                 print("Learning VAE")
                 vae, vaeEncoder = deepGlobal.constructVAEModel(Xdim, modelShift)
-                trainModel(vae, training_generator.Xsim, training_generator.Xsim, precision, saveModel=False)
+                trainModel(vae, training_generator.Xsim, training_generator.Xsim, vaePrecision, saveModel=False)
                 vaeEncoder.trainable = False
             else:
                 vaeEncoder = None
