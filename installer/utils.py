@@ -843,35 +843,35 @@ def runLambda(function: Callable, args: Tuple[Any]=()):
 	return function(*args)
 
 def createDir(path):
-		"""
-		Create a directory if it doesn't exist.
+	"""
+	Create a directory if it doesn't exist.
 
-		Args:
-		- path (str): The path of the directory to be created.
-		"""
-		if not os.path.exists(path):
-				os.makedirs(path)
+	Args:
+	- path (str): The path of the directory to be created.
+	"""
+	if not os.path.exists(path):
+		os.makedirs(path)
 
 def getScipionHome():
-    """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
-    return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
+	""" Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
+	return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
 
 def whereis(program, findReal=False, env=None):
-    """
-		Find the directory path of a specified program.
+	"""
+	Find the directory path of a specified program.
 
-		Args:
-		- program (str): The name of the program to search for.
-		- findReal (bool, optional): If True, returns the real path of the program (default: False).
-		- env (str, optional): The environment variable to use for the search (default: None).
+	Args:
+	- program (str): The name of the program to search for.
+	- findReal (bool, optional): If True, returns the real path of the program (default: False).
+	- env (str, optional): The environment variable to use for the search (default: None).
 
-		Returns:
-		- str or None: Returns the directory path where the program is located. If not found, returns None.
-		"""
-    programPath = distutils.spawn.find_executable(program, path=env)
-    if programPath:
-    		if findReal:
-    				programPath = os.path.realpath(programPath)
-    		return os.path.dirname(programPath)
-    else:
-    		return None
+	Returns:
+	- str or None: Returns the directory path where the program is located. If not found, returns None.
+	"""
+	programPath = distutils.spawn.find_executable(program, path=env)
+	if programPath:
+		if findReal:
+			programPath = os.path.realpath(programPath)
+		return os.path.dirname(programPath)
+	else:
+		return None
