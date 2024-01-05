@@ -13,7 +13,6 @@ maxSize = 32
 
 if __name__ == "__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-    from xmippPyModules.deepGlobalAssignment import Redundancy
     from xmippPyModules.xmipp_utils import RotationAverager
 
     checkIf_tf_keras_installed()
@@ -51,7 +50,7 @@ if __name__ == "__main__":
 
         b2 = a2 / np.linalg.norm(a2)
 
-        c1 = np.dot(b2, a3)
+        c1 = np.inner(b2, a3)
 
         b3 = a3 - c1 * b2
         b3 = b3 / np.linalg.norm(b3)
