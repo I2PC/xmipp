@@ -28,9 +28,6 @@
 #include <core/bilib/kernel.h>
 #include <numeric>
 //#define DEBUG
-//#define DEBUG_MASK
-//#define TEST_FRINGES
-
 
 
 void ProgTomoExtractSubtomograms::readParams()
@@ -64,8 +61,6 @@ void ProgTomoExtractSubtomograms::defineParams()
 
 void ProgTomoExtractSubtomograms::createSphere(int halfboxsize)
 {
-	//maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
-	//std::vector<double> maskIdx(0);
 	long n=0;
 
 	for (int k=0; k<boxsize; k++)
@@ -81,7 +76,6 @@ void ProgTomoExtractSubtomograms::createSphere(int halfboxsize)
 				int j2 = (j- halfboxsize);
 				if (sqrt(i2k2 + j2*j2)>halfboxsize)
 				{
-					//A3D_ELEM(maskNormalize, k, i, j) = 1;
 					maskIdx.push_back(n);
 				}
 				n++;
@@ -97,19 +91,14 @@ void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtom
 
 		double sumVal = 0;
 		double sumVal2 = 0;
-		//double counter = 0;
-		//FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+
 		auto counter = maskIdx.size();
 		for (size_t i=0; i<maskIdx.size(); i++)
 		{
-
-//			if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
-//			{
 				double val = DIRECT_MULTIDIM_ELEM(subtomo, maskIdx[i]);
 				sumVal += val;
 				sumVal2 += val*val;
-				//counter = counter + 1;
-//			}
+
 		}
 
 		double mean;
@@ -280,14 +269,15 @@ void ProgTomoExtractSubtomograms::run()
 	double dsFactorTolerance = 0.01;
 	double dsFactorDiff = abs(downsampleFactor - 1);
 
+	size_t boxSizeExtraction;
 	if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
 	{
 		#ifdef DEBUG
 		std::cout << "Entering fixed box size mode" << std::endl;
 		#endif
 
-		size_t boxSizeExtraction;
-		boxsize = boxsize * downsampleFactor;
+
+		boxSizeExtraction = boxsize * downsampleFactor;
 		halfboxsize = floor(0.5*boxSizeExtraction);
 	}
 
@@ -308,7 +298,14 @@ void ProgTomoExtractSubtomograms::run()
 		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
 			continue;
 
-		subtomo.initZeros(1, boxsize, boxsize, boxsize);
+		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
+		{
+			subtomo.initZeros(1, boxSizeExtraction, boxSizeExtraction, boxSizeExtraction);
+		}
+		else
+		{
+			subtomo.initZeros(1, boxsize, boxsize, boxsize);
+		}
 
 		// Contrast inversion
 		for (int k=zinit; k<zlim; k++)
