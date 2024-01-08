@@ -28,9 +28,6 @@
 #include <core/bilib/kernel.h>
 #include <numeric>
 //#define DEBUG
-//#define DEBUG_MASK
-//#define TEST_FRINGES
-
 
 
 void ProgTomoExtractSubtomograms::readParams()
@@ -64,8 +61,6 @@ void ProgTomoExtractSubtomograms::defineParams()
 
 void ProgTomoExtractSubtomograms::createSphere(int halfboxsize)
 {
-	//maskNormalize.initZeros(1, boxsize, boxsize, boxsize);
-	//std::vector<double> maskIdx(0);
 	long n=0;
 
 	for (int k=0; k<boxsize; k++)
@@ -81,7 +76,6 @@ void ProgTomoExtractSubtomograms::createSphere(int halfboxsize)
 				int j2 = (j- halfboxsize);
 				if (sqrt(i2k2 + j2*j2)>halfboxsize)
 				{
-					//A3D_ELEM(maskNormalize, k, i, j) = 1;
 					maskIdx.push_back(n);
 				}
 				n++;
@@ -97,19 +91,14 @@ void ProgTomoExtractSubtomograms::normalizeSubtomo(MultidimArray<double> &subtom
 
 		double sumVal = 0;
 		double sumVal2 = 0;
-		//double counter = 0;
-		//FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(subtomo)
+
 		auto counter = maskIdx.size();
 		for (size_t i=0; i<maskIdx.size(); i++)
 		{
-
-//			if (DIRECT_MULTIDIM_ELEM(maskNormalize, n)>0)
-//			{
 				double val = DIRECT_MULTIDIM_ELEM(subtomo, maskIdx[i]);
 				sumVal += val;
 				sumVal2 += val*val;
-				//counter = counter + 1;
-//			}
+
 		}
 
 		double mean;
