@@ -269,14 +269,15 @@ void ProgTomoExtractSubtomograms::run()
 	double dsFactorTolerance = 0.01;
 	double dsFactorDiff = abs(downsampleFactor - 1);
 
+	size_t boxSizeExtraction;
 	if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
 	{
 		#ifdef DEBUG
 		std::cout << "Entering fixed box size mode" << std::endl;
 		#endif
 
-		size_t boxSizeExtraction;
-		boxsize = boxsize * downsampleFactor;
+
+		boxSizeExtraction = boxsize * downsampleFactor;
 		halfboxsize = floor(0.5*boxSizeExtraction);
 	}
 
@@ -297,7 +298,14 @@ void ProgTomoExtractSubtomograms::run()
 		if ((xlim>Xtom) || (ylim>Ytom) || (zlim>Ztom) || (xinit<0) || (yinit<0) || (zinit<0))
 			continue;
 
-		subtomo.initZeros(1, boxsize, boxsize, boxsize);
+		if (fixedBoxSize && dsFactorDiff > dsFactorTolerance)
+		{
+			subtomo.initZeros(1, boxSizeExtraction, boxSizeExtraction, boxSizeExtraction);
+		}
+		else
+		{
+			subtomo.initZeros(1, boxsize, boxsize, boxsize);
+		}
 
 		// Contrast inversion
 		for (int k=zinit; k<zlim; k++)
