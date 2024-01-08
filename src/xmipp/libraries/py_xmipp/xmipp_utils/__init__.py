@@ -185,14 +185,16 @@ class RotationHandler:
     def quaternion_distance(quaternions: np.ndarray,
                             quaternion: np.ndarray) -> np.ndarray:
         dots = np.dot(quaternions, quaternion)
-        return np.arccos(2 * (dots ** 2) - 1)
+        arg = np.clip(2 * (dots ** 2) - 1,-1,1)
+        return np.arccos(arg)
 
     @staticmethod
     def maximum_distance(av_mat, mat):
         """Max and argMax distance in angles from a set of rotation matrix"""
         c = mat * av_mat[np.newaxis, 0:3, 0:3]
         d = np.sum(c, axis=(1, 2))
-        ang_Distances = np.arccos((d - 1) / 2)
+        arg = np.clip((d - 1) / 2,-1,1)
+        ang_Distances = np.arccos(arg)
         return np.max(ang_Distances), np.argmax(ang_Distances)
 
 def getRotationMatrix(n):
@@ -248,18 +250,39 @@ try:
     from keras.utils.all_utils import Sequence
 
     class XmippTrainingSequence(Sequence):
-        def __init__(self, x_set, y_set, batch_size):
+        def __init__(self, x_set, y_set, batch_size, maxSize=64):
             self.x, self.y = x_set, y_set
             self.batch_size = batch_size
+            self.maxSize = maxSize if maxSize is not None else len(self.x)
+            self.maxSize = min(self.maxSize, len(self.x))
 
         def __len__(self):
-            return int(np.ceil(len(self.x) / float(self.batch_size)))
+            return int(np.ceil(min(self.maxSize, len(self.x)) / float(self.batch_size)))
 
         def __getitem__(self, idx):
-            batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
-            batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+            start_idx = idx * self.batch_size
+            end_idx = min((idx + 1) * self.batch_size, self.maxSize)
+            batch_x = self.x[start_idx:end_idx]
+            batch_y = self.y[start_idx:end_idx]
 
             return batch_x, batch_y
+
+        def increaseMaxSize(self, K):
+            new_max_size = int(self.maxSize * K)
+            self.maxSize = min(new_max_size, len(self.x))
+
+        def isMaxSize(self):
+            return self.maxSize == len(self.x)
+
+        def shuffle_data(self):
+            # Generate shuffled indices
+            indices = np.arange(len(self.x))
+            np.random.shuffle(indices)
+
+            # Reorder X and Y according to the shuffled indices
+            self.x = self.x[indices]
+            self.y = self.y[indices]
+
     KERAS_INSTALLED = True
 except:
     KERAS_INSTALLED = False

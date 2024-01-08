@@ -303,10 +303,15 @@ try:
                             min_errors = tf.tensor_scatter_nd_update(min_errors, [[j]], [errors[j]])
                             rotated_versions = rotated_versions.write(j, transformed[j])
                 y_6d = rotated_versions.stack()
+                epsilon = 1e-7
+                # y_6d = tf.clip_by_value(y_6d, -1.0 + epsilon, 1.0 - epsilon)
 
                 e3_true = y_6dtrue[:, 3:]  # Last 3 components
+                tf.print("e3_true", e3_true[0,])
                 e3_pred = y_6d[:, 3:]  # Last 3 components
-                epsilon = 1e-7
+                tf.print("e3_pred", e3_pred[0,])
+                e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
+                tf.print("e3_prednorm", e3_pred[0,])
                 angle3 = tf.acos(
                     tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                 angular_error = tf.reduce_mean(tf.abs(angle3))
@@ -316,13 +321,16 @@ try:
                     e2_true = y_6dtrue[:, :3]  # First 3 components
                     e2_pred = y_6d[:, :3]  # First 3 components
 
+                    tf.print("e2_true",e2_true[0,])
+                    tf.print("e2_pred",e2_pred[0,])
+
                     e1_true = tf.linalg.cross(e2_true, e3_true)
 
                     # Gram-Schmidt orthogonalization
-                    e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
                     projection = tf.reduce_sum(e2_pred * e3_pred, axis=-1, keepdims=True)
                     e2_pred = e2_pred - projection * e3_pred
                     e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
+                    tf.print("e2_prednorm",e2_pred[0,])
                     e1_pred = tf.linalg.cross(e2_pred, e3_pred)
                     e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)
 
@@ -330,6 +338,7 @@ try:
                         tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                     angle2 = tf.acos(
                         tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
+                    tf.print("angle2",angle2[0,])
 
                     angular_error += tf.reduce_mean(tf.abs(angle1)) + tf.reduce_mean(tf.abs(angle2))
                     Nangular += 2
