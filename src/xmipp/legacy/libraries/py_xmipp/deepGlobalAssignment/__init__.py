@@ -25,8 +25,24 @@
     It will be installed at build/pylib/xmippPyModules.
 """
 
+import numpy as np
+
+class Redundancy():
+    def __init__(cls):
+        l1 = lambda x: [(-1) ** int(bit) for bit in (bin(x)[2:]).zfill(6)]
+        l2 = lambda x: [2+(-1) ** int(bit) for bit in (bin(x)[2:]).zfill(6)]
+        cls.A = np.array([l1(x) for x in range(32)]+[l2(x) for x in range(32)])
+        cls.A = cls.A/np.linalg.norm(cls.A,axis=1)[:,np.newaxis]
+
+        cls.Apinv = np.linalg.pinv(cls.A)
+
+    def make_redundant(cls, x):
+        return np.matmul(cls.A, x)
+
+    def make_nonredundant(cls, x):
+        return np.matmul(cls.Apinv, np.reshape(x,(cls.A.shape[0])))
+
 try:
-    import numpy as np
     import tensorflow as tf
     from tensorflow.keras import backend as K
     from tensorflow.keras.losses import mean_absolute_error
@@ -71,6 +87,19 @@ try:
             base_config = super(ShiftImageLayer, self).get_config()
             return {**base_config}
 
+    class VAESampling(Layer):
+        """Sampling layer for VAE."""
+
+        def call(self, inputs):
+            z_mean, z_log_var = inputs
+            batch = K.shape(z_mean)[0]
+            dim = K.int_shape(z_mean)[1]
+            epsilon = K.random_normal(shape=(batch, dim))
+            return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
+        def get_config(self):
+            return super().get_config()
+
     class ConcatenateZerosLayer(Layer):
         def __init__(self, num_zeros, **kwargs):
             super(ConcatenateZerosLayer, self).__init__(**kwargs)
@@ -85,6 +114,42 @@ try:
             base_config = super(ConcatenateZerosLayer, self).get_config()
             base_config.update({'num_zeros': self.num_zeros})
             return {**base_config}
+
+    def conv_block(tensor, filters):
+        # Convolutional block of RESNET
+        x = Conv2D(filters, (3, 3), padding='same', strides=(2, 2))(tensor)
+        x = BatchNormalization(axis=3)(x)
+        x = Activation('relu')(x)
+        x = Conv2D(filters, (3, 3), padding='same')(x)
+        x = BatchNormalization(axis=3)(x)
+        x_res = Conv2D(filters, (1, 1), strides=(2, 2))(tensor)
+        x = Add()([x, x_res])
+        x = Activation('relu')(x)
+        return x
+
+    def constructRESNET(inputLayer, outputSize, modelSize, drop=0.0):
+        x = conv_block(inputLayer, filters=64)
+        if drop>0:
+            x = Dropout(drop)(x)
+        x = conv_block(x, filters=128)
+        if drop>0:
+            x = Dropout(drop)(x)
+        if modelSize >= 1:
+            x = conv_block(x, filters=256)
+            if drop > 0:
+                x = Dropout(drop)(x)
+        if modelSize >= 2:
+            x = conv_block(x, filters=512)
+            if drop > 0:
+                x = Dropout(drop)(x)
+        if modelSize >= 3:
+            x = conv_block(x, filters=1024)
+            if drop > 0:
+                x = Dropout(drop)(x)
+        x = GlobalAveragePooling2D()(x)
+        x = Dense(64)(x)
+        x = Dense(outputSize, activation="linear")(x)
+        return x
 
     def constructNN(inputLayer, outputSize):
         x = Conv2D(32, (5, 5), padding='same', activation='relu')(inputLayer)
@@ -113,18 +178,111 @@ try:
         shifted_images = ShiftImageLayer()([input_tensor, predicted_shift])
         return shifted_images, predicted_shift
 
-    def constructAnglesModel(Xdim, modelShift):
+    def constructLocationModel(Xdim, ydim, modelShift):
         input_tensor = Input(shape=(Xdim, Xdim, 1))
-        shifted_images, predicted_shift = connectShiftModel(input_tensor, modelShift)
-        x = constructNN(shifted_images, 8)
-        infoLayers = [x, predicted_shift]
+        if modelShift is not None:
+            shifted_images, _ = connectShiftModel(input_tensor, modelShift)
+            x = constructNN(shifted_images, ydim)
+        else:
+            x = constructNN(input_tensor, ydim)
+        return Model(input_tensor, x)
 
-        concat_layer = Concatenate(axis=-1)  # Change axis if needed
-        x = concat_layer(infoLayers)
-        x = Dense(256, activation='relu')(x)
-        x = Dense(8, activation='linear')(x)
+    def connectLocationModel(input_tensor, modelLocation):
+        x = input_tensor
+        for layer in modelLocation.layers[1:]:
+            layer.trainable = False
+            x = layer(x)
+        location = x
+        return location
+
+    def constructAnglesModel(Xdim, modelSize, modelShift, modelLocation, vaeEncoder):
+        input_tensor = Input(shape=(Xdim, Xdim, 1))
+        if modelShift is not None:
+            shifted_images, predicted_shift = connectShiftModel(input_tensor, modelShift)
+            x = constructNN(shifted_images, 8)
+            infoLayers = [x, predicted_shift]
+        else:
+            x = constructNN(inputLayer, 8)
+            infoLayers = [x]
+
+        if modelLocation is not None:
+            location = connectLocationModel(input_tensor, modelLocation)
+            x2 = Dense(64)(location)
+            x2 = Dense(8)(x2)
+            infoLayers.append(x2)
+
+        if vaeEncoder is not None:
+            vae_outputs = vaeEncoder(inputLayer)
+            z_mean, z_log_var, vae = vae_outputs
+            x3 = Dense(64)(vae)
+            x3 = Dense(8)(x3)
+            infoLayers.append(x3)
+
+        if len(infoLayers) > 1:
+            concat_layer = Concatenate(axis=-1)  # Change axis if needed
+            x = concat_layer(infoLayers)
+            x = Dense(256, activation='relu')(x)
+            x = Dense(8, activation='linear')(x)
 
         return Model(input_tensor, x)
+
+    def VAEencoder(inputLayer, latent_dim):
+        x = Conv2D(32, 5, activation='relu', strides=2, padding='same')(inputLayer)
+        x = Conv2D(64, 5, activation='relu', strides=2, padding='same')(x)
+        x = Conv2D(64, 5, activation='relu', strides=2, padding='same')(x)
+        x = Flatten()(x)
+        x = Dense(16, activation='relu')(x)
+        z_mean = Dense(latent_dim, name='z_mean')(x)
+        z_log_var = Dense(latent_dim, name='z_log_var')(x)
+        z = VAESampling()([z_mean, z_log_var])
+        return Model(inputLayer, [z_mean, z_log_var, z])
+
+
+    def VAEdecoder(latent_dim, Xdim):
+        latent_inputs = Input(shape=(latent_dim,))
+        x = Dense(16 * 16 * 64, activation='relu')(latent_inputs)
+        x = Reshape((16, 16, 64))(x)
+        x = Conv2DTranspose(64, 3, activation='relu', strides=2, padding='same')(x)
+        x = Conv2DTranspose(32, 3, activation='relu', strides=2, padding='same')(x)
+        x = Conv2DTranspose(32, 3, activation='relu', strides=2, padding='same')(x)
+        x = Conv2DTranspose(1, 3, activation='linear', padding='same')(x)
+        outputs = Resizing(Xdim, Xdim, interpolation='bilinear')(x)
+        decoder = Model(latent_inputs, outputs)
+        return decoder
+
+    def vae_loss(inputs, outputs, z_mean, z_log_var):
+        flattened_inputs = K.flatten(inputs)
+        flattened_outputs = K.flatten(outputs)
+        reconstruction_loss = mean_absolute_error(flattened_inputs, flattened_outputs)
+        std_dev = K.std(flattened_inputs)
+        return reconstruction_loss / (std_dev + K.epsilon())
+        # kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+        # kl_loss = z_log_var - K.square(z_mean) - K.exp(z_log_var)
+        # kl_loss = K.sum(kl_loss, axis=-1)
+        # kl_loss *= -0.5
+        # return K.mean(reconstruction_loss + kl_loss)
+
+    def constructVAEModel(Xdim, modelShift):
+        """VAE model"""
+        inputLayer = Input(shape=(Xdim, Xdim, 1))
+        latent_dim = 10
+        if modelShift is not None:
+            predicted_shift = modelShift(inputLayer)
+            shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
+            encoder = VAEencoder(shifted_images, latent_dim)
+        else:
+            encoder = VAEencoder(inputLayer, latent_dim)
+        encoder.summary()
+        decoder = VAEdecoder(latent_dim, Xdim)
+        decoder.summary()
+        output = decoder(encoder(inputLayer)[2])
+        vae = Model(inputLayer, output)
+        vae.add_loss(vae_loss(vae.inputs[0], vae.outputs[0],
+                              encoder.get_layer('z_mean').output,
+                              encoder.get_layer('z_log_var').output))
+        vae.compile(optimizer='adam')
+        return vae, encoder
+
 
     class AngularLoss(tf.keras.losses.Loss):
         def __init__(self, listSymmetryMatricesNP, Xdim, **kwargs):
@@ -147,6 +305,7 @@ try:
             error = shift_error
 
             if self.mode != SHIFT_MODE:
+                shift_error/=self.Xdim
                 y_6d = y_pred[:, :6]
                 y_6dtrue = y_true[:, :6]
 
@@ -204,7 +363,7 @@ try:
                     angular_error += tf.reduce_mean(tf.abs(angle1)) + tf.reduce_mean(tf.abs(angle2))
                     Nangular += 2
 
-                error += angular_error / Nangular * self.Xdim/2
+                error += angular_error / Nangular
 
             return error
 
