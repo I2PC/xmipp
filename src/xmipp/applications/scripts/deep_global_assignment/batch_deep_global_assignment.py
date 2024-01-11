@@ -36,7 +36,6 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--centerParticles]           : Learn a model to center particles')
         self.addParamsLine('[--approximateFirst]          : Learn a first approximation as a helper')
 
-    @property
     def run(self):
         fnXmdSim = self.getParam("--isim")
         fnXmdExp = self.getParam("--iexp")
@@ -132,7 +131,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 model.compile(loss=lossFunction, optimizer=adam_opt)
 
             generator = XmippTrainingSequence(X, y, batch_size, maxSize=firstBatch)
-            generator.shuffle_data()
+            # generator.shuffle_data()
 
             reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
                 monitor='loss',  # Metric to be monitored
@@ -141,13 +140,15 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 min_lr=1e-8,  # Lower bound on the learning rate
             )
 
-            while not generator.isMaxSize():
+            goOn = True
+            while goOn:
                 print("Current size =%d"%generator.maxSize)
                 epoch = 0
                 for i in range(maxEpochs):
                     start_time = time()
                     history = model.fit(generator, epochs=1, verbose=0, callbacks=[reduce_lr])
                     end_time = time()
+                    goOn = not generator.isMaxSize()
                     epoch += 1
                     loss = history.history['loss'][-1]
                     print("Epoch %d loss=%f trainingTime=%d" % (epoch, loss, int(end_time-start_time)), flush=True)
@@ -155,7 +156,15 @@ class ScriptDeepGlobalAssignment(XmippScript):
                         break
                 generator.increaseMaxSize(1.25)
             if saveModel:
-                model.save(fnModelIndex)
+                model.save(fnModelIndex, save_format="tf")
+
+        def testModel(model, X, y):
+            ypred = model.predict(X)
+            for i, image in enumerate(ypred):
+                np.set_printoptions(threshold=sys.maxsize)
+                print(y[i])
+                np.set_printoptions(threshold=sys.maxsize)
+                print(ypred[i])
 
         SL = xmippLib.SymList()
         listSymmetryMatrices = SL.getSymmetryMatrices(symmetry)
@@ -177,11 +186,10 @@ class ScriptDeepGlobalAssignment(XmippScript):
             if centerParticles:
                 print("Learning shift")
                 angularLoss.setMode(deepGlobal.SHIFT_MODE)
-                modeprec = 2 / 5 * precision  # 2/5 because the shift are 2 out of 5 numbers in the cost function
-                modelShift = deepGlobal.constructShiftModel(Xdim, 0)
+                modelShift = deepGlobal.constructShiftModel(Xdim)
                 modelShift.summary()
                 trainModel(modelShift, training_generator.Xsim, training_generator.ysim,
-                           modeprec, firstBatch, angularLoss, saveModel=False)
+                           0.1, firstBatch, angularLoss, saveModel=False) # Prec=0.1 pixels
                 modelShift.trainable = False
             else:
                 modelShift = None
@@ -190,10 +198,10 @@ class ScriptDeepGlobalAssignment(XmippScript):
             if approximateFirst:
                 print("Learning approximate location")
                 modelLocation = deepGlobal.constructLocationModel(Xdim, training_generator.cluster_centers.shape[0],
-                                                       modelSize, modelShift)
+                                                                  modelShift)
                 modelLocation.summary()
                 trainModel(modelLocation, training_generator.Xsim, training_generator.ylocation,
-                           precision, 'mae', saveModel=False)
+                           precision, firstBatch, 'mae', saveModel=False)
                 modelLocation.trainable = False
             else:
                 modelLocation = None
@@ -217,11 +225,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
             trainModel(model, training_generator.Xsim, training_generator.ysim, modeprec, firstBatch, angularLoss,
                        saveModel=True, fnModelIndex=fnModelIndex)
 
-            ypredicted = model.predict(training_generator.Xsim)
-            np.set_printoptions(threshold=sys.maxsize)
-            print(training_generator.ysim[0,])
-            np.set_printoptions(threshold=sys.maxsize)
-            print(ypredicted[0,])
+            testModel(model, training_generator.Xsim, training_generator.ysim)
 
 if __name__ == '__main__':
-    ScriptDeepGlobalAssignment().tryRun()
+    exitCode = ScriptDeepGlobalAssignment().tryRun()
+    sys.exit(exitCode)
