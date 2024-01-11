@@ -25,7 +25,6 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
         self.addParamsLine('[--gpu <id=0>]                : GPU Id')
         self.addParamsLine('[--sym <s=c1>]                : Symmetry')
 
-    @property
     def run(self):
         fnExp = self.getParam("--iexp")
         fnExpResized = self.getParam("--iexpResized")
@@ -81,7 +80,9 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
             return angles
 
         mdResized = xmippLib.MetaData(fnExpResized)
+        Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnExp)
         XdimResized, _, _, _, _ = xmippLib.MetaDataInfo(fnExpResized)
+        K = Xdim/XdimResized
         fnImgs = mdResized.getColumnValues(xmippLib.MDL_IMAGE)
         itemIds = mdResized.getColumnValues(xmippLib.MDL_ITEM_ID)
 
@@ -110,11 +111,17 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                     Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
                     k += 1
                 predictions[i*maxSize:(i*maxSize + numPredictions), :] = AngModel.predict(Xexp)
-            np.set_printoptions(threshold=sys.maxsize)
-            print(predictions[0,])
+
+            for i, image in enumerate(Xexp):
+                mean = np.mean(image)
+                std = np.std(image)
+                fn = fnImgs[i]
+                print(f"Image {fn} {i}: Mean = {mean}, Std = {std}")
+                np.set_printoptions(threshold=sys.maxsize)
+                print(predictions[i])
 
             angleList.append(decodePredictions(predictions))
-            shiftList.append(predictions[:,-2:])
+            shiftList.append(predictions[:,-2:]*K)
 
         averager=RotationAverager(angleList)
         averager.bringToAsymmetricUnit(symmetry)
