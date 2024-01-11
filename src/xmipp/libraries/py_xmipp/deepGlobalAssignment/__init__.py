@@ -49,7 +49,7 @@ try:
     from keras.models import Model
     from keras.layers import Input, Conv2D, BatchNormalization, Dense, concatenate, \
         Activation, GlobalAveragePooling2D, Add, Layer, Dropout, Lambda, Resizing, Flatten, Reshape, \
-        Conv2DTranspose, Concatenate, Layer
+        Conv2DTranspose, Concatenate, Layer, MaxPooling2D
 
     SHIFT_MODE = 0
     FULL_MODE = 1
@@ -127,7 +127,6 @@ try:
         x = Activation('relu')(x)
         return x
 
-
     def constructRESNET(inputLayer, outputSize, modelSize, drop=0.0):
         x = conv_block(inputLayer, filters=64)
         if drop>0:
@@ -152,25 +151,43 @@ try:
         x = Dense(outputSize, activation="linear")(x)
         return x
 
+    def constructNN(inputLayer, outputSize):
+        x = Conv2D(32, (5, 5), padding='same', activation='relu')(inputLayer)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(32, (5, 5), padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(32, (5, 5), padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Flatten()(x)
+        x = Dense(64, activation='relu')(x)
+        x = Dense(outputSize, activation="linear")(x)
+        return x
 
-    def constructShiftModel(Xdim, modelSize):
-        """RESNET architecture"""
+    def constructShiftModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1))
-        x = constructRESNET(inputLayer, 2, modelSize)
+        x = constructNN(inputLayer, 2)
         x = ConcatenateZerosLayer(6)(x)
         return Model(inputLayer, x)
 
-
-    def constructAnglesModel(Xdim, modelSize, modelShift, modelLocation, vaeEncoder):
-        """RESNET architecture"""
+    def constructLocationModel(Xdim, ydim, modelShift):
         inputLayer = Input(shape=(Xdim, Xdim, 1))
         if modelShift is not None:
             predicted_shift = modelShift(inputLayer)
             shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
-            x = constructRESNET(shifted_images, 8, modelSize)
+            x = constructNN(shifted_images, ydim)
+        else:
+            x = constructNN(inputLayer, ydim)
+        return Model(inputLayer, x)
+
+    def constructAnglesModel(Xdim, modelSize, modelShift, modelLocation, vaeEncoder):
+        inputLayer = Input(shape=(Xdim, Xdim, 1))
+        if modelShift is not None:
+            predicted_shift = modelShift(inputLayer)
+            shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
+            x = constructNN(shifted_images, 8)
             infoLayers = [x, predicted_shift]
         else:
-            x = constructRESNET(inputLayer, 8, modelSize)
+            x = constructNN(inputLayer, 8)
             infoLayers = [x]
 
         if modelLocation is not None:
@@ -193,19 +210,6 @@ try:
             x = Dense(8, activation='linear')(x)
 
         return Model(inputLayer, x)
-
-
-    def constructLocationModel(Xdim, ydim, modelSize, modelShift):
-        """RESNET architecture"""
-        inputLayer = Input(shape=(Xdim, Xdim, 1))
-        if modelShift is not None:
-            predicted_shift = modelShift(inputLayer)
-            shifted_images = ShiftImageLayer()([inputLayer, predicted_shift])
-            x = constructRESNET(shifted_images, ydim, modelSize)
-        else:
-            x = constructRESNET(inputLayer, ydim, modelSize)
-        return Model(inputLayer, x)
-
 
     def VAEencoder(inputLayer, latent_dim):
         x = Conv2D(32, 5, activation='relu', strides=2, padding='same')(inputLayer)
@@ -282,10 +286,11 @@ try:
         def call(self, y_true, y_pred):
             shift_true = y_true[:, 6:]  # Last 2 components
             shift_pred = y_pred[:, 6:]  # Last 2 components
-            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred)) / self.Xdim
+            shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
             error = shift_error
 
             if self.mode != SHIFT_MODE:
+                shift_error/=self.Xdim
                 y_6d = y_pred[:, :6]
                 y_6dtrue = y_true[:, :6]
 
@@ -307,11 +312,11 @@ try:
                 # y_6d = tf.clip_by_value(y_6d, -1.0 + epsilon, 1.0 - epsilon)
 
                 e3_true = y_6dtrue[:, 3:]  # Last 3 components
-                tf.print("e3_true", e3_true[0,])
+                # tf.print("e3_true", e3_true[0,])
                 e3_pred = y_6d[:, 3:]  # Last 3 components
-                tf.print("e3_pred", e3_pred[0,])
+                # tf.print("e3_pred", e3_pred[0,])
                 e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
-                tf.print("e3_prednorm", e3_pred[0,])
+                # tf.print("e3_prednorm", e3_pred[0,])
                 angle3 = tf.acos(
                     tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                 angular_error = tf.reduce_mean(tf.abs(angle3))
@@ -321,8 +326,8 @@ try:
                     e2_true = y_6dtrue[:, :3]  # First 3 components
                     e2_pred = y_6d[:, :3]  # First 3 components
 
-                    tf.print("e2_true",e2_true[0,])
-                    tf.print("e2_pred",e2_pred[0,])
+                    # tf.print("e2_true",e2_true[0,])
+                    # tf.print("e2_pred",e2_pred[0,])
 
                     e1_true = tf.linalg.cross(e2_true, e3_true)
 
@@ -330,7 +335,7 @@ try:
                     projection = tf.reduce_sum(e2_pred * e3_pred, axis=-1, keepdims=True)
                     e2_pred = e2_pred - projection * e3_pred
                     e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
-                    tf.print("e2_prednorm",e2_pred[0,])
+                    # tf.print("e2_prednorm",e2_pred[0,])
                     e1_pred = tf.linalg.cross(e2_pred, e3_pred)
                     e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)
 
@@ -338,7 +343,7 @@ try:
                         tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                     angle2 = tf.acos(
                         tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-                    tf.print("angle2",angle2[0,])
+                    # tf.print("angle2",angle2[0,])
 
                     angular_error += tf.reduce_mean(tf.abs(angle1)) + tf.reduce_mean(tf.abs(angle2))
                     Nangular += 2
