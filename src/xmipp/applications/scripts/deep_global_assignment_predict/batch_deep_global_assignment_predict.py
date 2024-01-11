@@ -97,8 +97,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
         for index in range(numAngModels):
             AngModel = keras.models.load_model(os.path.join(fnModelDir,"model_angles%d.tf"%index),
                                                custom_objects={'ConcatenateZerosLayer': deepGlobal.ConcatenateZerosLayer,
-                                                               'ShiftImageLayer': deepGlobal.ShiftImageLayer,
-                                                               'VAESampling': deepGlobal.VAESampling},
+                                                               'ShiftImageLayer': deepGlobal.ShiftImageLayer},
                                                compile=False)
 
             k = 0
@@ -111,14 +110,6 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                     Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
                     k += 1
                 predictions[i*maxSize:(i*maxSize + numPredictions), :] = AngModel.predict(Xexp)
-
-            for i, image in enumerate(Xexp):
-                mean = np.mean(image)
-                std = np.std(image)
-                fn = fnImgs[i]
-                print(f"Image {fn} {i}: Mean = {mean}, Std = {std}")
-                np.set_printoptions(threshold=sys.maxsize)
-                print(predictions[i])
 
             angleList.append(decodePredictions(predictions))
             shiftList.append(predictions[:,-2:]*K)
