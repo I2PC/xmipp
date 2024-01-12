@@ -51,8 +51,8 @@ try:
             ones = tf.ones((batch_size,))
             zeros = tf.zeros((batch_size,))
             transforms = tf.stack([
-                ones, zeros, -shifts[:, -2],  # First row of the affine transformation matrix
-                zeros, ones, -shifts[:, -1],  # Second row of the affine transformation matrix
+                ones, zeros, shifts[:, -2],  # First row of the affine transformation matrix
+                zeros, ones, shifts[:, -1],  # Second row of the affine transformation matrix
                 zeros, zeros  # Third row of the affine transformation matrix (unused in affine transform)
             ], axis=1)
 
