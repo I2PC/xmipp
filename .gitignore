@@ -35,6 +35,7 @@
 .classpath
 .idea
 .vscode
+.vscode/settings.json
 
 # Scons auxiliary files
 .sconsign.dblite
