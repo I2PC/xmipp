@@ -499,15 +499,15 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		// 		}
 		// 	}
 		// }
-		
-
-        // int colour;
-        // colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
-		
-		// MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
-		// #include<data/morphology.h>
-		// closing2D(labelCopy, labelCoordiantesMapSlice, 8, 2, 512); // in, out, neigh, count, size
 		// // ------------------------------------------------------------------------------------------------------------------------------
+
+
+        int colour;
+        colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
+		
+		MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
+		#include<data/morphology.h>
+		closing2D(labelCopy, labelCoordiantesMapSlice, 8, 2, 512); // in, out, neigh, count, size
 		
         #ifdef DEBUG_HCC
         std::cout << "Colour: " << colour << std::endl;
