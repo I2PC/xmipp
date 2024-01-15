@@ -515,6 +515,9 @@ void ProgTomoDetectMisalignmentTrajectory::pruneResidualVectors()
 void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResidualsMahalanobis()
 {
 	double sigma = (fiducialSize / samplingRate) / 3;	// Sigma for 99% of the points inside the fiducial radius
+	std::cout << "(fiducialSize / samplingRate): " << (fiducialSize / samplingRate) << std::endl;
+	std::cout << "sigma: " << sigma << std::endl;
+
 	// double sigma2 = sigma * sigma;
 
 	// Matrix2D<double> covariance_inv;
@@ -532,7 +535,8 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResidualsMahala
 	// Global alignment analysis
 	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
 
-	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, true);  // Vector saving status of (mis)aligned chains
+	std::vector<bool> globalAlingmentVotting(numberOfInputCoords, true);  // Vector saving status of (mis)aligned chains
+	double vottingRatio = 0.0;
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
@@ -553,10 +557,22 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResidualsMahala
 		double avgMahaDist = sumMahaDist / numberCM;
 		double stdMahaDist = sqrt(sumMahaDist2 / numberCM - avgMahaDist * avgMahaDist);
 
+		if (avgMahaDist > 1)
+		{
+			globalAlingmentVotting[n] = false;
+			vottingRatio += 1;
+		}
+
 		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 	}
+
+	if ((vottingRatio/numberOfInputCoords) > 0.5)
+	{
+		globalAlignment = false;
+	}
+	
 
 	// Local alignment analysis
 	std::cout << "---------------- Local misalignemnt analysis" << std::endl;
@@ -582,6 +598,11 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignmentFromResidualsMahala
 
 		avgMahalanobisDistanceV[n] = avgMahaDist;
 		stdMahalanobisDistanceV[n] = stdMahaDist;
+
+		if (avgMahaDist > 1)
+		{
+			localAlignment[n] = false;	
+		}
 
 		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
@@ -1299,7 +1320,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	adjustCoordinatesCosineStreching();
 
-	detectMisalignmentFromResiduals();
+	detectMisalignmentFromResidualsMahalanobis();
 
 	#ifdef GENERATE_RESIDUAL_STATISTICS
 	generateResidualStatiscticsFile();
