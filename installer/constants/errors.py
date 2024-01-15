@@ -109,7 +109,7 @@ ERROR_CODE = {
   NUMPY_NOT_FOUND_ERROR: ['numpy not found.', 'Please install numpy.'],
   JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed.', 'bin/jar, bin/javac or include not found on the JAVA_HOME path but required.'],
   HDF5_ERROR: ['hdf5 libs does not work.', 'Please review the LIBDIRFLAGS flag on xmipp.conf.'],
-  MPI_COMPILLATION_ERROR: ['', '.'],
+  MPI_COMPILLATION_ERROR: ['Unable to compile with mpicxx', '.'],
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel.', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one.'],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
 	JAVA_INCLUDE_ERROR: ['JAVA fails. jni include fails.','Check the JNI_CPPPATH, CXX and INCDIRFLAGS.'],

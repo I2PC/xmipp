@@ -402,7 +402,7 @@ def updateXmippEnv(pos='begin', realPath=True, **kwargs):
 				if isString and realPath:
 						value = os.path.realpath(value)
 				if key in env:
-						if env[key].find(value) == -1:
+						if env[key].find(str(value)) == -1:
 								if pos == 'begin' and isString:
 										env[key] = value + os.pathsep + env[key]
 								elif pos == 'end' and isString:
