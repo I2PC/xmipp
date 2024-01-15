@@ -501,10 +501,10 @@ void CTFDescription1D::defineParams(XmippProgram * program)
 	program->addParamsLine("                                        : overriden by the parameters in the command line");
 	program->addParamsLine("  [--sampling_rate <Tm>]                : Angstroms/pixel. Ex: 1.4");
 	program->addParamsLine("                                        : This parameter is compulsory if a CTF is needed.");
-	program->addParamsLine("  [--voltage <kV=300>]                  : Accelerating voltage (kV). Ex: 300");
+	program->addParamsLine("  [--voltage <kV>]                      : Accelerating voltage (kV). Ex: 200");
 	program->addParamsLine("                                        : This parameter is compulsory if a CTF is needed.");
 	program->addParamsLine("     alias --kV;");
-	program->addParamsLine("  [--spherical_aberration <Cs=2.7>]     : Milimiters. Ex: 2.7");
+	program->addParamsLine("  [--spherical_aberration <Cs>]         : Milimiters. Ex: 5.6");
 	program->addParamsLine("                                        : This parameter is compulsory if a CTF is needed.");
 	program->addParamsLine("     alias --Cs;");
 	program->addParamsLine("  [--defocusU <Defocus>]                : Defocus in Angstroms (Ex: 2000)");
