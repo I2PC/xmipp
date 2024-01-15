@@ -452,62 +452,62 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             }
         }
 
-		// ------------------------------------------------------------------------------------------------------------------------------
-		// HOUGH TRANSFORM
-		// Define accumulator array
-		int maxRadius = targetFS; // int(std::ceil(targetFS * 1.2));
-		int minRadius = targetFS; // int(std::floor(targetFS * 0.8));
+		// // ------------------------------------------------------------------------------------------------------------------------------
+		// // HOUGH TRANSFORM
+		// // Define accumulator array
+		// int maxRadius = targetFS; // int(std::ceil(targetFS * 1.2));
+		// int minRadius = targetFS; // int(std::floor(targetFS * 0.8));
 
-		std::vector<std::vector<std::vector<int>>> accumulator(
-			xSize, 
-			std::vector<std::vector<int>>(
-				ySize, 
-				std::vector<int>(maxRadius - minRadius + 1, 0)));
+		// std::vector<std::vector<std::vector<int>>> accumulator(
+		// 	xSize, 
+		// 	std::vector<std::vector<int>>(
+		// 		ySize, 
+		// 		std::vector<int>(maxRadius - minRadius + 1, 0)));
 
-		for (int i = 0; i < ySize; ++i) {
-			for (int j = 0; j < xSize; ++j) {
+		// for (int i = 0; i < ySize; ++i) {
+		// 	for (int j = 0; j < xSize; ++j) {
 				
-				// Check if the pixel is part of an edge (assuming 1 for foreground, 0 for background)
-				if (DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) > 0) {
+		// 		// Check if the pixel is part of an edge (assuming 1 for foreground, 0 for background)
+		// 		if (DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) > 0) {
 					
-					// Iterate over possible circle radii
-					for (int r = minRadius; r <= maxRadius; ++r) {
+		// 			// Iterate over possible circle radii
+		// 			for (int r = minRadius; r <= maxRadius; ++r) {
 						
-						// Iterate over possible circle centers
-						for (int theta = 0; theta < 360; ++theta) {
-							int cx = i + r * cos(theta * M_PI / 180.0);
-							int cy = j + r * sin(theta * M_PI / 180.0);
+		// 				// Iterate over possible circle centers
+		// 				for (int theta = 0; theta < 360; ++theta) {
+		// 					int cx = i + r * cos(theta * M_PI / 180.0);
+		// 					int cy = j + r * sin(theta * M_PI / 180.0);
 
-							// Check if the circle center is within the image boundaries
-							if (cx >= 0 && cx < xSize && cy >= 0 && cy < ySize) {
-								// Accumulate a vote for this circle
-								accumulator[cx][cy][r - minRadius]++;
-							}
-						}
-					}
-				}
-			}
-		}
+		// 					// Check if the circle center is within the image boundaries
+		// 					if (cx >= 0 && cx < xSize && cy >= 0 && cy < ySize) {
+		// 						// Accumulate a vote for this circle
+		// 						accumulator[cx][cy][r - minRadius]++;
+		// 					}
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
 
-		// Process accumulator to find circle parameters
-		for (int i = 0; i < ySize; ++i) {
-			for (int j = 0; j < xSize; ++j) {
-				for (int r = minRadius; r <= maxRadius; ++r) {
-					if (accumulator[j][i][r - minRadius] > 0) {
-						std::cout << "Detected circle at center (" << j << ", " << i << ") with radius " << r << std::endl;
-					}
-				}
-			}
-		}
+		// // Process accumulator to find circle parameters
+		// for (int i = 0; i < ySize; ++i) {
+		// 	for (int j = 0; j < xSize; ++j) {
+		// 		for (int r = minRadius; r <= maxRadius; ++r) {
+		// 			if (accumulator[j][i][r - minRadius] > 0) {
+		// 				std::cout << "Detected circle at center (" << j << ", " << i << ") with radius " << r << std::endl;
+		// 			}
+		// 		}
+		// 	}
+		// }
 		
 
-        int colour;
-        colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
+        // int colour;
+        // colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 		
-		MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
-		#include<data/morphology.h>
-		closing2D(labelCopy, labelCoordiantesMapSlice, 8, 2, 512); // in, out, neigh, count, size
-		// ------------------------------------------------------------------------------------------------------------------------------
+		// MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
+		// #include<data/morphology.h>
+		// closing2D(labelCopy, labelCoordiantesMapSlice, 8, 2, 512); // in, out, neigh, count, size
+		// // ------------------------------------------------------------------------------------------------------------------------------
 		
         #ifdef DEBUG_HCC
         std::cout << "Colour: " << colour << std::endl;
