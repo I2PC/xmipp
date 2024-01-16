@@ -30,8 +30,8 @@ import argparse, sys, os, multiprocessing
 from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
-from installer.utils import printError, green
-from installer.config import config
+from installer.utils import printError, green, runJob
+from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
 														cleanDeprecated, cleanSources, cleanBin)
@@ -124,7 +124,30 @@ def modeGit(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# TODO: Implement
+	checkGit()
+	print('\n------------------------------------')
+	print('-Repository xmippCore:\n', end='')
+	retCode, outputStr = runJob("(cd src/xmippCore; git %s)" % " ".join(args.command))
+	if retCode == 0:
+			print(outputStr)
+
+	print('\n------------------------------------')
+	print('-Repository xmipp:\n', end='')
+	retCode, outputStr = runJob("(cd src/xmipp; git %s)" % " ".join(args.command))
+	if retCode == 0:
+			print(outputStr)
+
+	print('\n------------------------------------')
+	print('-Repository xmippViz:\n', end='')
+	retCode, outputStr = runJob("(cd src/xmippViz; git %s)" % " ".join(args.command))
+	if retCode == 0:
+			print(outputStr)
+
+	print('\n------------------------------------')
+	print('-Repository scipion-em-xmipp:\n', end='')
+	retCode, outputStr = runJob("(cd src/scipion-em-xmipp; git %s)" % " ".join(args.command))
+	if retCode == 0:
+			print(outputStr)
 
 def modeTest(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
