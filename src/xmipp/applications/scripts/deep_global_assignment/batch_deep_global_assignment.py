@@ -127,7 +127,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         def testModel(model, X, y):
             ypred = model.predict(X)
-            for i, image in enumerate(ypred):
+            for i, _ in enumerate(ypred):
                 np.set_printoptions(threshold=sys.maxsize)
                 print(y[i])
                 np.set_printoptions(threshold=sys.maxsize)
@@ -160,6 +160,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
             model.summary()
             trainModel(model, training_generator.X, training_generator.y, precision, angularLoss,
                        saveModel=True, fnModelIndex=fnModelIndex)
+            # testModel(model, training_generator.X, training_generator.y)
 
 if __name__ == '__main__':
     exitCode = ScriptDeepGlobalAssignment().tryRun()
