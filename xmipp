@@ -30,12 +30,13 @@ import argparse, sys, os, multiprocessing
 from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
-from installer.utils import printError, isProductionMode
+from installer.utils import printError, green
 from installer.config import config
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
 														cleanDeprecated, cleanSources, cleanBin)
 from installer.api import sendApiPost
+from installer.versions import collectAllVersions
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -140,16 +141,32 @@ def modeTest(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	# TODO: Implement
 
 def modeVersion(args: argparse.Namespace):
-	"""
-	### Checks the params for execution mode "version" and then runs it.
-	
-	#### Params:
-	- args (Namespace): Command line arguments parsed by argparse library.
-	"""
-	# TODO: Implement
-	#collect xmipp version and branchs
-	#collect gcc g++ mpi, java, opencv, cuda, git, hdf5, tiff, fftw3, scons, cmake, rsync
-	#print bonito
+  """
+  ### Checks the params for execution mode "version" and then runs it.
+
+  #### Params:
+  - args (Namespace): Command line arguments parsed by argparse library.
+  """
+  dictPackages = config()
+  dictV = collectAllVersions(dictPackages)
+  if dictV['isUpdated']:
+    print(green('XMIPP branch: {} updated'.format(dictV['branch'])))
+  else:
+    print(green('XMIPP branch: {} not updated'.format(dictV['branch'])))
+  print(green('----------------------------------------'))
+  print(green('gcc version: {}'.format(dictV['gccV'])))
+  print(green('gpp version: {}'.format(dictV['gppV'])))
+  print(green('mpi version: {}'.format(dictV['mpiV'])))
+  print(green('CUDA version: {}'.format(dictV['cudaV'])))
+  print(green('opencv version: {}'.format(dictV['opencvV'])))
+  print(green('java version: {}'.format(dictV['javaV'])))
+  print(green('scons version: {}'.format(dictV['sconsV'])))
+  print(green('cmake version: {}'.format(dictV['cmakeV'])))
+  print(green('rsync version: {}'.format(dictV['rsyncV'])))
+  print(green('hdf5 version: {}'.format(dictV['hdf5V'])))
+  print(green('tiff version: {}'.format(dictV['TIFFVn'])))
+  print(green('fftw3 version: {}'.format(dictV['FFTW3V'])))
+
 
 def modeAll(args: argparse.Namespace):
 	"""

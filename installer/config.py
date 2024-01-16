@@ -119,7 +119,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
     #CCFLAGS
     dictInternalFlags['CCFLAGS'] = '-std=c99'
     #CCXXFLAGS
-    dictInternalFlags['CXXFLAGS'] = '-mtune=native -march=native -flto -std=c++17 -Werror'
+    dictInternalFlags['CXXFLAGS'] = CXX_FLAGS
     if debug:
         dictInternalFlags['CXXFLAGS'] += ' -O0 -g'
     else:
@@ -182,7 +182,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
     dictInternalFlags['JNI_CPPPATH'] = (join(dictPackages['JAVA_HOME'], 'include') +
                         ':' + join(dictPackages['JAVA_HOME'], 'include/linux'))
 
-    dictInternalFlags['LINKFLAGS'] = '-flto'
+    dictInternalFlags['LINKFLAGS'] = LINKFLAGS
     return dictInternalFlags
 
 

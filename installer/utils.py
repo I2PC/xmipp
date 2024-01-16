@@ -428,6 +428,8 @@ def writeXmippEnv(env):
 
 
 ####################### VERSION FUNCTIONS #######################
+
+
 def versionToNumber(strVersion: str) -> float:
 	"""
 	### This function converts the version string into a version number that can be numerically compared.
@@ -499,6 +501,9 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 				return line.split()[-1]
 
 ####################### OTHER FUNCTIONS #######################
+
+
+
 def findFileInDirList(fnH, dirlist):
 	"""
 	Finds a file in a list of directories.

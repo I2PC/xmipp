@@ -31,8 +31,27 @@ os, architecture, cuda, cmake, gpp, gcc and scons.
 from typing import Dict, Union
 import os
 # Installer imports
-from .utils import runJob, getPackageVersionCmd, getPythonPackageVersion
-from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA
+from .utils import (runJob, getPackageVersionCmd, getPythonPackageVersion,
+										getCurrentBranch, isBranchUpToDate, MPIVersion, JAVAVersion,
+										HDF5Version, TIFFVersion, FFTW3Version, opencvVersion)
+from .constants import UNKNOWN_VALUE, CC, CXX, CMAKE, CUDA, CXX_FLAGS
+
+def collectAllVersions(dictPackages: dict):
+  return {'branch': getCurrentBranch(),
+					'isUpdated': isBranchUpToDate(),
+					'gccV': getGCCVersion(),
+					'gppV': getGPPVersion(),
+					'cudaV': getCUDAVersion(),
+					'sconsV': getSconsVersion(),
+					'cmakeV': getCmakeVersion(),
+					'rsyncV': getRsyncVersion(),
+					'mpiV': MPIVersion(getPackageVersionCmd(dictPackages['MPI_RUN'])),
+					'javaV': JAVAVersion(getPackageVersionCmd('java')),
+					'hdf5V': HDF5Version(dictPackages['HDF5_HOME']),
+					'TIFFVn': TIFFVersion(dictPackages['TIFF_SO']),
+					'FFTW3V': FFTW3Version(dictPackages['FFTW3_SO']),
+					'opencvV': opencvVersion(dictPackages, CXX_FLAGS)}
+
 
 ####################### AUX FUNCTIONS #######################
 def parseCompilerVersion(versionCmdStr: Union[str, None]) -> Union[str, None]:
