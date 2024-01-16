@@ -167,8 +167,8 @@ try:
             shift_pred = y_pred[:, 6:]  # Last 2 components
             shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
             error = shift_error
-            tf.print("y_true", y_true[0,])
-            tf.print("y_pred", y_pred[0,])
+            # tf.print("y_true", y_true[0,])
+            # tf.print("y_pred", y_pred[0,])
 
             if self.mode != SHIFT_MODE:
                 y_6d = y_pred[:, :6]
