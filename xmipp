@@ -147,6 +147,9 @@ def modeVersion(args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# TODO: Implement
+	#collect xmipp version and branchs
+	#collect gcc g++ mpi, java, opencv, cuda, git, hdf5, tiff, fftw3, scons, cmake, rsync
+	#print bonito
 
 def modeAll(args: argparse.Namespace):
 	"""
