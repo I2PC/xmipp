@@ -82,7 +82,6 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
         mdResized = xmippLib.MetaData(fnExpResized)
         Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnExp)
         XdimResized, _, _, _, _ = xmippLib.MetaDataInfo(fnExpResized)
-        K = Xdim/XdimResized
         fnImgs = mdResized.getColumnValues(xmippLib.MDL_IMAGE)
         itemIds = mdResized.getColumnValues(xmippLib.MDL_ITEM_ID)
 
@@ -111,8 +110,12 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                     k += 1
                 predictions[i*maxSize:(i*maxSize + numPredictions), :] = AngModel.predict(Xexp)
 
+            for i, prediction in enumerate(predictions):
+                np.set_printoptions(threshold=sys.maxsize)
+                print(prediction)
+
             angleList.append(decodePredictions(predictions))
-            shiftList.append(predictions[:,-2:]*K)
+            shiftList.append(predictions[:,-2:])
 
         averager=RotationAverager(angleList)
         averager.bringToAsymmetricUnit(symmetry)
