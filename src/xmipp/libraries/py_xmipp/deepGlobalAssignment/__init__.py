@@ -86,6 +86,24 @@ try:
             base_config.update({'num_zeros': self.num_zeros})
             return {**base_config}
 
+    class Angles2VectorLayer(Layer):
+        def __init__(self, **kwargs):
+            super(Angles2VectorLayer, self).__init__(**kwargs)
+
+        def call(self, inputs):
+            rot = inputs[:, 0]
+            tilt = inputs[:, 1]
+            transformed_output = tf.stack([
+                -tf.cos(rot) * tf.sin(tilt),
+                tf.sin(rot) * tf.sin(tilt),
+                tf.cos(tilt)
+            ], axis=1)
+            return transformed_output
+
+        def get_config(self):
+            config = super(Angles2VectorLayer, self).get_config()
+            return config
+
     def constructNN(inputLayer, outputSize):
         x = Conv2D(32, (5, 5), padding='same', activation='relu')(inputLayer)
         x = MaxPooling2D(pool_size=(2, 2))(x)
@@ -122,8 +140,12 @@ try:
         concat_layer = Concatenate(axis=-1)  # Change axis if needed
         x = concat_layer(infoLayers)
         x = Dense(256, activation='relu')(x)
-        x = Dense(8, activation='linear')(x)
-
+        x2 = Dense(2, activation='linear')(x)
+        x2 = Angles2VectorLayer()(x2)
+        x3 = Dense(2, activation='linear')(x)
+        x3 = Angles2VectorLayer()(x3)
+        deltaShift = Dense(2, activation='linear')(x)
+        x = Concatenate(axis=-1)([x2, x3, deltaShift])
         return Model(input_tensor, x)
 
     class AngularLoss(tf.keras.losses.Loss):
@@ -145,6 +167,8 @@ try:
             shift_pred = y_pred[:, 6:]  # Last 2 components
             shift_error = tf.reduce_mean(tf.abs(shift_true - shift_pred))
             error = shift_error
+            tf.print("y_true", y_true[0,])
+            tf.print("y_pred", y_pred[0,])
 
             if self.mode != SHIFT_MODE:
                 y_6d = y_pred[:, :6]
@@ -168,22 +192,23 @@ try:
                 # y_6d = tf.clip_by_value(y_6d, -1.0 + epsilon, 1.0 - epsilon)
 
                 e3_true = y_6dtrue[:, 3:]  # Last 3 components
-                # tf.print("e3_true", e3_true[0,])
+                tf.print("e3_true", e3_true[0,])
                 e3_pred = y_6d[:, 3:]  # Last 3 components
-                # tf.print("e3_pred", e3_pred[0,])
+                tf.print("e3_pred", e3_pred[0,])
                 e3_pred = tf.nn.l2_normalize(e3_pred, axis=-1)  # Normalize e3
-                # tf.print("e3_prednorm", e3_pred[0,])
+                tf.print("e3_prednorm", e3_pred[0,])
                 angle3 = tf.acos(
                     tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                 angular_error = tf.reduce_mean(tf.abs(angle3))
+                tf.print("angle3", angle3[0,])
                 Nangular = 1
 
                 if self.mode == FULL_MODE:
                     e2_true = y_6dtrue[:, :3]  # First 3 components
                     e2_pred = y_6d[:, :3]  # First 3 components
 
-                    # tf.print("e2_true",e2_true[0,])
-                    # tf.print("e2_pred",e2_pred[0,])
+                    tf.print("e2_true",e2_true[0,])
+                    tf.print("e2_pred",e2_pred[0,])
 
                     e1_true = tf.linalg.cross(e2_true, e3_true)
 
@@ -191,7 +216,7 @@ try:
                     projection = tf.reduce_sum(e2_pred * e3_pred, axis=-1, keepdims=True)
                     e2_pred = e2_pred - projection * e3_pred
                     e2_pred = tf.nn.l2_normalize(e2_pred, axis=-1)
-                    # tf.print("e2_prednorm",e2_pred[0,])
+                    tf.print("e2_prednorm",e2_pred[0,])
                     e1_pred = tf.linalg.cross(e2_pred, e3_pred)
                     e1_pred = tf.nn.l2_normalize(e1_pred, axis=-1)
 
@@ -199,7 +224,8 @@ try:
                         tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
                     angle2 = tf.acos(
                         tf.clip_by_value(tf.reduce_sum(e2_true * e2_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
-                    # tf.print("angle2",angle2[0,])
+                    tf.print("angle2",angle2[0,])
+                    tf.print("angle1",angle1[0,])
 
                     angular_error += tf.reduce_mean(tf.abs(angle1)) + tf.reduce_mean(tf.abs(angle2))
                     Nangular += 2
