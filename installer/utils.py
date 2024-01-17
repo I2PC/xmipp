@@ -156,6 +156,7 @@ def printError(errorMsg: str, retCode: int=1):
 	# Print the error message in red color
 	errorStr = f'ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
 	printMessage(red(errorStr), debug=True)
+	# TODO send apiPost
 	sys.exit(retCode)
 
 def printMessage(text: str, debug: bool=False):
