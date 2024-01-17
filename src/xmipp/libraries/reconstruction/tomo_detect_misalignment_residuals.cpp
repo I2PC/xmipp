@@ -283,7 +283,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	// Global alignment analysis
 	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
 
-	std::vector<bool> globalMialingmentVotting(numberOfInputCoords, true);  // Vector saving status of (mis)aligned chains
+	double rationMisalignedChains = 0;	// 0 -> aligned -- 1 -> misaligned 
 
 	for (size_t n = 0; n < numberOfInputCoords; n++)
 	{
@@ -304,11 +304,26 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 		double avgMahaDist = sumMahaDist / numberResMod;
 		double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
 
+		if (avgMahaDist > 1)
+		{
+			rationMisalignedChains += 1;
+		}
+
 		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 	}
 
+	// If more than thrRatioMisalignedChains of coordinates are misaligned, set global misalignment
+	double thrRatioMisalignedChains = 0.8;
+
+	if (rationMisalignedChains / numberOfInputCoords > thrRatioMisalignedChains)
+	{
+		globalAlignment = false;
+	}
+
+	std::cout << "------> Global alignment score: " << rationMisalignedChains / numberOfInputCoords << std::endl;
+	
 	// Local alignment analysis
 	std::cout << "---------------- Local misalignemnt analysis" << std::endl;
 	
@@ -335,6 +350,12 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 		avgMahalanobisDistanceV[n] = avgMahaDist;
 		stdMahalanobisDistanceV[n] = stdMahaDist;
+
+		if (avgMahaDist > 1)
+		{
+			localAlignment[n] = false;
+			std::cout << "------> Local misalignment detected at image: " << n << std::endl;
+		}
 
 		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
