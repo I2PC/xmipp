@@ -30,7 +30,7 @@ import argparse, sys, os, multiprocessing
 from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
-from installer.utils import printError, green, runJob
+from installer.utils import printError, green, runJob, addDeepLearninModel
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
@@ -40,14 +40,13 @@ from installer.versions import collectAllVersions
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
-	"""
-	### Checks the params for execution mode "addModel" and then runs it.
-	
-	#### Params:
-	- args (Namespace): Command line arguments parsed by argparse library.
-	"""
-	# TODO: Implement
+  """
+  ### Checks the params for execution mode "addModel" and then runs it.
 
+  #### Params:
+  - args (Namespace): Command line arguments parsed by argparse library.
+  """
+  addDeepLearninModel(login= args.login, modelPath=args.modelPath, update=args.update)
 
 def modeCleanBin(args: argparse.Namespace):
 	"""
@@ -252,6 +251,7 @@ if __name__ == "__main__":
 	addModelSubparser = subparsers.add_parser(MODE_ADD_MODEL, formatter_class=ModeHelpFormatter)
 	addModelSubparser.add_argument("login")
 	addModelSubparser.add_argument("modelPath")
+	addModelSubparser.add_argument("update")
 
 	# Arguments for mode 'all'
 	allSubparser = subparsers.add_parser(MODE_ALL, formatter_class=ModeHelpFormatter)

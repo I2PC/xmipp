@@ -75,7 +75,26 @@ MODES = {
 	},
 	GROUP_DEVELOPERS: {
 		MODE_GIT: 'Runs the given git action for all source repositories.',
-		MODE_ADD_MODEL: 'Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>.'
+		MODE_ADD_MODEL:
+    """
+    Takes a DeepLearning model from the modelPath, makes a tgz of it and uploads the .tgz according to the <login>.
+    This mode is used to upload a model folder to the Scipion/Xmipp server.
+    Usually the model folder contains big files used to fed deep learning procedures
+    with pretrained data. All the models stored in the server will be downloads
+    using the 'get_models' mode or during the compilation/installation time
+    or with 'scipion3 installb deepLearningToolkit'
+    modelsPath must be the absolute path
+    Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]
+
+    Steps:	0. modelName = basename(modelsPath) <- Please, check the folder's name!
+            1. Packing in 'xmipp_model_modelName.tgz'
+            2. Check if that model already exists (use --update to override an existing model)
+            3. Upload the model to the server.
+            4. Update the MANIFEST file.
+
+    The model name will be the folder name in <modelsPath>
+    Must have write permisions to such machine.,
+    """
 	}
 }
 
@@ -111,7 +130,8 @@ MODE_ARGS = {
 	},
 	MODE_ADD_MODEL: {
 		'login': "Login (usr@server) for Nolan machine to upload the model with. Must have write permisions to such machine.",
-		'modelPath': "Path to the model to upload to Nolan."
+		'modelPath': "Path to the model to upload to Nolan.",
+		'update': "Flag to update an existing model"
 	}
 }
 

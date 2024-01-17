@@ -218,6 +218,39 @@ def getAllModes() -> List[str]:
 	# Return full mode list
 	return modes
 
+def addDeepLearninModel(login, modelPath='', update=None):
+		""" Takes the folder name modelName from models dir and
+				makes a .tgz, uploads the .tgz to xmipp server.
+		"""
+		modelPath = modelPath.rstrip("/")
+		if not os.path.isdir(modelPath):
+				print("<modelsPath> is not a directory. Please, check the path. \n"
+							"The name of the model will be the name of that folder.\n")
+
+		modelName = os.path.basename(modelPath)
+		modelsDir = os.path.dirname(modelPath)
+		tgzFn = "xmipp_model_%s.tgz" % modelName
+		localFn = os.path.join(modelsDir, tgzFn)
+
+		print("Creating the '%s' model." % tgzFn)
+		runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
+
+		remotePath = "scipionfiles/downloads/scipion/software/em"
+		print("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
+		print('You are going to be connected to "%s" to write in folder '
+					'"%s".' % (login, remotePath))
+		if input("Continue? YES/no\n").lower() == 'no':
+				sys.exit()
+
+		print("Trying to upload the model using '%s' as login" % login)
+		args = "%s %s %s %s" % (
+		login, os.path.abspath(localFn), remotePath, update)
+		if runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args):
+				print("'%s' model successfully uploaded! Removing the local .tgz"
+							% modelName)
+				runJob("rm %s" % localFn)
+
+
 ####################### COLORS #######################
 def green(text: str) -> str:
 	"""
@@ -391,7 +424,6 @@ def updateEnviron(pathenviron:str='', path2Add:str=''):
 				path_collected += ':' + path2Add
 		os.environ[pathenviron] = path_collected
 
-
 def updateXmippEnv(pos='begin', realPath=True, **kwargs):
 		""" Add/update a variable in self.env dictionary
 				pos = {'begin', 'end', 'replace'}
@@ -413,7 +445,6 @@ def updateXmippEnv(pos='begin', realPath=True, **kwargs):
 						env[key] = str(value)
 
 		writeXmippEnv(env)
-
 
 def readXmippEnv():
 		try:
@@ -737,7 +768,8 @@ def installScons():
 
 	# If succeeded, log message
 	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.')
-		
+
+
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################
 def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False) -> Tuple[int, str]:
 	"""
