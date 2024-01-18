@@ -281,7 +281,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	}
 
 	std::cout << "---------------- Distance parameters" << std::endl;
-	std::cout << "Sigma2 = " << sigma << std::endl;
+	std::cout << "Sigma2 = " << sigma2 << std::endl;
 
 	// Global alignment analysis
 	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
