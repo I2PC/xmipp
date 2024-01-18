@@ -33,3 +33,5 @@ from .versions import *
 
 #URL's repositoreis
 cmakeInstallURL = 'https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install'
+urlModels = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+remotePath = "scipionfiles/downloads/scipion/software/em"

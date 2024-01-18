@@ -34,7 +34,7 @@ from sysconfig import get_paths
 from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
-												WARNING_CODE, XMIPPENV)
+												WARNING_CODE, XMIPPENV, urlModels, remotePath)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -236,7 +236,6 @@ def addDeepLearninModel(login, modelPath='', update=None):
 		print("Creating the '%s' model." % tgzFn)
 		runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
 
-		remotePath = "scipionfiles/downloads/scipion/software/em"
 		print("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
 		print('You are going to be connected to "%s" to write in folder '
 					'"%s".' % (login, remotePath))
@@ -251,6 +250,31 @@ def addDeepLearninModel(login, modelPath='', update=None):
 							% modelName)
 				runJob("rm %s" % localFn)
 
+def downloadDeepLearningModels(dest):
+    if not os.path.exists('build/bin/xmipp_sync_data'):
+        print(red('Xmipp has not been installed. Please, first install Xmipp '))
+        return False
+    if dest == 'build':
+        modelsPath = 'models'
+    else:
+        modelsPath = dest
+    dataSet = "DLmodels"
+
+    # downloading/updating the DLmodels
+    if os.path.isdir(modelsPath):
+        print("Updating the Deep Learning models...")
+        task = "update"
+    else:
+        print("Downloading Deep Learning models...")
+        task = "download"
+    global pDLdownload
+    retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
+                         % (task, modelsPath, urlModels, dataSet),
+                         cwd='build', streaming=True)
+    if retCode != 0:
+        print(red('Unable to download models\n{}'.format(outputStr)))
+    else:
+        print(green('Models downloaded in the path: {}'.format(modelsPath)))
 
 ####################### COLORS #######################
 def green(text: str) -> str:

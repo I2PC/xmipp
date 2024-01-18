@@ -30,7 +30,7 @@ import argparse, sys, os, multiprocessing
 from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
-from installer.utils import printError, green, runJob, addDeepLearninModel
+from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
@@ -114,7 +114,7 @@ def modeGetModels(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# TODO: Implement
+	downloadDeepLearningModels(dest=args.directory)
 
 def modeGit(args: argparse.Namespace):
 	"""
@@ -199,6 +199,7 @@ def modeAll(args: argparse.Namespace):
 	"""
 	dictConfig = modeConfig(args)
 	modeCompileAndInstall(args, dictConfig=dictConfig)
+	downloadDeepLearningModels()
 	sendApiPost(dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
