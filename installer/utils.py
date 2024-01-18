@@ -276,9 +276,18 @@ def downloadDeepLearningModels(dest):
     else:
         print(green('Models downloaded in the path: {}'.format(modelsPath)))
 
+def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
+						 allFuncs:bool=False, CUDA: bool=True):
+    str2Test = ''
+    if testName:
+        str2Test += testName
+    if show:
+        str2Test += ' -show'
+    if allPrograms:
+        str2Test += ' -allPrograms'
+    if allFuncs:
+        str2Test += ' -allFuncs'
 
-
-def runTests(testNames):
     xmippSrc = os.environ.get('XMIPP_SRC', None)
     if xmippSrc and os.path.isdir(xmippSrc):
         os.environ['PYTHONPATH'] = ':'.join([
@@ -305,11 +314,12 @@ def runTests(testNames):
     args = "%s %s %s" % ("tests/data", urlTest, dataset)
     runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
-    noCudaStr = '-noCuda' if not buildConfig.is_true('CUDA') else ''
-    print(" Tests to do: %s" % ', '.join(testNames))
-    if not runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-                  % (getPython(), ' '.join(testNames), noCudaStr)):
-        sys.exit(-1)
+    noCudaStr = '-noCuda' if not CUDA else ''
+    print(" Tests to do: %s" % ', '.join(testName))
+    retCode, outputStr = runJob("(cd src/xmipp/tests; %s test.py %s %s)"
+                  % ('python3', ' '.join(str2Test), noCudaStr))
+    if retCode != 0:
+        print(red('Error runnig test.\n{}'.format(outputStr)))
 
 
 ####################### COLORS #######################
@@ -514,6 +524,7 @@ def readXmippEnv():
 			return data
 		except FileNotFoundError:
 				return {}
+
 def writeXmippEnv(env):
 		with open(XMIPPENV, 'w') as f:
 				json.dump(env, f, indent=4)

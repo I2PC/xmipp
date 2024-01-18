@@ -31,7 +31,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
 																 DEFAULT_MODE_DEBUG)
-from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels
+from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
@@ -147,7 +147,7 @@ def modeGit(args: argparse.Namespace):
 	if retCode == 0:
 			print(outputStr)
 
-def modeTest(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
+def modeTest(parser, args=argparse.Namespace):
 	"""
 	### Checks the params for execution mode "test" and then runs it.
 	
@@ -156,14 +156,11 @@ def modeTest(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	# Check if at least either one of the two params has been used
-	if not args.show and not args.testName:
-		parser.error("Either a testName or \"--show\" must be used. Use \"./xmipp test -h\" for help.")
-	# TODO: Implement
-	config(True)
-	if args.show == True:
-			pass
-	if args.testName!= None:
-			pass
+	if not args.show and not args.testName and not args.allPrograms and not args.allFuncs:
+		parser.error("Some option must be used. Use \"./xmipp test -h\" for help.")
+	dictPackages = config(False)
+	runTests(testName=args.testName, show=args.show, allPrograms=args.allPrograms,
+					 allFuncs=args.allFuncs, CUDA=dictPackages['CUDA'])
 def modeVersion(args: argparse.Namespace):
   """
   ### Checks the params for execution mode "version" and then runs it.
@@ -294,7 +291,7 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'test'
 	testSubparser = subparsers.add_parser(MODE_TEST, formatter_class=ModeHelpFormatter)
-	testSubparser.add_argument("testName", nargs='?')
+	testSubparser.add_argument("testName", nargs='?', default=None)
 	testSubparser.add_argument("-show", "--show", action='store_true')
 	testSubparser.add_argument("-allPrograms", "--allPrograms", "--allprograms", action='store_true')
 	testSubparser.add_argument("-allFuncs", "--allFuncs", "-allfuncs", action='store_true')
