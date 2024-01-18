@@ -265,8 +265,8 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResiduals()
 
 void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalanobis()
 {
-	double sigma = (fiducialSize / samplingRate) / 3;	// Sigma for 99% of the points inside the fiducial radius
-	// double sigma2 = sigma * sigma;
+	double sigma = fiducialSizePx / 3;	// Sigma for 99% of the points inside the fiducial radius
+	double sigma2 = sigma * sigma;
 
 	// Matrix2D<double> covariance_inv;
 	// MAT_ELEM(covariance_inv, 0, 0) = 1/sigma2;
@@ -277,8 +277,11 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	// iterate residuals
 	for(size_t i = 0; i < vResMod.size(); i++)
 	{
-		vResMod[i].mahalanobisDistance = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma + (vResMod[i].residuals.y*vResMod[i].residuals.y)/sigma);
+		vResMod[i].mahalanobisDistance = sqrt((vResMod[i].residuals.x*vResMod[i].residuals.x)/sigma2 + (vResMod[i].residuals.y*vResMod[i].residuals.y)/sigma2);
 	}
+
+	std::cout << "---------------- Distance parameters" << std::endl;
+	std::cout << "Sigma2 = " << sigma << std::endl;
 
 	// Global alignment analysis
 	std::cout << "---------------- Global misalignemnt analysis" << std::endl;
@@ -325,7 +328,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 	std::cout << "------> Global alignment score: " << rationMisalignedChains / numberOfInputCoords << std::endl;
 	
 	// Local alignment analysis
-	std::cout << "---------------- Local misalignemnt analysis" << std::endl;
+	std::cout << "---------------- Local misaligment analysis" << std::endl;
 	
 	for (size_t n = 0; n < nSize; n++)
 	{
@@ -333,8 +336,6 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 		getResModByImage(n, resMod_image);
 
 		size_t numberResMod = resMod_image.size();
-
-		std::cout << "numberResMod " << numberResMod << std::endl;
 
 		double sumMahaDist = 0;
 		double sumMahaDist2 = 0;
@@ -357,7 +358,7 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 			std::cout << "------> Local misalignment detected at image: " << n << std::endl;
 		}
 
-		std::cout << "Statistics of mahalanobis distances for 3D coordinate " << n << std::endl;
+		std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
 		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
 		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 	}
