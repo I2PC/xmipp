@@ -320,7 +320,7 @@ def visitTests(tests, grepStr=''):
 
         if moduleName != lastModule:
             lastModule = moduleName
-            print("\n - From  %s.py (to run all use --allPrograms)"
+            print("\n - From  %s.py (to run all use allPrograms)"
                   % '/'.join(moduleName.split('.')) + grepPrint)
 
 
@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
     cudaTests = True
     for i, arg in enumerate(sys.argv):
-        if arg == '--noCuda':
+        if arg == '-noCuda':
             cudaTests = False
             sys.argv.pop(i)
 
@@ -344,7 +344,7 @@ if __name__ == "__main__":
                                      shell=True, executable='/bin/bash').decode('utf-8').splitlines()
 
     tests = unittest.TestSuite()
-    if '--show' in testNames or '--allPrograms' in testNames:
+    if 'show' in testNames or 'allPrograms' in testNames:
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
@@ -352,18 +352,18 @@ if __name__ == "__main__":
             if path.startswith('test_') and path.endswith('.py'):
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
 
-        if '--show' in testNames:
+        if 'show' in testNames:
             print(blue("\n    > >  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)
-            print("\n - From applications/function_tests (to run all use --allFuncs):")
+            print("\n - From applications/function_tests (to run all use allFuncs):")
             for test in cTests:
                 print("  %s" % test)
-        elif '--allPrograms' in testNames:
+        elif 'allPrograms' in testNames:
             result = GTestResult()
             tests.run(result)
             sys.exit(result.doReport())
-    elif '--allFuncs' in testNames:
+    elif 'allFuncs' in testNames:
         xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')
         errors = []
         startTimeAll = time.time()

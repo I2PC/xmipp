@@ -27,9 +27,10 @@
 import argparse, sys, os, multiprocessing
 
 # Installer imports
-from installer.constants import MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
+from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
-	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR
+	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
+																 DEFAULT_MODE_DEBUG)
 from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
@@ -49,14 +50,13 @@ def modeAddModel(args: argparse.Namespace):
   addDeepLearninModel(login= args.login, modelPath=args.modelPath, update=args.update)
 
 def modeCleanBin(args: argparse.Namespace):
-	"""
+  """
 	### Checks the params for execution mode "cleanBin" and then runs it.
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	cleanBin(args)
-
+  cleanBin(args)
 
 def modeCleanAll(args: argparse.Namespace):
 	"""
@@ -71,7 +71,6 @@ def modeCleanAll(args: argparse.Namespace):
 	if yesno == "YeS":
 			cleanSources()
 			modeCleanBin(args)
-
 
 def modeCleanDeprecated(args: argparse.Namespace):
 	"""
@@ -105,7 +104,7 @@ def modeConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	return config()
+	return config(args.debug)
 
 def modeGetModels(args: argparse.Namespace):
 	"""
@@ -159,9 +158,12 @@ def modeTest(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	# Check if at least either one of the two params has been used
 	if not args.show and not args.testName:
 		parser.error("Either a testName or \"--show\" must be used. Use \"./xmipp test -h\" for help.")
-	
 	# TODO: Implement
-
+	config(True)
+	if args.show == True:
+			pass
+	if args.testName!= None:
+			pass
 def modeVersion(args: argparse.Namespace):
   """
   ### Checks the params for execution mode "version" and then runs it.
@@ -188,7 +190,6 @@ def modeVersion(args: argparse.Namespace):
   print(green('hdf5 version: {}'.format(dictV['hdf5V'])))
   print(green('tiff version: {}'.format(dictV['TIFFVn'])))
   print(green('fftw3 version: {}'.format(dictV['FFTW3V'])))
-
 
 def modeAll(args: argparse.Namespace):
 	"""
@@ -236,6 +237,7 @@ def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace
 		# If method was none of the above, exit with error
 		printError(f"Mode \"{args.mode}\" not recognized. {COMMON_USAGE_HELP_MESSAGE}")
 
+
 ####################### MAIN EXECUTION THREAD #######################
 if __name__ == "__main__":
 	""" Calls main function when executed. """
@@ -278,6 +280,9 @@ if __name__ == "__main__":
 
 	# Arguments for mode 'config'
 	configSubparser = subparsers.add_parser(MODE_CONFIG, formatter_class=ModeHelpFormatter)
+	configSubparser.add_argument("-debug", "--debug", action='store_true', default=DEFAULT_MODE_DEBUG)
+
+
 
 	# Arguments for mode 'getModels'
 	getModelsSubparser = subparsers.add_parser(MODE_GET_MODELS, formatter_class=ModeHelpFormatter)
@@ -291,6 +296,9 @@ if __name__ == "__main__":
 	testSubparser = subparsers.add_parser(MODE_TEST, formatter_class=ModeHelpFormatter)
 	testSubparser.add_argument("testName", nargs='?')
 	testSubparser.add_argument("-show", "--show", action='store_true')
+	testSubparser.add_argument("-allPrograms", "--allPrograms", "--allprograms", action='store_true')
+	testSubparser.add_argument("-allFuncs", "--allFuncs", "-allfuncs", action='store_true')
+
 
 	# Arguments for mode 'version'
 	versionSubparser = subparsers.add_parser(MODE_VERSION, formatter_class=ModeHelpFormatter)

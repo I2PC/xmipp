@@ -73,6 +73,7 @@ DEPRECATE_ERROR = 46
 INSTALLATION_ERROR = 47
 LINKING2SCIPION = 48
 RSYNC_VERSION_ERROR = 49
+HDF5_NOT_FOUND_ERROR = 50
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -138,7 +139,8 @@ ERROR_CODE = {
   DEPRECATE_ERROR: ['Deprecated programs were no deleted.', ''],
   INSTALLATION_ERROR: ['Some error occurred during the installation.', ''],
   LINKING2SCIPION: [],
-  RSYNC_VERSION_ERROR: ['rsync not abailable on your system', 'Please install or update it']
+  RSYNC_VERSION_ERROR: ['rsync not abailable on your system', 'Please install or update it'],
+  HDF5_NOT_FOUND_ERROR: ['', ''],
 
 
 

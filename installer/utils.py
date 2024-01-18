@@ -34,7 +34,7 @@ from sysconfig import get_paths
 from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
-												WARNING_CODE, XMIPPENV, urlModels, remotePath)
+												WARNING_CODE, XMIPPENV, urlModels, remotePath, urlTest)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -275,6 +275,42 @@ def downloadDeepLearningModels(dest):
         print(red('Unable to download models\n{}'.format(outputStr)))
     else:
         print(green('Models downloaded in the path: {}'.format(modelsPath)))
+
+
+
+def runTests(testNames):
+    xmippSrc = os.environ.get('XMIPP_SRC', None)
+    if xmippSrc and os.path.isdir(xmippSrc):
+        os.environ['PYTHONPATH'] = ':'.join([
+            os.path.join(os.environ['XMIPP_SRC'], XMIPP),
+            os.environ.get('PYTHONPATH', '')])
+        testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
+    else:
+        print(red('XMIPP_SRC is not in the enviroment.') +
+              '\nTo run the tests you need to run: ' +
+              blue('source build/xmipp.bashrc'))
+        return
+
+    dataSetPath = os.path.join(testsPath, 'data')
+    os.environ["XMIPP_TEST_DATA"] = dataSetPath
+
+    # downloading/updating the dataset
+    dataset = 'xmipp_programs'
+    if os.path.isdir(dataSetPath):
+        print(blue("Updating the test files"))
+        task = "update"
+    else:
+        print(blue("Downloading the test files"))
+        task = "download"
+    args = "%s %s %s" % ("tests/data", urlTest, dataset)
+    runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
+
+    noCudaStr = '-noCuda' if not buildConfig.is_true('CUDA') else ''
+    print(" Tests to do: %s" % ', '.join(testNames))
+    if not runJob("(cd src/xmipp/tests; %s test.py %s %s)"
+                  % (getPython(), ' '.join(testNames), noCudaStr)):
+        sys.exit(-1)
+
 
 ####################### COLORS #######################
 def green(text: str) -> str:
