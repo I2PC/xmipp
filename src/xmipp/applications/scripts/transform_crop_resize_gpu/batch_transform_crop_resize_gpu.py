@@ -45,6 +45,7 @@ class ScriptCropResizeGPU(XmippScript):
         self.addParamsLine(' --cropSize <dim>  : Crop size, 1st operation')
         self.addParamsLine(' --finalSize <dim> : Final size, 2nd operation')
         self.addParamsLine('[--block <N=2048>] : Size of the block of images to be processed simultaneously')
+        self.addParamsLine('[--gpu <id=0>]                : GPU Id')
 
     def readBlock(self, b):
         i0=b*self.blockSize
@@ -88,6 +89,12 @@ class ScriptCropResizeGPU(XmippScript):
         self.cropSize = int(self.getParam('--cropSize'))
         self.finalSize = int(self.getParam('--finalSize'))
         self.blockSize = int(self.getParam('--block'))
+        gpuId = self.getParam("--gpu")
+
+        if not gpuId.startswith('-1'):
+            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpuId
+
 
         self.mdIn = xmippLib.MetaData(self.fnIn)
         self.Nimgs=self.mdIn.size()
