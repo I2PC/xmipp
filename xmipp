@@ -30,7 +30,7 @@ import argparse, sys, os, multiprocessing
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
-																 DEFAULT_MODE_DEBUG)
+																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS)
 from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
@@ -38,6 +38,7 @@ from installer.main import (getSources, compileExternalSources, compileSources, 
 														cleanDeprecated, cleanSources, cleanBin)
 from installer.api import sendApiPost
 from installer.versions import collectAllVersions
+
 
 ####################### EXECUTION MODES #######################
 def modeAddModel(args: argparse.Namespace):
@@ -169,26 +170,32 @@ def modeVersion(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  dictPackages = config()
+  dictPackages = config(debugP=False)
   dictV = collectAllVersions(dictPackages)
+  print(('----------------------------------------'))
+  print('Repositories releases:')
+  for key, value in XMIPP_VERSIONS.items():
+    print('{}:  {}'.format(key, value['vername']))
+  print(('----------------------------------------'))
+  print('XMIPP branch: {}'.format(dictV['branch']), end='')
   if dictV['isUpdated']:
-    print(green('XMIPP branch: {} updated'.format(dictV['branch'])))
+    print(' (Branch updated)')
   else:
-    print(green('XMIPP branch: {} not updated'.format(dictV['branch'])))
-  print(green('----------------------------------------'))
-  print(green('gcc version: {}'.format(dictV['gccV'])))
-  print(green('gpp version: {}'.format(dictV['gppV'])))
-  print(green('mpi version: {}'.format(dictV['mpiV'])))
-  print(green('CUDA version: {}'.format(dictV['cudaV'])))
-  print(green('opencv version: {}'.format(dictV['opencvV'])))
-  print(green('java version: {}'.format(dictV['javaV'])))
-  print(green('scons version: {}'.format(dictV['sconsV'])))
-  print(green('cmake version: {}'.format(dictV['cmakeV'])))
-  print(green('rsync version: {}'.format(dictV['rsyncV'])))
-  print(green('hdf5 version: {}'.format(dictV['hdf5V'])))
-  print(green('tiff version: {}'.format(dictV['TIFFVn'])))
-  print(green('fftw3 version: {}'.format(dictV['FFTW3V'])))
-
+    print('(Branch no updated)')
+  print(('----------------------------------------'))
+  print(('gcc version: \t{}'.format(dictV['gccV'])))
+  print(('gpp version: \t{}'.format(dictV['gppV'])))
+  print(('mpi version: \t{}'.format(dictV['mpiV'])))
+  print(('CUDA version: \t{}'.format(dictV['cudaV'])))
+  print(('opencv version:\t{}'.format(dictV['opencvV'])))
+  print(('java version: \t{}'.format(dictV['javaV'])))
+  print(('scons version: \t{}'.format(dictV['sconsV'])))
+  print(('cmake version: \t{}'.format(dictV['cmakeV'])))
+  print(('rsync version: \t{}'.format(dictV['rsyncV'])))
+  print(('hdf5 version: \t{}'.format(dictV['hdf5V'])))
+  print(('tiff version: \t{}'.format(dictV['TIFFVn'])))
+  print(('fftw3 version: \t{}'.format(dictV['FFTW3V'])))
+  print('\n')
 def modeAll(args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "all" and then runs it.
