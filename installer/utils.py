@@ -306,28 +306,31 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     # downloading/updating the dataset
     dataset = 'xmipp_programs'
     if os.path.isdir(dataSetPath):
-        print("\nUpdating the test files...")
+        print("\n- Updating the test files...")
         task = "update"
+        showOutput=False
     else:
-        print("\nDownloading the test files...")
+        print("\n- Downloading the test files...")
         task = "download"
+        showOutput=True
     args = "%s %s %s" % ("tests/data", urlTest, dataset)
     retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
-												cwd='src/xmipp', showOutput=True)
+												cwd='src/xmipp', showOutput=showOutput)
     if retCode != 0:
         print(red('Error downloading test files.\n{}'.format(outputStr)))
     else:
         printMessage(text=green('Done'), debug=True)
 
     noCudaStr = '-noCuda' if not CUDA else ''
-    if testName:
-        print(" Tests to do: %s" % ', '.join(testName))
+    if testName or allPrograms:
+        print("\nTests to do: %s" % (str2Test))
     retCode, outputStr = runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-                  % ('python3', str2Test, noCudaStr))
+                  % ('python3', str2Test, noCudaStr), streaming=True, showOutput=True)
     if retCode != 0:
         print(red('Error runnig test.\n{}'.format(outputStr)))
-    else:
-        pass
+
+
+
 
 ####################### COLORS #######################
 def green(text: str) -> str:

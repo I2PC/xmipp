@@ -229,11 +229,11 @@ class GTestResult(unittest.TestResult):
 
     def doReport(self):
         secs = time.time() - self.startTimeAll
-        sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
+        print("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), self.numberTests, secs))
         if self.testFailed:
-            sys.stderr.write(red("[  FAILED  ]") + " %d tests\n" % self.testFailed)
-        sys.stderr.write(green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed))
+            print(red("[  FAILED  ]") + " %d tests\n" % self.testFailed)
+        print(green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed))
         sys.stdout.flush()
         return -1 if self.testFailed else 0
 
@@ -256,11 +256,11 @@ class GTestResult(unittest.TestResult):
 
     def addSuccess(self, test):
         secs = self.toc()
-        sys.stderr.write("%s %s (%0.3f secs)\n\n" % (green('[ RUN   OK ]'), self.getTestName(test), secs))
+        print("%s %s (%0.3f secs)\n\n" % (green('[ RUN   OK ]'), self.getTestName(test), secs))
 
     def reportError(self, test, err):
-        sys.stderr.write("\n%s" % ("".join(format_exception(*err))))
-        sys.stderr.write("%s %s\n\n" % (red('[  FAILED  ]'),
+        print("\n%s" % ("".join(format_exception(*err))))
+        print("%s %s\n\n" % (red('[  FAILED  ]'),
                                       self.getTestName(test)))
         self.testFailed += 1
 
@@ -335,16 +335,12 @@ if __name__ == "__main__":
         if arg == '-noCuda':
             cudaTests = False
             sys.argv.pop(i)
-
     testNames = sys.argv[1:]
-
     cudaExcludeStr = '| grep -v xmipp_test_cuda_' if not cudaTests else ''
     cTests = subprocess.check_output('compgen -ac | grep xmipp_test_ %s' % cudaExcludeStr,
                                      shell=True, executable='/bin/bash').decode('utf-8').splitlines()
-
     tests = unittest.TestSuite()
-    if 'show' in testNames or 'allPrograms' in testNames:
-        print('show or allPrograms command')
+    if '-show' in testNames or '-allPrograms' in testNames:
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
@@ -352,24 +348,23 @@ if __name__ == "__main__":
             if path.startswith('test_') and path.endswith('.py'):
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
 
-        if 'show' in testNames:
-            print('show command')
-            print(blue("\n    > >  You can run any of the following tests by:\n"))
+        if '-show' in testNames:
+            print("\nYou can run any of the following tests by:\n")
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)
-            print("\n - From applications/function_tests (to run all use allFuncs):")
+            print("\n- From applications/function_tests (to run all use allFuncs):")
             for test in cTests:
                 print("  %s" % test)
-        elif 'allPrograms' in testNames:
+        elif '-allPrograms' in testNames:
             result = GTestResult()
             tests.run(result)
             sys.exit(result.doReport())
-    elif 'allFuncs' in testNames:
+    elif '-allFuncs' in testNames:
         xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')
         errors = []
         startTimeAll = time.time()
         for test in cTests:
-            sys.stdout.write(blue("\n\n>> Running %s:\n" % test))
+            print(blue("\n\n>> Running %s:\n" % test))
             sys.stdout.flush()
             result = os.system(test)
             sys.stdout.flush()
@@ -377,16 +372,16 @@ if __name__ == "__main__":
                 errors.append(test)
 
         secs = time.time() - startTimeAll
-        sys.stdout.write(blue("\n\n -- End of all function tests -- \n\n"))
-        sys.stdout.write("%s run %d tests (%0.3f secs)\n" %
+        print(blue("\n\n -- End of all function tests -- \n\n"))
+        print("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), len(cTests), secs))
-        sys.stdout.write(green("[  PASSED  ]") + " %d tests \n"
+        print(green("[  PASSED  ]") + " %d tests \n"
                          % (len(cTests) - len(errors)))
         sys.stdout.flush()
         if errors:
-            sys.stdout.write(red("[  FAILED  ]") + " %d tests:\n" % len(errors))
+            print(red("[  FAILED  ]") + " %d tests:\n" % len(errors))
         for fail in errors:
-            sys.stdout.write(red("\t* %s\n" % fail))
+            print(red("\t* %s\n" % fail))
         sys.stdout.flush()
         if errors:
             sys.exit(-1)
@@ -401,4 +396,4 @@ if __name__ == "__main__":
 
             result = GTestResult()
             tests.run(result)
-            sys.exit(result.doReport())
+            result.doReport()
