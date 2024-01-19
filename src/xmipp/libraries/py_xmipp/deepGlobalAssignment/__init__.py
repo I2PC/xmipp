@@ -104,21 +104,37 @@ try:
             config = super(Angles2VectorLayer, self).get_config()
             return config
 
-    def constructNN(inputLayer, outputSize):
-        x = Conv2D(32, (5, 5), padding='same', activation='relu')(inputLayer)
-        # x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Conv2D(32, (5, 5), padding='same', activation='relu')(x)
-        # x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Conv2D(32, (5, 5), padding='same', activation='relu')(x)
-        # x = MaxPooling2D(pool_size=(2, 2))(x)
+    def constructNN(inputLayer, outputSize, kernelSize, pooling=True):
+        x = Conv2D(32, kernelSize, padding='same', activation='relu')(inputLayer)
+        if pooling:
+            x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(32, kernelSize, padding='same', activation='relu')(x)
+        if pooling:
+            x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(32, kernelSize, padding='same', activation='relu')(x)
+        if pooling:
+            x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Flatten()(x)
         x = Dense(64, activation='relu')(x)
         x = Dense(outputSize, activation="linear")(x)
         return x
 
+    def constructNN2(inputLayer, outputSize, kernelSize, pooling=True):
+        x = Conv2D(256, kernelSize, padding='same', strides=2, activation='relu')(inputLayer)
+        x = Conv2D(16, 1, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(128, kernelSize, padding='same', strides=2, activation='relu')(x)
+        x = Conv2D(16, 1, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Flatten()(x)
+        x = Dense(32, activation='relu')(x)
+        x = Dense(8, activation='relu')(x)
+        x = Dense(outputSize, activation="linear")(x)
+        return x
+
     def constructShiftModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1))
-        x = constructNN(inputLayer, 2)
+        x = constructNN(inputLayer, 2, kernelSize=5, pooling=True)
         x = ConcatenateZerosLayer(6)(x)
         return Model(inputLayer, x)
 
@@ -150,18 +166,13 @@ try:
         filters = np.stack(filters, axis=-1)
         return tf.constant(filters, dtype=tf.float32)
 
-
-    def apply_blur_filters_to_batch(images, filters):
-        blurred_images = tf.nn.depthwise_conv2d(images, filters, strides=[1, 1, 1, 1], padding='SAME')
-        return blurred_images
-
     def constructAnglesModel(Xdim, modelShift):
         input_tensor = Input(shape=(Xdim, Xdim, 1))
         shifted_images, predicted_shift = connectShiftModel(input_tensor, modelShift)
 
-        filters = create_blur_filters(10, 10, 30)
+        filters = create_blur_filters(16, 16, int(Xdim/2))
         blurred_images = tf.nn.depthwise_conv2d(shifted_images, filters, strides=[1, 1, 1, 1], padding='SAME')
-        x = constructNN(blurred_images, 8)
+        x = constructNN2(blurred_images, 8, kernelSize=11, pooling=True)
         infoLayers = [x, predicted_shift]
 
         concat_layer = Concatenate(axis=-1)  # Change axis if needed
