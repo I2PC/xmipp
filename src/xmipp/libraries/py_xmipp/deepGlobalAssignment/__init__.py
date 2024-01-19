@@ -106,11 +106,11 @@ try:
 
     def constructNN(inputLayer, outputSize):
         x = Conv2D(32, (5, 5), padding='same', activation='relu')(inputLayer)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
+        # x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Conv2D(32, (5, 5), padding='same', activation='relu')(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
+        # x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Conv2D(32, (5, 5), padding='same', activation='relu')(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
+        # x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Flatten()(x)
         x = Dense(64, activation='relu')(x)
         x = Dense(outputSize, activation="linear")(x)
@@ -131,10 +131,37 @@ try:
         shifted_images = ShiftImageLayer()([input_tensor, predicted_shift])
         return shifted_images, predicted_shift
 
+    import scipy.stats as st
+    def gaussian_kernel(size: int, std: float):
+        interval = (2 * std + 1.) / size
+        x = np.linspace(-std - interval / 2., std + interval / 2., size)
+        kern1d = np.diff(st.norm.cdf(x))
+        kernel_raw = np.sqrt(np.outer(kern1d, kern1d))
+        kernel = kernel_raw / kernel_raw.sum()
+        return kernel
+
+    def create_blur_filters(num_filters, max_std, filter_size):
+        std_intervals = np.linspace(0.1, max_std, num_filters)
+        filters = []
+        for std in std_intervals:
+            kernel = gaussian_kernel(filter_size, std)
+            kernel = np.expand_dims(kernel, axis=-1)
+            filters.append(kernel)
+        filters = np.stack(filters, axis=-1)
+        return tf.constant(filters, dtype=tf.float32)
+
+
+    def apply_blur_filters_to_batch(images, filters):
+        blurred_images = tf.nn.depthwise_conv2d(images, filters, strides=[1, 1, 1, 1], padding='SAME')
+        return blurred_images
+
     def constructAnglesModel(Xdim, modelShift):
         input_tensor = Input(shape=(Xdim, Xdim, 1))
         shifted_images, predicted_shift = connectShiftModel(input_tensor, modelShift)
-        x = constructNN(shifted_images, 8)
+
+        filters = create_blur_filters(10, 10, 30)
+        blurred_images = tf.nn.depthwise_conv2d(shifted_images, filters, strides=[1, 1, 1, 1], padding='SAME')
+        x = constructNN(blurred_images, 8)
         infoLayers = [x, predicted_shift]
 
         concat_layer = Concatenate(axis=-1)  # Change axis if needed
