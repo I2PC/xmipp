@@ -119,19 +119,6 @@ try:
         x = Dense(outputSize, activation="linear")(x)
         return x
 
-    def constructNN2(inputLayer, outputSize, kernelSize, pooling=True):
-        x = Conv2D(256, kernelSize, padding='same', strides=2, activation='relu')(inputLayer)
-        x = Conv2D(16, 1, padding='same', activation='relu')(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Conv2D(128, kernelSize, padding='same', strides=2, activation='relu')(x)
-        x = Conv2D(16, 1, padding='same', activation='relu')(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Flatten()(x)
-        x = Dense(32, activation='relu')(x)
-        x = Dense(8, activation='relu')(x)
-        x = Dense(outputSize, activation="linear")(x)
-        return x
-
     def constructShiftModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1))
         x = constructNN(inputLayer, 2, kernelSize=5, pooling=True)
@@ -178,6 +165,24 @@ try:
         mask = dist_from_center <= radius
         return tf.constant(mask.astype(np.float32).reshape(1, *mask.shape, 1))
 
+    def constructNN2(inputLayer, kernelSize):
+        x = Conv2D(256, kernelSize, padding='same', strides=2, activation='relu')(inputLayer)
+        x = Conv2D(16, 1, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(128, kernelSize, padding='same', strides=2, activation='relu')(x)
+        x = Conv2D(16, 1, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Flatten()(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dense(64, activation='relu')(x)
+        x2 = Dense(2, activation='linear')(x)
+        x2 = Angles2VectorLayer()(x2)
+        x3 = Dense(2, activation='linear')(x)
+        x3 = Angles2VectorLayer()(x3)
+        deltaShift = Dense(2, activation='linear')(x)
+        x = Concatenate(axis=-1)([x2, x3, deltaShift])
+        return x
+
     def constructAnglesModel(Xdim, modelShift):
         input_tensor = Input(shape=(Xdim, Xdim, 1))
         shifted_images, predicted_shift = connectShiftModel(input_tensor, modelShift)
@@ -188,18 +193,8 @@ try:
         mask = create_circular_mask(Xdim, Xdim)
         masked_blurred_images = blurred_images * mask
 
-        x = constructNN2(masked_blurred_images, 8, kernelSize=11, pooling=True)
-        infoLayers = [x, predicted_shift]
-
-        concat_layer = Concatenate(axis=-1)  # Change axis if needed
-        x = concat_layer(infoLayers)
-        x = Dense(256, activation='relu')(x)
-        x2 = Dense(2, activation='linear')(x)
-        x2 = Angles2VectorLayer()(x2)
-        x3 = Dense(2, activation='linear')(x)
-        x3 = Angles2VectorLayer()(x3)
-        deltaShift = Dense(2, activation='linear')(x)
-        x = Concatenate(axis=-1)([x2, x3, deltaShift])
+        x = constructNN2(masked_blurred_images, kernelSize=11)
+        x = predicted_shift+x
         return Model(input_tensor, x)
 
     class AngularLoss(tf.keras.losses.Loss):
