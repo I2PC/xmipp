@@ -166,13 +166,29 @@ try:
         filters = np.stack(filters, axis=-1)
         return tf.constant(filters, dtype=tf.float32)
 
+    def create_circular_mask(h, w, center=None, radius=None):
+        if center is None:
+            center = (w // 2, h // 2)
+        if radius is None:
+            radius = min(center[0], center[1], w - center[0], h - center[1])
+
+        Y, X = np.ogrid[:h, :w]
+        dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
+
+        mask = dist_from_center <= radius
+        return tf.constant(mask.astype(np.float32).reshape(1, *mask.shape, 1))
+
     def constructAnglesModel(Xdim, modelShift):
         input_tensor = Input(shape=(Xdim, Xdim, 1))
         shifted_images, predicted_shift = connectShiftModel(input_tensor, modelShift)
 
         filters = create_blur_filters(16, 16, int(Xdim/2))
         blurred_images = tf.nn.depthwise_conv2d(shifted_images, filters, strides=[1, 1, 1, 1], padding='SAME')
-        x = constructNN2(blurred_images, 8, kernelSize=11, pooling=True)
+
+        mask = create_circular_mask(Xdim, Xdim)
+        masked_blurred_images = blurred_images * mask
+
+        x = constructNN2(masked_blurred_images, 8, kernelSize=11, pooling=True)
         infoLayers = [x, predicted_shift]
 
         concat_layer = Concatenate(axis=-1)  # Change axis if needed
