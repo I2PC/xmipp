@@ -161,6 +161,7 @@ def modeTest(parser, args=argparse.Namespace):
 	dictPackages = config(False)
 	runTests(testName=args.testName, show=args.show, allPrograms=args.allPrograms,
 					 allFuncs=args.allFuncs, CUDA=dictPackages['CUDA'])
+
 def modeVersion(args: argparse.Namespace):
   """
   ### Checks the params for execution mode "version" and then runs it.
@@ -195,7 +196,7 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	dictConfig = modeConfig(args)
+	dictConfig = config(debugP=False)
 	modeCompileAndInstall(args, dictConfig=dictConfig)
 	downloadDeepLearningModels()
 	sendApiPost(dictConfig)

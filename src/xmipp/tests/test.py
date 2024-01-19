@@ -330,7 +330,6 @@ def visitTests(tests, grepStr=''):
 
 
 if __name__ == "__main__":
-
     cudaTests = True
     for i, arg in enumerate(sys.argv):
         if arg == '-noCuda':
@@ -345,6 +344,7 @@ if __name__ == "__main__":
 
     tests = unittest.TestSuite()
     if 'show' in testNames or 'allPrograms' in testNames:
+        print('show or allPrograms command')
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
@@ -353,6 +353,7 @@ if __name__ == "__main__":
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
 
         if 'show' in testNames:
+            print('show command')
             print(blue("\n    > >  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)

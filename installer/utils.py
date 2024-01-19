@@ -250,7 +250,7 @@ def addDeepLearninModel(login, modelPath='', update=None):
 							% modelName)
 				runJob("rm %s" % localFn)
 
-def downloadDeepLearningModels(dest):
+def downloadDeepLearningModels(dest:str='build'):
     if not os.path.exists('build/bin/xmipp_sync_data'):
         print(red('Xmipp has not been installed. Please, first install Xmipp '))
         return False
@@ -306,21 +306,28 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     # downloading/updating the dataset
     dataset = 'xmipp_programs'
     if os.path.isdir(dataSetPath):
-        print(blue("Updating the test files"))
+        print("\nUpdating the test files...")
         task = "update"
     else:
-        print(blue("Downloading the test files"))
+        print("\nDownloading the test files...")
         task = "download"
     args = "%s %s %s" % ("tests/data", urlTest, dataset)
-    runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
+    retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
+												cwd='src/xmipp', showOutput=True)
+    if retCode != 0:
+        print(red('Error downloading test files.\n{}'.format(outputStr)))
+    else:
+        printMessage(text=green('Done'), debug=True)
 
     noCudaStr = '-noCuda' if not CUDA else ''
-    print(" Tests to do: %s" % ', '.join(testName))
+    if testName:
+        print(" Tests to do: %s" % ', '.join(testName))
     retCode, outputStr = runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-                  % ('python3', ' '.join(str2Test), noCudaStr))
+                  % ('python3', str2Test, noCudaStr))
     if retCode != 0:
         print(red('Error runnig test.\n{}'.format(outputStr)))
-
+    else:
+        pass
 
 ####################### COLORS #######################
 def green(text: str) -> str:
@@ -604,8 +611,6 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 				return line.split()[-1]
 
 ####################### OTHER FUNCTIONS #######################
-
-
 
 def findFileInDirList(fnH, dirlist):
 	"""

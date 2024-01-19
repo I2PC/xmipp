@@ -32,7 +32,7 @@ from .errors import *
 from .versions import *
 
 #URL's repositoreis
-cmakeInstallURL = 'https://github.com/I2PC/xmipp/wiki/Cmake-update-and-install'
+cmakeInstallURL = 'https://i2pc.github.io/docs/Installation/InstallationNotes/index.html#cmake'
 urlModels = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
 remotePath = "scipionfiles/downloads/scipion/software/em"
 urlTest = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
