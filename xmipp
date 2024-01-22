@@ -31,7 +31,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
 																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS)
-from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests
+from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests, branchName
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
@@ -173,16 +173,19 @@ def modeVersion(args: argparse.Namespace):
   dictPackages = config(debugP=False)
   dictV = collectAllVersions(dictPackages)
   print(('----------------------------------------'))
-  print('Repositories releases:')
+  print('Repositories details:')
+  currentPath = os.getcwd()
   for key, value in XMIPP_VERSIONS.items():
-    print('{}:  {}'.format(key, value['vername']))
+    os.chdir(currentPath)
+    if key !='xmipp':
+      os.chdir(os.path.join(currentPath, 'src/{}'.format(key)))
+    branch = branchName()
+    print('{}: '.format(key))
+    print('\t{} (Branch: {})'.format(value['vername'], branch))
+
+
   print(('----------------------------------------'))
-  print('XMIPP branch: {}'.format(dictV['branch']), end='')
-  if dictV['isUpdated']:
-    print(' (Branch updated)')
-  else:
-    print('(Branch no updated)')
-  print(('----------------------------------------'))
+  print('Packages version:')
   print(('gcc version: \t{}'.format(dictV['gccV'])))
   print(('gpp version: \t{}'.format(dictV['gppV'])))
   print(('mpi version: \t{}'.format(dictV['mpiV'])))

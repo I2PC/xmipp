@@ -615,6 +615,13 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 
 ####################### OTHER FUNCTIONS #######################
 
+def branchName():
+		retCode, outputStr = runJob('git status')
+		if retCode == 0:
+			if outputStr.find('On branch') != -1:
+				branch = outputStr[outputStr.find('On branch') + len('On branch'):outputStr.find('\n')]
+				return branch
+
 def findFileInDirList(fnH, dirlist):
 	"""
 	Finds a file in a list of directories.
