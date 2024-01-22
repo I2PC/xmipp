@@ -418,18 +418,24 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         double standardDeviation = 0;
         double sliceVectorSize = sliceVector.size();
 
-        for(size_t e = 0; e < sliceVectorSize; e++)
-        {
-            int value = sliceVector[e];
-            sum += value;
-            sum2 += value*value;
-            ++Nelems;
-        }
+		std::sort(sliceVector.begin(), sliceVector.end());
 
-        average = sum / sliceVectorSize;
-        standardDeviation = sqrt(sum2/Nelems - average*average);
+		double sigma = sliceVector[int(sliceVectorSize*0.75)] - sliceVector[int(sliceVectorSize*0.5)];
+		double thresholdU = sliceVector[int(sliceVectorSize*0.5)] - thrSD * sigma;
+		std::cout << "thresholdU: " << thresholdU << std::endl;
 
-        double thresholdU = average + thrSD * standardDeviation;
+        // for(size_t e = 0; e < sliceVectorSize; e++)
+        // {
+        //     int value = sliceVector[e];
+        //     sum += value;
+        //     sum2 += value*value;
+        //     ++Nelems;
+        // }
+
+        // average = sum / sliceVectorSize;
+        // standardDeviation = sqrt(sum2/Nelems - average*average);
+
+        // double thresholdU = average + thrSD * standardDeviation;
 
         #ifdef DEBUG_HCC
 		std::cout << "------------------------------------------------------" << std::endl;
@@ -445,7 +451,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             {
                 double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-                if (value > thresholdU)
+                if (value < thresholdU)
                 {
                     DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
                 }
@@ -1037,7 +1043,7 @@ void ProgTomoDetectLandmarks::run()
         #ifdef DEBUG_SOBEL
         std::cout << "Aplying sobel filter to image " << counter << std::endl;
         #endif
-        sobelFiler(tiltImage_ds, counter);
+        // sobelFiler(tiltImage_ds, counter);
         enhanceLandmarks(tiltImage_ds);
 
         for (size_t i = 0; i < ySize_d; ++i)
@@ -1193,7 +1199,7 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
     }
 
     // Apply Sobel filer to reference
-    sobelFiler(landmarkReference, -1);
+    // sobelFiler(landmarkReference, -1);
 
     // Save reference
     #ifdef DEBUG_REFERENCE
