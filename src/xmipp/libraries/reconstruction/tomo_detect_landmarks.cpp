@@ -422,18 +422,22 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 		double sigma = sliceVector[int(sliceVectorSize*0.75)] - sliceVector[int(sliceVectorSize*0.5)];
 		double thresholdU = sliceVector[int(sliceVectorSize*0.5)] - thrSD * sigma;
+
+
+		std::cout << "thresholdU: " << thresholdU << std::endl;
+		std::cout << "sliceVector[int(sliceVectorSize*0.75)] " << sliceVector[int(sliceVectorSize*0.75)] << std::endl;
 		std::cout << "thresholdU: " << thresholdU << std::endl;
 
-        // for(size_t e = 0; e < sliceVectorSize; e++)
-        // {
-        //     int value = sliceVector[e];
-        //     sum += value;
-        //     sum2 += value*value;
-        //     ++Nelems;
-        // }
+        for(size_t e = 0; e < sliceVectorSize; e++)
+        {
+            int value = sliceVector[e];
+            sum += value;
+            sum2 += value*value;
+            ++Nelems;
+        }
 
-        // average = sum / sliceVectorSize;
-        // standardDeviation = sqrt(sum2/Nelems - average*average);
+        average = sum / sliceVectorSize;
+        standardDeviation = sqrt(sum2/Nelems - average*average);
 
         // double thresholdU = average + thrSD * standardDeviation;
 
