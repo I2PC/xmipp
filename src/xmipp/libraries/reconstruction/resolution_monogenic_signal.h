@@ -83,10 +83,34 @@ public:
     void refiningMask(const MultidimArray< std::complex<double> > &myfftV,
 			MultidimArray<double> &iu, int thrs, MultidimArray<int> &pMask);
 
+    void monoResCore(double minRes, double maxRes,
+    		double freq_step, const FileName &fnMaskExl, double sampling,
+    		double significance, const FileName &fnOut, bool gaussian, bool noiseOnlyInHalves,
+    		int nthrs, MultidimArray<double> &FilteredResolution, bool doPostprocessing);
 
-    void postProcessingLocalResolutions(MultidimArray<double> &FilteredMap,
-    		MultidimArray<double> &resolutionVol,
-    		std::vector<double> &list, double &cut_value, MultidimArray<int> &pMask);
+    void runMonoRes(FileName &fnVol, FileName &fnVol2, double &minRes, double &maxRes,
+			double &freq_step, FileName &fnMask, FileName &fnMaskExl, double &sampling,
+			double &significance, FileName &fnOut, bool &gaussian, bool &noiseOnlyInHalves,
+			int &nthres, MultidimArray<double> &FilteredResolution, bool detectNoise);
+
+    void runMonoRes(MultidimArray<double> &h1, MultidimArray<double> *h2,
+			MultidimArray<int> &mask, double minRes, double maxRes,
+			double freq_step, const FileName &fnMaskExl, double sampling,
+			double significance, const FileName &fnOutput, bool gaussian, bool noiseOnlyInHalves,
+			int nthrs, MultidimArray<double> &FilteredResolution, bool detectNoise, bool doPostprocessing);
+
+
+    void postProcessingLocalResolutions(const MultidimArray<double> &resolutionVol, MultidimArray<double> &FilteredMap, std::vector<double> &list,
+    									double &cut_value, MultidimArray<int> &pMask);
+
+    void readData(FileName &fnVol, FileName &fnVol2, FileName &fnMask, MultidimArray<double> &signalVol,
+			std::unique_ptr<MultidimArray<double>> &noiseVol, MultidimArray<int> &ptrmask);
+
+    void transformingInputData(MultidimArray<double> &inputVol, MultidimArray<double> &noiseVol, MultidimArray<int> &pMask);
+
+    void initMonoRes(MultidimArray<double> &inputVol, MultidimArray<double> *noiseVol, MultidimArray<int> &pMask, bool detectNoise);
+
+    void prepareData(MultidimArray<double> &signalVol, MultidimArray<double> *noiseVol, MultidimArray<int> &maskptr);
 
     void run();
 

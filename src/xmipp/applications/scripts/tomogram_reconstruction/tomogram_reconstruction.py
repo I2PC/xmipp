@@ -30,6 +30,7 @@ import os
 import mrcfile
 
 import numpy as np
+import scipy as sp
 import astra
 import tigre
 
@@ -45,13 +46,14 @@ class TomogramReconstruction(XmippScript):
         XmippScript.__init__(self)
         
         # Command line parameters
-        self.fnTs      = None
-        self.fnAngles  = None
-        self.thickness = None
-        self.libRec    = None
-        self.method    = None
-        self.fnOut     = None
-        self.gpuId     = 0
+        self.fnTs        = None
+        self.fnAngles    = None
+        self.thickness   = None
+        self.libRec      = None
+        self.method      = None
+        self.fnOut       = None
+        self.normalizeTi = None
+        self.gpuId       = 0
         
         # Global parameters
         self.xdim = None
@@ -137,25 +139,26 @@ class TomogramReconstruction(XmippScript):
         self.addParamsLine(' [--method <method>]                  : List of reconstruction algorithms. See the full list in the description.')
 
         self.addParamsLine(' [--filter <filterToApply> ]          : List of filters for FDK or FBP: *ram_lak  (default). * shepp_logan. * cosine. * hamming. *hann. The choice of filter will modify the noise and some discreatization errors, depending on which is chosen.')
+        self.addParamsLine(' [--normalize <normalizeTi>]          : Preprocess the set of images to present zero mean and unit standard deviation')
         self.addParamsLine(' -o <fnOut>                           : Output filename of the tomogram.')
         self.addParamsLine(' --gpu <gpuId>                        : GPU Ids to be use in the image processing') 
         
         # Examples       
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method wbp -o tomogram.mrc --filter ram_lak')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method fdk -o tomogram.mrc --filter hamming')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sirt -o tomogram.mrc --iter 20')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sart -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ossart -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsmr -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method asd-pocs -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method os-asd-pocs -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method awasd-pocs -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method irn-tv-cgls -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method hybrid_lsqr -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsqr -o tomogram.mrc')
-        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method cgls -o tomogram.mrc')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method wbp --filter ram_lak')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method fdk --filter hamming')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sirt --iter 20')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method sart')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ossart')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsmr')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method asd-pocs')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method os-asd-pocs')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method awasd-pocs')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method irn-tv-cgls')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method ab-gmres')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method hybrid_lsqr')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method lsqr')
+        self.addExampleLine('xmipp_tomogram_reconstruction --tiltseries ts.mrc --angles angles.xmd --thickness 300 --gpu 0 -o tomogram.mrc --method cgls')
         
 
     def readInputParams(self):
@@ -169,6 +172,7 @@ class TomogramReconstruction(XmippScript):
         self.useAstra      = self.checkParam('--astra')
         self.method        = self.getParam('--method').lower()
         self.fnOut         = self.getParam('-o')
+        self.normalizeTi   = self.getParam('--normalize').lower()
         self.gpuId         = self.getIntParam('--gpu') if self.checkParam('--gpu') else 0
         
         if self.method == 'wbp':
@@ -302,13 +306,13 @@ class TomogramReconstruction(XmippScript):
             reconstruction = algs.fdk(ts, geo, tiltAngles, filter=self.filterToApply)
         
         elif self.method =='sirt':
-            reconstruction, quality = algs.sirt(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.sirt(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, noneg=False) #, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'sart':
-            reconstruction, quality = algs.sart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, Quameasopts=self.qualmeas, computel2=True)
+            reconstruction = algs.sart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False)#, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'ossart':
-            reconstruction, quality = algs.ossart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True, Quameasopts=self.qualmeas, blocksize=self.blocksize, OrderStrategy=self.order, computel2=True)
+            reconstruction = algs.ossart(ts, geo, tiltAngles, self.iterations, lmbda=self.lmbda, lmbda_red=self.lambdared, verbose=True,  noneg=False, blocksize=self.blocksize, OrderStrategy=self.order)#, Quameasopts=self.qualmeas, computel2=True)
             
         elif self.method == 'cgls':
             reconstruction, quality = algs.cgls(ts, geo, tiltAngles, self.iterations, computel2=True)
@@ -403,7 +407,29 @@ class TomogramReconstruction(XmippScript):
         dims = np.shape(ts_aux)
         self.xdim = dims[2]
         self.ydim = dims[1]
+        self.Nimages = dims[0]
         
+        print(self.Nimages)
+        
+        stdTi = []
+        meanTi = []
+        if self.normalizeTi == 'standard':
+            for i in range(0, self.Nimages):
+                stdTi = np.std(ts_aux[i,:,:])
+                meanTi = np.mean(ts_aux[i,:,:])
+                ts_aux[i,:,:] -= meanTi
+                ts_aux[i,:,:] /= stdTi
+        #TODO: Add the cosine
+        elif self.normalizeTi == 'cosine':
+            for i in range(0, self.Nimages):
+                stdTi = np.std(ts_aux[i,:,:])
+                meanTi = np.mean(ts_aux[i,:,:])
+                ts_aux[i,:,:] -= meanTi
+                ts_aux[i,:,:] /= (stdTi)
+        
+        
+        print(stdTi)
+        print(meanTi)
         return xmippLib.MetaData(os.path.expanduser(fnIn)), ts_aux
 
 

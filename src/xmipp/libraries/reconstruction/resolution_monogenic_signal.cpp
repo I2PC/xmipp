@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "resolution_monogenic_signal.h"
+#include <memory>
 //#define DEBUG
 //#define DEBUG_MASK
 
@@ -80,59 +81,88 @@ void ProgMonogenicSignalRes::defineParams()
 	addParamsLine("  [--threads <s=4>]             : (Optional) Number of threads to parallelize the algorithm.");
 	addParamsLine("  [--noiseonlyinhalves]         : (Optional) The noise estimation is only performed inside the mask.");
 	addParamsLine("                                : This feature only works when two half maps are provided as input.");
-	addParamsLine("  [--gaussian]                  : (Optional) This flag assumes than the noise is gaussian.");
+	addParamsLine("  [--gaussian]                  : (Optional) This flag assumes than the noise is Gaussian.");
 	addParamsLine("                                : Usually there are no difference between this assumption and the ");
 	addParamsLine("                                : exact noise distribution. If this flag is not provided, the exact");
 	addParamsLine("                                : distribution is estimated. It is also a faster option than the exact one");
 }
 
 
-void ProgMonogenicSignalRes::produceSideInfo()
+void ProgMonogenicSignalRes::readData(FileName &fnVol, FileName &fnVol2, FileName &fnMask, MultidimArray<double> &signalVol,
+									std::unique_ptr<MultidimArray<double>> &noiseVol, MultidimArray<int> &ptrmask)
 {
-	std::cout << "Starting..." << std::endl;
-	Image<double> V;
 
-	if ((! fnVol.isEmpty()) && (! fnVol2.isEmpty()))
+	Image<double> V;
+	V.read(fnVol);
+
+	if (! fnVol2.isEmpty())
+	{
+		Image<double> V2;
+		V2.read(fnVol2);
+		// V = 0.5 (V1+V2)
+		V() += V2();
+		V() *= 0.5;
+
+		// V2 = V2 - V = 0.5V2 - 0.5V1;
+		V2() -= V();
+		noiseVol = std::make_unique<MultidimArray<double>>(V2());
+	}
+	signalVol = V();
+
+	if ( ! fnMask.isEmpty())
+	{
+		mask.read(fnMask);
+	}
+	else
+	{
+		std::cout << "Error: a mask ought to be provided" << std::endl;
+		exit(0);
+	}
+	ptrmask = mask();
+
+	prepareData(signalVol, noiseVol.get(), ptrmask);
+}
+
+void ProgMonogenicSignalRes::prepareData(MultidimArray<double> &signalVol, MultidimArray<double> *noiseVol, MultidimArray<int> &maskptr)
+{
+	if (noiseVol != nullptr)
 	{
 		Image<double> V1, V2;
 		fftN=new MultidimArray< std::complex<double> >;
-		V1.read(fnVol);
-		V2.read(fnVol2);
-		V()=0.5*(V1()+V2());
-		V.write(fnOut+"/meanMap.mrc");
-
-		V1()-=V2();
-		V1()/=2;
 		FourierTransformer transformer2;
-                transformer2.setThreadsNumber(nthrs);
-		transformer2.FourierTransform(V1(), *fftN);
+		transformer2.setThreadsNumber(nthrs);
+		transformer2.FourierTransform(*noiseVol, *fftN);
 		halfMapsGiven = true;
 	}
-	else{
-	    V.read(fnVol);
-	    halfMapsGiven = false;
-	    fftN=&fftV;
+	else
+	{
+		halfMapsGiven = false;
+		fftN=&fftV;
 	}
-	V().setXmippOrigin();
+
+	signalVol.setXmippOrigin();
+
+	mask() = maskptr;
+	mask().setXmippOrigin();
+
+}
+
+void ProgMonogenicSignalRes::initMonoRes(MultidimArray<double> &inputVol, MultidimArray<double> *noiseVol, MultidimArray<int> &pMask, bool detectNoise)
+{
+	prepareData(inputVol, noiseVol, pMask);
+
+	MultidimArray<int> &pMaskExl=maskExcl();
 
 	// Prepare mask
-	MultidimArray<int> &pMask=mask(), &pMaskExl=maskExcl();
-	MultidimArray<double> &inputVol = V();
-
-	if ( ! fnMask.isEmpty()){
-		mask.read(fnMask);
-		mask().setXmippOrigin();}
-	else{
-		std::cout << "Error: a mask ought to be provided" << std::endl;
-		exit(0);}
-
 	double smoothparam = 0;
 	int radiuslimit, radius;
 	Monogenic mono;
-	//The mask changes!! all voxels out of the inscribed sphere are set to -1
-	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask);
-	mono.findCliffValue(inputVol, radius, radiuslimit, pMask, smoothparam);
-
+	if (detectNoise)
+	{
+		//The mask changes!! all voxels out of the inscribed sphere are set to -1
+		mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask);
+		mono.findCliffValue(inputVol, radius, radiuslimit, pMask, smoothparam);
+	}
 	if (! fnMaskExl.isEmpty()){
 		maskExcl.read(fnMaskExl);
 		maskExcl().setXmippOrigin();
@@ -152,7 +182,7 @@ void ProgMonogenicSignalRes::produceSideInfo()
 
 	transformer_inv.setThreadsNumber(nthrs);
 	FourierTransformer transformer;
-        transformer.setThreadsNumber(nthrs);
+    transformer.setThreadsNumber(nthrs);
 	VRiesz.resizeNoCopy(inputVol);
 	transformer.FourierTransform(inputVol, fftV);
 
@@ -161,8 +191,6 @@ void ProgMonogenicSignalRes::produceSideInfo()
 
 	if (freq_step < 0.25)
 		freq_step = 0.25;
-
-	V.clear();
 }
 
 
@@ -256,23 +284,31 @@ void ProgMonogenicSignalRes::refiningMask(const MultidimArray< std::complex<doub
 }
 
 
-void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double> &FilteredMap,
-		MultidimArray<double> &resolutionVol,
-		std::vector<double> &list, double &cut_value, MultidimArray<int> &pMask)
+void ProgMonogenicSignalRes::postProcessingLocalResolutions(const MultidimArray<double> &resolutionVol, MultidimArray<double> &FilteredMap,
+															std::vector<double> &list, double &cut_value, MultidimArray<int> &pMask)
 {
-	MultidimArray<double> resolutionVol_aux = FilteredMap;
+
+	FilteredMap = resolutionVol;
+
+	std::cout << XSIZE(pMask) << " " << YSIZE(pMask) << " " << ZSIZE(pMask) << std::endl;
+	std::cout << XSIZE(resolutionVol) << " " << YSIZE(resolutionVol) << " " << ZSIZE(resolutionVol) << std::endl;
+	std::cout << XSIZE(FilteredMap) << " " << YSIZE(FilteredMap) << " " << ZSIZE(FilteredMap) << std::endl;
+
 	double last_res = list[(list.size()-1)];
 	last_res = last_res - 0.001; //the value 0.001 is a tolerance
+	double Nyquist = 2*sampling;
 
-	double Nyquist;
-	Nyquist = 2*sampling;
+	if (Nyquist>last_res)
+	{
+		last_res = Nyquist;
+	}
+
 
 	// Count number of voxels with resolution
 	size_t N=0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredMap)
 		if (DIRECT_MULTIDIM_ELEM(FilteredMap, n)>=last_res)
 			++N;
-
 
 	// Get all resolution values
 	MultidimArray<double> resolutions(N);
@@ -283,15 +319,14 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 
 	// Sort value and get threshold
 	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
-	double filling_value = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
+	double fillingValue = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
 
-	last_res = list[(list.size()-1)];
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredMap)
 	{
 		if (DIRECT_MULTIDIM_ELEM(FilteredMap, n) < last_res)
 		{
-			DIRECT_MULTIDIM_ELEM(FilteredMap, n) = filling_value;
+			DIRECT_MULTIDIM_ELEM(FilteredMap, n) = fillingValue;
 			DIRECT_MULTIDIM_ELEM(pMask,n) = 0;
 		}
 		else
@@ -299,9 +334,9 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 	}
 
 	//#ifdef DEBUG_MASK
-	Image<int> imgMask;
-	imgMask = pMask;
-	imgMask.write(fnOut+"/refinedMask.mrc");
+//	Image<int> imgMask;
+//	imgMask = pMask;
+//	imgMask.write(fnOut+"/refinedMask.mrc");
 	//#endif
 
 	double sigma = 3;
@@ -313,16 +348,17 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 		{
 			double valFilt = DIRECT_MULTIDIM_ELEM(FilteredMap, n);
 			double valRes  = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
-			if (valFilt>valRes)
-				DIRECT_MULTIDIM_ELEM(FilteredMap, n) = valRes;
-			if (valFilt<Nyquist)
+			if ((valFilt>valRes) || (valFilt<Nyquist))
 				DIRECT_MULTIDIM_ELEM(FilteredMap, n) = valRes;
 		}
 	}
 
 	Image<double> outputResolutionImage;
 	outputResolutionImage() = FilteredMap;
+	std::cout << "monoresResolutionChimera " << fnOut << std::endl;
 	outputResolutionImage.write(fnOut+"/monoresResolutionChimera.mrc");
+
+	std::cout << "sdfg" << std::endl;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredMap)
 	{
@@ -337,8 +373,31 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 
 void ProgMonogenicSignalRes::run()
 {
-	produceSideInfo();
+	MultidimArray<double> FilteredResolution;
+	runMonoRes(fnVol, fnVol2, minRes, maxRes, freq_step, fnMask, fnMaskExl, sampling, significance,
+			fnOut, gaussian, noiseOnlyInHalves, nthrs, FilteredResolution, false);
+}
 
+
+void ProgMonogenicSignalRes::runMonoRes(MultidimArray<double> &h1, MultidimArray<double> *h2,
+										MultidimArray<int> &mask, double minRes, double maxRes,
+										double freq_step, const FileName &fnMaskExl, double sampling,
+										double significance, const FileName &fnOutput, bool gaussian, bool noiseOnlyInHalves,
+										int nthrs, MultidimArray<double> &FilteredResolution, bool detectNoise,
+										bool doPostprocessing)
+{
+	initMonoRes(h1, h2, mask, detectNoise);
+	monoResCore(minRes, maxRes, freq_step, fnMaskExl,
+			sampling, significance, fnOutput, gaussian, noiseOnlyInHalves, nthrs, FilteredResolution, doPostprocessing);
+
+}
+
+
+void ProgMonogenicSignalRes::monoResCore(double minRes, double maxRes,
+		double freq_step, const FileName &fnMaskExl, double sampling,
+		double significance, const FileName &fnOut, bool gaussian, bool noiseOnlyInHalves,
+		int nthrs, MultidimArray<double> &FilteredResolution, bool doPostprocessing)
+{
 	Image<double> outputResolution;
 	outputResolution().resizeNoCopy(VRiesz);
 
@@ -387,6 +446,7 @@ void ProgMonogenicSignalRes::run()
 
 	amplitudeMN.resizeNoCopy(pOutputResolution);
 
+
 	pOutputResolution.initZeros(amplitudeMN);
 
 	do
@@ -400,23 +460,25 @@ void ProgMonogenicSignalRes::run()
 						last_fourier_idx, volsize,
 						continueIter, breakIter,
 						sampling, maxRes);
-
 		if (continueIter)
 			continue;
 
 		if (breakIter)
 			break;
 
+		if (iter == 0)
+			resolution = maxRes;
+
 		std::cout << "resolution = " << resolution << std::endl;
 
 		list.push_back(resolution);
 
 		if (iter <2)
+		{
 			resolution_2 = list[0];
+		}
 		else
 			resolution_2 = list[iter - 2];
-
-		fnDebug = "Signal";
 
 		// 0.02 is the tail of the raise cosine in digital units
 		freqL = freq + 0.02;
@@ -432,15 +494,14 @@ void ProgMonogenicSignalRes::run()
 				fftVRiesz, fftVRiesz_aux, VRiesz,
 				freq, freqH, freqL, iu,
 				freq_fourier_x, freq_fourier_y, freq_fourier_z,
-				amplitudeMS, iter, fnDebug);
+				amplitudeMS, iter, "Signal");
 
 		if (halfMapsGiven){
-			fnDebug = "Noise";
 			mono.amplitudeMonoSig3D_LPF(*fftN, transformer_inv,
 							fftVRiesz, fftVRiesz_aux, VRiesz,
 							freq, freqH, freqL, iu,
 							freq_fourier_x, freq_fourier_y, freq_fourier_z,
-							amplitudeMN, iter, fnDebug);
+							amplitudeMN, iter, "Noise");
 		}
 
 		double sumS=0, sumS2=0, sumN=0, sumN2=0, NN = 0, NS = 0;
@@ -456,7 +517,7 @@ void ProgMonogenicSignalRes::run()
 			mono.statisticsInOutBinaryMask2(amplitudeMS,
 										pMask, meanS, sdS2, meanN, sdN2, significance, thr95, NS, NN);
 		}
-		
+
 		if ( (NS/NVoxelsOriginalMask)<cut_value ) //when the 2.5% is reached then the iterative process stops
 		{
 			std::cout << "Search of resolutions stopped due to mask has been completed" << std::endl;
@@ -510,6 +571,7 @@ void ProgMonogenicSignalRes::run()
 				mono.setLocalResolutionMap(amplitudeMS, pMask, pOutputResolution,
 											 thresholdNoise,  resolution, resolution_2);
 			}
+
 			//}
 
 			// Is the mean inside the signal significantly different from the noise?
@@ -552,6 +614,34 @@ void ProgMonogenicSignalRes::run()
 	amplitudeMN.clear();
 	amplitudeMS.clear();
 
-	MultidimArray<double> FilteredResolution = pOutputResolution;
-	postProcessingLocalResolutions(FilteredResolution, pOutputResolution, list, cut_value, pMask);;
+	Image<double> am;
+			am()=pOutputResolution;
+			FileName aagn;
+			//aagn = formatString(, iter);
+			am.write("resolution.mrc");
+	FilteredResolution = pOutputResolution;
+
+	if (doPostprocessing)
+	{
+		postProcessingLocalResolutions(pOutputResolution, FilteredResolution, list, cut_value, pMask);
+	}
+
+
+}
+
+void ProgMonogenicSignalRes::runMonoRes(FileName &fnVol, FileName &fnVol2, double &minRes, double &maxRes,
+										double &freq_step, FileName &fnMask, FileName &fnMaskExl, double &sampling,
+										double &significance, FileName &fnOut, bool &gaussian, bool &noiseOnlyInHalves,
+										int &nthrs, MultidimArray<double> &FilteredResolution, bool detectNoise)
+{
+	MultidimArray<double> inputVol;
+	std::unique_ptr<MultidimArray<double>> noiseVol;
+	MultidimArray<int> &pMask=mask();
+	readData(fnVol, fnVol2, fnMask, inputVol, noiseVol, pMask);
+	initMonoRes(inputVol, noiseVol.get(), pMask, detectNoise);
+
+	// Negative fillinig value means that MonoRes will estimate the filling value
+	bool doPostprocessing = true;
+	monoResCore(minRes, maxRes, freq_step, fnMaskExl,
+			sampling, significance, fnOut, gaussian, noiseOnlyInHalves, nthrs, FilteredResolution, doPostprocessing);
 }
