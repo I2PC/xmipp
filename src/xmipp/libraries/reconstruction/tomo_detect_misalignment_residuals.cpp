@@ -337,30 +337,39 @@ void ProgTomoDetectMisalignmentResiduals::detectMisalignmentFromResidualsMahalan
 
 		size_t numberResMod = resMod_image.size();
 
-		double sumMahaDist = 0;
-		double sumMahaDist2 = 0;
-
-		for (size_t i = 0; i < numberResMod; i++)
+		if (numberResMod > 0)
 		{
-			sumMahaDist += resMod_image[i].mahalanobisDistance;
-			sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance; 
+
+			double sumMahaDist = 0;
+			double sumMahaDist2 = 0;
+
+			for (size_t i = 0; i < numberResMod; i++)
+			{
+				sumMahaDist += resMod_image[i].mahalanobisDistance;
+				sumMahaDist2 += resMod_image[i].mahalanobisDistance * resMod_image[i].mahalanobisDistance; 
+			}
+
+			double avgMahaDist = sumMahaDist / numberResMod;
+			double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
+
+			avgMahalanobisDistanceV[n] = avgMahaDist;
+			stdMahalanobisDistanceV[n] = stdMahaDist;
+
+			if (avgMahaDist > 1)
+			{
+				localAlignment[n] = false;
+				std::cout << "------> Local misalignment detected at image: " << n << std::endl;
+			}
+
+			std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
+			std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
+			std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 		}
-
-		double avgMahaDist = sumMahaDist / numberResMod;
-		double stdMahaDist = sqrt(sumMahaDist2 / numberResMod - avgMahaDist * avgMahaDist);
-
-		avgMahalanobisDistanceV[n] = avgMahaDist;
-		stdMahalanobisDistanceV[n] = stdMahaDist;
-
-		if (avgMahaDist > 1)
+		else
 		{
+			std::cout << "ERROR: impossible to study misalignment in tilt-image " << n << ". No residuals calculated for this image" << std::endl;
 			localAlignment[n] = false;
-			std::cout << "------> Local misalignment detected at image: " << n << std::endl;
 		}
-
-		std::cout << "Statistics of mahalanobis distances for tilt-image " << n << std::endl;
-		std::cout << "Average mahalanobis distance: " << avgMahaDist << std::endl;
-		std::cout << "STD mahalanobis distance: " << stdMahaDist << std::endl;
 	}
 }
 
