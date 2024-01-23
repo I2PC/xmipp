@@ -260,7 +260,6 @@ void ProgTomoCalculateLandmarkResiduals::calculateResidualVectors()
 
 				XX(projectedGoldBead) += (double)xSize/2;
 				// YY(projectedGoldBead) += 0; // Since we are rotating respect to Y axis, no conersion is needed
-				// ZZ(projectedGoldBead) += (double)zSize/2;
 
 				// Check that the coordinate is not proyected out of the interpolation edges for this tilt-image
 				bool coordInIC = checkProjectedCoordinateInInterpolationEdges(projectedGoldBead, n);
@@ -814,7 +813,7 @@ bool ProgTomoCalculateLandmarkResiduals::checkProjectedCoordinateInInterpolation
 	int x = (int)(XX(projectedCoordinate));
 	int y = (int)(YY(projectedCoordinate));
 
-	if (x >= interpolationLimits[y].x || x <= interpolationLimits[y].y)
+	if (x >= interpolationLimits[y].x && x <= interpolationLimits[y].y)
 	{
 		return true;
 	}
