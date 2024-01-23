@@ -157,7 +157,7 @@ def printError(errorMsg: str, retCode: int=1):
 	errorStr = f'ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
 	printMessage(red(errorStr), debug=True)
 	# TODO send apiPost
-	sendApiPost()
+	#sendApiPost()
 	sys.exit(retCode)
 
 def printMessage(text: str, debug: bool=False):
