@@ -379,7 +379,9 @@ void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 	CorrelationAux aux;
 
 	correlation_matrix(tiltImage, landmarkReference, tiltImage_enhanced, aux, true);
-	tiltImage = tiltImage_enhanced;
+	correlation_matrix(tiltImage_enhanced, landmarkReference_Gaussian, tiltImage, aux, true);
+
+	// tiltImage = tiltImage_enhanced;
 }
 
 
@@ -418,15 +420,13 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         double standardDeviation = 0;
         double sliceVectorSize = sliceVector.size();
 
-		std::sort(sliceVector.begin(), sliceVector.end());
+		// std::sort(sliceVector.begin(), sliceVector.end());
 
-		double sigma = sliceVector[int(sliceVectorSize*0.75)] - sliceVector[int(sliceVectorSize*0.5)];
-		double thresholdU = sliceVector[int(sliceVectorSize*0.5)] - thrSD * sigma;
+		// double sigma = sliceVector[int(sliceVectorSize*0.75)] - sliceVector[int(sliceVectorSize*0.5)];
+		// double thresholdU = sliceVector[int(sliceVectorSize*0.5)] - thrSD * sigma;
 
-
-		std::cout << "thresholdU: " << thresholdU << std::endl;
-		std::cout << "sliceVector[int(sliceVectorSize*0.75)] " << sliceVector[int(sliceVectorSize*0.75)] << std::endl;
-		std::cout << "thresholdU: " << thresholdU << std::endl;
+		// std::cout << "sliceVector[int(sliceVectorSize*0.75)] " << sliceVector[int(sliceVectorSize*0.75)] << std::endl;
+		// std::cout << "sliceVector[int(sliceVectorSize*0.5)] " << sliceVector[int(sliceVectorSize*0.5)] << std::endl;
 
         for(size_t e = 0; e < sliceVectorSize; e++)
         {
@@ -439,11 +439,12 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        // double thresholdU = average + thrSD * standardDeviation;
+        double thresholdU = average + thrSD * standardDeviation;
 
         #ifdef DEBUG_HCC
 		std::cout << "------------------------------------------------------" << std::endl;
 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << std::endl;
+		std::cout << "thresholdU: " << thresholdU << std::endl;
         #endif
 
         binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
@@ -455,7 +456,7 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
             {
                 double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-                if (value < thresholdU)
+                if (value > thresholdU)
                 {
                     DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
                 }
@@ -990,6 +991,7 @@ void ProgTomoDetectLandmarks::run()
 
 	// Create phantom for landmark reference
     createLandmarkTemplate();
+	createLandmarkTemplate_Gaussian();
 
 	for(size_t objId : tiltseriesmd.ids())
 	{
@@ -1018,9 +1020,12 @@ void ProgTomoDetectLandmarks::run()
 
 		// Downsample
         #ifdef DEBUG_DOWNSAMPLE
-        std::cout << "Aplying sobel filter to image " << counter << std::endl;
+        std::cout << "Downsampling image " << counter << std::endl;
         #endif
         downsample(ptrImg, tiltImage_ds);
+
+		// Normalized dowsmapled image
+		tiltImage_ds.statisticsAdjust(0.0, 1.0);	// Normalize image mean: 0 and std: 1
 
         #ifdef DEBUG_DIM
         std::cout << "Tilt-image dimensions before downsampling:" << std::endl;
@@ -1033,7 +1038,7 @@ void ProgTomoDetectLandmarks::run()
         #endif
 
 		// Contruct normalized tilt-series for posterior coordinates centering
-		ptrImg.statisticsAdjust(0.0, 1.0);
+		ptrImg.statisticsAdjust(0.0, 1.0);	// Normalize image mean: 0 and std: 1
 
 		for (size_t i = 0; i < ySize; ++i)
         {
@@ -1185,7 +1190,7 @@ bool ProgTomoDetectLandmarks::filterLabeledRegions(std::vector<int> coordinatesP
 void ProgTomoDetectLandmarks::createLandmarkTemplate()
 {
 	// Generate first reference
-    int targetFS_half = targetFS/2;
+    int targetFS_half = 1.1*(targetFS/2);
     int targetFS_half_sq = targetFS_half*targetFS_half;
 
     landmarkReference.initZeros(ySize_d, xSize_d);
@@ -1214,6 +1219,46 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate()
 
 	Image<double> si;
 	si() = landmarkReference;
+	si.write(outFN);
+    #endif
+}
+
+void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
+{
+	// Generate first reference
+    int targetFS_half = 1.1*(targetFS/2);
+    int targetFS_half_sq = targetFS_half*targetFS_half;
+
+    landmarkReference_Gaussian.initZeros(ySize_d, xSize_d);
+    landmarkReference_Gaussian.initConstant(1);
+
+	double sigma = targetFS_half/3;
+
+    // Create tilt-image with a single landamrk
+    for (int k = -targetFS_half; k <= targetFS_half; ++k)
+    {
+        for (int l = -targetFS_half; l <= targetFS_half; ++l)
+        {
+            if ((k*k+l*l) < targetFS_half_sq)
+            {
+				double mod2 = (k*k + l*l);
+				A2D_ELEM(landmarkReference_Gaussian, ySize_d/2 + k, xSize_d/2 + l) = 1 - exp(-mod2 /(2*sigma*sigma))/(sigma*sqrt(2*PI));
+            }
+        }
+    }
+
+    // Apply Sobel filer to reference
+    // sobelFiler(landmarkReference_Gaussian, -1);
+
+    // Save reference
+    #ifdef DEBUG_REFERENCE
+    size_t li = fnOut.find_last_of("\\/");
+	std::string rn = fnOut.substr(0, li);
+	std::string outFN;
+    outFN = rn + "/landmarkReference_Gaussian.mrcs";
+
+	Image<double> si;
+	si() = landmarkReference_Gaussian;
 	si.write(outFN);
     #endif
 }

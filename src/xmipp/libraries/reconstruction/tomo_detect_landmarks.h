@@ -123,6 +123,7 @@ public:
 
     // Landmark reference for enhancement
     MultidimArray<double> landmarkReference;
+    MultidimArray<double> landmarkReference_Gaussian;
 
 public:
 
@@ -206,6 +207,7 @@ public:
      * enhance landmarks.
     */
     void createLandmarkTemplate();
+    void createLandmarkTemplate_Gaussian();
 
 };
 
