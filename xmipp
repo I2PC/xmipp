@@ -199,6 +199,7 @@ def modeVersion(args: argparse.Namespace):
   print(('tiff version: \t{}'.format(dictV['TIFFVn'])))
   print(('fftw3 version: \t{}'.format(dictV['FFTW3V'])))
   print('\n')
+
 def modeAll(args: argparse.Namespace):
 	"""
 	### Checks the params for execution mode "all" and then runs it.

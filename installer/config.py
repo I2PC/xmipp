@@ -49,7 +49,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
                         WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
-                        RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR)
+                        RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR,)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion, printWarning,
                     whereIsPackage, findFileInDirList, getINCDIRFLAG,
@@ -806,8 +806,6 @@ def getHDF5(dictPackages):
             dictPackages['HDF5_HOME'] = hdf5PathFound
             updateXmippEnv(LD_LIBRARY_PATH=hdf5PathFound)
             break
-    if hdf5PathFound == '':
-        printMessage(text=red('HDF5 nod found'), debug=debugPrints)
 
 def getTIFF(dictPackages):
     for path in PATH_TO_FIND:
@@ -816,16 +814,12 @@ def getTIFF(dictPackages):
             dictPackages['LIBDIRFLAGS'] += " -L%s" % libtiffPathFound
             dictPackages['TIFF_SO'] = join(libtiffPathFound, 'libtiff.so')
             break
-    if libtiffPathFound == '':
-        printError(errorMsg='TIFF library not found at {}'.format(PATH_TO_FIND), retCode=TIFF_ERROR)
-
     patron = '/**/tiffio.h'
     for path in PATH_TO_FIND_H:
         pathTIFF_H = glob.glob(f'''{path}/{patron}''')
         if pathTIFF_H:
             dictPackages['TIFF_H'] = pathTIFF_H[0]
-    if dictPackages['TIFF_H'] == '':
-        printError(retCode=TIFF_H_ERROR, errorMsg='')
+
 
 def getFFTW3(dictPackages):
     for path in PATH_TO_FIND:
@@ -834,38 +828,30 @@ def getFFTW3(dictPackages):
             dictPackages['LIBDIRFLAGS'] += " -L%s" % libfftw3PathFound
             dictPackages['FFTW3_SO'] = join(libfftw3PathFound, 'libfftw3.so')
             break
-    if libfftw3PathFound == '':
-        printError(errorMsg='FFTW3 library not found at {}'.format(PATH_TO_FIND), retCode=FFTW3_ERROR)
-
     patron = 'fftw3.h'
     for path in PATH_TO_FIND_H:
         pathFFTW3_H = glob.glob(join(path, patron))
         if pathFFTW3_H:
             dictPackages['FFTW3_H'] = pathFFTW3_H[0]
-    if dictPackages['FFTW3_H'] == '':
-        printError(retCode=FFTW3_H_ERROR, errorMsg='')
+
 
 def getINCDIRFLAGS(dictPackages):
     """
     This function checks for HDF5 ('hdf5.h') in a specified directory list.
     If found, updates 'INCDIRFLAGS' in 'dictPackages' with the HDF5 include path.
-    If not found, prints a message indicating HDF5 installation is required.
-
     Updates 'INCDIRFLAGS' in 'dictPackages' based on HDF5 presence.
 
     Params:
     - dictPackages (dict): Dictionary with package information.
         Expected keys: 'INCDIRFLAGS'.
-
     """
+    #HDF5
     pathHdf5 = findFileInDirList('hdf5.h', INC_HDF5_PATH)
     if pathHdf5:
         try:
             dictPackages['INCDIRFLAGS'] += ' -I' + pathHdf5
         except KeyError:
             dictPackages['INCDIRFLAGS'] = ' -I' + pathHdf5
-    else:
-        printError(retCode=HDF5_NOT_FOUND_ERROR, errorMsg='HDF5 not detected but required, please install it')
 
     #TIFF
     if path.exists(dictPackages['TIFF_H']):
@@ -902,6 +888,9 @@ def checkHDF5(dictPackages):
         False, 6: HDF5 configuration failed.
         True, 0: HDF5 configuration successful.
     """
+    if not path.exists(dictPackages['HDF5_HOME']):
+        printError(errorMsg='HDF5 nod found', retCode=HDF5_NOT_FOUND_ERROR)
+
     version = HDF5Version(dictPackages['HDF5_HOME'])
     if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
         printError('HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), HDF5_VERSION_ERROR)
@@ -925,17 +914,23 @@ def checkTIFF(dictPackages):
     if path.exists(dictPackages['TIFF_H']):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
     else:
-        printError(retCode=TIFF_H_ERROR, errorMsg='{} file does not exist'.format(dictPackages['TIFF_H']))
+        printError(retCode=TIFF_H_ERROR, errorMsg='TIFF library not found')
+    if path.exists(dictPackages['TIFF_SO']) == False:
+        printError(retCode=TIFF_ERROR, errorMsg='libtiff.so not found')
 
 def checkFFTW3(dictPackages):
     if path.exists(dictPackages['FFTW3_H']):
-        version = FFTW3Version(dictPackages['FFTW3_SO'])
-        if versionToNumber(version) >= versionToNumber(FFTW_MINIMUM):
-            printMessage(text=green('FFTW3 {} found'.format(version)), debug=debugPrints)
+        if path.exists(dictPackages['FFTW3_SO']):
+            version = FFTW3Version(dictPackages['FFTW3_SO'])
+            if versionToNumber(version) >= versionToNumber(FFTW_MINIMUM):
+                printMessage(text=green('FFTW3 {} found'.format(version)), debug=debugPrints)
+            else:
+                printError(retCode=FFTW3_VERSION_ERROR, errorMsg=green('FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM)))
         else:
-            printError(retCode=FFTW3_VERSION_ERROR, errorMsg=green('FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM)))
+            printError(retCode=FFTW3_ERROR, errorMsg='libfftw3.so does not exist')
+
     else:
-        printError(retCode=TIFF_H_ERROR, errorMsg='{} file does not exist'.format(dictPackages['FFTW3_H']))
+        printError(retCode=FFTW3_H_ERROR, errorMsg='FFTW3 does not exist')
 
 
 def checkCMake():

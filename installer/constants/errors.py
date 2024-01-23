@@ -74,6 +74,7 @@ INSTALLATION_ERROR = 47
 LINKING2SCIPION = 48
 RSYNC_VERSION_ERROR = 49
 HDF5_NOT_FOUND_ERROR = 50
+HDF5_NOT_FOUND_ERROR = 51
 
 # Warning codes
 MATLAB_WARNING = 1
@@ -110,6 +111,7 @@ ERROR_CODE = {
   NUMPY_NOT_FOUND_ERROR: ['numpy not found.', 'Please install numpy.'],
   JAVA_HOME_PATH_ERROR: ['JAVA_HOME path with errors or bad installed.', 'bin/jar, bin/javac or include not found on the JAVA_HOME path but required.'],
   HDF5_ERROR: ['hdf5 libs does not work.', 'Please review the LIBDIRFLAGS flag on xmipp.conf.'],
+  HDF5_NOT_FOUND_ERROR: ['HDF5 library was not found on your system.', 'Please install it or add the path in the flag HDF5_HOME in xmipp.conf file and run the ./xmipp confile.'],
   MPI_COMPILLATION_ERROR: ['Unable to compile with mpicxx', '.'],
 	MPI_RUNNING_ERROR: ['mpirun or mpiexec can not run several process in parallel.', 'Please, review the mpi installation, if you are running a virtual machine, please allow several processors not just one.'],
 	JAVAC_DOESNT_WORK_ERROR: ['JAVAC does not work.', 'Check the JAVA_HOME flag on xmipp.conf.'],
@@ -118,7 +120,7 @@ ERROR_CODE = {
 	CMAKE_ERROR: ['', f'Please install or review your CMake version by following the instructions at {cmakeInstallURL}\033[0m'],
 	NETWORK_ERROR: ['There was a network error running a command.', ''],
 	IO_ERROR: ['Input/output error.', 'This error can be caused by the installer not being able to read/write/create/delete a file. Check your permissions on this directory.'],
-  TIFF_ERROR: ['TIFF library was not found on your system.', 'Please install it or add the path in the flag TIFF_HOME of the xmipp.conf file.'],
+  TIFF_ERROR: ['TIFF library was not found on your system.', 'Please install it or add the path in the flag TIFF_H and TIFF_SO of the xmipp.conf file.'],
   FFTW3_ERROR: ['FFTW3 library was not found on your system.','Please install it or add the path in the flag FFTW3_HOME of the xmipp.conf file.'],
 	TIFF_H_ERROR: ['tiffio.h header file was not found.', 'Please install the package.'],
 	FFTW3_H_ERROR: ['fftw3.h header file was not found.', 'Please install the package.'],
