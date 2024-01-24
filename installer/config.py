@@ -72,7 +72,7 @@ def config(debugP:bool=True, scratch:bool=False):
     """check the config if exist else create it and check it"""
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
-    if not existConfig() or scratch:
+    if not existConfig() or scratch:# or existButOld():
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
@@ -212,6 +212,9 @@ def readConfig():
         internalFlags[key] = value
     return dictPackages, internalFlags
 
+def existButOld():
+    with open(CONFIG_FILE, 'r') as f:
+        config = f.read()
 def checkConfig(dictPackages, dictInternalFlags):
     """
     Checks the configurations of various packages.
@@ -254,6 +257,8 @@ def existConfig():
     if path.exists(CONFIG_FILE):
         return True
     else:
+        if existButOld():
+            pass
         return False
 
 def writeConfig(dictP: dict, dictInt: dict):

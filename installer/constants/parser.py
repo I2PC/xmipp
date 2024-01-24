@@ -60,7 +60,7 @@ MODES = {
 		MODE_ALL: 'Default param. Runs config, and compileAndInstall.'
 	},
 	GROUP_CONFIG: {
-		MODE_CONFIG: 'Generates and check the config file based on system information if not exist, else check it.',
+		MODE_CONFIG: 'Generates and check the config file based on system information.',
 	},
 	GROUP_DOWNLOADS: {
 		MODE_GET_MODELS: f'Download the DeepLearning Models at dir/models ({DEFAULT_MODELS_DIR} by default).'
