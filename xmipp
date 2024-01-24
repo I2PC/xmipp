@@ -105,7 +105,7 @@ def modeConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	return config(args.debug)
+	return config(args.debug, scratch=True)
 
 def modeGetModels(args: argparse.Namespace):
 	"""

@@ -66,13 +66,13 @@ from datetime import datetime
 from sysconfig import get_paths
 
 
-def config(debugP:bool=True):
+def config(debugP:bool=True, scratch:bool=False):
     global debugPrints
     debugPrints = debugP
     """check the config if exist else create it and check it"""
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
-    if not existConfig():
+    if not existConfig() or scratch:
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
@@ -291,7 +291,10 @@ def getCC(dictPackages):
     Modifies:
     - dictPackages: Updates the 'CC' key based on the availability of 'gcc'.
     """
-    if existPackage('gcc'):
+    ccVar = environ.get('CC', '')
+    if ccVar != '':
+        dictPackages['CC'] = ccVar
+    elif existPackage('gcc'):
         dictPackages['CC'] = 'gcc'
     else:
         dictPackages['CC'] = ''
@@ -328,7 +331,10 @@ def getCXX(dictPackages):
     Modifies:
     - dictPackages: Updates the 'CXX' key based on the availability of 'g++'.
     """
-    if existPackage('g++'):
+    ccVar = environ.get('CXX', '')
+    if ccVar != '':
+        dictPackages['CXX'] = ccVar
+    elif existPackage('g++'):
         dictPackages['CXX'] = 'g++'
     else:
         dictPackages['CXX'] = ''
@@ -872,7 +878,7 @@ def checkGit():
         printError(retCode=GIT_VERSION_ERROR, errorMsg='GIT version {} lower than minimum: {}'.
                    format(version, GIT_MINIMUM))
     else:
-        printMessage(text=green('git {} found'.format(version)), debug=debugPrints)
+        printMessage(text=green('git {} found'.format(version)), debug=True)
 
 
 def checkHDF5(dictPackages):
