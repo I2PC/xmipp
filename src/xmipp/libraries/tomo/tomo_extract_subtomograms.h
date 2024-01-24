@@ -37,6 +37,7 @@
 #include <complex>
 #include <string>
 
+
 // #define DEBUG
 
 
@@ -62,6 +63,7 @@ public:
 
     double scaleFactor;
     double downsampleFactor;
+    std::vector<size_t> maskIdx;
 
 	/** Is the volume previously masked?*/
 	int boxsize;
@@ -73,8 +75,9 @@ public:
 
     void defineParams();
     void readParams();
-    void createSphere(MultidimArray<double> &maskNormalize, int halfboxsize);
+    void createSphere(int halfboxsize);
     void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
+    void extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction);
     void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid);
     void run();
 };

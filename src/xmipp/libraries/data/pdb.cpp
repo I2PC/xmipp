@@ -23,11 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <fstream>
-#include <string>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <string>
 #include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
@@ -851,12 +851,16 @@ void writeCIF(const std::string &fnCIF, const callable &atomList, cif::datablock
     }
 
     // Updating atom list in stored data block
-    if (auto categoryIterator = std::find_if(dataBlock.begin(), dataBlock.end(), [](const cif::category& cat)
-        { return cat.name() == "atom_site"; }); categoryIterator != dataBlock.end()) {
-        auto nextIterator = std::next(categoryIterator);
-        dataBlock.erase(categoryIterator);
-        dataBlock.insert(nextIterator, atomSite);
+    auto categoryInsertPosition = std::find_if(
+        dataBlock.cbegin(), dataBlock.cend(), 
+        [](const cif::category& cat) { 
+            return cat.name() == "atom_site"; 
+        }
+    ); 
+    if (categoryInsertPosition != dataBlock.cend()) {
+        categoryInsertPosition = dataBlock.erase(categoryInsertPosition);
     }
+    dataBlock.insert(categoryInsertPosition, atomSite);
 
     // Writing datablock to file
     dataBlock.write(cifFile);
