@@ -663,7 +663,7 @@ namespace device {
 					Y = sinp*(cost2*CST(1.0135125E+6)-CST(6.75675E+4))*POW(cost2-CST(1.0),CST(3.0))*-CST(7.878532816224526E-6);
 					break;
 				case -5:
-					Y = sinp*POW(cost2*-CST(1.0)+CST(1.0),CST(5.0)/CST(2.0))*(cost*CST(6.75675E+4)-(cost2*cost)*CST(3.378375E+5))*-CST(5.105872826582925E-56);
+					Y = sinp*POW(cost2*-CST(1.0)+CST(1.0),CST(5.0)/CST(2.0))*(cost*CST(6.75675E+4)-(cost2*cost)*CST(3.378375E+5))*-CST(5.105872826582925E-5);
 					break;
 				case -4:
 					Y = sinp*POW(cost2-CST(1.0),CST(2.0))*(cost2*-CST(3.378375E+4)+(cost2*cost2)*CST(8.4459375E+4)+CST(1.299375E+3))*CST(3.681897256448963E-4);
