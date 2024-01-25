@@ -136,7 +136,7 @@ void AngularSphAlignment::setupConstantParameters()
 void AngularSphAlignment::setupChangingParameters() 
 {
     if (program == nullptr)
-        throw new std::runtime_error("AngularSphAlignment not associated with the program!");
+        throw std::runtime_error("AngularSphAlignment not associated with the program!");
 
     if (program->useFakeKernel) {
         setupClnmCpu();
