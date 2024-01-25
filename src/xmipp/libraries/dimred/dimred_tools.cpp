@@ -57,7 +57,9 @@ void GenerateData::generateNewDataset(const DatasetType &type, int N, double noi
 
 			// Generate X
 			double s,c;
-			sincos(localT,&s,&c);
+			//sincos(localT,&s,&c);
+            s = sin(localT);
+            c = cos(localT);
 			MAT_ELEM(X,i,0)=localT * c + noise * distGauss(g);
 			MAT_ELEM(X,i,1)=localHeight + noise * distGauss(g);
 			MAT_ELEM(X,i,2)=localT * s + noise * distGauss(g);
@@ -79,9 +81,13 @@ void GenerateData::generateNewDataset(const DatasetType &type, int N, double noi
 
 			// Generate X
 			double s,c;
-			sincos(localT,&s,&c);
+			//sincos(localT,&s,&c);
+			s = sin(localT);
+            c = cos(localT);
 			double s8,c8;
-			sincos(8*localT,&s8,&c8);
+			//sincos(8*localT,&s8,&c8);
+			s8 = sin(8*localT);
+            c8 = cos(8*localT);
 			MAT_ELEM(X,i,0)=(2 + c8)*c+noise*distGauss(g);
 			MAT_ELEM(X,i,1)=(2 + c8)*s+noise*distGauss(g);
 			MAT_ELEM(X,i,2)=s8+noise*distGauss(g);
@@ -171,7 +177,9 @@ void GenerateData::generateNewDataset(const DatasetType &type, int N, double noi
 
 			// Generate X
 			double s,c;
-			sincos(localT,&s,&c);
+			//sincos(localT,&s,&c);
+			s = sin(localT);
+            c = cos(localT);
 			MAT_ELEM(X,i,0)=c+noise*distGauss(g);
 			MAT_ELEM(X,i,1)=c*s+noise*distGauss(g);
 			MAT_ELEM(X,i,2)=height+noise*distGauss(g);

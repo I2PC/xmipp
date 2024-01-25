@@ -86,7 +86,7 @@ public:
 
 public:
 
-    static void defineParams(XmippProgram * program, const char* prefix=NULL, const char* comment=NULL);
+    static void defineParams(XmippProgram * program, const char* prefix=nullptr, const char* comment=nullptr);
 
     /** Read special parameters from command line. */
     void readParams(XmippProgram * program);

@@ -53,10 +53,12 @@ public:
         T centerX = dims.x() / 2;
         T centerY = dims.y() / 2;
         drawClockArms(ref, dims, centerX, centerY, 0.f);
+        printf("Testing size %lu %lu\n", dims.x(), dims.y());
 
         for (size_t n = 0; n < dims.n(); ++n) {
             T *d = others + (n * dims.xyzPadded());
             drawClockArms(d, dims, centerX, centerY, rotations.at(n));
+            printf("Img %lu rotated by %f degrees\n", n, rotations.at(n));
         }
         if (ADD_NOISE) {
             addNoise(others, dims, mt);
@@ -107,6 +109,7 @@ private:
             // we rotated by angle, so we should detect rotation in '360 - angle' degrees
             auto actual = 360 - result.at(n);
             auto diff = 180 - abs(abs(actual - rotations.at(n)) - 180);
+            printf("raw output for img %lu: result %f, expected %f\n", n, result.at(n), rotations.at(n));
             EXPECT_NEAR(diff, 0, maxError) << "expected: "
                     << rotations.at(n) << " actual: " << actual << " signal " << n;
         }
@@ -137,10 +140,8 @@ std::mt19937 ARotationEstimator_Test<T>::mt(42); // fixed seed to ensure reprodu
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOne)
 {
-    XMIPP_TRY
     // test one reference vs one image
     ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToMany)

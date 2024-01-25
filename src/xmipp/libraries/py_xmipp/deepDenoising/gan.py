@@ -26,7 +26,7 @@ from skimage.transform import rotate
 
 import xmippLib
 import matplotlib.pyplot as plt
-import pwem.metadata as md
+import pwem.emlib.metadata as md
 from .DeepLearningGeneric import DeepLearningModel
 from .dataGenerator import normalizeImgs, getDataGenerator, extractNBatches
 

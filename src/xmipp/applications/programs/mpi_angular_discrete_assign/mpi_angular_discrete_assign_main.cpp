@@ -28,7 +28,7 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/angular_discrete_assign.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgAngularDiscreteAssign, MpiProgAngularDiscreteAssign)
+class MpiProgAngularDiscreteAssign
+    : public BasicMpiMetadataProgram<ProgAngularDiscreteAssign> {};
 
 RUN_XMIPP_PROGRAM(MpiProgAngularDiscreteAssign)

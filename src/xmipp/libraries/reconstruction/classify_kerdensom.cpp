@@ -26,7 +26,7 @@
 #include <fstream>
 #include "core/xmipp_program.h"
 #include "classification/gaussian_kerdensom.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /* Parameters class ======================================================= */
 class ProgKenderSOM: public XmippProgram
@@ -153,7 +153,7 @@ public:
     void run()
     {
         FileName fnClasses=fn_root+"_classes.xmd";
-        MetaData dummy;
+        MetaDataVec dummy;
         dummy.write(formatString("classes@%s",fnClasses.c_str()));
 
         /* Open training vector ================================================= */
@@ -168,7 +168,7 @@ public:
             ts.normalize();        // Normalize input data
         }
 
-        FuzzyMap *myMap = new FuzzyMap(layout, xdim, ydim, ts);
+        auto *myMap = new FuzzyMap(layout, xdim, ydim, ts);
 
         KerDenSOM *thisSOM= new GaussianKerDenSOM(reg0, reg1, annSteps, eps, iter);        // Creates KerDenSOM Algorithm
 
@@ -193,7 +193,7 @@ public:
             Saving all kind of Information
         *******************************************************/
         // Save map size
-        MetaData MDkerdensom;
+        MetaDataVec MDkerdensom;
         size_t id=MDkerdensom.addObject();
         MDkerdensom.setValue(MDL_XSIZE,xdim,id);
         MDkerdensom.setValue(MDL_YSIZE,ydim,id);
@@ -201,7 +201,7 @@ public:
         MDkerdensom.write(formatString("KerDenSOM_Layout@%s",fnClasses.c_str()),MD_APPEND);
 
         // save intracluster distance and number of vectors in each cluster
-        MetaData MDsummary;
+        MetaDataVec MDsummary;
         for (unsigned i = 0; i < myMap->size(); i++)
         {
         	id=MDsummary.addObject();
@@ -213,16 +213,16 @@ public:
 
         // assign data to clusters according to fuzzy threshold
         std::cout << "Saving neurons assigments ....." << std::endl;
-        MetaData vectorContentIn, MDimages;
+        MetaDataVec vectorContentIn, MDimages;
         vectorContentIn.read(formatString("vectorContent@%s",fn_in.c_str()));
         std::vector<size_t> objIds;
         vectorContentIn.findObjects(objIds);
-        MDRow row;
         for (unsigned i = 0; i < myMap->size(); i++)
         {
-        	MetaData MD;
+        	MetaDataVec MD;
             for (size_t j = 0; j < myMap->classifAt(i).size(); j++)
             {
+                MDRowVec row;
             	size_t order=myMap->classifAt(i)[j];
             	vectorContentIn.getRow(row,objIds[order]);
             	row.setValue(MDL_REF,(int) i+1);
@@ -244,11 +244,11 @@ public:
             std::cout << "Denormalizing code vectors....." << std::endl;
             myMap->unNormalize(ts.getNormalizationInfo()); // de-normalize codevectors
         }
-        MetaData vectorHeaderIn, vectorHeaderOut, vectorContentOut;
+        MetaDataVec vectorHeaderIn, vectorHeaderOut, vectorContentOut;
         vectorHeaderIn.read(formatString("vectorHeader@%s",fn_in.c_str()));
         vectorHeaderOut.setColumnFormat(false);
         size_t size, vectorSize;
-        size_t idIn=vectorHeaderIn.firstObject();
+        size_t idIn=vectorHeaderIn.firstRowId();
         size_t idOut=vectorHeaderOut.addObject();
         vectorHeaderIn.getValue(MDL_XSIZE,size,idIn);
         vectorHeaderOut.setValue(MDL_XSIZE,size,idOut);

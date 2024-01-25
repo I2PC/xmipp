@@ -25,11 +25,6 @@
 
 #include "mpi_angular_accuracy_pca.h"
 
-MpiProgAngularAccuracyPCA::MpiProgAngularAccuracyPCA()
-{
-	node=NULL;
-}
-
 MpiProgAngularAccuracyPCA::~MpiProgAngularAccuracyPCA()
 {
 	delete node;
@@ -62,7 +57,7 @@ void MpiProgAngularAccuracyPCA::gatherResults()
 	// Now the master takes all of them
 	if (rank==0)
 	{
-		MetaData MDAux;
+		MetaDataDb MDAux;
 		for (size_t otherRank=1; otherRank<Nprocessors; ++otherRank)
 		{
 				FileName fnP = formatString("%s/partial_node%03d.xmd",fnOut.getDir().c_str(),(int)otherRank);

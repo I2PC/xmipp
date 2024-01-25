@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/resolution_monotomo.h>
+#include <tomo/resolution_monotomo.h>
 
 int main(int argc, char **argv)
 {

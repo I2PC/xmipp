@@ -116,9 +116,9 @@ void BSplineHelper::getShift(int lX, int lY, int lN,
 
     T delta = 0.0001;
     // take into account end points
-    T hX = (lX == 3) ? xdim : (xdim / (T) ((lX - 3)));
-    T hY = (lY == 3) ? ydim : (ydim / (T) ((lY - 3)));
-    T hT = (lN == 3) ? ndim : (ndim / (T) ((lN - 3)));
+    T hX = (lX == 3) ? xdim : (xdim / (T) (lX - 3));
+    T hY = (lY == 3) ? ydim : (ydim / (T) (lY - 3));
+    T hT = (lN == 3) ? ndim : (ndim / (T) (lN - 3));
     // index of the 'cell' where pixel is located (<0, N-3> for N control points)
     T xPos = x / hX;
     T yPos = y / hY;

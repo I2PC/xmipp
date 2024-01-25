@@ -36,6 +36,13 @@ void ProgMovieAlignmentCorrelation<T>::defineParams() {
 }
 
 template<typename T>
+void ProgMovieAlignmentCorrelation<T>::readParams() {
+    AProgMovieAlignmentCorrelation<T>::readParams();
+    if (this->getBinning() != 1.0)
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Binning is not supported. Please contact developers if you really need it.");
+}
+
+template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
     loadData(movie, dark, igain);
@@ -84,11 +91,11 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         init_progress_bar(movie.size());
     }
 
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         ++n;
         if (n >= this->nfirst && n <= this->nlast) {
-            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
+            this->loadFrame(movie, dark, igain, objId, croppedFrame);
 
             if (firstImage) {
                 firstImage = false;
@@ -103,7 +110,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     reducedFrame());
 
             // Now do the Fourier transform and filter
-            MultidimArray<std::complex<T> > *reducedFrameFourier =
+            auto *reducedFrameFourier =
                     new MultidimArray<std::complex<T> >;
             transformer.FourierTransform(reducedFrame(), *reducedFrameFourier,
                     true);
@@ -132,7 +139,7 @@ void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
     for (size_t i = 0; i < N - 1; ++i) {
         for (size_t j = i + 1; j < N; ++j) {
             bestShift(*frameFourier[i], *frameFourier[j], Mcorr, bX(idx),
-                    bY(idx), aux, NULL, this->maxShift * sizeFactor);
+                    bY(idx), aux, nullptr, this->maxShift * sizeFactor);
             bX(idx) /= sizeFactor; // scale to expected size
             bY(idx) /= sizeFactor;
             if (this->verbose)
@@ -159,8 +166,8 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     FileName fnFrame;
     int frameIndex = -1;
     Ninitial = N = 0;
-    const T binning = this->getOutputBinning();
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+
+    for (size_t objId : movie.ids())
     {
         frameIndex++;
         if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
@@ -174,13 +181,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     && (XX(shift) == (T)0); // and it's zero
 
             // load frame
-            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
-            if (binning > 0) {
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
-                        floor(XSIZE(croppedFrame()) / binning),
-                        croppedFrame(), reducedFrame());
-                croppedFrame() = reducedFrame();
-            }
+            this->loadFrame(movie, dark, igain, objId, croppedFrame);
 
             if ( ! this->fnInitialAvg.isEmpty()) {
                 if (frameIndex == this->nfirstSum)
@@ -198,16 +199,8 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     }
 		    std::swap(shiftedFrame().data, croppedFrame().data);
                 } else {
-                    if (this->outsideMode == OUTSIDE_WRAP)
-                        translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, WRAP);
-                    else if (this->outsideMode == OUTSIDE_VALUE)
-                        translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
-                                this->outsideValue);
-                    else
-                        translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                        translate(3, shiftedFrame(),
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 croppedFrame().computeAvg());
                 }
                 if (this->fnAligned != "")

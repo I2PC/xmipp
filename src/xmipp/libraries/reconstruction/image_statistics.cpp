@@ -28,14 +28,14 @@
 #include <cstdio>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image_generic.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <data/mask.h>
 
 /* PROGRAM ----------------------------------------------------------------- */
 class ProgStatistics: public XmippMetadataProgram
 {
 protected:
-    MetaData        DF_stats;
+    MetaDataVec     DF_stats;
     ImageGeneric    image;
     MultidimArray<double>    averageArray;
     MultidimArray<double>    stdArray;
@@ -70,7 +70,7 @@ protected:
         addParamsLine("[--save_mask        <maskFileName>] : Save 2D and 3D masks.");
         addParamsLine("[--save_image_stats <stats_root=\"\">]: Save average and standard deviation images");
         addUsageLine ("           Mask is ignored  for this operation");
-        mask.defineParams(this,INT_MASK,NULL,"Statistics restricted to the mask area.");
+        mask.defineParams(this,INT_MASK,nullptr,"Statistics restricted to the mask area.");
         addUsageLine ("NOTE: Geometry will NOT be applied to volumes even if apply_geo flag is on");
         addKeywords("statistics average mean std");
     }
@@ -142,7 +142,7 @@ protected:
 
         image().setXmippOrigin();
 
-        double rot, tilt, psi;
+        double rot = 0, tilt = 0, psi = 0;
         if (show_angles)
             image.getEulerAngles(rot,tilt,psi);
 

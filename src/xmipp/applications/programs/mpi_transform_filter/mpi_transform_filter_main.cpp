@@ -26,9 +26,6 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/program_filter.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgFilter, MpiProgFilter)
+class MpiProgFilter : public BasicMpiMetadataProgram<ProgFilter> {};
 
 RUN_XMIPP_PROGRAM(MpiProgFilter)
-
-

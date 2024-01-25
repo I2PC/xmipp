@@ -34,13 +34,13 @@
 #include <opencv2/video/video.hpp>
 
 #ifdef GPU
-#ifndef CV_VERSION_EPOCH // == version 3 or newer
-#include <opencv2/cudaoptflow.hpp>
-#include <opencv2/cudaarithm.hpp>
-#else
-#include <opencv2/core/cuda.hpp>
-#endif 
-#endif // GPU
+    #ifndef CV_VERSION_EPOCH // == version 3 or newer
+        #include <opencv2/cudaoptflow.hpp>
+        #include <opencv2/cudaarithm.hpp>
+    #else
+        #include <opencv2/core/cuda.hpp>
+    #endif
+#endif// GPU
 
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
@@ -50,7 +50,7 @@
 #include <core/transformations.h>
 
 #include <reconstruction/movie_filter_dose.h>
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/metadata_extension.h"
 
 using namespace std;
@@ -65,7 +65,7 @@ public:
     FileName fnMovie, fnOut, fnGain, fnDark;
     FileName fnMovieOut, fnMicOut, fnMovieUncOut, fnMicUncOut;
     FileName fnMicInitial; // Filename if writing the initial average micrograph
-    MetaData movie;
+    MetaDataVec movie;
     int winSize, gpuDevice, nfirst, nlast, numberOfFrames;
     int finalGroupSize;
     bool globalShiftCorr, inMemory;
@@ -391,11 +391,11 @@ public:
     	filterDose=new ProgMovieFilterDose(accelerationVoltage);
     	filterDose->pixel_size=sampling;
     	MultidimArray< std::complex<double> > FFTI;
-        FOR_ALL_OBJECTS_IN_METADATA(movie)
+        for (size_t objId : movie.ids())
         {
         	if (currentFrameInIdx>=nfirst && currentFrameInIdx<=nlast)
         	{
-                movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+                movie.getValue(MDL_IMAGE, fnFrame, objId);
                 frameImage.read(fnFrame);
                 applyWindow(frameImage());
 
@@ -406,12 +406,12 @@ public:
 
                 if (movie.containsLabel(MDL_SHIFT_X))
                 {
-                	movie.getValue(MDL_SHIFT_X, XX(shift), __iter.objId);
-                	movie.getValue(MDL_SHIFT_Y, YY(shift), __iter.objId);
+                	movie.getValue(MDL_SHIFT_X, XX(shift), objId);
+                	movie.getValue(MDL_SHIFT_Y, YY(shift), objId);
                 	if (fabs(XX(shift))>0 || fabs(YY(shift))>0)
                 	{
 //                		std::cout << "Translating " << fnFrame << " by " << shift.transpose() << std::endl;
-						translate(BSPLINE3, translatedImage(), frameImage(), shift, WRAP);
+						translate(xmipp_transformation::BSPLINE3, translatedImage(), frameImage(), shift, xmipp_transformation::WRAP);
 						frameImage()=translatedImage();
                 	}
                 }
@@ -504,7 +504,7 @@ public:
 
         int numberOfGroups=2;
         int levelNum=int(ceil(log(double(numberOfFrames)/finalGroupSize)/log(2.0))), levelCounter=0;
-        MetaData MDout; // To save plot information
+        MetaDataVec MDout; // To save plot information
         while (levelCounter<levelNum)
         {
             convert2Uint8(cvCurrentReference,cvCurrentReference8);

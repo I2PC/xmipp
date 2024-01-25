@@ -23,17 +23,80 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <filesystem>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <string>
+#include "cif++.hpp"
 #include "pdb.h"
 #include "core/matrix2d.h"
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
+#include "core/xmipp_strings.h"
 #include "data/fourier_projection.h"
 #include "data/integration.h"
 #include "data/mask.h"
 #include "data/numerical_tools.h"
+
+/* If you change the include guards, please be sure to also rename the
+   functions below. Otherwise your project will clash with the original
+   iotbx declarations and definitions.
+ */
+#ifndef IOTBX_PDB_HYBRID_36_C_H
+#define IOTBX_PDB_HYBRID_36_C_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define HY36_WIDTH_4_MIN -999
+#define HY36_WIDTH_4_MAX 2436111 /* 10000 + 2*26*36*36*36 - 1 */
+#define HY36_WIDTH_5_MIN -9999
+#define HY36_WIDTH_5_MAX 87440031 /* 100000 + 2*26*36*36*36*36 - 1 */
+
+#ifdef __cplusplus
+}
+#endif
+#endif /* IOTBX_PDB_HYBRID_36_C_H */
+
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
+{
+	//Open the pdb file
+	std::ifstream f2parse;
+	f2parse.open(fn_pdb.c_str());
+
+	numberOfAtoms = 0;
+
+    // Initializing and reading pdb file
+    PDBRichPhantom pdbFile;
+
+    // Read centered pdb
+    pdbFile.read(fn_pdb.c_str());
+
+    // For each atom, store necessary info if type matches
+    for (auto& atom : pdbFile.atomList) {
+        if (atom.name == typeOfAtom) {
+            numberOfAtoms++;
+
+            // Storing coordinates
+            at_pos.x.push_back(atom.x);
+            at_pos.y.push_back(atom.y);
+            at_pos.z.push_back(atom.z);
+            at_pos.chain.push_back(std::string(1, atom.chainid));
+
+            // Residue Number
+            at_pos.residue.push_back(atom.resseq);
+
+            // Getting the bfactor = 8pi^2*u
+            at_pos.b.push_back(atom.bfactor); //sqrt(atom.bfactor/(8*PI*PI));
+
+            // Covalent radius of the atom
+            at_pos.atomCovRad.push_back(atomCovalentRadius(atom.name));
+        }
+    }
+}
 
 double AtomInterpolator::volumeAtDistance(char atom, double r) const
 {
@@ -147,6 +210,30 @@ double atomRadius(const std::string &atom)
     }
 }
 
+/* Atom Covalent radius ------------------------------------------------------------- */
+double atomCovalentRadius(const std::string &atom)
+{
+    switch (atom[0])
+    {
+    case 'H':
+        return 0.38;
+    case 'C':
+        return 0.77;
+    case 'N':
+        return 0.75;
+    case 'O':
+        return 0.73;
+    case 'P':
+        return 1.06;
+    case 'S':
+        return 1.02;
+    case 'F': // Iron
+        return 1.25;
+    default:
+        return 0;
+    }
+}
+
 /* Compute geometry -------------------------------------------------------- */
 void computePDBgeometry(const std::string &fnPDB,
                         Matrix1D<double> &centerOfMass,
@@ -155,79 +242,52 @@ void computePDBgeometry(const std::string &fnPDB,
 {
     // Initialization
     centerOfMass.initZeros(3);
-    limit0.initZeros(3);
-    limitF.initZeros(3);
+    limit0.resizeNoCopy(3);
+    limitF.resizeNoCopy(3);
     limit0.initConstant(1e30);
     limitF.initConstant(-1e30);
     double total_mass = 0;
 
-    // Open the file
-    std::ifstream fh_pdb;
-    fh_pdb.open(fnPDB.c_str());
-    if (!fh_pdb)
-        REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
+    // Initialize PDBRichPhantom and read atom struct file
+    PDBRichPhantom pdbFile;
 
-    // Process all lines of the file
-    int col=1;
-    if (intensityColumn=="Bfactor")
-        col=2;
-    while (!fh_pdb.eof())
-    {
-        // Read a ATOM line
-        std::string line;
-        getline(fh_pdb, line);
-        if (line == "")
-            continue;
-        std::string kind = line.substr(0,4);
-        if (kind != "ATOM" && kind!="HETA")
-            continue;
+    // Read centered pdb
+    pdbFile.read(fnPDB);
 
-        // Extract atom type and position
-        // Typical line:
-        // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-        std::string atom_type = line.substr(13,2);
-        double x = textToFloat(line.substr(30,8));
-        double y = textToFloat(line.substr(38,8));
-        double z = textToFloat(line.substr(46,8));
-
+    // For each atom, correct necessary info
+    bool useBFactor = intensityColumn=="Bfactor";
+    for (auto& atom : pdbFile.atomList) {
         // Update center of mass and limits
-        if (x < XX(limit0))
-            XX(limit0) = x;
-        else if (x > XX(limitF))
-            XX(limitF) = x;
-        if (y < YY(limit0))
-            YY(limit0) = y;
-        else if (y > YY(limitF))
-            YY(limitF) = y;
-        if (z < ZZ(limit0))
-            ZZ(limit0) = z;
-        else if (z > ZZ(limitF))
-            ZZ(limitF) = z;
+        XX(limit0) = std::min(XX(limit0), atom.x);
+        YY(limit0) = std::min(YY(limit0), atom.y);
+        ZZ(limit0) = std::min(ZZ(limit0), atom.z);
+
+        XX(limitF) = std::max(XX(limitF), atom.x);
+        YY(limitF) = std::max(YY(limitF), atom.y);
+        ZZ(limitF) = std::max(ZZ(limitF), atom.z);
+
         double weight;
-        if (atom_type=="EN")
+        if (atom.name == "EN")
         {
-            if      (col==1)
-                weight=textToFloat(line.substr(54,6));
-            else if (col==2)
-                weight=textToFloat(line.substr(60,6));
+            if (useBFactor)
+                weight = atom.bfactor;
+            else
+                weight = atom.occupancy;
         }
         else
         {
-            if (kind=="HETA")
+            if (atom.record == "HETATM")
                 continue;
-            weight=(double) atomCharge(atom_type);
+            weight = (double) atomCharge(atom.name);
         }
         total_mass += weight;
-        XX(centerOfMass) += weight * x;
-        YY(centerOfMass) += weight * y;
-        ZZ(centerOfMass) += weight * z;
+        XX(centerOfMass) += weight * atom.x;
+        YY(centerOfMass) += weight * atom.y;
+        ZZ(centerOfMass) += weight * atom.z;
     }
 
     // Finish calculations
     centerOfMass /= total_mass;
-
-    // Close file
-    fh_pdb.close();
 }
 
 /* Apply geometry ---------------------------------------------------------- */
@@ -235,7 +295,9 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
                    const Matrix2D<double> &A, bool centerPDB,
                    const std::string &intensityColumn)
 {
-    Matrix1D<double> centerOfMass, limit0, limitF;
+    Matrix1D<double> centerOfMass;
+    Matrix1D<double> limit0;
+    Matrix1D<double> limitF;
     if (centerPDB)
     {
         computePDBgeometry(fn_in, centerOfMass,limit0, limitF,
@@ -308,8 +370,51 @@ void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
     fh_out.close();
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
-void PDBPhantom::read(const FileName &fnPDB)
+/**
+ * @brief Checks if the file uses a supported extension type.
+ * 
+ * This function checks if the given file path has one of the given supported extensions, with or without compression
+ * in any of the accepted compressions.
+ * 
+ * @param filePath File including path.
+ * @param acceptedExtensions List of accepted extensions.
+ * @param acceptedCompressions List of accepted compressions.
+ * @return true if the extension is valid, false otherwise.
+*/
+bool checkExtension(const std::filesystem::path &filePath, const std::list<std::string> &acceptedExtensions, const std::list<std::string> &acceptedCompressions) {
+    // File extension is invalid by default 
+    bool validExtension = false;
+
+    // Checking if file extension is in accepted extensions with or without an accepted compression
+    if (find(acceptedExtensions.begin(), acceptedExtensions.end(), filePath.extension()) != acceptedExtensions.end()) {
+        // Accepted extension without compression
+        validExtension = true;
+    } else {
+        if (find(acceptedCompressions.begin(), acceptedCompressions.end(), filePath.extension()) != acceptedCompressions.end()) {
+            // Accepted compression detected
+            // Checking if next extension is valid
+            const std::filesystem::path shortedPath = filePath.parent_path().u8string() + "/" + filePath.stem().u8string();
+            if (find(acceptedExtensions.begin(), acceptedExtensions.end(), shortedPath.extension()) != acceptedExtensions.end()) {
+                // Accepted extension with compression
+                validExtension = true;
+            }
+        }
+    }
+
+    // Returning calculated validity
+    return validExtension;
+}
+
+template<typename callable>
+/**
+ * @brief Read phantom from PDB.
+ * 
+ * This function reads the given PDB file and inserts the found atoms inside in the class's atom list.
+ * 
+ * @param fnPDB PDB file.
+ * @param addAtom Function to add atoms to class's atom list.
+*/
+void readPDB(const FileName &fnPDB, const callable &addAtom)
 {
     // Open file
     std::ifstream fh_in;
@@ -318,17 +423,16 @@ void PDBPhantom::read(const FileName &fnPDB)
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    std::string line, kind;
+    std::string line;
+    std::string kind;
     Atom atom;
     while (!fh_in.eof())
     {
         // Read an ATOM line
         getline(fh_in, line);
         if (line == "")
-        {
             continue;
-        }
-        kind = line.substr(0,4);
+        kind = line.substr(0, 4);
         if (kind != "ATOM" && kind != "HETA")
             continue;
 
@@ -336,14 +440,74 @@ void PDBPhantom::read(const FileName &fnPDB)
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
         atom.atomType = line[13];
-        atom.x = textToFloat(line.substr(30,8));
-        atom.y = textToFloat(line.substr(38,8));
-        atom.z = textToFloat(line.substr(46,8));
-        atomList.push_back(atom);
+        atom.x = textToFloat(line.substr(30, 8));
+        atom.y = textToFloat(line.substr(38, 8));
+        atom.z = textToFloat(line.substr(46, 8));
+        addAtom(atom);
     }
 
     // Close files
     fh_in.close();
+}
+
+template<typename callable>
+/**
+ * @brief Read phantom from CIF.
+ * 
+ * This function reads the given CIF file and inserts the found atoms inside in the class's atom list.
+ * 
+ * @param fnPDB CIF file path.
+ * @param addAtom Function to add atoms to class's atom list.
+ * @param dataBlock Data block used to store all of CIF file's fields.
+*/
+void readCIF(const std::string &fnCIF, const callable &addAtom, cif::datablock &dataBlock)
+{
+    // Parsing mmCIF file
+    cif::file cifFile;
+    cifFile.load(fnCIF);
+
+    // Extrayendo datos del archivo en un DataBlock
+    cif::datablock& db = cifFile.front();
+
+    // Reading Atom section
+    // Typical line:
+    // ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+    cif::category& atom_site = db["atom_site"];
+
+    // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
+    Atom atom;
+	for (const auto& [atom_id, x_pos, y_pos, z_pos]: atom_site.find
+        <std::string,float,float,float>
+        (
+            cif::key("group_PDB") == "ATOM" || cif::key("group_PDB") == "HETATM",
+            "label_atom_id",
+            "Cartn_x",
+            "Cartn_y",
+            "Cartn_z"
+        ))
+	{
+        // Obtaining:
+        // ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+        //               *                        ******  ******* ******
+        atom.atomType = atom_id[0];
+        atom.x = x_pos;
+        atom.y = y_pos;
+        atom.z = z_pos;
+        addAtom(atom);
+	}
+
+    // Storing whole datablock
+    dataBlock = db;
+}
+
+void PDBPhantom::read(const FileName &fnPDB)
+{
+    // Checking if extension is .cif or .pdb
+    if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
+        readCIF(fnPDB.getString(), bind(&PDBPhantom::addAtom, this, std::placeholders::_1), dataBlock);
+    } else {
+        readPDB(fnPDB, bind(&PDBPhantom::addAtom, this, std::placeholders::_1));
+    }
 }
 
 /* Shift ------------------------------------------------------------------- */
@@ -358,8 +522,21 @@ void PDBPhantom::shift(double x, double y, double z)
     }
 }
 
-/* Read phantom from PDB --------------------------------------------------- */
-void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double threshold)
+template<typename callable>
+/**
+ * @brief Read rich phantom from either a PDB of CIF file.
+ * 
+ * This function reads the given PDB or CIF file and stores the found atoms, remarks, and intensities.
+ * 
+ * @param fnPDB PDB/CIF file.
+ * @param addAtom Function to add atoms to class's atom list.
+ * @param intensities List of atom intensities.
+ * @param remarks List of file remarks.
+ * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms. false (default) is used when there are no pseudoatoms or when using a threshold.
+ * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
+*/
+void readRichPDB(const FileName &fnPDB, const callable &addAtom, std::vector<double> &intensities,
+    std::vector<std::string> &remarks, const bool pseudoatoms, const double threshold)
 {
     // Open file
     std::ifstream fh_in;
@@ -368,7 +545,8 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
         REPORT_ERROR(ERR_IO_NOTEXIST, fnPDB);
 
     // Process all lines of the file
-    std::string line, kind;
+    auto line = std::string(80, ' ');
+    std::string kind;
 
     RichAtom atom;
     while (!fh_in.eof())
@@ -379,58 +557,326 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
         {
             continue;
         }
-        kind = line.substr(0,4);
-        if (kind == "ATOM" || kind == "HETA")
+
+        // Reading and storing type of atom
+        kind = simplify(line.substr(0, 6)); // Removing extra spaces if there are any
+
+        if (kind == "ATOM" || kind == "HETATM")
         {
+			line.resize (80,' ');
+
 			// Extract atom type and position
 			// Typical line:
 			// ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
-			atom.name=line.substr(12,4);
-			atom.atomType = line[13];
-			atom.altloc=line[16];
-			atom.resname=line.substr(17,3);
-			atom.chainid=line[21];
-			atom.resseq = textToInteger(line.substr(22,4));
+			// ATOM      2  CA  ALA A   1      73.796  56.531  56.644  0.50 84.78           C
+			atom.record = kind;
+			hy36decodeSafe(5, line.substr(6, 5).c_str(), 5, &atom.serial);
+			atom.name = simplify(line.substr(12, 4)); // Removing extra spaces if there are any
+			atom.altloc = line[16];
+			atom.resname = line.substr(17, 3);
+			atom.chainid = line[21];
+			hy36decodeSafe(4, line.substr(22, 4).c_str(), 4, &atom.resseq);
 			atom.icode = line[26];
-			atom.x = textToFloat(line.substr(30,8));
-			atom.y = textToFloat(line.substr(38,8));
-			atom.z = textToFloat(line.substr(46,8));
-			atom.occupancy = textToFloat(line.substr(54,6));
-			atom.bfactor = textToFloat(line.substr(60,6));
-			if(pseudoatoms != -1)
+			atom.x = textToFloat(line.substr(30, 8));
+			atom.y = textToFloat(line.substr(38, 8));
+			atom.z = textToFloat(line.substr(46, 8));
+			atom.occupancy = textToFloat(line.substr(54, 6));
+			atom.bfactor = textToFloat(line.substr(60, 6));
+            if (line.length() >= 76 && simplify(line.substr(72, 4)) != "")
+			    atom.segment = line.substr(72, 4);
+            if (line.length() >= 78 && simplify(line.substr(77, 1)) != "")
+			    atom.atomType = line.substr(77, 1);
+            else
+                atom.atomType = atom.name[0];
+            if (line.length() >= 80 && simplify(line.substr(79, 1)) != "")
+			    atom.charge = simplify(line.substr(79, 1)); // Converting into empty string if it is a space
+
+			if(pseudoatoms)
 				intensities.push_back(atom.bfactor);
+            
+			if(!pseudoatoms && atom.bfactor >= threshold)
+				addAtom(atom);
 
-			if(atom.bfactor >= threshold && pseudoatoms == -1)
-				atomList.push_back(atom);
-
-        } else if (kind == "REMA")
-        	remarks.push_back(line);
+		} else if (kind == "REMARK")
+			remarks.push_back(line);
     }
 
     // Close files
     fh_in.close();
 }
 
-/* Write phantom to PDB --------------------------------------------------- */
-void PDBRichPhantom::write(const FileName &fnPDB)
+template<typename callable>
+/**
+ * @brief Read rich phantom from CIF.
+ * 
+ * This function reads the given CIF file and stores the found atoms, remarks, and intensities.
+ * Note: CIF files do not contain segment name, so that data won't be read.
+ * 
+ * @param fnPDB CIF file path.
+ * @param addAtom Function to add atoms to class's atom list.
+ * @param intensities List of atom intensities.
+ * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms. false (default) is used when there are no pseudoatoms or when using a threshold.
+ * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
+ * @param dataBlock Data block used to store all of CIF file's fields.
+*/
+void readRichCIF(const std::string &fnCIF, const callable &addAtom, std::vector<double> &intensities,
+    const bool pseudoatoms, const double threshold, cif::datablock &dataBlock)
+{
+    // Parsing mmCIF file
+    cif::file cifFile;
+    cifFile.load(fnCIF);
+
+    // Extrayendo datos del archivo en un DataBlock
+    cif::datablock& db = cifFile.front();
+
+    // Reading Atom section
+    cif::category& atom_site = db["atom_site"];
+
+    // Iterating through atoms and heteroatoms getting atom id and x,y,z positions
+    RichAtom atom;
+	for (const auto& [record, serialNumber, atomId, altId, resName, chain, resSeq, seqId, iCode, xPos, yPos, zPos,
+            occupancy, bFactor, charge, authSeqId, authCompId, authAsymId, authAtomId, pdbNum]:
+        atom_site.find<std::string,int,std::string,std::string,std::string,std::string,int,int,std::string,float,
+            float,float,float,float,std::string,int,std::string,std::string,std::string,int>
+        (
+            // Note: search by key is needed to iterate list of atoms. Workaround: use every possible record type for the search
+            cif::key("group_PDB") == "ATOM" || cif::key("group_PDB") == "HETATM",
+            "group_PDB",            // Record:          -->ATOM<--   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "id",                   // Serial number:   ATOM   -->8<--      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_atom_id",        // Id:              ATOM   8      C  -->CD1<-- . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_alt_id",         // Alt id:          ATOM   8      C  CD1 -->.<-- ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_comp_id",        // Chain name:      ATOM   8      C  CD1 . -->ILE<-- A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_asym_id",        // Chain location:  ATOM   8      C  CD1 . ILE -->A<--  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_entity_id",      // Residue sequence:ATOM   8      C  CD1 . ILE A  -->1<-- 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "label_seq_id",         // Sequence id:     ATOM   8      C  CD1 . ILE A  1 -->3<--    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "pdbx_PDB_ins_code",    // Ins code:        ATOM   8      C  CD1 . ILE A  1 3    -->?<-- 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "Cartn_x",              // X position:      ATOM   8      C  CD1 . ILE A  1 3    ? -->48.271<--  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "Cartn_y",              // Y position:      ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  -->183.605<-- 19.253  1.00 35.73  ? 3    ILE A CD1 1
+            "Cartn_z",              // Z position:      ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 -->19.253<--  1.00 35.73  ? 3    ILE A CD1 1
+            "occupancy",            // Occupancy:       ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  -->1.00<-- 35.73  ? 3    ILE A CD1 1
+            "B_iso_or_equiv",       // B factor:        ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 -->35.73<--  ? 3    ILE A CD1 1
+            "pdbx_formal_charge",   // Author charge:   ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  -->?<-- 3    ILE A CD1 1
+            "auth_seq_id",          // Author seq id:   ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? -->3<--    ILE A CD1 1
+            "auth_comp_id",         // Author chainname:ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    -->ILE<-- A CD1 1
+            "auth_asym_id",         // Author chain loc:ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE -->A<-- CD1 1
+            "auth_atom_id",         // Author id:       ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A -->CD1<-- 1
+            "pdbx_PDB_model_num"    // PDB model number:ATOM   8      C  CD1 . ILE A  1 3    ? 48.271  183.605 19.253  1.00 35.73  ? 3    ILE A CD1 -->1<--
+        ))
+	{
+        // Storing values in atom list
+        atom.record = record;
+        atom.serial = serialNumber;
+        atom.name = atomId;
+        atom.atomType = atomId;
+        atom.altId = altId;
+        atom.resname = resName;
+        atom.altloc = chain;
+        atom.chainid = chain[0];
+        atom.resseq = resSeq;
+        atom.seqId = seqId;
+        atom.icode = iCode;
+        atom.x = xPos;
+        atom.y = yPos;
+        atom.z = zPos;
+        atom.occupancy = occupancy;
+        atom.bfactor = bFactor;
+        atom.charge = charge;
+        atom.authSeqId = authSeqId;
+        atom.authCompId = authCompId;
+        atom.authAsymId = authAsymId;
+        atom.authAtomId = authAtomId;
+        atom.pdbNum = pdbNum;
+
+        // If it is a pseudoatom, insert B factor into intensities
+        if(pseudoatoms) {
+            intensities.push_back(bFactor);
+        } else {
+            // Adding atom if is not pseudoatom and B factor is not greater than set threshold
+            if (bFactor >= threshold)
+                addAtom(atom);
+        }
+	}
+
+    // Storing whole datablock
+    dataBlock = db;
+}
+
+void PDBRichPhantom::read(const FileName &fnPDB, const bool pseudoatoms, const double threshold)
+{
+    // Checking if extension is .cif or .pdb
+    if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
+        readRichCIF(fnPDB.getString(), bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, pseudoatoms, threshold, dataBlock);
+    } else {
+        readRichPDB(fnPDB, bind(&PDBRichPhantom::addAtom, this, std::placeholders::_1), intensities, remarks, pseudoatoms, threshold);
+    }
+}
+
+template<typename callable>
+/**
+ * @brief Write rich phantom to PDB file.
+ * 
+ * This function stores all the data of the rich phantom into a PDB file.
+ * 
+ * @param fnPDB PDB file to write to.
+ * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
+ * @param remarks List of remarks.
+ * @param atomList List of atoms to be stored.
+*/
+void writePDB(const FileName &fnPDB, bool renumber, const std::vector<std::string> &remarks, const callable &atomList)
 {
     FILE* fh_out=fopen(fnPDB.c_str(),"w");
     if (!fh_out)
         REPORT_ERROR(ERR_IO_NOWRITE, fnPDB);
     size_t imax=remarks.size();
     for (size_t i=0; i<imax; ++i)
-    	fprintf(fh_out,"%s\n",remarks[i].c_str());
+        fprintf(fh_out,"%s\n",remarks[i].c_str());
+
     imax=atomList.size();
     for (size_t i=0; i<imax; ++i)
     {
     	const RichAtom &atom=atomList[i];
-    	fprintf (fh_out,"ATOM  %5lu %4s%c%-4s%c%4d%c   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s\n",
-    			(unsigned long int)i+1,atom.name.c_str(),
-    			atom.altloc,atom.resname.c_str(),atom.chainid,
-    			atom.resseq,atom.icode,atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
-    			atom.name.c_str());
+        char serial[5+1];
+        if (!renumber) {
+            auto* errmsg3 = hy36encode(5, atom.serial, serial);
+            if (errmsg3) {
+                reportWarning("Failed to use atom.serial. Using i+1 instead.");
+                renumber=true;
+                hy36encodeSafe(5, (int)i + 1, serial);
+            }
+        }
+        else {
+            // use i+1 instead
+            hy36encodeSafe(5, (int)i + 1, serial);
+        }
+        char resseq[4+1];
+        hy36encodeSafe(4, atom.resseq, resseq);
+        fprintf (fh_out,"%-6s%5s %-4s%s%-4s%c%4s%s   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%-2s\n",
+				atom.record.c_str(),serial,atom.name.c_str(),
+				atom.altloc.c_str(),atom.resname.c_str(),atom.chainid,
+				resseq,atom.icode.c_str(),
+				atom.x,atom.y,atom.z,atom.occupancy,atom.bfactor,
+				atom.segment.c_str(),atom.atomType.c_str(),atom.charge.c_str());
     }
     fclose(fh_out);
+}
+
+template<typename callable>
+/**
+ * @brief Write rich phantom to CIF file.
+ * 
+ * This function stores all the data of the rich phantom into a CIF file.
+ * 
+ * @param fnPDB PDB file path to write to.
+ * @param atomList List of atoms to be stored.
+ * @param dataBlock Data block containing the full CIF file.
+*/
+void writeCIF(const std::string &fnCIF, const callable &atomList, cif::datablock &dataBlock)
+{
+    // Opening CIF file
+    std::ofstream cifFile(fnCIF);
+
+    // Creating atom_site category
+    cif::category atomSite("atom_site");
+    cif::row_initializer atomSiteInserter;
+
+    // Declaring temporary variables for occupancy, coords, and Bfactor
+    std::stringstream tempStream;
+    std::string occupancy;
+    std::string xPos;
+    std::string yPos;
+    std::string zPos;
+    std::string bFactor;
+
+    // Inserting data from atom list
+    for (RichAtom atom : atomList) {
+        // Converting occupancy to string with 2 fixed decimals
+        tempStream << std::fixed << std::setprecision(2) << atom.occupancy;
+        occupancy = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting xPos to string with 3 fixed decimals
+        tempStream << std::fixed << std::setprecision(3) << atom.x;
+        xPos = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting yPos to string with 3 fixed decimals
+        tempStream << std::fixed << std::setprecision(3) << atom.y;
+        yPos = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting zPos to string with 3 fixed decimals
+        tempStream << std::fixed << std::setprecision(3) << atom.z;
+        zPos = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Converting bFactor to string with 2 fixed decimals
+        tempStream << std::fixed << std::setprecision(2) << atom.bfactor;
+        bFactor = tempStream.str();
+        tempStream.clear();
+        tempStream.str("");
+
+        // Defining row
+        // Empty string or char values are substitued with "." or '.' (no value)
+        // No "?" are inserted since it is not allowed by spec
+        atomSiteInserter = {
+            {"group_PDB", atom.record.empty() ? "." : atom.record},
+            {"id", atom.serial},
+            {"type_symbol", atom.name.empty() ? '.' : atom.name[0]},
+            {"label_atom_id", atom.name.empty() ? "." : atom.name},
+            {"label_alt_id", atom.altId.empty() ? "." : atom.altId},
+            {"label_comp_id", atom.resname.empty() ? "." : atom.resname},
+            {"label_asym_id", atom.altloc.empty() ? "." : atom.altloc},
+            {"label_entity_id", atom.resseq},
+            {"label_seq_id", atom.seqId},
+            {"pdbx_PDB_ins_code", atom.icode.empty() ? "." : atom.icode},
+            {"Cartn_x", xPos},
+            {"Cartn_y", yPos},
+            {"Cartn_z", zPos},
+            {"occupancy", occupancy},
+            {"B_iso_or_equiv", bFactor},
+            {"pdbx_formal_charge", atom.charge.empty() ? "." : atom.charge},
+            {"auth_seq_id", atom.authSeqId},
+            {"auth_comp_id", atom.authCompId.empty() ? "." : atom.authCompId},
+            {"auth_asym_id", atom.authAsymId.empty() ? "." : atom.authAsymId},
+            {"auth_atom_id", atom.authAtomId.empty() ? "." : atom.authAtomId},
+            {"pdbx_PDB_model_num", atom.pdbNum}
+        };
+
+        // Inserting row
+        atomSite.emplace(std::move(atomSiteInserter));
+    }
+
+    // Updating atom list in stored data block
+    auto categoryInsertPosition = std::find_if(
+        dataBlock.cbegin(), dataBlock.cend(), 
+        [](const cif::category& cat) { 
+            return cat.name() == "atom_site"; 
+        }
+    ); 
+    if (categoryInsertPosition != dataBlock.cend()) {
+        categoryInsertPosition = dataBlock.erase(categoryInsertPosition);
+    }
+    dataBlock.insert(categoryInsertPosition, atomSite);
+
+    // Writing datablock to file
+    dataBlock.write(cifFile);
+
+    // Closing file
+    cifFile.close();
+}
+
+void PDBRichPhantom::write(const FileName &fnPDB, const bool renumber)
+{
+    // Checking if extension is .cif or .pdb
+    if (checkExtension(fnPDB.getString(), {".cif"}, {".gz"})) {
+        writeCIF(fnPDB.getString(), atomList, dataBlock);
+    } else {
+        writePDB(fnPDB, renumber, remarks, atomList);
+    }
 }
 
 /* Atom descriptors -------------------------------------------------------- */
@@ -624,7 +1070,6 @@ double electronFormFactorFourier(double f, const Matrix1D<double> &descriptors)
 
 /* Electron form factor in real space -------------------------------------- */
 /* We know the transform pair
-
    sqrt(pi/b)*exp(-x^2/(4*b)) <----> exp(-b*W^2)
    
    We also know that 
@@ -656,14 +1101,14 @@ double electronFormFactorRealSpace(double r,
 
 /* Computation of the low pass filter -------------------------------------- */
 // Returns the impulse response of the lowpass filter
-void hlpf(MultidimArray<double> &f, int M, double T, const std::string &filterType,
+void hlpf(MultidimArray<double> &f, int M,  const std::string &filterType,
           MultidimArray<double> &filter, double reductionFactor=0.8,
           double ripple=0.01, double deltaw=1.0/8.0)
 {
     filter.initZeros(XSIZE(f));
     filter.setXmippOrigin();
 
-    int Nmax=(int)CEIL(M/2.0);
+    auto Nmax=(int)CEIL(M/2.0);
     if (filterType=="SimpleAveraging")
     {
         FOR_ALL_ELEMENTS_IN_ARRAY1D(filter)
@@ -691,14 +1136,16 @@ void fhlpf(const MultidimArray<double> &f, const MultidimArray<double> &filter,
 {
 	// Expand the two input signals
     int Nmax=FINISHINGX(filter);
-    MultidimArray<double> auxF, auxFilter;
+    MultidimArray<double> auxF;
+    MultidimArray<double> auxFilter;
     auxF=f;
     auxFilter=filter;
     auxF.selfWindow(STARTINGX(f)-Nmax,FINISHINGX(f)+Nmax);
     auxFilter.selfWindow(STARTINGX(filter)-Nmax,FINISHINGX(filter)+Nmax);
 
     // Convolve in Fourier
-    MultidimArray< std::complex<double> > F, Filter;
+    MultidimArray< std::complex<double> > F;
+    MultidimArray< std::complex<double> > Filter;
     FourierTransform(auxF,F);
     FourierTransform(auxFilter,Filter);
     F*=Filter;
@@ -708,7 +1155,7 @@ void fhlpf(const MultidimArray<double> &f, const MultidimArray<double> &filter,
     const double K1=2*PI*(STARTINGX(auxFilter)-1);
     const double K2=XSIZE(auxFilter);
     std::complex<double> aux;
-    double * ptrAux=(double*)&aux;
+    auto * ptrAux=(double*)&aux;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(F)
     {
         double w;
@@ -745,9 +1192,10 @@ double Hlpf_fitness(double *p, void *prm)
         return 1e38;
 
     // Construct the filter with the current parameters
-    MultidimArray<double> filter, auxf;
+    MultidimArray<double> filter;
+    MultidimArray<double> auxf;
     auxf=globalf;
-    hlpf(auxf, globalM, globalT, "SincKaiser", filter, reductionFactor,
+    hlpf(auxf, globalM, "SincKaiser", filter, reductionFactor,
          ripple, deltaw);
 
     // Convolve the filter with the atomic profile
@@ -759,7 +1207,7 @@ double Hlpf_fitness(double *p, void *prm)
     int imax=CEIL(Rmax/(globalM*globalT));
     MultidimArray<double> fhlpfCoarselySampled(2*imax+1);
     MultidimArray<double> splineCoeffsfhlpfFinelySampled;
-    produceSplineCoefficients(BSPLINE3,splineCoeffsfhlpfFinelySampled,fhlpfFinelySampled);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffsfhlpfFinelySampled,fhlpfFinelySampled);
     fhlpfCoarselySampled.setXmippOrigin();
     FOR_ALL_ELEMENTS_IN_ARRAY1D(fhlpfCoarselySampled)
     {
@@ -770,7 +1218,9 @@ double Hlpf_fitness(double *p, void *prm)
 
     // Build the frequency response of the convolved and coarsely sampled
     // atom
-    MultidimArray<double> aux, FfilterMag, freq;
+    MultidimArray<double> aux;
+    MultidimArray<double> FfilterMag;
+    MultidimArray<double> freq;
     MultidimArray< std::complex<double> > Ffilter;
     aux=fhlpfCoarselySampled;
     aux.selfWindow(-10*FINISHINGX(aux),10*FINISHINGX(aux));
@@ -847,9 +1297,9 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     Matrix1D<double> steps(3);
     steps.initConstant(1);
     powellOptimizer(globalHlpfPrm, 1, 3,
-                    &Hlpf_fitness, NULL, 0.05, fitness, iter, steps, false);
+                    &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
-    hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
+    hlpf(f, M, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }
 
 /* Atom radial profile ----------------------------------------------------- */
@@ -859,7 +1309,7 @@ void atomRadialProfile(int M, double T, const std::string &atom,
     // Compute the electron form factor in real space
     double largestb1=76.7309/(4*PI*PI);
     double Rmax=4*sqrt(2*largestb1);
-    int imax=(int)CEIL(Rmax/T);
+    auto imax=(int)CEIL(Rmax/T);
     Matrix1D<double> descriptors;
     atomDescriptors(atom, descriptors);
     MultidimArray<double> f(2*imax+1);
@@ -897,7 +1347,8 @@ class AtomValueFunc: public doubleFunction
 {
 public:
     int M;
-    double r0_2, z;
+    double r0_2;
+    double z;
     const MultidimArray<double> *profileCoefficients;
     virtual double operator()()
     {
@@ -975,7 +1426,7 @@ void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
 
     // Atomic profile
     atomRadialProfile(M, highTs, atom, profile);
-    produceSplineCoefficients(BSPLINE3,splineCoeffs,profile);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffs,profile);
     volumeProfileCoefficients.push_back(splineCoeffs);
 
     // Radius
@@ -985,7 +1436,7 @@ void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
     if (computeProjection)
     {
         atomProjectionRadialProfile(M, splineCoeffs, profile);
-        produceSplineCoefficients(BSPLINE3,splineCoeffs,profile);
+        produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffs,profile);
         projectionProfileCoefficients.push_back(splineCoeffs);
     }
 }
@@ -996,16 +1447,17 @@ void projectAtom(const Atom &atom, Projection &P,
                  const Matrix2D<double> &VP, const Matrix2D<double> &PV,
                  const AtomInterpolator &interpolator)
 {
-#define SUBSAMPLING 2                  // for every measure 2x2 line
+constexpr float SUBSAMPLING = 2;                  // for every measure 2x2 line
     // integrals will be taken to
     // avoid numerical errors
-#define SUBSTEP 1/(SUBSAMPLING*2.0)
+constexpr float SUBSTEP = 1/(SUBSAMPLING*2.0);
 
     Matrix1D<double> origin(3);
     Matrix1D<double> direction;
     VP.getRow(2, direction);
     direction.selfTranspose();
-    Matrix1D<double> corner1(3), corner2(3);
+    Matrix1D<double> corner1(3);
+    Matrix1D<double> corner2(3);
     Matrix1D<double> act(3);
     SPEED_UP_temps012;
 
@@ -1082,8 +1534,8 @@ void projectAtom(const Atom &atom, Projection &P,
 
     // Study the projection for each point in the projection plane ..........
     // (u,v) are in the deformed projection plane (if any deformation)
-    for (int v = (int)YY(corner1); v <= (int)YY(corner2); v++)
-        for (int u = (int)XX(corner1); u <= (int)XX(corner2); u++)
+    for (auto v = (int)YY(corner1); v <= (int)YY(corner2); v++)
+        for (auto u = (int)XX(corner1); u <= (int)XX(corner2); u++)
         {
             double length = 0;
             //#define DEBUG_EVEN_MORE
@@ -1168,7 +1620,7 @@ void projectPDB(const PDBPhantom &phantomPDB,
         {
             projectAtom(phantomPDB.getAtom(i), proj, VP, PV, interpolator);
         }
-        catch (XmippError XE) {}
+        catch (XmippError &XE) {}
     }
 }
 
@@ -1222,4 +1674,310 @@ void distanceHistogramPDB(const PDBPhantom &phantomPDB, size_t Nnearest, double 
 				NnearestDistances(i*Nnearest+k)=NnearestToThisAtom[k];
     }
     compute_hist(NnearestDistances, hist, 0, NnearestDistances.computeMax(), Nbins);
+}
+
+
+/*! C port of the hy36encode() and hy36decode() functions in the
+    hybrid_36.py Python prototype/reference implementation.
+    See the Python script for more information.
+    This file has no external dependencies, NOT even standard C headers.
+    Optionally, use hybrid_36_c.h, or simply copy the declarations
+    into your code.
+    This file is unrestricted Open Source (cctbx.sf.net).
+    Please send corrections and enhancements to cctbx@cci.lbl.gov .
+    See also: http://cci.lbl.gov/hybrid_36/
+    Ralf W. Grosse-Kunstleve, Feb 2007.
+ */
+
+/* The following #include may be commented out.
+   It is here only to enforce consistency of the declarations
+   and the definitions.
+ */
+// #include <iotbx/pdb/hybrid_36_c.h>
+
+/* All static functions below are implementation details
+   (and not accessible from other translation units).
+ */
+
+static
+const char*
+digits_upper() { return "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"; }
+
+static
+const char*
+digits_lower() { return "0123456789abcdefghijklmnopqrstuvwxyz"; }
+
+static
+const char*
+value_out_of_range() { return "value out of range."; }
+
+static
+const char* invalid_number_literal() { return "invalid number literal."; }
+
+static
+const char* unsupported_width() { return "unsupported width."; }
+
+static
+void
+fill_with_stars(unsigned width, char* result)
+{
+  while (width) {
+    *result++ = '*';
+    width--;
+  }
+  *result = '\0';
+}
+
+static
+void
+encode_pure(
+  const char* digits,
+  unsigned digits_size,
+  unsigned width,
+  int value,
+  char* result)
+{
+  char buf[16];
+  int rest;
+  unsigned i, j;
+  i = 0;
+  j = 0;
+  if (value < 0) {
+    j = 1;
+    value = -value;
+  }
+  while (1) {
+    rest = value / digits_size;
+    buf[i++] = digits[value - rest * digits_size];
+    if (rest == 0) break;
+    value = rest;
+  }
+  if (j) buf[i++] = '-';
+  for(j=i;j<width;j++) *result++ = ' ';
+  while (i != 0) *result++ = buf[--i];
+  *result = '\0';
+}
+
+static
+const char*
+decode_pure(
+  const int* digits_values,
+  unsigned digits_size,
+  const char* s,
+  unsigned s_size,
+  int* result)
+{
+  int si, dv;
+  int have_minus = 0;
+  int have_non_blank = 0;
+  int value = 0;
+  unsigned i = 0;
+  for(;i<s_size;i++) {
+    si = s[i];
+    if (si < 0 || si > 127) {
+      *result = 0;
+      return invalid_number_literal();
+    }
+    if (si == ' ') {
+      if (!have_non_blank) continue;
+      value *= digits_size;
+    }
+    else if (si == '-') {
+      if (have_non_blank) {
+        *result = 0;
+        return invalid_number_literal();
+      }
+      have_non_blank = 1;
+      have_minus = 1;
+      continue;
+    }
+    else {
+      have_non_blank = 1;
+      dv = digits_values[si];
+      if (dv < 0 || dv >= digits_size) {
+        *result = 0;
+        return invalid_number_literal();
+      }
+      value *= digits_size;
+      value += dv;
+    }
+  }
+  if (have_minus) value = -value;
+  *result = value;
+  return 0;
+}
+
+/*! hybrid-36 encoder: converts integer value to string result
+      width: must be 4 (e.g. for residue sequence numbers)
+                  or 5 (e.g. for atom serial numbers)
+      value: integer value to be converted
+      result: pointer to char array of size width+1 or greater
+              on return result is null-terminated
+      return value: pointer to error message, if any,
+                    or 0 on success
+    Example usage (from C++):
+      char result[4+1];
+      const char* errmsg = hy36encode(4, 12345, result);
+      if (errmsg) throw std::runtime_error(errmsg);
+ */
+const char*
+hy36encode(unsigned width, int value, char* result)
+{
+  int i = value;
+  if (width == 4U) {
+    if (i >= -999) {
+      if (i < 10000) {
+        encode_pure(digits_upper(), 10U, 4U, i, result);
+        return 0;
+      }
+      i -= 10000;
+      if (i < 1213056 /* 26*36**3 */) {
+        i += 466560 /* 10*36**3 */;
+        encode_pure(digits_upper(), 36U, 0U, i, result);
+        return 0;
+      }
+      i -= 1213056;
+      if (i < 1213056) {
+        i += 466560;
+        encode_pure(digits_lower(), 36U, 0U, i, result);
+        return 0;
+      }
+    }
+  }
+  else if (width == 5U) {
+    if (i >= -9999) {
+      if (i < 100000) {
+        encode_pure(digits_upper(), 10U, 5U, i, result);
+        return 0;
+      }
+      i -= 100000;
+      if (i < 43670016 /* 26*36**4 */) {
+        i += 16796160 /* 10*36**4 */;
+        encode_pure(digits_upper(), 36U, 0U, i, result);
+        return 0;
+      }
+      i -= 43670016;
+      if (i < 43670016) {
+        i += 16796160;
+        encode_pure(digits_lower(), 36U, 0U, i, result);
+        return 0;
+      }
+    }
+  }
+  else {
+    fill_with_stars(width, result);
+    return unsupported_width();
+  }
+  fill_with_stars(width, result);
+  return value_out_of_range();
+}
+
+/*! hybrid-36 decoder: converts string s to integer result
+      width: must be 4 (e.g. for residue sequence numbers)
+                  or 5 (e.g. for atom serial numbers)
+      s: string to be converted
+         does not have to be null-terminated
+      s_size: size of s
+              must be equal to width, or an error message is
+              returned otherwise
+      result: integer holding the conversion result
+      return value: pointer to error message, if any,
+                    or 0 on success
+    Example usage (from C++):
+      int result;
+      const char* errmsg = hy36decode(width, "A1T5", 4, &result);
+      if (errmsg) throw std::runtime_error(errmsg);
+ */
+const char*
+hy36decode(unsigned width, const char* s, unsigned s_size, int* result)
+{
+  static int first_call = 1;
+  static int digits_values_upper[128U];
+  static int digits_values_lower[128U];
+  static const char*
+    ie_range = "internal error hy36decode: integer value out of range.";
+  unsigned i;
+  int di;
+  const char* errmsg;
+  if (first_call) {
+    first_call = 0;
+    for(i=0;i<128U;i++) digits_values_upper[i] = -1;
+    for(i=0;i<128U;i++) digits_values_lower[i] = -1;
+    for(i=0;i<36U;i++) {
+      di = digits_upper()[i];
+      if (di < 0 || di > 127) {
+        *result = 0;
+        return ie_range;
+      }
+      digits_values_upper[di] = i;
+    }
+    for(i=0;i<36U;i++) {
+      di = digits_lower()[i];
+      if (di < 0 || di > 127) {
+        *result = 0;
+        return ie_range;
+      }
+      digits_values_lower[di] = i;
+    }
+  }
+  if (s_size == width) {
+    di = s[0];
+    if (di >= 0 && di <= 127) {
+      if (digits_values_upper[di] >= 10) {
+        errmsg = decode_pure(digits_values_upper, 36U, s, s_size, result);
+        if (errmsg == 0) {
+          /* result - 10*36**(width-1) + 10**width */
+          if      (width == 4U) (*result) -= 456560;
+          else if (width == 5U) (*result) -= 16696160;
+          else {
+            *result = 0;
+            return unsupported_width();
+          }
+          return 0;
+        }
+      }
+      else if (digits_values_lower[di] >= 10) {
+        errmsg = decode_pure(digits_values_lower, 36U, s, s_size, result);
+        if (errmsg == 0) {
+          /* result + 16*36**(width-1) + 10**width */
+          if      (width == 4U) (*result) += 756496;
+          else if (width == 5U) (*result) += 26973856;
+          else {
+            *result = 0;
+            return unsupported_width();
+          }
+          return 0;
+        }
+      }
+      else {
+        errmsg = decode_pure(digits_values_upper, 10U, s, s_size, result);
+        if (errmsg) return errmsg;
+        if (!(width == 4U || width == 5U)) {
+          *result = 0;
+          return unsupported_width();
+        }
+        return 0;
+      }
+    }
+  }
+  *result = 0;
+  return invalid_number_literal();
+}
+
+// safe function for hy36decode
+void hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result)
+{
+    auto* errmsg = hy36decode(width, s, s_size, result); 
+    if (errmsg) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg);
+    }
+}
+
+// safe function for hy36encode
+void hy36encodeSafe(unsigned width, int value, char* result)
+{
+    const char* errmsg = hy36encode(width, value, result); 
+    if (errmsg) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, errmsg);
+    }
 }

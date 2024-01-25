@@ -26,7 +26,6 @@
 #define _PROG_CLASSIFY_CL2D_CORE_ANALYSIS
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 
 /**@defgroup ClassifyCL2DCore Core analysis for CL2D
    @ingroup ReconsLibrary */
@@ -68,9 +67,9 @@ public:
 	ClassifyCL2DCoreAction action;
 public:
     // Mpi node
-    MpiNode *node;
+    std::shared_ptr<MpiNode> node;
     // FileTaskDistributor
-    MpiTaskDistributor *taskDistributor;
+    std::unique_ptr<MpiTaskDistributor> taskDistributor;
 	// CL2D blocks
 	std::vector<CL2DBlock> blocks;
     // MaxLevel
@@ -80,9 +79,6 @@ public:
 public:
     /// Empty constructor
     ProgClassifyCL2DCore(int argc, char **argv);
-
-    /// Destructor
-    ~ProgClassifyCL2DCore();
 
     /// Read argument from command line
     void readParams();
@@ -95,6 +91,9 @@ public:
 
     /// Produce side info
     void produceSideInfo();
+
+    /// Produce class input format
+    void produceClassInfo();
 
     /// Remove outliers
     void computeCores();

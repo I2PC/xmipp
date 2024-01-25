@@ -52,7 +52,7 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		PyObject *Imask,
 		double &rot, double &tilt, double &psi, double &x, double &y, double &z, double &score,
 		Matrix2D<double> &A,
-		int maxshift=10, double maxFreq=0.25, const MultidimArray<int> *mask=NULL);
+		int maxshift=10, double maxFreq=0.25, const MultidimArray<int> *mask=nullptr);
 
 //@}
 #endif

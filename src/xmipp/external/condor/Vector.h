@@ -44,10 +44,10 @@ class Vector
     {
        int n,extention;
        int ref_count;
-       double *p;
+       double *p = nullptr;
        char externalData;
     } VectorData;
-    VectorData *d;
+    VectorData *d = nullptr;
 
 // creation & management of Vector:
     Vector(int _n=0);

@@ -156,7 +156,7 @@ void ProgMonogenicSignalRes::produceSideInfo()
 	VRiesz.resizeNoCopy(inputVol);
 	transformer.FourierTransform(inputVol, fftV);
 
-	// Frequency volume
+  // Frequency volume
 	iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
 
 	if (freq_step < 0.25)
@@ -313,10 +313,8 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 		{
 			double valFilt = DIRECT_MULTIDIM_ELEM(FilteredMap, n);
 			double valRes  = DIRECT_MULTIDIM_ELEM(resolutionVol, n);
-
 			if (valFilt>valRes)
 				DIRECT_MULTIDIM_ELEM(FilteredMap, n) = valRes;
-
 			if (valFilt<Nyquist)
 				DIRECT_MULTIDIM_ELEM(FilteredMap, n) = valRes;
 		}
@@ -401,8 +399,7 @@ void ProgMonogenicSignalRes::run()
 						freq, freqH,
 						last_fourier_idx, volsize,
 						continueIter, breakIter,
-						sampling, minRes, maxRes,
-						doNextIteration);
+						sampling, maxRes);
 
 		if (continueIter)
 			continue;

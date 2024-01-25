@@ -27,7 +27,7 @@
 #ifndef _angular_projection_matching_H
 #define _angular_projection_matching_H
 
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/multidim_array.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_threads.h"
@@ -37,7 +37,7 @@
 template<typename T>
 class Image;
 
-#define MY_OUPUT_SIZE 10
+constexpr int MY_OUPUT_SIZE = 10;
 
 class ProgAngularProjectionMatching;
 
@@ -69,9 +69,9 @@ public:
     /** Filenames */
     FileName fn_exp, fn_ref, fn_out, fn_ctf;
     /** Docfile with experimental images */
-    MetaData DFexp;
+    MetaDataDb DFexp;
     /** Docfile with results */
-    MetaData DFo;
+    MetaDataDb DFo;
     /** dimension of the images and padded images */
     size_t dim, paddim;
     /** Padding factor (only for applying CTF to references) */

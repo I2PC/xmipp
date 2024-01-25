@@ -4,7 +4,7 @@
 #include <core/xmipp_image_extension.h>
 #include <iostream>
 #include <gtest/gtest.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include "core/transformations.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
@@ -15,7 +15,6 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-        XMIPP_TRY
         //get example images/staks
         xmippPath = getXmippPath();
         if (chdir(((String)(xmippPath + "/resources/test")).c_str())==-1)
@@ -24,10 +23,10 @@ protected:
         imageName = "image/singleImage.spi";
         stackName = "image/smallStack.stk";
         stackVolName= "image/smallVolumeStack.stk";
+        imageNameMRC = "image/singleImage.mrc";
         myImage.read(imageName);
         myStack.read(stackName);
         myVolStack.read(stackVolName);
-        XMIPP_CATCH
     }
 
     // virtual void TearDown() {}//Destructor
@@ -38,7 +37,7 @@ protected:
     FileName stackName;
     FileName stackVolName;
     FileName xmippPath;
-
+    FileName imageNameMRC;
 };
 
 
@@ -80,9 +79,8 @@ TEST_F( ImageTest, getEulerAngles)
 
 TEST_F( ImageTest, readApplyGeo)
 {
-    XMIPP_TRY
     FileName auxFn = "image/test2.spi";
-    MetaData md;
+    MetaDataVec md;
     size_t id = md.addObject();
     md.setValue(MDL_IMAGE, auxFn, id);
     md.setValue(MDL_ANGLE_PSI, 45., id);
@@ -97,15 +95,13 @@ TEST_F( ImageTest, readApplyGeo)
     auxImage.readApplyGeo(md, id, params);
     auxImage2.read(auxFn.insertBeforeExtension("_wrap_true"));
     EXPECT_TRUE(auxImage == auxImage2);
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, readApplyGeoFromMatrix)
 {
   // Same as readApplyGeo, but using the transformation matrix
-    XMIPP_TRY
     FileName auxFn = "image/test2.spi";
-    MetaData md;
+    MetaDataVec md;
     size_t id = md.addObject();
     md.setValue(MDL_IMAGE, auxFn, id);
     // Equivalent matrix to a 45 in-plane rotation
@@ -125,30 +121,26 @@ TEST_F( ImageTest, readApplyGeoFromMatrix)
     auxImage.readApplyGeo(md, id, params);
     auxImage2.read(auxFn.insertBeforeExtension("_wrap_true"));
     EXPECT_EQ(auxImage, auxImage2);
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, readImageFromStackMetadata)
 {
-    XMIPP_TRY
     FileName stackSliceFn, auxFn;
     stackSliceFn.compose(2, stackName);
     Image<double> img1;
     img1.read(stackSliceFn);
-    MetaData md(stackSliceFn);
-    size_t id = md.firstObject();
+    MetaDataVec md(stackSliceFn);
+    size_t id = md.firstRowId();
     md.getValue(MDL_IMAGE, auxFn, id);
     Image<double> img2;
     img2.read(auxFn);
 
     EXPECT_TRUE(img1 == img2);
-    XMIPP_CATCH
 }
 
 //ROB ask kino is angles are saved in header
 TEST_F( ImageTest, saveImageinStackwithHeaderAngleRot)
 {
-    XMIPP_TRY
     FileName stackSliceFn, auxFn;
     stackSliceFn.compose(2, stackName);
     Image<double> img1;
@@ -168,12 +160,10 @@ TEST_F( ImageTest, saveImageinStackwithHeaderAngleRot)
     EXPECT_DOUBLE_EQ(20.,tilt);
     EXPECT_DOUBLE_EQ(30. ,psi);
     stackSliceFn.deleteFile();
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, writeIMAGICimage)
 {
-    XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_img_XXXXXX");
     auxFn.deleteFile();
@@ -185,12 +175,10 @@ TEST_F( ImageTest, writeIMAGICimage)
     auxFn.deleteFile();
     auxFn = auxFn.replaceSubstring(".img", ".hed");
     auxFn.deleteFile();
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, mirrorY)
 {
-    XMIPP_TRY
     Image<double> auxImage(3,3);
     Image<double> auxImageY(3,3);
     int dim ;
@@ -214,12 +202,10 @@ TEST_F( ImageTest, mirrorY)
             DIRECT_IMGPIXEL(auxImage2Y,dim-i-1,j)=(double) dim*i+j;
     auxImage2.mirrorY();
     EXPECT_EQ(auxImage2,auxImage2Y);
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, writeIMAGICstack)
 {
-    XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_imgstk_XXXXXX");
     auxFn.deleteFile();
@@ -231,40 +217,36 @@ TEST_F( ImageTest, writeIMAGICstack)
     auxFn.deleteFile();
     auxFn = auxFn.replaceSubstring(".img", ".hed");
     auxFn.deleteFile();
-    XMIPP_CATCH
+}
+
+void checkMRC(Image<double> &myImage, const FileName &suffixIn, const FileName &suffixOut)
+{
+    FileName auxFn;
+    auxFn.initUniqueName("/tmp/temp_mrc_XXXXXX");
+    myImage.write(auxFn+suffixIn);
+    Image<double> auxImage;
+    auxImage.read(auxFn+suffixOut);
+    EXPECT_EQ(myImage,auxImage);
+    auxFn.deleteFile();
 }
 
 TEST_F( ImageTest, writeMRCimage)
 {
-    XMIPP_TRY
-    FileName auxFn;
-    auxFn.initUniqueName("/tmp/temp_mrc_XXXXXX");
-    auxFn = auxFn + ":mrc";
-    myImage.write(auxFn);
-    Image<double> auxImage;
-    auxImage.read(auxFn);
-    EXPECT_EQ(myImage,auxImage);
-    auxFn.deleteFile();
-    XMIPP_CATCH
+	checkMRC(myImage,":mrc",":mrc");
 }
 
 TEST_F( ImageTest, writeMRCstack)
 {
-    XMIPP_TRY
-    FileName auxFn;
-    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
-    auxFn = auxFn + ":mrcs";
-    myStack.write(auxFn);
-    Image<double> auxStack;
-    auxStack.read(auxFn);
-    EXPECT_EQ(myStack,auxStack);
-    auxFn.deleteFile();
-    XMIPP_CATCH
+	checkMRC(myImage,":mrcs",":mrcs");
+	checkMRC(myImage,".ali:mrcs",".ali");
+	checkMRC(myImage,".preali:mrcs",".preali");
+
+	setenv("XMIPP_MRC_EXTENSIONS", "aux", 1);
+	checkMRC(myImage,".aux",".aux");
 }
 
 TEST_F( ImageTest, writeMRCVOLstack)
 {
-    XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_mrcvolstk_XXXXXX");
     auxFn = auxFn + ":mrc";
@@ -278,12 +260,29 @@ TEST_F( ImageTest, writeMRCVOLstack)
     auxStack.getDimensions(auxStackArrayDim);
     EXPECT_TRUE(StackArrayDim==auxStackArrayDim);
     auxFn.deleteFile();
-    XMIPP_CATCH
+}
+
+TEST_F( ImageTest, writeMRCVOLstack2)
+{
+    FileName auxFn;
+    auxFn.initUniqueName("/tmp/temp_mrcvol_XXXXXX");
+    auxFn = auxFn + ".rec";
+    myVolStack.write(auxFn+":mrc");
+    Image<double> auxVol;
+    auxVol.read(auxFn);
+    EXPECT_EQ(myVolStack,auxVol);
+    ArrayDim volArrayDim;
+    ArrayDim stackArrayDim;
+    myVolStack.getDimensions(stackArrayDim);
+    auxVol.getDimensions(volArrayDim);
+    EXPECT_TRUE(stackArrayDim.xdim==volArrayDim.xdim);
+    EXPECT_TRUE(stackArrayDim.ydim==volArrayDim.ydim);
+    EXPECT_TRUE(stackArrayDim.ndim==volArrayDim.zdim);
+    auxFn.deleteFile();
 }
 
 TEST_F( ImageTest, writeTIFimage)
 {
-    XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_tif_XXXXXX");
     auxFn = auxFn + ":tif";
@@ -292,12 +291,10 @@ TEST_F( ImageTest, writeTIFimage)
     auxImage.read(auxFn);
     EXPECT_EQ(myImage,auxImage);
     auxFn.deleteFile();
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, writeINFimage)
 {
-    XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_inf_XXXXXX");
     auxFn.deleteFile();
@@ -309,12 +306,10 @@ TEST_F( ImageTest, writeINFimage)
     auxFn.deleteFile();
     auxFn = auxFn.addExtension("inf");
     auxFn.deleteFile();
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, readRAWimage)
 {
-    XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_raw_XXXXXX");
     myImage.write(auxFn + ":spi");
@@ -323,30 +318,36 @@ TEST_F( ImageTest, readRAWimage)
     auxImage.read(auxFn);
     EXPECT_EQ(myImage,auxImage);
     auxFn.deleteFile();
-    XMIPP_CATCH
+}
+
+TEST_F( ImageTest, readMRC) {
+    ASSERT_TRUE(myImage.read(imageNameMRC) == 0);
+
+    ImageInfo info;
+    myImage.getInfo(info);
+
+    ASSERT_TRUE(info.filename == imageNameMRC);
+    ASSERT_TRUE(info.datatype ==  DT_Float);//// Floating point (4-byte)
 }
 
 TEST_F( ImageTest, readPreview)
 {
-    XMIPP_TRY
     FileName auxFn = "image/smallVolume.vol";
     Image<double> img1, img2;
     img1.read(auxFn);
 
     img1().setXmippOrigin();
-    selfScaleToSize(NEAREST, img1(),32,32,4);
+    selfScaleToSize(xmipp_transformation::NEAREST, img1(),32,32,4);
 
     img2.readPreview(auxFn, 32,32, ALL_SLICES);
     img1().setXmippOrigin();
     img2().setXmippOrigin();
 
     EXPECT_TRUE(img1 == img2);
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, getPreview)
 {
-    XMIPP_TRY
     FileName auxFn = "image/smallVolume.vol";
     Image<double> img1, img2;
     img1.read(auxFn);
@@ -354,17 +355,15 @@ TEST_F( ImageTest, getPreview)
     img1.getPreview(&img2, 32,32, ALL_SLICES);
 
     img1().setXmippOrigin();
-    selfScaleToSize(NEAREST, img1(),32,32,4);
+    selfScaleToSize(xmipp_transformation::NEAREST, img1(),32,32,4);
 
     img1().setXmippOrigin();
     img2().setXmippOrigin();
     EXPECT_TRUE(img1 == img2);
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, mapFile2Write)
 {
-    XMIPP_TRY
     FileName auxFn = "image/smallVolume.vol";
     FileName auxMappedFilename;
     auxMappedFilename.initUniqueName("/tmp/temp_vol_XXXXXX");
@@ -383,11 +382,9 @@ TEST_F( ImageTest, mapFile2Write)
     EXPECT_TRUE(img1 == img2);
 
     auxMappedFilename.deleteFile();
-    XMIPP_CATCH
 }
 TEST_F( ImageTest, movePointerTo)
 {
-    XMIPP_TRY
     FileName auxFn= "image/smallVolumeStack.stk";
     Image<double> img1, img2;
     img1.read(auxFn);
@@ -410,13 +407,10 @@ TEST_F( ImageTest, movePointerTo)
             EXPECT_TRUE(img1 == img2);
         }
     }
-    XMIPP_CATCH
 }
 
 TEST_F( ImageTest, checkImageFileSize)
 {
-    XMIPP_TRY
     EXPECT_TRUE(checkImageFileSize("image/smallVolumeStack.stk"));
     EXPECT_FALSE(checkImageFileSize("image/smallVolumeStackCorrupted.stk"));
-    XMIPP_CATCH
 }

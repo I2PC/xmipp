@@ -244,13 +244,13 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 
     // Rotate 90 degrees and compute correlation
     Image<double> PSDrotated;
-    rotate(LINEAR,PSDrotated(),PSD(),90);
+    rotate(xmipp_transformation::LINEAR,PSDrotated(),PSD(),90);
     evaluation.PSDcorrelation90=correlationIndex(PSD(), PSDrotated());
 
     // Get the fitting score and other quality criteria computed by ctf_estimate_from_micrograph
-    MetaData MDctf1;
+    MetaDataVec MDctf1;
     MDctf1.read(fnCTF);
-    size_t objId1 = MDctf1.firstObject();
+    size_t objId1 = MDctf1.firstRowId();
 
 #define GET_CTF_CRITERION(labelll,xxx) \
     if (rowIn.containsLabel(labelll)) \
@@ -292,7 +292,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 		f2pixel*=aux;
 	}
 
-	MetaData mdEnvelope;
+	MetaDataVec mdEnvelope;
 	Matrix1D< double > envelope(100);
 	envelope.initZeros();
 	double Nalpha = 180;
@@ -351,13 +351,12 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	}
     }
 
-    size_t objId2 = mdEnvelope.firstObject();
     int idx=0;
 	for (double w=0; w<wmax; w+=wmax/99.0)
 	{
+		size_t objId2 = mdEnvelope.addObject();
 		mdEnvelope.setValue(MDL_RESOLUTION_FREQ,w,objId2);
 		mdEnvelope.setValue(MDL_CTF_ENVELOPE,VEC_ELEM(envelope,idx)/Nalpha,objId2);
-		objId2 = mdEnvelope.addObject();
 		idx++;
 	}
     evaluation.firstZeroAvg/=N;

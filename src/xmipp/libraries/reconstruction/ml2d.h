@@ -169,7 +169,7 @@ public:
     /** Stopping criterium */
     double eps;
     /** MetaData files for experimental and reference images */
-    MetaData MDimg, MDref, MDlog;
+    MetaDataDb MDimg, MDref, MDlog;
     /** vector for flipping (i.e. 90/180-degree rotations) matrices */
     std::vector<Matrix2D<double> > F;
     /** Vector for images to hold references (new & old) */
@@ -313,7 +313,7 @@ public:
     virtual void defineAdditionalParams(XmippProgram * prog, const char * sectionLine);
     virtual void defineHiddenParams(XmippProgram *prog);
 
-
+    int seed;
 }
 ;//end of class ML2DBaseProgram
 

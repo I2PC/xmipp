@@ -31,7 +31,7 @@ ProgTransformImageGreyLevels::ProgTransformImageGreyLevels()
 {
     produces_a_metadata = true;
     each_image_produces_an_output = true;
-    projector = NULL;
+    projector = nullptr;
 }
 
 ProgTransformImageGreyLevels::~ProgTransformImageGreyLevels()
@@ -108,7 +108,7 @@ void ProgTransformImageGreyLevels::preProcess()
     iMask2Dsum=1.0/mask2D.sum();
 
     // Construct projector
-    projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    projector = new FourierProjector(V(),pad,Ts/maxResol,xmipp_transformation::BSPLINE3);
 
     // Low pass filter
     filter.FilterBand=LOWPASS;
@@ -246,7 +246,7 @@ void ProgTransformImageGreyLevels::processImage(const FileName &fnImg, const Fil
 	}
 	catch (XmippError XE)
 	{
-		std::cerr << XE << std::endl;
+		std::cerr << XE.what() << std::endl;
 		std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
 		rowOut.setValue(MDL_ENABLED,-1);
 	}

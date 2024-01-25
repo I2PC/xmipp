@@ -21,7 +21,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     	I.read(fnImg);
     } catch (XmippError XE)
     {
-    	mexPrintf("%s",XE.msg.c_str());
+    	mexPrintf("%s",XE.what());
     	return;
     }
     MultidimArray<double> &mI=I();

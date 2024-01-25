@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:  Roberto Marabini roberto@cnb.csic.es        
+ * Authors:  Roberto Marabini roberto@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  * Lab. de Bioingenieria, Univ. San Pablo CEU
@@ -24,10 +24,9 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <parallel/xmipp_mpi.h>
 #include <data/image_resize.h>
+#include <parallel/xmipp_mpi.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgImageResize, MpiProgImageResize)
+class MpiProgImageResize : public BasicMpiMetadataProgram<ProgImageResize> {};
 
 RUN_XMIPP_PROGRAM(MpiProgImageResize)

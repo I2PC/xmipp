@@ -92,7 +92,7 @@ class ScriptExtractParticles(XmippScript):
               argsList+=[  (mic_fname, pos_fname, boxSize, out_name, downFactor)]
               
       Parallel(n_jobs= numberOfThreads, backend="multiprocessing", verbose=1)(
-                  delayed(extractPartsOneMic, check_pickle=False)(*arg) for arg in argsList)
+                  delayed(extractPartsOneMic)(*arg) for arg in argsList)
 
    
 def extractPartsOneMic(mic_fname, pos_fname, boxSize, out_name, downFactor=1):

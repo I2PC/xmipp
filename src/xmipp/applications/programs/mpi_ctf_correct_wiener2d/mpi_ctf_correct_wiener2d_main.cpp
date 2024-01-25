@@ -23,14 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-//#include <parallel/mpi_ctf_correct_wiener2d.h>
-//
-//RUN_XMIPP_PROGRAM(MpiProgCorrectWiener2D)
-
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/ctf_correct_wiener2d.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgCorrectWiener2D, MpiProgCorrectWiener2D)
+class MpiProgCorrectWiener2D
+    : public BasicMpiMetadataProgram<ProgCorrectWiener2D> {};
 
 RUN_XMIPP_PROGRAM(MpiProgCorrectWiener2D)

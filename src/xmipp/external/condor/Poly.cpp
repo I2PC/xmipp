@@ -427,7 +427,6 @@ double Polynomial::operator()( Vector Point )
     {
 	printf( "Polynomial::operator()( Vector& ) : Warning -> 100 variables\n");
     }
-    if ((rbufp != rbuf) && rbufp) delete rbufp;
 
     lsize=dim;
     rbufp = (double*)malloc(lsize*sizeof(double));	// So be it ...

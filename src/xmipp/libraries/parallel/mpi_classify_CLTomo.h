@@ -28,7 +28,7 @@
 #include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
+#include <core/metadata_db.h>
 #include <core/metadata_extension.h>
 #include <data/filters.h>
 #include <data/polar.h>
@@ -91,7 +91,7 @@ public:
     MultidimArray<int> IfourierMask, IfourierMaskFRM;
 
     // Mask for experimental image as a python object
-	PyObject *pyIfourierMaskFRM;
+	PyObject *pyIfourierMaskFRM=nullptr;
 
     // Update for next iteration
     MultidimArray< std::complex<double> > Pupdate;
@@ -121,8 +121,16 @@ public:
     /** Empty constructor */
     CL3DClass();
 
+    /** Destructor */
+    ~CL3DClass() {}
+
     /** Copy constructor */
     CL3DClass(const CL3DClass &other);
+    CL3DClass(const CL3DClass &&)=delete;
+
+    /** Assignment */
+    CL3DClass & operator=(const CL3DClass &other);
+    CL3DClass & operator=(const CL3DClass &&)=delete;
 
     /** Update projection. */
     void updateProjection(MultidimArray<double> &I, const CL3DAssignment &assigned, bool force=false);
@@ -160,7 +168,7 @@ public:
 	size_t Nimgs;
 
 	/// Pointer to input metadata
-	MetaData *SF;
+	MetaDataDb *SF;
 
     /// List of nodes
     std::vector<CL3DClass *> P;
@@ -170,7 +178,7 @@ public:
     void readImage(Image<double> &I, size_t objId, bool applyGeo) const;
 
     /// Initialize
-    void initialize(MetaData &_SF,
+    void initialize(MetaDataDb &_SF,
     		        std::vector< MultidimArray<double> > &_codes0);
     
     /// Share assignments
@@ -286,9 +294,14 @@ public:
 
     /// MPI constructor
     ProgClassifyCL3D(int argc, char** argv);
+    ProgClassifyCL3D(const ProgClassifyCL3D&)=delete;
+    ProgClassifyCL3D(const ProgClassifyCL3D&&)=delete;
 
     /// Destructor
     ~ProgClassifyCL3D();
+
+    ProgClassifyCL3D & operator=(const ProgClassifyCL3D &)=delete;
+    ProgClassifyCL3D & operator=(const ProgClassifyCL3D &&)=delete;
 
     /// Read
     void readParams();
@@ -306,7 +319,7 @@ public:
     void run();
 public:
     // Selfile with all the input images
-    MetaData SF;
+    MetaDataDb SF;
     
     // Object Ids
     std::vector<size_t> objId;

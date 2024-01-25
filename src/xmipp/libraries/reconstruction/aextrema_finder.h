@@ -34,6 +34,10 @@
 #include <cassert>
 #include <limits>
 
+/**@defgroup ExtremaFinder ExtremaFinder
+   @ingroup ReconsLibrary */
+//@{
+
 namespace ExtremaFinder {
 // FIXME DS we should have search type Min, Max, MaxAbs, Lowest, Custom
 // FIXME DS we should have search location Entire, NearCenter, AroundCenter, Window, AroundWindow
@@ -174,5 +178,5 @@ private:
 };
 
 } /* namespace ExtremaFinder */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_ */

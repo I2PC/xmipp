@@ -213,9 +213,21 @@ void applyLocalShiftGeometryKernelMorePixels(const T* __restrict__ coefsX, const
 
     switch (degree) {
         case 0:
-        case 1:
         case 2:
-            assert("degree 0..2 not implemented");
+            assert("degree 0 and 2 not implemented");
+            break;
+        case 1:
+            #pragma unroll
+            for (int i = 0; i < pixels_per_thread; ++i) {
+                if ( y + i >= ydim ) {
+                    continue;
+                }
+                T res = interpolatedElementBSpline2D_Degree1< T >(x, y + i, shiftX[i], shiftY[i], xdim,
+                                ydim, input);
+                size_t index = (y + i) * xdim + x;
+                output[index] = res;
+            }
+
             break;
         case 3: {
             #pragma unroll

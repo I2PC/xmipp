@@ -25,7 +25,6 @@
 
 #include "micrograph.h"
 #include <core/args.h>
-#include <core/metadata.h>
 #include <data/mask.h>
 #include <core/geometry.h>
 
@@ -38,28 +37,7 @@
 //#ifdef LINUX
 //#include <unistd.h>
 //#endif
-Micrograph::Micrograph()
-{
-    auxI = new (Image<char> );
-    IUChar = NULL;
-    IShort = NULL;
-    IUShort = NULL;
-    IInt = NULL;
-    IUInt = NULL;
-    IFloat = NULL;
-    stdevFilter = -1;
-}
-Micrograph::~Micrograph()
-{
-    delete (auxI);
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
-}
-/* Clear ------------------------------------------------------------------- */
+
 void Micrograph::clear()
 {
     single_particle.clear();
@@ -71,12 +49,12 @@ void Micrograph::clear()
     datatype = -1;
     compute_transmitance = false;
     compute_inverse = false;
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    IUChar.clear();
+    IShort.clear();
+    IUShort.clear();
+    IInt.clear();
+    IUInt.clear();
+    IFloat.clear();
 }
 
 /* Open micrograph --------------------------------------------------------- */
@@ -86,16 +64,17 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
     // Micrograph name
     fn_micrograph = _fn_micrograph;
     // Look for micrograph dimensions
-    auxI->read(fn_micrograph, HEADER);
+    Image<char> auxI = {};
+    auxI.read(fn_micrograph, HEADER);
 
-    auxI->getDimensions(Xdim, Ydim, Zdim, Ndim);
+    auxI.getDimensions(Xdim, Ydim, Zdim, Ndim);
     if ((Zdim > 1) || (Ndim > 1))
         REPORT_ERROR(
             ERR_MULTIDIM_DIM,
             "Micrograph::open_micrograph: Only files with a single micrograph may be processed. Error reading " + fn_micrograph);
-    auxI->MDMainHeader.getValue(MDL_DATATYPE, datatype);
+    auxI.MDMainHeader.getValue(MDL_DATATYPE, datatype);
     __offset = 0;
-    auxI->clear();
+    auxI.clear();
     //#define DEBUG
 #ifdef DEBUG
 
@@ -115,34 +94,28 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
     {
         case DT_UHalfByte:
     case DT_UChar:
-        IUChar = new (Image<unsigned char> );
-        result = IUChar->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IUChar->data, stdevFilter);
+        result = IUChar.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IUChar.data, stdevFilter);
         break;
     case DT_UShort:
-        IUShort = new (Image<unsigned short> );
-        result = IUShort->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IUShort->data, stdevFilter);
+        result = IUShort.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IUShort.data, stdevFilter);
         break;
     case DT_Short:
-        IShort = new (Image<short> );
-        result = IShort->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IShort->data, stdevFilter);
+        result = IShort.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IShort.data, stdevFilter);
         break;
     case DT_Int:
-        IInt = new (Image<int> );
-        result = IInt->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IInt->data, stdevFilter);
+        result = IInt.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IInt.data, stdevFilter);
         break;
     case DT_UInt:
-        IUInt = new (Image<unsigned int> );
-        result = IUInt->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IUChar->data, stdevFilter);
+        result = IUInt.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IUChar.data, stdevFilter);
         break;
     case DT_Float:
-        IFloat = new (Image<float> );
-        result = IFloat->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IFloat->data, stdevFilter);
+        result = IFloat.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IFloat.data, stdevFilter);
         break;
     default:
         std::cerr << "Micrograph::open_micrograph: Unknown datatype "
@@ -165,28 +138,22 @@ void Micrograph::close_micrograph()
     {
     case DT_UHalfByte:
     case DT_UChar:
-        delete (IUChar);
-        IUChar = NULL;
+        IUChar.clear();
         break;
     case DT_UShort:
-        delete (IUShort);
-        IUShort = NULL;
+        IUShort.clear();
         break;
     case DT_Short:
-        delete (IShort);
-        IShort = NULL;
+        IShort.clear();
         break;
     case DT_Int:
-        delete (IInt);
-        IInt = NULL;
+        IInt.clear();
         break;
     case DT_UInt:
-        delete (IUInt);
-        IUInt = NULL;
+        IUInt.clear();
         break;
     case DT_Float:
-        delete (IFloat);
-        IFloat = NULL;
+        IFloat.clear();
         break;
     default:
         std::cerr << "Micrograph::close_micrograph: Unknown datatype "
@@ -229,16 +196,15 @@ void Micrograph::write_coordinates(int label, double minCost,
     if (_fn_coords != "")
         fn_coords = _fn_coords;
 
-    MetaData MD;
+    MetaDataVec MD;
     MD.setComment((std::string) "Selected Coordinates for file " + fn_coords);
     int imax = coords.size();
-    size_t id;
     for (int i = 0; i < imax; i++)
     {
         if (coords[i].valid && coords[i].cost > minCost
                 && coords[i].label == label)
         {
-            id = MD.addObject();
+            size_t id = MD.addObject();
             MD.setValue(MDL_XCOOR, coords[i].X, id);
             MD.setValue(MDL_YCOOR, coords[i].Y, id);
         }
@@ -255,7 +221,7 @@ void Micrograph::read_coordinates(int label, const FileName &_fn_coords)
 
     fn_coords = _fn_coords;
 
-    MetaData MD;
+    MetaDataVec MD;
     MD.read(fn_coords);
     line_no = MD.size();
 
@@ -268,14 +234,14 @@ void Micrograph::read_coordinates(int label, const FileName &_fn_coords)
     aux.scoreVar = -1;
     aux.scoreGini = -1;
 
-    FOR_ALL_OBJECTS_IN_METADATA(MD)
+    for (size_t objId : MD.ids())
     {
-        MD.getValue(MDL_XCOOR, aux.X, __iter.objId); //aux.X=x;
-        MD.getValue(MDL_YCOOR, aux.Y, __iter.objId); //aux.Y=y;
+        MD.getValue(MDL_XCOOR, aux.X, objId); //aux.X=x;
+        MD.getValue(MDL_YCOOR, aux.Y, objId); //aux.Y=y;
         if (MD.containsLabel(MDL_SCORE_BY_VAR))
         {
-            MD.getValue(MDL_SCORE_BY_VAR, aux.scoreVar, __iter.objId);
-            MD.getValue(MDL_SCORE_BY_GINI, aux.scoreGini, __iter.objId);
+            MD.getValue(MDL_SCORE_BY_VAR, aux.scoreVar, objId);
+            MD.getValue(MDL_SCORE_BY_GINI, aux.scoreGini, objId);
         }
         coords.push_back(aux);
     }
@@ -324,22 +290,22 @@ int Micrograph::scissor(const Particle_coords &P, MultidimArray<double> &result,
         REPORT_ERROR(ERR_MULTIDIM_SIZE,
                      "Micrograph::scissor: window size not set");
     if (datatype == DT_UChar || datatype == DT_UHalfByte)
-        return templateScissor(*IUChar, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IUChar, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_UShort)
-        return templateScissor(*IUShort, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IUShort, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_Short)
-        return templateScissor(*IShort, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IShort, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_UInt)
-        return templateScissor(*IUInt, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IUInt, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_Int)
-        return templateScissor(*IInt, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IInt, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_Float)
-        return templateScissor(*IFloat, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IFloat, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else
         REPORT_ERROR(ERR_TYPE_INCORRECT,
@@ -350,10 +316,10 @@ int Micrograph::scissor(const Particle_coords &P, MultidimArray<double> &result,
 /* Produce all images ------------------------------------------------------ */
 void Micrograph::produce_all_images(int label, double minCost,
                                     const FileName &fn_rootIn, const FileName &fn_image, double ang,
-                                    double tilt, double psi, bool rmStack, bool fillBorders,
+                                    bool rmStack, bool fillBorders,
 									bool extractNoise, int Nnoise)
 {
-    MetaData SF;
+    MetaDataVec SF;
     Image<double> I;
     Micrograph *M;
 
@@ -370,7 +336,10 @@ void Micrograph::produce_all_images(int label, double minCost,
     }
 
     // Set scale for particles
-    int MXdim, MYdim, thisXdim, thisYdim;
+    int MXdim;
+    int MYdim;
+    int thisXdim;
+    int thisYdim;
     M->size(MXdim, MYdim);
     this->size(thisXdim, thisYdim);
     double scaleX = (double) MXdim / thisXdim;
@@ -378,7 +347,8 @@ void Micrograph::produce_all_images(int label, double minCost,
 
     // Compute max and minimum if compute_transmitance
     // or compute_inverse flags are ON
-    double Dmax=0., Dmin=0.;
+    double Dmax=0.;
+    double Dmin=0.;
     if (compute_transmitance || compute_inverse)
     {
         (*this).computeDoubleMinMax(Dmin, Dmax);
@@ -550,63 +520,33 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     this->Ndim = 1;
     if (datatype == DT_UChar || datatype == DT_UHalfByte)
     {
-        if (IUChar == NULL)
-            IUChar = new Image<unsigned char>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IUChar->data.setMmap(true);
-            IUChar->data.resize(1, 1, Ydim, Xdim);
-        }
+        IUChar.data.setMmap(true);
+        IUChar.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_UShort)
     {
-        if (IUShort == NULL)
-            IUShort = new Image<unsigned short int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IUShort->data.setMmap(true);
-            IUShort->data.resize(1, 1, Ydim, Xdim);
-        }
+        IUShort.data.setMmap(true);
+        IUShort.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_Short)
     {
-        if (IShort == NULL)
-            IShort = new Image<short int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IShort->data.setMmap(true);
-            IShort->data.resize(1, 1, Ydim, Xdim);
-        }
+        IShort.data.setMmap(true);
+        IShort.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_UInt)
     {
-        if (IUInt == NULL)
-            IUInt = new Image<unsigned int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IUInt->data.setMmap(true);
-            IUInt->data.resize(1, 1, Ydim, Xdim);
-        }
+        IUInt.data.setMmap(true);
+        IUInt.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_Int)
     {
-        if (IInt == NULL)
-            IInt = new Image<int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IInt->data.setMmap(true);
-            IInt->data.resize(1, 1, Ydim, Xdim);
-        }
+        IInt.data.setMmap(true);
+        IInt.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_Float)
     {
-        if (IFloat == NULL)
-            IFloat = new Image<float>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IFloat->data.setMmap(true);
-            IFloat->data.resize(1, 1, Ydim, Xdim);
-        }
+        IFloat.data.setMmap(true);
+        IFloat.data.resize(1, 1, Ydim, Xdim);
     }
     else
         REPORT_ERROR(ERR_TYPE_INCORRECT, "Unknown datatype");
@@ -616,7 +556,7 @@ void Micrograph::write(const FileName &fileName, CastWriteMode castMode)
 {
     if (datatype == DT_UChar)
     {
-        IUChar->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IUChar.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_UHalfByte)
     {
@@ -625,23 +565,23 @@ void Micrograph::write(const FileName &fileName, CastWriteMode castMode)
     }
     else if (datatype == DT_UShort)
     {
-        IUShort->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IUShort.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_Short)
     {
-        IShort->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IShort.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_UInt)
     {
-        IUInt->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IUInt.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_Int)
     {
-        IInt->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IInt.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_Float)
     {
-        IFloat->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IFloat.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else
         REPORT_ERROR(ERR_TYPE_INCORRECT,
@@ -776,16 +716,22 @@ void TiltPairAligner::passToUntilted(int _mtX, int _mtY, int &_muX, int &_muY)
 /* Compute tilting angle --------------------------------------------------- */
 void TiltPairAligner::computeGamma()
 {
-#define TRIANGLE_NO 15000
-#define MIN_AREA       15
-#define MAX_AREA   250000
+constexpr int  TRIANGLE_NO =  15000;
+constexpr int  MIN_AREA =        15;
+constexpr int  MAX_AREA =    250000;
     gamma = 0;
-    Matrix1D<int> iju(2), iku(2), ijt(2), ikt(2); // From i to j in untilted
+    Matrix1D<int> iju(2); // From i to j in untilted
+    Matrix1D<int> iku(2); // From i to j in untilted
+    Matrix1D<int> ijt(2); // From i to j in untilted
+    Matrix1D<int> ikt(2); // From i to j in untilted
     // From i to k in untilted
     // From i to j in tilted
     // From i to k in tilted
     int triang = 0; // Number of triangles considered
-    int i, j, k, counter1;
+    int i;
+    int j;
+    int k;
+    int counter1;
     counter1 = 0;
     randomize_random_generator();
     long noCombinations;
@@ -838,7 +784,7 @@ void TiltPairAligner::computeGamma()
 /* Compute alphas ---------------------------------------------------------- */
 double matrix_fitness(double *p, void *prm)
 {
-    TiltPairAligner *aligner = (TiltPairAligner *) prm;
+	auto *aligner = (TiltPairAligner *) prm;
     Euler_angles2matrix(-p[1], p[3], p[2], aligner->pair_E);
     double retval = 0;
     for (int i = 0; i < 2; i++)
@@ -863,7 +809,9 @@ void TiltPairAligner::computeAngles(double &ualpha, double &talpha, double &ogam
 
     // Coarse search
     double *aux = angles.adaptForNumericalRecipes();
-    double best_alpha_u = 0, best_alpha_t = 0, best_fit = 1e8;
+    double best_alpha_u = 0;
+    double best_alpha_t = 0;
+    double best_fit = 1e8;
     aux[3] = gamma;
     for (aux[1] = 0; aux[1] < 180; aux[1] += 5)
         for (aux[2] = 0; aux[2] < 180; aux[2] += 5)

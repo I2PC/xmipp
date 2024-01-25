@@ -37,6 +37,9 @@
 
 #endif /* SPHERICAL_HARMONICS_H_ */
 
+/**@defgroup PolySphericalHarmonics Spherical Harmonics
+   @ingroup DataLibrary */
+//@{
 //Spherical harmonics (SH) as defined by Guan Koay in "A signal transformational
 //framework for breaking the noise floor and its applications in MRI".
 //he obtained Spherical harmonics are real and orthonormal. Theta is zenith angle and varphi is azimuthal angle, as defined in
@@ -76,7 +79,7 @@ public:
 	}
 
 };
-
+//@}
 
 
 

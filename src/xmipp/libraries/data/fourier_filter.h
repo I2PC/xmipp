@@ -93,11 +93,15 @@ public:
 #define ASTIGMATISMPROFILE 18
 #define CTFINV       19
 #define CTFPOSINV    20
+#define CTFDEF       21
+#define REALGAUSSIANZ 22
+#define REALGAUSSIANZ2 23
+#define WEDGE_RC 24
 
     /** Pass band. LOWPASS, HIGHPASS, BANDPASS, STOPBAND, CTF, CTFPOS,
        WEDGE, CONE, GAUSSIAN, FROM_FILE, REALGAUSSIAN, BFACTOR, SPARSIFY,
        STOPLOWBANDX, STOPLOWBANDY, FSCPROFILE, BINARYFILE, ASTIGMATISMPROFILE,
-       CTFINV, CTFPOSINV */
+       CTFINV, CTFPOSINV, CTFDEF */
     int FilterBand;
 
     /** Cut frequency for Low and High pass filters, first freq for bandpass.
@@ -111,7 +115,11 @@ public:
     double sampling_rate;
 
     /** Wedge and cone filter parameters */
-    double t1, t2,rot,tilt,psi;
+    double t1;
+    double t2;
+    double rot;
+    double tilt;
+    double psi;
 
     /** Percentage of coefficients to throw */
     double percentage;
@@ -192,10 +200,12 @@ public:
     FourierTransformer transformer;
 
     // Auxiliary variables for sparsify
-    MultidimArray<double> vMag, vMagSorted;
+    MultidimArray<double> vMag;
+    MultidimArray<double> vMagSorted;
 
     // Auxiliary variables for FSC profile
-    std::vector<double> freqContFSC, FSC;
+    std::vector<double> freqContFSC;
+    std::vector<double> FSC;
 };
 
 class SoftNegativeFilter: public XmippFilter

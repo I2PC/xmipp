@@ -27,7 +27,6 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/threshold.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgThreshold, MpiProgThreshold)
+class MpiProgThreshold : public BasicMpiMetadataProgram<ProgThreshold> {};
 
 RUN_XMIPP_PROGRAM(MpiProgThreshold)

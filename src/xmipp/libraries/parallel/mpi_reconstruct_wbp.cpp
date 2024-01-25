@@ -29,7 +29,7 @@ ProgMPIRecWbp::ProgMPIRecWbp(int argc, char **argv)
 {
     this->read(argc, argv);
 }
-ProgMPIRecWbp::ProgMPIRecWbp(MpiNode *node)
+ProgMPIRecWbp::ProgMPIRecWbp(const std::shared_ptr<MpiNode> &node)
 {
 	this->setNode(node);
 }
@@ -61,9 +61,10 @@ void ProgMPIRecWbp::showProgress()
         progress_bar(time_bar_done);
     }
 }
-bool ProgMPIRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
+bool ProgMPIRecWbp::getImageToProcess(size_t &objId)
 {
-    return getTaskToProcess(objId, objIndex);
+    size_t tmp;
+    return getTaskToProcess(objId, tmp);
 }
 void ProgMPIRecWbp::finishProcessing()
 {

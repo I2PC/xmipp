@@ -32,6 +32,7 @@
 #include "angular_discrete_assign.h"
 #include "volume_from_pdb.h"
 #include "pdb_nma_deform.h"
+#include "pdb_sph_deform.h"
 #include "angular_continuous_assign.h"
 #include "micrograph_automatic_picking2.h"
 #include "program_filter.h"
@@ -50,7 +51,7 @@ void runSystem(const String &program, const String &arguments, bool useSystem) {
 
 int runProgram(XmippProgram * program, const String &arguments, bool destroy)
 {
-    if (program == NULL)
+    if (program == nullptr)
         REPORT_ERROR(ERR_PARAM_INCORRECT, "Received a NULL as program pointer");
     program->read(arguments);
     int retCode = program->tryRun();
@@ -90,6 +91,9 @@ XmippProgram * getProgramByName(const String &programName)
 
     if (programName == "xmipp_pdb_nma_deform")
         return new ProgPdbNmaDeform();
+    
+    if (programName == "xmipp_pdb_sph_deform")
+        return new ProgPdbSphDeform();
 
     if (programName == "xmipp_micrograph_automatic_picking")
         return new ProgMicrographAutomaticPicking2();
@@ -100,7 +104,7 @@ XmippProgram * getProgramByName(const String &programName)
     if (programName == "xmipp_transform_filter")
         return new ProgFilter();
 
-    return NULL;
+    return nullptr;
 }
 
 

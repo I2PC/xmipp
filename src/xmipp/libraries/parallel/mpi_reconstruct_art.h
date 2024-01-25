@@ -29,6 +29,9 @@
 #include "reconstruction/reconstruct_art.h"
 #include "xmipp_mpi.h"
 
+/**@defgroup ProgMPIReconsArt ProgMPIReconsArt
+   @ingroup Programs */
+//@{
 class ProgMPIReconsArt: public ProgReconsART, public XmippMpiProgram
 {
 public:
@@ -41,7 +44,7 @@ public:
     /* constructor providing an MpiNode
      * this is useful for using this programs from others
      */
-    ProgMPIReconsArt(MpiNode * node);
+    ProgMPIReconsArt(const std::shared_ptr<MpiNode> & node);
 
     /* Run --------------------------------------------------------------------- */
     void run();
@@ -62,5 +65,5 @@ USWtime_t;
 
 // Gets User and System times for use with MPI
 void uswtime(USWtime_t *tm);
-
+//@}
 #endif /* MPI_RECONSTRUCT_ART_H_ */

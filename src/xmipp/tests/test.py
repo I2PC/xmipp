@@ -27,6 +27,7 @@
 # **************************************************************************
 
 import os
+import signal
 
 import time
 import unittest
@@ -43,6 +44,7 @@ JMRT = 'delarosatrevin'
 JOTON = 'joton'
 DISCONTINUED = 'nobody'
 JMOTA = 'javimota'
+EFG = 'estrellafg'
 
 
 class Command(object):
@@ -52,19 +54,13 @@ class Command(object):
         self.env = env
 
     def run(self, timeout):
-        # type: (object) -> object
-        def target():
-            self.process = subprocess.Popen(self.cmd, shell=True, env=self.env)
-            self.process.communicate()
-
-        thread = threading.Thread(target=target)
-        thread.start()
-
-        thread.join(timeout)
-        if thread.is_alive():
+        self.process = subprocess.Popen(self.cmd, shell=True, env=self.env,preexec_fn=os.setsid)
+        try:
+            self.process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # https://stackoverflow.com/a/4791612
             print(red('ERROR: timeout reached for this process'))
-            self.process.terminate()
-            thread.join()
+            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
         self.process = None
     
     def terminate(self):
@@ -324,7 +320,7 @@ def visitTests(tests, grepStr=''):
 
         if moduleName != lastModule:
             lastModule = moduleName
-            print(" - From  %s.py (to run all use --allPrograms)"
+            print("\n - From  %s.py (to run all use --allPrograms)"
                   % '/'.join(moduleName.split('.')) + grepPrint)
 
 
@@ -352,7 +348,6 @@ if __name__ == "__main__":
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
-        # print listDir
         for path in listDir:
             if path.startswith('test_') and path.endswith('.py'):
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
@@ -396,7 +391,7 @@ if __name__ == "__main__":
             sys.exit(-1)
     else:
         for test in testNames:
-            test = 'tests.test_programs_xmipp.' + test
+            test = 'tests.all_tests.' + test
             try:
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName(test))
             except Exception as e:

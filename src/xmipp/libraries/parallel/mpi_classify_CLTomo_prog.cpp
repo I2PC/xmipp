@@ -101,13 +101,22 @@ CL3DClass::CL3DClass()
 
 CL3DClass::CL3DClass(const CL3DClass &other)
 {
-    CL3DAssignment assignment;
-    assignment.score = -1e38;
-    updateProjection((MultidimArray<double> &)other.P,assignment);
-    transferUpdate();
+	*this=other;
+}
 
-    currentListImg = other.currentListImg;
-    neighboursIdx = other.neighboursIdx;
+CL3DClass & CL3DClass::operator=(const CL3DClass &other)
+{
+	if (this!=&other)
+	{
+		CL3DAssignment assignment;
+		assignment.score = -1e38;
+		updateProjection((MultidimArray<double> &)other.P,assignment);
+		transferUpdate();
+
+		currentListImg = other.currentListImg;
+		neighboursIdx = other.neighboursIdx;
+	}
+	return *this;
 }
 
 //#define DEBUG
@@ -121,9 +130,9 @@ void CL3DClass::updateProjection(MultidimArray<double> &I,
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ifourier)
         if (DIRECT_MULTIDIM_ELEM(IfourierMask,n))
         {
-            double *ptrIfourier=(double*)&DIRECT_MULTIDIM_ELEM(Ifourier,n);
-            double *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,n);
-            *(ptrPupdate)+=(*(ptrIfourier))*assigned.score;
+            auto *ptrIfourier=(double*)&DIRECT_MULTIDIM_ELEM(Ifourier,n);
+            auto *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,n);
+            *ptrPupdate+=(*ptrIfourier)*assigned.score;
             *(ptrPupdate+1)+=(*(ptrIfourier+1))*assigned.score;
             DIRECT_MULTIDIM_ELEM(PupdateMask,n)+=assigned.score;
         }
@@ -173,19 +182,19 @@ void CL3DClass::transferUpdate()
     if (nextListImg.size() > 0)
     {
         // Take from Pupdate
-        double *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,0);
+        auto *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,0);
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PupdateMask)
         {
             double maskVal=DIRECT_MULTIDIM_ELEM(PupdateMask,n);
             if (maskVal>0 && DIRECT_MULTIDIM_ELEM(prmCL3Dprog->maxFreqMask,n))
             {
                 double iMask=1./maskVal;
-                *(ptrPupdate)*=iMask;
+                *ptrPupdate*=iMask;
                 *(ptrPupdate+1)*=iMask;
             }
             else
             {
-            	*(ptrPupdate)=*(ptrPupdate+1)=0.;
+            	*ptrPupdate=*(ptrPupdate+1)=0.;
             }
             ptrPupdate+=2;
         }
@@ -225,7 +234,7 @@ void CL3DClass::transferUpdate()
         save.write("PPPtransfer2.vol");
 #endif
         // Symmetrize
-        symmetrizeVolume(prmCL3Dprog->SL,Paux,P,WRAP);
+        symmetrizeVolume(prmCL3Dprog->SL,Paux,P,xmipp_transformation::WRAP);
 #ifdef DEBUG
         save()=P;
         save.write("PPPtransfer3.vol");
@@ -289,8 +298,8 @@ void CL3DClass::constructFourierMask(MultidimArray<double> &I)
 
 void CL3DClass::constructFourierMaskFRM()
 {
-	int xdim=(int)(prmCL3Dprog->Xdim);
-	int xdim_2=(int)xdim/2;
+	auto xdim=(int)(prmCL3Dprog->Xdim);
+	auto xdim_2=(int)xdim/2;
 	IfourierMaskFRM.initZeros(prmCL3Dprog->Xdim,prmCL3Dprog->Xdim,prmCL3Dprog->Xdim);
 	IfourierMaskFRM.setXmippOrigin();
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(IfourierMask)
@@ -352,7 +361,7 @@ void CL3DClass::fitBasic(MultidimArray<double> &I, CL3DAssignment &result)
     	if (prmCL3Dprog->dontAlign)
     		Iaux=I;
     	else
-    		applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, DONT_WRAP);
+    		applyGeometry(xmipp_transformation::LINEAR, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 		apply_binary_mask(prmCL3Dprog->mask.get_binary_mask(),Iaux,I,0.0);
 		constructFourierMask(I);
 		result.score=frmScore;
@@ -570,7 +579,7 @@ void CL3D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
 
 /* CL3D initialization ------------------------------------------------ */
 //#define DEBUG
-void CL3D::initialize(MetaData &_SF,
+void CL3D::initialize(MetaDataDb &_SF,
                       std::vector<MultidimArray<double> > &_codes0)
 {
     if (prmCL3Dprog->node->rank == 0)
@@ -600,7 +609,7 @@ void CL3D::initialize(MetaData &_SF,
     MultidimArray<double> Iaux, Ibest;
     CL3DAssignment bestAssignment;
     size_t imgCounter=0, localCounter=0;
-    FOR_ALL_OBJECTS_IN_METADATA(prmCL3Dprog->SF)
+    for (size_t _ : prmCL3Dprog->SF.ids())
     {
         if ((imgCounter+1)%prmCL3Dprog->node->size==prmCL3Dprog->node->rank)
         {
@@ -623,7 +632,7 @@ void CL3D::initialize(MetaData &_SF,
 					double psi=rnd_unif(0,360);
 					Matrix2D<double> E;
 					Euler_angles2matrix(rot,tilt,psi,E,true);
-					selfApplyGeometry(LINEAR,I(),E,IS_NOT_INV,DONT_WRAP,0.0);
+					selfApplyGeometry(xmipp_transformation::LINEAR,I(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0);
                 }
                 P[q]->updateProjection(I(), bestAssignment);
             }
@@ -666,7 +675,7 @@ void CL3D::initialize(MetaData &_SF,
 void CL3D::write(const FileName &fnRoot, int level) const
 {
     int Q = P.size();
-    MetaData SFout;
+    MetaDataDb SFout;
     Image<double> I;
     FileName fnOut = formatString("%s_classes_level_%02d.stk",fnRoot.c_str(),level), fnClass;
     fnOut.deleteFile();
@@ -685,10 +694,10 @@ void CL3D::write(const FileName &fnRoot, int level) const
 
     // Make the selfiles of each class
     FileName fnImg;
-    MDRow row;
+    MDRowSql row;
     for (int q = 0; q < Q; q++)
     {
-        MetaData SFq;
+        MetaDataVec SFq;
         std::vector<CL3DAssignment> &currentListImg = P[q]->currentListImg;
         int imax = currentListImg.size();
         for (int i = 0; i < imax; i++)
@@ -703,7 +712,7 @@ void CL3D::write(const FileName &fnRoot, int level) const
             row.setValue(MDL_ANGLE_PSI, assignment.psi);
             SFq.addRow(row);
         }
-        MetaData SFq_sorted;
+        MetaDataVec SFq_sorted;
         SFq_sorted.sort(SFq, MDL_IMAGE);
         SFq_sorted.write(formatString("class%06d_images@%s",q+1, fnSFout.c_str()), MD_APPEND);
     }
@@ -812,7 +821,7 @@ void CL3D::run(const FileName &fnOut, int level)
 
     int iter = 1;
     bool goOn = true;
-    MetaData MDChanges;
+    MetaDataDb MDChanges;
     Image<double> I;
     int progressStep = XMIPP_MAX(1,Nimgs/60);
     CL3DAssignment assignment;
@@ -840,7 +849,7 @@ void CL3D::run(const FileName &fnOut, int level)
             *ptrOld -= 1;
         SF->fillConstant(MDL_REF, "-1");
         size_t imgCounter=0;
-        FOR_ALL_OBJECTS_IN_METADATA(prmCL3Dprog->SF)
+        for (size_t _ : prmCL3Dprog->SF.ids())
         {
             if ((imgCounter+1)%prmCL3Dprog->node->size==prmCL3Dprog->node->rank)
             {
@@ -961,8 +970,8 @@ void CL3D::run(const FileName &fnOut, int level)
                                      currentListImgLargest[ii].objId);
 
                     // Now split the largest node
-                    CL3DClass *node1 = new CL3DClass();
-                    CL3DClass *node2 = new CL3DClass();
+                    auto *node1 = new CL3DClass();
+                    auto *node2 = new CL3DClass();
                     std::vector<size_t> splitAssignment;
                     splitNode(P[largestNode], node1, node2, splitAssignment);
                     delete P[largestNode];
@@ -1027,7 +1036,7 @@ void CL3D::splitNode(CL3DClass *node, CL3DClass *&node1, CL3DClass *&node2,
     CL3DAssignment assignment, assignment1, assignment2;
     CL3DClass *firstSplitNode1 = NULL;
     CL3DClass *firstSplitNode2 = NULL;
-    size_t minAllowedSize = (size_t)(prmCL3Dprog->PminSize * 0.01 * node->currentListImg.size());
+    auto minAllowedSize = (size_t)(prmCL3Dprog->PminSize * 0.01 * node->currentListImg.size());
 
     bool finish;
     bool success = true;
@@ -1458,11 +1467,11 @@ void ProgClassifyCL3D::produceSideInfo()
     if (fnCodes0 != "")
     {
         Image<double> I;
-        MetaData SFCodes(fnCodes0);
+        MetaDataDb SFCodes(fnCodes0);
 
-        FOR_ALL_OBJECTS_IN_METADATA(SFCodes)
+        for (size_t objId : SFCodes.ids())
         {
-            I.readApplyGeo(SFCodes, __iter.objId);
+            I.readApplyGeo(SFCodes, objId);
             I().setXmippOrigin();
             codes0.push_back(I());
         }
@@ -1510,7 +1519,7 @@ void ProgClassifyCL3D::run()
     {
         std::sort(vq.P.begin(), vq.P.end(), SDescendingClusterSort());
         Q = vq.P.size();
-        MetaData SFq, SFclassified, SFaux, SFaux2;
+        MetaDataDb SFq, SFclassified, SFaux, SFaux2;
         for (int q = 0; q < Q; q++)
         {
             SFq.read(formatString("class%06d_images@%s_classes_level_%02d.xmd", q + 1,
@@ -1534,7 +1543,7 @@ void ProgClassifyCL3D::run()
     if (generateAlignedVolumes)
     {
     	node->barrierWait();
-    	MetaData MDimages, MDaligned;
+    	MetaDataDb MDimages, MDaligned;
     	MDimages.read(fnOut+"_images.xmd");
     	FileName fnAligned=fnOut+"_aligned.stk";
     	FileName fnAlignedMD=fnOut+"_aligned.xmd";
@@ -1547,20 +1556,20 @@ void ProgClassifyCL3D::run()
     	Matrix2D<double> A,E,T;
         Matrix1D<double> r(3);
         size_t itemId;
-    	FOR_ALL_OBJECTS_IN_METADATA(MDimages)
+        for (size_t objId: MDimages.ids())
     	{
     		if (idx%node->size==node->rank)
     		{
-    			MDimages.getValue(MDL_IMAGE,fnImg,__iter.objId);
+    			MDimages.getValue(MDL_IMAGE,fnImg,objId);
     			V.read(fnImg);
     			V().setXmippOrigin();
     			double x,y,z,rot,tilt,psi;
-    			MDimages.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-    			MDimages.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-    			MDimages.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-    			MDimages.getValue(MDL_SHIFT_X,x,__iter.objId);
-    			MDimages.getValue(MDL_SHIFT_Y,y,__iter.objId);
-    			MDimages.getValue(MDL_SHIFT_Z,z,__iter.objId);
+    			MDimages.getValue(MDL_ANGLE_ROT,rot,objId);
+    			MDimages.getValue(MDL_ANGLE_TILT,tilt,objId);
+    			MDimages.getValue(MDL_ANGLE_PSI,psi,objId);
+    			MDimages.getValue(MDL_SHIFT_X,x,objId);
+    			MDimages.getValue(MDL_SHIFT_Y,y,objId);
+    			MDimages.getValue(MDL_SHIFT_Z,z,objId);
 
     	        Euler_angles2matrix(rot, tilt, psi, E, true);
     	        XX(r)=x;
@@ -1569,12 +1578,12 @@ void ProgClassifyCL3D::run()
     	        translation3DMatrix(r,T);
     	        A=E*T;
 
-    			applyGeometry(BSPLINE3,Valigned(),V(),A,IS_NOT_INV,DONT_WRAP,0.);
+    			applyGeometry(xmipp_transformation::BSPLINE3,Valigned(),V(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
     	        Valigned.write(fnAligned,idx,true,WRITE_REPLACE);
     		}
     		if (node->rank==0)
     		{
-    			MDimages.getValue(MDL_ITEM_ID,itemId,__iter.objId);
+    			MDimages.getValue(MDL_ITEM_ID,itemId,objId);
 				size_t newId=MDaligned.addObject();
 				MDaligned.setValue(MDL_IMAGE,formatString("%06d@%s",idx,fnAligned.c_str()),newId);
 				MDaligned.setValue(MDL_ITEM_ID,itemId,newId);
@@ -1588,7 +1597,7 @@ void ProgClassifyCL3D::run()
 
 			// Correct the class groups
 			Q = vq.P.size();
-			MetaData SFq, SFqaligned;
+			MetaDataDb SFq, SFqaligned;
 			FileName fnClass;
 			for (int q = 0; q < Q; q++)
 			{

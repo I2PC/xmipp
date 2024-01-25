@@ -25,6 +25,7 @@
 
 #include "rotational_spectrum.h"
 #include <core/args.h>
+#include <array>
 
 // Show CWD ----------------------------------------------------------------
 std::ostream & operator << (std::ostream &_out,
@@ -50,8 +51,8 @@ double Cylindrical_Wave_Decomposition::interpolate(
 {
     y = y - 1; // Since Fortran starts indexing at 1
     x = x - 1;
-    int iy = (int)y; /* Trunc the x, y coordinates to int */
-    int ix = (int)x;
+    auto iy = (int)y; /* Trunc the x, y coordinates to int */
+    auto ix = (int)x;
     double scale =  y - iy;
     double *ptr_yx = &DIRECT_A2D_ELEM(img, iy, ix);
     double *ptr_y1x = ptr_yx + XSIZE(img);
@@ -63,25 +64,39 @@ double Cylindrical_Wave_Decomposition::interpolate(
 // Compute CWD -------------------------------------------------------------
 void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
 {
-    double coseno[1281], ampcos[5191], ampsen[5191];
-    double ac, as, bc, bs, b1, coefca, coefcb, coefsa, coefsb;
-    double d1, e1, fi, g1, h, hdpi, rh, r11, r, th, ys, x, y, zs, z, ys2;
-    int ir, ind, i1c, i1s, i2c, i2s;
-    int jr, k, kk, ntot, my, my2, my3, my4, my5, i, j, numin1, numax1;
+    std::array<double,1281> coseno = {};
+    std::array<double,5191> ampcos = {};
+    std::array<double,5191> ampsen = {};
 
+    double rh;
     rh = XMIPP_MIN(r2, x0 - 4.);
     rh = XMIPP_MIN(rh, y0 - 4.);
     rh = XMIPP_MIN(rh, YSIZE(img) - x0 - 3.);
     rh = XMIPP_MIN(rh, XSIZE(img) - y0 - 3.);
-
-    ir = (int)((rh - r1) / r3 + 1);
+    int ir_internal;
+    ir_internal = (int)((rh - r1) / r3 + 1);
+    int ind;
     ind = 0;
+    int numin1;
+    int numax1;
     numin1 = numin + 1;
     numax1 = numax + 1;
-
+    int kk;
     for (kk = numin1;kk <= numax1;kk++)
     {
+    	int k;
         k = kk - 1;
+        double coefca;
+        double coefcb;
+        double coefsa;
+        double coefsb;
+        double h;
+        int ntot;
+        int my;
+        int my2;
+        int my4;
+        int my5;
+        int j;
         if (k != 0)
         {
             my = (int)(1 + PI * rh / 2. / k);
@@ -90,14 +105,23 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
             my5 = my4 - 1;
             ntot = 4 * my4;
             h = 2. * PI / ntot;
+            double hdpi;
             hdpi = h / PI;
+            double th;
             th = k * h;
+            double ys;
             ys = sin(th);
+            double zs;
             zs = cos(th);
+            double ys2;
             ys2 = sin(2. * th);
+            double b1;
             b1 = 2. / (th * th) * (1. + zs * zs - ys2 / th);
+            double g1;
             g1 = 4. / (th * th) * (ys / th - zs);
+            double d1;
             d1 = 2. * th / 45.;
+            double e1;
             e1 = d1 * ys * 2.;
             d1 *= ys2;
             coefca = (b1 + e1) * hdpi;
@@ -115,12 +139,15 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
             h = 2. * PI / ntot;
             coefca = h / PI / 2.;
         }
+        int i;
         for (i = 1;i <= my5;i++)
         {
+        	double fi;
             fi = i * h;
             coseno[i] = sin(fi);
         }
         coseno[my4] = 1.;
+        int my3;
         my3 = 2 * my4;
         for (i = 1;i <= my5;i++)
         {
@@ -133,20 +160,33 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
         coseno[my3+my4] = -1.;
         coseno[ntot] = 0.;
         coseno[ntot+my4] = 1.;
+        double r11;
         r11 = r1 - r3;
-        for (jr = 1;jr <= ir;jr++)
+        double ac;
+        double r;
+        for (int jr = 1;jr <= ir_internal;jr++)
         {
             ind++;
             r = r11 + r3 * jr;
             ac = 0.;
+            int i1c;
             i1c = my4;
+            int i1s;
             i1s = 0;
+            double x;
+            double y;
+            double z;
             if (k != 0)
             {
+                double as;
+                double bc;
+                double bs;
                 as = bc = bs = 0.;
                 for (i = 1;i <= k;i++)
                 {
+                	int i2c;
                     i2c = my4;
+                	int i2s;
                     i2s = 0;
                     for (j = 1;j <= my2;j++)
                     {
@@ -189,18 +229,18 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
         if (k == 0)
         {
             ac = 0.;
-            for (j = 1;j <= ir;j++)
+            for (j = 1;j <= ir_internal;j++)
             {
                 r = r11 + j * r3;
                 ac += ampcos[j] * 2. * PI * r;
             }
             ac /= (PI * (r * r - r1 * r1));
-            for (j = 1;j <= ir;j++)
+            for (j = 1;j <= ir_internal;j++)
                 ampcos[j] -= ac;
         }
     }
 
-    out_ampcos.initZeros((numax - numin + 1)*ir);
+    out_ampcos.initZeros((numax - numin + 1)*ir_internal);
     out_ampsin = out_ampcos;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(out_ampcos)
     {
@@ -228,14 +268,13 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     Cylindrical_Wave_Decomposition &cwd,
     double xr1, double xr2, double xdr, double xr)
 {
-    double *e[MAX_HARMONIC], *rv, *st, *ep[MAX_HARMONIC], *erp [MAX_HARMONIC],
-    *rp1, *rp2, *sp, *c, *s;
-    int n, m, i, j1, k, j, ir1, ir2, ndr, nr, ncol, nvez,
-    irk, k1;
+    double *e[MAX_HARMONIC];
+    double *ep[MAX_HARMONIC];
+    double *erp [MAX_HARMONIC];
 
     // Read the information from the Cylindrical Wave Decomposition .........
-    c = (double *) calloc(5191, sizeof(double));
-    s = (double *) calloc(5191, sizeof(double));
+    auto c = (double *) calloc(5191, sizeof(double));
+    auto s = (double *) calloc(5191, sizeof(double));
     if ((NULL == c) || (NULL == s))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
 
@@ -250,54 +289,56 @@ void Rotational_Spectrum::compute_rotational_spectrum(
         s[i+1] = A1D_ELEM(cwd.out_ampsin, i);
     }
 
-    n = numax - numin + 1;
-    m = (int)((rh - rl) / dr + 1);
-    for (i = 1; i <= n; i++) {
+    int n = numax - numin + 1;
+    auto m = (int)((rh - rl) / dr + 1);
+    for (int i = 1; i <= n; i++) {
         e[i] = (double *) calloc(m + 1, sizeof(double));
         if (NULL == e[i])
             REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     }
-    rv = (double *) calloc(m + 1, sizeof(double));
-    st = (double *) calloc(m + 1, sizeof(double));
+    auto rv = (double *) calloc(m + 1, sizeof(double));
+    auto st = (double *) calloc(m + 1, sizeof(double));
     if ((NULL == rv) || (NULL == st))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
 
     // Computations .........................................................
+    int j1 = 0;
     if (numin == 0)
         j1 = 2;
     else
         j1 = 1;
-    k = 0;
-    for (i = 1; i <= n; i++)
-        for (j = 1; j <= m; j++)
+    int k = 0;
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++)
         {
             k++;
             e[i][j] = c[k] * c[k] + s[k] * s[k];
         }
 
-    for (i = 1; i <= m; i++)
+    for (int i = 1; i <= m; i++)
     {
         rv[i] = rl + dr * (i - 1);
         st[i] = 0;
-        for (j = j1; j <= n; j++)
+        for (int j = j1; j <= n; j++)
             st[i] += e[j][i];
     }
 
-    ir1 = (int)((xr1 - rl) / dr + 1);
+    auto ir1 = (int)((xr1 - rl) / dr + 1);
     if (ir1 < 1)
         ir1 = 1;
-    ir2 = (int)((XMIPP_MIN(xr2, rh) - rl) / dr + 1);
+    auto ir2 = (int)((XMIPP_MIN(xr2, rh) - rl) / dr + 1);
     if (ir2 < ir1)
         ir2 = ir1;
-    ndr = (int)(xdr / dr);
+    auto ndr = (int)(xdr / dr);
     if (ndr < 1)
         ndr = 1;
+    int nr = 0;
     if (xr < 0)
         nr = m;
     else
         nr = (int)(xr / dr + 1);
     ir2 = XMIPP_MIN(ir2, m);
-    ncol = ir2 - nr + 1 - ir1;
+    int ncol = ir2 - nr + 1 - ir1;
     if (ncol < 0)
         ncol = 0;
     else
@@ -305,30 +346,30 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     if (ncol == 0)
         REPORT_ERROR(ERR_VALUE_INCORRECT, "compute_rotational_spectrum::Incorrect data");
 
-    nvez = (ncol - 1) / 13 + 1;
-    for (i = 1; i <= n; i++) {
+    int nvez = (ncol - 1) / 13 + 1;
+    for (int i = 1; i <= n; i++) {
         ep[i] = (double *) calloc(ncol + 1, sizeof(double));
         erp[i] = (double *) calloc(ncol + 1, sizeof(double));
         if ((NULL == ep[i]) || (NULL == erp[i]))
             REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     }
-    rp1 = (double *) calloc(ncol + 1, sizeof(double));
-    rp2 = (double *) calloc(ncol + 1, sizeof(double));
-    sp  = (double *) calloc(ncol + 1, sizeof(double));
+    auto rp1 = (double *) calloc(ncol + 1, sizeof(double));
+    auto rp2 = (double *) calloc(ncol + 1, sizeof(double));
+    auto sp  = (double *) calloc(ncol + 1, sizeof(double));
     if ((NULL == rp1) || (NULL == rp2) || (NULL == sp))
         REPORT_ERROR(ERR_MEM_NOTENOUGH, "compute_rotational_spectrum::no memory");
     for (k = 1; k <= ncol; k++)
     {
-        irk = ir1 + (k - 1) * ndr - 1;
+        int irk = ir1 + (k - 1) * ndr - 1;
         rp1[k] = 10 * rv[irk+1];
         rp2[k] = 10 * rv[irk+nr];
         sp[k] = 0;
-        for (k1 = 1; k1 <= nr; k1++)
+        for (int k1 = 1; k1 <= nr; k1++)
             sp[k] += st[irk+k1];
-        for (i = 1; i <= n; i++)
+        for (int i = 1; i <= n; i++)
         {
             ep[i][k] = 0;
-            for (k1 = 1; k1 <= nr; k1 ++)
+            for (int k1 = 1; k1 <= nr; k1 ++)
                 ep [i][k] += e[i][irk+k1];
             erp[i][k] = 1000000. * ep[i][k] / sp[k];
         }
@@ -338,24 +379,24 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     rot_spectrum.initZeros(n - j1 + 1);
     for (k = 1; k <= nvez; k++)
     {
-        k1 = 13 * (k - 1) + 1;
-        for (i = j1; i <= n; i++)
+        int k1 = 13 * (k - 1) + 1;
+        for (int i = j1; i <= n; i++)
             rot_spectrum(i - j1) = erp[i][k1] / 10000;
     }
 
     // Free memory
-    for (i = 1; i <= n; i++)
+    for (int i = 1; i <= n; i++)
     {
-        free((char *) ep[i]);
-        free((char *) erp [i]);
+        free(ep[i]);
+        free(erp [i]);
     }
-    free((char *) c);
-    free((char *) s);
-    free((char *) rv);
-    free((char *) st);
-    free((char *) rp1);
-    free((char *) rp2);
-    free((char *) sp);
+    free(c);
+    free(s);
+    free(rv);
+    free(st);
+    free(rp1);
+    free(rp2);
+    free(sp);
 }
 
 // Compute spectrum --------------------------------------------------------

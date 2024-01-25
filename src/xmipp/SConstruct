@@ -29,6 +29,7 @@
 
 # Builders and pseudobuilders used be SConscript to install things.
 
+EnsurePythonVersion(3, 3)
 
 import os
 import sys
@@ -47,10 +48,7 @@ from glob import glob
 import fnmatch
 import platform
 import SCons.SConf
-try:
-    from ConfigParser import ConfigParser, ParsingError
-except ImportError:
-    from configparser import ConfigParser, ParsingError  # Python 3
+from configparser import ConfigParser, ParsingError
     
 MACOSX = (platform.system() == 'Darwin')
 WINDOWS = (platform.system() == 'Windows')
@@ -73,6 +71,7 @@ env = Environment(ENV=os.environ,
                   BUILDERS=Environment()['BUILDERS'],
                   tools=['Make', 'AutoConfig'],
                   toolpath=[join('install', 'scons-tools')])
+env.SetOption('warn', 'no-duplicate-environment')  # Supress warnings for compilation database (due to the way we create the environments)
 # TODO: BUILDERS var added from the tricky creation of a new environment.
 # If not, they lose default builders like "Program", which are needed later
 # (by CheckLib and so on). See http://www.scons.org/doc/2.0.1/HTML/scons-user/x3516.html
@@ -134,13 +133,13 @@ def appendUnique(elist, element):
 cf = ConfigParser()
 cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
 try:
-    if not os.path.exists("install/xmipp.conf"):
-        shutil.copy("install/xmipp.template", "install/xmipp.conf")
-    cf.read("install/xmipp.conf")        
+    cf.read_file(open("../../xmipp.conf"))
+except OSError:
+    sys.exit("Config file not found.")
 except ParsingError:
-    sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
+    sys.exit("%s\nError while parsing the config file." % sys.exc_info()[1])
 if not 'BUILD' in cf.sections():
-    print("Cannot find section BUILD in install/xmipp.conf")
+    print("Cannot find section BUILD in the config file.")
 os.environ.update(dict(cf.items('BUILD')))
 
 env['CPPPATH'] = os.environ.get('CPPPATH', [])
@@ -261,7 +260,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
         env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
-        _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt', 'nvidia-ml','cuFFTAdvisor'])
+        _libs.append(['cudart', 'cufft', 'cuFFTAdvisor'])
         extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
@@ -297,6 +296,18 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         env2.Depends(sources, dep)
 
     env2.Alias(name, lastTarget)
+
+    # Compilation database for libraries and shared libraries
+    env2['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
+    env2.SetOption('warn', 'no-duplicate-environment')
+    env2.Tool('compilation_db')
+    xmipp_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    cdb = env2.CompilationDatabase(os.path.join(xmipp_path, 'compile_commands.json'))
+    Alias('cdb', cdb)
+    BUILD_TARGETS.append('cdb')
+    program = env2.Program(**libraryArgs)
+    env2.Depends(program, deps)
+
 
     return lastTarget
 
@@ -390,7 +401,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     libPathsCopy = libPaths + [Dir('lib').abspath]
     incsCopy = list(incs) or []
     if cuda or nvcc:
-        libs += ['cuFFTAdvisor', 'cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt','nvidia-ml', 'pthread']
+        libs += ['cuFFTAdvisor', 'cudart', 'cufft', 'nvidia-ml', 'pthread']
 
     sources = []
     for s, p in izip(src, pattern):
@@ -428,6 +439,14 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     appendUnique(libPathsCopy, external_libdirs) # This order is important, because if we should use Scipion libs, these will be before the system libs
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
     env2 = Environment()
+
+    # Compilation database for programs
+    env2.SetOption('warn', 'no-duplicate-environment')
+    env2.Tool('compilation_db')
+    xmipp_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    cdb = env2.CompilationDatabase(os.path.join(xmipp_path, 'compile_commands.json'))
+    Alias('cdb', cdb)
+
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
 

@@ -92,6 +92,11 @@ CL2DClass::CL2DClass()
 
 CL2DClass::CL2DClass(const CL2DClass &other)
 {
+	*this=other;
+}
+
+CL2DClass & CL2DClass::operator =(const CL2DClass &other)
+{
     plans = NULL;
 
     CL2DAssignment assignment;
@@ -104,6 +109,8 @@ CL2DClass::CL2DClass(const CL2DClass &other)
     histClass = other.histClass;
     histNonClass = other.histNonClass;
     neighboursIdx = other.neighboursIdx;
+
+    return *this;
 }
 
 CL2DClass::~CL2DClass()
@@ -202,11 +209,11 @@ void CL2DClass::transferUpdate(bool centerReference)
 }
 #undef DEBUG
 
-#define SHIFT_THRESHOLD 	0.95		// Shift threshold in pixels.
-#define ROTATE_THRESHOLD 	1.0			// Rotate threshold in degrees.
+constexpr double SHIFT_THRESHOLD = 	0.95;		// Shift threshold in pixels.
+constexpr float ROTATE_THRESHOLD = 	1.0	;		// Rotate threshold in degrees.
 
-#define INITIAL_SHIFT_THRESHOLD 	SHIFT_THRESHOLD + 1.0		// Shift threshold in pixels.
-#define INITIAL_ROTATE_THRESHOLD 	ROTATE_THRESHOLD + 1.0		// Rotate threshold in degrees.
+constexpr double INITIAL_SHIFT_THRESHOLD = 	SHIFT_THRESHOLD + 1.0;		// Shift threshold in pixels.
+constexpr float INITIAL_ROTATE_THRESHOLD = 	ROTATE_THRESHOLD + 1.0	;	// Rotate threshold in degrees.
 
 //#define DEBUG
 //#define DEBUG_MORE
@@ -249,7 +256,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				MAT_ELEM(ASR,0,2) += shiftXSR;
 				MAT_ELEM(ASR,1,2) += shiftYSR;
 				ASR.inv(INV);
-				applyGeometry(LINEAR, IauxSR, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxSR, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -268,7 +275,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				rotation2DMatrix(bestRotSR, R);
 				M3x3_BY_M3x3(ASR,R,ASR);
 				ASR.inv(INV);
-				applyGeometry(LINEAR, IauxSR, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxSR, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -287,7 +294,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				rotation2DMatrix(bestRotRS, R);
 				M3x3_BY_M3x3(ARS,R,ARS);
 				ARS.inv(INV);
-				applyGeometry(LINEAR, IauxRS, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxRS, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 #ifdef DEBUG_MORE
@@ -303,7 +310,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				MAT_ELEM(ARS,0,2) += shiftXRS;
 				MAT_ELEM(ARS,1,2) += shiftYRS;
 				ARS.inv(INV);
-				applyGeometry(LINEAR, IauxRS, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxRS, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -543,11 +550,11 @@ void CL2D::shareAssignments(bool shareAssignment, bool shareUpdates,
         SF->setColumnValues(MDL_REF, nodeRef);
 #ifdef DEBUG_WITH_LOG
     	FileName fnImg;
-        FOR_ALL_OBJECTS_IN_METADATA(*SF)
+        for (size_t objId : SF->id())
         {
         	int classRef;
-        	SF->getValue(MDL_IMAGE,fnImg,__iter.objId);
-        	SF->getValue(MDL_REF,classRef,__iter.objId);
+        	SF->getValue(MDL_IMAGE,fnImg,objId);
+        	SF->getValue(MDL_REF,classRef,objId);
         	LOG(formatString("Image %s: class: %d",fnImg.c_str(),classRef).c_str());
         }
 #endif
@@ -738,7 +745,7 @@ void CL2D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
 
 /* CL2D initialization ------------------------------------------------ */
 //#define DEBUG
-void CL2D::initialize(MetaData &_SF,
+void CL2D::initialize(MetaDataDb &_SF,
                       std::vector<MultidimArray<double> > &_codes0)
 {
     if (prm->node->rank == 1)
@@ -774,7 +781,7 @@ void CL2D::initialize(MetaData &_SF,
     CL2DAssignment bestAssignment;
     size_t idx=0;
     SF->fillConstant(MDL_REF,"-1");
-    FOR_ALL_OBJECTS_IN_METADATA(prm->SF)
+    for (size_t _ : prm->SF.ids())
     {
         if ((idx+1)%prm->node->size==prm->node->rank)
         {
@@ -844,7 +851,7 @@ void CL2D::initialize(MetaData &_SF,
 
         CL2DAssignment inClass, outClass;
         size_t idx=0;
-        FOR_ALL_OBJECTS_IN_METADATA(prm->SF)
+        for (size_t _ : prm->SF.ids())
         {
             if ((idx+1)%prm->node->size==prm->node->rank)
             {
@@ -891,7 +898,7 @@ void CL2D::initialize(MetaData &_SF,
 void CL2D::write(const FileName &fnODir, const FileName &fnRoot, int level) const
 {
     int Q = P.size();
-    MetaData SFout;
+    MetaDataVec SFout;
     Image<double> I;
     FileName fnResultsDir=formatString("%s/level_%02d",fnODir.c_str(),level);
     FileName fnOut = formatString("%s/%s_classes.stk",fnResultsDir.c_str(),fnRoot.c_str()), fnClass;
@@ -911,23 +918,23 @@ void CL2D::write(const FileName &fnODir, const FileName &fnRoot, int level) cons
 
     // Make the selfiles of each class
     FileName fnImg;
-    MDRow row;
+
     for (int q = 0; q < Q; q++)
     {
-        MetaData SFq;
+        MetaDataVec SFq;
         std::vector<CL2DAssignment> &currentListImg = P[q]->currentListImg;
         int imax = currentListImg.size();
         for (int i = 0; i < imax; i++)
         {
             const CL2DAssignment &assignment = currentListImg[i];
-            SF->getRow(row,assignment.objId);
+            MDRowSql row = SF->getRowSql(assignment.objId);
             row.setValue(MDL_FLIP, assignment.flip);
             row.setValue(MDL_SHIFT_X, assignment.shiftx);
             row.setValue(MDL_SHIFT_Y, assignment.shifty);
             row.setValue(MDL_ANGLE_PSI, assignment.psi);
             SFq.addRow(row);
         }
-        MetaData SFq_sorted;
+        MetaDataVec SFq_sorted;
         SFq_sorted.sort(SFq, MDL_IMAGE);
         SFq_sorted.write(formatString("class%06d_images@%s",q+1,fnSFout.c_str()),MD_APPEND);
     }
@@ -1050,7 +1057,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
 
     int iter = 1;
     bool goOn = true;
-    MetaData MDChanges;
+    MetaDataVec MDChanges;
     Image<double> I;
     int progressStep = XMIPP_MAX(1,Nimgs/60);
     CL2DAssignment assignment;
@@ -1078,7 +1085,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
             *ptrOld -= 1;
         SF->fillConstant(MDL_REF, "-1");
         size_t idx=0;
-        FOR_ALL_OBJECTS_IN_METADATA(prm->SF)
+        for (size_t _ : prm->SF.ids())
         {
             if ((idx+1)%prm->node->size==prm->node->rank)
             {
@@ -1148,7 +1155,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
             FileName fnClasses=formatString("%s/%s_classes.xmd",fnResultsDir.c_str(),fnOut.c_str());
         	if (iter==1)
         	{
-        		MetaData dummy;
+        		MetaDataVec dummy;
         		dummy.write(formatString("classes@%s",fnClasses.c_str()));
         	}
 
@@ -1208,8 +1215,8 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
                                      currentListImgLargest[ii].objId);
 
                     // Now split the largest node
-                    CL2DClass *node1 = new CL2DClass();
-                    CL2DClass *node2 = new CL2DClass();
+                    auto *node1 = new CL2DClass();
+                    auto *node2 = new CL2DClass();
                     std::vector<size_t> splitAssignment;
                     splitNode(P[largestNode], node1, node2, splitAssignment);
                     delete P[largestNode];
@@ -1779,16 +1786,16 @@ void ProgClassifyCL2D::produceSideInfo()
     if (fnCodes0 != "")
     {
         Image<double> I;
-        MetaData SFCodes(fnCodes0);
+        MetaDataVec SFCodes(fnCodes0);
 
         size_t Xdim0, Ydim0, Zdim0, Ndim0;
         getImageSize(SFCodes, Xdim0, Ydim0, Zdim0, Ndim0);
         if (Xdim0!=Xdim || Ydim0!=Ydim)
         	REPORT_ERROR(ERR_MULTIDIM_SIZE,"Input reference and images are not of the same size");
 
-        FOR_ALL_OBJECTS_IN_METADATA(SFCodes)
+        for (size_t objId : SFCodes.ids())
         {
-            I.readApplyGeo(SFCodes, __iter.objId);
+            I.readApplyGeo(SFCodes, objId);
             I().setXmippOrigin();
             codes0.push_back(I());
         }
@@ -1836,7 +1843,7 @@ void ProgClassifyCL2D::run()
     {
         std::sort(vq.P.begin(), vq.P.end(), SDescendingClusterSort());
         Q = vq.P.size();
-        MetaData SFq, SFclassified, SFaux, SFaux2;
+        MetaDataDb SFq, SFclassified, SFaux, SFaux2;
         for (int q = 0; q < Q; q++)
         {
             SFq.read(formatString("class%06d_images@%s/level_%02d/%s_classes.xmd",q+1,fnODir.c_str(),level,fnOut.c_str()));

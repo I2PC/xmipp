@@ -26,7 +26,6 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 #include "mpi_volumeset_align.h"
-#include "core/metadata.h"
 
 // Redefine read to initialize MPI environment =======================
 void MpiProgVolumeSetAlign::read(int argc, char **argv, bool )
@@ -34,7 +33,7 @@ void MpiProgVolumeSetAlign::read(int argc, char **argv, bool )
 	node = std::make_shared<MpiNode>(argc, argv);
 	if (!node->isMaster())
 		verbose=0;
-	fileMutex = std::make_shared<MpiFileMutex>(node.get());
+	fileMutex = std::make_shared<MpiFileMutex>(node);
 	ProgVolumeSetAlign::read(argc, argv);
 }
 
@@ -52,7 +51,7 @@ void MpiProgVolumeSetAlign::createWorkFiles()
 	node->barrierWait();//Sync all before start working
 	mdIn.read(fnOutDir + list_of_volumes);
 	mdIn.findObjects(imgsId);//get objects ids
-	distributor = std::make_shared<MpiTaskDistributor>(mdIn.size(), 1, node.get());
+	distributor = std::make_shared<MpiTaskDistributor>(mdIn.size(), 1, node);
 }
 
 

@@ -41,7 +41,8 @@ void KNN::train(MultidimArray<double> &dataset,MultidimArray<double> &dataLabel,
 
 void KNN::KNearestNeighbors(MultidimArray<double> &sample)
 {
-    double maximum,distance;
+    double maximum;
+    double distance;
     int maximumIndex;
     maxDist.resize(1,1,1,K);
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(maxDist)

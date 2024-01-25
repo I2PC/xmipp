@@ -27,7 +27,8 @@
 #ifndef IMAGE_OPERATE_H
 #define IMAGE_OPERATE_H
 
-#include "core/metadata.h"
+#include <memory>
+#include "core/metadata_vec.h"
 #include "core/xmipp_metadata_program.h"
 #include "core/xmipp_image.h"
 
@@ -60,8 +61,8 @@ private:
     //Functions pointer to unary operation
     ImageUnaryOperator * unaryOperator;
     FileName fn2;
-    MetaData md2;
-    MDIterator md2Iterator;
+    MetaDataVec md2;
+    std::unique_ptr<MetaDataVec::id_iterator> md2IdIterator;
     Image<double> img2;
     bool isValue;
     double value;

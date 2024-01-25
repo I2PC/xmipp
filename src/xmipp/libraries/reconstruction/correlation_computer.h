@@ -31,6 +31,9 @@
 #include "data/filters.h"
 #include "data/cpu.h"
 
+/**@defgroup CorrelationComputer Correlation Computer
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class CorrelationComputer : public AMeritComputer<T> {
 public:
@@ -57,5 +60,5 @@ private:
     const T *m_ref;
     ctpl::thread_pool m_threadPool;
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CORRELATION_COMPUTER_H_ */

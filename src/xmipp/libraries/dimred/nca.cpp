@@ -85,7 +85,7 @@ double NeighbourhoodCA::objectiveFunction()
 
 double ncaObjectiveFuntion(double *p, void *prm)
 {
-	NeighbourhoodCA *nca=(NeighbourhoodCA *)prm;
+	auto *nca=(NeighbourhoodCA *)prm;
 	Matrix2D<double> &A=nca->A;
 	memcpy(&MAT_ELEM(A,0,0),&(p[1]),MAT_XSIZE(A)*MAT_YSIZE(A)*sizeof(double));
 	double c=nca->objectiveFunction();

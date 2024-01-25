@@ -122,7 +122,8 @@ protected:
 
     double sigma;        // Optimum Kernel Width
     size_t annSteps;    // number of deterministic annealing steps
-    double reg0, reg1;   // Regularization factors
+    double reg0;
+    double reg1;   // Regularization factors
     double epsilon;      // Stopping criterion Error < epsilon
     size_t somNSteps;   // number of steps
 
@@ -133,7 +134,10 @@ protected:
     size_t numVectors;
     size_t dim;
     std::vector < std::vector<double> > tmpMap;
-    std::vector<double> tmpD, tmpD1, tmpDens, tmpV;
+    std::vector<double> tmpD;
+    std::vector<double> tmpD1;
+    std::vector<double> tmpDens;
+    std::vector<double> tmpV;
 
 
     /** Declaration of virtual method */

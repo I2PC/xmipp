@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
         }
         catch (XmippError &XE)
         {
-            std::cerr << XE;
+            std::cerr << XE.what();
             MPI_Finalize();
             exit(1);
         }
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         }
         catch (XmippError &XE)
         {
-            std::cerr << XE;
+            std::cerr << XE.what();
             MPI_Finalize();
             exit(1);
         }

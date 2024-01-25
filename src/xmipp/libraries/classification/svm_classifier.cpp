@@ -38,8 +38,8 @@ bool findElementIn1DArray(MultidimArray<double> &inputArray,double element)
 
 void SVMClassifier::setParameters(double c,double gamma)
 {
-    param.svm_type = C_SVC;
-    param.kernel_type = RBF;
+    param.svm_type = libsvm::C_SVC;
+    param.kernel_type = libsvm::RBF;
     param.degree = 2;
     param.gamma = gamma;
     param.coef0 = 0;
@@ -57,6 +57,16 @@ void SVMClassifier::setParameters(double c,double gamma)
     prob.y=NULL;
     prob.x=NULL;
 }
+
+SVMClassifier & SVMClassifier::operator=(const SVMClassifier &other)
+{
+    param=other.param;
+    prob=other.prob;
+    delete model;
+    model=new svm_model(*other.model);
+    return *this;
+}
+
 SVMClassifier::~SVMClassifier()
 {
     svm_free_and_destroy_model(&model);
@@ -70,6 +80,7 @@ SVMClassifier::~SVMClassifier()
         delete [] prob.x;
     }
 }
+
 void SVMClassifier::SVMTrain(MultidimArray<double> &trainSet,MultidimArray<double> &label)
 {
 

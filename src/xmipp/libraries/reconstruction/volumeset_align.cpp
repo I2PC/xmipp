@@ -25,10 +25,10 @@
 
 #include "program_extension.h"
 #include "volumeset_align.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 
 // Empty constructor =======================================================
-ProgVolumeSetAlign::ProgVolumeSetAlign() {
+ProgVolumeSetAlign::ProgVolumeSetAlign() : Rerunable("") {
 	each_image_produces_an_output = false;
 	produces_an_output = true;
 }
@@ -46,6 +46,7 @@ void ProgVolumeSetAlign::defineParams() {
 	addParamsLine("  [--resume]                           : Resume processing");
 	addParamsLine("  [--frm_parameters <frm_freq=0.25> <frm_shift=10>]  : This is using frm method for volume alignment with frm_freq and frm_shift as parameters");
 	addParamsLine("  [--tilt_values <tilt0=-90> <tiltF=90>]  : Optional compensation for the missing wedge. Tested extensively with tilt between [-60 60]");
+	addParamsLine("  [--mask <mask_filename=\"\">]        : Optional mask during the alignment");
 	addExampleLine("xmipp_volumeset_align -i volumes.xmd --ref reference.vol -o output.xmd --resume");
 }
 
@@ -54,43 +55,16 @@ void ProgVolumeSetAlign::readParams() {
 	XmippMetadataProgram::readParams();
 	fnREF = getParam("--ref");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir+"/AlignedSoFar.xmd");
 	resume = checkParam("--resume");
 	frm_freq = getDoubleParam("--frm_parameters",0);
 	frm_shift= getIntParam("--frm_parameters",1);
 	tilt0=getIntParam("--tilt_values",0);
 	tiltF=getIntParam("--tilt_values",1);
+	fnMask = getParam("--mask");
 }
 
 // Produce side information ================================================
-
-void ProgVolumeSetAlign::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	// this will serve to resume
-	MetaData mdTodo;
-	MetaData mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/AlignedSoFar.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} 
-	else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_SHIFT_Z);
-		mdDone.addLabel(MDL_MAXCC);
-		mdDone.addLabel(MDL_ANGLE_Y);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
 
 void ProgVolumeSetAlign::preProcess() {
 	// Set the pointer of the program to this object
@@ -126,8 +100,18 @@ void ProgVolumeSetAlign::computeFitness(){
 
 	int err;
 
-	runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
-			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles));
+	String args = formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0",
+			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles);
+		
+	if (!fnMask.isEmpty()){
+		const char * mask = this->fnMask.c_str(); 
+		args += formatString(" --mask binary_file %s", mask);
+	}
+		
+	
+	runSystem("xmipp_volume_align",args);
+
+
 	//The first 6 parameters are angles and shifts, and the 7th is the fitness value
 	fnAnglesAndShifts = fopen(shifts_angles, "r");
 	for (int i = 0; i < 6; i++){
@@ -156,7 +140,7 @@ void ProgVolumeSetAlign::processImage(const FileName &fnImg,
 }
 
 void ProgVolumeSetAlign::writeVolumeParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);
@@ -173,6 +157,6 @@ void ProgVolumeSetAlign::writeVolumeParameters(const FileName &fnImg) {
 	else{
 		md.setValue(MDL_ANGLE_Y, 0.0 , objId);
 	}
-	md.append(fnOutDir+"/AlignedSoFar.xmd");
+	md.append(Rerunable::getFileName());
 }
 

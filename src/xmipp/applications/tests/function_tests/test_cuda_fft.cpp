@@ -19,7 +19,7 @@ int CUDA_VERSION = 0;
     }
 
 #define MUSTBESKIPPED \
-    bool mustBeSkipped(const FFTSettingsNew<T> &s, bool isBothDirection) { \
+    bool mustBeSkipped(const FFTSettings<T> &s, bool isBothDirection) { \
         const auto &d = s.sDim(); \
         if (10020 == CUDA_VERSION) { \
             if (std::is_same<T, float>::value) { \

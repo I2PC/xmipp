@@ -24,8 +24,7 @@
  ***************************************************************************/
 
 #include "core/matrix2d.h"
-#include "core/metadata.h"
-#include "core/metadata_sql.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
 #include "data/numerical_tools.h"
@@ -36,9 +35,9 @@ class ProgMetadataSplit: public XmippProgram
     FileName fn_in, fn_out, fn_root, fn_cc;
     String sortLabelStr, extension;
     MDLabel sortLabel;
-    MetaData  mdIn;
-    MetaData *mdPtr, *mdPtr2;
-    std::vector<MetaData> mdVector;
+    MetaDataVec  mdIn;
+    MetaDataVec *mdPtr, *mdPtr2;
+    std::vector<MetaDataVec> mdVector;
     bool     dont_randomize, dont_remove_disabled, dont_sort, use_cc;
     size_t N;
     int AHCiter, AHCsubset;
@@ -116,7 +115,7 @@ public:
             mdPtr = &mdIn;
         else
         {
-            mdPtr = new MetaData();
+            mdPtr = new MetaDataVec();
             mdPtr->randomize(mdIn);
         }
 
@@ -132,9 +131,9 @@ public:
         	Image<double> cc;
         	cc.read(fn_cc);
         	MultidimArray<double> &mcc=cc();
-        	int Ndirs=(int)XSIZE(mcc);
-        	int Nvols=(int)YSIZE(mcc);
-        	int Nimgs=(int)ZSIZE(mcc);
+        	auto Ndirs=(int)XSIZE(mcc);
+        	auto Nvols=(int)YSIZE(mcc);
+        	auto Nimgs=(int)ZSIZE(mcc);
         	if (Nvols!=1)
         		REPORT_ERROR(ERR_ARG_INCORRECT,"This program is meant only for cross-correlation volumes of a single reference model");
         	Matrix2D<int> coocurrence(Nimgs,Nimgs);
@@ -173,15 +172,14 @@ public:
         	ahc.clusterWithDistance(D,(int)Num_groups);
 
         	// Construct output metadata
-        	MetaData dummy;
+        	MetaDataVec dummy;
         	for (size_t k=0; k<Num_groups; ++k)
         		mdVector.push_back(dummy);
+
         	size_t i=0;
-        	MDRow row;
-        	FOR_ALL_OBJECTS_IN_METADATA(*mdPtr)
+            for (auto& row : *mdPtr)
         	{
-        		mdPtr->getRow(row,__iter.objId);
-        		mdVector[VEC_ELEM(ahc.clusterAssigned,i)].addRow(row);
+        		mdVector[VEC_ELEM(ahc.clusterAssigned,i)].addRow(dynamic_cast<MDRowVec&>(row));
         		i++;
         	}
         }

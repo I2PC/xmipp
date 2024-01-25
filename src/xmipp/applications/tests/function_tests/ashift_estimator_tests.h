@@ -33,20 +33,20 @@ public:
 
         // test x == y
         first = ((int)dist1(mt) / 2) * 2;
-        shift2D(FFTSettingsNew<T>(first, first, 1, n, batch, false, false));
+        shift2D(FFTSettings<T>(first, first, 1, n, batch, false, false));
 
         // test x > y
         first = ((int)dist1(mt) / 2) * 2;
         second = ((int)dist2(mt) / 2) * 2;
-        shift2D(FFTSettingsNew<T>(second, first, 1, n, batch, false, false));
+        shift2D(FFTSettings<T>(second, first, 1, n, batch, false, false));
 
         // test x < y
         first = ((int)dist1(mt) / 2) * 2;
         second = ((int)dist2(mt) / 2) * 2;
-        shift2D(FFTSettingsNew<T>(first, second, 1, n, batch, false, false));
+        shift2D(FFTSettings<T>(first, second, 1, n, batch, false, false));
     }
 
-    void shift2D(const FFTSettingsNew<T> &dims)
+    void shift2D(const FFTSettings<T> &dims)
     {
         using Alignment::AlignType;
         // max shift must be sharply less than half of the size
@@ -118,10 +118,8 @@ std::mt19937 AShiftEstimator_Test<T>::mt(42); // fixed seed to ensure reproducib
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToOne)
 {
-    XMIPP_TRY
     // test one reference vs one image
     AShiftEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToMany)

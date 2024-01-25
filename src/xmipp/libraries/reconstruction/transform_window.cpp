@@ -42,7 +42,7 @@ public:
 	double rmin, rmax, expand, offset, sampling, x_origin, y_origin, z_origin;
 	double padValue;
 	String padType;
-	WindowMode mode;
+	WindowMode windowMode;
 	FileName tempFn;
 	bool renameTempFn;
 
@@ -185,7 +185,7 @@ public:
 				REPORT_ERROR(ERR_ARG_INCORRECT,
 						"Incorrect number of arguments after --corners");
 			physical_coords = checkParam("--physical");
-			mode = CORNERMODE;
+			windowMode = CORNERMODE;
 		} else if (checkParam("--size")) {
 			sizeX = getIntParam("--size", 0);
 			sizeY = getIntParam("--size", 1);
@@ -200,7 +200,7 @@ public:
 			xF = LAST_XMIPP_INDEX(sizeX);
 			yF = LAST_XMIPP_INDEX(sizeY);
 			zF = LAST_XMIPP_INDEX(sizeZ);
-			mode = SIZEMODE;
+			windowMode = SIZEMODE;
 			physical_coords = false;
 		}
 		//<sym> <rmin=0> <rmax=0> <expandFactor=0> <offset=0> <x_offset=-1.> <y_offset=-1.> <z_offset=-1.>: Extract a unit cell from volume");
@@ -213,7 +213,7 @@ public:
 				cropY = cropX;
 			if (cropZ == 0)
 				cropZ = cropX;
-			mode = CROPMODE;
+			windowMode = CROPMODE;
 			physical_coords = false;
 		} else if (checkParam("--unitcell")) {
 			int nparams = getCountParam("--unitcell");
@@ -228,7 +228,7 @@ public:
 			y_origin = getDoubleParam("--unitcell", 7);
 			z_origin = getDoubleParam("--unitcell", 8);
 
-			mode = UNITCELLMODE;
+			windowMode = UNITCELLMODE;
 		}
 	}
 
@@ -236,7 +236,7 @@ public:
 		if (verbose == 0)
 			return;
 		XmippMetadataProgram::show();
-		switch (mode) {
+		switch (windowMode) {
 		case SIZEMODE:
 			std::cout << "New size: (XxYxZ)=" << sizeX << "x" << sizeY << "x"
 					<< sizeZ << std::endl;
@@ -306,10 +306,10 @@ public:
 		String oext = fnImgOut.getExtension();
 		DataType dataType = Iin.getDatatype();
 		ImageGeneric result(dataType);
-		if (mode == UNITCELLMODE) {
+		if (windowMode == UNITCELLMODE) {
 			Iin.convert2Datatype(DT_Float);
 			unitcell(Iin, result);
-		} else if (mode == CROPMODE) {
+		} else if (windowMode == CROPMODE) {
 			int xl = cropX / 2;
 			int xr = cropX - xl;
 			int yl = cropY / 2;

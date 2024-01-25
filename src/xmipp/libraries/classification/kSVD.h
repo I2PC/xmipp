@@ -68,8 +68,9 @@ double lasso(const Matrix1D<double> &x,
     double lambda, Matrix1D<double> &alpha,
     const int maxIter=20, const double tol=0.005);
 
-#define OMP_PROJECTION 1
-#define LASSO_PROJECTION 2
+constexpr int OMP_PROJECTION = 1;
+constexpr int  LASSO_PROJECTION = 2;
+
 
 #ifdef UNUSED // detected as unused 29.6.2018
 /** kSVD

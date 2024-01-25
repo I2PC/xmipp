@@ -147,7 +147,7 @@ protected:
 
         if (TYPE_POISSON == noise_type) {
             Image<float> img;
-            img.readApplyGeo(fnImg, rowIn);
+            img.read(fnImg);
             std::random_device rd;
             std::mt19937 gen(rd());
             Image<int> res(img.data.xdim, img.data.ydim, img.data.zdim, img.data.ndim);
@@ -165,7 +165,7 @@ protected:
             res.write(fnImgOut);
         } else {
             Image<double> img;
-            img.readApplyGeo(fnImg, rowIn);
+            img.read(fnImg);
             img().addNoise(param1, param2, noise_type, df);
             limit(img);
             img.write(fnImgOut);

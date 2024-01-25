@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include "xmipp_image_convert.h"
-#include "core/metadata.h"
+#include "core/xmipp_funcs.h"
 
 ProgConvImg::ProgConvImg()
 {
@@ -177,7 +177,7 @@ void ProgConvImg::readParams()
 
     if (checkParam("--depth"))
     {
-        String depthTemp = (String)getParam("--depth");
+        auto depthTemp = (String)getParam("--depth");
         if (depthTemp != "default")
             depth = "%" + depthTemp;
     }
@@ -283,7 +283,7 @@ void ProgConvImg::preProcess()
             {
                 if (depth.empty())
                     depth = "%"+datatype2Str(datatypeOut);
-                createEmptyFile(fn_out+depth, xdimOut, ydimOut, 1, zdimOut, true, WRITE_OVERWRITE, swap);
+                createEmptyFile(fn_out+depth, xdimOut, ydimOut, 1, zdimOut, true, WRITE_OVERWRITE, swap, &imIn.image->MDMainHeader);
             }
         }
     }
@@ -291,7 +291,11 @@ void ProgConvImg::preProcess()
     {
         if (depth.empty())
             depth = "%"+datatype2Str(datatypeOut);
-        createEmptyFile(fn_out+depth, xdimOut, ydimOut, zdimOut, mdInSize, true, WRITE_OVERWRITE, swap);
+        
+        FileName first_image;
+        getInputMd()->getValue(image_label, first_image, 1);
+        imIn.read(first_image, DATA, FIRST_IMAGE, true);
+        createEmptyFile(fn_out+depth, xdimOut, ydimOut, zdimOut, mdInSize, true, WRITE_OVERWRITE, swap, &imIn.image->MDMainHeader);
     }
     create_empty_stackfile = false;
 }//function preprocess

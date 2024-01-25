@@ -75,7 +75,7 @@ public:
     /// file with shifts
     FileName fn_shift;
     /// Document File for shifts. Order: H K x_SHIFT y_SHIFT z_SHIFT
-    MetaData DF_shift;
+    MetaDataVec DF_shift;
     /// is doc file with shifts available
     bool     DF_shift_bool;
 

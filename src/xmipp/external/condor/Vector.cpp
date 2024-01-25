@@ -35,7 +35,7 @@ Vector Vector::emptyVector;
 
 void Vector::alloc(int _n, int _ext)
 {
-    d=(VectorData*)malloc(sizeof(VectorData));
+    d=new VectorData();
     d->n=_n;
     d->extention=_ext;
     d->ref_count=1;
@@ -181,7 +181,7 @@ void Vector::destroyCurrentBuffer()
 	if (d->ref_count==0)
     {
         if ((d->p)&&(!d->externalData)) free(d->p);
-        free(d);
+        delete d;
     };
 }
 

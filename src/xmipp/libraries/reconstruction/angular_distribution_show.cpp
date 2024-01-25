@@ -27,7 +27,6 @@
 #include <core/args.h>
 #include <core/geometry.h>
 #include <core/histogram.h>
-#include <core/metadata.h>
 #include <core/xmipp_program.h>
 #include <interface/spider.h>
 #include <fstream>
@@ -87,7 +86,7 @@ public:
     void run()
     {
         // Get angles ==============================================================
-        MetaData angles;
+        MetaDataVec angles;
         angles.read(fnIn);
         size_t AngleNo = angles.size();
         if (AngleNo == 0 || !angles.containsLabel(MDL_ANGLE_ROT))
@@ -100,10 +99,10 @@ public:
         {
             // Find maximum weight
             int i=0;
-            FOR_ALL_OBJECTS_IN_METADATA(angles)
+            for (size_t objId : angles.ids())
             {
                 double w;
-                angles.getValue(MDL_WEIGHT,w,__iter.objId);
+                angles.getValue(MDL_WEIGHT,w,objId);
                 DIRECT_A1D_ELEM(weight,i++)=w;
                 maxWeight=XMIPP_MAX(w,maxWeight);
             }
@@ -116,12 +115,12 @@ public:
         v_ang.reserve(AngleNo);
         Matrix1D<double> aux(3);
         Matrix1D<double> aux_ang(3);
-        FOR_ALL_OBJECTS_IN_METADATA(angles)
+        for (size_t objId : angles.ids())
         {
             double rot, tilt, psi;
-            angles.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-            angles.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-            angles.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+            angles.getValue(MDL_ANGLE_ROT,rot,objId);
+            angles.getValue(MDL_ANGLE_TILT,tilt,objId);
+            angles.getValue(MDL_ANGLE_PSI,psi,objId);
             if (up_down_correction && fabs(tilt)>90)
                 \
                 Euler_up_down(rot,tilt,psi,rot,tilt,psi);

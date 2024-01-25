@@ -57,7 +57,7 @@ double GPLVM::objectiveFunction()
 
 double gplvmObjectiveFuntion(double *p, void *prm)
 {
-	GPLVM *gpvlm=(GPLVM *)prm;
+	auto *gpvlm=(GPLVM *)prm;
 	Matrix2D<double> &Y=gpvlm->Y;
 	memcpy(&MAT_ELEM(Y,0,0),&(p[1]),MAT_XSIZE(Y)*MAT_YSIZE(Y)*sizeof(double));
 	double c=gpvlm->objectiveFunction();

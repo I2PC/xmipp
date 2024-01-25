@@ -81,14 +81,6 @@ public:
     SelLine() : line_type(NOT_ASSIGNED)
     {}
 
-    /** Copy constructor.
-     */
-    SelLine(const SelLine& line);
-
-    /** Assignment.
-     */
-    SelLine& operator=(const SelLine& line);
-
     /** Another function for assigment.
      */
     void assign(const SelLine& line);
@@ -219,14 +211,6 @@ public:
         read(name);
     }
 
-    /** Copy constructor.
-     *
-     * @code
-     * SelFile sel2(sel1);
-     * @endcode
-     */
-    SelFile(const SelFile& sel);
-
     /** Reserve memory for N entries.
      *
      * It doesn't matter if entries are comments or data. The current line is
@@ -249,15 +233,6 @@ public:
 
     /// @name Some operators
     //@{
-
-    /** Assignment.
-     *
-     * @code
-     * SelFile sel2 = sel1;
-     * @endcode
-     */
-    SelFile& operator=(const SelFile& sel);
-
     /** Another function for assigment.
      */
     void assign(const SelFile& sel);

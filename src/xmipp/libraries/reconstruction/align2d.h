@@ -25,7 +25,7 @@
 #ifndef _PROG_ALIGN2D
 #define _PROG_ALIGN2D
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
 
@@ -50,7 +50,7 @@ public:
     bool pspc;
 public:
     // SelFile with the input images
-    MetaData SF;
+    MetaDataVec SF;
     // Image holding current reference
     Image<double> Iref;
 

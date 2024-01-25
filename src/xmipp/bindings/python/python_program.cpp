@@ -90,13 +90,13 @@ PyMethodDef Program_methods[] =
       "Get the value passed of this param" },
     { "getListParam", (PyCFunction) Program_getListParam, METH_VARARGS,
       "Get the list of all values passed of this param" },
-    { NULL } /* Sentinel */
+    { nullptr } /* Sentinel */
 };
 
 /*Program Type */
 PyTypeObject ProgramType =
 {
-    PyObject_HEAD_INIT(NULL)
+    PyObject_HEAD_INIT(0)
     "xmipp.Program", /*tp_name*/
     sizeof(ProgramObject), /*tp_basicsize*/
     0, /*tp_itemsize*/
@@ -148,11 +148,11 @@ void Program_dealloc(ProgramObject* self)
 PyObject *
 Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) type->tp_alloc(type, 0);
-    if (self != NULL)
+    auto *self = (ProgramObject*) type->tp_alloc(type, 0);
+    if (self != nullptr)
     {
         self->program = new PythonProgram();
-        PyObject * runWithoutArgs = Py_False;
+        auto * runWithoutArgs = Py_False;
         if (PyArg_ParseTuple(args, "|O", &runWithoutArgs))
         {
             try
@@ -164,7 +164,7 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
@@ -175,11 +175,11 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    PyObject *verbatim = Py_False;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    auto *verbatim = Py_False;
+    if (self != nullptr)
     {
-        char * line = NULL;
+        char * line = nullptr;
         if (PyArg_ParseTuple(args, "s|O", &line, &verbatim))
         {
             try
@@ -194,22 +194,22 @@ Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* addExampleLine */
 PyObject *
 Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    PyObject *verbatim = Py_True;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    auto *verbatim = Py_True;
+    if (self != nullptr)
     {
-        char * line = NULL;
+        char * line = nullptr;
         if (PyArg_ParseTuple(args, "s|O", &line, &verbatim))
         {
             try
@@ -224,21 +224,21 @@ Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* addParamsLine */
 PyObject *
 Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * line = NULL;
+        char * line = nullptr;
         if (PyArg_ParseTuple(args, "s", &line))
         {
             try
@@ -248,19 +248,19 @@ Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* usage */
 PyObject *
 Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
         int verbose = 0;
         if (PyArg_ParseTuple(args, "|i", &verbose))
@@ -272,19 +272,19 @@ Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* endDefinition */
 PyObject *
 Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
         try
         {
@@ -293,28 +293,29 @@ Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* read */
 PyObject *
 Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        PyObject *list = NULL;
+        PyObject *list = nullptr;
         if (PyArg_ParseTuple(args, "O", &list))
         {
             if (PyList_Check(list))
             {
                 size_t size = PyList_Size(list);
-                PyObject * item = NULL;
-                PyObject *pyStr1 = NULL, *str_exc_type = NULL;
-                char ** argv = new char*[size];
+                PyObject * item = nullptr;
+                PyObject *pyStr1 = nullptr;
+                PyObject *str_exc_type = nullptr;
+                auto ** argv = new char*[size];
                 std::vector<double> vValue(size);
                 for (size_t i = 0; i < size; ++i)
                 {
@@ -324,7 +325,7 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                         PyErr_SetString(PyExc_TypeError,
                                         "Program arguments should be of type string");
                         delete[] argv;
-                        return NULL;
+                        return nullptr;
                     }
 
                     str_exc_type = PyObject_Str(item); //Now a unicode object
@@ -345,17 +346,17 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* checkParam */
 PyObject *
 Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * param = NULL;
+        char * param = nullptr;
         if (PyArg_ParseTuple(args, "s", &param))
         {
             try
@@ -367,21 +368,21 @@ Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getParam */
 PyObject *
 Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * param = NULL;
+        char * param = nullptr;
         int arg = 0;
         if (PyArg_ParseTuple(args, "s|i", &param, &arg))
         {
@@ -392,21 +393,21 @@ Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* getListParam */
 PyObject *
 Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    if (self != NULL)
+    auto *self = (ProgramObject*) obj;
+    if (self != nullptr)
     {
-        char * param = NULL;
+        char * param = nullptr;
         if (PyArg_ParseTuple(args, "s", &param))
         {
             try
@@ -422,9 +423,9 @@ Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
             }
         }
     }
-    return NULL;
+    return nullptr;
 }

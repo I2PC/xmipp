@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 #include "image_eliminate_byEnergy.h"
-#include "core/metadata.h"
 #include "core/xmipp_image.h"
+#include "core/xmipp_funcs.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgEliminateByEnergy::readParams()
@@ -80,6 +80,6 @@ void ProgEliminateByEnergy::processImage(const FileName &fnImg, const FileName &
 }
 
 void ProgEliminateByEnergy::finishProcessing() {
-    getOutputMd()->removeDisabled();
+    getOutputMd().removeDisabled();
     XmippMetadataProgram::finishProcessing();
 }

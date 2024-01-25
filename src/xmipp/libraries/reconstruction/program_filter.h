@@ -28,6 +28,9 @@
 
 class XmippFilter;
 
+/**@defgroup ProgFilter Filter Operation
+   @ingroup ReconsLibrary */
+//@{
 /** Apply some filter operation on images, or selfiles */
 class ProgFilter: public XmippMetadataProgram
 {
@@ -51,6 +54,7 @@ public:
     ProgFilter();
     ~ProgFilter();
 }
+//@}
 ;//end of class ProgFilter
 
 

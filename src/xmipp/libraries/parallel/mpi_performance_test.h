@@ -26,10 +26,11 @@
 #define _PROG_PERFORMANCE_TEST
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 #include <classification/pca.h>
 
-
+/// @defgroup ProgPerformanceTest MPI Performance Test
+/// @ingroup ParallelLibrary
+//@{
 class ProgPerformanceTest: public XmippProgram
 {
 public:
@@ -37,13 +38,17 @@ public:
 	FileName fnIn;
 public:
     // Mpi node
-    MpiNode *node;
+    MpiNode *node=nullptr;
 public:
     /// Empty constructor
     ProgPerformanceTest(int argc, char **argv);
+    ProgPerformanceTest(const ProgPerformanceTest&)=delete;
+    ProgPerformanceTest(const ProgPerformanceTest&&)=delete;
 
     /// Destructor
     ~ProgPerformanceTest();
+    ProgPerformanceTest & operator =(const ProgPerformanceTest &)=delete;
+    ProgPerformanceTest & operator =(const ProgPerformanceTest &&)=delete;
 
     /// Read argument from command line
     void readParams();
@@ -60,4 +65,5 @@ public:
     /** Run. */
     void run();
 };
+//@}
 #endif

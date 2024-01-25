@@ -44,7 +44,16 @@ class ScriptCompile(XmippScript):
         ## examples
         self.addExampleLine('Compile myprogram.cpp', False)
         self.addExampleLine('xmipp_compile myprogram.cpp')
-
+        self.addExampleLine('where myprogram.cpp contains')
+        self.addExampleLine('')
+        self.addExampleLine('#include <core/xmipp_image.h>')
+        self.addExampleLine('int main()')
+        self.addExampleLine('{')
+        self.addExampleLine('   Image<double> V("volume.mrc:mrc");')
+        self.addExampleLine('   V().printShape();')
+        self.addExampleLine('   return 0')
+        self.addExampleLine('}')
+                                                
     def getFlags(self):
         try:
             from ConfigParser import ConfigParser, ParsingError
@@ -54,10 +63,11 @@ class ScriptCompile(XmippScript):
             print("Cannot find the environment variable XMIPP_SRC. Make sure you have sourced the xmipp.bashrc or equivalent")
             sys.exit(1)
         xmippSrc=os.environ['XMIPP_SRC']
+        xmippSrcHome=os.path.split(xmippSrc)[0]
         cf = ConfigParser()
         cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
         try:
-            cf.read(os.path.join(xmippSrc,"xmipp","install","xmipp.conf"))
+            cf.read(os.path.join(xmippSrcHome,"xmipp.conf"))
         except ParsingError:
             sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
         flagDict=dict(cf.items('BUILD'))

@@ -27,7 +27,7 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/image_eliminate_byEnergy.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgEliminateByEnergy, MpiProgEliminateByEnergy)
+class MpiProgEliminateByEnergy
+    : public BasicMpiMetadataProgram<ProgEliminateByEnergy> {};
 
 RUN_XMIPP_PROGRAM(MpiProgEliminateByEnergy)

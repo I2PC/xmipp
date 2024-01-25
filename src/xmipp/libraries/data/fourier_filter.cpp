@@ -71,6 +71,9 @@ void FourierFilter::defineParams(XmippProgram *program)
     program->addParamsLine("                                             : The CTF phase will be corrected before applying");
     program->addParamsLine("            ctfinv <ctfile> <minCTF=0.05>    : Apply the inverse of the CTF. Below the minCTF, the image is not corrected");
     program->addParamsLine("            ctfposinv <ctfile> <minCTF=0.05> : Apply the inverse of the abs(CTF). Below the minCTF, the image is not corrected");
+    program->addParamsLine("            ctfdef <kV> <Cs> <Q0> <defocus>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), and defocus (A)");
+    program->addParamsLine("            ctfdefastig <kV> <Cs> <Q0> <defocusU> <defocusV> <defocusAngle>  : Apply a CTF with this voltage (kV), spherical aberration (mm), Q0 (typically, 0.07), defocus (A), and defocusAngle (degrees)");
+    program->addParamsLine("                                             : The phase flip is not corrected");
     program->addParamsLine("            bfactor <B>                      : Exponential filter (positive values for decay) ");
     program->addParamsLine("               requires --sampling;                                                         ");
     program->addParamsLine("            fsc <metadata>                   : Filter with the FSC profile contained in the metadata");
@@ -215,6 +218,31 @@ void FourierFilter::readParams(XmippProgram *program)
         }
         ctf.produceSideInfo();
     }
+    else if (filter_type == "ctfdef")
+    {
+		FilterShape = FilterBand = CTFDEF;
+    	ctf.clear();
+    	ctf.kV = program->getDoubleParam("--fourier", "ctfdef");
+    	ctf.Cs = program->getDoubleParam("--fourier", "ctfdef", 1);
+    	ctf.Q0 = program->getDoubleParam("--fourier", "ctfdef", 2);
+    	ctf.DeltafU = program->getDoubleParam("--fourier", "ctfdef", 3);
+    	ctf.DeltafV = ctf.DeltafU;
+    	ctf.Tm = sampling_rate;
+    	ctf.produceSideInfo();
+    }
+    else if (filter_type == "ctfdefastig")
+    {
+		FilterShape = FilterBand = CTFDEF;
+    	ctf.clear();
+    	ctf.kV = program->getDoubleParam("--fourier", "ctfdefastig");
+    	ctf.Cs = program->getDoubleParam("--fourier", "ctfdefastig", 1);
+    	ctf.Q0 = program->getDoubleParam("--fourier", "ctfdefastig", 2);
+    	ctf.DeltafU = program->getDoubleParam("--fourier", "ctfdefastig", 3);
+        ctf.DeltafV = program->getDoubleParam("--fourier", "ctfdefastig", 4);
+        ctf.azimuthal_angle = program->getDoubleParam("--fourier", "ctfdefastig", 5);   	
+    	ctf.Tm = sampling_rate;
+    	ctf.produceSideInfo();
+    }
     else if (filter_type == "bfactor")
     {
         FilterShape = FilterBand = BFACTOR;
@@ -284,6 +312,12 @@ void FourierFilter::show()
             break;
         case CTFPOSINV:
             std::cout << "CTFPOSINV minCTF= " << minCTF << "\n";
+            break;
+        case CTFDEF:
+            std::cout << "CTFDEF voltage= " << ctf.kV << "\n";
+            std::cout << "CTFDEF Cs= " << ctf.Cs << "\n";
+            std::cout << "CTFDEF Q0= " << ctf.Q0 << "\n";
+            std::cout << "CTFDEF defocus= " << ctf.DeltafU << "\n";
             break;
         case BFACTOR:
             std::cout << "Bfactor "<< w1 << std::endl
@@ -398,10 +432,24 @@ double FourierFilter::maskValue(const Matrix1D<double> &w)
                 return 0;
             break;
         case GAUSSIAN:
-            return 1/sqrt(2*PI*w1)*exp(-0.5*absw*absw/(w1*w1));
+            return 1./sqrt(2.*PI*w1)*exp(-0.5*absw*absw/(w1*w1));
             break;
         case REALGAUSSIAN:
-            return exp(-PI*PI*absw*absw*w1*w1);
+            return exp(-PI*PI*absw*absw*w1*w1);  //? Should it be -2*
+            break;
+        case REALGAUSSIANZ:
+            return exp(-2.*PI*PI*absw*absw*w1*w1);
+            break;
+        case REALGAUSSIANZ2:
+            return (1./(4*PI*w1*w1))*exp(-PI*PI*absw*absw*w1*w1);
+            break;
+        case WEDGE_RC:
+            if (absw<w1)
+                return 1;
+            else if (absw<w1+raised_w)
+                return (1+cos(PI/raised_w*(absw-w1)))/2;
+            else
+                return 0;
             break;
         }
         break;
@@ -502,6 +550,12 @@ double FourierFilter::maskValue(const Matrix1D<double> &w)
 				return 1.0/ctfval;
     	}
         break;
+    case CTFDEF:
+    	{
+			ctf.precomputeValues(XX(w)/ctf.Tm,YY(w)/ctf.Tm);
+			return ctf.getValueAt();
+    	}
+        break;
     case BFACTOR:
         {
             double R = absw / sampling_rate;
@@ -555,9 +609,9 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
 
     if (FilterShape==FSCPROFILE)
     {
-    	MetaData mdFSC(fnFSC);
-        mdFSC.getColumnValues(MDL_RESOLUTION_FREQ,freqContFSC);
-        mdFSC.getColumnValues(MDL_RESOLUTION_FRC,FSC);
+        MetaDataVec mdFSC(fnFSC);
+        mdFSC.getColumnValues(MDL_RESOLUTION_FREQ, freqContFSC);
+        mdFSC.getColumnValues(MDL_RESOLUTION_FRC, FSC);
     }
     // std::cout << "Generating mask " << do_generate_3dmask << std::endl;
 
@@ -567,13 +621,20 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         MultidimArray< std::complex<double> > Fourier;
         transformer.getFourierAlias(Fourier);
 
-        if (FilterShape==WEDGE || FilterShape==CONE)
+        if (FilterShape==WEDGE || FilterShape==CONE || FilterShape==WEDGE_RC)
         {
             maskFourier.initZeros(Fourier);
             maskFourier.setXmippOrigin();
             switch (FilterShape)
             {
             case WEDGE:
+                {
+                    Matrix2D<double> A;
+                    Euler_angles2matrix(rot,tilt,psi,A,false);
+                    BinaryWedgeMask(maskFourier, t1, t2, A,true);
+                    break;
+                }
+            case WEDGE_RC:
                 {
                     Matrix2D<double> A;
                     Euler_angles2matrix(rot,tilt,psi,A,false);
@@ -589,7 +650,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         {
         	Image<double> filter;
         	filter.read(fnFilter);
-            scaleToSize(BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
+            scaleToSize(xmipp_transformation::BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
             maskFourierd.resize(Fourier);
             return;
         }
@@ -624,7 +685,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         {
         	Image<double> filter;
         	filter.read(fnFilter);
-            scaleToSize(BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
+            scaleToSize(xmipp_transformation::BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
             maskFourierd.resize(Fourier);
             return;
         }
@@ -656,15 +717,15 @@ void FourierFilter::applyMaskSpace(MultidimArray<double> &v)
 
 void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, MultidimArray<std::complex<double> > &V)
 {
-    if (XSIZE(maskFourier)!=0)
+    if (XSIZE(maskFourier)!=0 && !FilterShape==WEDGE_RC)
     {
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         DIRECT_MULTIDIM_ELEM(V,n)*=DIRECT_MULTIDIM_ELEM(maskFourier,n);
     }
     else if (XSIZE(maskFourierd)!=0)
     {
-        double *ptrV=(double*)&DIRECT_MULTIDIM_ELEM(V,0);
-        double *ptrMask=(double*)&DIRECT_MULTIDIM_ELEM(maskFourierd,0);
+        auto *ptrV=(double*)&DIRECT_MULTIDIM_ELEM(V,0);
+        auto *ptrMask=(double*)&DIRECT_MULTIDIM_ELEM(maskFourierd,0);
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         {
             *ptrV++ *= *ptrMask;
@@ -680,9 +741,29 @@ void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, Multid
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         if (DIRECT_MULTIDIM_ELEM(vMag,n)<minMagnitude)
         {
-            double *ptr=(double*)&DIRECT_MULTIDIM_ELEM(V,n);
+            auto *ptr=(double*)&DIRECT_MULTIDIM_ELEM(V,n);
             *ptr=0;
             *(ptr+1)=0;
+        }
+    }
+    else if (FilterShape==WEDGE_RC)
+    {
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
+        DIRECT_MULTIDIM_ELEM(V,n)*=DIRECT_MULTIDIM_ELEM(maskFourier,n);
+
+        w.resizeNoCopy(3);
+        for (size_t k=0; k<ZSIZE(V); k++)
+        {
+            FFT_IDX2DIGFREQ(k,ZSIZE(v),ZZ(w));
+            for (size_t i=0; i<YSIZE(V); i++)
+            {
+                FFT_IDX2DIGFREQ(i,YSIZE(v),YY(w));
+                for (size_t j=0; j<XSIZE(V); j++)
+                {
+                    FFT_IDX2DIGFREQ(j,XSIZE(v),XX(w));
+                    DIRECT_A3D_ELEM(V,k,i,j)*=maskValue(w);
+                }
+            }
         }
     }
     else
@@ -797,7 +878,10 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	MultidimArray<int> &mMask=mask();
 	mMask.setXmippOrigin();
 	img.setXmippOrigin();
-	double sum=0, sum2=0, N=0, R2max=(XSIZE(img)/2)*(XSIZE(img)/2);
+	double sum=0;
+    double sum2=0;
+    double N=0;
+    auto R2max=(double)((XSIZE(img)/2)*(XSIZE(img)/2));
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mMask)
 	{
 		A3D_ELEM(mMask,k,i,j)=1-A3D_ELEM(mMask,k,i,j);
@@ -825,7 +909,8 @@ void SoftNegativeFilter::apply(MultidimArray<double> &img)
 	if (avg<0)
 		threshold+=avg;
 	// std::cout << "avg=" << avg << " sigma=" << stddev << " threshold=" << threshold << std::endl;
-	MultidimArray<double> softMask, imgThresholded;
+	MultidimArray<double> softMask;
+    MultidimArray<double> imgThresholded;
 	softMask.initZeros(mMask);
 	imgThresholded.initZeros(mMask);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mMask)

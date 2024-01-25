@@ -1,0 +1,17 @@
+#Protocols ussing the enviroment:
+#xmipp_deep_misalingment_detection
+
+name: xmipp_DLTK_v1.0
+channels:
+  - anaconda
+  - conda-forge
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.8
+  - tensorflow-gpu=2.7
+  - keras=2.7
+  - cudatoolkit=11.6
+  - pip
+  - pip:
+      - numpy==1.23

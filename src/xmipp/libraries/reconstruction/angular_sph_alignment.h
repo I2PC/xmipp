@@ -1,6 +1,7 @@
 /***************************************************************************
  *
- * Authors:    Carlos Oscar Sanchez Sorzano coss@cnb.csic.es
+ * Authors:    Carlos Oscar Sanchez Sorzano (coss@cnb.csic.es)
+ *             David Herreros Calero (dherreros@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -27,6 +28,7 @@
 #define _PROG_ANGULAR_SPH_ALIGNMENT
 
 #include "core/xmipp_metadata_program.h"
+#include "core/rerunable_program.h"
 #include "core/matrix1d.h"
 #include "core/xmipp_image.h"
 #include "data/fourier_filter.h"
@@ -37,15 +39,23 @@
 //@{
 
 /** Predict Continuous Parameters. */
-class ProgAngularSphAlignment: public XmippMetadataProgram
+class ProgAngularSphAlignment: public XmippMetadataProgram, public Rerunable
 {
 public:
     /** Filename of the reference volume */
     FileName fnVolR;
+    /** Filename of the reference volume mask */
+    FileName fnMaskR;
     /// Output directory
     FileName fnOutDir;
-    /** Degree of Zernike polynomials and spherical harmonics */
-    int depth;
+    /** Degrees of Zernike polynomials and spherical harmonics */
+    int L1;
+    int L2;
+    /** Zernike and SPH coefficients vectors */
+    Matrix1D<int> vL1;
+    Matrix1D<int>vN;
+    Matrix1D<int> vL2;
+    Matrix1D<int> vM;
     /** Maximum shift allowed */
     double maxShift;
     /** Maximum angular change allowed */
@@ -60,6 +70,10 @@ public:
     bool optimizeAlignment;
     //Optimize deformation
     bool optimizeDeformation;
+    //Optimize defocus
+    bool optimizeDefocus;
+    // Ignore CTF
+    bool ignoreCTF;
     //Radius optimization
     bool optimizeRadius;
     // Phase Flipped
@@ -75,38 +89,57 @@ public:
 public:
     /** Resume computations */
     bool resume;
-    // 2D mask in real space
+    // 2D and 3D masks in real space
     MultidimArray<int> mask2D;
-    // Inverse of the sum of Mask2D
-//    double iMask2Dsum;
+    MultidimArray<int> V_mask;
     // Volume size
     size_t Xdim;
-    // Input image
-	Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
+    // Input images
+	Image<double> V;
+    Image<double> Vdeformed;
+    Image<double> I;
+    Image<double> Ip;
+    Image<double> Ifiltered;
+    Image<double> Ifilteredp;
 	// Theoretical projection
-	Projection P;
+	Image<double> P;
 	// Filter
     FourierFilter filter;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
-    double old_rot, old_tilt, old_psi;
+    double old_rot;
+    double old_tilt;
+    double old_psi;
     // Original shift
-	double old_shiftX, old_shiftY;
+	double old_shiftX;
+    double old_shiftY;
 	// Original flip
 	bool old_flip;
-//	// CTF
-//	CTFDescription ctf;
-	// CTF image
-//	MultidimArray<double> *ctfImage;
-	// Degree of the spherical harmonic
-	int prevL, L;
-	// Vector position
-	int pos;
+    // CTF Check
+    bool hasCTF;
+    // Original defocus
+	double old_defocusU;
+    double old_defocusV;
+    double old_defocusAngle;
+    // Current defoci
+	double currentDefocusU;
+    double currentDefocusV;
+    double currentAngle;
+	// CTF
+	CTFDescription ctf;
+    // CTF filter
+    FourierFilter FilterCTF;
+	// Vector Size
+	int vecSize;
 	// Vector containing the degree of the spherical harmonics
 	Matrix1D<double> clnm;
+    //Copy of Optimizer steps
+    Matrix1D<double> steps_cp;
 	//Total Deformation, sumV, sumVd
-	double totalDeformation, sumV, sumVd;
+	double totalDeformation;
+    double sumV;
+    double sumVd;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
@@ -132,41 +165,59 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    virtual void createWorkFiles();
-
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
-    ///Compute the number of spherical harmonics in l=0,1,...,depth
-    void Numsph(Matrix1D<int> &sphD);
+    /// Length of coefficients vector
+    void numCoefficients(int l1, int l2, int &nc) const;
 
-    // Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    void minimizepos(Matrix1D<double> &vectpos);
+    /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
+    void minimizepos(int l2, Matrix1D<double> &steps) const;
 
-    /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
-    void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
+    /// Zernike and SPH coefficients allocation
+    void fillVectorTerms(int l1, int l2);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def);
+    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
+                   double rot, double tilt, double psi);
+
+    void applyCTFImage(double const &deltaDefocusU, double const &deltaDefocusV, 
+					   double const &deltaDefocusAngle);
+
+    void updateCTFImage(double defocusU, double defocusV, double angle);
 
     double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-    		                Matrix2D<double> &A);
+    		                double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle);
 
-    //AJ new
     /** Write the final parameters. */
     virtual void finishProcessing();
 
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
-    //END AJ
 
+  protected:
+    virtual void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
+
+  private:
+    using Rerunable::createWorkFiles;
+
+    std::vector<MDLabel> getLabelsForEmpty() override {
+      return std::vector<MDLabel>{MDL_IMAGE,
+                                  MDL_ENABLED,
+                                  MDL_ANGLE_ROT,
+                                  MDL_ANGLE_TILT,
+                                  MDL_ANGLE_PSI,
+                                  MDL_SHIFT_X,
+                                  MDL_SHIFT_Y,
+                                  MDL_FLIP,
+                                  MDL_SPH_DEFORMATION,
+                                  MDL_SPH_COEFFICIENTS,
+                                  MDL_COST};
+    }
 };
 //@}
 #endif

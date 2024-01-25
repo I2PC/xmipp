@@ -25,6 +25,7 @@
 
 #include "image_eliminate_empty_particles.h"
 #include "classify_extract_features.h"
+#include "core/metadata_vec.h"
 #include <data/filters.h>
 #include <fstream>
 
@@ -71,13 +72,13 @@ void ProgEliminateEmptyParticles::defineParams()
 
 void ProgEliminateEmptyParticles::run()
 {
-    MetaData SF;
+    MetaDataVec SF;
     SF.read(fnIn);
     FileName fnImg;
     Image<double> I;
     CorrelationAux aux;
-    MDRow row;
-    MetaData MDclass, MDclassEl, MDclassT, MDclassElT;
+    MDRowVec row;
+    MetaDataVec MDclass, MDclassEl, MDclassT, MDclassElT;
     ProgExtractFeatures ef;
     int countItems = 0;
     std::vector<double> fv;
@@ -93,10 +94,10 @@ void ProgEliminateEmptyParticles::run()
     std::ifstream ifile2(fnElim.c_str());
     if (ifile2) MDclassEl.read(fnElim);
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         countItems++;
-    	SF.getValue(MDL_IMAGE, fnImg, __iter.objId);
+    	SF.getValue(MDL_IMAGE, fnImg, objId);
     	SF.getRow(row, countItems);
 
     	I.read(fnImg);

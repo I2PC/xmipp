@@ -27,11 +27,15 @@
 #define LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 
 #include <typeinfo>
+
+#include "data/fftwT.h"
 #include "ashift_corr_estimator.h"
 #include "data/cpu.h"
-#include "fftwT.h"
 #include "single_extrema_finder.h"
 
+/**@defgroup ShiftCorrEstimator Shift Correlation Estimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -47,7 +51,7 @@ public:
 
     void release() override;
 
-    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettings<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT,
             bool allowDataOverwrite) override;
 
@@ -62,7 +66,7 @@ public:
         std::complex<T> *othersF,
         T *othersS,
         std::complex<T> *ref,
-        const FFTSettingsNew<T> &settings,
+        const FFTSettings<T> &settings,
         void *plan,
         size_t maxShift);
 
@@ -117,5 +121,5 @@ private:
 };
 
 }  /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_ */

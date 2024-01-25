@@ -33,8 +33,10 @@
 
 
 typedef enum { RESIZE_NONE, RESIZE_FACTOR, RESIZE_FOURIER, RESIZE_PYRAMID_EXPAND, RESIZE_PYRAMID_REDUCE } ScaleType;
-#define INTERP_FOURIER -1
-
+constexpr signed int INTERP_FOURIER = -1;
+/**@defgroup ProgImageResize Image Resize class
+   @ingroup DataLibrary */
+//@{
 class ProgImageResize: public XmippMetadataProgram
 {
 public:
@@ -45,11 +47,16 @@ public:
 protected:
     ScaleType scale_type;
 
-    int             splineDegree, dim, pyramid_level, fourier_threads;
-    bool            isVol, temporaryOutput;
+    int             splineDegree;
+    int             dim;
+    int             pyramid_level;
+    int             fourier_threads;
+    bool            isVol;
+    bool            temporaryOutput;
     //Matrix2D<double> R, T, S, A, B;
     Matrix1D<double>   resizeFactor;
-    ImageGeneric img, imgOut;
+    ImageGeneric img;
+    ImageGeneric imgOut;
 
     void defineParams();
     void readParams();
@@ -58,4 +65,5 @@ protected:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
 };
+//@}
 #endif //IMAGE_RESIZE_H

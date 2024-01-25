@@ -76,7 +76,7 @@ void ProgOddEven::fromimageToMd(FileName fnImg, MetaData &movienew, size_t &Xdim
 void ProgOddEven::run()
 {
 	std::cout << "Starting..." << std::endl;
-	size_t Xdim, Ydim;
+	size_t Xdim = 0, Ydim = 0;
 	if ((splitType != "frames") and (splitType != "images"))
 	{
 		std::cout << "ERROR: Please specify the type of splitting in frames or images" << std::endl;
@@ -85,7 +85,7 @@ void ProgOddEven::run()
 		exit(0);
 	}
 
-	MetaData movie, movienew;
+	MetaDataVec movie, movienew;
 
 	if (splitType == "frames")
 	{
@@ -95,7 +95,7 @@ void ProgOddEven::run()
 		}
 		else
 		{
-        		fromimageToMd(fnImg, movienew, Xdim, Ydim);
+        	fromimageToMd(fnImg, movienew, Xdim, Ydim);
 		}
 	}
 
@@ -105,10 +105,10 @@ void ProgOddEven::run()
 	}
 
 	long  n = 1;
-	MetaData movieOdd, movieEven;
+	MetaDataVec movieOdd, movieEven;
 
 	FileName fnFrame;
-	size_t objId, objId_odd, objId_even;
+	size_t objId_odd, objId_even;
 	Image<double> frame, imgOdd, imgEven;
 
 	MultidimArray<double> &ptrEven = imgEven();
@@ -118,14 +118,12 @@ void ProgOddEven::run()
 	ptrEven.initZeros(Ydim, Xdim);
 	ptrOdd.initZeros(Ydim, Xdim);
 
-	FOR_ALL_OBJECTS_IN_METADATA(movienew)
+	for (size_t objId : movienew.ids())
 	{
-		objId = __iter.objId;
 		movienew.getValue(MDL_IMAGE, fnFrame, objId);
 		if (sumFrames)
 		{
 			frame.read(fnFrame);
-
 		}
 
 		if (objId%2 == 0)

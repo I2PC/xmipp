@@ -45,6 +45,8 @@ public:
     Image<double> V2;
     Image<double> Vaux;
     const MultidimArray<int> *mask_ptr;
+
+    bool wrap;
 };
 
 // Global parameters needed by fitness ------------------------------------
@@ -53,7 +55,8 @@ static AlignParams params; // create one version for each cpp file
 // Apply transformation ---------------------------------------------------
 void applyTransformation(const MultidimArray<double> &V2,
                          MultidimArray<double> &Vaux,
-                         double *p)
+                         double *p,
+						 bool wrap)
 {
     Matrix1D<double> r(3);
     Matrix2D<double> A, Aaux;
@@ -74,7 +77,7 @@ void applyTransformation(const MultidimArray<double> &V2,
     scale3DMatrix(vectorR3(scale, scale, scale),Aaux);
     A = A * Aaux;
 
-    applyGeometry(LINEAR, Vaux, V2, A, IS_NOT_INV, WRAP);
+    applyGeometry(xmipp_transformation::LINEAR, Vaux, V2, A, xmipp_transformation::IS_NOT_INV, wrap);
     if (greyScale!=1 || greyShift!=0)
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vaux)
         DIRECT_MULTIDIM_ELEM(Vaux,n)=DIRECT_MULTIDIM_ELEM(Vaux,n)*greyScale+greyShift;
@@ -84,16 +87,16 @@ void applyTransformation(const MultidimArray<double> &V2,
 // Fitness between two volumes --------------------------------------------
 double fitness(double *p)
 {
-    applyTransformation(params.V2(),params.Vaux(),p);
+    applyTransformation(params.V2(),params.Vaux(),p, params.wrap);
 
     // Correlate
     double fit=0.;
     switch (params.alignment_method)
     {
-    case (COVARIANCE):
+    case COVARIANCE:
                     fit = -correlationIndex(params.V1(), params.Vaux(), params.mask_ptr);
         break;
-    case (LEAST_SQUARES):
+    case LEAST_SQUARES:
                     fit = rms(params.V1(), params.Vaux(), params.mask_ptr);
         break;
     }
@@ -123,7 +126,7 @@ public:
     bool     apply;
     FileName fnOut, fnGeo, fnGray, fnStore;
     bool     mask_enabled;
-    bool     usePowell, onlyShift, useFRM, copyGeo, copyGray, store;
+    bool     usePowell, onlyShift, useFRM, copyGeo, copyGray, store, wrap;
     double   maxFreq;
     int      maxShift;
     bool     dontScale;
@@ -161,8 +164,9 @@ public:
         addParamsLine("  [--copyGeo <file=\"\">] : copy transformation matrix in a txt file. ('A' matrix elements)");
         addParamsLine("  [--copyGray <file=\"\">] : copy gray scale and shift txt file.)");
         addParamsLine("  [--store <file=\"\">] : copy angles and shifts to a txt file.");
+        addParamsLine("  [--dontWrap] : Do not wrap input2 when aligning to input1");
         addParamsLine(" == Mask Options == ");
-        mask.defineParams(this,INT_MASK,NULL,NULL,true);
+        mask.defineParams(this,INT_MASK,nullptr,nullptr,true);
         addExampleLine("Typically you first look for a rough approximation of the alignment using exhaustive search. For instance, for a global rotational alignment use",false);
         addExampleLine("xmipp_volume_align --i1 volume1.vol --i2 volume2.vol --rot 0 360 15 --tilt 0 180 15 --psi 0 360 15");
         addExampleLine("Then, assume the best alignment is obtained for rot=45, tilt=60, psi=90",false);
@@ -227,6 +231,7 @@ public:
         	ending_tilt=getIntParam("--frm",3);
         }
         onlyShift = checkParam("--onlyShift");
+        wrap = !checkParam("--dontWrap");
 
         if (step_rot   == 0)
             step_rot = 1;
@@ -281,6 +286,7 @@ public:
         params.V1().setXmippOrigin();
         params.V2.read(fn2);
         params.V2().setXmippOrigin();
+        params.wrap = wrap;
 
         // Initialize best_fit
         double best_fit = 1e38;
@@ -294,7 +300,7 @@ public:
             params.mask_ptr = &(mask.get_binary_mask());
         }
         else
-            params.mask_ptr = NULL;
+            params.mask_ptr = nullptr;
 
         // Exhaustive search
         if (!usePowell && !useFRM)
@@ -395,7 +401,7 @@ public:
             x(7)=y0;
             x(8)=x0;
 
-            powellOptimizer(x,1,9,&wrapperFitness,NULL,0.01,fitness,iter,steps,true);
+            powellOptimizer(x,1,9,&wrapperFitness,nullptr,0.01,fitness,iter,steps,true);
             best_align=x;
             best_fit=fitness;
             first=false;
@@ -501,7 +507,7 @@ public:
         }
         if (apply)
         {
-            applyTransformation(params.V2(),params.Vaux(),MATRIX1D_ARRAY(best_align));
+            applyTransformation(params.V2(),params.Vaux(),MATRIX1D_ARRAY(best_align), wrap);
             params.V2()=params.Vaux();
             params.V2.write(fnOut);
         }

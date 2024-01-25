@@ -41,13 +41,15 @@ public:
 
     void run_transformation() {
         GeoTransformerTest< T > gt;
-        gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
+        gpu.set();
+        gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN, gpu );
         gt.applyBSplineTransform( 3, out, in, { coeffsX, coeffsY }, imageIdx, outside );
     }
 
     void compute_reference_result() {
         GeoTransformerTest< T > gt;
-        gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
+        gpu.set();
+        gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN, gpu );
         gt.applyBSplineTransformRef( 3, out_ref, in, { coeffsX, coeffsY }, imageIdx, outside );
     }
 
@@ -94,6 +96,7 @@ public:
     MultidimArray< T > out_ref;
 
     std::mt19937 gen;
+    GPU gpu;
 };
 
 TYPED_TEST_SUITE_P(GeoTransformerApplyBSplineTransformTest);

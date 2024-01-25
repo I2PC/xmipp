@@ -147,21 +147,21 @@ public:
 
             if (checkParam("--ctfparam"))
             {
-              MetaData ctfparam(getParam("--ctfparam"));
-              MDRow ctfRow;
-              ctfparam.getRow(ctfRow, ctfparam.firstObject());
+              MetaDataVec ctfparam(getParam("--ctfparam"));
+              MDRowVec ctfRow;
+              ctfparam.getRow(ctfRow, ctfparam.firstRowId());
               m.set_ctfparams(ctfRow);
             }
-            m.produce_all_images(0, -1, fn_out, fn_orig, 0.,0.,0., rmStack, fillBorders, extractNoise, Nnoise);
+            m.produce_all_images(0, -1, fn_out, fn_orig, 0., rmStack, fillBorders, extractNoise, Nnoise);
             if (extractNoise)
             {
-            	MDRow row=firstRow(fn_pos);
+            	MDRowVec row=firstRow(fn_pos);
             	size_t micId=0;
             	if (row.containsLabel(MDL_MICROGRAPH_ID))
             		row.getValue(MDL_MICROGRAPH_ID,micId);
 
             	// Rewrite the input posfile with the true noise coordinates
-            	MetaData MD;
+            	MetaDataVec MD;
             	for (size_t i=0; i<m.coords.size(); i++)
                 {
             		size_t id=MD.addObject();
@@ -174,11 +174,11 @@ public:
         }
         else
         {
-            MetaData auxMd;
+            MetaDataVec auxMd;
             // Read angles
             double alpha_u, alpha_t, tilt_angle;
             auxMd.read(fn_angles);
-            size_t objId = auxMd.firstObject();
+            size_t objId = auxMd.firstRowId();
             auxMd.getValue(MDL_ANGLE_Y, alpha_u, objId);
             auxMd.getValue(MDL_ANGLE_Y2, alpha_t, objId);
             auxMd.getValue(MDL_ANGLE_TILT, tilt_angle, objId);
@@ -191,7 +191,7 @@ public:
             m.add_label("");
             m.set_transmitance_flag(compute_transmitance);
             m.set_inverse_flag(compute_inverse);
-            m.produce_all_images(0, -1, fn_out, "", alpha_u,0.,0.,rmStack);
+            m.produce_all_images(0, -1, fn_out, "", alpha_u, rmStack);
             m.close_micrograph();
 
             // Generate the images for the tilted image
@@ -202,7 +202,7 @@ public:
             mt.add_label("");
             mt.set_transmitance_flag(compute_transmitance);
             mt.set_inverse_flag(compute_inverse);
-            mt.produce_all_images(0, -1, fn_out_tilted, "", 0., tilt_angle, alpha_t, rmStack);
+            mt.produce_all_images(0, -1, fn_out_tilted, "", 0., rmStack);
             mt.close_micrograph();
         }
     }

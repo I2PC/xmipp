@@ -46,17 +46,24 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
 
 
+/**
+ * Constructs a SOM from other SOM
+ * Parameter: other  other SOM
+ */
+ ClassificationMap::ClassificationMap(const ClassificationMap &other): CodeBook() {
+    *this = other;
+ }
 
 
 /**
@@ -75,12 +82,12 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -107,12 +114,12 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -348,6 +355,19 @@ SomPos ClassificationMap::applyPos(const SomIn& _in)
 }
 #endif
 
+
+/**
+    * Operator "="
+    * Parameter: op1 ClassificationMap
+*/
+ClassificationMap& ClassificationMap:: operator= (const ClassificationMap &op1)
+{
+    std::stringstream _str;
+    op1.printSelf(_str);
+    readSelf(_str);
+    return *this;
+}
+
 /**
  * Standard output for a SOM
  * Parameter: _os The output stream
@@ -359,7 +379,6 @@ void ClassificationMap::printSelf(std::ostream& _os) const
     writeItems(_os);
 }
 
-
 /**
  * Standard input for a SOM
  * Parameter: _is The input stream
@@ -368,19 +387,20 @@ void ClassificationMap::readSelf(std::istream& _is)
 {
     clear();
     int dim;
-    std::string layout, str;
+    std::string layout;
+    std::string str;
     _is >> dim;
     _is >> layout;
     toLower(layout);
 
     if (layout == "hexa")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
@@ -435,12 +455,12 @@ void ClassificationMap::loadObject(std::istream& _is)
     _is >> layout;
     if (layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
@@ -625,7 +645,8 @@ double RECTLayout::numNeig(const FuzzyMap* _som, const SomPos& _center) const
 
 double HEXALayout::dist(const SomPos& _center, const SomPos& _v) const
 {
-    double ret, diff;
+    double ret;
+    double diff;
     diff = _center.first - _v.first;
 
     if (((_center.second - _v.second) % 2) != 0)
@@ -643,7 +664,7 @@ double HEXALayout::dist(const SomPos& _center, const SomPos& _v) const
     diff = _center.second - _v.second;
     ret += 0.75 * diff * diff;
     ret = (double) sqrt(ret);
-    return(ret);
+    return ret;
 }
 
 
@@ -768,12 +789,12 @@ FuzzyMap::FuzzyMap(const std::string& _layout,  unsigned _width,
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -799,12 +820,12 @@ FuzzyMap::FuzzyMap(const std::string& _layout,  unsigned _width,
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -824,6 +845,9 @@ FuzzyMap::FuzzyMap(std::istream& _is, const unsigned _size, bool _cv) : FuzzyCod
         loadObject(_is);
 }
 
+FuzzyMap:: FuzzyMap(const FuzzyMap& other): FuzzyCodeBook(false){
+    *this=other;
+}
 
 /**
  * This method throws an exception if called. There is no sense in adding
@@ -1059,6 +1083,18 @@ SomPos FuzzyMap::applyPos(const unsigned& _in)
 
 
 /**
+ * Operator "="
+ * Parameter: op1 FuzzyMap
+*/
+FuzzyMap& FuzzyMap::operator= (const FuzzyMap &op1)
+{
+    std::stringstream _str;
+    op1.printSelf(_str);
+    readSelf(_str);
+    return *this;
+}
+
+/**
  * Standard output for a Fuzzy SOM
  * Parameter: _os The output stream
  */
@@ -1078,17 +1114,18 @@ void FuzzyMap::readSelf(std::istream& _is, const unsigned _size)
 {
     clear();
     int dim;
-    std::string layout, str;
+    std::string layout;
+    std::string str;
     _is >> dim;
     _is >> layout;
     if (layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
@@ -1131,12 +1168,12 @@ void FuzzyMap::loadObject(std::istream& _is)
     _is >> layout;
     if (layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;

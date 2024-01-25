@@ -167,7 +167,7 @@ public:
         {
             Phantom P;
             P.read(fn_in, false); // Read phantom without applying scale
-            P.selfApplyGeometry(A3D, IS_NOT_INV);
+            P.selfApplyGeometry(A3D, xmipp_transformation::IS_NOT_INV);
             P.write(fn_out);
         }
     }

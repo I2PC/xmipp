@@ -4,6 +4,8 @@
 #include <core/geometry.h>
 #include <iostream>
 #include <gtest/gtest.h>
+#include <core/xmipp_filename.h>
+
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class EulerTest : public ::testing::Test
 {

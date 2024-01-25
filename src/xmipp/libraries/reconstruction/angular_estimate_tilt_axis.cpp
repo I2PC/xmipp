@@ -52,13 +52,14 @@ void ProgAngularEstimateTiltAxis::readParams()
 // Main program  ===============================================================
 void ProgAngularEstimateTiltAxis::run()
 {
-	MetaData mdU, mdT;
+	MetaDataVec mdU, mdT;
 	mdU.read(fnUntilted);
 	mdT.read(fnTilted);
 	TiltPairAligner aligner;
-	MetaData mdOut;
+	MetaDataVec mdOut;
 	size_t id;
 	double alphaU, alphaT, gamma;
+
 	if (mdU.size()==0)
 	{
 		id=mdOut.addObject();
@@ -68,17 +69,20 @@ void ProgAngularEstimateTiltAxis::run()
 		mdOut.write(fnOut);
 		return;
 	}
-	FOR_ALL_OBJECTS_IN_METADATA2(mdU,mdT)
+
+	auto idItU = mdU.ids().begin();
+	auto idItT = mdT.ids().begin();
+	const auto totalSize = mdU.ids().end();
+	for (; idItU != totalSize; ++idItU, ++idItT)
 	{
 		int xu, yu, xt, yt;
-		mdU.getValue(MDL_XCOOR,xu,__iter.objId);
-		mdU.getValue(MDL_YCOOR,yu,__iter.objId);
-		mdT.getValue(MDL_XCOOR,xt,__iter2.objId);
-		mdT.getValue(MDL_YCOOR,yt,__iter2.objId);
+		mdU.getValue(MDL_XCOOR,xu,*idItU);
+		mdU.getValue(MDL_YCOOR,yu,*idItU);
+		mdT.getValue(MDL_XCOOR,xt,*idItT);
+		mdT.getValue(MDL_YCOOR,yt,*idItT);
 
         aligner.addCoordinatePair(xu,yu,xt,yt);
 	}
-
 	aligner.calculatePassingMatrix();
 	aligner.computeGamma();
 
@@ -88,13 +92,11 @@ void ProgAngularEstimateTiltAxis::run()
 	if (fnOut.exists())
 		mdOut.read(fnOut);
 
-	id=mdOut.addObject();
-	mdOut.setValue(MDL_ANGLE_Y,alphaU,id);
-	mdOut.setValue(MDL_ANGLE_Y2,alphaT,id);
-	mdOut.setValue(MDL_ANGLE_TILT,gamma,id);
-//
-//	mdU.getValue(MDL_IMAGE, imname,id);
-//	mdOut.setValue(MDL_IMAGE, imname,id);
+	MDRowVec row;
+	row.setValue(MDL_ANGLE_Y, alphaU);
+	row.setValue(MDL_ANGLE_Y2, alphaT);
+	row.setValue(MDL_ANGLE_TILT, gamma);
+	mdOut.addRow(row);
 
 	mdOut.write(fnOut);
 

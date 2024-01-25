@@ -30,6 +30,9 @@
 #include "data/cpu.h"
 #include "data/polar.h"
 
+/**@defgroup PolarRotationEstimator Polar Rotation Estimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -86,5 +89,5 @@ private:
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_POLAR_ROTATION_ESTIMATOR_H_ */

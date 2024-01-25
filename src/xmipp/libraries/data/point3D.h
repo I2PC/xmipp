@@ -29,7 +29,9 @@
 #include "point.h"
 #include "cuda_compatibility.h"
 #include <initializer_list>
-
+/**@defgroup Point3D Point3D
+   @ingroup DataLibrary */
+//@{
 /** Class represents a point in 3D */
 template <typename T>
 class Point3D: Point {
@@ -63,5 +65,5 @@ public:
         return lhs /= rhs;
     }
 };
-
+//@}
 #endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */

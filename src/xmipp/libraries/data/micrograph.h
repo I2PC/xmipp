@@ -35,7 +35,7 @@
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_fftw.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_error.h>
 
 /* ************************************************************************* */
@@ -70,10 +70,6 @@ struct Particle_coords
     double scoreGini;
 };
 
-struct Point
-{
-    double x,y;
-};
 
 /** Micrography class.
     This class manages a large micrograph on disk. The image is not loaded
@@ -82,18 +78,22 @@ struct Point
 class Micrograph
 {
 public:
+    struct Point
+    {
+        double x;
+        double y;
+    };
+private:
     /* This image will contain a single particle from the micrograph,
        this is done to avoid asking/freeing memory all time. */
     Image<double>            single_particle;
-    std::vector<Particle_coords> coords;
+    
     FileName                 fn_coords;
     FileName                 fn_micrograph;
-    MDRow                    ctfRow; //MetaData row with CTF params
+    MDRowVec                 ctfRow; //MetaData row with CTF params
     FileName                 fn_inf;
     int                      X_window_size;
     int                      Y_window_size;
-    size_t                   Xdim,Ydim,Zdim,Ndim;
-    Point				     point1, point2;
     int                      datatype;
     int                      swapbyte;
     int                      __offset;
@@ -101,20 +101,21 @@ public:
     bool                     compute_inverse;
     int                      fh_micrograph;
     std::vector<std::string> labels;
-    double                   stdevFilter;
+    double                   stdevFilter = -1;
+    Image<unsigned char>       IUChar = {};
+    Image<short int>           IShort = {};
+    Image<unsigned short int>  IUShort = {};
+    Image<int>                 IInt = {};
+    Image<unsigned int>        IUInt = {};
+    Image<float>               IFloat = {};
 public:
-    Image<char>                * auxI;
-    Image<unsigned char>       * IUChar;
-    Image<short int>           * IShort;
-    Image<unsigned short int>  * IUShort;
-    Image<int>                 * IInt;
-    Image<unsigned int>        * IUInt;
-    Image<float>               * IFloat;
-    /** Constructor */
-    Micrograph();
-
-    /** Destructor */
-    ~Micrograph();
+    size_t                   Xdim;
+    size_t                   Ydim;
+    size_t                   Zdim;
+    size_t                   Ndim;
+    Point                    point1;
+    Point                    point2;
+    std::vector<Particle_coords> coords;
 
     /** Clear */
     void clear();
@@ -138,7 +139,7 @@ public:
     /** Get micrograph filename. */
     const FileName& micrograph_name()
     {
-        return(fn_micrograph);
+        return fn_micrograph;
     }
 
     /** Set micrograph filename. */
@@ -148,9 +149,11 @@ public:
     }
 
     /** Set the CTF parameters */
-    void set_ctfparams(const MDRow &ctf)
+    // TODO: when needed, change this function to take MDRow&
+    void set_ctfparams(const MDRowVec &ctf)
     {
         ctfRow = ctf;
+        ctfRow.detach();
     }
 
     /** Return the row with CTF params. */
@@ -345,78 +348,6 @@ public:
                 double scaleX = 1, double scaleY = 1, bool only_check = false,
 				bool fillBorders = false);
 
-    /** Access to array of 8 bits. */
-    unsigned char * arrayUChar() const
-    {
-        return (*IUChar)().data;
-    }
-
-    /** Another function for access to array of 8 bits.*/
-    //This is never used consider delete
-    void get_arrayUChar(unsigned char ** _m8) __attribute__ ((deprecated))
-    {
-        *_m8 = (*IUChar)().data;
-    }
-
-    /** Access to array of 16 bits. */
-    short int * arrayShort() const
-    {
-        return (*IShort)().data;
-    }
-
-    /** Another function for access to array of 16 bits.*/
-    void get_arrayShort(short int ** _m16) __attribute__ ((deprecated))
-    {
-        *_m16 = (*IShort)().data;
-    }
-
-    /** Access to unsigned array of 16 bits. */
-    unsigned short int * arrayUShort() const
-    {
-        return (*IUShort)().data;
-    }
-
-    /** Another function for access to unsigned array of 16 bits.*/
-    void get_arrayUShort(unsigned short int ** _um16) __attribute__ ((deprecated))
-    {
-        *_um16 = (*IUShort)().data;
-    }
-    /** Access to array of 32 bits int. */
-    int * arrayInt() const
-    {
-        return (*IInt)().data;
-    }
-
-    /** Another function for access to array of 32 bits int.*/
-    void get_arrayInt(int ** _m32) __attribute__ ((deprecated))
-    {
-        *_m32 = (*IInt)().data;
-    }
-
-    /** Access to unsigned array of 32 bits unsig int. */
-    unsigned int * arrayUInt() const
-    {
-        return (*IUInt)().data;
-    }
-
-    /** Another function for access to unsigned array of 32 bits unsigned int.*/
-    void get_arrayUInt(unsigned int ** _um32) __attribute__ ((deprecated))
-    {
-        *_um32 = (*IUInt)().data;
-    }
-
-    /** Access to array of 32 bits. */
-    float * arrayFloat() const
-    {
-        return (*IFloat)().data;
-    }
-
-    /** Another function for access to array of 32 bits.*/
-    void get_arrayfloat(float ** _mf32) __attribute__ ((deprecated))
-    {
-        *_mf32 = (*IFloat)().data;
-    }
-
     /** Pixel access for reading.
         These coordinates follow the physical Xmipp convention
         {../../../Extra_Docs/Conventions.html} for coordinates */
@@ -427,27 +358,27 @@ public:
             return 0;
         if (datatype == DT_UChar || datatype == DT_UHalfByte)
         {
-            return IMGPIXEL(*IUChar,y,x);
+            return IMGPIXEL(IUChar,y,x);
         }
         else if (datatype == DT_UShort)
         {
-            return IMGPIXEL(*IUShort,y,x);
+            return IMGPIXEL(IUShort,y,x);
         }
         else if (datatype == DT_Short)
         {
-            return IMGPIXEL(*IShort,y,x);
+            return IMGPIXEL(IShort,y,x);
         }
         else if (datatype == DT_UInt)
         {
-            return IMGPIXEL(*IUInt,y,x);
+            return IMGPIXEL(IUInt,y,x);
         }
         else if (datatype == DT_Int)
         {
-            return IMGPIXEL(*IInt,y,x);
+            return IMGPIXEL(IInt,y,x);
         }
         else if (datatype == DT_Float)
         {
-            return IMGPIXEL(*IFloat,y,x);
+            return IMGPIXEL(IFloat,y,x);
         }
         else
             REPORT_ERROR(ERR_TYPE_INCORRECT, "Micrograph::(): unknown datatype");
@@ -458,27 +389,27 @@ public:
     {
         if (datatype == DT_UChar || datatype == DT_UHalfByte)
         {
-            return (*IUChar)().computeDoubleMinMax(Dmin,Dmax);
+            return IUChar().computeDoubleMinMax(Dmin,Dmax);
         }
         else if (datatype == DT_UShort)
         {
-            return (*IUShort)().computeDoubleMinMax(Dmin,Dmax);
+            return IUShort().computeDoubleMinMax(Dmin,Dmax);
         }
         else if (datatype == DT_Short)
         {
-            return (*IShort)().computeDoubleMinMax(Dmin,Dmax);
+            return IShort().computeDoubleMinMax(Dmin,Dmax);
         }
         else if (datatype == DT_UInt)
         {
-            return (*IUInt)().computeDoubleMinMax(Dmin,Dmax);
+            return IUInt().computeDoubleMinMax(Dmin,Dmax);
         }
         else if (datatype == DT_Int)
         {
-            return (*IInt)().computeDoubleMinMax(Dmin,Dmax);
+            return IInt().computeDoubleMinMax(Dmin,Dmax);
         }
         else if (datatype == DT_Float)
         {
-            return (*IFloat)().computeDoubleMinMax(Dmin,Dmax);
+            return IFloat().computeDoubleMinMax(Dmin,Dmax);
         }
 
         else
@@ -492,27 +423,27 @@ public:
     {
         if (datatype == DT_UChar || datatype == DT_UHalfByte)
         {
-            IMGPIXEL(*IUChar,y,x) = (unsigned char) new_val;
+            IMGPIXEL(IUChar,y,x) = (unsigned char) new_val;
         }
         else if (datatype == DT_UShort)
         {
-            IMGPIXEL(*IUShort,y,x) = (unsigned short) new_val;
+            IMGPIXEL(IUShort,y,x) = (unsigned short) new_val;
         }
         else if (datatype == DT_Short)
         {
-            IMGPIXEL(*IShort,y,x) = (short) new_val;
+            IMGPIXEL(IShort,y,x) = (short) new_val;
         }
         else if (datatype == DT_UInt)
         {
-            IMGPIXEL(*IUInt,y,x) = (unsigned int) new_val;
+            IMGPIXEL(IUInt,y,x) = (unsigned int) new_val;
         }
         else if (datatype == DT_Int)
         {
-            IMGPIXEL(*IInt,y,x) = (int) new_val;
+            IMGPIXEL(IInt,y,x) = (int) new_val;
         }
         else if (datatype == DT_Float)
         {
-            IMGPIXEL(*IFloat,y,x) = (float) new_val;
+            IMGPIXEL(IFloat,y,x) = (float) new_val;
         }
 
         else
@@ -527,7 +458,8 @@ public:
         If this angle is 0 no rotation is applied.*/
     void produce_all_images(int label, double minCost, const FileName &fn_root,
                             const FileName &fn_image = "", double ang = 0,
-                            double gamma = 0., double psi = 0., bool rmStack=false,
+                            //double gamma = 0., double psi = 0.,
+                             bool rmStack=false,
 							bool fillBorders=false,
 							bool extractNoise=false,
 							int Nnoise=-1);

@@ -26,6 +26,53 @@
 #ifndef CUDA_GPU_MUTLIDIM_ARRAY_CU
 #define CUDA_GPU_MUTLIDIM_ARRAY_CU
 
+template<typename T>
+__device__
+T interpolatedElementBSpline2D_Degree1(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* __restrict__ data)
+{
+    int m1 = x - static_cast<int>( ceil( x_shift ) );
+    int n1 = y - static_cast<int>( ceil( y_shift ) );
+    const T wx = static_cast<T>( ( x - m1 ) ) - x_shift;
+    const T wy = static_cast<T>( ( y - n1 ) ) - y_shift;
+    int n2 = n1 + 1;
+    int m2 = m1 + 1;
+
+    if ( m2 < 0 ) {
+        m2 = -m2-1;
+    } else if ( m2 >= xdim ) {
+        m2 = 2 * xdim - m2 - 1;
+    }
+
+    if ( m1 < 0 ) {
+        m1 = -m1-1;
+    } else if ( m1 >= xdim ) {
+        m1 = 2 * xdim - m1 - 1;
+    }
+
+    if ( n1 < 0 ) {
+        n1 = -n1-1;
+    } else if ( n1 >= ydim ) {
+        n1 = 2 * ydim - n1 - 1;
+    }
+
+    if ( n2 < 0 ) {
+        n2 = -n2-1;
+    } else if ( n2 >= ydim ) {
+        n2 = 2 * ydim - n2 - 1;
+    }
+
+    const T wx_1 = 1 - wx;
+    const T wy_1 = 1 - wy;
+    T aux2 = wy_1 * wx_1;
+    T tmp = aux2 * data[n1 * xdim + m1];
+    tmp += ( wy_1 - aux2 ) * data[n1 * xdim + m2];
+    aux2 = wy * wx_1;
+    tmp += aux2 * data[n2 * xdim + m1];
+    tmp += ( wy - aux2 ) * data[n2 * xdim + m2];
+
+    return tmp;
+}
+
 #define LOOKUP_TABLE_LEN 6
 
 template<typename T>

@@ -49,25 +49,26 @@ void CudaRotPolarEstimator<T>::init2D() {
 
     // all rings have the same number of samples, to make FT easier
     m_samples = std::max(1, 2 * (int)(M_PI * s.lastRing)); // keep this even
-    auto batchPolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
+    auto batchPolar = FFTSettings<T>(m_samples, 1, 1, // x, y, z
             s.otherDims.n() * s.getNoOfRings(), // each signal has N rings
             s.batch * s.getNoOfRings()); // so we have to multiply by that
     if (s.allowTuningOfNumberOfSamples) {
         // try to tune number of samples. We don't mind using more samples (higher precision)
         // if we can also do it faster!
-        auto proposal = CudaFFT<T>::findOptimal(*m_mainStream,
+        auto *proposal = CudaFFT<T>::findOptimal(*m_mainStream,
             // test small batch, as we want the results as soon as possible (should be around 1s)
             batchPolar.createSubset(std::min((size_t)1000, batchPolar.sDim().n())),
             0, false, 10, false, false);
-        if (proposal.has_value()) {
-            batchPolar = FFTSettingsNew<T>(proposal.value().sDim().x(), 1, 1, // x, y, z
+        if (nullptr != proposal) {
+            batchPolar = FFTSettings<T>(proposal->sDim().x(), 1, 1, // x, y, z
                         s.otherDims.n() * s.getNoOfRings(), // each signal has N rings
                         s.batch * s.getNoOfRings()); // so we have to multiply by that
             m_samples = batchPolar.sDim().x();
         }
+        delete proposal;
     }
 
-    auto singlePolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
+    auto singlePolar = FFTSettings<T>(m_samples, 1, 1, // x, y, z
             s.getNoOfRings(), // each signal has N rings
             s.getNoOfRings()); // process all at once
 
@@ -87,7 +88,7 @@ void CudaRotPolarEstimator<T>::init2D() {
     // FT plans
     m_singleToFD = CudaFFT<T>::createPlan(*m_mainStream, singlePolar);
     m_batchToFD = CudaFFT<T>::createPlan(*m_mainStream, batchPolar);
-    auto inversePolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
+    auto inversePolar = FFTSettings<T>(m_samples, 1, 1, // x, y, z
             s.batch, s.batch, // while computing correlation, we also sum the rings,
             false,false); // i.e. we end up with batch * samples elements
     m_batchToSD = CudaFFT<T>::createPlan(*m_mainStream, inversePolar);
@@ -376,11 +377,14 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
-    if ( ! GPU::isMemoryPinned(others)) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
-    }
-    if (s.allowDataOverwrite && ( ! m_mainStream->isGpuPointer(others))) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+    const auto isGpuPtr = m_mainStream->isGpuPointer(others);
+    if(!isGpuPtr) {
+        if ( ! GPU::isMemoryPinned(others)) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
+        }
+        if (s.allowDataOverwrite) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+        }
     }
 
     m_mainStream->set();

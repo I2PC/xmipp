@@ -69,9 +69,9 @@ void ProgClassifyFirstSplit3::defineParams()
 
 void ProgClassifyFirstSplit3::updateVolume(const std::vector<size_t> &objIds, const FileName &fnRoot, FourierProjector &projector)
 {
-	MetaData mdOut;
-	MDRow row;
+	MetaDataVec mdOut;
 	for(size_t i=0; i<objIds.size(); i++){
+        MDRowVec row;
 		md.getRow(row, objIds[i]);
 		mdOut.addRow(row);
 	}
@@ -100,7 +100,7 @@ void ProgClassifyFirstSplit3::calculateProjectedIms (size_t id, double &corrI_P1
 	//Project the first volume with the parameters in the randomly selected image
 	double rot, tilt, psi, x, y;
 	bool flip;
-	MDRow currentRow;
+	MDRowVec currentRow;
 	FileName fnImg;
 	Matrix2D<double> A;
 
@@ -122,13 +122,13 @@ void ProgClassifyFirstSplit3::calculateProjectedIms (size_t id, double &corrI_P1
 		MAT_ELEM(A,0,1)*=-1;
 		MAT_ELEM(A,0,2)*=-1;
 	}
-	int xdim = (int)XSIZE(V());
+	auto xdim = (int)XSIZE(V());
 	projectVolume(*projectorV1, PV, xdim, xdim,  rot, tilt, psi);
-	applyGeometry(LINEAR,projV,PV(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,projV,PV(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 	corrI_P1 = correlation(imgV(), projV);
 
 	projectVolume(*projectorV2, PV, xdim, xdim,  rot, tilt, psi);
-	applyGeometry(LINEAR,projV,PV(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,projV,PV(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 	corrI_P2 = correlation(imgV(), projV);
 }
 
@@ -147,15 +147,15 @@ void ProgClassifyFirstSplit3::run()
     md.read(fnClasses);
     std::vector<size_t> objIds1, objIds2;
 
-	FOR_ALL_OBJECTS_IN_METADATA(md){
-		if(rnd_unif()<0.5)
-			objIds1.push_back(__iter.objId);
-		else
-			objIds2.push_back(__iter.objId);
-	}
+    for (size_t objId : md.ids()) {
+        if(rnd_unif()<0.5)
+            objIds1.push_back(objId);
+        else
+            objIds2.push_back(objId);
+    }
 
-	projectorV1 = new FourierProjector(2,0.5,BSPLINE3);
-	projectorV2 = new FourierProjector(2,0.5,BSPLINE3);
+	projectorV1 = new FourierProjector(2,0.5,xmipp_transformation::BSPLINE3);
+	projectorV2 = new FourierProjector(2,0.5,xmipp_transformation::BSPLINE3);
 
 	updateVolume(objIds1, fnRoot+"_avg1", *projectorV1);
 	updateVolume(objIds2, fnRoot+"_avg2", *projectorV2);

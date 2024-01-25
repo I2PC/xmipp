@@ -32,6 +32,9 @@
 #include "core/xmipp_image.h"
 #include "core/xmipp_image_generic.h"
 
+/**@defgroup ProgTransformGeometry Transform Geometry
+   @ingroup DataLibrary */
+//@{
 class ProgTransformGeometry: public XmippMetadataProgram
 {
 public:
@@ -55,4 +58,5 @@ protected:
     void preProcess();
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 };
+//@}
 #endif //TRANSFORMGEOMETRY_H

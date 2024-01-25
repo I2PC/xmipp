@@ -74,7 +74,7 @@ void ProgPerformanceTest::produceSideInfo()
 {
     TimeStamp t0;
     annotate_time(&t0);
-    MetaData MDin(fnIn);
+    MetaDataVec MDin(fnIn);
     print_elapsed_time(t0,false);
 }
 

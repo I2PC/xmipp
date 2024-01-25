@@ -37,14 +37,8 @@
 class MpiProgValidationNonTilt: public ProgValidationNonTilt
 {
 public:
-	MpiNode *node;
+	std::unique_ptr<MpiNode> node;
 public:
-	// Empty constructor
-	MpiProgValidationNonTilt();
-
-	// Destructor
-	~MpiProgValidationNonTilt();
-
 	// Redefine how to read the command line
 	void read(int argc, char** argv);
 

@@ -1,5 +1,5 @@
+#include "data/fftwT.h"
 #include "data/cpu.h"
-#include "reconstruction/fftwT.h"
 
 template<typename T>
 class AFT_Test;
@@ -23,7 +23,7 @@ class AFT_Test;
     auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513};
 
 #define MUSTBESKIPPED \
-    bool mustBeSkipped(const FFTSettingsNew<T> &s, bool isBothDirection) { \
+    bool mustBeSkipped(const FFTSettings<T> &s, bool isBothDirection) { \
         return false; \
     }
 

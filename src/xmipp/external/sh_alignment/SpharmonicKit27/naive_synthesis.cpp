@@ -763,7 +763,7 @@ void Naive_AnalysisX(double *data,
   int i, j;
   const double *weight_vec;
   double result0, result1, result2, result3;
-  register double *wdata;
+  double *wdata;
 
   wdata = workspace;
 

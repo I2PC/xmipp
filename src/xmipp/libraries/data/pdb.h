@@ -30,6 +30,7 @@
 #define _XMIPP_PDB_HH
 
 #include <vector>
+#include "cif++.hpp"
 #include "core/xmipp_error.h"
 
 template<typename T>
@@ -58,6 +59,13 @@ int atomCharge(const std::string &atom);
     radius. */
 double atomRadius(const std::string &atom);
 
+/** Returns the covalent radius of an atom.
+    Returns 0 if the atom is not within the short list (H, C, N, O, S, P, Fe)
+    of valid atoms.
+    The radius data is taken from http://www.webelements.com as the empirical
+    radius. */
+double atomCovalentRadius(const std::string &atom);
+
 /** Compute the center of mass and limits of a PDB file.
     The intensity column is used only for the pseudoatoms. It specifies
     from which column we should read the intensity. Valid columns are
@@ -72,9 +80,31 @@ void computePDBgeometry(const std::string &fnPDB,
     The result is written in the output PDB. Set centerPDB if you
     want to compute the center of mass first and apply the transformation
     after centering the PDB. */
+
 void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
                    const Matrix2D<double> &A, bool centerPDB=true,
                    const std::string &intensityColumn="occupancy");
+
+/** pdbdata is an struct that contains the coordiantes of the atom positions defined
+as x, y, z, the b factor, b, the residue of each atom, and the covalent radiues. These
+variables are defined as vectors*/
+struct pdbInfo
+{
+	std::vector<double> x;
+	std::vector<double> y;
+	std::vector<double> z;
+	std::vector<double> b;
+	std::vector<std::string> chain;
+	std::vector<int> residue;
+	std::vector<double> atomCovRad;
+};
+
+/** ANALYZEPDBDATA takes as input a filename of a pdb file (atomic model) and selects only
+the typeOfAtom, (for instance the C-alpha atoms) storing the atom positions, b- factor,
+the residue of each atom, and the covalent radiues in a struct vector at_pos. Also the number
+of atoms is kept.*/
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos);
+
 
 /** Atom class. */
 class Atom
@@ -100,6 +130,9 @@ public:
     /// List of atoms
     std::vector<Atom> atomList;
 
+    // Whole data block
+    cif::datablock dataBlock;
+
     /// Add Atom
     void addAtom(const Atom &atom)
     {
@@ -118,7 +151,13 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB file
+    /**
+     * @brief Read phantom from either a PDB of CIF file.
+     * 
+     * This function reads the given PDB or CIF file and inserts the found atoms inside in class's atom list.
+     * 
+     * @param fnPDB PDB/CIF file.
+    */
     void read(const FileName &fnPDB);
 
     /// Apply a shift to all atoms
@@ -135,8 +174,11 @@ public:
 class RichAtom
 {
 public:
-    /// Type
-    char atomType;
+    /// Record Type ("ATOM  " or "HETATM")
+    std::string record;
+
+    /// atom serial number
+    int serial;
 
     /// Position X
     double x;
@@ -151,7 +193,7 @@ public:
     std::string name;
 
     /// Alternate location
-    char altloc;
+    std::string altloc;
 
     /// Residue name
     std::string resname;
@@ -163,13 +205,45 @@ public:
     int resseq;
 
     /// Icode
-    char icode;
+    std::string icode;
 
     /// Occupancy
     double occupancy;
 
     /// Bfactor
     double bfactor;
+
+    /// atom element type
+    std::string atomType;
+
+    /// 2-char charge with sign 2nd (e.g. 1- or 2+)
+    std::string charge;
+
+    /* PDB Specific values */
+    /// segment name
+    std::string segment;
+
+    /* CIF Specific values */
+    // Alternative id
+    std::string altId;
+
+    // Sequence id
+    int seqId;
+
+    // Author sequence id
+    int authSeqId;
+
+    // Author chain name
+    std::string authCompId;
+
+    // Author chain location
+    std::string authAsymId;
+
+    // Author atom name
+    std::string authAtomId;
+
+    // PDB model number
+    int pdbNum;
 };
 
 /** Phantom description using atoms. */
@@ -178,10 +252,13 @@ class PDBRichPhantom
 public:
 	/// List of remarks
 	std::vector<std::string> remarks;
-public:
+
     /// List of atoms
     std::vector<RichAtom> atomList;
     std::vector<double> intensities;
+
+    // Whole data block
+    cif::datablock dataBlock;
 
     /// Add Atom
     void addAtom(const RichAtom &atom)
@@ -195,11 +272,29 @@ public:
         return atomList.size();
     }
 
-    /// Read from PDB file
-    void read(const FileName &fnPDB, double pseudoatoms = -1.0, double threshold = 0.0);
+    /**
+     * @brief Read rich phantom from either a PDB of CIF file.
+     * 
+     * This function reads the given PDB or CIF file and stores the found atoms, remarks, and intensities.
+     * 
+     * @param fnPDB PDB/CIF file.
+     * @param pseudoatoms Flag for returning intensities (stored in B-factors) instead of atoms.
+     *  **false** (default) is used when there are no pseudoatoms or when using a threshold.
+     * @param threshold B factor threshold for filtering out for pdb_reduce_pseudoatoms.
+    */
+    void read(const FileName &fnPDB, const bool pseudoatoms = false, const double threshold = 0.0);
 
-    /// Write to PDB file
-    void write(const FileName &fnPDB);
+    /**
+     * @brief Write rich phantom to PDB or CIF file.
+     * 
+     * This function stores all the data of the rich phantom into a PDB or CIF file.
+     * Note: Conversion is not enabled yet, so if a file read from a PDB is written into a CIF file,
+     * results might not be great. Atoms should be properly translated, but remarks and intensities probably not.
+     * 
+     * @param fnPDB PDB/CIF file to write to.
+     * @param renumber Flag for determining if atom's serial numbers must be renumbered or not.
+    */
+    void write(const FileName &fnPDB, const bool renumber = false);
 
 };
 
@@ -343,3 +438,15 @@ void projectPDB(const PDBPhantom &phantomPDB,
 void distanceHistogramPDB(const PDBPhantom &phantomPDB, size_t Nnearest, double maxDistance, int Nbins, Histogram1D &hist);
 //@}
 #endif
+
+const char*
+hy36encode(unsigned width, int value, char* result);
+
+const char*
+hy36decode(unsigned width, const char* s, unsigned s_size, int* result);
+
+void
+hy36encodeSafe(unsigned width, int value, char* result);
+
+void
+hy36decodeSafe(unsigned width, const char* s, unsigned s_size, int* result);

@@ -25,19 +25,9 @@
 
 #include "mpi_validation_nontilt.h"
 
-MpiProgValidationNonTilt::MpiProgValidationNonTilt()
-{
-	node=NULL;
-}
-
-MpiProgValidationNonTilt::~MpiProgValidationNonTilt()
-{
-	delete node;
-}
-
 void MpiProgValidationNonTilt::read(int argc, char** argv)
 {
-    node = new MpiNode(argc, argv);
+    node = std::make_unique<MpiNode>(argc, argv);
    	rank = node->rank;
    	Nprocessors = node->size;
    	ProgValidationNonTilt::read(argc, (const char **)argv);
@@ -75,7 +65,7 @@ void MpiProgValidationNonTilt::gatherClusterability()
 	// Now the master takes all of them
 	if (rank==0)
 	{
-		MetaData MDAux;
+		MetaDataDb MDAux;
 		for (size_t otherRank=1; otherRank<Nprocessors; ++otherRank)
 		{
 				FileName fnP = formatString("%s/partial_node%03d.xmd",fnDir.c_str(),(int)otherRank);

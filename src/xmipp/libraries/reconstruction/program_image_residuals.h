@@ -27,6 +27,9 @@
 #include "core/matrix2d.h"
 #include "core/xmipp_image.h"
 
+/**@defgroup ProgImageResiduals Image Residuals
+   @ingroup ReconsLibrary */
+//@{
 /** Apply some filter operation on images, or selfiles */
 class ProgImageResiduals: public XmippMetadataProgram
 {
@@ -53,5 +56,5 @@ public:
 /// Compute the divergence between two covariance matrices
 double computeCovarianceMatrixDivergence(const Matrix2D<double> &C1, const Matrix2D<double> &C2);
 
-
+//@}
 

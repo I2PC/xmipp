@@ -33,17 +33,19 @@
    @ingroup ParallelLibrary */
 //@{
 
-
 class MpiProgAngularAccuracyPCA: public ProgAngularAccuracyPCA
 {
 public:
-	MpiNode *node;
+	MpiNode *node=nullptr;
 public:
-	// Empty constructor
-	MpiProgAngularAccuracyPCA();
-
 	// Destructor
+	MpiProgAngularAccuracyPCA() {}
 	~MpiProgAngularAccuracyPCA();
+
+	MpiProgAngularAccuracyPCA(const MpiProgAngularAccuracyPCA &)=delete;
+	MpiProgAngularAccuracyPCA(const MpiProgAngularAccuracyPCA &&)=delete;
+	MpiProgAngularAccuracyPCA & operator= (const MpiProgAngularAccuracyPCA &)=delete;
+	MpiProgAngularAccuracyPCA & operator= (const MpiProgAngularAccuracyPCA &&)=delete;
 
 	// Redefine how to read the command line
 	void read(int argc, char** argv);

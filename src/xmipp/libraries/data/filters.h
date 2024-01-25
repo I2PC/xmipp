@@ -23,15 +23,14 @@
 *  e-mail address 'xmipp@cnb.csic.es'
 ***************************************************************************/
 
-#ifndef CORE_FILTERS_H
-#define CORE_FILTERS_H
-
-#define LOG2 0.693147181
-
 #include "core/xmipp_image.h"
 #include "core/matrix2d.h"
 #include "data/numerical_tools.h"
 #include "data/polar.h"
+
+#ifndef CORE_FILTERS_H
+#define CORE_FILTERS_H
+constexpr double LOG2 = 0.693147181;
 
 class XmippProgram;
 class MetaData;
@@ -249,7 +248,7 @@ double EntropyOtsuSegmentation(MultidimArray<double> &V, double percentil=0.05,
 template <typename T>
 double correlation(const MultidimArray< T >& x,
                    const MultidimArray< T >& y,
-                   const MultidimArray< int >* mask = NULL,
+                   const MultidimArray< int >* mask = nullptr,
                    int l = 0,
                    int m = 0,
                    int q = 0)
@@ -257,8 +256,15 @@ double correlation(const MultidimArray< T >& x,
     SPEED_UP_temps;
 
     double retval = 0; // returned value
-    int i, j, k, ip, jp, kp; // indexes
-    int Rows, Cols, Slices; // of the volumes
+    int i;
+    int j;
+    int k;
+    int ip;
+    int jp;
+    int kp; // indexes
+    int Rows;
+    int Cols;
+    int Slices; // of the volumes
 
     // do the computation
     Cols = XSIZE(x);
@@ -282,7 +288,7 @@ double correlation(const MultidimArray< T >& x,
 
                 if (jp >= 0 && jp < Cols)
                 {
-                    if (mask != NULL)
+                    if (mask != nullptr)
                         if (!DIRECT_A3D_ELEM((*mask), k, i, j))
                             continue;
 
@@ -406,7 +412,7 @@ double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
 /** SVD correlation.
  *
  */
-double svdCorrelation(const MultidimArray<double>& I1, const MultidimArray<double>& I2, const MultidimArray< int >* mask = NULL);
+double svdCorrelation(const MultidimArray<double>& I1, const MultidimArray<double>& I2, const MultidimArray< int >* mask = nullptr);
 
 /** Translational search
  * @ingroup Filters
@@ -428,7 +434,7 @@ double bestShift(const MultidimArray< double >& I1,
                double& shiftX,
                double& shiftY,
                CorrelationAux &aux,
-               const MultidimArray< int >* mask = NULL,
+               const MultidimArray< int >* mask = nullptr,
                int maxShift=-1);
 
 /** Translational search.
@@ -437,7 +443,7 @@ double bestShift(const MultidimArray< double >& I1,
 double bestShift(const MultidimArray<double> &I1, const MultidimArray< std::complex<double> > &FFTI1,
 		       const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, CorrelationAux &aux,
-               const MultidimArray<int> *mask=NULL, int maxShift=-1);
+               const MultidimArray<int> *mask=nullptr, int maxShift=-1);
 
 /** Translational search.
  * Assumes that FFTI1 and FFTI2 are already computed. Mcorr must already have the right size.
@@ -446,7 +452,7 @@ double bestShift(const MultidimArray< std::complex<double> > &FFTI1,
 				const MultidimArray< std::complex<double> > &FFTI2,
 				MultidimArray<double> &Mcorr,
                double &shiftX, double &shiftY, CorrelationAux &aux,
-               const MultidimArray<int> *mask=NULL, int maxShift=-1);
+               const MultidimArray<int> *mask=nullptr, int maxShift=-1);
 
 /** Translational search (3D)
  * @ingroup Filters
@@ -460,7 +466,7 @@ double bestShift(const MultidimArray< std::complex<double> > &FFTI1,
  */
 void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, double &shiftZ, CorrelationAux &aux,
-               const MultidimArray<int> *mask=NULL);
+               const MultidimArray<int> *mask=nullptr);
 
 template<typename T>
 T bestShift(MultidimArray<T> &Mcorr,
@@ -493,17 +499,23 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
  */
 double bestShiftRealSpace(const MultidimArray<double> &I1, MultidimArray<double> &I2,
                double &shiftX, double &shiftY,
-               const MultidimArray<int> *mask=NULL, int maxShift=5, double shiftStep=1.0);
+               const MultidimArray<int> *mask=nullptr, int maxShift=5, double shiftStep=1.0);
 
 /** Auxiliary class for fast image alignment */
 class AlignmentAux
 {
 public:
-    Matrix2D<double> ARS, ASR, R;
-    MultidimArray<double> IauxSR, IauxRS, rotationalCorr;
+    Matrix2D<double> ARS;
+    Matrix2D<double> ASR;
+    Matrix2D<double> R;
+    MultidimArray<double> IauxSR;
+    MultidimArray<double> IauxRS;
+    MultidimArray<double> rotationalCorr;
     Polar_fftw_plans *plans;
     Polar< std::complex<double> > polarFourierI;
     AlignmentAux();
+    AlignmentAux(const AlignmentAux &)=delete; // Do not use the default copy constructor
+    AlignmentAux & operator=(const AlignmentAux&) = delete; // Do not use the default copy assignment
     ~AlignmentAux();
 };
 
@@ -526,7 +538,7 @@ public:
 double alignImages(const MultidimArray< double >& Iref,
                    MultidimArray< double >& I,
                    Matrix2D< double >&M,
-                   bool wrap=WRAP);
+                   bool wrap=xmipp_transformation::WRAP);
 
 /** Align two images considering mirrors */
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, MultidimArray<double>& I,
@@ -538,7 +550,7 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, Multidim
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms,
                                      MultidimArray<double>& I, Matrix2D<double> &M, AlignmentAux& aux,
                                      CorrelationAux& aux2, RotationalCorrelationAux &aux3, bool wrap,
-                                     const MultidimArray<int>* mask=NULL);
+                                     const MultidimArray<int>* mask=nullptr);
 
 /** Fast version of align two images
  * @ingroup Filters
@@ -555,8 +567,15 @@ double alignImages(const MultidimArray< double >& Iref,
 class VolumeAlignmentAux
 {
 public:
-    MultidimArray<double> IrefCyl, Icyl, corr, I1, I12, I123;
-    Matrix2D<double> R1, R2, R3;
+    MultidimArray<double> IrefCyl;
+    MultidimArray<double> Icyl;
+    MultidimArray<double> corr;
+    MultidimArray<double> I1;
+    MultidimArray<double> I12;
+    MultidimArray<double> I123;
+    Matrix2D<double> R1;
+    Matrix2D<double> R2;
+    Matrix2D<double> R3;
 };
 
 /** Align two volumes by applying a rotation around Z.
@@ -607,7 +626,7 @@ double alignImagesConsideringMirrors(const MultidimArray< double >& Iref,
                                      AlignmentAux &aux,
                                      CorrelationAux &aux2,
                                      RotationalCorrelationAux &aux3,
-                                     bool wrap=WRAP,
+                                     bool wrap=xmipp_transformation::WRAP,
                                      const MultidimArray< int >* mask = NULL);
 
 /** Align a set of images.
@@ -652,7 +671,7 @@ void estimateGaussian2D(const MultidimArray<double> &I,
 template <typename T>
 double euclidianDistance(const MultidimArray< T >& x,
                          const MultidimArray< T >& y,
-                         const MultidimArray< int >* mask = NULL)
+                         const MultidimArray< int >* mask = nullptr)
 {
     SPEED_UP_temps;
 
@@ -661,7 +680,7 @@ double euclidianDistance(const MultidimArray< T >& x,
 
     FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(k, i, j))
                 continue;
 
@@ -697,7 +716,7 @@ double mutualInformation(const MultidimArray< T >& x,
                          const MultidimArray< T >& y,
                          int nx = 0,
                          int ny = 0,
-                         const MultidimArray< int >* mask = NULL);
+                         const MultidimArray< int >* mask = nullptr);
 
 /** RMS nD
  * @ingroup Filters
@@ -705,8 +724,8 @@ double mutualInformation(const MultidimArray< T >& x,
 template <typename T>
 double rms(const MultidimArray< T >& x,
            const MultidimArray< T >& y,
-           const MultidimArray< int >* mask = NULL,
-           MultidimArray< double >* Contributions = NULL)
+           const MultidimArray< int >* mask = nullptr,
+           MultidimArray< double >* Contributions = nullptr)
 {
     SPEED_UP_tempsInt;
 
@@ -715,11 +734,11 @@ double rms(const MultidimArray< T >& x,
     int n = 0;
 
     // If contributions are desired
-    if (Contributions != NULL)
+    if (Contributions != nullptr)
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
         {
-            if (mask != NULL)
+            if (mask != nullptr)
                 if (!(*mask)(k, i, j))
                     continue;
 
@@ -738,7 +757,7 @@ double rms(const MultidimArray< T >& x,
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
         {
-            if (mask != NULL)
+            if (mask != nullptr)
                 if (!(*mask)(k, i, j))
                     continue;
 
@@ -763,17 +782,16 @@ double rms(const MultidimArray< T >& x,
  * k1 and k2 determines the harmonic coefficients to be computed.
  */
 void fourierBesselDecomposition(const MultidimArray< double >& img_in,
-                                MultidimArray< double >& m_out,
-                                double r1,
                                 double r2,
                                 int k1,
                                 int k2);
 
+
 /** Harmonic decomposition
  * @ingroup Filters
  */
-void harmonicDecomposition(const MultidimArray< double >& img_in,
-                           MultidimArray< double >& v_out);
+//void harmonicDecomposition(const MultidimArray< double >& img_in,
+//                           MultidimArray< double >& v_out);
 
 // Function needed by median filtering
 template <typename T>
@@ -822,7 +840,9 @@ void sort(T a, T b, T c, MultidimArray< T >& v)
 template <typename T>
 void mergeSort(MultidimArray< T >& v1, MultidimArray< T >& v2, MultidimArray< T >& v)
 {
-    int i1 = 0, i2 = 0, i = 0;
+    int i1 = 0;
+    int i2 = 0;
+    int i = 0;
 
     while ((i1 < 3) && (i2 < 3))
     {
@@ -1071,14 +1091,18 @@ void medianFilter3x3(MultidimArray< T >&m, MultidimArray< T >& out)
     int backup_startingy = STARTINGY(m);
 
     STARTINGX(m) = STARTINGY(m) = 0;
-    MultidimArray< T > v1(3), v2(3), v3(3), v4(3);
+    MultidimArray< T > v1(3);
+    MultidimArray< T > v2(3);
+    MultidimArray< T > v3(3);
+    MultidimArray< T > v4(3);
     MultidimArray< T > v(6);
 
     // Set the output matrix size
     out.initZeros(m);
 
     // Set the initial and final matrix indices to explore
-    int initialY = 1, initialX = 1;
+    int initialY = 1;
+    int initialX = 1;
     int finalY = YSIZE(m) - 2;
     int finalX = XSIZE(m) - 2;
 
@@ -1232,7 +1256,7 @@ void localThresholding(MultidimArray< double >& img,
                        double C,
                        double dimLocal,
                        MultidimArray< int >& result,
-                       MultidimArray< int >* mask = NULL);
+                       MultidimArray< int >* mask = nullptr);
 
 /** Center an image translationally
  * @ingroup Filters
@@ -1287,7 +1311,8 @@ void boundMedianFilter(MultidimArray< T > &V, const MultidimArray<char> &mask, i
     bool badRemaining;
     T neighbours[125];
     T aux;
-    int N = 0, index;
+    int N = 0;
+    int index;
 
     do
     {
@@ -1354,7 +1379,10 @@ void pixelDesvFilter(MultidimArray< T > &V, double thresFactor)
 {
     if (thresFactor > 0 )
     {
-        double avg, stddev, high, low;
+        double avg;
+        double stddev;
+        double high;
+        double low;
         T dummy;
         MultidimArray<char> mask(ZSIZE(V), YSIZE(V), XSIZE(V));
         avg = stddev = low = high = 0;
@@ -1457,7 +1485,9 @@ public:
     /** Apply filter on bad pixels */
     //4.431-0.4018*LN(ABS(P1+336.6))
     //a-b*ln(x+c)
-    double a,b,c;
+    double a;
+    double b;
+    double c;
     /** Define the parameters for use inside an Xmipp program */
     static void defineParams(XmippProgram * program);
     /** Read from program command line */

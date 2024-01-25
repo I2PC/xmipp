@@ -37,13 +37,17 @@
 class MpiMultireferenceAligneability: public MultireferenceAligneability
 {
 public:
-	MpiNode *node;
+	MpiNode *node=nullptr;
 public:
 	// Empty constructor
-	MpiMultireferenceAligneability();
+	MpiMultireferenceAligneability() = default;
+	MpiMultireferenceAligneability(const MpiMultireferenceAligneability &)=delete;
+	MpiMultireferenceAligneability(const MpiMultireferenceAligneability &&)=delete;
 
 	// Destructor
 	~MpiMultireferenceAligneability();
+	MpiMultireferenceAligneability & operator =(const MpiMultireferenceAligneability &)=delete;
+	MpiMultireferenceAligneability & operator =(const MpiMultireferenceAligneability &&)=delete;
 
 	// Redefine how to read the command line
 	void read(int argc, char** argv);

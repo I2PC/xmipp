@@ -30,18 +30,21 @@
 #include <complex>
 #include <limits>
 #include "hw.h"
-#include "data/fft_settings_new.h"
+#include "data/fft_settings.h"
 
+/**@defgroup AFTLibrary AFT Library
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 class AFT {
 public:
     virtual ~AFT() {}; // do nothing
 
     // utility functions
-    virtual void init(const HW &hw, const FFTSettingsNew<T> &settings, bool reuse=true) = 0;
+    virtual void init(const HW &hw, const FFTSettings<T> &settings, bool reuse=true) = 0;
     virtual void release() = 0;
-    virtual size_t estimatePlanBytes(const FFTSettingsNew<T> &settings) = 0;
-    virtual size_t estimateTotalBytes(const FFTSettingsNew<T> &settings) {
+    virtual size_t estimatePlanBytes(const FFTSettings<T> &settings) = 0;
+    virtual size_t estimateTotalBytes(const FFTSettings<T> &settings) {
         size_t planBytes = estimatePlanBytes(settings);
         if (0 ==  planBytes) {
             // plan cannot be created
@@ -62,5 +65,5 @@ public:
 protected:
     virtual void setDefault() = 0;
 };
-
+//@}
 #endif /* LIBRARIES_DATA_AFT_H_ */

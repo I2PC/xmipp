@@ -38,27 +38,6 @@
 /*****************************************************************************/
 /* SEL FILE LINE                                                 */
 /*****************************************************************************/
-/* Copy Constructor */
-SelLine::SelLine(const SelLine &l)
-{
-    line_type = l.line_type;
-    text      = l.text;
-    label     = l.label;
-    number    = l.number;
-}
-
-SelLine& SelLine::operator = (const SelLine &SL)
-{
-    if (this != &SL)
-    {
-        line_type = SL.line_type;
-        text      = SL.text;
-        label     = SL.label;
-        number    = SL.number;
-    }
-    return *this;
-}
-
 void SelLine::assign(const SelLine &SL)
 {
     *this = SL;
@@ -81,10 +60,10 @@ std::ostream& operator << (std::ostream& o, const SelLine &SFL)
 {
     switch (SFL.line_type)
     {
-    case (SelLine::DATALINE):
+    case SelLine::DATALINE:
                     o << SFL.text << " " << SFL.label << std::endl;
         break;
-    case (SelLine::COMMENT):
+    case SelLine::COMMENT:
                     o << SFL.text << std::endl;
         break;
     default:
@@ -147,15 +126,6 @@ SelFile::SelFile()
     current_line = text_line.begin();
 }
 
-/* Copy Constructor -------------------------------------------------------- */
-SelFile::SelFile(const SelFile &SF)
-{
-    fn_sel       = SF.fn_sel;
-    text_line    = SF.text_line;
-    no_imgs      = SF.no_imgs;
-    current_line = SF.current_line;
-}
-
 /* Clear ------------------------------------------------------------------- */
 void SelFile::clear()
 {
@@ -163,19 +133,6 @@ void SelFile::clear()
     text_line.erase(text_line.begin(), text_line.end());
     no_imgs = 0;
     current_line = text_line.begin();
-}
-
-/* Assignment -------------------------------------------------------------- */
-SelFile& SelFile::operator = (const SelFile &SF)
-{
-    if (this != &SF)
-    {
-        fn_sel       = SF.fn_sel;
-        text_line    = SF.text_line;
-        no_imgs      = SF.no_imgs;
-        current_line = SF.current_line;
-    }
-    return *this;
 }
 
 /* Another function for assignment ----------------------------------------- */
@@ -262,19 +219,19 @@ void SelFile::read(const FileName &sel_name, int overriding)
             {
                 fh_sel >> temp;
             }
-            catch (XmippError)
+            catch (XmippError &e)
             {
                 std::cout << "Sel file: Line " << line_no << " is skipped due to an error\n";
             }
             switch (temp.line_type)
             {
-            case (SelLine::NOT_ASSIGNED): break; // Line with an error
-            case (SelLine::DATALINE):
+            case SelLine::NOT_ASSIGNED: break; // Line with an error
+            case SelLine::DATALINE:
                             if (temp.label != SelLine::DISCARDED)
                                 no_imgs++;
                 text_line.push_back(temp);
                 break;
-            case (SelLine::COMMENT):
+            case SelLine::COMMENT:
                             text_line.push_back(temp);
                 break;
             default:
@@ -444,7 +401,7 @@ void SelFile::split_in_N(int N, std::vector<SelFile> &SF)
     // Create space for all SelFiles
     for (int n = 0; n < N; n++)
     {
-        SelFile *ptr_SF = new SelFile;
+        auto *ptr_SF = new SelFile;
         ptr_SF->reserve(CEIL(Nimg / N));
         SF.push_back(*ptr_SF);
     }

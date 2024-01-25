@@ -178,7 +178,7 @@ void ProgAlignSignificantGPU<T>::updateRefs(
         unsigned device,
         size_t refOffset) {
     const size_t elems = otherDims.sizeSingle();
-    T *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
+    auto *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
     std::vector<float> workMatrices;
     workMatrices.reserve(9 * m_maxBatchSize);
     std::vector<float> workWeights;
@@ -370,7 +370,7 @@ void ProgAlignSignificantGPU<T>::initShiftEstimator(CudaShiftCorrEstimator<T> &e
     size_t maxShift = dims.x() / 4;
     est.init2D(hw,
             AlignType::OneToN,
-            FFTSettingsNew<T>(dims, batch),
+            FFTSettings<T>(dims, batch),
             maxShift, true, true, true);
 }
 

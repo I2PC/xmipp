@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
 #include "single_extrema_finder.h"
 
 namespace ExtremaFinder {

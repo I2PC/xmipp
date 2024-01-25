@@ -37,6 +37,9 @@
 #include "reconstruction/bspline_geo_transformer.h"
 #include "amerit_computer.h"
 
+/**@defgroup IterativeAlignmentEstimator Iterative Alignment Estimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -89,5 +92,5 @@ private:
 
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ITERATIVE_ALIGNMENT_ESTIMATOR_H_ */

@@ -243,7 +243,8 @@ void random_convex_hull(const MultidimArray<double> &img, MultidimArray<double> 
 {
     hull = img;
 
-    std::vector<int> full_tx, full_ty;
+    std::vector<int> full_tx;
+    std::vector<int> full_ty;
     // Build the list of points
     FOR_ALL_ELEMENTS_IN_ARRAY2D(img)
     if (img(i, j) > 0)
@@ -264,7 +265,8 @@ void random_convex_hull(const MultidimArray<double> &img, MultidimArray<double> 
         int k = ROUND(rnd_unif(0, idx_max));
 
         // Get their positions
-        int tx[3], ty[3];
+        int tx[3];
+        int ty[3];
         tx[0] = full_tx[i];
         ty[0] = full_ty[i];
         tx[1] = full_tx[j];
@@ -521,12 +523,13 @@ void sharpening(const MultidimArray<double> &in, double width, double strength,
     MultidimArray<double> &out)
 {
     // Build the quadratic kernel
-    int diameter=(int)(2*width+1);
+    auto diameter=(int)(2*width+1);
     MultidimArray<double> kernel(diameter,diameter,diameter);
     kernel.setXmippOrigin();
     
     double width2=width*width;
-    double minval=0., maxval=0.;
+    double minval=0.;
+    double maxval=0.;
     in.computeDoubleMinMax(minval,maxval);
     double c=minval+(maxval-minval)*strength/100;
     double a=(minval-c)/width2;
@@ -538,7 +541,8 @@ void sharpening(const MultidimArray<double> &in, double width, double strength,
     }
     
     // Create the dilated and eroded versions
-    MultidimArray<double> dilated, eroded;
+    MultidimArray<double> dilated;
+    MultidimArray<double> eroded;
     dilate3D(in,kernel,dilated);
     erode3D(in,kernel,eroded);
 #ifdef DEBUG

@@ -26,7 +26,7 @@
 #define _PROG_PROJECTION_NEIGHBOURHOOD
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_program.h>
 
 #include <core/symmetries.h>
@@ -52,9 +52,9 @@ public:
     bool check_mirrors;
 public:
     // DocFile images
-    MetaData DF1;
+    MetaDataVec DF1;
     // DocFile nbhoods
-    MetaData DF2;
+    MetaDataVec DF2;
     // Symmetry List
     SymList SL;
 public:

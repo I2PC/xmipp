@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
     //First argument should be the md filename
     //FileName fn(argv[1]);
-    MetaData md;
+    MetaDataVec md;
     //MPI Initialization
     node = new MpiNode(argc, argv);
     int rank = node->rank;

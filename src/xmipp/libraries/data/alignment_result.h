@@ -31,7 +31,9 @@
 #include <vector>
 #include <cstddef>
 
-
+/**@defgroup AlignmentResult Alignment Result
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 struct AlignmentResult {
     size_t refFrame;
@@ -40,6 +42,7 @@ struct AlignmentResult {
     // you have to shift in opposite direction (negate these values)
     std::vector<Point2D<T>> shifts;
 };
+//@}
 
 
 

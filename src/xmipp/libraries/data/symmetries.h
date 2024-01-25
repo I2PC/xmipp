@@ -35,6 +35,9 @@
 #include <core/symmetries.h>
 #include <data/grids.h>
 
+/**@defgroup symmetrizeCrystalVectors Symmetries
+   @ingroup DataLibrary */
+//@{
 /** Applies to the crystal vectors de n-th symmetry  matrix, It also
    initializes the shift vector. The crystal vectors and the basis must be
    the same  except for a constant!!
@@ -104,16 +107,16 @@ void symmetry_P6(Image<double> &vol, const SimpleGrid &grid,
 
 /** Symmetrize with a helical symmetry. */
 void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &Vin, double zHelical, double rotHelical,
-		double rot0=0, MultidimArray<int> *mask=NULL, bool dihedral=false, double heightFraction=1.0);
+		double rot0=0, MultidimArray<int> *mask=nullptr, bool dihedral=false, double heightFraction=1.0, int Cn=1);
 
 /** Symmetrize with a helical symmetry Low resolution.
  * This function applies the helical symmetry in such a way that only the low resolution information is kept (i.e.,
  * the general shape of the helices). */
 void symmetry_HelicalLowRes(MultidimArray<double> &Vout, const MultidimArray<double> &Vin, double zHelical, double rotHelical,
-		double rot0=0, MultidimArray<int> *mask=NULL);
+		double rot0=0, MultidimArray<int> *mask=nullptr);
 
 /** Find dihedral symmetry and apply it */
 void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> &Vin, double rotStep=1,
-		double zmin=-3, double zmax=3, double zStep=0.5, MultidimArray<int> *mask=NULL);
+		double zmin=-3, double zmax=3, double zStep=0.5, MultidimArray<int> *mask=nullptr);
 //@}
 #endif

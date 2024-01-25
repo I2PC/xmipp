@@ -157,8 +157,8 @@ void make_even_distribution(std::vector<double> &rotList, std::vector<double> &t
             // Check whether by symmetry or mirror the angle has been included already
             append = true;
             size_t imax=rotList.size();
-            double *ptrRot=NULL;
-            double *ptrTilt=NULL;
+            double *ptrRot=nullptr;
+            double *ptrTilt=nullptr;
             if (imax>0)
             {
             	ptrRot=&rotList[0];
@@ -182,10 +182,10 @@ void make_even_distribution(std::vector<double> &rotList, std::vector<double> &t
     }
 }
 
-void limit_tilt_range(MetaData &DF, double tilt_range0, double tilt_rangeF)
+void limit_tilt_range(MetaDataVec &DF, double tilt_range0, double tilt_rangeF)
 {
 
-    MetaData DFaux;
+    MetaDataVec DFaux;
     DFaux.importObjects(DF, MDValueRange(MDL_ANGLE_TILT, tilt_range0, tilt_rangeF));
     DF = DFaux;
 }
@@ -204,8 +204,8 @@ int find_nearest_direction(double rot1, double tilt1,
     mindist = 9999.;
     int imax=SL.symsNo();
     size_t nmax=rotList.size();
-    double *ptrRot=NULL;
-    double *ptrTilt=NULL;
+    double *ptrRot=nullptr;
+    double *ptrTilt=nullptr;
     if (nmax>0)
     {
     	ptrRot=&rotList[0];

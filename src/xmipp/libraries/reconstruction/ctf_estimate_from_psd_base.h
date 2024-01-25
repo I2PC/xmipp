@@ -11,6 +11,9 @@
 #include "core/xmipp_filename.h"
 #include "core/xmipp_image.h"
 
+/**@defgroup ProgCTFBasicParams Program CTF Basic Parameters
+   @ingroup ReconsLibrary */
+//@{
 class ProgCTFBasicParams: public XmippProgram
 {
 public:
@@ -156,5 +159,5 @@ public:
 };
 
 double evaluateIceness(MultidimArray<double> &psd, double Tm);
-
+//@}
 #endif

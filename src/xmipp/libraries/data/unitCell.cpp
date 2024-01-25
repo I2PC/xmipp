@@ -1,4 +1,5 @@
 #include "unitCell.h"
+#include "core/metadata_db.h"
 #include <math.h>
 // 60 is the angle between the vectors
 // icosahedron from_5f_to_2f and from_5f_2fp: vector that joing a vertex with the two closes 2-fold symmetry axis
@@ -339,8 +340,8 @@ void UnitCell::tetrahedralSymmetry(const Matrix1D<double> & sym_centroid,
 	from_3f_to_2fp.selfNormalize();
 	from_2f_to_3f.selfNormalize();
 	Matrix1D<double> first_expandedUnitCell_0 = sym_3f
-			+ (amplified_expanded / sin60) * (-1) * (from_3f_to_2fp)
-			+ (amplified_expanded / sin60) * (from_2f_to_3f);
+			+ (amplified_expanded / sin60) * (-1) * from_3f_to_2fp
+			+ (amplified_expanded / sin60) * from_2f_to_3f;
 
 	Matrix1D<double> first_expandedUnitCell_1 = sym_2f + vectExpansion[0]
 			+ vectExpansion[1];
@@ -440,8 +441,8 @@ void UnitCell::octahedralSymmetry(const Matrix1D<double> & sym_centre,
 	from_4f_to_2f.selfNormalize();
 	from_2fp_to_4f.selfNormalize();
 	Matrix1D<double> first_expandedUnitCell_0 = sym_4f
-			+ (amplified_expanded / sin60) * (-1) * (from_4f_to_2f)
-			+ (amplified_expanded / sin60) * (from_2fp_to_4f);
+			+ (amplified_expanded / sin60) * (-1) * from_4f_to_2f
+			+ (amplified_expanded / sin60) * from_2fp_to_4f;
 	Matrix1D<double> first_expandedUnitCell_1 = sym_2f + vectExpansion[1]
 			+ vectExpansion[2];
 	Matrix1D<double> v4 = (from_2f_to_3f - from_3f_to_2fp);
@@ -545,7 +546,7 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 		from_5f_to_2f.selfNormalize();
 		//sym_5f expands to expandedUnitCell[0]
 		expandedUnitCell.push_back(
-				sym_5f + mod * ((from_2fp_to_5f) + ((-1) * from_5f_to_2f)));
+				sym_5f + mod * (from_2fp_to_5f + ((-1) * from_5f_to_2f)));
 		//sym_2f expands to expandedUnitCell[1]
 		expandedUnitCell.push_back(sym_2f + vectExpansion[0] + vectExpansion[1]);
 		//mod: proyection (module) of expanded in the negative direction of the from_3f_to_2fp vector
@@ -608,7 +609,6 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 			 minY = rmax;
 			 minZ = _minZ;
 			 maxX = rmin;
-			 maxY;
 			if (symmetry == pg_CN || symmetry == pg_DN) {
 				maxY = rmax;
 				if (sym_order == 2){
@@ -696,7 +696,6 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 		}
 #endif
 
-		in3Dmap.data->im;
 		MultidimArray<float> * map;
 		MultidimArray<float> * imageMap2;
 		in3Dmap().getMultidimArrayPointer(map);
@@ -899,7 +898,7 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 			iMaxX = iMaxX + x_offset;
 		}
 		imageMap2->selfWindow(iMinZ, iMinY, iMinX, iMaxZ, iMaxY, iMaxX, 0.);
-		MDRow MD;
+		MDRowSql MD;
 		out3DDmap.setDataMode(_DATA_ALL);
 		//CCP save routine multiplies by sampling rate
 		MD.setValue(MDL_ORIGIN_X, (double) (iMinX - x_offset) );

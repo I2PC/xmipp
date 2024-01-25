@@ -272,7 +272,8 @@ T operator *(const std::vector<T>& _v1, const std::vector<T>& _v2)
         throw std::runtime_error("different size vectors in *");
 
     T dotProd = 0;
-    typename std::vector<T>::const_iterator i, j;
+    typename std::vector<T>::const_iterator i;
+    typename std::vector<T>::const_iterator j;
     for (i = _v1.begin(), j = _v2.begin() ; i != _v1.end() ; i++, j++)
         dotProd += *i * *j;
 
@@ -379,8 +380,9 @@ double euclideanDistance(const std::vector<T>& _v1, const std::vector<T>& _v2)
         throw std::runtime_error("vector of different size in eDist");
 
     double dist = 0;
-    typename std::vector<T>::const_iterator i, j;
-    for (i = _v1.begin(), j = _v2.begin() ; i < _v1.end(); i++, j++)
+    auto i = _v1.begin();
+    auto j = _v2.begin();
+    for (; i < _v1.end(); i++, j++)
     {
         double tmp = (double)(*i) - (double)(*j);
         dist += tmp * tmp;

@@ -149,9 +149,13 @@ public:
 public:
     /** Empty constructor */
     ProgAngularProjectLibrary();
+    ProgAngularProjectLibrary(const ProgAngularProjectLibrary &)=delete;
+    ProgAngularProjectLibrary(const ProgAngularProjectLibrary &&)=delete;
 
     /** Destructor */
     ~ProgAngularProjectLibrary();
+    ProgAngularProjectLibrary & operator =(const ProgAngularProjectLibrary &)=delete;
+    ProgAngularProjectLibrary & operator =(const ProgAngularProjectLibrary &&)=delete;
 
     /** Read from a command line.
         An exception might be thrown by any of the internal conversions,

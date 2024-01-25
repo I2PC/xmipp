@@ -24,6 +24,10 @@ void gpuCopyFromCPUToGPU(void* data, void* d_data, size_t Nbytes);
 void gpuCopyFromGPUToCPU(void* d_data, void* data, size_t Nbytes);
 int gridFromBlock(int tasks, int Nthreads);
 
+/**@defgroup CudaXmippUtils Cuda Xmipp Utils
+   @ingroup ReconsLibrary */
+//@{
+
 template<typename T>
 T* loadToGPU(const T* data, size_t items);
 
@@ -37,14 +41,14 @@ public:
 	~mycufftHandle() { clear(); }
 
 	mycufftHandle(){
-			ptr=NULL;
+			ptr=nullptr;
 	}
 
 	void clear()
 	{
-		if (ptr!=NULL)
+		if (ptr!=nullptr)
 			mycufftDestroy(ptr);
-		ptr=NULL;
+		ptr=nullptr;
 	}
 
 
@@ -55,12 +59,12 @@ public:
 	void *ptr;
 
 	myStreamHandle(){
-		ptr=NULL;
+		ptr=nullptr;
 	}
 
 	void clear()
 	{
-		if(ptr!=NULL)
+		if(ptr!=nullptr)
 			myStreamDestroy(ptr);
 	}
 
@@ -99,8 +103,8 @@ public:
     TransformMatrix()
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		d_data=NULL;
-		h_data=NULL;
+		d_data=nullptr;
+		h_data=nullptr;
     }
 
     TransformMatrix(myStreamHandle &myStream, size_t _Ndim, size_t _Xdim=3, size_t _Ydim=3, size_t _Zdim=1)
@@ -183,13 +187,13 @@ public:
 	GpuMultidimArrayAtGpu()
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		d_data=NULL;
+		d_data=nullptr;
     }
 
 	GpuMultidimArrayAtGpu(size_t _Xdim, size_t _Ydim=1, size_t _Zdim=1, size_t _Ndim=1)
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		d_data=NULL;
+		d_data=nullptr;
 		resize(_Xdim, _Ydim, _Zdim, _Ndim);
     }
 
@@ -210,17 +214,17 @@ public:
 
 	bool isEmpty()
 	{
-		return d_data==NULL;
+		return d_data==nullptr;
 	}
 
 	void clear()
 	{
-		if (d_data!=NULL){
+		if (d_data!=nullptr){
 			gpuFree((void*) d_data);
 
 		}
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		d_data=NULL;
+		d_data=nullptr;
 	}
 
 	~GpuMultidimArrayAtGpu()
@@ -313,5 +317,5 @@ private:
 		nzyxdim=zyxdim*_Ndim;
 	}
 };
-
+//@}
 #endif

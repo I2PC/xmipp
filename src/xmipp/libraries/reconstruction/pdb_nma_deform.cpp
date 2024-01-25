@@ -26,7 +26,7 @@
 
 #include <fstream>
 #include "pdb_nma_deform.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "data/pdb.h"
 
 void ProgPdbNmaDeform::defineParams()
@@ -70,7 +70,7 @@ void ProgPdbNmaDeform::show()
 void ProgPdbNmaDeform::run()
 {
 	PDBRichPhantom pdb;
-	MetaData modes;
+	MetaDataVec modes;
 	pdb.read(fn_pdb);
 	modes.read(fn_nma);
 	modes.removeDisabled();
@@ -78,10 +78,11 @@ void ProgPdbNmaDeform::run()
 	FileName fnMode;
 	MultidimArray<double> mode;
 	mode.resizeNoCopy(pdb.getNumberOfAtoms(),3);
-	FOR_ALL_OBJECTS_IN_METADATA(modes)
+
+	for (size_t objId : modes.ids())
 	{
 		// Read mode
-		modes.getValue(MDL_NMA_MODEFILE,fnMode,__iter.objId);
+		modes.getValue(MDL_NMA_MODEFILE,fnMode,objId);
 		std::ifstream fhMode;
 		fhMode.open(fnMode.c_str());
 		if (!fhMode)
@@ -98,7 +99,7 @@ void ProgPdbNmaDeform::run()
 			atom_i.y+=lambda*DIRECT_A2D_ELEM(mode,i,1);
 			atom_i.z+=lambda*DIRECT_A2D_ELEM(mode,i,2);
 		}
-                j++;
+		j++;
 	}
 	pdb.write(fn_out);
 }

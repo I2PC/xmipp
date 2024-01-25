@@ -32,7 +32,7 @@
 ProgReconsART::ProgReconsART()
 {
     isMpi = false;
-    artRecons = NULL;
+    artRecons = nullptr;
 }
 ProgReconsART::~ProgReconsART()
 {
@@ -51,12 +51,6 @@ void ProgReconsART::defineParams()
     addUsageLine("+different grids (BCC (by default), FCC or CC).");
 
     ARTReconsBase::defineParams(this, isMpi);
-
-#ifndef RELEASE_MODE
-
-//    addParamsLine(" == Special Parameters for X-rays == ");
-//    XrayARTRecons::defineParams(this);
-#endif
 
     addParamsLine(" == Special Parameters for crystals == ");
     CrystalARTRecons::defineParams(this);
@@ -117,11 +111,6 @@ void ProgReconsART::defineParams()
 void ProgReconsART::readParams()
 {
 
-#ifndef RELEASE_MODE
-//    if (checkParam("--xray"))
-//        artRecons = new XrayARTRecons;
-//    else
-#endif
 
       if (checkParam("--crystal"))
           artRecons = new CrystalARTRecons;
@@ -166,7 +155,7 @@ void ProgReconsART::run()
     struct timeval start_time, end_time;
     long int init_usecs, process_usecs, finish_usecs;
 
-    gettimeofday(&start_time, NULL);
+    gettimeofday(&start_time, nullptr);
 
     show();
     // Produce side information and initial volume
@@ -180,21 +169,21 @@ void ProgReconsART::run()
     // Show parameters and initiate history
     artRecons->initHistory(vol_basis);
 
-    gettimeofday(&end_time, NULL);
+    gettimeofday(&end_time, nullptr);
 
     init_usecs = (end_time.tv_sec-start_time.tv_sec)*1000000+(end_time.tv_usec-start_time.tv_usec);
 
-    gettimeofday(&start_time,NULL);
+    gettimeofday(&start_time,nullptr);
 
     // Iterations
     artRecons->iterations(vol_basis);
 
 
-    gettimeofday(&end_time,NULL);
+    gettimeofday(&end_time,nullptr);
 
     process_usecs = (end_time.tv_sec-start_time.tv_sec)*1000000+(end_time.tv_usec-start_time.tv_usec);
 
-    gettimeofday(&start_time,NULL);
+    gettimeofday(&start_time,nullptr);
 
     // Finish iterations
     artRecons->postProcess(vol_basis);
@@ -218,7 +207,7 @@ void ProgReconsART::run()
         vol_basis.write(artPrm.fn_root+".basis");
     artPrm.fh_hist->close();
 
-    gettimeofday(&end_time,NULL);
+    gettimeofday(&end_time,nullptr);
 
     finish_usecs = (end_time.tv_sec-start_time.tv_sec)*1000000+(end_time.tv_usec-start_time.tv_usec);
 

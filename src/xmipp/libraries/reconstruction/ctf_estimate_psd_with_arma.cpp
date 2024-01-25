@@ -123,18 +123,18 @@ void CausalARMA(MultidimArray<double> &Img, ARMA_parameters &prm)
     {
         // take the independet term from the correlation matrix (or calculate it
         // if it was not calculated before).
-        int l = (int)A2D_ELEM(N3,eq, 0);
-        int m = (int)A2D_ELEM(N3,eq, 1);
+        auto l = (int)A2D_ELEM(N3,eq, 0);
+        auto m = (int)A2D_ELEM(N3,eq, 1);
         VEC_ELEM(Indep_terms,eq) = A2D_ELEM(R, l, m);
 
         // take the coeficients
         for (long co = 0 ; co < NumberOfARParameters; co++)
         {
             // Take the pertinent coeficient form the correlation matrix (or calculate it)
-            int alpha1 = (int)(A2D_ELEM(N3,eq, 0) - A2D_ELEM(prm.ARParameters,co, 0));
-            int alpha2 = (int)(A2D_ELEM(N3,eq, 1) - A2D_ELEM(prm.ARParameters,co, 1));
-            int beta1 = (int)(A2D_ELEM(N3,eq, 0) + A2D_ELEM(prm.ARParameters,co, 0));
-            int beta2 = (int)(A2D_ELEM(N3,eq, 1) + A2D_ELEM(prm.ARParameters,co, 1));
+            auto alpha1 = (int)(A2D_ELEM(N3,eq, 0) - A2D_ELEM(prm.ARParameters,co, 0));
+            auto alpha2 = (int)(A2D_ELEM(N3,eq, 1) - A2D_ELEM(prm.ARParameters,co, 1));
+            auto beta1 = (int)(A2D_ELEM(N3,eq, 0) + A2D_ELEM(prm.ARParameters,co, 0));
+            auto beta2 = (int)(A2D_ELEM(N3,eq, 1) + A2D_ELEM(prm.ARParameters,co, 1));
             MAT_ELEM(Coeficients,eq, co) = A2D_ELEM(R,alpha1, alpha2) + A2D_ELEM(R,beta1, beta2);
         }
     }
@@ -154,8 +154,8 @@ void CausalARMA(MultidimArray<double> &Img, ARMA_parameters &prm)
     double dSum = 0;
     for (long n = 0 ; n < NumberOfARParameters; n++)
     {
-        int p = (int)A2D_ELEM(prm.ARParameters,n, 0);
-        int q = (int)A2D_ELEM(prm.ARParameters,n, 1);
+        auto p = (int)A2D_ELEM(prm.ARParameters,n, 0);
+        auto q = (int)A2D_ELEM(prm.ARParameters,n, 1);
         dSum += A2D_ELEM(prm.ARParameters, n, 2) * A2D_ELEM(R, p, q);
     }
 
@@ -176,16 +176,16 @@ void CausalARMA(MultidimArray<double> &Img, ARMA_parameters &prm)
         {
             double ARm0 = A2D_ELEM(prm.ARParameters, m, 0);
             double ARm1 = A2D_ELEM(prm.ARParameters, m, 1);
-            int alpha1 = (int)(MAn0 - ARm0);
-            int alpha2 = (int)(MAn1 - ARm1);
-            int beta1 = (int)(MAn0 + ARm0);
-            int beta2 = (int)(MAn1 + ARm1);
+            auto alpha1 = (int)(MAn0 - ARm0);
+            auto alpha2 = (int)(MAn1 - ARm1);
+            auto beta1 = (int)(MAn0 + ARm0);
+            auto beta2 = (int)(MAn1 + ARm1);
             dSum += A2D_ELEM(prm.ARParameters, m, 2) * (
                         A2D_ELEM(R, alpha1, alpha2) + A2D_ELEM(R, beta1, beta2));
         }
 
-        int p = (int)MAn0;
-        int q = (int)MAn1;
+        auto p = (int)MAn0;
+        auto q = (int)MAn1;
         A2D_ELEM(prm.MAParameters, n, 2) = (A2D_ELEM(R, p, q) - dSum) * idSigma;
     }
 }

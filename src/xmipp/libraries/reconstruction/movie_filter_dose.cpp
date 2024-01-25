@@ -25,6 +25,7 @@
 
 #include "movie_filter_dose.h"
 #include "core/xmipp_image_generic.h"
+#include "core/metadata_vec.h"
 #include "data/fourier_filter.h"
 
 #define OUTSIDE_WRAP 0
@@ -172,7 +173,7 @@ void ProgMovieFilterDose::applyDoseFilterToImage(
 void ProgMovieFilterDose::run() {
 	show();
 	//read movie
-	MetaData movie;
+	MetaDataVec movie;
 	size_t Xdim, Ydim, Zdim, Ndim;
 
 	//if input is an stack create a metadata.
@@ -212,10 +213,10 @@ void ProgMovieFilterDose::run() {
 	int mode = WRITE_OVERWRITE;
 
 	MultidimArray<std::complex<double> > FFT1;
-	FOR_ALL_OBJECTS_IN_METADATA(movie)
+	for (size_t objId : movie.ids())
 	{
 		if (n >= user_supplied_first_frame && n <= user_supplied_last_frame) {
-			movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+			movie.getValue(MDL_IMAGE, fnFrame, objId);
 			frame.read(fnFrame);
 			// Now do the Fourier transform and filter
 			transformer.FourierTransform(frame(), FFT1, false);

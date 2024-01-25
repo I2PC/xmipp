@@ -30,6 +30,7 @@
 #include "ctf_estimate_from_psd_fast.h"
 #include "core/matrix2d.h"
 #include "core/transformations.h"
+#include "core/metadata_vec.h"
 #include "data/numerical_tools.h"
 #include "fringe_processing.h"
 
@@ -37,16 +38,16 @@
 double CTF_fitness(double *, void *);
 
 /* Number of CTF parameters */
-#define ALL_CTF_PARAMETERS           38
-#define CTF_PARAMETERS               30
-#define PARAMETRIC_CTF_PARAMETERS    16
-#define BACKGROUND_CTF_PARAMETERS    14
-#define SQRT_CTF_PARAMETERS           8
-#define ENVELOPE_PARAMETERS          11
-#define DEFOCUS_PARAMETERS            5
-#define FIRST_SQRT_PARAMETER         16
-#define FIRST_ENVELOPE_PARAMETER      4
-#define FIRST_DEFOCUS_PARAMETER       0
+constexpr int  ALL_CTF_PARAMETERS =           38;
+constexpr int  CTF_PARAMETERS =               30;
+constexpr int  PARAMETRIC_CTF_PARAMETERS =    16;
+constexpr int  BACKGROUND_CTF_PARAMETERS =    14;
+constexpr int  SQRT_CTF_PARAMETERS =           8;
+constexpr int  ENVELOPE_PARAMETERS =          11;
+constexpr int  DEFOCUS_PARAMETERS =            5;
+constexpr int  FIRST_SQRT_PARAMETER =         16;
+constexpr int  FIRST_ENVELOPE_PARAMETER =      4;
+constexpr int  FIRST_DEFOCUS_PARAMETER =       0;
 
 //#define DEBUG_WITH_TEXTFILES
 #ifdef DEBUG_WITH_TEXTFILES
@@ -478,7 +479,7 @@ void ProgCTFEstimateFromPSD::generate_model_quadrant(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // Generate the CTF model
@@ -542,7 +543,7 @@ void ProgCTFEstimateFromPSD::generate_model_halfplane(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // The left part is the CTF model
@@ -977,7 +978,7 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
 
 double CTF_fitness(double *p, void *vprm)
 {
-	ProgCTFEstimateFromPSD *prm=(ProgCTFEstimateFromPSD *) vprm;
+	auto *prm=(ProgCTFEstimateFromPSD *) vprm;
 	return prm->CTF_fitness_object(p);
 }
 
@@ -1951,7 +1952,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     VEC_ELEM(coefs,5) = 1;
     VEC_ELEM(coefs,12) =1;
 
-    int x=(int)((0.3*max_freq+0.7*min_freq)*std::cos(PI/4)*XSIZE(centeredEnhancedPSD)+XSIZE(centeredEnhancedPSD)/2);
+    auto x=(int)((0.3*max_freq+0.7*min_freq)*std::cos(PI/4)*XSIZE(centeredEnhancedPSD)+XSIZE(centeredEnhancedPSD)/2);
     DEBUG_TEXTFILE(formatString("Zernike1 %d",x));
     DEBUG_TEXTFILE(formatString("centeredEnhancedPSD80x80 %f",centeredEnhancedPSD(80,80)));
     DEBUG_TEXTFILE(formatString("centeredEnhancedPSD120x120 %f",centeredEnhancedPSD(120,120)));
@@ -1992,14 +1993,14 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     lambdaPhase = 0.8;
     sizeWindowPhase = 10;
 
-    Matrix1D<double> initialGlobalAdjust = (*adjust_params);
+    Matrix1D<double> initialGlobalAdjust = *adjust_params;
 
     for (int i = 1; i < numElem; i++)
     {
-        if ( ( ((fmax - min_freq)/min_freq) > 0.5))
+        if (((fmax - min_freq)/min_freq) > 0.5)
         {
             demodulate(centeredEnhancedPSD,lambdaPhase,sizeWindowPhase,
-                          x,x,
+            x,x,
                           (int)(min_freq*XSIZE(centeredEnhancedPSD)),
                           (int)(fmax*XSIZE(centeredEnhancedPSD)),
                           phase, mod, coefs, 0);
@@ -2166,7 +2167,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
         action = 3;
         evaluation_reduction = 1;
 
-        double error = -CTF_fitness(adjust_params->vdata-1,NULL);
+        double error = -CTF_fitness(adjust_params->vdata-1,nullptr);
         if ( error <= -0.1)
         {
             *adjust_params = initialGlobalAdjust;
@@ -2453,9 +2454,9 @@ double ROUT_Adjust_CTF(ProgCTFEstimateFromPSD &prm, CTFDescription &output_ctfmo
         prm.current_ctfmodel.Tm /= prm.downsampleFactor;
         prm.current_ctfmodel.azimuthal_angle = std::fmod(prm.current_ctfmodel.azimuthal_angle,360.);
         prm.current_ctfmodel.write(fn_rootCTFPARAM + ".ctfparam_tmp");
-        MetaData MD;
+        MetaDataVec MD;
         MD.read(fn_rootCTFPARAM + ".ctfparam_tmp");
-        size_t id = MD.firstObject();
+        size_t id = MD.firstRowId();
         MD.setValue(MDL_CTF_X0, (double)output_ctfmodel.x0*prm.Tm, id);
         MD.setValue(MDL_CTF_XF, (double)output_ctfmodel.xF*prm.Tm, id);
         MD.setValue(MDL_CTF_Y0, (double)output_ctfmodel.y0*prm.Tm, id);

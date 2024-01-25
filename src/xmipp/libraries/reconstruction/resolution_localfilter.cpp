@@ -98,15 +98,15 @@ void ProgResLocalFilter::produceSideInfo()
 
 				if (abs(ux)>=limit_distance_x)
 				{
-					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/N_smoothing));
 				}
 				if (abs(uy)>=limit_distance_y)
 				{
-					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/N_smoothing));
 				}
 				if (abs(uz)>=limit_distance_z)
 				{
-					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(inputVol, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/N_smoothing));
 				}
 				++n;
 			}
@@ -225,15 +225,11 @@ void ProgResLocalFilter::run()
 	filtered_aux.resizeNoCopy(resVol());
 	filteredMap.initZeros(resVol());
 
-	std::cout << "freq = " << highIdx << std::endl;
-	std::cout << "freq = " << lowIdx << std::endl;
-
-
-	for (double idx = lowIdx; idx < highIdx; idx++)
+	
+	for (int idx = lowIdx; idx < highIdx; idx++)
 	{
-		FFT_IDX2DIGFREQ(idx, ZSIZE(resVol()), freq);
+		FFT_IDX2DIGFREQ((double)idx, ZSIZE(resVol()), freq);
 
-		std::cout << "freq = " << freq << std::endl;
 		freqL = freq - 0.02;
 		if (freqL < 0)
 			freqL = 0.001;
@@ -274,7 +270,7 @@ void ProgResLocalFilter::run()
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filtered_aux)
 		{
-			double weight, sumweight, digitalfreq;
+			double weight, sumweight = 0., digitalfreq;
 			//TODO: make the converstion in the produdesideinfo
 			digitalfreq = sampling/DIRECT_MULTIDIM_ELEM(resVol, n);
 
@@ -282,8 +278,6 @@ void ProgResLocalFilter::run()
 			DIRECT_MULTIDIM_ELEM(filteredMap, n) += weight*DIRECT_MULTIDIM_ELEM(filtered_aux, n);
 			sumweight += weight;
 		}
-
-
 	}
 
 	Image<double> saveMap;
