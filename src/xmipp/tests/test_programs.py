@@ -905,8 +905,8 @@ class TomoDetectMissingWedge(XmippProgramTest):
     def validate_case1(self):
         stdout = os.path.join(self.outputDir, "stdout.txt")
         f = open(stdout).readlines()
-        plane1 = None
-        plane2 = None
+        plane1 = 0.0
+        plane2 = 0.0
         for line in f:
             if 'Plane1: ' in line:
                 plane1 = list(map(float, line.split()[1:]))
