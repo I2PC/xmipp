@@ -1,8 +1,9 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
- *
+ * 			   Carlos Oscar S. Sorzano                   coss@cnb.csic.es
+ * 			   Federico P. de Isidro Gómez		  fp.deisidro@cnb.csic.es
+ * 
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,31 +31,54 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
+#include <core/xmipp_fftw.h>
+#include <core/metadata_extension.h>
 #include <limits>
 #include <complex>
 #include <string>
+
+
+// #define DEBUG
 
 
 class ProgTomoExtractSubtomograms : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnTom, fnCoor;
+	FileName fnOut;
+    FileName fnTom;
+    FileName fnCoor;
 
-    size_t Xdim, Ydim, Zdim;
+    size_t Xdim;
+    size_t Ydim;
+    size_t Zdim;
 
-    bool invertContrast, normalize;
+    MetaDataVec md;
+    MetaDataVec mdout;
+	MDRowVec rowout;
+
+    bool invertContrast;
+    bool normalize;
+    bool fixedBoxSize;
 
     double scaleFactor;
+    double downsampleFactor;
+    std::vector<size_t> maskIdx;
 
 	/** Is the volume previously masked?*/
-	int  boxsize, nthrs;
+	int boxsize;
+    int nthrs;
+
+	Image<double> subtomoImg;
 
 public:
 
     void defineParams();
     void readParams();
-    void readAndPrepareData();
+    void createSphere(int halfboxsize);
+    void normalizeSubtomo(MultidimArray<double> &subtomo, int halfboxsize);
+    void extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction);
+    void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid);
     void run();
 };
 //@}
