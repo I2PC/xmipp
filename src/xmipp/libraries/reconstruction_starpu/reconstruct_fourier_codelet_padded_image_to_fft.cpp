@@ -82,7 +82,8 @@ static void cropAndShift(
 
 				float2 item;
 				if (freq.x * freq.x + freq.y * freq.y > maxResolutionSqr) {
-					item = float2 { 0.0f, 0.0f };
+					float zeroValue = 0.0f;
+					float2 item = { zeroValue, zeroValue };
 				} else {
 					item = input[y * inputSizeX + x];
 					item.x *= normalizationFactor;
