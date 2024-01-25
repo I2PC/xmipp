@@ -54,7 +54,7 @@ def maximum_cut_sdp(graph: scipy.sparse.csr_matrix,
     value = problem.solve(solver)
     
     # Quantize the result
-    generator = np.random.Generator()
+    generator = np.random.default_rng()
     v = scipy.linalg.sqrtm(P.value)
     u = generator.randn(n_vertices)
     projections = v @ u
