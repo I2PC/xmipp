@@ -182,7 +182,7 @@ public:
         mSettings.refDims = dims.createSingle();
         mSettings.type = MeritType::OneToN;
 
-        shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true, true);
+        shiftAligner->init2D(hw, AlignType::OneToN, FFTSettings<T>(dims, batch), maxShift, true, true, true);
         rotationAligner->init(rotSettings, true);
         transformer->init(tSettings, false);
         meritComputer->init(mSettings, true);
@@ -384,30 +384,22 @@ TYPED_TEST_P( IterativeAlignmentEstimator_Test, clearStatisticsNoNoise)
 
 TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOneNoise)
 {
-    XMIPP_TRY
     IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoiseNoBatch)
 {
-    XMIPP_TRY
     IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(100, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoiseBatch)
 {
-    XMIPP_TRY
     IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(100, 50);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoiseBatchNotMultiple)
 {
-    XMIPP_TRY
     IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(100, 60);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( IterativeAlignmentEstimator_Test, checkStatisticsNoise)
@@ -424,13 +416,11 @@ TYPED_TEST_P( IterativeAlignmentEstimator_Test, clearStatisticsNoise)
 
 //TYPED_TEST_P( IterativeAlignmentEstimator_Test, debug)
 //{
-//    XMIPP_TRY
 //    auto dims = Dimensions(680, 680, 1, 100);
 ////    auto dims = Dimensions(64, 64, 1, 50);
 //    size_t batch = 50;
 //    IterativeAlignmentEstimator_Test<TypeParam>::template testStatistics<false>(dims, batch);
 ////    IterativeAlignmentEstimator_Test<TypeParam>::template test<false>(dims, batch);
-//    XMIPP_CATCH
 //}
 
 REGISTER_TYPED_TEST_SUITE_P(IterativeAlignmentEstimator_Test,

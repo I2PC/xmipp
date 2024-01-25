@@ -140,10 +140,8 @@ std::mt19937 ARotationEstimator_Test<T>::mt(42); // fixed seed to ensure reprodu
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOne)
 {
-    XMIPP_TRY
     // test one reference vs one image
     ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToMany)

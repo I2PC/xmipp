@@ -34,7 +34,7 @@
 
 PyTypeObject MDQueryType =
     {
-        PyObject_HEAD_INIT(nullptr)
+        PyObject_HEAD_INIT(0)
         "xmipp.MDQuery", /*tp_name*/
         sizeof(MDQueryObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
@@ -231,7 +231,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
 
@@ -264,7 +264,7 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
 
@@ -318,6 +318,10 @@ PyMethodDef MetaData_methods[] =
           "Remove a label if exists. The values are still in the table." },
         { "getValue", (PyCFunction) MetaData_getValue,
           METH_VARARGS, "Get the value for column(label)" },
+        { "getRow", (PyCFunction) MetaData_getRow,
+          METH_VARARGS, "Get a complete row (as dict)" },
+        { "setRow", (PyCFunction) MetaData_setRow,
+          METH_VARARGS, "Set a complete row (dict)" },
         { "getColumnValues", (PyCFunction) MetaData_getColumnValues,
           METH_VARARGS, "Get all values value from column(label)" },
         { "setColumnValues", (PyCFunction) MetaData_setColumnValues,
@@ -441,7 +445,7 @@ PyMethodDef MetaData_methods[] =
 
 PyTypeObject MetaDataType =
     {
-        PyObject_HEAD_INIT(nullptr)
+        PyObject_HEAD_INIT(0)
         "xmipp.MetaData", /*tp_name*/
         sizeof(MetaDataObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
@@ -520,7 +524,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return nullptr;
             }
         }
@@ -543,7 +547,7 @@ int MetaData_print(PyObject *obj, FILE *fp, int flags)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
         return -1;
     }
     return 0;
@@ -589,7 +593,7 @@ MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -651,7 +655,7 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return nullptr;
             }
         }
@@ -695,7 +699,7 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return NULL;
             }
         }
@@ -737,7 +741,7 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return NULL;
             }
         }
@@ -778,7 +782,7 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return NULL;
             }
         }
@@ -813,7 +817,7 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return NULL;
             }
         }
@@ -847,7 +851,7 @@ MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
             }
             catch (XmippError &xe)
             {
-                PyErr_SetString(PyXmippError, xe.msg.c_str());
+                PyErr_SetString(PyXmippError, xe.what());
                 return nullptr;
             }
         }
@@ -886,7 +890,7 @@ MetaData_size(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -902,7 +906,7 @@ MetaData_getParsedLines(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -921,7 +925,7 @@ MetaData_isEmpty(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -939,7 +943,7 @@ MetaData_getColumnFormat(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -964,7 +968,7 @@ MetaData_setColumnFormat(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -991,7 +995,35 @@ MetaData_setValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
+        }
+    }
+    return nullptr;
+}
+
+PyObject *
+MetaData_setRow(PyObject *obj, PyObject *args, PyObject *)
+{
+    PyObject *dict;
+    if (size_t objectId = BAD_OBJID; PyArg_ParseTuple(args, "Ok", &dict, &objectId)) {
+        try
+        {
+            PyObject *key;
+            PyObject *value;
+            Py_ssize_t pos = 0;
+            MDRowVec row;
+            while (PyDict_Next(dict, &pos, &key, &value)) {
+                auto label = PyLong_AsLong(key);
+                auto object = createMDObject(static_cast<int>(label), value);
+                row.setValue(*object);
+            }
+            const auto *self = reinterpret_cast<MetaDataObject*>(obj);
+            self->metadata->setRow(row, objectId);
+            Py_RETURN_TRUE;
+        }
+        catch (const XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1017,7 +1049,7 @@ MetaData_setValueCol(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1040,7 +1072,7 @@ MetaData_removeLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1072,13 +1104,37 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
 }
 
-/* getValue */
+PyObject *
+MetaData_getRow(PyObject *obj, PyObject *args, PyObject *)
+{
+    if (size_t objectId = BAD_OBJID; PyArg_ParseTuple(args, "k", &objectId))
+    {
+        try
+        {
+            const auto *self = reinterpret_cast<MetaDataObject*>(obj);
+            const auto row = self->metadata->getRowSql(objectId);
+            PyObject *d = PyODict_New();
+            for (const auto *o : row) {
+                PyODict_SetItem(d, PyLong_FromLong(o->label), getMDObjectValue(o));
+            }
+            return d;
+        }
+        catch (const XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.what());
+        }
+    }
+    return nullptr;
+}
+
+
+
 PyObject *
 MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
@@ -1102,7 +1158,7 @@ MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1145,7 +1201,7 @@ MetaData_setColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
             return nullptr;
         }
     }
@@ -1171,7 +1227,7 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -1210,7 +1266,7 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return NULL;
 }
@@ -1231,7 +1287,7 @@ MetaData_getMaxStringLength(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1254,7 +1310,7 @@ MetaData_containsLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1276,7 +1332,7 @@ MetaData_addLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1294,7 +1350,7 @@ MetaData_addItemId(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -1324,7 +1380,7 @@ MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1346,7 +1402,7 @@ MetaData_fillExpand(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1381,7 +1437,7 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1403,7 +1459,7 @@ MetaData_copyColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1457,7 +1513,7 @@ MetaData_renameColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1489,7 +1545,7 @@ MetaData_removeObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1507,7 +1563,7 @@ MetaData_removeDisabled(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -1527,7 +1583,7 @@ MetaData_makeAbsPath(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1545,7 +1601,7 @@ MetaData_clear(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
         return nullptr;
     }
 }
@@ -1558,13 +1614,14 @@ MetaData_iter(PyObject *obj)
     {
         auto *self = reinterpret_cast<MetaDataObject*>(obj);
         self->iter = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().begin());
+        self->iter_end = std::make_unique<MetaDataDb::id_iterator>(self->metadata->ids().end());
         Py_INCREF(self);
         return (PyObject *) self;
         //return Py_BuildValue("l", self->metadata->iteratorBegin());
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -1574,7 +1631,7 @@ MetaData_iternext(PyObject *obj)
     try
     {
         const auto *self = reinterpret_cast<MetaDataObject*>(obj);
-        if (*(self->iter) == self->metadata->ids().end())
+        if (*(self->iter) == *(self->iter_end))
             return nullptr;
         size_t objId = **(self->iter);
         ++(*self->iter);
@@ -1583,7 +1640,7 @@ MetaData_iternext(PyObject *obj)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -1610,7 +1667,7 @@ MetaData_sort(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1634,7 +1691,7 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1670,7 +1727,7 @@ MetaData_importObjects(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1696,7 +1753,7 @@ MetaData_aggregateSingle(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1722,7 +1779,7 @@ MetaData_aggregateSingleInt(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1758,7 +1815,7 @@ MetaData_aggregate(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1818,7 +1875,7 @@ MetaData_aggregateMdGroupBy(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1846,7 +1903,7 @@ MetaData_unionAll(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1874,7 +1931,7 @@ MetaData_merge(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1895,7 +1952,7 @@ MetaData_setComment(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1924,7 +1981,7 @@ MetaData_addIndex(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -1963,7 +2020,7 @@ MetaData_join1(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2004,7 +2061,7 @@ MetaData_join2(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2040,7 +2097,7 @@ MetaData_joinNatural(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2069,7 +2126,7 @@ MetaData_intersection(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2092,7 +2149,7 @@ MetaData_operate(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     // free(str);
@@ -2118,7 +2175,7 @@ MetaData_replace(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     //free(oldStr);
@@ -2148,7 +2205,7 @@ MetaData_randomize(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2179,7 +2236,7 @@ MetaData_selectPart(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2243,7 +2300,7 @@ createMDObject(int label, PyObject *pyValue)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }
@@ -2267,7 +2324,7 @@ MetaData_copyColumnTo(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
         catch (XmippError &xe)
         {
-            PyErr_SetString(PyXmippError, xe.msg.c_str());
+            PyErr_SetString(PyXmippError, xe.what());
         }
     }
     return nullptr;
@@ -2316,12 +2373,12 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
 }
 
 PyObject *
-getMDObjectValue(MDObject * obj)
+getMDObjectValue(const MDObject * obj)
 {
     if (obj->label == MDL_UNDEFINED) //if undefine label, store as a literal string
         return nullptr;

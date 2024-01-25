@@ -92,7 +92,7 @@ void ProgProject::defineParams()
 {
     addUsageLine("This program is able to generate a set of projections from a volume. ");
     addUsageLine("++The projection is done using the information directly or from a file.");
-    addSeeAlsoLine("tomo_project, xray_project, phantom_create");
+    addSeeAlsoLine("tomo_project,phantom_create");
 
     addParamsLine("   -i <volume_file>                           : Voxel volume, PDB or description file");
     addParamsLine("   -o <image_file>                            : Output stack or image");
@@ -727,8 +727,10 @@ void generate_even_angles(int ExtProjs, int Nrottilt, MetaDataVec &DF,
             rot_step = rot_step_at_equator / sin(DEG2RAD(tilt));
         else
             rot_step = prm.rot_range.angF - prm.rot_range.ang0 + 1;
-        for (double rot = prm.rot_range.ang0; rot <= prm.rot_range.angF; rot += rot_step)
+        int iterRot = static_cast<int>((prm.rot_range.angF - prm.rot_range.ang0) / rot_step);
+        for (int irot = 0; irot <= iterRot; irot ++)
         {
+        	double rot = prm.rot_range.ang0+irot*rot_step;
             // Copy this angle to those projections belonging to this group .....
             // If there is any group
             for (int k = 0; k < Npsi; k++)
@@ -786,8 +788,8 @@ int count_even_angles(const ParametersProjection &prm)
             rot_step = rot_step_at_equator / sin(DEG2RAD(tilt));
         else
             rot_step = prm.rot_range.angF - prm.rot_range.ang0 + 1;
-        for (double rot = prm.rot_range.ang0; rot <= prm.rot_range.angF; rot += rot_step)
-            N++;
+        int iterRot = static_cast<int>((prm.rot_range.angF - prm.rot_range.ang0) / rot_step);
+        N+=iterRot+1;
     }
     N++; // This shouldn't be necessary but some GCC optimization
     // sometimes doesn't do well its work. For instance if we

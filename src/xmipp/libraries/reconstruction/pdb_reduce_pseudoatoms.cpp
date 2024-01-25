@@ -24,6 +24,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
 #include <algorithm>
 #include "pdb_reduce_pseudoatoms.h"
 #include "data/pdb.h"
@@ -37,12 +38,12 @@ ProgPdbReduce::ProgPdbReduce()
 void ProgPdbReduce::defineParams()
 {
 	addUsageLine("Reduce the number of pseudoatoms in a volume.");
-	addExampleLine("   xmipp_pdb_reduce -i 1o7d.vol -o 1o7dreduced.vol --threshold 0.15");
+	addExampleLine("   xmipp_pdb_reduce_pseudoatoms -i 1o7d.vol -o 1o7dreduced.vol --threshold 0.15");
 
 	addParamsLine("   -i <pdb_file>                          : File to process");
 	addParamsLine("  [-o <fn_root>]                          : Root name for output");
-	addParamsLine("  [--number <num=-1.0>]                : Sampling rate (Angstroms/pixel)");
-	addParamsLine("  [--threshold <thresh=0.0>]                : Sampling rate (Angstroms/pixel)");
+	addParamsLine("  [--number <num=-1.0>]                   : Number of pseudoatoms to keep based on intensity");
+	addParamsLine("  [--threshold <thresh=0.0>]              : Intensity threshold for removing pseudoatoms");
 }
 
 void ProgPdbReduce::readParams()
@@ -66,17 +67,17 @@ void ProgPdbReduce::reduceNumberPseudoatoms()
 {
 	PDBRichPhantom pdb;
 	if(thresh != 0.0)
-		pdb.read(fn_volume, -1.0, thresh);
+		pdb.read(fn_volume, false, thresh);
 	else
 	{
-		pdb.read(fn_volume, num);
+		pdb.read(fn_volume, true);
 		std::sort(pdb.intensities.rbegin(), pdb.intensities.rend());
 		thresh = pdb.intensities.at(num);
 		pdb.atomList.clear();
 		pdb.remarks.clear();
-		pdb.read(fn_volume, -1.0, thresh);
+		pdb.read(fn_volume, false, thresh);
 	}
-	pdb.write(fn_out);
+	pdb.write(fn_out, true); // keep renumbering
 }
 
 void ProgPdbReduce::run()

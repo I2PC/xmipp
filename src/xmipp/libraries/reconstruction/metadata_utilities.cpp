@@ -210,7 +210,6 @@ protected:
             mode = MD_APPEND;
 		MDSql::activateMathExtensions();
         MDSql::activateRegExtensions();
-
     }
 
     void doSet()
@@ -221,9 +220,17 @@ protected:
         MDLabel label2 = MDL::str2Label(getParam("--set", 3));
 
         if (operation == "union")
-            mdIn.unionDistinct(md2, label);
+        {
+            if(mdIn.isEmpty())
+                mdIn = md2;
+            else
+                mdIn.unionDistinct(md2, label);
+        }
         else if (operation == "union_all")
-            mdIn.unionAll(md2);
+            if(mdIn.isEmpty())
+                mdIn = md2;
+            else
+                mdIn.unionAll(md2);
         else if (operation == "intersection")
             mdIn.intersection(md2, label);
         else if (operation == "subtraction")
@@ -533,6 +540,8 @@ public:
     {
         if (checkParam("--set"))
             doSet();
+        else if (mdIn.size()==0)  // Only set operationts allow an empty input md file
+    		return;
         else if (checkParam("--operate"))
             doOperate();
         else if (checkParam("--file"))
@@ -547,6 +556,4 @@ public:
         else if (doWrite)
             mdIn.write(fn_out, mode);
     }
-
-}
-;//end of class ProgMetaDataUtilities
+};

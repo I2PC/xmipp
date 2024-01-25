@@ -1502,6 +1502,8 @@ double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
 		avgW1=sumWI1*iN;
 		avgW2=sumWI2*iN;
 	}
+	else
+		return -1;
 	double p1a;
     double p2a;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)

@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_detect_missing_wedge.h>
+#include <tomo/tomo_detect_missing_wedge.h>
 
 int main(int argc, char **argv)
 {

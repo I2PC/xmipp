@@ -46,11 +46,17 @@ public:
     /** Output fileroot */
     FileName fn_out;
 
+    /** Output file for centered PDB*/
+    FileName fn_outPDB;
+
     /** Blob */
     struct blobtype blob;
 
     /** Final size and origin in pixels */
     int output_dim_x, output_dim_y, output_dim_z, orig_x, orig_y, orig_z;
+    
+    /** Orig is set */
+    bool origGiven;
     
     /** Use blobs instead of scattering factors */
     bool useBlobs;

@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/tomo_map_back.h>
+#include <tomo/tomo_map_back.h>
 
 RUN_XMIPP_PROGRAM(ProgTomoMapBack)

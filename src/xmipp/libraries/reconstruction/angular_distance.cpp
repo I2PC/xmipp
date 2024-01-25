@@ -28,6 +28,9 @@
 #include <core/args.h>
 #include <core/histogram.h>
 #include "core/geometry.h"
+#include <core/metadata_db.h>
+
+#include <cassert>
 
 // Read arguments ==========================================================
 void ProgAngularDistance::readParams()
@@ -46,23 +49,29 @@ void ProgAngularDistance::readParams()
     	minSigmaD = getDoubleParam("--compute_weights",2);
     }
     set = getIntParam("--set");
+    ang = getIntParam("--ang");
+    compute_average_angle = checkParam("--compute_average_angle");
+    compute_average_shift = checkParam("--compute_average_shift");
 }
 
 // Show ====================================================================
 void ProgAngularDistance::show()
 {
     std::cout
-    << "Angular docfile 1: " << fn_ang1       << std::endl
-    << "Angular docfile 2: " << fn_ang2       << std::endl
-    << "Angular output   : " << fn_out    << std::endl
-    << "Symmetry file    : " << fn_sym        << std::endl
-    << "Check mirrors    : " << check_mirrors << std::endl
-    << "Object rotation  : " << object_rotation<<std::endl
-    << "Compute weights  : " << compute_weights << std::endl
-    << "Min sigma        : " << minSigma << std::endl
-    << "Min sigmaD       : " << minSigmaD << std::endl
-    << "IdLabel          : " << idLabel << std::endl
-    << "Set              : " << set << std::endl
+    << "Angular docfile 1    : " << fn_ang1       << std::endl
+    << "Angular docfile 2    : " << fn_ang2       << std::endl
+    << "Angular output       : " << fn_out    << std::endl
+    << "Symmetry file        : " << fn_sym        << std::endl
+    << "Check mirrors        : " << check_mirrors << std::endl
+    << "Object rotation      : " << object_rotation<<std::endl
+    << "Compute weights      : " << compute_weights << std::endl
+    << "Min sigma            : " << minSigma << std::endl
+    << "Min sigmaD           : " << minSigmaD << std::endl
+    << "IdLabel              : " << idLabel << std::endl
+    << "Set                  : " << set << std::endl
+    << "Ang                  : " << ang << std::endl
+    << "Compute average angle: " << compute_average_angle << std::endl
+    << "Compute average shift: " << compute_average_shift << std::endl
     ;
 }
 
@@ -97,6 +106,11 @@ void ProgAngularDistance::defineParams()
     addParamsLine("                             : Min sigmaD is the minimum shift standard deviation, set to -1 for not using shifts for weighting");
     addParamsLine("  [--set <set=1>]            : Set of distance to compute (angular_diff0 and jumper_weight0, angular_diff and jumper_weight,");
     addParamsLine("                             : or angular_diff2 and jumper_weight2)");
+    addParamsLine("  [--ang <ang=1>]            : The angle set to be written in the first position. Note that ang2 may be modified");
+    addParamsLine("                             : so that for the given symmetry is the closest to ang1. Therefore using ang=2 is useful ");
+    addParamsLine("                             : to obtain get ang2 close to ang1");
+    addParamsLine("  [--compute_average_angle]  : Average the angles defined in ang1 and ang2");
+    addParamsLine("  [--compute_average_shift]  : Average the shifts defined in ang1 and ang2");
 }
 
 // Produce side information ================================================
@@ -127,7 +141,7 @@ void ProgAngularDistance::run()
     	return;
     }
 
-    MetaDataDb DF_out;
+    MetaDataVec DF_out;
     double angular_distance=0;
     double shift_distance=0;
 
@@ -144,7 +158,6 @@ void ProgAngularDistance::run()
     // Build output comment
     /////DF_out.setComment("image rot1 rot2 diff_rot tilt1 tilt2 diff_tilt psi1 psi2 diff_psi ang_dist X1 X2 Xdiff Y1 Y2 Ydiff ShiftDiff");
 
-    int i = 0;
     size_t id;
     FileName fnImg;
     std::vector<double> output;
@@ -153,14 +166,18 @@ void ProgAngularDistance::run()
 
     auto iter1(DF1.ids().begin());
     auto iter2(DF2.ids().begin());
-    for (; i < DF1.size() ; ++iter1, ++iter2)
+    const auto s = std::min(DF1.size(), DF2.size());
+    int i;
+    for (i = 0; i < s; ++i, ++iter1, ++iter2)
     {
         // Read input data
+        size_t itemId;
         double rot1,  tilt1,  psi1;
         double rot2,  tilt2,  psi2;
         double rot2p, tilt2p, psi2p;
         double distp;
         double X1, X2, Y1, Y2;
+        DF1.getValue(MDL_ITEM_ID,itemId, *iter1);
         DF1.getValue(MDL_IMAGE,fnImg, *iter1);
 
         DF1.getValue(MDL_ANGLE_ROT,rot1, *iter1);
@@ -206,52 +223,90 @@ void ProgAngularDistance::run()
         // Fill the output result
         if (fillOutput)
         {
-            MDRowSql row;
-            //output[0]=rot1;
-            row.setValue(MDL_ANGLE_ROT, rot1);
-            //output[1]=rot2p;
-            row.setValue(MDL_ANGLE_ROT2, rot2p);
-            //output[2]=rot_diff(i);
+            MDRowVec row;
+            row.setValue(MDL_ITEM_ID, itemId);
+
+            // Write angles
+            if(compute_average_angle) {
+                // Average angles
+                double rotAvg, tiltAvg, psiAvg;
+                computeAverageAngles(rot1, tilt1, psi1,
+                                     rot2p, tilt2p, psi2p,
+                                     rotAvg, tiltAvg, psiAvg );
+
+                row.setValue(MDL_ANGLE_ROT, rotAvg);
+                row.setValue(MDL_ANGLE_ROT2, rot1);
+                row.setValue(MDL_ANGLE_ROT3, rot2p);
+                row.setValue(MDL_ANGLE_TILT, tiltAvg);
+                row.setValue(MDL_ANGLE_TILT2, tilt1);
+                row.setValue(MDL_ANGLE_TILT3, tilt2p);
+                row.setValue(MDL_ANGLE_PSI, psiAvg);
+                row.setValue(MDL_ANGLE_PSI2, psi1);
+                row.setValue(MDL_ANGLE_PSI3, psi2p);
+            } else if (ang==2) {
+                row.setValue(MDL_ANGLE_ROT, rot2p);
+                row.setValue(MDL_ANGLE_ROT2, rot1);
+                row.setValue(MDL_ANGLE_TILT, tilt2p);
+                row.setValue(MDL_ANGLE_TILT2, tilt1);
+                row.setValue(MDL_ANGLE_PSI, psi2p);
+                row.setValue(MDL_ANGLE_PSI2, psi1);
+            } else {
+                row.setValue(MDL_ANGLE_ROT, rot1);
+                row.setValue(MDL_ANGLE_ROT2, rot2p);
+                row.setValue(MDL_ANGLE_TILT, tilt1);
+                row.setValue(MDL_ANGLE_TILT2, tilt2p);
+                row.setValue(MDL_ANGLE_PSI, psi1);
+                row.setValue(MDL_ANGLE_PSI2, psi2p);
+            }
+
+            // Write angle differences
             row.setValue(MDL_ANGLE_ROT_DIFF, rot_diff(i));
-            //output[3]=tilt1;
-            row.setValue(MDL_ANGLE_TILT, tilt1);
-            //output[4]=tilt2p;
-            row.setValue(MDL_ANGLE_TILT2, tilt2p);
-            //output[5]=tilt_diff(i);
             row.setValue(MDL_ANGLE_TILT_DIFF,tilt_diff(i) );
-            //output[6]=psi1;
-            row.setValue(MDL_ANGLE_PSI, psi1);
-            //output[7]=psi2p;
-            row.setValue(MDL_ANGLE_PSI2, psi2);
-            //output[8]=psi_diff(i);
             row.setValue(MDL_ANGLE_PSI_DIFF, psi_diff(i));
-            //output[9]=distp;
             if (set==1)
             	row.setValue(MDL_ANGLE_DIFF, distp);
             else
             	row.setValue(MDL_ANGLE_DIFF2, distp);
-            //output[10]=X1;
-            row.setValue(MDL_SHIFT_X,X1);
-            //output[11]=X2;
-            row.setValue(MDL_SHIFT_X2, X2);
-            //output[12]=X_diff(i);
+
+            // Write shifts
+            if(compute_average_shift) {
+                // Compute average
+                double XAvg, YAvg;
+                computeAverageShifts(X1, Y1,
+                                     X2, Y2,
+                                     XAvg, YAvg );
+
+                row.setValue(MDL_SHIFT_X, XAvg);
+                row.setValue(MDL_SHIFT_X2, X1);
+                row.setValue(MDL_SHIFT_X3, X2);
+                row.setValue(MDL_SHIFT_Y, YAvg);
+                row.setValue(MDL_SHIFT_Y2, Y1);
+                row.setValue(MDL_SHIFT_Y3, Y2);
+            } else if(ang==2) {
+                row.setValue(MDL_SHIFT_X, X2);
+                row.setValue(MDL_SHIFT_X2, X1);
+                row.setValue(MDL_SHIFT_Y, Y2);
+                row.setValue(MDL_SHIFT_Y2, Y1);
+            } else {
+                row.setValue(MDL_SHIFT_X, X1);
+                row.setValue(MDL_SHIFT_X2, X2);
+                row.setValue(MDL_SHIFT_Y, Y1);
+                row.setValue(MDL_SHIFT_Y2, Y2);
+            }
+
+            // Write shift differences
             row.setValue(MDL_SHIFT_X_DIFF, X_diff(i));
-            //output[13]=Y1;
-            row.setValue(MDL_SHIFT_Y, Y1);
-            //output[14]=Y2;
-            row.setValue(MDL_SHIFT_Y2, Y2);
-            //output[15]=Y_diff(i);
             row.setValue(MDL_SHIFT_Y_DIFF, Y_diff(i));
-            //output[16]=shift_diff(i);
-            row.setValue(MDL_SHIFT_DIFF,shift_diff(i));
+            if (set==1)
+                row.setValue(MDL_SHIFT_DIFF,shift_diff(i));
+            else
+                row.setValue(MDL_SHIFT_DIFF2,shift_diff(i));
 
             id = DF_out.addRow(row);
             //id = DF_out.addObject();
             DF_out.setValue(MDL_IMAGE,fnImg,id);
             //DF_out.setValue(MDL_ANGLE_COMPARISON,output, id);
         }
-
-        i++;
     }
     if (0 == i) {
         REPORT_ERROR(ERR_NUMERICAL, "i is zero (0), which would lead to division by zero");
@@ -288,7 +343,7 @@ void ProgAngularDistance::run()
 
 void ProgAngularDistance::computeWeights()
 {
-	MetaDataDb DF1sorted, DF2sorted, DFweights;
+	MetaDataVec DF1sorted, DF2sorted, DFweights;
 	MDLabel label=MDL::str2Label(idLabel);
 	DF1sorted.sort(DF1,label);
 	DF2sorted.sort(DF2,label);
@@ -372,10 +427,11 @@ void ProgAngularDistance::computeWeights()
     	// Advance Iter 1 to catch Iter 2
     	double N=0, cumulatedDistance=0, cumulatedDistanceShift=0;
     	size_t newObjId=0;
-    	if (*iter1 > 0)
+    	if (iter1 != DF1sorted.ids().end() && *iter1 > 0)
     	{
 			DF1sorted.getValue(label,id1,*iter1);
-			while (id1<currentId && iter1 != DF1sorted.ids().end())
+			const auto lastID = DF1sorted.ids().end();
+			while (id1<currentId && iter1 != lastID)
 			{
 				++iter1;
 				if (iter1 != DF1sorted.ids().end())
@@ -481,7 +537,8 @@ void ProgAngularDistance::computeWeights()
     }
 
     // If there are more images in MD1 than in MD2, set the last images to 0
-    while (iter2 != DF2sorted.ids().end())
+    const auto totalSize = DF2sorted.ids().end();
+    while (iter2 != totalSize)
     {
 		size_t newObjId=DFweights.addObject();
 		DFweights.setValue(label,currentId,newObjId);
@@ -547,7 +604,7 @@ void ProgAngularDistance::computeWeights()
 		DF2.removeLabel(angleDiffLabel);
 	if (DF2.containsLabel(weightLabel))
 		DF2.removeLabel(weightLabel);
-    DF2weighted.join1(DF2,DFweights,label,INNER);
+    DF2weighted.join1(MetaDataDb(DF2),MetaDataDb(DFweights),label,INNER);
 
     for (size_t objId : DF2weighted.ids())
     {
@@ -567,4 +624,115 @@ void ProgAngularDistance::computeWeights()
     }
     DF2weighted.removeDisabled();
     DF2weighted.write(fn_out+"_weights.xmd");
+}
+
+void ProgAngularDistance::euler2quat(   double rot, double tilt, double psi,
+                                        double q[4] )
+{
+    // Convert to radians and divide by 2
+    const double ai = -DEG2RAD(rot) / 2;
+    const double aj = DEG2RAD(tilt) / 2;
+    const double ak = -DEG2RAD(psi) / 2;
+
+    // Obtain sin and cos
+    const double    si = std::sin(ai),
+                    ci = std::cos(ai),
+                    sj = std::sin(aj),
+                    cj = std::cos(aj),
+                    sk = std::sin(ak),
+                    ck = std::cos(ak);
+
+    const double    cc = ci * ck,
+                    cs = ci * sk,
+                    sc = si * ck,
+                    ss = si * sk;
+
+    // Compute the quaternion values
+    // WXYZ
+    q[0] = +cj * (cc - ss);
+    q[1] = +sj * (cs - sc);
+    q[2] = -sj * (cc + ss);
+    q[3] = +cj * (cs + sc);
+}
+
+void ProgAngularDistance::quat2Euler(   const double q[4],
+                                        double& rot, double& tilt, double& psi )
+{
+    // Multiply the quaternion by sqrt2 to avoid multiplying pairs by 2
+    const auto sqrt2 = std::sqrt(2);
+    const auto qw = sqrt2 * q[0];
+    const auto qx = sqrt2 * q[1];
+    const auto qy = sqrt2 * q[2];
+    const auto qz = sqrt2 * q[3];
+
+    // Obtain pairwise products of the quaternion elements
+    const auto qx2 = qx*qx;
+    const auto qy2 = qy*qy;
+    const auto qz2 = qz*qz;
+    const auto qxqy = qx*qy;
+    const auto qxqz = qx*qz;
+    const auto qxqw = qx*qw;
+    const auto qyqz = qy*qz;
+    const auto qyqw = qy*qw;
+    const auto qzqw = qz*qw;
+
+    // Ensemble the matrix
+    const double  //m00 = 1 - qy2 - qz2,
+                  //m01 = qxqy - qzqw,
+                    m02 = qxqz + qyqw,
+                    m10 = qxqy + qzqw,
+                    m11 = 1 - qx2 - qz2,
+                    m12 = qyqz - qxqw,
+                    m20 = qxqz - qyqw,
+                    m21 = qyqz + qxqw,
+                    m22 = 1 - qx2 - qy2;
+
+
+
+    const auto sy = std::sqrt(m21*m21 + m20*m20);
+    double ax, ay, az;
+    if(sy > 1e-6) {
+        ax = std::atan2(m21, m20);
+        ay = std::atan2(sy, m22);
+        az = std::atan2(m12, -m02);
+    } else {
+        ax = std::atan2(-m10, m11);
+        ay = std::atan2(sy, m22);
+        az = 0;
+    }
+
+    rot = RAD2DEG(ax);
+    tilt = RAD2DEG(ay);
+    psi = RAD2DEG(az);
+}
+
+void ProgAngularDistance::computeAverageAngles( double rot1, double tilt1, double psi1,
+                                                double rot2, double tilt2, double psi2,
+                                                double& rot, double& tilt, double& psi )
+{
+    // Convert the angles to quaternions
+    Matrix1D<double> eigvals;
+    Matrix2D<double> quaternions(2, 4), m, eigvecs;
+    euler2quat(rot1, tilt1, psi1, &MAT_ELEM(quaternions, 0, 0));
+    euler2quat(rot2, tilt2, psi2, &MAT_ELEM(quaternions, 1, 0));
+    
+    // Average quaternions into a matrix
+    matrixOperation_AtA(quaternions, m);
+    m /= 2;
+
+    // Compute the largest eigenvector
+    firstEigs(m, 1UL, eigvals, eigvecs, true);
+
+    // Convert back to euler. As eigvecs has a single
+    // column it is safe to take a pointer to its data
+    assert(MAT_SIZE(eigvecs) == 4);
+    quat2Euler(MATRIX2D_ARRAY(eigvecs), rot, tilt, psi);
+}
+
+void ProgAngularDistance::computeAverageShifts( double shiftX1, double shiftY1,
+                                                double shiftX2, double shiftY2,
+                                                double& shiftX, double& shiftY )
+{
+    shiftX = (shiftX1 + shiftX2) / 2;
+    shiftY = (shiftY1 + shiftY2) / 2;
 }

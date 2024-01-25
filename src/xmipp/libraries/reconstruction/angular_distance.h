@@ -26,7 +26,7 @@
 #define _PROG_ANGULAR_DISTANCE
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata_db.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_program.h>
 #include <core/symmetries.h>
 
@@ -59,11 +59,17 @@ public:
     String idLabel;
     /// Set of angular difference
     int set;
+    /// The set of angles to be used for output
+    int ang;
+    /// Compute angle mean
+    bool compute_average_angle;
+    /// Compute shift mean
+    bool compute_average_shift;
 public:
     // DocFile 1
-    MetaDataDb DF1;
+    MetaDataVec DF1;
     // DocFile 2
-    MetaDataDb DF2;
+    MetaDataVec DF2;
     // Symmetry List
     SymList SL;
 public:
@@ -86,6 +92,20 @@ public:
 
     /** computeWeights */
     void computeWeights();
+
+    static void euler2quat( double rot, double tilt, double psi,
+                            double q[4] );
+    static void quat2Euler( const double q[4],
+                            double& rot, double& tilt, double& psi );
+
+    static void computeAverageAngles(double rot1, double tilt1, double psi1,
+                                     double rot2, double tilt2, double psi2,
+                                     double& rot, double& tilt, double& psi );
+
+    static void computeAverageShifts(double shiftX1, double shiftY1,
+                                     double shiftX2, double shiftY2,
+                                     double& shiftX, double& shiftY );
+
 };
 //@}
 #endif

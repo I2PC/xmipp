@@ -68,7 +68,7 @@ PyMethodDef FileName_methods[] =
 /*FileName Type */
 PyTypeObject FileNameType =
 {
-   PyObject_HEAD_INIT(nullptr)
+   PyObject_HEAD_INIT(0)
    "xmipp.FileName", /*tp_name*/
    sizeof(FileNameObject), /*tp_basicsize*/
    0, /*tp_itemsize*/
@@ -271,7 +271,7 @@ FileName_isMetaData(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     catch (XmippError &xe)
     {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
+        PyErr_SetString(PyXmippError, xe.what());
     }
     return nullptr;
 }

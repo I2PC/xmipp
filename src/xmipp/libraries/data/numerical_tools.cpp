@@ -22,6 +22,7 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include <vector>
 #include "numerical_tools.h"
 #include "core/matrix2d.h"
 #include "core/numerical_recipes.h"
@@ -45,25 +46,19 @@ void powellOptimizer(Matrix1D<double> &p, int i0, int n,
                      double ftol, double &fret,
                      int &iter, const Matrix1D<double> &steps, bool show)
 {
-    double *xi = nullptr;
-
     // Adapt indexes of p
     double *pptr = p.adaptForNumericalRecipes();
     double *auxpptr = pptr + (i0 - 1);
 
     // Form direction matrix
-    ask_Tvector(xi, 1, n*n);
+    std::vector<double> buffer(n*n);
+    auto *xi= buffer.data()-1;
     for (int i = 1, ptr = 1; i <= n; i++)
         for (int j = 1; j <= n; j++, ptr++)
             xi[ptr] = (i == j) ? steps(i - 1) : 0;
 
     // Optimize
-    xi -= n; // This is because NR works with matrices starting at [1,1]
-    powell(auxpptr, xi, n, ftol, iter, fret, f, prm, show);
-    xi += n;
-
-    // Exit
-    free_Tvector(xi, 1, n*n);
+    powell(auxpptr, xi -n, n, ftol, iter, fret, f, prm, show); // xi - n because NR works with matrices starting at [1,1]
 }
 
 /* Gaussian interpolator -------------------------------------------------- */
@@ -849,13 +844,13 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
 
 	//Variables needed for l>=5
-	double tht=0.0,phi=0.0,cost=0.0,sint=0.0,cost2=0.0,sint2=0.0;
+	double tht=0.0,phi=0.0,costh=0.0,sinth=0.0,costh2=0.0,sinth2=0.0;
 	if (l2>=5)
 	{
 		tht = atan2(yr,xr);
 		phi = atan2(zr,sqrt(xr2 + yr2));
-		sint = sin(phi); cost = cos(tht);
-		sint2 = sint*sint; cost2 = cost*cost;
+		sinth = sin(phi); costh = cos(tht);
+		sinth2 = sinth*sinth; costh2 = costh*costh;
 	}
 
 	// Zernike polynomial
@@ -1016,37 +1011,37 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 		switch (m)
 		{
 		case -5:
-			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*sin(5.0*phi);
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sinth*sin(5.0*phi);
 			break;
 		case -4:
 			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*sin(4.0*phi);
 			break;
 		case -3:
-			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*sin(3.0*phi);
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sinth*(9.0*cost2-1.0)*sin(3.0*phi);
 			break;
 		case -2:
-			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*sin(2.0*phi);
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*costh-costh)*sin(2.0*phi);
 			break;
 		case -1:
-			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sinth*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
 			break;
 		case 0:
-			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*cost2*cost2*cost-70.0*cost2*cost+15.0*cost);
+			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*cost2*cost2*costh-70.0*cost2*costh+15.0*costh);
 			break;
 		case 1:
-			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sinth*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
 			break;
 		case 2:
-			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*cos(2.0*phi);
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*costh-costh)*cos(2.0*phi);
 			break;
 		case 3:
-			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*cos(3.0*phi);
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sinth*(9.0*cost2-1.0)*cos(3.0*phi);
 			break;
 		case 4:
 			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*cos(4.0*phi);
 			break;
 		case 5:
-			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*cos(5.0*phi);
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sinth*cos(5.0*phi);
 			break;
 		}break;
 	}
@@ -1067,16 +1062,18 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 	//Variables needed for l>=5
 	double tht=0.0;
     double phi=0.0;
-    double cost=0.0;
-    double sint=0.0;
-    double cost2=0.0;
-    double sint2=0.0;
+    double costh=0.0;
+    double sinth=0.0;
+    double costh2=0.0;
+    double sinth2=0.0;
+    double cosph=0.0;
+    double cosph2=0.0;
 	if (L2>=5)
 	{
 		tht = atan2(yr,xr);
 		phi = atan2(zr,sqrt(xr2 + yr2));
-		sint = sin(phi); cost = cos(tht);
-		sint2 = sint*sint; cost2 = cost*cost;
+		sinth = sin(abs(m)*phi); costh = cos(tht); cosph = cos(abs(m)*phi);
+		sinth2 = sinth*sinth; costh2 = costh*costh; cosph2 = cosph * cosph;
 	}
 
 	// Zernike polynomial
@@ -1135,6 +1132,226 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
             R = std::sqrt(13.0)*r2*r2*r;
             break;
 		} break;
+    case 6:
+        switch (n)
+        {
+        case 0:
+            R = 103.8 * r2 * r2 * r2 - 167.7 * r2 * r2 + 76.25 * r2 - 8.472;
+            break;
+        case 2:
+            R = 69.23 * r2 * r2 * r2 - 95.86 * r2 * r2 + 30.5 * r2;
+            break;
+        case 4:
+            R = 25.17 * r2 * r2 * r2 - 21.3 * r2 * r2;
+            break;
+        case 6:
+            R = 3.873 * r2 * r2 * r2;
+            break;
+        } break;
+    case 7:
+        switch (n)
+        {
+        case 1:
+            R = 184.3 * r2 * r2 * r2 * r - 331.7 * r2 * r2 * r + 178.6 * r2 * r - 27.06 * r;
+            break;
+        case 3:
+            R = 100.5 * r2 * r2 * r2 * r - 147.4 * r2 * r2 * r + 51.02 * r2 * r;
+            break;
+        case 5:
+            R = 30.92 * r2 * r2 * r2 * r - 26.8 * r2 * r2 * r;
+            break;
+        case 7:
+            R = 4.123 * r2 * r2 * r2 * r;
+            break;
+        } break;
+    case 8:
+        switch (n)
+        {
+        case 0:
+            R = 413.9*r2*r2*r2*r2 - 876.5*r2*r2*r2 + 613.6*r2*r2 - 157.3*r2 + 10.73;
+            break;
+        case 2:
+            R = 301.0*r2*r2*r2*r2 - 584.4*r2*r2*r2 + 350.6*r2*r2 - 62.93*r2;
+            break;
+        case 4:
+            R = 138.9*r2*r2*r2*r2 - 212.5*r2*r2*r2 + 77.92*r2*r2;
+            break;
+        case 6:
+            R = 37.05*r2*r2*r2*r2 - 32.69*r2*r2*r2;
+            break;
+        case 8:
+            R = 4.359*r2*r2*r2*r2;
+            break;
+        } break;
+    case 9:
+        switch (n)
+        {
+        case 1:
+            R = 751.6*r2*r2*r2*r2*r - 1741.0*r2*r2*r2*r + 1382.0*r2*r2*r - 430.0*r2*r + 41.35*r;
+            break;
+        case 3:
+            R = 462.6*r2*r2*r2*r2*r - 949.5*r2*r2*r2*r + 614.4*r2*r2*r - 122.9*r2*r;
+            break;
+        case 5:
+            R = 185.0*r2*r2*r2*r2*r - 292.1*r2*r2*r2*r + 111.7*r2*r2*r;
+            break;
+        case 7:
+            R = 43.53*r2*r2*r2*r2*r - 38.95*r2*r2*r2*r;
+            break;
+        case 9:
+            R = 4.583*r2*r2*r2*r2*r;
+            break;
+        } break;
+    case 10:
+        switch (n)
+        {
+        case 0:
+            R = 1652.0*r2*r2*r2*r2*r2 - 4326.0*r2*r2*r2*r2 + 4099.0*r2*r2*r2 - 1688.0*r2*r2 + 281.3*r2 - 12.98;
+            break;
+        case 2:
+            R = 1271.0*r2*r2*r2*r2*r2 - 3147.0*r2*r2*r2*r2 + 2732.0*r2*r2*r2 - 964.4*r2*r2 + 112.5*r2;
+            break;
+        case 4:
+            R = 677.7*r2*r2*r2*r2*r2 - 1452.0*r2*r2*r2*r2 + 993.6*r2*r2*r2 - 214.3*r2*r2;
+            break;
+        case 6:
+            R = 239.2*r2*r2*r2*r2*r2 - 387.3*r2*r2*r2*r2 + 152.9*r2*r2*r2;
+            break;
+        case 8:
+            R = 50.36*r2*r2*r2*r2*r2 - 45.56*r2*r2*r2*r2;
+            break;
+        case 10:
+            R = 4.796*r2*r2*r2*r2*r2;
+            break;
+        } break;
+    case 11:
+        switch (n)
+        {
+        case 1:
+            R = r*-5.865234375E+1+(r*r*r)*8.7978515625E+2-(r*r*r*r*r)*4.2732421875E+3+(r*r*r*r*r*r*r)*9.0212890625E+3-(r*r*r*r*r*r*r*r*r)*8.61123046875E+3+pow(r,1.1E+1)*3.04705078125E+3;
+            break;
+        case 3:
+            R = (r*r*r)*2.513671875E+2-(r*r*r*r*r)*1.89921875E+3+(r*r*r*r*r*r*r)*4.920703125E+3-(r*r*r*r*r*r*r*r*r)*5.29921875E+3+pow(r,1.1E+1)*2.0313671875E+3;
+            break;
+        case 5:
+            R = (r*r*r*r*r)*-3.453125E+2+(r*r*r*r*r*r*r)*1.5140625E+3-(r*r*r*r*r*r*r*r*r)*2.1196875E+3+pow(r,1.1E+1)*9.559375E+2;
+            break;
+        case 7:
+            R = (r*r*r*r*r*r*r)*2.01875E+2-(r*r*r*r*r*r*r*r*r)*4.9875E+2+pow(r,1.1E+1)*3.01875E+2;
+            break;
+        case 9:
+            R = (r*r*r*r*r*r*r*r*r)*-5.25E+1+pow(r,1.1E+1)*5.75E+1;
+            break;
+        case 11:
+            R = pow(r,1.1E+1)*5.0;
+            break;
+        } break;
+    case 12:
+        switch (n)
+        {
+        case 0:
+            R = (r*r)*-4.57149777110666E+2+(r*r*r*r)*3.885773105442524E+3-(r*r*r*r*r*r)*1.40627979054153E+4+(r*r*r*r*r*r*r*r)*2.460989633446932E+4-pow(r,1.0E+1)*2.05828223888278E+4+pow(r,1.2E+1)*6.597058457955718E+3+1.523832590368693E+1;
+            break;
+        case 2:
+            R = (r*r)*-1.828599108443595E+2+(r*r*r*r)*2.220441774539649E+3-(r*r*r*r*r*r)*9.375198603600264E+3+(r*r*r*r*r*r*r*r)*1.789810642504692E+4-pow(r,1.0E+1)*1.583294029909372E+4+pow(r,1.2E+1)*5.277646766364574E+3;
+            break;
+        case 4:
+            R = (r*r*r*r)*4.934315054528415E+2-(r*r*r*r*r*r)*3.409163128584623E+3+(r*r*r*r*r*r*r*r)*8.260664503872395E+3-pow(r,1.0E+1)*8.444234826177359E+3+pow(r,1.2E+1)*3.104498097866774E+3;
+            break;
+        case 6:
+            R = (r*r*r*r*r*r)*-5.244866351671517E+2+(r*r*r*r*r*r*r*r)*2.202843867704272E+3-pow(r,1.0E+1)*2.98031817394495E+3+pow(r,1.2E+1)*1.307157093837857E+3;
+            break;
+        case 8:
+            R = (r*r*r*r*r*r*r*r)*2.591581020820886E+2-pow(r,1.0E+1)*6.274354050420225E+2+pow(r,1.2E+1)*3.734734553815797E+2;
+            break;
+        case 10:
+            R = pow(r,1.0E+1)*-5.975575286115054E+1+pow(r,1.2E+1)*6.49519052838441E+1;
+            break;
+        case 12:
+            R = pow(r,1.2E+1)*5.19615242270811;
+            break;
+        } break;
+    case 13:
+        switch (n)
+        {
+        case 1:
+            R = r*7.896313435467891E+1-(r*r*r)*1.610847940832376E+3+(r*r*r*r*r)*1.093075388422608E+4-(r*r*r*r*r*r*r)*3.400678986203671E+4+(r*r*r*r*r*r*r*r*r)*5.332882955634594E+4-pow(r,1.1E+1)*4.102217658185959E+4+pow(r,1.3E+1)*1.230665297454596E+4;
+            break;
+        case 3:
+            R = (r*r*r)*-4.602422688100487E+2+(r*r*r*r*r)*4.858112837433815E+3-(r*r*r*r*r*r*r)*1.854915810656548E+4+(r*r*r*r*r*r*r*r*r)*3.281774126553535E+4-pow(r,1.1E+1)*2.734811772125959E+4+pow(r,1.3E+1)*8.687049158513546E+3;
+            break;
+        case 5:
+            R = (r*r*r*r*r)*8.832932431697845E+2-(r*r*r*r*r*r*r)*5.707433263555169E+3+(r*r*r*r*r*r*r*r*r)*1.312709650617838E+4-pow(r,1.1E+1)*1.286970245704055E+4+pow(r,1.3E+1)*4.572131136059761E+3;
+            break;
+        case 7:
+            R = (r*r*r*r*r*r*r)*-7.60991101808846E+2+(r*r*r*r*r*r*r*r*r)*3.088728589691222E+3-pow(r,1.1E+1)*4.064116565383971E+3+pow(r,1.3E+1)*1.741764242306352E+3;
+            break;
+        case 9:
+            R = (r*r*r*r*r*r*r*r*r)*3.251293252306059E+2-pow(r,1.1E+1)*7.741174410264939E+2+pow(r,1.3E+1)*4.54373280601576E+2;
+            break;
+        case 11:
+            R = pow(r,1.1E+1)*-6.731456008902751E+1+pow(r,1.3E+1)*7.269972489634529E+1;
+            break;
+        case 13:
+            R = pow(r,1.3E+1)*5.385164807128604;
+            break;
+        } break;
+    case 14:
+        switch (n)
+        {
+        case 0:
+            R = (r*r)*6.939451623205096E+2-(r*r*r*r)*7.910974850460887E+3+(r*r*r*r*r*r)*3.955487425231934E+4-(r*r*r*r*r*r*r*r)*1.010846786448956E+5+pow(r,1.0E+1)*1.378427436065674E+5-pow(r,1.2E+1)*9.542959172773361E+4+pow(r,1.4E+1)*2.63567443819046E+4-1.749441585683962E+1;
+            break;
+        case 2:
+            R = (r*r)*2.775780649287626E+2-(r*r*r*r)*4.520557057410479E+3+(r*r*r*r*r*r)*2.636991616821289E+4-(r*r*r*r*r*r*r*r)*7.351612992358208E+4+pow(r,1.0E+1)*1.060328796973228E+5-pow(r,1.2E+1)*7.634367338204384E+4+pow(r,1.4E+1)*2.170555419689417E+4;
+            break;
+        case 4:
+            R = (r*r*r*r)*-1.004568234980106E+3+(r*r*r*r*r*r)*9.589060424804688E+3-(r*r*r*r*r*r*r*r)*3.393052150321007E+4+pow(r,1.0E+1)*5.655086917197704E+4-pow(r,1.2E+1)*4.490804316592216E+4+pow(r,1.4E+1)*1.370877107170224E+4;
+            break;
+        case 6:
+            R = (r*r*r*r*r*r)*1.475240065354854E+3-(r*r*r*r*r*r*r*r)*9.04813906750083E+3+pow(r,1.0E+1)*1.99591302959919E+4-pow(r,1.2E+1)*1.8908649754107E+4+pow(r,1.4E+1)*6.527986224621534E+3;
+            break;
+        case 8:
+            R = (r*r*r*r*r*r*r*r)*-1.064486949119717E+3+pow(r,1.0E+1)*4.201922167569399E+3-pow(r,1.2E+1)*5.402471358314157E+3+pow(r,1.4E+1)*2.270603904217482E+3;
+            break;
+        case 10:
+            R = pow(r,1.0E+1)*4.001830635787919E+2-pow(r,1.2E+1)*9.395602362267673E+2+pow(r,1.4E+1)*5.44944937011227E+2;
+            break;
+        case 12:
+            R = pow(r,1.2E+1)*-7.516481889830902E+1+pow(r,1.4E+1)*8.073258326109499E+1;
+            break;
+        case 14:
+            R = pow(r,1.4E+1)*5.567764362829621;
+            break;
+        } break;
+    case 15:
+        switch (n)
+        {
+        case 1:
+            R = r*-1.022829477079213E+2+(r*r*r)*2.720726409032941E+3-(r*r*r*r*r)*2.448653768128157E+4+(r*r*r*r*r*r*r)*1.042945123462677E+5-(r*r*r*r*r*r*r*r*r)*2.370329826049805E+5+pow(r,1.1E+1)*2.953795629386902E+5-pow(r,1.3E+1)*1.903557183384895E+5+pow(r,1.5E+1)*4.958846444106102E+4;
+            break;
+        case 3:
+            R = (r*r*r)*7.773504025805742E+2-(r*r*r*r*r)*1.088290563613176E+4+(r*r*r*r*r*r*r)*5.688791582524776E+4-(r*r*r*r*r*r*r*r*r)*1.458664508337975E+5+pow(r,1.1E+1)*1.969197086257935E+5-pow(r,1.3E+1)*1.343687423563004E+5+pow(r,1.5E+1)*3.653886853551865E+4;
+            break;
+        case 5:
+            R = (r*r*r*r*r)*-1.978710115659982E+3+(r*r*r*r*r*r*r)*1.750397410005331E+4-(r*r*r*r*r*r*r*r*r)*5.834658033359051E+4+pow(r,1.1E+1)*9.266809817695618E+4-pow(r,1.3E+1)*7.072039071393013E+4+pow(r,1.5E+1)*2.08793534488678E+4;
+            break;
+        case 7:
+            R = (r*r*r*r*r*r*r)*2.333863213345408E+3-(r*r*r*r*r*r*r*r*r)*1.372860713732243E+4+pow(r,1.1E+1)*2.926360995060205E+4-pow(r,1.3E+1)*2.694110122436285E+4+pow(r,1.5E+1)*9.077979760378599E+3;
+            break;
+        case 9:
+            R = (r*r*r*r*r*r*r*r*r)*-1.445116540770978E+3+pow(r,1.1E+1)*5.57402094297111E+3-pow(r,1.3E+1)*7.028113362878561E+3+pow(r,1.5E+1)*2.90495352332294E+3;
+            break;
+        case 11:
+            R = pow(r,1.1E+1)*4.846974733015522E+2-pow(r,1.3E+1)*1.124498138058931E+3+pow(r,1.5E+1)*6.455452274046838E+2;
+            break;
+        case 13:
+            R = pow(r,1.3E+1)*-8.329615837475285E+1+pow(r,1.5E+1)*8.904072102135979E+1;
+            break;
+        case 15:
+            R = pow(r,1.5E+1)*5.744562646534177;
+            break;
+        } break;
     default: break;
 	}
 
@@ -1238,38 +1455,246 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 		switch (m)
 		{
 		case -5:
-			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*sin(5.0*phi);
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sinth2*sinth2*sinth*sin(5.0*phi);
 			break;
 		case -4:
-			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*sin(4.0*phi);
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sinth2*sinth2*sin(4.0*phi);
 			break;
 		case -3:
-			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*sin(3.0*phi);
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sinth2*sinth*(9.0*costh2-1.0)*sin(3.0*phi);
 			break;
 		case -2:
-			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*sin(2.0*phi);
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sinth2*(3.0*costh2*costh-costh)*sin(2.0*phi);
 			break;
 		case -1:
-			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sinth*(21.0*costh2*costh2-14.0*costh2+1)*sin(phi);
 			break;
 		case 0:
-			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*cost2*cost2*cost-70.0*cost2*cost+15.0*cost);
+			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*costh2*costh2*costh-70.0*costh2*costh+15.0*costh);
 			break;
 		case 1:
-			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sinth*(21.0*costh2*costh2-14.0*costh2+1)*cos(phi);
 			break;
 		case 2:
-			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*cos(2.0*phi);
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sinth2*(3.0*costh2*costh-costh)*cos(2.0*phi);
 			break;
 		case 3:
-			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*cos(3.0*phi);
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sinth2*sinth*(9.0*costh2-1.0)*cos(3.0*phi);
 			break;
 		case 4:
-			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*cos(4.0*phi);
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sinth2*sinth2*cos(4.0*phi);
 			break;
 		case 5:
-			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*cos(5.0*phi);
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sinth2*sinth2*sinth*cos(5.0*phi);
 			break;
+		}break;
+    case 6:
+        switch (m)
+		{
+		case -6:
+			Y = -0.6832*sinth*pow(costh2 - 1.0, 3);
+			break;
+		case -5:
+			Y = 2.367*costh*sinth*pow(1.0 - 1.0*costh2, 2.5);
+			break;
+		case -4:
+			Y = 0.001068*sinth*(5198.0*costh2 - 472.5)*pow(costh2 - 1.0, 2);
+			break;
+		case -3:
+			Y = -0.005849*sinth*pow(1.0 - 1.0*costh2, 1.5)*(- 1732.0*costh2*costh + 472.5*costh);
+			break;
+		case -2:
+			Y = -0.03509*sinth*(costh2 - 1.0)*(433.1*costh2*costh2 - 236.2*costh2 + 13.12);
+			break;
+		case -1:
+			Y = 0.222*sinth*pow(1.0 - 1.0*costh2, 0.5)*(86.62*costh2*costh2*costh - 78.75*costh2*costh + 13.12*costh);
+			break;
+		case 0:
+			Y = 14.68*costh2*costh2*costh2 - 20.02*costh2*costh2 + 6.675*costh2 - 0.3178;
+			break;
+		case 1:
+			Y = 0.222*cosph*pow(1.0 - 1.0*costh2, 0.5)*(86.62*costh2*costh2*costh - 78.75*costh2*costh + 13.12*costh);
+			break;
+		case 2:
+			Y = -0.03509*cosph*(costh2 - 1.0)*(433.1*costh2*costh2 - 236.2*costh2 + 13.12);
+			break;
+		case 3:
+			Y = -0.005849*cosph*pow(1.0 - 1.0*costh2, 1.5)*(-1732.0*costh2*costh + 472.5*costh);
+			break;
+		case 4:
+			Y = 0.001068*cosph*(5198.0*costh2 - 472.5)*pow(costh2 - 1.0, 2);
+			break;
+        case 5:
+            Y = 2.367*costh*cosph*pow(1.0 - 1.0*costh2, 2.5);
+            break;
+        case 6:
+            Y = -0.6832*cosph*pow(costh2 - 1.0, 3);
+            break;
+		}break;
+    case 7:
+        switch (m)
+		{
+		case -7:
+			Y = 0.7072*sinth*pow(1.0 - 1.0*costh2, 3.5);
+			break;
+		case -6:
+			Y = -2.646*costh*sinth*pow(costh2 - 1.0, 3);
+			break;
+		case -5:
+			Y = 9.984e-5*sinth*pow(1.0 - 1.0*costh2, 2.5)*(67570.0*costh2 - 5198.0);
+			break;
+		case -4:
+			Y = -0.000599*sinth*pow(costh2 - 1.0, 2)*(-22520.0*costh2*costh + 5198.0*costh);
+			break;
+		case -3:
+			Y = 0.003974*sinth*pow(1.0 - 1.0*costh2, 1.5)*(5631.0*costh2*costh2 - 2599.0*costh2 + 118.1);
+			break;
+		case -2:
+			Y = -0.0281*sinth*(costh2 - 1.0)*(1126.0*costh2*costh2*costh - 866.2*costh2*costh + 118.1*costh);
+			break;
+		case -1:
+			Y = 0.2065*sinth*pow(1.0 - 1.0*costh2, 0.5)*(187.7*costh2*costh2*costh2 - 216.6*costh2*costh2 + 59.06*costh2 - 2.188);
+			break;
+		case 0:
+			Y = 29.29*costh2*costh2*costh2*costh - 47.32*costh2*costh2*costh + 21.51*costh2*costh - 2.39*costh;
+			break;
+		case 1:
+			Y = 0.2065*cosph*pow(1.0 - 1.0*costh2, 0.5)*(187.7*costh2*costh2*costh2 - 216.6*costh2*costh2 + 59.06*costh2 - 2.188);
+			break;
+		case 2:
+			Y = -0.0281*cosph*(costh2 - 1.0)*(1126.0*costh2*costh2*costh - 866.2*costh2*costh + 118.1*costh);
+			break;
+		case 3:
+			Y = 0.003974*cosph*pow(1.0 - 1.0*costh2, 1.5)*(5631.0*costh2*costh2 - 2599.0*costh2 + 118.1);
+			break;
+        case 4:
+            Y = -0.000599*cosph*pow(costh2 - 1.0, 2)*(- 22520.0*costh2*costh + 5198.0*costh);
+            break;
+        case 5:
+            Y = 9.984e-5*cosph*pow(1.0 - 1.0*costh2, 2.5)*(67570.0*costh2 - 5198.0);
+            break;
+        case 6:
+            Y = -2.646*cosph*costh*pow(costh2 - 1.0, 3);
+            break;
+        case 7:
+            Y = 0.7072*cosph*pow(1.0 - 1.0*costh2, 3.5);
+            break;
+		}break;
+    case 8:
+        switch (m)
+		{
+		case -8:
+			Y = sinth*pow(costh2-1.0,4.0)*7.289266601746931E-1;
+			break;
+		case -7:
+			Y = costh*sinth*pow(costh2*-1.0+1.0,7.0/2.0)*2.915706640698772;
+			break;
+		case -6:
+			Y = sinth*(costh2*1.0135125E+6-6.75675E+4)*pow(costh2-1.0,3.0)*-7.878532816224526E-6;
+			break;
+		case -5:
+			Y = sinth*pow(costh2*-1.0+1.0,5.0/2.0)*(costh*6.75675E+4-(costh2*costh)*3.378375E+5)*-5.105872826582925E-56;
+			break;
+		case -4:
+			Y = sinth*pow(costh2-1.0,2.0)*(costh2*-3.378375E+4+(costh2*costh2)*8.4459375E+4+1.299375E+3)*3.681897256448963E-4;
+			break;
+		case -3:
+			Y = sinth*pow(costh2*-1.0+1.0,3.0/2.0)*(costh*1.299375E+3-(costh*costh2)*1.126125E+4+(costh*costh2*costh2)*1.6891875E+4)*2.851985351334463E-3;
+			break;
+		case -2:
+			Y = sinth*(costh2-1.0)*(costh2*6.496875E+2-(costh2*costh2)*2.8153125E+3+(costh2*costh2*costh2)*2.8153125E+3-1.96875E+1)*-2.316963852365461E-2;
+			break;
+		case -1:
+			Y = sinth*sqrt(costh2*-1.0+1.0)*(costh*1.96875E+1-(costh*costh2)*2.165625E+2+(costh*costh2*costh2)*5.630625E+2-(costh*costh2*costh2*costh2)*4.021875E+2)*-1.938511038201796E-1;;
+			break;
+		case 0:
+			Y = costh2*-1.144933081936324E+1+(costh2*costh2)*6.297131950652692E+1-(costh2*costh2*costh2)*1.091502871445846E+2+(costh2*costh2*costh2*costh2)*5.847336811327841E+1+3.180369672045344E-1;
+			break;
+		case 1:
+			Y = cosph*sqrt(costh2*-1.0+1.0)*(costh*1.96875E+1-(costh*costh2)*2.165625E+2+(costh*costh2*costh2)*5.630625E+2-(costh*costh2*costh2*costh2)*4.021875E+2)*-1.938511038201796E-1;;
+			break;
+		case 2:
+			Y = cosph*(costh2-1.0)*(costh2*6.496875E+2-(costh2*costh2)*2.8153125E+3+(costh2*costh2*costh2)*2.8153125E+3-1.96875E+1)*-2.316963852365461E-2;
+			break;
+        case 3:
+            Y = cosph*pow(costh2*-1.0+1.0,3.0/2.0)*(costh*1.299375E+3-(costh*costh2)*1.126125E+4+(costh*costh2*costh2)*1.6891875E+4)*2.851985351334463E-3;
+            break;
+        case 4:
+            Y = cosph*pow(costh2-1.0,2.0)*(costh2*-3.378375E+4+(costh2*costh2)*8.4459375E+4+1.299375E+3)*3.681897256448963E-4;
+            break;
+        case 5:
+            Y = cosph*pow(costh2*-1.0+1.0,5.0/2.0)*(costh*6.75675E+4-(costh*costh2)*3.378375E+5)*-5.105872826582925E-5;
+            break;
+        case 6:
+            Y = cosph*(costh2*1.0135125E+6-6.75675E+4)*pow(costh2-1.0,3.0)*-7.878532816224526E-6;
+            break;
+        case 7:
+            Y = cosph*costh*pow(costh2*-1.0+1.0,7.0/2.0)*2.915706640698772;
+            break;
+        case 8:
+            Y = cosph*pow(costh2-1.0,4.0)*7.289266601746931E-1;
+            break;
+		}break;
+    case 9:
+        switch (m)
+		{
+		case -9:
+			Y = sinth*pow(costh2*-1.0+1.0,9.0/2.0)*7.489009518540115E-1;
+			break;
+		case -8:
+			Y = costh*sinth*pow(costh2-1.0,4.0)*3.17731764895143;
+			break;
+		case -7:
+			Y = sinth*pow(costh2*-1.0+1.0,7.0/2.0)*(costh2*1.72297125E+7-1.0135125E+6)*5.376406125665728E-7;
+			break;
+		case -6:
+			Y = sinth*(costh*1.0135125E+6-(costh*costh2)*5.7432375E+6)*pow(costh2-1.0,3.0)*3.724883428715686E-6;
+			break;
+		case -5:
+			Y = sinth*pow(costh2*-1.0+1.0,5.0/2.0)*(costh2*-5.0675625E+5+(costh2*costh2)*1.435809375E+6+1.6891875E+4)*2.885282297193648E-5;
+			break;
+		case -4:
+			Y = sinth*pow(costh2-1.0,2.0)*(costh*1.6891875E+4-(costh*costh2)*1.6891875E+5+(costh*costh2*costh2)*2.87161875E+5)*2.414000363328839E-4;
+			break;
+		case -3:
+			Y = sinth*pow(costh2*-1.0+1.0,3.0/2.0)*((costh2)*8.4459375E+3-(costh2*costh2)*4.22296875E+4+(costh2*costh2*costh2)*4.78603125E+4-2.165625E+2)*2.131987394015766E-3;
+			break;
+		case -2:
+			Y = sinth*(costh2-1.0)*(costh*2.165625E+2-(costh*costh2)*2.8153125E+3+(costh*costh2*costh2)*8.4459375E+3-(costh*costh2*costh2*costh2)*6.8371875E+3)*1.953998722751749E-2;
+			break;
+		case -1:
+			Y = sinth*sqrt(costh2*-1.0+1.0)*(costh2*-1.0828125E+2+(costh2*costh2)*7.03828125E+2-(costh2*costh2*costh2)*1.40765625E+3+(costh2*costh2*costh2*costh2)*8.546484375E+2+2.4609375)*1.833013280775049E-1;
+			break;
+		case 0:
+			Y = costh*3.026024588281871-(costh*costh2)*4.438169396144804E+1+(costh*costh2*costh2)*1.730886064497754E+2-(costh*costh2*costh2*costh2)*2.472694377852604E+2+(costh*costh2*costh2*costh2*costh2)*1.167661233986728E+2;
+			break;
+		case 1:
+			Y = cosph*sqrt(costh2*-1.0+1.0)*(costh2*-1.0828125E+2+(costh2*costh2)*7.03828125E+2-(costh2*costh2*costh2)*1.40765625E+3+(costh2*costh2*costh2*costh2)*8.546484375E+2+2.4609375)*1.833013280775049E-1;
+			break;
+        case 2:
+            Y = cosph*(costh2-1.0)*(costh*2.165625E+2-(costh*costh2)*2.8153125E+3+(costh*costh2*costh2)*8.4459375E+3-(costh*costh2*costh2*costh2)*6.8371875E+3)*1.953998722751749E-2;
+            break;
+        case 3:
+            Y = cosph*pow(costh2*-1.0+1.0,3.0/2.0)*(costh2*8.4459375E+3-(costh2*costh2)*4.22296875E+4+(costh2*costh2*costh2)*4.78603125E+4-2.165625E+2)*2.131987394015766E-3;
+            break;
+        case 4:
+            Y = cosph*pow(costh2-1.0,2.0)*(costh*1.6891875E+4-(costh*costh2)*1.6891875E+5+(costh*costh2*costh2)*2.87161875E+5)*2.414000363328839E-4;
+            break;
+        case 5:
+            Y = cosph*pow(costh2*-1.0+1.0,5.0/2.0)*(costh2*-5.0675625E+5+(costh2*costh2)*1.435809375E+6+1.6891875E+4)*2.885282297193648E-5;
+            break;
+        case 6:
+            Y = cosph*(costh*1.0135125E+6-(costh*costh2)*5.7432375E+6)*pow(costh2-1.0,3.0)*3.724883428715686E-6;
+            break;
+        case 7:
+            Y = cosph*pow(costh2*-1.0+1.0,7.0/2.0)*(costh2*1.72297125E+7-1.0135125E+6)*5.376406125665728E-7;
+            break;
+        case 8:
+            Y = cosph*costh*pow(costh2-1.0,4.0)*3.17731764895143;
+            break;
+        case 9:
+            Y = cosph*pow(costh2*-1.0+1.0,9.0/2.0)*7.489009518540115E-1;
+            break;
 		}break;
     default: break;
 	}
@@ -1287,6 +1712,10 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
             case 3: return ZernikeSphericalHarmonics<0, 3>(n, m, xr, yr, zr, r);
             case 4: return ZernikeSphericalHarmonics<0, 4>(n, m, xr, yr, zr, r);
             case 5: return ZernikeSphericalHarmonics<0, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<0, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<0, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<0, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<0, 9>(n, m, xr, yr, zr, r);
             default: break;
             }
         } break;
@@ -1298,6 +1727,10 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
             case 3: return ZernikeSphericalHarmonics<1, 3>(n, m, xr, yr, zr, r);
             case 4: return ZernikeSphericalHarmonics<1, 4>(n, m, xr, yr, zr, r);
             case 5: return ZernikeSphericalHarmonics<1, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<1, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<1, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<1, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<1, 9>(n, m, xr, yr, zr, r);
             default: break;
             }
         } break;
@@ -1309,6 +1742,10 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
             case 3: return ZernikeSphericalHarmonics<2, 3>(n, m, xr, yr, zr, r);
             case 4: return ZernikeSphericalHarmonics<2, 4>(n, m, xr, yr, zr, r);
             case 5: return ZernikeSphericalHarmonics<2, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<2, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<2, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<2, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<2, 9>(n, m, xr, yr, zr, r);
             default: break;
             }
         } break;
@@ -1320,6 +1757,10 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
             case 3: return ZernikeSphericalHarmonics<3, 3>(n, m, xr, yr, zr, r);
             case 4: return ZernikeSphericalHarmonics<3, 4>(n, m, xr, yr, zr, r);
             case 5: return ZernikeSphericalHarmonics<3, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<3, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<3, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<3, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<3, 9>(n, m, xr, yr, zr, r);
             default: break;
             }
         } break;
@@ -1331,6 +1772,10 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
             case 3: return ZernikeSphericalHarmonics<4, 3>(n, m, xr, yr, zr, r);
             case 4: return ZernikeSphericalHarmonics<4, 4>(n, m, xr, yr, zr, r);
             case 5: return ZernikeSphericalHarmonics<4, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<4, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<4, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<4, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<4, 9>(n, m, xr, yr, zr, r);
             default: break;
             }
         } break;
@@ -1342,6 +1787,160 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
             case 3: return ZernikeSphericalHarmonics<5, 3>(n, m, xr, yr, zr, r);
             case 4: return ZernikeSphericalHarmonics<5, 4>(n, m, xr, yr, zr, r);
             case 5: return ZernikeSphericalHarmonics<5, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<5, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<5, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<5, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<5, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 6 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<6, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<6, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<6, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<6, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<6, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<6, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<6, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<6, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<6, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<6, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 7 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<7, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<7, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<7, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<7, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<7, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<7, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<7, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<7, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<7, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<7, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 8 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<8, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<8, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<8, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<8, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<8, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<8, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<8, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<8, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<8, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<8, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 9 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<9, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<9, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<9, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<9, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<9, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<9, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<9, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<9, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<9, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<9, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 10 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<10, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<10, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<10, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<10, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<10, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<10, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<10, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<10, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<10, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<10, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 11 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<11, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<11, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<11, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<11, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<11, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<11, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<11, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<11, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<11, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<11, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 12 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<12, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<12, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<12, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<12, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<12, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<12, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<12, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<12, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<12, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<12, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 13 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<13, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<13, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<13, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<13, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<13, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<13, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<13, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<13, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<13, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<13, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 14 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<14, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<14, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<14, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<14, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<14, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<14, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<14, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<14, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<14, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<14, 9>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 15 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<15, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<15, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<15, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<15, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<15, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<15, 5>(n, m, xr, yr, zr, r);
+            case 6: return ZernikeSphericalHarmonics<15, 6>(n, m, xr, yr, zr, r);
+            case 7: return ZernikeSphericalHarmonics<15, 7>(n, m, xr, yr, zr, r);
+            case 8: return ZernikeSphericalHarmonics<15, 8>(n, m, xr, yr, zr, r);
+            case 9: return ZernikeSphericalHarmonics<15, 9>(n, m, xr, yr, zr, r);
             default: break;
             }
         } break;

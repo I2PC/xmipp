@@ -55,7 +55,6 @@ void ProgResolutionFsc::defineParams()
 	addUsageLine("The program writes out filename.frc files, for each input volume or image, or selfilename.frc, the");
 	addUsageLine("set_of_images mode. These ACSII files contain the DPR, FRC and SSNR as a function of resolution (in 1/Angstrom).");
 	addUsageLine(" The .frc files also contain a column for the FRC expected for pure noise.");
-	addSeeAlsoLine("resolution_ssnr");
 
 	addParamsLine("   -i <input_file>           : either an image/volume or a selection file");
 	addParamsLine("   requires --ref;");
