@@ -25,6 +25,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--learningRate <lr=0.0001>]  : Learning rate')
         self.addParamsLine('[--sym <s=c1>]                : Symmetry')
         self.addParamsLine('[--precision <s=0.5>]         : Alignment precision measured in pixels')
+        self.addParamsLine('[--onlyShift]                 : Only shift')
 
     def run(self):
         fnXmd = self.getParam("-i")
@@ -36,6 +37,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
         learning_rate = float(self.getParam("--learningRate"))
         symmetry = self.getParam("--sym")
         precision = float(self.getParam("--precision"))
+        onlyShift = self.checkParam("--onlyShift")
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
@@ -91,7 +93,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
             return Xdim, fnImg, angles, img_shift
 
-        def trainModel(model, X, y, modeprec, lossFunction=None, saveModel=False, fnModelIndex=None):
+        def trainModel(model, X, y, modeprec, fnThisModel, lossFunction):
             adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             sys.stdout.flush()
             if lossFunction is not None:
@@ -122,8 +124,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     if loss < modeprec:
                         break
                 generator.increaseMaxSize(1.25)
-            if saveModel:
-                model.save(fnModelIndex, save_format="tf")
+            print("Saving",fnThisModel)
+            model.save(fnThisModel, save_format="tf")
 
         def testModel(model, X, y):
             ypred = model.predict(X)
@@ -140,27 +142,32 @@ class ScriptDeepGlobalAssignment(XmippScript):
 
         angularLoss = deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)
 
-        for index in range(numModels):
-            fnModelIndex = fnModel + "_angles"+str(index) + ".tf"
-            if os.path.exists(fnModelIndex):
-                continue
+        try:
+            for index in range(numModels):
+                if onlyShift:
+                    fnModelIndex = "modelShift.tf"
+                else:
+                    fnModelIndex = fnModel + "_angles"+str(index) + ".tf"
 
-            # Learn shift
-            print("Learning shift")
-            angularLoss.setMode(deepGlobal.SHIFT_MODE)
-            modelShift = deepGlobal.constructShiftModel(Xdim)
-            modelShift.summary()
-            trainModel(modelShift, training_generator.X, training_generator.y,
-                       precision, angularLoss, saveModel=False)
-
-            # Learn angles
-            print("Learning angular assignment")
-            angularLoss.setMode(deepGlobal.FULL_MODE)
-            model = deepGlobal.constructAnglesModel(Xdim, modelShift)
-            model.summary()
-            trainModel(model, training_generator.X, training_generator.y, precision, angularLoss,
-                       saveModel=True, fnModelIndex=fnModelIndex)
-            # testModel(model, training_generator.X, training_generator.y)
+                # Learn shift
+                if onlyShift:
+                    print("Learning shift")
+                    angularLoss.setMode(deepGlobal.SHIFT_MODE)
+                    modelShift = deepGlobal.constructShiftModel(Xdim)
+                    modelShift.summary()
+                    trainModel(modelShift, training_generator.X, training_generator.y,
+                               precision, fnModelIndex, angularLoss)
+                else:
+                    # Learn angles
+                    print("Learning angular assignment")
+                    angularLoss.setMode(deepGlobal.FULL_MODE)
+                    model = deepGlobal.constructAnglesModel(Xdim, modelShift)
+                    model.summary()
+                    trainModel(model, training_generator.X, training_generator.y, precision, fnModelIndex, angularLoss)
+                    # testModel(model, training_generator.X, training_generator.y)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
 
 if __name__ == '__main__':
     exitCode = ScriptDeepGlobalAssignment().tryRun()

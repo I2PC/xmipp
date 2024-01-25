@@ -104,16 +104,15 @@ try:
             config = super(Angles2VectorLayer, self).get_config()
             return config
 
-    def constructNN(inputLayer, outputSize, kernelSize, pooling=True):
+    def constructNN(inputLayer, outputSize, kernelSize):
         x = Conv2D(32, kernelSize, padding='same', activation='relu')(inputLayer)
-        if pooling:
-            x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Conv2D(32, kernelSize, padding='same', activation='relu')(x)
-        if pooling:
-            x = MaxPooling2D(pool_size=(2, 2))(x)
-        x = Conv2D(32, kernelSize, padding='same', activation='relu')(x)
-        if pooling:
-            x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(16, kernelSize, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(8, kernelSize, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(4, kernelSize, padding='same', activation='relu')(x)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Flatten()(x)
         x = Dense(64, activation='relu')(x)
         x = Dense(outputSize, activation="linear")(x)
@@ -121,7 +120,7 @@ try:
 
     def constructShiftModel(Xdim):
         inputLayer = Input(shape=(Xdim, Xdim, 1))
-        x = constructNN(inputLayer, 2, kernelSize=5, pooling=True)
+        x = constructNN(inputLayer, 2, kernelSize=5)
         x = ConcatenateZerosLayer(6)(x)
         return Model(inputLayer, x)
 
