@@ -25,8 +25,15 @@ from .utils import runJob, yellow
 from .constants import LOG_FILE, CONFIG_FILE, VERSIONS_FILE, COMPRESED_FILE
 def createTar():
 		try:
-				runJob('./xmipp version > {}'.format(VERSIONS_FILE))
-				runJob('tar -czf {} {} {} {} '.format(
+				retCode, outputStr = runJob('./xmipp version > {}'.format(VERSIONS_FILE))
+				if retCode == 0:
+					retCode, outputStr =runJob('tar -czf {} {} {} {} '.format(
 						COMPRESED_FILE, CONFIG_FILE,VERSIONS_FILE,LOG_FILE))
+					if retCode != 0:
+						print(yellow('reportTar file not created'))
+				else:
+						print(yellow('reportTar file not created'))
+
+
 		except Exception as e:
 				print(yellow('reportTar file not created'))

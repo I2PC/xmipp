@@ -208,8 +208,9 @@ def modeAll(args: argparse.Namespace):
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
 	dictConfig = config(debugP=False)
-	modeCompileAndInstall(args, dictConfig=dictConfig)
-	downloadDeepLearningModels()
+	#modeCompileAndInstall(args, dictConfig=dictConfig)
+	#downloadDeepLearningModels()
+	exitXmipp(dictPackages=dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
@@ -337,5 +338,4 @@ if __name__ == "__main__":
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
 
-	exitXmipp()
 
