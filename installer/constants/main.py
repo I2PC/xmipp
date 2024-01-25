@@ -80,7 +80,10 @@ PATH_TO_FIND_H = ['/usr/include',
 
 # File names
 CONFIG_FILE = 'xmipp.conf'
+OLD_CONFIG_FILE = 'xmipp_old.conf'
 XMIPPENV = 'xmippEnv.json'
+VERSIONS_FILE = 'xmippVersions.txt'
+COMPRESED_FILE = 'report.tar.gz'
 LOG_FILE = 'compileLOG.txt'
 CMD_OUT_LOG_FILE = 'commandOutput.log'
 CMD_ERR_LOG_FILE = 'commandError.log'

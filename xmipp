@@ -31,13 +31,13 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
 																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS)
-from installer.utils import printError, green, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests, branchName
+from installer.utils import printError, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests, branchName
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
 														cleanDeprecated, cleanSources, cleanBin)
-from installer.api import sendApiPost
 from installer.versions import collectAllVersions
+from installer.exit import exitXmipp
 
 
 ####################### EXECUTION MODES #######################
@@ -210,7 +210,6 @@ def modeAll(args: argparse.Namespace):
 	dictConfig = config(debugP=False)
 	modeCompileAndInstall(args, dictConfig=dictConfig)
 	downloadDeepLearningModels()
-	sendApiPost(dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
 	"""
@@ -337,4 +336,6 @@ if __name__ == "__main__":
 
 	# Running installer in selected mode
 	runSelectedMode(parser, args)
+
+	exitXmipp()
 

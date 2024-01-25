@@ -30,6 +30,7 @@ import os, shutil
 from typing import Tuple
 
 # Installer imports
+from .exit import exitXmipp
 from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES,
 	ORGANIZATION_NAME, CUFFTADVSOR_ERROR, GOOGLETEST_ERROR,LIBSVM_ERROR, LIBCIFPP_ERROR, \
 	DEVEL_BRANCHNAME, MASTER_BRANCHNAME, TAGS_SUBPAGE,
@@ -68,7 +69,7 @@ def getSources(branch: str=None):
 			# Clone source repository
 			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
 			if status != 0:
-				printError(errorMsg=output, retCode=CLONNING_EXTERNAL_SOURCE_ERROR)
+				exitError(retCode=CLONNING_EXTERNAL_SOURCE_ERROR, output=output)
 
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
@@ -77,13 +78,15 @@ def getSources(branch: str=None):
 			# Download source tag
 			status, output = downloadSourceTag(source)
 			if status != 0:
-					printError(output, retCode=DOWNLOADING_XMIPP_SOURCE_ERROR)
+					exitError(retCode=DOWNLOADING_XMIPP_SOURCE_ERROR, output=output)
+
 		else:
 			# Clone source repository
 			status, output = cloneSourceRepo(source, branch=branch)
 		# If download failed, return error
 		if status != 0:
-			printError(output, retCode=CLONNING_XMIPP_SOURCE_ERROR)
+			exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=output)
+
 
 def compileExternalSources(jobs):
 		"""
@@ -135,10 +138,12 @@ def compile_cuFFTAdvisor():
 						printMessage(text=green('cuFFTAdvisor package compillated'), debug=True)
 				else:
 						os.chdir(currDir)
-						printError(retCode=CUFFTADVSOR_ERROR, errorMsg=outputStr)
+						exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr)
+
 		else:
 				os.chdir(currDir)
-				printError(retCode=CUFFTADVSOR_ERROR, errorMsg=outputStr)
+				exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr)
+
 
 def compile_googletest():
 		"""
@@ -166,10 +171,13 @@ def compile_googletest():
 						printMessage(text=green('googletest package compillated'), debug=True)
 				else:
 						os.chdir(currDir)
-						printError(retCode=GOOGLETEST_ERROR, errorMsg=outputStr)
+						exitError(retCode=GOOGLETEST_ERROR, output=outputStr)
+
+
 		else:
 				os.chdir(currDir)
-				printError(retCode=GOOGLETEST_ERROR, errorMsg=outputStr)
+				exitError(retCode=GOOGLETEST_ERROR, output=outputStr)
+
 
 def compile_libsvm():
 
@@ -190,10 +198,12 @@ def compile_libsvm():
 						printMessage(text=green('libsvm package compillated'), debug=True)
 				else:
 						os.chdir(currDir)
-						printError(retCode=LIBSVM_ERROR, errorMsg=outputStr)
+						exitError(retCode=LIBSVM_ERROR, output=outputStr)
+
 		else:
 				os.chdir(currDir)
-				printError(retCode=LIBSVM_ERROR, errorMsg=outputStr)
+				exitError(retCode=LIBSVM_ERROR, output=outputStr)
+
 
 def compile_libcifpp(jobs):
 		"""
@@ -235,16 +245,20 @@ def compile_libcifpp(jobs):
 								if retCode == 0:
 										printMessage(text=green('libcifpp package compillated'), debug=True)
 								else:
-										printError(retCode=LIBCIFPP_ERROR, errorMsg=outputStr)
+										exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+
 						else:
 								os.chdir(currDir)
-								printError(retCode=LIBCIFPP_ERROR, errorMsg=outputStr)
+								exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+
 				else:
 						os.chdir(currDir)
-						printError(retCode=LIBCIFPP_ERROR, errorMsg=outputStr)
+						exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+
 		else:
 				os.chdir(currDir)
-				printError(retCode=LIBCIFPP_ERROR, errorMsg=outputStr)
+				exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+
 
 def compileSources(jobs):
 		"""
@@ -269,11 +283,14 @@ def compileSources(jobs):
 																	streaming=True, showOutput=False, showError=True)
 				if retCode != 0:
 						if source == XMIPP_CORE:
-									printError(retCode=XMIPPCORE_COMPILLATION_ERROR, errorMsg=outputStr)
+									exitError(retCode=XMIPPCORE_COMPILLATION_ERROR, output=outputStr)
+
 						elif source == XMIPP:
-									printError(retCode=XMIPP_COMPILLATION_ERROR, errorMsg=outputStr)
+									exitError(retCode=XMIPP_COMPILLATION_ERROR, output=outputStr)
+
 						elif source == XMIPP_VIZ:
-									printError(retCode=XMIPPVIZ_COMPILLATION_ERROR, errorMsg=outputStr)
+									exitError(retCode=XMIPPVIZ_COMPILLATION_ERROR, output=outputStr)
+
 
 def install(directory):
 		"""
@@ -302,7 +319,7 @@ def install(directory):
 		createDir(directory + "/lib")
 		retCode, outputStr = runJob(cpCmd + " src/*/lib/lib* " + directory + "/lib/")
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 		if os.path.exists(directory + "/bin"):
 				shutil.rmtree(directory + "/bin")
 		if not os.path.exists(directory + "/bin"):
@@ -313,11 +330,12 @@ def install(directory):
 				if os.path.islink(os.path.join(dirBin, f)):
 						retCode, outputStr = runJob('ln -s ' + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f))
 						if retCode != 0:
-								printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+								exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 				else:
 						retCode, outputStr = runJob(cpCmd + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f))
 						if retCode != 0:
-								printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+								exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 
 		destPathPyModule = os.path.expanduser(
 				os.path.abspath(os.path.join(directory, "pylib", "xmippPyModules")))
@@ -335,62 +353,74 @@ def install(directory):
 						createDir(os.path.join(destPathPyModule, folderName))
 						retCode, outputStr = runJob("ln -sf " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file))
 						if retCode != 0:
-								printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+								exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 
 		createDir(directory + "/bindings")
 		createDir(directory + "/bindings/matlab")
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/matlab/*.m* " + directory + "/bindings/matlab/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		createDir(directory + "/bindings/python")
 		retCode, outputStr = runJob(
 				cpCmd + " src/xmipp/bindings/python/xmipp_base.py " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/python/xmipp.py " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/python/xmipp_conda_envs.py " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " -r src/xmipp/bindings/python/envs_DLTK/ " + directory + "/bindings/python/envs_DLTK", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/lib/xmippLib.so " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/lib/_swig_frm.so " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		createDir(directory + "/bindings/python/sh_alignment")
 		retCode, outputStr = runJob(cpCmd + " -r src/xmipp/external/sh_alignment/python/* " + directory + "/bindings/python/sh_alignment/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/external/sh_alignment/swig_frm.py " + directory + "/bindings/python/sh_alignment/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 
 		createDir(directory + "/resources")
 		retCode, outputStr = runJob(cpCmd + " -r src/*/resources/* " + directory + "/resources/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 
 		createDir(directory + "/bindings/java")
 		retCode, outputStr = runJob(cpCmd + " -Lr src/xmippViz/java/lib " + directory + "/bindings/java/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " -Lr src/xmippViz/java/build " + directory + "/bindings/java/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " -Lr src/xmippViz/external/imagej " + directory + "/bindings/java/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " src/xmippViz/bindings/python/xmippViz.py " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " xmippEnv.json " + directory + "/xmippEnv.json", showCommand=verbose)
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=INSTALLATION_ERROR)
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 
 		printMessage(text=green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', '')))), debug=True)
 
@@ -477,7 +507,8 @@ def cleanDeprecated():
 		for x in list2RemoveXmipp:
 				retCode, outputStr = runJob('rm src/xmipp/bin/xmipp_{}'.format(x))
 		if retCode != 0:
-				printError(errorMsg=outputStr, retCode=DEPRECATE_ERROR)
+				exitError(retCode=DEPRECATE_ERROR, output=outputStr)
+
 		if len(list2RemoveXmipp) > 0:
 				 printMessage(text=green('Deprecated programs removed'), debug=True)
 		printMessage(green('Done'), debug=True)
@@ -638,39 +669,39 @@ def linkToScipion(directory:str, verbose:bool=False):
 		    printMessage("\nLinking to Scipion ---------------------------------------", debug=True)
 		    printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
 		if os.path.isdir(xmippHomeLink):
-		    retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    retCode, outputStr = runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink), showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    xmippLink = os.readlink(xmippHomeLink)
-		    coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
-		    xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
-		    SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
-		    CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
-		    bindings = os.path.join(xmippLink, "bindings", "python", "*")
+				retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
+				if retCode != 0:
+					exitError(retCode=LINKING2SCIPION, output=outputStr)
+				retCode, outputStr = runJob("ln -srf %s %s" % (dirnameAbs, xmippHomeLink), showCommand=verbose)
+				if retCode != 0:
+						exitError(retCode=LINKING2SCIPION, output=outputStr)
+				xmippLink = os.readlink(xmippHomeLink)
+				coreLib = os.path.join(xmippLink, "lib", "libXmippCore.so")
+				xmippLib = os.path.join(xmippLink, "lib", "libXmipp.so")
+				SVMLib = os.path.join(xmippLink, "lib", "libsvm.so")
+				CIFPPLib = os.path.join(xmippLink, "lib", "libcifpp.so*")
+				bindings = os.path.join(xmippLink, "bindings", "python", "*")
 
-		    os.chdir(scipionSoftwareEM)
-		    retCode, outputStr = runJob("ln -srf %s %s" % (coreLib, scipionLibs), showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    retCode, outputStr = runJob("ln -srf %s %s" % (SVMLib, scipionLibs), showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    retCode, outputStr = runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs), showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    retCode, outputStr = runJob("ln -srf %s %s" % (xmippLib, scipionLibs), showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    retCode, outputStr = runJob("ln -srf %s %s" % (bindings, scipionBindings), showCommand=verbose)
-		    if retCode != 0:
-		        printError(errorMsg=outputStr, retCode=LINKING2SCIPION)
-		    os.chdir(currentDir)
-		    printMessage(text=green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
+				os.chdir(scipionSoftwareEM)
+				retCode, outputStr = runJob("ln -srf %s %s" % (coreLib, scipionLibs), showCommand=verbose)
+				if retCode != 0:
+						exitError(retCode=LINKING2SCIPION, output=outputStr)
+				retCode, outputStr = runJob("ln -srf %s %s" % (SVMLib, scipionLibs), showCommand=verbose)
+				if retCode != 0:
+						exitError(retCode=LINKING2SCIPION, output=outputStr)
+				retCode, outputStr = runJob("ln -srf %s %s" % (CIFPPLib, scipionLibs), showCommand=verbose)
+				if retCode != 0:
+						exitError(retCode=LINKING2SCIPION, output=outputStr)
+				retCode, outputStr = runJob("ln -srf %s %s" % (xmippLib, scipionLibs), showCommand=verbose)
+				if retCode != 0:
+						exitError(retCode=LINKING2SCIPION, output=outputStr)
+				retCode, outputStr = runJob("ln -srf %s %s" % (bindings, scipionBindings), showCommand=verbose)
+				if retCode != 0:
+						exitError(retCode=LINKING2SCIPION, output=outputStr)
+				os.chdir(currentDir)
+				printMessage(text=green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
 		else:
-		    printWarning(text='', warningCode=SCIPION_LINK_WARNING)
+				printWarning(text='', warningCode=SCIPION_LINK_WARNING)
 
 
 def cleanEmptyFolders():
@@ -685,3 +716,8 @@ def cleanEmptyFolders():
             if retCode != 0:
                 printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
 
+def exitError(output:str='', retCode:int=0):
+		printError(errorMsg=output, retCode=retCode)
+		dictPackages = readConfig()
+		exitXmipp(retCode=retCode,
+							dictPackages=dictPackages)

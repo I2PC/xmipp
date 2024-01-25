@@ -48,7 +48,7 @@ from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
                         STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
-                        WARNING_CODE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
+                        OLD_CONFIG_FILE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
                         RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR,)
 from .utils import (red, green, yellow, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion, printWarning,
@@ -64,6 +64,7 @@ from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
 from .versions import getCUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
+from .exit import exitXmipp
 
 
 def config(debugP:bool=True, scratch:bool=False):
@@ -75,6 +76,7 @@ def config(debugP:bool=True, scratch:bool=False):
     if not existConfig() or scratch:# or existButOld():
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
+        dictPackages['ANON_DATA_COLLECT'] = 'True'
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
         return dictPackages
@@ -137,7 +139,8 @@ def getInternalFlags(dictPackages, debug: bool=False):
         incDirs = [info['include'], numpy.get_include()]
         dictInternalFlags['PYTHONINCFLAGS'] = ' '.join(["-I%s" % iDir for iDir in incDirs])
     except Exception as e:
-        printError(errorMsg=str(e), retCode=PYTHONINCFLAGS_ERROR)
+        exitError(retCode=PYTHONINCFLAGS_ERROR, output=str(e), dictPackages=dictPackages)
+
     #PYTHON_LIB
     malloc = "m" if sys.version_info.minor < 8 else ""
     dictInternalFlags['PYTHON_LIB'] = 'python%s.%s%s' % (sys.version_info.major, sys.version_info.minor, malloc)
@@ -165,7 +168,9 @@ def getInternalFlags(dictPackages, debug: bool=False):
                          "-gencode=arch=compute_75,code=compute_75 "\
                          "-gencode=arch=compute_86,code=compute_86".format(dictPackages['CUDACXX'])
         except Exception as e:
-            printError(errorMsg=str(e), retCode=NVCC_CXXFLAGS_ERROR)
+            exitError(retCode=NVCC_CXXFLAGS_ERROR, output=str(e),
+                      dictPackages=dictPackages)
+
     # LINKFLAGS_NVCC
     dictHomeCUDA= dictPackages['CUDA_HOME'].split('bin/nvcc')[0]
     paths = [join(dictHomeCUDA, 'lib'),
@@ -215,6 +220,9 @@ def readConfig():
 def existButOld():
     with open(CONFIG_FILE, 'r') as f:
         config = f.read()
+        if config.find('BUILD') != -1:
+            return True
+
 def checkConfig(dictPackages, dictInternalFlags):
     """
     Checks the configurations of various packages.
@@ -255,11 +263,11 @@ def checkConfig(dictPackages, dictInternalFlags):
 def existConfig():
     """ Checks if the config file exist.Return True or False """
     if path.exists(CONFIG_FILE):
-        return True
-    else:
         if existButOld():
-            pass
-        return False
+            runJob('mv {} {}'.format(CONFIG_FILE, OLD_CONFIG_FILE))
+            print(blue('Old xmipp.conf detected, saved as to xmipp_old.conf'))
+            return False
+        return True
 
 def writeConfig(dictP: dict, dictInt: dict):
     """Write the config file"""
@@ -322,9 +330,9 @@ def checkCC(dictPackages):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             printMessage(text=green('gcc {} found'.format(version)), debug=debugPrints)
             return OK
-        printError(retCode=GCC_VERSION_ERROR, errorMsg='gcc {} lower than required ({})'.format(version, GCC_MINIMUM))
+        exitError(retCode=GCC_VERSION_ERROR, output='gcc {} lower than required ({})'.format(version, GCC_MINIMUM), dictPackages=dictPackages)
     else:
-        printError(retCode=CC_NO_EXIST_ERROR, errorMsg='GCC package path: {} does not exist'.format(dictPackages[CC]))
+        exitError(retCode=CC_NO_EXIST_ERROR, output='GCC package path: {} does not exist'.format(dictPackages[CC]), dictPackages=dictPackages)
 
 def getCXX(dictPackages):
     """
@@ -362,9 +370,11 @@ def checkCXX(dictPackages):
         if versionToNumber(version) >= versionToNumber(GCC_MINIMUM):
             printMessage(text=green('g++ {} found'.format(version)), debug=debugPrints)
             return OK
-        printError(retCode=CXX_VERSION_ERROR, errorMsg='g++ {} lower than required ({})'.format(version, GPP_MINIMUM))
+        exitError(retCode=CXX_VERSION_ERROR, output='g++ {} lower than required ({})'.format(version, GPP_MINIMUM), dictPackages=dictPackages)
+
     else:
-        printError(retCode=CXX_NO_EXIST_ERROR, errorMsg='CXX package path: {} does not exist'.format(dictPackages[CXX]))
+        exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path: {} does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages)
+
 
 def getMPI(dictPackages):
     """
@@ -413,9 +423,14 @@ def checkMPI(dictPackages, dictInternalFlags):
                 if versionToNumber(version) >= versionToNumber(MPI_MINIMUM):
                     printMessage(text=green('{} {} found'.format(pack, version)), debug=debugPrints)
                 else:
-                    printError(retCode=MPI_VERSION_ERROR, errorMsg='mpi {} lower than required ({})'.format(version, GPP_MINIMUM))
+                    exitError(retCode=MPI_VERSION_ERROR,
+                              output='mpi {} lower than required ({})'.format(version, GPP_MINIMUM),
+                              dictPackages=dictPackages)
+
         else:
-            printError(retCode=MPI_NOT_FOUND_ERROR, errorMsg='MPI package: {} does not exist'.format(dictPackages[pack]))
+            exitError(retCode=MPI_NOT_FOUND_ERROR,
+                      output='MPI package: {} does not exist'.format(dictPackages[pack]),
+                      dictPackages=dictPackages)
 
     #More checks
 
@@ -429,7 +444,9 @@ def checkMPI(dictPackages, dictInternalFlags):
            % (dictPackages["MPI_CXX"], dictPackages["LIBDIRFLAGS"],CXX_FLAGS))
     status, output = runJob(cmd)
     if status != 0:
-        printError(retCode=MPI_RUNNING_ERROR, errorMsg='Fails running the command: \n{}\nError message: {}'.format(cmd, output))
+        exitError(retCode=MPI_RUNNING_ERROR,
+                  output='Fails running the command: \n{}\nError message: {}'.format(cmd, output),
+                  dictPackages=dictPackages)
 
     libhdf5 = get_Hdf5_name(dictPackages["LIBDIRFLAGS"])
     cmd = (("%s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3"
@@ -442,7 +459,9 @@ def checkMPI(dictPackages, dictInternalFlags):
 
     status, output = runJob(cmd)
     if status != 0:
-        printError(retCode=MPI_COMPILLATION_ERROR, errorMsg='Fails running the command: \n{}\n\nError message:\n{}'.format(cmd, output))
+        exitError(retCode=MPI_COMPILLATION_ERROR,
+                  output='Fails running the command: \n{}\n\nError message:\n{}'.format(cmd, output),
+                  dictPackages=dictPackages)
 
     runJob("rm xmipp_mpi_test_main*", showOutput=False,showCommand=False)
 
@@ -451,7 +470,9 @@ def checkMPI(dictPackages, dictInternalFlags):
     if output.count('Running') != processors:
         output = runJob('{} -np 2 --allow-run-as-root echo {}'.format(dictPackages['MPI_RUN'], processors,  'Running'))[1]
         if output.count('Running') != processors:
-            printError(retCode=MPI_RUNNING_ERROR,  errorMsg='mpirun or mpiexec have failed.')
+            exitError(retCode=MPI_RUNNING_ERROR,
+                      output='mpirun or mpiexec have failed.',
+                      dictPackages=dictPackages)
 
 def getJava(dictPackages):
     """
@@ -490,7 +511,9 @@ def checkJava(dictPackages):
             isdir(join(dictPackages['JAVA_HOME'], 'include')) and existPackage('java'):
         printMessage(text=green('java {} found'.format(JAVAVersion(getPackageVersionCmd('java')))), debug=debugPrints)
     else:
-        printError('JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']), JAVA_HOME_PATH_ERROR)
+        exitError(retCode=JAVA_HOME_PATH_ERROR,
+                  output='JAVA_HOME path: {} does not work'.format(dictPackages['JAVA_HOME']),
+                  dictPackages=dictPackages)
 
     #JAVA Version
     version = JAVAVersion(getPackageVersionCmd('java'))
@@ -505,7 +528,9 @@ def checkJava(dictPackages):
     cmd= "%s Xmipp.java" % join(dictPackages['JAVA_HOME'], 'bin/javac')
     retCode, outputStr = runJob(cmd, showError=True)
     if retCode!= 0:
-        printError(retCode=JAVAC_DOESNT_WORK_ERROR, errorMsg=cmd)
+        exitError(retCode=JAVAC_DOESNT_WORK_ERROR,
+                  output=cmd,
+                  dictPackages=dictPackages)
     runJob("rm Xmipp.java Xmipp.class", showError=True)
 
     #Other check 2
@@ -528,7 +553,9 @@ def checkJava(dictPackages):
     cmd = "%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %(dictPackages['CXX'], incs, dictPackages["INCDIRFLAGS"])
     status, output = runJob(cmd)
     if status != 0:
-        printError(retCode=JAVA_INCLUDE_ERROR, errorMsg=output)
+        exitError(retCode=JAVA_INCLUDE_ERROR,
+                  output=output,
+                  dictPackages=dictPackages)
     runJob("rm xmipp_jni_test*", showError=True)
 
 def getMatlab(dictPackages):
@@ -880,7 +907,8 @@ def getLIBDIRFLAGS(dictPackages):
 def checkGit():
     version = gitVersion()
     if versionToNumber(version) < versionToNumber(GIT_MINIMUM):
-        printError(retCode=GIT_VERSION_ERROR, errorMsg='GIT version {} lower than minimum: {}'.
+        exitError(retCode=GIT_VERSION_ERROR,
+                  output='GIT version {} lower than minimum: {}'.
                    format(version, GIT_MINIMUM))
     else:
         printMessage(text=green('git {} found'.format(version)), debug=True)
@@ -900,11 +928,10 @@ def checkHDF5(dictPackages):
         True, 0: HDF5 configuration successful.
     """
     if not path.exists(dictPackages['HDF5_HOME']):
-        printError(errorMsg='HDF5 nod found', retCode=HDF5_NOT_FOUND_ERROR)
-
+        exitError(retCode=HDF5_NOT_FOUND_ERROR, output='HDF5 nod found', dictPackages=dictPackages)
     version = HDF5Version(dictPackages['HDF5_HOME'])
     if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
-        printError('HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), HDF5_VERSION_ERROR)
+        exitError(retCode=HDF5_VERSION_ERROR, output='HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), dictPackages=dictPackages)
     cppProg = ("""
                #include <hdf5.h>
                \n int main(){}\n
@@ -915,8 +942,7 @@ def checkHDF5(dictPackages):
            (dictPackages['CXX'], LINKFLAGS, dictPackages["INCDIRFLAGS"]))
     status, output = runJob(cmd)
     if status != 0:
-        printError(retCode=HDF5_ERROR, errorMsg=output)
-
+        exitError(retCode=HDF5_ERROR, output=output, dictPackages=dictPackages)
     runJob("rm xmipp_test_main*", showError=True)
     printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
 
@@ -925,9 +951,9 @@ def checkTIFF(dictPackages):
     if path.exists(dictPackages['TIFF_H']):
         printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
     else:
-        printError(retCode=TIFF_H_ERROR, errorMsg='TIFF library not found')
+        exitError(retCode=TIFF_H_ERROR, output='TIFF library not found', dictPackages=dictPackages)
     if path.exists(dictPackages['TIFF_SO']) == False:
-        printError(retCode=TIFF_ERROR, errorMsg='libtiff.so not found')
+        exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages)
 
 def checkFFTW3(dictPackages):
     if path.exists(dictPackages['FFTW3_H']):
@@ -936,12 +962,14 @@ def checkFFTW3(dictPackages):
             if versionToNumber(version) >= versionToNumber(FFTW_MINIMUM):
                 printMessage(text=green('FFTW3 {} found'.format(version)), debug=debugPrints)
             else:
-                printError(retCode=FFTW3_VERSION_ERROR, errorMsg=green('FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM)))
+                exitError(retCode=FFTW3_VERSION_ERROR, output='FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM),
+                          dictPackages=dictPackages)
         else:
-            printError(retCode=FFTW3_ERROR, errorMsg='libfftw3.so does not exist')
-
+            exitError(retCode=FFTW3_ERROR, output='libfftw3.so does not exist',
+                      dictPackages=dictPackages)
     else:
-        printError(retCode=FFTW3_H_ERROR, errorMsg='FFTW3 does not exist')
+        exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages)
+
 
 
 def checkCMake():
@@ -959,11 +987,11 @@ def checkCMake():
         cmakVersion = getCmakeVersion()
         # Checking if installed version is below minimum required
         if versionToNumber(cmakVersion) < versionToNumber(CMAKE_MINIMUM):
-            printError('Your CMake version ({cmakVersion}) is below {CMAKE_MINIMUM}', CMAKE_VERSION_ERROR)
+            exitError(retCode=CMAKE_VERSION_ERROR, output='Your CMake version {} is below {}'.format(cmakVersion, CMAKE_MINIMUM))
     except FileNotFoundError:
-        printError('CMake is not installed', CMAKE_ERROR)
+        exitError(retCode=CMAKE_ERROR, output='CMake is not installed')
     except Exception:
-        printError('Can not get the cmake version', CMAKE_ERROR)
+        exitError(retCode=CMAKE_ERROR, output='Can not get the cmake version')
 
     printMessage(text=green('cmake {} found'.format(cmakVersion)), debug=debugPrints)
 
@@ -976,8 +1004,9 @@ def checkScons():
             sconsV = getSconsVersion()
             printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=True)
           else:
-            printError('scons found {}, required {}\n{}'.
-              format(sconsV, SCONS_MINIMUM, status[1]), SCONS_VERSION_ERROR)
+            exitError(retCode=SCONS_VERSION_ERROR,
+                      output='scons found {}, required {}\n{}'.
+              format(sconsV, SCONS_MINIMUM, status[1]))
         else:
           printMessage(text=green('SCons {} found'.format(sconsV)), debug=debugPrints)
     else:
@@ -986,12 +1015,20 @@ def checkScons():
           sconsV = getSconsVersion()
           printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=True)
         else:
-          printError('Scons not found. {}'.format(status[1]), SCONS_ERROR)
+          exitError(retCode=SCONS_ERROR,
+                    output='Scons not found. {}'.format(status[1]))
+
 
 def checkRsync():
     rsyncV = getRsyncVersion()
     if rsyncV is None:
         if versionToNumber(rsyncV) < versionToNumber(RSYNC_MINIMUM):
-            printError('rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM), RSYNC_VERSION_ERROR)
+            exitError(retCode=RSYNC_VERSION_ERROR,
+                      output='rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM))
     printMessage(text=green('rsync {} found'.format(rsyncV)), debug=debugPrints)
 
+def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
+    printError(errorMsg=output, retCode=retCode)
+    if not dictPackages:
+        dictPackages = readConfig()
+    exitXmipp(retCode=retCode, dictPackages=dictPackages)
