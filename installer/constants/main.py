@@ -126,4 +126,5 @@ CONFIG_DICT = {'INCDIRFLAGS': '',
 							 	'FFTW3_SO': '',
 							  'TIFF_H': '',
 							 	'FFTW3_H': '',
+							  'ANON_DATA_COLLECT': 'True'
 }

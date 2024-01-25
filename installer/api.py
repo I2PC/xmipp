@@ -44,12 +44,13 @@ def sendApiPost(dictPackage: Dict, retCode: int=0):
 	- dictPackage (Dict): Dictionary containing all discovered or config variables.
 	- retCode (int): Optional. Return code for the API request.
 	"""
-	# Getting JSON data for curl command
-	jsonStr = getJSONString(dictPackage, retCode=retCode)
+	if dictPackage['ANON_DATA_COLLECT'] == 'True':
+			# Getting JSON data for curl command
+			jsonStr = getJSONString(dictPackage, retCode=retCode)
 
-	# Send API POST request if there were no errors
-	if jsonStr is not None:
-		runNetworkJob(getCurlStr(API_URL, jsonStr))
+			# Send API POST request if there were no errors
+			if jsonStr is not None:
+				runNetworkJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################
 def getJSONString(dictPackage: Dict, retCode: int=0) -> Union[str, None]:
