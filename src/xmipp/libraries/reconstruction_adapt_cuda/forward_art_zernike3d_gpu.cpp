@@ -712,6 +712,7 @@ void ProgForwardArtZernike3DGPU::zernikeModel()
 		.Idiff = Idiff,
 		.angles = angles,
 		.dThr = dThr,
+		.loopStep = static_cast<PrecisionType>(loop_step),
 	};
 
 	try {

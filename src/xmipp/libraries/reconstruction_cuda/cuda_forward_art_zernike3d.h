@@ -68,6 +68,7 @@ class Program {
 		const Image<PrecisionType> &Idiff;
 		struct AngleParameters angles;
 		double dThr;
+		PrecisionType loopStep;
 	};
 
 	struct CommonKernelParameters {
@@ -99,6 +100,8 @@ class Program {
 	const int RmaxDef;
 
 	const int *cudaVL1, *cudaVN, *cudaVL2, *cudaVM;
+
+	PrecisionType *elems, *avg, *sumSqrNorm, *stddev;
 
 	const std::vector<PrecisionType> sigma;
 

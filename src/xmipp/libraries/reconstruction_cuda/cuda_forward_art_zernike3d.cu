@@ -1029,6 +1029,7 @@ namespace device {
 	template<typename PrecisionType>
 	__device__ void splattingAtPos(const PrecisionType pos_x,
 								   const PrecisionType pos_y,
+								   const unsigned int loopStep,
 								   MultidimArrayCuda<PrecisionType> &mP,
 								   MultidimArrayCuda<PrecisionType> &mW,
 								   const PrecisionType weight)
@@ -1036,8 +1037,12 @@ namespace device {
 		int i = static_cast<int>(CUDA_ROUND(pos_y));
 		int j = static_cast<int>(CUDA_ROUND(pos_x));
 		if (!IS_OUTSIDE2D(mP, i, j)) {
-			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight);
-			atomicAddPrecision(&A2D_ELEM(mW, i, j), CST(1.0));
+			PrecisionType m = 1. / loopStep;
+			PrecisionType a = m * ABSC(static_cast<PrecisionType>(i) - pos_y);
+			PrecisionType b = m * ABSC(static_cast<PrecisionType>(j) - pos_x);
+			PrecisionType gw = 1. - a - b + a * b;
+			atomicAddPrecision(&A2D_ELEM(mP, i, j), weight * gw);
+			atomicAddPrecision(&A2D_ELEM(mW, i, j), gw * gw);
 		}
 	}
 
@@ -1104,6 +1109,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 							  MultidimArrayCuda<PrecisionType> *cudaP,
 							  MultidimArrayCuda<PrecisionType> *cudaW,
 							  const unsigned sigma_size,
+							  const PrecisionType loopStep,
 							  const PrecisionType *cudaSigma,
 							  const PrecisionType iRmaxF,
 							  const unsigned idxY0,
@@ -1170,7 +1176,7 @@ __global__ void forwardKernel(const MultidimArrayCuda<PrecisionType> cudaMV,
 
 	auto pos_x = r0 * r_x + r1 * r_y + r2 * r_z;
 	auto pos_y = r3 * r_x + r4 * r_y + r5 * r_z;
-	device::splattingAtPos(pos_x, pos_y, mP, mW, weight);
+	device::splattingAtPos(pos_x, pos_y, loopStep, mP, mW, weight);
 }
 
 /*
@@ -1236,7 +1242,8 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 }
 
 template<typename PrecisionType>
-__global__ void softThreshold(MultidimArrayCuda<PrecisionType> cudaMV, double thr)
+__global__ void softThresholdAndStdDevParams(MultidimArrayCuda<PrecisionType> cudaMV, double thr, PrecisionType *elems,
+							  PrecisionType *avg, PrecisionType *sumSqrNorm, const MultidimArrayCuda<int> VRecMaskB)
 {
 	// Remove negative values
 	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
@@ -1245,12 +1252,44 @@ __global__ void softThreshold(MultidimArrayCuda<PrecisionType> cudaMV, double th
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
-	if (A3D_ELEM(cudaMV, k, i, j)  > thr)
-		A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) - thr;
-	else if (A3D_ELEM(cudaMV, k, i, j)  < -thr)
-		A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + thr;
-	else
-		A3D_ELEM(cudaMV, k, i, j) = 0.0;
+	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
+		if (A3D_ELEM(cudaMV, k, i, j)  > thr)
+			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) - thr;
+		else if (A3D_ELEM(cudaMV, k, i, j)  < -thr)
+			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + thr;
+		else
+			A3D_ELEM(cudaMV, k, i, j) = 0.0;
+		device::atomicAddPrecision(elems, CST(1.0));
+		device::atomicAddPrecision(avg, A3D_ELEM(cudaMV, k, i, j));
+		device::atomicAddPrecision(sumSqrNorm, A3D_ELEM(cudaMV, k, i, j));
+	}
+}
+
+template<typename PrecisionType>
+__global__ void computeStdDev(PrecisionType *elems, PrecisionType *avg, PrecisionType *sumSqrNorm,
+	                          PrecisionType *stddev)
+{
+	if (*elems != 0) {
+		*avg /= *elems;
+		*sumSqrNorm /= *elems;
+	}
+	*stddev = sqrtf(fabsf(*sumSqrNorm - (*avg * *avg)));
+}
+
+template<typename PrecisionType>
+__global__ void softNegThreshold(MultidimArrayCuda<PrecisionType> cudaMV, PrecisionType *stddev, const MultidimArrayCuda<int> VRecMaskB)
+{
+	// Remove negative values
+	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
+	int cubeY = threadIdx.y + blockIdx.y * blockDim.y;
+	int cubeZ = threadIdx.z + blockIdx.z * blockDim.z;
+	int k = STARTINGZ(cudaMV) + cubeZ;
+	int i = STARTINGY(cudaMV) + cubeY;
+	int j = STARTINGX(cudaMV) + cubeX;
+	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
+		if (A3D_ELEM(cudaMV, k, i, j)  < -*stddev)
+			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + *stddev;
+	}
 }
 
 }  // namespace cuda_forward_art_zernike3D

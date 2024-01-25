@@ -308,6 +308,12 @@ Program<PrecisionType>::~Program()
 	cudaFree(const_cast<int *>(cudaVL2));
 	cudaFree(const_cast<int *>(cudaVN));
 	cudaFree(const_cast<int *>(cudaVM));
+
+	cudaFree(elems);
+	cudaFree(avg);
+	cudaFree(sumSqrNorm);
+	cudaFree(stddev);
+
 }
 
 template<typename PrecisionType>
@@ -334,6 +340,7 @@ void Program<PrecisionType>::runForwardKernel(struct DynamicParameters &paramete
 																	 cudaP,
 																	 cudaW,
 																	 sigma_size,
+																	 parameters.loopStep,
 																	 cudaSigma,
 																	 commonParameters.iRmaxF,
 																	 static_cast<unsigned>(commonParameters.idxY0),
@@ -370,7 +377,17 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 	// Unique parameters
 	auto &mId = parameters.Idiff();
 	auto cudaMId = initializeMultidimArrayCuda(mId);
+
 	const int step = 1;
+	size_t n = 1;
+	PrecisionType h_elems = 0.0;
+	PrecisionType h_avg = 0.0;
+	PrecisionType h_sumSqrNorm = 0.0;
+	PrecisionType h_stddev = 0.0;
+	transferData(&elems, &h_elems, n);
+	transferData(&avg, &h_avg, n);
+	transferData(&sumSqrNorm, &h_sumSqrNorm, n);
+	transferData(&stddev, &h_stddev, n);
 
 	// Common parameters
 	auto commonParameters = getCommonArgumentsKernel<PrecisionType>(parameters, usesZernike, RmaxDef);
@@ -394,9 +411,14 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																			cudaVM,
 																			commonParameters.cudaClnm,
 																			cudaR);
-	
-	 softThreshold<PrecisionType>
-	 	<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, parameters.dThr);
+
+
+	softThresholdAndStdDevParams<PrecisionType>
+	 	<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, parameters.dThr,
+	 	elems, avg, sumSqrNorm, VRecMaskB);
+	computeStdDev<PrecisionType><<<1, 1>>>(elems, avg, sumSqrNorm, stddev);
+	softNegThreshold<PrecisionType>
+		 <<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, stddev, VRecMaskB);
 	cudaDeviceSynchronize();
 
 	cudaFree(cudaR);
