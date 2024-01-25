@@ -381,7 +381,26 @@ void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 	correlation_matrix(tiltImage, landmarkReference, tiltImage_enhanced, aux, true);
 	correlation_matrix(tiltImage_enhanced, landmarkReference_Gaussian, tiltImage, aux, true);
 
-	// tiltImage = tiltImage_enhanced;
+
+	Matrix2D<double> CM;
+	MultidimArray<double> window;
+
+	size_t windowSize = 2 * targetFS;
+	// windowSize_half = targetFS
+
+	Matrix2D<double> &U, Matrix1D<double> &W, Matrix2D<double> &V, Matrix1D<int> &indexes
+
+	for (size_t j = targetFS; j < ySize_d-targetFS; j++)
+	{
+		for (size_t i = targetFS; i < xSize_d-targetFS; i++)
+		{
+
+			window2D(tiltImage, window, j-targetFS, i-targetFS, j+targetFS, i+targetFS);
+			covarianceMatrix(window, CM);
+
+			CM.eigs
+		}
+	}
 }
 
 
