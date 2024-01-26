@@ -165,55 +165,11 @@ void ProgTomoExtractSubtomograms::extractSubtomoFixedSize(MultidimArray<double> 
 
 	if (downsampleFactor > 1)
 	{
-		for (size_t k = 0; k < ZSIZE(fftSubtomo)/2; k++)
-		{
-			for (size_t j = 0; j < YSIZE(fftSubtomo)/2; j++)
-			{
-				for (size_t i = 0; i < XSIZE(fftSubtomo); i++)
-				{
-					// Origin cube
-					DIRECT_A3D_ELEM(fftSubtomo, k, j, i) = DIRECT_A3D_ELEM(fftSubtomoExtraction, k, j, i);
-
-					// Oposite cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo)/2 + k, YSIZE(fftSubtomo)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction) - ZSIZE(fftSubtomo)/2 + k, YSIZE(fftSubtomoExtraction) - YSIZE(fftSubtomo)/2 + j, i);
-
-					// Offset-Z cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo)/2 + k, j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction) - ZSIZE(fftSubtomo)/2 + k, j, i);
-
-					// Offset-Y cube
-					DIRECT_A3D_ELEM(fftSubtomo,  k, YSIZE(fftSubtomo)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, k, YSIZE(fftSubtomoExtraction) - YSIZE(fftSubtomo)/2 + j, i);
-				}
-			}
-		}
+		downsample(fftSubtomo, fftSubtomoExtraction);
 	}
 	else  // downsampleFactor < 1
 	{
-		for (size_t k = 0; k < ZSIZE(fftSubtomoExtraction)/2; k++)
-		{
-			for (size_t j = 0; j < YSIZE(fftSubtomoExtraction)/2; j++)
-			{
-				for (size_t i = 0; i < XSIZE(fftSubtomoExtraction); i++)
-				{
-					// Origin cube
-					DIRECT_A3D_ELEM(fftSubtomo, k, j, i) = DIRECT_A3D_ELEM(fftSubtomoExtraction, k, j, i);
-
-					// Oposite cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo) - ZSIZE(fftSubtomoExtraction)/2 + k, YSIZE(fftSubtomo) - YSIZE(fftSubtomoExtraction)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction)/2 + k, YSIZE(fftSubtomoExtraction)/2 + j, i);
-
-					// Offset-Z cube
-					DIRECT_A3D_ELEM(fftSubtomo,  ZSIZE(fftSubtomo) - ZSIZE(fftSubtomoExtraction)/2 + k, j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, ZSIZE(fftSubtomoExtraction)/2 + k, j, i);
-
-					// Offset-Y cube
-					DIRECT_A3D_ELEM(fftSubtomo,  k, YSIZE(fftSubtomo) - YSIZE(fftSubtomoExtraction)/2 + j, i) =
-					DIRECT_A3D_ELEM(fftSubtomoExtraction, k, YSIZE(fftSubtomoExtraction)/2 + j, i);
-				}
-			}
-		}
+		upsample(fftSubtomo, fftSubtomoExtraction);
 	}
 
 	subtomoExtraction.initZeros(1, boxsize, boxsize, boxsize);
@@ -347,3 +303,57 @@ void ProgTomoExtractSubtomograms::run()
 	std::cout << "Subtomo substraction finished succesfully!!" << std::endl;
 }
 
+
+void ProgTomoExtractSubtomograms::upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to)
+{
+	for (size_t k = 0; k < ZSIZE(from)/2; k++)
+	{
+		for (size_t j = 0; j < YSIZE(from)/2; j++)
+		{
+			for (size_t i = 0; i < XSIZE(from); i++)
+			{
+				// Origin cube
+				DIRECT_A3D_ELEM(to, k, j, i) = DIRECT_A3D_ELEM(from, k, j, i);
+
+				// Oposite cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to) - ZSIZE(from)/2 + k, YSIZE(to) - YSIZE(from)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from)/2 + k, YSIZE(from)/2 + j, i);
+
+				// Offset-Z cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to) - ZSIZE(from)/2 + k, j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from)/2 + k, j, i);
+
+				// Offset-Y cube
+				DIRECT_A3D_ELEM(to,  k, YSIZE(to) - YSIZE(from)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, k, YSIZE(from)/2 + j, i);
+			}
+		}
+	}
+}
+
+void ProgTomoExtractSubtomograms::downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to)
+{
+	for (size_t k = 0; k < ZSIZE(to)/2; k++)
+	{
+		for (size_t j = 0; j < YSIZE(to)/2; j++)
+		{
+			for (size_t i = 0; i < XSIZE(to); i++)
+			{
+				// Origin cube
+				DIRECT_A3D_ELEM(to, k, j, i) = DIRECT_A3D_ELEM(from, k, j, i);
+
+				// Oposite cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to)/2 + k, YSIZE(to)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from) - ZSIZE(to)/2 + k, YSIZE(from) - YSIZE(to)/2 + j, i);
+
+				// Offset-Z cube
+				DIRECT_A3D_ELEM(to,  ZSIZE(to)/2 + k, j, i) =
+				DIRECT_A3D_ELEM(from, ZSIZE(from) - ZSIZE(to)/2 + k, j, i);
+
+				// Offset-Y cube
+				DIRECT_A3D_ELEM(to,  k, YSIZE(to)/2 + j, i) =
+				DIRECT_A3D_ELEM(from, k, YSIZE(from) - YSIZE(to)/2 + j, i);
+			}
+		}
+	}
+}
