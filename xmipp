@@ -29,6 +29,7 @@ import re
 import shutil
 import sys
 from datetime import datetime
+import json
 from scripts import *
 from scripts.utils import checkCMakeVersion
 
@@ -739,6 +740,22 @@ def compileXmipp(Nproc):
     print("\nCompiling xmippViz----------------------------------------")
     if not compileModule(Nproc,"xmippViz"):
         return False
+
+    # Merge Xmipp and XmippCore compiled databases
+    cdb_list = ["compile_commands.json", "compile_commands_2.json"]
+
+    merged = list()
+    for cdb in cdb_list:
+        with open(cdb, 'r') as cdb_id:
+            merged.extend(json.load(cdb_id))
+
+    with open("compile_commands.json", 'w') as cdb_id:
+        json.dump(merged, cdb_id)
+
+    os.remove("compile_commands_2.json")
+
+
+
     return True
 
 
