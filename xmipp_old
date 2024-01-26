@@ -54,7 +54,7 @@ LIBSVM = 'libsvm'
 LIBCIFPP = 'libcifpp'
 VERSION_FILE = 'xmipp_version.txt'
 COMPILE_LOG = 'compileLOG.txt'
-CONFIG_FILE = 'xmipp.conf'
+CONFIG_FILE = 'xmipp_old.conf'
 COMPRESED_REPORT = 'reportInstallation.tar.gz'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',

@@ -130,6 +130,12 @@ def appendUnique(elist, element):
 #  *                            Extra options                             *
 #  *                                                                      *
 #  ************************************************************************
+
+
+CUDA = 'CUDA_HOME'
+NVCC_LINKFLAGS = 'LINKFLAGS_NVCC'
+MATLAB_DIR = 'MATLAB_HOME'
+
 cf = ConfigParser()
 cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
 try:
@@ -139,6 +145,17 @@ except OSError:
 except ParsingError:
     sys.exit("%s\nError while parsing the config file." % sys.exc_info()[1])
 if not 'USER FLAGS' in cf.sections():
+    try:
+        cf.read_file(open("../../xmipp_old.conf"))
+    except OSError:
+        sys.exit("Config file old not found.")
+    if not 'BUILD' in cf.sections():
+        print("Cannot find section BUILD in the old config file.")
+    else:
+        CUDA = 'NVCC'
+        NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
+        MATLAB_DIR = 'MATLAB_DIR'
+        os.environ.update(dict(cf.items('BUILD')))
     print("Cannot find section USER FLAGS in the config file.")
 else:
     os.environ.update(dict(cf.items('USER FLAGS')))
@@ -163,10 +180,10 @@ env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
 env['MPI_CC'] = os.environ.get('MPI_CC')
 env['MPI_CXX'] = os.environ.get('MPI_CXX')
 env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
-env['MATLAB_HOME'] = os.environ.get('MATLAB_HOME')
+env[MATLAB_DIR] = os.environ.get(MATLAB_DIR)
 env['CUDA'] = os.environ.get('CUDA')
-env['CUDA_HOME'] = os.environ.get('CUDA_HOME')
-env['LINKFLAGS_NVCC'] = os.environ.get('LINKFLAGS_NVCC').split()
+env[CUDA] = os.environ.get(CUDA)
+env[NVCC_LINKFLAGS] = os.environ.get(NVCC_LINKFLAGS).split()
 env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS').split()
 
 xmippPath = Dir('.').abspath
@@ -247,7 +264,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
     env2['LINKFLAGS']=list(env['LINKFLAGS'])
     env2['CXX'] = env['CXX']
     if "Cuda" in name or nvcc:
-        env2['LINKFLAGS']+=env['LINKFLAGS_NVCC']
+        env2['LINKFLAGS']+=env[NVCC_LINKFLAGS]
 
     extraArgs = {}
     if mpi:
@@ -263,7 +280,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
             env2['LINKFLAGS']=[]
         env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
         _libs.append(['cudart', 'cufft', 'cuFFTAdvisor'])
-        extraArgs = {'CC': env['CUDA_HOME'], 'CXX': env['CUDA_HOME'], 'LINK': env['LINKERFORPROGRAMS']}
+        extraArgs = {'CC': env[CUDA], 'CXX': env[CUDA], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
 
@@ -419,11 +436,11 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         cxxCopy = str(env['MPI_CXX'])
         linkCopy = env['MPI_LINKERFORPROGRAMS']
     elif nvcc:
-        ccCopy = str(env['CUDA_HOME'])
-        cxxCopy = str(env['CUDA_HOME'])
-        linkCopy = env['CUDA_HOME']
+        ccCopy = str(env[CUDA])
+        cxxCopy = str(env[CUDA])
+        linkCopy = env[CUDA]
         cxxflagsCopy += env['NVCC_CXXFLAGS']
-        linkflagsCopy += env['LINKFLAGS_NVCC']
+        linkflagsCopy += env[NVCC_LINKFLAGS]
     else:
         ccCopy = str(env['CC'])
         cxxCopy = str(env['CXX'])
@@ -431,7 +448,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
         linkflagsCopy += env['LINKFLAGS']
 
     if cuda:
-        linkflagsCopy += env['LINKFLAGS_NVCC']
+        linkflagsCopy += env[NVCC_LINKFLAGS]
 
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs

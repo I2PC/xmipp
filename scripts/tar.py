@@ -114,7 +114,7 @@ def run(label, version, branch, debug):
     elif label == 'Sources':
         target = 'xmippSrc-v'+version
         makeTarget(target, label)
-        excludeTgz = (" --exclude='xmipp.conf' --exclude='xmippEnv.json'"
+        excludeTgz = (" --exclude='xmipp_old.conf' --exclude='xmippEnv.json'"
                       " --exclude='src/scipion-em-xmipp' ")
     else:
         usage("Incorrect <mode>")

@@ -482,28 +482,29 @@ def removeCompileAndReportFile(COMPRESED_REPORT, COMPILE_LOG):
         runJob('rm {}'.format(COMPILE_LOG), show_command=False)
 
 def errorList(errorNum):
+    FILE_NAME = 'xmipp_old.conf'
+
     errorList = [
         #[index, error description, possible solutions]
         [0, 'No error', ''],
-        [1, 'Specific error. Sentence overwritten', 'Check the xmipp.conf flags'],
-        [2, 'Version of compiler is not implemented', 'Review the CXX flag in the xmipp.conf'],
-        [3, 'Compiler read from xmipp.conf CXX not found', 'Review the CXX flag in the xmipp.conf'],
+        [1, 'Specific error. Sentence overwritten', 'Check the {} flags'.format(FILE_NAME)],
+        [2, 'Version of compiler is not implemented', 'Review the CXX flag in the {}'.format(FILE_NAME)],
+        [3, 'Compiler read from {} CXX not found'.format(FILE_NAME), 'Review the CXX flag in the {}'.format(FILE_NAME)],
         [4, 'Version 8.0 or higher of the compiler is required', 'Please go to https://github.com/I2PC/xmipp#compiler to solve it.'],
         [5, 'Some library has fail beeing included', 'Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf\n'
                 'If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread'],
-        [6, 'hdf5 can not be included', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS in xmipp.conf and visit https://github.com/I2PC/xmipp/wiki/HDF5-Troubleshooting'],
+        [6, 'hdf5 can not be included', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS in {} and visit https://github.com/I2PC/xmipp/wiki/HDF5-Troubleshooting'.format(FILE_NAME)],
         [7, 'Git not found on the repository', 'Please install git'],
-        [8, 'MPI compilation failed', 'Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in xmipp.conf'
-         'In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations'],
+        [8, 'MPI compilation failed', 'Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in {}In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations'.format(FILE_NAME)],
         [9, 'MPI compilation failed', 'Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS'],
         [10, 'mpi test (mpirun or mpiexec) has faild.', ''],
         [11, 'Java not found in system', ''],
-        [12, 'JAVAC does not work', 'Check the JAVAC flag on xmipp.conf'],
+        [12, 'JAVAC does not work', 'Check the JAVAC flag on {}'.format(FILE_NAME)],
         [13, 'JAVA fails. jni include fails', 'Check the JNI_CPPPATH, CXX and INCDIRFLAGS'],
         [14, 'Error git', 'Please review the conexion to the repository'],
         [15, 'Scons package not found or not version compability', 'Install it in the enviroment you install Xmipp (pip install scons) or in the system'],
         [16, 'Cannot build cuFFTAdvisor dependence', 'Review the documentation about CUDA and if the error persist \n'
-            'you could disable CUDA functionalities with CUDA=False on the xmipp.conf file'],
+            'you could disable CUDA functionalities with CUDA=False on the {} file'.format(FILE_NAME)],
         [17, 'Cannot build googletest dependence', 'Review the repository has been downloaded correctly. Run /xmipp cleanAll \nto remove all repositories (local changes will be removed) and compile Xmipp from scrach'
                                                    'Review the cmake version of your system and review compileLOG.txt file\n for more details about the error '],
         [18, 'Cannot build libsvm dependence', 'Review the repository has been downloaded correctly run ./xmipp cleanAll \nto remove all repositories (local changes would be removed'],

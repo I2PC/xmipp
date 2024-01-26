@@ -28,10 +28,10 @@
 import os
 import sys
 from .utils import *
-from.environment import Environment
+from .environment import Environment
 
 class Config:
-    FILE_NAME = 'xmipp.conf'
+    FILE_NAME = 'xmipp_old.conf'
     KEY_USE_DL = 'USE_DL'
     KEY_VERSION = 'CONFIG_VERSION'
     KEY_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
@@ -84,7 +84,7 @@ class Config:
 
         self.write()
         self.environment.write()
-        print(green("\nConfiguration completed and written on xmipp.conf\n"))
+        print(green('\nConfiguration completed and written on {}.conf\n'.format(Config.FILE_NAME)))
 
 
     def check(self):
