@@ -617,7 +617,7 @@ void ProgReconstructSignificant::reconstructCurrent()
 				REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
 		}
 
-		args=formatString("-i %s --mask circular %d -v 0",fnVolume.c_str(),-Xdim/2);
+		args=formatString("-i %s --mask circular -%d -v 0",fnVolume.c_str(),Xdim/2);
 		cmd=(String)"xmipp_transform_mask "+args;
 		std::cout << cmd << std::endl;
 		if (system(cmd.c_str())==-1)
