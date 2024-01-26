@@ -705,16 +705,16 @@ def linkToScipion(directory:str, verbose:bool=False):
 
 
 def cleanEmptyFolders():
-    log = []
-    path = "src/xmipp/applications/programs/"
-    retCode, outputStr = runJob("find {} –type d -empty".format(path))
-    if retCode != 0:
-        printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
-    for folder in log:
-        if os.path.isdir(folder):
-            retCode, outputStr = runJob("rm -rf {}".format(folder))
-            if retCode != 0:
-                printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
+		log = []
+		path = "src/xmipp/applications/programs/"
+		retCode, outputStr = runJob("find {} –type d -empty".format(path))
+		if retCode != 0:
+				printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
+		for folder in log:
+				if os.path.isdir(folder):
+						retCode, outputStr = runJob("rm -rf {}".format(folder))
+						if retCode != 0:
+								printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
 
 def exitError(output:str='', retCode:int=0):
 		printError(errorMsg=output, retCode=retCode)

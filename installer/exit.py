@@ -27,5 +27,5 @@ from .reportTar import createTar
 
 def exitXmipp(retCode:int=0, dictPackages:dict={}):
 	createTar()
-	#sendApiPost(dictPackage=dictPackages, retCode=retCode)
+	sendApiPost(dictPackage=dictPackages, retCode=retCode)
 	sys.exit(retCode)

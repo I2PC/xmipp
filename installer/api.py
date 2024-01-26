@@ -34,9 +34,9 @@ from typing import Dict, Union
 from .versions import getOSReleaseName, getArchitectureName, getCUDAVersion,\
 	getCmakeVersion, getGPPVersion, getGCCVersion, getSconsVersion
 from .utils import runJob, runNetworkJob, getCurrentBranch, isBranchUpToDate, runParallelJobs
-from .constants import API_URL, LOG_FILE
+from .constants import API_URL, LOG_FILE, TAIL_LOG
 
-def sendApiPost(dictPackage: Dict, retCode: int=0):
+def sendApiPost(dictPackage:Dict, retCode: int=0):
 	"""
 	### Sends a POST request to Xmipp's metrics's API.
 	
@@ -192,7 +192,7 @@ def getLogTail() -> Union[str, None]:
 	- (str | None): Installation log's last lines, or None if there were any errors.
 	"""
 	# Obtaining log tail
-	retCode, output = runJob(f"tail {LOG_FILE}")
+	retCode, output = runJob(f"tail -n {TAIL_LOG} {LOG_FILE}")
 
 	# Return content if it went right
 	return output if retCode == 0 else None
