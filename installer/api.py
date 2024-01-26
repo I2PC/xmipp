@@ -50,7 +50,6 @@ def sendApiPost(dictPackage: Dict, retCode: int=0):
 
 			# Send API POST request if there were no errors
 			if jsonStr is not None:
-				print(getCurlStr(API_URL, jsonStr))
 				runNetworkJob(getCurlStr(API_URL, jsonStr))
 	
 ####################### UTILS FUNCTIONS #######################

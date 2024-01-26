@@ -33,7 +33,5 @@ def createTar():
 						print(yellow('reportTar file not created'))
 				else:
 						print(yellow('reportTar file not created'))
-
-
 		except Exception as e:
 				print(yellow('reportTar file not created'))

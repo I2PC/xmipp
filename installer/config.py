@@ -30,42 +30,40 @@ import shutil, glob, sys
 from os import path, environ
 from os.path import isdir, join, isfile
 
-from .constants import (SCONS_MINIMUM, CONFIG_FILE, GCC_MINIMUM,
-                        GPP_MINIMUM, MPI_MINIMUM, PYTHON_MINIMUM, NUMPY_MINIMUM,
-                        CXX_FLAGS, PATH_TO_FIND, INC_PATH, INC_HDF5_PATH,
+from .constants import (CONFIG_FILE, GCC_MINIMUM,
+                        GPP_MINIMUM, MPI_MINIMUM,
+                        PATH_TO_FIND, INC_PATH, INC_HDF5_PATH,
                         CONFIG_DICT, CXX_FLAGS,INTERNAL_FLAGS,
-                        OK, UNKOW_ERROR, SCONS_VERSION_ERROR, SCONS_ERROR,
+                        OK, SCONS_VERSION_ERROR, SCONS_ERROR,
                         GCC_VERSION_ERROR, CC_NO_EXIST_ERROR, CXX_NO_EXIST_ERROR, CXX_VERSION_ERROR,
-                        MPI_VERSION_ERROR, MPI_NOT_FOUND_ERROR, PYTHON_VERSION_ERROR ,
-                        PYTHON_NOT_FOUND_ERROR , NUMPY_NOT_FOUND_ERROR ,NVCC_CXXFLAGS_ERROR,
-                        JAVA_HOME_PATH_ERROR, MATLAB_WARNING , MATLAB_HOME_WARNING,
-                        CUDA_VERSION_WARNING , CUDA_WARNING , HDF5_ERROR, LINKFLAGS,
+                        MPI_VERSION_ERROR, MPI_NOT_FOUND_ERROR,
+                        NVCC_CXXFLAGS_ERROR,
+                        JAVA_HOME_PATH_ERROR,  MATLAB_HOME_WARNING,
+                        CUDA_VERSION_WARNING , HDF5_ERROR, LINKFLAGS,
                         MPI_COMPILLATION_ERROR, MPI_RUNNING_ERROR, OPENCV_WARNING,
                         JAVAC_DOESNT_WORK_ERROR, JAVA_INCLUDE_ERROR, CMAKE_MINIMUM,
-                        CMAKE_VERSION_ERROR, CMAKE_ERROR, cmakeInstallURL, SCONS_MINIMUM,
+                        CMAKE_VERSION_ERROR, CMAKE_ERROR, SCONS_MINIMUM,
                         CC, CXX, MPI_CC, MPI_CXX, MPI_RUN, OPENCV_CUDA_WARNING,
                         STARPU_INCLUDE_WARNING, STARPU_LIB_WARNING, STARPU_LIBRARY_WARNING,
-                        STARPU_RUN_WARNING, STARPU_CUDA_WARNING, HDF5_MINIMUM,
+                        STARPU_CUDA_WARNING, HDF5_MINIMUM,
                         HDF5_VERSION_ERROR, TIFF_ERROR, FFTW3_ERROR, PATH_TO_FIND_H,
                         TIFF_H_ERROR, FFTW3_H_ERROR, FFTW_MINIMUM, FFTW3_VERSION_ERROR,
                         OLD_CONFIG_FILE, GIT_MINIMUM, GIT_VERSION_ERROR, PYTHONINCFLAGS_ERROR,
                         RSYNC_MINIMUM, RSYNC_VERSION_ERROR, HDF5_NOT_FOUND_ERROR,)
-from .utils import (red, green, yellow, blue, runJob, existPackage,
+from .utils import (green, blue, runJob, existPackage,
                     getPackageVersionCmd,JAVAVersion, printWarning,
-                    whereIsPackage, findFileInDirList, getINCDIRFLAG,
-                    getCompatibleGCC, CXXVersion, gitVersion,
+                    whereIsPackage, findFileInDirList,
+                    getCompatibleGCC, gitVersion,
                     get_Hdf5_name, printError, MPIVersion, installScons, versionToNumber,
                     HDF5Version, opencvVersion, TIFFVersion, printMessage, FFTW3Version,
                     updateXmippEnv)
 
-from .versions import (getOSReleaseName, getArchitectureName, getCUDAVersion,
-                                getCmakeVersion, getGPPVersion, getGCCVersion,
+from .versions import (getCmakeVersion, getGPPVersion, getGCCVersion,
                        getSconsVersion, getRsyncVersion)
 from .versions import getCUDAVersion
 from datetime import datetime
 from sysconfig import get_paths
 from .exit import exitXmipp
-
 
 def config(debugP:bool=True, scratch:bool=False):
     global debugPrints
@@ -76,7 +74,6 @@ def config(debugP:bool=True, scratch:bool=False):
     if not existConfig() or scratch:# or existButOld():
         printMessage(text='Generating config file xmipp.conf', debug=True)
         dictPackages = getSystemValues()
-        dictPackages['ANON_DATA_COLLECT'] = 'True'
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
         return dictPackages
@@ -87,11 +84,9 @@ def config(debugP:bool=True, scratch:bool=False):
     dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
     if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
         writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
-
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
     # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
-
 
 def getSystemValues():
     """
@@ -116,6 +111,7 @@ def getSystemValues():
     getCUDA(dictPackages)
     getSTARPU(dictPackages)
     getMatlab(dictPackages)
+    getAnonDataCol(dictPackages)
     printMessage(text=green('Done'), debug=True)
 
     return dictPackages
@@ -198,6 +194,7 @@ def getInternalFlags(dictPackages, debug: bool=False):
     return dictInternalFlags
 
 
+#CONFIG FILE
 def readConfig():
     """Check if valid all the flags of the config file"""
     dictPackages = {}
@@ -258,7 +255,6 @@ def checkConfig(dictPackages, dictInternalFlags):
             printWarning(text=pack[0], warningCode=pack[0], debug=True)
 
     printMessage(text=green('Done'), debug=True)
-
 
 def existConfig():
     """ Checks if the config file exist.Return True or False """
@@ -375,6 +371,12 @@ def checkCXX(dictPackages):
     else:
         exitError(retCode=CXX_NO_EXIST_ERROR, output='CXX package path: {} does not exist'.format(dictPackages[CXX]), dictPackages=dictPackages)
 
+def getAnonDataCol(dictPackages):
+    aDCVar = environ.get('ANON_DATA_COLLECT', '')
+    if aDCVar == 'False':
+        dictPackages['ANON_DATA_COLLECT'] = aDCVar
+    else:
+        dictPackages['ANON_DATA_COLLECT'] = 'True'
 
 def getMPI(dictPackages):
     """
@@ -613,7 +615,6 @@ def checkMatlab(dictPackages, checkErrors):
         printMessage(text=green('Matlab installation found'), debug=debugPrints)
     runJob("rm xmipp_mex*")
 
-
 def getOPENCV(dictPackages):
     opencvPath = ['opencv2', 'opencv4/opencv2']
     filePath = ['core.hpp', 'core/core.hpp']
@@ -845,6 +846,38 @@ def getHDF5(dictPackages):
             updateXmippEnv(LD_LIBRARY_PATH=hdf5PathFound)
             break
 
+def checkHDF5(dictPackages):
+    """
+    Checks HDF5 library configuration based on provided package information.
+
+    Params:
+    - dictPackages (dict): Dictionary with package information.
+        Keys: "LIBDIRFLAGS", "LINKFLAGS".
+
+    Returns:
+    - tuple: Success status (bool) and error code (int).
+        False, 6: HDF5 configuration failed.
+        True, 0: HDF5 configuration successful.
+    """
+    if not path.exists(dictPackages['HDF5_HOME']):
+        exitError(retCode=HDF5_NOT_FOUND_ERROR, output='HDF5 nod found', dictPackages=dictPackages)
+    version = HDF5Version(dictPackages['HDF5_HOME'])
+    if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
+        exitError(retCode=HDF5_VERSION_ERROR, output='HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), dictPackages=dictPackages)
+    cppProg = ("""
+               #include <hdf5.h>
+               \n int main(){}\n
+               """)
+    with open("xmipp_test_main.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+    cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
+           (dictPackages['CXX'], LINKFLAGS, dictPackages["INCDIRFLAGS"]))
+    status, output = runJob(cmd)
+    if status != 0:
+        exitError(retCode=HDF5_ERROR, output=output, dictPackages=dictPackages)
+    runJob("rm xmipp_test_main*", showError=True)
+    printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
+
 def getTIFF(dictPackages):
     for path in PATH_TO_FIND:
         libtiffPathFound = findFileInDirList("libtiff.so", path)
@@ -858,6 +891,13 @@ def getTIFF(dictPackages):
         if pathTIFF_H:
             dictPackages['TIFF_H'] = pathTIFF_H[0]
 
+def checkTIFF(dictPackages):
+    if path.exists(dictPackages['TIFF_H']):
+        printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
+    else:
+        exitError(retCode=TIFF_H_ERROR, output='TIFF library not found', dictPackages=dictPackages)
+    if path.exists(dictPackages['TIFF_SO']) == False:
+        exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages)
 
 def getFFTW3(dictPackages):
     for path in PATH_TO_FIND:
@@ -872,6 +912,20 @@ def getFFTW3(dictPackages):
         if pathFFTW3_H:
             dictPackages['FFTW3_H'] = pathFFTW3_H[0]
 
+def checkFFTW3(dictPackages):
+    if path.exists(dictPackages['FFTW3_H']):
+        if path.exists(dictPackages['FFTW3_SO']):
+            version = FFTW3Version(dictPackages['FFTW3_SO'])
+            if versionToNumber(version) >= versionToNumber(FFTW_MINIMUM):
+                printMessage(text=green('FFTW3 {} found'.format(version)), debug=debugPrints)
+            else:
+                exitError(retCode=FFTW3_VERSION_ERROR, output='FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM),
+                          dictPackages=dictPackages)
+        else:
+            exitError(retCode=FFTW3_ERROR, output='libfftw3.so does not exist',
+                      dictPackages=dictPackages)
+    else:
+        exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages)
 
 def getINCDIRFLAGS(dictPackages):
     """
@@ -912,65 +966,6 @@ def checkGit():
                    format(version, GIT_MINIMUM))
     else:
         printMessage(text=green('git {} found'.format(version)), debug=True)
-
-
-def checkHDF5(dictPackages):
-    """
-    Checks HDF5 library configuration based on provided package information.
-
-    Params:
-    - dictPackages (dict): Dictionary with package information.
-        Keys: "LIBDIRFLAGS", "LINKFLAGS".
-
-    Returns:
-    - tuple: Success status (bool) and error code (int).
-        False, 6: HDF5 configuration failed.
-        True, 0: HDF5 configuration successful.
-    """
-    if not path.exists(dictPackages['HDF5_HOME']):
-        exitError(retCode=HDF5_NOT_FOUND_ERROR, output='HDF5 nod found', dictPackages=dictPackages)
-    version = HDF5Version(dictPackages['HDF5_HOME'])
-    if versionToNumber(version) < versionToNumber(HDF5_MINIMUM):
-        exitError(retCode=HDF5_VERSION_ERROR, output='HDF5 {} version minor than {}'.format(version, HDF5_MINIMUM), dictPackages=dictPackages)
-    cppProg = ("""
-               #include <hdf5.h>
-               \n int main(){}\n
-               """)
-    with open("xmipp_test_main.cpp", "w") as cppFile:
-        cppFile.write(cppProg)
-    cmd = ("%s %s %s xmipp_test_main.cpp -o xmipp_test_main" %
-           (dictPackages['CXX'], LINKFLAGS, dictPackages["INCDIRFLAGS"]))
-    status, output = runJob(cmd)
-    if status != 0:
-        exitError(retCode=HDF5_ERROR, output=output, dictPackages=dictPackages)
-    runJob("rm xmipp_test_main*", showError=True)
-    printMessage(text=green('HDF5 {} found'.format(version)), debug=debugPrints)
-
-
-def checkTIFF(dictPackages):
-    if path.exists(dictPackages['TIFF_H']):
-        printMessage(text=green('TIFF {} found'.format(TIFFVersion(dictPackages['TIFF_SO']))), debug=debugPrints)
-    else:
-        exitError(retCode=TIFF_H_ERROR, output='TIFF library not found', dictPackages=dictPackages)
-    if path.exists(dictPackages['TIFF_SO']) == False:
-        exitError(retCode=TIFF_ERROR, output='libtiff.so not found', dictPackages=dictPackages)
-
-def checkFFTW3(dictPackages):
-    if path.exists(dictPackages['FFTW3_H']):
-        if path.exists(dictPackages['FFTW3_SO']):
-            version = FFTW3Version(dictPackages['FFTW3_SO'])
-            if versionToNumber(version) >= versionToNumber(FFTW_MINIMUM):
-                printMessage(text=green('FFTW3 {} found'.format(version)), debug=debugPrints)
-            else:
-                exitError(retCode=FFTW3_VERSION_ERROR, output='FFTW3 version {} lower than minimum: {}'.format(version, FFTW_MINIMUM),
-                          dictPackages=dictPackages)
-        else:
-            exitError(retCode=FFTW3_ERROR, output='libfftw3.so does not exist',
-                      dictPackages=dictPackages)
-    else:
-        exitError(retCode=FFTW3_H_ERROR, output='FFTW3 does not exist', dictPackages=dictPackages)
-
-
 
 def checkCMake():
     """
@@ -1018,7 +1013,6 @@ def checkScons():
           exitError(retCode=SCONS_ERROR,
                     output='Scons not found. {}'.format(status[1]))
 
-
 def checkRsync():
     rsyncV = getRsyncVersion()
     if rsyncV is None:
@@ -1026,6 +1020,7 @@ def checkRsync():
             exitError(retCode=RSYNC_VERSION_ERROR,
                       output='rsync found {}, required {}'.format(rsyncV, RSYNC_MINIMUM))
     printMessage(text=green('rsync {} found'.format(rsyncV)), debug=debugPrints)
+
 
 def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
     printError(errorMsg=output, retCode=retCode)
