@@ -74,7 +74,7 @@ class ScriptCoordsConsensusTomo(XmippScript):
         self.addParamsLine('--constype <int> : type of consensus (0 for first, 1 for centroid)')
         self.addParamsLine('[ --inputTruth <path> ] : Optional path to XMD file containing truthful coordinates. Added to POS automatically.')
         self.addParamsLine('[ --inputLie <path> ] : Optional path to XMD file containing lie(negative) coordinates. Added to NEG automatically.')
-        self.addParamsLine(' --outputNeg <path> : Output path for negative subtomos')
+        self.addParamsLine('--outputNeg <path> : Output path for negative subtomos')
         self.addParamsLine('--startingId <int> : Initial number to use for MDL_PARTICLE_ID field in XMD.')
 
     def run(self):
