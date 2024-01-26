@@ -2,6 +2,7 @@
 
 import math
 import numpy as np
+from scipy.ndimage import shift
 import os
 import sys
 import xmippLib
@@ -23,9 +24,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
         self.addParamsLine('[--gpu <id=0>]                : GPU Id')
         self.addParamsLine('[--Nmodels <N=5>]             : Number of models')
         self.addParamsLine('[--learningRate <lr=0.0001>]  : Learning rate')
-        self.addParamsLine('[--sym <s=c1>]                : Symmetry')
         self.addParamsLine('[--precision <s=0.5>]         : Alignment precision measured in pixels')
-        self.addParamsLine('[--onlyShift]                 : Only shift')
+        self.addParamsLine('[--mode <mode>]               : Mode: shift, angles')
 
     def run(self):
         fnXmd = self.getParam("-i")
@@ -35,9 +35,8 @@ class ScriptDeepGlobalAssignment(XmippScript):
         gpuId = self.getParam("--gpu")
         numModels = int(self.getParam("--Nmodels"))
         learning_rate = float(self.getParam("--learningRate"))
-        symmetry = self.getParam("--sym")
         precision = float(self.getParam("--precision"))
-        onlyShift = self.checkParam("--onlyShift")
+        mode = self.getParam("--mode")
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
 
@@ -55,27 +54,36 @@ class ScriptDeepGlobalAssignment(XmippScript):
         class DataGenerator():
             """Generates data for fnImgs"""
 
-            def __init__(self, fnImgs, angles, shifts, batch_size, dim):
+            def __init__(self, fnImgs, angles, shifts, batch_size, dim, mode):
                 """Initialization"""
                 self.fnImgs = fnImgs
                 self.angles = angles
                 self.shifts = shifts
                 self.batch_size = batch_size
                 self.dim = dim
+                self.mode = mode
                 self.loadData()
 
             def loadData(self):
-                def euler_to_rotation6d(angles, shifts):
+                def euler_to_rotation6d(angles):
                     mat =  xmippLib.Euler_angles2matrix(angles[0],angles[1],angles[2])
-                    return np.concatenate((mat[1], mat[2], shifts))
+                    return np.concatenate((mat[1], mat[2]))
 
                 # Read all data in memory
                 self.X = np.zeros((len(self.angles), self.dim, self.dim, 1), dtype=np.float64)
-                self.y = np.zeros((len(self.angles), 8), dtype=np.float64)
+                if self.mode=="shift":
+                    self.y = np.zeros((len(self.angles), 2), dtype=np.float64)
+                else:
+                    self.y = np.zeros((len(self.angles), 6), dtype=np.float64)
                 for i in range(len(self.angles)):
-                    I = np.reshape(xmippLib.Image(self.fnImgs[i]).getData(), (self.dim, self.dim, 1))
-                    self.X[i] = (I - np.mean(I)) / np.std(I)
-                    self.y[i] = euler_to_rotation6d(self.angles[i], self.shifts[i])
+                    I = xmippLib.Image(self.fnImgs[i]).getData()
+                    I = (I - np.mean(I)) / np.std(I)
+                    if self.mode == 'shift':
+                        self.y[i] = self.shifts[i]
+                    else:
+                        I = shift(I, -self.shifts[i], mode='wrap')
+                        self.y[i] = euler_to_rotation6d(self.angles[i])
+                    self.X[i] = np.reshape(I, (self.dim, self.dim, 1))
 
         def get_labels(fnXmd):
             """Returns dimensions, images, angles and shifts values from images files"""
@@ -124,7 +132,6 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     if loss < modeprec:
                         break
                 generator.increaseMaxSize(1.25)
-            print("Saving",fnThisModel)
             model.save(fnThisModel, save_format="tf")
 
         def testModel(model, X, y):
@@ -136,32 +143,26 @@ class ScriptDeepGlobalAssignment(XmippScript):
                 print(ypred[i])
 
         SL = xmippLib.SymList()
-        listSymmetryMatrices = SL.getSymmetryMatrices(symmetry)
+        listSymmetryMatrices = SL.getSymmetryMatrices('c1')
         Xdim, fnImgs, angles, shifts = get_labels(fnXmd)
-        training_generator = DataGenerator(fnImgs, angles, shifts, batch_size, Xdim)
+        training_generator = DataGenerator(fnImgs, angles, shifts, batch_size, Xdim, mode)
 
         angularLoss = deepGlobal.AngularLoss(listSymmetryMatrices, Xdim)
 
         try:
             for index in range(numModels):
-                if onlyShift:
-                    fnModelIndex = "modelShift.tf"
-                else:
-                    fnModelIndex = fnModel + "_angles"+str(index) + ".tf"
-
+                fnModelIndex = fnModel + str(index) + ".tf"
                 # Learn shift
-                if onlyShift:
+                if mode=="shift":
                     print("Learning shift")
-                    angularLoss.setMode(deepGlobal.SHIFT_MODE)
                     modelShift = deepGlobal.constructShiftModel(Xdim)
                     modelShift.summary()
                     trainModel(modelShift, training_generator.X, training_generator.y,
-                               precision, fnModelIndex, angularLoss)
+                               precision, fnModelIndex, 'mae')
                 else:
                     # Learn angles
                     print("Learning angular assignment")
-                    angularLoss.setMode(deepGlobal.FULL_MODE)
-                    model = deepGlobal.constructAnglesModel(Xdim, modelShift)
+                    model = deepGlobal.constructAnglesModel(Xdim)
                     model.summary()
                     trainModel(model, training_generator.X, training_generator.y, precision, fnModelIndex, angularLoss)
                     # testModel(model, training_generator.X, training_generator.y)

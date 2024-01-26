@@ -3,7 +3,7 @@
 import glob
 import math
 import numpy as np
-from numpy.linalg import norm
+from scipy.ndimage import shift
 import os
 import sys
 import xmippLib
@@ -18,20 +18,20 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
         self.addUsageLine('Predict using a deep global assignment model')
 
         ## params
-        self.addParamsLine(' --iexp <metadata>            : xmd file with the list of experimental images')
-        self.addParamsLine(' --iexpResized <metadata>     : xmd file with the list of resized experimental images')
+        self.addParamsLine(' -i <metadata>                : xmd file with the list of experimental images')
         self.addParamsLine(' --modelDir <dir>             : Directory with the neural network models')
-        self.addParamsLine(' -o <metadata>                : Output filename')
+        self.addParamsLine('[-o <metadata="">]            : Output filename')
+        self.addParamsLine(' --mode <mode>                : Valid modes: shift, angles')
         self.addParamsLine('[--gpu <id=0>]                : GPU Id')
-        self.addParamsLine('[--sym <s=c1>]                : Symmetry')
 
     def run(self):
-        fnExp = self.getParam("--iexp")
-        fnExpResized = self.getParam("--iexpResized")
+        fnIn = self.getParam("-i")
         fnModelDir = self.getParam("--modelDir")
         fnOut = self.getParam("-o")
+        if fnOut=="":
+            fnOut=fnIn
         gpuId = self.getParam("--gpu")
-        symmetry = self.getParam("--sym")
+        mode = self.getParam("--mode")
         maxSize = 32
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -46,19 +46,21 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
 
         import keras
 
-        def produce_output(fnExp, angles, shifts, itemIds, fnOut):
+        def produce_output(fnIn, angles, shifts, itemIds, fnOut):
             Ydict = {itemId: index for index, itemId in enumerate(itemIds)}
-            mdExp = xmippLib.MetaData(fnExp)
-            for objId in mdExp:
-                itemId = mdExp.getValue(xmippLib.MDL_ITEM_ID, objId)
-                rot, tilt, psi = angles[Ydict[itemId]]
-                x, y = shifts[Ydict[itemId]]
-                mdExp.setValue(xmippLib.MDL_ANGLE_ROT, rot, objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_TILT, tilt, objId)
-                mdExp.setValue(xmippLib.MDL_ANGLE_PSI, psi, objId)
-                mdExp.setValue(xmippLib.MDL_SHIFT_X, x, objId)
-                mdExp.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
-            mdExp.write(fnOut)
+            md = xmippLib.MetaData(fnIn)
+            for objId in md:
+                itemId = md.getValue(xmippLib.MDL_ITEM_ID, objId)
+                if angles is not None:
+                    rot, tilt, psi = angles[Ydict[itemId]]
+                    md.setValue(xmippLib.MDL_ANGLE_ROT, rot, objId)
+                    md.setValue(xmippLib.MDL_ANGLE_TILT, tilt, objId)
+                    md.setValue(xmippLib.MDL_ANGLE_PSI, psi, objId)
+                if shift is not None:
+                    x, y = shifts[Ydict[itemId]]
+                    md.setValue(xmippLib.MDL_SHIFT_X, x, objId)
+                    md.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
+            md.write(fnOut)
 
         def rotation6d_to_matrixZYZ(rot):
             """Return rotation matrix from 6D representation."""
@@ -79,45 +81,58 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
             angles = list(map(xmippLib.Euler_matrix2angles, matrices))
             return angles
 
-        mdResized = xmippLib.MetaData(fnExpResized)
-        Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnExp)
-        XdimResized, _, _, _, _ = xmippLib.MetaDataInfo(fnExpResized)
-        fnImgs = mdResized.getColumnValues(xmippLib.MDL_IMAGE)
-        itemIds = mdResized.getColumnValues(xmippLib.MDL_ITEM_ID)
+        mdIn = xmippLib.MetaData(fnIn)
+        Xdim, _, _, _, _ = xmippLib.MetaDataInfo(fnIn)
+        fnImgs = mdIn.getColumnValues(xmippLib.MDL_IMAGE)
+        itemIds = mdIn.getColumnValues(xmippLib.MDL_ITEM_ID)
+        x = mdIn.getColumnValues(xmippLib.MDL_SHIFT_X)
+        y = mdIn.getColumnValues(xmippLib.MDL_SHIFT_Y)
 
         numImgs = len(fnImgs)
         numBatches = numImgs // maxSize
         if numImgs % maxSize > 0:
             numBatches = numBatches + 1
 
-        angleList=[]
-        shiftList=[]
-        numAngModels = len(glob.glob(os.path.join(fnModelDir,"model_angles*.tf")))
+        predictionsList=[]
+        models = glob.glob(fnModelDir+"*.tf")
+        numAngModels = len(models)
         for index in range(numAngModels):
-            AngModel = keras.models.load_model(os.path.join(fnModelDir,"model_angles%d.tf"%index),
-                                               custom_objects={'ConcatenateZerosLayer': deepGlobal.ConcatenateZerosLayer,
-                                                               'ShiftImageLayer': deepGlobal.ShiftImageLayer},
+            if mode=="shift":
+                model = keras.models.load_model(models[index], compile=False)
+                predictions = np.zeros((numImgs, 2))
+            else:
+                model = keras.models.load_model(models[i],
+                                               custom_objects={'Angles2VectorLayer': deepGlobal.Angles2VectorLayer},
                                                compile=False)
+                predictions = np.zeros((numImgs, 8))
 
             k = 0
-            predictions = np.zeros((numImgs, 8))
             for i in range(numBatches):
                 numPredictions = min(maxSize, numImgs-i*maxSize)
-                Xexp = np.zeros((numPredictions, XdimResized, XdimResized, 1), dtype=np.float64)
+                X = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
                 for j in range(numPredictions):
-                    Iexp = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (XdimResized, XdimResized, 1))
-                    Xexp[j, ] = (Iexp - np.mean(Iexp)) / np.std(Iexp)
+                    I = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
+                    I = (I - np.mean(I)) / np.std(I)
+                    if mode=="angles":
+                        I = shift(I, np.array([-x,-y]), mode='wrap')
+                    X[j, ] =  np.reshape(I, (Xdim, Xdim, 1))
                     k += 1
-                predictions[i*maxSize:(i*maxSize + numPredictions), :] = AngModel.predict(Xexp)
+                predictions[i*maxSize:(i*maxSize + numPredictions), :] = model.predict(X)
 
-            angleList.append(decodePredictions(predictions))
-            shiftList.append(predictions[:,-2:])
+            if mode=="angles":
+                predictionsList.append(decodePredictions(predictions))
+            else:
+                predictionsList.append(predictions)
 
-        averager=RotationAverager(angleList)
-        averager.bringToAsymmetricUnit(symmetry)
-        angles=averager.computeAverageAssignment()
-        shift = np.mean(np.stack(shiftList),axis=0)
-        produce_output(fnExp, angles, shift, itemIds, fnOut)
+        angles = None
+        shifts = None
+        if mode=="angles":
+            averager=RotationAverager(predictionsList)
+            averager.bringToAsymmetricUnit(symmetry)
+            angles=averager.computeAverageAssignment()
+        else:
+            shifts = np.mean(np.stack(predictionsList),axis=0)
+        produce_output(fnIn, angles, shifts, itemIds, fnOut)
 
 if __name__ == '__main__':
     ScriptDeepGlobalAssignmentPredict().tryRun()
