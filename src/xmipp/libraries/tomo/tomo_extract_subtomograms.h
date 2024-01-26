@@ -80,6 +80,9 @@ public:
     void extractSubtomoFixedSize(MultidimArray<double> &subtomoExtraction);
     void writeSubtomo(int idx, int xcoor, int ycoor, int zcoor, size_t particleid);
     void run();
+
+    static void upsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
+    static void downsample(const MultidimArray<std::complex<double>> &from, MultidimArray<std::complex<double>> &to);
 };
 //@}
 #endif
