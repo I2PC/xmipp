@@ -1242,7 +1242,7 @@ __global__ void backwardKernel(MultidimArrayCuda<PrecisionType> cudaMV,
 }
 
 template<typename PrecisionType>
-__global__ void softThresholdAndStdDevParams(MultidimArrayCuda<PrecisionType> cudaMV, double thr, PrecisionType *elems,
+__global__ void computeStdDevParams(MultidimArrayCuda<PrecisionType> cudaMV, PrecisionType *elems,
 							  PrecisionType *avg, PrecisionType *sumSqrNorm, const MultidimArrayCuda<int> VRecMaskB)
 {
 	// Remove negative values
@@ -1253,12 +1253,6 @@ __global__ void softThresholdAndStdDevParams(MultidimArrayCuda<PrecisionType> cu
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
 	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
-		if (A3D_ELEM(cudaMV, k, i, j)  > thr)
-			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) - thr;
-		else if (A3D_ELEM(cudaMV, k, i, j)  < -thr)
-			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + thr;
-		else
-			A3D_ELEM(cudaMV, k, i, j) = 0.0;
 		device::atomicAddPrecision(elems, CST(1.0));
 		device::atomicAddPrecision(avg, A3D_ELEM(cudaMV, k, i, j));
 		device::atomicAddPrecision(sumSqrNorm, A3D_ELEM(cudaMV, k, i, j));
@@ -1277,7 +1271,7 @@ __global__ void computeStdDev(PrecisionType *elems, PrecisionType *avg, Precisio
 }
 
 template<typename PrecisionType>
-__global__ void softNegThreshold(MultidimArrayCuda<PrecisionType> cudaMV, PrecisionType *stddev, const MultidimArrayCuda<int> VRecMaskB)
+__global__ void softThreshold(MultidimArrayCuda<PrecisionType> cudaMV, PrecisionType *stddev, double thr, const MultidimArrayCuda<int> VRecMaskB)
 {
 	// Remove negative values
 	int cubeX = threadIdx.x + blockIdx.x * blockDim.x;
@@ -1286,9 +1280,17 @@ __global__ void softNegThreshold(MultidimArrayCuda<PrecisionType> cudaMV, Precis
 	int k = STARTINGZ(cudaMV) + cubeZ;
 	int i = STARTINGY(cudaMV) + cubeY;
 	int j = STARTINGX(cudaMV) + cubeX;
+	PrecisionType thr_neg = *stddev;
+	PrecisionType thr_pos = CST(thr) * thr_neg;
 	if (A3D_ELEM(VRecMaskB, k, i, j) != 0) {
-		if (A3D_ELEM(cudaMV, k, i, j)  < -*stddev)
-			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + *stddev;
+		if (A3D_ELEM(cudaMV, k, i, j)  > thr_pos)
+			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) - thr_pos;
+		else if (A3D_ELEM(cudaMV, k, i, j)  < -thr_pos)
+			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + thr_pos;
+		else
+			A3D_ELEM(cudaMV, k, i, j) = 0.0;
+		if (A3D_ELEM(cudaMV, k, i, j)  < -thr_neg)
+			A3D_ELEM(cudaMV, k, i, j) = A3D_ELEM(cudaMV, k, i, j) + thr_neg;
 	}
 }
 

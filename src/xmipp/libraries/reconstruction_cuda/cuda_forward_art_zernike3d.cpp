@@ -413,12 +413,12 @@ void Program<PrecisionType>::runBackwardKernel(struct DynamicParameters &paramet
 																			cudaR);
 
 
-	softThresholdAndStdDevParams<PrecisionType>
-	 	<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, parameters.dThr,
-	 	elems, avg, sumSqrNorm, VRecMaskB);
+	computeStdDevParams<PrecisionType>
+	 	<<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, elems, avg,
+	 		sumSqrNorm, VRecMaskB);
 	computeStdDev<PrecisionType><<<1, 1>>>(elems, avg, sumSqrNorm, stddev);
-	softNegThreshold<PrecisionType>
-		 <<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, stddev, VRecMaskB);
+	softThreshold<PrecisionType>
+		 <<<dim3(gridXB, gridYB, gridZB), dim3(blockXB, blockYB, blockZB)>>>(cudaMV, stddev, parameters.dThr,  VRecMaskB);
 	cudaDeviceSynchronize();
 
 	cudaFree(cudaR);
