@@ -746,16 +746,14 @@ def compileXmipp(Nproc):
 
     merged = list()
     for cdb in cdb_list:
-        with open(cdb, 'r') as cdb_id:
-            merged.extend(json.load(cdb_id))
-
+        if os.path.exists(cdb):
+            with open(cdb, 'r') as cdb_id:
+                merged.extend(json.load(cdb_id))
     with open("compile_commands.json", 'w') as cdb_id:
         json.dump(merged, cdb_id)
 
-    os.remove("compile_commands_2.json")
-
-
-
+    if os.path.exists("compile_commands_2.json"):
+        os.remove("compile_commands_2.json")
     return True
 
 
