@@ -851,9 +851,10 @@ def installScons():
 	# If command failed, show error message and exit
 	if retCode != 0:
 		printError(f'Scons could not be installed in enviroment "{envName}". Please, install it manually.', retCode=SCONS_VERSION_ERROR)
-
+		return False
 	# If succeeded, log message
 	printMessage(f'Succesfully installed or updated Scons on {envName} enviroment.')
+	return True
 
 
 ####################### AUX FUNCTIONS (INTERNAL USE ONLY) #######################

@@ -433,7 +433,7 @@ def checkMPI(dictPackages, dictInternalFlags):
 
         else:
             exitError(retCode=MPI_NOT_FOUND_ERROR,
-                      output='MPI package: {} does not exist'.format(dictPackages[pack]),
+                      output='{} package {} does not exist'.format(pack, dictPackages[pack]),
                       dictPackages=dictPackages)
 
     #More checks
@@ -967,7 +967,7 @@ def checkGit():
                   output='GIT version {} lower than minimum: {}'.
                    format(version, GIT_MINIMUM))
     else:
-        printMessage(text=green('git {} found'.format(version)), debug=True)
+        printMessage(text=green('git {} found'.format(version)), debug=debugPrints)
 
 def checkCMake():
     """
@@ -1008,9 +1008,9 @@ def checkScons():
           printMessage(text=green('SCons {} found'.format(sconsV)), debug=debugPrints)
     else:
         status = installScons()
-        if status[0]:
+        if status:
           sconsV = getSconsVersion()
-          printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=True)
+          printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=debugPrints)
         else:
           exitError(retCode=SCONS_ERROR,
                     output='Scons not found. {}'.format(status[1]))

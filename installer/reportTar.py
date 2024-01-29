@@ -21,11 +21,15 @@
 # * All comments concerning this program package may be sent to the
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
+import os
 from .utils import runJob, yellow
 from .constants import LOG_FILE, CONFIG_FILE, VERSIONS_FILE, COMPRESED_FILE
 def createTar():
 		try:
-				retCode, outputStr = runJob('./xmipp version &> {}'.format(VERSIONS_FILE))
+				os.remove(COMPRESED_FILE)
+				retCode, outputStr = runJob('./xmipp version'.format(VERSIONS_FILE))
+				with open(VERSIONS_FILE, 'w') as f:
+						f.write(outputStr)
 				if retCode == 0:
 					retCode, outputStr =runJob('tar -czf {} {} {} {} '.format(
 						COMPRESED_FILE, CONFIG_FILE,VERSIONS_FILE,LOG_FILE))

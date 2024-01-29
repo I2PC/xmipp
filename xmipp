@@ -30,7 +30,7 @@ import argparse, sys, os, multiprocessing
 from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG, MODE_CLEAN_BIN,\
 	MODE_CLEAN_ALL, MODE_CLEAN_DEPRECATED, MODE_VERSION, MODE_GET_MODELS,\
 	MODE_TEST, MODE_GIT, MODE_ADD_MODEL, COMMON_USAGE_HELP_MESSAGE, DEFAULT_BUILD_DIR, DEFAULT_MODELS_DIR,
-																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS)
+																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS, LOG_FILE)
 from installer.utils import printError, runJob, addDeepLearninModel, downloadDeepLearningModels, runTests, branchName
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
@@ -89,6 +89,8 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	#remove compileLog.txt
+	os.remove(LOG_FILE)
 	# Get sources
 	getSources(branch=args.branch)
 	# Compile external dependencies
