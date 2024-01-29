@@ -475,6 +475,189 @@ def install(directory):
 
 		fhBash.close()
 		fhFish.close()
+def install(directory):
+		"""
+		Installs Xmipp components to the specified directory.
+
+		This function orchestrates the installation process of various Xmipp components to the given directory.
+		It copies libraries, scripts, bindings, resources, and configuration files from the source directories
+		to the specified installation directory.
+
+		Args:
+		- directory (str): The target directory where Xmipp components will be installed.
+
+		Raises:
+		- RuntimeError: If any error occurs during the installation process, a RuntimeError is raised.
+		"""
+
+		printMessage(text='\n- Installing...', debug=True)
+		currentBranch = getCurrentBranch()
+		if XMIPP_VERSIONS[XMIPP] == currentBranch:
+				verbose = False
+		else:
+				verbose = True
+		cleanDeprecated()
+		cpCmd = "rsync -LptgoD "
+		createDir(directory)
+		createDir(directory + "/lib")
+		retCode, outputStr = runJob(cpCmd + " src/*/lib/lib* " + directory + "/lib/")
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+		if os.path.exists(directory + "/bin"):
+				shutil.rmtree(directory + "/bin")
+		if not os.path.exists(directory + "/bin"):
+				os.makedirs(directory + "/bin")
+		dirBin = os.path.join(os.getcwd(), "src/xmipp/bin/")
+		filenames = [f for f in os.listdir(dirBin)]
+		for f in filenames:
+				if os.path.islink(os.path.join(dirBin, f)):
+						retCode, outputStr = runJob('ln -s ' + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f))
+						if retCode != 0:
+								exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+				else:
+						retCode, outputStr = runJob(cpCmd + os.path.join(dirBin, f) + ' ' + os.path.join(directory, 'bin', f))
+						if retCode != 0:
+								exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		destPathPyModule = os.path.expanduser(
+				os.path.abspath(os.path.join(directory, "pylib", "xmippPyModules")))
+		createDir(destPathPyModule)
+		initFn = destPathPyModule + "/__init__.py"
+		if not os.path.isfile(initFn):
+				with open(initFn, 'w') as f:
+						pass  # just to create a init file to be able to import it as module
+
+		dirBin = os.path.join(os.getcwd(), 'src/xmipp/libraries/py_xmipp')
+		folderNames = [x for x in os.walk(dirBin)]
+		for folder in folderNames[1:]:
+				folderName = os.path.basename(folder[0])
+				for file in folder[2]:
+						createDir(os.path.join(destPathPyModule, folderName))
+						retCode, outputStr = runJob("ln -sf " + os.path.join(folder[0], file) + ' ' + os.path.join(destPathPyModule, folderName, file))
+						if retCode != 0:
+								exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+
+		createDir(directory + "/bindings")
+		createDir(directory + "/bindings/matlab")
+		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/matlab/*.m* " + directory + "/bindings/matlab/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		createDir(directory + "/bindings/python")
+		retCode, outputStr = runJob(
+				cpCmd + " src/xmipp/bindings/python/xmipp_base.py " + directory + "/bindings/python/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/python/xmipp.py " + directory + "/bindings/python/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/python/xmipp_conda_envs.py " + directory + "/bindings/python/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " -r src/xmipp/bindings/python/envs_DLTK/ " + directory + "/bindings/python/envs_DLTK", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " src/xmipp/lib/xmippLib.so " + directory + "/bindings/python/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " src/xmipp/lib/_swig_frm.so " + directory + "/bindings/python/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		createDir(directory + "/bindings/python/sh_alignment")
+		retCode, outputStr = runJob(cpCmd + " -r src/xmipp/external/sh_alignment/python/* " + directory + "/bindings/python/sh_alignment/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " src/xmipp/external/sh_alignment/swig_frm.py " + directory + "/bindings/python/sh_alignment/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		createDir(directory + "/resources")
+		retCode, outputStr = runJob(cpCmd + " -r src/*/resources/* " + directory + "/resources/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		createDir(directory + "/bindings/java")
+		retCode, outputStr = runJob(cpCmd + " -Lr src/xmippViz/java/lib " + directory + "/bindings/java/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " -Lr src/xmippViz/java/build " + directory + "/bindings/java/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " -Lr src/xmippViz/external/imagej " + directory + "/bindings/java/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " src/xmippViz/bindings/python/xmippViz.py " + directory + "/bindings/python/", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		retCode, outputStr = runJob(cpCmd + " xmippEnv.json " + directory + "/xmippEnv.json", showCommand=verbose)
+		if retCode != 0:
+				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
+		printMessage(text=green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', '')))), debug=True)
+
+		# Scipion connection
+		linkToScipion(directory, verbose)
+
+		runJob("touch %s/v%s" % (directory, XMIPP_VERSIONS[XMIPP][VERSION_KEY]), showCommand=verbose)  # version token
+		fhBash = open(directory + "/xmipp.bashrc", "w")
+		fhFish = open(directory + "/xmipp.fish", "w")
+		fhBash.write("# This script is valid for bash and zsh\n\n")
+		fhFish.write("# This script is valid for fish\n\n")
+
+		XMIPP_HOME = os.path.realpath(directory)
+		fhBash.write("export XMIPP_HOME=%s\n" % XMIPP_HOME)
+		fhFish.write("set -x XMIPP_HOME %s\n" % XMIPP_HOME)
+
+		XMIPP_SRC = os.path.realpath("src")
+		fhBash.write("export XMIPP_SRC=%s\n" % XMIPP_SRC)
+		fhFish.write("set -x XMIPP_SRC %s\n" % XMIPP_SRC)
+
+		virtEnvDir = os.environ.get('VIRTUAL_ENV', '')  # if virtualEnv is used
+		virtEnvLib = os.path.join(virtEnvDir, 'lib') if virtEnvDir else ''
+		condaDir = os.environ.get('CONDA_PREFIX', '')  # if conda is used
+		condaLib = os.path.join(condaDir, 'lib') if condaDir else ''
+		fhBash.write("export PATH=%s/bin:$PATH\n" % XMIPP_HOME)
+		fhBash.write(
+				"export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:%s:%s:$LD_LIBRARY_PATH\n"
+				% (XMIPP_HOME, XMIPP_HOME, virtEnvLib, condaLib))
+		fhBash.write(
+				"export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n" % (
+				XMIPP_HOME, XMIPP_HOME))
+		fhFish.write("set -px PATH %s/bin\n" % XMIPP_HOME)
+		fhFish.write("set -px LD_LIBRARY_PATH %s/lib %s/bindings/python %s %s\n"
+								 % (XMIPP_HOME, XMIPP_HOME, virtEnvLib, condaLib))
+		fhFish.write(
+				"set -px PYTHONPATH %s/bindings %s/pylib\n" % (XMIPP_HOME, XMIPP_HOME))
+
+		fhBash.write('\n')
+		fhBash.write("alias x='xmipp'\n")
+		fhBash.write("alias xsj='xmipp_showj'\n")
+		fhBash.write("alias xio='xmipp_image_operate'\n")
+		fhBash.write("alias xis='xmipp_image_statistics'\n")
+		fhBash.write("alias xih='xmipp_image_header'\n")
+		fhBash.write("alias xmu='xmipp_metadata_utilities'\n")
+		fhFish.write('\n')
+		fhFish.write("alias x 'xmipp'\n")
+		fhFish.write("alias xsj 'xmipp_showj'\n")
+		fhFish.write("alias xio 'xmipp_image_operate'\n")
+		fhFish.write("alias xis 'xmipp_image_statistics'\n")
+		fhFish.write("alias xih 'xmipp_image_header'\n")
+		fhFish.write("alias xmu 'xmipp_metadata_utilities'\n")
+
+		fhBash.close()
+		fhFish.close()
 
 def cleanDeprecated():
 		"""

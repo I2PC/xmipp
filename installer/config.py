@@ -76,7 +76,6 @@ def config(debugP:bool=True, scratch:bool=False):
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
-        return dictPackages
     else:
         dictPackages, dictInternalFlags = readConfig()
     dictNoChecked = dictPackages.copy()
@@ -1026,4 +1025,4 @@ def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
     printError(errorMsg=output, retCode=retCode)
     if not dictPackages:
         dictPackages = readConfig()
-    exitXmipp(retCode=retCode, dictPackages=dictPackages)
+    exitXmipp(retCode=retCode, dictPackages=dictPackages, tarAndpost=False)
