@@ -997,10 +997,7 @@ def checkScons():
     if sconsV is not None:
         if versionToNumber(sconsV) < versionToNumber(SCONS_MINIMUM):
           status = installScons()
-          if status[0]:
-            sconsV = getSconsVersion()
-            printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=True)
-          else:
+          if not status[0]:
             exitError(retCode=SCONS_VERSION_ERROR,
                       output='scons found {}, required {}\n{}'.
               format(sconsV, SCONS_MINIMUM, status[1]))
@@ -1008,10 +1005,7 @@ def checkScons():
           printMessage(text=green('SCons {} found'.format(sconsV)), debug=debugPrints)
     else:
         status = installScons()
-        if status:
-          sconsV = getSconsVersion()
-          printMessage(text=green('Scons {} installed on scipion3 enviroment'.format(sconsV)), debug=debugPrints)
-        else:
+        if not status:
           exitError(retCode=SCONS_ERROR,
                     output='Scons not found. {}'.format(status[1]))
 

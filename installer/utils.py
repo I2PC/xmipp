@@ -147,7 +147,7 @@ def getFormattingTabs(text: str) -> str:
 
 def printError(errorMsg: str, retCode: int=1):
 	"""
-	### This function prints an error message and exits with the given return code.
+	### This function prints an error message.
 
 	#### Params:
 	- errorMsg (str): Error message to show.
