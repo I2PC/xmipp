@@ -25,8 +25,8 @@ import sys
 from .api import sendApiPost
 from .reportTar import createTar
 
-def exitXmipp(retCode:int=0, dictPackages:dict={}, tarAndpost:bool=True):
-	if tarAndpost:
+def exitXmipp(retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
+	if tarPost:
 			createTar()
 			sendApiPost(dictPackage=dictPackages, retCode=retCode)
 	sys.exit(retCode)

@@ -65,8 +65,10 @@ from datetime import datetime
 from sysconfig import get_paths
 from .exit import exitXmipp
 
-def config(debugP:bool=True, scratch:bool=False):
+def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True, checkConf:bool=True):
     global debugPrints
+    global tarPost
+    tarPost = tarAndPost
     debugPrints = debugP
     """check the config if exist else create it and check it"""
     # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
@@ -78,13 +80,14 @@ def config(debugP:bool=True, scratch:bool=False):
         writeConfig(dictPackages, dictInternalFlags)
     else:
         dictPackages, dictInternalFlags = readConfig()
-    dictNoChecked = dictPackages.copy()
-    checkConfig(dictPackages, dictInternalFlags)
-    dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
-    if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
-        writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
-    # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
-    # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
+    if checkConf:
+        dictNoChecked = dictPackages.copy()
+        checkConfig(dictPackages, dictInternalFlags)
+        dictInternalFlags2 = getInternalFlags(dictPackages)#if checkConfig change any parameter...
+        if dictPackages != dictNoChecked or dictInternalFlags != dictInternalFlags2:
+            writeConfig(dictP=dictPackages, dictInt=dictInternalFlags2)
+        # printMessage('LD_LIBRARY_PATH: ', debug=debugPrints)
+        # runJob('echo $LD_LIBRARY_PATH', showOutput=True)
     return dictPackages
 
 def getSystemValues():
@@ -1025,4 +1028,4 @@ def exitError(output:str='', retCode:int=0, dictPackages:dict={}):
     printError(errorMsg=output, retCode=retCode)
     if not dictPackages:
         dictPackages = readConfig()
-    exitXmipp(retCode=retCode, dictPackages=dictPackages, tarAndpost=False)
+    exitXmipp(retCode=retCode, dictPackages=dictPackages, tarPost=tarPost)

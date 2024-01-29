@@ -105,7 +105,7 @@ def modeConfig(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	return config(args.debug, scratch=True)
+	return config(args.debug, scratch=True, tarAndPost=False)
 
 def modeGetModels(args: argparse.Namespace):
 	"""
@@ -159,7 +159,7 @@ def modeTest(parser, args=argparse.Namespace):
 	# Check if at least either one of the two params has been used
 	if not args.show and not args.testName and not args.allPrograms and not args.allFuncs:
 		parser.error("Some option must be used. Use \"./xmipp test -h\" for help.")
-	dictPackages = config(False)
+	dictPackages = config(debugP=False, tarAndPost=False)
 	runTests(testName=args.testName, show=args.show, allPrograms=args.allPrograms,
 					 allFuncs=args.allFuncs, CUDA=dictPackages['CUDA'])
 
@@ -170,7 +170,7 @@ def modeVersion(args: argparse.Namespace):
   #### Params:
   - args (Namespace): Command line arguments parsed by argparse library.
   """
-  dictPackages = config(debugP=False)
+  dictPackages = config(debugP=False, tarAndPost=False, checkConf=False)
   dictV = collectAllVersions(dictPackages)
   print(('----------------------------------------'))
   print('Repositories details:')
@@ -182,7 +182,6 @@ def modeVersion(args: argparse.Namespace):
     branch = branchName()
     print('{}: '.format(key))
     print('\t{} (Branch: {})'.format(value['vername'], branch))
-
 
   print(('----------------------------------------'))
   print('Packages version:')
@@ -207,7 +206,7 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	dictConfig = config(debugP=False)
+	dictConfig = config(debugP=False,tarAndPost=True)
 	#modeCompileAndInstall(args, dictConfig=dictConfig)
 	#downloadDeepLearningModels()
 	exitXmipp(dictPackages=dictConfig)
