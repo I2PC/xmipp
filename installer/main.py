@@ -46,14 +46,16 @@ from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
 from .config import readConfig
 
 ####################### COMMAND FUNCTIONS #######################
-def getSources(branch: str=None):
+def getSources(branch: str=None, LOG_FILE_path:str=''):
 	"""
 	### This function fetches the sources needed for Xmipp to compile.
 	
 	#### Params:
 	- branch (str): Optional. Branch to clone the sources from.
 	"""
-	printMessage(text='\n- Getting sources...', debug=True)
+	global logFilePath
+	logFilePath = LOG_FILE_path
+
 	# Enclose multi-word branch names in quotes
 	if branch is not None and len(branch.split(' ')) > 1:
 		branch = f"\"{branch}\""
@@ -65,12 +67,16 @@ def getSources(branch: str=None):
 	external_sources = [CUFFTADVISOR, CTPL, GTEST, LIBSVM, LIBCIFPP]
 	sources = [XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
 
+	printMessage(text='\n-- Getting external sources...', debug=True)
 	for source in external_sources:
 			# Clone source repository
 			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
 			if status != 0:
 				exitError(retCode=CLONNING_EXTERNAL_SOURCE_ERROR, output=output)
+	printMessage(text='-- Done', debug=True)
 
+
+	printMessage(text='\n-- Getting Xmipp sources...', debug=True)
 	for source in sources:
 		# Non-git directories and production branch (master also counts) download from tags, the rest clone
 		if (currentBranch is None or currentBranch == XMIPP_VERSIONS[XMIPP][VERNAME_KEY]
@@ -86,6 +92,8 @@ def getSources(branch: str=None):
 		# If download failed, return error
 		if status != 0:
 			exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=output)
+	printMessage(text='-- Done', debug=True)
+
 
 
 def compileExternalSources(jobs):
@@ -103,13 +111,14 @@ def compileExternalSources(jobs):
 		- RuntimeError: If any error occurs during the compilation process of external sources,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage(text='\n- Compiling external sources...', debug=True)
+		printMessage(text='\n-- Compiling external sources...', debug=True)
 		dictPackage, _ = readConfig()
 		if dictPackage['CUDA'] == 'True':
 			compile_cuFFTAdvisor()
 		compile_googletest()
 		compile_libsvm()
 		compile_libcifpp(jobs)
+		printMessage(text='-- Done', debug=True)
 
 def compile_cuFFTAdvisor():
 		"""
@@ -122,7 +131,7 @@ def compile_cuFFTAdvisor():
 		- RuntimeError: If any error occurs during the compilation and copying process of cuFFTAdvisor,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage('Compiling cuFFTAdvisor...', debug=True)
+		printMessage('-  Compiling cuFFTAdvisor...', debug=True)
 		advisorDir = "src/cuFFTAdvisor/"
 		currDir = os.getcwd()
 		libDir = "src/xmipp/lib/"
@@ -135,14 +144,14 @@ def compile_cuFFTAdvisor():
 				retCode, outputStr = runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 				if retCode == 0:
 						os.chdir(currDir)
-						printMessage(text=green('cuFFTAdvisor package compillated'), debug=True)
 				else:
 						os.chdir(currDir)
-						exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr)
-
+						exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr, pathFile=currDir)
 		else:
 				os.chdir(currDir)
-				exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr)
+				exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr, pathFile=currDir)
+		printMessage('-  Done', debug=True, pathFile=currDir)
+
 
 
 def compile_googletest():
@@ -157,7 +166,7 @@ def compile_googletest():
 		  it raises a RuntimeError with error details.
 		"""
 
-		printMessage(text="Compiling googletest...", debug=True)
+		printMessage(text="-  Compiling googletest...", debug=True)
 		currDir = os.getcwd()
 		buildDir = os.path.join("src", "googletest", "build")
 		if not os.path.exists(buildDir):
@@ -168,20 +177,17 @@ def compile_googletest():
 				retCode, outputStr = runJob("make gtest gtest_main")
 				if retCode == 0:
 						os.chdir(currDir)
-						printMessage(text=green('googletest package compillated'), debug=True)
+						printMessage(text=green('-  Done'), debug=True, pathFile=currDir)
 				else:
 						os.chdir(currDir)
-						exitError(retCode=GOOGLETEST_ERROR, output=outputStr)
-
-
+						exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
 		else:
 				os.chdir(currDir)
-				exitError(retCode=GOOGLETEST_ERROR, output=outputStr)
+				exitError(retCode=GOOGLETEST_ERROR, output=outputStr, pathFile=currDir)
 
 
 def compile_libsvm():
-
-		printMessage(text="Compiling libsvm...", debug=True)
+		printMessage(text="-  Compiling libsvm...", debug=True)
 		# if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
 		currDir = os.getcwd()
 		libsvmDir = os.path.join("src", "libsvm")
@@ -195,14 +201,14 @@ def compile_libsvm():
 				retCode, outputStr = runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
 				if retCode == 0:
 						os.chdir(currDir)
-						printMessage(text=green('libsvm package compillated'), debug=True)
+						printMessage(text=green('-  Done'), debug=True, pathFile=currDir)
 				else:
 						os.chdir(currDir)
-						exitError(retCode=LIBSVM_ERROR, output=outputStr)
+						exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
 
 		else:
 				os.chdir(currDir)
-				exitError(retCode=LIBSVM_ERROR, output=outputStr)
+				exitError(retCode=LIBSVM_ERROR, output=outputStr, pathFile=currDir)
 
 
 def compile_libcifpp(jobs):
@@ -219,7 +225,7 @@ def compile_libcifpp(jobs):
 		- RuntimeError: If any error occurs during the compilation and installation process of libcifpp,
 		  it raises a RuntimeError with error details.
 		"""
-		printMessage(text="Compiling libcifpp..", debug=True)
+		printMessage(text="-  Compiling libcifpp..", debug=True)
 		currDir = os.getcwd()
 		# Moving to library directory
 		libcifppDir = os.path.join("src", "libcifpp")
@@ -243,21 +249,21 @@ def compile_libcifpp(jobs):
 								retCode, outputStr = runJob("cp " + os.path.join(libcifppDir, libcifppLibDir,
 																							 "libcifpp.so*") + " " + libDir)
 								if retCode == 0:
-										printMessage(text=green('libcifpp package compillated'), debug=True)
+										printMessage(text=green('-  Done'), debug=True, pathFile=currDir)
 								else:
-										exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+										exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
 						else:
 								os.chdir(currDir)
-								exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+								exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
 				else:
 						os.chdir(currDir)
-						exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+						exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
 		else:
 				os.chdir(currDir)
-				exitError(retCode=LIBCIFPP_ERROR, output=outputStr)
+				exitError(retCode=LIBCIFPP_ERROR, output=outputStr, pathFile=currDir)
 
 
 def compileSources(jobs):
@@ -278,7 +284,7 @@ def compileSources(jobs):
 		dictPackage, _ = readConfig()
 
 		for source in sources:
-				printMessage(text='\n- Compiling {}...'.format(source), debug=True)
+				printMessage(text='\n-- Compiling {}...'.format(source), debug=True)
 				retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source,
 																	streaming=True, showOutput=False, showError=True)
 				if retCode != 0:
@@ -290,6 +296,8 @@ def compileSources(jobs):
 
 						elif source == XMIPP_VIZ:
 									exitError(retCode=XMIPPVIZ_COMPILLATION_ERROR, output=outputStr)
+				printMessage(text='\n-- Done. Compiled {}'.format(source), debug=True)
+
 
 
 def install(directory):
@@ -798,7 +806,7 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	os.chdir(srcPath)
 	destinyPath = os.path.join(srcPath,  repo)
 	if os.path.exists(destinyPath):
-			printMessage(text="The {} repository exists.".format(repo), debug=True)
+			printMessage(text="The {} repository exists.".format(repo), debug=True, pathFile=currentPath)
 			os.chdir(destinyPath)
 			retcode, output = runJob(f"git pull ")
 			if retcode != 0:
@@ -809,7 +817,7 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 	else:
 			retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
 			if retcode == 0:
-					printMessage(green(text="Clonned repository {}".format(repo)), debug=True)
+					printMessage(green(text="Clonned repository {}".format(repo)), debug=True, pathFile=currentPath)
 
 	os.chdir(currentPath)
 	return retcode, output
@@ -899,8 +907,8 @@ def cleanEmptyFolders():
 						if retCode != 0:
 								printWarning(text=outputStr, warningCode=CLEANING_BINARIES_WARNING)
 
-def exitError(output:str='', retCode:int=0):
-		printError(errorMsg=output, retCode=retCode)
+def exitError(output:str='', retCode:int=0, pathFile:str=''):
+		printError(errorMsg=output, retCode=retCode, pathFile=pathFile)
 		dictPackages = readConfig()
 		exitXmipp(retCode=retCode,
 							dictPackages=dictPackages)

@@ -28,6 +28,7 @@ Module containing useful functions used by the installation process.
 
 # General imports
 import pkg_resources, sys, glob, distutils.spawn, json, os, io, time, subprocess, shutil, multiprocessing
+import re
 from typing import List, Tuple, Union, Callable, Any
 from sysconfig import get_paths
 # Installer imports
@@ -145,7 +146,7 @@ def getFormattingTabs(text: str) -> str:
 	"""
 	return text.expandtabs(TAB_SIZE)
 
-def printError(errorMsg: str, retCode: int=1):
+def printError(errorMsg: str, retCode: int=1, pathFile:str=''):
 	"""
 	### This function prints an error message.
 
@@ -154,11 +155,11 @@ def printError(errorMsg: str, retCode: int=1):
 	- retCode (int): Optional. Return code to end the exection with.
 	"""
 	# Print the error message in red color
-	errorStr = f'ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
-	printMessage(red(errorStr), debug=True)
+	errorStr = f'!! ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
+	printMessage(red(errorStr), debug=True, pathFile=pathFile)
 
 
-def printMessage(text: str, debug: bool=False):
+def printMessage(text: str, debug: bool=False, pathFile:str=''):
 	"""
 	### This function prints the given text into the log file, and, if debug mode is active, also through terminal.
 
@@ -169,11 +170,16 @@ def printMessage(text: str, debug: bool=False):
 	# If debug mode is active, print through terminal
 	if debug:
 		print(text, flush=True)
-	
 	# Open the file to add text
 	try:
-		with open(LOG_FILE, mode="a") as file:
+		if not pathFile:
+				pathFile = LOG_FILE
+		else:
+				pathFile = os.path.join(pathFile, LOG_FILE)
+		with open(pathFile, mode="a") as file:
+			text = remove_color_codes(text)
 			file.write(f"{text}\n")
+			file.flush()
 	# If there was an error during the process, show error and exit
 	except OSError:
 		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
@@ -187,7 +193,23 @@ def printWarning(text: str, warningCode: int, debug: bool=True):
 	- warningCode (int): Code of the controlled warning.
 	- debug (bool): Indicates if debug mode is active.
 	"""
-	printMessage(yellow(f'- Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'), debug=debug)
+	printMessage(yellow(f'!! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'), debug=debug)
+
+
+
+
+def remove_color_codes(coloredText):
+		"""
+		Removes ANSI color codes from a given text.
+		Args:
+				text_with_colors (str): The input text containing ANSI color codes.
+
+		Returns:
+				str: The text with color codes removed.
+		"""
+		patron = re.compile(r'\x1b\[[0-9;]*[mK]')
+		texto_sin_colores = patron.sub('', coloredText)
+		return texto_sin_colores
 
 ####################### EXECUTION MODE FUNCTIONS #######################
 def getModeGroups() -> List[str]:

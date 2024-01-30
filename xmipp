@@ -34,7 +34,7 @@ from installer.constants import (MODE_ALL, MODE_COMPILE_AND_INSTALL, MODE_CONFIG
 																 DEFAULT_MODE_DEBUG, XMIPP_VERSIONS, LOG_FILE)
 from installer.utils import (printError, runJob, addDeepLearninModel,
 														 downloadDeepLearningModels, runTests, branchName,
-														 getCurrentEnvName)
+														 getCurrentEnvName, printMessage)
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
@@ -91,21 +91,15 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
-	"""
-	#remove compileLog.txt
-	os.remove(LOG_FILE)
-	envName = getCurrentEnvName()
-	with open(LOG_FILE, mode="w") as file:
-			file.write(f"Compilation date: {datetime.today()}\n")
-			if envName:
-				file.write(f"Enviroment running: {envName}\n")
-			file.write('---------------------\n')
-	# Get sources
+	"""	# Get sources
 	getSources(branch=args.branch)
 	# Compile external dependencies
+	printMessage('\n---------------------------------------\n', debug=True)
 	compileExternalSources(jobs=args.jobs)
+	printMessage('\n---------------------------------------\n', debug=True)
 	# Compile Xmipp
 	compileSources(jobs=args.jobs)
+	printMessage('\n---------------------------------------\n', debug=True)
 	#Install
 	install(directory=args.directory)
 
@@ -217,9 +211,21 @@ def modeAll(args: argparse.Namespace):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
+	try:
+		os.remove(LOG_FILE)
+	except FileNotFoundError:
+			pass
+	envName = getCurrentEnvName()
+	printMessage(f"Compilation date: {datetime.today()}", debug=True)
+	printMessage(f"Enviroment running: {envName}", debug=True)
+	printMessage('\n---------------------------------------\n', debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
+	printMessage('\n---------------------------------------\n', debug=True)
 	modeCompileAndInstall(args, dictConfig=dictConfig)
+	printMessage('\n---------------------------------------\n', debug=True)
 	downloadDeepLearningModels()
+	printMessage('\n---------------------------------------\n', debug=True)
+
 	exitXmipp(dictPackages=dictConfig)
 
 def runSelectedMode(parser: ErrorHandlerArgumentParser, args: argparse.Namespace):
