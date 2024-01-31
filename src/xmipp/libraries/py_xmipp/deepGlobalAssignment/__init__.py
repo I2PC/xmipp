@@ -217,20 +217,19 @@ try:
             angle3 = tf.acos(
                 tf.clip_by_value(tf.reduce_sum(e3_true * e3_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
             angular_error = tf.reduce_mean(tf.abs(angle3))
-            vector_error = tf.reduce_mean(tf.abs(e3_true-e3_pred))
+            # vector_error = tf.reduce_mean(tf.abs(e3_true-e3_pred))
             # tf.print("angle3", angle3[0,])
-            Nangular = 1
 
             e2_true = y_6dtrue[:, :3]  # First 3 components
             e2_pred = y_6d[:, :3]  # First 3 components
-            vector_error += tf.reduce_mean(tf.abs(e2_true - e2_pred))
+            # vector_error += tf.reduce_mean(tf.abs(e2_true - e2_pred))
 
             # tf.print("e2_true",e2_true[0,])
             # tf.print("e2_pred",e2_pred[0,])
 
             e1_true = tf.linalg.cross(e2_true, e3_true)
             e1_pred = tf.linalg.cross(e2_pred, e3_pred)
-            vector_error += tf.reduce_mean(tf.abs(e1_true - e1_pred))
+            # vector_error += tf.reduce_mean(tf.abs(e1_true - e1_pred))
 
             angle1 = tf.acos(
                 tf.clip_by_value(tf.reduce_sum(e1_true * e1_pred, axis=-1), -1.0 + epsilon, 1.0 - epsilon))
@@ -240,9 +239,9 @@ try:
             # tf.print("angle1",angle1[0,])
 
             angular_error += tf.reduce_mean(tf.abs(angle1)) + tf.reduce_mean(tf.abs(angle2))
-            Nangular += 2
 
-            error = 0.5*(angular_error / Nangular  + vector_error/Nangular)* self.Xdim/2
+            # error = 0.5*(angular_error / Nangular + vector_error/Nangular)* self.Xdim/2
+            error = angular_error / 3 * 57.2958
 
             return error
 
