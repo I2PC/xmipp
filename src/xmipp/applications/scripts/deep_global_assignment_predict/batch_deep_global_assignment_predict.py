@@ -23,6 +23,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
         self.addParamsLine('[-o <metadata="">]            : Output filename')
         self.addParamsLine(' --mode <mode>                : Valid modes: shift, angles')
         self.addParamsLine('[--gpu <id=0>]                : GPU Id')
+        self.addParamsLine('[--sym <sym=c1>]              : Symmetry')
 
     def run(self):
         fnIn = self.getParam("-i")
@@ -32,6 +33,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
             fnOut=fnIn
         gpuId = self.getParam("--gpu")
         mode = self.getParam("--mode")
+        symmetry = self.getParam("--sym")
         maxSize = 32
 
         from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -56,7 +58,7 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                     md.setValue(xmippLib.MDL_ANGLE_ROT, rot, objId)
                     md.setValue(xmippLib.MDL_ANGLE_TILT, tilt, objId)
                     md.setValue(xmippLib.MDL_ANGLE_PSI, psi, objId)
-                if shift is not None:
+                if shifts is not None:
                     x, y = shifts[Ydict[itemId]]
                     md.setValue(xmippLib.MDL_SHIFT_X, x, objId)
                     md.setValue(xmippLib.MDL_SHIFT_Y, y, objId)
@@ -101,20 +103,20 @@ class ScriptDeepGlobalAssignmentPredict(XmippScript):
                 model = keras.models.load_model(models[index], compile=False)
                 predictions = np.zeros((numImgs, 2))
             else:
-                model = keras.models.load_model(models[i],
+                model = keras.models.load_model(models[index],
                                                custom_objects={'Angles2VectorLayer': deepGlobal.Angles2VectorLayer},
                                                compile=False)
-                predictions = np.zeros((numImgs, 8))
+                predictions = np.zeros((numImgs, 6))
 
             k = 0
             for i in range(numBatches):
                 numPredictions = min(maxSize, numImgs-i*maxSize)
                 X = np.zeros((numPredictions, Xdim, Xdim, 1), dtype=np.float64)
                 for j in range(numPredictions):
-                    I = np.reshape(xmippLib.Image(fnImgs[k]).getData(), (Xdim, Xdim, 1))
+                    I = xmippLib.Image(fnImgs[k]).getData()
                     I = (I - np.mean(I)) / np.std(I)
                     if mode=="angles":
-                        I = shift(I, np.array([-x,-y]), mode='wrap')
+                        I = shift(I, np.array([-x[k],-y[k]]), mode='wrap')
                     X[j, ] =  np.reshape(I, (Xdim, Xdim, 1))
                     k += 1
                 predictions[i*maxSize:(i*maxSize + numPredictions), :] = model.predict(X)
