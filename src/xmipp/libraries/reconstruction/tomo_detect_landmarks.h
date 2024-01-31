@@ -45,6 +45,9 @@
 #include <data/point2D.h>
 #include <data/filters.h>
 
+#include<data/mask.h>
+#include<core/histogram.h>
+
 #include <fstream>
    
 #define VERBOSE_OUTPUT
@@ -208,6 +211,10 @@ public:
     */
     void createLandmarkTemplate();
     void createLandmarkTemplate_Gaussian();
+    void histogramEqualization(MultidimArray<double> &data);
+    void adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize);
+    void maxPooling(MultidimArray<double> &image, size_t windowSize);
+
 
 };
 

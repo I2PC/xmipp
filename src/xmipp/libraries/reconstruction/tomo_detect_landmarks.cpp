@@ -381,6 +381,7 @@ void ProgTomoDetectLandmarks::enhanceLandmarks(MultidimArray<double> &tiltImage)
 	correlation_matrix(tiltImage, landmarkReference, tiltImage_enhanced, aux, true);
 	correlation_matrix(tiltImage_enhanced, landmarkReference_Gaussian, tiltImage, aux, true);
 
+	substractBackgroundRollingBall(tiltImage, 2*targetFS);
 }
 
 
@@ -392,9 +393,12 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
     MultidimArray<double> binaryCoordinatesMapSlice;
     MultidimArray<double> labelCoordiantesMapSlice;
+    MultidimArray<double> equalizedMap;
     MultidimArray<double> labelCoordiantesMap;
+	MultidimArray<double> tiltImage;
 
 	labelCoordiantesMap.initZeros(nSize, zSize, ySize_d, xSize_d);
+	equalizedMap.initZeros(nSize, zSize, ySize_d, xSize_d);
 
 	for(size_t k = 0; k < nSize; ++k)
 	{
@@ -402,13 +406,14 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		std::cout <<  "Searching for high contrast coordinates in tilt-image " << k << std::endl;
 		#endif
 
+		// Z-SCORE THRESHOLDING ----------------------------------------------
 		std::vector<int> sliceVector;
 
-		for (size_t j = 0; j < ySize_d; j++)
+		for (size_t i = 0; i < ySize_d; i++)
 		{
-			for (size_t i = 0; i < xSize_d; i++)
+			for (size_t j = 0; j < xSize_d; j++)
 			{
-				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, j ,i));
+				sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j));
 			}
 		}
 
@@ -438,45 +443,89 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		std::cout << "thresholdU: " << thresholdU << std::endl;
         #endif
 
-        binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
-        labelCoordiantesMapSlice.initZeros(ySize_d, xSize_d);
+		tiltImage.initZeros(ySize_d, xSize_d);
+
+		for(size_t i = 0; i < ySize_d; i++)
+        {
+            for(size_t j = 0; j < xSize_d; ++j)
+            {
+                double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
+
+                if (value > thresholdU)
+                {
+					DIRECT_A2D_ELEM(tiltImage, i, j) = value;
+               }
+            }
+        }
+
+		// MAX POOLING ------------------------------------------------
+		maxPooling(tiltImage, targetFS);
+
+		// Save max-pooled tilt-series  
+		for(size_t i = 0; i < ySize_d; i++)
+        {
+            for(size_t j = 0; j < xSize_d; ++j)
+            {
+				DIRECT_NZYX_ELEM(equalizedMap, k, 0, i, j) = DIRECT_A2D_ELEM(tiltImage, i, j);
+            }
+        }
+
+		// OTSU THRESHOLDING ----------------------------------------------
+		std::vector<double> otsuVector;
 
         for(size_t i = 0; i < ySize_d; i++)
         {
             for(size_t j = 0; j < xSize_d; ++j)
             {
-                double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
+                double value = DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j);
 
                 if (value > thresholdU)
                 {
-                    DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+					otsuVector.push_back(DIRECT_A2D_ELEM(tiltImage, i, j));
                 }
             }
         }
 
-		#include<data/mask.h>
-		Histogram1D<int> hist;
-		compute_hist_within_binary_mask(binaryCoordinatesMapSlice,
-									    ,
-										hist,
-										MINDOUBLE,
-										MAXDOUBLE,
-										2);
-		void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
-                                     const MultidimArray< T >& v, Histogram1D& hist,
-                                     T min, T max, int no_steps)
+		MultidimArray<double> otsuMultidim;
+		otsuMultidim.initZeros(otsuVector.size());
 
+		for (size_t i =0; i<otsuVector.size(); i++)
+		{
+			DIRECT_MULTIDIM_ELEM(otsuMultidim, i) = otsuVector[i];
+		}
+
+		double otsuThr = OtsuSegmentation(otsuMultidim);
+		// double otsuThr = EntropySegmentation(otsuMultidim);
+
+		std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
+
+		// LABELLING --------------------------------------------------------------------
+		binaryCoordinatesMapSlice.initZeros(ySize_d, xSize_d);
+
+		for(size_t i = 0; i < ySize_d; i++)
+        {
+            for(size_t j = 0; j < xSize_d; ++j)
+            {
+				if (DIRECT_A2D_ELEM(tiltImage, i, j) > otsuThr && DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i, j > thresholdU))
+				{
+					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+				}
+            }
+        }
+
+        labelCoordiantesMapSlice.initZeros(ySize_d, xSize_d);
         int colour;
         colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 		
-		// MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
-		// #include<data/morphology.h>
-		// erode2D(labelCopy, labelCoordiantesMapSlice, 4, 2, 512); // in, out, neigh, count, size
-		
-        #ifdef DEBUG_HCC
+		#ifdef DEBUG_HCC
         std::cout << "Colour: " << colour << std::endl;
         #endif
 
+		// MultidimArray<double> labelCopy = labelCoordiantesMapSlice;
+		// #include<data/morphology.h>
+		// erode2D(labelCopy, labelCoordiantesMapSlice, 4, 2, 512); // in, out, neigh, count, size
+
+ 		// FILTER LABELLED REGIONS --------------------- -----------------------------------
         std::vector<std::vector<int>> coordinatesPerLabelX (colour);
         std::vector<std::vector<int>> coordinatesPerLabelY (colour);
 
@@ -562,6 +611,11 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
+	saveImage.write(outputFileNameLabeledVolume);
+		
+	// save tilt series only with thr of sd ------------------------------------ 
+	outputFileNameLabeledVolume = rawname + "/ts_equalized.mrcs";
+	saveImage() = equalizedMap;
 	saveImage.write(outputFileNameLabeledVolume);
 	#endif
 
@@ -1215,6 +1269,185 @@ void ProgTomoDetectLandmarks::createLandmarkTemplate_Gaussian()
 	si.write(outFN);
     #endif
 }
+
+
+// // ------------------------------------------------------------------------------------------------------------------------------
+// // MAXPOOLING
+void ProgTomoDetectLandmarks::maxPooling(MultidimArray<double> &image, size_t windowSize) 
+{
+	MultidimArray<double> window;
+	std::vector<double> aa;
+
+	// Ensure windowSize is an odd number
+    windowSize = (windowSize % 2 == 0) ? windowSize + 1 : windowSize;
+	int halfWindowSize = (int)windowSize / 2;
+
+	MultidimArray<double> imageTmp = image;
+	image.initConstant(0);
+
+    for (int i = 0; i < ySize_d; i++) 
+	{
+        for (int j = 0; j < xSize_d; j++) 
+		{
+            int y0 = std::max(0, int(i - windowSize / 2));
+            int x0 = std::max(0, int(j - windowSize / 2));
+            int yF = std::min(ySize_d - 1, i + windowSize / 2);
+            int xF = std::min(xSize_d - 1, j + windowSize / 2);
+
+			for (int k = -halfWindowSize; k <= halfWindowSize ; k++)
+            {
+                for (int l = -halfWindowSize ; l <= halfWindowSize ; l++)
+                {
+                    if (i+k>=0 && j+l>=0 && j+l<xSize_d && i+k<ySize_d && k*k+l*l<=halfWindowSize*halfWindowSize)
+                    {
+                        aa.push_back(DIRECT_A2D_ELEM(imageTmp, (i + k), (j + l)));
+                    }
+                }
+            }
+
+			// window2D(imageTmp, window, y0, x0, yF, xF); 
+			// double elem_max = *std::max_element(MULTIDIM_ARRAY(window), MULTIDIM_ARRAY(window)+NZYXSIZE(window));
+
+			double elem_max = *std::max_element(aa.begin(), aa.end());
+			DIRECT_A2D_ELEM(image, i, j) = elem_max;
+			aa.clear();
+        }
+    }
+}
+
+
+// // ------------------------------------------------------------------------------------------------------------------------------
+// // HISTOGRAM EQUALIZATION
+void ProgTomoDetectLandmarks::histogramEqualization(MultidimArray<double> &data) 
+{
+	CDF cdf;
+	cdf.calculateCDF(data);
+
+	for (size_t i = 0; i < XSIZE(data); i++)
+	{
+		DIRECT_A1D_ELEM(data, i) = cdf.getProbability(DIRECT_A1D_ELEM(data, i));
+	}
+	
+	
+}
+
+// // ------------------------------------------------------------------------------------------------------------------------------
+// // ADAPTATIVE HISTOGRAM EQUALIZATION
+void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize) 
+{
+	MultidimArray<double> window;
+
+	// Ensure windowSize is an odd number
+    windowSize = (windowSize % 2 == 0) ? windowSize + 1 : windowSize;
+	size_t halfWindowSize = windowSize / 2;
+
+    // Apply adaptive histogram equalization
+    for (int i = (halfWindowSize-1); i < ySize_d; i += windowSize) 
+	{
+        for (int j = (halfWindowSize-1); j < xSize_d; j += windowSize) 
+		{
+            int y0 = std::max(0, int(i - windowSize / 2));
+            int x0 = std::max(0, int(j - windowSize / 2));
+            int yF = std::min(ySize_d - 1, i + windowSize / 2);
+            int xF = std::min(xSize_d - 1, j + windowSize / 2);
+
+			std::cout << "y0 " << y0 << std::endl;
+			std::cout << "x0 " << x0 << std::endl;
+			std::cout << "yF " << yF << std::endl;
+			std::cout << "xF " << xF << std::endl;
+
+			window2D(image, window, y0, x0, yF, xF); 
+			// for (size_t k = y0; k < yF; k++)
+			// {
+			// 	for (size_t l = x0; l < xF; l++)
+			// 	{
+			// 		DIRECT_A2D_ELEM(window, k-y0, l-x0) = DIRECT_A2D_ELEM(image, k, l);
+			// 	}
+			// }
+
+			histogram_equalization(window, 255);
+
+            for (size_t k = y0; k < yF; k++)
+			{
+				for (size_t l = x0; l < xF; l++)
+				{
+					DIRECT_A2D_ELEM(image, k, l) = DIRECT_A2D_ELEM(window, k-y0, l-x0);
+				}
+			}
+        }
+    }
+}
+
+// // // ------------------------------------------------------------------------------------------------------------------------------
+// // // ADAPTATIVE HISTPGRAM EQUALIZATION ----------------------------------------------------------------------------------> FAIL
+// void ProgTomoDetectLandmarks::adaptiveHistogramEqualization(MultidimArray<double> &image, size_t windowSize) 
+// {
+// 	MultidimArray<double> window;
+
+// 	MultidimArray<double> imageRangeAdjusted = image;
+// 	imageRangeAdjusted.rangeAdjust(0, 255);
+
+//     // Iterate through each pixel in the image
+//     for (size_t i = 0; i < ySize_d; ++i) 
+// 	{
+//         for (size_t j = 0; j < xSize_d; ++j) 
+// 		{
+//             // Define the local region based on the windowSize
+//             int y0 = std::max(0, int(i - windowSize / 2));
+//             int x0 = std::max(0, int(j - windowSize / 2));
+//             int yF = std::min(ySize_d - 1, i + windowSize / 2);
+//             int xF = std::min(xSize_d - 1, j + windowSize / 2);
+
+//             // Construct window
+// 			window2D(imageRangeAdjusted, window, y0, x0, yF, xF); 
+
+// 			// Xmipp histogram equalization
+// 			int bins = 200;
+// 			histogram_equalization(window, 255);
+			
+// 			double newValue = DIRECT_A2D_ELEM(image, i, j) * (DIRECT_A2D_ELEM(window, windowSize / 2, windowSize / 2)/DIRECT_A2D_ELEM(imageRangeAdjusted, i, j));
+// 			DIRECT_A2D_ELEM(image, i, j) = newValue;
+
+//             // // Compute the local histogram
+//             // std::vector<int> histogram(256, 0);
+
+// 			// for (int k = 0; k < yF-y0; ++k)
+// 			// {
+// 			// 	for (int l = 0; l < xF-x0; ++l)
+// 			// 	{
+// 			// 		std::cout << "(int)DIRECT_A2D_ELEM(window, k, l) " << (int)DIRECT_A2D_ELEM(window, k, l) << std::endl;
+// 			// 		++histogram[(int)DIRECT_A2D_ELEM(window, k, l)];
+// 			// 	}
+// 			// }
+// 			// std::cout << "b " << std::endl;
+
+//             // // Compute the cumulative distribution function (CDF)
+//             // std::vector<int> cdf(256, 0);
+//             // cdf[0] = histogram[0];
+
+//             // for (int k = 1; k < 256; ++k) 
+// 			// {
+//             //     cdf[k] = cdf[k - 1] + histogram[k];
+//             // }
+
+// 			// std::cout << "c " << std::endl;
+
+
+//             // // Compute the new intensity value for the current pixel
+//             // int currentValue = DIRECT_A2D_ELEM(image, i, j);
+//             // int newValue = currentValue * (cdf[DIRECT_A2D_ELEM(imageRangeAdjusted, i, j)] - cdf[0]) / (ySize_d * xSize_d - cdf[0]);
+
+// 			// std::cout << "currentValue " << currentValue << std::endl;
+// 			// std::cout << "newValue " << newValue << std::endl;
+
+//             // // Update the pixel value in the image
+//             // DIRECT_A2D_ELEM(image, i, j) = newValue;
+			
+// 			// std::cout << "d " << std::endl;
+
+//         }
+//     }
+// }
 
 
 // // ------------------------------------------------------------------------------------------------------------------------------
