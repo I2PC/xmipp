@@ -495,7 +495,6 @@ void ProgTomoDetectLandmarks::getHighContrastCoordinates(MultidimArray<double> t
 		}
 
 		double otsuThr = OtsuSegmentation(otsuMultidim);
-		// double otsuThr = EntropySegmentation(otsuMultidim);
 
 		std::cout << "otsu thr ---------------------------------------------------------------> " << otsuThr << std::endl;
 
@@ -1315,21 +1314,6 @@ void ProgTomoDetectLandmarks::maxPooling(MultidimArray<double> &image, size_t wi
     }
 }
 
-
-// // ------------------------------------------------------------------------------------------------------------------------------
-// // HISTOGRAM EQUALIZATION
-void ProgTomoDetectLandmarks::histogramEqualization(MultidimArray<double> &data) 
-{
-	CDF cdf;
-	cdf.calculateCDF(data);
-
-	for (size_t i = 0; i < XSIZE(data); i++)
-	{
-		DIRECT_A1D_ELEM(data, i) = cdf.getProbability(DIRECT_A1D_ELEM(data, i));
-	}
-	
-	
-}
 
 // // ------------------------------------------------------------------------------------------------------------------------------
 // // ADAPTATIVE HISTOGRAM EQUALIZATION
