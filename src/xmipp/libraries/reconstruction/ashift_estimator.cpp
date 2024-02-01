@@ -43,7 +43,7 @@ void AShiftEstimator<T>::setDefault() {
     m_batch = 0;
     m_maxShift = 0;
 
-    m_shifts2D.reserve(0);
+    // m_shifts2D.reserve(0); // COSS: This is not necessary (size=0), and it is causing some Sonarcloud bug
 
     m_isInit = false;
     m_is_ref_loaded = false;
