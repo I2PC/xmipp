@@ -336,7 +336,7 @@ void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChim
 			std::string auxstr = std::to_string(residuesToChimera[resi-1]);
 
 			// The bfactor column has 6 characters so we set the normalized resolution to 
-            // 5 characters with an empty character at the front
+			// 5 characters with an empty character at the front
 			auxstr = auxstr.substr(0, 5);
 			std::stringstream ss;
 			ss << std::setfill(' ') << std::setw(6) << auxstr;
