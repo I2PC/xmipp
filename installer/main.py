@@ -282,11 +282,10 @@ def compileSources(jobs):
 		"""
 		sources = [XMIPP_CORE, XMIPP, XMIPP_VIZ]
 		dictPackage, _ = readConfig()
-
 		for source in sources:
 				printMessage(text='\n-- Compiling {}...'.format(source), debug=True)
 				retCode, outputStr = runJob("/usr/bin/env python3 -u $(which scons) -j%s" % jobs, "src/%s" % source,
-																	streaming=True, showOutput=False, showError=True)
+																	streaming=True, showOutput=True, showError=True)
 				if retCode != 0:
 						if source == XMIPP_CORE:
 									exitError(retCode=XMIPPCORE_COMPILLATION_ERROR, output=outputStr)
@@ -810,10 +809,10 @@ def cloneSourceRepo(repo: str, branch: str=None) -> Tuple[bool, str]:
 			os.chdir(destinyPath)
 			retcode, output = runJob(f"git pull ")
 			if retcode != 0:
-					printWarning(text=output, warningCode=GIT_PULL_WARNING)
+					printWarning(text=output, warningCode=GIT_PULL_WARNING, pathFile=currentPath)
 					retcode = 0
 			else:
-					printMessage(text=green("{} updated.".format(repo)), debug=True)
+					printMessage(text=green("{} updated.".format(repo)), debug=True, pathFile=currentPath)
 	else:
 			retcode, output = runJob(f"git clone --branch {branch} {REPOSITORIES[repo][0]}")
 			if retcode == 0:

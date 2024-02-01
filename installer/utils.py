@@ -35,7 +35,7 @@ from sysconfig import get_paths
 from .constants import (SCONS_MINIMUM, MODES, CUDA_GCC_COMPATIBILITY, vGCC,\
 	TAB_SIZE, XMIPP_VERSIONS, XMIPP, VERNAME_KEY, LOG_FILE, IO_ERROR, ERROR_CODE,\
 	CMD_OUT_LOG_FILE, CMD_ERR_LOG_FILE, OUTPUT_POLL_TIME, SCONS_VERSION_ERROR,
-												WARNING_CODE, XMIPPENV, urlModels, remotePath, urlTest)
+												XMIPP_VERSIONS, MODE_GET_MODELS, WARNING_CODE, XMIPPENV, urlModels, remotePath, urlTest)
 
 ####################### RUN FUNCTIONS #######################
 def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=False, showCommand: bool=False, streaming: bool=False) -> Tuple[int, str]:
@@ -184,7 +184,7 @@ def printMessage(text: str, debug: bool=False, pathFile:str=''):
 	except OSError:
 		printError(f"Could not open log file to add info.\n{ERROR_CODE[IO_ERROR]}", retCode=IO_ERROR)
 
-def printWarning(text: str, warningCode: int, debug: bool=True):
+def printWarning(text: str, warningCode: int, debug: bool=True, pathFile:str=''):
 	"""
 	### This function logs the given text as a warning.
 
@@ -193,7 +193,8 @@ def printWarning(text: str, warningCode: int, debug: bool=True):
 	- warningCode (int): Code of the controlled warning.
 	- debug (bool): Indicates if debug mode is active.
 	"""
-	printMessage(yellow(f'!! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'), debug=debug)
+	printMessage(yellow(f'!! Warning code {warningCode}: {WARNING_CODE[warningCode][0]}\n{WARNING_CODE[warningCode][1]}\n'),
+							 debug=debug, pathFile=pathFile)
 
 
 
@@ -254,26 +255,26 @@ def addDeepLearninModel(login, modelPath='', update=None):
 		tgzFn = "xmipp_model_%s.tgz" % modelName
 		localFn = os.path.join(modelsDir, tgzFn)
 
-		print("Creating the '%s' model." % tgzFn)
+		printMessage("Creating the '%s' model." % tgzFn, debug=True)
 		runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
 
-		print("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
-		print('You are going to be connected to "%s" to write in folder '
+		printMessage("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
+		printMessage('You are going to be connected to "%s" to write in folder '
 					'"%s".' % (login, remotePath))
 		if input("Continue? YES/no\n").lower() == 'no':
 				sys.exit()
 
-		print("Trying to upload the model using '%s' as login" % login)
+		printMessage("Trying to upload the model using '%s' as login" % login)
 		args = "%s %s %s %s" % (
 		login, os.path.abspath(localFn), remotePath, update)
 		if runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args):
-				print("'%s' model successfully uploaded! Removing the local .tgz"
+				printMessage("'%s' model successfully uploaded! Removing the local .tgz"
 							% modelName)
 				runJob("rm %s" % localFn)
 
 def downloadDeepLearningModels(dest:str='build'):
     if not os.path.exists('build/bin/xmipp_sync_data'):
-        print(red('Xmipp has not been installed. Please, first install Xmipp '))
+        printMessage(red('Xmipp has not been installed. Please, first install Xmipp '))
         return False
     if dest == 'build':
         modelsPath = 'models'
@@ -282,20 +283,21 @@ def downloadDeepLearningModels(dest:str='build'):
     dataSet = "DLmodels"
 
     # downloading/updating the DLmodels
-    if os.path.isdir(modelsPath):
-        print("Updating the Deep Learning models...")
+    if os.path.isdir(os.path.join(dest, modelsPath)):
+        printMessage("-- Updating the Deep Learning models...", debug=True)
         task = "update"
     else:
-        print("Downloading Deep Learning models...")
+        printMessage("-- Downloading Deep Learning models...", debug=True)
         task = "download"
     global pDLdownload
     retCode, outputStr = runJob("bin/xmipp_sync_data %s %s %s %s"
                          % (task, modelsPath, urlModels, dataSet),
-                         cwd='build', streaming=True)
+                         cwd='build', streaming=True, showOutput=True)
     if retCode != 0:
-        print(red('Unable to download models\n{}'.format(outputStr)))
+        printMessage(red('Unable to download models. Try again with ./xmipp {}\n{}'.format(MODE_GET_MODELS, outputStr)), debug=True)
     else:
-        print(green('Models downloaded in the path: {}'.format(modelsPath)))
+        printMessage(green('Models downloaded in the path: {}'.format(modelsPath)), debug=True)
+        printMessage(green('-- Done'), debug=True)
 
 def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
 						 allFuncs:bool=False, CUDA: bool=True):
@@ -316,9 +318,9 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
             os.environ.get('PYTHONPATH', '')])
         testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
     else:
-        print(red('XMIPP_SRC is not in the enviroment.') +
+        printMessage(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
-              blue('source build/xmipp.bashrc'))
+              blue('source build/xmipp.bashrc'), debug=True)
         return
 
     dataSetPath = os.path.join(testsPath, 'data')
@@ -327,28 +329,28 @@ def runTests(testName:str='', show:bool=False, allPrograms:bool=False,
     # downloading/updating the dataset
     dataset = 'xmipp_programs'
     if os.path.isdir(dataSetPath):
-        print("\n- Updating the test files...")
+        printMessage("\n- Updating the test files...", debug=True)
         task = "update"
         showOutput=False
     else:
-        print("\n- Downloading the test files...")
+        printMessage("\n- Downloading the test files...", debug=True)
         task = "download"
         showOutput=True
     args = "%s %s %s" % ("tests/data", urlTest, dataset)
     retCode, outputStr = runJob("bin/xmipp_sync_data %s %s" % (task, args),
 												cwd='src/xmipp', showOutput=showOutput)
     if retCode != 0:
-        print(red('Error downloading test files.\n{}'.format(outputStr)))
+        printMessage(red('Error downloading test files.\n{}'.format(outputStr)))
     else:
         printMessage(text=green('Done'), debug=True)
 
     noCudaStr = '-noCuda' if not CUDA else ''
     if testName or allPrograms:
-        print("\nTests to do: %s" % (str2Test))
+        printMessage("\nTests to do: %s" % (str2Test), debug=True)
     retCode, outputStr = runJob("(cd src/xmipp/tests; %s test.py %s %s)"
                   % ('python3', str2Test, noCudaStr), streaming=True, showOutput=True)
     if retCode != 0:
-        print(red('Error runnig test.\n{}'.format(outputStr)))
+        printMessage(red('Error runnig test.\n{}'.format(outputStr)))
 
 
 
@@ -413,6 +415,8 @@ def bold(text: str) -> str:
 	- (str): Text formatted in bold.
 	"""
 	return f"\033[1m{text}\033[0m"
+
+
 
 ####################### GIT FUNCTIONS #######################
 def getCurrentBranch(dir: str='./') -> Union[str, None]:
@@ -635,6 +639,27 @@ def getPythonPackageVersion(packageName: str) -> Union[str, None]:
 				return line.split()[-1]
 
 ####################### OTHER FUNCTIONS #######################
+def printHappyEnd():
+		branch = branchName()
+		if branch == 'master':
+				branch = ''
+		else:
+				branch = 'devel'
+		strXmipp = 'Xmipp {} {} has been successfully installed, enjoy it!'.format(
+				XMIPP_VERSIONS['xmipp']['vername'], branch)
+		lenStr = len(strXmipp)
+		border = '*' * (lenStr + 6)
+		spaceStr = ' ' * (lenStr + 3)
+		print(border)
+		print('*' + spaceStr + '*')
+		print('* ', end='')
+		print(green(strXmipp), end='')
+		print(' *')
+		print('*' + spaceStr + '*')
+		print(border)
+		print('\n')
+		printMessage(text=strXmipp, debug=False)
+
 
 def branchName():
 		retCode, outputStr = runJob('git status')
@@ -911,7 +936,7 @@ def runStreamingJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: 
 		errorText = str(e)
 
 	# Remove tmp files
-	runJob(f"rm -f {CMD_OUT_LOG_FILE} {CMD_ERR_LOG_FILE}", cwd=cwd)
+	runJob(f"rm -f {LOG_FILE}", cwd=cwd)
 
 	# If there were errors, show them instead of returning
 	if error:
@@ -939,7 +964,7 @@ def writeProcessOutput(process: subprocess.Popen, readerOut: io.FileIO, readerEr
 	while True:
 		# Get process running status and print output
 		isProcessFinished = process.poll() is not None
-		outputStr += writeReaderLine(readerOut, show=showOutput)
+		outputStr += writeReaderLine(readerOut, show=False)
 		outputStr += writeReaderLine(readerErr, show=showError, err=True)
 		
 		# If process has finished, exit loop

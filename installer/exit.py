@@ -22,11 +22,21 @@
 # * e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 import sys
+import os
 from .api import sendApiPost
 from .reportTar import createTar
+from .constants import COMPRESED_FILE
+from .utils import printHappyEnd
 
 def exitXmipp(retCode:int=0, dictPackages:dict={}, tarPost:bool=True):
+	try:
+		os.remove(COMPRESED_FILE)
+	except FileNotFoundError:
+			pass
 	if tarPost:
-			createTar()
+			if retCode != 0:
+				createTar()
+			else:
+					printHappyEnd()
 			sendApiPost(dictPackage=dictPackages, retCode=retCode)
 	sys.exit(retCode)

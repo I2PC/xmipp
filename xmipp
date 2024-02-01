@@ -91,7 +91,8 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
-	"""	# Get sources
+	"""
+	# Get sources
 	getSources(branch=args.branch)
 	# Compile external dependencies
 	printMessage('\n---------------------------------------\n', debug=True)
