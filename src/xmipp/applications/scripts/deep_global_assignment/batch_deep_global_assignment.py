@@ -81,6 +81,7 @@ class ScriptDeepGlobalAssignment(XmippScript):
                     if self.mode == 'shift':
                         self.y[i] = self.shifts[i]
                     else:
+                        # print(self.fnImgs[i], np.max(I), "shift", -self.shifts[i])
                         I = shift(I, -self.shifts[i], mode='wrap')
                         self.y[i] = euler_to_rotation6d(self.angles[i])
                     self.X[i] = np.reshape(I, (self.dim, self.dim, 1))
