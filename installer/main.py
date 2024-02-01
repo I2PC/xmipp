@@ -42,7 +42,7 @@ from .constants import (XMIPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN, REPOSITORIES
   INSTALLATION_ERROR, LINKING2SCIPION, VERSION_KEY, SCIPION_LINK_WARNING,
   CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE,XMIPP_VIZ, XMIPP_PLUGIN)
 from .utils import (runJob, getCurrentBranch, printError, printMessage, green,
-										printWarning, createDir, getScipionHome, yellow)
+										printWarning, createDir, getScipionHome, yellow, blue)
 from .config import readConfig
 
 ####################### COMMAND FUNCTIONS #######################
@@ -73,7 +73,7 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 			status, output = cloneSourceRepo(repo=source, branch=REPOSITORIES[source][1])
 			if status != 0:
 				exitError(retCode=CLONNING_EXTERNAL_SOURCE_ERROR, output=output)
-	printMessage(text='-- Done', debug=True)
+	printMessage(text=green('-- Done'), debug=True)
 
 
 	printMessage(text='\n-- Getting Xmipp sources...', debug=True)
@@ -92,7 +92,7 @@ def getSources(branch: str=None, LOG_FILE_path:str=''):
 		# If download failed, return error
 		if status != 0:
 			exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=output)
-	printMessage(text='-- Done', debug=True)
+	printMessage(text=green('-- Done'), debug=True)
 
 
 
@@ -118,7 +118,7 @@ def compileExternalSources(jobs):
 		compile_googletest()
 		compile_libsvm()
 		compile_libcifpp(jobs)
-		printMessage(text='-- Done', debug=True)
+		printMessage(text=green('-- Done'), debug=True)
 
 def compile_cuFFTAdvisor():
 		"""
@@ -150,7 +150,7 @@ def compile_cuFFTAdvisor():
 		else:
 				os.chdir(currDir)
 				exitError(retCode=CLONNING_XMIPP_SOURCE_ERROR, output=outputStr, pathFile=currDir)
-		printMessage('-  Done', debug=True, pathFile=currDir)
+		printMessage(green('-  Done'), debug=True, pathFile=currDir)
 
 
 
@@ -295,8 +295,20 @@ def compileSources(jobs):
 
 						elif source == XMIPP_VIZ:
 									exitError(retCode=XMIPPVIZ_COMPILLATION_ERROR, output=outputStr)
-				printMessage(text='\n-- Done. Compiled {}'.format(source), debug=True)
+				printMessage(text=green('\n-- Done. Compiled {}'.format(source)), debug=True)
 
+def compileAndInstall(args):
+	# Get sources
+	getSources(branch=args.branch)
+	# Compile external dependencies
+	printMessage('\n---------------------------------------\n', debug=True)
+	compileExternalSources(jobs=args.jobs)
+	printMessage('\n---------------------------------------\n', debug=True)
+	# Compile Xmipp
+	compileSources(jobs=args.jobs)
+	printMessage('\n---------------------------------------\n', debug=True)
+	#Install
+	install(directory=args.directory)
 
 
 def install(directory):
@@ -429,7 +441,7 @@ def install(directory):
 		if retCode != 0:
 				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 
-		printMessage(text=green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', '')))), debug=True)
+		printMessage(text='Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', ''))), debug=True)
 
 		# Scipion connection
 		linkToScipion(directory, verbose)
@@ -497,13 +509,15 @@ def install(directory):
 		- RuntimeError: If any error occurs during the installation process, a RuntimeError is raised.
 		"""
 
-		printMessage(text='\n- Installing...', debug=True)
+		printMessage(text='\n-- Installing...', debug=True)
 		currentBranch = getCurrentBranch()
 		if XMIPP_VERSIONS[XMIPP] == currentBranch:
 				verbose = False
 		else:
 				verbose = True
 		cleanDeprecated()
+		printMessage(text='\n- Linking Xmipp...', debug=True)
+
 		cpCmd = "rsync -LptgoD "
 		createDir(directory)
 		createDir(directory + "/lib")
@@ -557,6 +571,7 @@ def install(directory):
 				cpCmd + " src/xmipp/bindings/python/xmipp_base.py " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
 				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
+
 		retCode, outputStr = runJob(cpCmd + " src/xmipp/bindings/python/xmipp.py " + directory + "/bindings/python/", showCommand=verbose)
 		if retCode != 0:
 				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
@@ -612,12 +627,17 @@ def install(directory):
 		if retCode != 0:
 				exitError(retCode=INSTALLATION_ERROR, output=outputStr)
 
-		printMessage(text=green('Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', '')))), debug=True)
+		printMessage(text='Xmipp installed on {}'.format(os.path.join(os.getcwd(), directory.replace('./', ''))), debug=True)
+
+		printMessage(text=green('\n- Done'), debug=True)
 
 		# Scipion connection
+		printMessage("\n- Linking to Scipion...",debug=True)
 		linkToScipion(directory, verbose)
 
 		runJob("touch %s/v%s" % (directory, XMIPP_VERSIONS[XMIPP][VERSION_KEY]), showCommand=verbose)  # version token
+		printMessage("\n- Creating the xmipp.bashrc file...",debug=True)
+
 		fhBash = open(directory + "/xmipp.bashrc", "w")
 		fhFish = open(directory + "/xmipp.fish", "w")
 		fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -665,6 +685,10 @@ def install(directory):
 
 		fhBash.close()
 		fhFish.close()
+		printMessage(green("- Done"), debug=True)
+		printMessage(green("\n-- Done"), debug=True)
+
+
 
 def cleanDeprecated():
 		"""
@@ -681,7 +705,7 @@ def cleanDeprecated():
 		Raises:
 		- RuntimeError: If an error occurs during the removal process, a RuntimeError is raised.
 		"""
-		printMessage(text='Cleaning deprecated programs...', debug=True)
+		printMessage(text='\n- Cleaning deprecated programs...', debug=True)
 		listCurrentPrograms = []
 		retCode, outputStr = runJob('find src/xmipp/bin/*')
 		files = outputStr.split('\n')
@@ -701,7 +725,7 @@ def cleanDeprecated():
 
 		if len(list2RemoveXmipp) > 0:
 				 printMessage(text=green('Deprecated programs removed'), debug=True)
-		printMessage(green('Done'), debug=True)
+		printMessage(green('- Done'), debug=True)
 
 def cleanSources():
 		DEPENDENCIES = [CUFFTADVISOR,	CTPL,	GTEST, LIBSVM, LIBCIFPP, XMIPP_CORE, XMIPP_VIZ, XMIPP_PLUGIN]
@@ -856,7 +880,6 @@ def linkToScipion(directory:str, verbose:bool=False):
 		currentDir = os.getcwd()
 		dirnameAbs = os.path.join(currentDir, directory)
 		if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
-		    printMessage("\nLinking to Scipion ---------------------------------------", debug=True)
 		    printMessage('scipionSoftware: {}'.format(scipionSoftware), debug=True)
 		if os.path.isdir(xmippHomeLink):
 				retCode, outputStr = runJob("rm %s" %xmippHomeLink, showCommand=verbose)
@@ -889,7 +912,9 @@ def linkToScipion(directory:str, verbose:bool=False):
 				if retCode != 0:
 						exitError(retCode=LINKING2SCIPION, output=outputStr)
 				os.chdir(currentDir)
-				printMessage(text=green(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
+				printMessage(text=blue(str("Xmipp linked to Scipion on " + xmippHomeLink) + (' ' * 150)), debug=True)
+				printMessage(green("- Done"), debug=True)
+
 		else:
 				printWarning(text='', warningCode=SCIPION_LINK_WARNING)
 

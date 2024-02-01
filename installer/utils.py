@@ -62,6 +62,7 @@ def runJob(cmd: str, cwd: str='./', showOutput: bool=False, showError: bool=Fals
 	if streaming:
 		retCode, outputStr = runStreamingJob(cmd, cwd=cwd, showOutput=showOutput, showError=showError)
 	else:
+
 		process = subprocess.Popen(cmd, cwd=cwd, env=os.environ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		
 		# Defining output string
@@ -157,7 +158,6 @@ def printError(errorMsg: str, retCode: int=1, pathFile:str=''):
 	# Print the error message in red color
 	errorStr = f'!! ERROR {retCode}: {errorMsg}\n{ERROR_CODE[retCode][0]}\n{ERROR_CODE[retCode][1]}'
 	printMessage(red(errorStr), debug=True, pathFile=pathFile)
-
 
 def printMessage(text: str, debug: bool=False, pathFile:str=''):
 	"""
@@ -648,8 +648,9 @@ def printHappyEnd():
 		strXmipp = 'Xmipp {} {} has been successfully installed, enjoy it!'.format(
 				XMIPP_VERSIONS['xmipp']['vername'], branch)
 		lenStr = len(strXmipp)
-		border = '*' * (lenStr + 6)
-		spaceStr = ' ' * (lenStr + 3)
+		border = '*' * (lenStr + 4)
+		spaceStr = ' ' * (lenStr + 2)
+		print('\n')
 		print(border)
 		print('*' + spaceStr + '*')
 		print('* ', end='')

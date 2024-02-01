@@ -78,7 +78,7 @@ def config(debugP:bool=True, scratch:bool=False, tarAndPost:bool=True, checkConf
         dictPackages = getSystemValues()
         dictInternalFlags = getInternalFlags(dictPackages)
         writeConfig(dictPackages, dictInternalFlags)
-        printMessage(text='-- Done', debug=True)
+        printMessage(text=green('-- Done'), debug=True)
 
     else:
         dictPackages, dictInternalFlags = readConfig()

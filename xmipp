@@ -38,7 +38,7 @@ from installer.utils import (printError, runJob, addDeepLearninModel,
 from installer.config import config, checkGit
 from installer.parser import ModeHelpFormatter, GeneralHelpFormatter, ErrorHandlerArgumentParser
 from installer.main import (getSources, compileExternalSources, compileSources, install,
-														cleanDeprecated, cleanSources, cleanBin)
+														cleanDeprecated, cleanSources, cleanBin, compileAndInstall)
 from installer.versions import collectAllVersions
 from installer.exit import exitXmipp
 
@@ -92,17 +92,11 @@ def modeCompileAndInstall(args: argparse.Namespace, dictConfig=None):
 	#### Params:
 	- args (Namespace): Command line arguments parsed by argparse library.
 	"""
-	# Get sources
-	getSources(branch=args.branch)
-	# Compile external dependencies
-	printMessage('\n---------------------------------------\n', debug=True)
-	compileExternalSources(jobs=args.jobs)
-	printMessage('\n---------------------------------------\n', debug=True)
-	# Compile Xmipp
-	compileSources(jobs=args.jobs)
-	printMessage('\n---------------------------------------\n', debug=True)
-	#Install
-	install(directory=args.directory)
+	try:
+		os.remove(LOG_FILE)
+	except FileNotFoundError:
+			pass
+	compileAndInstall(argparse.Namespace)
 
 def modeConfig(args: argparse.Namespace):
 	"""
@@ -222,10 +216,10 @@ def modeAll(args: argparse.Namespace):
 	printMessage('\n---------------------------------------\n', debug=True)
 	dictConfig = config(debugP=False,tarAndPost=True)
 	printMessage('\n---------------------------------------\n', debug=True)
+	compileAndInstall(args)
 	modeCompileAndInstall(args, dictConfig=dictConfig)
 	printMessage('\n---------------------------------------\n', debug=True)
-	downloadDeepLearningModels()
-	printMessage('\n---------------------------------------\n', debug=True)
+	#downloadDeepLearningModels()
 
 	exitXmipp(dictPackages=dictConfig)
 
