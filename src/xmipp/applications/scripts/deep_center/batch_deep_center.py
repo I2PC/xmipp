@@ -101,7 +101,7 @@ class ScriptDeepCenterTrain(XmippScript):
                 Iexp = list(itemgetter(*list_IDs_temp)(self.Xexp))
 
                 # Data augmentation
-                generator = np.random.Generator()
+                generator = np.random.default_rng()
                 rX = self.sigma * generator.normal(0, 1, size=self.batch_size)
                 rY = self.sigma * generator.normal(0, 1, size=self.batch_size)
                 # Shift image a random amount of px in each direction

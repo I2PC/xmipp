@@ -116,7 +116,7 @@ void ProgVolumeValidationPCA::reconstruct()
 	if (system(cmd.c_str())==-1)
     	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
 
-    args=formatString("-i %s -o %s --mask circular %d -v 0",fnVol.c_str(),fnVol.c_str(),-xdim/2);
+    args=formatString("-i %s -o %s --mask circular %d -v 0",fnVol.c_str(),fnVol.c_str(),static_cast<int>(-xdim/2));
     cmd=(String)"xmipp_transform_mask "+args;
 	if (system(cmd.c_str())==-1)
     	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
@@ -142,7 +142,7 @@ void ProgVolumeValidationPCA::reconstruct()
         	if (system(cmd.c_str())==-1)
             	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
 
-            args=formatString("-i %s -o %s --mask circular %d -v 0",fnVol.c_str(),fnVol.c_str(),-xdim/2);
+            args=formatString("-i %s -o %s --mask circular %d -v 0",fnVol.c_str(),fnVol.c_str(),static_cast<int>(-xdim/2));
             cmd=(String)"xmipp_transform_mask "+args;
         	if (system(cmd.c_str())==-1)
             	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
@@ -154,7 +154,7 @@ void ProgVolumeValidationPCA::reconstruct()
 	if (system(cmd.c_str())==-1)
     	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
 
-    args=formatString("-i %s -o %s --mask circular %d -v 0",fnVol.c_str(),fnVol.c_str(),-xdim/2);
+    args=formatString("-i %s -o %s --mask circular %d -v 0",fnVol.c_str(),fnVol.c_str(),static_cast<int>(-xdim/2));
     cmd=(String)"xmipp_transform_mask "+args;
 	if (system(cmd.c_str())==-1)
     	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot open shell");
